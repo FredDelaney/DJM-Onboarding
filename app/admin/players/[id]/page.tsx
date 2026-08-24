@@ -4,10 +4,11 @@ import {useEffect,useState} from 'react';
 import {useParams,useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft,Save,Send,ShieldCheck,ExternalLink,Copy,Eye,Upload,Plus,Check,
-  MessageCircle,Activity,FileText,BriefcaseBusiness,Video,BarChart3,Trash2
+ArrowLeft,Save,Send,ShieldCheck,ExternalLink,Copy,Eye,Upload,Plus,Check,
+MessageCircle,Activity,FileText,BriefcaseBusiness,Video,BarChart3,Trash2,Download
 } from 'lucide-react';
 import {AdminShell,useAdmin} from '@/components/AdminShell';
+import {downloadClubCv} from '@/components/ClubCvPdf';
 import {fmtDate,publicFile,supabase} from '@/lib/supabase';
 
 const txt=(v:any)=>v??'';
@@ -49,6 +50,7 @@ export default function AdminPlayer(){
   const [shares,setShares]=useState<any[]>([]);
   const [pushSubs,setPushSubs]=useState<any[]>([]);
   const [busy,setBusy]=useState(false);
+  const [pdfBusy,setPdfBusy]=useState(false);
   const [toast,setToast]=useState('');
 
   const [reqTitle,setReqTitle]=useState('');
@@ -133,6 +135,37 @@ export default function AdminPlayer(){
   const latest=checks[0];
   const liveOpps=opps.filter(o=>!['won','lost','closed'].includes(o.stage));
   const isFullAdmin=auth.profile?.role==='admin';
+  const downloadCv=async()=>{
+  if(!pub){
+    flash('Create the club profile before downloading the CV');
+    return;
+  }
+
+  setPdfBusy(true);
+
+  try{
+    const cvPhoto=publicFile(
+      'player-public',
+      pub.profile_photo_path||p.profile_photo_path
+    );
+
+    await downloadClubCv({
+      profile:pub,
+      photoUrl:cvPhoto||null,
+      logoUrl:`${window.location.origin}/djm-mark.png`,
+      filename:`${name}-DJM-CV.pdf`
+    });
+
+    flash('DJM CV downloaded');
+  }catch(error:any){
+    flash(
+      error?.message||
+      'Could not build DJM CV'
+    );
+  }finally{
+    setPdfBusy(false);
+  }
+};
 
   const flash=(m:string)=>{
     setToast(m);
@@ -1091,6 +1124,14 @@ export default function AdminPlayer(){
                 </div>
 
                 <div className="row" style={{marginTop:16,flexWrap:'wrap'}}>
+                  <button
+  className="btn btn-dark"
+  onClick={downloadCv}
+  disabled={pdfBusy||!pub}
+>
+  <Download size={15}/>
+  {pdfBusy?'Building PDF…':'Download DJM CV'}
+</button>
                   <button className="btn btn-quiet" onClick={save} disabled={busy}>
                     <Save size={15}/> Save draft
                   </button>
