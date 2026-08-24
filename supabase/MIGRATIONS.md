@@ -63,6 +63,8 @@ Current production migration sequence:
 57. `20260824075327 add_stats_provenance_and_public_stats_link`
 58. `20260824080431 sync_public_stats_url_from_player`
 59. `20260824120256 harden_weekly_checkin_validation_v1`
+60. `20260824133918 protect_document_club_share_approval_v1`
+61. `20260824134211 fix_document_club_share_guard_execution_context_v1`
 
 ## Recovery rule
 
@@ -81,3 +83,7 @@ Before any major schema change:
 The migrations from `20260823221734` through `20260824120256` were recovered directly from the live Supabase migration history on 24 August 2026.
 
 `20260824120256_harden_weekly_checkin_validation_v1` was applied as part of the production-hardening pass and existing weekly check-in records were successfully validated afterwards.
+
+`20260824133918_protect_document_club_share_approval_v1` added a database-level guard around document club-sharing approval.
+
+`20260824134211_fix_document_club_share_guard_execution_context_v1` corrected the trigger execution-context check and was verified with rollback-only permission tests: players can continue managing normal documents, players cannot approve documents for club sharing, and DJM admins can.
