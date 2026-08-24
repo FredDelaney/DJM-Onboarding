@@ -3287,7 +3287,7 @@ a:focus-visible {
     print-color-adjust: exact;
   }
 
-  .public-profile .btn {
+     .public-profile .btn {
     min-height: 0;
 
     padding:
@@ -3302,15 +3302,147 @@ a:focus-visible {
       1px solid #ddd;
   }
 
-   /* 
-}
   .public-profile .no-print {
     display: none !important;
   }
 
 }
 
+
 /* =========================================================
    DJM BRAND — PERFECT CENTRED LOGO
    ========================================================= */
 
+/*
+ * Never crop the DJM artwork.
+ * Give the source image breathing room and centre it
+ * inside a predictable square.
+ */
+.brand-mark {
+  width: 44px;
+  height: 44px;
+
+  flex: 0 0 44px;
+
+  display: grid;
+  place-items: center;
+
+  overflow: visible;
+}
+
+.brand-mark img {
+  width: 100% !important;
+  height: 100% !important;
+
+  padding: 5px;
+
+  object-fit: contain !important;
+  object-position: center center !important;
+
+  border-radius: 0 !important;
+
+  transform-origin: center center;
+}
+
+/*
+ * Remove the old crop behaviour everywhere Brand is used.
+ */
+.brand img {
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+/*
+ * PLAYER APP HEADER
+ * Brand sits exactly in the centre of the screen,
+ * regardless of the logout button.
+ */
+.topbar-min {
+  position: relative;
+
+  justify-content: center;
+}
+
+.topbar-min > .brand {
+  position: absolute;
+
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  margin: 0;
+}
+
+.topbar-min > .icon-btn {
+  position: absolute;
+
+  right: 0;
+}
+
+/*
+ * ADMIN HEADER
+ * Same exact centred treatment.
+ */
+.admin-top {
+  position: relative;
+
+  justify-content: center;
+}
+
+.admin-top > .brand {
+  position: absolute;
+
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  margin: 0;
+
+  white-space: nowrap;
+}
+
+.admin-top > .row {
+  margin-left: auto;
+}
+
+/*
+ * PUBLIC PLAYER DOSSIER
+ * It uses the logo directly rather than Brand.tsx.
+ */
+.public-brand img {
+  width: 42px !important;
+  height: 42px !important;
+
+  padding: 5px;
+
+  object-fit: contain !important;
+  object-position: center center !important;
+
+  border-radius: 0 !important;
+}
+
+/*
+ * Keep the centred mark clean on smaller screens.
+ */
+@media (max-width: 640px) {
+  .brand-mark {
+    width: 42px;
+    height: 42px;
+
+    flex-basis: 42px;
+  }
+
+  .brand-mark img,
+  .public-brand img {
+    padding: 5px;
+  }
+
+  .brand-copy {
+    font-size: 15px;
+  }
+
+  .brand-copy small {
+    font-size: 8px;
+  }
+}
+ 
