@@ -1,4 +1,5 @@
 import './globals.css';
+import './admin-polish.css';
 export const metadata = {
   title:'DJM Player',
   description:'Private career app by DJM Sports Management',
