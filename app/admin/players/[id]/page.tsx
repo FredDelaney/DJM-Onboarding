@@ -69,6 +69,7 @@ export default function AdminPlayer(){
   const [statsRows,setStatsRows]=useState<ImportedStatRow[]>([]);
   const [statsWarnings,setStatsWarnings]=useState<string[]>([]);
   const [statsSource,setStatsSource]=useState('');
+  const [statsFileName,setStatsFileName]=useState('');
 
   const load=async()=>{
     const [
@@ -603,12 +604,52 @@ export default function AdminPlayer(){
     await load();
   };
 
-  const openStatsImport=()=>{
-    setStatsSource(p.transfermarkt_url||p.stats_url||'');
-    setStatsText('');
+  const readStatsFile=async(e:any)=>{
+  const file=e.target.files?.[0];
+  if(!file)return;
+
+  if(
+    !file.name.toLowerCase().endsWith('.csv') &&
+    !file.name.toLowerCase().endsWith('.txt') &&
+    !file.name.toLowerCase().endsWith('.tsv')
+  ){
+    flash('Choose a CSV, TSV or text export');
+    e.target.value='';
+    return;
+  }
+
+  try{
+    const text=await file.text();
+
+    if(!text.trim()){
+      flash('That file is empty');
+      return;
+    }
+
+    setStatsFileName(file.name);
+    setStatsText(text);
     setStatsRows([]);
     setStatsWarnings([]);
-    setStatsOpen(true);
+
+    flash('Transfermarkt file ready to review');
+  }catch{
+    flash('Could not read that file');
+  }
+
+  e.target.value='';
+};
+  const openStatsImport=()=>{
+    setStatsSource(p.transfermarkt_url||p.stats_url||'');
+
+setStatsText('');
+
+setStatsFileName('');
+
+setStatsRows([]);
+
+setStatsWarnings([]);
+
+setStatsOpen(true);
   };
 
   const parseStats=async()=>{
@@ -1398,15 +1439,124 @@ export default function AdminPlayer(){
 
               {statsRows.length===0?(
                 <>
-                  <div className="field" style={{marginTop:20}}>
-                    <label className="label">Source URL</label>
-                    <input
-                      className="input"
-                      value={statsSource}
-                      onChange={e=>setStatsSource(e.target.value)}
-                      placeholder="Transfermarkt player / detailed stats URL"
-                    />
-                  </div>
+                 <div
+  className="card soft"
+  style={{
+    marginTop:16,
+    padding:18,
+    borderRadius:20,
+    border:'1px solid var(--line)'
+  }}
+>
+  <div className="section-kicker">
+    TRANSFERMARKT EXPORT
+  </div>
+
+  <h3 style={{margin:'0 0 6px'}}>
+    Import performance CSV
+  </h3>
+
+  <p
+    className="small muted"
+    style={{
+      margin:'0 0 16px',
+      lineHeight:1.5
+    }}
+  >
+    Download the player performance report from
+    Transfermarkt, then choose the CSV here. DJM
+    will read the seasons and let you review
+    everything before anything is saved.
+  </p>
+
+  <label
+    className="btn btn-navy btn-block"
+    style={{cursor:'pointer'}}
+  >
+    <BarChart3 size={15}/>
+    {statsFileName
+      ? 'Choose another file'
+      : 'Choose Transfermarkt CSV'}
+
+    <input
+      type="file"
+      hidden
+      accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"
+      onChange={readStatsFile}
+    />
+  </label>
+
+  {statsFileName&&(
+    <div
+      className="row"
+      style={{
+        marginTop:13,
+        justifyContent:'center'
+      }}
+    >
+      <Check size={15}/>
+      <span
+        className="small"
+        style={{fontWeight:700}}
+      >
+        {statsFileName}
+      </span>
+    </div>
+  )}
+</div>
+
+<div
+  style={{
+    display:'flex',
+    alignItems:'center',
+    gap:12,
+    margin:'18px 0'
+  }}
+>
+  <div
+    style={{
+      height:1,
+      background:'var(--line)',
+      flex:1
+    }}
+  />
+
+  <span className="tiny muted">
+    OR PASTE DATA
+  </span>
+
+  <div
+    style={{
+      height:1,
+      background:'var(--line)',
+      flex:1
+    }}
+  />
+</div>
+
+<div className="field">
+  <label className="label">
+    Paste season table
+  </label>
+
+  <textarea
+    className="textarea"
+    style={{
+      minHeight:150,
+      fontFamily:
+        'ui-monospace,SFMono-Regular,Menlo,monospace',
+      fontSize:13
+    }}
+    value={statsText}
+    onChange={e=>{
+      setStatsText(e.target.value);
+      setStatsFileName('');
+    }}
+    placeholder={
+      "Season\tClub\tCompetition\tApps\tStarts\tGoals\tAssists\tMinutes"
+    }
+  />
+</div>
 
                   <div className="field" style={{marginTop:14}}>
                     <label className="label">Paste season table</label>
@@ -1425,9 +1575,16 @@ export default function AdminPlayer(){
                         Open source <ExternalLink size={14}/>
                       </a>
                     )}
-                    <button className="btn btn-navy" onClick={parseStats} disabled={busy||!statsText.trim()}>
-                      <BarChart3 size={15}/>{busy?'Reading…':'Review imported rows'}
-                    </button>
+                  <button
+  className="btn btn-navy"
+  onClick={parseStats}
+  disabled={busy||!statsText.trim()}
+>
+  <BarChart3 size={15}/>
+  {busy
+    ? 'Reading performance data…'
+    : 'Review performance data'}
+</button>
                   </div>
                 </>
               ):(
