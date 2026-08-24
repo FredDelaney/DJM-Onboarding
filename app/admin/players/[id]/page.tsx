@@ -743,60 +743,95 @@ setStatsOpen(true);
   return (
     <AdminShell>
       <main className="container admin-main">
-        <Link href="/admin" className="small muted row" style={{display:'inline-flex',marginBottom:22}}>
-          <ArrowLeft size={15}/> Back to players
-        </Link>
+               <div className="admin-player-back">
+          <Link href="/admin" className="admin-back-link">
+            <ArrowLeft size={16}/>
+            <span>Players</span>
+          </Link>
+        </div>
 
-        <div className="row-between" style={{alignItems:'flex-start'}}>
-          <div className="row" style={{alignItems:'flex-start',gap:18}}>
-            <label className="avatar avatar-xl" style={{cursor:'pointer'}}>
-              {photo?<img src={photo} alt=""/>:<Upload size={22}/>}
+        <section className="admin-player-hero">
+          <div className="admin-player-identity">
+            <label className="admin-player-photo" style={{cursor:'pointer'}}>
+              {photo ? (
+                <img src={photo} alt={name}/>
+              ) : (
+                <span className="admin-player-photo-fallback">
+                  {name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="admin-player-photo-edit">
+                <Upload size={14}/>
+              </span>
               <input type="file" hidden accept="image/*" onChange={uploadPhoto}/>
             </label>
 
-            <div>
-              <div className="row" style={{flexWrap:'wrap'}}>
-                <h1 className="admin-title">{name}</h1>
-                <span className={`pill ${p.verification_status==='verified'?'pill-good':p.verification_status==='reviewing'?'pill-warn':''}`}>
-                  {p.verification_status}
+            <div className="admin-player-copy">
+              <div className="admin-player-status-line">
+                <span className={`admin-status-pill ${p.verification_status==='verified'?'is-verified':p.verification_status==='reviewing'?'is-reviewing':''}`}>
+                  <span className="admin-status-dot"/>
+                  {p.verification_status==='verified'?'DJM verified':p.verification_status==='reviewing'?'Review required':'Not verified'}
                 </span>
               </div>
 
-              <div className="muted" style={{marginTop:7}}>
+              <h1 className="admin-player-name">{name}</h1>
+
+              <div className="admin-player-subtitle">
                 {[p.primary_position,p.current_club,p.current_country].filter(Boolean).join(' · ')||'Player information incomplete'}
               </div>
 
-              <div className="row" style={{marginTop:13,flexWrap:'wrap'}}>
-                {p.agency_priority&&<span className="pill">{p.agency_priority} priority</span>}
-                {openReq.length>0&&<span className="pill pill-blue">{openReq.length} open request{openReq.length>1?'s':''}</span>}
-                {liveOpps.length>0&&<span className="pill pill-blue">{liveOpps.length} club opportunit{liveOpps.length>1?'ies':'y'}</span>}
-                {p.user_id&&<span className={`pill ${pushSubs.length?'pill-good':''}`}>{pushSubs.length?'Push on':'No push device'}</span>}
+              <div className="admin-player-signals">
+                {p.agency_priority&&<span className={`admin-signal ${p.agency_priority==='urgent'?'is-urgent':''}`}>{p.agency_priority} priority</span>}
+                {openReq.length>0&&<button type="button" className="admin-signal is-action" onClick={()=>setTab('inbox')}>{openReq.length} open request{openReq.length>1?'s':''}</button>}
+                {liveOpps.length>0&&<span className="admin-signal">{liveOpps.length} live club opportunit{liveOpps.length>1?'ies':'y'}</span>}
+                {p.user_id&&<span className={`admin-signal ${pushSubs.length?'is-good':''}`}>{pushSubs.length?'Push active':'No push device'}</span>}
               </div>
             </div>
           </div>
 
-          <div className="row" style={{flexWrap:'wrap',justifyContent:'flex-end'}}>
-            <button className="btn btn-quiet btn-sm" onClick={verify}>
-              <ShieldCheck size={15}/> Verify
+          <div className="admin-player-primary-actions">
+            <button className="btn btn-navy admin-player-save" onClick={save} disabled={busy}>
+              <Save size={16}/>{busy?'Saving…':'Save changes'}
             </button>
-            <button className="btn btn-navy btn-sm" onClick={save} disabled={busy}>
-              <Save size={15}/>{busy?'Saving…':'Save'}
+            <button className="btn btn-quiet admin-player-verify" onClick={verify} disabled={busy}>
+              <ShieldCheck size={16}/>Verify
             </button>
           </div>
-        </div>
+        </section>
 
-        <div className="admin-tabs" style={{display:'inline-flex',marginTop:28}}>
-          {tabs.map(t=>
-            <button
-              key={t}
-              onClick={()=>setTab(t)}
-              className={`admin-tab ${tab===t?'active':''}`}
-              style={{border:0}}
-            >
-              {t[0].toUpperCase()+t.slice(1)}
+        <div className="admin-player-quick-actions">
+          <button type="button" className="admin-quick-action" onClick={()=>setTab('cv')}>
+            <FileText size={18}/>
+            <span><strong>Club CV</strong><small>Edit dossier</small></span>
+          </button>
+
+          <button type="button" className="admin-quick-action" onClick={()=>setTab('inbox')}>
+            <MessageCircle size={18}/>
+            <span><strong>Player inbox</strong><small>{incoming.length?`${incoming.length} waiting`:'Open conversation'}</small></span>
+          </button>
+
+          {pub&&(
+            <button type="button" className="admin-quick-action" onClick={downloadCv} disabled={pdfBusy}>
+              <Download size={18}/>
+              <span><strong>{pdfBusy?'Building…':'Download CV'}</strong><small>Club-ready PDF</small></span>
             </button>
           )}
+
+          {pub?.published&&(
+            <a href={`/p/${pub.public_slug}`} target="_blank" rel="noreferrer" className="admin-quick-action">
+              <Eye size={18}/>
+              <span><strong>View live</strong><small>Club profile</small></span>
+            </a>
+          )}
         </div>
+
+        <nav className="admin-player-tabs" aria-label="Player sections">
+          {tabs.map(t=>(
+            <button key={t} type="button" onClick={()=>setTab(t)} className={`admin-player-tab ${tab===t?'active':''}`} aria-current={tab===t?'page':undefined}>
+              {t==='cv'?'Club CV':t[0].toUpperCase()+t.slice(1)}
+            </button>
+          ))}
+        </nav>
 
         {tab==='overview'&&(
           <div className="grid-main" style={{marginTop:22}}>
