@@ -21,10 +21,6 @@ import {
 } from '@/components/PlayerShell';
 
 import {
-  downloadClubCv,
-} from '@/components/ClubCvPdf';
-
-import {
   publicFile,
   supabase,
 } from '@/lib/supabase';
@@ -100,6 +96,11 @@ export default function CV() {
     setDownloadError('');
 
     try {
+      const { downloadClubCv } =
+        await import(
+          '@/components/ClubCvPdf'
+        );
+
       await downloadClubCv({
         profile: pub,
         photoUrl:
