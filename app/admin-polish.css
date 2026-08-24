@@ -1,0 +1,554 @@
+/* DJM Player — Admin polish layer
+   Premium, restrained, Apple-inspired, mobile-first.
+   This file intentionally overrides admin-specific rules only. */
+
+.admin-shell {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 50% -180px, rgba(11, 94, 168, 0.055), transparent 480px),
+    #f5f5f7;
+}
+
+.admin-head {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid rgba(10, 10, 12, 0.055);
+  background: rgba(250, 250, 252, 0.82);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+}
+
+.admin-top {
+  min-height: 70px;
+}
+
+.admin-head .brand-mark {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+}
+
+.admin-head .brand-copy {
+  letter-spacing: -0.035em;
+}
+
+.admin-head .icon-btn {
+  width: 40px;
+  height: 40px;
+  box-shadow: none;
+  border: 1px solid rgba(10, 10, 12, 0.06);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.admin-main {
+  padding-top: 42px;
+  padding-bottom: 88px;
+}
+
+.admin-main > .row-between:first-of-type {
+  gap: 22px;
+}
+
+.admin-title {
+  font-size: clamp(34px, 4.2vw, 44px);
+  line-height: 0.98;
+  font-weight: 770;
+  letter-spacing: -0.055em;
+}
+
+.admin-shell .section-kicker {
+  color: #7b7b81;
+  font-size: 10px;
+  font-weight: 790;
+  letter-spacing: 0.11em;
+}
+
+.admin-shell .section-title {
+  font-size: 24px;
+  letter-spacing: -0.038em;
+}
+
+.admin-shell .btn {
+  letter-spacing: -0.012em;
+}
+
+.admin-shell .btn-navy,
+.admin-shell .btn-dark {
+  box-shadow: 0 8px 24px rgba(6, 31, 58, 0.10);
+}
+
+.metric-row {
+  gap: 12px;
+}
+
+.metric {
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(10, 10, 12, 0.045);
+  border-radius: 24px;
+  padding: 19px 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 1px 2px rgba(6, 31, 58, 0.015),
+    0 10px 32px rgba(6, 31, 58, 0.028);
+}
+
+.metric small {
+  max-width: 130px;
+  line-height: 1.24;
+  color: #77777d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+}
+
+.metric strong {
+  margin-top: 14px;
+  font-size: 31px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.admin-card {
+  border: 1px solid rgba(10, 10, 12, 0.045);
+  border-radius: 26px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 1px 2px rgba(6, 31, 58, 0.012),
+    0 12px 38px rgba(6, 31, 58, 0.032);
+}
+
+.admin-card .list-row {
+  margin-left: -4px;
+  margin-right: -4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  border-radius: 0;
+}
+
+.admin-card .list-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-card .list-icon {
+  background: #f2f3f5;
+  border-radius: 13px;
+}
+
+.admin-tabs {
+  position: sticky;
+  top: calc(70px + env(safe-area-inset-top));
+  z-index: 55;
+  max-width: 100%;
+  border: 1px solid rgba(10, 10, 12, 0.045);
+  border-radius: 15px;
+  padding: 4px;
+  background: rgba(235, 236, 239, 0.88);
+  box-shadow: 0 8px 28px rgba(6, 31, 58, 0.04);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  backdrop-filter: blur(24px) saturate(170%);
+}
+
+.admin-tab {
+  min-height: 38px;
+  padding: 8px 14px;
+  color: #64646a;
+  background: transparent;
+}
+
+.admin-tab.active {
+  color: #0a0a0c;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 4px 14px rgba(0, 0, 0, 0.045);
+}
+
+.admin-shell .input,
+.admin-shell .textarea,
+.admin-shell .select {
+  border-color: rgba(10, 10, 12, 0.085);
+  background: #fff;
+  box-shadow: none;
+}
+
+.admin-shell .input:focus,
+.admin-shell .textarea:focus,
+.admin-shell .select:focus {
+  border-color: rgba(11, 94, 168, 0.40);
+  box-shadow: 0 0 0 4px rgba(11, 94, 168, 0.065);
+}
+
+.admin-shell .pill {
+  font-weight: 730;
+}
+
+.player-table th {
+  padding-top: 2px;
+}
+
+.player-table td {
+  height: 62px;
+}
+
+.player-table tbody tr {
+  transition: transform .16s ease, background-color .16s ease;
+}
+
+@media (hover: hover) {
+  .player-table tbody tr:hover {
+    transform: translateX(2px);
+  }
+}
+
+/* iPhone / mobile */
+@media (max-width: 760px) {
+  :root {
+    --mobile-gutter: 16px;
+  }
+
+  .admin-head {
+    background: rgba(249, 249, 251, 0.90);
+  }
+
+  .admin-top {
+    min-height: 58px;
+  }
+
+  .admin-head .brand {
+    gap: 7px;
+  }
+
+  .admin-head .brand-mark {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .admin-head .brand-copy {
+    font-size: 14px;
+  }
+
+  .admin-head .brand-copy small {
+    display: none;
+  }
+
+  .admin-head .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .admin-main {
+    padding:
+      24px
+      0
+      calc(54px + env(safe-area-inset-bottom));
+  }
+
+  .admin-main > .row-between {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .admin-main > .row-between > div:first-child {
+    min-width: 0;
+    flex: 1 1 220px;
+  }
+
+  .admin-main > .row-between > .btn,
+  .admin-main > .row-between > .row:last-child {
+    flex: 1 1 100%;
+  }
+
+  .admin-main > .row-between > .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .admin-main > .row-between > .row:last-child {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .admin-main > .row-between > .row:last-child .btn {
+    width: 100%;
+  }
+
+  .admin-title {
+    font-size: clamp(32px, 10vw, 39px);
+    line-height: 0.99;
+  }
+
+  .metric-row {
+    display: flex;
+    gap: 10px;
+    margin-left: calc(-1 * var(--mobile-gutter));
+    margin-right: calc(-1 * var(--mobile-gutter));
+    padding:
+      0
+      var(--mobile-gutter)
+      4px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .metric-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .metric {
+    min-width: 148px;
+    min-height: 105px;
+    flex: 0 0 43vw;
+    scroll-snap-align: start;
+    border-radius: 22px;
+    padding: 17px;
+  }
+
+  .metric strong {
+    font-size: 28px;
+  }
+
+  .grid-main {
+    gap: 16px;
+  }
+
+  .admin-card {
+    border-radius: 24px;
+    padding: 19px;
+    box-shadow:
+      0 1px 2px rgba(6, 31, 58, 0.012),
+      0 8px 26px rgba(6, 31, 58, 0.024);
+  }
+
+  .admin-card .row-between {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .admin-sidebar {
+    gap: 14px !important;
+  }
+
+  .admin-tabs {
+    top: calc(58px + env(safe-area-inset-top));
+    width: calc(100vw - (2 * var(--mobile-gutter)));
+    margin-top: 22px !important;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-tab {
+    min-height: 40px;
+    padding: 8px 13px;
+    scroll-snap-align: start;
+  }
+
+  .avatar-xl {
+    width: 84px;
+    height: 84px;
+    border-radius: 22px;
+  }
+
+  .admin-main > a.small + .row-between > .row:first-child {
+    width: 100%;
+    align-items: flex-start !important;
+    gap: 14px !important;
+  }
+
+  .admin-main > a.small + .row-between > .row:first-child > div:last-child {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .admin-main > a.small + .row-between .admin-title {
+    font-size: 31px;
+  }
+
+  .admin-main > a.small + .row-between > .row:last-child {
+    width: 100%;
+  }
+
+  .admin-main > a.small + .row-between > .row:last-child .btn {
+    min-height: 46px;
+  }
+
+  /* Make the roster feel like a native iOS grouped list, not a desktop table. */
+  .admin-card:has(.player-table) > .row-between {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .admin-card:has(.player-table) > .row-between > div:last-child {
+    width: 100%;
+  }
+
+  .admin-card:has(.player-table) > .row-between input {
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    padding-left: 38px !important;
+  }
+
+  .player-table {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .player-table thead {
+    display: none;
+  }
+
+  .player-table tbody {
+    display: block;
+  }
+
+  .player-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "player arrow"
+      "club arrow"
+      "status check";
+    column-gap: 12px;
+    row-gap: 4px;
+    width: 100%;
+    padding: 16px 0;
+    border-top: 1px solid rgba(10, 10, 12, 0.065);
+    background: transparent;
+  }
+
+  .player-table tbody tr:first-child {
+    border-top: 0;
+  }
+
+  .player-table td {
+    height: auto;
+    min-width: 0;
+    border: 0 !important;
+    padding: 0 !important;
+    font-size: 13px;
+  }
+
+  .player-table td:nth-child(1) {
+    grid-area: player;
+  }
+
+  .player-table td:nth-child(1) strong {
+    display: block;
+    overflow: hidden;
+    font-size: 16px;
+    line-height: 1.22;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .player-table td:nth-child(1) .tiny {
+    margin-top: 3px;
+    font-size: 12px;
+  }
+
+  .player-table td:nth-child(2) {
+    grid-area: status;
+    margin-top: 9px;
+  }
+
+  .player-table td:nth-child(2) .pill {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .player-table td:nth-child(3) {
+    grid-area: club;
+    overflow: hidden;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .player-table td:nth-child(4) {
+    grid-area: check;
+    align-self: center;
+    justify-self: end;
+    margin-top: 9px;
+    font-size: 12px;
+  }
+
+  .player-table td:nth-child(5) {
+    grid-area: arrow;
+    align-self: center;
+    color: #9a9aa0;
+  }
+
+  .admin-card .list-row {
+    gap: 11px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+
+  .admin-card .list-copy strong {
+    font-size: 15px;
+  }
+
+  .admin-card .list-copy span {
+    margin-top: 4px;
+    font-size: 12.5px;
+    line-height: 1.38;
+  }
+
+  .admin-shell .grid2,
+  .admin-shell .grid3 {
+    gap: 12px;
+  }
+
+  .admin-shell .form-section {
+    padding: 22px 0;
+  }
+
+  .admin-shell .btn-block {
+    min-height: 50px;
+  }
+
+  .admin-shell .source-row .btn {
+    flex: 1 1 auto;
+  }
+
+  /* Make file/action-heavy rows wrap instead of spilling off-screen. */
+  .admin-shell .list-row:has(.btn) {
+    flex-wrap: wrap;
+  }
+
+  .admin-shell .list-row:has(.btn) .list-copy {
+    flex-basis: calc(100% - 54px);
+  }
+
+  .admin-shell .list-row:has(.btn) > .btn {
+    margin-left: 50px;
+  }
+}
+
+@media (max-width: 390px) {
+  .metric {
+    flex-basis: 47vw;
+    min-width: 140px;
+  }
+
+  .admin-title {
+    font-size: 32px;
+  }
+
+  .admin-main > .row-between > .row:last-child {
+    grid-template-columns: 1fr;
+  }
+}
