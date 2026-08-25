@@ -111,6 +111,7 @@ export default function AdminPlayer(){
   const [shareExpiryDays,setShareExpiryDays]=useState('30');
   const [shareBusy,setShareBusy]=useState(false);
   const [unpublishOpen,setUnpublishOpen]=useState(false);
+  const [removeOpen,setRemoveOpen]=useState(false);
 
   const load=async()=>{
     const [
@@ -312,9 +313,24 @@ export default function AdminPlayer(){
   const isFullAdmin=
     auth.profile?.role==='admin';
 
-  const clubReady=
+  const readinessPlayer={
+  ...p,
+  nationalities:
+    String(
+      p.nationalitiesInput
+      ??arr(p.nationalities)
+    )
+      .split(',')
+      .map(
+        (value:string)=>
+          value.trim()
+      )
+      .filter(Boolean)
+};
+
+const clubReady=
   getClubReadyState(
-    p,
+    readinessPlayer,
     cv,
     career,
     videos
@@ -697,13 +713,8 @@ current_season_start:
       return;
     }
 
-      const readiness=
-    getClubReadyState(
-      p,
-      cv,
-      career,
-      videos
-    );
+    const readiness=
+  clubReady;
 
   if(!readiness.isReady){
     flash(
@@ -1141,13 +1152,8 @@ current_season_start:
   const publish=async()=>{
     setBusy(true);
 
-        const readiness=
-      getClubReadyState(
-        p,
-        cv,
-        career,
-        videos
-      );
+       const readiness=
+  clubReady;
 
     if(!readiness.isReady){
       setBusy(false);
@@ -1598,9 +1604,6 @@ current_season_start:
   };
 
   const removePlayer=async()=>{
-    if(!isFullAdmin){
-      return;
-    }
 
     const first=
       window.confirm(
@@ -4019,7 +4022,7 @@ current_season_start:
                       borderColor:
                         'rgba(141,45,45,.26)'
                     }}
-                    onClick={removePlayer}
+                    onClick={()=>   setRemoveOpen(true) }
                     disabled={busy}
                   >
                     <Trash2 size={15}/>
@@ -4324,6 +4327,19 @@ current_season_start:
           </div>
         )}
 
+        <RemovePlayerSheet
+  open={removeOpen}
+  name={name}
+  busy={busy}
+  onClose={()=>
+    !busy
+    &&setRemoveOpen(false)
+  }
+  onConfirm={
+    removePlayer
+  }
+/>
+        
         {toast&&(
           <div className="toast">
             {toast}
