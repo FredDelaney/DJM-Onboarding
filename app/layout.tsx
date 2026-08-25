@@ -3,6 +3,7 @@ import './admin-polish.css';
 import './player-21.css';
 import './dossier.css';
 import './club-share.css';
+import './profile-21.css';
 
 export const metadata = {
   title: 'DJM Player',
