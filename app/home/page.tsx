@@ -55,7 +55,7 @@ function readiness(
         player.preferred_foot
       ),
       label: 'Complete your football basics',
-      href: '/profile',
+href: '/profile?edit=football',
     },
     {
       ok: !!(
@@ -65,26 +65,26 @@ function readiness(
           .toLowerCase()
           .includes('free')
       ),
-      label: 'Confirm your current club or status',
-      href: '/profile',
+    label: 'Confirm your current club or status',
+href: '/profile?edit=football',
     },
     {
       ok: !!(
         privateInfo?.phone ||
         privateInfo?.whatsapp
       ),
-      label: 'Add a contact number',
-      href: '/profile',
+     label: 'Add a contact number',
+href: '/profile?edit=career',
     },
     {
       ok: !!privateInfo?.passports_held?.length,
       label: 'Add your passports',
-      href: '/profile',
+href: '/profile?edit=career',
     },
     {
       ok: !!privateInfo?.market_preferences,
-      label: 'Tell DJM which markets you would consider',
-      href: '/profile',
+    label: 'Tell DJM which markets you would consider',
+href: '/profile?edit=career',
     },
     {
       ok: !!player.profile_photo_path,
@@ -97,13 +97,13 @@ function readiness(
         player.wyscout_url ||
         player.stats_url
       ),
-      label: 'Add a trusted football source',
-      href: '/profile',
+     label: 'Add a trusted football source',
+href: '/profile?edit=sources',
     },
     {
       ok: videoCount > 0,
       label: 'Add current player footage',
-      href: '/profile#media',
+      href: '/profile?edit=media',
     },
   ];
 
