@@ -676,9 +676,25 @@ const save=async(
           key_stats:
             cv.key_stats||[],
 
-          notable_experience:
-            cv.notable_experience
-            ||[],
+         notable_experience:
+  (
+    Array.isArray(
+      cv.notable_experience
+    )
+      ?cv.notable_experience
+      :[]
+  )
+    .map(
+      (item:any)=>
+        typeof item==='string'
+          ?item.trim()
+          :String(
+              item?.label
+              ||item?.title
+              ||''
+            ).trim()
+    )
+    .filter(Boolean),
 
           market_value_display:
             cv.market_value_display
@@ -3320,13 +3336,8 @@ const removePlayer=async(
                       setCv({
                         ...cv,
                         notable_experience:
-                          e.target.value
-                            .split('\n')
-                            .map(
-                              x=>
-                                x.trim()
-                            )
-                            .filter(Boolean)
+  e.target.value
+    .split('\n')
                       })
                     }
                     placeholder={
