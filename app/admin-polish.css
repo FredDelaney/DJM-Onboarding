@@ -1061,3 +1061,180 @@
     font-size: 29px;
   }
 }
+
+/* =========================================================
+   CLUB READY + SEASON CONTROL
+   ========================================================= */
+
+.club-ready-panel {
+  overflow: hidden;
+}
+
+.club-ready-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.club-ready-head h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+  letter-spacing: -.03em;
+}
+
+.club-ready-score {
+  min-width: 48px;
+  height: 40px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 14px;
+
+  background: #f1f2f4;
+  color: var(--navy);
+
+  font-size: 12px;
+}
+
+.club-ready-score.is-ready {
+  background: var(--navy);
+  color: #fff;
+}
+
+.club-ready-meter {
+  height: 5px;
+
+  overflow: hidden;
+
+  margin-top: 18px;
+
+  border-radius: 999px;
+
+  background: #eceef1;
+}
+
+.club-ready-meter span {
+  display: block;
+
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: var(--navy);
+
+  transition:
+    width .24s ease;
+}
+
+.club-ready-list {
+  margin-top: 14px;
+}
+
+.club-ready-item {
+  min-height: 38px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  border-bottom:
+    1px solid var(--line);
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+.club-ready-item:last-child {
+  border-bottom: 0;
+}
+
+.club-ready-item svg {
+  flex: 0 0 auto;
+}
+
+.club-ready-item.is-complete {
+  color: var(--ink);
+}
+
+.club-ready-item.is-complete svg {
+  color: var(--navy);
+}
+
+.club-ready-copy {
+  margin: 14px 0 0;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.club-ready-polish {
+  margin-top: 14px;
+
+  border-radius: 15px;
+
+  padding: 12px 13px;
+
+  background: #f4f5f7;
+}
+
+.club-ready-polish strong {
+  display: block;
+
+  color: var(--navy);
+
+  font-size: 11px;
+}
+
+.club-ready-polish span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.admin-season-config {
+  margin-top: 18px;
+
+  border-radius: 18px;
+
+  padding: 17px;
+
+  background: #f5f6f8;
+}
+
+.admin-season-config p {
+  margin:
+    10px
+    0
+    0;
+
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .admin-season-config {
+    margin-left: -4px;
+    margin-right: -4px;
+
+    padding: 15px;
+  }
+
+  .admin-season-config .grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .club-ready-panel {
+    border-radius: 22px;
+  }
+}
