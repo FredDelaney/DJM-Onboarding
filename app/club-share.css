@@ -1,0 +1,391 @@
+/* =========================================================
+   DJM CLUB SHARING
+   iPhone-first Apple-style dossier sharing flow
+   ========================================================= */
+
+.club-share-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(3, 12, 22, .48);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.club-share-sheet,
+.club-confirm-sheet {
+  width: min(720px, 100%);
+  max-height: 92dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 30px;
+  background: rgba(255,255,255,.985);
+  box-shadow: 0 34px 100px rgba(0,0,0,.24);
+}
+
+.club-share-handle {
+  display: none;
+}
+
+.club-share-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 25px 26px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.club-share-head h2,
+.club-confirm-sheet h2 {
+  margin: 5px 0 0;
+  color: var(--navy);
+  font-size: 29px;
+  line-height: 1.04;
+  letter-spacing: -.045em;
+}
+
+.club-share-head p,
+.club-confirm-sheet p {
+  max-width: 550px;
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.club-share-body {
+  overflow-y: auto;
+  padding: 22px 26px 28px;
+}
+
+.club-share-create {
+  border-radius: 22px;
+  padding: 18px;
+  background: #f4f5f7;
+}
+
+.club-share-expiry {
+  margin-top: 14px;
+}
+
+.club-share-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-top: 8px;
+  border-radius: 14px;
+  padding: 3px;
+  background: #e9ebee;
+}
+
+.club-share-segmented button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 11px;
+  padding: 8px 9px;
+  background: transparent;
+  color: #676d74;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.club-share-segmented button.active {
+  background: #fff;
+  color: var(--navy);
+  box-shadow: 0 1px 4px rgba(6,31,58,.08);
+}
+
+.club-share-create-btn {
+  min-height: 48px;
+  margin-top: 15px;
+}
+
+.club-share-history {
+  margin-top: 25px;
+}
+
+.club-share-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.club-share-history-head strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+
+.club-share-history-head > span {
+  min-width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f0f1f3;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.club-share-link-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 82px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+
+.club-share-link-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #f1f2f4;
+  color: var(--navy);
+}
+
+.club-share-link-copy {
+  min-width: 0;
+}
+
+.club-share-link-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.club-share-link-title strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.club-share-state {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: #eceef0;
+  color: #767b82;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.club-share-state.is-active {
+  background: #e9f2ed;
+  color: #214f39;
+}
+
+.club-share-link-copy > span,
+.club-share-link-copy > small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.club-share-link-copy > small {
+  color: #92969b;
+  font-size: 9px;
+}
+
+.club-share-link-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.club-share-link-actions button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: #f0f1f3;
+  color: var(--navy);
+  font-size: 9px;
+  font-weight: 740;
+}
+
+.club-share-link-actions button:last-child:not(:first-child) {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #e1e4e7;
+  color: #555b62;
+}
+
+.club-share-link-actions button:disabled {
+  opacity: .45;
+}
+
+.club-share-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 10px;
+  border-radius: 19px;
+  padding: 18px;
+  background: #f4f5f7;
+}
+
+.club-share-empty svg {
+  color: var(--navy);
+}
+
+.club-share-empty strong {
+  margin-top: 11px;
+  font-size: 13px;
+}
+
+.club-share-empty span {
+  max-width: 450px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.club-confirm-sheet {
+  width: min(470px,100%);
+  padding: 25px;
+}
+
+.club-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.club-confirm-actions .btn {
+  min-height: 46px;
+}
+
+@media (max-width: 700px) {
+  .club-share-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .club-share-sheet,
+  .club-confirm-sheet {
+    width: 100%;
+    max-height: 94dvh;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 29px 29px 0 0;
+  }
+
+  .club-share-handle {
+    width: 38px;
+    height: 5px;
+    flex: 0 0 auto;
+    display: block;
+    margin: 8px auto 0;
+    border-radius: 999px;
+    background: #d5d7da;
+  }
+
+  .club-share-head {
+    padding: 16px 18px 15px;
+  }
+
+  .club-share-head h2,
+  .club-confirm-sheet h2 {
+    font-size: 26px;
+  }
+
+  .club-share-head p,
+  .club-confirm-sheet p {
+    font-size: 11px;
+  }
+
+  .club-share-body {
+    padding: 17px 18px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .club-share-create {
+    border-radius: 19px;
+    padding: 15px;
+  }
+
+  .club-share-create .input {
+    min-height: 50px;
+    font-size: 16px;
+  }
+
+  .club-share-segmented button {
+    min-height: 42px;
+  }
+
+  .club-share-create-btn {
+    min-height: 50px;
+  }
+
+  .club-share-link-row {
+    grid-template-columns: 40px minmax(0,1fr);
+    gap: 10px;
+    min-height: 96px;
+    padding: 15px 0;
+  }
+
+  .club-share-link-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .club-share-link-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+    margin-top: 2px;
+  }
+
+  .club-share-link-actions button {
+    min-height: 40px;
+    padding: 8px 11px;
+  }
+
+  .club-confirm-sheet {
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .club-confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .club-confirm-actions .btn {
+    width: 100%;
+    min-height: 50px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .club-share-backdrop,
+  .club-share-sheet,
+  .club-confirm-sheet {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
