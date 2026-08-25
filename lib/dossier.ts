@@ -60,18 +60,69 @@ export const dossierVerifiedDate = (
   }
 };
 
+const dossierCareerKey = (
+  row: any,
+) => {
+  const label =
+    String(
+      row?.season_label ??
+      row?.season ??
+      '',
+    );
+
+  const year =
+    label.match(
+      /(19|20)\d{2}/,
+    );
+
+  if (year) {
+    return Number(
+      year[0],
+    );
+  }
+
+  if (row?.start_date) {
+    const date =
+      new Date(
+        row.start_date,
+      );
+
+    if (
+      !Number.isNaN(
+        date.getTime(),
+      )
+    ) {
+      return date.getFullYear();
+    }
+  }
+
+  return 0;
+};
+
 export const dossierCareer = (
   profile: any,
 ) =>
   dossierList(
     profile?.career_timeline,
-  ).filter(
-    (row: any) =>
-      row?.club_name ||
-      row?.club ||
-      row?.season_label ||
-      row?.season,
-  );
+  )
+    .filter(
+      (row: any) =>
+        row?.club_name ||
+        row?.club ||
+        row?.season_label ||
+        row?.season,
+    )
+    .sort(
+      (a: any, b: any) =>
+        dossierCareerKey(b) -
+          dossierCareerKey(a) ||
+        Number(
+          a?.sort_order || 0,
+        ) -
+          Number(
+            b?.sort_order || 0,
+          ),
+    );
 
 export const dossierCareerStatLine = (
   row: any,
