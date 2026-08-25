@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ExternalLink,
   Plus,
+  RefreshCw,
   ShieldCheck,
   Trash2,
   X,
@@ -268,7 +269,44 @@ export default function SeasonRecordEditor({
     deleteArmed,
     setDeleteArmed,
   ] = useState(false);
+const [
+  syncBusy,
+  setSyncBusy,
+] = useState(false);
 
+const [
+  syncOpen,
+  setSyncOpen,
+] = useState(false);
+
+const [
+  syncPreview,
+  setSyncPreview,
+] = useState<any>(
+  null,
+);
+
+const [
+  syncError,
+  setSyncError,
+] = useState('');
+
+const hasSofaScore =
+  /sofascore\./i.test(
+    String(
+      player?.stats_url
+      ||''
+    )
+  );
+
+const hasTransfermarkt =
+  /transfermarkt\./i.test(
+    String(
+      player?.transfermarkt_url
+      ||''
+    )
+  );
+  
   useEffect(() => {
     setTrackerLabel(
       player
@@ -306,7 +344,139 @@ export default function SeasonRecordEditor({
       [career],
     );
 
+  const refreshStats =
+  async (
+    source:
+      |'auto'
+      |'sofascore'
+      |'transfermarkt'
+      ='auto'
+  ) => {
+    if(!canEdit){
+      return;
+    }
+
+    setSyncBusy(true);
+    setSyncError('');
+
+    const {
+      data,
+      error
+    }=
+      await supabase
+        .functions
+        .invoke(
+          'import-player-stats',
+          {
+            body:{
+              mode:'preview',
+
+              player_id:
+                player.id,
+
+              source
+            }
+          }
+        );
+
+    setSyncBusy(false);
+
+    if(
+      error
+      ||data?.error
+    ){
+      setSyncError(
+        data?.error
+        ||error?.message
+        ||'Could not refresh player statistics.'
+      );
+
+      setSyncOpen(true);
+
+      return;
+    }
+
+    setSyncPreview(
+      data
+    );
+
+    setSyncOpen(true);
+  };
+  
   const openNew = () => {
+    const approveSync =
+  async () => {
+    if(
+      !syncPreview
+      ||!Array.isArray(
+        syncPreview.rows
+      )
+      ||!syncPreview.rows.length
+    ){
+      return;
+    }
+
+    setSyncBusy(true);
+    setSyncError('');
+
+    const {
+      data,
+      error
+    }=
+      await supabase
+        .functions
+        .invoke(
+          'import-player-stats',
+          {
+            body:{
+              mode:'apply',
+
+              player_id:
+                player.id,
+
+              rows:
+                syncPreview.rows,
+
+              source_name:
+                syncPreview
+                  .source_name,
+
+              source_url:
+                syncPreview
+                  .source_url
+            }
+          }
+        );
+
+    if(
+      error
+      ||!data?.ok
+    ){
+      setSyncBusy(false);
+
+      setSyncError(
+        data?.error
+        ||error?.message
+        ||'Could not update the DJM sporting record.'
+      );
+
+      return;
+    }
+
+    await onChanged();
+
+    setSyncBusy(false);
+    setSyncOpen(false);
+    setSyncPreview(null);
+
+    setMessage(
+      `${data.total} season record${
+        data.total===1
+          ?''
+          :'s'
+      } reviewed and updated.`
+    );
+  };
     if (!canEdit) return;
 
     setDraft(
@@ -671,19 +841,51 @@ export default function SeasonRecordEditor({
           </div>
 
           {canEdit && (
-            <button
-              type="button"
-              className="btn btn-navy btn-sm"
-              onClick={
-                openNew
-              }
-            >
-              <Plus
-                size={15}
-              />
-              Add season
-            </button>
-          )}
+  <div
+    className="row"
+    style={{
+      flexWrap:'wrap',
+      justifyContent:
+        'flex-end'
+    }}
+  >
+    <button
+      type="button"
+      className="btn btn-quiet btn-sm"
+      onClick={()=>
+        refreshStats(
+          'auto'
+        )
+      }
+      disabled={
+        syncBusy
+      }
+    >
+      <RefreshCw
+        size={15}
+      />
+
+      {syncBusy
+        ?'Checking…'
+        :'Refresh stats'
+      }
+    </button>
+
+    <button
+      type="button"
+      className="btn btn-navy btn-sm"
+      onClick={
+        openNew
+      }
+    >
+      <Plus
+        size={15}
+      />
+
+      Add season
+    </button>
+  </div>
+)}
         </div>
 
         <div className="season-tracker-setting">
@@ -877,6 +1079,462 @@ export default function SeasonRecordEditor({
           )}
       </section>
 
+      {syncOpen && (
+  <div
+    className="season-editor-backdrop"
+    onClick={()=>{
+      if(!syncBusy){
+        setSyncOpen(false);
+      }
+    }}
+  >
+    <div
+      className="season-editor-sheet"
+      onClick={
+        event=>
+          event.stopPropagation()
+      }
+    >
+      <div className="season-editor-handle" />
+
+      <div className="season-editor-top">
+        <div>
+          <div className="section-kicker">
+            EXTERNAL DATA REVIEW
+          </div>
+
+          <h2>
+            Refresh player stats
+          </h2>
+        </div>
+
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={()=>
+            !syncBusy
+            &&setSyncOpen(false)
+          }
+          aria-label="Close"
+        >
+          <X size={18}/>
+        </button>
+      </div>
+
+      <div className="season-editor-body">
+        {(hasSofaScore
+          ||hasTransfermarkt
+        )&&(
+          <div className="season-sync-source-row">
+            {hasSofaScore&&(
+              <button
+                type="button"
+                className={`pill ${
+                  syncPreview?.source
+                    ==='sofascore'
+                    ?'pill-blue'
+                    :''
+                }`}
+                onClick={()=>
+                  refreshStats(
+                    'sofascore'
+                  )
+                }
+                disabled={
+                  syncBusy
+                }
+              >
+                SofaScore
+              </button>
+            )}
+
+            {hasTransfermarkt&&(
+              <button
+                type="button"
+                className={`pill ${
+                  syncPreview?.source
+                    ==='transfermarkt'
+                    ?'pill-blue'
+                    :''
+                }`}
+                onClick={()=>
+                  refreshStats(
+                    'transfermarkt'
+                  )
+                }
+                disabled={
+                  syncBusy
+                }
+              >
+                Transfermarkt
+              </button>
+            )}
+          </div>
+        )}
+
+        {syncError&&(
+          <div
+            className="season-record-message"
+            role="status"
+          >
+            {syncError}
+          </div>
+        )}
+
+        {!syncError
+          &&syncBusy
+          &&(
+            <div className="season-sync-loading">
+              <div className="loader"/>
+
+              <span>
+                Checking the latest
+                sporting data…
+              </span>
+            </div>
+          )
+        }
+
+        {syncPreview&&(
+          <>
+            <div className="season-sync-summary">
+              <div>
+                <span>
+                  SOURCE
+                </span>
+
+                <strong>
+                  {
+                    syncPreview
+                      .source_name
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  SEASONS FOUND
+                </span>
+
+                <strong>
+                  {
+                    syncPreview
+                      .rows
+                      ?.length
+                    ||0
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  RECENT GAMES
+                </span>
+
+                <strong>
+                  {
+                    syncPreview
+                      .recent_matches
+                      ?.length
+                    ||0
+                  }
+                </strong>
+              </div>
+            </div>
+
+            {syncPreview
+              .warnings
+              ?.map(
+                (
+                  warning:string,
+                  index:number
+                )=>(
+                  <div
+                    className="season-sync-warning"
+                    key={index}
+                  >
+                    {warning}
+                  </div>
+                )
+              )
+            }
+
+            <div className="season-editor-section">
+              <div className="section-kicker">
+                PROPOSED SEASON RECORDS
+              </div>
+
+              <div className="season-sync-list">
+                {syncPreview
+                  .rows
+                  ?.map(
+                    (
+                      row:any,
+                      index:number
+                    )=>{
+                      const existing=
+                        career.find(
+                          item=>
+                            String(
+                              item
+                                .season_label
+                              ||''
+                            )
+                              .toLowerCase()
+                            ===
+                            String(
+                              row
+                                .season_label
+                              ||''
+                            )
+                              .toLowerCase()
+                            &&
+                            String(
+                              item
+                                .club_name
+                              ||''
+                            )
+                              .toLowerCase()
+                            ===
+                            String(
+                              row
+                                .club_name
+                              ||''
+                            )
+                              .toLowerCase()
+                        );
+
+                      return(
+                        <div
+                          className="season-sync-row"
+                          key={
+                            `${row.season_label}-${row.club_name}-${index}`
+                          }
+                        >
+                          <div className="season-sync-row-top">
+                            <div>
+                              <strong>
+                                {
+                                  row
+                                    .season_label
+                                }
+                                {' · '}
+                                {
+                                  row
+                                    .club_name
+                                }
+                              </strong>
+
+                              <span>
+                                {
+                                  row.league
+                                  ||'All competitions'
+                                }
+                              </span>
+                            </div>
+
+                            <span className={`pill ${
+                              existing
+                                ?'pill-blue'
+                                :'pill-good'
+                            }`}>
+                              {existing
+                                ?'Update'
+                                :'New'
+                              }
+                            </span>
+                          </div>
+
+                          <div className="season-sync-numbers">
+                            <span>
+                              <b>
+                                {
+                                  row.appearances
+                                  ??'—'
+                                }
+                              </b>
+                              Apps
+                            </span>
+
+                            <span>
+                              <b>
+                                {
+                                  row.starts
+                                  ??'—'
+                                }
+                              </b>
+                              Starts
+                            </span>
+
+                            <span>
+                              <b>
+                                {
+                                  row.minutes
+                                  ??'—'
+                                }
+                              </b>
+                              Mins
+                            </span>
+
+                            <span>
+                              <b>
+                                {
+                                  row.goals
+                                  ??'—'
+                                }
+                              </b>
+                              Goals
+                            </span>
+
+                            <span>
+                              <b>
+                                {
+                                  row.assists
+                                  ??'—'
+                                }
+                              </b>
+                              Assists
+                            </span>
+                          </div>
+
+                          {existing&&(
+                            <small>
+                              DJM currently:
+                              {' '}
+                              {
+                                statLine(
+                                  existing
+                                )
+                              }
+                            </small>
+                          )}
+                        </div>
+                      );
+                    }
+                  )
+                }
+              </div>
+            </div>
+
+            {syncPreview
+              .recent_matches
+              ?.length>0
+              &&(
+                <div className="season-editor-section">
+                  <div className="section-kicker">
+                    RECENT GAMES
+                  </div>
+
+                  <div className="season-sync-games">
+                    {syncPreview
+                      .recent_matches
+                      .map(
+                        (
+                          game:any,
+                          index:number
+                        )=>(
+                          <div
+                            className="season-sync-game"
+                            key={index}
+                          >
+                            <div>
+                              <strong>
+                                {
+                                  game.opponent
+                                  ?`vs ${game.opponent}`
+                                  :'Match'
+                                }
+                              </strong>
+
+                              <span>
+                                {[
+                                  game.date,
+                                  game.competition,
+                                  game.result
+                                ]
+                                  .filter(
+                                    Boolean
+                                  )
+                                  .join(' · ')
+                                }
+                              </span>
+                            </div>
+
+                            <small>
+                              {[
+                                game.minutes
+                                  !=null
+                                  ?`${game.minutes} mins`
+                                  :null,
+
+                                game.goals
+                                  !=null
+                                  ?`${game.goals} G`
+                                  :null,
+
+                                game.assists
+                                  !=null
+                                  ?`${game.assists} A`
+                                  :null
+                              ]
+                                .filter(
+                                  Boolean
+                                )
+                                .join(' · ')
+                              }
+                            </small>
+                          </div>
+                        )
+                      )
+                    }
+                  </div>
+                </div>
+              )
+            }
+          </>
+        )}
+      </div>
+
+      <div className="season-editor-actions">
+        <button
+          type="button"
+          className="btn btn-quiet"
+          onClick={()=>
+            setSyncOpen(false)
+          }
+          disabled={
+            syncBusy
+          }
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          className="btn btn-navy"
+          onClick={
+            approveSync
+          }
+          disabled={
+            syncBusy
+            ||!syncPreview
+              ?.rows
+              ?.length
+          }
+        >
+          <Check
+            size={15}
+          />
+
+          {syncBusy
+            ?'Updating…'
+            :'Approve & update'
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       {editorOpen && (
         <div
           className="season-editor-backdrop"
