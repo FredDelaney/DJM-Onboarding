@@ -1,24 +1,37 @@
 'use client';
 
 import Link from 'next/link';
+
 import {
-  ArrowRight,
   Activity,
+  ArrowRight,
   Target,
   TrendingUp,
 } from 'lucide-react';
 
 const num = (value: any) => {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : 0;
 };
 
-const shortDate = (value: string) => {
+const shortDate = (
+  value: string,
+) => {
   try {
-    return new Intl.DateTimeFormat('en-GB', {
-      day: 'numeric',
-      month: 'short',
-    }).format(new Date(`${value}T12:00:00`));
+    return new Intl.DateTimeFormat(
+      'en-GB',
+      {
+        day: 'numeric',
+        month: 'short',
+      },
+    ).format(
+      new Date(
+        `${value}T12:00:00`,
+      ),
+    );
   } catch {
     return value;
   }
@@ -26,18 +39,36 @@ const shortDate = (value: string) => {
 
 export default function MySeason({
   checkins = [],
+  seasonLabel,
+  seasonStart,
 }: {
   checkins?: any[];
+  seasonLabel?: string | null;
+  seasonStart?: string | null;
 }) {
   const ordered = [...checkins]
     .filter(Boolean)
     .sort(
       (a, b) =>
-        new Date(a.week_start).getTime() -
-        new Date(b.week_start).getTime(),
+        new Date(
+          a.week_start,
+        ).getTime() -
+        new Date(
+          b.week_start,
+        ).getTime(),
     );
 
-  const tracked = ordered.filter(
+  const bounded =
+    seasonStart
+      ? ordered.filter(
+          (row) =>
+            String(
+              row.week_start,
+            ) >= seasonStart,
+        )
+      : ordered;
+
+  const tracked = bounded.filter(
     (row) =>
       row.matches_played != null ||
       row.minutes_played != null ||
@@ -47,10 +78,21 @@ export default function MySeason({
 
   const totals = tracked.reduce(
     (acc, row) => ({
-      matches: acc.matches + num(row.matches_played),
-      minutes: acc.minutes + num(row.minutes_played),
-      goals: acc.goals + num(row.goals),
-      assists: acc.assists + num(row.assists),
+      matches:
+        acc.matches +
+        num(row.matches_played),
+
+      minutes:
+        acc.minutes +
+        num(row.minutes_played),
+
+      goals:
+        acc.goals +
+        num(row.goals),
+
+      assists:
+        acc.assists +
+        num(row.assists),
     }),
     {
       matches: 0,
@@ -61,56 +103,101 @@ export default function MySeason({
   );
 
   const contributions =
-    totals.goals + totals.assists;
+    totals.goals +
+    totals.assists;
 
   const minsPerContribution =
     contributions > 0
-      ? Math.round(totals.minutes / contributions)
+      ? Math.round(
+          totals.minutes /
+            contributions,
+        )
       : null;
 
-  const recent = tracked.slice(-8);
+  const recent =
+    tracked.slice(-8);
 
-  const maxMinutes = Math.max(
-    90,
-    ...recent.map((row) =>
-      num(row.minutes_played),
-    ),
-  );
+  const maxMinutes =
+    Math.max(
+      90,
+      ...recent.map(
+        (row) =>
+          num(
+            row.minutes_played,
+          ),
+      ),
+    );
 
-  const points = recent.map((row, index) => {
-    const x =
-      recent.length === 1
-        ? 50
-        : 4 +
-          (index / (recent.length - 1)) * 92;
+  const points =
+    recent.map(
+      (row, index) => {
+        const x =
+          recent.length === 1
+            ? 50
+            : 4 +
+              (
+                index /
+                (
+                  recent.length -
+                  1
+                )
+              ) *
+                92;
 
-    const value = num(row.minutes_played);
+        const value =
+          num(
+            row.minutes_played,
+          );
 
-    const y =
-      38 -
-      Math.min(value / maxMinutes, 1) * 31;
+        const y =
+          38 -
+          Math.min(
+            value /
+              maxMinutes,
+            1,
+          ) *
+            31;
 
-    return {
-      x,
-      y,
-      value,
-      label: shortDate(row.week_start),
-    };
-  });
+        return {
+          x,
+          y,
+          label:
+            shortDate(
+              row.week_start,
+            ),
+        };
+      },
+    );
 
-  const linePoints = points
-    .map((point) => `${point.x},${point.y}`)
-    .join(' ');
+  const linePoints =
+    points
+      .map(
+        (point) =>
+          `${point.x},${point.y}`,
+      )
+      .join(' ');
 
   const nextMilestone =
     Math.max(
       500,
-      Math.ceil((totals.minutes + 1) / 500) *
+      Math.ceil(
+        (
+          totals.minutes +
+          1
+        ) /
+          500,
+      ) *
         500,
     );
 
   const remaining =
-    nextMilestone - totals.minutes;
+    nextMilestone -
+    totals.minutes;
+
+  const trackerLabel =
+    seasonLabel
+      ? `MY SEASON · ${seasonLabel}`
+      : 'MY SEASON';
 
   if (!tracked.length) {
     return (
@@ -118,10 +205,12 @@ export default function MySeason({
         <div className="season-top">
           <div>
             <div className="season-kicker">
-              MY SEASON
+              {trackerLabel}
             </div>
 
-            <h2>Build your season record.</h2>
+            <h2>
+              Build your season record.
+            </h2>
           </div>
 
           <div className="season-icon">
@@ -130,9 +219,10 @@ export default function MySeason({
         </div>
 
         <p>
-          Add match details during your weekly
-          check-in and DJM Player will build your
-          private season tracker automatically.
+          Add match details during your
+          weekly check-in and DJM Player
+          will build your private playing
+          record automatically.
         </p>
 
         <Link
@@ -151,52 +241,74 @@ export default function MySeason({
       <div className="season-top">
         <div>
           <div className="season-kicker">
-            MY SEASON
+            {trackerLabel}
           </div>
 
-          <h2>Your season, at a glance.</h2>
+          <h2>
+            {seasonStart
+              ? 'Your season, at a glance.'
+              : 'Your tracked record, at a glance.'}
+          </h2>
         </div>
 
         <span className="season-private">
-          DJM tracker
+          {seasonStart
+            ? 'Season tracker'
+            : 'Recent tracker'}
         </span>
       </div>
 
       <div className="season-primary">
         <div>
           <strong>
-            {totals.minutes.toLocaleString('en-GB')}
+            {totals.minutes.toLocaleString(
+              'en-GB',
+            )}
           </strong>
 
-          <span>minutes tracked</span>
+          <span>
+            minutes tracked
+          </span>
         </div>
 
         <div className="season-primary-side">
           <span>
-            {tracked.length} weekly update
-            {tracked.length === 1 ? '' : 's'}
+            {tracked.length}
+            {' '}
+            weekly update
+            {tracked.length === 1
+              ? ''
+              : 's'}
           </span>
         </div>
       </div>
 
       <div className="season-metrics">
         <div>
-          <strong>{totals.matches}</strong>
+          <strong>
+            {totals.matches}
+          </strong>
           <span>Apps</span>
         </div>
 
         <div>
-          <strong>{totals.goals}</strong>
+          <strong>
+            {totals.goals}
+          </strong>
           <span>Goals</span>
         </div>
 
         <div>
-          <strong>{totals.assists}</strong>
+          <strong>
+            {totals.assists}
+          </strong>
           <span>Assists</span>
         </div>
 
         <div>
-          <strong>{contributions}</strong>
+          <strong>
+            {contributions}
+          </strong>
           <span>G + A</span>
         </div>
       </div>
@@ -205,11 +317,20 @@ export default function MySeason({
         <div className="season-trend">
           <div className="season-trend-head">
             <div>
-              <span>RECENT MINUTES</span>
-              <strong>Last {recent.length} tracked weeks</strong>
+              <span>
+                RECENT MINUTES
+              </span>
+
+              <strong>
+                Last {recent.length}
+                {' '}
+                tracked weeks
+              </strong>
             </div>
 
-            <TrendingUp size={18} />
+            <TrendingUp
+              size={18}
+            />
           </div>
 
           <div className="season-chart">
@@ -227,46 +348,66 @@ export default function MySeason({
                 className="season-chart-base"
               />
 
-              {points.length > 1 && (
+              {points.length >
+                1 && (
                 <polyline
-                  points={linePoints}
+                  points={
+                    linePoints
+                  }
                   className="season-chart-line"
                 />
               )}
 
-              {points.map((point, index) => (
-                <circle
-                  key={index}
-                  cx={point.x}
-                  cy={point.y}
-                  r="1.8"
-                  className="season-chart-point"
-                />
-              ))}
+              {points.map(
+                (
+                  point,
+                  index,
+                ) => (
+                  <circle
+                    key={index}
+                    cx={point.x}
+                    cy={point.y}
+                    r="1.8"
+                    className="season-chart-point"
+                  />
+                ),
+              )}
             </svg>
 
             <div className="season-chart-labels">
-              {recent.map((row, index) => (
-                <span key={index}>
-                  {shortDate(row.week_start)}
-                </span>
-              ))}
+              {recent.map(
+                (
+                  row,
+                  index,
+                ) => (
+                  <span key={index}>
+                    {shortDate(
+                      row.week_start,
+                    )}
+                  </span>
+                ),
+              )}
             </div>
           </div>
         </div>
       )}
 
       <div className="season-insights">
-        {minsPerContribution !== null && (
+        {minsPerContribution !==
+          null && (
           <div className="season-insight">
             <Target size={17} />
 
             <div>
               <strong>
-                {minsPerContribution}
+                {
+                  minsPerContribution
+                }
               </strong>
+
               <span>
-                mins per goal contribution
+                mins per goal
+                contribution
               </span>
             </div>
           </div>
@@ -277,10 +418,16 @@ export default function MySeason({
 
           <div>
             <strong>
-              {remaining.toLocaleString('en-GB')}
+              {remaining.toLocaleString(
+                'en-GB',
+              )}
             </strong>
+
             <span>
-              mins to {nextMilestone.toLocaleString('en-GB')}
+              mins to{' '}
+              {nextMilestone.toLocaleString(
+                'en-GB',
+              )}
             </span>
           </div>
         </div>
@@ -288,9 +435,10 @@ export default function MySeason({
 
       <div className="season-foot">
         <span>
-          Your private DJM tracker. Club-facing
-          statistics are verified separately before
-          publication.
+          Private player tracker.
+          Club-facing statistics are
+          verified separately by DJM
+          before publication.
         </span>
 
         <Link href="/check-in">
