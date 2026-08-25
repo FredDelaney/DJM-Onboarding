@@ -203,6 +203,20 @@ const styles =
       fontSize: 6.8,
     },
 
+    heroSourceLink: {
+  color: YELLOW,
+
+  marginTop: 8,
+
+  fontSize: 7.2,
+
+  fontWeight: 700,
+
+  letterSpacing: .35,
+
+  textDecoration: 'none',
+},
+    
     photo: {
       width: 145,
       height: 174,
@@ -956,6 +970,19 @@ export function ClubCvPdfDocument({
               </View>
             </View>
 
+{profile?.transfermarkt_url && (
+  <Link
+    src={
+      profile.transfermarkt_url
+    }
+    style={
+      styles.heroSourceLink
+    }
+  >
+    TRANSFERMARKT PROFILE ↗
+  </Link>
+)}
+            
             {photoUrl ? (
               <Image
                 src={photoUrl}
