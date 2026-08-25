@@ -378,6 +378,23 @@ export default function PublicProfile({
                   </a>
                 )}
 
+{profile.transfermarkt_url && (
+  <a
+    className="dossier-hero-btn dossier-hero-btn-secondary"
+    href={
+      profile.transfermarkt_url
+    }
+    target="_blank"
+    rel="noreferrer"
+  >
+    <ExternalLink
+      size={16}
+    />
+
+    Transfermarkt
+  </a>
+)}
+                
                 <button
                   type="button"
                   className="dossier-hero-btn dossier-hero-btn-secondary"
