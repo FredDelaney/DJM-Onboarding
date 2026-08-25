@@ -193,12 +193,15 @@ export default function AdminPlayer(){
         .eq('player_id',id)
         .order('created_at',{ascending:false}),
 
-      supabase
-  
-        .select('*')
-        .eq('player_id',id)
-        .order('sort_order')
-        .order('start_date',{ascending:false}),
+supabase
+  .from('career_entries')
+  .select('*')
+  .eq('player_id',id)
+  .order('sort_order')
+  .order(
+    'start_date',
+    {ascending:false}
+  ),
 
       supabase
         .from('player_videos')
