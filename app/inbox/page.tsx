@@ -75,21 +75,49 @@ function InboxContent() {
       return;
     }
 
-    setReply('');
-    setExpanded(null);
+   setRequests(
+  (current) =>
+    current.map(
+      (item) =>
+        item.id === r.id
+          ? {
+              ...item,
+              player_reply:
+                reply ||
+                r.player_reply ||
+                null,
+              status,
+              completed_at:
+                status ===
+                'completed'
+                  ? new Date()
+                      .toISOString()
+                  : null,
+            }
+          : item,
+    ),
+);
 
-    setToast(
-      status === 'completed'
-        ? 'Sent to DJM'
-        : 'Reply saved'
-    );
+setReply('');
+setExpanded(null);
 
-    setTimeout(() => setToast(''), 1800);
+setToast(
+  status === 'completed'
+    ? 'Sent to DJM'
+    : 'Reply saved'
+);
 
-    await load();
-    await ctx.refresh();
+setTimeout(
+  () => setToast(''),
+  1800,
+);
 
-    setBusy(false);
+setBusy(false);
+
+void Promise.all([
+  load(),
+  ctx.refresh(),
+]);
   };
 
   const send = async () => {
@@ -125,9 +153,9 @@ function InboxContent() {
     setToast('Message sent to DJM');
     setTimeout(() => setToast(''), 1800);
 
-    await load();
+setBusy(false);
 
-    setBusy(false);
+void load();
   };
 
   const open = requests.filter(
