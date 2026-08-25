@@ -1,63 +1,90 @@
-# DJM Player
+# DJM Player — UX Smoothness Release
 
-Private career app and agency operating platform for DJM Sports Management.
+This release is deliberately **not a redesign**.
 
-DJM Player has three deliberately separate experiences:
+It fixes the structural reasons the app can feel like separate web pages instead of one fluid product.
 
-1. **Player app** — onboarding, live profile, private career information, 60-second weekly check-ins, documents and DJM Inbox.
-2. **DJM Admin** — player records, requests, messages, check-in alerts, verification, opportunities, authority/agreements, CV editing, club shares and team access.
-3. **Club dossier** — a deliberately limited, verified recruitment profile that never exposes private player information.
+## What changes
 
-## Stack
+### 1. Navigation stops reloading the player from zero
+`components/PlayerShell.tsx`
 
-- Next.js 15 + React 19
-- Supabase Auth, Postgres, RLS, Storage and Edge Functions
-- Vercel
-- Web Push / PWA support
+The current app creates a new local player context on every page. That means moving between Home, Inbox, Check-in and Profile repeatedly starts from `loading: true`, rechecks auth and fetches the same player/private/request/check-in data again.
 
-## Routes
+The replacement keeps the current player state in memory for the life of the app session.
 
-- `/` premium entry
-- `/sign-in` returning player / authorised DJM staff access
-- `/join/[token]` private player invitation
-- `/onboarding` guided player onboarding
-- `/home` player home
-- `/inbox` DJM requests and player messages
-- `/check-in` weekly player check-in
-- `/profile` master player + private career information
-- `/documents` private files and agreements
-- `/cv` player-facing club-profile preview
-- `/admin` DJM command centre
-- `/admin/players/[id]` complete agency player record
-- `/p/[slug]` published club-facing dossier
-- `/s/[token]` tracked club share
+Result:
+- repeat tab navigation renders immediately;
+- no full-screen loading flash on every player tab;
+- data quietly revalidates in the background;
+- simultaneous page loads share one request instead of duplicating it;
+- nothing private is written to localStorage or sessionStorage.
 
-## Data rules
+### 2. Admin auth also stays warm
+`components/AdminShell.tsx`
 
-- Real player data never belongs in this repository.
-- Private contact, salary, passport, injury/check-in and internal agency information stays in Supabase under RLS.
-- Public club profiles are a separate publishable snapshot.
-- DJM verification is invalidated when important player data changes.
-- External-source changes are reviewable suggestions, never silent overwrites.
+Admin/scout identity is cached in memory for 60 seconds and quietly revalidated. Moving around Admin no longer needs to start authentication from zero each time.
 
-## Local setup
+### 3. iPhone controls feel more physical
+`app/ux-smooth.css`
 
-```bash
-cp .env.example .env.local
-npm install
-npm run dev
-```
+Adds:
+- subtle pressed feedback;
+- smoother bottom sheets;
+- smoother backdrop/toast entry;
+- stable iOS bottom navigation compositor layer;
+- touch-action optimisation;
+- proper reduced-motion support.
 
-The browser uses only Supabase publishable credentials. Service-role credentials and VAPID private material are server-side only.
+### 4. Root layout loads the interaction layer
+`app/layout.tsx`
 
-See `docs/PRODUCT.md` and `docs/ARCHITECTURE.md`.
+Only adds the new CSS import. No metadata or product structure changes.
 
+---
 
-## Product principles
+# Upload these exact files
 
-- Player Home answers one question first: what needs me now?
-- “Opportunity ready” replaces generic profile-completion language and surfaces only the next useful action.
-- Weekly check-ins are designed to take about 60 seconds and now have automatic Monday push reminders.
-- Private data and club-facing recruitment data remain separate by design.
-- DJM verification is required before publication and is invalidated by material player-data changes.
-- Passport numbers are not collected. Travel-document type, country and expiry are enough for readiness alerts.
+Replace:
+
+`components/PlayerShell.tsx`
+
+with the file from this bundle.
+
+Replace:
+
+`components/AdminShell.tsx`
+
+with the file from this bundle.
+
+Create:
+
+`app/ux-smooth.css`
+
+with the file from this bundle.
+
+Replace:
+
+`app/layout.tsx`
+
+with the file from this bundle.
+
+Commit:
+
+`Make DJM Player navigation feel instant`
+
+Then tell ChatGPT `done`.
+
+---
+
+# What I will do after it is green
+
+The next UX pass is about **removing taps**, not adding design:
+
+1. Home “best next update” opens the exact Profile editor (Football / Career / Media / Sources).
+2. Profile saves close immediately after the database write, while the global context refreshes quietly.
+3. Inbox completion updates optimistically instead of holding the button while it reloads the inbox + global context.
+4. Weekly check-in gets a faster success return into My Season.
+5. Admin player actions stop reloading all 15 data sources after every small edit where a targeted update is enough.
+
+Those should be done after this structural smoothness layer is verified, because this release removes the biggest source of perceived slowness everywhere at once.

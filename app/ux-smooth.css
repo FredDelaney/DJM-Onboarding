@@ -1,0 +1,178 @@
+/* =========================================================
+   DJM UX SMOOTHNESS LAYER
+   Interaction quality only — no redesign.
+   ========================================================= */
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overscroll-behavior-y: contain;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+.header-glass,
+.bottom-nav,
+.admin-head {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/*
+ * Give taps a restrained physical response.
+ * This is deliberately subtle: Apple-like, not animated-for-animation's-sake.
+ */
+.btn,
+.icon-btn,
+.nav-item,
+.list-row,
+.choice,
+.quick-good,
+.admin-quick-action,
+.season-link,
+.club-share-link-actions button {
+  transition:
+    transform 130ms ease,
+    opacity 130ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .btn:active,
+  .icon-btn:active,
+  .nav-item:active,
+  .list-row:active,
+  .choice:active,
+  .quick-good:active,
+  .admin-quick-action:active,
+  .season-link:active,
+  .club-share-link-actions button:active {
+    transform: scale(.985);
+    opacity: .84;
+  }
+}
+
+/*
+ * Keep the bottom navigation on its own compositor layer.
+ * This reduces the tiny jump that can appear on iOS while content scrolls.
+ */
+.bottom-nav {
+  will-change: transform;
+}
+
+/*
+ * Sheets should feel attached to the bottom edge rather than simply appear.
+ */
+.profile-21-sheet,
+.club-share-sheet,
+.club-confirm-sheet,
+.season-editor-sheet {
+  transform-origin: 50% 100%;
+  animation:
+    djm-sheet-in 220ms
+    cubic-bezier(.22,.8,.28,1)
+    both;
+}
+
+.club-share-backdrop,
+.profile-21-backdrop,
+.season-editor-backdrop {
+  animation:
+    djm-backdrop-in 160ms
+    ease-out
+    both;
+}
+
+.toast {
+  animation:
+    djm-toast-in 190ms
+    cubic-bezier(.22,.8,.28,1)
+    both;
+}
+
+@keyframes djm-sheet-in {
+  from {
+    opacity: 0;
+    transform:
+      translateY(14px)
+      scale(.992);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+@keyframes djm-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes djm-toast-in {
+  from {
+    opacity: 0;
+    transform:
+      translate(-50%, 8px)
+      scale(.98);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translate(-50%, 0)
+      scale(1);
+  }
+}
+
+/*
+ * Avoid accidental double zoom / selection feel on nav and controls.
+ */
+.bottom-nav,
+.admin-player-tabs,
+.club-share-segmented {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/*
+ * Smooth in-page movement without overriding reduced-motion preferences.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
