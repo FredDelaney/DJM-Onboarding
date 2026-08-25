@@ -47,6 +47,9 @@ import ClubReadyPanel
 import SeasonRecordEditor
   from '@/components/SeasonRecordEditor';
 
+import RemovePlayerSheet
+  from '@/components/RemovePlayerSheet';
+
 const txt=(v:any)=>v??'';
 
 const arr=(v:any)=>
