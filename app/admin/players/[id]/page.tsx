@@ -1603,59 +1603,51 @@ current_season_start:
     );
   };
 
-  const removePlayer=async()=>{
+const removePlayer=async(
+  confirmation:string
+)=>{
+  if(
+    !isFullAdmin
+    ||confirmation!==name
+  ){
+    return;
+  }
 
-    const first=
-      window.confirm(
-        `Permanently remove ${name} from DJM Player?\n\nThis removes their player record, CV, check-ins, requests, opportunities, share links and stored player files.`
-      );
+  setBusy(true);
 
-    if(!first){
-      return;
-    }
-
-    const confirmation=
-      window.prompt(
-        `Type "${name}" to confirm permanent removal.`
-      );
-
-    if(!confirmation){
-      return;
-    }
-
-    setBusy(true);
-
-    const {data,error}=
-      await supabase
-        .functions
-        .invoke(
-          'remove-player',
-          {
-            body:{
-              player_id:id,
-              confirmation
-            }
+  const {data,error}=
+    await supabase
+      .functions
+      .invoke(
+        'remove-player',
+        {
+          body:{
+            player_id:id,
+            confirmation
           }
-        );
-
-    setBusy(false);
-
-    if(
-      error
-      ||!data?.ok
-    ){
-      flash(
-        data?.error
-        ||error?.message
-        ||'Could not remove player'
+        }
       );
 
-      return;
-    }
+  setBusy(false);
 
-    router.replace('/admin');
-    router.refresh();
-  };
+  if(
+    error
+    ||!data?.ok
+  ){
+    flash(
+      data?.error
+      ||error?.message
+      ||'Could not remove player'
+    );
+
+    return;
+  }
+
+  setRemoveOpen(false);
+
+  router.replace('/admin');
+  router.refresh();
+};
 
   const tabs=[
     'overview',
