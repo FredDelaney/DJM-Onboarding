@@ -194,7 +194,7 @@ export default function AdminPlayer(){
         .order('created_at',{ascending:false}),
 
       supabase
-        .from('career_entries')
+  
         .select('*')
         .eq('player_id',id)
         .order('sort_order')
@@ -959,17 +959,67 @@ flash('Photo updated');
     );
   };
 
-  const refreshCareer=async()=>{
-  const {data}=
-    await supabase
-      .from('career_entries')
-      .select('*')
-      .eq('player_id',id)
-      .order('sort_order')
-      .order(
-        'start_date',
-        {ascending:false}
-      );
+const refreshCareer=async()=>{
+  const [
+    careerResult,
+    cvResult,
+    publicResult,
+    playerResult
+  ]=
+    await Promise.all([
+      supabase
+        .from('career_entries')
+        .select('*')
+        .eq('player_id',id)
+        .order('sort_order')
+        .order(
+          'start_date',
+          {ascending:false}
+        ),
+
+      supabase
+        .from('player_cv_settings')
+        .select('*')
+        .eq('player_id',id)
+        .maybeSingle(),
+
+      supabase
+        .from('player_public_profiles')
+        .select('*')
+        .eq('player_id',id)
+        .maybeSingle(),
+
+      supabase
+        .from('players')
+        .select('*')
+        .eq('id',id)
+        .single()
+    ]);
+
+  if(careerResult.data){
+    setCareer(
+      careerResult.data
+    );
+  }
+
+  if(cvResult.data){
+    setCv(
+      cvResult.data
+    );
+  }
+
+  if(publicResult.data){
+    setPub(
+      publicResult.data
+    );
+  }
+
+  if(playerResult.data){
+    setP(
+      playerResult.data
+    );
+  }
+};
 
   setCareer(data||[]);
 };
