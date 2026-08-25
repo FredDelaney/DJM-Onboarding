@@ -151,7 +151,7 @@ export default function Profile() {
         );
       },
     );
-  }, [ctx.player?.id]);
+  }, [     ctx.player?.id,     ctx.player?.updated_at,   ]);
 
   useEffect(() => {
     if (!ctx.privateInfo) {
