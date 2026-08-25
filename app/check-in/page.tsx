@@ -1,11 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import {
+  useEffect,
+  useState,
+} from 'react';
+
+import Link from 'next/link';
+
 import {
   ArrowRight,
   Check,
   ChevronDown,
   ChevronUp,
+  Clock3,
 } from 'lucide-react';
 
 import {
@@ -22,6 +29,12 @@ import {
 import {
   optionalNonNegativeInteger,
 } from '@/lib/validation';
+
+const value = (input: any) =>
+  input === null ||
+  input === undefined
+    ? ''
+    : String(input);
 
 export default function CheckIn() {
   const ctx = usePlayerContext();
@@ -68,6 +81,71 @@ export default function CheckIn() {
   const [error, setError] =
     useState('');
 
+  const currentWeek =
+    weekStartISO();
+
+  const existing =
+    ctx.latestCheckin?.week_start ===
+    currentWeek
+      ? ctx.latestCheckin
+      : null;
+
+  useEffect(() => {
+    if (!existing) return;
+
+    setAvailability(
+      existing.availability_status ||
+        'available',
+    );
+
+    setFitness(
+      existing.fitness_status ||
+        'fully_fit',
+    );
+
+    setNotes(
+      existing.player_notes || '',
+    );
+
+    setSupport(
+      existing.support_request || '',
+    );
+
+    setMatches(
+      value(existing.matches_played),
+    );
+
+    setMinutes(
+      value(existing.minutes_played),
+    );
+
+    setGoals(
+      value(existing.goals),
+    );
+
+    setAssists(
+      value(existing.assists),
+    );
+
+    setClubChanged(
+      !!existing.club_situation_changed,
+    );
+
+    setClubNotes(
+      existing.club_situation_notes || '',
+    );
+
+    if (
+      existing.matches_played != null ||
+      existing.minutes_played != null ||
+      existing.goals != null ||
+      existing.assists != null ||
+      existing.club_situation_changed
+    ) {
+      setDetails(true);
+    }
+  }, [existing?.id]);
+
   if (ctx.loading) {
     return <LoadingScreen />;
   }
@@ -75,9 +153,7 @@ export default function CheckIn() {
   const submit = async (
     quick = false,
   ) => {
-    if (!ctx.player) {
-      return;
-    }
+    if (!ctx.player) return;
 
     setBusy(true);
     setError('');
@@ -125,9 +201,14 @@ export default function CheckIn() {
       return;
     }
 
+    /*
+     * A quick update must never destroy
+     * match information already saved for
+     * the current week.
+     */
     const payload: any = {
       player_id: ctx.player.id,
-      week_start: weekStartISO(),
+      week_start: currentWeek,
 
       availability_status: quick
         ? 'available'
@@ -138,35 +219,37 @@ export default function CheckIn() {
         : fitness,
 
       player_notes: quick
-        ? null
+        ? existing?.player_notes || null
         : notes.trim() || null,
 
       support_request: quick
-        ? null
+        ? existing?.support_request || null
         : support.trim() || null,
 
       club_situation_changed: quick
-        ? false
+        ? existing?.club_situation_changed ||
+          false
         : clubChanged,
 
       club_situation_notes: quick
-        ? null
+        ? existing?.club_situation_notes ||
+          null
         : clubNotes.trim() || null,
 
       matches_played: quick
-        ? null
+        ? existing?.matches_played ?? null
         : parsedMatches.value,
 
       minutes_played: quick
-        ? null
+        ? existing?.minutes_played ?? null
         : parsedMinutes.value,
 
       goals: quick
-        ? null
+        ? existing?.goals ?? null
         : parsedGoals.value,
 
       assists: quick
-        ? null
+        ? existing?.assists ?? null
         : parsedAssists.value,
 
       travel_availability:
@@ -176,12 +259,6 @@ export default function CheckIn() {
       submitted_at:
         new Date().toISOString(),
     };
-
-    const existing =
-      ctx.latestCheckin?.week_start ===
-      weekStartISO()
-        ? ctx.latestCheckin
-        : null;
 
     const query = existing
       ? supabase
@@ -198,7 +275,7 @@ export default function CheckIn() {
 
     if (submitError) {
       setError(
-        'We couldn’t send your check-in. Please try again.',
+        'We couldn’t send your update. Please try again.',
       );
 
       setBusy(false);
@@ -215,52 +292,31 @@ export default function CheckIn() {
   if (done) {
     return (
       <PlayerShell>
-        <main
-          className="narrow"
-          style={{
-            paddingTop: 74,
-            textAlign: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: 62,
-              height: 62,
-              borderRadius: '50%',
-              background: '#e9f7ef',
-              color: '#18794e',
-              display: 'grid',
-              placeItems: 'center',
-              margin: '0 auto 22px',
-            }}
-          >
-            <Check size={28} />
+        <main className="narrow player-shell check-done">
+          <div className="check-success">
+            <Check size={27} />
+          </div>
+
+          <div className="section-kicker">
+            WEEKLY UPDATE
           </div>
 
           <h1 className="page-title">
             Done.
           </h1>
 
-          <p
-            className="page-intro"
-            style={{
-              margin: '0 auto',
-            }}
-          >
-            DJM has your update. That’s all
-            you need to do this week.
+          <p className="page-intro">
+            DJM has your update and your
+            season tracker has been refreshed.
           </p>
 
-          <a
+          <Link
             href="/home"
             className="btn btn-navy"
-            style={{
-              marginTop: 28,
-            }}
           >
-            Back home
+            See My Season
             <ArrowRight size={16} />
-          </a>
+          </Link>
         </main>
       </PlayerShell>
     );
@@ -272,47 +328,78 @@ export default function CheckIn() {
         ctx.openRequests.length
       }
     >
-      <main className="narrow player-shell">
+      <main className="narrow player-shell checkin-21">
         {error && (
           <div
+            className="check-alert"
             role="alert"
-            style={{
-              padding: '12px 14px',
-              borderRadius: 14,
-              background: '#fff4f4',
-              color: '#8a1c1c',
-              fontSize: 14,
-              fontWeight: 650,
-              marginBottom: 16,
-            }}
           >
             {error}
           </div>
         )}
 
-        <div
-          className="section-kicker"
-          style={{
-            marginTop: 18,
-          }}
-        >
+        <div className="section-kicker">
           WEEKLY CHECK-IN
         </div>
 
         <h1 className="page-title">
-          60 seconds. Keep DJM current.
+          Keep DJM current.
         </h1>
 
-        <p
-          className="page-intro"
-          style={{
-            marginBottom: 28,
-          }}
-        >
-          If nothing changed, one tap is
-          enough. Otherwise tell us only
-          what matters.
+        <p className="page-intro">
+          If nothing important changed, one
+          tap is enough. Add match details and
+          your private season tracker updates
+          automatically.
         </p>
+
+        {existing && (
+          <section className="existing-checkin">
+            <div>
+              <span>
+                THIS WEEK
+              </span>
+
+              <strong>
+                Already submitted
+              </strong>
+
+              <small>
+                {[
+                  existing.matches_played != null
+                    ? `${existing.matches_played} match${
+                        existing.matches_played === 1
+                          ? ''
+                          : 'es'
+                      }`
+                    : null,
+                  existing.minutes_played != null
+                    ? `${existing.minutes_played} mins`
+                    : null,
+                  existing.goals != null
+                    ? `${existing.goals} goal${
+                        existing.goals === 1
+                          ? ''
+                          : 's'
+                      }`
+                    : null,
+                  existing.assists != null
+                    ? `${existing.assists} assist${
+                        existing.assists === 1
+                          ? ''
+                          : 's'
+                      }`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') ||
+                  'You can update it below'}
+              </small>
+            </div>
+
+            <Clock3 size={18} />
+          </section>
+        )}
 
         <button
           className="quick-good"
@@ -321,11 +408,13 @@ export default function CheckIn() {
         >
           <div>
             <strong>
-              Everything’s good this week.
+              {existing
+                ? 'Everything is still good.'
+                : 'Everything’s good this week.'}
             </strong>
 
             <span>
-              Available, fully fit, nothing
+              Available, fully fit and nothing
               important changed.
             </span>
           </div>
@@ -333,79 +422,43 @@ export default function CheckIn() {
           <ArrowRight size={20} />
         </button>
 
-        <div
-          className="row"
-          style={{
-            margin: '22px 0',
-            gap: 12,
-          }}
-        >
-          <div
-            style={{
-              height: 1,
-              background: 'var(--line)',
-              flex: 1,
-            }}
-          />
-
-          <span
-            className="tiny muted"
-            style={{
-              fontWeight: 700,
-            }}
-          >
-            OR UPDATE WHAT CHANGED
-          </span>
-
-          <div
-            style={{
-              height: 1,
-              background: 'var(--line)',
-              flex: 1,
-            }}
-          />
+        <div className="check-divider">
+          <span />
+          <small>
+            {existing
+              ? 'EDIT THIS WEEK'
+              : 'OR UPDATE WHAT CHANGED'}
+          </small>
+          <span />
         </div>
 
-        <div
-          className="stack"
-          style={{
-            gap: 16,
-          }}
-        >
+        <div className="stack check-stack">
           <section className="check-card">
             <h2 className="check-question">
               Are you available?
             </h2>
 
             <p className="check-help">
-              Your current playing / move
+              Your current playing and move
               availability.
             </p>
 
             <div className="choice-grid">
               {[
-                [
-                  'available',
-                  'Available',
-                ],
-                [
-                  'limited',
-                  'Limited',
-                ],
-                [
-                  'unavailable',
-                  'Unavailable',
-                ],
-              ].map(([value, label]) => (
+                ['available', 'Available'],
+                ['limited', 'Limited'],
+                ['unavailable', 'Unavailable'],
+              ].map(([itemValue, label]) => (
                 <button
-                  key={value}
+                  type="button"
+                  key={itemValue}
                   className={`choice ${
-                    availability === value
+                    availability === itemValue
                       ? 'active'
                       : ''
                   }`}
                   onClick={() =>
-                    setAvailability(value)
+                    setAvailability(itemValue)
                   }
                 >
                   {label}
@@ -420,34 +473,26 @@ export default function CheckIn() {
             </h2>
 
             <p className="check-help">
-              No medical detail needed unless
-              you want DJM to know.
+              No medical detail is required
+              unless you want DJM to know.
             </p>
 
             <div className="choice-grid">
               {[
-                [
-                  'fully_fit',
-                  'Fully fit',
-                ],
-                [
-                  'managing',
-                  'Managing something',
-                ],
-                [
-                  'injured',
-                  'Injured',
-                ],
-              ].map(([value, label]) => (
+                ['fully_fit', 'Fully fit'],
+                ['managing', 'Managing'],
+                ['injured', 'Unavailable'],
+              ].map(([itemValue, label]) => (
                 <button
-                  key={value}
+                  type="button"
+                  key={itemValue}
                   className={`choice ${
-                    fitness === value
+                    fitness === itemValue
                       ? 'active'
                       : ''
                   }`}
                   onClick={() =>
-                    setFitness(value)
+                    setFitness(itemValue)
                   }
                 >
                   {label}
@@ -458,13 +503,13 @@ export default function CheckIn() {
 
           <section className="check-card">
             <h2 className="check-question">
-              Anything changed?
+              Anything DJM should know?
             </h2>
 
             <p className="check-help">
               Club situation, conversations,
-              travel, football, anything you
-              want your agent to know.
+              travel or anything else that
+              matters.
             </p>
 
             <textarea
@@ -473,79 +518,60 @@ export default function CheckIn() {
               onChange={(event) =>
                 setNotes(event.target.value)
               }
-              placeholder="Optional…"
+              placeholder="Optional"
             />
           </section>
 
           <section className="check-card">
             <h2 className="check-question">
-              Do you need anything from DJM?
+              Need anything from DJM?
             </h2>
 
             <p className="check-help">
               A call, club follow-up, contract
-              question, travel support,
-              anything.
+              question or anything else.
             </p>
 
             <textarea
               className="textarea"
               value={support}
               onChange={(event) =>
-                setSupport(event.target.value)
+                setSupport(
+                  event.target.value,
+                )
               }
-              placeholder="Optional…"
+              placeholder="Optional"
             />
           </section>
 
           <section className="check-card">
             <button
-              className="row-between"
-              style={{
-                width: '100%',
-                border: 0,
-                background: 'none',
-                padding: 0,
-                textAlign: 'left',
-              }}
+              type="button"
+              className="check-expand"
               onClick={() =>
                 setDetails(!details)
               }
             >
               <div>
-                <h2
-                  className="check-question"
-                  style={{
-                    marginBottom: 4,
-                  }}
-                >
-                  Add match details
+                <h2 className="check-question">
+                  Match details
                 </h2>
 
-                <p
-                  className="check-help"
-                  style={{
-                    margin: 0,
-                  }}
-                >
-                  Optional numbers if you want
-                  them recorded.
+                <p className="check-help">
+                  Add this week’s numbers to
+                  My Season.
                 </p>
               </div>
 
               {details ? (
-                <ChevronUp />
+                <ChevronUp size={20} />
               ) : (
-                <ChevronDown />
+                <ChevronDown size={20} />
               )}
             </button>
 
             {details && (
-              <div
-                style={{
-                  marginTop: 22,
-                }}
-              >
+              <div className="check-details">
                 <div className="grid2">
                   <div className="field">
                     <label className="label">
@@ -628,14 +654,7 @@ export default function CheckIn() {
                   </div>
                 </div>
 
-                <label
-                  className="row"
-                  style={{
-                    marginTop: 18,
-                    fontSize: 14,
-                    fontWeight: 700,
-                  }}
-                >
+                <label className="check-toggle">
                   <input
                     type="checkbox"
                     checked={clubChanged}
@@ -646,16 +665,15 @@ export default function CheckIn() {
                     }
                   />
 
-                  My club/contract situation
-                  changed
+                  <span>
+                    My club or contract situation
+                    changed
+                  </span>
                 </label>
 
                 {clubChanged && (
                   <textarea
                     className="textarea"
-                    style={{
-                      marginTop: 12,
-                    }}
                     value={clubNotes}
                     onChange={(event) =>
                       setClubNotes(
@@ -670,17 +688,15 @@ export default function CheckIn() {
           </section>
 
           <button
-            className="btn btn-navy btn-block"
-            style={{
-              marginTop: 4,
-              minHeight: 54,
-            }}
+            className="btn btn-navy btn-block check-submit"
             onClick={() => submit(false)}
             disabled={busy}
           >
             {busy
-              ? 'Sending…'
-              : 'Send check-in'}
+              ? 'Saving…'
+              : existing
+                ? 'Update this week'
+                : 'Send weekly update'}
 
             <ArrowRight size={17} />
           </button>
