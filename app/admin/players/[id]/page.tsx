@@ -20,7 +20,10 @@ import {
   BriefcaseBusiness,
   Video,
   Trash2,
-  Download
+  Download,
+  Link2,
+  Clock3,
+  X
 } from 'lucide-react';
 
 import {
@@ -99,6 +102,12 @@ export default function AdminPlayer(){
 
   const [videoUrl,setVideoUrl]=useState('');
   const [videoTitle,setVideoTitle]=useState('');
+
+  const [shareOpen,setShareOpen]=useState(false);
+  const [shareLabel,setShareLabel]=useState('');
+  const [shareExpiryDays,setShareExpiryDays]=useState('30');
+  const [shareBusy,setShareBusy]=useState(false);
+  const [unpublishOpen,setUnpublishOpen]=useState(false);
 
   const load=async()=>{
     const [
@@ -1434,7 +1443,128 @@ current_season_start:
     return true;
   };
 
+  const copyShare=async(token:string)=>{
+    try{
+      await navigator
+        .clipboard
+        .writeText(
+          `${window.location.origin}/s/${token}`
+        );
+
+      flash('Club link copied');
+    }catch{
+      flash('Could not copy club link');
+    }
+  };
+
+  const openShare=()=>{
+    setShareLabel('');
+    setShareExpiryDays('30');
+    setShareOpen(true);
+  };
+
+  const createShare=async()=>{
+    const label=
+      shareLabel.trim();
+
+    if(!label){
+      flash('Add the club or contact name');
+      return;
+    }
+
+    const days=
+      Number(shareExpiryDays)||30;
+
+    const expiresAt=
+      new Date(
+        Date.now()
+        +days*86400000
+      ).toISOString();
+
+    setShareBusy(true);
+
+    const {data,error}=
+      await supabase
+        .from(
+          'club_share_links'
+        )
+        .insert({
+          player_id:id,
+          label,
+          active:true,
+          expires_at:expiresAt,
+          created_by:
+            auth.user.id
+        })
+        .select('*')
+        .single();
+
+    if(
+      error
+      ||!data
+    ){
+      setShareBusy(false);
+
+      flash(
+        error?.message
+        ||'Could not create club link'
+      );
+
+      return;
+    }
+
+    try{
+      await navigator
+        .clipboard
+        .writeText(
+          `${window.location.origin}/s/${data.token}`
+        );
+    }catch{}
+
+    await load();
+
+    setShareBusy(false);
+    setShareOpen(false);
+    setShareLabel('');
+
+    flash(
+      'Club link created and copied'
+    );
+  };
+
+  const deactivateShare=async(share:any)=>{
+    setShareBusy(true);
+
+    const {error}=
+      await supabase
+        .from(
+          'club_share_links'
+        )
+        .update({
+          active:false
+        })
+        .eq('id',share.id);
+
+    setShareBusy(false);
+
+    if(error){
+      flash(
+        'Could not deactivate club link'
+      );
+
+      return;
+    }
+
+    await load();
+
+    flash(
+      'Club link deactivated'
+    );
+  };
+
   const unpublish=async()=>{
+    setBusy(true);
+
     const {error}=
       await supabase
         .from(
@@ -1444,6 +1574,8 @@ current_season_start:
           published:false
         })
         .eq('player_id',id);
+
+    setBusy(false);
 
     if(error){
       flash(
@@ -1455,66 +1587,11 @@ current_season_start:
 
     await load();
 
-    flash(
-      'Profile unpublished'
-    );
-  };
-
-  const createShare=async()=>{
-    const label=
-      window.prompt(
-        'Club / contact label for this link?',
-        'Club share'
-      );
-
-    if(!label){
-      return;
-    }
-
-    const exp=
-      new Date(
-        Date.now()
-        +
-        30*86400000
-      ).toISOString();
-
-    const {data,error}=
-      await supabase
-        .from(
-          'club_share_links'
-        )
-        .insert({
-          player_id:id,
-          label,
-          expires_at:exp,
-          created_by:
-            auth.user.id
-        })
-        .select('*')
-        .single();
-
-    if(
-      error
-      ||!data
-    ){
-      flash(
-        'Could not create tracked link'
-      );
-
-      return;
-    }
-
-    await navigator
-      .clipboard
-      .writeText(
-        `${window.location.origin}/s/${data.token}`
-      );
+    setUnpublishOpen(false);
 
     flash(
-      'Tracked club link copied'
+      'Club profile unpublished'
     );
-
-    await load();
   };
 
   const removePlayer=async()=>{
@@ -3412,15 +3489,17 @@ current_season_start:
 
                       <button
                         className="btn btn-quiet"
-                        onClick={createShare}
+                        onClick={openShare}
                       >
-                        <Copy size={15}/>
-                        Create tracked link
+                        <Link2 size={15}/>
+                        Share with club
                       </button>
 
                       <button
                         className="btn btn-outline"
-                        onClick={unpublish}
+                        onClick={()=>
+                          setUnpublishOpen(true)
+                        }
                       >
                         Unpublish
                       </button>
@@ -3520,8 +3599,21 @@ current_season_start:
 
             <aside className="stack admin-sidebar">
               <section className="admin-card">
-                <div className="section-kicker">
-                  SHARE ACTIVITY
+                <div className="row-between">
+                  <div className="section-kicker">
+                    SHARE ACTIVITY
+                  </div>
+
+                  {pub?.published&&(
+                    <button
+                      type="button"
+                      className="btn btn-quiet btn-sm"
+                      onClick={openShare}
+                    >
+                      <Link2 size={13}/>
+                      Manage
+                    </button>
+                  )}
                 </div>
 
                 {shares.length
@@ -3558,12 +3650,9 @@ current_season_start:
                           <button
                             className="btn btn-quiet btn-sm"
                             onClick={()=>
-                              navigator
-                                .clipboard
-                                .writeText(
-                                  `${location.origin}/s/${s.token}`
-                                )
+                              copyShare(s.token)
                             }
+                            disabled={!s.active}
                           >
                             <Copy size={13}/>
                           </button>
@@ -3940,6 +4029,298 @@ current_season_start:
         )}
 
       
+        {shareOpen&&(
+          <div
+            className="club-share-backdrop"
+            onClick={()=>
+              !shareBusy
+              &&setShareOpen(false)
+            }
+          >
+            <section
+              className="club-share-sheet"
+              onClick={e=>
+                e.stopPropagation()
+              }
+              aria-label="Share player dossier"
+            >
+              <div className="club-share-handle"/>
+
+              <header className="club-share-head">
+                <div>
+                  <div className="section-kicker">
+                    CLUB SHARING
+                  </div>
+
+                  <h2>
+                    Share {name}.
+                  </h2>
+
+                  <p>
+                    Create a private, tracked club link. Each link can be copied, monitored and switched off independently.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label="Close"
+                  onClick={()=>
+                    setShareOpen(false)
+                  }
+                  disabled={shareBusy}
+                >
+                  <X size={18}/>
+                </button>
+              </header>
+
+              <div className="club-share-body">
+                <div className="club-share-create">
+                  <div className="field">
+                    <label className="label">
+                      Club or contact
+                    </label>
+
+                    <input
+                      className="input"
+                      value={shareLabel}
+                      onChange={e=>
+                        setShareLabel(
+                          e.target.value
+                        )
+                      }
+                      placeholder="e.g. HJK · Sporting Director"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="club-share-expiry">
+                    <span className="label">
+                      Link expires
+                    </span>
+
+                    <div className="club-share-segmented">
+                      {[
+                        ['7','7 days'],
+                        ['30','30 days'],
+                        ['90','90 days']
+                      ].map(([value,label])=>(
+                        <button
+                          type="button"
+                          key={value}
+                          className={
+                            shareExpiryDays===value
+                              ?'active'
+                              :''
+                          }
+                          onClick={()=>
+                            setShareExpiryDays(value)
+                          }
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn btn-navy btn-block club-share-create-btn"
+                    onClick={createShare}
+                    disabled={
+                      shareBusy
+                      ||!shareLabel.trim()
+                    }
+                  >
+                    <Link2 size={15}/>
+                    {shareBusy
+                      ?'Creating…'
+                      :'Create & copy link'
+                    }
+                  </button>
+                </div>
+
+                <div className="club-share-history">
+                  <div className="club-share-history-head">
+                    <strong>
+                      Existing links
+                    </strong>
+
+                    <span>
+                      {shares.length}
+                    </span>
+                  </div>
+
+                  {shares.length
+                    ?shares.map(s=>{
+                        const expired=
+                          !!s.expires_at
+                          &&new Date(
+                            s.expires_at
+                          ).getTime()<Date.now();
+
+                        const usable=
+                          s.active
+                          &&!expired;
+
+                        return(
+                          <div
+                            className="club-share-link-row"
+                            key={s.id}
+                          >
+                            <div className="club-share-link-icon">
+                              <Link2 size={16}/>
+                            </div>
+
+                            <div className="club-share-link-copy">
+                              <div className="club-share-link-title">
+                                <strong>
+                                  {s.label
+                                    ||'Club share'
+                                  }
+                                </strong>
+
+                                <span
+                                  className={`club-share-state ${
+                                    usable
+                                      ?'is-active'
+                                      :''
+                                  }`}
+                                >
+                                  {expired
+                                    ?'Expired'
+                                    :s.active
+                                      ?'Active'
+                                      :'Off'
+                                  }
+                                </span>
+                              </div>
+
+                              <span>
+                                {s.view_count||0}
+                                {' '}
+                                view
+                                {Number(s.view_count||0)===1
+                                  ?''
+                                  :'s'
+                                }
+                                {s.last_viewed_at
+                                  ?` · last ${fmtDate(s.last_viewed_at)}`
+                                  :''
+                                }
+                              </span>
+
+                              <small>
+                                {s.expires_at
+                                  ?`${expired?'Expired':'Expires'} ${fmtDate(s.expires_at)}`
+                                  :'No expiry'
+                                }
+                              </small>
+                            </div>
+
+                            <div className="club-share-link-actions">
+                              {usable&&(
+                                <button
+                                  type="button"
+                                  onClick={()=>
+                                    copyShare(s.token)
+                                  }
+                                  aria-label="Copy link"
+                                >
+                                  <Copy size={14}/>
+                                  Copy
+                                </button>
+                              )}
+
+                              {s.active&&(
+                                <button
+                                  type="button"
+                                  onClick={()=>
+                                    deactivateShare(s)
+                                  }
+                                  disabled={shareBusy}
+                                >
+                                  Turn off
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    :(
+                      <div className="club-share-empty">
+                        <Clock3 size={18}/>
+                        <strong>
+                          No club links yet.
+                        </strong>
+                        <span>
+                          Create a separate tracked link for each club or contact.
+                        </span>
+                      </div>
+                    )
+                  }
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {unpublishOpen&&(
+          <div
+            className="club-share-backdrop"
+            onClick={()=>
+              !busy
+              &&setUnpublishOpen(false)
+            }
+          >
+            <section
+              className="club-confirm-sheet"
+              onClick={e=>
+                e.stopPropagation()
+              }
+            >
+              <div className="club-share-handle"/>
+
+              <div className="section-kicker">
+                CLUB PROFILE
+              </div>
+
+              <h2>
+                Take {name} offline?
+              </h2>
+
+              <p>
+                The public club profile will stop being available. Player data and the DJM dossier stay safely in the platform.
+              </p>
+
+              <div className="club-confirm-actions">
+                <button
+                  type="button"
+                  className="btn btn-quiet"
+                  onClick={()=>
+                    setUnpublishOpen(false)
+                  }
+                  disabled={busy}
+                >
+                  Keep live
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-dark"
+                  onClick={unpublish}
+                  disabled={busy}
+                >
+                  {busy
+                    ?'Updating…'
+                    :'Unpublish profile'
+                  }
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
         {toast&&(
           <div className="toast">
             {toast}
