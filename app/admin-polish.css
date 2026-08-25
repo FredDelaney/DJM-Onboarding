@@ -1772,3 +1772,262 @@
     min-height: 48px;
   }
 }
+
+/* =========================================================
+   DJM PLAYER — SPORTING DATA SYNC
+   ========================================================= */
+
+.season-sync-source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  margin-bottom: 18px;
+}
+
+.season-sync-source-row .pill {
+  border: 0;
+
+  cursor: pointer;
+}
+
+.season-sync-loading {
+  min-height: 150px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 14px;
+
+  color: var(--muted);
+
+  font-size: 13px;
+}
+
+.season-sync-summary {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3,1fr);
+
+  gap: 8px;
+
+  margin-bottom: 18px;
+}
+
+.season-sync-summary > div {
+  border-radius: 16px;
+
+  padding: 14px;
+
+  background: #f4f5f7;
+}
+
+.season-sync-summary span {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 9px;
+
+  font-weight: 800;
+
+  letter-spacing: .08em;
+}
+
+.season-sync-summary strong {
+  display: block;
+
+  margin-top: 6px;
+
+  color: var(--navy);
+
+  font-size: 16px;
+}
+
+.season-sync-warning {
+  margin-bottom: 12px;
+
+  border-radius: 14px;
+
+  padding: 12px 13px;
+
+  background: #fff9dd;
+
+  color: #5b5100;
+
+  font-size: 12px;
+
+  line-height: 1.45;
+}
+
+.season-sync-list,
+.season-sync-games {
+  display: flex;
+
+  flex-direction: column;
+}
+
+.season-sync-row {
+  padding: 16px 0;
+
+  border-bottom:
+    1px solid var(--line);
+}
+
+.season-sync-row:last-child {
+  border-bottom: 0;
+}
+
+.season-sync-row-top {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 12px;
+}
+
+.season-sync-row-top strong {
+  display: block;
+
+  font-size: 15px;
+}
+
+.season-sync-row-top span:not(.pill) {
+  display: block;
+
+  margin-top: 4px;
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+.season-sync-numbers {
+  display: grid;
+
+  grid-template-columns:
+    repeat(5,1fr);
+
+  gap: 6px;
+
+  margin-top: 13px;
+}
+
+.season-sync-numbers span {
+  border-radius: 11px;
+
+  padding: 9px 6px;
+
+  background: #f4f5f7;
+
+  color: var(--muted);
+
+  font-size: 9px;
+
+  text-align: center;
+}
+
+.season-sync-numbers b {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: var(--navy);
+
+  font-size: 14px;
+}
+
+.season-sync-row > small {
+  display: block;
+
+  margin-top: 10px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+.season-sync-game {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  padding: 13px 0;
+
+  border-bottom:
+    1px solid var(--line);
+}
+
+.season-sync-game:last-child {
+  border-bottom: 0;
+}
+
+.season-sync-game strong {
+  display: block;
+
+  font-size: 13px;
+}
+
+.season-sync-game span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+.season-sync-game > small {
+  flex: 0 0 auto;
+
+  color: var(--navy);
+
+  font-size: 11px;
+
+  font-weight: 720;
+}
+
+@media (max-width:760px) {
+
+  .season-sync-summary {
+    grid-template-columns:
+      repeat(3,1fr);
+  }
+
+  .season-sync-summary > div {
+    padding:
+      12px
+      9px;
+  }
+
+  .season-sync-numbers {
+    grid-template-columns:
+      repeat(5,1fr);
+
+    gap: 4px;
+  }
+
+  .season-sync-numbers span {
+    padding:
+      8px
+      3px;
+  }
+
+  .season-sync-game {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    gap: 7px;
+  }
+}
