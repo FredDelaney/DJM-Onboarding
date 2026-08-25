@@ -339,6 +339,199 @@ const clubReady=
     videos
   );
 
+  const genericStatLabels=
+  new Set([
+    'apps',
+    'appearances',
+    'starts',
+    'minutes',
+    'mins',
+    'goals',
+    'assists',
+    'g+a',
+    'goal contributions'
+  ]);
+
+const reviewedCareer=
+  (
+    Array.isArray(career)
+      ?career
+      :[]
+  )
+    .filter(
+      (row:any)=>
+        !!row.source_reviewed_at
+    );
+
+const seasonLabels=
+  Array.from(
+    new Set(
+      reviewedCareer
+        .map(
+          (row:any)=>
+            String(
+              row.season_label
+              ||''
+            ).trim()
+        )
+        .filter(Boolean)
+    )
+  )
+    .sort(
+      (a,b)=>
+        String(b)
+          .localeCompare(
+            String(a),
+            undefined,
+            {numeric:true}
+          )
+    );
+
+const trustedSeasonLabel=
+  p.current_season_label
+  &&seasonLabels.includes(
+    p.current_season_label
+  )
+    ?p.current_season_label
+    :seasonLabels[0]
+      ||null;
+
+const trustedSeasonRows=
+  trustedSeasonLabel
+    ?reviewedCareer.filter(
+        (row:any)=>
+          row.season_label
+          ===trustedSeasonLabel
+      )
+    :[];
+
+const sumReviewedStat=(
+  key:
+    |'appearances'
+    |'starts'
+    |'minutes'
+    |'goals'
+    |'assists'
+)=>{
+  const known=
+    trustedSeasonRows.filter(
+      (row:any)=>
+        row[key]!==null
+        &&row[key]!==undefined
+        &&row[key]!==''
+    );
+
+  if(!known.length){
+    return null;
+  }
+
+  return known.reduce(
+    (
+      total:number,
+      row:any
+    )=>
+      total+
+      Number(
+        row[key]||0
+      ),
+    0
+  );
+};
+
+const trustedStats=[
+  {
+    label:'Apps',
+    value:
+      sumReviewedStat(
+        'appearances'
+      )
+  },
+  {
+    label:'Starts',
+    value:
+      sumReviewedStat(
+        'starts'
+      )
+  },
+  {
+    label:'Minutes',
+    value:
+      sumReviewedStat(
+        'minutes'
+      )
+  },
+  {
+    label:'Goals',
+    value:
+      sumReviewedStat(
+        'goals'
+      )
+  },
+  {
+    label:'Assists',
+    value:
+      sumReviewedStat(
+        'assists'
+      )
+  }
+]
+  .filter(
+    item=>
+      item.value!==null
+  );
+
+const trustedSources=
+  Array.from(
+    new Set(
+      trustedSeasonRows
+        .map(
+          (row:any)=>
+            row.source_name
+        )
+        .filter(Boolean)
+    )
+  );
+
+const latestStatReview=
+  trustedSeasonRows
+    .map(
+      (row:any)=>
+        row.source_reviewed_at
+    )
+    .filter(Boolean)
+    .sort()
+    .reverse()[0]
+  ||null;
+
+const customKeyStats=
+  (
+    Array.isArray(
+      cv.key_stats
+    )
+      ?cv.key_stats
+      :[]
+  )
+    .map(
+      (
+        stat:any,
+        index:number
+      )=>({
+        stat,
+        index
+      })
+    )
+    .filter(
+      ({stat})=>
+        !genericStatLabels
+          .has(
+            String(
+              stat?.label||''
+            )
+              .trim()
+              .toLowerCase()
+          )
+    );
+
   const flash=(m:string)=>{
     setToast(m);
 
@@ -3254,95 +3447,259 @@ const removePlayer=async(
                   />
                 </div>
 
-                <div className="form-section">
-                  <div className="row-between">
-                    <div>
-                      <div className="section-kicker">
-                        KEY NUMBERS
-                      </div>
+<div className="form-section">
 
-                      <span className="small muted">
-                        Only use numbers you can stand behind.
-                      </span>
-                    </div>
+  <div className="row-between">
+    <div>
+      <div className="section-kicker">
+        PERFORMANCE
+      </div>
 
-                    <button
-                      className="btn btn-quiet btn-sm"
-                      onClick={addStat}
-                    >
-                      <Plus size={14}/>
-                      Add stat
-                    </button>
-                  </div>
+      <span className="small muted">
+        Reviewed sporting data used in the club dossier.
+      </span>
+    </div>
 
-                  <div
-                    className="stack"
-                    style={{
-                      marginTop:12
-                    }}
-                  >
-                    {(
-                      Array.isArray(
-                        cv.key_stats
-                      )
-                        ?cv.key_stats
-                        :[]
-                    ).map(
-                      (st:any,i:number)=>(
-                        <div
-                          key={i}
-                          className="grid2"
-                          style={{
-                            alignItems:'center'
-                          }}
-                        >
-                          <input
-                            className="input"
-                            value={
-                              st.label||''
-                            }
-                            onChange={e=>
-                              updateStat(
-                                i,
-                                'label',
-                                e.target.value
-                              )
-                            }
-                            placeholder="Apps / Goals / Minutes / Caps…"
-                          />
+    {trustedSeasonLabel&&(
+      <span className="pill pill-good">
+        <Check size={12}/>
+        DJM reviewed
+      </span>
+    )}
+  </div>
 
-                          <div className="row">
-                            <input
-                              className="input"
-                              value={
-                                st.value||''
-                              }
-                              onChange={e=>
-                                updateStat(
-                                  i,
-                                  'value',
-                                  e.target.value
-                                )
-                              }
-                              placeholder="24 / 11 / 1,942…"
-                            />
+  {trustedStats.length>0
+    ?(
+      <>
+        <div
+          className="admin-trusted-stats"
+          style={{
+            marginTop:14
+          }}
+        >
+          {trustedStats.map(
+            stat=>(
+              <div
+                className="admin-trusted-stat"
+                key={stat.label}
+              >
+                <strong>
+                  {stat.value}
+                </strong>
 
-                            <button
-                              className="btn btn-quiet btn-sm"
-                              aria-label="Remove stat"
-                              onClick={()=>
-                                removeStat(i)
-                              }
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
+                <span>
+                  {stat.label}
+                </span>
+              </div>
+            )
+          )}
+        </div>
 
+        <div
+          className="admin-trusted-source"
+          style={{
+            marginTop:12
+          }}
+        >
+          <div>
+            <strong>
+              {trustedSeasonLabel}
+            </strong>
+
+            <span>
+              {trustedSeasonRows
+                .map(
+                  (row:any)=>
+                    row.club_name
+                )
+                .filter(Boolean)
+                .join(' · ')
+              }
+            </span>
+          </div>
+
+          <div
+            style={{
+              textAlign:'right'
+            }}
+          >
+            <strong>
+              {trustedSources.length
+                ?trustedSources.join(' + ')
+                :'Reviewed source'
+              }
+            </strong>
+
+            {latestStatReview&&(
+              <span>
+                Reviewed{' '}
+                {new Date(
+                  latestStatReview
+                ).toLocaleDateString(
+                  'en-GB',
+                  {
+                    day:'numeric',
+                    month:'short',
+                    year:'numeric'
+                  }
+                )}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div
+          className="small muted"
+          style={{
+            marginTop:10,
+            lineHeight:1.45
+          }}
+        >
+          Apps, starts, minutes, goals and assists come from
+          the approved sporting record. Update them through
+          <strong> Refresh stats</strong> or the Season Record,
+          not here.
+        </div>
+      </>
+    )
+    :(
+      <div
+        className="admin-empty"
+        style={{
+          marginTop:14
+        }}
+      >
+        <strong>
+          No reviewed performance data yet
+        </strong>
+
+        <span>
+          Use Refresh stats below to pull and approve the
+          player’s sporting record.
+        </span>
+      </div>
+    )
+  }
+
+  <div
+    className="divider"
+    style={{
+      marginTop:22,
+      marginBottom:20
+    }}
+  />
+
+  <div className="row-between">
+    <div>
+      <div className="section-kicker">
+        CAREER HIGHLIGHTS
+      </div>
+
+      <span className="small muted">
+        Add numbers that external season stats do not capture.
+      </span>
+    </div>
+
+    <button
+      className="btn btn-quiet btn-sm"
+      onClick={addStat}
+    >
+      <Plus size={14}/>
+      Add highlight
+    </button>
+  </div>
+
+  <div
+    className="small muted"
+    style={{
+      marginTop:8,
+      lineHeight:1.45
+    }}
+  >
+    Good examples: international caps, promotions,
+    major tournaments, awards or appearances in
+    continental competition.
+  </div>
+
+  <div
+    className="stack"
+    style={{
+      marginTop:12
+    }}
+  >
+    {customKeyStats.length
+      ?customKeyStats.map(
+        ({
+          stat,
+          index
+        })=>(
+          <div
+            key={index}
+            className="grid2"
+            style={{
+              alignItems:'center'
+            }}
+          >
+            <input
+              className="input"
+              value={
+                stat.label||''
+              }
+              onChange={e=>
+                updateStat(
+                  index,
+                  'label',
+                  e.target.value
+                )
+              }
+              placeholder="International caps / Promotions / Awards"
+            />
+
+            <div className="row">
+              <input
+                className="input"
+                value={
+                  stat.value||''
+                }
+                onChange={e=>
+                  updateStat(
+                    index,
+                    'value',
+                    e.target.value
+                  )
+                }
+                placeholder="12 / 2 / Winner"
+              />
+
+              <button
+                className="btn btn-quiet btn-sm"
+                aria-label="Remove highlight"
+                onClick={()=>
+                  removeStat(index)
+                }
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )
+      )
+      :(
+        <div className="admin-empty">
+          <strong>
+            No additional highlights
+          </strong>
+
+          <span>
+            That’s fine. Only add something if it genuinely
+            strengthens the player’s profile.
+          </span>
+        </div>
+      )
+    }
+  </div>
+</div>
+                
                 <div
                   className="field"
                   style={{
