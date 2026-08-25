@@ -166,14 +166,40 @@ export default function Profile() {
     ctx.privateInfo?.player_id,
   ]);
 
-  useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      window.location.hash === '#media'
-    ) {
-      setEditor('media');
-    }
-  }, []);
+useEffect(() => {
+  if (
+    typeof window === 'undefined'
+  ) {
+    return;
+  }
+
+  const params =
+    new URLSearchParams(
+      window.location.search,
+    );
+
+  const requested =
+    params.get('edit');
+
+  if (
+    requested === 'football' ||
+    requested === 'career' ||
+    requested === 'media' ||
+    requested === 'sources'
+  ) {
+    setEditor(
+      requested as Editor,
+    );
+
+    return;
+  }
+
+  if (
+    window.location.hash === '#media'
+  ) {
+    setEditor('media');
+  }
+}, []);
 
   if (ctx.loading) {
     return <LoadingScreen />;
