@@ -3446,3 +3446,78 @@ a:focus-visible {
   }
 }
  
+/* =========================================================
+   DJM LANDING HEADER — MOBILE COLLISION FIX
+   ========================================================= */
+
+@media (max-width: 760px) {
+
+  .landing > .topbar {
+    min-height: 68px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+  }
+
+  .landing > .topbar > .brand {
+    position: static !important;
+
+    left: auto !important;
+
+    min-width: 0;
+
+    transform: none !important;
+  }
+
+  .landing > .topbar > .btn {
+    flex: 0 0 auto;
+
+    min-height: 40px;
+
+    padding:
+      9px
+      12px;
+
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 390px) {
+
+  .landing > .topbar {
+    gap: 8px;
+  }
+
+  .landing > .topbar .brand {
+    gap: 6px;
+  }
+
+  .landing > .topbar .brand-mark {
+    width: 36px;
+    height: 36px;
+
+    flex-basis: 36px;
+  }
+
+  .landing > .topbar .brand-copy {
+    font-size: 13px;
+  }
+
+  .landing > .topbar .brand-copy small {
+    font-size: 7px;
+
+    letter-spacing: .09em;
+  }
+
+  .landing > .topbar > .btn {
+    padding:
+      8px
+      10px;
+
+    font-size: 11px;
+  }
+}
