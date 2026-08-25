@@ -1,6 +1,7 @@
 import './globals.css';
 import './admin-polish.css';
 import './player-21.css';
+import './dossier.css';
 
 export const metadata = {
   title: 'DJM Player',
