@@ -1,48 +1,468 @@
 'use client';
-import { useEffect,useState } from 'react';
-import { usePathname,useRouter } from 'next/navigation';
+
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
+
 import Link from 'next/link';
-import { Home,MessageCircle,Activity,UserRound,LogOut } from 'lucide-react';
+import {
+  usePathname,
+  useRouter,
+} from 'next/navigation';
+
+import {
+  Activity,
+  Home,
+  LogOut,
+  MessageCircle,
+  UserRound,
+} from 'lucide-react';
+
 import Brand from './Brand';
 import { supabase } from '@/lib/supabase';
 
-export type PlayerCtx={user:any;profile:any;player:any;privateInfo:any;openRequests:any[];latestCheckin:any;loading:boolean;refresh:()=>Promise<void>};
+type PlayerState = {
+  user: any;
+  profile: any;
+  player: any;
+  privateInfo: any;
+  openRequests: any[];
+  latestCheckin: any;
+  loading: boolean;
+};
 
-export function usePlayerContext():PlayerCtx{
-  const [state,setState]=useState<any>({user:null,profile:null,player:null,privateInfo:null,openRequests:[],latestCheckin:null,loading:true});
-  const router=useRouter();
-  const load=async()=>{
-    const {data:{user}}=await supabase.auth.getUser();
-    if(!user){router.replace('/sign-in');setState((s:any)=>({...s,loading:false}));return}
-    const [{data:profile},{data:players}]=await Promise.all([
-      supabase.from('profiles').select('*').eq('id',user.id).maybeSingle(),
-      supabase.from('players').select('*').eq('user_id',user.id).limit(1)
-    ]);
-    if(profile?.role==='admin'||profile?.role==='scout'){router.replace('/admin');return}
-    const player=players?.[0];
-    if(!player){setState({user,profile,player:null,privateInfo:null,openRequests:[],latestCheckin:null,loading:false});return}
-    const [{data:priv},{data:req},{data:checks}]=await Promise.all([
-      supabase.from('player_private').select('*').eq('player_id',player.id).maybeSingle(),
-      supabase.from('player_requests').select('*').eq('player_id',player.id).neq('status','completed').order('created_at',{ascending:false}),
-      supabase.from('weekly_checkins').select('*').eq('player_id',player.id).order('week_start',{ascending:false}).limit(1)
-    ]);
-    const actionable=(req||[]).filter((r:any)=>r.status==='open'&&r.request_type!=='message'&&r.request_type!=='signal');setState({user,profile,player,privateInfo:priv,openRequests:actionable,latestCheckin:checks?.[0]||null,loading:false});
+export type PlayerCtx = PlayerState & {
+  refresh: () => Promise<void>;
+};
+
+const EMPTY_STATE: PlayerState = {
+  user: null,
+  profile: null,
+  player: null,
+  privateInfo: null,
+  openRequests: [],
+  latestCheckin: null,
+  loading: true,
+};
+
+/*
+ * DJM UX NOTE
+ * -----------
+ * The old hook rebuilt its state from zero on every page mount.
+ * That meant Home -> Inbox -> Check-in -> Profile repeatedly showed
+ * a full-screen loader and repeated the same auth/player queries.
+ *
+ * This lightweight in-memory session store keeps the current player
+ * state alive while the Next.js app is open. Navigation can render
+ * immediately, while data refreshes quietly in the background.
+ *
+ * Nothing sensitive is written to localStorage/sessionStorage.
+ */
+let playerCache: PlayerState | null = null;
+let playerCacheAt = 0;
+let playerLoad:
+  | Promise<{
+      state: PlayerState | null;
+      redirect: string | null;
+    }>
+  | null = null;
+
+const playerListeners =
+  new Set<(state: PlayerState) => void>();
+
+const publishPlayerState = (
+  state: PlayerState,
+) => {
+  playerCache = state;
+  playerCacheAt = Date.now();
+
+  playerListeners.forEach((listener) =>
+    listener(state),
+  );
+};
+
+const clearPlayerState = () => {
+  playerCache = null;
+  playerCacheAt = 0;
+};
+
+const fetchPlayerState = async () => {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    return {
+      state: null,
+      redirect: '/sign-in',
+    };
+  }
+
+  const user = session.user;
+
+  const [
+    { data: profile },
+    { data: players },
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle(),
+
+    supabase
+      .from('players')
+      .select('*')
+      .eq('user_id', user.id)
+      .limit(1),
+  ]);
+
+  if (
+    profile?.role === 'admin' ||
+    profile?.role === 'scout'
+  ) {
+    return {
+      state: null,
+      redirect: '/admin',
+    };
+  }
+
+  const player = players?.[0] || null;
+
+  if (!player) {
+    return {
+      redirect: null,
+      state: {
+        user,
+        profile,
+        player: null,
+        privateInfo: null,
+        openRequests: [],
+        latestCheckin: null,
+        loading: false,
+      },
+    };
+  }
+
+  const [
+    { data: privateInfo },
+    { data: requests },
+    { data: checkins },
+  ] = await Promise.all([
+    supabase
+      .from('player_private')
+      .select('*')
+      .eq('player_id', player.id)
+      .maybeSingle(),
+
+    supabase
+      .from('player_requests')
+      .select('*')
+      .eq('player_id', player.id)
+      .neq('status', 'completed')
+      .order('created_at', {
+        ascending: false,
+      }),
+
+    supabase
+      .from('weekly_checkins')
+      .select('*')
+      .eq('player_id', player.id)
+      .order('week_start', {
+        ascending: false,
+      })
+      .limit(1),
+  ]);
+
+  const actionable = (
+    requests || []
+  ).filter(
+    (request: any) =>
+      request.status === 'open' &&
+      request.request_type !== 'message' &&
+      request.request_type !== 'signal',
+  );
+
+  return {
+    redirect: null,
+    state: {
+      user,
+      profile,
+      player,
+      privateInfo:
+        privateInfo || null,
+      openRequests: actionable,
+      latestCheckin:
+        checkins?.[0] || null,
+      loading: false,
+    },
   };
-  useEffect(()=>{load()},[]);
-  return {...state,refresh:load};
+};
+
+const loadPlayerState = async (
+  force = false,
+) => {
+  const freshEnough =
+    playerCache &&
+    Date.now() - playerCacheAt < 30_000;
+
+  if (!force && freshEnough) {
+    return {
+      state: playerCache,
+      redirect: null,
+    };
+  }
+
+  if (playerLoad) {
+    return playerLoad;
+  }
+
+  playerLoad = fetchPlayerState()
+    .catch(() => ({
+      state:
+        playerCache ||
+        {
+          ...EMPTY_STATE,
+          loading: false,
+        },
+      redirect: null,
+    }))
+    .finally(() => {
+      playerLoad = null;
+    });
+
+  return playerLoad;
+};
+
+export function usePlayerContext(): PlayerCtx {
+  /*
+   * Cached state means route changes do not flash a loader.
+   * First ever load still uses the normal loading state.
+   */
+  const [state, setState] =
+    useState<PlayerState>(
+      () =>
+        playerCache || {
+          ...EMPTY_STATE,
+        },
+    );
+
+  const router = useRouter();
+
+  useEffect(() => {
+    let active = true;
+
+    const listener = (
+      next: PlayerState,
+    ) => {
+      if (active) {
+        setState(next);
+      }
+    };
+
+    playerListeners.add(listener);
+
+    /*
+     * If we already have a player, keep rendering it and
+     * quietly revalidate. Otherwise perform the initial load.
+     */
+    const hydrate = async () => {
+      const hadCache =
+        !!playerCache;
+
+      const result =
+        await loadPlayerState(
+          hadCache,
+        );
+
+      if (!active) {
+        return;
+      }
+
+      if (result.redirect) {
+        clearPlayerState();
+        router.replace(
+          result.redirect,
+        );
+        return;
+      }
+
+      if (result.state) {
+        publishPlayerState(
+          result.state,
+        );
+      }
+    };
+
+    void hydrate();
+
+    return () => {
+      active = false;
+      playerListeners.delete(
+        listener,
+      );
+    };
+  }, [router]);
+
+  const refresh = useCallback(
+    async () => {
+      const result =
+        await loadPlayerState(true);
+
+      if (result.redirect) {
+        clearPlayerState();
+        router.replace(
+          result.redirect,
+        );
+        return;
+      }
+
+      if (result.state) {
+        publishPlayerState(
+          result.state,
+        );
+      }
+    },
+    [router],
+  );
+
+  return {
+    ...state,
+    refresh,
+  };
 }
 
-export function PlayerShell({children,inboxCount=0}:{children:React.ReactNode,inboxCount?:number}){
-  const path=usePathname();
-  const router=useRouter();
-  const nav=[['/home','Home',Home],['/inbox','Inbox',MessageCircle],['/check-in','Check-in',Activity],['/profile','Profile',UserRound]] as const;
-  return <div className="screen">
-    <div className="header-glass no-print"><div className="container topbar topbar-min"><Brand/><button className="icon-btn" aria-label="Sign out" onClick={async()=>{await supabase.auth.signOut();router.replace('/sign-in')}}><LogOut size={17}/></button></div></div>
-    {children}
-    <nav className="bottom-nav no-print" aria-label="Player navigation">
-      {nav.map(([href,label,Icon])=><Link key={href} href={href} className={`nav-item ${path===href?'active':''} ${href==='/inbox'&&inboxCount?'nav-badge':''}`}><Icon size={20}/><span>{label}</span>{href==='/inbox'&&inboxCount>0&&<em/>}</Link>)}
-    </nav>
-  </div>
+export function PlayerShell({
+  children,
+  inboxCount = 0,
+}: {
+  children: React.ReactNode;
+  inboxCount?: number;
+}) {
+  const path = usePathname();
+  const router = useRouter();
+
+  const nav = [
+    ['/home', 'Home', Home],
+    [
+      '/inbox',
+      'Inbox',
+      MessageCircle,
+    ],
+    [
+      '/check-in',
+      'Check-in',
+      Activity,
+    ],
+    [
+      '/profile',
+      'Profile',
+      UserRound,
+    ],
+  ] as const;
+
+  /*
+   * Explicit prefetch helps PWA/iPhone navigation feel
+   * immediate even before the user taps the next tab.
+   */
+  useEffect(() => {
+    nav.forEach(([href]) => {
+      router.prefetch(href);
+    });
+
+    router.prefetch('/cv');
+    router.prefetch(
+      '/documents',
+    );
+  }, [router]);
+
+  const signOut = async () => {
+    clearPlayerState();
+
+    await supabase.auth.signOut();
+
+    router.replace('/sign-in');
+  };
+
+  return (
+    <div className="screen">
+      <div className="header-glass no-print">
+        <div className="container topbar topbar-min">
+          <Brand />
+
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Sign out"
+            onClick={signOut}
+          >
+            <LogOut size={17} />
+          </button>
+        </div>
+      </div>
+
+      {children}
+
+      <nav
+        className="bottom-nav no-print"
+        aria-label="Player navigation"
+      >
+        {nav.map(
+          ([
+            href,
+            label,
+            Icon,
+          ]) => {
+            const active =
+              path === href;
+
+            const hasBadge =
+              href === '/inbox' &&
+              inboxCount > 0;
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                prefetch
+                aria-current={
+                  active
+                    ? 'page'
+                    : undefined
+                }
+                className={`nav-item ${
+                  active
+                    ? 'active'
+                    : ''
+                } ${
+                  hasBadge
+                    ? 'nav-badge'
+                    : ''
+                }`}
+              >
+                <Icon size={20} />
+
+                <span>
+                  {label}
+                </span>
+
+                {hasBadge && <em />}
+              </Link>
+            );
+          },
+        )}
+      </nav>
+    </div>
+  );
 }
 
-export function LoadingScreen(){return <div className="center"><div className="loader"/></div>}
+export function LoadingScreen() {
+  return (
+    <div className="center">
+      <div className="loader" />
+    </div>
+  );
+}
