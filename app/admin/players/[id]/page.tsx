@@ -1021,8 +1021,6 @@ const refreshCareer=async()=>{
   }
 };
 
-  setCareer(data||[]);
-};
 
   const addNote=async()=>{
     if(!note.trim()){
