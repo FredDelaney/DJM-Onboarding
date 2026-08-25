@@ -1224,36 +1224,43 @@ const refreshCareer=async()=>{
 };
 
 
-  const addNote=async()=>{
-    if(!note.trim()){
-      return;
-    }
+const addNote=async()=>{
+  if(!note.trim()){
+    return;
+  }
 
-    const {error}=
-      await supabase
-        .from('admin_notes')
-        .insert({
-          player_id:id,
-          author_id:
-            auth.user.id,
-          body:
-            note.trim()
-        });
+  const {data,error}=
+    await supabase
+      .from('admin_notes')
+      .insert({
+        player_id:id,
+        author_id:
+          auth.user.id,
+        body:
+          note.trim()
+      })
+      .select('*')
+      .single();
 
-    if(error){
-      flash(
-        'Could not add note'
-      );
+  if(error||!data){
+    flash(
+      'Could not add note'
+    );
 
-      return;
-    }
+    return;
+  }
 
-    setNote('');
+  setNotes(
+    current=>[
+      data,
+      ...current
+    ]
+  );
 
-    await load();
+  setNote('');
 
-    flash('Note added');
-  };
+  flash('Note added');
+};
 
   const addOpp=async()=>{
     if(!oppClub.trim()){
