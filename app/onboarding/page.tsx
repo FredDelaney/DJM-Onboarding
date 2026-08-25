@@ -378,8 +378,8 @@ export default function Onboarding() {
             style={{
               padding: '12px 14px',
               borderRadius: 14,
-              background: '#fff4f4',
-              color: '#8a1c1c',
+             background: '#fff9dd',
+color: '#5b5100',
               fontSize: 14,
               fontWeight: 650,
               marginBottom: 18,
