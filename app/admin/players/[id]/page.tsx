@@ -35,6 +35,13 @@ import {
   supabase
 } from '@/lib/supabase';
 
+import {
+  getClubReadyState
+} from '@/lib/clubReady';
+
+import ClubReadyPanel
+  from '@/components/ClubReadyPanel';
+
 const txt=(v:any)=>v??'';
 
 const arr=(v:any)=>
@@ -312,6 +319,14 @@ export default function AdminPlayer(){
   const isFullAdmin=
     auth.profile?.role==='admin';
 
+  const clubReady=
+  getClubReadyState(
+    p,
+    cv,
+    career,
+    videos
+  );
+
   const flash=(m:string)=>{
     setToast(m);
 
@@ -509,6 +524,15 @@ export default function AdminPlayer(){
             current_country:
               p.current_country||null,
 
+            current_season_label:
+  p.current_season_label
+    ?.trim()
+    ||null,
+
+current_season_start:
+  p.current_season_start
+    ||null,
+
             contract_status:
               p.contract_status||null,
 
@@ -679,6 +703,31 @@ export default function AdminPlayer(){
     if(!saved){
       return;
     }
+
+      const readiness=
+    getClubReadyState(
+      p,
+      cv,
+      career,
+      videos
+    );
+
+  if(!readiness.isReady){
+    flash(
+      `Not Club Ready · ${
+        readiness
+          .missingRequired
+          .slice(0,2)
+          .map(
+            (item:any)=>
+              item.label
+          )
+          .join(' · ')
+      }`
+    );
+
+    return;
+  }
 
     const {error}=
       await supabase
@@ -1135,6 +1184,33 @@ export default function AdminPlayer(){
 
   const publish=async()=>{
     setBusy(true);
+
+        const readiness=
+      getClubReadyState(
+        p,
+        cv,
+        career,
+        videos
+      );
+
+    if(!readiness.isReady){
+      setBusy(false);
+
+      flash(
+        `Not Club Ready · ${
+          readiness
+            .missingRequired
+            .slice(0,2)
+            .map(
+              (item:any)=>
+                item.label
+            )
+            .join(' · ')
+        }`
+      );
+
+      return false;
+    }
 
     const {data:fresh}=
       await supabase
@@ -2213,6 +2289,60 @@ export default function AdminPlayer(){
                   </span>
                 </div>
 
+<div className="admin-season-config">
+  <div className="grid2">
+    <div className="field">
+      <label className="label">
+        Current season label
+      </label>
+
+      <input
+        className="input"
+        value={
+          p.current_season_label
+          ||''
+        }
+        onChange={e=>
+          setP({
+            ...p,
+            current_season_label:
+              e.target.value
+          })
+        }
+        placeholder="2026/27 or 2026"
+      />
+    </div>
+
+    <div className="field">
+      <label className="label">
+        Season starts
+      </label>
+
+      <input
+        type="date"
+        className="input"
+        value={
+          p.current_season_start
+          ||''
+        }
+        onChange={e=>
+          setP({
+            ...p,
+            current_season_start:
+              e.target.value
+          })
+        }
+      />
+    </div>
+  </div>
+
+  <p className="small muted">
+    This controls which weekly
+    check-ins count toward the
+    player’s My Season totals.
+  </p>
+</div>
+                
                 <div
                   className="list-clean"
                   style={{
@@ -3958,6 +4088,10 @@ export default function AdminPlayer(){
                 }
               </section>
 
+<ClubReadyPanel
+  state={clubReady}
+/>
+              
               <section className="admin-card">
                 <div className="section-kicker">
                   VERIFICATION
