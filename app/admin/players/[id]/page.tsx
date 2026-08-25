@@ -1093,68 +1093,74 @@ setBusy(false);
 flash('Photo updated');
   };
 
-  const sendRequest=async()=>{
-    if(!reqTitle.trim()){
-      return;
-    }
+ const sendRequest=async()=>{
+  if(!reqTitle.trim()){
+    return;
+  }
 
-    const {error}=
-      await supabase
-        .from('player_requests')
-        .insert({
-          player_id:id,
-          title:
-            reqTitle.trim(),
-          message:
-            reqMsg.trim()
-            ||null,
-          request_type:
-            reqType,
-          status:'open',
-          created_by:
-            auth.user.id
-        });
+  const {data,error}=
+    await supabase
+      .from('player_requests')
+      .insert({
+        player_id:id,
+        title:reqTitle.trim(),
+        message:
+          reqMsg.trim()
+          ||null,
+        request_type:
+          reqType,
+        status:'open',
+        created_by:
+          auth.user.id
+      })
+      .select('*')
+      .single();
 
-    if(error){
-      flash(
-        'Could not send request'
-      );
-
-      return;
-    }
-
-    const push=
-      await supabase
-        .functions
-        .invoke(
-          'dispatch-player-push',
-          {
-            body:{
-              reason:'request'
-            }
-          }
-        );
-
-    setReqTitle('');
-    setReqMsg('');
-    setReqType('action');
-
-    await load();
-
-    const pushed=
-      Number(
-        push.data?.sent||0
-      );
-
+  if(error||!data){
     flash(
-      push.error
-        ?'Request sent · push pending'
-        :pushed>0
-          ?'Request sent · notification delivered'
-          :'Request sent · no push device yet'
+      'Could not send request'
     );
-  };
 
+    return;
+  }
+
+  setRequests(
+    current=>[
+      data,
+      ...current
+    ]
+  );
+
+  setReqTitle('');
+  setReqMsg('');
+  setReqType('action');
+
+  const push=
+    await supabase
+      .functions
+      .invoke(
+        'dispatch-player-push',
+        {
+          body:{
+            reason:'request'
+          }
+        }
+      );
+
+  const pushed=
+    Number(
+      push.data?.sent
+      ||0
+    );
+
+  flash(
+    push.error
+      ?'Request sent · push pending'
+      :pushed>0
+        ?'Request sent · notification delivered'
+        :'Request sent · no push device yet'
+  );
+};
 const refreshCareer=async()=>{
   const [
     careerResult,
