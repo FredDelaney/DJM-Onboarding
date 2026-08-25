@@ -1753,23 +1753,23 @@ export async function downloadClubCv({
   logoUrl,
   filename,
 }: DownloadArgs) {
-  const document =
-    (
-      <ClubCvPdfDocument
-        profile={profile}
-        photoUrl={
-          photoUrl || null
-        }
-        logoUrl={
-          logoUrl || null
-        }
-      />
-    );
+  const pdfDocument =
+  (
+    <ClubCvPdfDocument
+      profile={profile}
+      photoUrl={
+        photoUrl || null
+      }
+      logoUrl={
+        logoUrl || null
+      }
+    />
+  );
 
-  const blob =
-    await pdf(
-      document,
-    ).toBlob();
+const blob =
+  await pdf(
+    pdfDocument,
+  ).toBlob();
 
   const url =
     URL.createObjectURL(
