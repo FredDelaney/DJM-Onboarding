@@ -1,0 +1,11 @@
+DJM FINAL MAINTENANCE CHECKLIST
+
+[ ] Upload components/admin/RemovePlayerSheet.tsx
+[ ] Upload supabase/migrations/20260825120914_require_fresh_verification_after_admin_player_edits_v1.sql
+[ ] Replace supabase/MIGRATIONS.md
+[ ] Make Profile useEffect dependency edit
+[ ] Make Admin Club Ready draft normalization edits
+[ ] Replace Admin remove-player browser confirm/prompt with RemovePlayerSheet
+[ ] Change onboarding validation alert from old red to neutral yellow
+[ ] Commit: Final DJM Player integrity and polish audit
+[ ] Tell ChatGPT: done
