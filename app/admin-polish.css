@@ -1238,3 +1238,537 @@
     border-radius: 22px;
   }
 }
+
+/* =========================================================
+   SEASON RECORD EDITOR
+   ========================================================= */
+
+.season-record-editor {
+  overflow: hidden;
+}
+
+.season-record-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.season-record-head h3 {
+  margin: 0;
+
+  font-size: 22px;
+  letter-spacing: -.035em;
+}
+
+.season-record-head p {
+  max-width: 520px;
+
+  margin: 7px 0 0;
+
+  color: var(--muted);
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.season-tracker-setting {
+  margin-top: 20px;
+
+  border-radius: 20px;
+
+  padding: 17px;
+
+  background: #f4f5f7;
+}
+
+.season-tracker-title {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 11px;
+}
+
+.season-tracker-title svg {
+  flex: 0 0 auto;
+
+  color: var(--navy);
+}
+
+.season-tracker-title strong {
+  display: block;
+
+  font-size: 13px;
+}
+
+.season-tracker-title span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.season-tracker-fields {
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap: 10px;
+
+  margin-top: 15px;
+}
+
+.season-tracker-save {
+  min-height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  margin-top: 11px;
+
+  border: 0;
+
+  background: none;
+
+  color: var(--navy);
+
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.season-record-list {
+  margin-top: 18px;
+
+  border-top:
+    1px solid var(--line);
+}
+
+.season-record-row {
+  width: 100%;
+
+  min-height: 91px;
+
+  display: grid;
+
+  grid-template-columns:
+    76px
+    minmax(0,1fr)
+    22px;
+
+  align-items: center;
+
+  gap: 13px;
+
+  border: 0;
+  border-bottom:
+    1px solid var(--line);
+
+  padding: 15px 2px;
+
+  background: none;
+
+  color: inherit;
+
+  text-align: left;
+}
+
+.season-record-row:disabled {
+  opacity: 1;
+}
+
+.season-record-season {
+  color: var(--navy);
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.season-record-main {
+  min-width: 0;
+}
+
+.season-record-main strong {
+  display: block;
+
+  font-size: 14px;
+}
+
+.season-record-main span,
+.season-record-main small,
+.season-record-main em {
+  display: block;
+
+  margin-top: 4px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+  line-height: 1.35;
+
+  font-style: normal;
+}
+
+.season-record-main small {
+  color: #4d535a;
+}
+
+.season-record-main em {
+  font-size: 9px;
+}
+
+.season-record-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  margin-top: 18px;
+
+  border-radius: 20px;
+
+  padding: 21px;
+
+  background: #f4f5f7;
+}
+
+.season-record-empty svg {
+  color: var(--navy);
+}
+
+.season-record-empty strong {
+  margin-top: 12px;
+
+  font-size: 14px;
+}
+
+.season-record-empty span {
+  max-width: 470px;
+
+  margin-top: 5px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.season-record-message {
+  margin-top: 13px;
+
+  border-radius: 14px;
+
+  padding: 11px 12px;
+
+  background: #f2f3f5;
+
+  color: var(--navy);
+
+  font-size: 11px;
+  font-weight: 680;
+}
+
+
+/* Sheet */
+
+.season-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 18px;
+
+  background:
+    rgba(3,12,22,.52);
+
+  backdrop-filter:
+    blur(8px);
+}
+
+.season-editor-sheet {
+  width:
+    min(720px,100%);
+
+  max-height: 92dvh;
+
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+
+  border-radius: 28px;
+
+  background: #fff;
+
+  box-shadow:
+    0 30px 90px
+    rgba(0,0,0,.24);
+}
+
+.season-editor-handle {
+  display: none;
+}
+
+.season-editor-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  padding:
+    24px 25px 18px;
+
+  border-bottom:
+    1px solid var(--line);
+}
+
+.season-editor-top h2 {
+  margin: 5px 0 0;
+
+  font-size: 27px;
+  letter-spacing: -.045em;
+}
+
+.season-editor-body {
+  overflow-y: auto;
+
+  padding: 22px 25px;
+}
+
+.season-editor-section {
+  margin-top: 24px;
+
+  border-top:
+    1px solid var(--line);
+
+  padding-top: 20px;
+}
+
+.season-number-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(5,1fr);
+
+  gap: 9px;
+
+  margin-top: 12px;
+}
+
+.season-source-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 7px;
+
+  margin:
+    11px 0 13px;
+}
+
+.season-source-shortcuts button {
+  min-height: 36px;
+
+  border: 0;
+  border-radius: 999px;
+
+  padding: 8px 11px;
+
+  background: #f0f1f3;
+
+  color: var(--navy);
+
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.season-source-open {
+  min-height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  margin-top: 8px;
+
+  color: var(--navy);
+
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.season-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 9px;
+
+  border-top:
+    1px solid var(--line);
+
+  padding:
+    16px 25px
+    calc(
+      16px +
+      env(safe-area-inset-bottom)
+    );
+
+  background:
+    rgba(255,255,255,.96);
+}
+
+.season-delete {
+  min-height: 44px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  border:
+    1px solid #dfe2e6;
+
+  border-radius: 999px;
+
+  padding: 10px 15px;
+
+  background: #fff;
+
+  color: #4c5259;
+
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.season-delete.is-armed {
+  background: #20252b;
+  border-color: #20252b;
+  color: #fff;
+}
+
+
+@media (max-width:700px) {
+  .season-record-head {
+    display: block;
+  }
+
+  .season-record-head .btn {
+    width: 100%;
+
+    min-height: 48px;
+
+    margin-top: 16px;
+  }
+
+  .season-tracker-setting {
+    border-radius: 18px;
+
+    padding: 15px;
+  }
+
+  .season-tracker-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .season-record-row {
+    grid-template-columns:
+      63px
+      minmax(0,1fr)
+      18px;
+
+    min-height: 98px;
+  }
+
+  .season-editor-backdrop {
+    align-items: flex-end;
+
+    padding: 0;
+  }
+
+  .season-editor-sheet {
+    width: 100%;
+
+    max-height: 94dvh;
+
+    border-radius:
+      28px 28px 0 0;
+  }
+
+  .season-editor-handle {
+    width: 38px;
+    height: 5px;
+
+    flex: 0 0 auto;
+
+    display: block;
+
+    margin:
+      8px auto 0;
+
+    border-radius: 999px;
+
+    background: #d5d7da;
+  }
+
+  .season-editor-top {
+    padding:
+      17px 18px 15px;
+  }
+
+  .season-editor-top h2 {
+    font-size: 25px;
+  }
+
+  .season-editor-body {
+    padding:
+      18px 18px 24px;
+  }
+
+  .season-editor-body
+  > .grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .season-number-grid {
+    grid-template-columns:
+      1fr 1fr;
+  }
+
+  .season-number-grid
+  .field:first-child {
+    grid-column:
+      1 / -1;
+  }
+
+  .season-editor-section
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .season-editor-actions {
+    justify-content:
+      space-between;
+
+    padding:
+      12px 18px
+      calc(
+        12px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .season-editor-actions
+  .btn {
+    min-height: 48px;
+  }
+}
