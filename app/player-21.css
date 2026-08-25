@@ -271,7 +271,7 @@
 }
 
 .season-chart-point {
-  fill: var(--yellow);
+  fill: var(--navy);
   stroke: var(--navy);
   stroke-width: 1.2;
   vector-effect: non-scaling-stroke;
