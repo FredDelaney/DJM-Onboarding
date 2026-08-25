@@ -11,7 +11,17 @@ import {
   pdf,
 } from '@react-pdf/renderer';
 
-type ClubCvDownloadArgs = {
+import {
+  dossierCareer,
+  dossierCareerStatLine,
+  dossierHeadlineStats,
+  dossierList,
+  dossierNationality,
+  dossierPerformance,
+  dossierVerifiedDate,
+} from '@/lib/dossier';
+
+type DownloadArgs = {
   profile: any;
   photoUrl?: string | null;
   logoUrl?: string | null;
@@ -19,544 +29,644 @@ type ClubCvDownloadArgs = {
 };
 
 const NAVY = '#061f3a';
-const NAVY_2 = '#0a3157';
+const NAVY_LIGHT = '#0a3157';
 const YELLOW = '#f5e900';
-const INK = '#111318';
-const MUTED = '#66717c';
-const LINE = '#e3e7eb';
-const SOFT = '#f4f6f8';
 const WHITE = '#ffffff';
-
-const styles = StyleSheet.create({
-  page: {
-    backgroundColor: WHITE,
-    color: INK,
-    fontFamily: 'Helvetica',
-    fontSize: 9.5,
-  },
-
-  hero: {
-    height: 216,
-    backgroundColor: NAVY,
-    paddingTop: 28,
-    paddingHorizontal: 34,
-    paddingBottom: 24,
-  },
-
-  heroTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  brand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  logo: {
-    width: 34,
-    height: 34,
-    objectFit: 'contain',
-    marginRight: 10,
-  },
-
-  brandFallback: {
-    width: 34,
-    height: 34,
-    borderRadius: 7,
-    backgroundColor: YELLOW,
-    marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  brandFallbackText: {
-    color: NAVY,
-    fontSize: 10,
-    fontWeight: 700,
-  },
-
-  brandName: {
-    color: WHITE,
-    fontSize: 10,
-    fontWeight: 700,
-    letterSpacing: 1.3,
-  },
-
-  verified: {
-    color: '#bdc8d2',
-    fontSize: 7.8,
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
-  },
-
-  heroMain: {
-    flexDirection: 'row',
-    marginTop: 26,
-  },
-
-  heroCopy: {
-    flex: 1,
-    paddingRight: 22,
-  },
-
-  yellowLine: {
-    width: 34,
-    height: 4,
-    backgroundColor: YELLOW,
-    marginBottom: 12,
-  },
-
-  playerName: {
-    color: WHITE,
-    fontSize: 31,
-    lineHeight: 1,
-    fontWeight: 700,
-    letterSpacing: -1.2,
-  },
-
-  headline: {
-    color: '#d6dee5',
-    marginTop: 9,
-    fontSize: 11,
-    lineHeight: 1.35,
-  },
-
-  club: {
-    color: WHITE,
-    marginTop: 9,
-    fontSize: 10,
-    fontWeight: 700,
-  },
-
-  marketValue: {
-    alignSelf: 'flex-start',
-    marginTop: 11,
-    backgroundColor: NAVY_2,
-    borderRadius: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 9,
-  },
-
-  marketValueText: {
-    color: WHITE,
-    fontSize: 8,
-  },
-
-  photo: {
-    width: 118,
-    height: 138,
-    borderRadius: 12,
-    objectFit: 'cover',
-    backgroundColor: NAVY_2,
-  },
-
-  photoFallback: {
-    width: 118,
-    height: 138,
-    borderRadius: 12,
-    backgroundColor: NAVY_2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  photoInitial: {
-    color: WHITE,
-    fontSize: 40,
-    fontWeight: 700,
-  },
-
-  body: {
-    paddingHorizontal: 34,
-    paddingTop: 22,
-    paddingBottom: 26,
-  },
-
-  facts: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-
-  fact: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRightWidth: 1,
-    borderRightColor: LINE,
-  },
-
-  factLast: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-  },
-
-  factLabel: {
-    color: MUTED,
-    fontSize: 6.8,
-    fontWeight: 700,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-
-  factValue: {
-    color: INK,
-    marginTop: 4,
-    fontSize: 9.5,
-    fontWeight: 700,
-  },
-
-  section: {
-    marginTop: 16,
-  },
-
-  kicker: {
-    color: MUTED,
-    fontSize: 7,
-    fontWeight: 700,
-    letterSpacing: 0.9,
-    textTransform: 'uppercase',
-    marginBottom: 7,
-  },
-
-  sectionTitle: {
-    color: NAVY,
-    fontSize: 15,
-    fontWeight: 700,
-    marginBottom: 7,
-  },
-
-  whyBox: {
-    backgroundColor: NAVY,
-    borderRadius: 10,
-    padding: 14,
-  },
-
-  whyText: {
-    color: WHITE,
-    fontSize: 12.5,
-    lineHeight: 1.4,
-    fontWeight: 700,
-  },
-
-  summary: {
-    color: '#343b43',
-    fontSize: 9.5,
-    lineHeight: 1.55,
-  },
-
-  stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-
-  stat: {
-    width: '33.333%',
-    paddingHorizontal: 4,
-    marginBottom: 8,
-  },
-
-  statInner: {
-    backgroundColor: SOFT,
-    borderRadius: 9,
-    paddingVertical: 11,
-    paddingHorizontal: 11,
-  },
-
-  statValue: {
-    color: NAVY,
-    fontSize: 18,
-    fontWeight: 700,
-  },
-
-  statLabel: {
-    color: MUTED,
-    marginTop: 3,
-    fontSize: 7.5,
-    fontWeight: 700,
-  },
-
-  experienceWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-
-  experience: {
-    width: '50%',
-    paddingHorizontal: 4,
-    marginBottom: 7,
-  },
-
-  experienceInner: {
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-
-  experienceText: {
-    fontSize: 8.5,
-    lineHeight: 1.35,
-  },
-
-  sourceRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 14,
-  },
-
-  source: {
-    color: NAVY,
-    fontSize: 7.8,
-    textDecoration: 'none',
-    marginRight: 14,
-    marginBottom: 5,
-  },
-
-  contact: {
-    marginTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: LINE,
-    paddingTop: 12,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-  },
-
-  contactTitle: {
-    color: NAVY,
-    fontSize: 9,
-    fontWeight: 700,
-  },
-
-  contactCopy: {
-    color: MUTED,
-    marginTop: 3,
-    fontSize: 7.5,
-  },
-
-  contactEmail: {
-    color: NAVY,
-    fontSize: 8.5,
-    fontWeight: 700,
-    textDecoration: 'none',
-  },
-
-  page2Header: {
-    backgroundColor: NAVY,
-    paddingHorizontal: 34,
-    paddingTop: 26,
-    paddingBottom: 22,
-  },
-
-  page2Name: {
-    color: WHITE,
-    fontSize: 23,
-    fontWeight: 700,
-  },
-
-  page2Sub: {
-    color: '#bfcad3',
-    fontSize: 8.5,
-    marginTop: 5,
-  },
-
-  careerList: {
-    marginTop: 4,
-  },
-
-  careerRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: LINE,
-    paddingVertical: 10,
-  },
-
-  careerSeason: {
-    width: 68,
-    color: NAVY,
-    fontSize: 8,
-    fontWeight: 700,
-  },
-
-  careerClub: {
-    width: 155,
-    paddingRight: 10,
-  },
-
-  careerClubName: {
-    color: INK,
-    fontSize: 9,
-    fontWeight: 700,
-  },
-
-  careerMeta: {
-    color: MUTED,
-    marginTop: 3,
-    fontSize: 7.2,
-  },
-
-  careerStats: {
-    flex: 1,
-    color: '#3e4750',
-    fontSize: 7.8,
-    lineHeight: 1.45,
-  },
-
-  videoRow: {
-    borderWidth: 1,
-    borderColor: LINE,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 7,
-  },
-
-  videoTitle: {
-    color: NAVY,
-    fontSize: 8.8,
-    fontWeight: 700,
-  },
-
-  videoLink: {
-    color: MUTED,
-    fontSize: 7.2,
-    marginTop: 3,
-    textDecoration: 'none',
-  },
-
-  footer: {
-    position: 'absolute',
-    left: 34,
-    right: 34,
-    bottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: LINE,
-    paddingTop: 7,
-  },
-
-  footerText: {
-    color: '#87919a',
-    fontSize: 6.8,
-  },
-});
-
-const text = (
-  value: any,
-  fallback = '—'
-) => {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ''
-  ) {
-    return fallback;
-  }
-
-  return String(value);
-};
+const INK = '#15181c';
+const MUTED = '#707780';
+const LIGHT = '#f4f5f7';
+const LINE = '#e4e7ea';
 
 const clip = (
   value: any,
-  max: number
+  max: number,
 ) => {
-  const s = text(value, '');
+  const text =
+    String(value || '').trim();
 
-  if (s.length <= max) {
-    return s;
+  if (
+    text.length <= max
+  ) {
+    return text;
   }
 
-  return `${s.slice(0, max - 1).trim()}…`;
-};
-
-const arr = (value: any) =>
-  Array.isArray(value)
-    ? value.filter(Boolean)
-    : [];
-
-const nationalityText = (value: any) => {
-  const values = arr(value);
-
-  if (values.length) {
-    return values.join(' / ');
-  }
-
-  return text(value);
-};
-
-const verificationDate = (
-  value: any
-) => {
-  if (!value) {
-    return 'DJM CLUB CV';
-  }
-
-  try {
-    return `DJM VERIFIED · ${new Intl.DateTimeFormat(
-      'en-GB',
-      {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      }
-    )
-      .format(new Date(value))
-      .toUpperCase()}`;
-  } catch {
-    return 'DJM VERIFIED';
-  }
-};
-
-const careerStats = (row: any) => {
-  const items = [
-    row.appearances !== null &&
-    row.appearances !== undefined
-      ? `${row.appearances} apps`
-      : null,
-
-    row.starts !== null &&
-    row.starts !== undefined
-      ? `${row.starts} starts`
-      : null,
-
-    row.minutes !== null &&
-    row.minutes !== undefined
-      ? `${Number(
-          row.minutes
-        ).toLocaleString('en-GB')} mins`
-      : null,
-
-    row.goals !== null &&
-    row.goals !== undefined
-      ? `${row.goals} goals`
-      : null,
-
-    row.assists !== null &&
-    row.assists !== undefined
-      ? `${row.assists} assists`
-      : null,
-  ].filter(Boolean);
-
-  return items.length
-    ? items.join(' · ')
-    : 'Sporting record';
+  return `${text
+    .slice(0, max - 1)
+    .trim()}…`;
 };
 
 const hidden = (
   profile: any,
-  section: string
+  key: string,
 ) =>
-  arr(profile?.hidden_sections).includes(
-    section
-  );
+  dossierList(
+    profile?.hidden_sections,
+  ).includes(key);
+
+const styles =
+  StyleSheet.create({
+    page: {
+      backgroundColor: WHITE,
+      color: INK,
+      fontFamily: 'Helvetica',
+      fontSize: 9.5,
+    },
+
+    /* PAGE ONE */
+
+    hero: {
+      height: 250,
+      backgroundColor: NAVY,
+      paddingTop: 27,
+      paddingHorizontal: 34,
+      paddingBottom: 27,
+    },
+
+    heroTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+    },
+
+    brand: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+
+    logo: {
+      width: 35,
+      height: 35,
+      objectFit: 'contain',
+      marginRight: 10,
+    },
+
+    logoFallback: {
+      width: 35,
+      height: 35,
+      borderRadius: 8,
+      backgroundColor: YELLOW,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+      marginRight: 10,
+    },
+
+    logoFallbackText: {
+      color: NAVY,
+      fontSize: 9,
+      fontWeight: 700,
+    },
+
+    brandName: {
+      color: WHITE,
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: 1.25,
+    },
+
+    heroVerified: {
+      color: '#b8c4cf',
+      fontSize: 7.3,
+      letterSpacing: .65,
+    },
+
+    heroMain: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      flex: 1,
+      paddingTop: 24,
+    },
+
+    heroCopy: {
+      flex: 1,
+      paddingRight: 24,
+    },
+
+    yellowLine: {
+      width: 46,
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: YELLOW,
+      marginBottom: 12,
+    },
+
+    kickerDark: {
+      color: '#8fa1b1',
+      fontSize: 6.8,
+      fontWeight: 700,
+      letterSpacing: 1,
+    },
+
+    playerName: {
+      color: WHITE,
+      marginTop: 8,
+      fontSize: 34,
+      lineHeight: .95,
+      fontWeight: 700,
+      letterSpacing: -1.4,
+    },
+
+    position: {
+      color: WHITE,
+      marginTop: 10,
+      fontSize: 11,
+      fontWeight: 700,
+    },
+
+    headline: {
+      color: '#cbd4dc',
+      marginTop: 8,
+      maxWidth: 315,
+      fontSize: 9.4,
+      lineHeight: 1.4,
+    },
+
+    statusRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 11,
+    },
+
+    statusPill: {
+      marginRight: 6,
+      marginBottom: 4,
+      borderRadius: 10,
+      paddingVertical: 4,
+      paddingHorizontal: 7,
+      backgroundColor:
+        NAVY_LIGHT,
+    },
+
+    statusText: {
+      color: '#e8edf1',
+      fontSize: 6.8,
+    },
+
+    photo: {
+      width: 145,
+      height: 174,
+      borderRadius: 16,
+      objectFit: 'cover',
+      backgroundColor:
+        NAVY_LIGHT,
+    },
+
+    photoFallback: {
+      width: 145,
+      height: 174,
+      borderRadius: 16,
+      backgroundColor:
+        NAVY_LIGHT,
+      alignItems: 'center',
+      justifyContent:
+        'center',
+    },
+
+    photoInitial: {
+      color: WHITE,
+      fontSize: 47,
+      fontWeight: 700,
+    },
+
+    body: {
+      paddingHorizontal: 34,
+      paddingTop: 22,
+      paddingBottom: 28,
+    },
+
+    facts: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: LINE,
+      paddingBottom: 17,
+    },
+
+    fact: {
+      flex: 1,
+      paddingRight: 10,
+    },
+
+    factLabel: {
+      color: MUTED,
+      fontSize: 6.7,
+      fontWeight: 700,
+      letterSpacing: .55,
+    },
+
+    factValue: {
+      color: NAVY,
+      marginTop: 4,
+      fontSize: 10,
+      fontWeight: 700,
+    },
+
+    section: {
+      marginTop: 21,
+    },
+
+    kicker: {
+      color: MUTED,
+      fontSize: 6.8,
+      fontWeight: 700,
+      letterSpacing: .95,
+      marginBottom: 7,
+    },
+
+    why: {
+      color: NAVY,
+      maxWidth: 510,
+      fontSize: 15.5,
+      lineHeight: 1.34,
+      fontWeight: 700,
+      letterSpacing: -.25,
+    },
+
+    statBand: {
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: LINE,
+      paddingVertical: 12,
+    },
+
+    stat: {
+      flex: 1,
+      paddingHorizontal: 8,
+      borderRightWidth: 1,
+      borderRightColor: LINE,
+    },
+
+    statFirst: {
+      flex: 1,
+      paddingRight: 8,
+      borderRightWidth: 1,
+      borderRightColor: LINE,
+    },
+
+    statLast: {
+      flex: 1,
+      paddingLeft: 8,
+    },
+
+    statValue: {
+      color: NAVY,
+      fontSize: 20,
+      lineHeight: 1,
+      fontWeight: 700,
+    },
+
+    statLabel: {
+      color: MUTED,
+      marginTop: 4,
+      fontSize: 6.8,
+      fontWeight: 700,
+    },
+
+    performanceWrap: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 10,
+      backgroundColor: LIGHT,
+    },
+
+    performanceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 34,
+      borderTopWidth: 1,
+      borderTopColor: LINE,
+    },
+
+    performanceRowFirst: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 34,
+    },
+
+    performanceMeta: {
+      width: 125,
+      paddingRight: 10,
+    },
+
+    performanceSeason: {
+      color: NAVY,
+      fontSize: 7.5,
+      fontWeight: 700,
+    },
+
+    performanceClub: {
+      color: MUTED,
+      marginTop: 2,
+      fontSize: 6.5,
+    },
+
+    barArea: {
+      flex: 1,
+      paddingRight: 12,
+    },
+
+    bar: {
+      height: 6,
+      overflow: 'hidden',
+      borderRadius: 4,
+      backgroundColor:
+        '#dce1e5',
+    },
+
+    barFill: {
+      height: 6,
+      borderRadius: 4,
+      backgroundColor: NAVY,
+    },
+
+    performanceValue: {
+      width: 66,
+      color: NAVY,
+      fontSize: 7.5,
+      fontWeight: 700,
+      textAlign: 'right',
+    },
+
+    summary: {
+      color: '#454b52',
+      fontSize: 8.6,
+      lineHeight: 1.5,
+    },
+
+    /* PAGE TWO */
+
+    pageTwoHeader: {
+      height: 92,
+      backgroundColor: NAVY,
+      paddingHorizontal: 34,
+      paddingTop: 25,
+      paddingBottom: 21,
+    },
+
+    pageTwoTop: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'flex-start',
+    },
+
+    pageTwoName: {
+      color: WHITE,
+      fontSize: 24,
+      fontWeight: 700,
+      letterSpacing: -.7,
+    },
+
+    pageTwoMeta: {
+      color: '#bdc8d1',
+      marginTop: 5,
+      fontSize: 8,
+    },
+
+    pageTwoBody: {
+      paddingHorizontal: 34,
+      paddingTop: 24,
+      paddingBottom: 42,
+    },
+
+    pageTitle: {
+      color: NAVY,
+      fontSize: 17,
+      fontWeight: 700,
+      marginBottom: 12,
+    },
+
+    careerHeader: {
+      flexDirection: 'row',
+      paddingBottom: 7,
+      borderBottomWidth: 1,
+      borderBottomColor:
+        '#cfd4d9',
+    },
+
+    careerHeaderSeason: {
+      width: 65,
+      color: MUTED,
+      fontSize: 6.3,
+      fontWeight: 700,
+      letterSpacing: .5,
+    },
+
+    careerHeaderClub: {
+      width: 175,
+      color: MUTED,
+      fontSize: 6.3,
+      fontWeight: 700,
+      letterSpacing: .5,
+    },
+
+    careerHeaderStats: {
+      flex: 1,
+      color: MUTED,
+      fontSize: 6.3,
+      fontWeight: 700,
+      letterSpacing: .5,
+    },
+
+    careerRow: {
+      flexDirection: 'row',
+      minHeight: 43,
+      paddingVertical: 7,
+      borderBottomWidth: 1,
+      borderBottomColor: LINE,
+    },
+
+    careerSeason: {
+      width: 65,
+      color: NAVY,
+      fontSize: 7.8,
+      fontWeight: 700,
+      paddingRight: 8,
+    },
+
+    careerClub: {
+      width: 175,
+      paddingRight: 12,
+    },
+
+    careerClubName: {
+      color: INK,
+      fontSize: 8.2,
+      fontWeight: 700,
+    },
+
+    careerClubMeta: {
+      color: MUTED,
+      marginTop: 3,
+      fontSize: 6.4,
+    },
+
+    careerSource: {
+      color: '#7d858d',
+      marginTop: 3,
+      fontSize: 5.9,
+    },
+
+    careerStats: {
+      flex: 1,
+      color: '#444b52',
+      fontSize: 7.2,
+      lineHeight: 1.45,
+    },
+
+    pageTwoColumns: {
+      flexDirection: 'row',
+      marginTop: 20,
+    },
+
+    column: {
+      flex: 1,
+    },
+
+    columnLeft: {
+      flex: 1,
+      paddingRight: 16,
+    },
+
+    miniTitle: {
+      color: NAVY,
+      fontSize: 10,
+      fontWeight: 700,
+      marginBottom: 8,
+    },
+
+    notableItem: {
+      flexDirection: 'row',
+      marginBottom: 7,
+    },
+
+    notableNumber: {
+      width: 22,
+      color: '#9a9fa5',
+      fontSize: 6.5,
+      fontWeight: 700,
+    },
+
+    notableText: {
+      flex: 1,
+      color: '#3f454b',
+      fontSize: 7.5,
+      lineHeight: 1.4,
+    },
+
+    video: {
+      marginBottom: 7,
+      borderWidth: 1,
+      borderColor: LINE,
+      borderRadius: 7,
+      padding: 8,
+    },
+
+    videoTitle: {
+      color: NAVY,
+      fontSize: 7.8,
+      fontWeight: 700,
+    },
+
+    videoLink: {
+      color: MUTED,
+      marginTop: 3,
+      fontSize: 6.2,
+      textDecoration: 'none',
+    },
+
+    sourceRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 14,
+    },
+
+    sourceLink: {
+      color: NAVY,
+      marginRight: 13,
+      marginBottom: 5,
+      fontSize: 7,
+      fontWeight: 700,
+      textDecoration: 'none',
+    },
+
+    contact: {
+      marginTop: 20,
+      borderRadius: 10,
+      padding: 16,
+      backgroundColor: NAVY,
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+    },
+
+    contactKicker: {
+      color: '#93a4b4',
+      fontSize: 6.4,
+      fontWeight: 700,
+      letterSpacing: .7,
+    },
+
+    contactTitle: {
+      color: WHITE,
+      marginTop: 5,
+      fontSize: 13,
+      fontWeight: 700,
+    },
+
+    contactCopy: {
+      color: '#c0cad3',
+      marginTop: 4,
+      maxWidth: 320,
+      fontSize: 7,
+      lineHeight: 1.4,
+    },
+
+    contactEmail: {
+      color: NAVY,
+      backgroundColor: YELLOW,
+      borderRadius: 12,
+      paddingVertical: 7,
+      paddingHorizontal: 10,
+      fontSize: 7.2,
+      fontWeight: 700,
+      textDecoration: 'none',
+    },
+
+    footer: {
+      position: 'absolute',
+      left: 34,
+      right: 34,
+      bottom: 18,
+      paddingTop: 7,
+      borderTopWidth: 1,
+      borderTopColor: LINE,
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+    },
+
+    footerDark: {
+      position: 'absolute',
+      left: 34,
+      right: 34,
+      bottom: 18,
+      paddingTop: 7,
+      borderTopWidth: 1,
+      borderTopColor:
+        '#24405b',
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+    },
+
+    footerText: {
+      color: '#8b939b',
+      fontSize: 6.2,
+    },
+  });
 
 export function ClubCvPdfDocument({
   profile,
@@ -567,38 +677,69 @@ export function ClubCvPdfDocument({
   photoUrl?: string | null;
   logoUrl?: string | null;
 }) {
-  const keyStats = arr(
-    profile?.key_stats
-  ).slice(0, 6);
+  const name =
+    profile?.display_name ||
+    'DJM Player';
 
-  const experience = arr(
-    profile?.notable_experience
-  ).slice(0, 6);
+  const verified =
+    dossierVerifiedDate(
+      profile?.verified_at,
+    );
 
-  const career = arr(
-    profile?.career_timeline
-  ).slice(0, 14);
+  const nationality =
+    dossierNationality(
+      profile?.nationalities,
+    );
 
-  const videos = arr(
-    profile?.selected_videos
-  )
-    .filter((v: any) => v?.url)
-    .slice(0, 4);
+  const stats =
+    dossierHeadlineStats(
+      profile,
+      4,
+    );
+
+  const performance =
+    dossierPerformance(
+      profile,
+      3,
+    );
+
+  const career =
+    dossierCareer(
+      profile,
+    ).slice(0, 9);
+
+  const notable =
+    dossierList(
+      profile?.notable_experience,
+    ).slice(0, 4);
+
+  const videos =
+    dossierList(
+      profile?.selected_videos,
+    )
+      .filter(
+        (item: any) =>
+          item?.url,
+      )
+      .slice(0, 3);
 
   const sources = [
     profile?.transfermarkt_url && {
       label: 'Transfermarkt',
-      url: profile.transfermarkt_url,
+      url:
+        profile.transfermarkt_url,
     },
 
     profile?.wyscout_url && {
       label: 'Wyscout',
-      url: profile.wyscout_url,
+      url:
+        profile.wyscout_url,
     },
 
     profile?.stats_url && {
       label: 'Statistics',
-      url: profile.stats_url,
+      url:
+        profile.stats_url,
     },
   ].filter(Boolean) as {
     label: string;
@@ -607,44 +748,43 @@ export function ClubCvPdfDocument({
 
   const facts = [
     [
-      'Position',
-      profile?.primary_position,
-    ],
-    [
-      'Age',
+      'AGE',
       profile?.age_display,
     ],
     [
-      'Height',
+      'HEIGHT',
       profile?.height_display,
     ],
     [
-      'Foot',
+      'FOOT',
       profile?.preferred_foot,
     ],
     [
-      'Nationality',
-      nationalityText(
-        profile?.nationalities
-      ),
+      'NATIONALITY',
+      nationality !== '—'
+        ? nationality
+        : null,
     ],
-  ];
+  ].filter(
+    ([, value]) =>
+      !!value,
+  );
 
-  const showSecondPage =
-    (!hidden(profile, 'career') &&
-      career.length > 0) ||
-    (!hidden(profile, 'videos') &&
-      videos.length > 0);
+  const showPageTwo =
+    career.length > 0 ||
+    notable.length > 0 ||
+    videos.length > 0 ||
+    sources.length > 0;
 
-  const displayName =
-    profile?.display_name ||
-    'DJM Player';
+  const email =
+    profile?.contact_email ||
+    'jesse.edge@djmsports.com';
 
   return (
     <Document
-      title={`${displayName} - DJM Club CV`}
+      title={`${name} - DJM Player Dossier`}
       author="DJM Sports Management"
-      subject="Professional football player profile"
+      subject="Professional football player dossier"
       creator="DJM Player"
     >
       <Page
@@ -655,22 +795,32 @@ export function ClubCvPdfDocument({
           style={styles.hero}
           wrap={false}
         >
-          <View style={styles.heroTop}>
-            <View style={styles.brand}>
+          <View
+            style={
+              styles.heroTop
+            }
+          >
+            <View
+              style={
+                styles.brand
+              }
+            >
               {logoUrl ? (
                 <Image
                   src={logoUrl}
-                  style={styles.logo}
+                  style={
+                    styles.logo
+                  }
                 />
               ) : (
                 <View
                   style={
-                    styles.brandFallback
+                    styles.logoFallback
                   }
                 >
                   <Text
                     style={
-                      styles.brandFallbackText
+                      styles.logoFallbackText
                     }
                   >
                     DJM
@@ -678,70 +828,140 @@ export function ClubCvPdfDocument({
                 </View>
               )}
 
-              <Text style={styles.brandName}>
+              <Text
+                style={
+                  styles.brandName
+                }
+              >
                 DJM SPORTS MANAGEMENT
               </Text>
             </View>
 
-            <Text style={styles.verified}>
-              {verificationDate(
-                profile?.verified_at
-              )}
+            <Text
+              style={
+                styles.heroVerified
+              }
+            >
+              {verified
+                ? `DJM VERIFIED · ${verified.toUpperCase()}`
+                : 'DJM PLAYER DOSSIER'}
             </Text>
           </View>
 
-          <View style={styles.heroMain}>
-            <View style={styles.heroCopy}>
+          <View
+            style={
+              styles.heroMain
+            }
+          >
+            <View
+              style={
+                styles.heroCopy
+              }
+            >
               <View
-                style={styles.yellowLine}
+                style={
+                  styles.yellowLine
+                }
               />
 
               <Text
-                style={styles.playerName}
+                style={
+                  styles.kickerDark
+                }
               >
-                {clip(displayName, 48)}
+                PLAYER DOSSIER
               </Text>
 
-              <Text style={styles.headline}>
+              <Text
+                style={
+                  styles.playerName
+                }
+              >
                 {clip(
-                  profile?.headline ||
-                    'Professional footballer represented by DJM Sports Management',
-                  170
+                  name,
+                  34,
                 )}
               </Text>
 
-              {profile?.current_club ? (
-                <Text style={styles.club}>
-                  {clip(
-                    profile.current_club,
-                    70
-                  )}
-                </Text>
-              ) : null}
+              <Text
+                style={
+                  styles.position
+                }
+              >
+                {[
+                  profile?.primary_position,
+                  profile?.current_club,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') ||
+                  'Professional footballer'}
+              </Text>
 
-              {!profile?.hide_market_value &&
-              profile?.market_value_display ? (
-                <View
+              {profile?.headline && (
+                <Text
                   style={
-                    styles.marketValue
+                    styles.headline
                   }
                 >
-                  <Text
+                  {clip(
+                    profile.headline,
+                    170,
+                  )}
+                </Text>
+              )}
+
+              <View
+                style={
+                  styles.statusRow
+                }
+              >
+                {profile?.current_status && (
+                  <View
                     style={
-                      styles.marketValueText
+                      styles.statusPill
                     }
                   >
-                    Market value ·{' '}
-                    {profile.market_value_display}
-                  </Text>
-                </View>
-              ) : null}
+                    <Text
+                      style={
+                        styles.statusText
+                      }
+                    >
+                      {clip(
+                        profile.current_status,
+                        34,
+                      )}
+                    </Text>
+                  </View>
+                )}
+
+                {profile?.market_value_display &&
+                  !profile?.hide_market_value && (
+                    <View
+                      style={
+                        styles.statusPill
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.statusText
+                        }
+                      >
+                        Market value{' '}
+                        {
+                          profile.market_value_display
+                        }
+                      </Text>
+                    </View>
+                  )}
+              </View>
             </View>
 
             {photoUrl ? (
               <Image
                 src={photoUrl}
-                style={styles.photo}
+                style={
+                  styles.photo
+                }
               />
             ) : (
               <View
@@ -754,7 +974,7 @@ export function ClubCvPdfDocument({
                     styles.photoInitial
                   }
                 >
-                  {displayName
+                  {name
                     .charAt(0)
                     .toUpperCase()}
                 </Text>
@@ -763,109 +983,130 @@ export function ClubCvPdfDocument({
           </View>
         </View>
 
-        <View style={styles.body}>
-          <View
-            style={styles.facts}
-            wrap={false}
-          >
-            {facts.map(
-              ([label, value], index) => (
-                <View
-                  key={label}
-                  style={
-                    index ===
-                    facts.length - 1
-                      ? styles.factLast
-                      : styles.fact
-                  }
-                >
-                  <Text
+        <View
+          style={styles.body}
+        >
+          {facts.length >
+            0 && (
+            <View
+              style={
+                styles.facts
+              }
+            >
+              {facts.map(
+                (
+                  [
+                    label,
+                    value,
+                  ],
+                  index,
+                ) => (
+                  <View
+                    key={
+                      index
+                    }
                     style={
-                      styles.factLabel
+                      styles.fact
                     }
                   >
-                    {label}
-                  </Text>
+                    <Text
+                      style={
+                        styles.factLabel
+                      }
+                    >
+                      {label}
+                    </Text>
 
-                  <Text
-                    style={
-                      styles.factValue
-                    }
-                  >
-                    {clip(value, 35)}
-                  </Text>
-                </View>
-              )
-            )}
-          </View>
+                    <Text
+                      style={
+                        styles.factValue
+                      }
+                    >
+                      {clip(
+                        value,
+                        28,
+                      )}
+                    </Text>
+                  </View>
+                ),
+              )}
+            </View>
+          )}
 
           {!hidden(
             profile,
-            'why_review'
-          ) ? (
+            'why_review',
+          ) && (
             <View
-              style={styles.section}
+              style={
+                styles.section
+              }
               wrap={false}
             >
-              <Text style={styles.kicker}>
-                WHY REVIEW THIS PLAYER
-              </Text>
-
-              <View style={styles.whyBox}>
-                <Text
-                  style={styles.whyText}
-                >
-                  {clip(
-                    profile?.why_review ||
-                      'DJM Sports Management can provide further sporting and availability information on request.',
-                    430
-                  )}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-
-          {!hidden(profile, 'summary') &&
-          profile?.career_summary ? (
-            <View
-              style={styles.section}
-              wrap={false}
-            >
-              <Text style={styles.kicker}>
-                PLAYER SNAPSHOT
+              <Text
+                style={
+                  styles.kicker
+                }
+              >
+                WHY REVIEW
               </Text>
 
               <Text
-                style={styles.summary}
+                style={
+                  styles.why
+                }
               >
                 {clip(
-                  profile.career_summary,
-                  560
+                  profile?.why_review ||
+                    'DJM Sports Management can provide current sporting, availability and contractual information on request.',
+                  430,
                 )}
               </Text>
             </View>
-          ) : null}
+          )}
 
-          {!hidden(profile, 'stats') &&
-          keyStats.length > 0 ? (
-            <View
-              style={styles.section}
-              wrap={false}
-            >
-              <Text style={styles.kicker}>
-                KEY NUMBERS
-              </Text>
+          {stats.length > 0 &&
+            !hidden(
+              profile,
+              'stats',
+            ) && (
+              <View
+                style={
+                  styles.section
+                }
+                wrap={false}
+              >
+                <Text
+                  style={
+                    styles.kicker
+                  }
+                >
+                  CURRENT PERFORMANCE
+                </Text>
 
-              <View style={styles.stats}>
-                {keyStats.map(
-                  (item: any, index) => (
-                    <View
-                      key={index}
-                      style={styles.stat}
-                    >
+                <View
+                  style={
+                    styles.statBand
+                  }
+                >
+                  {stats.map(
+                    (
+                      item,
+                      index,
+                    ) => (
                       <View
+                        key={
+                          index
+                        }
                         style={
-                          styles.statInner
+                          index ===
+                          0
+                            ? styles.statFirst
+                            : index ===
+                                stats.length -
+                                  1
+                              ? styles.statLast
+                              : styles.stat
                         }
                       >
                         <Text
@@ -874,10 +1115,8 @@ export function ClubCvPdfDocument({
                           }
                         >
                           {clip(
-                            item?.value ??
-                              item?.stat ??
-                              '—',
-                            18
+                            item.value,
+                            12,
                           )}
                         </Text>
 
@@ -887,221 +1126,307 @@ export function ClubCvPdfDocument({
                           }
                         >
                           {clip(
-                            item?.label ??
-                              item?.name ??
-                              '',
-                            38
-                          )}
+                            item.label,
+                            22,
+                          ).toUpperCase()}
                         </Text>
                       </View>
-                    </View>
-                  )
-                )}
-              </View>
-            </View>
-          ) : null}
+                    ),
+                  )}
+                </View>
 
-          {!hidden(
-            profile,
-            'experience'
-          ) &&
-          experience.length > 0 ? (
-            <View
-              style={styles.section}
-              wrap={false}
-            >
-              <Text style={styles.kicker}>
-                NOTABLE EXPERIENCE
-              </Text>
-
-              <View
-                style={
-                  styles.experienceWrap
-                }
-              >
-                {experience.map(
-                  (item: any, index) => {
-                    const value =
-                      typeof item ===
-                      'string'
-                        ? item
-                        : item?.label ||
-                          item?.title ||
-                          item?.value ||
-                          '';
-
-                    return (
-                      <View
-                        key={index}
-                        style={
-                          styles.experience
-                        }
-                      >
+                {performance.rows
+                  .length > 0 && (
+                  <View
+                    style={
+                      styles.performanceWrap
+                    }
+                  >
+                    {performance.rows.map(
+                      (
+                        row: any,
+                        index: number,
+                      ) => (
                         <View
+                          key={
+                            index
+                          }
                           style={
-                            styles.experienceInner
+                            index ===
+                            0
+                              ? styles.performanceRowFirst
+                              : styles.performanceRow
                           }
                         >
-                          <Text
+                          <View
                             style={
-                              styles.experienceText
+                              styles.performanceMeta
                             }
                           >
-                            {clip(
-                              value,
-                              110
-                            )}
+                            <Text
+                              style={
+                                styles.performanceSeason
+                              }
+                            >
+                              {row.season_label ||
+                                row.season ||
+                                'Season'}
+                            </Text>
+
+                            <Text
+                              style={
+                                styles.performanceClub
+                              }
+                            >
+                              {clip(
+                                [
+                                  row.club_name ||
+                                    row.club,
+                                  row.league,
+                                ]
+                                  .filter(
+                                    Boolean,
+                                  )
+                                  .join(
+                                    ' · ',
+                                  ),
+                                38,
+                              )}
+                            </Text>
+                          </View>
+
+                          <View
+                            style={
+                              styles.barArea
+                            }
+                          >
+                            <View
+                              style={
+                                styles.bar
+                              }
+                            >
+                              <View
+                                style={[
+                                  styles.barFill,
+                                  {
+                                    width:
+                                      `${row.visualPercentage}%`,
+                                  },
+                                ]}
+                              />
+                            </View>
+                          </View>
+
+                          <Text
+                            style={
+                              styles.performanceValue
+                            }
+                          >
+                            {
+                              row.visualLabel
+                            }
                           </Text>
                         </View>
-                      </View>
-                    );
-                  }
+                      ),
+                    )}
+                  </View>
                 )}
               </View>
-            </View>
-          ) : null}
+            )}
 
-          {sources.length > 0 ? (
-            <View style={styles.sourceRow}>
-              {sources.map(source => (
-                <Link
-                  key={source.label}
-                  src={source.url}
-                  style={styles.source}
-                >
-                  {source.label} ↗
-                </Link>
-              ))}
-
-              {profile?.primary_video_url ? (
-                <Link
-                  src={
-                    profile.primary_video_url
+          {profile?.career_summary &&
+            !hidden(
+              profile,
+              'summary',
+            ) && (
+              <View
+                style={
+                  styles.section
+                }
+                wrap={false}
+              >
+                <Text
+                  style={
+                    styles.kicker
                   }
-                  style={styles.source}
                 >
-                  Watch player ↗
-                </Link>
-              ) : null}
-            </View>
-          ) : null}
+                  PLAYER SNAPSHOT
+                </Text>
 
-          <View
-            style={styles.contact}
-            wrap={false}
-          >
-            <View>
-              <Text
-                style={
-                  styles.contactTitle
-                }
-              >
-                DJM SPORTS MANAGEMENT
-              </Text>
-
-              <Text
-                style={
-                  styles.contactCopy
-                }
-              >
-                Verified availability,
-                contractual information and
-                club discussions.
-              </Text>
-            </View>
-
-            <Link
-              src={`mailto:${
-                profile?.contact_email ||
-                'jesse.edge@djmsports.com'
-              }`}
-              style={styles.contactEmail}
-            >
-              {profile?.contact_email ||
-                'jesse.edge@djmsports.com'}
-            </Link>
-          </View>
+                <Text
+                  style={
+                    styles.summary
+                  }
+                >
+                  {clip(
+                    profile.career_summary,
+                    300,
+                  )}
+                </Text>
+              </View>
+            )}
         </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            DJM SPORTS MANAGEMENT ·
-            PRIVATE RECRUITMENT MATERIAL
+        <View
+          style={
+            styles.footer
+          }
+          fixed
+        >
+          <Text
+            style={
+              styles.footerText
+            }
+          >
+            DJM SPORTS MANAGEMENT
           </Text>
 
-          <Text style={styles.footerText}>
-            Prepared through DJM Player
+          <Text
+            style={
+              styles.footerText
+            }
+          >
+            CONFIDENTIAL CLUB PRESENTATION
           </Text>
         </View>
       </Page>
 
-      {showSecondPage ? (
+      {showPageTwo && (
         <Page
           size="A4"
           style={styles.page}
         >
           <View
-            style={styles.page2Header}
+            style={
+              styles.pageTwoHeader
+            }
           >
-            <Text
-              style={styles.page2Name}
+            <View
+              style={
+                styles.pageTwoTop
+              }
             >
-              {clip(displayName, 55)}
-            </Text>
-
-            <Text
-              style={styles.page2Sub}
-            >
-              Career record & recruitment
-              material · DJM Sports Management
-            </Text>
-          </View>
-
-          <View style={styles.body}>
-            {!hidden(
-              profile,
-              'career'
-            ) &&
-            career.length > 0 ? (
-              <View style={styles.section}>
+              <View>
                 <Text
-                  style={styles.kicker}
-                >
-                  CAREER RECORD
-                </Text>
-
-                <View
                   style={
-                    styles.careerList
+                    styles.pageTwoName
                   }
                 >
+                  {clip(
+                    name,
+                    42,
+                  )}
+                </Text>
+
+                <Text
+                  style={
+                    styles.pageTwoMeta
+                  }
+                >
+                  {[
+                    profile?.primary_position,
+                    profile?.current_club,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+              </View>
+
+              <Text
+                style={
+                  styles.heroVerified
+                }
+              >
+                DJM PLAYER DOSSIER
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={
+              styles.pageTwoBody
+            }
+          >
+            {career.length >
+              0 &&
+              !hidden(
+                profile,
+                'career',
+              ) && (
+                <View
+                  wrap={false}
+                >
+                  <Text
+                    style={
+                      styles.kicker
+                    }
+                  >
+                    CAREER RECORD
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.pageTitle
+                    }
+                  >
+                    Season by season.
+                  </Text>
+
+                  <View
+                    style={
+                      styles.careerHeader
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.careerHeaderSeason
+                      }
+                    >
+                      SEASON
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.careerHeaderClub
+                      }
+                    >
+                      CLUB / COMPETITION
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.careerHeaderStats
+                      }
+                    >
+                      RECORD
+                    </Text>
+                  </View>
+
                   {career.map(
                     (
                       row: any,
-                      index
+                      index: number,
                     ) => (
                       <View
-                        key={index}
+                        key={
+                          index
+                        }
                         style={
                           styles.careerRow
                         }
-                        wrap={false}
                       >
                         <Text
                           style={
                             styles.careerSeason
                           }
                         >
-                          {clip(
-                            row?.season_label ||
-                              row?.season ||
-                              row?.start_date?.slice?.(
-                                0,
-                                4
-                              ) ||
-                              '—',
-                            18
-                          )}
+                          {row.season_label ||
+                            row.season ||
+                            row.start_date?.slice(
+                              0,
+                              4,
+                            ) ||
+                            '—'}
                         </Text>
 
                         <View
@@ -1115,30 +1440,45 @@ export function ClubCvPdfDocument({
                             }
                           >
                             {clip(
-                              row?.club_name ||
-                                row?.club ||
+                              row.club_name ||
+                                row.club ||
                                 '—',
-                              42
+                              36,
                             )}
                           </Text>
 
                           <Text
                             style={
-                              styles.careerMeta
+                              styles.careerClubMeta
                             }
                           >
                             {clip(
                               [
-                                row?.league,
-                                row?.country,
+                                row.league,
+                                row.country,
                               ]
                                 .filter(
-                                  Boolean
+                                  Boolean,
                                 )
-                                .join(' · '),
-                              60
+                                .join(
+                                  ' · ',
+                                ),
+                              48,
                             )}
                           </Text>
+
+                          {row.source_name && (
+                            <Text
+                              style={
+                                styles.careerSource
+                              }
+                            >
+                              Source:{' '}
+                              {
+                                row.source_name
+                              }
+                            </Text>
+                          )}
                         </View>
 
                         <Text
@@ -1146,110 +1486,263 @@ export function ClubCvPdfDocument({
                             styles.careerStats
                           }
                         >
-                          {careerStats(row)}
+                          {
+                            dossierCareerStatLine(
+                              row,
+                            )
+                          }
                         </Text>
                       </View>
-                    )
+                    ),
                   )}
                 </View>
-              </View>
-            ) : null}
+              )}
 
-            {!hidden(
-              profile,
-              'videos'
-            ) &&
-            videos.length > 0 ? (
+            {(notable.length >
+              0 ||
+              videos.length >
+                0) && (
               <View
-                style={styles.section}
+                style={
+                  styles.pageTwoColumns
+                }
+                wrap={false}
               >
-                <Text
-                  style={styles.kicker}
-                >
-                  SELECTED VIDEO
-                </Text>
-
-                {videos.map(
-                  (
-                    video: any,
-                    index
-                  ) => (
+                {notable.length >
+                  0 &&
+                  !hidden(
+                    profile,
+                    'experience',
+                  ) && (
                     <View
-                      key={index}
                       style={
-                        styles.videoRow
+                        styles.columnLeft
                       }
-                      wrap={false}
                     >
                       <Text
                         style={
-                          styles.videoTitle
+                          styles.miniTitle
                         }
                       >
-                        {clip(
-                          video?.title ||
-                            'Player video',
-                          70
-                        )}
+                        Selected
+                        experience
                       </Text>
 
-                      <Link
-                        src={video.url}
+                      {notable.map(
+                        (
+                          item: any,
+                          index: number,
+                        ) => (
+                          <View
+                            key={
+                              index
+                            }
+                            style={
+                              styles.notableItem
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.notableNumber
+                              }
+                            >
+                              0
+                              {index +
+                                1}
+                            </Text>
+
+                            <Text
+                              style={
+                                styles.notableText
+                              }
+                            >
+                              {clip(
+                                typeof item ===
+                                  'string'
+                                  ? item
+                                  : item.label ||
+                                      item.title ||
+                                      item.value,
+                                100,
+                              )}
+                            </Text>
+                          </View>
+                        ),
+                      )}
+                    </View>
+                  )}
+
+                {videos.length >
+                  0 &&
+                  !hidden(
+                    profile,
+                    'videos',
+                  ) && (
+                    <View
+                      style={
+                        styles.column
+                      }
+                    >
+                      <Text
                         style={
-                          styles.videoLink
+                          styles.miniTitle
                         }
                       >
-                        Watch footage ↗
-                      </Link>
+                        Player footage
+                      </Text>
+
+                      {videos.map(
+                        (
+                          video: any,
+                          index: number,
+                        ) => (
+                          <View
+                            key={
+                              index
+                            }
+                            style={
+                              styles.video
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.videoTitle
+                              }
+                            >
+                              {clip(
+                                video.title ||
+                                  `Player footage ${index + 1}`,
+                                42,
+                              )}
+                            </Text>
+
+                            <Link
+                              src={
+                                video.url
+                              }
+                              style={
+                                styles.videoLink
+                              }
+                            >
+                              Open video
+                            </Link>
+                          </View>
+                        ),
+                      )}
                     </View>
-                  )
+                  )}
+              </View>
+            )}
+
+            {sources.length >
+              0 && (
+              <View
+                style={
+                  styles.sourceRow
+                }
+                wrap={false}
+              >
+                {sources.map(
+                  (source) => (
+                    <Link
+                      key={
+                        source.label
+                      }
+                      src={
+                        source.url
+                      }
+                      style={
+                        styles.sourceLink
+                      }
+                    >
+                      {
+                        source.label
+                      }
+                    </Link>
+                  ),
                 )}
               </View>
-            ) : null}
+            )}
 
-            {sources.length > 0 ? (
-              <View
-                style={styles.section}
-              >
+            <View
+              style={
+                styles.contact
+              }
+              wrap={false}
+            >
+              <View>
                 <Text
-                  style={styles.kicker}
+                  style={
+                    styles.contactKicker
+                  }
                 >
-                  VERIFICATION SOURCES
+                  DJM SPORTS MANAGEMENT
                 </Text>
 
-                {sources.map(source => (
-                  <Link
-                    key={source.label}
-                    src={source.url}
-                    style={{
-                      ...styles.source,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {source.label} ↗
-                  </Link>
-                ))}
+                <Text
+                  style={
+                    styles.contactTitle
+                  }
+                >
+                  Discuss {clip(
+                    name,
+                    28,
+                  )} with DJM.
+                </Text>
+
+                <Text
+                  style={
+                    styles.contactCopy
+                  }
+                >
+                  For current
+                  availability,
+                  contractual
+                  information,
+                  financial parameters,
+                  full-match footage or
+                  a direct player
+                  discussion.
+                </Text>
               </View>
-            ) : null}
+
+              <Link
+                src={`mailto:${email}`}
+                style={
+                  styles.contactEmail
+                }
+              >
+                Contact DJM
+              </Link>
+            </View>
           </View>
 
-          <View style={styles.footer}>
+          <View
+            style={
+              styles.footer
+            }
+            fixed
+          >
             <Text
-              style={styles.footerText}
+              style={
+                styles.footerText
+              }
             >
               DJM SPORTS MANAGEMENT
             </Text>
 
             <Text
-              style={styles.footerText}
+              style={
+                styles.footerText
+              }
             >
-              {verificationDate(
-                profile?.verified_at
-              )}
+              {verified
+                ? `REVIEWED ${verified.toUpperCase()}`
+                : 'PROFESSIONAL PLAYER DOSSIER'}
             </Text>
           </View>
         </Page>
-      ) : null}
+      )}
     </Document>
   );
 }
@@ -1259,49 +1752,58 @@ export async function downloadClubCv({
   photoUrl,
   logoUrl,
   filename,
-}: ClubCvDownloadArgs) {
-  if (!profile) {
-    throw new Error(
-      'No club profile available'
+}: DownloadArgs) {
+  const document =
+    (
+      <ClubCvPdfDocument
+        profile={profile}
+        photoUrl={
+          photoUrl || null
+        }
+        logoUrl={
+          logoUrl || null
+        }
+      />
     );
-  }
 
-  const blob = await pdf(
-    <ClubCvPdfDocument
-      profile={profile}
-      photoUrl={photoUrl}
-      logoUrl={logoUrl}
-    />
-  ).toBlob();
+  const blob =
+    await pdf(
+      document,
+    ).toBlob();
 
-  const objectUrl =
-    URL.createObjectURL(blob);
+  const url =
+    URL.createObjectURL(
+      blob,
+    );
 
-  const safeName = (
+  const link =
+    documentElement();
+
+  link.href = url;
+
+  link.download =
     filename ||
-    `${
-      profile.display_name ||
-      'DJM-Player'
-    }-DJM-CV.pdf`
-  )
-    .replace(
-      /[^a-zA-Z0-9._ -]+/g,
-      ''
-    )
-    .replace(/\s+/g, '-');
+    `${profile?.display_name || 'DJM-Player'}-DJM-Player-Dossier.pdf`;
 
-  const anchor =
-    document.createElement('a');
+  document.body.appendChild(
+    link,
+  );
 
-  anchor.href = objectUrl;
-  anchor.download = safeName;
-  anchor.style.display = 'none';
+  link.click();
 
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
+  link.remove();
 
-  window.setTimeout(() => {
-    URL.revokeObjectURL(objectUrl);
-  }, 1500);
+  setTimeout(
+    () =>
+      URL.revokeObjectURL(
+        url,
+      ),
+    1000,
+  );
+}
+
+function documentElement() {
+  return document.createElement(
+    'a',
+  );
 }
