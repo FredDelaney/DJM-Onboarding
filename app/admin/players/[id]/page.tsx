@@ -467,254 +467,283 @@ const clubReady=
     });
   };
 
-  const save=async()=>{
-    setBusy(true);
+const save=async(
+  showToast=true
+)=>{
+  setBusy(true);
 
-    const results=
-      await Promise.all([
-        supabase
-          .from('players')
-          .update({
-            first_name:
-              p.first_name||null,
+  const [
+    playerResult,
+    privateResult,
+    cvResult
+  ]=
+    await Promise.all([
+      supabase
+        .from('players')
+        .update({
+          first_name:
+            p.first_name||null,
 
-            last_name:
-              p.last_name||null,
+          last_name:
+            p.last_name||null,
 
-            preferred_name:
-              p.preferred_name||null,
+          preferred_name:
+            p.preferred_name||null,
 
-            date_of_birth:
-              p.date_of_birth||null,
+          date_of_birth:
+            p.date_of_birth||null,
 
-            nationalities:
-              String(
-                p.nationalitiesInput
-                ??arr(p.nationalities)
+          nationalities:
+            String(
+              p.nationalitiesInput
+              ??arr(p.nationalities)
+            )
+              .split(',')
+              .map(
+                (x:string)=>
+                  x.trim()
               )
-                .split(',')
-                .map(
-                  (x:string)=>
-                    x.trim()
-                )
-                .filter(Boolean),
+              .filter(Boolean),
 
-            height_cm:
-              p.height_cm
-                ?Number(p.height_cm)
-                :null,
+          height_cm:
+            p.height_cm
+              ?Number(p.height_cm)
+              :null,
 
-            preferred_foot:
-              p.preferred_foot||null,
+          preferred_foot:
+            p.preferred_foot||null,
 
-            primary_position:
-              p.primary_position||null,
+          primary_position:
+            p.primary_position||null,
 
-            secondary_positions:
-              String(
-                p.secondaryInput
-                ??arr(
-                  p.secondary_positions
-                )
+          secondary_positions:
+            String(
+              p.secondaryInput
+              ??arr(
+                p.secondary_positions
               )
-                .split(',')
-                .map(
-                  (x:string)=>
-                    x.trim()
-                )
-                .filter(Boolean),
-
-            current_club:
-              p.current_club||null,
-
-            current_league:
-              p.current_league||null,
-
-            current_country:
-              p.current_country||null,
-
-            current_season_label:
-  p.current_season_label
-    ?.trim()
-    ||null,
-
-current_season_start:
-  p.current_season_start
-    ||null,
-
-            contract_status:
-              p.contract_status||null,
-
-            contract_expiry:
-              p.contract_expiry||null,
-
-            transfermarkt_url:
-              p.transfermarkt_url||null,
-
-            wyscout_url:
-              p.wyscout_url||null,
-
-            stats_url:
-              p.stats_url||null,
-
-            instagram_url:
-              p.instagram_url||null,
-
-            agency_priority:
-              p.agency_priority
-              ||'normal',
-
-            next_action:
-              p.next_action||null,
-
-            next_action_due:
-              p.next_action_due||null
-          })
-          .eq('id',id),
-
-        supabase
-          .from('player_private')
-          .upsert({
-            player_id:id,
-
-            phone:
-              pr.phone||null,
-
-            personal_email:
-              pr.personal_email||null,
-
-            whatsapp:
-              pr.whatsapp||null,
-
-            residence_country:
-              pr.residence_country||null,
-
-            passports_held:
-              String(
-                pr.passportsInput
-                ??arr(
-                  pr.passports_held
-                )
+            )
+              .split(',')
+              .map(
+                (x:string)=>
+                  x.trim()
               )
-                .split(',')
-                .map(
-                  (x:string)=>
-                    x.trim()
-                )
-                .filter(Boolean),
+              .filter(Boolean),
 
-            work_rights:
-              pr.work_rights||null,
+          current_club:
+            p.current_club||null,
 
-            market_preferences:
-              pr.market_preferences
-              ||null,
+          current_league:
+            p.current_league||null,
 
-            relocation_preferences:
-              pr.relocation_preferences
-              ||null,
+          current_country:
+            p.current_country||null,
 
-            preferred_move_timing:
-              pr.preferred_move_timing
-              ||null,
+          current_season_label:
+            p.current_season_label
+              ?.trim()
+            ||null,
 
-            salary_expectation:
-              pr.salary_expectation
-              ||null,
+          current_season_start:
+            p.current_season_start
+            ||null,
 
-            travel_availability:
-              pr.travel_availability
-              ||null
-          }),
+          contract_status:
+            p.contract_status||null,
 
-        supabase
-          .from('player_cv_settings')
-          .upsert({
-            player_id:id,
+          contract_expiry:
+            p.contract_expiry||null,
 
-            intro_line:
-              cv.intro_line||null,
+          transfermarkt_url:
+            p.transfermarkt_url||null,
 
-            why_review:
-              cv.why_review||null,
+          wyscout_url:
+            p.wyscout_url||null,
 
-            hide_market_value:
-              cv.hide_market_value
-              ??true,
+          stats_url:
+            p.stats_url||null,
 
-            hidden_sections:
-              cv.hidden_sections||[],
+          instagram_url:
+            p.instagram_url||null,
 
-            custom_sections:
-              cv.custom_sections||[],
+          agency_priority:
+            p.agency_priority
+            ||'normal',
 
-            section_order:
-              cv.section_order
-              ||[
-                'hero',
-                'facts',
-                'why_review',
-                'stats',
-                'career',
-                'videos',
-                'contact'
-              ],
+          next_action:
+            p.next_action||null,
 
-            career_summary:
-              cv.career_summary||null,
+          next_action_due:
+            p.next_action_due||null
+        })
+        .eq('id',id)
+        .select('*')
+        .single(),
 
-            key_stats:
-              cv.key_stats||[],
+      supabase
+        .from('player_private')
+        .upsert({
+          player_id:id,
 
-            notable_experience:
-              cv.notable_experience
-              ||[],
+          phone:
+            pr.phone||null,
 
-            market_value_display:
-              cv.market_value_display
-              ||null,
+          personal_email:
+            pr.personal_email||null,
 
-            market_value_source_url:
-              cv.market_value_source_url
-              ||null
-          })
-      ]);
+          whatsapp:
+            pr.whatsapp||null,
 
-    const failed=
-      results.find(
-        (r:any)=>r.error
-      );
+          residence_country:
+            pr.residence_country||null,
 
-    if(failed?.error){
-      setBusy(false);
+          passports_held:
+            String(
+              pr.passportsInput
+              ??arr(
+                pr.passports_held
+              )
+            )
+              .split(',')
+              .map(
+                (x:string)=>
+                  x.trim()
+              )
+              .filter(Boolean),
 
-      flash(
-        failed.error.message
-        ||'Could not save player'
-      );
+          work_rights:
+            pr.work_rights||null,
 
-      return false;
-    }
+          market_preferences:
+            pr.market_preferences
+            ||null,
 
-    await load();
+          relocation_preferences:
+            pr.relocation_preferences
+            ||null,
 
+          preferred_move_timing:
+            pr.preferred_move_timing
+            ||null,
+
+          salary_expectation:
+            pr.salary_expectation
+            ||null,
+
+          travel_availability:
+            pr.travel_availability
+            ||null
+        })
+        .select('*')
+        .single(),
+
+      supabase
+        .from('player_cv_settings')
+        .upsert({
+          player_id:id,
+
+          intro_line:
+            cv.intro_line||null,
+
+          why_review:
+            cv.why_review||null,
+
+          hide_market_value:
+            cv.hide_market_value
+            ??true,
+
+          hidden_sections:
+            cv.hidden_sections||[],
+
+          custom_sections:
+            cv.custom_sections||[],
+
+          section_order:
+            cv.section_order
+            ||[
+              'hero',
+              'facts',
+              'why_review',
+              'stats',
+              'career',
+              'videos',
+              'contact'
+            ],
+
+          career_summary:
+            cv.career_summary||null,
+
+          key_stats:
+            cv.key_stats||[],
+
+          notable_experience:
+            cv.notable_experience
+            ||[],
+
+          market_value_display:
+            cv.market_value_display
+            ||null,
+
+          market_value_source_url:
+            cv.market_value_source_url
+            ||null
+        })
+        .select('*')
+        .single()
+    ]);
+
+  const failed=
+    [
+      playerResult,
+      privateResult,
+      cvResult
+    ].find(
+      (result:any)=>
+        result.error
+    );
+
+  if(failed?.error){
     setBusy(false);
 
+    flash(
+      failed.error.message
+      ||'Could not save player'
+    );
+
+    return false;
+  }
+
+  if(playerResult.data){
+    setP(playerResult.data);
+  }
+
+  if(privateResult.data){
+    setPr(privateResult.data);
+  }
+
+  if(cvResult.data){
+    setCv(cvResult.data);
+  }
+
+  setBusy(false);
+
+  if(showToast){
     flash('Saved');
+  }
 
-    return true;
-  };
+  return true;
+};
 
-  const verify=async()=>{
-    const saved=
-      await save();
+ const verify=async()=>{
+  const saved=
+    await save(false);
 
-    if(!saved){
-      return;
-    }
+  if(!saved){
+    return;
+  }
 
-    const readiness=
-  clubReady;
+  const readiness=
+    clubReady;
 
   if(!readiness.isReady){
     flash(
@@ -733,40 +762,48 @@ current_season_start:
     return;
   }
 
-    const {error}=
-      await supabase
-        .from('players')
-        .update({
-          verification_status:
-            'verified',
+  setBusy(true);
 
-          verified_at:
-            new Date()
-              .toISOString(),
+  const {data,error}=
+    await supabase
+      .from('players')
+      .update({
+        verification_status:
+          'verified',
 
-          review_required_at:
-            null,
+        verified_at:
+          new Date()
+            .toISOString(),
 
-          review_reason:
-            null
-        })
-        .eq('id',id);
+        review_required_at:
+          null,
 
-    if(error){
-      flash(
-        error.message
-        ||'Could not verify player'
-      );
+        review_reason:
+          null
+      })
+      .eq('id',id)
+      .select('*')
+      .single();
 
-      return;
-    }
+  setBusy(false);
 
-    await load();
-
+  if(error){
     flash(
-      'Current player data verified'
+      error.message
+      ||'Could not verify player'
     );
-  };
+
+    return;
+  }
+
+  if(data){
+    setP(data);
+  }
+
+  flash(
+    'Current player data verified'
+  );
+};
 
   const uploadPhoto=async(e:any)=>{
     const f=
@@ -810,14 +847,19 @@ current_season_start:
       return;
     }
 
-    const {error:saveError}=
-      await supabase
-        .from('players')
-        .update({
-          profile_photo_path:
-            path
-        })
-        .eq('id',id);
+const {
+  data:updatedPlayer,
+  error:saveError
+}=
+  await supabase
+    .from('players')
+    .update({
+      profile_photo_path:
+        path
+    })
+    .eq('id',id)
+    .select('*')
+    .single();
 
     if(saveError){
       setBusy(false);
@@ -830,11 +872,13 @@ current_season_start:
       return;
     }
 
-    await load();
+if(updatedPlayer){
+  setP(updatedPlayer);
+}
 
-    setBusy(false);
+setBusy(false);
 
-    flash('Photo updated');
+flash('Photo updated');
   };
 
   const sendRequest=async()=>{
@@ -898,6 +942,21 @@ current_season_start:
           :'Request sent · no push device yet'
     );
   };
+
+  const refreshCareer=async()=>{
+  const {data}=
+    await supabase
+      .from('career_entries')
+      .select('*')
+      .eq('player_id',id)
+      .order('sort_order')
+      .order(
+        'start_date',
+        {ascending:false}
+      );
+
+  setCareer(data||[]);
+};
 
   const addNote=async()=>{
     if(!note.trim()){
@@ -1275,10 +1334,17 @@ current_season_start:
           c.goals,
         assists:
           c.assists,
-        source_name:
-          c.source_name,
-        source_url:
-          c.source_url
+source_name:
+  c.source_name,
+
+source_url:
+  c.source_url,
+
+source_reviewed_at:
+  c.source_reviewed_at,
+
+sort_order:
+  c.sort_order
       }));
 
     const payload:any={
@@ -3510,7 +3576,7 @@ const removePlayer=async(
                 player={p}
                 career={career}
                 canEdit={isFullAdmin}
-                onChanged={load}
+                onChanged={refreshCareer}
               />
 
               <section className="admin-card">
