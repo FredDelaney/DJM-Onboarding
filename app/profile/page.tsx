@@ -460,17 +460,19 @@ useEffect(() => {
       return false;
     }
 
-    await ctx.refresh();
+setDirty(false);
+setBusy(false);
 
-    setDirty(false);
-    setBusy(false);
+if (closeAfter) {
+  setEditor(null);
+}
 
-    if (closeAfter) {
-      setEditor(null);
-    }
+flash('Saved');
 
-    flash('Saved');
-    return true;
+void ctx.refresh();
+
+return true;
+    
   };
 
   const addVideo = async () => {
@@ -631,10 +633,18 @@ useEffect(() => {
       return;
     }
 
-    await ctx.refresh();
+setP(
+  (current: any) => ({
+    ...current,
+    profile_photo_path:
+      path,
+  }),
+);
 
-    setBusy(false);
-    flash('Photo updated');
+setBusy(false);
+flash('Photo updated');
+
+void ctx.refresh();
   };
 
   const closeEditor = () => {
