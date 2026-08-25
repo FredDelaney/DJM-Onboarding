@@ -19,7 +19,6 @@ import {
   FileText,
   BriefcaseBusiness,
   Video,
-  BarChart3,
   Trash2,
   Download
 } from 'lucide-react';
@@ -42,6 +41,9 @@ import {
 import ClubReadyPanel
   from '@/components/ClubReadyPanel';
 
+import SeasonRecordEditor
+  from '@/components/SeasonRecordEditor';
+
 const txt=(v:any)=>v??'';
 
 const arr=(v:any)=>
@@ -56,17 +58,6 @@ const slug=(s:string)=>
     .replace(/^-|-$/g,'')
     .slice(0,45);
 
-type ImportedStatRow={
-  season_label?:string|null;
-  club_name?:string|null;
-  league?:string|null;
-  country?:string|null;
-  appearances?:number|null;
-  starts?:number|null;
-  goals?:number|null;
-  assists?:number|null;
-  minutes?:number|null;
-};
 
 export default function AdminPlayer(){
   const {id}=useParams<{id:string}>();
@@ -106,18 +97,8 @@ export default function AdminPlayer(){
   const [oppClub,setOppClub]=useState('');
   const [oppSummary,setOppSummary]=useState('');
 
-  const [careerClub,setCareerClub]=useState('');
-  const [careerSeason,setCareerSeason]=useState('');
-
   const [videoUrl,setVideoUrl]=useState('');
   const [videoTitle,setVideoTitle]=useState('');
-
-  const [statsOpen,setStatsOpen]=useState(false);
-  const [statsText,setStatsText]=useState('');
-  const [statsRows,setStatsRows]=useState<ImportedStatRow[]>([]);
-  const [statsWarnings,setStatsWarnings]=useState<string[]>([]);
-  const [statsSource,setStatsSource]=useState('');
-  const [statsFileName,setStatsFileName]=useState('');
 
   const load=async()=>{
     const [
@@ -339,7 +320,7 @@ export default function AdminPlayer(){
   const downloadCv=async()=>{
     if(!pub){
       flash(
-        'Create the club profile before downloading the CV'
+        'Create the club profile before downloading the dossier'
       );
 
       return;
@@ -374,14 +355,14 @@ export default function AdminPlayer(){
         logoUrl:
           `${window.location.origin}/djm-mark.png`,
         filename:
-          `${name}-DJM-CV.pdf`
+          `${name}-DJM-Player-Dossier.pdf`
       });
 
-      flash('DJM CV downloaded');
+      flash('DJM player dossier downloaded');
     }catch(error:any){
       flash(
         error?.message
-        ||'Could not build DJM CV'
+        ||'Could not build DJM player dossier'
       );
     }finally{
       setPdfBusy(false);
@@ -966,43 +947,6 @@ current_season_start:
     );
   };
 
-  const addCareer=async()=>{
-    if(!careerClub.trim()){
-      return;
-    }
-
-    const {error}=
-      await supabase
-        .from('career_entries')
-        .insert({
-          player_id:id,
-          club_name:
-            careerClub.trim(),
-          season_label:
-            careerSeason.trim()
-            ||null,
-          sort_order:
-            career.length
-        });
-
-    if(error){
-      flash(
-        'Could not add career entry'
-      );
-
-      return;
-    }
-
-    setCareerClub('');
-    setCareerSeason('');
-
-    await load();
-
-    flash(
-      'Career entry added · verification required'
-    );
-  };
-
   const addVideo=async()=>{
     if(!videoUrl.trim()){
       return;
@@ -1573,230 +1517,6 @@ current_season_start:
     await load();
   };
 
-  const readStatsFile=async(e:any)=>{
-    const file=
-      e.target.files?.[0];
-
-    if(!file){
-      return;
-    }
-
-    const lower=
-      file.name
-        .toLowerCase();
-
-    if(
-      !lower.endsWith('.csv')
-      &&
-      !lower.endsWith('.txt')
-      &&
-      !lower.endsWith('.tsv')
-    ){
-      flash(
-        'Choose a CSV, TSV or text export'
-      );
-
-      e.target.value='';
-
-      return;
-    }
-
-    try{
-      const text=
-        await file.text();
-
-      if(!text.trim()){
-        flash(
-          'That file is empty'
-        );
-
-        return;
-      }
-
-      setStatsFileName(
-        file.name
-      );
-
-      setStatsText(text);
-      setStatsRows([]);
-      setStatsWarnings([]);
-
-      flash(
-        'Transfermarkt file ready to review'
-      );
-    }catch{
-      flash(
-        'Could not read that file'
-      );
-    }
-
-    e.target.value='';
-  };
-
-  const openStatsImport=()=>{
-    setStatsSource(
-      p.transfermarkt_url
-      ||p.stats_url
-      ||''
-    );
-
-    setStatsText('');
-    setStatsFileName('');
-    setStatsRows([]);
-    setStatsWarnings([]);
-    setStatsOpen(true);
-  };
-
-  const parseStats=async()=>{
-    if(!statsText.trim()){
-      return;
-    }
-
-    setBusy(true);
-
-    const {data,error}=
-      await supabase
-        .functions
-        .invoke(
-          'import-player-stats',
-          {
-            body:{
-              mode:'parse',
-              text:statsText
-            }
-          }
-        );
-
-    setBusy(false);
-
-    if(error){
-      flash(
-        error.message
-        ||'Could not parse stats'
-      );
-
-      return;
-    }
-
-    setStatsRows(
-      Array.isArray(
-        data?.rows
-      )
-        ?data.rows
-        :[]
-    );
-
-    setStatsWarnings(
-      Array.isArray(
-        data?.warnings
-      )
-        ?data.warnings
-        :[]
-    );
-
-    if(!data?.rows?.length){
-      flash(
-        'No season rows recognised'
-      );
-    }
-  };
-
-  const editStatsRow=(
-    index:number,
-    key:keyof ImportedStatRow,
-    value:any
-  )=>{
-    setStatsRows(
-      rows=>
-        rows.map(
-          (row,i)=>
-            i===index
-              ?{
-                  ...row,
-                  [key]:value
-                }
-              :row
-        )
-    );
-  };
-
-  const applyStats=async()=>{
-    const usable=
-      statsRows.filter(
-        r=>
-          String(
-            r.season_label||''
-          ).trim()
-          &&
-          String(
-            r.club_name||''
-          ).trim()
-      );
-
-    if(!usable.length){
-      flash(
-        'Each imported row needs a season and club'
-      );
-
-      return;
-    }
-
-    setBusy(true);
-
-    const {data,error}=
-      await supabase
-        .functions
-        .invoke(
-          'import-player-stats',
-          {
-            body:{
-              mode:'apply',
-              player_id:id,
-              source_name:
-                'Transfermarkt',
-              source_url:
-                statsSource
-                ||p.transfermarkt_url
-                ||null,
-              rows:usable
-            }
-          }
-        );
-
-    setBusy(false);
-
-    if(
-      error
-      ||!data?.ok
-    ){
-      flash(
-        data?.error
-        ||error?.message
-        ||'Stats import failed'
-      );
-
-      return;
-    }
-
-    setStatsOpen(false);
-    setStatsText('');
-    setStatsFileName('');
-    setStatsRows([]);
-    setStatsWarnings([]);
-
-    await load();
-
-    setTab('cv');
-
-    flash(
-      `${data.total} season${
-        data.total===1
-          ?''
-          :'s'
-      } imported · verify before publishing`
-    );
-  };
-
   const removePlayer=async()=>{
     if(!isFullAdmin){
       return;
@@ -2100,7 +1820,7 @@ current_season_start:
                 <strong>
                   {pdfBusy
                     ?'Building…'
-                    :'Download CV'
+                    :'Download dossier'
                   }
                 </strong>
 
@@ -2156,7 +1876,7 @@ current_season_start:
               }
             >
               {t==='cv'
-                ?'Club CV'
+                ?'Dossier'
                 :t[0]
                   .toUpperCase()
                   +t.slice(1)
@@ -2289,59 +2009,6 @@ current_season_start:
                   </span>
                 </div>
 
-<div className="admin-season-config">
-  <div className="grid2">
-    <div className="field">
-      <label className="label">
-        Current season label
-      </label>
-
-      <input
-        className="input"
-        value={
-          p.current_season_label
-          ||''
-        }
-        onChange={e=>
-          setP({
-            ...p,
-            current_season_label:
-              e.target.value
-          })
-        }
-        placeholder="2026/27 or 2026"
-      />
-    </div>
-
-    <div className="field">
-      <label className="label">
-        Season starts
-      </label>
-
-      <input
-        type="date"
-        className="input"
-        value={
-          p.current_season_start
-          ||''
-        }
-        onChange={e=>
-          setP({
-            ...p,
-            current_season_start:
-              e.target.value
-          })
-        }
-      />
-    </div>
-  </div>
-
-  <p className="small muted">
-    This controls which weekly
-    check-ins count toward the
-    player’s My Season totals.
-  </p>
-</div>
                 
                 <div
                   className="list-clean"
@@ -3700,7 +3367,7 @@ current_season_start:
 
                     {pdfBusy
                       ?'Building PDF…'
-                      :'Download DJM CV'
+                      :'Download dossier'
                     }
                   </button>
 
@@ -3762,183 +3429,12 @@ current_season_start:
                 </div>
               </section>
 
-              <section className="admin-card">
-                <div
-                  className="row-between"
-                  style={{
-                    alignItems:'flex-start'
-                  }}
-                >
-                  <div>
-                    <div className="section-kicker">
-                      SEASON STATISTICS
-                    </div>
-
-                    <h3
-                      style={{
-                        margin:0
-                      }}
-                    >
-                      Career & performance
-                    </h3>
-
-                    <p
-                      className="small muted"
-                      style={{
-                        margin:'7px 0 0',
-                        lineHeight:1.45
-                      }}
-                    >
-                      Apps, starts, goals, assists and minutes flow directly into the club dossier.
-                    </p>
-                  </div>
-
-                  {isFullAdmin&&(
-                    <button
-                      className="btn btn-navy btn-sm"
-                      onClick={openStatsImport}
-                    >
-                      <BarChart3 size={15}/>
-                      Import season stats
-                    </button>
-                  )}
-                </div>
-
-                <div
-                  className="list-clean"
-                  style={{
-                    marginTop:12
-                  }}
-                >
-                  {career.map(c=>(
-                    <div
-                      className="list-row"
-                      key={c.id}
-                    >
-                      <div className="list-icon">
-                        <BriefcaseBusiness
-                          size={16}
-                        />
-                      </div>
-
-                      <div className="list-copy">
-                        <strong>
-                          {c.club_name}
-                        </strong>
-
-                        <span
-                          style={{
-                            whiteSpace:
-                              'normal'
-                          }}
-                        >
-                          {[
-                            c.season_label,
-                            c.league,
-                            c.country
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')
-                          }
-
-                          {(
-                            c.appearances
-                              !=null
-                            ||
-                            c.starts
-                              !=null
-                            ||
-                            c.goals
-                              !=null
-                            ||
-                            c.assists
-                              !=null
-                            ||
-                            c.minutes
-                              !=null
-                          )
-                            ?` · ${[
-                                c.appearances
-                                  !=null
-                                  ?`${c.appearances} apps`
-                                  :null,
-
-                                c.starts
-                                  !=null
-                                  ?`${c.starts} starts`
-                                  :null,
-
-                                c.goals
-                                  !=null
-                                  ?`${c.goals} goals`
-                                  :null,
-
-                                c.assists
-                                  !=null
-                                  ?`${c.assists} assists`
-                                  :null,
-
-                                c.minutes
-                                  !=null
-                                  ?`${Number(c.minutes).toLocaleString('en-GB')} mins`
-                                  :null
-                              ]
-                                .filter(Boolean)
-                                .join(' · ')
-                              }`
-                            :''
-                          }
-
-                          {c.source_name
-                            ?` · Source: ${c.source_name}`
-                            :''
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div
-                  className="grid2"
-                  style={{
-                    marginTop:12
-                  }}
-                >
-                  <input
-                    className="input"
-                    value={careerClub}
-                    onChange={e=>
-                      setCareerClub(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Club"
-                  />
-
-                  <input
-                    className="input"
-                    value={careerSeason}
-                    onChange={e=>
-                      setCareerSeason(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Season"
-                  />
-                </div>
-
-                <button
-                  className="btn btn-quiet btn-sm"
-                  style={{
-                    marginTop:10
-                  }}
-                  onClick={addCareer}
-                >
-                  <Plus size={14}/>
-                  Add career entry
-                </button>
-              </section>
+              <SeasonRecordEditor
+                player={p}
+                career={career}
+                canEdit={isFullAdmin}
+                onChanged={load}
+              />
 
               <section className="admin-card">
                 <div className="section-kicker">
@@ -4443,547 +3939,7 @@ current_season_start:
           </div>
         )}
 
-        {statsOpen&&(
-          <div
-            style={{
-              position:'fixed',
-              inset:0,
-              zIndex:100,
-              background:
-                'rgba(3,12,22,.54)',
-              display:'grid',
-              placeItems:'center',
-              padding:18,
-              overflowY:'auto'
-            }}
-            onClick={()=>
-              !busy
-              &&
-              setStatsOpen(false)
-            }
-          >
-            <div
-              className="card pad-lg card-shadow"
-              style={{
-                width:'min(920px,100%)',
-                maxHeight:'92dvh',
-                overflowY:'auto'
-              }}
-              onClick={e=>
-                e.stopPropagation()
-              }
-            >
-              <div
-                className="row-between"
-                style={{
-                  alignItems:'flex-start'
-                }}
-              >
-                <div>
-                  <div className="section-kicker">
-                    SEASON STATS IMPORT
-                  </div>
-
-                  <h2 className="section-title">
-                    Bring the numbers into DJM.
-                  </h2>
-
-                  <p
-                    className="small muted"
-                    style={{
-                      lineHeight:1.55,
-                      maxWidth:680
-                    }}
-                  >
-                    Import a Transfermarkt performance CSV or paste season data manually. Review every recognised season before saving it to DJM. Imported sporting data returns the player to review status before the club dossier can be published again.
-                  </p>
-                </div>
-
-                <button
-                  className="icon-btn"
-                  onClick={()=>
-                    setStatsOpen(false)
-                  }
-                  disabled={busy}
-                >
-                  ×
-                </button>
-              </div>
-
-              {statsRows.length===0
-                ?(
-                  <>
-                    <div
-                      className="card soft"
-                      style={{
-                        marginTop:16,
-                        padding:18,
-                        borderRadius:20,
-                        border:
-                          '1px solid var(--line)'
-                      }}
-                    >
-                      <div className="section-kicker">
-                        TRANSFERMARKT EXPORT
-                      </div>
-
-                      <h3
-                        style={{
-                          margin:'0 0 6px'
-                        }}
-                      >
-                        Import performance CSV
-                      </h3>
-
-                      <p
-                        className="small muted"
-                        style={{
-                          margin:'0 0 16px',
-                          lineHeight:1.5
-                        }}
-                      >
-                        Download the player performance report from Transfermarkt, then choose the CSV here. DJM will read the seasons and let you review everything before anything is saved.
-                      </p>
-
-                      <label
-                        className="btn btn-navy btn-block"
-                        style={{
-                          cursor:'pointer'
-                        }}
-                      >
-                        <BarChart3 size={15}/>
-
-                        {statsFileName
-                          ?'Choose another file'
-                          :'Choose Transfermarkt CSV'
-                        }
-
-                        <input
-                          type="file"
-                          hidden
-                          accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"
-                          onChange={readStatsFile}
-                        />
-                      </label>
-
-                      {statsFileName&&(
-                        <div
-                          className="row"
-                          style={{
-                            marginTop:13,
-                            justifyContent:
-                              'center'
-                          }}
-                        >
-                          <Check size={15}/>
-
-                          <span
-                            className="small"
-                            style={{
-                              fontWeight:700
-                            }}
-                          >
-                            {statsFileName}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div
-                      style={{
-                        display:'flex',
-                        alignItems:'center',
-                        gap:12,
-                        margin:'18px 0'
-                      }}
-                    >
-                      <div
-                        style={{
-                          height:1,
-                          background:
-                            'var(--line)',
-                          flex:1
-                        }}
-                      />
-
-                      <span className="tiny muted">
-                        OR PASTE DATA
-                      </span>
-
-                      <div
-                        style={{
-                          height:1,
-                          background:
-                            'var(--line)',
-                          flex:1
-                        }}
-                      />
-                    </div>
-
-                    <div className="field">
-                      <label className="label">
-                        Paste season table
-                      </label>
-
-                      <textarea
-                        className="textarea"
-                        style={{
-                          minHeight:170,
-                          fontFamily:
-                            'ui-monospace,SFMono-Regular,Menlo,monospace',
-                          fontSize:13
-                        }}
-                        value={statsText}
-                        onChange={e=>{
-                          setStatsText(
-                            e.target.value
-                          );
-
-                          setStatsFileName('');
-                        }}
-                        placeholder={
-                          "Season\tClub\tCompetition\tApps\tStarts\tGoals\tAssists\tMinutes\n2025/26\tExample FC\tSerie A\t28\t21\t7\t5\t2,137"
-                        }
-                      />
-                    </div>
-
-                    <div
-                      className="row"
-                      style={{
-                        marginTop:14,
-                        flexWrap:'wrap'
-                      }}
-                    >
-                      {statsSource&&(
-                        <a
-                          className="btn btn-quiet"
-                          href={statsSource}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open source
-                          <ExternalLink
-                            size={14}
-                          />
-                        </a>
-                      )}
-
-                      <button
-                        className="btn btn-navy"
-                        onClick={parseStats}
-                        disabled={
-                          busy
-                          ||!statsText.trim()
-                        }
-                      >
-                        <BarChart3 size={15}/>
-
-                        {busy
-                          ?'Reading performance data…'
-                          :'Review performance data'
-                        }
-                      </button>
-                    </div>
-                  </>
-                )
-                :(
-                  <>
-                    {statsWarnings.length>0&&(
-                      <div
-                        className="card pad soft"
-                        style={{
-                          marginTop:18
-                        }}
-                      >
-                        <strong
-                          style={{
-                            fontSize:14
-                          }}
-                        >
-                          Review notes
-                        </strong>
-
-                        {statsWarnings.map(
-                          (w,i)=>(
-                            <div
-                              key={i}
-                              className="small muted"
-                              style={{
-                                marginTop:6,
-                                lineHeight:1.45
-                              }}
-                            >
-                              • {w}
-                            </div>
-                          )
-                        )}
-                      </div>
-                    )}
-
-                    <div
-                      className="field"
-                      style={{
-                        marginTop:18
-                      }}
-                    >
-                      <label className="label">
-                        Source URL saved against these seasons
-                      </label>
-
-                      <input
-                        className="input"
-                        value={statsSource}
-                        onChange={e=>
-                          setStatsSource(
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-
-                    <div
-                      className="stack"
-                      style={{
-                        gap:12,
-                        marginTop:18
-                      }}
-                    >
-                      {statsRows.map(
-                        (row,i)=>(
-                          <div
-                            className="card pad"
-                            key={i}
-                          >
-                            <div
-                              className="row-between"
-                              style={{
-                                marginBottom:12
-                              }}
-                            >
-                              <strong>
-                                Season {i+1}
-                              </strong>
-
-                              <button
-                                className="btn btn-quiet btn-sm"
-                                onClick={()=>
-                                  setStatsRows(
-                                    rows=>
-                                      rows.filter(
-                                        (_,ix)=>
-                                          ix!==i
-                                      )
-                                  )
-                                }
-                              >
-                                Remove
-                              </button>
-                            </div>
-
-                            <div className="grid2">
-                              <StatField
-                                label="Season"
-                                value={
-                                  row.season_label
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'season_label',
-                                    v
-                                  )
-                                }
-                              />
-
-                              <StatField
-                                label="Club"
-                                value={
-                                  row.club_name
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'club_name',
-                                    v
-                                  )
-                                }
-                              />
-
-                              <StatField
-                                label="Competition"
-                                value={
-                                  row.league
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'league',
-                                    v
-                                  )
-                                }
-                              />
-
-                              <StatField
-                                label="Country"
-                                value={
-                                  row.country
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'country',
-                                    v
-                                  )
-                                }
-                              />
-                            </div>
-
-                            <div
-                              style={{
-                                display:'grid',
-                                gridTemplateColumns:
-                                  'repeat(auto-fit,minmax(110px,1fr))',
-                                gap:10,
-                                marginTop:10
-                              }}
-                            >
-                              <StatField
-                                label="Apps"
-                                type="number"
-                                value={
-                                  row.appearances
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'appearances',
-                                    v===''
-                                      ?null
-                                      :Number(v)
-                                  )
-                                }
-                              />
-
-                              <StatField
-                                label="Starts"
-                                type="number"
-                                value={
-                                  row.starts
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'starts',
-                                    v===''
-                                      ?null
-                                      :Number(v)
-                                  )
-                                }
-                              />
-
-                              <StatField
-                                label="Goals"
-                                type="number"
-                                value={
-                                  row.goals
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'goals',
-                                    v===''
-                                      ?null
-                                      :Number(v)
-                                  )
-                                }
-                              />
-
-                              <StatField
-                                label="Assists"
-                                type="number"
-                                value={
-                                  row.assists
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'assists',
-                                    v===''
-                                      ?null
-                                      :Number(v)
-                                  )
-                                }
-                              />
-
-                              <StatField
-                                label="Minutes"
-                                type="number"
-                                value={
-                                  row.minutes
-                                }
-                                on={v=>
-                                  editStatsRow(
-                                    i,
-                                    'minutes',
-                                    v===''
-                                      ?null
-                                      :Number(v)
-                                  )
-                                }
-                              />
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-
-                    <div
-                      className="row"
-                      style={{
-                        marginTop:18,
-                        flexWrap:'wrap',
-                        justifyContent:
-                          'space-between'
-                      }}
-                    >
-                      <button
-                        className="btn btn-quiet"
-                        onClick={()=>{
-                          setStatsRows([]);
-                          setStatsWarnings([]);
-                        }}
-                        disabled={busy}
-                      >
-                        Back to import
-                      </button>
-
-                      <button
-                        className="btn btn-navy"
-                        onClick={applyStats}
-                        disabled={
-                          busy
-                          ||statsRows.length===0
-                        }
-                      >
-                        <Check size={15}/>
-
-                        {busy
-                          ?'Importing…'
-                          :`Import ${statsRows.length} season${
-                              statsRows.length===1
-                                ?''
-                                :'s'
-                            }`
-                        }
-                      </button>
-                    </div>
-                  </>
-                )
-              }
-            </div>
-          </div>
-        )}
-
+      
         {toast&&(
           <div className="toast">
             {toast}
@@ -5015,35 +3971,6 @@ function F({
         className="input"
         type={type}
         value={txt(value)}
-        onChange={e=>
-          on(e.target.value)
-        }
-      />
-    </div>
-  );
-}
-
-function StatField({
-  label,
-  value,
-  on,
-  type='text'
-}:{
-  label:string;
-  value:any;
-  on:(v:any)=>void;
-  type?:string;
-}){
-  return(
-    <div className="field">
-      <label className="label">
-        {label}
-      </label>
-
-      <input
-        className="input"
-        type={type}
-        value={value??''}
         onChange={e=>
           on(e.target.value)
         }
