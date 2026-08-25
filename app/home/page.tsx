@@ -344,7 +344,7 @@ export default function Home() {
             </div>
           </section>
 
-          <MySeason checkins={checkins} />
+          <MySeason   checkins={checkins}   seasonLabel={     player.current_season_label   }   seasonStart={     player.current_season_start   } />
 
           <section className="card pad player-profile-card">
             <div className="player-section-heading">
