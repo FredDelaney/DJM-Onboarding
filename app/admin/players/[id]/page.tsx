@@ -1882,7 +1882,7 @@ const removePlayer=async(
           <div className="admin-player-primary-actions">
             <button
               className="btn btn-navy admin-player-save"
-              onClick={save}
+              onClick={()=>{   void save(); }}
               disabled={busy}
             >
               <Save size={16}/>
@@ -3057,7 +3057,7 @@ const removePlayer=async(
                   style={{
                     marginTop:14
                   }}
-                  onClick={save}
+                  onClick={()=>{   void save(); }}
                 >
                   <Save size={15}/>
                   Save profile
@@ -3514,7 +3514,7 @@ const removePlayer=async(
 
                   <button
                     className="btn btn-quiet"
-                    onClick={save}
+                    onClick={()=>{   void save(); }}
                     disabled={busy}
                   >
                     <Save size={15}/>
