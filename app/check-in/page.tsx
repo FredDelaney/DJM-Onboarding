@@ -282,11 +282,10 @@ export default function CheckIn() {
       return;
     }
 
-    setDone(true);
+setDone(true);
+setBusy(false);
 
-    await ctx.refresh();
-
-    setBusy(false);
+void ctx.refresh();
   };
 
   if (done) {
