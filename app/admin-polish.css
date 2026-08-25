@@ -2031,3 +2031,147 @@
     gap: 7px;
   }
 }
+
+/* =========================================================
+   DJM — TRUSTED PERFORMANCE NUMBERS
+   ========================================================= */
+
+.admin-trusted-stats {
+  display: grid;
+  grid-template-columns:
+    repeat(5,minmax(0,1fr));
+  gap: 8px;
+}
+
+.admin-trusted-stat {
+  min-width: 0;
+
+  border:
+    1px solid rgba(6,31,58,.055);
+
+  border-radius: 17px;
+
+  padding:
+    14px
+    9px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #f7f8fa,
+      #f1f2f4
+    );
+
+  text-align: center;
+}
+
+.admin-trusted-stat strong {
+  display: block;
+
+  color: var(--navy);
+
+  font-size: 22px;
+  line-height: 1;
+
+  font-weight: 780;
+
+  letter-spacing: -.04em;
+}
+
+.admin-trusted-stat span {
+  display: block;
+
+  margin-top: 7px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+
+  font-weight: 800;
+
+  letter-spacing: .06em;
+
+  text-transform: uppercase;
+}
+
+.admin-trusted-source {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  border-radius: 15px;
+
+  padding:
+    12px
+    14px;
+
+  background:
+    rgba(24,121,78,.07);
+}
+
+.admin-trusted-source strong {
+  display: block;
+
+  color: #135f3e;
+
+  font-size: 12px;
+}
+
+.admin-trusted-source span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #4d7161;
+
+  font-size: 10.5px;
+}
+
+@media (max-width:760px) {
+
+  .admin-trusted-stats {
+    grid-template-columns:
+      repeat(5,minmax(64px,1fr));
+
+    gap: 6px;
+
+    overflow-x: auto;
+
+    padding-bottom: 3px;
+
+    scrollbar-width: none;
+  }
+
+  .admin-trusted-stats::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-trusted-stat {
+    min-width: 68px;
+
+    padding:
+      13px
+      7px;
+
+    border-radius: 15px;
+  }
+
+  .admin-trusted-stat strong {
+    font-size: 20px;
+  }
+
+  .admin-trusted-source {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    gap: 8px;
+  }
+
+  .admin-trusted-source > div:last-child {
+    text-align: left !important;
+  }
+}
