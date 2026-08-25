@@ -403,8 +403,7 @@ const hasTransfermarkt =
     setSyncOpen(true);
   };
   
-  const openNew = () => {
-    const approveSync =
+ const approveSync =
   async () => {
     if(
       !syncPreview
@@ -477,16 +476,18 @@ const hasTransfermarkt =
       } reviewed and updated.`
     );
   };
-    if (!canEdit) return;
 
-    setDraft(
-      blankDraft(player),
-    );
+const openNew = () => {
+  if (!canEdit) return;
 
-    setDeleteArmed(false);
-    setMessage('');
-    setEditorOpen(true);
-  };
+  setDraft(
+    blankDraft(player),
+  );
+
+  setDeleteArmed(false);
+  setMessage('');
+  setEditorOpen(true);
+};
 
   const openEdit = (
     row: any,
