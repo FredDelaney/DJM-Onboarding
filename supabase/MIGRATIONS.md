@@ -66,6 +66,7 @@ Current production migration sequence:
 60. `20260824133918 protect_document_club_share_approval_v1`
 61. `20260824134211 fix_document_club_share_guard_execution_context_v1`
 62. `20260825085804 add_current_season_tracking`
+63. `20260825120914 require_fresh_verification_after_admin_player_edits_v1`
 
 ## Recovery rule
 
@@ -90,3 +91,5 @@ The migrations from `20260823221734` through `20260824120256` were recovered dir
 `20260824134211_fix_document_club_share_guard_execution_context_v1` corrected the trigger execution-context check and was verified with rollback-only permission tests: players can continue managing normal documents, players cannot approve documents for club sharing, and DJM admins can.
 
 `20260825085804_add_current_season_tracking` added an explicit DJM-managed current season label and start date so player season tracking works correctly across different football calendars.
+
+`20260825120914_require_fresh_verification_after_admin_player_edits_v1` makes any verified football-data change require fresh DJM review whether that edit came from the player or a DJM admin. The live migration was applied and rollback-tested before this mirror was prepared.
