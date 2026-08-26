@@ -1936,9 +1936,14 @@ setBusy(false);
         );
     }catch{}
 
-    await load();
+setShares(
+  current=>[
+    data,
+    ...current
+  ]
+);
 
-    setShareBusy(false);
+setShareBusy(false);
     setShareOpen(false);
     setShareLabel('');
 
