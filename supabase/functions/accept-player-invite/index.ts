@@ -1,0 +1,92 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
+};
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: cors,
+    });
+  }
+
+  try {
+    const { token, email, password } = await req.json();
+
+    if (!token || !email || !password || String(password).length < 6) {
+      return new Response(JSON.stringify({ error: "Invalid invitation details" }), {
+        status: 400,
+        headers: cors,
+      });
+    }
+
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const admin = createClient(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const { data: invite, error: inviteError } = await admin
+      .from("player_invites")
+      .select("id,email,status,expires_at,player_id")
+      .eq("token", token)
+      .maybeSingle();
+
+    if (
+      inviteError ||
+      !invite ||
+      invite.status !== "pending" ||
+      new Date(invite.expires_at).getTime() <= Date.now() ||
+      invite.email.toLowerCase() !== String(email).toLowerCase()
+    ) {
+      return new Response(JSON.stringify({ error: "This DJM invitation is no longer valid" }), {
+        status: 400,
+        headers: cors,
+      });
+    }
+
+    const { data: player } = await admin
+      .from("players")
+      .select("first_name,last_name,preferred_name")
+      .eq("id", invite.player_id)
+      .maybeSingle();
+
+    const fullName =
+      [player?.first_name, player?.last_name].filter(Boolean).join(" ").trim() ||
+      player?.preferred_name?.trim() ||
+      "DJM Player";
+
+    const { data, error } = await admin.auth.admin.createUser({
+      email: invite.email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName, invite_token: token },
+    });
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 400,
+        headers: cors,
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: true, user_id: data.user?.id }), {
+      status: 200,
+      headers: cors,
+    });
+  } catch (e) {
+    return new Response(
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unable to accept invitation",
+      }),
+      { status: 500, headers: cors },
+    );
+  }
+});

@@ -2,17 +2,14 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
 } from 'react';
-
 import Link from 'next/link';
-
 import {
-  Activity,
   ArrowRight,
   CheckCircle2,
   FileText,
-  LockKeyhole,
   MessageCircle,
   ShieldCheck,
   UserRound,
@@ -23,9 +20,7 @@ import {
   PlayerShell,
   usePlayerContext,
 } from '@/components/PlayerShell';
-
 import MySeason from '@/components/MySeason';
-
 import {
   publicFile,
   supabase,
@@ -55,7 +50,7 @@ function readiness(
         player.preferred_foot
       ),
       label: 'Complete your football basics',
-href: '/profile?edit=football',
+      href: '/profile?edit=football',
     },
     {
       ok: !!(
@@ -65,26 +60,26 @@ href: '/profile?edit=football',
           .toLowerCase()
           .includes('free')
       ),
-    label: 'Confirm your current club or status',
-href: '/profile?edit=football',
+      label: 'Confirm your current club or status',
+      href: '/profile?edit=football',
     },
     {
       ok: !!(
         privateInfo?.phone ||
         privateInfo?.whatsapp
       ),
-     label: 'Add a contact number',
-href: '/profile?edit=career',
+      label: 'Add a contact number',
+      href: '/profile?edit=career',
     },
     {
       ok: !!privateInfo?.passports_held?.length,
       label: 'Add your passports',
-href: '/profile?edit=career',
+      href: '/profile?edit=career',
     },
     {
       ok: !!privateInfo?.market_preferences,
-    label: 'Tell DJM which markets you would consider',
-href: '/profile?edit=career',
+      label: 'Tell DJM which markets you would consider',
+      href: '/profile?edit=career',
     },
     {
       ok: !!player.profile_photo_path,
@@ -97,8 +92,8 @@ href: '/profile?edit=career',
         player.wyscout_url ||
         player.stats_url
       ),
-     label: 'Add a trusted football source',
-href: '/profile?edit=sources',
+      label: 'Add a trusted football source',
+      href: '/profile?edit=sources',
     },
     {
       ok: videoCount > 0,
@@ -117,10 +112,10 @@ href: '/profile?edit=sources',
     score,
     label:
       score === 100
-        ? 'Player side ready'
+        ? 'Club ready'
         : score >= 75
           ? 'Nearly ready'
-          : 'Needs a few details',
+          : 'Build your profile',
     missing: checks.filter((item) => !item.ok),
   };
 }
@@ -130,12 +125,12 @@ export default function Home() {
 
   const [announcement, setAnnouncement] =
     useState<any>(null);
-
   const [videoCount, setVideoCount] =
     useState(0);
-
   const [checkins, setCheckins] =
     useState<any[]>([]);
+  const [publicProfile, setPublicProfile] =
+    useState<any>(null);
 
   useEffect(() => {
     if (!ctx.player) return;
@@ -145,6 +140,7 @@ export default function Home() {
         { data: announcements },
         { count: videos },
         { data: weekly },
+        { data: dossier },
       ] = await Promise.all([
         supabase
           .from('announcements')
@@ -173,16 +169,36 @@ export default function Home() {
             ascending: true,
           })
           .limit(40),
+
+        supabase
+          .from('player_public_profiles')
+          .select('*')
+          .eq('player_id', ctx.player.id)
+          .maybeSingle(),
       ]);
 
       setAnnouncement(
         announcements?.[0] || null,
       );
-
       setVideoCount(videos || 0);
       setCheckins(weekly || []);
+      setPublicProfile(dossier || null);
     })();
   }, [ctx.player?.id]);
+
+  const ready = useMemo(
+    () =>
+      readiness(
+        ctx.player,
+        ctx.privateInfo,
+        videoCount,
+      ),
+    [
+      ctx.player,
+      ctx.privateInfo,
+      videoCount,
+    ],
+  );
 
   if (ctx.loading) {
     return <LoadingScreen />;
@@ -199,7 +215,6 @@ export default function Home() {
             <h2>
               We’re setting up your player record.
             </h2>
-
             <p className="muted">
               If you just joined, refresh in a moment
               or contact DJM.
@@ -211,21 +226,18 @@ export default function Home() {
   }
 
   const player = ctx.player;
-  const privateInfo = ctx.privateInfo;
-
-  const ready = readiness(
-    player,
-    privateInfo,
-    videoCount,
-  );
-
-  const firstRequest =
-    ctx.openRequests?.[0];
-
+  const firstRequest = ctx.openRequests?.[0];
   const checkDue =
     !ctx.latestCheckin ||
     ctx.latestCheckin.week_start !==
       weekStartISO();
+
+  const fullName =
+    [player.first_name, player.last_name]
+      .filter(Boolean)
+      .join(' ') ||
+    player.preferred_name ||
+    'DJM Player';
 
   const firstName =
     player.preferred_name ||
@@ -237,342 +249,278 @@ export default function Home() {
     player.profile_photo_path,
   );
 
-  const focus = firstRequest
+  const heroPhoto = publicFile(
+    'player-public',
+    publicProfile?.hero_image_path ||
+      publicProfile?.profile_photo_path ||
+      player.profile_photo_path,
+  );
+
+  const footballLine = [
+    player.primary_position,
+    player.current_club,
+    player.current_country,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const action = firstRequest
     ? {
-        label: 'DJM NEEDS YOU',
+        kicker: 'ACTION NEEDED',
         title: firstRequest.title,
         copy:
           firstRequest.message ||
-          'There is a request waiting for you.',
+          'DJM needs one thing from you.',
         href: '/inbox',
-        cta: 'Open request',
+        cta: 'Open update',
       }
     : checkDue
       ? {
-          label: 'THIS WEEK',
-          title:
-            'Your weekly update is ready.',
+          kicker: 'THIS WEEK',
+          title: `How’s your week, ${firstName}?`,
           copy:
-            'A quick check-in keeps your agent current and builds your private season tracker.',
+            'If everything is good, your weekly update takes one tap.',
           href: '/check-in',
-          cta: 'Check in now',
+          cta: 'Check in',
         }
       : ready.score < 100
         ? {
-            label: 'KEEP YOUR PROFILE READY',
+            kicker: 'STAY READY',
             title:
               ready.missing[0]?.label ||
-              'Keep your information current.',
+              'Keep your profile current.',
             copy:
-              'One small update now means less chasing when an opportunity moves quickly.',
+              'Small updates now mean your profile is ready when a club asks.',
             href:
               ready.missing[0]?.href ||
               '/profile',
-            cta: 'Update now',
+            cta: 'Update',
           }
         : {
-            label: 'ALL GOOD',
-            title: 'You’re up to date.',
+            kicker: 'YOU’RE UP TO DATE',
+            title: 'Your player profile is ready.',
             copy:
-              'DJM has what it needs right now. Your season tracker will keep building as you check in.',
+              'Nothing needed from you right now.',
             href: '/cv',
-            cta: 'View my dossier',
+            cta: 'View club profile',
           };
 
   return (
     <PlayerShell
       inboxCount={ctx.openRequests.length}
     >
-      <main className="container player-shell player-home-21">
-        <header className="player-head">
-          <div>
-            <h1 className="greeting">
-              Hi {firstName}.
-            </h1>
+      <main className="container player-shell player-home-premium">
+        <section className="player-identity-hero">
+          {heroPhoto && (
+            <img
+              className="player-identity-bg"
+              src={heroPhoto}
+              alt=""
+            />
+          )}
+          <div className="player-identity-shade" />
 
-            <div className="sub-greeting">
-              Your DJM career space
+          <div className="player-identity-copy">
+            <div className="player-identity-kicker">
+              <span>DJM PLAYER</span>
+              <span className="player-identity-dot" />
+              <span>
+                {player.verification_status === 'verified'
+                  ? 'DJM VERIFIED'
+                  : player.verification_status === 'reviewing'
+                    ? 'DJM REVIEWING'
+                    : 'PRIVATE CAREER SPACE'}
+              </span>
+            </div>
+
+            <h1>{fullName}</h1>
+
+            <p>
+              {footballLine ||
+                'Your football profile is being built'}
+            </p>
+
+            <div className="player-identity-badges">
+              <span>
+                <ShieldCheck size={14} />
+                {ready.score}% profile ready
+              </span>
+              {publicProfile?.published && (
+                <span>
+                  Club profile live
+                </span>
+              )}
             </div>
           </div>
 
           <Link
             href="/profile"
-            className="avatar avatar-lg"
-            aria-label="Open profile"
+            className="player-identity-edit"
           >
-            {photo ? (
-              <img
-                src={photo}
-                alt=""
-              />
-            ) : (
-              firstName.charAt(0)
-            )}
+            Profile
+            <ArrowRight size={15} />
           </Link>
-        </header>
+        </section>
 
-        <div className="player-home-stack">
-          <section className="focus-card dark-card">
-            <div className="focus-label">
-              {focus.label}
+        <section className="player-next-card">
+          <div>
+            <div className="player-next-kicker">
+              {action.kicker}
             </div>
+            <h2>{action.title}</h2>
+            <p>{action.copy}</p>
+          </div>
 
-            <h2 className="focus-title">
-              {focus.title}
-            </h2>
-
-            <p className="focus-copy">
-              {focus.copy}
-            </p>
-
-            <div className="focus-actions">
-              <Link
-                href={focus.href}
-                className="btn btn-yellow"
-              >
-                {focus.cta}
-                <ArrowRight size={17} />
-              </Link>
-
-              <Link
-                href="/inbox?compose=1"
-                className="btn player-dark-secondary"
-              >
-                Message DJM
-                <MessageCircle size={16} />
-              </Link>
-            </div>
-          </section>
-
-          <MySeason   checkins={checkins}   seasonLabel={     player.current_season_label   }   seasonStart={     player.current_season_start   } />
-
-          <section className="card pad player-profile-card">
-            <div className="player-section-heading">
-              <div>
-                <div className="section-kicker">
-                  MY DJM PROFILE
-                </div>
-
-                <h2 className="section-title">
-                  Stay ready for opportunities.
-                </h2>
-              </div>
-
-              <span
-                className={`pill ${
-                  ready.score === 100
-                    ? 'pill-green'
-                    : 'pill-blue'
-                }`}
-              >
-                {ready.label}
-              </span>
-            </div>
-
-            <div className="profile-strip">
-              <div className="avatar avatar-xl">
-                {photo ? (
-                  <img
-                    src={photo}
-                    alt=""
-                  />
-                ) : (
-                  firstName.charAt(0)
-                )}
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <h3>
-                  {[
-                    player.first_name,
-                    player.last_name,
-                  ]
-                    .filter(Boolean)
-                    .join(' ') || firstName}
-                </h3>
-
-                <p>
-                  {[
-                    player.primary_position,
-                    player.current_club,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ') ||
-                    'Add your football details'}
-                </p>
-
-                <div
-                  className={`verify-line ${
-                    player.verification_status ===
-                    'verified'
-                      ? 'verified'
-                      : ''
-                  }`}
-                >
-                  <ShieldCheck size={14} />
-
-                  <span>
-                    {player.verification_status ===
-                    'verified'
-                      ? 'Reviewed by DJM'
-                      : player.verification_status ===
-                          'reviewing'
-                        ? 'DJM review in progress'
-                        : 'DJM review pending'}
-                  </span>
-                </div>
-
-                <div className="progress-line">
-                  <span
-                    style={{
-                      width: `${ready.score}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-           {ready.missing.length > 0 && (
-  <Link
-    href={
-      ready.missing[0]?.href ||
-      '/profile'
-    }
-    className="readiness-note"
-  >
-    <CheckCircle2 size={17} />
-
-    <div>
-      <strong>
-        Best next update
-      </strong>
-
-      <span>
-        {ready.missing[0].label}
-      </span>
-    </div>
-
-    <ArrowRight
-      size={15}
-      className="muted"
-    />
-  </Link>
-)}
-
-            <div
-              className="list-clean"
-              style={{ marginTop: 12 }}
+          <div className="player-next-actions">
+            <Link
+              href={action.href}
+              className="btn btn-navy"
             >
-              <Link
-                href="/cv"
-                className="list-row"
-              >
-                <div className="list-icon">
-                  <FileText size={18} />
-                </div>
+              {action.cta}
+              <ArrowRight size={16} />
+            </Link>
 
-                <div className="list-copy">
-                  <strong>
-                    My club dossier
-                  </strong>
+            <Link
+              href="/inbox?compose=1"
+              className="btn btn-quiet"
+            >
+              Send DJM a note
+              <MessageCircle size={16} />
+            </Link>
+          </div>
+        </section>
 
-                  <span>
-                    Preview how DJM presents you
-                    to clubs
-                  </span>
-                </div>
+        <MySeason
+          checkins={checkins}
+          seasonLabel={
+            player.current_season_label
+          }
+          seasonStart={
+            player.current_season_start
+          }
+          verifiedProfile={publicProfile}
+        />
 
-                <ArrowRight
-                  size={16}
-                  className="muted"
-                />
-              </Link>
-
-              <Link
-                href="/profile"
-                className="list-row"
-              >
-                <div className="list-icon">
-                  <UserRound size={18} />
-                </div>
-
-                <div className="list-copy">
-                  <strong>
-                    Career information
-                  </strong>
-
-                  <span>
-                    Football, preferences, media
-                    and sources
-                  </span>
-                </div>
-
-                <ArrowRight
-                  size={16}
-                  className="muted"
-                />
-              </Link>
-
-              <Link
-                href="/documents"
-                className="list-row"
-              >
-                <div className="list-icon">
-                  <LockKeyhole size={18} />
-                </div>
-
-                <div className="list-copy">
-                  <strong>
-                    Secure documents
-                  </strong>
-
-                  <span>
-                    Private files available to DJM
-                    when needed
-                  </span>
-                </div>
-
-                <ArrowRight
-                  size={16}
-                  className="muted"
-                />
-              </Link>
+        <Link
+          href="/cv"
+          className="player-dossier-teaser"
+        >
+          {photo && (
+            <img
+              src={photo}
+              alt=""
+            />
+          )}
+          <div className="player-dossier-teaser-shade" />
+          <div className="player-dossier-teaser-copy">
+            <div className="player-dossier-teaser-kicker">
+              YOUR CLUB PROFILE
             </div>
-          </section>
+            <h2>
+              {publicProfile
+                ? 'See what clubs see.'
+                : 'DJM is building your club presentation.'}
+            </h2>
+            <p>
+              {publicProfile
+                ? 'Your verified football story, footage and career record in one club-ready presentation.'
+                : 'Once DJM finishes the verified version, it will appear here.'}
+            </p>
+            <span>
+              {publicProfile
+                ? 'Open club profile'
+                : 'View status'}
+              <ArrowRight size={16} />
+            </span>
+          </div>
+        </Link>
 
-          {announcement && (
-            <section className="card pad player-from-djm">
+        <section className="card pad player-ready-card">
+          <div className="player-section-heading">
+            <div>
               <div className="section-kicker">
-                FROM DJM
+                CAREER PROFILE
               </div>
+              <h2 className="section-title">
+                Keep the important things ready.
+              </h2>
+            </div>
+            <span
+              className={`pill ${
+                ready.score === 100
+                  ? 'pill-green'
+                  : 'pill-blue'
+              }`}
+            >
+              {ready.label}
+            </span>
+          </div>
 
-              <h3>{announcement.title}</h3>
+          <div className="player-ready-progress">
+            <span
+              style={{ width: `${ready.score}%` }}
+            />
+          </div>
 
-              <p>
-                {announcement.body}
-              </p>
-            </section>
+          {ready.missing.length > 0 && (
+            <Link
+              href={
+                ready.missing[0]?.href ||
+                '/profile'
+              }
+              className="readiness-note"
+            >
+              <CheckCircle2 size={17} />
+              <div>
+                <strong>Best next update</strong>
+                <span>
+                  {ready.missing[0].label}
+                </span>
+              </div>
+              <ArrowRight
+                size={15}
+                className="muted"
+              />
+            </Link>
           )}
 
-          <section className="player-privacy-note">
-            <ShieldCheck size={18} />
+          <div className="player-ready-links">
+            <Link href="/profile">
+              <UserRound size={17} />
+              Career information
+              <ArrowRight size={15} />
+            </Link>
+            <Link href="/documents">
+              <FileText size={17} />
+              Secure documents
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+        </section>
 
-            <div>
-              <strong>
-                Private by default
-              </strong>
-
-              <span>
-                Contact details, passports,
-                salary expectations and private
-                career information are not part of
-                your club-facing dossier unless DJM
-                deliberately prepares them for
-                sharing.
-              </span>
+        {announcement && (
+          <section className="card pad player-from-djm player-announcement-premium">
+            <div className="section-kicker">
+              FROM DJM
             </div>
+            <h3>{announcement.title}</h3>
+            <p>{announcement.body}</p>
           </section>
-        </div>
+        )}
+
+        <section className="player-privacy-note player-privacy-premium">
+          <ShieldCheck size={18} />
+          <div>
+            <strong>Private by default</strong>
+            <span>
+              Your personal contact details,
+              passports, salary expectations,
+              check-ins and private documents stay
+              private unless DJM deliberately prepares
+              something for a club.
+            </span>
+          </div>
+        </section>
       </main>
     </PlayerShell>
   );
