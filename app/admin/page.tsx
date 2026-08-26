@@ -20,7 +20,12 @@ import {
 
 import { AdminShell, useAdmin } from '@/components/AdminShell';
 import AppExperience from '@/components/AppExperience';
-import { fmtDate, supabase, weekStartISO } from '@/lib/supabase';
+import {
+  fmtDate,
+  localDateISO,
+  supabase,
+  weekStartISO,
+} from '@/lib/supabase';
 
 export default function Admin() {
   const auth = useAdmin();
@@ -47,6 +52,11 @@ export default function Admin() {
 
   const [teamEmail, setTeamEmail] = useState('');
   const [teamRole, setTeamRole] = useState('scout');
+  
+const [
+  pendingRemoveEmail,
+  setPendingRemoveEmail,
+] = useState('');
 
   const load = async () => {
     const [
@@ -158,10 +168,10 @@ export default function Admin() {
           const overdueCheck =
             !check || check.week_start !== thisWeek;
 
-          const due =
-            p.next_action_due &&
-            p.next_action_due <=
-              new Date().toISOString().slice(0, 10);
+const due =
+  p.next_action_due &&
+  p.next_action_due <=
+    localDateISO();
 
           const review =
             p.verification_status === 'reviewing' ||
@@ -203,7 +213,13 @@ export default function Admin() {
         .filter((x) => x.score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, 8),
-    [players, requests, checks]
+[
+  players,
+  requests,
+  checks,
+  travelDocs,
+  thisWeek,
+]
   );
 
   const flash = (m: string) => {
@@ -234,7 +250,30 @@ export default function Admin() {
       `${window.location.origin}/join/${data.token}`
     );
 
-    await load();
+const {
+  data: invitedPlayer,
+} = await supabase
+  .from('players')
+  .select('*')
+  .eq(
+    'id',
+    data.player_id,
+  )
+  .maybeSingle();
+
+if (invitedPlayer) {
+  setPlayers(
+    (current) => [
+      invitedPlayer,
+
+      ...current.filter(
+        (player) =>
+          player.id !==
+          invitedPlayer.id,
+      ),
+    ],
+  );
+}
 
     setBusy(false);
 
@@ -284,56 +323,118 @@ export default function Admin() {
     );
   };
 
-  const addTeamMember = async () => {
-    const email = teamEmail.trim().toLowerCase();
+ const addTeamMember =
+  async () => {
+    const email =
+      teamEmail
+        .trim()
+        .toLowerCase();
 
-    if (!email) return;
+    if (!email) {
+      return;
+    }
 
-    const { error } = await supabase
-      .from('admin_allowlist')
+    const {
+      data: member,
+      error,
+    } = await supabase
+      .from(
+        'admin_allowlist',
+      )
       .upsert(
         {
           email,
           role: teamRole,
         },
         {
-          onConflict: 'email',
-        }
+          onConflict:
+            'email',
+        },
+      )
+      .select('*')
+      .single();
+
+    if (
+      error ||
+      !member
+    ) {
+      flash(
+        error?.message ||
+          'Could not update team access',
       );
 
-    if (error) {
-      flash(error.message || 'Could not update team access');
       return;
     }
 
     setTeamEmail('');
 
-    await load();
+    setTeam(
+      (current) => [
+        ...current.filter(
+          (item) =>
+            item.email !==
+            email,
+        ),
+
+        member,
+      ].sort(
+        (a, b) =>
+          new Date(
+            a.created_at,
+          ).getTime() -
+          new Date(
+            b.created_at,
+          ).getTime(),
+      ),
+    );
 
     flash(
       teamRole === 'admin'
         ? 'Admin access ready'
-        : 'Scout access ready'
+        : 'Scout access ready',
     );
   };
 
-  const removeTeamMember = async (email: string) => {
-    if (!window.confirm(`Remove DJM access for ${email}?`))
-      return;
-
-    const { error } = await supabase
-      .from('admin_allowlist')
-      .delete()
-      .eq('email', email);
+ const removeTeamMember =
+  async (
+    email: string,
+  ) => {
+    const { error } =
+      await supabase
+        .from(
+          'admin_allowlist',
+        )
+        .delete()
+        .eq(
+          'email',
+          email,
+        );
 
     if (error) {
-      flash(error.message || 'Could not remove access');
+      flash(
+        error.message ||
+          'Could not remove access',
+      );
+
       return;
     }
 
-    await load();
+    setTeam(
+      (current) =>
+        current.filter(
+          (item) =>
+            item.email !==
+            email,
+        ),
+    );
 
-    flash('Team access removed');
+    setPendingRemoveEmail(
+      '',
+    );
+
+    flash(
+      'Team access removed',
+    );
   };
 
   if (auth.loading) {
@@ -889,19 +990,51 @@ export default function Admin() {
                       <span>{t.role}</span>
                     </div>
 
-                    {t.email !==
-                      auth.profile?.email && (
-                      <button
-                        className="btn btn-quiet btn-sm"
-                        onClick={() =>
-                          removeTeamMember(
-                            t.email
-                          )
-                        }
-                      >
-                        Remove
-                      </button>
-                    )}
+{t.email !==
+  auth.profile?.email && (
+  pendingRemoveEmail ===
+  t.email ? (
+    <div
+      className="row"
+      style={{
+        gap: 6,
+      }}
+    >
+      <button
+        className="btn btn-quiet btn-sm"
+        onClick={() =>
+          setPendingRemoveEmail(
+            '',
+          )
+        }
+      >
+        Cancel
+      </button>
+
+      <button
+        className="btn btn-dark btn-sm"
+        onClick={() =>
+          removeTeamMember(
+            t.email,
+          )
+        }
+      >
+        Confirm remove
+      </button>
+    </div>
+  ) : (
+    <button
+      className="btn btn-quiet btn-sm"
+      onClick={() =>
+        setPendingRemoveEmail(
+          t.email,
+        )
+      }
+    >
+      Remove
+    </button>
+  )
+)}
                   </div>
                 ))}
               </div>
