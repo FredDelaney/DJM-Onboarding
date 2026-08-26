@@ -1311,33 +1311,69 @@ const addOpp=async()=>{
 
   
 
-  const addVideo=async()=>{
-    if(!videoUrl.trim()){
-      return;
-    }
+const addVideo=async()=>{
+  if(!videoUrl.trim()){
+    return;
+  }
 
-    const {error}=
-      await supabase
-        .from('player_videos')
-        .insert({
-          player_id:id,
-          title:
-            videoTitle.trim()
-            ||'Player video',
-          url:
-            videoUrl.trim(),
-          video_type:
-            'highlight',
-          featured:
-            videos.length===0,
-          sort_order:
-            videos.length
-        });
+  const {data,error}=
+    await supabase
+      .from('player_videos')
+      .insert({
+        player_id:id,
+        title:
+          videoTitle.trim()
+          ||'Player video',
+        url:
+          videoUrl.trim(),
+        video_type:
+          'highlight',
+        featured:
+          videos.length===0,
+        sort_order:
+          videos.length
+      })
+      .select('*')
+      .single();
 
-    if(error){
-      flash(
-        'Could not add video'
-      );
+  if(error||!data){
+    flash(
+      'Could not add video'
+    );
+
+    return;
+  }
+
+  setVideos(
+    current=>
+      [...current,data]
+        .sort(
+          (a:any,b:any)=>{
+            if(
+              Boolean(a.featured)
+              !==Boolean(b.featured)
+            ){
+              return a.featured
+                ?-1
+                :1;
+            }
+
+            return Number(
+              a.sort_order||0
+            )
+            -
+            Number(
+              b.sort_order||0
+            );
+          }
+        )
+  );
+
+  setVideoUrl('');
+  setVideoTitle('');
+
+  flash('Video added');
+};
 
       return;
     }
