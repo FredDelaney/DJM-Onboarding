@@ -5,6 +5,7 @@ import './dossier.css';
 import './club-share.css';
 import './profile-21.css';
 import './ux-smooth.css';
+import './player-premium.css';
 
 export const metadata = {
   title: 'DJM Player',
@@ -29,8 +30,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     title: 'DJM Player',
-    statusBarStyle:
-      'black-translucent',
+    statusBarStyle: 'black-translucent',
   },
   formatDetection: {
     telephone: false,

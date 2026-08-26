@@ -5,13 +5,11 @@ import {
   useEffect,
   useState,
 } from 'react';
-
 import Link from 'next/link';
 import {
   usePathname,
   useRouter,
 } from 'next/navigation';
-
 import {
   Activity,
   Home,
@@ -47,19 +45,6 @@ const EMPTY_STATE: PlayerState = {
   loading: true,
 };
 
-/*
- * DJM UX NOTE
- * -----------
- * The old hook rebuilt its state from zero on every page mount.
- * That meant Home -> Inbox -> Check-in -> Profile repeatedly showed
- * a full-screen loader and repeated the same auth/player queries.
- *
- * This lightweight in-memory session store keeps the current player
- * state alive while the Next.js app is open. Navigation can render
- * immediately, while data refreshes quietly in the background.
- *
- * Nothing sensitive is written to localStorage/sessionStorage.
- */
 let playerCache: PlayerState | null = null;
 let playerCacheAt = 0;
 let playerLoad:
@@ -69,15 +54,15 @@ let playerLoad:
     }>
   | null = null;
 
-const playerListeners =
-  new Set<(state: PlayerState) => void>();
+const playerListeners = new Set<
+  (state: PlayerState) => void
+>();
 
 const publishPlayerState = (
   state: PlayerState,
 ) => {
   playerCache = state;
   playerCacheAt = Date.now();
-
   playerListeners.forEach((listener) =>
     listener(state),
   );
@@ -223,8 +208,7 @@ const loadPlayerState = async (
   playerLoad = fetchPlayerState()
     .catch(() => ({
       state:
-        playerCache ||
-        {
+        playerCache || {
           ...EMPTY_STATE,
           loading: false,
         },
@@ -238,16 +222,11 @@ const loadPlayerState = async (
 };
 
 export function usePlayerContext(): PlayerCtx {
-  /*
-   * Cached state means route changes do not flash a loader.
-   * First ever load still uses the normal loading state.
-   */
   const [state, setState] =
-    useState<PlayerState>(
-      () =>
-        playerCache || {
-          ...EMPTY_STATE,
-        },
+    useState<PlayerState>(() =>
+      playerCache || {
+        ...EMPTY_STATE,
+      },
     );
 
   const router = useRouter();
@@ -265,35 +244,22 @@ export function usePlayerContext(): PlayerCtx {
 
     playerListeners.add(listener);
 
-    /*
-     * If we already have a player, keep rendering it and
-     * quietly revalidate. Otherwise perform the initial load.
-     */
     const hydrate = async () => {
-      const hadCache =
-        !!playerCache;
+      const hadCache = !!playerCache;
+      const result = await loadPlayerState(
+        hadCache,
+      );
 
-      const result =
-        await loadPlayerState(
-          hadCache,
-        );
-
-      if (!active) {
-        return;
-      }
+      if (!active) return;
 
       if (result.redirect) {
         clearPlayerState();
-        router.replace(
-          result.redirect,
-        );
+        router.replace(result.redirect);
         return;
       }
 
       if (result.state) {
-        publishPlayerState(
-          result.state,
-        );
+        publishPlayerState(result.state);
       }
     };
 
@@ -301,9 +267,7 @@ export function usePlayerContext(): PlayerCtx {
 
     return () => {
       active = false;
-      playerListeners.delete(
-        listener,
-      );
+      playerListeners.delete(listener);
     };
   }, [router]);
 
@@ -314,16 +278,12 @@ export function usePlayerContext(): PlayerCtx {
 
       if (result.redirect) {
         clearPlayerState();
-        router.replace(
-          result.redirect,
-        );
+        router.replace(result.redirect);
         return;
       }
 
       if (result.state) {
-        publishPlayerState(
-          result.state,
-        );
+        publishPlayerState(result.state);
       }
     },
     [router],
@@ -347,52 +307,30 @@ export function PlayerShell({
 
   const nav = [
     ['/home', 'Home', Home],
-    [
-      '/inbox',
-      'Inbox',
-      MessageCircle,
-    ],
-    [
-      '/check-in',
-      'Check-in',
-      Activity,
-    ],
-    [
-      '/profile',
-      'Profile',
-      UserRound,
-    ],
+    ['/inbox', 'DJM', MessageCircle],
+    ['/check-in', 'Check-in', Activity],
+    ['/profile', 'Profile', UserRound],
   ] as const;
 
-  /*
-   * Explicit prefetch helps PWA/iPhone navigation feel
-   * immediate even before the user taps the next tab.
-   */
   useEffect(() => {
     nav.forEach(([href]) => {
       router.prefetch(href);
     });
-
     router.prefetch('/cv');
-    router.prefetch(
-      '/documents',
-    );
+    router.prefetch('/documents');
   }, [router]);
 
   const signOut = async () => {
     clearPlayerState();
-
     await supabase.auth.signOut();
-
     router.replace('/sign-in');
   };
 
   return (
-    <div className="screen">
-      <div className="header-glass no-print">
+    <div className="screen player-premium-screen">
+      <div className="header-glass no-print player-premium-header">
         <div className="container topbar topbar-min">
           <Brand />
-
           <button
             type="button"
             className="icon-btn"
@@ -407,18 +345,12 @@ export function PlayerShell({
       {children}
 
       <nav
-        className="bottom-nav no-print"
+        className="bottom-nav no-print player-premium-nav"
         aria-label="Player navigation"
       >
         {nav.map(
-          ([
-            href,
-            label,
-            Icon,
-          ]) => {
-            const active =
-              path === href;
-
+          ([href, label, Icon]) => {
+            const active = path === href;
             const hasBadge =
               href === '/inbox' &&
               inboxCount > 0;
@@ -434,9 +366,7 @@ export function PlayerShell({
                     : undefined
                 }
                 className={`nav-item ${
-                  active
-                    ? 'active'
-                    : ''
+                  active ? 'active' : ''
                 } ${
                   hasBadge
                     ? 'nav-badge'
@@ -444,11 +374,7 @@ export function PlayerShell({
                 }`}
               >
                 <Icon size={20} />
-
-                <span>
-                  {label}
-                </span>
-
+                <span>{label}</span>
                 {hasBadge && <em />}
               </Link>
             );
