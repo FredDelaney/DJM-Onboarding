@@ -1378,14 +1378,6 @@ const addVideo=async()=>{
       return;
     }
 
-    setVideoUrl('');
-    setVideoTitle('');
-
-    await load();
-
-    flash('Video added');
-  };
-
   const openDocument=async(d:any)=>{
     const {data,error}=
       await supabase
