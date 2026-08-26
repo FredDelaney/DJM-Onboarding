@@ -1375,9 +1375,6 @@ const addVideo=async()=>{
   flash('Video added');
 };
 
-      return;
-    }
-
   const openDocument=async(d:any)=>{
     const {data,error}=
       await supabase
