@@ -178,10 +178,17 @@ function InboxContent() {
     void load();
   };
 
-  const open = requests.filter(
+  // Internal signal rows are for DJM/admin follow-up and must never
+  // be shown back to the player as an action or history item.
+  const playerVisibleActions = requests.filter(
     (request) =>
-      request.status === 'open' &&
-      request.request_type !== 'message',
+      request.request_type !== 'message' &&
+      request.request_type !== 'signal',
+  );
+
+  const open = playerVisibleActions.filter(
+    (request) =>
+      request.status === 'open',
   );
 
   const messages = requests.filter(
@@ -189,10 +196,9 @@ function InboxContent() {
       request.request_type === 'message',
   );
 
-  const done = requests.filter(
+  const done = playerVisibleActions.filter(
     (request) =>
-      request.status === 'completed' &&
-      request.request_type !== 'message',
+      request.status === 'completed',
   );
 
   return (

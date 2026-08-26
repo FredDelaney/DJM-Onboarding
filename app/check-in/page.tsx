@@ -187,9 +187,18 @@ export default function CheckIn() {
         ? existing?.player_notes || null
         : notes.trim() || null,
 
-      support_request: quick
-        ? existing?.support_request || null
-        : support.trim() || null,
+      support_request: (() => {
+        const text = String(
+          quick
+            ? existing?.support_request || ''
+            : support,
+        ).trim();
+
+        return text &&
+          !/^(no|nope|none|nothing|all good)$/i.test(text)
+          ? text
+          : null;
+      })(),
 
       club_situation_changed: quick
         ? existing?.club_situation_changed ||
@@ -447,10 +456,10 @@ export default function CheckIn() {
               04
             </div>
             <h2 className="check-question">
-              Need anything from DJM?
+              Anything you need from DJM?
             </h2>
             <p className="check-help">
-              A call, contract question, club follow-up or anything else you need from the agency.
+              If you need us to do something, add it here. Leave this blank if not.
             </p>
             <textarea
               className="textarea"
@@ -458,7 +467,7 @@ export default function CheckIn() {
               onChange={(event) =>
                 setSupport(event.target.value)
               }
-              placeholder="Optional"
+              placeholder="Leave blank if nothing"
             />
           </section>
 

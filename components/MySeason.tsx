@@ -76,14 +76,19 @@ export default function MySeason({
   const latestWeekly =
     bounded[bounded.length - 1] || null;
 
-  const verifiedStats = verifiedProfile
+  const isVerified = !!(
+    verifiedProfile?.published &&
+    verifiedProfile?.verified_at
+  );
+
+  const verifiedStats = isVerified
     ? dossierHeadlineStats(
         verifiedProfile,
         4,
       )
     : [];
 
-  const verifiedPerformance = verifiedProfile
+  const verifiedPerformance = isVerified
     ? dossierPerformance(
         verifiedProfile,
         4,
@@ -180,7 +185,7 @@ export default function MySeason({
           </h2>
         </div>
 
-        {verifiedProfile?.verified_at ? (
+        {isVerified ? (
           <span className="season-verified-pill">
             <ShieldCheck size={13} />
             DJM verified

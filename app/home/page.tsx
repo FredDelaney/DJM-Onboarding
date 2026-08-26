@@ -112,7 +112,7 @@ function readiness(
     score,
     label:
       score === 100
-        ? 'Club ready'
+        ? 'Profile ready'
         : score >= 75
           ? 'Nearly ready'
           : 'Build your profile',
@@ -417,14 +417,18 @@ export default function Home() {
               YOUR CLUB PROFILE
             </div>
             <h2>
-              {publicProfile
+              {publicProfile?.published
                 ? 'See what clubs see.'
-                : 'DJM is building your club presentation.'}
+                : publicProfile
+                  ? 'Preview your club profile.'
+                  : 'DJM is building your club presentation.'}
             </h2>
             <p>
-              {publicProfile
+              {publicProfile?.published
                 ? 'Your verified football story, footage and career record in one club-ready presentation.'
-                : 'Once DJM finishes the verified version, it will appear here.'}
+                : publicProfile
+                  ? 'DJM is reviewing this presentation before it goes live to clubs.'
+                  : 'Once DJM finishes the verified version, it will appear here.'}
             </p>
             <span>
               {publicProfile
