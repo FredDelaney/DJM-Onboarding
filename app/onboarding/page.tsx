@@ -11,7 +11,10 @@ import {
 } from 'lucide-react';
 
 import Brand from '@/components/Brand';
-import { supabase } from '@/lib/supabase';
+import {
+  localDateISO,
+  supabase,
+} from '@/lib/supabase';
 import { validateOnboardingStep } from '@/lib/validation';
 
 const steps = [
@@ -351,9 +354,7 @@ export default function Onboarding() {
     );
   }
 
-  const today = new Date()
-    .toISOString()
-    .slice(0, 10);
+const today = localDateISO();
 
   return (
     <main
