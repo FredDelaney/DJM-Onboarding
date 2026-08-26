@@ -6,6 +6,7 @@ import './club-share.css';
 import './profile-21.css';
 import './ux-smooth.css';
 import './player-premium.css';
+import './player-nav-contrast-fix.css';
 
 export const metadata = {
   title: 'DJM Player',

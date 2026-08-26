@@ -1,0 +1,27 @@
+/* Player bottom navigation contrast fix.
+   The premium nav surface is white, while the legacy nav-item styles
+   were designed for a dark surface. */
+
+.player-premium-nav .nav-item {
+  color: rgba(6, 31, 58, 0.62);
+}
+
+.player-premium-nav .nav-item svg {
+  color: currentColor;
+  stroke: currentColor;
+}
+
+.player-premium-nav .nav-item.active {
+  background: var(--navy);
+  color: #fff;
+}
+
+.player-premium-nav .nav-item:not(.active):hover {
+  background: rgba(6, 31, 58, 0.055);
+  color: var(--navy);
+}
+
+.player-premium-nav .nav-item:focus-visible {
+  outline: 3px solid rgba(11, 94, 168, 0.22);
+  outline-offset: 2px;
+}
