@@ -10,10 +10,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import {
-  Activity,
   BriefcaseBusiness,
   LogOut,
   Network,
+  UserPlus,
   UsersRound,
 } from 'lucide-react';
 
@@ -241,10 +241,11 @@ export function useAdmin() {
 }
 
 const workspaceItems = [
-  { href: '/admin', label: 'Players', icon: UsersRound },
+  { href: '/djm', label: 'Home', icon: BriefcaseBusiness },
+  { href: '/admin', label: 'Signed Players', icon: UsersRound },
   { href: '/network', label: 'Network', icon: Network },
+  { href: '/recruitment', label: 'Recruitment', icon: UserPlus },
   { href: '/market', label: 'Market', icon: BriefcaseBusiness },
-  { href: '/scout', label: 'Scout', icon: Activity },
 ];
 
 export function AdminShell({
@@ -256,10 +257,11 @@ export function AdminShell({
   const pathname = usePathname();
 
   useEffect(() => {
+    router.prefetch('/djm');
     router.prefetch('/admin');
     router.prefetch('/network');
+    router.prefetch('/recruitment');
     router.prefetch('/market');
-    router.prefetch('/scout');
   }, [router]);
 
   const signOut = async () => {
