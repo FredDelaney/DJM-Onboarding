@@ -1262,32 +1262,52 @@ const addNote=async()=>{
   flash('Note added');
 };
 
-  const addOpp=async()=>{
-    if(!oppClub.trim()){
-      return;
-    }
+const addOpp=async()=>{
+  if(!oppClub.trim()){
+    return;
+  }
 
-    const {error}=
-      await supabase
-        .from(
-          'player_opportunities'
-        )
-        .insert({
-          player_id:id,
-          club_name:
-            oppClub.trim(),
-          summary:
-            oppSummary.trim()
-            ||null,
-          stage:'targeted',
-          owner_id:
-            auth.user.id
-        });
+  const {data,error}=
+    await supabase
+      .from(
+        'player_opportunities'
+      )
+      .insert({
+        player_id:id,
+        club_name:
+          oppClub.trim(),
+        summary:
+          oppSummary.trim()
+          ||null,
+        stage:'targeted',
+        owner_id:
+          auth.user.id
+      })
+      .select('*')
+      .single();
 
-    if(error){
-      flash(
-        'Could not add opportunity'
-      );
+  if(error||!data){
+    flash(
+      'Could not add opportunity'
+    );
+
+    return;
+  }
+
+  setOpps(
+    current=>[
+      data,
+      ...current
+    ]
+  );
+
+  setOppClub('');
+  setOppSummary('');
+
+  flash(
+    'Opportunity added'
+  );
+};
 
       return;
     }
