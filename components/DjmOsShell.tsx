@@ -3,23 +3,26 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Activity,
   BriefcaseBusiness,
   LogOut,
   Network,
   ShieldCheck,
+  UserPlus,
   UsersRound,
 } from 'lucide-react';
 
 import Brand from '@/components/Brand';
+import DjmGlobalSearch from '@/components/DjmGlobalSearch';
+import DjmQuickCapture from '@/components/DjmQuickCapture';
 import { useAdmin } from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
 
 const items = [
-  { href: '/admin', label: 'Players', icon: UsersRound },
+  { href: '/djm', label: 'Home', icon: ShieldCheck },
+  { href: '/admin', label: 'Signed Players', icon: UsersRound },
   { href: '/network', label: 'Network', icon: Network },
+  { href: '/recruitment', label: 'Recruitment', icon: UserPlus },
   { href: '/market', label: 'Market', icon: BriefcaseBusiness },
-  { href: '/scout', label: 'Scout', icon: Activity },
 ];
 
 export default function DjmOsShell({
@@ -85,14 +88,13 @@ export default function DjmOsShell({
             })}
           </nav>
 
-          <button
-            type="button"
-            className="djm-os-icon-button"
-            onClick={signOut}
-            aria-label="Sign out"
-          >
-            <LogOut size={17} />
-          </button>
+          <div className="djm-os-button-row">
+            <DjmQuickCapture />
+            <DjmGlobalSearch />
+            <button type="button" className="djm-os-icon-button" onClick={signOut} aria-label="Sign out">
+              <LogOut size={17} />
+            </button>
+          </div>
         </div>
       </header>
 
