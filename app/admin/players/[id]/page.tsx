@@ -1309,18 +1309,7 @@ const addOpp=async()=>{
   );
 };
 
-      return;
-    }
-
-    setOppClub('');
-    setOppSummary('');
-
-    await load();
-
-    flash(
-      'Opportunity added'
-    );
-  };
+  
 
   const addVideo=async()=>{
     if(!videoUrl.trim()){
