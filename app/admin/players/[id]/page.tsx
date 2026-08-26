@@ -1405,36 +1405,46 @@ const addVideo=async()=>{
     );
   };
 
-  const toggleClubDocument=async(d:any)=>{
-    const next=
-      !d.club_shareable;
+const toggleClubDocument=async(d:any)=>{
+  const next=
+    !d.club_shareable;
 
-    const {error}=
-      await supabase
-        .from(
-          'player_documents'
-        )
-        .update({
-          club_shareable:next
-        })
-        .eq('id',d.id);
+  const {data,error}=
+    await supabase
+      .from(
+        'player_documents'
+      )
+      .update({
+        club_shareable:next
+      })
+      .eq('id',d.id)
+      .select('*')
+      .single();
 
-    if(error){
-      flash(
-        'Could not update club sharing'
-      );
-
-      return;
-    }
-
-    await load();
-
+  if(error||!data){
     flash(
-      next
-        ?'Approved for club share'
-        :'Returned to private'
+      'Could not update club sharing'
     );
-  };
+
+    return;
+  }
+
+  setDocs(
+    current=>
+      current.map(
+        item=>
+          item.id===data.id
+            ?data
+            :item
+      )
+  );
+
+  flash(
+    next
+      ?'Approved for club share'
+      :'Returned to private'
+  );
+};
 
   const uploadDocument=async(e:any)=>{
     const file=
