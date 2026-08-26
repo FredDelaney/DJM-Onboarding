@@ -6,12 +6,15 @@ import {
   useState,
 } from 'react';
 
-import {
-  useRouter,
-} from 'next/navigation';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 
 import {
+  Activity,
+  BriefcaseBusiness,
   LogOut,
+  Network,
+  UsersRound,
 } from 'lucide-react';
 
 import Brand from './Brand';
@@ -237,15 +240,26 @@ export function useAdmin() {
   };
 }
 
+const workspaceItems = [
+  { href: '/admin', label: 'Players', icon: UsersRound },
+  { href: '/network', label: 'Network', icon: Network },
+  { href: '/market', label: 'Market', icon: BriefcaseBusiness },
+  { href: '/scout', label: 'Scout', icon: Activity },
+];
+
 export function AdminShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     router.prefetch('/admin');
+    router.prefetch('/network');
+    router.prefetch('/market');
+    router.prefetch('/scout');
   }, [router]);
 
   const signOut = async () => {
@@ -276,6 +290,56 @@ export function AdminShell({
               <LogOut size={17} />
             </button>
           </div>
+        </div>
+
+        <div
+          style={{
+            borderTop: '1px solid rgba(255,255,255,.08)',
+            overflowX: 'auto',
+          }}
+        >
+          <nav
+            className="container"
+            aria-label="DJM workspaces"
+            style={{
+              minHeight: 48,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            {workspaceItems.map((item) => {
+              const Icon = item.icon;
+              const active =
+                item.href === '/admin'
+                  ? pathname === '/admin' || pathname.startsWith('/admin/')
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    minHeight: 34,
+                    padding: '0 11px',
+                    borderRadius: 9,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                    background: active ? '#f4c430' : 'rgba(255,255,255,.06)',
+                    color: active ? '#061f3a' : 'rgba(255,255,255,.78)',
+                    fontSize: 12,
+                    fontWeight: 800,
+                  }}
+                >
+                  <Icon size={15} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
       </div>
 
