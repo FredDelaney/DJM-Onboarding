@@ -1446,77 +1446,98 @@ const toggleClubDocument=async(d:any)=>{
   );
 };
 
-  const uploadDocument=async(e:any)=>{
-    const file=
-      e.target.files?.[0];
+const uploadDocument=async(e:any)=>{
+  const file=
+    e.target.files?.[0];
 
-    if(!file){
-      return;
-    }
+  if(!file){
+    return;
+  }
 
-    setBusy(true);
+  setBusy(true);
 
-    const safe=
-      file.name.replace(
-        /[^a-zA-Z0-9._-]+/g,
-        '-'
+  const safe=
+    file.name.replace(
+      /[^a-zA-Z0-9._-]+/g,
+      '-'
+    );
+
+  const path=
+    `${auth.user.id}/admin-${id}/${Date.now()}-${safe}`;
+
+  const {error:up}=
+    await supabase
+      .storage
+      .from('player-private')
+      .upload(
+        path,
+        file
       );
 
-    const path=
-      `${auth.user.id}/admin-${id}/${Date.now()}-${safe}`;
+  if(up){
+    setBusy(false);
 
-    const {
-  data:newDocument,
-  error:rec
-}=
-  await supabase
-    .from(
-      'player_documents'
-    )
-    .insert({
-      player_id:id,
-      title:file.name,
-      document_type:'other',
-      bucket_id:
-        'player-private',
-      object_path:path,
-      club_shareable:false,
-      uploaded_by:
-        auth.user.id
-    })
-    .select('*')
-    .single();
+    flash(
+      'Could not upload document'
+    );
 
-    if(rec){
-      await supabase
-        .storage
-        .from('player-private')
-        .remove([path]);
+    return;
+  }
 
-      setBusy(false);
+  const {
+    data:newDocument,
+    error:rec
+  }=
+    await supabase
+      .from(
+        'player_documents'
+      )
+      .insert({
+        player_id:id,
+        title:file.name,
+        document_type:'other',
+        bucket_id:
+          'player-private',
+        object_path:path,
+        club_shareable:false,
+        uploaded_by:
+          auth.user.id
+      })
+      .select('*')
+      .single();
 
-      flash(
-        'Could not save document'
-      );
+  if(rec||!newDocument){
+    await supabase
+      .storage
+      .from('player-private')
+      .remove([path]);
 
-      return;
-    }
+    setBusy(false);
 
-if(newDocument){
+    flash(
+      'Could not save document'
+    );
+
+    return;
+  }
+
   setDocs(
     current=>[
       newDocument,
       ...current
     ]
   );
-}
 
-setBusy(false);
+  setBusy(false);
 
-flash(
-  'Document uploaded privately'
-);
-  };
+  if(e.target){
+    e.target.value='';
+  }
+
+  flash(
+    'Document uploaded privately'
+  );
+};
 
   const publish=async()=>{
     setBusy(true);
