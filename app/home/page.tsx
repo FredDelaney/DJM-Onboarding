@@ -432,21 +432,32 @@ export default function Home() {
               </div>
             </div>
 
-            {ready.missing.length > 0 && (
-              <div className="readiness-note">
-                <CheckCircle2 size={17} />
+           {ready.missing.length > 0 && (
+  <Link
+    href={
+      ready.missing[0]?.href ||
+      '/profile'
+    }
+    className="readiness-note"
+  >
+    <CheckCircle2 size={17} />
 
-                <div>
-                  <strong>
-                    Best next update
-                  </strong>
+    <div>
+      <strong>
+        Best next update
+      </strong>
 
-                  <span>
-                    {ready.missing[0].label}
-                  </span>
-                </div>
-              </div>
-            )}
+      <span>
+        {ready.missing[0].label}
+      </span>
+    </div>
+
+    <ArrowRight
+      size={15}
+      className="muted"
+    />
+  </Link>
+)}
 
             <div
               className="list-clean"
