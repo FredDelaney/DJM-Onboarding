@@ -1818,12 +1818,17 @@ sort_order:
         ||null
     };
 
-    const {error}=
-      await supabase
-        .from(
-          'player_public_profiles'
-        )
-        .upsert(payload);
+const {
+  data:publishedProfile,
+  error
+}=
+  await supabase
+    .from(
+      'player_public_profiles'
+    )
+    .upsert(payload)
+    .select('*')
+    .single();
 
     if(error){
       setBusy(false);
@@ -1836,9 +1841,13 @@ sort_order:
       return false;
     }
 
-    await load();
+if(publishedProfile){
+  setPub(
+    publishedProfile
+  );
+}
 
-    setBusy(false);
+setBusy(false);
 
     flash(
       pub?.published
