@@ -1465,41 +1465,27 @@ const toggleClubDocument=async(d:any)=>{
     const path=
       `${auth.user.id}/admin-${id}/${Date.now()}-${safe}`;
 
-    const {error:up}=
-      await supabase
-        .storage
-        .from('player-private')
-        .upload(
-          path,
-          file
-        );
-
-    if(up){
-      setBusy(false);
-
-      flash(
-        'Could not upload document'
-      );
-
-      return;
-    }
-
-    const {error:rec}=
-      await supabase
-        .from(
-          'player_documents'
-        )
-        .insert({
-          player_id:id,
-          title:file.name,
-          document_type:'other',
-          bucket_id:
-            'player-private',
-          object_path:path,
-          club_shareable:false,
-          uploaded_by:
-            auth.user.id
-        });
+    const {
+  data:newDocument,
+  error:rec
+}=
+  await supabase
+    .from(
+      'player_documents'
+    )
+    .insert({
+      player_id:id,
+      title:file.name,
+      document_type:'other',
+      bucket_id:
+        'player-private',
+      object_path:path,
+      club_shareable:false,
+      uploaded_by:
+        auth.user.id
+    })
+    .select('*')
+    .single();
 
     if(rec){
       await supabase
@@ -1516,13 +1502,20 @@ const toggleClubDocument=async(d:any)=>{
       return;
     }
 
-    await load();
+if(newDocument){
+  setDocs(
+    current=>[
+      newDocument,
+      ...current
+    ]
+  );
+}
 
-    setBusy(false);
+setBusy(false);
 
-    flash(
-      'Document uploaded privately'
-    );
+flash(
+  'Document uploaded privately'
+);
   };
 
   const publish=async()=>{
