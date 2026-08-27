@@ -266,6 +266,38 @@ supabase
     }
   },[auth.loading,id]);
 
+  useEffect(()=>{
+    const syncTabFromHash=()=>{
+      const nextTab=
+        window.location.hash
+          .slice(1);
+
+      if(
+        [
+          'overview',
+          'inbox',
+          'profile',
+          'cv',
+          'activity'
+        ].includes(nextTab)
+      ){
+        setTab(nextTab);
+      }
+    };
+
+    syncTabFromHash();
+    window.addEventListener(
+      'hashchange',
+      syncTabFromHash
+    );
+
+    return()=>
+      window.removeEventListener(
+        'hashchange',
+        syncTabFromHash
+      );
+  },[]);
+
   if(auth.loading||!p){
     return(
       <div className="center">
@@ -2347,9 +2379,14 @@ const removePlayer=async(
             <button
               key={t}
               type="button"
-              onClick={()=>
-                setTab(t)
-              }
+              onClick={()=>{
+                setTab(t);
+                window.history.replaceState(
+                  null,
+                  '',
+                  `#${t}`
+                );
+              }}
               className={`admin-player-tab ${
                 tab===t
                   ?'active'
