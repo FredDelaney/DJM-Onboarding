@@ -8,7 +8,6 @@
   --djm-white: #ffffff;
   --djm-yellow: #f4c430;
   --djm-green: #207c5b;
-  --djm-red: #a93838;
   --djm-shadow: 0 18px 55px rgba(6, 31, 58, 0.08);
 }
 
@@ -470,9 +469,9 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  background: #fff3f3;
-  border: 1px solid #efc0c0;
-  color: #7f2828;
+  background: #fff8dc;
+  border: 1px solid #ead47a;
+  color: #3f3614;
   font-size: 12px;
 }
 
@@ -1305,5 +1304,107 @@
   }
   .djm-os-capture-trigger span {
     display: none;
+  }
+}
+
+
+/* V7 production audit refinements */
+.admin-shell > .djm-os-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+}
+
+.djm-os-header-actions {
+  justify-content: flex-end;
+}
+
+.djm-os-autofill-card {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid rgba(244,196,48,.62);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(244,196,48,.11), rgba(255,255,255,.96));
+}
+
+.djm-os-autofill-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.djm-os-autofill-row label {
+  flex: 1;
+}
+
+.djm-os-autofill-note {
+  margin: 0;
+  color: var(--djm-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.djm-os-source-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #eef2f5;
+  color: #536679;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .djm-os-header-inner {
+    gap: 10px;
+  }
+
+  .djm-os-header-actions {
+    gap: 6px;
+  }
+
+  .djm-os-chip {
+    display: none;
+  }
+
+  .djm-os-autofill-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .djm-os-autofill-row .djm-os-primary-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .djm-os-header-inner {
+    width: calc(100% - 14px);
+  }
+
+  .djm-os-brand-row .brand-copy {
+    display: none;
+  }
+
+  .djm-os-product-link {
+    padding-inline: 10px;
+    font-size: 12px;
+  }
+}
+
+
+/* Signed Players keeps its internal admin tabs, but the shared DJM header now owns sticky navigation. */
+.admin-shell .admin-tabs {
+  top: 84px;
+}
+
+@media (max-width: 760px) {
+  .admin-shell .admin-tabs {
+    position: static;
   }
 }

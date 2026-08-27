@@ -5,19 +5,9 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { useRouter } from 'next/navigation';
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-
-import {
-  BriefcaseBusiness,
-  LogOut,
-  Network,
-  UserPlus,
-  UsersRound,
-} from 'lucide-react';
-
-import Brand from './Brand';
+import DjmWorkspaceHeader from './DjmWorkspaceHeader';
 import { supabase } from '@/lib/supabase';
 
 type AdminState = {
@@ -240,13 +230,6 @@ export function useAdmin() {
   };
 }
 
-const workspaceItems = [
-  { href: '/djm', label: 'Home', icon: BriefcaseBusiness },
-  { href: '/admin', label: 'Signed Players', icon: UsersRound },
-  { href: '/network', label: 'Network', icon: Network },
-  { href: '/recruitment', label: 'Recruitment', icon: UserPlus },
-  { href: '/market', label: 'Market', icon: BriefcaseBusiness },
-];
 
 export function AdminShell({
   children,
@@ -254,7 +237,6 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     router.prefetch('/djm');
@@ -274,77 +256,7 @@ export function AdminShell({
 
   return (
     <div className="admin-shell">
-      <div className="admin-head">
-        <div className="container admin-top">
-          <Brand />
-
-          <div className="row">
-            <span className="pill pill-dark">
-              DJM ADMIN
-            </span>
-
-            <button
-              type="button"
-              className="icon-btn"
-              aria-label="Sign out"
-              onClick={signOut}
-            >
-              <LogOut size={17} />
-            </button>
-          </div>
-        </div>
-
-        <div
-          style={{
-            borderTop: '1px solid rgba(255,255,255,.08)',
-            overflowX: 'auto',
-          }}
-        >
-          <nav
-            className="container"
-            aria-label="DJM workspaces"
-            style={{
-              minHeight: 48,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            {workspaceItems.map((item) => {
-              const Icon = item.icon;
-              const active =
-                item.href === '/admin'
-                  ? pathname === '/admin' || pathname.startsWith('/admin/')
-                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={{
-                    minHeight: 34,
-                    padding: '0 11px',
-                    borderRadius: 9,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 7,
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
-                    background: active ? '#f4c430' : 'rgba(255,255,255,.06)',
-                    color: active ? '#061f3a' : 'rgba(255,255,255,.78)',
-                    fontSize: 12,
-                    fontWeight: 800,
-                  }}
-                >
-                  <Icon size={15} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-
+      <DjmWorkspaceHeader onSignOut={signOut} />
       {children}
     </div>
   );

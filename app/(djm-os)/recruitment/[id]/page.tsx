@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
-import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
 
 const STAGES = [
   'identified',
@@ -46,6 +46,8 @@ export default function RecruitmentTargetPage() {
   const [promoting, setPromoting] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichmentMessage, setEnrichmentMessage] = useState('');
 
   const load = async () => {
     setError('');
@@ -158,6 +160,21 @@ export default function RecruitmentTargetPage() {
         p_nationality: profile.nationality || null,
         p_preferred_foot: profile.preferred_foot || null,
       });
+      if (profile.transfermarkt_url) {
+        try {
+          const result: any = await djmInvoke('djm-transfermarkt-enrich', {
+            prospect_id: id,
+            url: profile.transfermarkt_url,
+          });
+          setEnrichmentMessage(
+            result?.blocked
+              ? 'Profile saved. Transfermarkt blocked the instant read, so DJM queued verification.'
+              : 'Profile saved and Transfermarkt data refreshed.',
+          );
+        } catch {
+          setEnrichmentMessage('Profile saved. Transfermarkt will be checked again through DJM enrichment.');
+        }
+      }
       setEditingProfile(false);
       await load();
     } catch (e) {
@@ -166,13 +183,28 @@ export default function RecruitmentTargetPage() {
   };
 
   const refreshTransfermarkt = async () => {
+    if (!target?.transfermarkt_url) return;
+
+    setEnriching(true);
+    setError('');
+    setEnrichmentMessage('');
+
     try {
-      await djmRpc('djm_recruitment_request_transfermarkt_refresh', {
-        p_prospect_id: id,
+      const result: any = await djmInvoke('djm-transfermarkt-enrich', {
+        prospect_id: id,
+        url: target.transfermarkt_url,
       });
+
+      setEnrichmentMessage(
+        result?.blocked
+          ? 'Transfermarkt blocked the instant read, so DJM queued sourced verification instead.'
+          : 'Transfermarkt data refreshed. Review anything important before using it in outreach.',
+      );
       await load();
     } catch (e) {
       setError(friendlyError(e));
+    } finally {
+      setEnriching(false);
     }
   };
 
@@ -280,8 +312,9 @@ export default function RecruitmentTargetPage() {
               <div>
                 <h2>Transfermarkt profile</h2>
                 <p>
-                  Paste the profile once. DJM automatically queues a refresh for age, club,
-                  contract, value, position, foot and public representation data.
+                  Paste the profile once. DJM will try to read Transfermarkt immediately and
+                  fill age, club, contract, value, position, foot and public representation data.
+                  If Transfermarkt blocks the read, the profile is queued for sourced verification.
                 </p>
               </div>
               <div className="djm-os-button-row">
@@ -290,8 +323,13 @@ export default function RecruitmentTargetPage() {
                     Open Transfermarkt
                   </a>
                 ) : null}
-                <button className="djm-os-primary-button" type="button" onClick={() => void refreshTransfermarkt()} disabled={!target.transfermarkt_url}>
-                  Refresh data
+                <button
+                  className="djm-os-primary-button"
+                  type="button"
+                  onClick={() => void refreshTransfermarkt()}
+                  disabled={!target.transfermarkt_url || enriching}
+                >
+                  {enriching ? 'Reading Transfermarkt…' : 'Refresh from Transfermarkt'}
                 </button>
               </div>
             </div>
@@ -301,6 +339,11 @@ export default function RecruitmentTargetPage() {
               <Mini label="Contract expiry" value={target.contract_expiry || '—'} />
               <Mini label="Agent" value={target.agent_name || '—'} />
             </div>
+            {enrichmentMessage ? (
+              <div style={{ padding: '0 16px 16px' }}>
+                <span className="djm-os-source-badge">{enrichmentMessage}</span>
+              </div>
+            ) : null}
           </section>
 
           {editingProfile && profile ? (
@@ -356,7 +399,13 @@ export default function RecruitmentTargetPage() {
                   <strong>Player intelligence</strong>
                   <p>{target.notes || target.recruitment_notes || 'No recruitment notes yet.'}</p>
                   <small>
-                    {[target.nationality, target.preferred_foot, target.agent_status, target.agent_name]
+                    {[
+                      target.nationality,
+                      target.preferred_foot,
+                      ...(Array.isArray(target.secondary_positions) ? target.secondary_positions : []),
+                      target.agent_status,
+                      target.agent_name,
+                    ]
                       .filter(Boolean)
                       .join(' · ')}
                   </small>
