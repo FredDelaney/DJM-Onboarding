@@ -16,7 +16,9 @@ import {
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
+import ResearchLinkRail from '@/components/ResearchLinkRail';
 import { compactDateTime, djmRpc, friendlyError, initials } from '@/lib/djm-os';
+import { buildResearchLinks } from '@/lib/research-links';
 
 export default function ClubWorkspacePage() {
   const params = useParams<{ id: string }>();
@@ -82,6 +84,20 @@ export default function ClubWorkspacePage() {
           <button className="djm-os-secondary-button" onClick={()=>void deleteClub()}>Delete club</button>
         </div>
       </div>
+
+      {org ? (
+        <ResearchLinkRail
+          links={buildResearchLinks({
+            kind: 'club',
+            name: org.name,
+            country: org.country,
+            websiteUrl: org.website_url,
+            instagramUrl: org.instagram_url,
+            linkedinUrl: org.linkedin_url,
+          })}
+          title="Club research"
+        />
+      ) : null}
 
       {error ? <div className="djm-os-error"><AlertCircle size={17}/><span>{error}</span><button onClick={()=>setError('')}>Dismiss</button></div>:null}
       {!data ? <div className="djm-os-empty"><Building2 size={25}/><p>{busy?'Loading club…':'Club not found.'}</p></div> : <>

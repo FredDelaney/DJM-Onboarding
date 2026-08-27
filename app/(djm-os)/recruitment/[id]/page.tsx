@@ -13,7 +13,9 @@ import {
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
+import ResearchLinkRail from '@/components/ResearchLinkRail';
 import { compactDateTime, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
+import { buildResearchLinks } from '@/lib/research-links';
 
 const STAGES = [
   'identified',
@@ -84,7 +86,6 @@ export default function RecruitmentTargetPage() {
   }, [id]);
 
   const target = data?.target;
-  const cleanWhatsapp = String(target?.whatsapp || '').replace(/\D/g, '');
 
   const setStage = async (stage: string) => {
     try {
@@ -246,21 +247,6 @@ export default function RecruitmentTargetPage() {
           <Link href="/recruitment" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
             <ArrowLeft size={15} /> Recruitment
           </Link>
-          {cleanWhatsapp ? (
-            <a href={`https://wa.me/${cleanWhatsapp}`} target="_blank" rel="noreferrer" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
-              WhatsApp
-            </a>
-          ) : null}
-          {target?.instagram_url ? (
-            <a href={target.instagram_url} target="_blank" rel="noreferrer" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
-              Instagram
-            </a>
-          ) : null}
-          {target?.transfermarkt_url ? (
-            <a href={target.transfermarkt_url} target="_blank" rel="noreferrer" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
-              Transfermarkt
-            </a>
-          ) : null}
         </div>
         <div className="djm-os-button-row">
           <button className="djm-os-secondary-button" type="button" onClick={() => setEditingProfile((v) => !v)}>
@@ -277,6 +263,24 @@ export default function RecruitmentTargetPage() {
           </button>
         ) : null}
       </div>
+
+      {target ? (
+        <ResearchLinkRail
+          links={buildResearchLinks({
+            kind: 'recruitment',
+            name: target.full_name,
+            clubName: target.current_club,
+            country: target.current_country || target.nationality,
+            whatsapp: target.whatsapp,
+            phone: target.phone,
+            email: target.email,
+            transfermarktUrl: target.transfermarkt_url,
+            statsUrl: target.stats_url,
+            instagramUrl: target.instagram_url,
+          })}
+          title="Player research & outreach"
+        />
+      ) : null}
 
       {error ? (
         <div className="djm-os-error">
