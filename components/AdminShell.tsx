@@ -237,6 +237,7 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const auth = useAdmin();
 
   useEffect(() => {
     router.prefetch('/djm');
@@ -253,6 +254,10 @@ export function AdminShell({
 
     router.replace('/sign-in');
   };
+
+  if (auth.loading || !auth.user) {
+    return null;
+  }
 
   return (
     <div className="admin-shell">
