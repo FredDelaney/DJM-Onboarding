@@ -1,223 +1,190 @@
 'use client';
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight,
+  BriefcaseBusiness,
+  CalendarDays,
   CheckCircle2,
+  Clock3,
   FileText,
+  Film,
   MessageCircle,
   ShieldCheck,
-  UserRound,
+  Sparkles,
+  Target,
 } from 'lucide-react';
 
+import MySeason from '@/components/MySeason';
 import {
   LoadingScreen,
   PlayerShell,
   usePlayerContext,
 } from '@/components/PlayerShell';
-import MySeason from '@/components/MySeason';
 import {
+  buildWeeklyPlan,
+  calculateCareerReadiness,
+  getContractSignal,
+  getRecommendedPlaybook,
+} from '@/lib/player-career';
+import {
+  fmtDate,
   publicFile,
   supabase,
   weekStartISO,
 } from '@/lib/supabase';
 
-function readiness(
-  player: any,
-  privateInfo: any,
-  videoCount: number,
-) {
-  if (!player) {
-    return {
-      score: 0,
-      label: 'Getting started',
-      missing: [] as any[],
-    };
-  }
+type HomeData = {
+  announcement: Record<string, any> | null;
+  videoCount: number;
+  checkins: Array<Record<string, any>>;
+  publicProfile: Record<string, any> | null;
+  documents: Array<Record<string, any>>;
+  latestDjmUpdate: Record<string, any> | null;
+};
 
-  const checks = [
-    {
-      ok: !!(
-        player.first_name &&
-        player.last_name &&
-        player.date_of_birth &&
-        player.primary_position &&
-        player.preferred_foot
-      ),
-      label: 'Complete your football basics',
-      href: '/profile?edit=football',
-    },
-    {
-      ok: !!(
-        player.current_club ||
-        player.football_status === 'free_agent' ||
-        String(player.contract_status || '')
-          .toLowerCase()
-          .includes('free')
-      ),
-      label: 'Confirm your current club or status',
-      href: '/profile?edit=football',
-    },
-    {
-      ok: !!(
-        privateInfo?.phone ||
-        privateInfo?.whatsapp
-      ),
-      label: 'Add a contact number',
-      href: '/profile?edit=career',
-    },
-    {
-      ok: !!privateInfo?.passports_held?.length,
-      label: 'Add your passports',
-      href: '/profile?edit=career',
-    },
-    {
-      ok: !!privateInfo?.market_preferences,
-      label: 'Tell DJM which markets you would consider',
-      href: '/profile?edit=career',
-    },
-    {
-      ok: !!player.profile_photo_path,
-      label: 'Add a current player photo',
-      href: '/profile',
-    },
-    {
-      ok: !!(
-        player.transfermarkt_url ||
-        player.wyscout_url ||
-        player.stats_url
-      ),
-      label: 'Add a trusted football source',
-      href: '/profile?edit=sources',
-    },
-    {
-      ok: videoCount > 0,
-      label: 'Add current player footage',
-      href: '/profile?edit=media',
-    },
-  ];
+const EMPTY_DATA: HomeData = {
+  announcement: null,
+  videoCount: 0,
+  checkins: [],
+  publicProfile: null,
+  documents: [],
+  latestDjmUpdate: null,
+};
 
-  const score = Math.round(
-    (checks.filter((item) => item.ok).length /
-      checks.length) *
-      100,
-  );
+const greeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
 
-  return {
-    score,
-    label:
-      score === 100
-        ? 'Profile ready'
-        : score >= 75
-          ? 'Nearly ready'
-          : 'Build your profile',
-    missing: checks.filter((item) => !item.ok),
-  };
-}
+const displayStatus = (value?: string | null) => {
+  if (!value) return 'Not updated';
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
 
 export default function Home() {
   const ctx = usePlayerContext();
-
-  const [announcement, setAnnouncement] =
-    useState<any>(null);
-  const [videoCount, setVideoCount] =
-    useState(0);
-  const [checkins, setCheckins] =
-    useState<any[]>([]);
-  const [publicProfile, setPublicProfile] =
-    useState<any>(null);
+  const [data, setData] = useState<HomeData>(EMPTY_DATA);
+  const [refreshIssue, setRefreshIssue] = useState(false);
 
   useEffect(() => {
     if (!ctx.player) return;
 
-    (async () => {
+    let active = true;
+
+    const load = async () => {
       const [
-        { data: announcements },
-        { count: videos },
-        { data: weekly },
-        { data: dossier },
+        announcementResult,
+        videoResult,
+        checkinResult,
+        profileResult,
+        documentResult,
+        updateResult,
       ] = await Promise.all([
         supabase
           .from('announcements')
-          .select('*')
+          .select('id,title,body,created_at')
           .eq('published', true)
-          .order('created_at', {
-            ascending: false,
-          })
+          .order('created_at', { ascending: false })
           .limit(1),
-
         supabase
           .from('player_videos')
-          .select('id', {
-            count: 'exact',
-            head: true,
-          })
+          .select('id', { count: 'exact', head: true })
           .eq('player_id', ctx.player.id),
-
         supabase
           .from('weekly_checkins')
           .select(
-            'id,week_start,matches_played,minutes_played,goals,assists,submitted_at',
+            'id,week_start,availability_status,fitness_status,club_situation_changed,matches_played,minutes_played,goals,assists,submitted_at',
           )
           .eq('player_id', ctx.player.id)
-          .order('week_start', {
-            ascending: true,
-          })
+          .order('week_start', { ascending: true })
           .limit(40),
-
         supabase
           .from('player_public_profiles')
           .select('*')
           .eq('player_id', ctx.player.id)
           .maybeSingle(),
+        supabase
+          .from('player_documents')
+          .select('id,document_type,expires_at,club_shareable')
+          .eq('player_id', ctx.player.id),
+        supabase
+          .from('player_requests')
+          .select(
+            'id,title,message,request_type,status,created_by,created_at,completed_at',
+          )
+          .eq('player_id', ctx.player.id)
+          .neq('request_type', 'signal')
+          .not('created_by', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1),
       ]);
 
-      setAnnouncement(
-        announcements?.[0] || null,
+      if (!active) return;
+
+      setData({
+        announcement: announcementResult.data?.[0] || null,
+        videoCount: videoResult.count || 0,
+        checkins: checkinResult.data || [],
+        publicProfile: profileResult.data || null,
+        documents: documentResult.data || [],
+        latestDjmUpdate: updateResult.data?.[0] || null,
+      });
+      setRefreshIssue(
+        [
+          announcementResult.error,
+          videoResult.error,
+          checkinResult.error,
+          profileResult.error,
+          documentResult.error,
+          updateResult.error,
+        ].some(Boolean),
       );
-      setVideoCount(videos || 0);
-      setCheckins(weekly || []);
-      setPublicProfile(dossier || null);
-    })();
+    };
+
+    void load();
+
+    return () => {
+      active = false;
+    };
   }, [ctx.player?.id]);
 
-  const ready = useMemo(
+  const readiness = useMemo(
     () =>
-      readiness(
-        ctx.player,
-        ctx.privateInfo,
-        videoCount,
-      ),
+      calculateCareerReadiness({
+        player: ctx.player,
+        privateInfo: ctx.privateInfo,
+        videoCount: data.videoCount,
+        documents: data.documents,
+        publicProfile: data.publicProfile,
+        latestCheckin: ctx.latestCheckin,
+      }),
     [
       ctx.player,
       ctx.privateInfo,
-      videoCount,
+      ctx.latestCheckin,
+      data.documents,
+      data.publicProfile,
+      data.videoCount,
     ],
   );
 
-  if (ctx.loading) {
-    return <LoadingScreen />;
-  }
+  if (ctx.loading) return <LoadingScreen />;
 
   if (!ctx.player) {
     return (
       <PlayerShell>
-        <div
-          className="narrow"
-          style={{ paddingTop: 60 }}
-        >
+        <div className="narrow" style={{ paddingTop: 60 }}>
           <div className="card pad-lg">
-            <h2>
-              We’re setting up your player record.
-            </h2>
+            <h2>We’re setting up your player record.</h2>
             <p className="muted">
-              If you just joined, refresh in a moment
-              or contact DJM.
+              If you just joined, refresh in a moment or contact DJM.
             </p>
           </div>
         </div>
@@ -226,302 +193,308 @@ export default function Home() {
   }
 
   const player = ctx.player;
-  const firstRequest = ctx.openRequests?.[0];
-  const checkDue =
-    !ctx.latestCheckin ||
-    ctx.latestCheckin.week_start !==
-      weekStartISO();
-
-  const fullName =
-    [player.first_name, player.last_name]
-      .filter(Boolean)
-      .join(' ') ||
-    player.preferred_name ||
-    'DJM Player';
-
   const firstName =
-    player.preferred_name ||
-    player.first_name ||
-    'there';
-
-  const photo = publicFile(
-    'player-public',
-    player.profile_photo_path,
-  );
-
+    player.preferred_name || player.first_name || 'there';
+  const checkinDue =
+    !ctx.latestCheckin ||
+    ctx.latestCheckin.week_start !== weekStartISO();
+  const weeklyPlan = buildWeeklyPlan({
+    readiness,
+    openRequests: ctx.openRequests,
+    checkinDue,
+  });
+  const topAction = weeklyPlan[0];
+  const contract = getContractSignal(player);
+  const recommended = getRecommendedPlaybook({
+    player,
+    latestCheckin: ctx.latestCheckin,
+    readiness,
+  });
   const heroPhoto = publicFile(
     'player-public',
-    publicProfile?.hero_image_path ||
-      publicProfile?.profile_photo_path ||
+    data.publicProfile?.hero_image_path ||
+      data.publicProfile?.profile_photo_path ||
       player.profile_photo_path,
   );
-
-  const footballLine = [
-    player.primary_position,
-    player.current_club,
-    player.current_country,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
-  const action = firstRequest
-    ? {
-        kicker: 'ACTION NEEDED',
-        title: firstRequest.title,
-        copy:
-          firstRequest.message ||
-          'DJM needs one thing from you.',
-        href: '/inbox',
-        cta: 'Open update',
-      }
-    : checkDue
-      ? {
-          kicker: 'THIS WEEK',
-          title: `How’s your week, ${firstName}?`,
-          copy:
-            'If everything is good, your weekly update takes one tap.',
-          href: '/check-in',
-          cta: 'Check in',
-        }
-      : ready.score < 100
-        ? {
-            kicker: 'STAY READY',
-            title:
-              ready.missing[0]?.label ||
-              'Keep your profile current.',
-            copy:
-              'Small updates now mean your profile is ready when a club asks.',
-            href:
-              ready.missing[0]?.href ||
-              '/profile',
-            cta: 'Update',
-          }
-        : {
-            kicker: 'YOU’RE UP TO DATE',
-            title: 'Your player profile is ready.',
-            copy:
-              'Nothing needed from you right now.',
-            href: '/cv',
-            cta: 'View club profile',
-          };
+  const lastCheckin = data.checkins[data.checkins.length - 1] || null;
+  const djmUpdate = data.latestDjmUpdate || data.announcement;
 
   return (
-    <PlayerShell
-      inboxCount={ctx.openRequests.length}
-    >
-      <main className="container player-shell player-home-premium">
-        <section className="player-identity-hero">
+    <PlayerShell inboxCount={ctx.openRequests.length}>
+      <main className="container player-shell player-home-command">
+        <header
+          className={`player-command-hero ${
+            heroPhoto ? 'has-photo' : 'no-photo'
+          }`}
+        >
           {heroPhoto && (
-            <img
-              className="player-identity-bg"
+            <Image
+              className="player-command-photo"
               src={heroPhoto}
               alt=""
+              fill
+              priority
+              sizes="(max-width: 700px) 100vw, 900px"
             />
           )}
-          <div className="player-identity-shade" />
+          <div className="player-command-shade" />
 
-          <div className="player-identity-copy">
-            <div className="player-identity-kicker">
+          <div className="player-command-main">
+            <div className="player-command-kicker">
               <span>DJM PLAYER</span>
-              <span className="player-identity-dot" />
-              <span>
-                {player.verification_status === 'verified'
-                  ? 'DJM VERIFIED'
-                  : player.verification_status === 'reviewing'
-                    ? 'DJM REVIEWING'
-                    : 'PRIVATE CAREER SPACE'}
-              </span>
+              <i />
+              <span>{displayStatus(player.football_status)}</span>
             </div>
-
-            <h1>{fullName}</h1>
-
+            <h1>
+              {greeting()},
+              <br />
+              {firstName}.
+            </h1>
             <p>
-              {footballLine ||
-                'Your football profile is being built'}
+              {[player.primary_position, player.current_club]
+                .filter(Boolean)
+                .join(' · ') || 'Your private career command centre'}
             </p>
 
-            <div className="player-identity-badges">
-              <span>
-                <ShieldCheck size={14} />
-                {ready.score}% profile ready
-              </span>
-              {publicProfile?.published && (
-                <span>
-                  Club profile live
-                </span>
-              )}
+            <div className="player-command-primary">
+              <span>{topAction.eyebrow}</span>
+              <strong>{topAction.title}</strong>
+              <small>{topAction.detail}</small>
+              <Link href={topAction.href} className="btn btn-yellow">
+                {topAction.cta}
+                <ArrowRight size={16} />
+              </Link>
             </div>
           </div>
 
-          <Link
-            href="/profile"
-            className="player-identity-edit"
-          >
-            Profile
+          <Link href="/career#readiness" className="player-command-score">
+            <div
+              className="player-command-score-ring"
+              style={
+                {
+                  '--career-score': `${readiness.score * 3.6}deg`,
+                } as React.CSSProperties
+              }
+            >
+              <strong>{readiness.score}</strong>
+            </div>
+            <div>
+              <span>OPPORTUNITY READINESS</span>
+              <strong>{readiness.label}</strong>
+              <small>Preparation, not ability</small>
+            </div>
             <ArrowRight size={15} />
           </Link>
+        </header>
+
+        {refreshIssue && (
+          <div className="career-load-warning" role="status">
+            <Clock3 size={16} />
+            Some live information could not refresh. Nothing in your
+            record was changed.
+          </div>
+        )}
+
+        <section className="player-pulse-grid">
+          <div>
+            <span>
+              <CheckCircle2 size={14} />
+              THIS WEEK
+            </span>
+            <strong>
+              {checkinDue ? 'Check-in due' : 'Check-in complete'}
+            </strong>
+            <small>
+              {lastCheckin
+                ? displayStatus(lastCheckin.availability_status)
+                : 'DJM needs your current availability'}
+            </small>
+          </div>
+          <div>
+            <span>
+              <CalendarDays size={14} />
+              CONTRACT
+            </span>
+            <strong>{contract.label}</strong>
+            <small>
+              {player.contract_expiry
+                ? `Ends ${fmtDate(player.contract_expiry)}`
+                : contract.detail}
+            </small>
+          </div>
+          <div>
+            <span>
+              <ShieldCheck size={14} />
+              CLUB PROFILE
+            </span>
+            <strong>
+              {data.publicProfile?.published
+                ? 'Live and approved'
+                : data.publicProfile
+                  ? 'In DJM review'
+                  : 'Not prepared yet'}
+            </strong>
+            <small>Open the exact club-facing version</small>
+          </div>
+          <div>
+            <span>
+              <Film size={14} />
+              FOOTBALL EVIDENCE
+            </span>
+            <strong>
+              {data.videoCount > 0
+                ? `${data.videoCount} video${
+                    data.videoCount === 1 ? '' : 's'
+                  } connected`
+                : 'Footage needed'}
+            </strong>
+            <small>Your strongest current evidence</small>
+          </div>
         </section>
 
-        <section className="player-next-card">
-          <div>
-            <div className="player-next-kicker">
-              {action.kicker}
+        <section className="player-week-grid">
+          <div className="player-week-plan">
+            <div className="player-week-head">
+              <div>
+                <span>MY WEEK</span>
+                <h2>A plan that keeps you ready.</h2>
+              </div>
+              <Link href="/career#readiness">
+                Full readiness
+                <ArrowRight size={14} />
+              </Link>
             </div>
-            <h2>{action.title}</h2>
-            <p>{action.copy}</p>
+
+            <div className="player-week-list">
+              {weeklyPlan.slice(0, 3).map((item, index) => (
+                <Link href={item.href} key={item.id}>
+                  <span className="player-week-number">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <div>
+                    <small>{item.eyebrow}</small>
+                    <strong>{item.title}</strong>
+                    <p>{item.detail}</p>
+                  </div>
+                  <ArrowRight size={16} />
+                </Link>
+              ))}
+            </div>
           </div>
 
-          <div className="player-next-actions">
-            <Link
-              href={action.href}
-              className="btn btn-navy"
-            >
-              {action.cta}
-              <ArrowRight size={16} />
-            </Link>
+          <aside className="player-agent-desk">
+            <div className="player-agent-desk-head">
+              <span className="player-agent-mark">DJM</span>
+              <div>
+                <span>YOUR AGENT DESK</span>
+                <strong>Connected to your representation.</strong>
+              </div>
+            </div>
 
-            <Link
-              href="/inbox?compose=1"
-              className="btn btn-quiet"
-            >
-              Send DJM a note
-              <MessageCircle size={16} />
-            </Link>
-          </div>
+            {djmUpdate ? (
+              <div className="player-agent-update">
+                <span>
+                  {data.latestDjmUpdate ? 'LATEST DJM UPDATE' : 'FROM DJM'}
+                </span>
+                <strong>{djmUpdate.title}</strong>
+                <p>{djmUpdate.message || djmUpdate.body}</p>
+                {djmUpdate.created_at && (
+                  <small>{fmtDate(djmUpdate.created_at)}</small>
+                )}
+              </div>
+            ) : (
+              <div className="player-agent-update">
+                <span>DJM CONNECTION</span>
+                <strong>Your private line to the agency.</strong>
+                <p>
+                  Share a change, ask a direct question or prepare the
+                  next conversation.
+                </p>
+              </div>
+            )}
+
+            <div className="player-agent-actions">
+              <Link href="/inbox">
+                <MessageCircle size={16} />
+                Open DJM updates
+                <ArrowRight size={14} />
+              </Link>
+              <Link href="/inbox?compose=1">
+                Send a private note
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </aside>
         </section>
 
         <MySeason
-          checkins={checkins}
-          seasonLabel={
-            player.current_season_label
-          }
-          seasonStart={
-            player.current_season_start
-          }
-          verifiedProfile={publicProfile}
+          checkins={data.checkins}
+          seasonLabel={player.current_season_label}
+          seasonStart={player.current_season_start}
+          verifiedProfile={data.publicProfile}
         />
 
-        <Link
-          href="/cv"
-          className="player-dossier-teaser"
-        >
-          {photo && (
-            <img
-              src={photo}
-              alt=""
-            />
-          )}
-          <div className="player-dossier-teaser-shade" />
-          <div className="player-dossier-teaser-copy">
-            <div className="player-dossier-teaser-kicker">
-              YOUR CLUB PROFILE
+        <section className="player-value-grid">
+          <Link href="/career#toolkit" className="player-toolkit-spotlight">
+            <div className="player-toolkit-icon">
+              <Sparkles size={22} />
             </div>
-            <h2>
-              {publicProfile?.published
-                ? 'See what clubs see.'
-                : publicProfile
-                  ? 'Preview your club profile.'
-                  : 'DJM is building your club presentation.'}
-            </h2>
-            <p>
-              {publicProfile?.published
-                ? 'Your verified football story, footage and career record in one club-ready presentation.'
-                : publicProfile
-                  ? 'DJM is reviewing this presentation before it goes live to clubs.'
-                  : 'Once DJM finishes the verified version, it will appear here.'}
-            </p>
-            <span>
-              {publicProfile
-                ? 'Open club profile'
-                : 'View status'}
-              <ArrowRight size={16} />
-            </span>
-          </div>
-        </Link>
-
-        <section className="card pad player-ready-card">
-          <div className="player-section-heading">
+            <span>RECOMMENDED PLAYER PLAYBOOK</span>
+            <h2>{recommended.title}</h2>
+            <p>{recommended.description}</p>
             <div>
-              <div className="section-kicker">
-                CAREER PROFILE
-              </div>
-              <h2 className="section-title">
-                Keep the important things ready.
-              </h2>
+              <strong>{recommended.minutes} minutes</strong>
+              <span>
+                Start playbook
+                <ArrowRight size={15} />
+              </span>
             </div>
-            <span
-              className={`pill ${
-                ready.score === 100
-                  ? 'pill-green'
-                  : 'pill-blue'
-              }`}
-            >
-              {ready.label}
-            </span>
-          </div>
+          </Link>
 
-          <div className="player-ready-progress">
-            <span
-              style={{ width: `${ready.score}%` }}
-            />
-          </div>
-
-          {ready.missing.length > 0 && (
-            <Link
-              href={
-                ready.missing[0]?.href ||
-                '/profile'
-              }
-              className="readiness-note"
-            >
-              <CheckCircle2 size={17} />
-              <div>
-                <strong>Best next update</strong>
-                <span>
-                  {ready.missing[0].label}
-                </span>
-              </div>
-              <ArrowRight
-                size={15}
-                className="muted"
-              />
-            </Link>
-          )}
-
-          <div className="player-ready-links">
-            <Link href="/profile">
-              <UserRound size={17} />
-              Career information
+          <div className="player-career-shortcuts">
+            <div>
+              <span>CAREER CONTROL</span>
+              <h2>Everything important, connected.</h2>
+            </div>
+            <Link href="/career">
+              <BriefcaseBusiness size={18} />
+              My career record
               <ArrowRight size={15} />
             </Link>
             <Link href="/documents">
-              <FileText size={17} />
+              <FileText size={18} />
               Secure documents
+              <ArrowRight size={15} />
+            </Link>
+            <Link href="/profile?edit=media">
+              <Target size={18} />
+              Footage and sources
               <ArrowRight size={15} />
             </Link>
           </div>
         </section>
 
-        {announcement && (
-          <section className="card pad player-from-djm player-announcement-premium">
-            <div className="section-kicker">
-              FROM DJM
-            </div>
-            <h3>{announcement.title}</h3>
-            <p>{announcement.body}</p>
-          </section>
-        )}
+        <Link href="/cv" className="player-club-view-strip">
+          <ShieldCheck size={22} />
+          <div>
+            <span>YOUR CLUB-FACING PROFILE</span>
+            <strong>
+              {data.publicProfile?.published
+                ? 'See exactly what clubs can see.'
+                : 'Preview the presentation DJM is preparing.'}
+            </strong>
+          </div>
+          <ArrowRight size={18} />
+        </Link>
 
         <section className="player-privacy-note player-privacy-premium">
           <ShieldCheck size={18} />
           <div>
             <strong>Private by default</strong>
             <span>
-              Your personal contact details,
-              passports, salary expectations,
-              check-ins and private documents stay
-              private unless DJM deliberately prepares
-              something for a club.
+              Contact details, passports, salary expectations,
+              check-ins and private documents stay private unless DJM
+              deliberately prepares approved information for a club.
             </span>
           </div>
         </section>
