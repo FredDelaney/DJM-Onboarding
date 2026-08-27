@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import ProfessionalToolkit from '@/components/ProfessionalToolkit';
+import PlayerCareerNavigator from '@/components/PlayerCareerNavigator';
 import {
   LoadingScreen,
   PlayerShell,
@@ -221,13 +222,13 @@ export default function CareerPage() {
           <div className="career-hub-copy">
             <div className="career-hub-kicker">
               <Sparkles size={14} />
-              MY CAREER · BUILT WITH DJM
+              MY PRIVATE PROFESSIONAL CENTRE
             </div>
-            <h1>Ready before the call comes.</h1>
+            <h1>Build the career, not just the profile.</h1>
             <p>
-              {firstName}, this is your professional career record,
-              opportunity preparation room and player toolkit—not an
-              admin profile.
+              {firstName}, use this space to manage the work that matters to
+              you: your week, development, season, decisions, records and
+              private documents.
             </p>
 
             <div className="career-hub-actions">
@@ -272,6 +273,8 @@ export default function CareerPage() {
             </div>
           </div>
         </header>
+
+        <PlayerCareerNavigator current="career" />
 
         {loadError && (
           <div className="career-load-warning" role="status">
@@ -342,8 +345,8 @@ export default function CareerPage() {
         <section id="readiness" className="career-readiness-section">
           <div className="career-section-heading">
             <div>
-              <div className="section-kicker">OPPORTUNITY ROOM</div>
-              <h2>Know exactly what can slow a move down.</h2>
+              <div className="section-kicker">PROFESSIONAL READINESS</div>
+              <h2>Remove avoidable stress before an important moment.</h2>
               <p>{readiness.summary}</p>
             </div>
             <span className="career-readiness-total">
@@ -429,7 +432,7 @@ export default function CareerPage() {
           </div>
         </section>
 
-        <section className="career-record-section">
+        <section id="record" className="career-record-section">
           <div className="career-section-heading">
             <div>
               <div className="section-kicker">PROFESSIONAL RECORD</div>

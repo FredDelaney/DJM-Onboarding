@@ -196,14 +196,14 @@ export default function PublicProfile({
           logoUrl:
             `${window.location.origin}/djm-mark.png`,
           filename:
-            `${profile.display_name || 'DJM-Player'}-DJM-Player-Dossier.pdf`,
+            `${profile.display_name || 'DJM-Player'}-DJM-Decision-Room.pdf`,
         });
       } catch (
         error: any
       ) {
         setNotice(
           error?.message ||
-            'The dossier PDF could not be created.',
+            'The Decision Room PDF could not be created.',
         );
       } finally {
         setPdfBusy(false);
@@ -303,7 +303,7 @@ export default function PublicProfile({
               <div className="dossier-accent" />
 
               <div className="dossier-eyebrow">
-                PLAYER DOSSIER
+                DJM DECISION ROOM
               </div>
 
               <h1 className="dossier-name">
@@ -351,9 +351,10 @@ export default function PublicProfile({
                 )}
 
                 {profile.market_value_display &&
+                  profile.transfermarkt_url &&
                   !profile.hide_market_value && (
                     <span>
-                      Market value{' '}
+                      Market reference{' '}
                       {
                         profile.market_value_display
                       }
@@ -408,7 +409,7 @@ export default function PublicProfile({
                   <Download
                     size={16}
                   />
-                  Download dossier
+                  Download decision brief
                 </button>
 
                 <a
@@ -484,13 +485,29 @@ export default function PublicProfile({
           </div>
         )}
 
+        <section className="dossier-decision-lens">
+          <div className="dossier-decision-lens-head">
+            <div>
+              <span>DECISION LENS</span>
+              <h2>The first questions a sporting director needs answered.</h2>
+            </div>
+            <small>Club-facing evidence only · private player and DJM strategy remains outside this room</small>
+          </div>
+          <div className="dossier-decision-grid">
+            <div><span>01 · ROLE &amp; CONTEXT</span><strong>{[profile.primary_position, profile.current_club].filter(Boolean).join(' · ') || 'Requires confirmation'}</strong><small>{profile.current_status || 'Current football status not published'}</small></div>
+            <div><span>02 · SPORTING CASE</span><strong>{profile.why_review || profile.headline || 'Speak to DJM for the current sporting thesis'}</strong><small>DJM-approved club-facing summary</small></div>
+            <div><span>03 · EVIDENCE AVAILABLE</span><strong>{primaryVideo ? 'Footage connected' : 'Footage available through DJM'}</strong><small>{sources.length ? `${sources.length} external source${sources.length === 1 ? '' : 's'} linked` : 'Source links available on request'}</small></div>
+            <div><span>04 · NEXT DECISION</span><strong>Request availability and full evidence</strong><small>DJM confirms commercial and registration detail directly</small></div>
+          </div>
+        </section>
+
         {!hidden.has(
           'why_review',
         ) && (
           <section className="dossier-section dossier-why-layout">
             <div>
               <div className="dossier-kicker">
-                WHY REVIEW
+                SPORTING DECISION BRIEF
               </div>
 
               <div className="dossier-why">
@@ -556,7 +573,7 @@ export default function PublicProfile({
               <div className="dossier-section-head">
                 <div>
                   <div className="dossier-kicker">
-                    PERFORMANCE
+                    PERFORMANCE EVIDENCE
                   </div>
 
                   <h2>
@@ -616,6 +633,12 @@ export default function PublicProfile({
                         : 'APPEARANCES'}
                     </span>
                   </div>
+
+                  <p className="dossier-chart-note">
+                    Bar length compares only the seasons shown. The value at
+                    right is the exact recorded total; unknown values are not
+                    treated as zero.
+                  </p>
 
                   {performance.rows.map(
                     (

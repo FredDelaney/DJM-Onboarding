@@ -29,7 +29,7 @@ export default function DjmOsShell({
       <main className="djm-os-loading">
         <Brand />
         <div className="djm-os-loading-line" />
-        <span>Loading DJM OS…</span>
+        <span>Loading DJM Intelligence…</span>
       </main>
     );
   }
