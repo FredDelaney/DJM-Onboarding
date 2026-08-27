@@ -242,9 +242,9 @@ export function AdminShell({
   useEffect(() => {
     router.prefetch('/djm');
     router.prefetch('/admin');
-    router.prefetch('/network');
-    router.prefetch('/recruitment');
     router.prefetch('/market');
+    router.prefetch('/deals');
+    router.prefetch('/brain');
   }, [router]);
 
   const signOut = async () => {

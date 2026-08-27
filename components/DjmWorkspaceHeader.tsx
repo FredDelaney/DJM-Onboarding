@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  BrainCircuit,
   BriefcaseBusiness,
+  Handshake,
+  LayoutDashboard,
   LogOut,
-  Network,
-  ShieldCheck,
-  UserPlus,
   UsersRound,
 } from 'lucide-react';
 
@@ -16,11 +16,11 @@ import DjmGlobalSearch from '@/components/DjmGlobalSearch';
 import DjmQuickCapture from '@/components/DjmQuickCapture';
 
 const items = [
-  { href: '/djm', label: 'Home', icon: ShieldCheck },
-  { href: '/admin', label: 'Signed Players', icon: UsersRound },
-  { href: '/network', label: 'Network', icon: Network },
-  { href: '/recruitment', label: 'Recruitment', icon: UserPlus },
+  { href: '/djm', label: 'Command', icon: LayoutDashboard },
+  { href: '/admin', label: 'Players', icon: UsersRound },
   { href: '/market', label: 'Market', icon: BriefcaseBusiness },
+  { href: '/deals', label: 'Deals', icon: Handshake },
+  { href: '/brain', label: 'Brain', icon: BrainCircuit },
 ];
 
 export default function DjmWorkspaceHeader({
@@ -36,8 +36,8 @@ export default function DjmWorkspaceHeader({
         <div className="djm-os-brand-row">
           <Brand />
           <span className="djm-os-chip">
-            <ShieldCheck size={14} />
-            DJM OS
+            <BrainCircuit size={14} />
+            Intelligence
           </span>
         </div>
 
@@ -47,6 +47,8 @@ export default function DjmWorkspaceHeader({
             const active =
               item.href === '/admin'
                 ? pathname === '/admin' || pathname.startsWith('/admin/')
+                : item.href === '/deals'
+                  ? pathname === '/deals' || pathname.startsWith('/market/deals/')
                 : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (

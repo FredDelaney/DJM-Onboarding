@@ -13,6 +13,7 @@ import {
 
 import DjmOsShell from '@/components/DjmOsShell';
 import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { dealCredibility } from '@/lib/intelligence';
 
 const STAGES = [
   'qualifying',
@@ -51,7 +52,7 @@ export default function DealRoomPage() {
           stage: d.stage || 'qualifying',
           expected_commission: d.expected_commission ?? '',
           currency: d.currency || 'EUR',
-          probability: d.probability ?? 25,
+          legacy_probability: d.probability ?? 25,
           primary_blocker: d.primary_blocker || '',
           next_decision: d.next_decision || '',
           next_action_at: d.next_action_at
@@ -91,7 +92,9 @@ export default function DealRoomPage() {
             ? null
             : Number(form.expected_commission),
         p_currency: form.currency,
-        p_probability: Number(form.probability),
+        // Compatibility only: the current live RPC requires this legacy field.
+        // It is not presented as a forecast or used to calculate pipeline value.
+        p_probability: Number(form.legacy_probability),
         p_primary_blocker: form.primary_blocker || null,
         p_next_decision: form.next_decision || null,
         p_next_action_at: form.next_action_at
@@ -122,7 +125,7 @@ export default function DealRoomPage() {
         p_probability:
           stage === 'won' || stage === 'lost'
             ? null
-            : Number(form?.probability || 25),
+            : Number(form?.legacy_probability || 25),
         p_outcome_reason: reason || null,
       });
       await load();
@@ -142,34 +145,28 @@ export default function DealRoomPage() {
         p_entity_id: id,
         p_confirm: true,
       });
-      router.push('/market');
+      router.push('/deals');
     } catch (e) {
       setError(friendlyError(e));
     }
   };
 
   const deal = data?.deal;
-  const weighted =
-    deal?.expected_commission != null
-      ? Math.round(
-          Number(deal.expected_commission) *
-            (Number(deal.probability || 0) / 100),
-        )
-      : null;
+  const credibility = deal ? dealCredibility(deal) : 'Insufficient evidence';
 
   return (
     <DjmOsShell
-      eyebrow="Commercial situation"
+      eyebrow="Evidence-led commercial situation"
       title={deal?.title || 'Deal Room'}
     >
       <div className="djm-os-toolbar">
         <Link
-          href="/market"
+          href="/deals"
           className="djm-os-secondary-button"
           style={{ textDecoration: 'none' }}
         >
           <ArrowLeft size={15} />
-          Market
+          Deals
         </Link>
 
         <div className="djm-os-button-row">
@@ -204,7 +201,8 @@ export default function DealRoomPage() {
           <section className="djm-os-metrics">
             <Metric label="Club" value={deal.organisation_name || '—'} />
             <Metric label="Player" value={deal.player_name || '—'} />
-            <Metric label="Probability" value={`${deal.probability}%`} />
+            <Metric label="Credibility" value={credibility} />
+            <Metric label="Stage" value={String(deal.stage || 'qualifying').replaceAll('_', ' ')} />
             <Metric
               label="Expected commission"
               value={
@@ -215,14 +213,7 @@ export default function DealRoomPage() {
                   : '—'
               }
             />
-            <Metric
-              label="Weighted value"
-              value={
-                weighted != null
-                  ? `${deal.currency} ${weighted.toLocaleString('en-GB')}`
-                  : '—'
-              }
-            />
+            <Metric label="Next action" value={deal.next_action_at ? compactDateTime(deal.next_action_at) : 'Not scheduled'} />
           </section>
 
           <div className="djm-os-grid djm-os-grid-2">
@@ -298,23 +289,6 @@ export default function DealRoomPage() {
                     </select>
                   </label>
                 </div>
-
-                <label>
-                  Probability: {form.probability}%
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value={form.probability}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        probability: Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
 
                 <label>
                   Primary blocker

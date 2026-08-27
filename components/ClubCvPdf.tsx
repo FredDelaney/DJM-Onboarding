@@ -796,9 +796,9 @@ export function ClubCvPdfDocument({
 
   return (
     <Document
-      title={`${name} - DJM Player Dossier`}
+      title={`${name} - DJM Decision Room`}
       author="DJM Sports Management"
-      subject="Professional football player dossier"
+      subject="Evidence-led football decision brief"
       creator="DJM Player"
     >
       <Page
@@ -858,7 +858,7 @@ export function ClubCvPdfDocument({
             >
               {verified
                 ? `DJM VERIFIED · ${verified.toUpperCase()}`
-                : 'DJM PLAYER DOSSIER'}
+                : 'DJM DECISION ROOM'}
             </Text>
           </View>
 
@@ -883,7 +883,7 @@ export function ClubCvPdfDocument({
                   styles.kickerDark
                 }
               >
-                PLAYER DOSSIER
+                DJM DECISION ROOM
               </Text>
 
               <Text
@@ -949,6 +949,7 @@ export function ClubCvPdfDocument({
                 )}
 
                 {profile?.market_value_display &&
+                  profile?.transfermarkt_url &&
                   !profile?.hide_market_value && (
                     <View
                       style={
@@ -960,7 +961,7 @@ export function ClubCvPdfDocument({
                           styles.statusText
                         }
                       >
-                        Market value{' '}
+                        Market reference{' '}
                         {
                           profile.market_value_display
                         }
@@ -1075,7 +1076,7 @@ export function ClubCvPdfDocument({
                   styles.kicker
                 }
               >
-                WHY REVIEW
+                SPORTING DECISION BRIEF
               </Text>
 
               <Text
@@ -1364,7 +1365,7 @@ export function ClubCvPdfDocument({
                   styles.heroVerified
                 }
               >
-                DJM PLAYER DOSSIER
+                DJM DECISION ROOM
               </Text>
             </View>
           </View>
@@ -1765,7 +1766,7 @@ export function ClubCvPdfDocument({
             >
               {verified
                 ? `REVIEWED ${verified.toUpperCase()}`
-                : 'PROFESSIONAL PLAYER DOSSIER'}
+                : 'EVIDENCE-LED DECISION BRIEF'}
             </Text>
           </View>
         </Page>
@@ -1810,7 +1811,7 @@ const blob =
 
   link.download =
     filename ||
-    `${profile?.display_name || 'DJM-Player'}-DJM-Player-Dossier.pdf`;
+    `${profile?.display_name || 'DJM-Player'}-DJM-Decision-Room.pdf`;
 
   document.body.appendChild(
     link,

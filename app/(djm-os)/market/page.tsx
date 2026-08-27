@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -17,6 +18,7 @@ import {
 
 import DjmOsShell from '@/components/DjmOsShell';
 import { djmRpc, friendlyError } from '@/lib/djm-os';
+import { dealCredibility, matchAssessment } from '@/lib/intelligence';
 
 const EMPTY_ADVANCED = {
   title: '', position: '', preferred_foot: '', min_age: '', max_age: '', transfer_type: '',
@@ -24,6 +26,7 @@ const EMPTY_ADVANCED = {
 };
 
 export default function MarketPage() {
+  const router = useRouter();
   const [needs, setNeeds] = useState<any[]>([]);
   const [clubs, setClubs] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
@@ -164,37 +167,33 @@ export default function MarketPage() {
   const openDealRoom = async (candidate: any) => {
     if (!selectedNeed) return;
     try {
-      const prob: any = await djmRpc('djm_market_deal_probability', {
-        p_need_id: selectedNeed.id,
-        p_player_id: candidateTab === 'signed' ? candidate.player_id : null,
-        p_prospect_id: candidateTab === 'recruitment' ? candidate.prospect_id : null,
-      });
       const playerName = candidate.player_name || candidate.full_name || 'Player';
-      const probability = Math.max(10, Math.min(90, Number(prob?.probability || 35) - (candidateTab === 'recruitment' ? 10 : 0)));
       const result: any = await djmRpc('djm_deal_room_upsert', {
         p_id: null, p_title: `${playerName} → ${selectedNeed.organisation_name}`,
         p_organisation_id: selectedNeed.organisation_id, p_source_person_id: null,
         p_player_id: candidateTab === 'signed' ? candidate.player_id : null,
         p_prospect_id: candidateTab === 'recruitment' ? candidate.prospect_id : null,
         p_club_need_id: selectedNeed.id, p_stage: 'qualifying', p_expected_commission: null, p_currency: selectedNeed.currency || 'EUR',
-        p_probability: probability, p_primary_blocker: null, p_next_decision: 'Confirm genuine club interest and commercial fit', p_next_action_at: null, p_source: 'market_match',
+        // Retained only because the live RPC still requires its legacy field. The
+        // product deliberately does not represent this compatibility value as a forecast.
+        p_probability: 25, p_primary_blocker: null, p_next_decision: 'Confirm genuine club interest and commercial fit', p_next_action_at: null, p_source: 'market_evidence_review',
       });
       await load();
-      if (result?.deal_room_id) window.location.href = `/market/deals/${result.deal_room_id}`;
+      if (result?.deal_room_id) router.push(`/market/deals/${result.deal_room_id}`);
     } catch (e) { setError(friendlyError(e)); }
   };
 
   const currentCandidates = candidateTab === 'signed' ? candidates.signed_players || [] : candidates.recruitment_targets || [];
 
   return (
-    <DjmOsShell eyebrow="Club demand matched automatically to DJM players" title="Market">
+    <DjmOsShell eyebrow="Real demand · hard constraints · evidence gaps" title="Market">
       {error ? <div className="djm-os-error"><AlertCircle size={17}/><span>{error}</span><button onClick={() => setError('')}>Dismiss</button></div> : null}
       {message ? <div className="djm-os-capture-status" style={{ marginBottom: 14 }}>{message}</div> : null}
 
       <section className="djm-os-metrics">
         <Metric label="Live needs" value={activeNeeds.length} />
         <Metric label="Needs without signed match" value={activeNeeds.filter((n) => Number(n.match_count || 0) === 0).length} attention={activeNeeds.some((n) => Number(n.match_count || 0) === 0)} />
-        <Metric label="Best signed fit" value={`${Math.round(Math.max(0, ...activeNeeds.map((n) => Number(n.top_match_score || 0))))}%`} />
+        <Metric label="Needs with evidence" value={activeNeeds.filter((n) => Number(n.match_count || 0) > 0).length} />
         <Metric label="Deal Rooms" value={deals.length} />
       </section>
 
@@ -225,14 +224,14 @@ export default function MarketPage() {
       {deals.length ? (
         <section className="djm-os-panel" style={{ marginBottom: 16 }}>
           <div className="djm-os-panel-head"><div><h2>Closest to revenue</h2><p>Only live player-club situations.</p></div><BriefcaseBusiness size={20}/></div>
-          <div className="djm-os-list">{deals.slice(0,6).map((d) => <Link key={d.id} href={`/market/deals/${d.id}`} className="djm-os-list-row" style={{ textDecoration:'none', color:'inherit' }}><div style={{flex:1}}><strong>{d.title}</strong><p>{[d.organisation_name,d.stage].filter(Boolean).join(' · ')}</p><small>{d.probability}% probability{d.primary_blocker ? ` · ${d.primary_blocker}` : ''}</small></div><ArrowRight size={16}/></Link>)}</div>
+          <div className="djm-os-list">{deals.slice(0,6).map((d) => <Link key={d.id} href={`/market/deals/${d.id}`} className="djm-os-list-row" style={{ textDecoration:'none', color:'inherit' }}><div style={{flex:1}}><strong>{d.title}</strong><p>{[d.organisation_name,d.stage].filter(Boolean).join(' · ')}</p><small>{d.primary_blocker ? `Blocker · ${d.primary_blocker}` : 'No primary blocker recorded'}</small></div><span className="djm-evidence-state is-review">{dealCredibility(d)}</span><ArrowRight size={16}/></Link>)}</div>
         </section>
       ) : null}
 
       <div className="djm-os-grid djm-os-grid-2">
         <section className="djm-os-panel">
           <div className="djm-os-panel-head"><div><h2>Live club demand</h2><p>Select a need to review/edit matches.</p></div></div>
-          {activeNeeds.length ? <div className="djm-os-list">{activeNeeds.map((need) => <button key={need.id} className="djm-os-list-row" style={{ width:'100%', textAlign:'left', background:selectedNeed?.id===need.id ? 'rgba(244,196,48,.08)' : undefined }} onClick={() => void openNeed(need)}><div style={{flex:1}}><strong>{need.organisation_name}</strong><p>{[need.need_position,need.preferred_foot,need.transfer_type].filter(Boolean).join(' · ')}</p><small>{Number(need.match_count || 0)} signed-player matches</small></div><div className="djm-os-score"><b>{need.top_match_score == null ? '—' : Math.round(Number(need.top_match_score))}</b><small>best fit</small></div></button>)}</div> : <div className="djm-os-empty"><CheckCircle2 size={25}/><p>No live club needs.</p></div>}
+          {activeNeeds.length ? <div className="djm-os-list">{activeNeeds.map((need) => { const count = Number(need.match_count || 0); return <button key={need.id} type="button" className="djm-os-list-row" style={{ width:'100%', textAlign:'left', background:selectedNeed?.id===need.id ? 'rgba(245,233,0,.08)' : undefined }} onClick={() => void openNeed(need)}><div style={{flex:1}}><strong>{need.organisation_name}</strong><p>{[need.need_position,need.preferred_foot,need.transfer_type].filter(Boolean).join(' · ')}</p><small>{count ? `${count} candidate record${count === 1 ? '' : 's'} to review` : 'No candidate evidence yet'}</small></div><span className={`djm-evidence-state ${count ? 'is-review' : 'is-missing'}`}>{count ? 'Review evidence' : 'Qualification gap'}</span></button>; })}</div> : <div className="djm-os-empty"><CheckCircle2 size={25}/><p>No live club needs.</p></div>}
         </section>
 
         <section className="djm-os-panel">
@@ -241,7 +240,7 @@ export default function MarketPage() {
               <div className="djm-os-panel-head"><div><h2>{selectedNeed.organisation_name} · {selectedNeed.need_position}</h2><p>{selectedNeed.profile_notes || 'No extra profile notes.'}</p></div><div className="djm-os-button-row"><button className="djm-os-icon-button" onClick={() => setEditing((x) => !x)} aria-label="Edit"><Pencil size={16}/></button><button className="djm-os-icon-button" onClick={() => setSelectedNeed(null)} aria-label="Close panel"><X size={16}/></button></div></div>
               {editing && editForm ? <form className="djm-os-form" onSubmit={saveNeed} style={{ borderBottom:'1px solid var(--djm-line)' }}><NeedFields form={editForm} setForm={setEditForm}/><button className="djm-os-primary-button" disabled={busy}>Save changes & rematch</button></form> : null}
               <div className="djm-os-button-row" style={{ padding:'12px 14px', borderBottom:'1px solid var(--djm-line)' }}><button className={candidateTab==='signed' ? 'djm-os-primary-button':'djm-os-secondary-button'} onClick={() => setCandidateTab('signed')}><UsersRound size={15}/>Signed players ({candidates.signed_players?.length || 0})</button><button className={candidateTab==='recruitment' ? 'djm-os-primary-button':'djm-os-secondary-button'} onClick={() => setCandidateTab('recruitment')}>Recruitment ({candidates.recruitment_targets?.length || 0})</button></div>
-              {currentCandidates.length ? <div className="djm-os-list">{currentCandidates.slice(0,12).map((c:any) => { const name=c.player_name||c.full_name; const score=c.overall_score??c.match_score; return <article className="djm-os-list-row" key={c.player_id||c.prospect_id}><div style={{flex:1}}><strong>{name}</strong><p>{[c.player_position||c.primary_position,c.current_club,c.preferred_foot].filter(Boolean).join(' · ')}</p><small>{candidateTab==='signed' ? 'Signed player' : 'Unsigned recruitment target'}</small></div><div className="djm-os-score"><b>{score == null ? '—' : Math.round(Number(score))}</b><small>fit</small></div><button className="djm-os-secondary-button" onClick={() => void openDealRoom(c)}>Open deal</button></article>})}</div> : <div className="djm-os-empty"><Target size={25}/><p>No candidates in this player pool yet.</p></div>}
+              {currentCandidates.length ? <div className="djm-os-list">{currentCandidates.slice(0,12).map((c:any) => { const name=c.player_name||c.full_name; const assessment=matchAssessment(c); const evidence=[...assessment.strengths,...assessment.concerns,...assessment.missing][0]; return <article className="djm-candidate-row" key={c.player_id||c.prospect_id}><div style={{flex:1}}><div className="djm-command-meta"><span className={`djm-evidence-state ${assessment.hardBlockers.length ? 'is-missing' : 'is-review'}`}>{assessment.strength}</span><span>{candidateTab==='signed' ? 'Signed player' : 'Recruitment target'}</span></div><strong>{name}</strong><p>{[c.player_position||c.primary_position,c.current_club,c.preferred_foot].filter(Boolean).join(' · ')}</p><small>{assessment.hardBlockers[0] ? `Hard blocker · ${assessment.hardBlockers[0]}` : evidence || 'Review source data before progressing'}</small></div><button type="button" className="djm-os-secondary-button" onClick={() => void openDealRoom(c)}>Open qualification room</button></article>})}</div> : <div className="djm-os-empty"><Target size={25}/><p>No candidates in this player pool yet.</p></div>}
               <div className="djm-os-button-row" style={{ padding:14 }}><button className="djm-os-secondary-button" onClick={() => void setNeedStatus('closed')}>Close need</button><button className="djm-os-secondary-button" onClick={() => void deleteNeed()}>Delete</button></div>
             </>
           )}

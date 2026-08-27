@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import MySeason from '@/components/MySeason';
+import PlayerCareerNavigator from '@/components/PlayerCareerNavigator';
 import {
   LoadingScreen,
   PlayerShell,
@@ -287,6 +288,8 @@ export default function Home() {
           </Link>
         </header>
 
+        <PlayerCareerNavigator current="week" />
+
         {refreshIssue && (
           <div className="career-load-warning" role="status">
             <Clock3 size={16} />
@@ -352,7 +355,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="player-week-grid">
+        <section id="week" className="player-week-grid">
           <div className="player-week-plan">
             <div className="player-week-head">
               <div>
@@ -427,12 +430,14 @@ export default function Home() {
           </aside>
         </section>
 
-        <MySeason
-          checkins={data.checkins}
-          seasonLabel={player.current_season_label}
-          seasonStart={player.current_season_start}
-          verifiedProfile={data.publicProfile}
-        />
+        <div id="season">
+          <MySeason
+            checkins={data.checkins}
+            seasonLabel={player.current_season_label}
+            seasonStart={player.current_season_start}
+            verifiedProfile={data.publicProfile}
+          />
+        </div>
 
         <section className="player-value-grid">
           <Link href="/career#toolkit" className="player-toolkit-spotlight">

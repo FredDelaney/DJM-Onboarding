@@ -3369,3 +3369,151 @@
     font-size: 9px;
   }
 }
+/* Seven player-first career lanes: never exposes DJM's club-side activity. */
+.player-career-navigator {
+  overflow: hidden;
+  margin: 18px 0 24px;
+  border: 1px solid rgba(6, 31, 58, .11);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 14px 42px rgba(6, 31, 58, .06);
+}
+
+.player-career-navigator-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid rgba(6, 31, 58, .08);
+}
+
+.player-career-navigator-head span,
+.player-career-navigator-head strong,
+.player-career-navigator-head small {
+  display: block;
+}
+
+.player-career-navigator-head span {
+  margin-bottom: 5px;
+  color: #6c7d8e;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.player-career-navigator-head strong {
+  color: var(--navy);
+  font-size: 16px;
+  letter-spacing: -.02em;
+}
+
+.player-career-navigator-head > small {
+  max-width: 330px;
+  color: #788897;
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.player-career-lanes {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.player-career-lanes > a {
+  min-width: 0;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 9px;
+  align-content: center;
+  padding: 15px;
+  border-right: 1px solid rgba(6, 31, 58, .08);
+  color: #728292;
+  text-decoration: none;
+  transition: background .18s ease, color .18s ease;
+}
+
+.player-career-lanes > a:last-child {
+  border-right: 0;
+}
+
+.player-career-lanes > a:hover,
+.player-career-lanes > a.is-active {
+  background: var(--navy);
+  color: var(--yellow);
+}
+
+.player-career-lanes > a > span {
+  min-width: 0;
+}
+
+.player-career-lanes strong,
+.player-career-lanes small {
+  display: block;
+}
+
+.player-career-lanes strong {
+  color: var(--navy);
+  font-size: 11px;
+}
+
+.player-career-lanes small {
+  margin-top: 4px;
+  color: #8b99a6;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.player-career-lanes > a:hover strong,
+.player-career-lanes > a.is-active strong {
+  color: #fff;
+}
+
+.player-career-lanes > a:hover small,
+.player-career-lanes > a.is-active small {
+  color: rgba(255, 255, 255, .58);
+}
+
+@media (max-width: 900px) {
+  .player-career-lanes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .player-career-lanes > a {
+    border-bottom: 1px solid rgba(6, 31, 58, .08);
+  }
+}
+
+@media (max-width: 620px) {
+  .player-career-navigator {
+    margin-inline: -4px;
+  }
+
+  .player-career-navigator-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .player-career-navigator-head > small {
+    text-align: left;
+  }
+
+  .player-career-lanes {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .player-career-lanes::-webkit-scrollbar {
+    display: none;
+  }
+
+  .player-career-lanes > a {
+    flex: 0 0 150px;
+    min-height: 96px;
+    border-bottom: 0;
+  }
+}
