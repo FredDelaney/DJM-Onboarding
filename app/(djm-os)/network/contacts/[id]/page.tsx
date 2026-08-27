@@ -65,6 +65,30 @@ function localTimeValue(date = new Date()) {
   return `${hours}:${minutes}`;
 }
 
+function normaliseConversationTime(value: string) {
+  const text = value.trim().toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
+  const match = text.match(/^(\d{1,2}):(\d{2})(am|pm)?$/);
+  if (!match) return null;
+
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const suffix = match[3];
+  if (minute > 59 || hour > 23) return null;
+
+  if (suffix === 'am') {
+    if (hour > 12) return null;
+    if (hour === 12) hour = 0;
+  } else if (suffix === 'pm') {
+    if (hour <= 12) {
+      if (hour < 12) hour += 12;
+    } else if (hour > 23) {
+      return null;
+    }
+  }
+
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
 function safeLocalIso(value: string, fallbackDate?: string) {
   const text = value.trim();
   if (!text) return null;
@@ -156,9 +180,9 @@ export default function ContactWorkspacePage() {
     setSavingConversation(true);
     setError('');
     try {
-      const occurredAt = safeLocalIso(`${conversationDate}T${conversationTime}`);
-      if (!occurredAt) {
-        setError('Please enter a valid conversation date and time.');
+      const normalisedTime = normaliseConversationTime(conversationTime);
+      if (!conversationDate || !normalisedTime) {
+        setError('Please enter a valid conversation date and time, for example 19:30 or 7:30pm.');
         return;
       }
 
@@ -168,12 +192,16 @@ export default function ContactWorkspacePage() {
         return;
       }
 
-      await djmRpc('djm_network_log_contact_interaction', {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Rome';
+
+      await djmRpc('djm_network_log_contact_interaction_local', {
         p_person_id: id,
         p_channel: channel,
         p_summary: summary.trim(),
         p_organisation_id: currentEmployment?.organisation_id || null,
-        p_occurred_at: occurredAt,
+        p_occurred_date: conversationDate,
+        p_occurred_time: normalisedTime,
+        p_timezone: timezone,
         p_create_followup_at: followupAt,
         p_followup_title: null,
       });
@@ -629,10 +657,13 @@ export default function ContactWorkspacePage() {
                   <label>
                     Conversation time
                     <input
-                      type="time"
+                      type="text"
+                      inputMode="text"
                       value={conversationTime}
                       onChange={(e) => setConversationTime(e.target.value)}
+                      placeholder="19:30 or 7:30pm"
                     />
+                    <small style={{ color: '#8795a3', fontSize: 9 }}>24-hour or AM/PM both work.</small>
                   </label>
                 </div>
                 <label>
