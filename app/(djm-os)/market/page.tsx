@@ -6,19 +6,24 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
+  Banknote,
   BriefcaseBusiness,
+  CalendarClock,
   CheckCircle2,
+  Copy,
   Pencil,
   Plus,
   RefreshCw,
+  Search,
   Target,
   UsersRound,
   X,
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
-import { djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDate, djmRpc, friendlyError } from '@/lib/djm-os';
 import { dealCredibility, matchAssessment } from '@/lib/intelligence';
+import { extractMarketCommercialTerms } from '@/lib/market-demand';
 
 const EMPTY_ADVANCED = {
   title: '', position: '', preferred_foot: '', min_age: '', max_age: '', transfer_type: '',
@@ -94,7 +99,38 @@ export default function MarketPage() {
         p_source_person_id: null,
       });
       const parsed = result?.parsed || {};
-      setMessage(`Club need created: ${[parsed.position, parsed.preferred_foot && `${parsed.preferred_foot} foot`, parsed.max_age && `max age ${parsed.max_age}`, parsed.transfer_type].filter(Boolean).join(' · ')}. Matching ran automatically.`);
+      const commercial = extractMarketCommercialTerms(requestText);
+      const transferType = commercial.transferType || parsed.transfer_type || null;
+      const currency = commercial.currency || parsed.currency || null;
+      const minAge = commercial.minAge ?? parsed.min_age ?? null;
+      const maxAge = commercial.maxAge ?? parsed.max_age ?? null;
+      const hasCommercialDetail = commercial.transferBudget != null || commercial.salaryBudget != null || commercial.transferType != null || commercial.minAge != null || commercial.maxAge != null || commercial.registrationNotes != null;
+      let commercialWarning = '';
+
+      if (result?.need_id && hasCommercialDetail) {
+        try {
+          await djmRpc('djm_market_update_need', {
+            p_need_id: result.need_id,
+            p_title: `${parsed.position} requirement`,
+            p_position: parsed.position,
+            p_preferred_foot: parsed.preferred_foot || null,
+            p_min_age: minAge,
+            p_max_age: maxAge,
+            p_transfer_type: transferType,
+            p_transfer_budget: commercial.transferBudget,
+            p_salary_budget: commercial.salaryBudget,
+            p_currency: currency,
+            p_salary_period: commercial.salaryPeriod,
+            p_profile_notes: requestText.trim(),
+            p_registration_notes: commercial.registrationNotes,
+            p_expires_at: null,
+          });
+        } catch {
+          commercialWarning = ' The request was saved, but the commercial fields need a manual review.';
+        }
+      }
+
+      setMessage(`Club need created: ${[parsed.position, parsed.preferred_foot && `${parsed.preferred_foot} foot`, maxAge && `max age ${maxAge}`, transferType, commercial.transferBudget != null && 'fee captured', commercial.salaryBudget != null && 'salary captured', commercial.registrationNotes && 'registration note captured'].filter(Boolean).join(' · ')}. Matching ran automatically.${commercialWarning}`);
       setClubId(''); setRequestText(''); setShowAdd(false);
       await load();
     } catch (e) { setError(friendlyError(e)); }
@@ -164,6 +200,16 @@ export default function MarketPage() {
     } catch (e) { setError(friendlyError(e)); }
   };
 
+  const copySearchBrief = async () => {
+    if (!selectedNeed) return;
+    try {
+      await navigator.clipboard.writeText(buildSearchBrief(selectedNeed));
+      setMessage('Full recruitment brief copied. Ready to paste into a scouting platform, message or search workflow.');
+    } catch {
+      setError('Could not copy the recruitment brief. Your browser may have blocked clipboard access.');
+    }
+  };
+
   const openDealRoom = async (candidate: any) => {
     if (!selectedNeed) return;
     try {
@@ -198,7 +244,7 @@ export default function MarketPage() {
       </section>
 
       <div className="djm-os-toolbar">
-        <div style={{ flex: 1 }}><strong>Type the request like you received it</strong><span className="djm-os-toolbar-note">DJM extracts the position/profile and runs matching automatically. Advanced fields stay available as fallback.</span></div>
+        <div style={{ flex: 1 }}><strong>Type the request like you received it</strong><span className="djm-os-toolbar-note">The original brief is preserved. DJM extracts core filters and runs matching; every commercial and registration detail stays editable.</span></div>
         <div className="djm-os-button-row"><button className="djm-os-secondary-button" onClick={() => void load()} disabled={busy}><RefreshCw size={15} className={busy ? 'spin' : ''}/>Refresh</button><button className="djm-os-primary-button" onClick={() => setShowAdd((x) => !x)}><Plus size={16}/>Add club need</button></div>
       </div>
 
@@ -208,7 +254,7 @@ export default function MarketPage() {
           {!advanced ? (
             <form className="djm-os-form" onSubmit={quickCreate}>
               <label>Club<select value={clubId} onChange={(e) => setClubId(e.target.value)}><option value="">Choose club</option>{clubs.map((c) => <option key={c.id} value={c.id}>{c.name}{c.country ? ` · ${c.country}` : ''}</option>)}</select></label>
-              <label>What does the club need?<textarea rows={5} value={requestText} onChange={(e) => setRequestText(e.target.value)} placeholder="e.g. RW left foot, max age 21, free or loan. Fast, direct, good numbers."/></label>
+              <label>What does the club need?<textarea rows={5} value={requestText} onChange={(e) => setRequestText(e.target.value)} placeholder="e.g. Left-footed RW, age 19–23, permanent. Up to €1.5m transfer fee and €12k/week. Fast, direct, strong 1v1 output. EU passport preferred."/></label>
               <div className="djm-os-button-row"><button className="djm-os-primary-button" disabled={busy || !clubId || !requestText.trim()}>{busy ? 'Creating…' : 'Create & match players'}</button><button className="djm-os-secondary-button" type="button" onClick={() => setAdvanced(true)}>Advanced manual</button></div>
             </form>
           ) : (
@@ -230,15 +276,31 @@ export default function MarketPage() {
 
       <div className="djm-os-grid djm-os-grid-2">
         <section className="djm-os-panel">
-          <div className="djm-os-panel-head"><div><h2>Live club demand</h2><p>Select a need to review/edit matches.</p></div></div>
-          {activeNeeds.length ? <div className="djm-os-list">{activeNeeds.map((need) => { const count = Number(need.match_count || 0); return <button key={need.id} type="button" className="djm-os-list-row" style={{ width:'100%', textAlign:'left', background:selectedNeed?.id===need.id ? 'rgba(245,233,0,.08)' : undefined }} onClick={() => void openNeed(need)}><div style={{flex:1}}><strong>{need.organisation_name}</strong><p>{[need.need_position,need.preferred_foot,need.transfer_type].filter(Boolean).join(' · ')}</p><small>{count ? `${count} candidate record${count === 1 ? '' : 's'} to review` : 'No candidate evidence yet'}</small></div><span className={`djm-evidence-state ${count ? 'is-review' : 'is-missing'}`}>{count ? 'Review evidence' : 'Qualification gap'}</span></button>; })}</div> : <div className="djm-os-empty"><CheckCircle2 size={25}/><p>No live club needs.</p></div>}
+          <div className="djm-os-panel-head"><div><h2>Live club demand</h2><p>Full request facts for matching and manual player search.</p></div></div>
+          {activeNeeds.length ? <div className="djm-os-list djm-market-needs-list">{activeNeeds.map((need) => { const count = Number(need.match_count || 0); const gaps = needSearchGaps(need); return <button key={need.id} type="button" className={`djm-market-need-row${selectedNeed?.id===need.id ? ' is-selected' : ''}`} onClick={() => void openNeed(need)}>
+            <div className="djm-market-need-head">
+              <div><strong>{need.organisation_name}</strong><span>{need.title || `${need.need_position} requirement`}</span></div>
+              <span className={`djm-evidence-state ${count ? 'is-review' : 'is-missing'}`}>{count ? `${count} candidate${count === 1 ? '' : 's'}` : 'No evidence'}</span>
+            </div>
+            <div className="djm-market-need-facts" aria-label="Request constraints">
+              <span><b>Position</b>{displayValue(need.need_position)}</span>
+              <span><b>Age</b>{ageRange(need)}</span>
+              <span><b>Deal</b>{transferRoute(need)}</span>
+              <span><b>Transfer fee</b>{transferBudget(need)}</span>
+              <span><b>Salary</b>{salaryBudget(need)}</span>
+              <span><b>Foot</b>{humanise(need.preferred_foot) || 'Any / unknown'}</span>
+            </div>
+            <p className="djm-market-request-preview">{need.profile_notes || 'Original request text not recorded.'}</p>
+            <div className="djm-market-need-foot"><small>{gaps.length ? `${gaps.length} search filter${gaps.length === 1 ? '' : 's'} still missing` : 'Search brief structurally complete'}</small><span>Open full brief <ArrowRight size={14}/></span></div>
+          </button>; })}</div> : <div className="djm-os-empty"><CheckCircle2 size={25}/><p>No live club needs.</p></div>}
         </section>
 
         <section className="djm-os-panel">
           {!selectedNeed ? <div className="djm-os-empty"><Target size={25}/><p>Select a club need to see matched players.</p></div> : (
             <>
-              <div className="djm-os-panel-head"><div><h2>{selectedNeed.organisation_name} · {selectedNeed.need_position}</h2><p>{selectedNeed.profile_notes || 'No extra profile notes.'}</p></div><div className="djm-os-button-row"><button className="djm-os-icon-button" onClick={() => setEditing((x) => !x)} aria-label="Edit"><Pencil size={16}/></button><button className="djm-os-icon-button" onClick={() => setSelectedNeed(null)} aria-label="Close panel"><X size={16}/></button></div></div>
+              <div className="djm-os-panel-head"><div><div className="djm-command-meta"><span className="djm-evidence-state is-review">{humanise(selectedNeed.need_status)}</span><span>{selectedNeed.expires_at ? `Live until ${compactDate(selectedNeed.expires_at)}` : 'No expiry recorded'}</span></div><h2>{selectedNeed.organisation_name} · {selectedNeed.need_position}</h2><p>{selectedNeed.title || 'Club recruitment requirement'}</p></div><div className="djm-os-button-row"><button className="djm-os-icon-button" onClick={() => setEditing((x) => !x)} aria-label="Edit full request"><Pencil size={16}/></button><button className="djm-os-icon-button" onClick={() => setSelectedNeed(null)} aria-label="Close panel"><X size={16}/></button></div></div>
               {editing && editForm ? <form className="djm-os-form" onSubmit={saveNeed} style={{ borderBottom:'1px solid var(--djm-line)' }}><NeedFields form={editForm} setForm={setEditForm}/><button className="djm-os-primary-button" disabled={busy}>Save changes & rematch</button></form> : null}
+              {!editing ? <NeedSearchBrief need={selectedNeed} onCopy={() => void copySearchBrief()}/> : null}
               <div className="djm-os-button-row" style={{ padding:'12px 14px', borderBottom:'1px solid var(--djm-line)' }}><button className={candidateTab==='signed' ? 'djm-os-primary-button':'djm-os-secondary-button'} onClick={() => setCandidateTab('signed')}><UsersRound size={15}/>Signed players ({candidates.signed_players?.length || 0})</button><button className={candidateTab==='recruitment' ? 'djm-os-primary-button':'djm-os-secondary-button'} onClick={() => setCandidateTab('recruitment')}>Recruitment ({candidates.recruitment_targets?.length || 0})</button></div>
               {currentCandidates.length ? <div className="djm-os-list">{currentCandidates.slice(0,12).map((c:any) => { const name=c.player_name||c.full_name; const assessment=matchAssessment(c); const evidence=[...assessment.strengths,...assessment.concerns,...assessment.missing][0]; return <article className="djm-candidate-row" key={c.player_id||c.prospect_id}><div style={{flex:1}}><div className="djm-command-meta"><span className={`djm-evidence-state ${assessment.hardBlockers.length ? 'is-missing' : 'is-review'}`}>{assessment.strength}</span><span>{candidateTab==='signed' ? 'Signed player' : 'Recruitment target'}</span></div><strong>{name}</strong><p>{[c.player_position||c.primary_position,c.current_club,c.preferred_foot].filter(Boolean).join(' · ')}</p><small>{assessment.hardBlockers[0] ? `Hard blocker · ${assessment.hardBlockers[0]}` : evidence || 'Review source data before progressing'}</small></div><button type="button" className="djm-os-secondary-button" onClick={() => void openDealRoom(c)}>Open qualification room</button></article>})}</div> : <div className="djm-os-empty"><Target size={25}/><p>No candidates in this player pool yet.</p></div>}
               <div className="djm-os-button-row" style={{ padding:14 }}><button className="djm-os-secondary-button" onClick={() => void setNeedStatus('closed')}>Close need</button><button className="djm-os-secondary-button" onClick={() => void deleteNeed()}>Delete</button></div>
@@ -264,13 +326,111 @@ function NeedFields({ form, setForm }: { form:any; setForm:(value:any)=>void }) 
       <label>Currency<input value={form.currency} onChange={(e)=>setForm({...form,currency:e.target.value.toUpperCase()})}/></label>
       <label>Salary period<select value={form.salary_period} onChange={(e)=>setForm({...form,salary_period:e.target.value})}><option value="year">Year</option><option value="month">Month</option><option value="week">Week</option></select></label>
     </div>
-    <label>Player profile notes<textarea rows={3} value={form.profile_notes} onChange={(e)=>setForm({...form,profile_notes:e.target.value})}/></label>
+    <label>Original request / player profile<textarea rows={4} value={form.profile_notes} onChange={(e)=>setForm({...form,profile_notes:e.target.value})} placeholder="Keep the club's wording, role detail, playing style, level and any context that matters."/></label>
     <label>Registration / passport notes<textarea rows={2} value={form.registration_notes} onChange={(e)=>setForm({...form,registration_notes:e.target.value})}/></label>
   </>;
+}
+
+function NeedSearchBrief({ need, onCopy }: { need:any; onCopy:()=>void }) {
+  const gaps = needSearchGaps(need);
+  return <section className="djm-market-brief">
+    <header className="djm-market-brief-head">
+      <div><span><Search size={14}/>Manual player search brief</span><h3>Everything received from the club, in one place</h3></div>
+      <button type="button" className="djm-os-secondary-button" onClick={onCopy}><Copy size={15}/>Copy full brief</button>
+    </header>
+    <div className="djm-market-brief-grid">
+      <BriefFact label="Position / role" value={displayValue(need.need_position)} icon={<Target size={16}/>}/>
+      <BriefFact label="Age range" value={ageRange(need)} icon={<CalendarClock size={16}/>} missing={need.min_age == null && need.max_age == null}/>
+      <BriefFact label="Transfer route" value={transferRoute(need)} icon={<ArrowRight size={16}/>} missing={!need.transfer_type}/>
+      <BriefFact label="Transfer fee budget" value={transferBudget(need)} icon={<Banknote size={16}/>} missing={transferBudgetMissing(need)}/>
+      <BriefFact label="Salary budget" value={salaryBudget(need)} icon={<Banknote size={16}/>} missing={need.salary_budget == null}/>
+      <BriefFact label="Preferred foot" value={humanise(need.preferred_foot) || 'Any / unknown'} icon={<Target size={16}/>} missing={!need.preferred_foot}/>
+    </div>
+    <div className="djm-market-brief-texts">
+      <article><span>Original request / player profile</span><p>{need.profile_notes || 'No original request text or player-profile detail has been recorded.'}</p></article>
+      <article><span>Registration, passport or league constraints</span><p>{need.registration_notes || 'No registration or passport constraints have been recorded.'}</p></article>
+    </div>
+    <div className={`djm-market-gaps ${gaps.length ? 'has-gaps' : 'is-complete'}`}>
+      <div><strong>{gaps.length ? 'Manual search gaps' : 'Search brief complete'}</strong><span>{gaps.length ? 'Clarify these before narrowing the market too aggressively.' : 'All core filters are recorded. Verify them with the source before progressing.'}</span></div>
+      <div>{gaps.length ? gaps.map((gap) => <span key={gap}>{gap}</span>) : <span>Core filters recorded</span>}</div>
+    </div>
+  </section>;
+}
+
+function BriefFact({ label, value, icon, missing=false }: { label:string; value:string; icon:React.ReactNode; missing?:boolean }) {
+  return <div className={`djm-market-brief-fact${missing ? ' is-missing' : ''}`}><span>{icon}{label}</span><strong>{value}</strong></div>;
 }
 
 function toEditForm(need:any) { return {
   title:need.title||'', position:need.need_position||'', preferred_foot:need.preferred_foot||'', min_age:need.min_age??'', max_age:need.max_age??'', transfer_type:need.transfer_type||'', transfer_budget:need.transfer_budget??'', salary_budget:need.salary_budget??'', currency:need.currency||'EUR', salary_period:need.salary_period||'year', profile_notes:need.profile_notes||'', registration_notes:need.registration_notes||'',
 }; }
 function numOrNull(value:any) { return value === '' || value == null ? null : Number(value); }
+function displayValue(value:any) { return value == null || String(value).trim() === '' ? 'Not provided' : String(value); }
+function humanise(value:any) { return value == null || String(value).trim() === '' ? '' : String(value).replaceAll('_',' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
+function ageRange(need:any) {
+  if (need.min_age != null && need.max_age != null) return `${need.min_age}–${need.max_age}`;
+  if (need.min_age != null) return `${need.min_age}+`;
+  if (need.max_age != null) return `Up to ${need.max_age}`;
+  return 'Not provided';
+}
+function money(value:any, currency?:string | null) {
+  if (value == null || value === '') return 'Not provided';
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return String(value);
+  if (!currency) return `${amount.toLocaleString('en-GB')} · currency not set`;
+  try { return new Intl.NumberFormat('en-GB', { style:'currency', currency, maximumFractionDigits:0 }).format(amount); }
+  catch { return `${currency} ${amount.toLocaleString('en-GB')}`; }
+}
+function transferRoute(need:any) {
+  if (need.transfer_type === 'transfer') return 'Permanent transfer';
+  return humanise(need.transfer_type) || 'Not provided';
+}
+function transferBudgetMissing(need:any) {
+  return need.transfer_budget == null && !['free','free_or_loan'].includes(need.transfer_type);
+}
+function transferBudget(need:any) {
+  if (need.transfer_budget != null) return money(need.transfer_budget, need.currency);
+  if (need.transfer_type === 'free') return 'No transfer fee';
+  if (need.transfer_type === 'free_or_loan') return 'Free / loan terms';
+  return 'Not provided';
+}
+function salaryBudget(need:any) {
+  if (need.salary_budget == null) return 'Not provided';
+  return `${money(need.salary_budget, need.currency)} / ${humanise(need.salary_period || 'year').toLowerCase()}`;
+}
+function needSearchGaps(need:any) {
+  const gaps:string[] = [];
+  if (need.min_age == null && need.max_age == null) gaps.push('Age range');
+  if (!need.transfer_type) gaps.push('Transfer route');
+  if (transferBudgetMissing(need)) gaps.push('Transfer fee budget');
+  if (need.salary_budget == null) gaps.push('Salary budget');
+  if ((need.transfer_budget != null || need.salary_budget != null) && !need.currency) gaps.push('Budget currency');
+  if (!need.profile_notes) gaps.push('Player profile / original text');
+  if (!need.registration_notes) gaps.push('Registration / passport');
+  return gaps;
+}
+function buildSearchBrief(need:any) {
+  const gaps = needSearchGaps(need);
+  return [
+    'DJM CLUB RECRUITMENT BRIEF',
+    `Club: ${displayValue(need.organisation_name)}`,
+    `Request: ${displayValue(need.title)}`,
+    `Position / role: ${displayValue(need.need_position)}`,
+    `Age: ${ageRange(need)}`,
+    `Preferred foot: ${humanise(need.preferred_foot) || 'Any / unknown'}`,
+    `Transfer route: ${transferRoute(need)}`,
+    `Transfer fee budget: ${transferBudget(need)}`,
+    `Salary budget: ${salaryBudget(need)}`,
+    `Status: ${humanise(need.need_status) || 'Not provided'}`,
+    `Live until: ${need.expires_at ? compactDate(need.expires_at) : 'Not provided'}`,
+    '',
+    'ORIGINAL REQUEST / PLAYER PROFILE',
+    need.profile_notes || 'Not provided',
+    '',
+    'REGISTRATION / PASSPORT / LEAGUE CONSTRAINTS',
+    need.registration_notes || 'Not provided',
+    '',
+    `MISSING SEARCH FILTERS: ${gaps.length ? gaps.join(', ') : 'None'}`,
+  ].join('\n');
+}
 function Metric({label,value,attention=false}:{label:string;value:string|number;attention?:boolean}) { return <div className="djm-os-metric" style={attention ? {borderColor:'rgba(244,196,48,.7)',background:'rgba(244,196,48,.08)'}:undefined}><strong>{value}</strong><span>{label}</span></div>; }
