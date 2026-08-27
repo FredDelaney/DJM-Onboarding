@@ -11,9 +11,13 @@ The connected player workspace has two primary surfaces:
 
 `lib/player-career.ts` is the shared decision layer for the two surfaces. It derives readiness and a prioritised weekly plan from existing player-owned or player-visible records. The UI does not fetch staff-only opportunity data or hidden request signals.
 
+The connected Admin workspace lives at `/admin`. `lib/admin-command-centre.ts` joins existing roster, check-in, request, opportunity, agreement, document, footage and published-profile records into a ranked operational portfolio. The derivation is pure and source-backed; mutations still target their owning tables. Deep links into `/admin/players/[id]` use stable tab hashes so every portfolio signal opens at the corresponding workflow.
+
 ## Authentication
 
 Supabase Auth. New players are invite-only. DJM staff emails are authorised through `admin_allowlist`. Roles are `player`, `admin` and limited `scout`.
+
+Full administrators have portfolio-wide access. Scout scope comes from `staff_player_access`; `can_edit` separately gates sensitive readiness inputs and player mutations. Admin team-management actions keep the allowlist and an existing `profiles.role` in sync, while revocation also removes scout assignments.
 
 ## Data separation
 

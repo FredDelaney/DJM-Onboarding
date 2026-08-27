@@ -30,6 +30,10 @@ The readiness score measures preparation and opportunity readiness only. It is n
 
 Admin is the operating layer behind the simple player app. One player record is the source of truth for football data, private representation information, check-ins, requests, opportunities, documents, agreements, verification and the club dossier.
 
+`/admin` is DJM's daily command centre. It ranks player-originated needs and time-sensitive agency work, shows the current roster pulse, connects opportunities to next actions, and gives authorised staff one route into every player workflow. Roster management, opportunity movement, player communications, professional resources and team access live in separate focused workspaces but share the same source records.
+
+The Admin priority and readiness models are operational preparation tools. They must never be presented as ratings of talent, form, selection quality or transfer value, and limited scout visibility must stay visibly limited rather than becoming a false negative score.
+
 ## Club experience
 
 The club dossier is a recruitment product, not a copy of the player portal. It includes only information intentionally approved for sharing and can be distributed through tracked expiring links.

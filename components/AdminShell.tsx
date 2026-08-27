@@ -78,7 +78,7 @@ const fetchAdmin = async () => {
   const { data: profile } =
     await supabase
       .from('profiles')
-      .select('*')
+      .select('id,email,display_name,role,avatar_path,updated_at')
       .eq('id', user.id)
       .maybeSingle();
 

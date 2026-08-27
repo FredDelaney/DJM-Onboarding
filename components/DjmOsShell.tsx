@@ -48,7 +48,7 @@ export default function DjmOsShell({
           </div>
 
           <div className="djm-os-user">
-            <span>{auth.profile?.full_name || auth.user?.email || 'DJM'}</span>
+            <span>{auth.profile?.display_name || auth.user?.email || 'DJM'}</span>
             <small>{auth.profile?.role || 'team'}</small>
           </div>
         </div>
