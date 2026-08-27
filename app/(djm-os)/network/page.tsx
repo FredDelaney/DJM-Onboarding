@@ -74,6 +74,9 @@ export default function NetworkPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState('whatsapp');
   const [importPreview, setImportPreview] = useState<any>(null);
+  const importPreviewCount = Number(
+    importPreview?.parsed_messages || importPreview?.parsed_contacts || 0,
+  );
 
   const flash = (message: string) => {
     setToast(message);
@@ -314,7 +317,10 @@ export default function NetworkPage() {
         makeImportForm(false),
       );
       setImportPreview(result);
-      flash('Import completed');
+      const importedCount = Number(
+        result?.parsed_messages || result?.parsed_contacts || 0,
+      );
+      flash(importedCount ? `Imported ${importedCount} records into DJM` : 'Import completed');
       await load();
     } catch (e) {
       setError(friendlyError(e));
@@ -827,15 +833,40 @@ export default function NetworkPage() {
                 <button type="button" className="djm-os-secondary-button" disabled={!importFile || busy} onClick={() => void previewImport()}>
                   Preview safely
                 </button>
-                <button type="button" className="djm-os-primary-button" disabled={!importFile || busy || !importPreview?.dry_run} onClick={() => void commitImport()}>
-                  Import
+                <button
+                  type="button"
+                  className="djm-os-primary-button"
+                  disabled={!importFile || busy}
+                  onClick={() => void commitImport()}
+                >
+                  {busy
+                    ? 'Working…'
+                    : importPreview?.dry_run && importPreviewCount
+                      ? `Import ${importPreviewCount} ${importMode === 'whatsapp' ? 'messages' : 'contacts'}`
+                      : 'Import now'}
                 </button>
               </div>
 
               {importPreview ? (
                 <div className="djm-os-preview">
                   <strong>{importPreview.dry_run ? 'Safe preview' : 'Import result'}</strong>
-                  <pre>{JSON.stringify(importPreview, null, 2)}</pre>
+                  {importPreview.dry_run ? (
+                    <p>
+                      {importPreviewCount
+                        ? `${importPreviewCount} ${importMode === 'whatsapp' ? 'messages' : 'contacts'} found. Ready to import.`
+                        : 'Preview completed. Check the details below before importing.'}
+                    </p>
+                  ) : (
+                    <p>
+                      {importPreviewCount
+                        ? `${importPreviewCount} records processed into DJM.`
+                        : 'Import completed.'}
+                    </p>
+                  )}
+                  <details>
+                    <summary>Show import details</summary>
+                    <pre>{JSON.stringify(importPreview, null, 2)}</pre>
+                  </details>
                 </div>
               ) : null}
             </div>
