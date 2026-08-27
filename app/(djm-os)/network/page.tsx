@@ -74,6 +74,11 @@ export default function NetworkPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState('whatsapp');
   const [importPreview, setImportPreview] = useState<any>(null);
+  const [importContactId, setImportContactId] = useState('');
+  const selectedImportContact = useMemo(
+    () => contacts.find((person: any) => person.id === importContactId) || null,
+    [contacts, importContactId],
+  );
   const importPreviewCount = Number(
     importPreview?.parsed_messages || importPreview?.parsed_contacts || 0,
   );
@@ -287,6 +292,15 @@ export default function NetworkPage() {
     form.append('mode', importMode);
     form.append('dry_run', dryRun ? 'true' : 'false');
     form.append('timezone', 'Europe/Rome');
+    if (importMode === 'whatsapp' && selectedImportContact) {
+      form.append('contact_name', selectedImportContact.full_name);
+      if (selectedImportContact.current_organisation) {
+        form.append('club_name', selectedImportContact.current_organisation);
+      }
+      if (selectedImportContact.role_title) {
+        form.append('role_title', selectedImportContact.role_title);
+      }
+    }
     return form;
   };
 
@@ -316,11 +330,38 @@ export default function NetworkPage() {
         'djm-network-import',
         makeImportForm(false),
       );
+      if (importMode === 'whatsapp' && selectedImportContact?.id) {
+        const threadIds = Array.from(
+          new Set(
+            (result?.batches || [])
+              .map((batch: any) => batch?.thread_id)
+              .filter(Boolean),
+          ),
+        ) as string[];
+
+        for (const threadId of threadIds) {
+          await djmRpc('djm_attach_whatsapp_thread', {
+            p_thread_id: threadId,
+            p_person_id: selectedImportContact.id,
+          });
+        }
+
+        result.attached_contact = {
+          id: selectedImportContact.id,
+          name: selectedImportContact.full_name,
+          club: selectedImportContact.current_organisation || null,
+        };
+      }
+
       setImportPreview(result);
       const importedCount = Number(
         result?.parsed_messages || result?.parsed_contacts || 0,
       );
-      flash(importedCount ? `Imported ${importedCount} records into DJM` : 'Import completed');
+      flash(
+        importedCount
+          ? `Imported ${importedCount} records${selectedImportContact ? ` · attached to ${selectedImportContact.full_name}` : ''}`
+          : 'Import completed',
+      );
       await load();
     } catch (e) {
       setError(friendlyError(e));
@@ -809,6 +850,31 @@ export default function NetworkPage() {
                 </select>
               </label>
 
+              {importMode === 'whatsapp' ? (
+                <label>
+                  Attach to club contact
+                  <select
+                    value={importContactId}
+                    onChange={(e) => {
+                      setImportContactId(e.target.value);
+                      setImportPreview(null);
+                    }}
+                  >
+                    <option value="">Auto-detect from WhatsApp</option>
+                    {contacts.map((person: any) => (
+                      <option key={person.id} value={person.id}>
+                        {person.full_name}
+                        {person.current_organisation ? ` · ${person.current_organisation}` : ''}
+                        {person.role_title ? ` · ${person.role_title}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ marginTop: 5, color: '#7a8a98', fontSize: 11, fontWeight: 500 }}>
+                    Recommended when the person already exists in Network. DJM will attach the whole chat to that exact contact and their current club.
+                  </span>
+                </label>
+              ) : null}
+
               <label className="djm-os-file-drop">
                 <FileUp size={26} />
                 <strong>{importFile ? importFile.name : 'Choose import file'}</strong>
@@ -828,6 +894,26 @@ export default function NetworkPage() {
                   }}
                 />
               </label>
+
+              {selectedImportContact && importMode === 'whatsapp' ? (
+                <div
+                  style={{
+                    padding: '11px 13px',
+                    border: '1px solid rgba(244,196,48,.58)',
+                    borderRadius: 11,
+                    background: 'rgba(244,196,48,.09)',
+                    color: 'var(--djm-navy)',
+                    fontSize: 12,
+                  }}
+                >
+                  <strong>Will attach to {selectedImportContact.full_name}</strong>
+                  <span style={{ display: 'block', marginTop: 3, color: '#66788a' }}>
+                    {[selectedImportContact.role_title, selectedImportContact.current_organisation]
+                      .filter(Boolean)
+                      .join(' · ') || 'Existing DJM club contact'}
+                  </span>
+                </div>
+              ) : null}
 
               <div className="djm-os-button-row">
                 <button type="button" className="djm-os-secondary-button" disabled={!importFile || busy} onClick={() => void previewImport()}>

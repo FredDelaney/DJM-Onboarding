@@ -16,6 +16,33 @@ import {
 import DjmOsShell from '@/components/DjmOsShell';
 import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
 
+function cleanBriefText(value: unknown) {
+  return String(value || '')
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+    .replace(/<attached:[^>]+>/gi, '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\[[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4},?[^\]]*\]\s*[^:]+:\s*/g, '')
+    .replace(/\s*[•·]\s*\d+\s+pages?/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isUsefulBriefMessage(value: string) {
+  if (value.length < 18) return false;
+  return !/^(thanks?|thank you|cheers|ok(?:ay)?|perfect|great|haha|ah+h+)[!?. 🙏🏼😊]*$/i.test(value.trim());
+}
+
+function cleanClaimValue(value: unknown) {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(String).join(', ');
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, item]) => `${key.replaceAll('_', ' ')}: ${String(item)}`)
+      .join(' · ');
+  }
+  return String(value ?? '');
+}
+
 export default function ContactWorkspacePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -107,6 +134,12 @@ export default function ContactWorkspacePage() {
   const openTasks = prep?.open_tasks || [];
   const recentClaims = prep?.recent_claims || [];
   const upcomingMeetings = prep?.upcoming_meetings || [];
+  const recentMessages = prep?.recent_messages || [];
+  const briefingMessages = recentMessages
+    .map((message: any) => ({ ...message, clean_text: cleanBriefText(message.raw_text) }))
+    .filter((message: any) => isUsefulBriefMessage(message.clean_text))
+    .slice(0, 4);
+  const lastTouch = recentMessages[0]?.sent_at || lastInteraction?.occurred_at;
   const whatsapp = (data?.contacts || []).find((c: any) => c.channel === 'whatsapp')?.value;
   const cleanWhatsapp = String(whatsapp || '').replace(/\D/g, '');
 
@@ -163,7 +196,7 @@ export default function ContactWorkspacePage() {
                   readiness.state === 'green'
                     ? 'rgba(32,124,91,.35)'
                     : readiness.state === 'red'
-                      ? 'rgba(169,56,56,.28)'
+                      ? 'rgba(6,31,58,.22)'
                       : 'rgba(244,196,48,.55)',
               }}
             >
@@ -172,10 +205,10 @@ export default function ContactWorkspacePage() {
                   <p className="djm-os-eyebrow">Contact now?</p>
                   <h2 style={{ textTransform: 'capitalize' }}>
                     {readiness.state === 'green'
-                      ? 'Green · good reason to contact'
+                      ? 'Ready · good reason to contact'
                       : readiness.state === 'red'
-                        ? 'Red · do not chase now'
-                        : 'Amber · be deliberate'}
+                        ? 'Hold · do not chase now'
+                        : 'Relationship-first · be deliberate'}
                   </h2>
                   <p>{readiness.reason}</p>
                 </div>
@@ -196,60 +229,165 @@ export default function ContactWorkspacePage() {
                 </div>
                 <Sparkles size={20} />
               </div>
-              <div className="djm-os-form">
-                {lastInteraction ? (
-                  <div className="djm-os-preview" style={{ background: '#f5f8fa', color: '#31465b' }}>
-                    <strong>Last conversation</strong>
-                    <p>{lastInteraction.summary}</p>
-                    <small>{lastInteraction.channel} · {lastInteraction.team_member || 'DJM'} · {compactDateTime(lastInteraction.occurred_at)}</small>
+              <div style={{ padding: 18, display: 'grid', gap: 14 }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                    gap: 9,
+                  }}
+                >
+                  {[
+                    ['Last touch', lastTouch ? compactDateTime(lastTouch) : 'No history'],
+                    ['Channel', recentMessages.length ? 'WhatsApp' : lastInteraction?.channel || '—'],
+                    ['DJM owner', lastInteraction?.team_member || best?.team_member_name || 'DJM'],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      style={{
+                        padding: '12px 13px',
+                        border: '1px solid #e5ebf0',
+                        borderRadius: 12,
+                        background: '#f8fafb',
+                      }}
+                    >
+                      <small
+                        style={{
+                          display: 'block',
+                          marginBottom: 5,
+                          color: '#7c8b99',
+                          fontSize: 9,
+                          fontWeight: 850,
+                          letterSpacing: '.08em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {label}
+                      </small>
+                      <strong style={{ color: 'var(--djm-navy)', fontSize: 12 }}>{value}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                {briefingMessages.length ? (
+                  <div
+                    style={{
+                      padding: 14,
+                      border: '1px solid #e1e8ed',
+                      borderRadius: 14,
+                      background: 'white',
+                    }}
+                  >
+                    <div style={{ marginBottom: 10 }}>
+                      <strong style={{ color: 'var(--djm-navy)', fontSize: 12 }}>Recent context</strong>
+                      <span style={{ display: 'block', marginTop: 2, color: '#7b8b99', fontSize: 10 }}>
+                        Only the useful recent messages. Links, files and chat noise are hidden.
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {briefingMessages.map((message: any) => (
+                        <div
+                          key={message.id}
+                          style={{
+                            padding: '10px 11px',
+                            borderRadius: 11,
+                            background: message.direction === 'outbound' ? '#f7f9fb' : 'rgba(244,196,48,.10)',
+                            borderLeft: message.direction === 'outbound'
+                              ? '3px solid #cbd6df'
+                              : '3px solid var(--djm-yellow)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                            <strong style={{ color: 'var(--djm-navy)', fontSize: 10 }}>
+                              {message.direction === 'outbound' ? 'DJM' : person?.preferred_name || person?.full_name || 'Contact'}
+                            </strong>
+                            <small style={{ color: '#8a99a7', fontSize: 9 }}>
+                              {compactDateTime(message.sent_at)}
+                            </small>
+                          </div>
+                          <p
+                            style={{
+                              margin: '5px 0 0',
+                              color: '#31465b',
+                              fontSize: 12,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {message.clean_text.length > 320
+                              ? `${message.clean_text.slice(0, 317)}…`
+                              : message.clean_text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : lastInteraction?.summary ? (
+                  <div
+                    style={{
+                      padding: 13,
+                      border: '1px solid #e1e8ed',
+                      borderRadius: 12,
+                      background: '#f8fafb',
+                    }}
+                  >
+                    <strong style={{ color: 'var(--djm-navy)', fontSize: 11 }}>Last conversation</strong>
+                    <p style={{ margin: '6px 0 0', color: '#42566a', fontSize: 12, lineHeight: 1.5 }}>
+                      {cleanBriefText(lastInteraction.summary).slice(0, 360)}
+                    </p>
                   </div>
                 ) : null}
 
-                {openNeeds.length ? (
-                  <div>
-                    <strong style={{ color: 'var(--djm-navy)', fontSize: 12 }}>Open club needs</strong>
-                    {openNeeds.slice(0, 4).map((need: any) => (
-                      <p key={need.id} style={{ margin: '8px 0 0', fontSize: 12 }}>
-                        {need.organisation_name} · {need.position || need.title} · {need.status}
-                      </p>
-                    ))}
+                {(openTasks.length || openNeeds.length || recentClaims.length || upcomingMeetings.length) ? (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: 10,
+                    }}
+                  >
+                    {openTasks.length ? (
+                      <BriefCard title="Open promises" attention>
+                        {openTasks.slice(0, 3).map((task: any) => (
+                          <BriefLine key={task.id} text={task.title} meta={task.due_at ? compactDateTime(task.due_at) : 'No deadline'} />
+                        ))}
+                      </BriefCard>
+                    ) : null}
+
+                    {openNeeds.length ? (
+                      <BriefCard title="Club needs">
+                        {openNeeds.slice(0, 3).map((need: any) => (
+                          <BriefLine
+                            key={need.id}
+                            text={need.position || need.title}
+                            meta={[need.organisation_name, need.status].filter(Boolean).join(' · ')}
+                          />
+                        ))}
+                      </BriefCard>
+                    ) : null}
+
+                    {recentClaims.length ? (
+                      <BriefCard title="Useful intelligence">
+                        {recentClaims.slice(0, 3).map((claim: any, index: number) => (
+                          <BriefLine
+                            key={`${claim.claim_key}-${index}`}
+                            text={(claim.claim_key || claim.claim_type || 'Intelligence').replaceAll('_', ' ')}
+                            meta={cleanClaimValue(claim.value_json).slice(0, 180)}
+                          />
+                        ))}
+                      </BriefCard>
+                    ) : null}
+
+                    {upcomingMeetings.length ? (
+                      <BriefCard title="Upcoming">
+                        {upcomingMeetings.slice(0, 3).map((meeting: any) => (
+                          <BriefLine key={meeting.id} text={meeting.title} meta={compactDateTime(meeting.starts_at)} />
+                        ))}
+                      </BriefCard>
+                    ) : null}
                   </div>
                 ) : null}
 
-                {openTasks.length ? (
-                  <div>
-                    <strong style={{ color: 'var(--djm-navy)', fontSize: 12 }}>Open promises</strong>
-                    {openTasks.slice(0, 4).map((task: any) => (
-                      <p key={task.id} style={{ margin: '8px 0 0', fontSize: 12 }}>
-                        {task.title}{task.due_at ? ` · ${compactDateTime(task.due_at)}` : ''}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-
-                {recentClaims.length ? (
-                  <div>
-                    <strong style={{ color: 'var(--djm-navy)', fontSize: 12 }}>Recent intelligence</strong>
-                    {recentClaims.slice(0, 4).map((claim: any, index: number) => (
-                      <p key={`${claim.claim_key}-${index}`} style={{ margin: '8px 0 0', fontSize: 12 }}>
-                        {claim.claim_key || claim.claim_type}: {typeof claim.value_json === 'string' ? claim.value_json : JSON.stringify(claim.value_json)}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-
-                {upcomingMeetings.length ? (
-                  <div>
-                    <strong style={{ color: 'var(--djm-navy)', fontSize: 12 }}>Upcoming</strong>
-                    {upcomingMeetings.slice(0, 3).map((meeting: any) => (
-                      <p key={meeting.id} style={{ margin: '8px 0 0', fontSize: 12 }}>
-                        {meeting.title} · {compactDateTime(meeting.starts_at)}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-
-                {!lastInteraction && !openNeeds.length && !openTasks.length && !recentClaims.length && !upcomingMeetings.length ? (
+                {!lastTouch && !openNeeds.length && !openTasks.length && !recentClaims.length && !upcomingMeetings.length ? (
                   <p style={{ margin: 0, color: '#66788a', fontSize: 12 }}>
                     There is not enough history yet. The next conversation will start building DJM memory.
                   </p>
@@ -261,10 +399,10 @@ export default function ContactWorkspacePage() {
                     target="_blank"
                     rel="noreferrer"
                     className="djm-os-primary-button"
-                    style={{ textDecoration: 'none' }}
+                    style={{ textDecoration: 'none', width: 'fit-content' }}
                   >
                     <MessageCircleMore size={15} />
-                    Open WhatsApp
+                    Message {person?.preferred_name || person?.full_name?.split(' ')[0] || 'contact'} on WhatsApp
                   </a>
                 ) : null}
               </div>
@@ -385,6 +523,45 @@ export default function ContactWorkspacePage() {
         </>
       )}
     </DjmOsShell>
+  );
+}
+
+function BriefCard({
+  title,
+  attention = false,
+  children,
+}: {
+  title: string;
+  attention?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        padding: 13,
+        borderRadius: 12,
+        border: attention ? '1px solid rgba(244,196,48,.62)' : '1px solid #e4eaef',
+        background: attention ? 'rgba(244,196,48,.07)' : '#fbfcfd',
+      }}
+    >
+      <strong style={{ display: 'block', marginBottom: 8, color: 'var(--djm-navy)', fontSize: 11 }}>
+        {title}
+      </strong>
+      <div style={{ display: 'grid', gap: 8 }}>{children}</div>
+    </div>
+  );
+}
+
+function BriefLine({ text, meta }: { text: string; meta?: string; key?: string }) {
+  return (
+    <div>
+      <p style={{ margin: 0, color: '#2d4358', fontSize: 11, fontWeight: 750, lineHeight: 1.4 }}>{text}</p>
+      {meta ? (
+        <small style={{ display: 'block', marginTop: 2, color: '#8392a0', fontSize: 9, lineHeight: 1.4 }}>
+          {meta}
+        </small>
+      ) : null}
+    </div>
   );
 }
 
