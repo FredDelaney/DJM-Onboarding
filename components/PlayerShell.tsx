@@ -12,6 +12,7 @@ import {
 } from 'next/navigation';
 import {
   Activity,
+  Compass,
   Home,
   LogOut,
   MessageCircle,
@@ -100,7 +101,9 @@ const fetchPlayerState = async () => {
 
     supabase
       .from('players')
-      .select('*')
+      .select(
+        'id,user_id,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,instagram_url,profile_photo_path,onboarding_status,verification_status,current_season_label,current_season_start,updated_at',
+      )
       .eq('user_id', user.id)
       .limit(1),
   ]);
@@ -306,10 +309,11 @@ export function PlayerShell({
   const router = useRouter();
 
   const nav = [
-    ['/home', 'Home', Home],
-    ['/inbox', 'DJM', MessageCircle],
+    ['/home', 'Today', Home],
+    ['/career', 'Career', Compass],
     ['/check-in', 'Check-in', Activity],
-    ['/profile', 'Profile', UserRound],
+    ['/inbox', 'DJM', MessageCircle],
+    ['/profile', 'Me', UserRound],
   ] as const;
 
   useEffect(() => {
@@ -318,6 +322,7 @@ export function PlayerShell({
     });
     router.prefetch('/cv');
     router.prefetch('/documents');
+    router.prefetch('/career');
   }, [router]);
 
   const signOut = async () => {

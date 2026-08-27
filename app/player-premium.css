@@ -1578,3 +1578,1794 @@
     font-size: 22px;
   }
 }
+
+/* =========================================================
+   DJM PLAYER CAREER COMMAND CENTRE
+   Utility-first home, opportunity readiness and toolkit
+   ========================================================= */
+
+.player-home-command,
+.player-career-page {
+  width: min(100% - 36px, 1080px);
+  padding-top: 16px;
+}
+
+.player-command-hero {
+  position: relative;
+  min-height: 570px;
+  overflow: hidden;
+  border-radius: 36px;
+  background:
+    radial-gradient(circle at 82% 16%, #174b7d, transparent 32%),
+    linear-gradient(145deg, #071f3a, #020c16);
+  color: #fff;
+  box-shadow: 0 30px 80px rgba(3, 16, 30, .19);
+  isolation: isolate;
+}
+
+.player-command-hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 120px;
+  height: 7px;
+  background: var(--yellow);
+}
+
+.player-command-hero.no-photo {
+  min-height: 510px;
+}
+
+.player-command-photo {
+  z-index: -2;
+  object-fit: cover;
+  object-position: 72% 16%;
+  filter: saturate(.9) contrast(1.04);
+}
+
+.player-command-shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(2, 12, 23, .98) 0%,
+      rgba(2, 12, 23, .91) 40%,
+      rgba(2, 12, 23, .44) 72%,
+      rgba(2, 12, 23, .18) 100%
+    ),
+    linear-gradient(0deg, rgba(2, 12, 23, .78), transparent 52%);
+}
+
+.player-command-main {
+  position: relative;
+  z-index: 2;
+  width: min(58%, 610px);
+  padding: 46px;
+}
+
+.player-command-kicker,
+.career-hub-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(255, 255, 255, .58);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.player-command-kicker i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--yellow);
+}
+
+.player-command-main h1 {
+  margin: 18px 0 9px;
+  font-size: clamp(54px, 7vw, 76px);
+  line-height: .91;
+  letter-spacing: -.065em;
+}
+
+.player-command-main > p {
+  margin: 0;
+  color: rgba(255, 255, 255, .68);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.player-command-primary {
+  max-width: 510px;
+  margin-top: 42px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 25px;
+  padding: 22px;
+  background: rgba(255, 255, 255, .08);
+  backdrop-filter: blur(16px);
+}
+
+.player-command-primary > span,
+.player-agent-update > span,
+.player-agent-desk-head > div > span,
+.player-week-head span,
+.player-toolkit-spotlight > span,
+.player-career-shortcuts > div > span,
+.player-club-view-strip span {
+  display: block;
+  color: rgba(255, 255, 255, .52);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .11em;
+}
+
+.player-command-primary > strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -.035em;
+}
+
+.player-command-primary > small {
+  display: block;
+  max-width: 430px;
+  margin-top: 7px;
+  color: rgba(255, 255, 255, .63);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.player-command-primary .btn {
+  min-height: 43px;
+  margin-top: 17px;
+}
+
+.player-command-score {
+  position: absolute;
+  right: 26px;
+  bottom: 28px;
+  z-index: 3;
+  width: 310px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 22px;
+  padding: 14px 15px;
+  background: rgba(2, 12, 23, .56);
+  color: #fff;
+  backdrop-filter: blur(16px);
+}
+
+.player-command-score-ring,
+.career-score-ring {
+  --career-score: 0deg;
+  position: relative;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--yellow) var(--career-score),
+    rgba(255, 255, 255, .14) 0
+  );
+}
+
+.player-command-score-ring::before,
+.career-score-ring::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--navy);
+}
+
+.player-command-score-ring strong,
+.career-score-ring > div {
+  position: relative;
+  z-index: 2;
+}
+
+.player-command-score > div:nth-child(2) span,
+.career-score-panel > div:last-child > span {
+  display: block;
+  color: rgba(255, 255, 255, .48);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .10em;
+}
+
+.player-command-score > div:nth-child(2) strong,
+.player-command-score > div:nth-child(2) small {
+  display: block;
+}
+
+.player-command-score > div:nth-child(2) strong {
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.player-command-score > div:nth-child(2) small {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, .52);
+  font-size: 9px;
+}
+
+.career-load-warning {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  border: 1px solid #d7e2ec;
+  border-radius: 16px;
+  padding: 11px 13px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.career-load-warning svg {
+  color: var(--blue);
+  flex: 0 0 auto;
+}
+
+.player-pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 17px;
+  border: 1px solid rgba(6, 31, 58, .07);
+  border-radius: 25px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(6, 31, 58, .04);
+}
+
+.player-pulse-grid > div {
+  min-width: 0;
+  padding: 18px 20px;
+}
+
+.player-pulse-grid > div + div {
+  border-left: 1px solid var(--line);
+}
+
+.player-pulse-grid span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .10em;
+}
+
+.player-pulse-grid span svg {
+  color: var(--blue);
+}
+
+.player-pulse-grid strong,
+.player-pulse-grid small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-pulse-grid strong {
+  margin-top: 8px;
+  color: var(--navy);
+  font-size: 13px;
+}
+
+.player-pulse-grid small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.player-week-grid,
+.player-value-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, .85fr);
+  gap: 17px;
+  margin-top: 17px;
+}
+
+.player-week-plan,
+.player-agent-desk,
+.player-career-shortcuts {
+  overflow: hidden;
+  border: 1px solid rgba(6, 31, 58, .07);
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 14px 44px rgba(6, 31, 58, .04);
+}
+
+.player-week-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 25px 17px;
+}
+
+.player-week-head span,
+.player-career-shortcuts > div > span {
+  color: var(--blue);
+}
+
+.player-week-head h2,
+.player-career-shortcuts h2 {
+  margin: 6px 0 0;
+  color: var(--navy);
+  font-size: 25px;
+  line-height: 1.05;
+  letter-spacing: -.045em;
+}
+
+.player-week-head > a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.player-week-list > a {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 15px;
+  border-top: 1px solid var(--line);
+  padding: 16px 25px;
+  color: var(--navy);
+}
+
+.player-week-list > a:hover {
+  background: #f8f9fa;
+}
+
+.player-week-number {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #eef3f7;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.player-week-list small,
+.player-week-list strong {
+  display: block;
+}
+
+.player-week-list small {
+  color: var(--blue);
+  font-size: 8px;
+  font-weight: 830;
+  letter-spacing: .08em;
+}
+
+.player-week-list strong {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.player-week-list p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.player-agent-desk {
+  display: flex;
+  flex-direction: column;
+  padding: 23px;
+  background:
+    radial-gradient(circle at 90% 0, #184b7c, transparent 38%),
+    var(--navy);
+  color: #fff;
+}
+
+.player-agent-desk-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.player-agent-mark {
+  width: 45px;
+  height: 45px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--yellow);
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.player-agent-desk-head > div > strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.player-agent-update {
+  flex: 1;
+  margin-top: 28px;
+}
+
+.player-agent-update > strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 20px;
+  line-height: 1.12;
+  letter-spacing: -.035em;
+}
+
+.player-agent-update p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, .62);
+  font-size: 11px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.player-agent-update > small {
+  display: block;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, .42);
+  font-size: 9px;
+}
+
+.player-agent-actions {
+  margin-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, .11);
+}
+
+.player-agent-actions a {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 43px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.player-agent-actions a + a {
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.player-value-grid {
+  grid-template-columns: minmax(0, 1.25fr) minmax(310px, .75fr);
+}
+
+.player-toolkit-spotlight {
+  position: relative;
+  overflow: hidden;
+  min-height: 310px;
+  border-radius: 30px;
+  padding: 31px;
+  background:
+    radial-gradient(circle at 84% 14%, #215b92, transparent 31%),
+    linear-gradient(145deg, #0b3157, #061a31);
+  color: #fff;
+  box-shadow: 0 18px 52px rgba(6, 31, 58, .11);
+}
+
+.player-toolkit-spotlight::after {
+  content: '';
+  position: absolute;
+  right: -58px;
+  bottom: -78px;
+  width: 240px;
+  height: 240px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 34px rgba(255, 255, 255, .025),
+    0 0 0 68px rgba(255, 255, 255, .018);
+}
+
+.player-toolkit-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 25px;
+  border-radius: 16px;
+  background: var(--yellow);
+  color: var(--navy);
+}
+
+.player-toolkit-spotlight h2 {
+  max-width: 540px;
+  margin: 9px 0 8px;
+  font-size: 32px;
+  line-height: 1.02;
+  letter-spacing: -.05em;
+}
+
+.player-toolkit-spotlight p {
+  max-width: 560px;
+  margin: 0;
+  color: rgba(255, 255, 255, .62);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.player-toolkit-spotlight > div:last-child {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 27px;
+}
+
+.player-toolkit-spotlight > div:last-child > strong {
+  color: var(--yellow);
+  font-size: 10px;
+}
+
+.player-toolkit-spotlight > div:last-child > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.player-career-shortcuts {
+  padding: 25px;
+}
+
+.player-career-shortcuts > div {
+  margin-bottom: 17px;
+}
+
+.player-career-shortcuts a {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  min-height: 55px;
+  border-top: 1px solid var(--line);
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.player-career-shortcuts a svg:first-child {
+  color: var(--blue);
+}
+
+.player-club-view-strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 15px;
+  margin-top: 17px;
+  border: 1px solid rgba(6, 31, 58, .07);
+  border-radius: 22px;
+  padding: 18px 21px;
+  background: #fff;
+  color: var(--navy);
+}
+
+.player-club-view-strip > svg:first-child {
+  color: var(--blue);
+}
+
+.player-club-view-strip span {
+  color: var(--blue);
+}
+
+.player-club-view-strip strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+/* My Career */
+
+.career-hub-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, .6fr);
+  align-items: center;
+  gap: 48px;
+  overflow: hidden;
+  border-radius: 34px;
+  padding: 49px;
+  background:
+    radial-gradient(circle at 84% 16%, #1b5489, transparent 31%),
+    linear-gradient(145deg, #071f3a, #020d18);
+  color: #fff;
+  box-shadow: 0 26px 72px rgba(3, 16, 30, .16);
+}
+
+.career-hub-copy h1 {
+  max-width: 680px;
+  margin: 18px 0 12px;
+  font-size: clamp(48px, 6vw, 70px);
+  line-height: .92;
+  letter-spacing: -.065em;
+}
+
+.career-hub-copy > p {
+  max-width: 620px;
+  margin: 0;
+  color: rgba(255, 255, 255, .64);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.career-hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 25px;
+}
+
+.career-ghost-btn {
+  border-color: rgba(255, 255, 255, .15);
+  background: rgba(255, 255, 255, .07);
+  color: #fff;
+}
+
+.career-score-panel {
+  display: grid;
+  justify-items: center;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 27px;
+  padding: 26px 22px;
+  background: rgba(255, 255, 255, .07);
+  text-align: center;
+  backdrop-filter: blur(15px);
+}
+
+.career-score-ring {
+  width: 116px;
+  height: 116px;
+}
+
+.career-score-ring::before {
+  inset: 8px;
+}
+
+.career-score-ring > div strong,
+.career-score-ring > div span {
+  display: block;
+}
+
+.career-score-ring > div strong {
+  font-size: 35px;
+  line-height: 1;
+  letter-spacing: -.05em;
+}
+
+.career-score-ring > div span {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, .46);
+  font-size: 8px;
+}
+
+.career-score-panel > div:last-child {
+  margin-top: 17px;
+}
+
+.career-score-panel > div:last-child > strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 15px;
+}
+
+.career-score-panel p {
+  margin: 5px 0 0;
+  color: rgba(255, 255, 255, .48);
+  font-size: 9px;
+}
+
+.career-control-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 17px;
+  border: 1px solid rgba(6, 31, 58, .07);
+  border-radius: 25px;
+  background: #fff;
+}
+
+.career-control-strip > div {
+  min-width: 0;
+  padding: 18px 20px;
+}
+
+.career-control-strip > div + div {
+  border-left: 1px solid var(--line);
+}
+
+.career-control-strip span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--blue);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+
+.career-control-strip strong,
+.career-control-strip small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.career-control-strip strong {
+  margin-top: 8px;
+  color: var(--navy);
+  font-size: 13px;
+}
+
+.career-control-strip small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.career-readiness-section,
+.career-record-section,
+.career-toolkit-section {
+  margin-top: 18px;
+  border: 1px solid rgba(6, 31, 58, .07);
+  border-radius: 30px;
+  padding: 29px;
+  background: #fff;
+  box-shadow: 0 14px 46px rgba(6, 31, 58, .035);
+  scroll-margin-top: 80px;
+}
+
+.career-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.career-section-heading h2 {
+  margin: 7px 0 0;
+  color: var(--navy);
+  font-size: 31px;
+  line-height: 1.03;
+  letter-spacing: -.05em;
+}
+
+.career-section-heading p {
+  max-width: 650px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.career-readiness-total {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: #edf4f9;
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.career-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 23px;
+}
+
+.career-readiness-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 11px;
+  min-height: 70px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px 14px;
+  color: var(--navy);
+}
+
+.career-readiness-item:hover {
+  border-color: #b9ccdc;
+  background: #fafbfd;
+}
+
+.career-readiness-icon {
+  width: 37px;
+  height: 37px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #edf3f7;
+  color: var(--blue);
+}
+
+.career-readiness-item.tone-ready .career-readiness-icon {
+  background: #eaf5ee;
+  color: #247746;
+}
+
+.career-readiness-item.tone-missing .career-readiness-icon {
+  background: #f1f2f4;
+  color: #6d7782;
+}
+
+.career-readiness-item strong,
+.career-readiness-item small {
+  display: block;
+}
+
+.career-readiness-item strong {
+  font-size: 11px;
+}
+
+.career-readiness-item small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.career-readiness-score {
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.career-assets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.career-asset-card {
+  position: relative;
+  min-height: 154px;
+  border-radius: 20px;
+  padding: 18px;
+  background: #f4f6f8;
+  color: var(--navy);
+}
+
+.career-asset-card > svg:first-child {
+  color: var(--blue);
+}
+
+.career-asset-card > span,
+.career-asset-card > strong,
+.career-asset-card > small {
+  display: block;
+}
+
+.career-asset-card > span {
+  margin-top: 22px;
+  color: var(--blue);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+
+.career-asset-card > strong {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.career-asset-card > small {
+  margin-top: 4px;
+  padding-right: 22px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.career-asset-card > svg:last-child {
+  position: absolute;
+  right: 17px;
+  bottom: 17px;
+}
+
+.career-record-loading {
+  min-height: 170px;
+  display: grid;
+  place-items: center;
+}
+
+.career-timeline {
+  margin-top: 26px;
+}
+
+.career-timeline-item {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 13px;
+}
+
+.career-timeline-item + .career-timeline-item {
+  margin-top: 12px;
+}
+
+.career-timeline-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.career-timeline-rail::after {
+  content: '';
+  position: absolute;
+  top: 38px;
+  bottom: -24px;
+  width: 1px;
+  background: #dbe3e9;
+}
+
+.career-timeline-item:last-child .career-timeline-rail::after {
+  display: none;
+}
+
+.career-timeline-rail span {
+  position: relative;
+  z-index: 2;
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.career-timeline-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 21px;
+}
+
+.career-timeline-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 19px 20px;
+}
+
+.career-timeline-head span {
+  color: var(--blue);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+
+.career-timeline-head h3 {
+  margin: 5px 0 0;
+  color: var(--navy);
+  font-size: 20px;
+  letter-spacing: -.035em;
+}
+
+.career-timeline-head p {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.career-timeline-head > small {
+  color: var(--muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.career-timeline-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding: 13px 20px;
+  background: #fafbfc;
+}
+
+.career-timeline-metrics div {
+  min-width: 74px;
+  padding: 2px 16px 2px 0;
+}
+
+.career-timeline-metrics div + div {
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+}
+
+.career-timeline-metrics strong,
+.career-timeline-metrics span {
+  display: block;
+}
+
+.career-timeline-metrics strong {
+  color: var(--navy);
+  font-size: 16px;
+}
+
+.career-timeline-metrics span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.career-timeline-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding: 10px 20px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.career-record-empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: 23px;
+  border-radius: 20px;
+  padding: 19px;
+  background: #f4f6f8;
+  color: var(--navy);
+}
+
+.career-record-empty > svg {
+  color: var(--blue);
+}
+
+.career-record-empty strong,
+.career-record-empty span {
+  display: block;
+}
+
+.career-record-empty strong {
+  font-size: 12px;
+}
+
+.career-record-empty span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.career-record-empty > a,
+.career-agreement-strip > a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 770;
+}
+
+.career-agreement-strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  margin-top: 16px;
+  border-radius: 19px;
+  padding: 16px 18px;
+  background: var(--navy);
+  color: #fff;
+}
+
+.career-agreement-strip > svg {
+  color: var(--yellow);
+}
+
+.career-agreement-strip span,
+.career-agreement-strip strong,
+.career-agreement-strip small {
+  display: block;
+}
+
+.career-agreement-strip span {
+  color: rgba(255, 255, 255, .46);
+  font-size: 8px;
+  font-weight: 840;
+  letter-spacing: .09em;
+}
+
+.career-agreement-strip strong {
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+.career-agreement-strip small {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, .55);
+  font-size: 8px;
+}
+
+.career-agreement-strip > a {
+  color: var(--yellow);
+}
+
+/* Player professional toolkit */
+
+.toolkit-categories {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-top: 23px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.toolkit-categories::-webkit-scrollbar {
+  display: none;
+}
+
+.toolkit-categories button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 13px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.toolkit-categories button.active {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: #fff;
+}
+
+.toolkit-playbooks {
+  display: grid;
+  gap: 9px;
+  margin-top: 15px;
+}
+
+.toolkit-playbook {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.toolkit-playbook.is-recommended {
+  border-color: #c7d6e3;
+  box-shadow: inset 4px 0 0 var(--yellow);
+}
+
+.toolkit-playbook-toggle {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  border: 0;
+  padding: 16px 17px;
+  background: #fff;
+  color: var(--navy);
+  text-align: left;
+}
+
+.toolkit-playbook-toggle:hover {
+  background: #fafbfd;
+}
+
+.toolkit-playbook-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #eef3f7;
+  color: var(--blue);
+}
+
+.toolkit-playbook.is-recommended .toolkit-playbook-icon {
+  background: var(--yellow);
+  color: var(--navy);
+}
+
+.toolkit-playbook-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.toolkit-playbook-meta span,
+.toolkit-playbook-meta em {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 750;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.toolkit-playbook-meta em {
+  border-radius: 999px;
+  padding: 3px 6px;
+  background: var(--yellow);
+  color: var(--navy);
+}
+
+.toolkit-playbook-copy > strong,
+.toolkit-playbook-copy > small {
+  display: block;
+}
+
+.toolkit-playbook-copy > strong {
+  margin-top: 5px;
+  font-size: 13px;
+}
+
+.toolkit-playbook-copy > small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.toolkit-playbook-chevron {
+  transition: transform .18s ease;
+}
+
+.toolkit-playbook.is-open .toolkit-playbook-chevron {
+  transform: rotate(180deg);
+}
+
+.toolkit-playbook-body {
+  border-top: 1px solid var(--line);
+  padding: 18px 18px 20px 73px;
+  background: #fafbfc;
+}
+
+.toolkit-outcome {
+  border-left: 3px solid var(--yellow);
+  padding-left: 12px;
+}
+
+.toolkit-outcome span,
+.toolkit-outcome strong {
+  display: block;
+}
+
+.toolkit-outcome span {
+  color: var(--blue);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+
+.toolkit-outcome strong {
+  max-width: 700px;
+  margin-top: 4px;
+  color: var(--navy);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.toolkit-steps {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toolkit-steps li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.toolkit-steps li > span {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eaf2f8;
+  color: var(--blue);
+}
+
+.toolkit-steps strong {
+  display: block;
+  color: var(--navy);
+  font-size: 10px;
+}
+
+.toolkit-steps p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.toolkit-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 14px 0 0;
+  border-radius: 12px;
+  padding: 10px 11px;
+  background: #eef2f5;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.toolkit-note svg {
+  flex: 0 0 auto;
+  color: var(--navy);
+}
+
+.toolkit-action {
+  min-height: 40px;
+  margin-top: 16px;
+}
+
+.djm-resource-library {
+  margin-top: 26px;
+  border-radius: 22px;
+  padding: 19px;
+  background: var(--navy);
+  color: #fff;
+}
+
+.djm-resource-library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.djm-resource-library-head span,
+.djm-resource-library-head strong {
+  display: block;
+}
+
+.djm-resource-library-head span {
+  color: rgba(255, 255, 255, .44);
+  font-size: 8px;
+  font-weight: 840;
+  letter-spacing: .09em;
+}
+
+.djm-resource-library-head strong {
+  margin-top: 3px;
+  font-size: 13px;
+}
+
+.djm-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.djm-resource-grid a {
+  position: relative;
+  min-height: 120px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, .06);
+  color: #fff;
+}
+
+.djm-resource-grid span,
+.djm-resource-grid strong,
+.djm-resource-grid small {
+  display: block;
+}
+
+.djm-resource-grid span {
+  color: var(--yellow);
+  font-size: 8px;
+  font-weight: 820;
+  text-transform: uppercase;
+}
+
+.djm-resource-grid strong {
+  margin-top: 6px;
+  padding-right: 20px;
+  font-size: 11px;
+}
+
+.djm-resource-grid small {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, .5);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.djm-resource-grid a > svg {
+  position: absolute;
+  right: 13px;
+  bottom: 13px;
+}
+
+@media (max-width: 820px) {
+  .player-command-main {
+    width: 70%;
+  }
+
+  .player-command-score {
+    width: 285px;
+  }
+
+  .player-week-grid,
+  .player-value-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .career-hub-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .career-score-panel {
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: start;
+    text-align: left;
+  }
+
+  .career-score-panel > div:last-child {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .player-home-command,
+  .player-career-page {
+    width: calc(100% - 24px);
+    padding-top: 9px;
+  }
+
+  .player-command-hero {
+    min-height: 660px;
+    border-radius: 28px;
+  }
+
+  .player-command-hero.no-photo {
+    min-height: 520px;
+  }
+
+  .player-command-hero.no-photo .player-command-main {
+    top: 0;
+    bottom: auto;
+    padding-top: 32px;
+  }
+
+  .player-command-photo {
+    object-position: center 10%;
+  }
+
+  .player-command-shade {
+    background:
+      linear-gradient(
+        0deg,
+        rgba(2, 12, 23, .99) 0%,
+        rgba(2, 12, 23, .96) 52%,
+        rgba(2, 12, 23, .2) 100%
+      );
+  }
+
+  .player-command-main {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 96px;
+    width: auto;
+    padding: 22px;
+  }
+
+  .player-command-main h1 {
+    margin-top: 14px;
+    font-size: 48px;
+  }
+
+  .player-command-primary {
+    margin-top: 26px;
+    border-radius: 21px;
+    padding: 18px;
+  }
+
+  .player-command-primary > strong {
+    font-size: 19px;
+  }
+
+  .player-command-score {
+    left: 18px;
+    right: 18px;
+    bottom: 19px;
+    width: auto;
+  }
+
+  .player-pulse-grid,
+  .career-control-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .player-pulse-grid > div + div,
+  .career-control-strip > div + div {
+    border-left: 0;
+  }
+
+  .player-pulse-grid > div:nth-child(even),
+  .career-control-strip > div:nth-child(even) {
+    border-left: 1px solid var(--line);
+  }
+
+  .player-pulse-grid > div:nth-child(n + 3),
+  .career-control-strip > div:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .player-week-head {
+    align-items: flex-start;
+    padding: 21px 20px 15px;
+  }
+
+  .player-week-head h2 {
+    font-size: 22px;
+  }
+
+  .player-week-head > a {
+    font-size: 0;
+  }
+
+  .player-week-head > a svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .player-week-list > a {
+    gap: 11px;
+    padding: 15px 20px;
+  }
+
+  .player-week-list p {
+    display: none;
+  }
+
+  .player-agent-desk {
+    min-height: 330px;
+  }
+
+  .player-value-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .player-toolkit-spotlight {
+    min-height: 330px;
+    border-radius: 26px;
+    padding: 24px;
+  }
+
+  .player-toolkit-spotlight h2 {
+    font-size: 29px;
+  }
+
+  .career-hub-hero {
+    gap: 28px;
+    border-radius: 28px;
+    padding: 29px 23px;
+  }
+
+  .career-hub-copy h1 {
+    font-size: 47px;
+  }
+
+  .career-hub-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .career-hub-actions .btn {
+    width: 100%;
+  }
+
+  .career-score-panel {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 18px;
+    padding: 19px;
+    text-align: left;
+  }
+
+  .career-score-ring {
+    width: 88px;
+    height: 88px;
+  }
+
+  .career-score-ring > div strong {
+    font-size: 27px;
+  }
+
+  .career-readiness-section,
+  .career-record-section,
+  .career-toolkit-section {
+    border-radius: 25px;
+    padding: 21px;
+  }
+
+  .career-section-heading {
+    align-items: flex-start;
+  }
+
+  .career-section-heading h2 {
+    font-size: 27px;
+  }
+
+  .career-readiness-total {
+    display: none;
+  }
+
+  .career-readiness-grid,
+  .career-assets-grid,
+  .djm-resource-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .career-readiness-item {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .career-readiness-item > svg:last-child {
+    display: none;
+  }
+
+  .career-asset-card {
+    min-height: 140px;
+  }
+
+  .career-section-heading > .btn {
+    display: none;
+  }
+
+  .career-timeline-item {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .career-timeline-rail span {
+    width: 27px;
+    height: 27px;
+  }
+
+  .career-timeline-head {
+    display: block;
+    padding: 17px;
+  }
+
+  .career-timeline-head > small {
+    display: block;
+    margin-top: 10px;
+  }
+
+  .career-timeline-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 11px 17px;
+  }
+
+  .career-timeline-metrics div {
+    min-width: 0;
+    padding: 6px 8px 6px 0;
+  }
+
+  .career-timeline-metrics div + div {
+    padding-left: 8px;
+  }
+
+  .career-timeline-source {
+    align-items: flex-start;
+    padding: 10px 17px;
+    line-height: 1.4;
+  }
+
+  .career-record-empty {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .career-record-empty > a {
+    grid-column: 2;
+  }
+
+  .toolkit-playbook-toggle {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .toolkit-playbook-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .toolkit-playbook-copy > small {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .toolkit-playbook-body {
+    padding: 17px;
+  }
+}
+
+@media (max-width: 390px) {
+  .player-command-main h1,
+  .career-hub-copy h1 {
+    font-size: 42px;
+  }
+
+  .player-command-hero {
+    min-height: 680px;
+  }
+
+  .player-command-hero.no-photo {
+    min-height: 530px;
+  }
+
+  .player-pulse-grid > div,
+  .career-control-strip > div {
+    padding: 15px 14px;
+  }
+
+  .player-pulse-grid strong,
+  .career-control-strip strong {
+    font-size: 11px;
+  }
+
+  .career-readiness-item {
+    gap: 8px;
+    padding: 11px;
+  }
+
+  .career-readiness-score {
+    font-size: 9px;
+  }
+}

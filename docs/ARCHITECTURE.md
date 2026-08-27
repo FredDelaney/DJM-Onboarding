@@ -4,6 +4,13 @@
 
 Next.js App Router. Player routes are mobile-first and installable as a PWA. The service worker deliberately does **not** cache authenticated player data; it exists for app lifecycle and Web Push only.
 
+The connected player workspace has two primary surfaces:
+
+- `/home`: weekly priorities, latest DJM communication and immediate actions.
+- `/career`: readiness detail, opportunity assets, career history, representation and professional playbooks.
+
+`lib/player-career.ts` is the shared decision layer for the two surfaces. It derives readiness and a prioritised weekly plan from existing player-owned or player-visible records. The UI does not fetch staff-only opportunity data or hidden request signals.
+
 ## Authentication
 
 Supabase Auth. New players are invite-only. DJM staff emails are authorised through `admin_allowlist`. Roles are `player`, `admin` and limited `scout`.
@@ -20,8 +27,13 @@ Supabase Auth. New players are invite-only. DJM staff emails are authorised thro
 - `player_opportunities`: club interest / placement pipeline
 - `player_agreements`: representation and authority records
 - `player_source_refreshes` + `player_source_suggestions`: external-source review workflow
+- `career_entries`: player-visible career history with source attribution
+- `player_videos`: private football footage and evidence
+- `resources`: DJM-published player resources
 
 RLS protects direct browser access. Protected-field triggers prevent players from changing agency-only state such as verification, priority or publication controls.
+
+Player-shell bootstrap queries use an explicit safe column list rather than `select('*')`. Agreements are shown only when `visible_to_player` is true, published resources are filtered by their audience, and absent statistics remain unset. The existing database advisor backlog is tracked separately from product feature work; a UI release must not be represented as resolving database-level warnings.
 
 ## Push notifications
 
