@@ -71,17 +71,16 @@ function instagramHref(value: unknown) {
   return normaliseWebUrl(raw);
 }
 
-function googleSiteSearch(domain: string, query: string, pathHint?: string) {
-  const site = pathHint ? `site:${domain}/${pathHint}` : `site:${domain}`;
-  return `https://www.google.com/search?q=${encodeURIComponent(`${site} ${query}`)}`;
-}
-
 function linkedinSearch(type: 'people' | 'companies', query: string) {
   return `https://www.linkedin.com/search/results/${type}/?keywords=${encodeURIComponent(query)}`;
 }
 
 function transfermarktSearch(query: string) {
   return `https://www.transfermarkt.com/schnellsuche/ergebnis/schnellsuche?query=${encodeURIComponent(query)}`;
+}
+
+function instagramSearch(query: string) {
+  return `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(query)}`;
 }
 
 function directOrSearch(
@@ -125,20 +124,23 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
           'Find Transfermarkt',
         ),
         directOrSearch(
-          'sofascore',
-          normaliseWebUrl(input.statsUrl),
-          'Sofascore / stats',
-          googleSiteSearch('sofascore.com', identity, 'player'),
-          'Find Sofascore',
-        ),
-        directOrSearch(
           'instagram',
           instagramHref(input.instagramUrl),
           'Instagram',
-          googleSiteSearch('instagram.com', identity),
+          instagramSearch(identity),
           'Find Instagram',
         ),
       );
+
+      const statsUrl = normaliseWebUrl(input.statsUrl);
+      if (statsUrl) {
+        links.splice(links.length - 1, 0, {
+          platform: 'sofascore',
+          label: 'Sofascore / stats',
+          href: statsUrl,
+          mode: 'direct',
+        });
+      }
     }
   }
 
@@ -149,12 +151,11 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
     }
     links.push(
       { platform: 'transfermarkt', label: 'Find Transfermarkt', href: transfermarktSearch(organisationIdentity), mode: 'search' },
-      { platform: 'sofascore', label: 'Find Sofascore', href: googleSiteSearch('sofascore.com', organisationIdentity, 'team'), mode: 'search' },
       directOrSearch(
         'instagram',
         instagramHref(input.instagramUrl),
         'Instagram',
-        googleSiteSearch('instagram.com', organisationIdentity),
+        instagramSearch(organisationIdentity),
         'Find Instagram',
       ),
       directOrSearch(
@@ -180,7 +181,7 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
         'instagram',
         instagramHref(input.instagramUrl),
         'Instagram',
-        googleSiteSearch('instagram.com', identity),
+        instagramSearch(identity),
         'Find Instagram',
       ),
     );

@@ -249,6 +249,112 @@ const positionGroup = (
   return 'general';
 };
 
+type PositionCoordinate = {
+  label: string;
+  x: number;
+  y: number;
+};
+
+export type DossierPositionSpot = PositionCoordinate & {
+  primary: boolean;
+  sourceLabel: string;
+};
+
+const positionCoordinate = (
+  position: unknown,
+): PositionCoordinate => {
+  const raw =
+    String(position || '')
+      .trim();
+
+  const value = raw
+    .toLowerCase()
+    .replace(/[._/]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  const exact: Record<string, PositionCoordinate> = {
+    gk: { label: 'GK', x: 50, y: 89 },
+    goalkeeper: { label: 'GK', x: 50, y: 89 },
+    rb: { label: 'RB', x: 82, y: 73 },
+    'right back': { label: 'RB', x: 82, y: 73 },
+    rcb: { label: 'RCB', x: 64, y: 73 },
+    cb: { label: 'CB', x: 50, y: 73 },
+    'centre back': { label: 'CB', x: 50, y: 73 },
+    'center back': { label: 'CB', x: 50, y: 73 },
+    lcb: { label: 'LCB', x: 36, y: 73 },
+    lb: { label: 'LB', x: 18, y: 73 },
+    'left back': { label: 'LB', x: 18, y: 73 },
+    rwb: { label: 'RWB', x: 86, y: 59 },
+    'right wing back': { label: 'RWB', x: 86, y: 59 },
+    lwb: { label: 'LWB', x: 14, y: 59 },
+    'left wing back': { label: 'LWB', x: 14, y: 59 },
+    cdm: { label: 'DM', x: 50, y: 59 },
+    dm: { label: 'DM', x: 50, y: 59 },
+    'defensive midfielder': { label: 'DM', x: 50, y: 59 },
+    'defensive midfield': { label: 'DM', x: 50, y: 59 },
+    rcm: { label: 'RCM', x: 66, y: 46 },
+    cm: { label: 'CM', x: 50, y: 46 },
+    'central midfielder': { label: 'CM', x: 50, y: 46 },
+    'central midfield': { label: 'CM', x: 50, y: 46 },
+    lcm: { label: 'LCM', x: 34, y: 46 },
+    cam: { label: 'AM', x: 50, y: 34 },
+    am: { label: 'AM', x: 50, y: 34 },
+    'attacking midfielder': { label: 'AM', x: 50, y: 34 },
+    'attacking midfield': { label: 'AM', x: 50, y: 34 },
+    rm: { label: 'RM', x: 78, y: 43 },
+    'right midfielder': { label: 'RM', x: 78, y: 43 },
+    lm: { label: 'LM', x: 22, y: 43 },
+    'left midfielder': { label: 'LM', x: 22, y: 43 },
+    rw: { label: 'RW', x: 84, y: 25 },
+    'right winger': { label: 'RW', x: 84, y: 25 },
+    lw: { label: 'LW', x: 16, y: 25 },
+    'left winger': { label: 'LW', x: 16, y: 25 },
+    ss: { label: 'SS', x: 50, y: 24 },
+    'second striker': { label: 'SS', x: 50, y: 24 },
+    cf: { label: 'CF', x: 50, y: 19 },
+    'centre forward': { label: 'CF', x: 50, y: 19 },
+    'center forward': { label: 'CF', x: 50, y: 19 },
+    st: { label: 'ST', x: 50, y: 12 },
+    striker: { label: 'ST', x: 50, y: 12 },
+  };
+
+  if (exact[value]) return exact[value];
+
+  const group = positionGroup(value);
+  if (group === 'goalkeeper') return exact.gk;
+  if (group === 'defensive') return exact.cb;
+  if (group === 'midfield') return exact.cm;
+  if (group === 'attacking') return exact.cf;
+  return { label: raw.slice(0, 4).toUpperCase() || 'POS', x: 50, y: 46 };
+};
+
+export const dossierPositionMap = (
+  profile: any,
+): DossierPositionSpot[] => {
+  const positions = [
+    profile?.primary_position,
+    ...dossierList(profile?.secondary_positions),
+  ]
+    .map((position) => String(position || '').trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+
+  return positions
+    .map((sourceLabel, index) => ({
+      ...positionCoordinate(sourceLabel),
+      primary: index === 0,
+      sourceLabel,
+    }))
+    .filter((spot) => {
+      const key = `${spot.x}:${spot.y}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 4);
+};
+
 export const dossierHeadlineStats = (
   profile: any,
   limit = 4,

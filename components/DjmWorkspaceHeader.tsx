@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   BrainCircuit,
   BriefcaseBusiness,
+  ContactRound,
   Handshake,
   LayoutDashboard,
   LogOut,
@@ -18,6 +19,7 @@ import DjmQuickCapture from '@/components/DjmQuickCapture';
 const items = [
   { href: '/djm', label: 'Command', icon: LayoutDashboard },
   { href: '/admin', label: 'Players', icon: UsersRound },
+  { href: '/network#contacts', label: 'Contacts', icon: ContactRound },
   { href: '/market', label: 'Market', icon: BriefcaseBusiness },
   { href: '/deals', label: 'Deals', icon: Handshake },
   { href: '/brain', label: 'Brain', icon: BrainCircuit },
@@ -47,6 +49,8 @@ export default function DjmWorkspaceHeader({
             const active =
               item.href === '/admin'
                 ? pathname === '/admin' || pathname.startsWith('/admin/')
+                : item.href === '/network#contacts'
+                  ? pathname === '/network' || pathname.startsWith('/network/')
                 : item.href === '/deals'
                   ? pathname === '/deals' || pathname.startsWith('/market/deals/')
                 : pathname === item.href || pathname.startsWith(`${item.href}/`);

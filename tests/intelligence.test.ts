@@ -51,5 +51,10 @@ test('truth states and Brain intents are deterministic', () => {
   assert.equal(truthStateLabel('made_up'), 'Unknown');
   assert.equal(brainIntent('What should I do today?'), 'today');
   assert.equal(brainIntent('What is Club X budget?'), 'commercial');
+  assert.equal(brainIntent('Who do we know at Wellington Phoenix?'), 'contacts');
+  assert.equal(brainIntent('Show all club contacts'), 'contacts');
+  assert.equal(brainIntent('Which recruitment targets have no contact route?'), 'recruitment');
+  assert.equal(brainIntent('Which signed players can play CDM?'), 'players');
+  assert.equal(brainIntent('Show clubs in New Zealand'), 'clubs');
   assert.equal(brainIntent('Write me a poem'), 'unsupported');
 });

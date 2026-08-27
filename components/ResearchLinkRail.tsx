@@ -37,7 +37,7 @@ export default function ResearchLinkRail({
     <div className={`${styles.rail}${compact ? ` ${styles.compact}` : ''}`}>
       <div className={styles.heading}>
         <strong>{title}</strong>
-        <span>Saved profiles first · targeted search where missing</span>
+        <span>Saved profiles first · platform search where missing</span>
       </div>
       <div className={styles.links}>
         {links.map((link) => (

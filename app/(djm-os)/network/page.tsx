@@ -88,6 +88,11 @@ export default function NetworkPage() {
     window.setTimeout(() => setToast(''), 2600);
   };
 
+  const changeTab = (next: Tab) => {
+    setTab(next);
+    window.history.replaceState(null, '', `#${next}`);
+  };
+
   const load = useCallback(async () => {
     setBusy(true);
     setError('');
@@ -145,6 +150,19 @@ export default function NetworkPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      const value = window.location.hash.slice(1) as Tab;
+      if (['today', 'clubs', 'contacts', 'capture', 'imports'].includes(value)) {
+        setTab(value);
+      }
+    };
+
+    syncTabFromHash();
+    window.addEventListener('hashchange', syncTabFromHash);
+    return () => window.removeEventListener('hashchange', syncTabFromHash);
+  }, []);
+
   const filteredContacts = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return contacts;
@@ -193,7 +211,7 @@ export default function NetworkPage() {
       setShowAddClub(false);
       flash('Club added to DJM Network');
       await load();
-      setTab('clubs');
+      changeTab('clubs');
     } catch (e) {
       setError(friendlyError(e));
     } finally {
@@ -224,7 +242,7 @@ export default function NetworkPage() {
       setShowAddContact(false);
       flash('Club contact added');
       await load();
-      setTab('contacts');
+      changeTab('contacts');
     } catch (e) {
       setError(friendlyError(e));
     } finally {
@@ -278,7 +296,7 @@ export default function NetworkPage() {
       setCaptureText('');
       flash('Captured into DJM Network');
       await load();
-      setTab('today');
+      changeTab('today');
     } catch (e) {
       setError(friendlyError(e));
     } finally {
@@ -412,7 +430,7 @@ export default function NetworkPage() {
               key={value}
               type="button"
               className={tab === value ? 'is-active' : ''}
-              onClick={() => setTab(value as Tab)}
+              onClick={() => changeTab(value as Tab)}
             >
               {label}
               {value === 'today' && reviews.length > 0 ? (

@@ -26,6 +26,7 @@ import {
   dossierList,
   dossierNationality,
   dossierPerformance,
+  dossierPositionMap,
   dossierVerifiedDate,
 } from '@/lib/dossier';
 
@@ -89,6 +90,11 @@ export default function PublicProfile({
     dossierPerformance(
       profile,
       5,
+    );
+
+  const positionSpots =
+    dossierPositionMap(
+      profile,
     );
 
   const notable =
@@ -196,14 +202,14 @@ export default function PublicProfile({
           logoUrl:
             `${window.location.origin}/djm-mark.png`,
           filename:
-            `${profile.display_name || 'DJM-Player'}-DJM-Decision-Room.pdf`,
+            `${profile.display_name || 'DJM-Player'}-DJM-Player-Dossier.pdf`,
         });
       } catch (
         error: any
       ) {
         setNotice(
           error?.message ||
-            'The Decision Room PDF could not be created.',
+            'The player dossier PDF could not be created.',
         );
       } finally {
         setPdfBusy(false);
@@ -303,7 +309,7 @@ export default function PublicProfile({
               <div className="dossier-accent" />
 
               <div className="dossier-eyebrow">
-                DJM DECISION ROOM
+                DJM PLAYER DOSSIER
               </div>
 
               <h1 className="dossier-name">
@@ -409,7 +415,7 @@ export default function PublicProfile({
                   <Download
                     size={16}
                   />
-                  Download decision brief
+                  Download player dossier
                 </button>
 
                 <a
@@ -485,21 +491,54 @@ export default function PublicProfile({
           </div>
         )}
 
-        <section className="dossier-decision-lens">
-          <div className="dossier-decision-lens-head">
-            <div>
-              <span>DECISION LENS</span>
-              <h2>The first questions a sporting director needs answered.</h2>
+        {positionSpots.length > 0 && (
+          <section className="dossier-player-profile">
+            <div className="dossier-player-profile-head">
+              <div>
+                <span>PLAYER PROFILE</span>
+                <h2>Position &amp; role.</h2>
+              </div>
+              <small>Primary and secondary playing positions</small>
             </div>
-            <small>Club-facing evidence only · private player and DJM strategy remains outside this room</small>
-          </div>
-          <div className="dossier-decision-grid">
-            <div><span>01 · ROLE &amp; CONTEXT</span><strong>{[profile.primary_position, profile.current_club].filter(Boolean).join(' · ') || 'Requires confirmation'}</strong><small>{profile.current_status || 'Current football status not published'}</small></div>
-            <div><span>02 · SPORTING CASE</span><strong>{profile.why_review || profile.headline || 'Speak to DJM for the current sporting thesis'}</strong><small>DJM-approved club-facing summary</small></div>
-            <div><span>03 · EVIDENCE AVAILABLE</span><strong>{primaryVideo ? 'Footage connected' : 'Footage available through DJM'}</strong><small>{sources.length ? `${sources.length} external source${sources.length === 1 ? '' : 's'} linked` : 'Source links available on request'}</small></div>
-            <div><span>04 · NEXT DECISION</span><strong>Request availability and full evidence</strong><small>DJM confirms commercial and registration detail directly</small></div>
-          </div>
-        </section>
+
+            <div className="dossier-player-profile-grid">
+              <div className="dossier-pitch" aria-label="Player position map">
+                <span className="dossier-pitch-half" />
+                <span className="dossier-pitch-circle" />
+                <span className="dossier-pitch-box dossier-pitch-box-top" />
+                <span className="dossier-pitch-box dossier-pitch-box-bottom" />
+                {positionSpots.map((spot) => (
+                  <span
+                    key={`${spot.x}-${spot.y}`}
+                    className={`dossier-position-spot${spot.primary ? ' is-primary' : ''}`}
+                    style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+                    title={`${spot.primary ? 'Primary' : 'Secondary'} position: ${spot.sourceLabel}`}
+                  >
+                    {spot.label}
+                  </span>
+                ))}
+              </div>
+
+              <div className="dossier-role-card">
+                <span>PRIMARY ROLE</span>
+                <h3>{profile.primary_position || 'Professional footballer'}</h3>
+                <p>{profile.headline || [profile.primary_position, profile.current_club].filter(Boolean).join(' · ')}</p>
+
+                <div className="dossier-role-facts">
+                  <div><span>Current club</span><strong>{profile.current_club || 'Available through DJM'}</strong></div>
+                  <div><span>Additional positions</span><strong>{dossierList(profile.secondary_positions).join(' · ') || '—'}</strong></div>
+                  <div><span>Preferred foot</span><strong>{profile.preferred_foot || '—'}</strong></div>
+                  <div><span>Status</span><strong>{profile.current_status || 'Contact DJM'}</strong></div>
+                </div>
+
+                <div className="dossier-position-key">
+                  <span><i className="is-primary" />Primary</span>
+                  {positionSpots.some((spot) => !spot.primary) ? <span><i />Secondary</span> : null}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {!hidden.has(
           'why_review',
@@ -507,12 +546,12 @@ export default function PublicProfile({
           <section className="dossier-section dossier-why-layout">
             <div>
               <div className="dossier-kicker">
-                SPORTING DECISION BRIEF
+                PLAYER OVERVIEW
               </div>
 
               <div className="dossier-why">
                 {profile.why_review ||
-                  'Contact DJM Sports Management for the player’s current sporting and availability information.'}
+                  'Contact DJM Sports Management for the player’s current profile and availability information.'}
               </div>
             </div>
 
@@ -573,17 +612,16 @@ export default function PublicProfile({
               <div className="dossier-section-head">
                 <div>
                   <div className="dossier-kicker">
-                    PERFORMANCE EVIDENCE
+                    PERFORMANCE
                   </div>
 
                   <h2>
-                    Current sporting
-                    picture.
+                    Season output.
                   </h2>
                 </div>
 
                 <span>
-                  DJM reviewed data
+                  Reviewed source data
                 </span>
               </div>
 

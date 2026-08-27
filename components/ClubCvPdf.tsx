@@ -18,6 +18,7 @@ import {
   dossierList,
   dossierNationality,
   dossierPerformance,
+  dossierPositionMap,
   dossierVerifiedDate,
 } from '@/lib/dossier';
 
@@ -294,6 +295,122 @@ const styles =
       lineHeight: 1.34,
       fontWeight: 700,
       letterSpacing: -.25,
+    },
+
+    playerProfile: {
+      flexDirection: 'row',
+      marginTop: 18,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: LINE,
+      borderRadius: 12,
+      backgroundColor: '#f7f9fa',
+    },
+
+    playerProfileCopy: {
+      flex: 1,
+      paddingRight: 20,
+      justifyContent: 'center',
+    },
+
+    roleTitle: {
+      marginTop: 5,
+      color: NAVY,
+      fontSize: 19,
+      fontWeight: 700,
+      letterSpacing: -.35,
+    },
+
+    roleMeta: {
+      marginTop: 5,
+      color: MUTED,
+      fontSize: 7.2,
+      lineHeight: 1.4,
+    },
+
+    playerOverview: {
+      marginTop: 12,
+      color: '#354553',
+      fontSize: 9.2,
+      lineHeight: 1.48,
+    },
+
+    pitch: {
+      position: 'relative',
+      width: 104,
+      height: 160,
+      overflow: 'hidden',
+      borderWidth: 1.2,
+      borderColor: '#d8e3e3',
+      borderRadius: 5,
+      backgroundColor: '#0b4650',
+    },
+
+    pitchHalf: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 79.5,
+      height: .7,
+      backgroundColor: '#b8cdcf',
+    },
+
+    pitchCircle: {
+      position: 'absolute',
+      left: 39,
+      top: 64,
+      width: 26,
+      height: 32,
+      borderWidth: .7,
+      borderColor: '#b8cdcf',
+      borderRadius: 13,
+    },
+
+    pitchBoxTop: {
+      position: 'absolute',
+      left: 27,
+      top: 0,
+      width: 50,
+      height: 23,
+      borderLeftWidth: .7,
+      borderRightWidth: .7,
+      borderBottomWidth: .7,
+      borderColor: '#b8cdcf',
+    },
+
+    pitchBoxBottom: {
+      position: 'absolute',
+      left: 27,
+      bottom: 0,
+      width: 50,
+      height: 23,
+      borderLeftWidth: .7,
+      borderRightWidth: .7,
+      borderTopWidth: .7,
+      borderColor: '#b8cdcf',
+    },
+
+    pitchSpot: {
+      position: 'absolute',
+      width: 19,
+      height: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: WHITE,
+      borderRadius: 10,
+      backgroundColor: WHITE,
+    },
+
+    pitchSpotPrimary: {
+      borderColor: YELLOW,
+      backgroundColor: YELLOW,
+    },
+
+    pitchSpotText: {
+      color: NAVY,
+      fontSize: 5.5,
+      fontWeight: 700,
     },
 
     statBand: {
@@ -717,6 +834,11 @@ export function ClubCvPdfDocument({
       3,
     );
 
+  const positionSpots =
+    dossierPositionMap(
+      profile,
+    );
+
   const career =
     dossierCareer(
       profile,
@@ -796,9 +918,9 @@ export function ClubCvPdfDocument({
 
   return (
     <Document
-      title={`${name} - DJM Decision Room`}
+      title={`${name} - DJM Player Dossier`}
       author="DJM Sports Management"
-      subject="Evidence-led football decision brief"
+      subject="Professional player dossier"
       creator="DJM Player"
     >
       <Page
@@ -858,7 +980,7 @@ export function ClubCvPdfDocument({
             >
               {verified
                 ? `DJM VERIFIED · ${verified.toUpperCase()}`
-                : 'DJM DECISION ROOM'}
+                : 'PLAYER DOSSIER'}
             </Text>
           </View>
 
@@ -883,7 +1005,7 @@ export function ClubCvPdfDocument({
                   styles.kickerDark
                 }
               >
-                DJM DECISION ROOM
+                DJM PLAYER DOSSIER
               </Text>
 
               <Text
@@ -969,20 +1091,16 @@ export function ClubCvPdfDocument({
                     </View>
                   )}
               </View>
-            </View>
 
-{profile?.transfermarkt_url && (
-  <Link
-    src={
-      profile.transfermarkt_url
-    }
-    style={
-      styles.heroSourceLink
-    }
-  >
-    TRANSFERMARKT PROFILE ↗
-  </Link>
-)}
+              {profile?.transfermarkt_url && (
+                <Link
+                  src={profile.transfermarkt_url}
+                  style={styles.heroSourceLink}
+                >
+                  TRANSFERMARKT PROFILE ↗
+                </Link>
+              )}
+            </View>
             
             {photoUrl ? (
               <Image
@@ -1061,35 +1179,64 @@ export function ClubCvPdfDocument({
             </View>
           )}
 
-          {!hidden(
-            profile,
-            'why_review',
-          ) && (
-            <View
-              style={
-                styles.section
-              }
-              wrap={false}
-            >
-              <Text
-                style={
-                  styles.kicker
-                }
-              >
-                SPORTING DECISION BRIEF
-              </Text>
+          {(positionSpots.length > 0 ||
+            !hidden(profile, 'why_review')) && (
+            <View style={styles.playerProfile} wrap={false}>
+              <View style={styles.playerProfileCopy}>
+                <Text style={styles.kicker}>PLAYER PROFILE</Text>
+                <Text style={styles.roleTitle}>
+                  {clip(profile?.primary_position || 'Professional footballer', 44)}
+                </Text>
+                <Text style={styles.roleMeta}>
+                  {clip(
+                    [
+                      dossierList(profile?.secondary_positions).length
+                        ? `Also: ${dossierList(profile.secondary_positions).join(' · ')}`
+                        : null,
+                      profile?.preferred_foot ? `${profile.preferred_foot} foot` : null,
+                      profile?.current_status,
+                    ]
+                      .filter(Boolean)
+                      .join('  ·  '),
+                    120,
+                  )}
+                </Text>
 
-              <Text
-                style={
-                  styles.why
-                }
-              >
-                {clip(
-                  profile?.why_review ||
-                    'DJM Sports Management can provide current sporting, availability and contractual information on request.',
-                  430,
-                )}
-              </Text>
+                {!hidden(profile, 'why_review') ? (
+                  <Text style={styles.playerOverview}>
+                    {clip(
+                      profile?.why_review ||
+                        profile?.headline ||
+                        'Contact DJM Sports Management for the player profile, current availability and full-match footage.',
+                      330,
+                    )}
+                  </Text>
+                ) : null}
+              </View>
+
+              {positionSpots.length > 0 ? (
+                <View style={styles.pitch}>
+                  <View style={styles.pitchHalf} />
+                  <View style={styles.pitchCircle} />
+                  <View style={styles.pitchBoxTop} />
+                  <View style={styles.pitchBoxBottom} />
+                  {positionSpots.map((spot) => (
+                    <View
+                      key={`${spot.x}-${spot.y}`}
+                      style={[
+                        styles.pitchSpot,
+                        spot.primary ? styles.pitchSpotPrimary : {},
+                        {
+                          left: (spot.x / 100) * 104 - 9.5,
+                          top: (spot.y / 100) * 160 - 9.5,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.pitchSpotText}>{spot.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </View>
           )}
 
@@ -1109,7 +1256,7 @@ export function ClubCvPdfDocument({
                     styles.kicker
                   }
                 >
-                  CURRENT PERFORMANCE
+                  PERFORMANCE
                 </Text>
 
                 <View
@@ -1365,7 +1512,7 @@ export function ClubCvPdfDocument({
                   styles.heroVerified
                 }
               >
-                DJM DECISION ROOM
+                DJM PLAYER DOSSIER
               </Text>
             </View>
           </View>
@@ -1766,7 +1913,7 @@ export function ClubCvPdfDocument({
             >
               {verified
                 ? `REVIEWED ${verified.toUpperCase()}`
-                : 'EVIDENCE-LED DECISION BRIEF'}
+                : 'PROFESSIONAL PLAYER DOSSIER'}
             </Text>
           </View>
         </Page>
@@ -1811,7 +1958,7 @@ const blob =
 
   link.download =
     filename ||
-    `${profile?.display_name || 'DJM-Player'}-DJM-Decision-Room.pdf`;
+    `${profile?.display_name || 'DJM-Player'}-DJM-Player-Dossier.pdf`;
 
   document.body.appendChild(
     link,
