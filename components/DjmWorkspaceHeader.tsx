@@ -19,7 +19,7 @@ import DjmQuickCapture from '@/components/DjmQuickCapture';
 const items = [
   { href: '/djm', label: 'Command', icon: LayoutDashboard },
   { href: '/admin', label: 'Players', icon: UsersRound },
-  { href: '/network#contacts', label: 'Contacts', icon: ContactRound },
+  { href: '/network#contacts', label: 'Club Contacts', icon: ContactRound },
   { href: '/market', label: 'Market', icon: BriefcaseBusiness },
   { href: '/deals', label: 'Deals', icon: Handshake },
   { href: '/brain', label: 'Brain', icon: BrainCircuit },
