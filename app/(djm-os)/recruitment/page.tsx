@@ -7,12 +7,13 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Sparkles,
   UserPlus,
   UsersRound,
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
-import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
 
 const STAGES = [
   ['identified', 'Identified'],
@@ -62,6 +63,8 @@ export default function RecruitmentPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<any>(EMPTY);
   const [busy, setBusy] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichmentMessage, setEnrichmentMessage] = useState('');
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -110,6 +113,58 @@ export default function RecruitmentPage() {
       return stageOk && searchOk;
     });
   }, [targets, search, stageFilter]);
+
+  const autofillFromTransfermarkt = async () => {
+    const url = form.transfermarkt_url.trim();
+    if (!url) {
+      setError('Paste a Transfermarkt player profile URL first.');
+      return;
+    }
+
+    setEnriching(true);
+    setError('');
+    setEnrichmentMessage('');
+
+    try {
+      const result: any = await djmInvoke('djm-transfermarkt-enrich', { url });
+      if (result?.blocked) {
+        setEnrichmentMessage(
+          'Transfermarkt blocked the instant read. Keep the link saved and DJM will verify it through the enrichment queue.',
+        );
+        return;
+      }
+
+      const fields = result?.fields || {};
+      setForm((current: any) => ({
+        ...current,
+        full_name: fields.full_name || current.full_name,
+        date_of_birth: fields.date_of_birth || current.date_of_birth,
+        nationality: fields.nationality || current.nationality,
+        current_club: fields.current_club || current.current_club,
+        primary_position: fields.primary_position || current.primary_position,
+        secondary_positions: Array.isArray(fields.secondary_positions)
+          ? fields.secondary_positions.join(', ')
+          : current.secondary_positions,
+        preferred_foot: fields.preferred_foot || current.preferred_foot,
+        contract_expiry: fields.contract_expiry || current.contract_expiry,
+        market_value:
+          fields.market_value != null
+            ? String(fields.market_value)
+            : current.market_value,
+        market_value_currency:
+          fields.market_value_currency || current.market_value_currency,
+        agent_name: fields.agent_name || current.agent_name,
+        agent_status: fields.agent_status || current.agent_status,
+      }));
+      setEnrichmentMessage(
+        `Filled ${Object.keys(fields).length} profile fields from Transfermarkt. Review them, add contact details, then save.`,
+      );
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setEnriching(false);
+    }
+  };
 
   const createTarget = async (event: FormEvent) => {
     event.preventDefault();
@@ -163,6 +218,18 @@ export default function RecruitmentPage() {
         });
       }
 
+      if (created?.prospect_id && form.transfermarkt_url) {
+        try {
+          await djmInvoke('djm-transfermarkt-enrich', {
+            prospect_id: created.prospect_id,
+            url: form.transfermarkt_url,
+          });
+        } catch {
+          // The saved URL remains queued for verification even if instant enrichment is unavailable.
+        }
+      }
+
+      setEnrichmentMessage('');
       setForm(EMPTY);
       setShowCreate(false);
       await load();
@@ -246,6 +313,41 @@ export default function RecruitmentPage() {
           </div>
 
           <form className="djm-os-form djm-os-form-grid" onSubmit={createTarget}>
+            <div className="djm-os-autofill-card">
+              <div>
+                <strong style={{ color: 'var(--djm-navy)', fontSize: 13 }}>
+                  Start with Transfermarkt
+                </strong>
+                <p className="djm-os-autofill-note">
+                  Paste the player profile and DJM will try to fill the football data for you:
+                  name, DOB/age, nationality, club, position, foot, contract, market value
+                  and public representation.
+                </p>
+              </div>
+              <div className="djm-os-autofill-row">
+                <label>
+                  Transfermarkt player URL
+                  <input
+                    value={form.transfermarkt_url}
+                    onChange={(e) => setForm({ ...form, transfermarkt_url: e.target.value })}
+                    placeholder="https://www.transfermarkt.com/player/profil/spieler/..."
+                  />
+                </label>
+                <button
+                  className="djm-os-primary-button"
+                  type="button"
+                  onClick={() => void autofillFromTransfermarkt()}
+                  disabled={enriching || !form.transfermarkt_url.trim()}
+                >
+                  <Sparkles size={15} />
+                  {enriching ? 'Reading profile…' : 'Autofill profile'}
+                </button>
+              </div>
+              {enrichmentMessage ? (
+                <span className="djm-os-source-badge">{enrichmentMessage}</span>
+              ) : null}
+            </div>
+
             <label>Full name<input required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></label>
             <label>Date of birth<input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} /></label>
             <label>Nationality<input value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} /></label>
@@ -258,7 +360,6 @@ export default function RecruitmentPage() {
             <label>Transfermarkt value<input type="number" min="0" value={form.market_value} onChange={(e) => setForm({ ...form, market_value: e.target.value })} placeholder="750000" /></label>
             <label>Value currency<select value={form.market_value_currency} onChange={(e) => setForm({ ...form, market_value_currency: e.target.value })}><option>EUR</option><option>GBP</option><option>USD</option><option>AUD</option><option>NZD</option><option>SEK</option></select></label>
             <label>Priority<select value={form.recruitment_priority} onChange={(e) => setForm({ ...form, recruitment_priority: e.target.value })}><option value="1">1 - Low</option><option value="2">2</option><option value="3">3 - Normal</option><option value="4">4 - High</option><option value="5">5 - Priority target</option></select></label>
-            <label>Transfermarkt<input value={form.transfermarkt_url} onChange={(e) => setForm({ ...form, transfermarkt_url: e.target.value })} /></label>
             <label>Instagram<input value={form.instagram_url} onChange={(e) => setForm({ ...form, instagram_url: e.target.value })} /></label>
             <label>WhatsApp<input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} /></label>
             <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>

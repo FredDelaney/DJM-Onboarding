@@ -1,5 +1,3 @@
-import './djm-os.css';
-
 export default function DjmOsLayout({
   children,
 }: {
