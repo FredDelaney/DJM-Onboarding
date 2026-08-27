@@ -50,6 +50,13 @@ import SeasonRecordEditor
 import RemovePlayerSheet
   from '@/components/RemovePlayerSheet';
 
+import ResearchLinkRail
+  from '@/components/ResearchLinkRail';
+
+import {
+  buildResearchLinks
+} from '@/lib/research-links';
+
 const txt=(v:any)=>v??'';
 
 const arr=(v:any)=>
@@ -2281,6 +2288,22 @@ const removePlayer=async(
           </div>
         </section>
 
+        <ResearchLinkRail
+          links={buildResearchLinks({
+            kind:'player',
+            name,
+            clubName:p.current_club,
+            country:p.current_country,
+            whatsapp:pr.whatsapp,
+            phone:pr.phone,
+            email:pr.personal_email,
+            transfermarktUrl:p.transfermarkt_url,
+            statsUrl:p.stats_url,
+            instagramUrl:p.instagram_url
+          })}
+          title="Player research & contact"
+        />
+
         <div className="admin-player-quick-actions">
           <button
             type="button"
@@ -3185,6 +3208,28 @@ const removePlayer=async(
                       setPr({
                         ...pr,
                         phone:v
+                      })
+                    }
+                  />
+
+                  <F
+                    label="WhatsApp"
+                    value={pr.whatsapp}
+                    on={v=>
+                      setPr({
+                        ...pr,
+                        whatsapp:v
+                      })
+                    }
+                  />
+
+                  <F
+                    label="Instagram"
+                    value={p.instagram_url}
+                    on={v=>
+                      setP({
+                        ...p,
+                        instagram_url:v
                       })
                     }
                   />

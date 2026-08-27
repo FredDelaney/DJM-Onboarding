@@ -1,0 +1,127 @@
+.rail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  margin: 0 0 16px;
+  border: 1px solid rgba(6, 31, 58, 0.1);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(244, 196, 48, 0.12), transparent 38%),
+    #fff;
+  box-shadow: 0 8px 26px rgba(6, 31, 58, 0.04);
+}
+
+.compact {
+  padding: 0;
+  margin: 8px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.heading {
+  display: grid;
+  gap: 2px;
+  min-width: 140px;
+  margin-right: 2px;
+}
+
+.heading strong {
+  color: #061f3a;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+
+.heading span {
+  color: #738291;
+  font-size: 9px;
+}
+
+.compact .heading {
+  display: none;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid rgba(6, 31, 58, 0.11);
+  border-radius: 999px;
+  background: #fff;
+  color: #17334f;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(6, 31, 58, 0.25);
+  box-shadow: 0 5px 14px rgba(6, 31, 58, 0.08);
+}
+
+.link[data-platform='whatsapp'] {
+  border-color: rgba(18, 140, 126, 0.26);
+  color: #087667;
+  background: #f3fbf9;
+}
+
+.link[data-platform='instagram'] {
+  border-color: rgba(168, 50, 112, 0.2);
+}
+
+.link[data-platform='linkedin'] {
+  border-color: rgba(10, 102, 194, 0.24);
+  color: #075a9e;
+}
+
+.mode {
+  padding: 3px 5px;
+  border-radius: 999px;
+  background: #eef2f5;
+  color: #6d7c8a;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.direct .mode {
+  background: #e6f5ee;
+  color: #18794e;
+}
+
+.compact .link {
+  min-height: 29px;
+  padding: 6px 8px;
+  font-size: 9px;
+}
+
+.compact .mode {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .rail {
+    align-items: flex-start;
+  }
+
+  .heading {
+    flex-basis: 100%;
+  }
+}

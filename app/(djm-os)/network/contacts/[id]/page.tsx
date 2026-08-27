@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
+import ResearchLinkRail from '@/components/ResearchLinkRail';
 import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { buildResearchLinks, whatsappHref } from '@/lib/research-links';
 
 function cleanBriefText(value: unknown) {
   return String(value || '')
@@ -337,7 +339,8 @@ export default function ContactWorkspacePage() {
   const lastTouch = lastTouchItem?.occurred_at || lastInteraction?.occurred_at;
   const lastChannel = lastTouchItem?.channel || lastInteraction?.channel || '—';
   const whatsapp = (data?.contacts || []).find((c: any) => c.channel === 'whatsapp')?.value;
-  const cleanWhatsapp = String(whatsapp || '').replace(/\D/g, '');
+  const email = (data?.contacts || []).find((c: any) => c.channel === 'email')?.value;
+  const contactWhatsappLink = whatsappHref(whatsapp);
 
   return (
     <DjmOsShell eyebrow="Club contact relationship" title={person?.full_name || 'Club contact'}>
@@ -368,6 +371,23 @@ export default function ContactWorkspacePage() {
           </button>
         </div>
       </div>
+
+      {person ? (
+        <ResearchLinkRail
+          links={buildResearchLinks({
+            kind: 'contact',
+            name: person.full_name,
+            clubName: currentEmployment?.organisation_name,
+            country: person.country || currentEmployment?.organisation_country,
+            whatsapp,
+            phone: (data?.contacts || []).find((c: any) => c.channel === 'phone')?.value,
+            email,
+            linkedinUrl: person.linkedin_url,
+            instagramUrl: person.instagram_url,
+          })}
+          title="Contact & relationship research"
+        />
+      ) : null}
 
       {error ? (
         <div className="djm-os-error">
@@ -679,9 +699,9 @@ export default function ContactWorkspacePage() {
                   </p>
                 ) : null}
 
-                {cleanWhatsapp ? (
+                {contactWhatsappLink ? (
                   <a
-                    href={`https://wa.me/${cleanWhatsapp}`}
+                    href={contactWhatsappLink}
                     target="_blank"
                     rel="noreferrer"
                     className="djm-os-primary-button"

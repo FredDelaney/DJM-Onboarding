@@ -21,9 +21,11 @@ import {
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
+import ResearchLinkRail from '@/components/ResearchLinkRail';
 import { compactDate, djmRpc, friendlyError } from '@/lib/djm-os';
 import { dealCredibility, matchAssessment } from '@/lib/intelligence';
 import { extractMarketCommercialTerms } from '@/lib/market-demand';
+import { buildResearchLinks } from '@/lib/research-links';
 
 const EMPTY_ADVANCED = {
   title: '', position: '', preferred_foot: '', min_age: '', max_age: '', transfer_type: '',
@@ -301,8 +303,26 @@ export default function MarketPage() {
               <div className="djm-os-panel-head"><div><div className="djm-command-meta"><span className="djm-evidence-state is-review">{humanise(selectedNeed.need_status)}</span><span>{selectedNeed.expires_at ? `Live until ${compactDate(selectedNeed.expires_at)}` : 'No expiry recorded'}</span></div><h2>{selectedNeed.organisation_name} · {selectedNeed.need_position}</h2><p>{selectedNeed.title || 'Club recruitment requirement'}</p></div><div className="djm-os-button-row"><button className="djm-os-icon-button" onClick={() => setEditing((x) => !x)} aria-label="Edit full request"><Pencil size={16}/></button><button className="djm-os-icon-button" onClick={() => setSelectedNeed(null)} aria-label="Close panel"><X size={16}/></button></div></div>
               {editing && editForm ? <form className="djm-os-form" onSubmit={saveNeed} style={{ borderBottom:'1px solid var(--djm-line)' }}><NeedFields form={editForm} setForm={setEditForm}/><button className="djm-os-primary-button" disabled={busy}>Save changes & rematch</button></form> : null}
               {!editing ? <NeedSearchBrief need={selectedNeed} onCopy={() => void copySearchBrief()}/> : null}
+              {!editing ? <div style={{ padding:'0 14px' }}><ResearchLinkRail compact links={buildResearchLinks({ kind:'club', name:selectedNeed.organisation_name, country:selectedNeed.organisation_country, websiteUrl:selectedNeed.website_url })} title="Research club"/></div> : null}
               <div className="djm-os-button-row" style={{ padding:'12px 14px', borderBottom:'1px solid var(--djm-line)' }}><button className={candidateTab==='signed' ? 'djm-os-primary-button':'djm-os-secondary-button'} onClick={() => setCandidateTab('signed')}><UsersRound size={15}/>Signed players ({candidates.signed_players?.length || 0})</button><button className={candidateTab==='recruitment' ? 'djm-os-primary-button':'djm-os-secondary-button'} onClick={() => setCandidateTab('recruitment')}>Recruitment ({candidates.recruitment_targets?.length || 0})</button></div>
-              {currentCandidates.length ? <div className="djm-os-list">{currentCandidates.slice(0,12).map((c:any) => { const name=c.player_name||c.full_name; const assessment=matchAssessment(c); const evidence=[...assessment.strengths,...assessment.concerns,...assessment.missing][0]; return <article className="djm-candidate-row" key={c.player_id||c.prospect_id}><div style={{flex:1}}><div className="djm-command-meta"><span className={`djm-evidence-state ${assessment.hardBlockers.length ? 'is-missing' : 'is-review'}`}>{assessment.strength}</span><span>{candidateTab==='signed' ? 'Signed player' : 'Recruitment target'}</span></div><strong>{name}</strong><p>{[c.player_position||c.primary_position,c.current_club,c.preferred_foot].filter(Boolean).join(' · ')}</p><small>{assessment.hardBlockers[0] ? `Hard blocker · ${assessment.hardBlockers[0]}` : evidence || 'Review source data before progressing'}</small></div><button type="button" className="djm-os-secondary-button" onClick={() => void openDealRoom(c)}>Open qualification room</button></article>})}</div> : <div className="djm-os-empty"><Target size={25}/><p>No candidates in this player pool yet.</p></div>}
+              {currentCandidates.length ? <div className="djm-os-list">{currentCandidates.slice(0,12).map((c:any) => {
+                const name=c.player_name||c.full_name;
+                const assessment=matchAssessment(c);
+                const evidence=[...assessment.strengths,...assessment.concerns,...assessment.missing][0];
+                const researchLinks=buildResearchLinks({
+                  kind:candidateTab==='signed' ? 'player' : 'recruitment',
+                  name,
+                  clubName:c.current_club,
+                  country:c.current_country||c.nationality,
+                  whatsapp:c.whatsapp,
+                  phone:c.phone,
+                  email:c.email,
+                  transfermarktUrl:c.transfermarkt_url,
+                  statsUrl:c.stats_url,
+                  instagramUrl:c.instagram_url,
+                });
+                return <article className="djm-candidate-row" key={c.player_id||c.prospect_id}><div style={{flex:1,minWidth:0}}><div className="djm-command-meta"><span className={`djm-evidence-state ${assessment.hardBlockers.length ? 'is-missing' : 'is-review'}`}>{assessment.strength}</span><span>{candidateTab==='signed' ? 'Signed player' : 'Recruitment target'}</span></div><strong>{name}</strong><p>{[c.player_position||c.primary_position,c.current_club,c.preferred_foot].filter(Boolean).join(' · ')}</p><small>{assessment.hardBlockers[0] ? `Hard blocker · ${assessment.hardBlockers[0]}` : evidence || 'Review source data before progressing'}</small><ResearchLinkRail compact links={researchLinks}/></div><button type="button" className="djm-os-secondary-button" onClick={() => void openDealRoom(c)}>Open qualification room</button></article>;
+              })}</div> : <div className="djm-os-empty"><Target size={25}/><p>No candidates in this player pool yet.</p></div>}
               <div className="djm-os-button-row" style={{ padding:14 }}><button className="djm-os-secondary-button" onClick={() => void setNeedStatus('closed')}>Close need</button><button className="djm-os-secondary-button" onClick={() => void deleteNeed()}>Delete</button></div>
             </>
           )}
