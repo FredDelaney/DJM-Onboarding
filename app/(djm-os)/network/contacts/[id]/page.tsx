@@ -12,6 +12,7 @@ import {
   Phone,
   Save,
   Sparkles,
+  Trash2,
   UserRound,
   X,
 } from 'lucide-react';
@@ -50,6 +51,32 @@ function cleanClaimValue(value: unknown) {
 function channelLabel(value: unknown) {
   const text = String(value || 'other').replaceAll('_', ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function timelineNoteLabel(channel: unknown) {
+  const value = String(channel || 'other');
+  if (value === 'phone') return 'Call notes';
+  if (value === 'meeting') return 'Meeting notes';
+  if (value === 'whatsapp') return 'WhatsApp note';
+  if (value === 'linkedin') return 'LinkedIn note';
+  if (value === 'email') return 'Email note';
+  if (value === 'instagram') return 'Instagram note';
+  return `${channelLabel(value)} note`;
+}
+
+function timelineCardStyle(item: any) {
+  if (item.item_type !== 'logged') {
+    return item.direction === 'inbound'
+      ? { background: 'rgba(244,196,48,.10)', borderLeft: '3px solid var(--djm-yellow)' }
+      : { background: '#f7f9fb', borderLeft: '3px solid #cbd6df' };
+  }
+  if (item.channel === 'phone') {
+    return { background: '#eef4f8', borderLeft: '3px solid var(--djm-navy)' };
+  }
+  if (item.channel === 'meeting') {
+    return { background: 'rgba(244,196,48,.08)', borderLeft: '3px solid var(--djm-yellow)' };
+  }
+  return { background: '#f4f7fa', borderLeft: '3px solid #8092a3' };
 }
 
 function localDateValue(date = new Date()) {
@@ -129,6 +156,7 @@ export default function ContactWorkspacePage() {
   const [conversationTime, setConversationTime] = useState(() => localTimeValue());
   const [followup, setFollowup] = useState('');
   const [savingConversation, setSavingConversation] = useState(false);
+  const [removingTimelineItem, setRemovingTimelineItem] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState(EMPTY_PROFILE);
@@ -214,6 +242,33 @@ export default function ContactWorkspacePage() {
       setError(friendlyError(e));
     } finally {
       setSavingConversation(false);
+    }
+  };
+
+  const removeTimelineItem = async (item: any) => {
+    const key = `${item.item_type}-${item.id}`;
+    if (removingTimelineItem) return;
+    const isImported = item.item_type === 'message';
+    const ok = window.confirm(
+      isImported
+        ? 'Remove this WhatsApp message from DJM context? The original imported chat stays intact.'
+        : `Remove these ${timelineNoteLabel(item.channel).toLowerCase()} from DJM context? The underlying audit record stays intact.`,
+    );
+    if (!ok) return;
+
+    setRemovingTimelineItem(key);
+    setError('');
+    try {
+      await djmRpc('djm_network_hide_timeline_item', {
+        p_person_id: id,
+        p_item_type: item.item_type,
+        p_item_id: item.id,
+      });
+      await load();
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setRemovingTimelineItem(null);
     }
   };
 
@@ -507,32 +562,57 @@ export default function ContactWorkspacePage() {
                     <div style={{ display: 'grid', gap: 8 }}>
                       {briefingTimeline.map((item: any) => {
                         const isLogged = item.item_type === 'logged';
-                        const inbound = item.direction === 'inbound';
                         const actor = isLogged
-                          ? `${channelLabel(item.channel)} note · ${item.team_member_name || item.actor_label || 'DJM'}`
+                          ? `${timelineNoteLabel(item.channel)} · ${item.team_member_name || item.actor_label || 'DJM'}`
                           : item.direction === 'outbound'
-                            ? 'DJM'
-                            : person?.preferred_name || person?.full_name || 'Contact';
+                            ? 'WhatsApp · DJM'
+                            : `WhatsApp · ${person?.preferred_name || person?.full_name || 'Contact'}`;
+                        const visual = timelineCardStyle(item);
+                        const key = `${item.item_type}-${item.id}`;
                         return (
                           <div
-                            key={`${item.item_type}-${item.id}`}
+                            key={key}
                             style={{
                               padding: '10px 11px',
                               borderRadius: 11,
-                              background: isLogged ? '#eef4f8' : inbound ? 'rgba(244,196,48,.10)' : '#f7f9fb',
-                              borderLeft: isLogged
-                                ? '3px solid var(--djm-navy)'
-                                : inbound
-                                  ? '3px solid var(--djm-yellow)'
-                                  : '3px solid #cbd6df',
+                              ...visual,
                             }}
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                              <strong style={{ color: 'var(--djm-navy)', fontSize: 10 }}>{actor}</strong>
-                              <small style={{ color: '#8a99a7', fontSize: 9 }}>
-                                {compactDateTime(item.occurred_at)}
-                              </small>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                                {isLogged && item.channel === 'phone' ? <Phone size={13} /> : null}
+                                {isLogged && item.channel === 'meeting' ? <CalendarClock size={13} /> : null}
+                                {!isLogged || item.channel === 'whatsapp' ? <MessageCircleMore size={13} /> : null}
+                                <strong style={{ color: 'var(--djm-navy)', fontSize: 10 }}>{actor}</strong>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                <small style={{ color: '#8a99a7', fontSize: 9 }}>
+                                  {compactDateTime(item.occurred_at)}
+                                </small>
+                                <button
+                                  type="button"
+                                  onClick={() => void removeTimelineItem(item)}
+                                  disabled={removingTimelineItem === key}
+                                  title="Remove from context"
+                                  aria-label="Remove from context"
+                                  style={{
+                                    border: 0,
+                                    background: 'transparent',
+                                    padding: 2,
+                                    cursor: 'pointer',
+                                    color: '#8a99a7',
+                                    display: 'inline-flex',
+                                  }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
                             </div>
+                            {isLogged ? (
+                              <small style={{ display: 'block', marginTop: 5, color: '#7b8b99', fontSize: 9, fontWeight: 750 }}>
+                                {item.channel === 'phone' ? 'Call notes' : item.channel === 'meeting' ? 'Meeting notes' : 'Logged note'}
+                              </small>
+                            ) : null}
                             <p style={{ margin: '5px 0 0', color: '#31465b', fontSize: 12, lineHeight: 1.5 }}>
                               {item.clean_text.length > 360 ? `${item.clean_text.slice(0, 357)}…` : item.clean_text}
                             </p>
@@ -637,12 +717,18 @@ export default function ContactWorkspacePage() {
                   </select>
                 </label>
                 <label>
-                  What happened?
+                  {channel === 'phone' ? 'Call notes' : channel === 'meeting' ? 'Meeting notes' : 'What happened?'}
                   <textarea
                     rows={6}
                     value={summary}
                     onChange={(e) => setSummary(e.target.value)}
-                    placeholder="What did they say, what did DJM promise, what matters next?"
+                    placeholder={
+                      channel === 'phone'
+                        ? 'What was discussed on the call? Decisions, player needs, promises and next steps.'
+                        : channel === 'meeting'
+                          ? 'What happened in the meeting? Decisions, player needs, commitments and next steps.'
+                          : 'What did they say, what did DJM promise, what matters next?'
+                    }
                   />
                 </label>
                 <div className="djm-os-form-grid">
@@ -675,8 +761,14 @@ export default function ContactWorkspacePage() {
                   />
                 </label>
                 <button className="djm-os-primary-button" type="submit" disabled={!summary.trim() || savingConversation}>
-                  <CalendarClock size={15} />
-                  {savingConversation ? 'Saving…' : 'Save conversation'}
+                  {channel === 'phone' ? <Phone size={15} /> : <CalendarClock size={15} />}
+                  {savingConversation
+                    ? 'Saving…'
+                    : channel === 'phone'
+                      ? 'Save call notes'
+                      : channel === 'meeting'
+                        ? 'Save meeting notes'
+                        : 'Save conversation'}
                 </button>
                 <small style={{ color: '#7b8b99', fontSize: 10 }}>
                   Saved notes immediately appear in Recent context and feed DJM follow-up / club-need intelligence.
@@ -739,22 +831,48 @@ export default function ContactWorkspacePage() {
             </div>
             {cleanTimeline.length ? (
               <div className="djm-os-list">
-                {cleanTimeline.map((item: any) => (
-                  <article className="djm-os-feed-row" key={`${item.item_type}-${item.id}`}>
-                    <span className="djm-os-feed-dot" />
-                    <div>
-                      <strong>
-                        {item.item_type === 'logged'
-                          ? `${channelLabel(item.channel)} note · ${item.team_member_name || item.actor_label || 'DJM'}`
-                          : item.direction === 'outbound'
-                            ? 'WhatsApp · DJM'
-                            : `WhatsApp · ${person?.preferred_name || person?.full_name || 'Contact'}`}
-                      </strong>
-                      <p>{item.clean_text.length > 520 ? `${item.clean_text.slice(0, 517)}…` : item.clean_text}</p>
-                      <small>{compactDateTime(item.occurred_at)}</small>
-                    </div>
-                  </article>
-                ))}
+                {cleanTimeline.map((item: any) => {
+                  const key = `${item.item_type}-${item.id}`;
+                  const isLogged = item.item_type === 'logged';
+                  return (
+                    <article className="djm-os-feed-row" key={key}>
+                      <span className="djm-os-feed-dot" />
+                      <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                          <strong style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            {isLogged && item.channel === 'phone' ? <Phone size={14} /> : null}
+                            {isLogged && item.channel === 'meeting' ? <CalendarClock size={14} /> : null}
+                            {!isLogged || item.channel === 'whatsapp' ? <MessageCircleMore size={14} /> : null}
+                            {isLogged
+                              ? `${timelineNoteLabel(item.channel)} · ${item.team_member_name || item.actor_label || 'DJM'}`
+                              : item.direction === 'outbound'
+                                ? 'WhatsApp · DJM'
+                                : `WhatsApp · ${person?.preferred_name || person?.full_name || 'Contact'}`}
+                          </strong>
+                          <button
+                            type="button"
+                            onClick={() => void removeTimelineItem(item)}
+                            disabled={removingTimelineItem === key}
+                            title="Remove from context"
+                            aria-label="Remove from context"
+                            className="djm-os-secondary-button"
+                            style={{ padding: '5px 7px', minHeight: 0 }}
+                          >
+                            <Trash2 size={12} />
+                            Remove
+                          </button>
+                        </div>
+                        {isLogged && (item.channel === 'phone' || item.channel === 'meeting') ? (
+                          <small style={{ display: 'block', marginTop: 5, color: '#7b8b99', fontWeight: 750 }}>
+                            {item.channel === 'phone' ? 'Call notes' : 'Meeting notes'}
+                          </small>
+                        ) : null}
+                        <p>{item.clean_text.length > 520 ? `${item.clean_text.slice(0, 517)}…` : item.clean_text}</p>
+                        <small>{compactDateTime(item.occurred_at)}</small>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <div className="djm-os-empty"><Phone size={25} /><p>No conversations recorded yet.</p></div>
