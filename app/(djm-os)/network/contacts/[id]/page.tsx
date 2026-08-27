@@ -8,9 +8,12 @@ import {
   ArrowLeft,
   CalendarClock,
   MessageCircleMore,
+  Pencil,
   Phone,
+  Save,
   Sparkles,
   UserRound,
+  X,
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
@@ -27,9 +30,10 @@ function cleanBriefText(value: unknown) {
     .trim();
 }
 
-function isUsefulBriefMessage(value: string) {
-  if (value.length < 18) return false;
-  return !/^(thanks?|thank you|cheers|ok(?:ay)?|perfect|great|haha|ah+h+)[!?. 🙏🏼😊]*$/i.test(value.trim());
+function isUsefulImportedMessage(value: string) {
+  if (!value) return false;
+  if (value.length < 12) return false;
+  return !/^(thanks?|thank you|cheers|ok(?:ay)?|perfect|great|haha|ah+h+|yes|no)[!?. 🙏🏼😊👍]*$/i.test(value.trim());
 }
 
 function cleanClaimValue(value: unknown) {
@@ -43,6 +47,48 @@ function cleanClaimValue(value: unknown) {
   return String(value ?? '');
 }
 
+function channelLabel(value: unknown) {
+  const text = String(value || 'other').replaceAll('_', ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function localDateValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function localTimeValue(date = new Date()) {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+function safeLocalIso(value: string, fallbackDate?: string) {
+  const text = value.trim();
+  if (!text) return null;
+
+  const timeOnly = text.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  const candidate = timeOnly
+    ? `${fallbackDate || localDateValue()}T${String(timeOnly[1]).padStart(2, '0')}:${timeOnly[2]}`
+    : text;
+
+  const parsed = new Date(candidate);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+const EMPTY_PROFILE = {
+  full_name: '',
+  preferred_name: '',
+  country: '',
+  city: '',
+  club_name: '',
+  club_country: '',
+  role_title: '',
+};
+
 export default function ContactWorkspacePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -55,7 +101,13 @@ export default function ContactWorkspacePage() {
   const [error, setError] = useState('');
   const [channel, setChannel] = useState('whatsapp');
   const [summary, setSummary] = useState('');
+  const [conversationDate, setConversationDate] = useState(() => localDateValue());
+  const [conversationTime, setConversationTime] = useState(() => localTimeValue());
   const [followup, setFollowup] = useState('');
+  const [savingConversation, setSavingConversation] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState(EMPTY_PROFILE);
 
   const load = async () => {
     setError('');
@@ -84,25 +136,82 @@ export default function ContactWorkspacePage() {
     [data],
   );
 
+  useEffect(() => {
+    if (!data?.person || editingProfile) return;
+    setProfileForm({
+      full_name: data.person.full_name || '',
+      preferred_name: data.person.preferred_name || '',
+      country: data.person.country || '',
+      city: data.person.city || '',
+      club_name: currentEmployment?.organisation_name || '',
+      club_country: currentEmployment?.organisation_country || '',
+      role_title: currentEmployment?.role_title || '',
+    });
+  }, [data, currentEmployment, editingProfile]);
+
   const logInteraction = async (event: FormEvent) => {
     event.preventDefault();
-    if (!summary.trim()) return;
+    if (!summary.trim() || savingConversation) return;
 
+    setSavingConversation(true);
+    setError('');
     try {
+      const occurredAt = safeLocalIso(`${conversationDate}T${conversationTime}`);
+      if (!occurredAt) {
+        setError('Please enter a valid conversation date and time.');
+        return;
+      }
+
+      const followupAt = followup ? safeLocalIso(followup, conversationDate) : null;
+      if (followup && !followupAt) {
+        setError('Please enter a valid follow-up date and time.');
+        return;
+      }
+
       await djmRpc('djm_network_log_contact_interaction', {
         p_person_id: id,
         p_channel: channel,
         p_summary: summary.trim(),
         p_organisation_id: currentEmployment?.organisation_id || null,
-        p_occurred_at: new Date().toISOString(),
-        p_create_followup_at: followup ? new Date(followup).toISOString() : null,
+        p_occurred_at: occurredAt,
+        p_create_followup_at: followupAt,
         p_followup_title: null,
       });
       setSummary('');
+      setConversationDate(localDateValue());
+      setConversationTime(localTimeValue());
       setFollowup('');
       await load();
     } catch (e) {
       setError(friendlyError(e));
+    } finally {
+      setSavingConversation(false);
+    }
+  };
+
+  const saveProfile = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!profileForm.full_name.trim() || savingProfile) return;
+
+    setSavingProfile(true);
+    setError('');
+    try {
+      await djmRpc('djm_network_update_contact_profile', {
+        p_person_id: id,
+        p_full_name: profileForm.full_name.trim(),
+        p_preferred_name: profileForm.preferred_name.trim() || null,
+        p_country: profileForm.country.trim() || null,
+        p_city: profileForm.city.trim() || null,
+        p_club_name: profileForm.club_name.trim() || null,
+        p_club_country: profileForm.club_country.trim() || null,
+        p_role_title: profileForm.role_title.trim() || null,
+      });
+      setEditingProfile(false);
+      await load();
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -134,34 +243,43 @@ export default function ContactWorkspacePage() {
   const openTasks = prep?.open_tasks || [];
   const recentClaims = prep?.recent_claims || [];
   const upcomingMeetings = prep?.upcoming_meetings || [];
-  const recentMessages = prep?.recent_messages || [];
-  const briefingMessages = recentMessages
-    .map((message: any) => ({ ...message, clean_text: cleanBriefText(message.raw_text) }))
-    .filter((message: any) => isUsefulBriefMessage(message.clean_text))
-    .slice(0, 4);
-  const lastTouch = recentMessages[0]?.sent_at || lastInteraction?.occurred_at;
+  const recentTimeline = prep?.recent_timeline || [];
+
+  const cleanTimeline = recentTimeline
+    .map((item: any) => ({ ...item, clean_text: cleanBriefText(item.body) }))
+    .filter((item: any) => item.item_type === 'logged' ? Boolean(item.clean_text) : isUsefulImportedMessage(item.clean_text));
+
+  const briefingTimeline = cleanTimeline.slice(0, 6);
+  const lastTouchItem = recentTimeline[0] || null;
+  const lastTouch = lastTouchItem?.occurred_at || lastInteraction?.occurred_at;
+  const lastChannel = lastTouchItem?.channel || lastInteraction?.channel || '—';
   const whatsapp = (data?.contacts || []).find((c: any) => c.channel === 'whatsapp')?.value;
   const cleanWhatsapp = String(whatsapp || '').replace(/\D/g, '');
 
   return (
-    <DjmOsShell
-      eyebrow="Club contact relationship"
-      title={person?.full_name || 'Club contact'}
-    >
+    <DjmOsShell eyebrow="Club contact relationship" title={person?.full_name || 'Club contact'}>
       <div className="djm-os-toolbar">
         <Link href="/network" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
           <ArrowLeft size={15} /> Network
         </Link>
         <div className="djm-os-button-row">
-        {currentEmployment?.organisation_id ? (
-          <Link
-            href={`/network/clubs/${currentEmployment.organisation_id}`}
+          {currentEmployment?.organisation_id ? (
+            <Link
+              href={`/network/clubs/${currentEmployment.organisation_id}`}
+              className="djm-os-secondary-button"
+              style={{ textDecoration: 'none' }}
+            >
+              {currentEmployment.organisation_name}
+            </Link>
+          ) : null}
+          <button
             className="djm-os-secondary-button"
-            style={{ textDecoration: 'none' }}
+            type="button"
+            onClick={() => setEditingProfile((value) => !value)}
           >
-            {currentEmployment.organisation_name}
-          </Link>
-        ) : null}
+            {editingProfile ? <X size={15} /> : <Pencil size={15} />}
+            {editingProfile ? 'Cancel edit' : 'Edit profile'}
+          </button>
           <button className="djm-os-secondary-button" type="button" onClick={() => void deleteContact()}>
             Delete contact
           </button>
@@ -180,6 +298,80 @@ export default function ContactWorkspacePage() {
         <div className="djm-os-empty"><UserRound size={25} /><p>Loading relationship…</p></div>
       ) : (
         <>
+          {editingProfile ? (
+            <section className="djm-os-panel" style={{ marginBottom: 16 }}>
+              <div className="djm-os-panel-head">
+                <div>
+                  <h2>Edit contact profile</h2>
+                  <p>Name, current club and role stay editable even when DJM inferred them automatically.</p>
+                </div>
+                <Pencil size={19} />
+              </div>
+              <form className="djm-os-form djm-os-form-grid" onSubmit={saveProfile}>
+                <label>
+                  Full name
+                  <input
+                    required
+                    value={profileForm.full_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Preferred name
+                  <input
+                    value={profileForm.preferred_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, preferred_name: e.target.value })}
+                    placeholder="Chris"
+                  />
+                </label>
+                <label>
+                  Current club
+                  <input
+                    value={profileForm.club_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, club_name: e.target.value })}
+                    placeholder="Wellington Phoenix"
+                  />
+                </label>
+                <label>
+                  Role
+                  <input
+                    value={profileForm.role_title}
+                    onChange={(e) => setProfileForm({ ...profileForm, role_title: e.target.value })}
+                    placeholder="Head Coach"
+                  />
+                </label>
+                <label>
+                  Person country
+                  <input
+                    value={profileForm.country}
+                    onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
+                  />
+                </label>
+                <label>
+                  City
+                  <input
+                    value={profileForm.city}
+                    onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Club country
+                  <input
+                    value={profileForm.club_country}
+                    onChange={(e) => setProfileForm({ ...profileForm, club_country: e.target.value })}
+                    placeholder="New Zealand"
+                  />
+                </label>
+                <div style={{ display: 'flex', alignItems: 'end' }}>
+                  <button className="djm-os-primary-button" type="submit" disabled={savingProfile || !profileForm.full_name.trim()}>
+                    <Save size={15} />
+                    {savingProfile ? 'Saving…' : 'Save profile'}
+                  </button>
+                </div>
+              </form>
+            </section>
+          ) : null}
+
           <section className="djm-os-metrics">
             <Metric label="Current club" value={currentEmployment?.organisation_name || '—'} />
             <Metric label="Role" value={currentEmployment?.role_title || '—'} />
@@ -225,7 +417,7 @@ export default function ContactWorkspacePage() {
               <div className="djm-os-panel-head">
                 <div>
                   <h2>Prepare me</h2>
-                  <p>The few things worth remembering before you message or call.</p>
+                  <p>One relationship memory across WhatsApp, calls, meetings and manual notes.</p>
                 </div>
                 <Sparkles size={20} />
               </div>
@@ -239,7 +431,7 @@ export default function ContactWorkspacePage() {
                 >
                   {[
                     ['Last touch', lastTouch ? compactDateTime(lastTouch) : 'No history'],
-                    ['Channel', recentMessages.length ? 'WhatsApp' : lastInteraction?.channel || '—'],
+                    ['Channel', channelLabel(lastChannel)],
                     ['DJM owner', lastInteraction?.team_member || best?.team_member_name || 'DJM'],
                   ].map(([label, value]) => (
                     <div
@@ -269,7 +461,7 @@ export default function ContactWorkspacePage() {
                   ))}
                 </div>
 
-                {briefingMessages.length ? (
+                {briefingTimeline.length ? (
                   <div
                     style={{
                       padding: 14,
@@ -281,59 +473,45 @@ export default function ContactWorkspacePage() {
                     <div style={{ marginBottom: 10 }}>
                       <strong style={{ color: 'var(--djm-navy)', fontSize: 12 }}>Recent context</strong>
                       <span style={{ display: 'block', marginTop: 2, color: '#7b8b99', fontSize: 10 }}>
-                        Only the useful recent messages. Links, files and chat noise are hidden.
+                        Imported messages and manually logged conversations are shown together by time.
                       </span>
                     </div>
                     <div style={{ display: 'grid', gap: 8 }}>
-                      {briefingMessages.map((message: any) => (
-                        <div
-                          key={message.id}
-                          style={{
-                            padding: '10px 11px',
-                            borderRadius: 11,
-                            background: message.direction === 'outbound' ? '#f7f9fb' : 'rgba(244,196,48,.10)',
-                            borderLeft: message.direction === 'outbound'
-                              ? '3px solid #cbd6df'
-                              : '3px solid var(--djm-yellow)',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                            <strong style={{ color: 'var(--djm-navy)', fontSize: 10 }}>
-                              {message.direction === 'outbound' ? 'DJM' : person?.preferred_name || person?.full_name || 'Contact'}
-                            </strong>
-                            <small style={{ color: '#8a99a7', fontSize: 9 }}>
-                              {compactDateTime(message.sent_at)}
-                            </small>
-                          </div>
-                          <p
+                      {briefingTimeline.map((item: any) => {
+                        const isLogged = item.item_type === 'logged';
+                        const inbound = item.direction === 'inbound';
+                        const actor = isLogged
+                          ? `${channelLabel(item.channel)} note · ${item.team_member_name || item.actor_label || 'DJM'}`
+                          : item.direction === 'outbound'
+                            ? 'DJM'
+                            : person?.preferred_name || person?.full_name || 'Contact';
+                        return (
+                          <div
+                            key={`${item.item_type}-${item.id}`}
                             style={{
-                              margin: '5px 0 0',
-                              color: '#31465b',
-                              fontSize: 12,
-                              lineHeight: 1.5,
+                              padding: '10px 11px',
+                              borderRadius: 11,
+                              background: isLogged ? '#eef4f8' : inbound ? 'rgba(244,196,48,.10)' : '#f7f9fb',
+                              borderLeft: isLogged
+                                ? '3px solid var(--djm-navy)'
+                                : inbound
+                                  ? '3px solid var(--djm-yellow)'
+                                  : '3px solid #cbd6df',
                             }}
                           >
-                            {message.clean_text.length > 320
-                              ? `${message.clean_text.slice(0, 317)}…`
-                              : message.clean_text}
-                          </p>
-                        </div>
-                      ))}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                              <strong style={{ color: 'var(--djm-navy)', fontSize: 10 }}>{actor}</strong>
+                              <small style={{ color: '#8a99a7', fontSize: 9 }}>
+                                {compactDateTime(item.occurred_at)}
+                              </small>
+                            </div>
+                            <p style={{ margin: '5px 0 0', color: '#31465b', fontSize: 12, lineHeight: 1.5 }}>
+                              {item.clean_text.length > 360 ? `${item.clean_text.slice(0, 357)}…` : item.clean_text}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                ) : lastInteraction?.summary ? (
-                  <div
-                    style={{
-                      padding: 13,
-                      border: '1px solid #e1e8ed',
-                      borderRadius: 12,
-                      background: '#f8fafb',
-                    }}
-                  >
-                    <strong style={{ color: 'var(--djm-navy)', fontSize: 11 }}>Last conversation</strong>
-                    <p style={{ margin: '6px 0 0', color: '#42566a', fontSize: 12, lineHeight: 1.5 }}>
-                      {cleanBriefText(lastInteraction.summary).slice(0, 360)}
-                    </p>
                   </div>
                 ) : null}
 
@@ -412,7 +590,7 @@ export default function ContactWorkspacePage() {
               <div className="djm-os-panel-head">
                 <div>
                   <h2>Log conversation</h2>
-                  <p>Manual fallback for WhatsApp, phone or meetings.</p>
+                  <p>Add a call, meeting or message to the same relationship timeline.</p>
                 </div>
                 <MessageCircleMore size={20} />
               </div>
@@ -439,14 +617,39 @@ export default function ContactWorkspacePage() {
                     placeholder="What did they say, what did DJM promise, what matters next?"
                   />
                 </label>
+                <div className="djm-os-form-grid">
+                  <label>
+                    Conversation date
+                    <input
+                      type="date"
+                      value={conversationDate}
+                      onChange={(e) => setConversationDate(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Conversation time
+                    <input
+                      type="time"
+                      value={conversationTime}
+                      onChange={(e) => setConversationTime(e.target.value)}
+                    />
+                  </label>
+                </div>
                 <label>
-                  Follow up
-                  <input type="datetime-local" value={followup} onChange={(e) => setFollowup(e.target.value)} />
+                  Follow-up reminder <span style={{ color: '#8795a3', fontWeight: 600 }}>(optional)</span>
+                  <input
+                    type="datetime-local"
+                    value={followup}
+                    onChange={(e) => setFollowup(e.target.value)}
+                  />
                 </label>
-                <button className="djm-os-primary-button" type="submit" disabled={!summary.trim()}>
+                <button className="djm-os-primary-button" type="submit" disabled={!summary.trim() || savingConversation}>
                   <CalendarClock size={15} />
-                  Save conversation
+                  {savingConversation ? 'Saving…' : 'Save conversation'}
                 </button>
+                <small style={{ color: '#7b8b99', fontSize: 10 }}>
+                  Saved notes immediately appear in Recent context and feed DJM follow-up / club-need intelligence.
+                </small>
               </form>
             </section>
           </div>
@@ -499,18 +702,24 @@ export default function ContactWorkspacePage() {
           <section className="djm-os-panel">
             <div className="djm-os-panel-head">
               <div>
-                <h2>Relationship timeline</h2>
-                <p>Every important interaction retained.</p>
+                <h2>Full conversation timeline</h2>
+                <p>WhatsApp imports and manual conversations together, newest first.</p>
               </div>
             </div>
-            {(data.interactions || []).length ? (
+            {cleanTimeline.length ? (
               <div className="djm-os-list">
-                {data.interactions.map((item: any) => (
-                  <article className="djm-os-feed-row" key={item.id}>
+                {cleanTimeline.map((item: any) => (
+                  <article className="djm-os-feed-row" key={`${item.item_type}-${item.id}`}>
                     <span className="djm-os-feed-dot" />
                     <div>
-                      <strong>{item.channel} · {item.team_member_name || 'DJM'}</strong>
-                      <p>{item.summary}</p>
+                      <strong>
+                        {item.item_type === 'logged'
+                          ? `${channelLabel(item.channel)} note · ${item.team_member_name || item.actor_label || 'DJM'}`
+                          : item.direction === 'outbound'
+                            ? 'WhatsApp · DJM'
+                            : `WhatsApp · ${person?.preferred_name || person?.full_name || 'Contact'}`}
+                      </strong>
+                      <p>{item.clean_text.length > 520 ? `${item.clean_text.slice(0, 517)}…` : item.clean_text}</p>
                       <small>{compactDateTime(item.occurred_at)}</small>
                     </div>
                   </article>
@@ -566,5 +775,10 @@ function BriefLine({ text, meta }: { text: string; meta?: string; key?: string }
 }
 
 function Metric({ label, value }: { label: string; value: string | number }) {
-  return <div className="djm-os-metric"><strong style={{ fontSize: typeof value === 'string' && value.length > 15 ? 17 : undefined }}>{value}</strong><span>{label}</span></div>;
+  return (
+    <div className="djm-os-metric">
+      <strong style={{ fontSize: typeof value === 'string' && value.length > 15 ? 17 : undefined }}>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
 }
