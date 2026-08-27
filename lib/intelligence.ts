@@ -224,9 +224,13 @@ export const brainIntent = (query: string) => {
   const value = query.trim().toLowerCase();
   if (!value) return 'empty';
   if (/what.*(do|today)|priority|next action/.test(value)) return 'today';
-  if (/missing|blind spot|data quality/.test(value)) return 'missing';
-  if (/need|demand|market/.test(value)) return 'demand';
+  if (/what.*missing|information missing|blind spot|data quality|evidence gap/.test(value)) return 'missing';
+  if (/recruitment target|recruitment pipeline|prospect|target|unsigned|player recruitment/.test(value)) return 'recruitment';
+  if (/club contact|contact|who do we know|relationship|sporting director|technical director|recruitment staff|coach/.test(value)) return 'contacts';
+  if (/budget|salary|wage|fee|commercial parameter/.test(value)) return 'commercial';
   if (/deal|opportunit|pipeline/.test(value)) return 'deals';
-  if (/budget|salary|fee/.test(value)) return 'commercial';
+  if (/club need|need|demand|market/.test(value)) return 'demand';
+  if (/signed|player|client|roster|play (gk|cb|lb|rb|dm|cdm|cm|am|cam|rw|lw|cf|st)/.test(value)) return 'players';
+  if (/club|organisation|organization/.test(value)) return 'clubs';
   return 'unsupported';
 };
