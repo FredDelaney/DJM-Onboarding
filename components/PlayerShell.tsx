@@ -13,13 +13,16 @@ import {
 import {
   Activity,
   Compass,
+  FileText,
   Home,
   LogOut,
   MessageCircle,
+  ShieldCheck,
   UserRound,
 } from 'lucide-react';
 
 import Brand from './Brand';
+import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
 import { supabase } from '@/lib/supabase';
 
 type PlayerState = {
@@ -298,31 +301,46 @@ export function usePlayerContext(): PlayerCtx {
   };
 }
 
+const mobileNav = [
+  ['/home', 'Today', Home],
+  ['/career', 'Career', Compass],
+  ['/check-in', 'Check-in', Activity],
+  ['/inbox', 'DJM', MessageCircle],
+  ['/profile', 'Me', UserRound],
+] as const;
+
+const playerTabs = (inboxCount: number): WorkspaceTab[] => [
+  { href: '/home', label: 'Today', icon: Home },
+  { href: '/career', label: 'Career', icon: Compass },
+  { href: '/check-in', label: 'Check-in', icon: Activity },
+  {
+    href: '/inbox',
+    label: 'DJM',
+    icon: MessageCircle,
+    badge: inboxCount,
+  },
+  { href: '/cv', label: 'Club Profile', icon: ShieldCheck },
+  { href: '/documents', label: 'Documents', icon: FileText },
+  { href: '/profile', label: 'Me', icon: UserRound },
+];
+
 export function PlayerShell({
   children,
-  inboxCount = 0,
+  inboxCount,
 }: {
   children: React.ReactNode;
   inboxCount?: number;
 }) {
   const path = usePathname();
   const router = useRouter();
-
-  const nav = [
-    ['/home', 'Today', Home],
-    ['/career', 'Career', Compass],
-    ['/check-in', 'Check-in', Activity],
-    ['/inbox', 'DJM', MessageCircle],
-    ['/profile', 'Me', UserRound],
-  ] as const;
+  const playerContext = usePlayerContext();
+  const resolvedInboxCount = inboxCount ?? playerContext.openRequests.length;
+  const tabs = playerTabs(resolvedInboxCount);
 
   useEffect(() => {
-    nav.forEach(([href]) => {
+    tabs.forEach(({ href }) => {
       router.prefetch(href);
     });
-    router.prefetch('/cv');
-    router.prefetch('/documents');
-    router.prefetch('/career');
   }, [router]);
 
   const signOut = async () => {
@@ -333,32 +351,49 @@ export function PlayerShell({
 
   return (
     <div className="screen player-premium-screen">
-      <div className="header-glass no-print player-premium-header">
-        <div className="container topbar topbar-min">
-          <Brand />
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Sign out"
-            onClick={signOut}
-          >
-            <LogOut size={17} />
-          </button>
+      <header className="djm-os-header player-workspace-header no-print">
+        <div className="djm-os-header-inner">
+          <div className="djm-os-brand-row">
+            <Brand />
+            <span className="djm-os-chip">
+              <UserRound size={14} />
+              Player
+            </span>
+          </div>
+
+          <WorkspaceTabs
+            items={tabs}
+            ariaLabel="Player navigation"
+            className="player-workspace-tabs"
+          />
+
+          <div className="djm-os-button-row djm-os-header-actions">
+            <button
+              type="button"
+              className="djm-os-icon-button"
+              aria-label="Sign out"
+              onClick={() => void signOut()}
+            >
+              <LogOut size={17} />
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
       {children}
 
       <nav
-        className="bottom-nav no-print player-premium-nav"
-        aria-label="Player navigation"
+        className="bottom-nav no-print player-premium-nav player-mobile-nav"
+        aria-label="Player mobile navigation"
       >
-        {nav.map(
+        {mobileNav.map(
           ([href, label, Icon]) => {
-            const active = path === href;
+            const active =
+              path === href ||
+              path.startsWith(`${href}/`);
             const hasBadge =
               href === '/inbox' &&
-              inboxCount > 0;
+              resolvedInboxCount > 0;
 
             return (
               <Link

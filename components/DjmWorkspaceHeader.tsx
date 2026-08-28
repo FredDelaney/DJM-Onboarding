@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import {
   BrainCircuit,
   BriefcaseBusiness,
@@ -15,13 +13,24 @@ import {
 import Brand from '@/components/Brand';
 import DjmGlobalSearch from '@/components/DjmGlobalSearch';
 import DjmQuickCapture from '@/components/DjmQuickCapture';
+import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
 
-const items = [
+const items: WorkspaceTab[] = [
   { href: '/djm', label: 'Command', icon: LayoutDashboard },
   { href: '/admin', label: 'Players', icon: UsersRound },
-  { href: '/network#contacts', label: 'Club Contacts', icon: ContactRound },
+  {
+    href: '/network#contacts',
+    label: 'Club Contacts',
+    icon: ContactRound,
+    activePrefixes: ['/network'],
+  },
   { href: '/market', label: 'Market', icon: BriefcaseBusiness },
-  { href: '/deals', label: 'Deals', icon: Handshake },
+  {
+    href: '/deals',
+    label: 'Deals',
+    icon: Handshake,
+    activePrefixes: ['/deals', '/market/deals'],
+  },
   { href: '/brain', label: 'Brain', icon: BrainCircuit },
 ];
 
@@ -30,8 +39,6 @@ export default function DjmWorkspaceHeader({
 }: {
   onSignOut: () => void | Promise<void>;
 }) {
-  const pathname = usePathname();
-
   return (
     <header className="djm-os-header">
       <div className="djm-os-header-inner">
@@ -43,30 +50,7 @@ export default function DjmWorkspaceHeader({
           </span>
         </div>
 
-        <nav className="djm-os-product-nav" aria-label="DJM workspaces">
-          {items.map((item) => {
-            const Icon = item.icon;
-            const active =
-              item.href === '/admin'
-                ? pathname === '/admin' || pathname.startsWith('/admin/')
-                : item.href === '/network#contacts'
-                  ? pathname === '/network' || pathname.startsWith('/network/')
-                : item.href === '/deals'
-                  ? pathname === '/deals' || pathname.startsWith('/market/deals/')
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`djm-os-product-link ${active ? 'is-active' : ''}`}
-              >
-                <Icon size={16} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <WorkspaceTabs items={items} ariaLabel="DJM workspaces" />
 
         <div className="djm-os-button-row djm-os-header-actions">
           <DjmQuickCapture />

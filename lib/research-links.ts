@@ -4,11 +4,20 @@ export type ResearchPlatform =
   | 'whatsapp'
   | 'email'
   | 'transfermarkt'
+  | 'wyscout'
   | 'sofascore'
+  | 'fotmob'
+  | 'soccerway'
   | 'stats'
   | 'instagram'
   | 'linkedin'
-  | 'website';
+  | 'website'
+  | 'youtube'
+  | 'vimeo'
+  | 'x'
+  | 'tiktok'
+  | 'video'
+  | 'other';
 
 export type ResearchLink = {
   platform: ResearchPlatform;
@@ -26,6 +35,7 @@ export type ResearchLinkInput = {
   phone?: string | null;
   email?: string | null;
   transfermarktUrl?: string | null;
+  wyscoutUrl?: string | null;
   statsUrl?: string | null;
   instagramUrl?: string | null;
   linkedinUrl?: string | null;
@@ -84,6 +94,7 @@ export function researchSourceLabel(
   if (isHost(value, 'wyscout.com')) return 'Wyscout';
   if (isHost(value, 'fbref.com')) return 'FBref';
   if (isHost(value, 'fotmob.com')) return 'FotMob';
+  if (isHost(value, 'soccerway.com')) return 'Soccerway';
   if (isHost(value, 'statsbomb.com')) return 'StatsBomb';
   return fallback;
 }
@@ -168,6 +179,36 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
           transfermarktSearch(identity),
           'Find Transfermarkt',
         ),
+      );
+
+      const wyscout = normaliseWebUrl(input.wyscoutUrl);
+      if (wyscout) {
+        links.push({ platform: 'wyscout', label: 'Wyscout', href: wyscout, mode: 'direct' });
+      }
+
+      const statsUrl = normaliseWebUrl(input.statsUrl);
+      if (
+        statsUrl &&
+        !isTransfermarktUrl(statsUrl) &&
+        !sameResearchUrl(statsUrl, directTransfermarkt)
+      ) {
+        const hostname = webHostname(statsUrl);
+        const platform: ResearchPlatform = hostname.includes('sofascore.com')
+          ? 'sofascore'
+          : hostname.includes('fotmob.com')
+            ? 'fotmob'
+            : hostname.includes('soccerway.com')
+              ? 'soccerway'
+              : 'stats';
+        links.push({
+          platform,
+          label: researchSourceLabel(statsUrl),
+          href: statsUrl,
+          mode: 'direct',
+        });
+      }
+
+      links.push(
         directOrSearch(
           'instagram',
           instagramHref(input.instagramUrl),
@@ -176,28 +217,15 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
           'Find Instagram',
         ),
       );
-
-      const statsUrl = normaliseWebUrl(input.statsUrl);
-      if (
-        statsUrl &&
-        !isTransfermarktUrl(statsUrl) &&
-        !sameResearchUrl(statsUrl, directTransfermarkt)
-      ) {
-        const isSofascore = isHost(statsUrl, 'sofascore.com');
-        links.splice(links.length - 1, 0, {
-          platform: isSofascore ? 'sofascore' : 'stats',
-          label: researchSourceLabel(statsUrl),
-          href: statsUrl,
-          mode: 'direct',
-        });
-      }
     }
   }
 
   if (input.kind === 'club' && organisationIdentity) {
     const website = normaliseWebUrl(input.websiteUrl);
-    const savedTransfermarkt =
-      website && isTransfermarktUrl(website)
+    const transfermarktUrl = normaliseWebUrl(input.transfermarktUrl);
+    const savedTransfermarkt = transfermarktUrl && isTransfermarktUrl(transfermarktUrl)
+      ? transfermarktUrl
+      : website && isTransfermarktUrl(website)
         ? website
         : null;
 
