@@ -21,6 +21,10 @@ import {
   dossierPositionMap,
   dossierVerifiedDate,
 } from '@/lib/dossier';
+import {
+  researchSourceLabel,
+  sameResearchUrl,
+} from '@/lib/research-links';
 
 type DownloadArgs = {
   profile: any;
@@ -872,8 +876,14 @@ export function ClubCvPdfDocument({
         profile.wyscout_url,
     },
 
-    profile?.stats_url && {
-      label: 'Statistics',
+    profile?.stats_url &&
+      !sameResearchUrl(
+        profile.stats_url,
+        profile.transfermarkt_url,
+      ) && {
+      label: researchSourceLabel(
+        profile.stats_url,
+      ),
       url:
         profile.stats_url,
     },
@@ -979,7 +989,7 @@ export function ClubCvPdfDocument({
               }
             >
               {verified
-                ? `DJM VERIFIED · ${verified.toUpperCase()}`
+                ? `DJM REVIEWED · ${verified.toUpperCase()}`
                 : 'PLAYER DOSSIER'}
             </Text>
           </View>

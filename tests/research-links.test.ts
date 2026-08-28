@@ -41,6 +41,36 @@ test('shows a stats platform only when a saved direct profile exists', () => {
   assert.equal(stats?.href, 'https://www.sofascore.com/player/ada-striker/123');
 });
 
+test('does not mislabel Transfermarkt as a separate statistics platform', () => {
+  const links = buildResearchLinks({
+    kind: 'player',
+    name: 'Ada Striker',
+    transfermarktUrl: 'https://www.transfermarkt.com/ada/profil/spieler/1',
+    statsUrl: 'https://www.transfermarkt.com/ada/profil/spieler/1',
+  });
+
+  assert.equal(
+    links.filter((link) => link.platform === 'transfermarkt').length,
+    1,
+  );
+  assert.equal(
+    links.some((link) => link.platform === 'sofascore' || link.platform === 'stats'),
+    false,
+  );
+});
+
+test('labels other saved statistics providers honestly', () => {
+  const links = buildResearchLinks({
+    kind: 'player',
+    name: 'Ada Striker',
+    statsUrl: 'https://fbref.com/en/players/example',
+  });
+
+  const stats = links.find((link) => link.platform === 'stats');
+  assert.equal(stats?.label, 'FBref');
+  assert.equal(stats?.mode, 'direct');
+});
+
 test('gives clubs a complete organisation research set', () => {
   const links = buildResearchLinks({
     kind: 'club',
@@ -56,6 +86,17 @@ test('gives clubs a complete organisation research set', () => {
   assert.equal(links[0].mode, 'direct');
   assert.equal(links[1].mode, 'search');
   assert.equal(links.some((link) => link.href.includes('google.com')), false);
+});
+
+test('recognises a Transfermarkt URL stored in the club website field', () => {
+  const links = buildResearchLinks({
+    kind: 'club',
+    name: 'Example FC',
+    websiteUrl: 'https://www.transfermarkt.com/example-fc/startseite/verein/1',
+  });
+
+  assert.equal(links.some((link) => link.platform === 'website'), false);
+  assert.equal(links.find((link) => link.platform === 'transfermarkt')?.mode, 'direct');
 });
 
 test('keeps club-contact research focused on messaging and professional identity', () => {

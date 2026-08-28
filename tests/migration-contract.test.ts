@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migration = readFileSync(
-  new URL('../supabase/migrations/20260827130000_djm_intelligence_foundation.sql', import.meta.url),
+  new URL('../supabase/proposals/djm_intelligence_foundation.sql', import.meta.url),
+  'utf8',
+).toLowerCase();
+
+const grantHardeningMigration = readFileSync(
+  new URL('../supabase/migrations/20260828051727_restrict_anonymous_table_grants.sql', import.meta.url),
   'utf8',
 ).toLowerCase();
 
@@ -34,4 +39,19 @@ test('connected workflows record both service and decision-room events', () => {
   assert.match(migration, /'player_service_recorded'/);
   assert.match(migration, /create or replace function public\.djm_create_decision_room_snapshot/);
   assert.match(migration, /'decision_room_snapshot_created'/);
+});
+
+test('anonymous database grants are limited to intentional public reads', () => {
+  assert.match(
+    grantHardeningMigration,
+    /revoke all privileges on table public\.player_agreements from anon/,
+  );
+  assert.match(
+    grantHardeningMigration,
+    /revoke all privileges on table public\.player_opportunities from anon/,
+  );
+  assert.match(
+    grantHardeningMigration,
+    /grant select on table public\.site_content to anon/,
+  );
 });

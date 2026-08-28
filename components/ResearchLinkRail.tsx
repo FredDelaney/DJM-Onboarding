@@ -17,6 +17,7 @@ const ICONS: Record<ResearchPlatform, React.ReactNode> = {
   email: <Mail size={14} />,
   transfermarkt: <ExternalLink size={14} />,
   sofascore: <BarChart3 size={14} />,
+  stats: <BarChart3 size={14} />,
   instagram: <Instagram size={14} />,
   linkedin: <Linkedin size={14} />,
   website: <Globe2 size={14} />,

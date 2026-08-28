@@ -5,6 +5,7 @@ export type ResearchPlatform =
   | 'email'
   | 'transfermarkt'
   | 'sofascore'
+  | 'stats'
   | 'instagram'
   | 'linkedin'
   | 'website';
@@ -50,6 +51,43 @@ export function normaliseWebUrl(value: unknown) {
   }
 }
 
+function webHostname(value: unknown) {
+  const normalised = normaliseWebUrl(value);
+  if (!normalised) return '';
+
+  return new URL(normalised).hostname
+    .toLowerCase()
+    .replace(/^www\./, '');
+}
+
+function isHost(value: unknown, domain: string) {
+  const hostname = webHostname(value);
+  return hostname === domain || hostname.endsWith(`.${domain}`);
+}
+
+export function isTransfermarktUrl(value: unknown) {
+  return isHost(value, 'transfermarkt.com');
+}
+
+export function sameResearchUrl(left: unknown, right: unknown) {
+  const first = normaliseWebUrl(left);
+  const second = normaliseWebUrl(right);
+  return Boolean(first && second && first === second);
+}
+
+export function researchSourceLabel(
+  value: unknown,
+  fallback = 'Statistics source',
+) {
+  if (isHost(value, 'sofascore.com')) return 'Sofascore';
+  if (isHost(value, 'transfermarkt.com')) return 'Transfermarkt';
+  if (isHost(value, 'wyscout.com')) return 'Wyscout';
+  if (isHost(value, 'fbref.com')) return 'FBref';
+  if (isHost(value, 'fotmob.com')) return 'FotMob';
+  if (isHost(value, 'statsbomb.com')) return 'StatsBomb';
+  return fallback;
+}
+
 export function whatsappHref(value: unknown) {
   let digits = text(value).replace(/\D/g, '');
   if (digits.startsWith('00')) digits = digits.slice(2);
@@ -68,7 +106,8 @@ function instagramHref(value: unknown) {
   if (/^@?[a-z0-9._]+$/i.test(raw)) {
     return `https://www.instagram.com/${raw.replace(/^@/, '')}/`;
   }
-  return normaliseWebUrl(raw);
+  const url = normaliseWebUrl(raw);
+  return url && isHost(url, 'instagram.com') ? url : null;
 }
 
 function linkedinSearch(type: 'people' | 'companies', query: string) {
@@ -115,10 +154,16 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
 
   if (input.kind === 'player' || input.kind === 'recruitment') {
     if (identity) {
+      const transfermarktUrl = normaliseWebUrl(input.transfermarktUrl);
+      const directTransfermarkt =
+        transfermarktUrl && isTransfermarktUrl(transfermarktUrl)
+          ? transfermarktUrl
+          : null;
+
       links.push(
         directOrSearch(
           'transfermarkt',
-          normaliseWebUrl(input.transfermarktUrl),
+          directTransfermarkt,
           'Transfermarkt',
           transfermarktSearch(identity),
           'Find Transfermarkt',
@@ -133,10 +178,15 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
       );
 
       const statsUrl = normaliseWebUrl(input.statsUrl);
-      if (statsUrl) {
+      if (
+        statsUrl &&
+        !isTransfermarktUrl(statsUrl) &&
+        !sameResearchUrl(statsUrl, directTransfermarkt)
+      ) {
+        const isSofascore = isHost(statsUrl, 'sofascore.com');
         links.splice(links.length - 1, 0, {
-          platform: 'sofascore',
-          label: 'Sofascore / stats',
+          platform: isSofascore ? 'sofascore' : 'stats',
+          label: researchSourceLabel(statsUrl),
           href: statsUrl,
           mode: 'direct',
         });
@@ -146,11 +196,22 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
 
   if (input.kind === 'club' && organisationIdentity) {
     const website = normaliseWebUrl(input.websiteUrl);
-    if (website) {
+    const savedTransfermarkt =
+      website && isTransfermarktUrl(website)
+        ? website
+        : null;
+
+    if (website && !savedTransfermarkt) {
       links.push({ platform: 'website', label: 'Website', href: website, mode: 'direct' });
     }
     links.push(
-      { platform: 'transfermarkt', label: 'Find Transfermarkt', href: transfermarktSearch(organisationIdentity), mode: 'search' },
+      directOrSearch(
+        'transfermarkt',
+        savedTransfermarkt,
+        'Transfermarkt',
+        transfermarktSearch(organisationIdentity),
+        'Find Transfermarkt',
+      ),
       directOrSearch(
         'instagram',
         instagramHref(input.instagramUrl),
@@ -160,7 +221,9 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
       ),
       directOrSearch(
         'linkedin',
-        normaliseWebUrl(input.linkedinUrl),
+        isHost(input.linkedinUrl, 'linkedin.com')
+          ? normaliseWebUrl(input.linkedinUrl)
+          : null,
         'LinkedIn',
         linkedinSearch('companies', organisationIdentity),
         'Find LinkedIn',
@@ -172,7 +235,9 @@ export function buildResearchLinks(input: ResearchLinkInput): ResearchLink[] {
     links.push(
       directOrSearch(
         'linkedin',
-        normaliseWebUrl(input.linkedinUrl),
+        isHost(input.linkedinUrl, 'linkedin.com')
+          ? normaliseWebUrl(input.linkedinUrl)
+          : null,
         'LinkedIn',
         linkedinSearch('people', identity),
         'Find LinkedIn',

@@ -1,0 +1,28 @@
+project_id = "djm-onboarding"
+
+[functions.club-document]
+verify_jwt = false
+
+[functions.djm-build-src-00]
+verify_jwt = true
+
+[functions.dispatch-player-push]
+verify_jwt = false
+
+[functions.accept-player-invite]
+verify_jwt = false
+
+[functions.remove-player]
+verify_jwt = true
+
+[functions.import-player-stats]
+verify_jwt = true
+
+[functions.djm-network-capture]
+verify_jwt = true
+
+[functions.djm-network-import]
+verify_jwt = true
+
+[functions.djm-transfermarkt-enrich]
+verify_jwt = true

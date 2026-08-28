@@ -20,8 +20,18 @@ Deno.serve(async (req: Request) => {
   try {
     const { token, email, password } = await req.json();
 
-    if (!token || !email || !password || String(password).length < 6) {
-      return new Response(JSON.stringify({ error: "Invalid invitation details" }), {
+    const passwordValue = String(password || "");
+    const strongPassword =
+      passwordValue.length >= 12 &&
+      /[a-z]/.test(passwordValue) &&
+      /[A-Z]/.test(passwordValue) &&
+      /\d/.test(passwordValue) &&
+      /[^A-Za-z0-9]/.test(passwordValue);
+
+    if (!token || !email || !strongPassword) {
+      return new Response(JSON.stringify({
+        error: "Use at least 12 characters with uppercase, lowercase, a number and a symbol",
+      }), {
         status: 400,
         headers: cors,
       });
@@ -65,7 +75,7 @@ Deno.serve(async (req: Request) => {
 
     const { data, error } = await admin.auth.admin.createUser({
       email: invite.email,
-      password,
+      password: passwordValue,
       email_confirm: true,
       user_metadata: { full_name: fullName, invite_token: token },
     });

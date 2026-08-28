@@ -560,7 +560,10 @@ const customKeyStats=
       })
     )
     .filter(
-      ({stat})=>
+      ({stat}:{
+        stat:any;
+        index:number;
+      })=>
         !genericStatLabels
           .has(
             String(
@@ -3799,6 +3802,9 @@ const removePlayer=async(
         ({
           stat,
           index
+        }:{
+          stat:any;
+          index:number;
         })=>(
           <div
             key={index}
