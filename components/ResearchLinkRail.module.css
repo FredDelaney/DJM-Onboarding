@@ -124,4 +124,28 @@
   .heading {
     flex-basis: 100%;
   }
+
+  .links {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .link,
+  .compact .link {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 10px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .link,
+  .compact .link {
+    min-height: 44px;
+  }
+
+  .link:hover {
+    transform: none;
+    box-shadow: none;
+  }
 }

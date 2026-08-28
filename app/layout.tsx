@@ -9,6 +9,7 @@ import './player-premium.css';
 import './player-nav-contrast-fix.css';
 import './(djm-os)/djm-os.css';
 import './workspace-nav.css';
+import './responsive-polish.css';
 
 export const metadata = {
   title: 'DJM Player',
