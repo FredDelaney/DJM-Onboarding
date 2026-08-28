@@ -1,0 +1,104 @@
+/* =========================================================
+   SHARED AUTHENTICATED WORKSPACE NAVIGATION
+   Admin and player use one navigation language.
+   ========================================================= */
+
+.workspace-tab-badge {
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--djm-yellow, #f5e900);
+  color: var(--djm-navy, #061f3a);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.djm-os-product-link.is-active .workspace-tab-badge {
+  background: var(--djm-navy, #061f3a);
+  color: var(--djm-yellow, #f5e900);
+}
+
+.player-workspace-header .djm-os-header-inner {
+  width: min(var(--max-width, 1120px), calc(100% - 32px));
+}
+
+.player-workspace-tabs {
+  min-width: 0;
+}
+
+.player-workspace-tabs .djm-os-product-link {
+  white-space: nowrap;
+}
+
+@media (min-width: 761px) {
+  .player-mobile-nav {
+    display: none !important;
+  }
+
+  .player-premium-screen {
+    padding-bottom: 48px;
+  }
+}
+
+@media (max-width: 960px) {
+  .player-workspace-header .djm-os-header-inner {
+    width: min(100% - 24px, var(--max-width, 1120px));
+  }
+}
+
+@media (max-width: 760px) {
+  .player-workspace-header .djm-os-header-inner {
+    width: calc(100% - 22px);
+  }
+
+  .player-workspace-header .djm-os-product-nav {
+    margin-inline: -2px;
+    padding: 0 2px 8px;
+    scroll-snap-type: x proximity;
+  }
+
+  .player-workspace-header .djm-os-product-link {
+    flex: 0 0 auto;
+    min-height: 39px;
+    padding: 8px 11px;
+    scroll-snap-align: start;
+  }
+
+  .player-workspace-header .djm-os-product-link svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .player-workspace-header .djm-os-chip {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .player-workspace-header .brand-copy {
+    display: none;
+  }
+
+  .player-workspace-header .djm-os-header-inner {
+    grid-template-columns: auto auto;
+  }
+
+  .player-workspace-header .djm-os-header-actions {
+    justify-self: end;
+  }
+
+  .player-workspace-header .djm-os-product-nav {
+    grid-column: 1 / -1;
+  }
+}
+
+@media print {
+  .player-workspace-header,
+  .player-mobile-nav {
+    display: none !important;
+  }
+}

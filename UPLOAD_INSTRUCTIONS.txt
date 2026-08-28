@@ -1,0 +1,39 @@
+DJM PLAYER PRODUCTION PATCH
+
+Upload the contents of this folder into the repository root, preserving paths.
+Do not upload the outer DJM-Player-Production-Patch folder itself.
+
+This patch now includes:
+- editable research and relationship links
+- player intelligence and scoring foundations
+- opportunity and pitch editing foundations
+- shared authenticated top navigation for admin and player
+
+Navigation files added or replaced:
+- components/WorkspaceTabs.tsx
+- components/DjmWorkspaceHeader.tsx
+- components/PlayerShell.tsx
+- app/workspace-nav.css
+- app/layout.tsx
+
+Player top navigation:
+- Today
+- Career
+- Check-in
+- DJM
+- Club Profile
+- Documents
+- Me
+
+The existing mobile bottom navigation is retained below 761px as a secondary thumb-friendly control. On tablet and desktop it is hidden, so the shared top tabs become the primary navigation.
+
+Public club-share pages, sign-in, join and onboarding are intentionally excluded from authenticated workspace navigation.
+
+After upload:
+1. Commit the files to a feature branch if possible.
+2. Run npm run check.
+3. Confirm the Vercel preview succeeds.
+4. Test admin navigation on desktop and mobile.
+5. Test player navigation on desktop and mobile.
+6. Verify active states on nested pages, especially /market/deals/* and player profile routes.
+7. Merge to main only after the checks are clean.

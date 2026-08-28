@@ -3,12 +3,17 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
+    "sanitize:text": "node scripts/sanitize-user-facing-text.mjs",
+    "predev": "npm run sanitize:text",
     "dev": "next dev",
+    "prebuild": "npm run sanitize:text",
     "build": "next build",
     "start": "next start",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/*.test.ts",
     "typecheck": "next typegen && tsc --noEmit",
-    "check": "npm test && npm run typecheck && npm run build"
+    "precheck": "npm run sanitize:text && npm run check:no-em-dash",
+    "check": "npm test && npm run typecheck && npm run build",
+    "check:no-em-dash": "node scripts/check-no-em-dash.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "4.5.1",

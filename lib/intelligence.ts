@@ -47,6 +47,8 @@ export type CandidateEvidence = {
   concerns?: unknown;
   missing_information?: unknown;
   reasoning?: unknown;
+  overall_score?: number | string | null;
+  match_score?: number | string | null;
 };
 
 const list = (value: unknown): string[] => {
@@ -78,6 +80,11 @@ const reasoningObject = (value: unknown): Record<string, unknown> => {
   } catch {
     return {};
   }
+};
+
+const percentage = (value: unknown) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.min(100, Math.round(number))) : null;
 };
 
 export const truthStateLabel = (state?: string | null) => {
@@ -122,14 +129,41 @@ export const matchAssessment = (candidate: CandidateEvidence) => {
     ...list(reasoning.missing),
   ];
 
+  const rawPercentage = percentage(candidate.overall_score ?? candidate.match_score);
   let strength: MatchStrength = 'Insufficient evidence';
-  if (hardBlockers.length) strength = 'Weak';
-  else if (strengths.length >= 2 && concerns.length === 0) strength = 'Strong';
-  else if (strengths.length > 0) strength = 'Moderate';
-  else if (concerns.length > 0) strength = 'Weak';
+  let label = 'Insufficient evidence';
+
+  if (hardBlockers.length) {
+    strength = 'Weak';
+    label = 'Weak fit';
+  } else if (rawPercentage !== null && rawPercentage >= 85) {
+    strength = 'Strong';
+    label = 'Excellent fit';
+  } else if (rawPercentage !== null && rawPercentage >= 70) {
+    strength = 'Strong';
+    label = 'Strong fit';
+  } else if (rawPercentage !== null && rawPercentage >= 50) {
+    strength = 'Moderate';
+    label = 'Possible fit';
+  } else if (rawPercentage !== null) {
+    strength = 'Weak';
+    label = 'Weak fit';
+  } else if (strengths.length >= 2 && concerns.length === 0) {
+    strength = 'Strong';
+    label = 'Strong fit';
+  } else if (strengths.length > 0) {
+    strength = 'Moderate';
+    label = 'Possible fit';
+  } else if (concerns.length > 0) {
+    strength = 'Weak';
+    label = 'Weak fit';
+  }
 
   return {
     strength,
+    label,
+    percentage: rawPercentage,
+    display: rawPercentage === null ? label : `${label} · ${rawPercentage}%`,
     hardBlockers: [...new Set(hardBlockers)],
     strengths: [...new Set(strengths)],
     concerns: [...new Set(concerns)],
@@ -210,7 +244,23 @@ export const dealCredibility = (deal: {
   primary_blocker?: string | null;
   next_action_at?: string | null;
   club_need_id?: string | null;
+  probability?: number | null;
+  model_probability?: number | null;
+  manual_probability?: number | null;
+  probability_source?: string | null;
 }) => {
+  const effective = percentage(
+    deal.manual_probability ?? deal.probability ?? deal.model_probability,
+  );
+  if (effective !== null) {
+    const source = deal.manual_probability != null || deal.probability_source === 'manual'
+      ? 'manual override'
+      : deal.probability_source === 'outcome'
+        ? 'outcome'
+        : 'model estimate';
+    return `${effective}% · ${source}`;
+  }
+
   const stage = String(deal.stage || '').toLowerCase();
   if (deal.primary_blocker) return 'Low credibility';
   if (['offer', 'negotiating', 'terms', 'contracting'].includes(stage)) {
