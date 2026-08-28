@@ -19,6 +19,12 @@ export const VISIBILITY_LEVELS = [
 
 export type VisibilityLevel = (typeof VISIBILITY_LEVELS)[number];
 
+export type MatchStrength =
+  | 'Strong'
+  | 'Moderate'
+  | 'Weak'
+  | 'Insufficient evidence';
+
 export type RecommendationKind =
   | 'Act now'
   | 'Review'
@@ -124,21 +130,40 @@ export const matchAssessment = (candidate: CandidateEvidence) => {
   ];
 
   const rawPercentage = percentage(candidate.overall_score ?? candidate.match_score);
+  let strength: MatchStrength = 'Insufficient evidence';
   let label = 'Insufficient evidence';
 
-  if (hardBlockers.length) label = 'Weak fit';
-  else if (rawPercentage !== null && rawPercentage >= 85) label = 'Excellent fit';
-  else if (rawPercentage !== null && rawPercentage >= 70) label = 'Strong fit';
-  else if (rawPercentage !== null && rawPercentage >= 50) label = 'Possible fit';
-  else if (rawPercentage !== null) label = 'Weak fit';
-  else if (strengths.length >= 2 && concerns.length === 0) label = 'Strong fit';
-  else if (strengths.length > 0) label = 'Possible fit';
-  else if (concerns.length > 0) label = 'Weak fit';
+  if (hardBlockers.length) {
+    strength = 'Weak';
+    label = 'Weak fit';
+  } else if (rawPercentage !== null && rawPercentage >= 85) {
+    strength = 'Strong';
+    label = 'Excellent fit';
+  } else if (rawPercentage !== null && rawPercentage >= 70) {
+    strength = 'Strong';
+    label = 'Strong fit';
+  } else if (rawPercentage !== null && rawPercentage >= 50) {
+    strength = 'Moderate';
+    label = 'Possible fit';
+  } else if (rawPercentage !== null) {
+    strength = 'Weak';
+    label = 'Weak fit';
+  } else if (strengths.length >= 2 && concerns.length === 0) {
+    strength = 'Strong';
+    label = 'Strong fit';
+  } else if (strengths.length > 0) {
+    strength = 'Moderate';
+    label = 'Possible fit';
+  } else if (concerns.length > 0) {
+    strength = 'Weak';
+    label = 'Weak fit';
+  }
 
   return {
-    strength: rawPercentage === null ? label : `${label} · ${rawPercentage}%`,
+    strength,
     label,
     percentage: rawPercentage,
+    display: rawPercentage === null ? label : `${label} · ${rawPercentage}%`,
     hardBlockers: [...new Set(hardBlockers)],
     strengths: [...new Set(strengths)],
     concerns: [...new Set(concerns)],

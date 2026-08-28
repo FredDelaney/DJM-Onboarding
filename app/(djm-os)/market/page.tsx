@@ -492,7 +492,7 @@ export default function MarketPage() {
                     return (
                       <article className="djm-candidate-row" key={candidate.player_id || candidate.prospect_id}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="djm-command-meta"><span className={`djm-evidence-state ${assessment.hardBlockers.length ? 'is-missing' : 'is-review'}`}>{assessment.strength}</span><span>{candidateTab === 'signed' ? 'Signed player' : 'Recruitment target'}</span></div>
+                          <div className="djm-command-meta"><span className={`djm-evidence-state ${assessment.hardBlockers.length ? 'is-missing' : 'is-review'}`}>{assessment.display}</span><span>{candidateTab === 'signed' ? 'Signed player' : 'Recruitment target'}</span></div>
                           <strong>{name}</strong>
                           <p>{[candidate.player_position || candidate.primary_position, candidate.current_club, candidate.preferred_foot].filter(Boolean).join(' · ')}</p>
                           <small>{assessment.hardBlockers[0] ? `Hard blocker · ${assessment.hardBlockers[0]}` : evidence || 'Review source data before progressing'}</small>
