@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 
 import Brand from '@/components/Brand';
+import {
+  isStrongPassword,
+  STRONG_PASSWORD_MESSAGE,
+} from '@/lib/password';
 import { supabase } from '@/lib/supabase';
 
 export default function Join() {
@@ -54,6 +58,11 @@ export default function Join() {
     event.preventDefault();
 
     if (!invite?.email) return;
+
+    if (!isStrongPassword(password)) {
+      setMsg(STRONG_PASSWORD_MESSAGE);
+      return;
+    }
 
     setBusy(true);
     setMsg('');
@@ -217,8 +226,8 @@ export default function Join() {
                     event.target.value,
                   )
                 }
-                placeholder="Minimum 6 characters"
-                minLength={6}
+                placeholder="12+ characters · upper, lower, number, symbol"
+                minLength={12}
                 required
               />
             </div>

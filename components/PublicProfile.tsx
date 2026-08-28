@@ -29,6 +29,10 @@ import {
   dossierPositionMap,
   dossierVerifiedDate,
 } from '@/lib/dossier';
+import {
+  researchSourceLabel,
+  sameResearchUrl,
+} from '@/lib/research-links';
 
 export default function PublicProfile({
   profile,
@@ -79,6 +83,15 @@ export default function PublicProfile({
 
   const career =
     dossierCareer(profile);
+
+  const latestCareerSeason =
+    career[0]?.season_label ||
+    career[0]?.season ||
+    career[0]?.start_date?.slice(
+      0,
+      4,
+    ) ||
+    null;
 
   const headlineStats =
     dossierHeadlineStats(
@@ -166,9 +179,15 @@ export default function PublicProfile({
         profile.wyscout_url,
     },
 
-    profile.stats_url && {
+    profile.stats_url &&
+      !sameResearchUrl(
+        profile.stats_url,
+        profile.transfermarkt_url,
+      ) && {
       label:
-        'Statistics',
+        researchSourceLabel(
+          profile.stats_url,
+        ),
       url:
         profile.stats_url,
     },
@@ -341,7 +360,7 @@ export default function PublicProfile({
                     <ShieldCheck
                       size={13}
                     />
-                    DJM verified
+                    DJM reviewed
                     {verified
                       ? ` · ${verified}`
                       : ''}
@@ -621,7 +640,9 @@ export default function PublicProfile({
                 </div>
 
                 <span>
-                  Reviewed source data
+                  {latestCareerSeason
+                    ? `Recorded through ${latestCareerSeason}`
+                    : 'Reviewed source data'}
                 </span>
               </div>
 
@@ -1053,7 +1074,7 @@ export default function PublicProfile({
         {sources.length > 0 && (
           <section className="dossier-section dossier-sources">
             <div className="dossier-kicker">
-              VERIFICATION SOURCES
+              PLAYER SOURCES
             </div>
 
             <div>

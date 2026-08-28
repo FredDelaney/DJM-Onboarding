@@ -1,0 +1,28 @@
+drop index if exists djm_os.djm_os_interactions_org_idx;
+drop index if exists djm_os.djm_os_interactions_person_idx;
+drop index if exists djm_os.djm_os_tasks_owner_idx;
+
+create index if not exists booking_requests_meeting_idx on djm_os.booking_requests(meeting_id);
+create index if not exists booking_requests_org_idx on djm_os.booking_requests(organisation_id);
+create index if not exists booking_requests_person_idx on djm_os.booking_requests(person_id);
+create index if not exists captures_org_idx on djm_os.captures(organisation_id);
+create index if not exists captures_person_idx on djm_os.captures(person_id);
+create index if not exists captures_submitted_idx on djm_os.captures(submitted_by,created_at desc);
+create index if not exists claims_interaction_idx on djm_os.claims(interaction_id);
+create index if not exists club_needs_source_interaction_idx on djm_os.club_needs(source_interaction_id);
+create index if not exists club_needs_source_person_idx on djm_os.club_needs(source_person_id);
+create index if not exists events_actor_idx on djm_os.events(actor_user_id,occurred_at desc);
+create index if not exists events_interaction_idx on djm_os.events(interaction_id);
+create index if not exists events_org_idx on djm_os.events(organisation_id,occurred_at desc);
+create index if not exists events_person_idx on djm_os.events(person_id,occurred_at desc);
+create index if not exists events_player_idx on djm_os.events(player_id,occurred_at desc);
+create index if not exists meetings_org_idx on djm_os.meetings(organisation_id,starts_at desc);
+create index if not exists suggestions_need_idx on djm_os.suggestions(club_need_id,status);
+create index if not exists suggestions_org_idx on djm_os.suggestions(organisation_id,status);
+create index if not exists suggestions_person_idx on djm_os.suggestions(person_id,status);
+create index if not exists suggestions_player_idx on djm_os.suggestions(player_id,status);
+create index if not exists tasks_need_idx on djm_os.tasks(club_need_id,status);
+create index if not exists tasks_interaction_idx on djm_os.tasks(interaction_id,status);
+create index if not exists tasks_org_idx on djm_os.tasks(organisation_id,status,due_at);
+create index if not exists tasks_person_idx on djm_os.tasks(person_id,status,due_at);
+create index if not exists tasks_player_idx on djm_os.tasks(player_id,status,due_at);

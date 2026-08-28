@@ -1,4 +1,5 @@
 import { calculateCareerReadiness, type CareerReadiness } from '@/lib/player-career';
+import { publishedDossierNeedsCurrentSeason } from '@/lib/data-quality';
 
 export type AdminRow = Record<string, any>;
 
@@ -370,6 +371,24 @@ export function buildAdminPortfolio({
         dueAt: opportunity.next_action_due,
       });
     });
+
+    if (
+      publishedDossierNeedsCurrentSeason({
+        published: publicProfile?.published,
+        currentSeasonLabel: player.current_season_label,
+        currentSeasonStart: player.current_season_start,
+        now,
+      })
+    ) {
+      addIssue({
+        severity: 'attention',
+        kind: 'verification',
+        title: 'Published dossier needs current-season evidence',
+        detail: 'Set the active season window and review current sporting evidence before sending the dossier to clubs.',
+        href: issueHref(playerId, 'profile'),
+        score: 88,
+      });
+    }
 
     if (player.verification_status !== 'verified' || player.review_required_at) {
       addIssue({

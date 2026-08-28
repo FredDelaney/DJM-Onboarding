@@ -1,90 +1,43 @@
-# DJM Player — UX Smoothness Release
+# DJM Intelligence
 
-This release is deliberately **not a redesign**.
+DJM Intelligence is the connected operating platform for DJM Sports Management. It combines the private player experience, club-facing player dossiers, agency administration, club demand, recruitment, relationship intelligence, deal rooms and the DJM Brain.
 
-It fixes the structural reasons the app can feel like separate web pages instead of one fluid product.
+## Local development
 
-## What changes
+Use Node.js 24 and npm.
 
-### 1. Navigation stops reloading the player from zero
-`components/PlayerShell.tsx`
+```bash
+cp .env.example .env.local
+npm ci
+npm run dev
+```
 
-The current app creates a new local player context on every page. That means moving between Home, Inbox, Check-in and Profile repeatedly starts from `loading: true`, rechecks auth and fetches the same player/private/request/check-in data again.
+Set the two public Supabase values in `.env.local`. Local and preview builds intentionally have no production fallback, so a missing environment configuration fails visibly instead of silently writing to production.
 
-The replacement keeps the current player state in memory for the life of the app session.
+## Verification
 
-Result:
-- repeat tab navigation renders immediately;
-- no full-screen loading flash on every player tab;
-- data quietly revalidates in the background;
-- simultaneous page loads share one request instead of duplicating it;
-- nothing private is written to localStorage or sessionStorage.
+```bash
+npm run check
+```
 
-### 2. Admin auth also stays warm
-`components/AdminShell.tsx`
+The command regenerates Next.js route types, runs the test suite, performs strict TypeScript checking and creates a production build.
 
-Admin/scout identity is cached in memory for 60 seconds and quietly revalidated. Moving around Admin no longer needs to start authentication from zero each time.
+## Production architecture
 
-### 3. iPhone controls feel more physical
-`app/ux-smooth.css`
+- Next.js App Router on Vercel
+- Supabase Auth, Postgres, Storage, RLS, Cron and Edge Functions
+- GitHub Actions on Node.js 24
+- Vercel Git integration deploys `main`
 
-Adds:
-- subtle pressed feedback;
-- smoother bottom sheets;
-- smoother backdrop/toast entry;
-- stable iOS bottom navigation compositor layer;
-- touch-action optimisation;
-- proper reduced-motion support.
+The Supabase migrations directory is the production migration ledger. Edge Function sources under `supabase/functions` must be updated in the same commit as every deployment.
 
-### 4. Root layout loads the interaction layer
-`app/layout.tsx`
+## Security boundaries
 
-Only adds the new CSS import. No metadata or product structure changes.
+- Player-private, DJM-internal and club-shareable information are separate visibility states.
+- Public dossiers require a published profile and current verification.
+- Admin/scout profiles are synchronized into DJM team membership by a private trigger.
+- Anonymous table grants are limited to intentional public reads.
+- Capability-token functions validate expiry and scope before returning data.
+- Service-role keys are read only from server-side Edge Function environment variables.
 
----
-
-# Upload these exact files
-
-Replace:
-
-`components/PlayerShell.tsx`
-
-with the file from this bundle.
-
-Replace:
-
-`components/AdminShell.tsx`
-
-with the file from this bundle.
-
-Create:
-
-`app/ux-smooth.css`
-
-with the file from this bundle.
-
-Replace:
-
-`app/layout.tsx`
-
-with the file from this bundle.
-
-Commit:
-
-`Make DJM Player navigation feel instant`
-
-Then tell ChatGPT `done`.
-
----
-
-# What I will do after it is green
-
-The next UX pass is about **removing taps**, not adding design:
-
-1. Home “best next update” opens the exact Profile editor (Football / Career / Media / Sources).
-2. Profile saves close immediately after the database write, while the global context refreshes quietly.
-3. Inbox completion updates optimistically instead of holding the button while it reloads the inbox + global context.
-4. Weekly check-in gets a faster success return into My Season.
-5. Admin player actions stop reloading all 15 data sources after every small edit where a targeted update is enough.
-
-Those should be done after this structural smoothness layer is verified, because this release removes the biggest source of perceived slowness everywhere at once.
+Never commit `.env*`, service-role keys, scheduler secrets, invitation tokens or share tokens.

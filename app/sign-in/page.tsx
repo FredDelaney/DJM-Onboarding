@@ -11,6 +11,10 @@ import {
 } from 'lucide-react';
 
 import Brand from '@/components/Brand';
+import {
+  isStrongPassword,
+  STRONG_PASSWORD_MESSAGE,
+} from '@/lib/password';
 import { supabase } from '@/lib/supabase';
 
 export default function SignIn() {
@@ -54,6 +58,15 @@ export default function SignIn() {
     const cleanEmail = email
       .trim()
       .toLowerCase();
+
+    if (
+      mode === 'staff' &&
+      !isStrongPassword(password)
+    ) {
+      setMsg(STRONG_PASSWORD_MESSAGE);
+      setBusy(false);
+      return;
+    }
 
     if (mode === 'login') {
       const { data, error } =
@@ -294,8 +307,16 @@ export default function SignIn() {
                       e.target.value
                     )
                   }
-                  placeholder="Minimum 6 characters"
-                  minLength={6}
+                  placeholder={
+                    mode === 'staff'
+                      ? '12+ characters · upper, lower, number, symbol'
+                      : 'Your password'
+                  }
+                  minLength={
+                    mode === 'staff'
+                      ? 12
+                      : 6
+                  }
                   required
                 />
 

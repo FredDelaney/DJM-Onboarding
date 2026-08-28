@@ -24,3 +24,6 @@ as $function$
   where i.token = invite_token
   limit 1;
 $function$;
+
+revoke all on function public.validate_player_invite_v2(uuid) from public;
+grant execute on function public.validate_player_invite_v2(uuid) to anon, authenticated;
