@@ -1,0 +1,524 @@
+/* =========================================================
+   DJM PRODUCTION RESPONSIVE CONTRACT
+   Final cascade layer for spacing, touch, safe areas and iPhone.
+   Keep this file loaded after the legacy product CSS layers.
+   ========================================================= */
+
+:root {
+  --djm-page-gutter: clamp(16px, 2.4vw, 28px);
+  --djm-mobile-gutter: 16px;
+  --djm-touch-target: 44px;
+  --djm-mobile-control: 52px;
+  --djm-section-space: clamp(22px, 4vw, 34px);
+  --djm-mobile-card-pad: 16px;
+  --djm-mobile-radius: 20px;
+}
+
+html {
+  scroll-padding-top: calc(88px + env(safe-area-inset-top));
+}
+
+body {
+  min-width: 320px;
+}
+
+img,
+video,
+iframe,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+:is(
+  .admin-shell,
+  .djm-os-root,
+  .djm-os-main,
+  .djm-os-header-inner,
+  .player-home-premium,
+  .player-home-command,
+  .player-career-page,
+  .profile-21,
+  .dossier-container,
+  .player-dossier-preview-inner
+) {
+  min-width: 0;
+}
+
+:is(
+  .djm-os-grid,
+  .djm-os-grid-2,
+  .djm-os-grid-3,
+  .djm-os-panel,
+  .djm-os-page-head,
+  .admin-command-grid,
+  .admin-command-panel,
+  .player-next-card,
+  .season-premium-card,
+  .profile-editor-section,
+  .club-share-link-copy
+) > * {
+  min-width: 0;
+}
+
+:is(
+  .djm-os-product-nav,
+  .player-workspace-tabs,
+  .admin-command-metrics,
+  .admin-command-scoreboard,
+  .djm-os-table-wrap
+) {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--djm-page-gutter);
+}
+
+:is(
+  .djm-os-product-nav,
+  .player-workspace-tabs
+) {
+  scrollbar-width: none;
+}
+
+:is(
+  .djm-os-product-nav,
+  .player-workspace-tabs
+)::-webkit-scrollbar {
+  display: none;
+}
+
+:is(
+  .page-title,
+  .page-intro,
+  .djm-os-page-head h1,
+  .djm-os-page-head p,
+  .djm-command-title,
+  .djm-command-subtitle,
+  .profile-21-row-copy,
+  .club-share-link-copy,
+  .dossier-career-stats,
+  .dossier-role-card
+) {
+  overflow-wrap: anywhere;
+}
+
+:is(
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role='button'],
+  [tabindex]
+):focus-visible {
+  outline: 3px solid #f5e900;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #061f3a;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  :is(
+    button,
+    .btn,
+    .icon-btn,
+    .djm-os-icon-button,
+    .djm-os-primary-button,
+    .djm-os-secondary-button,
+    .djm-os-product-link,
+    .workspace-product-link,
+    .admin-command-primary,
+    .admin-command-refresh,
+    .player-identity-edit,
+    .dossier-top-download,
+    .dossier-hero-btn,
+    .dossier-contact-button,
+    .dossier-sources a,
+    .club-share-segmented button,
+    .club-share-link-actions button,
+    .profile-source-label a,
+    .player-mobile-nav a
+  ) {
+    min-height: var(--djm-touch-target);
+  }
+
+  :is(
+    .icon-btn,
+    .djm-os-icon-button,
+    .admin-command-refresh,
+    .player-identity-edit
+  ) {
+    min-width: var(--djm-touch-target);
+  }
+
+  :is(
+    .link-card,
+    .djm-os-product-link,
+    .workspace-product-link,
+    .dossier-video-card
+  ):hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 760px) {
+  html {
+    scroll-padding-top: calc(74px + env(safe-area-inset-top));
+  }
+
+  body {
+    font-size: 16px;
+  }
+
+  :is(input, select, textarea) {
+    min-height: var(--djm-mobile-control);
+    font-size: 16px;
+  }
+
+  textarea {
+    line-height: 1.45;
+  }
+
+  .djm-os-header-inner,
+  .player-workspace-header .djm-os-header-inner {
+    width: calc(100% - 24px);
+    gap: 9px 10px;
+  }
+
+  .djm-os-product-nav,
+  .player-workspace-header .djm-os-product-nav {
+    margin-inline: -2px;
+    padding: 0 2px 9px;
+    gap: 6px;
+    scroll-snap-type: x proximity;
+  }
+
+  .djm-os-product-link,
+  .player-workspace-header .djm-os-product-link {
+    flex: 0 0 auto;
+    min-height: var(--djm-touch-target);
+    padding: 9px 12px;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
+  .djm-os-header-actions {
+    gap: 6px;
+  }
+
+  .djm-os-header-actions :is(button, a) {
+    min-width: var(--djm-touch-target);
+    min-height: var(--djm-touch-target);
+  }
+
+  .djm-os-main {
+    width: calc(100% - 24px);
+    padding-top: 24px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .djm-os-page-head {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .djm-os-page-head h1 {
+    font-size: clamp(28px, 9vw, 38px);
+    line-height: 1;
+  }
+
+  :is(
+    .djm-os-panel,
+    .djm-command-card,
+    .djm-market-need-row,
+    .djm-candidate-row
+  ) {
+    border-radius: var(--djm-mobile-radius);
+  }
+
+  .djm-os-button-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .djm-os-button-row > :is(button, a) {
+    min-height: var(--djm-touch-target);
+  }
+
+  .admin-command-toolbar {
+    position: static;
+    top: auto;
+    margin-top: 0;
+  }
+
+  :is(.admin-command-primary, .admin-command-refresh) {
+    min-height: var(--djm-touch-target);
+  }
+
+  .player-workspace-header .djm-os-product-link {
+    font-size: 12px;
+  }
+
+  .player-mobile-nav {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .player-mobile-nav a {
+    min-height: 56px;
+  }
+
+  :is(
+    .player-home-premium,
+    .player-home-command,
+    .player-career-page
+  ) {
+    width: calc(100% - 24px);
+  }
+
+  :is(
+    .player-next-card,
+    .season-premium-card,
+    .djm-note-composer,
+    .djm-request-card,
+    .onboarding-review-card
+  ) {
+    padding-left: var(--djm-mobile-card-pad);
+    padding-right: var(--djm-mobile-card-pad);
+  }
+
+  .onboarding-premium-topbar {
+    min-height: calc(64px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .onboarding-premium-body {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .onboarding-premium-actions {
+    bottom: 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .profile-editor-sheet,
+  .club-share-sheet,
+  .club-confirm-sheet {
+    max-height: calc(100dvh - env(safe-area-inset-top) - 8px);
+  }
+
+  .profile-editor-body,
+  .club-share-body {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .profile-editor-head,
+  .club-share-head {
+    padding-left: var(--djm-mobile-gutter);
+    padding-right: var(--djm-mobile-gutter);
+  }
+
+  .profile-editor-body,
+  .club-share-body {
+    padding-left: var(--djm-mobile-gutter);
+    padding-right: var(--djm-mobile-gutter);
+  }
+
+  .profile-editor-actions {
+    gap: 8px;
+    padding-left: var(--djm-mobile-gutter);
+    padding-right: var(--djm-mobile-gutter);
+  }
+
+  .club-share-segmented button,
+  .club-share-link-actions button {
+    min-height: var(--djm-touch-target);
+  }
+
+  .dossier-top-download,
+  .dossier-hero-btn,
+  .dossier-sources a {
+    min-height: var(--djm-touch-target);
+  }
+
+  .dossier-video-card,
+  .dossier-material-grid button {
+    min-height: 76px;
+  }
+
+  .dossier-contact-button {
+    min-height: 52px;
+  }
+
+  .auth-wrap {
+    min-height: 100dvh;
+  }
+
+  .auth-brand,
+  .auth-form {
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+
+  .auth-brand {
+    padding-top: calc(22px + env(safe-area-inset-top));
+  }
+
+  .auth-form {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 560px) {
+  .djm-os-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .djm-os-page-head {
+    align-items: flex-start;
+  }
+
+  .djm-os-user {
+    max-width: 42%;
+  }
+
+  .djm-os-user span,
+  .djm-os-user small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .club-confirm-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 430px) {
+  :root {
+    --djm-mobile-gutter: 14px;
+    --djm-mobile-radius: 18px;
+  }
+
+  .djm-os-header-inner,
+  .player-workspace-header .djm-os-header-inner,
+  .djm-os-main {
+    width: calc(100% - 20px);
+  }
+
+  .djm-os-page-head h1 {
+    font-size: clamp(27px, 9.5vw, 35px);
+  }
+
+  .player-identity-hero {
+    min-height: clamp(390px, 108vw, 420px);
+    border-radius: 24px;
+  }
+
+  .player-identity-copy {
+    left: 18px;
+    right: 18px;
+    bottom: 22px;
+  }
+
+  .player-identity-copy h1 {
+    font-size: clamp(38px, 11vw, 44px);
+  }
+
+  .player-identity-edit {
+    top: 14px;
+    right: 14px;
+    min-width: var(--djm-touch-target);
+    min-height: var(--djm-touch-target);
+  }
+
+  .player-dossier-teaser {
+    min-height: 300px;
+  }
+
+  .player-dossier-teaser-copy {
+    padding: 20px;
+  }
+
+  .player-dossier-teaser-copy h2 {
+    font-size: 27px;
+  }
+
+  .profile-21-head {
+    gap: 12px;
+  }
+
+  .profile-21-head .page-title {
+    font-size: clamp(32px, 10vw, 37px);
+  }
+
+  .profile-21-head .page-intro {
+    font-size: 12px;
+  }
+
+  .profile-21-photo {
+    width: 68px;
+    height: 68px;
+  }
+
+  .dossier-container {
+    width: calc(100% - 28px);
+  }
+
+  .dossier-section {
+    padding-top: 38px;
+    padding-bottom: 38px;
+  }
+
+  .dossier-name {
+    font-size: clamp(34px, 10vw, 42px);
+  }
+
+  .dossier-section-head h2,
+  .dossier-video-title {
+    font-size: 25px;
+  }
+
+  .join-premium-brand h1,
+  .onboarding-complete-premium h1 {
+    font-size: clamp(38px, 12vw, 48px);
+  }
+
+  .join-premium-box h2 {
+    font-size: 31px;
+  }
+}
+
+@media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
+  .player-identity-hero {
+    min-height: 320px;
+  }
+
+  .player-identity-copy h1 {
+    font-size: 38px;
+  }
+
+  .player-command-hero {
+    min-height: 400px;
+  }
+
+  .auth-wrap {
+    min-height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
