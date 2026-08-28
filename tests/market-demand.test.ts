@@ -50,3 +50,13 @@ test('supports UK salary shorthand and comma-separated transfer fees', () => {
     },
   );
 });
+
+test('supports U+2014 age ranges in external text without a literal source character', () => {
+  const emDash = String.fromCodePoint(0x2014);
+  const result = extractMarketCommercialTerms(
+    `Left winger, age 19${emDash}23, permanent.`,
+  );
+
+  assert.equal(result.minAge, 19);
+  assert.equal(result.maxAge, 23);
+});

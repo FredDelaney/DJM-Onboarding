@@ -341,7 +341,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
     return {
       supported: true,
       title: `${deals.length} active commercial situation${deals.length === 1 ? '' : 's'}`,
-      summary: 'Credibility is qualitative and based on stage, blockers, linked demand and dated next actions-not a fabricated probability.',
+      summary: 'Credibility is qualitative and based on stage, blockers, linked demand and dated next actions. It is not a fabricated probability.',
       items,
       provenance: 'Active Deal Rooms',
     };

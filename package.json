@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "sanitize:text": "node scripts/sanitize-user-facing-text.mjs",
     "predev": "npm run check:no-em-dash",
     "dev": "next dev",
     "prebuild": "npm run check:no-em-dash",

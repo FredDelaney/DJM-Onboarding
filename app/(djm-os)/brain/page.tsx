@@ -144,7 +144,7 @@ export default function BrainPage() {
         <div className="djm-brain-orbit" aria-hidden="true"><BrainCircuit size={34} /></div>
         <div>
           <span className="djm-intelligence-kicker"><Sparkles size={14} /> Agency intelligence connected</span>
-          <h2>Find the person, player or opportunity-then act.</h2>
+          <h2>Find the person, player or opportunity. Then act.</h2>
           <p>
             Search signed players, recruitment targets, clubs, club contacts, live demand and Deal Rooms together.
             Every answer links back to the operational record that supports it.
