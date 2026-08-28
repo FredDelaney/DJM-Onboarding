@@ -35,5 +35,8 @@ Critical rules:
 - Keep the football pitch visual and useful football graphs. Simplify duplication, not football value.
 - DJM-managed operational data should be editable in the UI when permissions and provenance allow it.
 - External research/profile links must be manageable from the UI and retain saved-link provenance.
-- Do not use Unicode U+2014 in user-facing content. `npm run sanitize:text` enforces this before development, checks and builds.
+- Do not use literal Unicode U+2014 in user-facing source.
+- `npm run check:no-em-dash` runs before development, checks and production builds, and reports exact file, line and column locations.
+- Fix violations intentionally with appropriate punctuation. Do not blindly auto-rewrite source.
+- Input parsing may use escaped Unicode such as `\u2014` where support for external text requires it.
 - Do not deploy or mutate production without explicit authorisation.

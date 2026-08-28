@@ -97,7 +97,7 @@ export default function DjmHomePage() {
           <span className="djm-intelligence-kicker">
             <Sparkles size={14} /> Decision support, not a vanity dashboard
           </span>
-          <h2>Know what deserves attention-and why.</h2>
+          <h2>Know what deserves attention and why.</h2>
           <p>
             Command connects service, relationships, demand and deals into one
             ranked queue. Every recommendation remains a human decision.
@@ -135,7 +135,7 @@ export default function DjmHomePage() {
             <div>
               <span className="djm-panel-kicker">NEXT BEST ACTION</span>
               <h2>Decision queue</h2>
-              <p>Act, prepare, qualify, review-or consciously hold.</p>
+              <p>Act, prepare, qualify, review, or consciously hold.</p>
             </div>
             <Target size={20} />
           </div>
@@ -180,7 +180,7 @@ export default function DjmHomePage() {
             <div>
               <span className="djm-panel-kicker">MARKET PULSE</span>
               <h2>Demand worth qualifying</h2>
-              <p>Counts and evidence-not invented fit percentages.</p>
+              <p>Counts and evidence. Never invented fit percentages.</p>
             </div>
             <DatabaseZap size={20} />
           </div>

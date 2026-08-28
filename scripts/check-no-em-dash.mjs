@@ -71,7 +71,7 @@ if (hits.length) {
   }
 
   console.error(
-    'Replace each U+2014 with normal punctuation. Use npm run sanitize:text only as an explicit local repair command, never as a CI or build step.',
+    'Fix each U+2014 location intentionally with appropriate punctuation. Do not blindly auto-rewrite source.',
   );
 
   process.exit(1);
