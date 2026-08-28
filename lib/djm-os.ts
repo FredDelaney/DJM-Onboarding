@@ -48,9 +48,9 @@ export async function djmInvoke<T = any>(
 }
 
 export const compactDate = (value?: string | null) => {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '-';
   return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'short',
@@ -59,9 +59,9 @@ export const compactDate = (value?: string | null) => {
 };
 
 export const compactDateTime = (value?: string | null) => {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '-';
   return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'short',

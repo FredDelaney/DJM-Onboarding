@@ -37,7 +37,7 @@ const toText = (html: string) =>
     .trim();
 
 const clean = (v: string | null | undefined) =>
-  v?.replace(/\s+/g, " ").replace(/^[-–—\s]+|[-–—\s]+$/g, "").trim() || null;
+  v?.replace(/\s+/g, " ").replace(/^[-–-\s]+|[-–-\s]+$/g, "").trim() || null;
 
 const first = (text: string, patterns: RegExp[]) => {
   for (const p of patterns) {

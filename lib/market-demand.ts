@@ -37,7 +37,7 @@ export function extractMarketCommercialTerms(text: string): MarketCommercialTerm
 }
 
 function detectAgeRange(lower: string): [number, number] | null {
-  const match = lower.match(/\b(?:age|aged|ages)\s*(?:between\s*)?([1-3]\d)\s*(?:-|–|—|to|and)\s*([1-3]\d)\b/);
+  const match = lower.match(/\b(?:age|aged|ages)\s*(?:between\s*)?([1-3]\d)\s*(?:-|–|-|to|and)\s*([1-3]\d)\b/);
   if (!match) return null;
   const first = Number(match[1]);
   const second = Number(match[2]);

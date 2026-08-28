@@ -599,7 +599,7 @@ function TodayWorkspace({
         <div className="admin-brief-scoreboard">
           <div className={urgent ? 'is-alert' : 'is-good'}><strong>{urgent}</strong><span>act now</span></div>
           <div><strong>{portfolio.metrics.readyToMove}</strong><span>ready to move</span></div>
-          <div><strong>{portfolio.metrics.readinessAverage ?? '—'}{portfolio.metrics.readinessAverage !== null ? '%' : ''}</strong><span>portfolio readiness</span></div>
+          <div><strong>{portfolio.metrics.readinessAverage ?? '-'}{portfolio.metrics.readinessAverage !== null ? '%' : ''}</strong><span>portfolio readiness</span></div>
         </div>
       </section>
 
@@ -613,7 +613,7 @@ function TodayWorkspace({
 
       <div className="admin-command-grid">
         <section className="admin-command-panel" id="priority-queue">
-          <div className="admin-command-panel-head"><div><span className="admin-command-kicker">ONE OPERATING QUEUE</span><h2>Do the next meaningful thing.</h2><p>Signals are ordered by urgency and player impact—not by whoever shouted last.</p></div><span className="admin-command-count">{issues.length}</span></div>
+          <div className="admin-command-panel-head"><div><span className="admin-command-kicker">ONE OPERATING QUEUE</span><h2>Do the next meaningful thing.</h2><p>Signals are ordered by urgency and player impact-not by whoever shouted last.</p></div><span className="admin-command-count">{issues.length}</span></div>
           <div className="admin-issue-filters" role="group" aria-label="Filter action queue">
             {(['all', 'critical', 'attention', 'opportunity', 'routine'] as const).map((filter) => <button type="button" className={issueFilter === filter ? 'is-active' : ''} key={filter} onClick={() => setIssueFilter(filter)}>{filter === 'all' ? 'All' : SEVERITY_COPY[filter]}</button>)}
           </div>

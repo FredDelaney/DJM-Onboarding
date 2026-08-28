@@ -1002,7 +1002,7 @@ const openNew = () => {
                 >
                   <div className="season-record-season">
                     {row.season_label ||
-                      '—'}
+                      '-'}
                   </div>
 
                   <div className="season-record-main">
@@ -1351,7 +1351,7 @@ const openNew = () => {
                               <b>
                                 {
                                   row.appearances
-                                  ??'—'
+                                  ??'-'
                                 }
                               </b>
                               Apps
@@ -1361,7 +1361,7 @@ const openNew = () => {
                               <b>
                                 {
                                   row.starts
-                                  ??'—'
+                                  ??'-'
                                 }
                               </b>
                               Starts
@@ -1371,7 +1371,7 @@ const openNew = () => {
                               <b>
                                 {
                                   row.minutes
-                                  ??'—'
+                                  ??'-'
                                 }
                               </b>
                               Mins
@@ -1381,7 +1381,7 @@ const openNew = () => {
                               <b>
                                 {
                                   row.goals
-                                  ??'—'
+                                  ??'-'
                                 }
                               </b>
                               Goals
@@ -1391,7 +1391,7 @@ const openNew = () => {
                               <b>
                                 {
                                   row.assists
-                                  ??'—'
+                                  ??'-'
                                 }
                               </b>
                               Assists

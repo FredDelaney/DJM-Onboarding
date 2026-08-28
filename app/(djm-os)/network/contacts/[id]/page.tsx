@@ -337,7 +337,7 @@ export default function ContactWorkspacePage() {
   const briefingTimeline = cleanTimeline.slice(0, 6);
   const lastTouchItem = recentTimeline[0] || null;
   const lastTouch = lastTouchItem?.occurred_at || lastInteraction?.occurred_at;
-  const lastChannel = lastTouchItem?.channel || lastInteraction?.channel || '—';
+  const lastChannel = lastTouchItem?.channel || lastInteraction?.channel || '-';
   const whatsapp = (data?.contacts || []).find((c: any) => c.channel === 'whatsapp')?.value;
   const email = (data?.contacts || []).find((c: any) => c.channel === 'email')?.value;
   const contactWhatsappLink = whatsappHref(whatsapp);
@@ -476,9 +476,9 @@ export default function ContactWorkspacePage() {
           ) : null}
 
           <section className="djm-os-metrics">
-            <Metric label="Current club" value={currentEmployment?.organisation_name || '—'} />
-            <Metric label="Role" value={currentEmployment?.role_title || '—'} />
-            <Metric label="Best DJM route" value={best?.team_member_name || '—'} />
+            <Metric label="Current club" value={currentEmployment?.organisation_name || '-'} />
+            <Metric label="Role" value={currentEmployment?.role_title || '-'} />
+            <Metric label="Best DJM route" value={best?.team_member_name || '-'} />
             <Metric label="Relationship" value={data.relationships?.[0]?.strength_score ?? 0} />
           </section>
 

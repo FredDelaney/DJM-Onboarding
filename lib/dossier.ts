@@ -36,7 +36,7 @@ export const dossierNationality = (
 
   return value
     ? String(value)
-    : '—';
+    : '-';
 };
 
 export const dossierVerifiedDate = (

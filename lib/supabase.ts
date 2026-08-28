@@ -75,7 +75,7 @@ export const fmtDate = (
   value?: string | null,
 ) => {
   if (!value) {
-    return '—';
+    return '-';
   }
 
   const date =
@@ -86,7 +86,7 @@ export const fmtDate = (
       date.getTime(),
     )
   ) {
-    return '—';
+    return '-';
   }
 
   return new Intl.DateTimeFormat(

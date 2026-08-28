@@ -269,7 +269,7 @@ export default function CareerPage() {
             <div>
               <span>OPPORTUNITY READINESS</span>
               <strong>{readiness.label}</strong>
-              <p>Preparation score—not a rating of your ability.</p>
+              <p>Preparation score-not a rating of your ability.</p>
             </div>
           </div>
         </header>
@@ -439,7 +439,7 @@ export default function CareerPage() {
               <h2>Your career, with evidence attached.</h2>
               <p>
                 Club history and season numbers remain source-aware.
-                Unknown data stays unknown—it is never turned into a zero.
+                Unknown data stays unknown-it is never turned into a zero.
               </p>
             </div>
             <Link href="/profile" className="btn btn-quiet btn-sm">
@@ -486,8 +486,8 @@ export default function CareerPage() {
                         </div>
                         <small>
                           {[fmtDate(entry.start_date), fmtDate(entry.end_date)]
-                            .filter((value) => value !== '—')
-                            .join(' — ') || 'Dates not recorded'}
+                            .filter((value) => value !== '-')
+                            .join(' - ') || 'Dates not recorded'}
                         </small>
                       </div>
 
