@@ -2,9 +2,9 @@ import { brainIntent, commandRecommendation, dealCredibility } from '@/lib/intel
 import type { ResearchLinkInput } from '@/lib/research-links';
 
 const compactDateTime = (value?: string | null) => {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '-';
   return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'short',
@@ -341,7 +341,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
     return {
       supported: true,
       title: `${deals.length} active commercial situation${deals.length === 1 ? '' : 's'}`,
-      summary: 'Credibility is qualitative and based on stage, blockers, linked demand and dated next actions—not a fabricated probability.',
+      summary: 'Credibility is qualitative and based on stage, blockers, linked demand and dated next actions-not a fabricated probability.',
       items,
       provenance: 'Active Deal Rooms',
     };

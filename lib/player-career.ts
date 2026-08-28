@@ -498,7 +498,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Find three decision moments',
         detail:
-          'Choose one strong action, one difficult moment and one repeatable action—not only highlights.',
+          'Choose one strong action, one difficult moment and one repeatable action-not only highlights.',
       },
       {
         title: 'Write the next-match cue',
@@ -548,7 +548,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
     category: 'Communicate',
     title: 'Get more from your next agent call',
     description:
-      'A short preparation format for a focused conversation with DJM—especially when something has changed.',
+      'A short preparation format for a focused conversation with DJM-especially when something has changed.',
     outcome:
       'A clear update, the decision you need help with and an agreed next action.',
     minutes: 8,
@@ -589,7 +589,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Locate the signed documents',
         detail:
-          'Keep the executed contract and any later variation together—not screenshots or remembered terms.',
+          'Keep the executed contract and any later variation together-not screenshots or remembered terms.',
       },
       {
         title: 'Mark the decision dates',
@@ -614,7 +614,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
     category: 'Move',
     title: 'Build your move-abroad brief',
     description:
-      'Decide what a realistic international move must work for—before pressure and deadlines arrive.',
+      'Decide what a realistic international move must work for-before pressure and deadlines arrive.',
     outcome:
       'Clear preferred markets, non-negotiables, travel readiness and family considerations for DJM.',
     minutes: 15,
@@ -628,7 +628,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Define the real-life fit',
         detail:
-          'Consider language, housing, family, travel, schooling and support—not only country or salary.',
+          'Consider language, housing, family, travel, schooling and support-not only country or salary.',
       },
       {
         title: 'Confirm practical eligibility',
@@ -726,7 +726,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Verify the person independently',
         detail:
-          'Check identity, company and regulatory status using a channel you found yourself—not only their link.',
+          'Check identity, company and regulatory status using a channel you found yourself-not only their link.',
       },
       {
         title: 'Bring in the right professional',

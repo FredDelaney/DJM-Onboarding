@@ -156,7 +156,7 @@ export default function PublicProfile({
     {
       label: 'Nationality',
       value:
-        nationality !== '—'
+        nationality !== '-'
           ? nationality
           : null,
     },
@@ -545,8 +545,8 @@ export default function PublicProfile({
 
                 <div className="dossier-role-facts">
                   <div><span>Current club</span><strong>{profile.current_club || 'Available through DJM'}</strong></div>
-                  <div><span>Additional positions</span><strong>{dossierList(profile.secondary_positions).join(' · ') || '—'}</strong></div>
-                  <div><span>Preferred foot</span><strong>{profile.preferred_foot || '—'}</strong></div>
+                  <div><span>Additional positions</span><strong>{dossierList(profile.secondary_positions).join(' · ') || '-'}</strong></div>
+                  <div><span>Preferred foot</span><strong>{profile.preferred_foot || '-'}</strong></div>
                   <div><span>Status</span><strong>{profile.current_status || 'Contact DJM'}</strong></div>
                 </div>
 
@@ -877,14 +877,14 @@ export default function PublicProfile({
                             0,
                             4,
                           ) ||
-                          '—'}
+                          '-'}
                       </div>
 
                       <div className="dossier-career-club">
                         <strong>
                           {row.club_name ||
                             row.club ||
-                            '—'}
+                            '-'}
                         </strong>
 
                         <span>

@@ -295,20 +295,20 @@ export default function RecruitmentTargetPage() {
       ) : (
         <>
           <section className="djm-os-metrics">
-            <Metric label="Current club" value={target.current_club || '—'} />
-            <Metric label="Position" value={target.primary_position || '—'} />
-            <Metric label="Age" value={age ?? '—'} />
+            <Metric label="Current club" value={target.current_club || '-'} />
+            <Metric label="Position" value={target.primary_position || '-'} />
+            <Metric label="Age" value={age ?? '-'} />
             <Metric
               label="Market value"
               value={
                 target.market_value != null
                   ? `${target.market_value_currency || 'EUR'} ${Number(target.market_value).toLocaleString('en-GB')}`
-                  : '—'
+                  : '-'
               }
             />
             <Metric label="Priority" value={`${target.recruitment_priority || 3}/5`} />
             <Metric label="Stage" value={String(target.recruitment_stage || 'identified').replaceAll('_', ' ')} />
-            <Metric label="Next action" value={target.next_action_at ? compactDateTime(target.next_action_at) : '—'} />
+            <Metric label="Next action" value={target.next_action_at ? compactDateTime(target.next_action_at) : '-'} />
           </section>
 
           <section className="djm-os-panel" style={{ marginBottom: 16 }}>
@@ -340,8 +340,8 @@ export default function RecruitmentTargetPage() {
             <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
               <Mini label="Status" value={target.transfermarkt_enrichment_status || 'never'} />
               <Mini label="Last checked" value={target.transfermarkt_checked_at ? compactDateTime(target.transfermarkt_checked_at) : 'Never'} />
-              <Mini label="Contract expiry" value={target.contract_expiry || '—'} />
-              <Mini label="Agent" value={target.agent_name || '—'} />
+              <Mini label="Contract expiry" value={target.contract_expiry || '-'} />
+              <Mini label="Agent" value={target.agent_name || '-'} />
             </div>
             {enrichmentMessage ? (
               <div style={{ padding: '0 16px 16px' }}>

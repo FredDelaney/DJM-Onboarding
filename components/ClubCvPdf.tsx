@@ -907,7 +907,7 @@ export function ClubCvPdfDocument({
     ],
     [
       'NATIONALITY',
-      nationality !== '—'
+      nationality !== '-'
         ? nationality
         : null,
     ],
@@ -1611,7 +1611,7 @@ export function ClubCvPdfDocument({
                               0,
                               4,
                             ) ||
-                            '—'}
+                            '-'}
                         </Text>
 
                         <View
@@ -1627,7 +1627,7 @@ export function ClubCvPdfDocument({
                             {clip(
                               row.club_name ||
                                 row.club ||
-                                '—',
+                                '-',
                               36,
                             )}
                           </Text>

@@ -4,14 +4,14 @@
   "private": true,
   "scripts": {
     "sanitize:text": "node scripts/sanitize-user-facing-text.mjs",
-    "predev": "npm run sanitize:text",
+    "predev": "npm run check:no-em-dash",
     "dev": "next dev",
-    "prebuild": "npm run sanitize:text",
+    "prebuild": "npm run check:no-em-dash",
     "build": "next build",
     "start": "next start",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/*.test.ts",
     "typecheck": "next typegen && tsc --noEmit",
-    "precheck": "npm run sanitize:text && npm run check:no-em-dash",
+    "precheck": "npm run check:no-em-dash",
     "check": "npm test && npm run typecheck && npm run build",
     "check:no-em-dash": "node scripts/check-no-em-dash.mjs"
   },
