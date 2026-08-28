@@ -1,0 +1,260 @@
+/* =========================================================
+   DJM AUTHENTICATED IPHONE QA LAYER
+   Verified post-production fixes for player and staff workflows.
+   Keep this file loaded after responsive-polish.css.
+   ========================================================= */
+
+:root {
+  --djm-iphone-tap: 44px;
+}
+
+/* Horizontal operating rails should feel deliberate on iOS. */
+:is(
+  .admin-command-tabs,
+  .admin-command-metrics,
+  .admin-brief-scoreboard,
+  .admin-pipeline-strip,
+  .player-career-lanes,
+  .toolkit-categories,
+  .djm-os-product-nav,
+  .player-workspace-tabs
+) {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+}
+
+.admin-command-tabs > *,
+.admin-command-metrics > *,
+.admin-brief-scoreboard > *,
+.admin-pipeline-strip > *,
+.player-career-lanes > *,
+.toolkit-categories > *,
+.djm-os-product-nav > *,
+.player-workspace-tabs > * {
+  scroll-snap-align: start;
+}
+
+/* Explicitly fix icon-only controls whose declared width stayed below 44px. */
+@media (hover: none) and (pointer: coarse) {
+  :is(
+    .admin-command-modal-close,
+    .admin-issue-open,
+    .admin-resource-actions > a,
+    .admin-resource-actions > button:not(:last-child),
+    .admin-assignment-list button,
+    .djm-os-search-modal-head button,
+    .djm-os-capture-head button,
+    .player-week-head > a
+  ) {
+    min-width: var(--djm-iphone-tap);
+    min-height: var(--djm-iphone-tap);
+  }
+
+  :is(
+    .admin-command-modal-close,
+    .admin-issue-open,
+    .admin-resource-actions > a,
+    .admin-resource-actions > button:not(:last-child),
+    .admin-assignment-list button,
+    .djm-os-search-modal-head button,
+    .djm-os-capture-head button
+  ) {
+    width: var(--djm-iphone-tap);
+    height: var(--djm-iphone-tap);
+    flex-basis: var(--djm-iphone-tap);
+  }
+}
+
+@media (max-width: 760px) {
+  /* Help the browser keep the active field clear of the software keyboard. */
+  :is(input, select, textarea) {
+    scroll-margin-top: 96px;
+    scroll-margin-bottom: 220px;
+  }
+
+  /* Career: do not hide the main editing action on phones. */
+  .career-section-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .career-section-heading > .btn {
+    width: 100%;
+    min-height: 48px;
+    display: inline-flex;
+    justify-content: center;
+  }
+
+  /* The icon-only "Full readiness" control was visually smaller than a thumb target. */
+  .player-week-head > a {
+    width: var(--djm-iphone-tap);
+    height: var(--djm-iphone-tap);
+    flex: 0 0 var(--djm-iphone-tap);
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #f4f6f8;
+  }
+
+  .player-agent-actions a {
+    min-height: 48px;
+  }
+
+  /* Admin opportunity pipeline: replace an 850px pan-only row with a native phone card. */
+  .admin-opportunity-list {
+    gap: 8px;
+    overflow-x: visible;
+    padding: 8px;
+  }
+
+  .admin-opportunity-row,
+  .admin-opportunity-row:last-child {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--djm-iphone-tap);
+    grid-template-areas:
+      "club open"
+      "player player"
+      "action action"
+      "stage stage";
+    gap: 12px;
+    align-items: center;
+    padding: 16px;
+    border: 1px solid #e2e8ed;
+    border-radius: 16px;
+    background: #fff;
+  }
+
+  .admin-opportunity-club {
+    grid-area: club;
+  }
+
+  .admin-opportunity-player {
+    grid-area: player;
+    min-height: var(--djm-iphone-tap);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 11px;
+    border-top: 1px solid #edf1f4;
+  }
+
+  .admin-opportunity-action {
+    grid-area: action;
+  }
+
+  .admin-opportunity-stage {
+    grid-area: stage;
+    min-width: 0;
+  }
+
+  .admin-opportunity-row > .admin-issue-open {
+    grid-area: open;
+    justify-self: end;
+  }
+
+  .admin-opportunity-stage select {
+    width: 100%;
+    min-height: 52px;
+    font-size: 16px;
+  }
+
+  .admin-opportunity-row :is(span, small) {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  /* Bottom sheets and utility modals should never fight the notch or home indicator. */
+  .admin-command-modal > section,
+  .djm-os-search-modal,
+  .djm-os-capture-modal {
+    max-height: calc(100dvh - env(safe-area-inset-top) - 8px);
+  }
+
+  .admin-command-modal > section {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .djm-os-search-results {
+    max-height: calc(
+      100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 74px
+    );
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .djm-os-capture-body {
+    max-height: calc(
+      100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 82px
+    );
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-command-modal-close {
+    top: 12px;
+    right: 12px;
+  }
+}
+
+@media (max-width: 430px) {
+  /* Avoid forcing a secondary action into a narrow third column. */
+  .career-agreement-strip {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .career-agreement-strip > a {
+    grid-column: 2;
+    justify-self: start;
+    min-height: var(--djm-iphone-tap);
+  }
+
+  .player-toolkit-spotlight > div:last-child {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 390px) {
+  /* Five season metrics are easier to scan as two columns on the smallest iPhones. */
+  .career-timeline-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .career-timeline-metrics div + div {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .career-timeline-metrics div:nth-child(even) {
+    border-left: 1px solid var(--line);
+    padding-left: 8px;
+  }
+
+  .career-timeline-metrics div:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+}
+
+/* Landscape iPhones need actual safe-area gutters, not only a percentage width. */
+@media (max-width: 900px) and (orientation: landscape) {
+  .djm-os-header-inner,
+  .player-workspace-header .djm-os-header-inner,
+  .djm-os-main,
+  .player-home-premium,
+  .player-home-command,
+  .player-career-page,
+  .profile-21 {
+    width: auto;
+    margin-left: max(12px, env(safe-area-inset-left));
+    margin-right: max(12px, env(safe-area-inset-right));
+  }
+}
