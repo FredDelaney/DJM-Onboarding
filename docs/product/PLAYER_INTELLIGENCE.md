@@ -37,3 +37,19 @@ An estimate of a defined deal outcome. The model probability, manual override, e
 ## Data flywheel
 
 Normal DJM work should improve future intelligence. Useful events include requirements, matches, pitches, pitch opens, replies, interest, trials, negotiations, offers, wins, losses and recorded reasons. The platform must collect these outcomes without adding unnecessary admin work.
+
+## Evidence operating contract
+
+External provider data is evidence before it is DJM truth. A provider preview cannot directly overwrite a player, career entry or score. Staff sees the current value, incoming value, source, observed date, confidence and freshness, then chooses Accept, Reject, Keep current or Review later.
+
+Authorised CSV and JSON exports are first-class sources. Blank numeric cells remain `null`; an explicit zero remains zero. Accepted season evidence records the reviewer and review time before the Player Score is recalculated.
+
+Competition identity is separate from strength. Aliases and provider identifiers can map to one canonical competition without creating a benchmark. Staff must add a verified benchmark source or evidence note before a strength score can exist.
+
+Player Score states are operationally explicit:
+
+- `not_enough_playing_time_data`: fewer than 500 verified senior minutes in the previous 24 months, or minutes are unknown
+- `not_enough_benchmark_data`: the minutes threshold is met but no verified current-competition benchmark exists
+- `calculated`: the deterministic V1 model has both required inputs
+- `needs_recalculation`: relevant career, competition or benchmark evidence changed
+- `manual_override`: a separately stored staff value and reason is effective while the model value remains preserved
