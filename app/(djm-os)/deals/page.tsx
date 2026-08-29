@@ -26,7 +26,7 @@ export default function DealsPage() {
     setBusy(true);
     setError('');
     try {
-      const result = await djmRpc<any[]>('djm_deal_rooms', { p_status: 'active' });
+      const result = await djmRpc<any[]>('djm_opportunities', { p_status: 'active' });
       setDeals(result || []);
       setCheckedAt(Date.now());
     } catch (loadError) {
@@ -48,7 +48,7 @@ export default function DealsPage() {
   const blocked = deals.filter((deal) => deal.primary_blocker).length;
 
   return (
-    <DjmOsShell eyebrow="Decision, blocker and next action" title="Deals">
+    <DjmOsShell eyebrow="Demand, fit, pitch and next action" title="Opportunities">
       {error ? (
         <div className="djm-os-error" role="alert">
           <AlertCircle size={17} />
@@ -60,8 +60,8 @@ export default function DealsPage() {
       <section className="djm-intelligence-hero djm-intelligence-hero-compact">
         <div>
           <span className="djm-intelligence-kicker"><CircleDollarSign size={14} /> Commercial control</span>
-          <h2>Move evidence forward, not a percentage.</h2>
-          <p>Each Deal Room holds the human decision, source-backed blocker, owner and dated next action.</p>
+          <h2>Know the predicted chance and what changes it.</h2>
+          <p>Every opportunity combines a transparent prediction with the human decision, blocker, owner and next action.</p>
         </div>
         <button className="djm-os-secondary-button" type="button" onClick={() => void load()} disabled={busy}>
           <RefreshCw size={15} className={busy ? 'spin' : ''} /> Refresh
@@ -90,10 +90,11 @@ export default function DealsPage() {
               const credibility = dealCredibility(deal);
               const isOverdue = deal.next_action_at && new Date(deal.next_action_at).getTime() < checkedAt;
               return (
-                <Link className="djm-deal-card" href={`/market/deals/${deal.id}`} key={deal.id}>
+                <Link className="djm-deal-card" href={`/opportunities/${deal.id}`} key={deal.id}>
                   <div className="djm-command-meta">
                     <span className="djm-evidence-state is-review">{credibility}</span>
-                    <span>{String(deal.stage || 'qualifying').replaceAll('_', ' ')}</span>
+                    <span>{String(deal.stage || 'potential').replaceAll('_', ' ')}</span>
+                    <span>{deal.probability == null ? 'Probability pending' : `${deal.probability}% predicted conversion`}</span>
                   </div>
                   <h3>{deal.title}</h3>
                   <p>{[deal.organisation_name, deal.player_name].filter(Boolean).join(' · ') || 'Participants need confirmation'}</p>
@@ -105,7 +106,7 @@ export default function DealsPage() {
                       <CalendarClock size={14} /> {deal.next_action_at ? compactDateTime(deal.next_action_at) : 'Next action missing'}
                     </span>
                   </div>
-                  <div className="djm-deal-card-action">Open decision room <ArrowRight size={15} /></div>
+                  <div className="djm-deal-card-action">Open opportunity <ArrowRight size={15} /></div>
                 </Link>
               );
             })}
@@ -113,7 +114,7 @@ export default function DealsPage() {
         ) : (
           <div className="djm-os-empty">
             <CheckCircle2 size={25} />
-            <p>No active deal is recorded. Start from a qualified need in Market.</p>
+            <p>No active opportunity is recorded. Start from a qualified club need.</p>
             <Link href="/market" className="djm-os-primary-button">Open Market <ArrowRight size={15} /></Link>
           </div>
         )}

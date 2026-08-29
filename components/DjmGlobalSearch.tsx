@@ -55,7 +55,7 @@ export default function DjmGlobalSearch() {
     if (item.entity_type === 'signed_player') return `/admin/players/${item.entity_id}`;
     if (item.entity_type === 'recruitment_target') return `/recruitment/${item.entity_id}`;
     if (item.entity_type === 'club_need') return '/market';
-    if (item.entity_type === 'deal_room') return `/market/deals/${item.entity_id}`;
+    if (item.entity_type === 'deal_room') return `/opportunities/${item.entity_id}`;
     return '/djm';
   };
 

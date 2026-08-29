@@ -323,7 +323,7 @@ export default function MarketPage() {
       });
       await load();
       if (result?.opportunity_id || result?.deal_room_id) {
-        router.push(`/market/deals/${result.opportunity_id || result.deal_room_id}`);
+        router.push(`/opportunities/${result.opportunity_id || result.deal_room_id}`);
       }
     } catch (e) {
       setError(friendlyError(e));
@@ -399,7 +399,7 @@ export default function MarketPage() {
           <div className="djm-os-panel-head"><div><h2>Closest to revenue</h2><p>Live player and club situations with the effective probability shown where supported.</p></div><BriefcaseBusiness size={20} /></div>
           <div className="djm-os-list">
             {deals.slice(0, 8).map((deal) => (
-              <Link key={deal.id} href={`/market/deals/${deal.id}`} className="djm-os-list-row" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Link key={deal.id} href={`/opportunities/${deal.id}`} className="djm-os-list-row" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ flex: 1 }}><strong>{deal.title}</strong><p>{[deal.organisation_name, humanise(deal.stage)].filter(Boolean).join(' · ')}</p><small>{deal.primary_blocker ? `Blocker · ${deal.primary_blocker}` : deal.next_action_text || 'No primary blocker recorded'}</small></div>
                 <span className="djm-evidence-state is-review">{dealCredibility(deal)}</span><ArrowRight size={16} />
               </Link>

@@ -38,10 +38,14 @@ export default function PublicProfile({
   profile,
   documents = [],
   shareToken,
+  pitchMessage,
+  targetClub,
 }: {
   profile: any;
   documents?: any[];
   shareToken?: string;
+  pitchMessage?: string | null;
+  targetClub?: string | null;
 }) {
   const [
     pdfBusy,
@@ -475,6 +479,13 @@ export default function PublicProfile({
       </section>
 
       <div className="dossier-container dossier-content">
+        {pitchMessage ? (
+          <section className="dossier-pitch-note">
+            <span>{targetClub ? `PREPARED FOR ${targetClub.toUpperCase()}` : 'CLUB-SPECIFIC INTRODUCTION'}</span>
+            <p>{pitchMessage}</p>
+          </section>
+        ) : null}
+
         {facts.length > 0 && (
           <section className="dossier-facts">
             {facts.map(

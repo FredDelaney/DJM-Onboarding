@@ -26,10 +26,10 @@ const items: WorkspaceTab[] = [
   },
   { href: '/market', label: 'Market', icon: BriefcaseBusiness },
   {
-    href: '/deals',
-    label: 'Deals',
+    href: '/opportunities',
+    label: 'Opportunities',
     icon: Handshake,
-    activePrefixes: ['/deals', '/market/deals'],
+    activePrefixes: ['/opportunities', '/deals', '/market/deals'],
   },
   { href: '/brain', label: 'Brain', icon: BrainCircuit },
 ];

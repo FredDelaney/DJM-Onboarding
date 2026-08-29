@@ -223,7 +223,7 @@ export default function OpportunityPage() {
         p_entity_id: id,
         p_confirm: true,
       });
-      router.push('/market');
+      router.push('/opportunities');
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -346,9 +346,9 @@ export default function OpportunityPage() {
   return (
     <DjmOsShell eyebrow="Player to club opportunity" title={deal.title || 'Opportunity'}>
       <div className="djm-os-toolbar">
-        <Link href="/market" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
+        <Link href="/opportunities" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
           <ArrowLeft size={15} />
-          Market
+          Opportunities
         </Link>
         <div className="djm-os-button-row">
           <button className="djm-os-secondary-button" onClick={() => void load()} disabled={busy}>

@@ -336,7 +336,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
       entity: 'Deal Room',
       title: deal.title,
       detail: `${dealCredibility(deal)} · ${deal.next_action_at ? `next ${compactDateTime(deal.next_action_at)}` : 'next action missing'}`,
-      href: `/market/deals/${deal.id}`,
+      href: `/opportunities/${deal.id}`,
     }));
     return {
       supported: true,

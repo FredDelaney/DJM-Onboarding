@@ -415,6 +415,29 @@
   position: relative;
 }
 
+.dossier-pitch-note {
+  margin-top: 28px;
+  padding: 22px 24px;
+  border-left: 4px solid #f5e900;
+  border-radius: 0 14px 14px 0;
+  background: #f5f7f9;
+}
+
+.dossier-pitch-note span {
+  color: #667888;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+
+.dossier-pitch-note p {
+  max-width: 800px;
+  margin: 8px 0 0;
+  color: #24384a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .dossier-facts {
   position: relative;
   z-index: 2;
