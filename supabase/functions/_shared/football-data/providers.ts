@@ -1,7 +1,7 @@
 import type { ProviderCapability } from "./types.ts";
 
 export type ProviderStatus = {
-  provider: "wyscout" | "manual" | "transfermarkt" | "sofascore";
+  provider: "api_football" | "wyscout" | "manual" | "transfermarkt" | "sofascore";
   capability: ProviderCapability;
   configured: boolean;
   label: string;
@@ -9,17 +9,25 @@ export type ProviderStatus = {
 };
 
 const enabled = (value: string | undefined) =>
-  String(value || "")
-    .trim()
-    .toLowerCase() === "true";
+  String(value || "").trim().toLowerCase() === "true";
 
 export const providerStatuses = (): ProviderStatus[] => {
+  const apiFootballConfigured = Boolean(String(Deno.env.get("API_FOOTBALL_KEY") || "").trim());
   const wyscoutConfigured =
     enabled(Deno.env.get("DJM_WYSCOUT_API_ENABLED")) &&
     Boolean(Deno.env.get("WYSCOUT_API_USERNAME")) &&
     Boolean(Deno.env.get("WYSCOUT_API_PASSWORD"));
 
   return [
+    {
+      provider: "api_football",
+      capability: apiFootballConfigured ? "licensed_api" : "disabled",
+      configured: apiFootballConfigured,
+      label: apiFootballConfigured ? "Free API connected" : "Free API key not configured",
+      reason: apiFootballConfigured
+        ? "DJM can refresh player profiles and season statistics from the API-Football free plan."
+        : "Create a free API-Football account and add its server-side API key as API_FOOTBALL_KEY.",
+    },
     {
       provider: "wyscout",
       capability: wyscoutConfigured ? "licensed_api" : "disabled",
@@ -33,25 +41,22 @@ export const providerStatuses = (): ProviderStatus[] => {
       provider: "manual",
       capability: "manual_import",
       configured: true,
-      label: "CSV or JSON import",
-      reason:
-        "Authorised exports are parsed into evidence and require review before application.",
+      label: "Authorised import",
+      reason: "Authorised exports remain available as a fallback evidence workflow.",
     },
     {
       provider: "transfermarkt",
       capability: "reference_only",
       configured: true,
-      label: "Reference only",
-      reason:
-        "Links and reviewed manual values remain available. Automated scraping is disabled.",
+      label: "Value and reference",
+      reason: "DJM stores the linked profile and verified market value. Automated scraping remains disabled.",
     },
     {
       provider: "sofascore",
       capability: "disabled",
       configured: false,
-      label: "No licensed integration configured",
-      reason:
-        "Saved reference links remain usable without automated ingestion.",
+      label: "Unofficial automation disabled",
+      reason: "DJM does not make an undocumented SofaScore endpoint a production dependency.",
     },
   ];
 };

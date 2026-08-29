@@ -9,9 +9,11 @@ import {
   Database,
   RefreshCw,
   ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 
-import { compactDateTime, djmRpc, friendlyError } from "@/lib/djm-os";
+import { compactDateTime, djmInvoke, djmRpc, friendlyError } from "@/lib/djm-os";
+import { supabase } from "@/lib/supabase";
 
 import styles from "./PlayerIntelligencePanel.module.css";
 
@@ -33,6 +35,14 @@ export default function PlayerIntelligencePanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncConfigured, setSyncConfigured] = useState<boolean | null>(null);
+  const [marketValue, setMarketValue] = useState("");
+  const [marketCurrency, setMarketCurrency] = useState("EUR");
+  const [marketVerifiedAt, setMarketVerifiedAt] = useState<string | null>(null);
+  const [transfermarktUrl, setTransfermarktUrl] = useState("");
+  const [marketSaving, setMarketSaving] = useState(false);
+  const [marketSchemaReady, setMarketSchemaReady] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -40,6 +50,35 @@ export default function PlayerIntelligencePanel({
         p_player_id: playerId,
       });
       setData(result || {});
+
+      const playerResult = await supabase
+        .from("players")
+        .select("transfermarkt_url,transfermarkt_market_value,transfermarkt_market_value_currency,transfermarkt_value_verified_at")
+        .eq("id", playerId)
+        .maybeSingle();
+      if (playerResult.error) {
+        setMarketSchemaReady(false);
+        const fallback = await supabase
+          .from("players")
+          .select("transfermarkt_url")
+          .eq("id", playerId)
+          .maybeSingle();
+        setTransfermarktUrl(fallback.data?.transfermarkt_url || "");
+      } else {
+        setMarketSchemaReady(true);
+        const player = playerResult.data as any;
+        setTransfermarktUrl(player?.transfermarkt_url || "");
+        setMarketValue(player?.transfermarkt_market_value == null ? "" : String(player.transfermarkt_market_value));
+        setMarketCurrency(player?.transfermarkt_market_value_currency || "EUR");
+        setMarketVerifiedAt(player?.transfermarkt_value_verified_at || null);
+      }
+
+      try {
+        const status: any = await djmInvoke("refresh-player-data", { mode: "status" });
+        setSyncConfigured(Boolean(status?.configured));
+      } catch {
+        setSyncConfigured(false);
+      }
       setManualScore(
         result?.scorecard?.manual_score == null
           ? ""
@@ -106,6 +145,61 @@ export default function PlayerIntelligencePanel({
       setError(friendlyError(recalculateError));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const refreshPlayerData = async () => {
+    setSyncBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result: any = await djmInvoke("refresh-player-data", {
+        mode: "refresh",
+        player_id: playerId,
+      });
+      if (!result?.ok) throw new Error(result?.error || "Player data refresh failed.");
+      setMessage(
+        result?.message ||
+          `Player data refreshed from API-Football. ${result?.rows_found || 0} season record${result?.rows_found === 1 ? "" : "s"} found.`,
+      );
+      await load();
+      window.setTimeout(() => window.location.reload(), 650);
+    } catch (refreshError) {
+      setError(friendlyError(refreshError));
+    } finally {
+      setSyncBusy(false);
+    }
+  };
+
+  const saveTransfermarktValue = async () => {
+    if (!marketSchemaReady) {
+      setError("The free player sync database migration must be applied before saving a structured Transfermarkt value.");
+      return;
+    }
+    const number = marketValue.trim() === "" ? null : Number(marketValue);
+    if (number != null && (!Number.isFinite(number) || number < 0)) {
+      setError("Enter a valid Transfermarkt market value.");
+      return;
+    }
+    setMarketSaving(true);
+    setError("");
+    try {
+      const verifiedAt = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from("players")
+        .update({
+          transfermarkt_market_value: number,
+          transfermarkt_market_value_currency: number == null ? null : marketCurrency,
+          transfermarkt_value_verified_at: number == null ? null : verifiedAt,
+        })
+        .eq("id", playerId);
+      if (updateError) throw updateError;
+      setMarketVerifiedAt(number == null ? null : verifiedAt);
+      setMessage(number == null ? "Transfermarkt value cleared." : "Transfermarkt value saved and marked verified now.");
+    } catch (saveError) {
+      setError(friendlyError(saveError));
+    } finally {
+      setMarketSaving(false);
     }
   };
 
@@ -271,6 +365,74 @@ export default function PlayerIntelligencePanel({
           <div>
             <span>Age adjustment</span>
             <strong>{formatAdjustment(basis.age_performance_adjustment ?? score?.age_adjustment)}</strong>
+          </div>
+        </div>
+        <div className={styles.override}>
+          <div>
+            <div>
+              <span>FREE PLAYER DATA</span>
+              <strong>One-click stats refresh</strong>
+              <p>
+                API-Football is DJM's default zero-cost automated source. It covers more than 1,200 leagues and cups, including many lower divisions. Available depth varies by competition and missing data stays missing.
+              </p>
+            </div>
+            <div>
+              <span>TRANSFERMARKT VALUE</span>
+              <strong>{marketValue ? formatMarketValue(Number(marketValue), marketCurrency) : "Not recorded"}</strong>
+              <p>
+                {marketVerifiedAt ? `Verified ${compactDateTime(marketVerifiedAt)}` : "Save the current value from the linked Transfermarkt profile."}
+              </p>
+            </div>
+          </div>
+          <div className={styles.actions}>
+            <button type="button" onClick={() => void refreshPlayerData()} disabled={syncBusy || syncConfigured === false}>
+              <RefreshCw size={14} />
+              {syncBusy ? "Refreshing player..." : "Refresh player data"}
+            </button>
+            {transfermarktUrl ? (
+              <a href={transfermarktUrl} target="_blank" rel="noreferrer">
+                Transfermarkt <ExternalLink size={13} />
+              </a>
+            ) : null}
+          </div>
+          {syncConfigured === false ? (
+            <p>
+              Free stats sync is ready in code but needs one server-side API-Football free key before this button can run.
+            </p>
+          ) : null}
+          <div>
+            <label>
+              Transfermarkt value
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={marketValue}
+                onChange={(event) => setMarketValue(event.target.value)}
+                placeholder="e.g. 500000"
+                disabled={!marketSchemaReady}
+              />
+            </label>
+            <label>
+              Currency
+              <select
+                value={marketCurrency}
+                onChange={(event) => setMarketCurrency(event.target.value)}
+                disabled={!marketSchemaReady}
+              >
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="USD">USD</option>
+                <option value="AUD">AUD</option>
+                <option value="NZD">NZD</option>
+                <option value="SEK">SEK</option>
+              </select>
+            </label>
+          </div>
+          <div className={styles.actions}>
+            <button type="button" onClick={() => void saveTransfermarktValue()} disabled={marketSaving || !marketSchemaReady}>
+              {marketSaving ? "Saving..." : "Save verified TM value"}
+            </button>
           </div>
         </div>
         <div className={styles.provenance}>
@@ -492,4 +654,13 @@ function formatAdjustment(value: unknown) {
   const number = Number(value);
   if (!Number.isFinite(number) || number === 0) return "None";
   return `${number > 0 ? "+" : ""}${number.toFixed(1)}`;
+}
+
+function formatMarketValue(value: number, currency: string) {
+  if (!Number.isFinite(value)) return "Not recorded";
+  const symbols: Record<string, string> = { EUR: "€", GBP: "£", USD: "$", AUD: "A$", NZD: "NZ$", SEK: "SEK " };
+  const symbol = symbols[currency] || `${currency} `;
+  if (value >= 1_000_000) return `${symbol}${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}m`;
+  if (value >= 1_000) return `${symbol}${Math.round(value / 1_000)}k`;
+  return `${symbol}${Math.round(value).toLocaleString("en-GB")}`;
 }

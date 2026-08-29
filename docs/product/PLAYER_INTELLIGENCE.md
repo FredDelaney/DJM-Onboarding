@@ -213,3 +213,11 @@ A future DJM Market Value model should use evidence such as:
 - current market demand
 
 This separation prevents DJM from claiming an older elite player is a worse footballer merely because his resale value is falling.
+
+## Free automated player data
+
+DJM's default zero-cost automated source is API-Football. The free plan is used for broad player identity and season-stat evidence, especially across lower divisions. The full provider stat object is retained where supplied, while missing metrics remain unknown.
+
+Transfermarkt remains a first-class market-value reference. DJM stores the linked Transfermarkt profile plus a structured value, currency and verification timestamp, but does not rely on automated Transfermarkt scraping.
+
+Provider season statistics do not become an invented position percentile. Player Score V2 only uses performance evidence when a defensible peer comparison exists.
