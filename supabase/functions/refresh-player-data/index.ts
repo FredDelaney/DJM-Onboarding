@@ -311,6 +311,11 @@ Deno.serve(async (req: Request) => {
     if (!token) return json({ ok: false, error: "Unauthorized" }, 401);
 
     const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const callerKey = Deno.env.get("SUPABASE_ANON_KEY") || serviceKey;
+    const caller = createClient(url, callerKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     const { data: authData, error: authError } = await admin.auth.getUser(token);
     if (authError || !authData?.user) return json({ ok: false, error: "Unauthorized" }, 401);
     const { data: profile } = await admin.from("profiles").select("role").eq("id", authData.user.id).maybeSingle();
@@ -365,10 +370,17 @@ Deno.serve(async (req: Request) => {
 
     let scoreResult: unknown = null;
     try {
-      const { data } = await admin.rpc("djm_player_scorecard", { p_player_id: playerId });
+      const { data, error: scoreError } = await caller.rpc("djm_player_scorecard", { p_player_id: playerId });
+      if (scoreError) throw scoreError;
       scoreResult = data;
-    } catch {
-      // Score V2 may not be installed yet in a preview environment. Data sync still succeeds independently.
+    } catch (scoreError) {
+      console.warn(JSON.stringify({
+        provider: "api_football",
+        operation: "recalculate_player_score",
+        entity_id: playerId,
+        result_status: "skipped",
+        error: scoreError instanceof Error ? scoreError.message : "Player Score recalculation failed",
+      }));
     }
 
     return json({

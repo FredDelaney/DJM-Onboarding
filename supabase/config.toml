@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.djm-transfermarkt-enrich]
 verify_jwt = true
+
+[functions.refresh-player-data]
+verify_jwt = true

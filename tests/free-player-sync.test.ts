@@ -25,6 +25,15 @@ test("one-click refresh does not overwrite a reviewed row owned by another sourc
   assert.match(fn, /conflicts \+= 1/);
 });
 
+test("Player Score recalculation uses the signed-in admin JWT", () => {
+  assert.match(fn, /const callerKey = Deno\.env\.get\("SUPABASE_ANON_KEY"\) \|\| serviceKey/);
+  assert.match(fn, /Authorization: `Bearer \$\{token\}`/);
+  assert.match(fn, /caller\.rpc\("djm_player_scorecard", \{ p_player_id: playerId \}\)/);
+  assert.doesNotMatch(fn, /admin\.rpc\("djm_player_scorecard"/);
+  assert.match(fn, /operation: "recalculate_player_score"/);
+  assert.match(fn, /result_status: "skipped"/);
+});
+
 test("player profile exposes one-click refresh and Transfermarkt value", () => {
   assert.match(panel, /Refresh player data/);
   assert.match(panel, /Save verified TM value/);

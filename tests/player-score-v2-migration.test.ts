@@ -10,6 +10,14 @@ const migration = readFileSync(
   "utf8",
 ).toLowerCase();
 
+const snapshotAliasHotfix = readFileSync(
+  new URL(
+    "../supabase/migrations/20260829103000_fix_djm_player_score_v2_snapshot_alias.sql",
+    import.meta.url,
+  ),
+  "utf8",
+).toLowerCase();
+
 test("V2 adds verified performance evidence without seeding player scores", () => {
   assert.match(migration, /create table if not exists djm_os\.player_performance_snapshots/);
   assert.match(migration, /enable row level security/);
@@ -72,4 +80,34 @@ test("performance RPC is staff-only and uses caller privileges", () => {
   assert.match(block, /security invoker/);
   assert.match(block, /djm_os\.is_team_member\(\)/);
   assert.match(migration, /revoke all on function public\.djm_player_performance_snapshot_upsert\(uuid,jsonb\) from public, anon/);
+});
+
+test("V2 scorer avoids the PL/pgSQL snapshot alias collision", () => {
+  const scorerStart = snapshotAliasHotfix.indexOf("function public.djm_player_scorecard");
+  const scoredStart = snapshotAliasHotfix.indexOf("with scored as", scorerStart);
+  const scoredEnd = snapshotAliasHotfix.indexOf("from scored", scoredStart);
+  assert.ok(scorerStart >= 0 && scoredStart > scorerStart && scoredEnd > scoredStart);
+
+  const scoredCte = snapshotAliasHotfix.slice(scoredStart, scoredEnd);
+  assert.match(scoredCte, /from\s+djm_os\.player_performance_snapshots\s+snap\b/);
+  assert.doesNotMatch(scoredCte, /from\s+djm_os\.player_performance_snapshots\s+s\b/);
+  for (const field of [
+    "player_id",
+    "position_group",
+    "overall_performance_percentile",
+    "attacking_percentile",
+    "creativity_percentile",
+    "progression_percentile",
+    "possession_percentile",
+    "defending_percentile",
+    "aerial_percentile",
+    "goalkeeping_percentile",
+    "physical_percentile",
+    "discipline_percentile",
+    "evidence_date",
+    "verified_at",
+    "minutes",
+  ]) {
+    assert.match(scoredCte, new RegExp(`\\bsnap\\.${field}\\b`));
+  }
 });
