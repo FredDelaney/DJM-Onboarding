@@ -169,6 +169,16 @@ Deno.serve(async (req: Request) => {
     const { error: accessError } = await client.rpc("djm_network_dashboard");
     if (accessError) return json({ error: "DJM team access required" }, 403);
 
+    return json({
+      ok: false,
+      blocked: true,
+      queued: false,
+      capability: "reference_only",
+      existing_data_changed: false,
+      message: "Transfermarkt is reference only. DJM kept the saved link. Open it for research or record authorised values through manual evidence review.",
+    }, 409);
+
+    /* Legacy parser retained for a possible future licensed integration. It is unreachable by default. */
     const body = await req.json().catch(() => ({}));
     const prospectId = body?.prospect_id ? String(body.prospect_id) : null;
     let sourceUrl = body?.url ? String(body.url).trim() : "";
