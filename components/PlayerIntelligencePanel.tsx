@@ -92,6 +92,10 @@ export default function PlayerIntelligencePanel({
         setMessage(
           "Player Score needs at least 500 verified senior minutes with defensible playing dates inside the previous 24 months.",
         );
+      } else if (result?.status === "performance_data_required") {
+        setMessage(
+          "League and playing-time evidence are ready. Add verified position-adjusted performance evidence before DJM publishes a full Player Score.",
+        );
       } else {
         setMessage(
           `Player Score ${result?.model_score ?? "not available"} calculated from verified evidence.`,
@@ -139,8 +143,8 @@ export default function PlayerIntelligencePanel({
           </span>
           <h2>Current level, with its evidence attached.</h2>
           <p>
-            This is not readiness, profile completeness, Club Match or
-            Opportunity Probability. Potential stays separate.
+            Current demonstrated football level using league strength, position-adjusted
+            performance, role, experience, trend, availability and recency. Potential stays separate.
           </p>
         </div>
         <div className={styles.score}>
@@ -181,6 +185,10 @@ export default function PlayerIntelligencePanel({
           <Fact
             label="Confidence"
             value={formatConfidence(score?.confidence)}
+          />
+          <Fact
+            label="Data coverage"
+            value={score?.data_coverage != null ? `${score.data_coverage}%` : basis.data_coverage != null ? `${basis.data_coverage}%` : "Unknown"}
           />
           <Fact
             label="Freshness"
@@ -236,12 +244,40 @@ export default function PlayerIntelligencePanel({
             <span>Current status</span>
             <strong>{basis.current_club || "Unattached / not recorded"}</strong>
           </div>
+          <div>
+            <span>Position-adjusted performance</span>
+            <strong>{basis.performance_score ?? "Performance evidence required"}</strong>
+          </div>
+          <div>
+            <span>Role / minutes</span>
+            <strong>{basis.role_score ?? basis.playing_time_score ?? "Not available"}</strong>
+          </div>
+          <div>
+            <span>Experience</span>
+            <strong>{basis.experience_score ?? "Not enough benchmarked career evidence"}</strong>
+          </div>
+          <div>
+            <span>Recent trend</span>
+            <strong>{basis.trend_score ?? "Needs two recent performance windows"}</strong>
+          </div>
+          <div>
+            <span>Availability</span>
+            <strong>{basis.availability_score ?? "Not enough possible-minutes data"}</strong>
+          </div>
+          <div>
+            <span>Ability core</span>
+            <strong>{basis.ability_core_score ?? score?.ability_core_score ?? "Not available"}</strong>
+          </div>
+          <div>
+            <span>Age adjustment</span>
+            <strong>{formatAdjustment(basis.age_performance_adjustment ?? score?.age_adjustment)}</strong>
+          </div>
         </div>
         <div className={styles.provenance}>
           <Database size={15} />
           <p>
             <strong>Model:</strong>{" "}
-            {score?.model_version || "djm_player_score_v1"}
+            {score?.model_version || "djm_player_score_v2"}
             <span>
               <strong>Calculated:</strong>{" "}
               {score?.calculated_at
@@ -351,7 +387,9 @@ export default function PlayerIntelligencePanel({
           <button type="button" onClick={() => setEditing((value) => !value)}>
             Manual override
           </button>
-          {benchmarkRequired ? (
+          {status === "performance_data_required" ? (
+            <Link href={`/brain/performance?player=${playerId}`}>Add performance evidence</Link>
+          ) : benchmarkRequired ? (
             <Link href={benchmarkUrl}>Resolve benchmark</Link>
           ) : (
             <Link href={`/brain/data?player=${playerId}`}>Open evidence</Link>
@@ -410,8 +448,8 @@ function scoreMeaning(status: string, basis: any) {
     };
   if (status === "calculated")
     return {
-      title: "Supported current-level estimate",
-      copy: "Calculated from verified recent senior minutes and a verified competition benchmark.",
+      title: "Evidence-backed current football level",
+      copy: "League level, position-adjusted performance, recent role, decayed experience and available trend evidence are combined transparently. Old evidence loses weight.",
     };
   if (status === "needs_recalculation")
     return {
@@ -428,13 +466,30 @@ function scoreMeaning(status: string, basis: any) {
       title: "Competition evidence required",
       copy: "DJM cannot select a trustworthy benchmark until the current or most recent valid senior competition is resolved.",
     };
+  if (status === "performance_data_required")
+    return {
+      title: "Position-adjusted performance evidence required",
+      copy: "DJM will not infer ability from league and minutes alone. Add a verified percentile against a relevant positional peer group or enough verified category percentiles.",
+    };
+  if (status === "not_enough_model_coverage")
+    return {
+      title: "More model coverage required",
+      copy: "The available evidence does not yet cover enough of the Player Score model to publish a defensible headline number.",
+    };
   if (status === "not_enough_playing_time_data")
     return {
       title: "Not enough recent playing-time data",
-      copy: "At least 500 verified senior minutes with defensible playing dates in the previous 24 months are required.",
+      copy: "At least 500 verified senior minutes with defensible playing dates in the previous 24 months are required. Older football does not count as current evidence.",
     };
   return {
     title: "Not calculated",
     copy: "Verified recent playing-time evidence and a competition benchmark are required.",
   };
+}
+
+function formatAdjustment(value: unknown) {
+  if (value == null || value === "") return "None";
+  const number = Number(value);
+  if (!Number.isFinite(number) || number === 0) return "None";
+  return `${number > 0 ? "+" : ""}${number.toFixed(1)}`;
 }

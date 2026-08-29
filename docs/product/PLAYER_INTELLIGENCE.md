@@ -4,13 +4,50 @@ DJM uses several separate numbers. They must never be blended into one vague sco
 
 ## DJM Player Score
 
-A 0 to 100 current-football-level measure. It is not readiness, profile completeness, Club Match or transfer probability.
+DJM Player Score is a 0 to 100 measure of current demonstrated football level.
 
-Version 1 remains deliberately conservative. A model score is produced only when the player has at least 500 verified senior minutes with defensible playing dates in the previous 24 months and DJM has a verified competition-strength benchmark. No benchmark is invented automatically.
+It is not readiness, profile completeness, market price, Club Match or transfer probability.
 
-The stored scorecard contains the model value, optional manual override, model version, confidence, calculation time and full basis. A manual override requires a reason and does not destroy the model value.
+Version 2 is evidence-first. A headline score is not published from league level and minutes alone. DJM needs enough recent playing evidence, a verified competition benchmark and verified position-adjusted performance evidence.
 
-## Playing-time evidence window
+The model uses:
+
+- competition level
+- position-adjusted performance against a relevant peer group
+- actual role and recent minutes
+- senior experience, with old experience heavily discounted
+- recent performance trend where two windows are available
+- availability where possible-minutes evidence exists
+- a modest position-specific age performance adjustment
+- evidence coverage, confidence and freshness
+
+Potential remains separate.
+
+## Why age is handled carefully
+
+Age matters, but it must not override what the player is actually doing on the pitch.
+
+Research suggests football performance peaks vary by position, with many outfield players peaking in the mid-to-late twenties and goalkeepers and centre-backs tending to peak later. Physical performance generally declines more clearly after the early thirties, while technical and tactical performance can persist for longer.
+
+DJM therefore uses age as a modest position-specific performance prior, not as a blunt talent deduction.
+
+A 34-year-old who is still producing elite recent performance is penalised much less than a 34-year-old with weak or missing recent evidence.
+
+Potential carries the larger future age effect. Once a player moves beyond the positional peak window, Potential can fall below the current Player Score.
+
+Market price and resale value should remain a separate future model because age affects economic value more strongly than it necessarily affects present football ability.
+
+## Current evidence decay
+
+Old football must not keep a current Player Score artificially high.
+
+Current evidence uses these deterministic weights:
+
+- 0 to 6 months: 1.00
+- 7 to 12 months: 0.85
+- 13 to 18 months: 0.65
+- 19 to 24 months: 0.45
+- older than 24 months: 0.00 for current-level evidence
 
 The 24-month window is about when the football was played, not when a source was reviewed.
 
@@ -22,6 +59,19 @@ Resolution order for a career row is:
 4. otherwise the playing date is unknown and the row does not count toward recent minutes
 
 A source reviewed today does not make a 2021/22 season recent.
+
+## Experience decay
+
+Experience still matters, but old pedigree cannot dominate current level.
+
+Verified career evidence uses weaker long-term weights:
+
+- 0 to 24 months: 1.00
+- 25 to 48 months: 0.65
+- 49 to 72 months: 0.35
+- older than 72 months: 0.15
+
+Experience is also adjusted for the level of the competition where a benchmark exists. Verified senior international appearances can add a small capped experience benefit.
 
 ## Competition resolution
 
@@ -50,64 +100,116 @@ Preferred hierarchy:
 
 Opta Power Rankings use a global 0-100 team scale. The preferred league measure is the mean rating of all active clubs in the competition. Top-five or top-ten averages are not interchangeable with league-average strength.
 
-The public Opta Analyst methodology page is a reference and reviewed-import source. DJM does not scrape it automatically. Full automation requires licensed access. Stats Perform's documented Soccer Season Power Rankings feed (`TM14`) is the preferred future automation target because it provides globally comparable team Power Ratings by tournament calendar.
+The public Opta Analyst methodology page is a reference and reviewed-import source. DJM does not scrape it automatically. Full automation requires licensed access.
 
-Each benchmark snapshots raw value, effective rounded value, provider, metric, methodology, source URL, observed date, verification date and next review date.
+## Position-adjusted performance
 
-For reviewed Opta-style benchmarks, V1 uses a maximum 90-day review cadence. Historical Player Scores preserve the benchmark snapshot used at calculation time.
+Raw goals, assists or appearances are not a universal ability model.
+
+Performance evidence must state its peer group and use a percentile or comparable normalized score against relevant players.
+
+The V2 position groups are:
+
+- GK
+- CB
+- FB_WB
+- DM
+- CM
+- AM
+- W
+- ST
+
+Performance categories are weighted differently by position. Examples:
+
+- goalkeeper: goalkeeping, possession, progression, aerial command
+- centre-back: defending, aerial, progression, possession, physical
+- full-back / wing-back: defending, progression, creativity, physical and attacking contribution
+- defensive midfield: defending, possession and progression
+- central midfield: possession, progression and creativity with defensive contribution
+- attacking midfield / winger: creativity, attacking output and progression
+- striker: attacking output first, then creativity, aerial and physical contribution
+
+If an authorised source supplies a defensible overall position percentile, DJM can use that directly. Otherwise at least 50 percent of the relevant category weight must be present before a performance score is produced.
+
+Preferred source is licensed Wyscout Data or another authorised provider/export capable of producing position and competition peer comparisons.
+
+## Player Score V2 weights
+
+The maximum component weights are:
+
+- competition level: 30 percent
+- position-adjusted performance: 30 percent
+- role / minutes: 15 percent
+- experience: 10 percent
+- recent trend: 10 percent
+- availability: 5 percent
+
+Competition level, performance and role are mandatory for a full V2 score.
+
+Optional components are used when evidence exists. The model records exact data coverage. Missing optional evidence is not turned into zero.
+
+## Age performance adjustment
+
+Age adjustment is intentionally capped and position-specific.
+
+The adjustment starts later for goalkeepers and centre-backs than for wide and attacking players. Strong recent performance reduces the adjustment materially.
+
+The purpose is to prevent an old career profile from looking current when evidence is thin while still allowing genuinely high-performing older players to score highly.
+
+## Potential Score V2
+
+Potential is future playing-level upside, not current ability and not transfer probability.
+
+It starts from the current Player Score and applies:
+
+- position-specific age window
+- recent performance trend when available
+
+Young players below the positional peak can have upside added. Players beyond the positional peak can have Potential below current level.
+
+## Confidence
+
+Confidence is separate from the score.
+
+It uses:
+
+- model coverage
+- volume of recent verified minutes
+- benchmark freshness
+- confidence of performance evidence
+- player verification status
+
+A score of 76 with 95 percent confidence is a stronger statement than a score of 76 with 60 percent confidence.
 
 ## Player Score states
 
-- `not_enough_playing_time_data`: fewer than 500 eligible verified senior minutes are supported inside the previous 24 months
-- `competition_evidence_required`: enough recent minutes exist but DJM cannot resolve a trustworthy current or recent senior competition
-- `benchmark_required`: enough recent minutes and a competition are resolved, but no verified competition benchmark exists
-- `calculated`: the deterministic V1 model has both required inputs
-- `needs_recalculation`: relevant career, competition or benchmark evidence changed
-- `manual_override`: a separately stored staff value and reason is effective while the model value remains preserved
-
-`benchmark_required` should be actionable. The UI links staff directly to Benchmark Acquisition and identifies the competition and recommended source.
-
-## Model V1
-
-Current Score remains:
-
-- 75 percent verified competition benchmark
-- 25 percent recent playing-time signal
-
-This weighting is transparent and deterministic. It is not an AI talent rating.
-
-## Potential Score
-
-A separate future-upside indicator. Version 1 is provisional and uses transparent age headroom only after a current Player Score can be calculated. It must not be described as a transfer prediction.
+- `not_enough_playing_time_data`: fewer than 500 eligible verified senior minutes inside the previous 24 months
+- `competition_evidence_required`: enough recent minutes exist but no trustworthy competition can be resolved
+- `benchmark_required`: recent minutes and competition are resolved, but no verified competition benchmark exists
+- `performance_data_required`: league and minutes evidence are available, but DJM lacks verified position-adjusted performance evidence
+- `not_enough_model_coverage`: performance exists but total evidence coverage is still below the minimum publish threshold
+- `calculated`: Player Score V2 has enough evidence to publish
+- `needs_recalculation`: relevant evidence changed after the last score
+- `manual_override`: a separate staff value and reason is effective while the model value remains preserved
 
 ## Club Match
 
-A contextual 0 to 100 fit between one player and one Club Need. It may use football, commercial, registration, career, availability and access evidence. Hard blockers, concerns and missing information must stay visible.
+Club Match remains a separate contextual fit between one player and one Club Need. It can use Player Score as one input but must still account for role, style, registration, budget, availability, passports, contract situation and hard blockers.
 
-Recommended language:
+## Market value
 
-- 85 to 100: Excellent fit
-- 70 to 84: Strong fit
-- 50 to 69: Possible fit
-- Below 50: Weak fit
-- Missing usable evidence: Insufficient evidence
+Economic market value is not silently mixed into Player Score.
 
-## Predicted Club Need
+A future DJM Market Value model should use evidence such as:
 
-A likelihood attached to a predicted requirement. The percentage needs documented evidence in `prediction_basis`. Confirmed requirements remain distinct from predicted requirements.
+- Player Score
+- age and position-specific resale curve
+- verified market value references
+- contract expiry and transfer status
+- league and club visibility
+- recent trajectory
+- international status
+- comparable transfers
+- current market demand
 
-## Opportunity Probability
-
-An estimate of a defined deal outcome. The model probability, manual override, effective probability and basis are stored separately. A manual override should capture the human reason.
-
-## Data flywheel
-
-Normal DJM work should improve future intelligence. Useful events include requirements, matches, pitches, pitch opens, replies, interest, trials, negotiations, offers, wins, losses and recorded reasons. The platform must collect these outcomes without adding unnecessary admin work.
-
-## Evidence operating contract
-
-External provider data is evidence before it is DJM truth. A provider preview cannot directly overwrite a player, career entry or score. Staff sees the current value, incoming value, source, observed date, confidence and freshness, then chooses Accept, Reject, Keep current or Review later.
-
-Authorised CSV and JSON exports are first-class sources. Blank numeric cells remain `null`; an explicit zero remains zero. Accepted season evidence records the reviewer and review time before the Player Score is recalculated.
-
-Competition identity is separate from strength. Aliases and provider identifiers can map to one canonical competition without creating a benchmark.
+This separation prevents DJM from claiming an older elite player is a worse footballer merely because his resale value is falling.
