@@ -346,7 +346,7 @@ const hasTransfermarkt =
 
   const refreshStats =
   async (
-    source:
+    _source:
       |'auto'
       |'sofascore'
       |'transfermarkt'
@@ -355,126 +355,12 @@ const hasTransfermarkt =
     if(!canEdit){
       return;
     }
-
-    setSyncBusy(true);
-    setSyncError('');
-
-    const {
-      data,
-      error
-    }=
-      await supabase
-        .functions
-        .invoke(
-          'import-player-stats',
-          {
-            body:{
-              mode:'preview',
-
-              player_id:
-                player.id,
-
-              source
-            }
-          }
-        );
-
-    setSyncBusy(false);
-
-    if(
-      error
-      ||data?.error
-    ){
-      setSyncError(
-        data?.error
-        ||error?.message
-        ||'Could not refresh player statistics.'
-      );
-
-      setSyncOpen(true);
-
-      return;
-    }
-
-    setSyncPreview(
-      data
-    );
-
-    setSyncOpen(true);
+    window.location.assign(`/brain/data?player=${encodeURIComponent(player.id)}`);
   };
   
  const approveSync =
   async () => {
-    if(
-      !syncPreview
-      ||!Array.isArray(
-        syncPreview.rows
-      )
-      ||!syncPreview.rows.length
-    ){
-      return;
-    }
-
-    setSyncBusy(true);
-    setSyncError('');
-
-    const {
-      data,
-      error
-    }=
-      await supabase
-        .functions
-        .invoke(
-          'import-player-stats',
-          {
-            body:{
-              mode:'apply',
-
-              player_id:
-                player.id,
-
-              rows:
-                syncPreview.rows,
-
-              source_name:
-                syncPreview
-                  .source_name,
-
-              source_url:
-                syncPreview
-                  .source_url
-            }
-          }
-        );
-
-    if(
-      error
-      ||!data?.ok
-    ){
-      setSyncBusy(false);
-
-      setSyncError(
-        data?.error
-        ||error?.message
-        ||'Could not update the DJM sporting record.'
-      );
-
-      return;
-    }
-
-    await onChanged();
-
-    setSyncBusy(false);
-    setSyncOpen(false);
-    setSyncPreview(null);
-
-    setMessage(
-      `${data.total} season record${
-        data.total===1
-          ?''
-          :'s'
-      } reviewed and updated.`
-    );
+    setSyncError('Use Intelligence Data review to accept or reject evidence before it changes the sporting record.');
   };
 
 const openNew = () => {
@@ -868,7 +754,7 @@ const openNew = () => {
 
       {syncBusy
         ?'Checking…'
-        :'Refresh stats'
+        :'Import evidence'
       }
     </button>
 

@@ -47,6 +47,9 @@ import ClubReadyPanel
 import SeasonRecordEditor
   from '@/components/SeasonRecordEditor';
 
+import PlayerIntelligencePanel
+  from '@/components/PlayerIntelligencePanel';
+
 import RemovePlayerSheet
   from '@/components/RemovePlayerSheet';
 
@@ -2304,7 +2307,7 @@ const removePlayer=async(
             statsUrl:p.stats_url,
             instagramUrl:p.instagram_url
           })}
-          title="Player research & contact"
+          title="Player sources & contact"
         />
 
         <div className="admin-player-quick-actions">
@@ -2396,6 +2399,10 @@ const removePlayer=async(
             </a>
           )}
         </div>
+
+        <PlayerIntelligencePanel
+          playerId={id}
+        />
 
         <nav
           className="admin-player-tabs"

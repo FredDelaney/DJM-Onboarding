@@ -14,7 +14,7 @@ import {
 
 import DjmOsShell from '@/components/DjmOsShell';
 import ResearchLinkRail from '@/components/ResearchLinkRail';
-import { compactDateTime, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
 import { buildResearchLinks } from '@/lib/research-links';
 
 const STAGES = [
@@ -48,7 +48,6 @@ export default function RecruitmentTargetPage() {
   const [promoting, setPromoting] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-  const [enriching, setEnriching] = useState(false);
   const [enrichmentMessage, setEnrichmentMessage] = useState('');
 
   const load = async () => {
@@ -161,51 +160,15 @@ export default function RecruitmentTargetPage() {
         p_nationality: profile.nationality || null,
         p_preferred_foot: profile.preferred_foot || null,
       });
-      if (profile.transfermarkt_url) {
-        try {
-          const result: any = await djmInvoke('djm-transfermarkt-enrich', {
-            prospect_id: id,
-            url: profile.transfermarkt_url,
-          });
-          setEnrichmentMessage(
-            result?.blocked
-              ? 'Profile saved. Transfermarkt blocked the instant read, so DJM queued verification.'
-              : 'Profile saved and Transfermarkt data refreshed.',
-          );
-        } catch {
-          setEnrichmentMessage('Profile saved. Transfermarkt will be checked again through DJM enrichment.');
-        }
-      }
+      setEnrichmentMessage(
+        profile.transfermarkt_url
+          ? 'Profile and Transfermarkt reference saved. Record authorised values manually and keep their source.'
+          : 'Profile saved.',
+      );
       setEditingProfile(false);
       await load();
     } catch (e) {
       setError(friendlyError(e));
-    }
-  };
-
-  const refreshTransfermarkt = async () => {
-    if (!target?.transfermarkt_url) return;
-
-    setEnriching(true);
-    setError('');
-    setEnrichmentMessage('');
-
-    try {
-      const result: any = await djmInvoke('djm-transfermarkt-enrich', {
-        prospect_id: id,
-        url: target.transfermarkt_url,
-      });
-
-      setEnrichmentMessage(
-        result?.blocked
-          ? 'Transfermarkt blocked the instant read, so DJM queued sourced verification instead.'
-          : 'Transfermarkt data refreshed. Review anything important before using it in outreach.',
-      );
-      await load();
-    } catch (e) {
-      setError(friendlyError(e));
-    } finally {
-      setEnriching(false);
     }
   };
 
@@ -316,9 +279,8 @@ export default function RecruitmentTargetPage() {
               <div>
                 <h2>Transfermarkt profile</h2>
                 <p>
-                  Paste the profile once. DJM will try to read Transfermarkt immediately and
-                  fill age, club, contract, value, position, foot and public representation data.
-                  If Transfermarkt blocks the read, the profile is queued for sourced verification.
+                  Keep the profile link for research and record values manually when DJM is
+                  authorised to use them. The link never silently overwrites this recruitment record.
                 </p>
               </div>
               <div className="djm-os-button-row">
@@ -327,19 +289,14 @@ export default function RecruitmentTargetPage() {
                     Open Transfermarkt
                   </a>
                 ) : null}
-                <button
-                  className="djm-os-primary-button"
-                  type="button"
-                  onClick={() => void refreshTransfermarkt()}
-                  disabled={!target.transfermarkt_url || enriching}
-                >
-                  {enriching ? 'Reading Transfermarkt…' : 'Refresh from Transfermarkt'}
+                <button className="djm-os-primary-button" type="button" onClick={() => setEditingProfile(true)}>
+                  Update reviewed values
                 </button>
               </div>
             </div>
             <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
-              <Mini label="Status" value={target.transfermarkt_enrichment_status || 'never'} />
-              <Mini label="Last checked" value={target.transfermarkt_checked_at ? compactDateTime(target.transfermarkt_checked_at) : 'Never'} />
+              <Mini label="Capability" value="Reference only" />
+              <Mini label="Last reviewed" value={target.transfermarkt_checked_at ? compactDateTime(target.transfermarkt_checked_at) : 'Not recorded'} />
               <Mini label="Contract expiry" value={target.contract_expiry || '-'} />
               <Mini label="Agent" value={target.agent_name || '-'} />
             </div>

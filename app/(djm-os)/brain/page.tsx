@@ -128,6 +128,7 @@ export default function BrainPage() {
     { label: 'Club contacts', value: data.contacts.length, note: 'Decision-makers and routes in', href: '/network#contacts', icon: <UsersRound size={19} />, highlighted: true },
     { label: 'Live demand', value: activeNeeds.length, note: 'Hard constraints and matches', href: '/market', icon: <Target size={19} /> },
     { label: 'Deal Rooms', value: data.deals.length, note: 'Active commercial situations', href: '/market', icon: <BriefcaseBusiness size={19} /> },
+    { label: 'Intelligence Data', value: 'QA', note: 'Evidence, benchmarks and freshness', href: '/brain/data', icon: <Database size={19} /> },
   ];
 
   return (
