@@ -63,11 +63,15 @@ export default function PlayerIntelligencePanel({
   const score = data.scorecard;
   const basis = score?.basis || {};
   const effective = score?.manual_score ?? score?.model_score ?? null;
+  const rawStatus = score?.score_status || "not_calculated";
   const status =
     score?.manual_score != null
       ? "manual_override"
-      : score?.score_status || "not_calculated";
-  const meaning = useMemo(() => scoreMeaning(status), [status]);
+      : normalisedScoreStatus(rawStatus, basis);
+  const meaning = useMemo(() => scoreMeaning(status, basis), [status, basis]);
+  const competition = basis.competition_name || basis.current_league || null;
+  const benchmarkRequired = status === "benchmark_required";
+  const benchmarkUrl = `/brain/benchmarks/import?player=${encodeURIComponent(playerId)}${competition ? `&competition=${encodeURIComponent(competition)}` : ""}`;
 
   const recalculate = async () => {
     setBusy(true);
@@ -76,11 +80,23 @@ export default function PlayerIntelligencePanel({
       const result: any = await djmRpc("djm_player_scorecard", {
         p_player_id: playerId,
       });
-      setMessage(
-        result?.status === "not_enough_benchmark_data"
-          ? "Not enough benchmark data. No score was created."
-          : `Player Score ${result?.model_score ?? "not available"} calculated from verified evidence.`,
-      );
+      if (result?.status === "benchmark_required") {
+        setMessage(
+          `${result?.basis?.competition_name || "Competition"} is resolved. A verified benchmark is the only missing Player Score input.`,
+        );
+      } else if (result?.status === "competition_evidence_required") {
+        setMessage(
+          "Recent playing evidence is present, but the competition still needs to be resolved before a benchmark can be selected.",
+        );
+      } else if (result?.status === "not_enough_playing_time_data") {
+        setMessage(
+          "Player Score needs at least 500 verified senior minutes with defensible playing dates inside the previous 24 months.",
+        );
+      } else {
+        setMessage(
+          `Player Score ${result?.model_score ?? "not available"} calculated from verified evidence.`,
+        );
+      }
       await load();
     } catch (recalculateError) {
       setError(friendlyError(recalculateError));
@@ -176,9 +192,26 @@ export default function PlayerIntelligencePanel({
         </div>
         <div className={styles.basis}>
           <div>
+            <span>Competition</span>
+            <strong>{competition || "Competition evidence required"}</strong>
+          </div>
+          <div>
+            <span>Competition basis</span>
+            <strong>{competitionBasisLabel(basis.competition_basis)}</strong>
+          </div>
+          <div>
             <span>Competition benchmark</span>
             <strong>
-              {basis.league_strength_score ?? "Not enough benchmark data"}
+              {basis.league_strength_score ??
+                (benchmarkRequired ? "Benchmark required" : "Not available")}
+            </strong>
+          </div>
+          <div>
+            <span>Benchmark source</span>
+            <strong>
+              {basis.league_benchmark_provider ||
+                basis.recommended_benchmark_source ||
+                "Not available"}
             </strong>
           </div>
           <div>
@@ -199,6 +232,10 @@ export default function PlayerIntelligencePanel({
                 : "24 months"}
             </strong>
           </div>
+          <div>
+            <span>Current status</span>
+            <strong>{basis.current_club || "Unattached / not recorded"}</strong>
+          </div>
         </div>
         <div className={styles.provenance}>
           <Database size={15} />
@@ -211,6 +248,22 @@ export default function PlayerIntelligencePanel({
                 ? compactDateTime(score.calculated_at)
                 : "Not calculated"}
             </span>
+            {basis.competition_basis === "most_recent_verified_competition" ? (
+              <span>
+                <strong>Level basis:</strong> Most recent verified senior competition. This does not imply the player is currently contracted there.
+              </span>
+            ) : null}
+            {basis.league_benchmark_verified_at ? (
+              <span>
+                <strong>Benchmark verified:</strong>{" "}
+                {compactDateTime(basis.league_benchmark_verified_at)}
+              </span>
+            ) : null}
+            {basis.league_benchmark_methodology ? (
+              <span>
+                <strong>Benchmark method:</strong> {basis.league_benchmark_methodology}
+              </span>
+            ) : null}
             {score?.stale_reason ? (
               <span>
                 <strong>Blocked by:</strong> {score.stale_reason}
@@ -298,7 +351,11 @@ export default function PlayerIntelligencePanel({
           <button type="button" onClick={() => setEditing((value) => !value)}>
             Manual override
           </button>
-          <Link href={`/brain/data?player=${playerId}`}>Open evidence</Link>
+          {benchmarkRequired ? (
+            <Link href={benchmarkUrl}>Resolve benchmark</Link>
+          ) : (
+            <Link href={`/brain/data?player=${playerId}`}>Open evidence</Link>
+          )}
         </div>
       </footer>
     </section>
@@ -324,7 +381,28 @@ function formatConfidence(value: unknown) {
   if (!Number.isFinite(confidence)) return "Unknown";
   return `${Math.round(confidence <= 1 ? confidence * 100 : confidence)}%`;
 }
-function scoreMeaning(status: string) {
+function normalisedScoreStatus(status: string, basis: any) {
+  if (
+    status === "not_enough_benchmark_data" &&
+    Number(basis?.recent_minutes_24m || 0) >= 500
+  ) {
+    return basis?.competition_name || usableCompetition(basis?.current_league)
+      ? "benchmark_required"
+      : "competition_evidence_required";
+  }
+  return status;
+}
+function usableCompetition(value: unknown) {
+  const text = String(value || "").trim().toLowerCase();
+  return text && !["n/a", "na", "none", "unknown", "all competitions"].includes(text);
+}
+function competitionBasisLabel(value: unknown) {
+  if (value === "current_competition") return "Verified current competition";
+  if (value === "current_league_text") return "Current league record";
+  if (value === "most_recent_verified_competition") return "Most recent verified competition";
+  return "Not resolved";
+}
+function scoreMeaning(status: string, basis: any) {
   if (status === "manual_override")
     return {
       title: "Manual DJM judgment is active",
@@ -340,18 +418,23 @@ function scoreMeaning(status: string) {
       title: "Evidence changed",
       copy: "The previous model result is stale and should not be treated as current.",
     };
-  if (status === "not_enough_benchmark_data")
+  if (status === "benchmark_required")
     return {
-      title: "Not enough benchmark data",
-      copy: "DJM will not invent a competition strength score.",
+      title: "Player Score ready once the benchmark is verified",
+      copy: `${basis?.competition_name || "The competition"} is resolved. DJM has enough recent playing evidence; competition strength is the remaining model input.`,
+    };
+  if (status === "competition_evidence_required")
+    return {
+      title: "Competition evidence required",
+      copy: "DJM cannot select a trustworthy benchmark until the current or most recent valid senior competition is resolved.",
     };
   if (status === "not_enough_playing_time_data")
     return {
-      title: "Not enough playing-time data",
-      copy: "At least 500 verified senior minutes in the previous 24 months are required.",
+      title: "Not enough recent playing-time data",
+      copy: "At least 500 verified senior minutes with defensible playing dates in the previous 24 months are required.",
     };
   return {
     title: "Not calculated",
-    copy: "Verified playing-time evidence and a competition benchmark are required.",
+    copy: "Verified recent playing-time evidence and a competition benchmark are required.",
   };
 }
