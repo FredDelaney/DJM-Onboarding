@@ -1,5 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { manualPreview } from "../_shared/football-data/manual.ts";
+import { providerStatus, providerStatuses } from "../_shared/football-data/providers.ts";
+import { wyscoutPreview } from "../_shared/football-data/wyscout.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -661,29 +664,58 @@ Deno.serve(async (req: Request) => {
     });
 
     const body = await req.json().catch(() => ({}));
-    const mode = String(body?.mode || "preview").toLowerCase();
+    const mode = String(body?.mode || "capabilities").toLowerCase();
     const playerId = String(body?.player_id || "").trim();
 
+    if (mode === "capabilities") {
+      return json({ ok: true, providers: providerStatuses() });
+    }
+
     if (mode === "preview") {
-      if (!playerId) return json({ ok: false, error: "Missing player" });
+      const provider = String(body?.provider || body?.source || "").toLowerCase();
+      const status = providerStatus(provider);
+      if (!status) return json({ ok: false, error: "Choose a supported football data provider." }, 400);
+      if (status.capability === "reference_only") {
+        return json({
+          ok: false,
+          error: `${status.provider} is reference only. Open the saved link or import authorised data manually.`,
+          provider: status,
+          existing_data_changed: false,
+        }, 409);
+      }
+      if (status.capability === "disabled") {
+        return json({ ok: false, error: status.label, provider: status, existing_data_changed: false }, 503);
+      }
       try {
-        return json(await previewForPlayer(admin, playerId, String(body?.source || "auto").toLowerCase()));
+        const preview = provider === "wyscout"
+          ? await wyscoutPreview({
+              sourceReference: body?.source_reference,
+              sourceUrl: body?.source_url,
+            })
+          : await manualPreview(
+              Array.isArray(body?.records) ? body.records : [],
+              String(body?.source_name || "Manual import"),
+              body?.source_url ? String(body.source_url) : null,
+            );
+        return json({ ok: true, mode: "preview", preview, player_id: playerId || null });
       } catch (error) {
-        console.error("import-player-stats preview", error);
-        return json({ ok: false, error: errorMessage(error) });
+        console.error(JSON.stringify({
+          provider,
+          operation: "preview",
+          entity_id: playerId || null,
+          result_status: "failed",
+          error: errorMessage(error),
+        }));
+        return json({ ok: false, error: errorMessage(error), existing_data_changed: false });
       }
     }
 
     if (mode === "apply") {
-      const rows = Array.isArray(body?.rows) ? body.rows : [];
-      const sourceName = String(body?.source_name || "DJM reviewed source").trim();
-      const sourceUrl = String(body?.source_url || "").trim() || null;
-      try {
-        return json(await applyRows(admin, caller, playerId, rows, sourceName, sourceUrl));
-      } catch (error) {
-        console.error("import-player-stats apply", error);
-        return json({ ok: false, error: errorMessage(error) });
-      }
+      return json({
+        ok: false,
+        error: "Direct provider application is disabled. Create evidence, review it, then apply only accepted facts.",
+        existing_data_changed: false,
+      }, 409);
     }
 
     return json({ ok: false, error: "Unknown mode" });
