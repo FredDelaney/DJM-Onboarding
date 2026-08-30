@@ -340,15 +340,10 @@ function aggregatePitch(rows) {
 }
 
 async function resolveCompetitionFromPlayer(admin, playerId) {
-  const { data: provider, error } = await admin
-    .schema("djm_os")
-    .from("player_provider_stat_snapshots")
-    .select("provider_player_id,provider_competition_id,provider_season_id,competition_name,metrics,synced_at")
-    .eq("player_id", playerId)
-    .eq("provider", "pitchapi")
-    .order("synced_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data: provider, error } = await admin.rpc("djm_peer_refresh_context", {
+    p_mode: "player",
+    p_player_id: playerId,
+  });
   if (error) throw error;
   if (!provider?.provider_competition_id || !provider?.provider_season_id) {
     throw new Error("Update player data first so DJM can resolve a current PitchAPI competition and season.");
@@ -373,66 +368,17 @@ async function resolveCompetitionFromProvider(admin, providerCompetitionId, requ
   const displayName = clean(requestedName) || clean(league?.name) || `PitchAPI ${providerCompetitionId}`;
   const countryCode = clean(requestedCountryCode) || clean(league?.country_code);
   const country = CODE_COUNTRIES[countryCode] || countryCode || null;
-  const canonicalKey = `pitchapi:${providerCompetitionId}`;
-  const { data: existing, error: existingError } = await admin
-    .schema("djm_os")
-    .from("competitions")
-    .select("id,provider_ids,aliases")
-    .eq("canonical_key", canonicalKey)
-    .maybeSingle();
-  if (existingError) throw existingError;
-
-  let resolvedExisting = existing || null;
-  if (!resolvedExisting) {
-    const { data: providerExisting, error: providerExistingError } = await admin
-      .schema("djm_os")
-      .from("competitions")
-      .select("id,provider_ids,aliases")
-      .contains("provider_ids", { pitchapi: String(providerCompetitionId) })
-      .limit(1)
-      .maybeSingle();
-    if (providerExistingError) throw providerExistingError;
-    resolvedExisting = providerExisting || null;
-  }
-
-  let competitionId = resolvedExisting?.id || null;
-  const providerIds = { ...(resolvedExisting?.provider_ids || {}), pitchapi: String(providerCompetitionId) };
-  const aliases = [...new Set([...(resolvedExisting?.aliases || []), displayName].filter(Boolean))];
-  if (competitionId) {
-    const { error } = await admin
-      .schema("djm_os")
-      .from("competitions")
-      .update({
-        display_name: displayName,
-        country,
-        aliases,
-        provider_ids: providerIds,
-        updated_by: userId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", competitionId);
-    if (error) throw error;
-  } else {
-    const { data, error } = await admin
-      .schema("djm_os")
-      .from("competitions")
-      .insert({
-        canonical_key: canonicalKey,
-        display_name: displayName,
-        country,
-        aliases,
-        provider_ids: providerIds,
-        created_by: userId,
-        updated_by: userId,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    competitionId = data.id;
-  }
+  const { data: resolved, error } = await admin.rpc("djm_peer_refresh_context", {
+    p_mode: "provider",
+    p_provider_competition_id: String(providerCompetitionId),
+    p_display_name: displayName,
+    p_country: country,
+    p_user_id: userId,
+  });
+  if (error) throw error;
 
   return {
-    competitionId,
+    competitionId: resolved?.competition_id || null,
     providerCompetitionId: String(providerCompetitionId),
     seasonId: String(season),
     competitionName: displayName,
@@ -442,15 +388,13 @@ async function resolveCompetitionFromProvider(admin, providerCompetitionId, requ
 }
 
 async function resolveCompetitionFromDjm(admin, competitionId, key) {
-  const { data: competition, error } = await admin
-    .schema("djm_os")
-    .from("competitions")
-    .select("id,display_name,country,provider_ids")
-    .eq("id", competitionId)
-    .maybeSingle();
+  const { data: competition, error } = await admin.rpc("djm_peer_refresh_context", {
+    p_mode: "competition",
+    p_competition_id: competitionId,
+  });
   if (error) throw error;
   if (!competition) throw new Error("DJM competition not found.");
-  const providerCompetitionId = clean(competition?.provider_ids?.pitchapi);
+  const providerCompetitionId = clean(competition?.provider_competition_id);
   if (!providerCompetitionId) {
     throw new Error("This competition does not yet have a verified PitchAPI identity in DJM.");
   }
@@ -566,15 +510,6 @@ Deno.serve(async (request) => {
     }
 
     const now = new Date().toISOString();
-    const { error: deleteError } = await admin
-      .schema("djm_os")
-      .from("provider_peer_stat_snapshots")
-      .delete()
-      .eq("provider", "pitchapi")
-      .eq("provider_competition_id", context.providerCompetitionId)
-      .eq("provider_season_id", context.seasonId);
-    if (deleteError) throw deleteError;
-
     const rows = aggregated.map((row) => ({
       provider: "pitchapi",
       provider_competition_id: context.providerCompetitionId,
@@ -626,13 +561,12 @@ Deno.serve(async (request) => {
       synced_at: now,
     }));
 
-    const { error: insertError } = await admin
-      .schema("djm_os")
-      .from("provider_peer_stat_snapshots")
-      .upsert(rows, {
-        onConflict: "provider,provider_competition_id,provider_season_id,provider_player_id,provider_team_id",
-      });
-    if (insertError) throw insertError;
+    const { error: cacheError } = await admin.rpc("djm_replace_provider_peer_cache", {
+      p_provider_competition_id: context.providerCompetitionId,
+      p_provider_season_id: context.seasonId,
+      p_rows: rows,
+    });
+    if (cacheError) throw cacheError;
 
     const roleCount = context.targetRole
       ? rows.filter((row) => row.provider_position === context.targetRole).length
