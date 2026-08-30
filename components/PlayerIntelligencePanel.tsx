@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import { compactDateTime, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
+import { supabase } from '@/lib/supabase';
 
 export default function PlayerIntelligencePanel({
   playerId,
@@ -28,6 +29,10 @@ export default function PlayerIntelligencePanel({
   const [manualScore, setManualScore] = useState('');
   const [manualPotential, setManualPotential] = useState('');
   const [reason, setReason] = useState('');
+  const [marketValue, setMarketValue] = useState('');
+  const [marketCurrency, setMarketCurrency] = useState('EUR');
+  const [marketVerifiedAt, setMarketVerifiedAt] = useState<string | null>(null);
+  const [marketSaving, setMarketSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -35,6 +40,20 @@ export default function PlayerIntelligencePanel({
         p_player_id: playerId,
       });
       setData(result || {});
+
+      const { data: player } = await supabase
+        .from('players')
+        .select('transfermarkt_market_value,transfermarkt_market_value_currency,transfermarkt_value_verified_at')
+        .eq('id', playerId)
+        .maybeSingle();
+      setMarketValue(
+        player?.transfermarkt_market_value == null
+          ? ''
+          : String(player.transfermarkt_market_value),
+      );
+      setMarketCurrency(player?.transfermarkt_market_value_currency || 'EUR');
+      setMarketVerifiedAt(player?.transfermarkt_value_verified_at || null);
+
       setManualScore(
         result?.scorecard?.manual_score == null ? '' : String(result.scorecard.manual_score),
       );
@@ -55,6 +74,13 @@ export default function PlayerIntelligencePanel({
 
   const score = data?.scorecard || null;
   const basis = score?.basis || {};
+  const provisionalGrade = String(basis?.provisional_grade || '');
+  const provisionalMeaning =
+    provisionalGrade === 'context_only'
+      ? 'Context-only provisional current-level estimate'
+      : provisionalGrade === 'performance_backed'
+        ? 'Performance-backed provisional current-level estimate'
+        : 'Provisional evidence state not resolved';
   const scoreTier =
     score?.manual_score != null
       ? 'manual_override'
@@ -115,6 +141,35 @@ export default function PlayerIntelligencePanel({
       setError(friendlyError(recalculateError));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveTransfermarktValue = async () => {
+    const number = marketValue.trim() === '' ? null : Number(marketValue);
+    if (number != null && (!Number.isFinite(number) || number < 0)) {
+      setError('Enter a valid Transfermarkt market value.');
+      return;
+    }
+
+    setMarketSaving(true);
+    setError('');
+    try {
+      const verifiedAt = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from('players')
+        .update({
+          transfermarkt_market_value: number,
+          transfermarkt_market_value_currency: number == null ? null : marketCurrency,
+          transfermarkt_value_verified_at: number == null ? null : verifiedAt,
+        })
+        .eq('id', playerId);
+      if (updateError) throw updateError;
+      setMarketVerifiedAt(number == null ? null : verifiedAt);
+      setMessage(number == null ? 'Transfermarkt value cleared.' : 'Transfermarkt value saved and verified.');
+    } catch (saveError) {
+      setError(friendlyError(saveError));
+    } finally {
+      setMarketSaving(false);
     }
   };
 
@@ -185,7 +240,7 @@ export default function PlayerIntelligencePanel({
       <div className="ux-score-actions">
         <button className="ux-primary-button" onClick={() => void updateData()} disabled={busy}>
           <RefreshCw size={15} className={busy ? 'spin' : ''} />
-          Update data
+          Refresh player data
         </button>
         <Link className="ux-secondary-button" href={`/admin/players/${playerId}/compare`}>
           <BarChart3 size={15} />
@@ -196,7 +251,7 @@ export default function PlayerIntelligencePanel({
       <details className="ux-score-advanced">
         <summary>
           <span>
-            <strong>Advanced evidence</strong>
+            <strong>View detailed evidence</strong>
             <small>{missing.length ? `${missing.length} Full Score inputs missing` : 'Evidence details and controls'}</small>
           </span>
           <ChevronDown size={17} />
@@ -206,6 +261,12 @@ export default function PlayerIntelligencePanel({
           <div className="ux-score-evidence-grid">
             <Fact label="Competition" value={competition} />
             <Fact label="Benchmark" value={basis?.league_strength_score ?? 'Not available'} />
+            {scoreTier === 'provisional' ? (
+              <Fact label="Provisional grade" value={provisionalGrade ? capitalise(provisionalGrade.replaceAll('_', ' ')) : 'Unknown'} />
+            ) : null}
+            {scoreTier === 'provisional' ? (
+              <Fact label="Provisional meaning" value={provisionalMeaning} />
+            ) : null}
             <Fact label="Recent minutes" value={basis?.recent_minutes_24m ?? 'Unknown'} />
             <Fact label="Recency-weighted minutes" value={basis?.effective_recent_minutes ?? basis?.weighted_recent_minutes ?? 'Unknown'} />
             <Fact label="Latest evidence" value={basis?.latest_evidence_date ?? 'Unknown'} />
@@ -214,8 +275,52 @@ export default function PlayerIntelligencePanel({
             <Fact label="Experience" value={basis?.experience_score ?? 'Not enough career history'} />
             <Fact label="Trend" value={basis?.trend_score ?? 'Missing: treated as unknown'} />
             <Fact label="Availability" value={basis?.availability_score ?? 'Unknown'} />
-            <Fact label="Missing for Full" value={missing.length ? missing.map(inputLabel).join(', ') : 'None'} />
+            <Fact label="Missing for Full Score" value={missing.length ? missing.map(inputLabel).join(', ') : 'None'} />
+            <Fact
+              label="Evidence band"
+              value={
+                evidenceBand?.low != null && evidenceBand?.high != null
+                  ? `${evidenceBand.low}-${evidenceBand.high} (not a CI)`
+                  : 'Not available'
+              }
+            />
+            <Fact label="Input fingerprint" value={basis?.input_fingerprint || 'Not available'} />
             <Fact label="Model" value={score?.model_version || 'Not calculated'} />
+          </div>
+
+          <div className="ux-score-override">
+            <label>
+              Transfermarkt value
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={marketValue}
+                onChange={(event) => setMarketValue(event.target.value)}
+                placeholder="Verified market value"
+              />
+            </label>
+            <label>
+              Currency
+              <select value={marketCurrency} onChange={(event) => setMarketCurrency(event.target.value)}>
+                {['EUR', 'GBP', 'USD', 'AUD', 'NZD', 'SEK', 'NOK', 'DKK'].map((currency) => (
+                  <option value={currency} key={currency}>{currency}</option>
+                ))}
+              </select>
+            </label>
+            <div className="ux-score-advanced-actions ux-form-wide">
+              <button
+                className="ux-secondary-button"
+                type="button"
+                onClick={() => void saveTransfermarktValue()}
+                disabled={marketSaving}
+              >
+                Save verified TM value
+              </button>
+              <span className="ux-model-note">
+                {marketVerifiedAt ? `Verified ${compactDateTime(marketVerifiedAt)}` : 'Not yet verified'}
+              </span>
+            </div>
           </div>
 
           <div className="ux-score-advanced-actions">

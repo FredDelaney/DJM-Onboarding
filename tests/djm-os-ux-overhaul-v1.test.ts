@@ -5,10 +5,15 @@ import test from 'node:test';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'utf8');
+const ignoredDirectories = new Set(['.git', '.next', '.vercel', 'coverage', 'node_modules']);
+const sourceExtensions = new Set(['.css', '.html', '.js', '.json', '.jsx', '.md', '.mjs', '.cjs', '.sql', '.toml', '.ts', '.tsx']);
 const allFiles = (directory = root): string[] =>
   fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const absolute = path.join(directory, entry.name);
-    return entry.isDirectory() ? allFiles(absolute) : [absolute];
+    if (entry.isDirectory()) {
+      return ignoredDirectories.has(entry.name) ? [] : allFiles(absolute);
+    }
+    return sourceExtensions.has(path.extname(entry.name).toLowerCase()) ? [absolute] : [];
   });
 
 test('staff navigation exposes four operational workspaces only', () => {
