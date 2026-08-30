@@ -48,14 +48,13 @@ test("TheSportsDB does not overwrite reviewed evidence owned by another source",
   assert.match(universal, /career_conflict_kept_for_review/);
 });
 
-test("player intelligence UI visibly distinguishes V4 provisional from full", () => {
+test("current player intelligence UI preserves the historical V3 separation contract", () => {
   assert.match(panel, /refresh-player-data-universal/);
   assert.match(panel, /Full Score/);
   assert.match(panel, /Provisional/);
   assert.match(panel, /Missing for Full Score/);
-  assert.match(panel, /Evidence-regressed provisional current-level estimate/);
-  assert.match(panel, /Missing: omitted from V4 provisional/);
   assert.match(panel, /provisional_confidence/);
+  assert.match(panel, /Evidence confidence/);
   assert.doesNotMatch(panel, /neutral-imputed at 50/);
 });
 

@@ -111,6 +111,8 @@ export default function PlayerIntelligencePanel({
 
   const score = data.scorecard;
   const basis = score?.basis || {};
+  const provisionalGrade = basis?.provisional_grade || null;
+  const evidenceBand = basis?.evidence_band || basis?.score_range || null;
   const scoreTier =
     score?.manual_score != null
       ? "manual_override"
@@ -158,7 +160,7 @@ export default function PlayerIntelligencePanel({
         setMessage(
           `Provisional Player Score ${result?.provisional_score ?? "available"} calculated at ${
             result?.provisional_confidence ?? "unknown"
-          }% confidence.${
+          }% evidence confidence.${
             missing.length
               ? ` Missing for a Full Score: ${missing.map(inputLabel).join(", ")}.`
               : ""
@@ -299,9 +301,10 @@ export default function PlayerIntelligencePanel({
           </span>
           <h2>Current level, with its evidence attached.</h2>
           <p>
-            Full Scores use deep position-adjusted performance evidence.
-            Provisional Scores remain useful when coverage is thinner, but the
-            missing inputs and confidence stay visible.
+            Full Scores require deep, current evidence. Provisional Scores can
+            still be useful, but DJM now shows whether they are context-only or
+            performance-backed, how much evidence is actually carrying the score,
+            and how uncertain the estimate remains.
           </p>
         </div>
         <div className={styles.score}>
@@ -353,23 +356,43 @@ export default function PlayerIntelligencePanel({
             }
           />
           <Fact
-            label="Confidence"
+            label="Evidence confidence"
             value={formatConfidence(effectiveConfidence)}
           />
+          {scoreTier === "provisional" && provisionalGrade ? (
+            <Fact
+              label="Provisional grade"
+              value={provisionalGradeLabel(provisionalGrade)}
+            />
+          ) : null}
           <Fact
-            label={scoreTier === "provisional" ? "Observed coverage" : "Data coverage"}
+            label="Effective evidence"
             value={
-              score?.data_coverage != null
-                ? `${score.data_coverage}%`
-                : basis.data_coverage != null
-                  ? `${basis.data_coverage}%`
-                  : "Unknown"
+              basis.effective_evidence_coverage != null
+                ? `${Math.round(Number(basis.effective_evidence_coverage))}%`
+                : score?.data_coverage != null
+                  ? `${score.data_coverage}%`
+                  : basis.data_coverage != null
+                    ? `${basis.data_coverage}%`
+                    : "Unknown"
             }
           />
-          {scoreTier === "provisional" && basis.provisional_regression_factor != null ? (
+          {basis.nominal_observed_coverage != null ? (
             <Fact
-              label="Evidence regression"
-              value={`${Math.round(Number(basis.provisional_regression_factor) * 100)}%`}
+              label="Observed model"
+              value={`${Math.round(Number(basis.nominal_observed_coverage))}%`}
+            />
+          ) : null}
+          {evidenceBand?.low != null && evidenceBand?.high != null ? (
+            <Fact
+              label="Evidence band"
+              value={`${evidenceBand.low}-${evidenceBand.high} (not a CI)`}
+            />
+          ) : null}
+          {basis.posterior_information != null ? (
+            <Fact
+              label="Posterior information"
+              value={`${Math.round(Number(basis.posterior_information) * 100)}%`}
             />
           ) : null}
           <Fact
@@ -426,6 +449,14 @@ export default function PlayerIntelligencePanel({
             <strong>{basis.recent_minutes_24m ?? "Unknown"}</strong>
           </div>
           <div>
+            <span>Recency-weighted minutes</span>
+            <strong>{basis.effective_recent_minutes ?? basis.weighted_recent_minutes ?? "Unknown"}</strong>
+          </div>
+          <div>
+            <span>Latest evidence date</span>
+            <strong>{basis.latest_evidence_date ?? "Unknown"}</strong>
+          </div>
+          <div>
             <span>Evidence window</span>
             <strong>
               {basis.evidence_window_months
@@ -442,7 +473,7 @@ export default function PlayerIntelligencePanel({
             <strong>
               {basis.performance_score ??
                 (scoreTier === "provisional"
-                  ? "Missing: omitted from V4 provisional"
+                  ? "Missing: treated as unknown"
                   : "Performance evidence required")}
             </strong>
           </div>
@@ -466,7 +497,7 @@ export default function PlayerIntelligencePanel({
             <strong>
               {basis.trend_score ??
                 (scoreTier === "provisional"
-                  ? "Missing: omitted from V4 provisional"
+                  ? "Missing: treated as unknown"
                   : "Needs two recent performance windows")}
             </strong>
           </div>
@@ -486,12 +517,18 @@ export default function PlayerIntelligencePanel({
             </strong>
           </div>
           <div>
-            <span>Age adjustment</span>
+            <span>Current-level age adjustment</span>
             <strong>
-              {formatAdjustment(
-                basis.age_performance_adjustment ?? score?.age_adjustment,
-              )}
+              {String(score?.model_version || basis?.model_version || "").includes("v5")
+                ? "None in V5"
+                : formatAdjustment(
+                    basis.age_performance_adjustment ?? score?.age_adjustment,
+                  )}
             </strong>
+          </div>
+          <div>
+            <span>Input fingerprint</span>
+            <strong>{shortFingerprint(basis.input_fingerprint)}</strong>
           </div>
         </div>
 
@@ -819,18 +856,26 @@ function scoreMeaning(status: string, basis: any, scoreTier: string) {
   }
 
   if (scoreTier === "provisional" || status === "provisional") {
+    const grade = basis?.provisional_grade;
+    if (grade === "context_only") {
+      return {
+        title: "Context-only provisional current-level estimate",
+        copy:
+          "DJM has trustworthy competition and recent role evidence, but no deep position-adjusted performance signal yet. The estimate is deliberately pulled harder towards 50. Evidence confidence is evidence strength, not a probability of future success, and the displayed evidence band is not a statistical confidence interval.",
+      };
+    }
     return {
-      title: "Evidence-regressed provisional current-level estimate",
+      title: "Performance-backed provisional current-level estimate",
       copy:
-        "DJM has enough verified recent playing and competition evidence to publish a provisional rating. Missing components are omitted rather than treated as average, and the observed estimate is pulled towards 50 when coverage or recent minutes are limited. Confidence cannot outrun the evidence.",
+        "DJM has some verified position-adjusted performance evidence, but the total evidence mass is not yet strong enough for a Full Score. Each component is quality-weighted, missing evidence remains unknown, and the estimate stays explicitly shrunk and uncertainty-labelled.",
     };
   }
 
   if (status === "calculated") {
     return {
-      title: "Evidence-backed Full Player Score",
+      title: "Evidence-qualified Full Player Score",
       copy:
-        "League level, position-adjusted performance, recent role, decayed experience and available trend evidence are combined transparently. Old evidence loses weight.",
+        "Competition level, position-adjusted performance, current role, reviewed experience, trend and availability evidence are fused according to their evidence quality. V5 does not use age to inflate or reduce current demonstrated level; age remains relevant to potential instead.",
     };
   }
 
@@ -862,7 +907,7 @@ function scoreMeaning(status: string, basis: any, scoreTier: string) {
     return {
       title: "Deep performance evidence can upgrade this player",
       copy:
-        "DJM will not manufacture position-adjusted ability data. When enough context exists, a clearly labelled evidence-regressed Provisional Score can still be published while the Full Score waits for a relevant peer dataset.",
+        "DJM will not manufacture position-adjusted ability data. When recent role and competition evidence are strong enough, V5 can publish a clearly labelled context-only Provisional Score with stronger shrinkage, lower evidence confidence and an explicit evidence band.",
     };
   }
 
@@ -870,7 +915,7 @@ function scoreMeaning(status: string, basis: any, scoreTier: string) {
     return {
       title: "More model coverage required",
       copy:
-        "DJM preserves the available evidence and can publish a regressed Provisional Score when the minimum context threshold is met. A Full Score still needs deeper verified coverage.",
+        "DJM preserves the available evidence and quality-weights what it can defend. A Provisional Score is published only when the effective evidence threshold is met; a Full Score still requires deep current performance evidence and stronger total evidence quality.",
     };
   }
 
@@ -878,7 +923,7 @@ function scoreMeaning(status: string, basis: any, scoreTier: string) {
     return {
       title: "Not enough recent playing-time data",
       copy:
-        "At least 500 verified senior minutes with defensible playing dates in the previous 24 months are required. Older football does not count as current evidence.",
+        "At least 500 reviewed senior minutes are required, and V5 also requires enough recency-weighted minutes. Evidence decays continuously with age instead of dropping at arbitrary month boundaries.",
     };
   }
 
@@ -901,10 +946,24 @@ function inputLabel(value: string) {
     position_adjusted_performance: "position-adjusted performance",
     role_minutes: "role / minutes",
     experience: "benchmarked experience",
+    experience_history: "complete reviewed career history",
+    competition_level: "competition level",
     trend: "recent trend",
     availability: "availability",
   };
   return labels[value] || value.replaceAll("_", " ");
+}
+
+function provisionalGradeLabel(value: unknown) {
+  if (value === "context_only") return "Context only";
+  if (value === "performance_backed") return "Performance backed";
+  return statusLabel(String(value || "provisional"));
+}
+
+function shortFingerprint(value: unknown) {
+  const text = String(value || "").trim();
+  if (!text) return "Not available";
+  return text.length <= 12 ? text : `${text.slice(0, 12)}...`;
 }
 
 function formatAdjustment(value: unknown) {

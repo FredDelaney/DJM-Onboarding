@@ -52,10 +52,7 @@ test("V4 regresses thin evidence towards 50", () => {
 
 test("V4 confidence cannot outrun the evidence", () => {
   assert.match(migration, /round\(v_observed_weight\)::int/);
-  assert.match(
-    migration,
-    /case when v_perf is null then 50 else 72 end/,
-  );
+  assert.match(migration, /case when v_perf is null then 50 else 72 end/);
   assert.match(
     migration,
     /Confidence cannot exceed observed component coverage\. Without position-adjusted performance evidence it cannot exceed 50%/,
@@ -76,11 +73,11 @@ test("V4 refuses to publish a provisional number below the minimum context gate"
   assert.match(migration, /if v_observed_weight >= 40 then/);
 });
 
-
-test("V4 UI explains regression instead of retired neutral imputation", () => {
-  assert.match(panel, /Evidence-regressed provisional current-level estimate/);
-  assert.match(panel, /Observed coverage/);
-  assert.match(panel, /Evidence regression/);
-  assert.match(panel, /Missing: omitted from V4 provisional/);
+test("current UI supersedes V4 copy while preserving transparent provisional semantics", () => {
+  assert.match(panel, /Evidence confidence/);
+  assert.match(panel, /Provisional grade/);
+  assert.match(panel, /Evidence band/);
+  assert.match(panel, /Missing: treated as unknown/);
   assert.doesNotMatch(panel, /neutral-imputed at 50/);
+  assert.doesNotMatch(panel, /Missing: omitted from V4 provisional/);
 });
