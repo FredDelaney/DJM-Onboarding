@@ -15,8 +15,11 @@ test("the admin player record has one primary connected-player workflow", () => 
   assert.match(playerPage, /documentCount=\{docs\.length\}/);
   assert.match(playerPage, /onUploadDocument=\{uploadDocument\}/);
   assert.match(playerPage, /onPlayerChange=\{setP\}/);
-  assert.match(playerPage, /href="#connected-player"/);
+  assert.match(playerPage, /getElementById\('connected-player'\)/);
   assert.match(playerPage, /platforms=\{\['whatsapp','email'\]\}/);
+  assert.match(playerPage, /tab==='overview'&&\([\s\S]*<PlayerConnectionHub/);
+  assert.doesNotMatch(playerPage, /admin-player-quick-actions/);
+  assert.match(playerPage, /<details className="admin-card admin-player-disclosure">/);
 });
 
 test("connected sources persist on the canonical player record", () => {

@@ -2116,6 +2116,31 @@ const removePlayer=async(
   router.refresh();
 };
 
+  const openTab=(nextTab:string)=>{
+    setTab(nextTab);
+    window.history.replaceState(
+      null,
+      '',
+      `#${nextTab}`
+    );
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  const openConnectedSources=()=>{
+    setTab('overview');
+    window.history.replaceState(
+      null,
+      '',
+      '#overview'
+    );
+    window.setTimeout(
+      ()=>document
+        .getElementById('connected-player')
+        ?.scrollIntoView({behavior:'smooth',block:'start'}),
+      80
+    );
+  };
+
   const tabs=[
     'overview',
     'inbox',
@@ -2236,9 +2261,7 @@ const removePlayer=async(
                   <button
                     type="button"
                     className="admin-signal is-action"
-                    onClick={()=>
-                      setTab('inbox')
-                    }
+                    onClick={()=>openTab('inbox')}
                   >
                     {openReq.length}
                     {' '}
@@ -2280,152 +2303,36 @@ const removePlayer=async(
             </div>
           </div>
 
-          <div className="admin-player-primary-actions">
-            <button
-              className="btn btn-navy admin-player-save"
-              onClick={()=>{   void save(); }}
-              disabled={busy}
-            >
-              <Save size={16}/>
+          {(tab==='overview'||tab==='profile')&&(
+            <div className="admin-player-primary-actions">
+              <button
+                className="btn btn-navy admin-player-save"
+                onClick={()=>{   void save(); }}
+                disabled={busy}
+              >
+                <Save size={16}/>
 
-              {busy
-                ?'Saving…'
-                :'Save changes'
-              }
-            </button>
-
-            <button
-              className="btn btn-quiet admin-player-verify"
-              onClick={verify}
-              disabled={busy}
-            >
-              <ShieldCheck size={16}/>
-              Verify
-            </button>
-          </div>
-        </section>
-
-        <PlayerConnectionHub
-          player={p}
-          documentCount={docs.length}
-          lastSyncedAt={latestProviderSync}
-          busy={busy}
-          onPlayerChange={setP}
-          onUploadDocument={uploadDocument}
-        />
-
-        <ResearchLinkRail
-          compact
-          platforms={['whatsapp','email']}
-          links={buildResearchLinks({
-            kind:'player',
-            name,
-            clubName:p.current_club,
-            country:p.current_country,
-            whatsapp:pr.whatsapp,
-            phone:pr.phone,
-            email:pr.personal_email,
-            transfermarktUrl:p.transfermarkt_url,
-            statsUrl:p.stats_url,
-            instagramUrl:p.instagram_url
-          })}
-          title="Player sources & contact"
-        />
-
-        <div className="admin-player-quick-actions">
-          <button
-            type="button"
-            className="admin-quick-action"
-            onClick={()=>
-              setTab('cv')
-            }
-          >
-            <FileText size={18}/>
-
-            <span>
-              <strong>
-                Club CV
-              </strong>
-
-              <small>
-                Edit dossier
-              </small>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className="admin-quick-action"
-            onClick={()=>
-              setTab('inbox')
-            }
-          >
-            <MessageCircle size={18}/>
-
-            <span>
-              <strong>
-                Player inbox
-              </strong>
-
-              <small>
-                {incoming.length
-                  ?`${incoming.length} waiting`
-                  :'Open conversation'
+                {busy
+                  ?'Saving…'
+                  :tab==='profile'
+                    ?'Save player data'
+                    :'Save next move'
                 }
-              </small>
-            </span>
-          </button>
+              </button>
 
-          {pub&&(
-            <button
-              type="button"
-              className="admin-quick-action"
-              onClick={downloadCv}
-              disabled={pdfBusy}
-            >
-              <Download size={18}/>
-
-              <span>
-                <strong>
-                  {pdfBusy
-                    ?'Building…'
-                    :'Download dossier'
-                  }
-                </strong>
-
-                <small>
-                  Club-ready PDF
-                </small>
-              </span>
-            </button>
+              {tab==='profile'&&(
+                <button
+                  className="btn btn-quiet admin-player-verify"
+                  onClick={verify}
+                  disabled={busy}
+                >
+                  <ShieldCheck size={16}/>
+                  Verify
+                </button>
+              )}
+            </div>
           )}
-
-          {pub?.published&&(
-            <a
-              href={`/p/${pub.public_slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className="admin-quick-action"
-            >
-              <Eye size={18}/>
-
-              <span>
-                <strong>
-                  View live
-                </strong>
-
-                <small>
-                  Club profile
-                </small>
-              </span>
-            </a>
-          )}
-        </div>
-
-        <PlayerIntelligencePanel
-          playerId={id}
-          compact
-        />
+        </section>
 
         <nav
           className="admin-player-tabs"
@@ -2435,14 +2342,7 @@ const removePlayer=async(
             <button
               key={t}
               type="button"
-              onClick={()=>{
-                setTab(t);
-                window.history.replaceState(
-                  null,
-                  '',
-                  `#${t}`
-                );
-              }}
+              onClick={()=>openTab(t)}
               className={`admin-player-tab ${
                 tab===t
                   ?'active'
@@ -2454,23 +2354,55 @@ const removePlayer=async(
                   :undefined
               }
             >
-              {t==='cv'
-                ?'Dossier'
-                :t[0]
-                  .toUpperCase()
-                  +t.slice(1)
+              {t==='inbox'
+                ?'Messages'
+                :t==='profile'
+                  ?'Player data'
+                  :t==='cv'
+                    ?'Club dossier'
+                    :t==='activity'
+                      ?'History'
+                      : 'Overview'
               }
             </button>
           ))}
         </nav>
 
         {tab==='overview'&&(
-          <div
-            className="grid-main"
-            style={{
-              marginTop:22
-            }}
-          >
+          <>
+            <PlayerConnectionHub
+              player={p}
+              documentCount={docs.length}
+              lastSyncedAt={latestProviderSync}
+              busy={busy}
+              onPlayerChange={setP}
+              onUploadDocument={uploadDocument}
+            />
+
+            <ResearchLinkRail
+              compact
+              platforms={['whatsapp','email']}
+              links={buildResearchLinks({
+                kind:'player',
+                name,
+                clubName:p.current_club,
+                country:p.current_country,
+                whatsapp:pr.whatsapp,
+                phone:pr.phone,
+                email:pr.personal_email,
+                transfermarktUrl:p.transfermarkt_url,
+                statsUrl:p.stats_url,
+                instagramUrl:p.instagram_url
+              })}
+              title="Player sources & contact"
+            />
+
+            <div
+              className="grid-main"
+              style={{
+                marginTop:22
+              }}
+            >
             <div
               className="stack"
               style={{
@@ -2854,7 +2786,13 @@ const removePlayer=async(
                 }
               </section>
             </aside>
-          </div>
+            </div>
+
+            <PlayerIntelligencePanel
+              playerId={id}
+              compact
+            />
+          </>
         )}
 
         {tab==='inbox'&&(
@@ -3217,12 +3155,24 @@ const removePlayer=async(
                 </div>
               </section>
 
-              <section className="admin-card">
-                <div className="section-kicker">
-                  PRIVATE DJM / PLAYER
-                </div>
+              <details className="admin-card admin-player-disclosure">
+                <summary>
+                  <span>
+                    <span className="section-kicker">
+                      PRIVATE DJM / PLAYER
+                    </span>
+                    <strong>
+                      Contact, work rights and move preferences
+                    </strong>
+                  </span>
+                  <span
+                    className="admin-player-disclosure-state"
+                    aria-hidden="true"
+                  />
+                </summary>
 
-                <div className="grid2">
+                <div className="admin-player-disclosure-body">
+                  <div className="grid2">
                   <F
                     label="Email"
                     value={pr.personal_email}
@@ -3319,14 +3269,14 @@ const removePlayer=async(
                       })
                     }
                   />
-                </div>
+                  </div>
 
-                <div
-                  className="field"
-                  style={{
-                    marginTop:14
-                  }}
-                >
+                  <div
+                    className="field"
+                    style={{
+                      marginTop:14
+                    }}
+                  >
                   <label className="label">
                     Markets
                   </label>
@@ -3345,14 +3295,14 @@ const removePlayer=async(
                       })
                     }
                   />
-                </div>
+                  </div>
 
-                <div
-                  className="field"
-                  style={{
-                    marginTop:14
-                  }}
-                >
+                  <div
+                    className="field"
+                    style={{
+                      marginTop:14
+                    }}
+                  >
                   <label className="label">
                     Relocation constraints
                   </label>
@@ -3371,8 +3321,9 @@ const removePlayer=async(
                       })
                     }
                   />
+                  </div>
                 </div>
-              </section>
+              </details>
             </div>
 
             <aside className="stack admin-sidebar">
@@ -3446,13 +3397,14 @@ const removePlayer=async(
                   link.
                 </p>
 
-                <a
+                <button
+                  type="button"
                   className="btn btn-navy btn-block"
-                  href="#connected-player"
+                  onClick={openConnectedSources}
                 >
                   <Link2 size={15}/>
                   Manage connected sources
-                </a>
+                </button>
               </section>
             </aside>
           </div>

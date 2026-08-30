@@ -655,7 +655,9 @@ Deno.serve(async (request) => {
       completed_at: now,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Peer refresh failed";
+    const message = error instanceof Error
+      ? error.message
+      : clean(error?.message) || clean(error?.error_description) || "Peer refresh failed";
     console.error(JSON.stringify({ operation: "refresh_player_peer_data", result_status: "failed", error: message }));
     return json({ ok: false, error: message }, 500);
   }
