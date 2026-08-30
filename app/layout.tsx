@@ -11,6 +11,7 @@ import './(djm-os)/djm-os.css';
 import './workspace-nav.css';
 import './responsive-polish.css';
 import './iphone-qa.css';
+import './djm-os-ux-overhaul.css';
 
 export const metadata = {
   title: 'DJM Player',

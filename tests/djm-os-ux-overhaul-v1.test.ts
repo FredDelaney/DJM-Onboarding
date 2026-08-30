@@ -1,0 +1,167 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+
+const root = path.resolve(import.meta.dirname, '..');
+const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'utf8');
+const allFiles = (directory = root): string[] =>
+  fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const absolute = path.join(directory, entry.name);
+    return entry.isDirectory() ? allFiles(absolute) : [absolute];
+  });
+
+test('staff navigation exposes four operational workspaces only', () => {
+  const source = read('components/DjmWorkspaceHeader.tsx');
+  for (const label of ['Home', 'Players', 'Opportunities', 'Network']) {
+    assert.match(source, new RegExp(`label: '${label}'`));
+  }
+  for (const oldLabel of ["label: 'Brain'", "label: 'Market'", "label: 'Club Contacts'", "label: 'Command'"]) {
+    assert.doesNotMatch(source, new RegExp(oldLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+});
+
+test('player navigation is Home, DJM and Me while legacy destinations stay contextual', () => {
+  const source = read('components/PlayerShell.tsx');
+  assert.match(source, /label: 'Home'/);
+  assert.match(source, /label: 'DJM'/);
+  assert.match(source, /label: 'Me'/);
+  assert.match(source, /activePrefixes: \['\/profile', '\/career', '\/check-in', '\/cv', '\/documents'\]/);
+  assert.doesNotMatch(source, /label: 'Career'/);
+  assert.doesNotMatch(source, /label: 'Documents'/);
+});
+
+test('player Home has one dominant action and no second career navigation system', () => {
+  const source = read('app/home/page.tsx');
+  assert.match(source, /ux-player-primary-action/);
+  assert.doesNotMatch(source, /PlayerCareerNavigator/);
+  assert.match(source, /THIS WEEK/);
+  assert.match(source, /FROM DJM/);
+  assert.match(source, /MY PROFILE/);
+});
+
+test('routine player maintenance is one-click and not a CSV or JSON upload workflow', () => {
+  const admin = read('app/admin/page.tsx');
+  assert.match(admin, /Update all/);
+  assert.match(admin, /refresh-player-data-universal/);
+  assert.match(admin, /refresh-player-peer-data/);
+  assert.match(admin, /if \(!isAdmin \|\| batchBusy\) return/);
+  assert.doesNotMatch(admin, /type="file"/);
+  assert.doesNotMatch(admin, /accept=.*csv/i);
+  assert.doesNotMatch(admin, /JSON\.parse/);
+});
+
+test('comparison room keeps four distinct evidence questions', () => {
+  const source = read('components/PlayerComparisonExplorer.tsx');
+  for (const label of ['Position profile', 'League peers', 'Other leagues', 'Development']) {
+    assert.match(source, new RegExp(label));
+  }
+  assert.match(source, /Current level comes from V5/);
+  assert.match(source, /synthetic players/i);
+  assert.match(source, /does not translate that into a fake target-league percentile/i);
+});
+
+test('cross-league comparison uses actual current provider metrics and real target peers', () => {
+  const source = read('components/PlayerComparisonExplorer.tsx');
+  assert.match(source, /current_window \|\| provider\?\.metrics\?\.current_season/);
+  assert.match(source, /competition_id: leagueCompare/);
+  assert.match(source, /__djm_current_player__/);
+  assert.match(source, /targetVisiblePeers/);
+  assert.doesNotMatch(source, /translatedPercentile|syntheticPercentile/);
+});
+
+test('comparison SQL is a read composer and does not redefine Player Score V5', () => {
+  const sql = read('supabase/migrations/20260830194500_djm_os_ux_comparison_v1.sql');
+  assert.match(sql, /djm_player_comparison\(\s*p_player_id uuid,\s*p_compare_competition_id uuid default null/);
+  assert.match(sql, /if not djm_os\.is_team_member\(\)/);
+  assert.match(sql, /public\.staff_player_access/);
+  assert.match(sql, /pr\.role = 'admin'/);
+  assert.match(sql, /auth\.role\(\) <> 'service_role'/);
+  assert.match(sql, /djm_os\.player_scorecards/);
+  assert.match(sql, /if not exists\(select 1 from public\.players p where p\.id = p_player_id\)/);
+  assert.doesNotMatch(sql, /exists\(select 1 from player_row\)/);
+  assert.doesNotMatch(sql, /create function public\.djm_player_scorecard/i);
+  assert.doesNotMatch(sql, /create or replace function public\.djm_player_scorecard/i);
+});
+
+test('audit read fix preserves RLS rather than weakening security', () => {
+  const sql = read('supabase/migrations/20260830194500_djm_os_ux_comparison_v1.sql');
+  assert.match(sql, /grant select on table public\.audit_events to authenticated/);
+  assert.doesNotMatch(sql, /disable row level security/i);
+  assert.doesNotMatch(sql, /grant all on table public\.audit_events/i);
+});
+
+test('peer refresh caches observed PitchAPI cohorts only with a minimum sample', () => {
+  const source = read('supabase/functions/refresh-player-peer-data/index.ts');
+  assert.match(source, /profile\?\.role !== "admin"/);
+  assert.match(source, /row\.minutes >= 180/);
+  assert.match(source, /aggregated\.length < 6/);
+  assert.match(source, /synthetic_players: false/);
+  assert.match(source, /provider: "pitchapi"/);
+  assert.doesNotMatch(source, /Math\.random/);
+});
+
+test('peer refresh supports verified target competitions without guessing an identity', () => {
+  const source = read('supabase/functions/refresh-player-peer-data/index.ts');
+  assert.match(source, /competition_id/);
+  assert.match(source, /provider_ids/);
+  assert.match(source, /This competition does not yet have a verified PitchAPI identity in DJM/);
+  assert.match(source, /resolveCompetitionFromDjm/);
+});
+
+test('other-league discovery can bootstrap from the live provider catalogue without pre-seeded DJM leagues', () => {
+  const explorer = read('components/PlayerComparisonExplorer.tsx');
+  const refresh = read('supabase/functions/refresh-player-peer-data/index.ts');
+  const sql = read('supabase/migrations/20260830194500_djm_os_ux_comparison_v1.sql');
+  assert.match(explorer, /mode: 'catalog'/);
+  assert.match(explorer, /PitchAPI catalogue/);
+  assert.match(explorer, /provider_competition_id: selectedCatalogLeague\.id/);
+  assert.match(refresh, /mode === "catalog"/);
+  assert.match(refresh, /resolveCompetitionFromProvider/);
+  assert.match(refresh, /\.contains\("provider_ids", \{ pitchapi:/);
+  assert.match(sql, /'competitions'/);
+});
+
+test('legacy top-level products redirect into the simplified information architecture', () => {
+  assert.match(read('app/(djm-os)/market/page.tsx'), /redirect\('\/opportunities'\)/);
+  assert.match(read('app/(djm-os)/deals/page.tsx'), /redirect\('\/opportunities'\)/);
+  assert.match(read('app/(djm-os)/recruitment/page.tsx'), /redirect\('\/admin'\)/);
+  assert.match(read('app/(djm-os)/brain/page.tsx'), /redirect\('\/settings'\)/);
+});
+
+test('V5 UI preserves unknown evidence and separates manual overrides', () => {
+  const source = read('components/PlayerIntelligencePanel.tsx');
+  assert.match(source, /Missing: treated as unknown/);
+  assert.match(source, /Advanced evidence/);
+  assert.match(source, /manual_score/);
+  assert.match(source, /manual_potential_score/);
+  assert.match(source, /djm_player_scorecard/);
+});
+
+test('simplification preserves player-service operations and moves admin utilities to settings', () => {
+  const home = read('app/(djm-os)/djm/page.tsx');
+  assert.match(home, /buildAdminPortfolio/);
+  assert.match(home, /portfolio\.issues/);
+  assert.match(read('app/(djm-os)/settings/team/page.tsx'), /staff_player_access/);
+  assert.match(read('app/(djm-os)/settings/player-experience/page.tsx'), /AdminResourceStudio/);
+  assert.match(read('app/(djm-os)/settings/player-experience/page.tsx'), /announcements/);
+});
+
+test('opportunity matching consumes the real current candidate RPC shape', () => {
+  const source = read('app/(djm-os)/opportunities/page.tsx');
+  assert.match(source, /djm_market_candidates_v2/);
+  assert.match(source, /row\.player_position \|\| row\.primary_position/);
+  assert.match(source, /overall_score \?\? row\.match_score/);
+  assert.match(source, /djm_opportunity_upsert/);
+});
+
+test('release source contains no hard reload, synthetic randomness or em dash', () => {
+  const files = allFiles().filter((file) => !file.endsWith('djm-os-ux-overhaul-v1.test.ts'));
+  for (const file of files) {
+    if (file.endsWith('.zip')) continue;
+    const source = fs.readFileSync(file, 'utf8');
+    assert.doesNotMatch(source, /window\.location\.reload\s*\(/, path.relative(root, file));
+    assert.doesNotMatch(source, /Math\.random\s*\(/, path.relative(root, file));
+    assert.equal(source.includes('\u2014'), false, `em dash in ${path.relative(root, file)}`);
+  }
+});

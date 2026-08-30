@@ -7,27 +7,96 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock3,
-  DatabaseZap,
+  HeartPulse,
   RefreshCw,
-  ShieldCheck,
-  Sparkles,
   Target,
+  UsersRound,
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
+import { useAdmin } from '@/components/AdminShell';
+import {
+  buildAdminPortfolio,
+  type AdminIssue,
+  type AdminRow,
+} from '@/lib/admin-command-centre';
 import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
-import { commandRecommendation } from '@/lib/intelligence';
+import { supabase } from '@/lib/supabase';
+
+type PortfolioData = {
+  players: AdminRow[];
+  privateRows: AdminRow[];
+  requests: AdminRow[];
+  checkins: AdminRow[];
+  opportunities: AdminRow[];
+  agreements: AdminRow[];
+  documents: AdminRow[];
+  videos: AdminRow[];
+  publicProfiles: AdminRow[];
+};
+
+const EMPTY_PORTFOLIO: PortfolioData = {
+  players: [],
+  privateRows: [],
+  requests: [],
+  checkins: [],
+  opportunities: [],
+  agreements: [],
+  documents: [],
+  videos: [],
+  publicProfiles: [],
+};
+
+const greeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const rowData = (result: any) => result?.data || [];
 
 export default function DjmHomePage() {
-  const [data, setData] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
+  const auth = useAdmin();
+  const [command, setCommand] = useState<any>(null);
+  const [portfolioData, setPortfolioData] = useState<PortfolioData>(EMPTY_PORTFOLIO);
+  const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     setBusy(true);
     setError('');
     try {
-      setData(await djmRpc('djm_command_center'));
+      const [commandResult, queryResults] = await Promise.all([
+        djmRpc<any>('djm_command_center'),
+        Promise.all([
+          supabase.from('players').select('id,first_name,last_name,preferred_name,date_of_birth,primary_position,current_club,current_league,current_country,contract_status,contract_expiry,football_status,verification_status,agency_priority,next_action,next_action_due,current_season_label,current_season_start,transfermarkt_url,wyscout_url,stats_url'),
+          supabase.from('player_private').select('player_id,market_preferences,preferred_move_timing,travel_availability,passports_held,work_rights'),
+          supabase.from('player_requests').select('id,player_id,title,message,request_type,status,due_at,player_reply,created_at,updated_at'),
+          supabase.from('weekly_checkins').select('id,player_id,week_start,availability_status,club_situation_changed,club_situation_notes,fitness_status,fitness_notes,support_request,player_notes,submitted_at').order('week_start', { ascending: false }),
+          supabase.from('player_opportunities').select('id,player_id,club_name,country,stage,next_action,next_action_due,updated_at'),
+          supabase.from('player_agreements').select('id,player_id,agreement_type,status,title,start_date,end_date,visible_to_player,created_at,updated_at'),
+          supabase.from('player_documents').select('id,player_id,title,document_type,expires_at,created_at'),
+          supabase.from('player_videos').select('id,player_id,title,url,video_type,featured,created_at'),
+          supabase.from('player_public_profiles').select('player_id,published,updated_at'),
+        ]),
+      ]);
+
+      const firstFailure = queryResults.find((result: any) => result.error)?.error;
+      if (firstFailure) throw firstFailure;
+
+      setCommand(commandResult || null);
+      setPortfolioData({
+        players: rowData(queryResults[0]),
+        privateRows: rowData(queryResults[1]),
+        requests: rowData(queryResults[2]),
+        checkins: rowData(queryResults[3]),
+        opportunities: rowData(queryResults[4]),
+        agreements: rowData(queryResults[5]),
+        documents: rowData(queryResults[6]),
+        videos: rowData(queryResults[7]),
+        publicProfiles: rowData(queryResults[8]),
+      });
     } catch (loadError) {
       setError(friendlyError(loadError));
     } finally {
@@ -36,245 +105,155 @@ export default function DjmHomePage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!auth.loading && auth.user) void load();
+  }, [auth.loading, auth.user, load]);
 
-  const completeTask = async (id: string) => {
-    try {
-      await djmRpc('djm_network_set_task_status', {
-        p_task_id: id,
-        p_status: 'completed',
-      });
-      await load();
-    } catch (taskError) {
-      setError(friendlyError(taskError));
-    }
-  };
-
-  const summary = data?.summary || {};
-  const focus = data?.focus || [];
-  const opportunities = data?.opportunities || [];
-  const quality = data?.quality || {};
-  const automation = data?.automation || {};
-  const commandReferenceTime = data?.generated_at
-    ? new Date(data.generated_at).getTime()
-    : undefined;
-
-  const qualityCount = useMemo(
+  const portfolio = useMemo(
     () =>
-      Object.values(quality).reduce(
-        (sum: number, value: any) => sum + Number(value || 0),
-        0,
-      ),
-    [quality],
+      buildAdminPortfolio({
+        players: portfolioData.players,
+        privateRows: portfolioData.privateRows,
+        requests: portfolioData.requests,
+        checkins: portfolioData.checkins,
+        opportunities: portfolioData.opportunities,
+        agreements: portfolioData.agreements,
+        documents: portfolioData.documents,
+        videos: portfolioData.videos,
+        publicProfiles: portfolioData.publicProfiles,
+      }),
+    [portfolioData],
   );
-  const incidentCount = Number(automation?.open_incidents || 0);
-  const freshnessCount =
-    Number(automation?.freshness?.due || 0) +
-    Number(automation?.freshness?.locked || 0);
-  const systemNeedsAttention =
-    incidentCount > 0 ||
-    freshnessCount > 0 ||
-    Number(summary.reviews || 0) > 0;
+
+  const combinedQueue = useMemo(() => {
+    const playerIssues = portfolio.issues.map((issue) => ({
+      id: `player-${issue.id}`,
+      title: issue.title,
+      subtitle: `${issue.playerName} · ${issue.detail}`,
+      href: issue.href,
+      score: issue.score,
+      action_at: issue.dueAt || null,
+      kind: issue.kind,
+      source: 'player' as const,
+    }));
+
+    const commandItems = (Array.isArray(command?.focus) ? command.focus : []).map((item: any) => ({
+      id: `system-${item.kind || 'item'}-${item.id || item.title}`,
+      title: item.title || 'DJM action',
+      subtitle: item.subtitle || 'Review the latest context.',
+      href: normaliseLegacyHref(item.href || '/djm'),
+      score: Number(item.score || 50),
+      action_at: item.action_at || null,
+      kind: item.kind || 'system',
+      source: 'system' as const,
+    }));
+
+    const deduped = new Map<string, any>();
+    [...playerIssues, ...commandItems].forEach((item) => {
+      const key = `${item.title}|${item.subtitle}`.toLowerCase();
+      const previous = deduped.get(key);
+      if (!previous || item.score > previous.score) deduped.set(key, item);
+    });
+
+    return [...deduped.values()]
+      .sort((a, b) => b.score - a.score || String(a.action_at || '').localeCompare(String(b.action_at || '')))
+      .slice(0, 12);
+  }, [command?.focus, portfolio.issues]);
+
+  const liveNeeds = Array.isArray(command?.opportunities) ? command.opportunities : [];
+  const summary = command?.summary || {};
+  const urgentCount = combinedQueue.filter((item) => Number(item.score || 0) >= 90).length;
+  const displayName = auth.profile?.display_name?.split(' ')?.[0] || 'DJM';
 
   return (
-    <DjmOsShell
-      eyebrow="One operational truth · explainable next actions"
-      title="Command"
-    >
-      {error ? (
-        <div className="djm-os-error" role="alert">
-          <AlertCircle size={17} />
-          <span>{error}</span>
-          <button type="button" onClick={() => setError('')}>
-            Dismiss
-          </button>
-        </div>
-      ) : null}
-
-      <section className="djm-intelligence-hero">
+    <DjmOsShell eyebrow="Agency operating system" title="Home">
+      <section className="ux-staff-home-hero">
         <div>
-          <span className="djm-intelligence-kicker">
-            <Sparkles size={14} /> Decision support, not a vanity dashboard
-          </span>
-          <h2>Know what deserves attention and why.</h2>
-          <p>
-            Command connects service, relationships, demand and deals into one
-            ranked queue. Every recommendation remains a human decision.
-          </p>
+          <p className="ux-eyebrow">{greeting()}, {displayName}.</p>
+          <h2>{combinedQueue.length ? `${combinedQueue.length} things deserve DJM's attention.` : 'DJM is under control.'}</h2>
+          <p>Player service, club demand, relationships and deals are ranked together. Routine automation stays quiet.</p>
         </div>
-        <div className="djm-intelligence-hero-actions">
-          <span>
-            {data?.generated_at
-              ? `Operational view ${compactDateTime(data.generated_at)}`
-              : 'Connecting live records…'}
-          </span>
-          <button
-            className="djm-os-secondary-button"
-            type="button"
-            onClick={() => void load()}
-            disabled={busy}
-          >
-            <RefreshCw size={15} className={busy ? 'spin' : ''} />
-            Refresh truth
-          </button>
-        </div>
+        <button type="button" className="ux-secondary-action" onClick={() => void load()} disabled={busy}>
+          <RefreshCw size={15} className={busy ? 'spin' : ''} /> Refresh
+        </button>
       </section>
 
-      <section className="djm-os-metrics" aria-label="Command overview">
-        <Metric label="Overdue commitments" value={Number(summary.overdue_tasks || 0)} attention={Number(summary.overdue_tasks || 0) > 0} />
-        <Metric label="Human verification" value={Number(summary.reviews || 0)} attention={Number(summary.reviews || 0) > 0} />
-        <Metric label="Active player work" value={Number(summary.recruitment_hot || 0)} />
-        <Metric label="Live demand" value={Number(summary.active_needs || 0)} />
-        <Metric label="Live deals" value={Number(summary.active_deals || 0)} />
+      {error ? <div className="ux-alert ux-alert-error"><AlertCircle size={17} />{error}</div> : null}
+
+      <section className="ux-signal-strip" aria-label="Agency summary">
+        <Signal icon={<HeartPulse size={18} />} value={urgentCount} label="needs action now" attention={urgentCount > 0} />
+        <Signal icon={<Target size={18} />} value={Number(summary.active_deals || 0)} label="live opportunities" />
+        <Signal icon={<UsersRound size={18} />} value={portfolio.metrics.readyToMove} label="players ready to move" />
       </section>
 
-      <div className="djm-os-grid djm-command-grid">
-        <section className="djm-os-panel">
-          <div className="djm-os-panel-head">
-            <div>
-              <span className="djm-panel-kicker">NEXT BEST ACTION</span>
-              <h2>Decision queue</h2>
-              <p>Act, prepare, qualify, review, or consciously hold.</p>
-            </div>
-            <Target size={20} />
+      <div className="ux-staff-home-grid">
+        <section className="ux-surface ux-priority-surface">
+          <div className="ux-surface-head">
+            <div><p className="ux-eyebrow">TODAY</p><h2>What should DJM do next?</h2></div>
+            <span>{combinedQueue.length}</span>
           </div>
 
-          {focus.length ? (
-            <div className="djm-os-list djm-command-list">
-              {focus.slice(0, 10).map((item: any, index: number) => {
-                const recommendation = commandRecommendation(item, commandReferenceTime);
-                return (
-                  <article className="djm-command-row" key={`${item.kind}-${item.id}`}>
-                    <span className="djm-command-order">{String(index + 1).padStart(2, '0')}</span>
-                    <div className="djm-command-copy">
-                      <div className="djm-command-meta">
-                        <span className={`djm-recommendation is-${slug(recommendation.kind)}`}>{recommendation.kind}</span>
-                        <span>{labelForKind(item.kind)}</span>
-                        {item.action_at ? <span>{compactDateTime(item.action_at)}</span> : null}
-                      </div>
-                      <Link href={item.href || '/djm'}>{item.title}</Link>
-                      <p>{item.subtitle || recommendation.explanation}</p>
-                      <small>{recommendation.explanation}</small>
-                    </div>
-                    {item.action === 'complete' ? (
-                      <button type="button" className="djm-os-icon-button is-success" onClick={() => void completeTask(item.id)} aria-label={`Complete ${item.title}`}>
-                        <CheckCircle2 size={17} />
-                      </button>
-                    ) : (
-                      <Link href={item.href || '/djm'} className="djm-os-icon-button" aria-label={`Open ${item.title}`}>
-                        <ArrowRight size={16} />
-                      </Link>
-                    )}
-                  </article>
-                );
-              })}
+          {busy ? <div className="ux-loading-row"><RefreshCw className="spin" size={18} />Connecting the agency picture...</div> : null}
+          {!busy && combinedQueue.length ? (
+            <div className="ux-action-list">
+              {combinedQueue.map((item, index) => (
+                <Link className="ux-action-row" href={item.href} key={item.id}>
+                  <div className={`ux-action-rank ${item.score >= 90 ? 'is-urgent' : item.score >= 70 ? 'is-next' : ''}`}>{index + 1}</div>
+                  <div className="ux-action-copy">
+                    <strong>{item.title}</strong>
+                    <p>{item.subtitle}</p>
+                    <small>{item.action_at ? compactDateTime(item.action_at) : item.source === 'player' ? 'Player service' : 'DJM system'}</small>
+                  </div>
+                  <ArrowRight size={17} />
+                </Link>
+              ))}
             </div>
-          ) : (
-            <Empty icon={<CheckCircle2 size={25} />} text="No unresolved action is supported by the current record. Holding is valid until evidence changes." />
-          )}
+          ) : null}
+          {!busy && !combinedQueue.length ? (
+            <div className="ux-evidence-empty"><CheckCircle2 size={28} /><div><strong>Nothing urgent.</strong><p>Automation is healthy and there is no ranked action waiting.</p></div></div>
+          ) : null}
         </section>
 
-        <section className="djm-os-panel">
-          <div className="djm-os-panel-head">
-            <div>
-              <span className="djm-panel-kicker">MARKET PULSE</span>
-              <h2>Demand worth qualifying</h2>
-              <p>Counts and evidence. Never invented fit percentages.</p>
+        <aside className="ux-home-side-stack">
+          <section className="ux-surface">
+            <div className="ux-surface-head"><div><p className="ux-eyebrow">LIVE DEMAND</p><h2>Club needs</h2></div><Link href="/opportunities">Open</Link></div>
+            <div className="ux-mini-list">
+              {liveNeeds.slice(0, 5).map((need: any) => (
+                <Link href="/opportunities" key={need.id}>
+                  <strong>{need.organisation_name}</strong>
+                  <span>{need.position || need.title || 'Player need'}</span>
+                  <small>{Number(need.match_count || 0)} match{Number(need.match_count || 0) === 1 ? '' : 'es'}</small>
+                </Link>
+              ))}
+              {!liveNeeds.length ? <p className="ux-muted-copy">No live club needs currently surfaced.</p> : null}
             </div>
-            <DatabaseZap size={20} />
-          </div>
+          </section>
 
-          {opportunities.length ? (
-            <div className="djm-os-list">
-              {opportunities.map((need: any) => {
-                const matches = Number(need.match_count || 0);
-                return (
-                  <Link href="/market" className="djm-opportunity-row" key={need.id}>
-                    <div>
-                      <strong>{need.organisation_name}</strong>
-                      <p>{need.position || need.title}</p>
-                      <small>{matches ? `${matches} candidate record${matches === 1 ? '' : 's'} to review` : 'No current candidate evidence'}</small>
-                    </div>
-                    <span className={`djm-evidence-state ${matches ? 'is-review' : 'is-missing'}`}>
-                      {matches ? 'Evidence to review' : 'Qualification gap'}
-                    </span>
-                  </Link>
-                );
-              })}
+          <section className="ux-surface">
+            <div className="ux-surface-head"><div><p className="ux-eyebrow">QUIET SYSTEM</p><h2>Health</h2></div><Link href="/settings">Settings</Link></div>
+            <div className="ux-health-lines">
+              <HealthLine label="Open reviews" value={Number(command?.quality?.open_reviews || 0)} />
+              <HealthLine label="Stale needs" value={Number(command?.quality?.stale_needs || 0)} />
+              <HealthLine label="Overdue tasks" value={Number(summary.overdue_tasks || 0)} />
             </div>
-          ) : (
-            <Empty icon={<Target size={25} />} text="No live demand is recorded. Capture a real club need before matching players." />
-          )}
-        </section>
-      </div>
-
-      <div className="djm-os-grid djm-os-grid-2">
-        <section className="djm-os-panel">
-          <div className="djm-os-panel-head">
-            <div>
-              <span className="djm-panel-kicker">CONNECTED OPERATIONS</span>
-              <h2>Automation assurance</h2>
-              <p>Only configured jobs and recorded exceptions are shown.</p>
-            </div>
-            <ShieldCheck size={20} />
-          </div>
-          <div className="djm-assurance-list">
-            <StatusRow icon={<ShieldCheck size={17} />} title={systemNeedsAttention ? 'Human attention required' : 'No recorded exception'} detail={`${Number(automation?.cron_jobs?.length || 0)} configured jobs · ${incidentCount} incidents · ${freshnessCount} freshness checks`} attention={systemNeedsAttention} />
-            <StatusRow icon={<Clock3 size={17} />} title="Commitment follow-through" detail={`${Number(summary.open_tasks || 0)} open · ${Number(summary.overdue_tasks || 0)} overdue`} href="/network" attention={Number(summary.overdue_tasks || 0) > 0} />
-            <StatusRow icon={<Target size={17} />} title="Demand matching" detail={`${Number(summary.active_needs || 0)} live needs · ${Number(summary.needs_without_matches || 0)} with no candidate evidence`} href="/market" attention={Number(summary.needs_without_matches || 0) > 0} />
-          </div>
-        </section>
-
-        <section className="djm-os-panel">
-          <div className="djm-os-panel-head">
-            <div>
-              <span className="djm-panel-kicker">TRUTH MAINTENANCE</span>
-              <h2>Evidence gaps</h2>
-              <p>Exceptions that automation cannot resolve safely.</p>
-            </div>
-          </div>
-          {qualityCount === 0 ? (
-            <Empty icon={<CheckCircle2 size={25} />} text="No obvious gaps are currently recorded. This is not a guarantee that every fact is verified." />
-          ) : (
-            <div className="djm-os-list">
-              <QualityRow label="Contacts missing club" value={quality.contacts_missing_club} href="/network" />
-              <QualityRow label="Contacts missing role" value={quality.contacts_missing_role} href="/network" />
-              <QualityRow label="Prospects missing source profile" value={quality.recruitment_missing_transfermarkt} href="/recruitment" />
-              <QualityRow label="Prospects missing contact route" value={quality.recruitment_missing_contact} href="/recruitment" />
-              <QualityRow label="Claims awaiting review" value={quality.open_reviews} href="/network" />
-              <QualityRow label="Demand needing reverification" value={quality.stale_needs} href="/market" />
-            </div>
-          )}
-        </section>
+            <p className="ux-muted-copy">Successful refreshes and normal automation are deliberately not shown here.</p>
+          </section>
+        </aside>
       </div>
     </DjmOsShell>
   );
 }
 
-function slug(value: string) {
-  return value.toLowerCase().replaceAll(' ', '-');
+function normaliseLegacyHref(value: string) {
+  if (value === '/market') return '/opportunities';
+  if (value.startsWith('/market/deals/')) return value.replace('/market/deals/', '/opportunities/');
+  if (value.startsWith('/brain')) return '/settings';
+  return value;
 }
 
-function labelForKind(kind?: string) {
-  return String(kind || 'action').replaceAll('_', ' ').replace(/^./, (character) => character.toUpperCase());
+function Signal({ icon, value, label, attention = false }: { icon: React.ReactNode; value: number; label: string; attention?: boolean }) {
+  return <div className={`ux-signal ${attention ? 'is-attention' : ''}`}>{icon}<strong>{value}</strong><span>{label}</span></div>;
 }
 
-function Metric({ label, value, attention = false }: { label: string; value: number; attention?: boolean }) {
-  return <div className={`djm-os-metric ${attention ? 'is-attention' : ''}`}><strong>{value}</strong><span>{label}</span></div>;
-}
-
-function Empty({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return <div className="djm-os-empty">{icon}<p>{text}</p></div>;
-}
-
-function StatusRow({ icon, title, detail, href, attention = false }: { icon: React.ReactNode; title: string; detail: string; href?: string; attention?: boolean }) {
-  const content = <><span className="djm-os-panel-icon">{icon}</span><div><strong>{title}</strong><small>{detail}</small></div>{href ? <ArrowRight size={16} /> : null}</>;
-  return href ? <Link className={`djm-assurance-row ${attention ? 'is-attention' : ''}`} href={href}>{content}</Link> : <div className={`djm-assurance-row ${attention ? 'is-attention' : ''}`}>{content}</div>;
-}
-
-function QualityRow({ label, value, href }: { label: string; value: any; href: string }) {
-  const count = Number(value || 0);
-  if (!count) return null;
-  return <Link href={href} className="djm-opportunity-row"><div><strong>{label}</strong><p>DJM could not fill this safely without human confirmation.</p></div><span className="djm-evidence-state is-missing">{count} to review</span></Link>;
+function HealthLine({ label, value }: { label: string; value: number }) {
+  return <div><span>{label}</span><strong>{value}</strong></div>;
 }

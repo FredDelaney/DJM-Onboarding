@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import DjmWorkspaceHeader from './DjmWorkspaceHeader';
@@ -22,34 +18,17 @@ const EMPTY_ADMIN: AdminState = {
   loading: true,
 };
 
-let adminCache:
-  | AdminState
-  | null = null;
-
+let adminCache: AdminState | null = null;
 let adminCacheAt = 0;
-
 let adminLoad:
-  | Promise<{
-      state: AdminState | null;
-      redirect: string | null;
-    }>
+  | Promise<{ state: AdminState | null; redirect: string | null }>
   | null = null;
+const adminListeners = new Set<(state: AdminState) => void>();
 
-const adminListeners =
-  new Set<
-    (state: AdminState) => void
-  >();
-
-const publishAdmin = (
-  state: AdminState,
-) => {
+const publishAdmin = (state: AdminState) => {
   adminCache = state;
   adminCacheAt = Date.now();
-
-  adminListeners.forEach(
-    (listener) =>
-      listener(state),
-  );
+  adminListeners.forEach((listener) => listener(state));
 };
 
 const clearAdmin = () => {
@@ -63,201 +42,95 @@ const fetchAdmin = async () => {
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  if (
-    sessionError ||
-    !session?.user
-  ) {
-    return {
-      state: null,
-      redirect: '/sign-in',
-    };
+  if (sessionError || !session?.user) {
+    return { state: null, redirect: '/sign-in' };
   }
 
   const user = session.user;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id,email,display_name,role,avatar_path,updated_at')
+    .eq('id', user.id)
+    .maybeSingle();
 
-  const { data: profile } =
-    await supabase
-      .from('profiles')
-      .select('id,email,display_name,role,avatar_path,updated_at')
-      .eq('id', user.id)
-      .maybeSingle();
-
-  if (
-    !profile ||
-    ![
-      'admin',
-      'scout',
-    ].includes(profile.role)
-  ) {
-    return {
-      state: null,
-      redirect: '/home',
-    };
+  if (!profile || !['admin', 'scout'].includes(profile.role)) {
+    return { state: null, redirect: '/home' };
   }
 
   return {
     redirect: null,
-    state: {
-      user,
-      profile,
-      loading: false,
-    },
+    state: { user, profile, loading: false },
   };
 };
 
-const loadAdmin = async (
-  force = false,
-) => {
-  const freshEnough =
-    adminCache &&
-    Date.now() - adminCacheAt < 60_000;
-
-  if (
-    !force &&
-    freshEnough
-  ) {
-    return {
-      state: adminCache,
-      redirect: null,
-    };
-  }
-
-  if (adminLoad) {
-    return adminLoad;
-  }
+const loadAdmin = async (force = false) => {
+  const freshEnough = adminCache && Date.now() - adminCacheAt < 60_000;
+  if (!force && freshEnough) return { state: adminCache, redirect: null };
+  if (adminLoad) return adminLoad;
 
   adminLoad = fetchAdmin()
-    .catch(() => ({
-      state:
-        adminCache ||
-        {
-          ...EMPTY_ADMIN,
-          loading: false,
-        },
-      redirect: null,
-    }))
+    .catch(() => ({ state: adminCache || { ...EMPTY_ADMIN, loading: false }, redirect: null }))
     .finally(() => {
       adminLoad = null;
     });
-
   return adminLoad;
 };
 
 export function useAdmin() {
-  const [state, setState] =
-    useState<AdminState>(
-      () =>
-        adminCache || {
-          ...EMPTY_ADMIN,
-        },
-    );
-
+  const [state, setState] = useState<AdminState>(() => adminCache || { ...EMPTY_ADMIN });
   const router = useRouter();
 
   useEffect(() => {
     let active = true;
-
-    const listener = (
-      next: AdminState,
-    ) => {
-      if (active) {
-        setState(next);
-      }
-    };
-
+    const listener = (next: AdminState) => active && setState(next);
     adminListeners.add(listener);
 
-    const hydrate = async () => {
-      const result =
-        await loadAdmin(
-          !!adminCache,
-        );
-
-      if (!active) {
-        return;
-      }
-
+    void loadAdmin(Boolean(adminCache)).then((result) => {
+      if (!active) return;
       if (result.redirect) {
         clearAdmin();
-        router.replace(
-          result.redirect,
-        );
+        router.replace(result.redirect);
         return;
       }
-
-      if (result.state) {
-        publishAdmin(
-          result.state,
-        );
-      }
-    };
-
-    void hydrate();
+      if (result.state) publishAdmin(result.state);
+    });
 
     return () => {
       active = false;
-      adminListeners.delete(
-        listener,
-      );
+      adminListeners.delete(listener);
     };
   }, [router]);
 
-  const refresh = useCallback(
-    async () => {
-      const result =
-        await loadAdmin(true);
+  const refresh = useCallback(async () => {
+    const result = await loadAdmin(true);
+    if (result.redirect) {
+      clearAdmin();
+      router.replace(result.redirect);
+      return;
+    }
+    if (result.state) publishAdmin(result.state);
+  }, [router]);
 
-      if (result.redirect) {
-        clearAdmin();
-        router.replace(
-          result.redirect,
-        );
-        return;
-      }
-
-      if (result.state) {
-        publishAdmin(
-          result.state,
-        );
-      }
-    },
-    [router],
-  );
-
-  return {
-    ...state,
-    refresh,
-  };
+  return { ...state, refresh };
 }
 
-
-export function AdminShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const auth = useAdmin();
 
   useEffect(() => {
-    router.prefetch('/djm');
-    router.prefetch('/admin');
-    router.prefetch('/market');
-    router.prefetch('/deals');
-    router.prefetch('/brain');
+    ['/djm', '/admin', '/opportunities', '/network', '/settings'].forEach((path) =>
+      router.prefetch(path),
+    );
   }, [router]);
 
   const signOut = async () => {
     clearAdmin();
-
     await supabase.auth.signOut();
-
     router.replace('/sign-in');
   };
 
-  if (auth.loading || !auth.user) {
-    return null;
-  }
+  if (auth.loading || !auth.user) return null;
 
   return (
     <div className="admin-shell">
