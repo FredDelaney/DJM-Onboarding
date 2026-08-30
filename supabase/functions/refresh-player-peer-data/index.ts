@@ -487,11 +487,17 @@ Deno.serve(async (request) => {
       }
     }
 
+    let matchesWithBasicStats = 0;
+    let matchesWithAdvancedStats = 0;
     const nested = await inBatches(matches, 6, async (match) => {
       const [basic, advanced] = await Promise.all([
         pitch(`/v1/matches/${match.id}/players`, key).catch(() => []),
         pitch(`/v1/matches/${match.id}/advanced/players`, key).catch(() => ({ players: [] })),
       ]);
+      if (Array.isArray(basic) && basic.length) matchesWithBasicStats += 1;
+      if (Array.isArray(advanced?.players) && advanced.players.length) {
+        matchesWithAdvancedStats += 1;
+      }
       return mergePitchMatchPlayers(basic, advanced, match);
     });
 
@@ -502,8 +508,14 @@ Deno.serve(async (request) => {
       return json(
         {
           ok: false,
-          error: "PitchAPI coverage exists, but fewer than six players have a trustworthy 180-minute sample.",
+          error: `PitchAPI returned ${aggregated.length} players with a trustworthy 180-minute sample for ${context.competitionName || "this competition"}. DJM requires at least six.`,
           peer_count: aggregated.length,
+          competition_id: context.competitionId || competitionId || null,
+          provider_competition_id: context.providerCompetitionId,
+          provider_season_id: context.seasonId,
+          match_window: matches.length,
+          matches_with_basic_stats: matchesWithBasicStats,
+          matches_with_advanced_stats: matchesWithAdvancedStats,
         },
         422,
       );

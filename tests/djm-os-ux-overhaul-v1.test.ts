@@ -131,6 +131,8 @@ test('peer refresh caches observed PitchAPI cohorts only with a minimum sample',
   assert.match(source, /profile\?\.role !== "admin"/);
   assert.match(source, /row\.minutes >= 180/);
   assert.match(source, /aggregated\.length < 6/);
+  assert.match(source, /PitchAPI returned \$\{aggregated\.length\} players/);
+  assert.match(source, /matches_with_advanced_stats: matchesWithAdvancedStats/);
   assert.match(source, /synthetic_players: false/);
   assert.match(source, /provider: "pitchapi"/);
   assert.match(source, /clean\(error\?\.message\)/);
