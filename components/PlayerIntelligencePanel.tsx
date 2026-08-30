@@ -7,9 +7,9 @@ import {
   CheckCircle2,
   CircleGauge,
   Database,
+  ExternalLink,
   RefreshCw,
   ShieldCheck,
-  ExternalLink,
 } from "lucide-react";
 
 import { compactDateTime, djmInvoke, djmRpc, friendlyError } from "@/lib/djm-os";
@@ -53,9 +53,12 @@ export default function PlayerIntelligencePanel({
 
       const playerResult = await supabase
         .from("players")
-        .select("transfermarkt_url,transfermarkt_market_value,transfermarkt_market_value_currency,transfermarkt_value_verified_at")
+        .select(
+          "transfermarkt_url,transfermarkt_market_value,transfermarkt_market_value_currency,transfermarkt_value_verified_at",
+        )
         .eq("id", playerId)
         .maybeSingle();
+
       if (playerResult.error) {
         setMarketSchemaReady(false);
         const fallback = await supabase
@@ -68,17 +71,24 @@ export default function PlayerIntelligencePanel({
         setMarketSchemaReady(true);
         const player = playerResult.data as any;
         setTransfermarktUrl(player?.transfermarkt_url || "");
-        setMarketValue(player?.transfermarkt_market_value == null ? "" : String(player.transfermarkt_market_value));
+        setMarketValue(
+          player?.transfermarkt_market_value == null
+            ? ""
+            : String(player.transfermarkt_market_value),
+        );
         setMarketCurrency(player?.transfermarkt_market_value_currency || "EUR");
         setMarketVerifiedAt(player?.transfermarkt_value_verified_at || null);
       }
 
       try {
-        const status: any = await djmInvoke("refresh-player-data", { mode: "status" });
+        const status: any = await djmInvoke("refresh-player-data-universal", {
+          mode: "status",
+        });
         setSyncConfigured(Boolean(status?.configured));
       } catch {
         setSyncConfigured(false);
       }
+
       setManualScore(
         result?.scorecard?.manual_score == null
           ? ""
@@ -101,16 +111,39 @@ export default function PlayerIntelligencePanel({
 
   const score = data.scorecard;
   const basis = score?.basis || {};
-  const effective = score?.manual_score ?? score?.model_score ?? null;
-  const rawStatus = score?.score_status || "not_calculated";
-  const status =
+  const scoreTier =
     score?.manual_score != null
       ? "manual_override"
-      : normalisedScoreStatus(rawStatus, basis);
-  const meaning = useMemo(() => scoreMeaning(status, basis), [status, basis]);
+      : score?.score_tier || basis?.score_tier || inferScoreTier(score);
+  const effective =
+    score?.manual_score ??
+    score?.model_score ??
+    score?.provisional_score ??
+    basis?.provisional_score ??
+    null;
+  const rawStatus = score?.score_status || "not_calculated";
+  const status =
+    scoreTier === "manual_override"
+      ? "manual_override"
+      : scoreTier === "provisional"
+        ? "provisional"
+        : normalisedScoreStatus(rawStatus, basis);
+  const meaning = useMemo(
+    () => scoreMeaning(status, basis, scoreTier),
+    [status, basis, scoreTier],
+  );
   const competition = basis.competition_name || basis.current_league || null;
   const benchmarkRequired = status === "benchmark_required";
-  const benchmarkUrl = `/brain/benchmarks/import?player=${encodeURIComponent(playerId)}${competition ? `&competition=${encodeURIComponent(competition)}` : ""}`;
+  const benchmarkUrl = `/brain/benchmarks/import?player=${encodeURIComponent(
+    playerId,
+  )}${competition ? `&competition=${encodeURIComponent(competition)}` : ""}`;
+  const missingInputs = normaliseMissingInputs(
+    score?.missing_inputs ?? basis?.provisional_missing_inputs,
+  );
+  const effectiveConfidence =
+    scoreTier === "provisional"
+      ? score?.provisional_confidence ?? basis?.provisional_confidence
+      : score?.confidence;
 
   const recalculate = async () => {
     setBusy(true);
@@ -119,9 +152,27 @@ export default function PlayerIntelligencePanel({
       const result: any = await djmRpc("djm_player_scorecard", {
         p_player_id: playerId,
       });
-      if (result?.status === "benchmark_required") {
+
+      if (result?.score_tier === "provisional") {
+        const missing = normaliseMissingInputs(result?.missing_inputs);
         setMessage(
-          `${result?.basis?.competition_name || "Competition"} is resolved. A verified benchmark is the only missing Player Score input.`,
+          `Provisional Player Score ${result?.provisional_score ?? "available"} calculated at ${
+            result?.provisional_confidence ?? "unknown"
+          }% confidence.${
+            missing.length
+              ? ` Missing for a Full Score: ${missing.map(inputLabel).join(", ")}.`
+              : ""
+          }`,
+        );
+      } else if (result?.score_tier === "full") {
+        setMessage(
+          `Full Player Score ${result?.model_score ?? "available"} calculated from verified evidence.`,
+        );
+      } else if (result?.status === "benchmark_required") {
+        setMessage(
+          `${
+            result?.basis?.competition_name || "Competition"
+          } is resolved. A verified competition benchmark is the next required Player Score input.`,
         );
       } else if (result?.status === "competition_evidence_required") {
         setMessage(
@@ -133,12 +184,10 @@ export default function PlayerIntelligencePanel({
         );
       } else if (result?.status === "performance_data_required") {
         setMessage(
-          "League and playing-time evidence are ready. Add verified position-adjusted performance evidence before DJM publishes a full Player Score.",
+          "League and playing-time evidence are ready. DJM can publish a Provisional Score when coverage allows, while a Full Score still needs verified position-adjusted performance evidence.",
         );
       } else {
-        setMessage(
-          `Player Score ${result?.model_score ?? "not available"} calculated from verified evidence.`,
-        );
+        setMessage("Player Score recalculated from the currently verified evidence.");
       }
       await load();
     } catch (recalculateError) {
@@ -153,14 +202,16 @@ export default function PlayerIntelligencePanel({
     setError("");
     setMessage("");
     try {
-      const result: any = await djmInvoke("refresh-player-data", {
+      const result: any = await djmInvoke("refresh-player-data-universal", {
         mode: "refresh",
         player_id: playerId,
       });
-      if (!result?.ok) throw new Error(result?.error || "Player data refresh failed.");
+      if (!result?.ok) {
+        throw new Error(result?.error || "Player data refresh failed.");
+      }
       setMessage(
         result?.message ||
-          `Player data refreshed from API-Football. ${result?.rows_found || 0} season record${result?.rows_found === 1 ? "" : "s"} found.`,
+          "Player data refresh completed across DJM's available provider ladder.",
       );
       await load();
       window.setTimeout(() => window.location.reload(), 650);
@@ -173,14 +224,18 @@ export default function PlayerIntelligencePanel({
 
   const saveTransfermarktValue = async () => {
     if (!marketSchemaReady) {
-      setError("The free player sync database migration must be applied before saving a structured Transfermarkt value.");
+      setError(
+        "The player sync database migration must be applied before saving a structured Transfermarkt value.",
+      );
       return;
     }
+
     const number = marketValue.trim() === "" ? null : Number(marketValue);
     if (number != null && (!Number.isFinite(number) || number < 0)) {
       setError("Enter a valid Transfermarkt market value.");
       return;
     }
+
     setMarketSaving(true);
     setError("");
     try {
@@ -189,13 +244,19 @@ export default function PlayerIntelligencePanel({
         .from("players")
         .update({
           transfermarkt_market_value: number,
-          transfermarkt_market_value_currency: number == null ? null : marketCurrency,
+          transfermarkt_market_value_currency:
+            number == null ? null : marketCurrency,
           transfermarkt_value_verified_at: number == null ? null : verifiedAt,
         })
         .eq("id", playerId);
+
       if (updateError) throw updateError;
       setMarketVerifiedAt(number == null ? null : verifiedAt);
-      setMessage(number == null ? "Transfermarkt value cleared." : "Transfermarkt value saved and marked verified now.");
+      setMessage(
+        number == null
+          ? "Transfermarkt value cleared."
+          : "Transfermarkt value saved and marked verified now.",
+      );
     } catch (saveError) {
       setError(friendlyError(saveError));
     } finally {
@@ -214,10 +275,11 @@ export default function PlayerIntelligencePanel({
           clear || manualPotential === "" ? null : Number(manualPotential),
         p_reason: clear ? null : reason.trim() || null,
       });
+
       setEditing(false);
       setMessage(
         clear
-          ? "Manual override removed. The underlying model value remains available."
+          ? "Manual override removed. The underlying Full or Provisional model value remains preserved."
           : "Manual override saved separately from the model value.",
       );
       await load();
@@ -237,36 +299,50 @@ export default function PlayerIntelligencePanel({
           </span>
           <h2>Current level, with its evidence attached.</h2>
           <p>
-            Current demonstrated football level using league strength, position-adjusted
-            performance, role, experience, trend, availability and recency. Potential stays separate.
+            Full Scores use deep position-adjusted performance evidence.
+            Provisional Scores remain useful when coverage is thinner, but the
+            missing inputs and confidence stay visible.
           </p>
         </div>
         <div className={styles.score}>
           <strong>{effective ?? "?"}</strong>
-          <span>{statusLabel(status)}</span>
+          <span>{scoreTierLabel(scoreTier, status)}</span>
         </div>
       </header>
+
       {error ? (
         <div className={styles.error}>
           <AlertCircle size={15} />
           {error}
         </div>
       ) : null}
+
       {message ? (
         <div className={styles.message}>
           <CheckCircle2 size={15} />
           {message}
         </div>
       ) : null}
+
       <div className={styles.body}>
         <div className={styles.meaning}>
           <span>MEANING</span>
           <strong>{meaning.title}</strong>
           <p>{meaning.copy}</p>
         </div>
+
         <div className={styles.facts}>
           <Fact label="Effective" value={effective ?? "Not available"} />
-          <Fact label="Model" value={score?.model_score ?? "Not available"} />
+          <Fact label="Score tier" value={scoreTierLabel(scoreTier, status)} />
+          <Fact label="Full model" value={score?.model_score ?? "Not available"} />
+          <Fact
+            label="Provisional"
+            value={
+              score?.provisional_score ??
+              basis?.provisional_score ??
+              "Not required / unavailable"
+            }
+          />
           <Fact label="Manual override" value={score?.manual_score ?? "None"} />
           <Fact
             label="Potential"
@@ -278,11 +354,17 @@ export default function PlayerIntelligencePanel({
           />
           <Fact
             label="Confidence"
-            value={formatConfidence(score?.confidence)}
+            value={formatConfidence(effectiveConfidence)}
           />
           <Fact
             label="Data coverage"
-            value={score?.data_coverage != null ? `${score.data_coverage}%` : basis.data_coverage != null ? `${basis.data_coverage}%` : "Unknown"}
+            value={
+              score?.data_coverage != null
+                ? `${score.data_coverage}%`
+                : basis.data_coverage != null
+                  ? `${basis.data_coverage}%`
+                  : "Unknown"
+            }
           />
           <Fact
             label="Freshness"
@@ -291,7 +373,18 @@ export default function PlayerIntelligencePanel({
               (score?.stale_at ? "stale" : "unknown")
             }
           />
+          <Fact
+            label="Missing for Full Score"
+            value={
+              missingInputs.length
+                ? missingInputs.map(inputLabel).join(", ")
+                : scoreTier === "full"
+                  ? "None"
+                  : "See evidence status"
+            }
+          />
         </div>
+
         <div className={styles.basis}>
           <div>
             <span>Competition</span>
@@ -340,52 +433,95 @@ export default function PlayerIntelligencePanel({
           </div>
           <div>
             <span>Position-adjusted performance</span>
-            <strong>{basis.performance_score ?? "Performance evidence required"}</strong>
+            <strong>
+              {basis.performance_score ??
+                (scoreTier === "provisional"
+                  ? "Missing: provisional uses neutral 50"
+                  : "Performance evidence required")}
+            </strong>
           </div>
           <div>
             <span>Role / minutes</span>
-            <strong>{basis.role_score ?? basis.playing_time_score ?? "Not available"}</strong>
+            <strong>
+              {basis.role_score ??
+                basis.playing_time_score ??
+                "Not available"}
+            </strong>
           </div>
           <div>
             <span>Experience</span>
-            <strong>{basis.experience_score ?? "Not enough benchmarked career evidence"}</strong>
+            <strong>
+              {basis.experience_score ??
+                "Not enough benchmarked career evidence"}
+            </strong>
           </div>
           <div>
             <span>Recent trend</span>
-            <strong>{basis.trend_score ?? "Needs two recent performance windows"}</strong>
+            <strong>
+              {basis.trend_score ??
+                (scoreTier === "provisional"
+                  ? "Missing: provisional uses neutral 50"
+                  : "Needs two recent performance windows")}
+            </strong>
           </div>
           <div>
             <span>Availability</span>
-            <strong>{basis.availability_score ?? "Not enough possible-minutes data"}</strong>
+            <strong>
+              {basis.availability_score ??
+                "Not enough possible-minutes data"}
+            </strong>
           </div>
           <div>
             <span>Ability core</span>
-            <strong>{basis.ability_core_score ?? score?.ability_core_score ?? "Not available"}</strong>
+            <strong>
+              {basis.ability_core_score ??
+                score?.ability_core_score ??
+                "Not available"}
+            </strong>
           </div>
           <div>
             <span>Age adjustment</span>
-            <strong>{formatAdjustment(basis.age_performance_adjustment ?? score?.age_adjustment)}</strong>
+            <strong>
+              {formatAdjustment(
+                basis.age_performance_adjustment ?? score?.age_adjustment,
+              )}
+            </strong>
           </div>
         </div>
+
         <div className={styles.override}>
           <div>
             <div>
-              <span>FREE PLAYER DATA</span>
-              <strong>One-click stats refresh</strong>
+              <span>UNIVERSAL PLAYER DATA</span>
+              <strong>One-click evidence refresh</strong>
               <p>
-                API-Football is DJM's default zero-cost automated source. It covers more than 1,200 leagues and cups, including many lower divisions. Available depth varies by competition and missing data stays missing.
+                DJM checks PitchAPI for deep current performance first,
+                TheSportsDB for broader current/basic evidence second,
+                API-Football for historical/profile fallback, and preserves
+                reviewed DJM evidence throughout. Missing data stays missing.
               </p>
             </div>
             <div>
               <span>TRANSFERMARKT VALUE</span>
-              <strong>{marketValue ? formatMarketValue(Number(marketValue), marketCurrency) : "Not recorded"}</strong>
+              <strong>
+                {marketValue
+                  ? formatMarketValue(Number(marketValue), marketCurrency)
+                  : "Not recorded"}
+              </strong>
               <p>
-                {marketVerifiedAt ? `Verified ${compactDateTime(marketVerifiedAt)}` : "Save the current value from the linked Transfermarkt profile."}
+                {marketVerifiedAt
+                  ? `Verified ${compactDateTime(marketVerifiedAt)}`
+                  : "Save the current value from the linked Transfermarkt profile."}
               </p>
             </div>
           </div>
+
           <div className={styles.actions}>
-            <button type="button" onClick={() => void refreshPlayerData()} disabled={syncBusy || syncConfigured === false}>
+            <button
+              type="button"
+              onClick={() => void refreshPlayerData()}
+              disabled={syncBusy || syncConfigured === false}
+            >
               <RefreshCw size={14} />
               {syncBusy ? "Refreshing player..." : "Refresh player data"}
             </button>
@@ -395,11 +531,14 @@ export default function PlayerIntelligencePanel({
               </a>
             ) : null}
           </div>
+
           {syncConfigured === false ? (
             <p>
-              Free stats sync is ready in code but needs one server-side API-Football free key before this button can run.
+              Universal stats refresh is unavailable. Check the deployed
+              refresh functions and server-side provider configuration.
             </p>
           ) : null}
+
           <div>
             <label>
               Transfermarkt value
@@ -429,26 +568,42 @@ export default function PlayerIntelligencePanel({
               </select>
             </label>
           </div>
+
           <div className={styles.actions}>
-            <button type="button" onClick={() => void saveTransfermarktValue()} disabled={marketSaving || !marketSchemaReady}>
+            <button
+              type="button"
+              onClick={() => void saveTransfermarktValue()}
+              disabled={marketSaving || !marketSchemaReady}
+            >
               {marketSaving ? "Saving..." : "Save verified TM value"}
             </button>
           </div>
         </div>
+
         <div className={styles.provenance}>
           <Database size={15} />
           <p>
             <strong>Model:</strong>{" "}
-            {score?.model_version || "djm_player_score_v2"}
+            {score?.model_version || "djm_player_score_v3_coverage_aware"}
             <span>
               <strong>Calculated:</strong>{" "}
               {score?.calculated_at
                 ? compactDateTime(score.calculated_at)
                 : "Not calculated"}
             </span>
-            {basis.competition_basis === "most_recent_verified_competition" ? (
+            {scoreTier === "provisional" ? (
               <span>
-                <strong>Level basis:</strong> Most recent verified senior competition. This does not imply the player is currently contracted there.
+                <strong>Provisional method:</strong>{" "}
+                {basis.provisional_methodology ||
+                  "Missing components are neutral-imputed at 50 and confidence is capped. No missing performance statistic is fabricated."}
+              </span>
+            ) : null}
+            {basis.competition_basis ===
+            "most_recent_verified_competition" ? (
+              <span>
+                <strong>Level basis:</strong> Most recent verified senior
+                competition. This does not imply the player is currently
+                contracted there.
               </span>
             ) : null}
             {basis.league_benchmark_verified_at ? (
@@ -459,7 +614,8 @@ export default function PlayerIntelligencePanel({
             ) : null}
             {basis.league_benchmark_methodology ? (
               <span>
-                <strong>Benchmark method:</strong> {basis.league_benchmark_methodology}
+                <strong>Benchmark method:</strong>{" "}
+                {basis.league_benchmark_methodology}
               </span>
             ) : null}
             {score?.stale_reason ? (
@@ -474,6 +630,7 @@ export default function PlayerIntelligencePanel({
             ) : null}
           </p>
         </div>
+
         {editing ? (
           <div className={styles.override}>
             <div>
@@ -521,7 +678,10 @@ export default function PlayerIntelligencePanel({
               </button>
               {score?.manual_score != null ||
               score?.manual_potential_score != null ? (
-                <button type="button" onClick={() => void saveOverride(true)}>
+                <button
+                  type="button"
+                  onClick={() => void saveOverride(true)}
+                >
                   Remove override
                 </button>
               ) : null}
@@ -529,6 +689,7 @@ export default function PlayerIntelligencePanel({
           </div>
         ) : null}
       </div>
+
       <footer>
         <div>
           <ShieldCheck size={15} />
@@ -546,11 +707,17 @@ export default function PlayerIntelligencePanel({
             <RefreshCw size={14} />
             Recalculate
           </button>
-          <button type="button" onClick={() => setEditing((value) => !value)}>
+          <button
+            type="button"
+            onClick={() => setEditing((value) => !value)}
+          >
             Manual override
           </button>
-          {status === "performance_data_required" ? (
-            <Link href={`/brain/performance?player=${playerId}`}>Add performance evidence</Link>
+          {missingInputs.includes("position_adjusted_performance") ||
+          status === "performance_data_required" ? (
+            <Link href={`/brain/performance?player=${playerId}`}>
+              Add performance evidence
+            </Link>
           ) : benchmarkRequired ? (
             <Link href={benchmarkUrl}>Resolve benchmark</Link>
           ) : (
@@ -562,7 +729,13 @@ export default function PlayerIntelligencePanel({
   );
 }
 
-function Fact({ label, value }: { label: string; value: string | number }) {
+function Fact({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
     <div>
       <span>{label}</span>
@@ -570,17 +743,36 @@ function Fact({ label, value }: { label: string; value: string | number }) {
     </div>
   );
 }
+
+function inferScoreTier(score: any) {
+  if (score?.manual_score != null) return "manual_override";
+  if (score?.model_score != null && score?.score_status === "calculated") {
+    return "full";
+  }
+  if (score?.provisional_score != null) return "provisional";
+  return "unavailable";
+}
+
+function scoreTierLabel(tier: string, status: string) {
+  if (tier === "full") return "Full Score";
+  if (tier === "provisional") return "Provisional";
+  if (tier === "manual_override") return "Manual Override";
+  return statusLabel(status);
+}
+
 function statusLabel(value: string) {
   return value
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
+
 function formatConfidence(value: unknown) {
   if (value == null || value === "") return "Unknown";
   const confidence = Number(value);
   if (!Number.isFinite(confidence)) return "Unknown";
   return `${Math.round(confidence <= 1 ? confidence * 100 : confidence)}%`;
 }
+
 function normalisedScoreStatus(status: string, basis: any) {
   if (
     status === "not_enough_benchmark_data" &&
@@ -592,61 +784,121 @@ function normalisedScoreStatus(status: string, basis: any) {
   }
   return status;
 }
+
 function usableCompetition(value: unknown) {
-  const text = String(value || "").trim().toLowerCase();
-  return text && !["n/a", "na", "none", "unknown", "all competitions"].includes(text);
+  const text = String(value || "")
+    .trim()
+    .toLowerCase();
+  return (
+    text &&
+    !["n/a", "na", "none", "unknown", "all competitions"].includes(text)
+  );
 }
+
 function competitionBasisLabel(value: unknown) {
   if (value === "current_competition") return "Verified current competition";
   if (value === "current_league_text") return "Current league record";
-  if (value === "most_recent_verified_competition") return "Most recent verified competition";
+  if (value === "most_recent_verified_competition") {
+    return "Most recent verified competition";
+  }
   return "Not resolved";
 }
-function scoreMeaning(status: string, basis: any) {
-  if (status === "manual_override")
+
+function scoreMeaning(status: string, basis: any, scoreTier: string) {
+  if (status === "manual_override") {
     return {
       title: "Manual DJM judgment is active",
-      copy: "The model value remains preserved underneath and the reason is recorded.",
+      copy: "The Full or Provisional model value remains preserved underneath and the reason is recorded.",
     };
-  if (status === "calculated")
+  }
+
+  if (scoreTier === "provisional" || status === "provisional") {
     return {
-      title: "Evidence-backed current football level",
-      copy: "League level, position-adjusted performance, recent role, decayed experience and available trend evidence are combined transparently. Old evidence loses weight.",
+      title: "Useful provisional current-level estimate",
+      copy:
+        "DJM has enough verified recent playing and competition evidence to publish a provisional rating. Missing model components are neutral-imputed at 50, never invented. Confidence is capped and the score upgrades automatically when deeper performance evidence becomes available.",
     };
-  if (status === "needs_recalculation")
+  }
+
+  if (status === "calculated") {
+    return {
+      title: "Evidence-backed Full Player Score",
+      copy:
+        "League level, position-adjusted performance, recent role, decayed experience and available trend evidence are combined transparently. Old evidence loses weight.",
+    };
+  }
+
+  if (status === "needs_recalculation") {
     return {
       title: "Evidence changed",
       copy: "The previous model result is stale and should not be treated as current.",
     };
-  if (status === "benchmark_required")
+  }
+
+  if (status === "benchmark_required") {
     return {
-      title: "Player Score ready once the benchmark is verified",
-      copy: `${basis?.competition_name || "The competition"} is resolved. DJM has enough recent playing evidence; competition strength is the remaining model input.`,
+      title: "Competition benchmark is the next input",
+      copy: `${
+        basis?.competition_name || "The competition"
+      } is resolved. DJM has enough recent playing evidence and will auto-resolve the benchmark where the league tier is recognised.`,
     };
-  if (status === "competition_evidence_required")
+  }
+
+  if (status === "competition_evidence_required") {
     return {
       title: "Competition evidence required",
-      copy: "DJM cannot select a trustworthy benchmark until the current or most recent valid senior competition is resolved.",
+      copy:
+        "DJM cannot select a trustworthy benchmark until the current or most recent valid senior competition is resolved.",
     };
-  if (status === "performance_data_required")
+  }
+
+  if (status === "performance_data_required") {
     return {
-      title: "Position-adjusted performance evidence required",
-      copy: "DJM will not infer ability from league and minutes alone. Add a verified percentile against a relevant positional peer group or enough verified category percentiles.",
+      title: "Deep performance evidence can upgrade this player",
+      copy:
+        "DJM will not manufacture position-adjusted ability data. When enough context exists, a clearly labelled Provisional Score can still be published while the Full Score waits for a relevant peer dataset.",
     };
-  if (status === "not_enough_model_coverage")
+  }
+
+  if (status === "not_enough_model_coverage") {
     return {
       title: "More model coverage required",
-      copy: "The available evidence does not yet cover enough of the Player Score model to publish a defensible headline number.",
+      copy:
+        "DJM preserves the available evidence and can publish a Provisional Score when the minimum context threshold is met. A Full Score still needs deeper verified coverage.",
     };
-  if (status === "not_enough_playing_time_data")
+  }
+
+  if (status === "not_enough_playing_time_data") {
     return {
       title: "Not enough recent playing-time data",
-      copy: "At least 500 verified senior minutes with defensible playing dates in the previous 24 months are required. Older football does not count as current evidence.",
+      copy:
+        "At least 500 verified senior minutes with defensible playing dates in the previous 24 months are required. Older football does not count as current evidence.",
     };
+  }
+
   return {
     title: "Not calculated",
-    copy: "Verified recent playing-time evidence and a competition benchmark are required.",
+    copy:
+      "Verified recent playing-time evidence and a trustworthy competition context are required before DJM publishes a rating.",
   };
+}
+
+function normaliseMissingInputs(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).filter(Boolean);
+  }
+  return [];
+}
+
+function inputLabel(value: string) {
+  const labels: Record<string, string> = {
+    position_adjusted_performance: "position-adjusted performance",
+    role_minutes: "role / minutes",
+    experience: "benchmarked experience",
+    trend: "recent trend",
+    availability: "availability",
+  };
+  return labels[value] || value.replaceAll("_", " ");
 }
 
 function formatAdjustment(value: unknown) {
@@ -658,9 +910,20 @@ function formatAdjustment(value: unknown) {
 
 function formatMarketValue(value: number, currency: string) {
   if (!Number.isFinite(value)) return "Not recorded";
-  const symbols: Record<string, string> = { EUR: "€", GBP: "£", USD: "$", AUD: "A$", NZD: "NZ$", SEK: "SEK " };
+  const symbols: Record<string, string> = {
+    EUR: "€",
+    GBP: "£",
+    USD: "$",
+    AUD: "A$",
+    NZD: "NZ$",
+    SEK: "SEK ",
+  };
   const symbol = symbols[currency] || `${currency} `;
-  if (value >= 1_000_000) return `${symbol}${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}m`;
+  if (value >= 1_000_000) {
+    return `${symbol}${(value / 1_000_000)
+      .toFixed(value >= 10_000_000 ? 0 : 1)
+      .replace(/\.0$/, "")}m`;
+  }
   if (value >= 1_000) return `${symbol}${Math.round(value / 1_000)}k`;
   return `${symbol}${Math.round(value).toLocaleString("en-GB")}`;
 }
