@@ -167,7 +167,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
 
   const teams = useMemo(
     () =>
-      [...new Set(peers.map((row: any) => String(row.team_name || '')).filter(Boolean))].sort(),
+      [...new Set<string>(peers.map((row: any) => String(row.team_name || '')).filter(Boolean))].sort(),
     [peers],
   );
 
@@ -186,7 +186,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
 
   const targetTeams = useMemo(
     () =>
-      [...new Set(targetRolePeers.map((row: any) => String(row.team_name || '')).filter(Boolean))].sort(),
+      [...new Set<string>(targetRolePeers.map((row: any) => String(row.team_name || '')).filter(Boolean))].sort(),
     [targetRolePeers],
   );
 

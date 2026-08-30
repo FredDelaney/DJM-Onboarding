@@ -160,7 +160,8 @@ export default function Home() {
   const expiringDocument = data.documents
     .filter((document) => document.expires_at)
     .map((document) => ({
-      ...document,
+      document_type: document.document_type,
+      expires_at: document.expires_at,
       days: Math.ceil((new Date(document.expires_at).getTime() - Date.now()) / 86400000),
     }))
     .filter((document) => document.days >= 0 && document.days <= 60)
