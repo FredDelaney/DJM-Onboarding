@@ -50,6 +50,9 @@ import SeasonRecordEditor
 import PlayerIntelligencePanel
   from '@/components/PlayerIntelligencePanel';
 
+import PlayerConnectionHub
+  from '@/components/PlayerConnectionHub';
+
 import RemovePlayerSheet
   from '@/components/RemovePlayerSheet';
 
@@ -344,6 +347,14 @@ supabase
     );
 
   const latest=checks[0];
+
+  const latestProviderSync=
+    career
+      .map(entry=>entry.source_synced_at)
+      .filter(Boolean)
+      .sort()
+      .at(-1)
+    ||null;
 
   const liveOpps=
     opps.filter(
@@ -2294,7 +2305,18 @@ const removePlayer=async(
           </div>
         </section>
 
+        <PlayerConnectionHub
+          player={p}
+          documentCount={docs.length}
+          lastSyncedAt={latestProviderSync}
+          busy={busy}
+          onPlayerChange={setP}
+          onUploadDocument={uploadDocument}
+        />
+
         <ResearchLinkRail
+          compact
+          platforms={['whatsapp','email']}
           links={buildResearchLinks({
             kind:'player',
             name,
@@ -2402,6 +2424,7 @@ const removePlayer=async(
 
         <PlayerIntelligencePanel
           playerId={id}
+          compact
         />
 
         <nav
@@ -3416,89 +3439,20 @@ const removePlayer=async(
 
                 <div className="divider"/>
 
-                <div className="field">
-                  <label className="label">
-                    Transfermarkt URL
-                  </label>
+                <p className="small muted">
+                  Source editing now lives in one place. Connect or replace a
+                  profile at the top of this player record and DJM updates every
+                  research, intelligence and dossier workflow from the same saved
+                  link.
+                </p>
 
-                  <input
-                    className="input"
-                    value={
-                      p.transfermarkt_url
-                      ||''
-                    }
-                    onChange={e=>
-                      setP({
-                        ...p,
-                        transfermarkt_url:
-                          e.target.value
-                      })
-                    }
-                  />
-                </div>
-
-                <div
-                  className="field"
-                  style={{
-                    marginTop:10
-                  }}
-                >
-                  <label className="label">
-                    Wyscout URL
-                  </label>
-
-                  <input
-                    className="input"
-                    value={
-                      p.wyscout_url
-                      ||''
-                    }
-                    onChange={e=>
-                      setP({
-                        ...p,
-                        wyscout_url:
-                          e.target.value
-                      })
-                    }
-                  />
-                </div>
-
-                <div
-                  className="field"
-                  style={{
-                    marginTop:10
-                  }}
-                >
-                  <label className="label">
-                    Statistics URL
-                  </label>
-
-                  <input
-                    className="input"
-                    value={
-                      p.stats_url
-                      ||''
-                    }
-                    onChange={e=>
-                      setP({
-                        ...p,
-                        stats_url:
-                          e.target.value
-                      })
-                    }
-                  />
-                </div>
-
-                <button
+                <a
                   className="btn btn-navy btn-block"
-                  style={{
-                    marginTop:14
-                  }}
-                  onClick={()=>{   void save(); }}
+                  href="#connected-player"
                 >
-                  <Save size={15}/>
-                  Save profile
-                </button>
+                  <Link2 size={15}/>
+                  Manage connected sources
+                </a>
               </section>
             </aside>
           </div>

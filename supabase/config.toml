@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.refresh-player-data-universal]
 verify_jwt = true
+
+[functions.weekly-player-refresh]
+verify_jwt = false

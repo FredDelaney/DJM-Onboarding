@@ -19,8 +19,10 @@ import styles from "./PlayerIntelligencePanel.module.css";
 
 export default function PlayerIntelligencePanel({
   playerId,
+  compact = false,
 }: {
   playerId: string;
+  compact?: boolean;
 }) {
   const [data, setData] = useState<any>({
     scorecard: null,
@@ -43,6 +45,7 @@ export default function PlayerIntelligencePanel({
   const [transfermarktUrl, setTransfermarktUrl] = useState("");
   const [marketSaving, setMarketSaving] = useState(false);
   const [marketSchemaReady, setMarketSchemaReady] = useState(true);
+  const [expanded, setExpanded] = useState(!compact);
 
   const load = useCallback(async () => {
     try {
@@ -326,6 +329,24 @@ export default function PlayerIntelligencePanel({
           {message}
         </div>
       ) : null}
+
+      <details
+        className={styles.fold}
+        open={expanded}
+        onToggle={(event) => setExpanded(event.currentTarget.open)}
+      >
+        <summary>
+          <span>
+            <strong>{expanded ? "Hide detailed evidence" : "View detailed evidence"}</strong>
+            <small>
+              {formatConfidence(effectiveConfidence)} evidence confidence
+              {missingInputs.length
+                ? `, ${missingInputs.length} Full Score input${missingInputs.length === 1 ? "" : "s"} missing`
+                : ", evidence set complete"}
+            </small>
+          </span>
+          <span>{data.suggestions?.length || 0} review items</span>
+        </summary>
 
       <div className={styles.body}>
         <div className={styles.meaning}>
@@ -768,6 +789,7 @@ export default function PlayerIntelligencePanel({
           )}
         </div>
       </footer>
+      </details>
     </section>
   );
 }
