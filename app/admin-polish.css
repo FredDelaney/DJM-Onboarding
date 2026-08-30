@@ -1990,78 +1990,6 @@ button.admin-command-primary:disabled,
 
 
 /* =========================================================
-   PLAYER QUICK ACTIONS
-   ========================================================= */
-
-.admin-player-quick-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.admin-quick-action {
-  min-width: 0;
-  min-height: 76px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 15px;
-  border: 1px solid rgba(10, 10, 12, 0.045);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.90);
-  color: var(--navy);
-  text-align: left;
-  text-decoration: none;
-  box-shadow:
-    0 1px 2px rgba(6, 31, 58, 0.01),
-    0 7px 24px rgba(6, 31, 58, 0.02);
-  cursor: pointer;
-  transition:
-    transform 0.16s ease,
-    border-color 0.16s ease,
-    box-shadow 0.16s ease;
-}
-
-.admin-quick-action > svg {
-  flex: 0 0 auto;
-}
-
-.admin-quick-action span {
-  min-width: 0;
-}
-
-.admin-quick-action strong,
-.admin-quick-action small {
-  display: block;
-}
-
-.admin-quick-action strong {
-  overflow: hidden;
-  font-size: 13px;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-quick-action small {
-  margin-top: 4px;
-  color: #818187;
-  font-size: 10px;
-  line-height: 1.2;
-}
-
-@media (hover: hover) {
-  .admin-quick-action:hover {
-    transform: translateY(-1px);
-    border-color: rgba(10, 10, 12, 0.08);
-    box-shadow:
-      0 10px 28px rgba(6, 31, 58, 0.045);
-  }
-}
-
-
-/* =========================================================
    PLAYER SEGMENTED NAV
    ========================================================= */
 
@@ -2108,6 +2036,67 @@ button.admin-command-primary:disabled,
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.03),
     0 4px 14px rgba(0, 0, 0, 0.045);
+}
+
+.admin-player-disclosure {
+  padding: 0;
+}
+
+.admin-player-disclosure > summary {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.admin-player-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-player-disclosure > summary > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.admin-player-disclosure > summary strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+
+.admin-player-disclosure > summary > span:last-child {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #eef2f5;
+  color: #687b8b;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.admin-player-disclosure-state::before {
+  content: 'Open';
+}
+
+.admin-player-disclosure[open] > summary {
+  border-bottom: 1px solid #edf1f4;
+}
+
+.admin-player-disclosure[open] > summary > span:last-child {
+  color: #2b5f7f;
+  background: #eaf3f8;
+}
+
+.admin-player-disclosure[open] .admin-player-disclosure-state::before {
+  content: 'Close';
+}
+
+.admin-player-disclosure-body {
+  padding: 18px 20px 20px;
 }
 
 
@@ -2533,39 +2522,6 @@ button.admin-command-primary:disabled,
   .admin-player-verify {
     padding-left: 14px;
     padding-right: 14px;
-  }
-
-
-  /* ---------------------------------------------------------
-     QUICK ACTION STRIP
-     --------------------------------------------------------- */
-
-  .admin-player-quick-actions {
-    display: flex;
-    gap: 9px;
-    margin-left: calc(-1 * var(--mobile-gutter));
-    margin-right: calc(-1 * var(--mobile-gutter));
-    padding:
-      12px
-      var(--mobile-gutter)
-      4px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .admin-player-quick-actions::-webkit-scrollbar {
-    display: none;
-  }
-
-  .admin-quick-action {
-    min-width: 154px;
-    min-height: 72px;
-    flex: 0 0 154px;
-    padding: 13px;
-    border-radius: 19px;
-    scroll-snap-align: start;
   }
 
 

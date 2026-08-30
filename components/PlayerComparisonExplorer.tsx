@@ -159,8 +159,11 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
       .then((result) => {
         if (active) setCatalog(Array.isArray(result?.leagues) ? result.leagues : []);
       })
-      .catch(() => {
-        if (active) setCatalog([]);
+      .catch((catalogError) => {
+        if (active) {
+          setCatalog([]);
+          setError(friendlyError(catalogError));
+        }
       });
     return () => { active = false; };
   }, [tab, catalog.length]);

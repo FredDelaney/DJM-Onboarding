@@ -133,7 +133,14 @@ test('peer refresh caches observed PitchAPI cohorts only with a minimum sample',
   assert.match(source, /aggregated\.length < 6/);
   assert.match(source, /synthetic_players: false/);
   assert.match(source, /provider: "pitchapi"/);
+  assert.match(source, /clean\(error\?\.message\)/);
   assert.doesNotMatch(source, /Math\.random/);
+});
+
+test('comparison discovery surfaces provider failures instead of silently emptying the catalogue', () => {
+  const source = read('components/PlayerComparisonExplorer.tsx');
+  assert.match(source, /catch\(\(catalogError\) =>/);
+  assert.match(source, /setError\(friendlyError\(catalogError\)\)/);
 });
 
 test('peer refresh supports verified target competitions without guessing an identity', () => {

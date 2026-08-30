@@ -41,7 +41,6 @@ a {
 .list-row,
 .choice,
 .quick-good,
-.admin-quick-action,
 .season-link,
 .club-share-link-actions button {
   transition:
@@ -59,7 +58,6 @@ a {
   .list-row:active,
   .choice:active,
   .quick-good:active,
-  .admin-quick-action:active,
   .season-link:active,
   .club-share-link-actions button:active {
     transform: scale(.985);
