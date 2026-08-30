@@ -145,22 +145,37 @@ test('comparison discovery surfaces provider failures instead of silently emptyi
 
 test('peer refresh supports verified target competitions without guessing an identity', () => {
   const source = read('supabase/functions/refresh-player-peer-data/index.ts');
+  const bridge = read('supabase/migrations/20260830212500_djm_peer_refresh_service_bridge_v1.sql');
   assert.match(source, /competition_id/);
-  assert.match(source, /provider_ids/);
+  assert.match(bridge, /provider_ids ->> 'pitchapi'/);
   assert.match(source, /This competition does not yet have a verified PitchAPI identity in DJM/);
   assert.match(source, /resolveCompetitionFromDjm/);
+});
+
+test('peer refresh keeps the private schema outside PostgREST and uses service-only bridge RPCs', () => {
+  const source = read('supabase/functions/refresh-player-peer-data/index.ts');
+  const sql = read('supabase/migrations/20260830212500_djm_peer_refresh_service_bridge_v1.sql');
+  assert.doesNotMatch(source, /\.schema\("djm_os"\)/);
+  assert.match(source, /admin\.rpc\("djm_peer_refresh_context"/);
+  assert.match(source, /admin\.rpc\("djm_replace_provider_peer_cache"/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /set search_path = ''/);
+  assert.match(sql, /revoke all on function public\.djm_peer_refresh_context[\s\S]*from authenticated/);
+  assert.match(sql, /grant execute on function public\.djm_peer_refresh_context[\s\S]*to service_role/);
+  assert.doesNotMatch(sql, /grant execute[\s\S]*to authenticated/);
 });
 
 test('other-league discovery can bootstrap from the live provider catalogue without pre-seeded DJM leagues', () => {
   const explorer = read('components/PlayerComparisonExplorer.tsx');
   const refresh = read('supabase/functions/refresh-player-peer-data/index.ts');
   const sql = read('supabase/migrations/20260830194500_djm_os_ux_comparison_v1.sql');
+  const bridge = read('supabase/migrations/20260830212500_djm_peer_refresh_service_bridge_v1.sql');
   assert.match(explorer, /mode: 'catalog'/);
   assert.match(explorer, /PitchAPI catalogue/);
   assert.match(explorer, /provider_competition_id: selectedCatalogLeague\.id/);
   assert.match(refresh, /mode === "catalog"/);
   assert.match(refresh, /resolveCompetitionFromProvider/);
-  assert.match(refresh, /\.contains\("provider_ids", \{ pitchapi:/);
+  assert.match(bridge, /c\.provider_ids ->> 'pitchapi' = p_provider_competition_id/);
   assert.match(sql, /'competitions'/);
 });
 
