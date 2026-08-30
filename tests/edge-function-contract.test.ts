@@ -27,6 +27,7 @@ test('every deployed Edge Function has source and explicit JWT configuration', (
     'import-player-stats',
     'refresh-player-data',
     'refresh-player-data-universal',
+    'refresh-player-peer-data',
     'remove-player',
     'weekly-player-refresh',
   ]);

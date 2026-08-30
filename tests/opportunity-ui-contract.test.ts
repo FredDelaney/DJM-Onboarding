@@ -4,8 +4,13 @@ import test from 'node:test';
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('Opportunity routes preserve the current Market and opportunity editor implementations', () => {
-  assert.match(read('app/(djm-os)/opportunities/page.tsx'), /from '\.\.\/market\/page'/);
+test('Opportunity workspace consolidates Needs, Matches and Pipeline while preserving the current deal editor', () => {
+  const opportunities = read('app/(djm-os)/opportunities/page.tsx');
+  assert.match(opportunities, /type View = 'needs' \| 'matches' \| 'pipeline'/);
+  assert.match(opportunities, /djm_market_needs_v2/);
+  assert.match(opportunities, /djm_market_candidates_v2/);
+  assert.match(opportunities, /djm_opportunities/);
+  assert.match(opportunities, /djm_opportunity_upsert/);
   assert.match(read('app/(djm-os)/opportunities/[id]/page.tsx'), /from '\.\.\/\.\.\/market\/deals\/\[id\]\/page'/);
   assert.match(read('components/DjmWorkspaceHeader.tsx'), /href: '\/opportunities'/);
   assert.match(read('components/DjmGlobalSearch.tsx'), /`\/opportunities\/\$\{item\.entity_id\}`/);

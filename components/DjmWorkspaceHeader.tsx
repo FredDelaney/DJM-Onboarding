@@ -1,14 +1,15 @@
 'use client';
 
 import {
-  BrainCircuit,
   BriefcaseBusiness,
   ContactRound,
-  Handshake,
   LayoutDashboard,
   LogOut,
+  Settings,
+  UserRound,
   UsersRound,
 } from 'lucide-react';
+import Link from 'next/link';
 
 import Brand from '@/components/Brand';
 import DjmGlobalSearch from '@/components/DjmGlobalSearch';
@@ -16,22 +17,25 @@ import DjmQuickCapture from '@/components/DjmQuickCapture';
 import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
 
 const items: WorkspaceTab[] = [
-  { href: '/djm', label: 'Command', icon: LayoutDashboard },
-  { href: '/admin', label: 'Players', icon: UsersRound },
+  { href: '/djm', label: 'Home', icon: LayoutDashboard },
   {
-    href: '/network#contacts',
-    label: 'Club Contacts',
-    icon: ContactRound,
-    activePrefixes: ['/network'],
+    href: '/admin',
+    label: 'Players',
+    icon: UsersRound,
+    activePrefixes: ['/admin', '/recruitment'],
   },
-  { href: '/market', label: 'Market', icon: BriefcaseBusiness },
   {
     href: '/opportunities',
     label: 'Opportunities',
-    icon: Handshake,
-    activePrefixes: ['/opportunities', '/deals', '/market/deals'],
+    icon: BriefcaseBusiness,
+    activePrefixes: ['/opportunities', '/market', '/deals'],
   },
-  { href: '/brain', label: 'Brain', icon: BrainCircuit },
+  {
+    href: '/network',
+    label: 'Network',
+    icon: ContactRound,
+    activePrefixes: ['/network'],
+  },
 ];
 
 export default function DjmWorkspaceHeader({
@@ -40,13 +44,13 @@ export default function DjmWorkspaceHeader({
   onSignOut: () => void | Promise<void>;
 }) {
   return (
-    <header className="djm-os-header">
+    <header className="djm-os-header ux-staff-header">
       <div className="djm-os-header-inner">
         <div className="djm-os-brand-row">
           <Brand />
-          <span className="djm-os-chip">
-            <BrainCircuit size={14} />
-            Intelligence
+          <span className="djm-os-chip ux-os-chip">
+            <UserRound size={14} />
+            DJM OS
           </span>
         </div>
 
@@ -55,6 +59,14 @@ export default function DjmWorkspaceHeader({
         <div className="djm-os-button-row djm-os-header-actions">
           <DjmQuickCapture />
           <DjmGlobalSearch />
+          <Link
+            href="/settings"
+            className="djm-os-icon-button"
+            aria-label="Settings"
+            title="Settings"
+          >
+            <Settings size={17} />
+          </Link>
           <button
             type="button"
             className="djm-os-icon-button"
