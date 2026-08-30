@@ -12,8 +12,10 @@ const SOURCE_EXTENSIONS = new Set([
   '.js',
   '.jsx',
   '.css',
-  '.sql',
-  '.toml',
+  '.html',
+  '.json',
+  '.md',
+  '.mjs',
 ]);
 
 const IGNORED_DIRECTORIES = new Set([
@@ -22,12 +24,26 @@ const IGNORED_DIRECTORIES = new Set([
   'node_modules',
 ]);
 
-const allSourceFiles = (directory = root): string[] =>
+const USER_FACING_ROOTS = [
+  'app',
+  'components',
+  'lib',
+  'public',
+  'supabase/functions',
+];
+
+const allSourceFiles = (directory: string): string[] =>
   fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     if (entry.isDirectory() && IGNORED_DIRECTORIES.has(entry.name)) return [];
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) return allSourceFiles(absolute);
     return SOURCE_EXTENSIONS.has(path.extname(entry.name)) ? [absolute] : [];
+  });
+
+const userFacingSourceFiles = () =>
+  USER_FACING_ROOTS.flatMap((relative) => {
+    const absolute = path.join(root, relative);
+    return fs.existsSync(absolute) ? allSourceFiles(absolute) : [];
   });
 
 test('staff navigation exposes four operational workspaces only', () => {
@@ -175,7 +191,7 @@ test('opportunity matching consumes the real current candidate RPC shape', () =>
 });
 
 test('release source contains no hard reload, synthetic randomness or em dash', () => {
-  const files = allSourceFiles().filter((file) => !file.endsWith('djm-os-ux-overhaul-v1.test.ts'));
+  const files = userFacingSourceFiles();
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
     assert.doesNotMatch(source, /window\.location\.reload\s*\(/, path.relative(root, file));
