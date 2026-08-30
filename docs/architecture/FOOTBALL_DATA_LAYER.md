@@ -23,10 +23,33 @@ The current policy is:
 
 | Provider      | Default capability | Behavior                                                                               |
 | ------------- | ------------------ | -------------------------------------------------------------------------------------- |
+| PitchAPI      | server configured  | Deep current evidence when the server key and competition coverage are available.     |
+| TheSportsDB   | free API            | Current basic identity and season statistics with conservative player matching.        |
+| API-Football  | server configured  | Historical and profile fallback under the configured free-plan coverage.               |
 | Wyscout       | `disabled`         | Becomes `licensed_api` only with the enable flag, username and password on the server. |
 | Manual        | `manual_import`    | CSV and JSON become reviewable evidence.                                               |
 | Transfermarkt | `reference_only`   | Saved links and reviewed values remain; automated scraping is inaccessible.            |
 | SofaScore     | `disabled`         | Saved reference links do not create a provider dependency.                             |
+
+## Connected player workflow
+
+The staff player record is the canonical connection point for external profiles and files. A supported profile link is stored on `public.players`, which means the same URL is available to research, intelligence, career and dossier workflows. Private uploads are stored in `player-private` and recorded in `public.player_documents` with the player ID.
+
+Saving a football source starts the permitted provider ladder. Transfermarkt remains reference-only and is never fetched. If a player record is opened and its latest provider snapshot is more than seven days old, the staff session starts a refresh automatically.
+
+## Scheduled basic refresh
+
+`weekly-player-refresh` provides unattended basic current-data coverage without widening the staff authorization boundary.
+
+- Supabase Cron calls the function with the existing private scheduler secret.
+- The function validates that secret through `get_push_scheduler_secret` before reading or writing data.
+- A rotating batch of up to 10 active players runs daily. Each batch is stale-first, while the rotation prevents repeated provider failures from starving the rest of the roster. This gives weekly coverage to a roster of up to 70 active players while staying within the free TheSportsDB request limit.
+- Player identity matching is conservative. Missing or ambiguous matches fail without changing existing data.
+- A reviewed career row owned by another source is never overwritten. The conflict is returned for review.
+- Provider payloads and sync times are retained in `djm_os.player_provider_stat_snapshots`.
+- Canonical career writes trigger V5 score invalidation. The previous score becomes stale rather than being silently presented as current.
+
+The scheduled job supplies basic current evidence. Deep position-adjusted performance still depends on an explicitly configured licensed or permitted provider and the normal DJM evidence workflow.
 
 ## Wyscout adapter
 

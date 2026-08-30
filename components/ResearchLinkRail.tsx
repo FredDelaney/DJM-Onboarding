@@ -194,10 +194,12 @@ const smallButtonStyle = {
 export default function ResearchLinkRail({
   links,
   compact = false,
+  platforms,
   title = 'Research & contact',
 }: {
   links: ResearchLink[];
   compact?: boolean;
+  platforms?: ResearchPlatform[];
   title?: string;
 }) {
   const pathname = usePathname() || '';
@@ -409,7 +411,11 @@ export default function ResearchLinkRail({
     }
   };
 
-  if (!mergedLinks.length && !entity) return null;
+  const visibleLinks = platforms?.length
+    ? mergedLinks.filter((link) => platforms.includes(link.platform))
+    : mergedLinks;
+
+  if (!visibleLinks.length && (compact || !entity)) return null;
 
   const editableDrafts = Object.values(drafts).filter((draft) =>
     EDITABLE_PLATFORMS.includes(draft.platform),
@@ -436,9 +442,9 @@ export default function ResearchLinkRail({
         ) : null}
       </div>
 
-      {mergedLinks.length ? (
+      {visibleLinks.length ? (
         <div className={styles.links}>
-          {mergedLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <a
               key={`${link.platform}-${link.mode}-${link.href}`}
               className={`${styles.link} ${link.mode === 'direct' ? styles.direct : ''}`}

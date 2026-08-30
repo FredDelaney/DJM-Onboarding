@@ -28,6 +28,7 @@ test('every deployed Edge Function has source and explicit JWT configuration', (
     'refresh-player-data',
     'refresh-player-data-universal',
     'remove-player',
+    'weekly-player-refresh',
   ]);
 
   for (const functionName of functionNames) {
