@@ -26,6 +26,7 @@ test('every deployed Edge Function has source and explicit JWT configuration', (
     'djm-transfermarkt-enrich',
     'import-player-stats',
     'refresh-player-data',
+    'refresh-player-data-universal',
     'remove-player',
   ]);
 

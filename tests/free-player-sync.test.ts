@@ -20,18 +20,34 @@ test("API-Football free sync is server-side and preserves the full provider stat
   assert.match(fn, /player_provider_stat_snapshots/);
 });
 
-test("one-click refresh does not overwrite a reviewed row owned by another source", () => {
-  assert.match(fn, /source_reviewed_at && !ownedByProvider/);
-  assert.match(fn, /conflicts \+= 1/);
+test("one-click refresh does not overwrite reviewed evidence owned by another source", () => {
+  // PitchAPI current-data path.
+  assert.match(
+    fn,
+    /exact\?\.source_reviewed_at\s*&&\s*!providerOwned/,
+  );
+
+  // API-Football fallback path.
+  assert.match(
+    fn,
+    /exact\?\.source_reviewed_at\s*&&\s*!owned/,
+  );
+  assert.match(fn, /conflicts\s*\+\+/);
 });
 
 test("Player Score recalculation uses the signed-in admin JWT", () => {
-  assert.match(fn, /const callerKey = Deno\.env\.get\("SUPABASE_ANON_KEY"\) \|\| serviceKey/);
-  assert.match(fn, /Authorization: `Bearer \$\{token\}`/);
-  assert.match(fn, /caller\.rpc\("djm_player_scorecard", \{ p_player_id: playerId \}\)/);
-  assert.doesNotMatch(fn, /admin\.rpc\("djm_player_scorecard"/);
-  assert.match(fn, /operation: "recalculate_player_score"/);
-  assert.match(fn, /result_status: "skipped"/);
+  // The caller client must carry the incoming admin token, rather than scoring as service role.
+  assert.match(
+    fn,
+    /createClient\(\s*url\s*,\s*Deno\.env\.get\("SUPABASE_ANON_KEY"\)\s*\|\|\s*serviceKey[\s\S]{0,320}Authorization:\s*`Bearer \$\{token\}`/,
+  );
+  assert.match(
+    fn,
+    /caller\.rpc\(\s*"djm_player_scorecard"\s*,\s*\{\s*p_player_id:\s*player\.id\s*\}\s*\)/,
+  );
+  assert.doesNotMatch(fn, /admin\.rpc\(\s*"djm_player_scorecard"/);
+  assert.match(fn, /operation:\s*"recalculate_player_score"/);
+  assert.match(fn, /result_status:\s*"skipped"/);
 });
 
 test("player profile exposes one-click refresh and Transfermarkt value", () => {
