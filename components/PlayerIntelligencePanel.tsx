@@ -357,7 +357,7 @@ export default function PlayerIntelligencePanel({
             value={formatConfidence(effectiveConfidence)}
           />
           <Fact
-            label="Data coverage"
+            label={scoreTier === "provisional" ? "Observed coverage" : "Data coverage"}
             value={
               score?.data_coverage != null
                 ? `${score.data_coverage}%`
@@ -366,6 +366,12 @@ export default function PlayerIntelligencePanel({
                   : "Unknown"
             }
           />
+          {scoreTier === "provisional" && basis.provisional_regression_factor != null ? (
+            <Fact
+              label="Evidence regression"
+              value={`${Math.round(Number(basis.provisional_regression_factor) * 100)}%`}
+            />
+          ) : null}
           <Fact
             label="Freshness"
             value={
@@ -436,7 +442,7 @@ export default function PlayerIntelligencePanel({
             <strong>
               {basis.performance_score ??
                 (scoreTier === "provisional"
-                  ? "Missing: provisional uses neutral 50"
+                  ? "Missing: omitted from V4 provisional"
                   : "Performance evidence required")}
             </strong>
           </div>
@@ -460,7 +466,7 @@ export default function PlayerIntelligencePanel({
             <strong>
               {basis.trend_score ??
                 (scoreTier === "provisional"
-                  ? "Missing: provisional uses neutral 50"
+                  ? "Missing: omitted from V4 provisional"
                   : "Needs two recent performance windows")}
             </strong>
           </div>
@@ -584,7 +590,7 @@ export default function PlayerIntelligencePanel({
           <Database size={15} />
           <p>
             <strong>Model:</strong>{" "}
-            {score?.model_version || "djm_player_score_v3_coverage_aware"}
+            {score?.model_version || "djm_player_score_v4_evidence_regressed"}
             <span>
               <strong>Calculated:</strong>{" "}
               {score?.calculated_at
@@ -595,7 +601,7 @@ export default function PlayerIntelligencePanel({
               <span>
                 <strong>Provisional method:</strong>{" "}
                 {basis.provisional_methodology ||
-                  "Missing components are neutral-imputed at 50 and confidence is capped. No missing performance statistic is fabricated."}
+                  "Only observed components are scored. The observed estimate is regressed towards 50 according to evidence coverage and recent-minute reliability."}
               </span>
             ) : null}
             {basis.competition_basis ===
@@ -814,9 +820,9 @@ function scoreMeaning(status: string, basis: any, scoreTier: string) {
 
   if (scoreTier === "provisional" || status === "provisional") {
     return {
-      title: "Useful provisional current-level estimate",
+      title: "Evidence-regressed provisional current-level estimate",
       copy:
-        "DJM has enough verified recent playing and competition evidence to publish a provisional rating. Missing model components are neutral-imputed at 50, never invented. Confidence is capped and the score upgrades automatically when deeper performance evidence becomes available.",
+        "DJM has enough verified recent playing and competition evidence to publish a provisional rating. Missing components are omitted rather than treated as average, and the observed estimate is pulled towards 50 when coverage or recent minutes are limited. Confidence cannot outrun the evidence.",
     };
   }
 
@@ -856,7 +862,7 @@ function scoreMeaning(status: string, basis: any, scoreTier: string) {
     return {
       title: "Deep performance evidence can upgrade this player",
       copy:
-        "DJM will not manufacture position-adjusted ability data. When enough context exists, a clearly labelled Provisional Score can still be published while the Full Score waits for a relevant peer dataset.",
+        "DJM will not manufacture position-adjusted ability data. When enough context exists, a clearly labelled evidence-regressed Provisional Score can still be published while the Full Score waits for a relevant peer dataset.",
     };
   }
 
@@ -864,7 +870,7 @@ function scoreMeaning(status: string, basis: any, scoreTier: string) {
     return {
       title: "More model coverage required",
       copy:
-        "DJM preserves the available evidence and can publish a Provisional Score when the minimum context threshold is met. A Full Score still needs deeper verified coverage.",
+        "DJM preserves the available evidence and can publish a regressed Provisional Score when the minimum context threshold is met. A Full Score still needs deeper verified coverage.",
     };
   }
 

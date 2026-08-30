@@ -48,13 +48,15 @@ test("TheSportsDB does not overwrite reviewed evidence owned by another source",
   assert.match(universal, /career_conflict_kept_for_review/);
 });
 
-test("player intelligence UI visibly distinguishes provisional from full", () => {
+test("player intelligence UI visibly distinguishes V4 provisional from full", () => {
   assert.match(panel, /refresh-player-data-universal/);
   assert.match(panel, /Full Score/);
   assert.match(panel, /Provisional/);
   assert.match(panel, /Missing for Full Score/);
-  assert.match(panel, /neutral-imputed at 50/);
+  assert.match(panel, /Evidence-regressed provisional current-level estimate/);
+  assert.match(panel, /Missing: omitted from V4 provisional/);
   assert.match(panel, /provisional_confidence/);
+  assert.doesNotMatch(panel, /neutral-imputed at 50/);
 });
 
 test("universal edge function is JWT protected in local config", () => {
