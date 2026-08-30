@@ -15,6 +15,11 @@ const ui = readFileSync(
   "utf8",
 );
 
+const integrityAudit = readFileSync(
+  new URL("../scripts/player-score-v5-integrity-audit.sql", import.meta.url),
+  "utf8",
+);
+
 function recencyWeight(ageDays: number) {
   if (ageDays < -1 || ageDays > 730) return 0;
   return Math.min(1, Math.max(0, Math.exp((-Math.log(2) * Math.max(0, ageDays)) / 365)));
@@ -179,4 +184,14 @@ test("the UI explains evidence state instead of presenting confidence as certain
   assert.match(ui, /Input fingerprint/);
   assert.doesNotMatch(ui, /neutral-imputed at 50/);
   assert.doesNotMatch(ui, /omitted from V4 provisional/);
+});
+
+test("integrity audit can actually detect current-club evidence missing an as-of date", () => {
+  assert.match(integrityAudit, /current_club_evidence_missing_as_of/);
+  assert.match(integrityAudit, /c\.source_synced_at is null/);
+  assert.match(integrityAudit, /c\.source_reviewed_at is null/);
+  assert.doesNotMatch(
+    integrityAudit,
+    /where c\.source_reviewed_at is not null[\s\S]{0,500}c\.source_reviewed_at is null/,
+  );
 });

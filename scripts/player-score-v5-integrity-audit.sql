@@ -70,7 +70,7 @@ where i.latest_input_at is not null
   and (s.calculated_at is null or i.latest_input_at>s.calculated_at)
 order by i.latest_input_at desc;
 
--- 4. Reviewed current-club evidence with weak date semantics. These rows can make a
+-- 4. Current-club evidence with weak date semantics. These rows can make a
 -- current score age incorrectly if there is no end date and no reviewed/synchronised
 -- observation date.
 select
@@ -87,8 +87,7 @@ select
   c.source_synced_at
 from public.players p
 join public.career_entries c on c.player_id=p.id
-where c.source_reviewed_at is not null
-  and lower(coalesce(c.club_name,''))=lower(coalesce(p.current_club,''))
+where lower(coalesce(c.club_name,''))=lower(coalesce(p.current_club,''))
   and c.end_date is null
   and c.source_synced_at is null
   and c.source_reviewed_at is null
