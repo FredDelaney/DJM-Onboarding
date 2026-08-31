@@ -59,6 +59,8 @@ test('staff navigation exposes four operational workspaces only', () => {
 test('mobile staff navigation and full-bleed heroes stay inside the viewport', () => {
   const responsive = read('app/responsive-polish.css');
   const overhaul = read('app/djm-os-ux-overhaul.css');
+  assert.match(responsive, /@media \(max-width: 960px\)[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto;/);
+  assert.match(responsive, /@media \(max-width: 960px\)[\s\S]*grid-column: 1 \/ -1;[\s\S]*overflow-x: auto;/);
   assert.match(responsive, /\.djm-os-product-nav,[\s\S]*min-width: 0;[\s\S]*max-width: 100%;/);
   assert.match(responsive, /@media \(max-width: 420px\)[\s\S]*padding: 9px 6px;/);
   assert.match(overhaul, /\.ux-settings-hero \{ margin-left: -10px; margin-right: -10px;/);
