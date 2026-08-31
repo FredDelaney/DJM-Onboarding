@@ -18,6 +18,7 @@ const tableCells = (line: string) => { const raw = line.trim(); if (!raw.include
 const playerIdFrom = (value: unknown) => String(value || "").match(/\/pelaajat\/(\d+)\//i)?.[1] || null;
 const matchIdFrom = (value: unknown) => String(value || "").match(/\/ottelut\/(\d+)\//i)?.[1] || null;
 const finnishDate = (value: unknown) => { const m = String(value || "").trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); return m ? `${m[3]}-${String(m[2]).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}` : null; };
+const pause = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 function officialRole(value: unknown) {
   const n = norm(value);
@@ -34,11 +35,25 @@ function trustedOfficialUrl(raw: unknown) {
   catch { return null; }
 }
 async function reader(targetUrl: string) {
-  const response = await fetch(`https://r.jina.ai/${targetUrl}`, { headers: { "Accept": "text/plain", "User-Agent": "DJM-Sports-Management/1.0" }, signal: AbortSignal.timeout(30000) });
-  if (!response.ok) throw new Error(`Official-source transport returned HTTP ${response.status}`);
-  const body = await response.text();
-  if (body.length < 100) throw new Error("Official-source transport returned an empty page");
-  return body;
+  let lastError = "Official-source transport failed";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let response: Response | null = null;
+    try {
+      response = await fetch(`https://r.jina.ai/${targetUrl}`, { headers: { "Accept": "text/plain", "User-Agent": "DJM-Sports-Management/1.0" }, signal: AbortSignal.timeout(30000) });
+    } catch (error) {
+      lastError = errorText(error);
+    }
+    if (response?.ok) {
+      const body = await response.text();
+      if (body.length >= 100) return body;
+      lastError = "Official-source transport returned an empty page";
+    } else if (response) {
+      lastError = `Official-source transport returned HTTP ${response.status}`;
+      if (response.status !== 429 && response.status < 500) throw new Error(lastError);
+    }
+    if (attempt < 2) await pause(650 * (attempt + 1));
+  }
+  throw new Error(lastError);
 }
 function competitionSection(line: string) {
   const match = line.match(/^##\s+(.+?)\s*$/);
@@ -116,16 +131,24 @@ function parseTeamRoles(markdown: string) {
   }
   return roles;
 }
-async function inBatches<T, R>(values: T[], size: number, worker: (value: T) => Promise<R>) { const output: R[] = []; for (let i = 0; i < values.length; i += size) output.push(...await Promise.all(values.slice(i, i + size).map(worker))); return output; }
 const TEAM_SLUGS = ["ac-oulu", "fc-inter", "fc-lahti", "ff-jaro", "hjk", "if-gnistan", "ifk-mariehamn", "ilves", "kups", "sjk", "tps", "vps"];
 async function buildLeagueContext(season: string) {
   const leagueUrl = `https://www.veikkausliiga.com/tilastot/${season}/veikkausliiga/pelaajat/`;
   const rows = parseLeaguePage(await reader(leagueUrl));
   if (rows.length < 20) throw new Error(`Official league parser found only ${rows.length} player rows`);
-  const roleMaps = await inBatches(TEAM_SLUGS, 4, async (slug) => { try { return parseTeamRoles(await reader(`https://www.veikkausliiga.com/joukkueet/${slug}/`)); } catch { return new Map<string, string>(); } });
   const roles = new Map<string, string>();
-  for (const map of roleMaps) for (const [id, role] of map.entries()) roles.set(id, role);
-  return { leagueUrl, rows, roles };
+  let roleSourceFailures = 0;
+  for (const slug of TEAM_SLUGS) {
+    try {
+      const teamRoles = parseTeamRoles(await reader(`https://www.veikkausliiga.com/joukkueet/${slug}/`));
+      for (const [id, role] of teamRoles.entries()) roles.set(id, role);
+    } catch (error) {
+      roleSourceFailures += 1;
+      console.warn(JSON.stringify({ operation: "official_team_roles", slug, error: errorText(error) }));
+    }
+    await pause(300);
+  }
+  return { leagueUrl, rows, roles, roleSourceFailures };
 }
 async function authorise(request: Request, admin: any) {
   const suppliedSecret = request.headers.get("x-djm-cron") || "";
@@ -160,7 +183,7 @@ async function syncSubject(admin: any, subject: any, contexts: Map<string, any>)
   const matches = parsed.matches.map((match: any) => { const ctx = matchContext(match.match_label, clubName); return { provider_match_id: match.provider_match_id, provider_team_id: norm(clubName).replace(/\s+/g, "-"), provider_opponent_id: ctx.opponent ? norm(ctx.opponent).replace(/\s+/g, "-") : null, competition_id: subject.current_competition_id || null, season_label: season, match_date: match.match_date, team_name: clubName, opponent_name: ctx.opponent, home_away: ctx.homeAway, position_group: positionGroup(role), provider_position: role, started: match.starts == null ? null : match.starts > 0, minutes: match.minutes, metrics: { goals: match.goals, assists: match.assists, starts: match.starts, subIn: match.sub_in, subOut: match.sub_out, fouls: match.fouls, yellowCards: match.yellow_cards, redCards: match.red_cards, offsides: match.offsides, penalties: match.penalties, penaltyGoals: match.penalty_goals, matchLabel: match.match_label }, metric_schema_version: "djm_official_match_basic_v2", data_depth: "basic_official", confidence: 0.99, observed_at: now, provenance: { source_url: sourceUrl.toString(), source_domain: "veikkausliiga.com", transport: "jina_reader" }, request_metadata: { source_url: sourceUrl.toString() } }; });
   const { data: writer, error } = await admin.rpc("djm_service_replace_official_subject_evidence", { p_subject_id: subject.subject_id, p_snapshot: snapshot, p_peers: peers, p_matches: matches });
   if (error) throw error;
-  return { ok: true, subject_id: subject.subject_id, player_id: subject.player_id, prospect_id: subject.prospect_id, provider_player_id: providerPlayerId, season, league_peer_rows: peers.length, same_role_peers_180_min: role ? peers.filter((row: any) => row.provider_position === role && row.minutes >= 180).length : 0, match_rows: matches.length, writer, advanced_metrics_fabricated: false };
+  return { ok: true, subject_id: subject.subject_id, player_id: subject.player_id, prospect_id: subject.prospect_id, provider_player_id: providerPlayerId, season, league_peer_rows: peers.length, role_rows: context.roles.size, role_source_failures: context.roleSourceFailures, same_role_peers_180_min: role ? peers.filter((row: any) => row.provider_position === role && row.minutes >= 180).length : 0, match_rows: matches.length, writer, advanced_metrics_fabricated: false };
 }
 
 Deno.serve(async (request: Request) => {

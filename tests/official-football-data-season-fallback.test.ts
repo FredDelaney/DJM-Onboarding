@@ -21,3 +21,12 @@ test('player and peer evidence always use the same resolved season', () => {
   assert.match(source, /startsWith\(seasonRow\.season_label\)/);
   assert.doesNotMatch(source, /buildLeagueContext\(requestedSeason\)/);
 });
+
+test('official squad roles are paced, retried and observable', () => {
+  assert.match(source, /for \(let attempt = 0; attempt < 3; attempt \+= 1\)/);
+  assert.match(source, /response\.status !== 429 && response\.status < 500/);
+  assert.match(source, /for \(const slug of TEAM_SLUGS\)/);
+  assert.match(source, /await pause\(300\)/);
+  assert.match(source, /role_rows: context\.roles\.size/);
+  assert.match(source, /role_source_failures: context\.roleSourceFailures/);
+});
