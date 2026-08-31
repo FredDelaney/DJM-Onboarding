@@ -1,0 +1,1 @@
+select cron.unschedule(jobid) from cron.job where jobname in ('djm-official-football-refresh-daily','djm-official-football-match-probe');
