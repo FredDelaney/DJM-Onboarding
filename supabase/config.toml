@@ -38,3 +38,15 @@ verify_jwt = true
 
 [functions.weekly-player-refresh]
 verify_jwt = false
+
+[functions.refresh-official-football-data]
+verify_jwt = false
+
+[functions.refresh-global-football-intelligence]
+verify_jwt = false
+
+[functions.refresh-global-football-identity]
+verify_jwt = false
+
+[functions.refresh-clubelo-team-strength]
+verify_jwt = false
