@@ -253,13 +253,11 @@ export async function syncTheSportsDbWeekly(admin, player) {
     if (error) throw error;
   }
 
-  const { error: snapshotError } = await admin
-    .schema("djm_os")
-    .from("player_provider_stat_snapshots")
-    .upsert(
-      {
+  const { error: snapshotError } = await admin.rpc(
+    "djm_upsert_weekly_provider_snapshot",
+    {
+      p_snapshot: {
         player_id: player.id,
-        provider: "thesportsdb",
         provider_player_id: providerPlayerId,
         provider_team_id: current.provider_team_id,
         provider_competition_id: current.provider_competition_id,
@@ -271,11 +269,8 @@ export async function syncTheSportsDbWeekly(admin, player) {
         observed_at: now,
         synced_at: now,
       },
-      {
-        onConflict:
-          "player_id,provider,provider_season_id,provider_competition_id,provider_team_id",
-      },
-    );
+    },
+  );
   if (snapshotError) throw snapshotError;
 
   return { ok: true, conflict, providerPlayerId };

@@ -11,6 +11,10 @@ const schedule = readFileSync(
   "supabase/migrations/20260830190000_djm_weekly_player_refresh_schedule_v1.sql",
   "utf8",
 );
+const bridge = readFileSync(
+  "supabase/migrations/20260831052000_djm_weekly_refresh_service_bridge_v1.sql",
+  "utf8",
+);
 
 test("weekly player refresh reuses the established protected scheduler secret", () => {
   assert.match(fn, /get_push_scheduler_secret/);
@@ -34,8 +38,25 @@ test("scheduled data sync is conservative and never scrapes Transfermarkt", () =
   assert.match(sync, /https:\/\/www\.thesportsdb\.com/);
   assert.match(sync, /exact\?\.source_reviewed_at && !providerOwned/);
   assert.match(sync, /conflict/);
-  assert.match(sync, /player_provider_stat_snapshots/);
+  assert.match(sync, /djm_upsert_weekly_provider_snapshot/);
   assert.doesNotMatch(sync, /transfermarkt/i);
+});
+
+test("weekly refresh reaches private snapshots only through service-only bridge RPCs", () => {
+  assert.match(fn, /djm_weekly_refresh_snapshot_status/);
+  assert.match(sync, /djm_upsert_weekly_provider_snapshot/);
+  assert.doesNotMatch(fn, /\.schema\("djm_os"\)/);
+  assert.doesNotMatch(sync, /\.schema\("djm_os"\)/);
+  assert.match(bridge, /security definer/);
+  assert.match(
+    bridge,
+    /revoke all on function public\.djm_weekly_refresh_snapshot_status\(\) from authenticated/,
+  );
+  assert.match(
+    bridge,
+    /grant execute on function public\.djm_upsert_weekly_provider_snapshot\(jsonb\) to service_role/,
+  );
+  assert.match(bridge, /notify pgrst, 'reload schema'/);
 });
 
 test("scheduled evidence remains traceable and marks V5 stale through canonical writes", () => {
