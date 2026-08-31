@@ -60,11 +60,11 @@ test("TheSportsDB does not overwrite reviewed evidence owned by another source",
   assert.match(universal, /career_conflict_kept_for_review/);
 });
 
-test("current player intelligence UI preserves the historical V3 separation contract", () => {
+test("current player intelligence UI keeps the historical refresh path under the global model", () => {
   assert.match(panel, /refresh-player-data-universal/);
-  assert.match(panel, /Full Score/);
-  assert.match(panel, /Provisional/);
-  assert.match(panel, /Missing for Full Score/);
+  assert.match(panel, /djm_player_global_intelligence/);
+  assert.match(panel, /GLOBAL PLAYER INTELLIGENCE/);
+  assert.match(panel, /score_tier/);
   assert.match(panel, /provisional_confidence/);
   assert.match(panel, /Evidence confidence/);
   assert.doesNotMatch(panel, /neutral-imputed at 50/);

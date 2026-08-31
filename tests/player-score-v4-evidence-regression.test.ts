@@ -73,10 +73,11 @@ test("V4 refuses to publish a provisional number below the minimum context gate"
   assert.match(migration, /if v_observed_weight >= 40 then/);
 });
 
-test("current UI supersedes V4 copy while preserving transparent provisional semantics", () => {
+test("current UI supersedes V4 copy while preserving transparent evidence semantics", () => {
   assert.match(panel, /Evidence confidence/);
-  assert.match(panel, /Provisional grade/);
-  assert.match(panel, /Evidence band/);
+  assert.match(panel, /Evidence grade/);
+  assert.match(panel, /Evidence range/);
+  assert.match(panel, /djm_player_global_intelligence/);
   assert.match(panel, /Missing: treated as unknown/);
   assert.doesNotMatch(panel, /neutral-imputed at 50/);
   assert.doesNotMatch(panel, /Missing: omitted from V4 provisional/);

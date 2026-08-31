@@ -1,18 +1,90 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
   BarChart3,
   CheckCircle2,
   ChevronDown,
+  Clock3,
+  Database,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 
 import { compactDateTime, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
 import { supabase } from '@/lib/supabase';
+
+type ScoreComponent = {
+  score?: number | null;
+  quality?: number | null;
+  weight?: number | null;
+  eligible?: boolean;
+};
+
+type GlobalIntelligence = {
+  available?: boolean;
+  subject?: {
+    subject_id?: string;
+    external_data_status?: string;
+    external_data_checked_at?: string | null;
+    external_data_error?: string | null;
+  };
+  scorecard?: {
+    display_score?: number | null;
+    score_tier?: string;
+    confidence?: number | null;
+    data_coverage?: number | null;
+    position_group?: string | null;
+    model_version?: string | null;
+    calculated_at?: string | null;
+    definition?: string | null;
+    score_state?: string | null;
+    evidence_grade?: string | null;
+    evidence_band?: { low?: number; high?: number } | null;
+    components?: Record<string, ScoreComponent>;
+    missing_inputs?: string[];
+    identity_quality?: number | null;
+    season_recency_quality?: number | null;
+    advanced_data_required?: boolean;
+  } | null;
+  evidence?: {
+    provider_snapshot_count?: number;
+    match_snapshot_count?: number;
+    career_entry_count?: number;
+    latest_provider?: string | null;
+    season_label?: string | null;
+    competition_name?: string | null;
+    data_depth?: string | null;
+    snapshot_confidence?: number | null;
+    latest_observed_at?: string | null;
+    latest_synced_at?: string | null;
+    source_name?: string | null;
+    source_url?: string | null;
+  };
+  automation?: {
+    status?: string | null;
+    target_confidence?: number | null;
+    current_confidence?: number | null;
+    missing_evidence?: string[];
+    last_attempt_at?: string | null;
+    next_attempt_at?: string | null;
+    attempts?: number;
+    last_error?: string | null;
+  };
+};
+
+const componentOrder = [
+  ['competition', 'Competition strength'],
+  ['team_context', 'Team level'],
+  ['role', 'Selection role'],
+  ['position_production', 'Position output'],
+  ['match_influence', 'Match influence'],
+  ['market_consensus', 'Market signal'],
+  ['career_context', 'Career context'],
+] as const;
 
 export default function PlayerIntelligencePanel({
   playerId,
@@ -21,7 +93,8 @@ export default function PlayerIntelligencePanel({
   playerId: string;
   compact?: boolean;
 }) {
-  const [data, setData] = useState<any>({ scorecard: null, suggestions: [] });
+  const [legacyData, setLegacyData] = useState<any>({ scorecard: null, suggestions: [] });
+  const [globalData, setGlobalData] = useState<GlobalIntelligence>({ available: false });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -35,25 +108,20 @@ export default function PlayerIntelligencePanel({
   const [marketSaving, setMarketSaving] = useState(false);
 
   const load = useCallback(async () => {
-    try {
-      const result: any = await djmRpc('djm_intelligence_player', {
-        p_player_id: playerId,
-      });
-      setData(result || {});
-
-      const { data: player } = await supabase
+    setError('');
+    const [legacyResult, intelligenceResult, playerResult] = await Promise.allSettled([
+      djmRpc('djm_intelligence_player', { p_player_id: playerId }),
+      djmRpc('djm_player_global_intelligence', { p_player_id: playerId }),
+      supabase
         .from('players')
         .select('transfermarkt_market_value,transfermarkt_market_value_currency,transfermarkt_value_verified_at')
         .eq('id', playerId)
-        .maybeSingle();
-      setMarketValue(
-        player?.transfermarkt_market_value == null
-          ? ''
-          : String(player.transfermarkt_market_value),
-      );
-      setMarketCurrency(player?.transfermarkt_market_value_currency || 'EUR');
-      setMarketVerifiedAt(player?.transfermarkt_value_verified_at || null);
+        .maybeSingle(),
+    ]);
 
+    if (legacyResult.status === 'fulfilled') {
+      const result: any = legacyResult.value || {};
+      setLegacyData(result);
       setManualScore(
         result?.scorecard?.manual_score == null ? '' : String(result.scorecard.manual_score),
       );
@@ -63,8 +131,28 @@ export default function PlayerIntelligencePanel({
           : String(result.scorecard.manual_potential_score),
       );
       setReason(result?.scorecard?.override_reason || '');
-    } catch (loadError) {
-      setError(friendlyError(loadError));
+    }
+
+    if (intelligenceResult.status === 'fulfilled') {
+      setGlobalData((intelligenceResult.value || { available: false }) as GlobalIntelligence);
+    }
+
+    if (playerResult.status === 'fulfilled') {
+      const player = playerResult.value.data;
+      setMarketValue(
+        player?.transfermarkt_market_value == null
+          ? ''
+          : String(player.transfermarkt_market_value),
+      );
+      setMarketCurrency(player?.transfermarkt_market_value_currency || 'EUR');
+      setMarketVerifiedAt(player?.transfermarkt_value_verified_at || null);
+    }
+
+    if (
+      legacyResult.status === 'rejected' &&
+      intelligenceResult.status === 'rejected'
+    ) {
+      setError(friendlyError(intelligenceResult.reason || legacyResult.reason));
     }
   }, [playerId]);
 
@@ -72,56 +160,78 @@ export default function PlayerIntelligencePanel({
     void load();
   }, [load]);
 
-  const score = data?.scorecard || null;
-  const basis = score?.basis || {};
-  const provisionalGrade = String(basis?.provisional_grade || '');
-  const provisionalMeaning =
-    provisionalGrade === 'context_only'
-      ? 'Context-only provisional current-level estimate'
-      : provisionalGrade === 'performance_backed'
-        ? 'Performance-backed provisional current-level estimate'
-        : 'Provisional evidence state not resolved';
-  const scoreTier =
-    score?.manual_score != null
-      ? 'manual_override'
-      : score?.score_tier || inferScoreTier(score);
-  const displayScore =
-    score?.manual_score ??
-    score?.model_score ??
-    score?.provisional_score ??
-    basis?.provisional_score ??
-    null;
-  const potential = score?.manual_potential_score ?? score?.potential_model_score ?? null;
-  const confidence =
-    scoreTier === 'provisional'
-      ? score?.provisional_confidence ?? score?.confidence
-      : score?.confidence;
-  const evidenceBand = basis?.evidence_band || basis?.score_range || null;
-  const missing = normaliseMissingInputs(score?.missing_inputs ?? basis?.provisional_missing_inputs);
-  const coverage =
-    basis?.effective_evidence_coverage ?? score?.data_coverage ?? basis?.data_coverage ?? null;
-  const competition = basis?.competition_name || basis?.current_league || 'Competition not resolved';
+  const globalScore = globalData?.scorecard || null;
+  const legacyScore = legacyData?.scorecard || null;
+  const legacyBasis = legacyScore?.basis || {};
+  const globalAvailable = Boolean(globalData?.available && globalScore);
+  const scoreTier = globalAvailable
+    ? globalScore?.score_tier || 'provisional'
+    : legacyScore?.score_tier || inferScoreTier(legacyScore);
+  const displayScore = globalAvailable
+    ? globalScore?.display_score ?? null
+    : legacyScore?.manual_score ?? legacyScore?.model_score ?? legacyScore?.provisional_score ?? null;
+  const confidence = globalAvailable
+    ? globalScore?.confidence
+    : legacyScore?.provisional_confidence ?? legacyScore?.confidence;
+  const coverage = globalAvailable
+    ? globalScore?.data_coverage
+    : legacyBasis?.effective_evidence_coverage ?? legacyScore?.data_coverage ?? null;
+  const evidenceBand = globalAvailable
+    ? globalScore?.evidence_band
+    : legacyBasis?.evidence_band || legacyBasis?.score_range || null;
+  const missing = normaliseMissingInputs(
+    globalAvailable
+      ? globalScore?.missing_inputs
+      : legacyScore?.missing_inputs ?? legacyBasis?.provisional_missing_inputs,
+  );
+  const automation = globalData?.automation || {};
+  const evidence = globalData?.evidence || {};
+  const components = globalScore?.components || {};
+  const manualReviewActive =
+    legacyScore?.manual_score != null || legacyScore?.manual_potential_score != null;
 
   const updateData = async () => {
     setBusy(true);
     setError('');
     setMessage('');
     try {
-      const result: any = await djmInvoke('refresh-player-data-universal', {
-        mode: 'refresh',
-        player_id: playerId,
-      });
-      if (!result?.ok) throw new Error(result?.error || 'Player data refresh failed.');
+      const jobs: Promise<any>[] = [
+        djmInvoke('refresh-player-data-universal', {
+          mode: 'refresh',
+          player_id: playerId,
+        }),
+      ];
 
-      if (String(result?.primary_provider || '').toLowerCase() === 'pitchapi') {
-        try {
-          await djmInvoke('refresh-player-peer-data', { player_id: playerId });
-        } catch {
-          // Peer plotting is additive. Core player evidence remains valid without it.
-        }
+      if (globalData?.subject?.subject_id) {
+        jobs.push(
+          djmInvoke('refresh-official-football-data', {
+            mode: 'refresh_subject',
+            subject_id: globalData.subject.subject_id,
+          }),
+        );
       }
 
-      setMessage(result?.message || 'Player data updated from DJM connected sources.');
+      const results = await Promise.allSettled(jobs);
+      if (results.every((result) => result.status === 'rejected')) {
+        const failed = results.find((result) => result.status === 'rejected');
+        throw failed && failed.status === 'rejected'
+          ? failed.reason
+          : new Error('Player data refresh failed.');
+      }
+
+      await djmRpc('djm_refresh_player_global_intelligence', {
+        p_player_id: playerId,
+      });
+
+      const officialResult = results[1];
+      const officialSucceeded =
+        officialResult?.status === 'fulfilled' &&
+        Number(officialResult.value?.refreshed || 0) > 0;
+      setMessage(
+        officialSucceeded
+          ? 'Official evidence, peer context and Global Intelligence are now current.'
+          : 'Stored evidence was recalculated. Any unavailable source will retry automatically.',
+      );
       await load();
     } catch (refreshError) {
       setError(friendlyError(refreshError));
@@ -134,8 +244,10 @@ export default function PlayerIntelligencePanel({
     setBusy(true);
     setError('');
     try {
-      await djmRpc('djm_player_scorecard', { p_player_id: playerId });
-      setMessage('Player Score recalculated from the currently verified evidence.');
+      await djmRpc('djm_refresh_player_global_intelligence', {
+        p_player_id: playerId,
+      });
+      setMessage('Global Intelligence recalculated from the verified database record.');
       await load();
     } catch (recalculateError) {
       setError(friendlyError(recalculateError));
@@ -164,8 +276,16 @@ export default function PlayerIntelligencePanel({
         })
         .eq('id', playerId);
       if (updateError) throw updateError;
+      await djmRpc('djm_refresh_player_global_intelligence', {
+        p_player_id: playerId,
+      });
       setMarketVerifiedAt(number == null ? null : verifiedAt);
-      setMessage(number == null ? 'Transfermarkt value cleared.' : 'Transfermarkt value saved and verified.');
+      setMessage(
+        number == null
+          ? 'Reviewed market value removed and the model recalculated.'
+          : 'Reviewed market value saved and the model recalculated.',
+      );
+      await load();
     } catch (saveError) {
       setError(friendlyError(saveError));
     } finally {
@@ -185,7 +305,11 @@ export default function PlayerIntelligencePanel({
         p_reason: clear ? null : reason.trim() || null,
       });
       setEditing(false);
-      setMessage(clear ? 'Manual override removed.' : 'Manual override saved separately from V5.');
+      setMessage(
+        clear
+          ? 'Reviewed exception removed.'
+          : 'Reviewed exception saved separately from the automated model.',
+      );
       await load();
     } catch (overrideError) {
       setError(friendlyError(overrideError));
@@ -194,110 +318,164 @@ export default function PlayerIntelligencePanel({
     }
   };
 
-  const headline = useMemo(() => {
-    if (scoreTier === 'full') return 'Full evidence-backed score';
-    if (scoreTier === 'provisional') {
-      const grade = String(basis?.provisional_grade || '').replaceAll('_', ' ');
-      return grade ? `${capitalise(grade)} provisional` : 'Provisional score';
-    }
-    if (scoreTier === 'manual_override') return 'Reviewed manual override';
-    return 'More evidence needed';
-  }, [basis?.provisional_grade, scoreTier]);
+  const headline = intelligenceHeadline(globalAvailable, globalScore?.score_state);
 
   return (
-    <section className={`ux-score-card ${compact ? 'is-compact' : ''}`}>
-      <div className="ux-score-main">
+    <section className={`ux-score-card ux-global-intelligence ${compact ? 'is-compact' : ''}`}>
+      <div className="ux-intelligence-hero">
+        <div className="ux-intelligence-score" data-state={globalScore?.score_state || 'enriching'}>
+          <span>Current level</span>
+          <strong>{displayScore ?? '?'}</strong>
+          <small>{globalScore?.evidence_grade || scoreTierLabel(scoreTier)}</small>
+        </div>
+
         <div className="ux-score-copy">
-          <span className="ux-kicker">DJM PLAYER SCORE</span>
+          <span className="ux-kicker">GLOBAL PLAYER INTELLIGENCE</span>
           <h2>{headline}</h2>
           <p>
-            V5 keeps missing evidence unknown. Confidence describes evidence quality, not the probability of career success.
+            Competition, team, role, position output, match influence, market signal and career context are fused only when verified evidence exists. Missing data is never scored as zero.
           </p>
-        </div>
-        <div className="ux-score-number">
-          <strong>{displayScore ?? '?'}</strong>
-          <span>{scoreTierLabel(scoreTier)}</span>
+          <div className="ux-intelligence-model-line">
+            <Sparkles size={14} />
+            <span>{globalAvailable ? 'V7.1 diversity-calibrated model' : 'Verified evidence fallback'}</span>
+            <span>{globalScore?.position_group || 'Role resolving'}</span>
+          </div>
         </div>
       </div>
 
       {error ? <div className="ux-error-line"><AlertCircle size={16} />{error}</div> : null}
       {message ? <div className="ux-success-line"><CheckCircle2 size={16} />{message}</div> : null}
 
-      <div className="ux-score-facts">
+      <div className="ux-score-facts ux-intelligence-facts">
+        <Fact label="Evidence grade" value={globalScore?.evidence_grade || 'Building'} />
         <Fact label="Evidence confidence" value={formatConfidence(confidence)} />
-        <Fact label="Effective evidence" value={coverage == null ? 'Unknown' : `${Math.round(Number(coverage))}%`} />
-        <Fact label="Potential" value={potential == null ? 'Not defensible yet' : String(potential)} />
+        <Fact label="Verified coverage" value={coverage == null ? 'Collecting' : `${Math.round(Number(coverage))}%`} />
         <Fact
-          label="Evidence band"
+          label="Evidence range"
           value={
             evidenceBand?.low != null && evidenceBand?.high != null
               ? `${evidenceBand.low}-${evidenceBand.high}`
-              : 'Not available'
+              : 'Collecting'
           }
         />
       </div>
 
+      {globalAvailable ? (
+        <div className="ux-intelligence-body">
+          <div className="ux-intelligence-components">
+            <div className="ux-intelligence-section-head">
+              <div>
+                <span className="ux-kicker">MODEL SIGNALS</span>
+                <h3>What is shaping the score</h3>
+              </div>
+              <small>Quality-adjusted, never zero-imputed</small>
+            </div>
+            <div className="ux-component-grid">
+              {componentOrder.map(([key, label]) => (
+                <ComponentBar key={key} label={label} component={components[key]} />
+              ))}
+            </div>
+          </div>
+
+          <aside className="ux-intelligence-automation">
+            <div className="ux-intelligence-section-head">
+              <div>
+                <span className="ux-kicker">AUTOMATED COVERAGE</span>
+                <h3>{automationHeadline(automation.status, missing.length)}</h3>
+              </div>
+              <AutomationPulse status={automation.status} />
+            </div>
+
+            {missing.length ? (
+              <div className="ux-collection-list">
+                {missing.slice(0, 4).map((item) => (
+                  <div key={item}>
+                    <Clock3 size={14} />
+                    <span>
+                      <strong>{inputLabel(item)}</strong>
+                      <small>{collectionStatus(item)}</small>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="ux-automation-ready">
+                <CheckCircle2 size={18} />
+                <span><strong>Core model complete</strong><small>Weekly refresh remains active.</small></span>
+              </div>
+            )}
+
+            <div className="ux-source-proof">
+              <Database size={15} />
+              <span>
+                <strong>{providerLabel(evidence.latest_provider)}</strong>
+                <small>
+                  {evidence.competition_name || 'Competition resolving'}
+                  {evidence.season_label ? ` · ${evidence.season_label}` : ''}
+                </small>
+              </span>
+              <span className="ux-source-proof-count">
+                {Number(evidence.provider_snapshot_count || 0) + Number(evidence.match_snapshot_count || 0) + Number(evidence.career_entry_count || 0)} records
+              </span>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
       <div className="ux-score-actions">
         <button className="ux-primary-button" onClick={() => void updateData()} disabled={busy}>
           <RefreshCw size={15} className={busy ? 'spin' : ''} />
-          Refresh player data
+          Refresh intelligence
         </button>
         <Link className="ux-secondary-button" href={`/admin/players/${playerId}/compare`}>
           <BarChart3 size={15} />
           Compare player
         </Link>
+        <span className="ux-refresh-cadence">
+          <CheckCircle2 size={14} /> Official data refreshes weekly
+        </span>
       </div>
 
       <details className="ux-score-advanced">
         <summary>
           <span>
-            <strong>View detailed evidence</strong>
-            <small>{missing.length ? `${missing.length} Full Score inputs missing` : 'Evidence details and controls'}</small>
+            <strong>Advanced evidence and exceptions</strong>
+            <small>Normally no action is required</small>
           </span>
           <ChevronDown size={17} />
         </summary>
 
         <div className="ux-score-advanced-body">
           <div className="ux-score-evidence-grid">
-            <Fact label="Competition" value={competition} />
-            <Fact label="Benchmark" value={basis?.league_strength_score ?? 'Not available'} />
-            {scoreTier === 'provisional' ? (
-              <Fact label="Provisional grade" value={provisionalGrade ? capitalise(provisionalGrade.replaceAll('_', ' ')) : 'Unknown'} />
-            ) : null}
-            {scoreTier === 'provisional' ? (
-              <Fact label="Provisional meaning" value={provisionalMeaning} />
-            ) : null}
-            <Fact label="Recent minutes" value={basis?.recent_minutes_24m ?? 'Unknown'} />
-            <Fact label="Recency-weighted minutes" value={basis?.effective_recent_minutes ?? basis?.weighted_recent_minutes ?? 'Unknown'} />
-            <Fact label="Latest evidence" value={basis?.latest_evidence_date ?? 'Unknown'} />
-            <Fact label="Performance" value={basis?.performance_score ?? 'Missing: treated as unknown'} />
-            <Fact label="Role / minutes" value={basis?.role_score ?? basis?.playing_time_score ?? 'Unknown'} />
-            <Fact label="Experience" value={basis?.experience_score ?? 'Not enough career history'} />
-            <Fact label="Trend" value={basis?.trend_score ?? 'Missing: treated as unknown'} />
-            <Fact label="Availability" value={basis?.availability_score ?? 'Unknown'} />
-            <Fact label="Missing for Full Score" value={missing.length ? missing.map(inputLabel).join(', ') : 'None'} />
-            <Fact
-              label="Evidence band"
-              value={
-                evidenceBand?.low != null && evidenceBand?.high != null
-                  ? `${evidenceBand.low}-${evidenceBand.high} (not a CI)`
-                  : 'Not available'
-              }
-            />
-            <Fact label="Input fingerprint" value={basis?.input_fingerprint || 'Not available'} />
-            <Fact label="Model" value={score?.model_version || 'Not calculated'} />
+            <Fact label="Latest provider" value={providerLabel(evidence.latest_provider)} />
+            <Fact label="Data depth" value={capitalise(String(evidence.data_depth || 'Collecting').replaceAll('_', ' '))} />
+            <Fact label="Provider confidence" value={formatConfidence(evidence.snapshot_confidence)} />
+            <Fact label="Provider records" value={evidence.provider_snapshot_count ?? 0} />
+            <Fact label="Match records" value={evidence.match_snapshot_count ?? 0} />
+            <Fact label="Career records" value={evidence.career_entry_count ?? 0} />
+            <Fact label="Identity quality" value={formatConfidence(globalScore?.identity_quality)} />
+            <Fact label="Season recency" value={formatConfidence(globalScore?.season_recency_quality)} />
+            <Fact label="Missing evidence" value={missing.length ? missing.map(inputLabel).join(', ') : 'None'} />
+            <Fact label="Collection state" value={capitalise(String(automation.status || 'Ready').replaceAll('_', ' '))} />
+            <Fact label="Last source observation" value={evidence.latest_observed_at ? compactDateTime(evidence.latest_observed_at) : 'Not available'} />
+            <Fact label="Model" value={globalScore?.model_version || legacyScore?.model_version || 'Not calculated'} />
           </div>
+
+          <p className="ux-model-note">
+            <ShieldCheck size={14} />
+            This is a current-level intelligence score, not a talent verdict or a probability of career success. The evidence range is heuristic, not a statistical confidence interval. Missing: treated as unknown.
+          </p>
 
           <div className="ux-score-override">
             <label>
-              Transfermarkt value
+              Reviewed Transfermarkt value
               <input
                 type="number"
                 min="0"
                 step="1"
                 value={marketValue}
                 onChange={(event) => setMarketValue(event.target.value)}
-                placeholder="Verified market value"
+                placeholder="Optional verified market reference"
               />
             </label>
             <label>
@@ -315,39 +493,40 @@ export default function PlayerIntelligencePanel({
                 onClick={() => void saveTransfermarktValue()}
                 disabled={marketSaving}
               >
-                Save verified TM value
+                Save reviewed value
               </button>
               <span className="ux-model-note">
-                {marketVerifiedAt ? `Verified ${compactDateTime(marketVerifiedAt)}` : 'Not yet verified'}
+                {marketVerifiedAt ? `Reviewed ${compactDateTime(marketVerifiedAt)}` : 'Optional and capped inside the model'}
               </span>
             </div>
           </div>
 
           <div className="ux-score-advanced-actions">
-            <button className="ux-secondary-button" onClick={() => void recalculate()} disabled={busy}>Recalculate V5</button>
-            <button className="ux-secondary-button" onClick={() => setEditing((value) => !value)}>Manual override</button>
-            <Link className="ux-secondary-button" href={`/brain/data?player=${playerId}`}>Open evidence tools</Link>
+            <button className="ux-secondary-button" onClick={() => void recalculate()} disabled={busy}>Recalculate from database</button>
+            <button className="ux-secondary-button" onClick={() => setEditing((value) => !value)}>
+              {manualReviewActive ? 'Review stored exception' : 'Add reviewed exception'}
+            </button>
+            <Link className="ux-secondary-button" href={`/brain/data?player=${playerId}`}>Open evidence operations</Link>
           </div>
 
           {editing ? (
             <div className="ux-score-override">
-              <label>Player Score<input type="number" min="0" max="100" value={manualScore} onChange={(event) => setManualScore(event.target.value)} /></label>
-              <label>Potential<input type="number" min="0" max="100" value={manualPotential} onChange={(event) => setManualPotential(event.target.value)} /></label>
+              <label>Legacy Player Score<input type="number" min="0" max="100" value={manualScore} onChange={(event) => setManualScore(event.target.value)} /></label>
+              <label>Potential review<input type="number" min="0" max="100" value={manualPotential} onChange={(event) => setManualPotential(event.target.value)} /></label>
               <label className="ux-form-wide">Required reason<textarea rows={3} value={reason} onChange={(event) => setReason(event.target.value)} /></label>
               <div className="ux-score-advanced-actions ux-form-wide">
-                <button className="ux-primary-button" onClick={() => void saveOverride()} disabled={busy || (!manualScore && !manualPotential) || !reason.trim()}>Save override</button>
+                <button className="ux-primary-button" onClick={() => void saveOverride()} disabled={busy || (!manualScore && !manualPotential) || !reason.trim()}>Save separate exception</button>
                 <button className="ux-secondary-button" onClick={() => setEditing(false)}>Cancel</button>
-                {score?.manual_score != null || score?.manual_potential_score != null ? (
-                  <button className="ux-secondary-button" onClick={() => void saveOverride(true)}>Remove override</button>
+                {manualReviewActive ? (
+                  <button className="ux-secondary-button" onClick={() => void saveOverride(true)}>Remove exception</button>
                 ) : null}
               </div>
             </div>
           ) : null}
 
           <p className="ux-model-note">
-            <ShieldCheck size={14} />
-            Current-level age adjustment is not used in V5. Potential remains a separate model concept.
-            {score?.calculated_at ? ` Last calculated ${compactDateTime(score.calculated_at)}.` : ''}
+            Advanced data is not required for a usable score. Official match and deeper event evidence improve precision when legally available. V5 remains stored for audit compatibility but cannot overwrite V7.1.
+            {globalScore?.calculated_at ? ` Last calculated ${compactDateTime(globalScore.calculated_at)}.` : ''}
           </p>
         </div>
       </details>
@@ -359,6 +538,37 @@ function Fact({ label, value }: { label: string; value: string | number }) {
   return <div><span>{label}</span><strong>{value}</strong></div>;
 }
 
+function ComponentBar({ label, component }: { label: string; component?: ScoreComponent }) {
+  const score = component?.score == null ? null : Number(component.score);
+  const quality = component?.quality == null ? null : Number(component.quality);
+  const hasSignal = Number.isFinite(score) && Number.isFinite(quality) && Number(quality) > 0;
+  return (
+    <div className={`ux-component-row ${hasSignal ? '' : 'is-collecting'}`}>
+      <div>
+        <span>{label}</span>
+        <small>{hasSignal ? `${Math.round(Number(quality) * 100)}% evidence quality` : 'Collecting verified evidence'}</small>
+      </div>
+      <div className="ux-component-track" aria-hidden="true">
+        <span style={{ width: hasSignal ? `${Math.max(4, Math.min(100, score || 0))}%` : '0%' }} />
+      </div>
+      <strong>{hasSignal ? Math.round(score || 0) : '·'}</strong>
+    </div>
+  );
+}
+
+function AutomationPulse({ status }: { status?: string | null }) {
+  const active = ['queued', 'running', 'enriching', 'failed'].includes(String(status || '').toLowerCase());
+  return <span className={`ux-automation-pulse ${active ? 'is-active' : ''}`}>{active ? 'Auto collecting' : 'Current'}</span>;
+}
+
+function intelligenceHeadline(available: boolean, state?: string | null) {
+  if (!available) return 'Building the verified player record';
+  if (state === 'elite_evidence') return 'Elite evidence depth';
+  if (state === 'ready') return 'Decision-ready current level';
+  if (state === 'usable') return 'Usable current-level model';
+  return 'Current level is enriching';
+}
+
 function inferScoreTier(score: any) {
   if (score?.manual_score != null) return 'manual_override';
   if (score?.model_score != null && score?.score_status === 'calculated') return 'full';
@@ -367,16 +577,16 @@ function inferScoreTier(score: any) {
 }
 
 function scoreTierLabel(tier: string) {
-  if (tier === 'full') return 'Full Score';
-  if (tier === 'provisional') return 'Provisional';
-  if (tier === 'manual_override') return 'Manual override';
-  return 'Unavailable';
+  if (tier === 'global' || tier === 'full') return 'Global';
+  if (tier === 'provisional') return 'Building';
+  if (tier === 'manual_override') return 'Reviewed';
+  return 'Collecting';
 }
 
 function formatConfidence(value: unknown) {
-  if (value == null || value === '') return 'Unknown';
+  if (value == null || value === '') return 'Collecting';
   const number = Number(value);
-  if (!Number.isFinite(number)) return 'Unknown';
+  if (!Number.isFinite(number)) return 'Collecting';
   return `${Math.round(number <= 1 ? number * 100 : number)}%`;
 }
 
@@ -395,14 +605,45 @@ function normaliseMissingInputs(value: unknown) {
 
 function inputLabel(value: string) {
   const labels: Record<string, string> = {
-    position_adjusted_performance: 'position performance',
-    experience_history: 'career history',
-    competition_level: 'competition level',
-    trend: 'trend',
-    availability: 'availability',
-    role: 'role / minutes',
+    position_adjusted_performance: 'Position performance',
+    position_specific_peer_production: 'Position peer production',
+    experience_history: 'Career history',
+    verified_career_context: 'Verified career context',
+    competition_level: 'Competition level',
+    competition_strength: 'Competition strength',
+    trend: 'Recent trend',
+    availability: 'Availability',
+    role: 'Role and minutes',
+    role_minutes: 'Role and minutes',
+    match_influence: 'Match influence',
+    market_consensus: 'Market consensus',
+    verified_identity: 'Verified identity',
   };
-  return labels[value] || value.replaceAll('_', ' ');
+  return labels[value] || capitalise(value.replaceAll('_', ' '));
+}
+
+function collectionStatus(value: string) {
+  if (value === 'market_consensus') return 'Reviewed only, never scraped';
+  if (value === 'verified_identity') return 'Identity checks retry automatically';
+  if (value === 'match_influence') return 'Official match feed queued';
+  return 'Source enrichment queued automatically';
+}
+
+function automationHeadline(status: string | null | undefined, missingCount: number) {
+  if (!missingCount) return 'Evidence is current';
+  if (String(status).toLowerCase() === 'running') return 'Sources are updating';
+  return `${missingCount} signal${missingCount === 1 ? '' : 's'} still collecting`;
+}
+
+function providerLabel(value: string | null | undefined) {
+  const labels: Record<string, string> = {
+    official_league: 'Official league data',
+    pitchapi: 'PitchAPI',
+    api_football: 'API-Football',
+    thesportsdb: 'TheSportsDB',
+    wyscout: 'Wyscout',
+  };
+  return labels[String(value || '').toLowerCase()] || 'Verified DJM evidence';
 }
 
 function capitalise(value: string) {
