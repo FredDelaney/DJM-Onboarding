@@ -46,7 +46,10 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const [{ data: players, error: playerError }, { data: snapshots, error: snapshotError }] =
+    const [
+      { data: players, error: playerError },
+      { data: snapshotStatus, error: snapshotError },
+    ] =
       await Promise.all([
         admin
           .from("players")
@@ -54,17 +57,12 @@ Deno.serve(async (request) => {
             "id,first_name,last_name,preferred_name,date_of_birth,current_club,current_league,current_country,current_season_label,current_season_start,football_provider_ids",
           )
           .in("football_status", ["active", "free_agent", "loan", "injured"]),
-        admin
-          .schema("djm_os")
-          .from("player_provider_stat_snapshots")
-          .select("player_id,synced_at")
-          .eq("provider", "thesportsdb")
-          .order("synced_at", { ascending: false }),
+        admin.rpc("djm_weekly_refresh_snapshot_status"),
       ]);
     if (playerError || snapshotError) throw playerError || snapshotError;
 
     const latest = new Map();
-    for (const snapshot of snapshots || []) {
+    for (const snapshot of Array.isArray(snapshotStatus) ? snapshotStatus : []) {
       if (!latest.has(snapshot.player_id)) {
         latest.set(snapshot.player_id, snapshot.synced_at);
       }
