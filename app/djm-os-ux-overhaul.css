@@ -649,7 +649,7 @@
 
 @media (max-width: 600px) {
   .ux-staff-home-hero,
-  .ux-settings-hero { margin-left: -16px; margin-right: -16px; border-radius: 0; }
+  .ux-settings-hero { margin-left: -12px; margin-right: -12px; border-radius: 0; }
   .ux-signal-strip { grid-template-columns: 1fr; }
   .ux-home-side-stack { grid-template-columns: 1fr; }
   .ux-segmented { width: 100%; }

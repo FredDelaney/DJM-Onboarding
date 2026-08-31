@@ -56,6 +56,13 @@ test('staff navigation exposes four operational workspaces only', () => {
   }
 });
 
+test('mobile staff navigation and full-bleed heroes stay inside the viewport', () => {
+  const responsive = read('app/responsive-polish.css');
+  const overhaul = read('app/djm-os-ux-overhaul.css');
+  assert.match(responsive, /\.djm-os-product-nav,[\s\S]*min-width: 0;[\s\S]*max-width: 100%;/);
+  assert.match(overhaul, /\.ux-settings-hero \{ margin-left: -12px; margin-right: -12px;/);
+});
+
 test('player navigation is Home, DJM and Me while legacy destinations stay contextual', () => {
   const source = read('components/PlayerShell.tsx');
   assert.match(source, /label: 'Home'/);
