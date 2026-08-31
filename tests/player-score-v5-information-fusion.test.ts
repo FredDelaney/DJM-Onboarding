@@ -195,3 +195,16 @@ test("integrity audit can actually detect current-club evidence missing an as-of
     /where c\.source_reviewed_at is not null[\s\S]{0,500}c\.source_reviewed_at is null/,
   );
 });
+
+test("score import audit keeps its creator foreign key indexed when the live audit table exists", () => {
+  const sql = readFileSync(
+    new URL(
+      "../supabase/migrations/20260831050000_index_player_score_json_imports_created_by.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.match(sql, /to_regclass\('djm_os\.player_score_json_imports'\)/);
+  assert.match(sql, /player_score_json_imports_created_by_idx/);
+  assert.match(sql, /player_score_json_imports\(created_by\)/);
+});
