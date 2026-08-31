@@ -43,6 +43,18 @@ test("universal refresh uses a provider ladder without exposing secrets", () => 
   assert.doesNotMatch(universal, /service_role.*NEXT_PUBLIC/i);
 });
 
+test("universal refresh never prints an undefined V5 confidence", () => {
+  assert.match(
+    universal,
+    /score\?\.provisional_confidence \?\? score\?\.confidence/,
+  );
+  assert.match(universal, /Number\.isFinite\(confidence\)/);
+  assert.doesNotMatch(
+    universal,
+    /\$\{score\?\.provisional_confidence\}% confidence/,
+  );
+});
+
 test("TheSportsDB does not overwrite reviewed evidence owned by another source", () => {
   assert.match(universal, /exact\?\.source_reviewed_at && !owned/);
   assert.match(universal, /career_conflict_kept_for_review/);

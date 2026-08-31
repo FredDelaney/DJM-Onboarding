@@ -525,7 +525,13 @@ Deno.serve(async (req) => {
     if (tier === "full") {
       message = `Full Player Score ${score?.model_score} calculated from current verified evidence.`;
     } else if (tier === "provisional") {
-      message = `Provisional Player Score ${score?.provisional_score} calculated at ${score?.provisional_confidence}% confidence. Missing deep performance evidence is neutral-imputed, never fabricated, and the score will upgrade automatically when richer current data becomes available.`;
+      const confidence = Number(
+        score?.provisional_confidence ?? score?.confidence,
+      );
+      const confidenceLabel = Number.isFinite(confidence)
+        ? `${Math.round(confidence)}% confidence`
+        : "the available evidence confidence";
+      message = `Provisional Player Score ${score?.provisional_score} calculated at ${confidenceLabel}. Missing deep performance evidence is neutral-imputed, never fabricated, and the score will upgrade automatically when richer current data becomes available.`;
     } else if (score?.model_status === "not_enough_playing_time_data") {
       message =
         "Player refresh completed, but DJM still needs at least 500 verified senior minutes inside the previous 24 months before publishing a rating.";
