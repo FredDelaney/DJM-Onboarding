@@ -17,7 +17,7 @@ test("API-Football free sync is server-side and preserves the full provider stat
   assert.match(fn, /API_FOOTBALL_KEY/);
   assert.match(fn, /x-apisports-key/);
   assert.match(fn, /raw_metrics/);
-  assert.match(fn, /player_provider_stat_snapshots/);
+  assert.match(fn, /djm_upsert_pitchapi_player_snapshot/);
 });
 
 test("one-click refresh does not overwrite reviewed evidence owned by another source", () => {
