@@ -60,7 +60,8 @@ function parsePlayerPage(markdown: string, season: string, sourceUrl: string) {
   const nationality = clean(markdown.match(/Kansalaisuus\s+([A-Z]{2,3})\b/i)?.[1]);
   const positionRaw = clean(markdown.match(/Pelipaikka\s+(Maalivahti|Puolustaja|Keskikenttä|Hyökkääjä)/i)?.[1]);
   const role = officialRole(positionRaw);
-  let activeCompetition = "";
+  // The official player page renders Veikkausliiga first without a section heading.
+  let activeCompetition = "veikkausliiga";
   let seasonRow: any = null;
   let latestSeasonRow: any = null;
   const matches: any[] = [];

@@ -8,6 +8,7 @@ const source = readFileSync(
 );
 
 test('official profiles fall back to the newest season actually published by the source', () => {
+  assert.match(source, /let activeCompetition = "veikkausliiga"/);
   assert.match(source, /let latestSeasonRow: any = null/);
   assert.match(source, /Number\(rowSeason\) > Number\(latestSeasonRow\.season_label\)/);
   assert.match(source, /seasonRow \|\|= latestSeasonRow/);
