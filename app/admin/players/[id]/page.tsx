@@ -2975,16 +2975,27 @@ const removePlayer=async(
                 gap:20
               }}
             >
-              <section className="admin-card">
-                <div className="section-kicker">
-                  MASTER FOOTBALL RECORD
-                </div>
+              <details className="admin-card admin-player-disclosure">
+                <summary>
+                  <span>
+                    <span className="section-kicker">
+                      AUTOMATED PLAYER RECORD
+                    </span>
+                    <strong>
+                      {p.primary_position||'Position pending'} · {p.current_club||'Club pending'} · {p.current_league||'League pending'}
+                    </strong>
+                    <small>
+                      DJM keeps this record connected. Open only to correct verified identity or contract information.
+                    </small>
+                  </span>
+                  <span
+                    className="admin-player-disclosure-state"
+                    aria-hidden="true"
+                  />
+                </summary>
 
-                <h2 className="section-title">
-                  One source of truth.
-                </h2>
-
-                <div className="form-section">
+                <div className="admin-player-disclosure-body">
+                  <div className="form-section">
                   <div className="grid2">
                     <F
                       label="First name"
@@ -3151,9 +3162,10 @@ const removePlayer=async(
                         })
                       }
                     />
+                    </div>
                   </div>
                 </div>
-              </section>
+              </details>
 
               <details className="admin-card admin-player-disclosure">
                 <summary>

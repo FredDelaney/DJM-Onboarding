@@ -51,10 +51,12 @@ test("provider snapshot storage accepts every deployed refresh provider", () => 
   assert.match(hub, /player_provider_stat_snapshots/);
 });
 
-test("dense V5 evidence remains available behind progressive disclosure", () => {
+test("global intelligence is concise while advanced evidence remains behind progressive disclosure", () => {
   assert.match(playerPage, /<PlayerIntelligencePanel[\s\S]*compact/);
+  assert.match(intelligence, /GLOBAL PLAYER INTELLIGENCE/);
+  assert.match(intelligence, /What is shaping the score/);
   assert.match(intelligence, /<details/);
-  assert.match(intelligence, /View detailed evidence/);
-  assert.match(intelligence, /Missing for Full Score/);
-  assert.match(intelligence, /Evidence band/);
+  assert.match(intelligence, /Advanced evidence and exceptions/);
+  assert.match(intelligence, /Missing data is never scored as zero/);
+  assert.match(intelligence, /Official data refreshes weekly/);
 });

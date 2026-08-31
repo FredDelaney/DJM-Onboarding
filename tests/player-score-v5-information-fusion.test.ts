@@ -173,15 +173,14 @@ test("score-driving source changes mark the score stale rather than silently lea
   assert.match(migration, /evidence_freshness='stale'/);
 });
 
-test("the UI explains evidence state instead of presenting confidence as certainty", () => {
+test("the UI explains the global evidence state instead of presenting confidence as certainty", () => {
   assert.match(ui, /Evidence confidence/);
-  assert.match(ui, /Provisional grade/);
-  assert.match(ui, /Context-only provisional current-level estimate/);
-  assert.match(ui, /Performance-backed provisional current-level estimate/);
-  assert.match(ui, /Evidence band/);
-  assert.match(ui, /not a CI/);
+  assert.match(ui, /Evidence grade/);
+  assert.match(ui, /V7\.1 diversity-calibrated model/);
+  assert.match(ui, /current-level intelligence score, not a talent verdict/);
+  assert.match(ui, /evidence range is heuristic/);
   assert.match(ui, /Missing: treated as unknown/);
-  assert.match(ui, /Input fingerprint/);
+  assert.match(ui, /djm_refresh_player_global_intelligence/);
   assert.doesNotMatch(ui, /neutral-imputed at 50/);
   assert.doesNotMatch(ui, /omitted from V4 provisional/);
 });
