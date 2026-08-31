@@ -378,6 +378,19 @@ button {
   }
 }
 
+@media (max-width: 420px) {
+  .djm-os-product-nav,
+  .player-workspace-header .djm-os-product-nav {
+    gap: 4px;
+  }
+
+  .djm-os-product-link,
+  .player-workspace-header .djm-os-product-link {
+    gap: 5px;
+    padding: 9px 6px;
+  }
+}
+
 @media (max-width: 560px) {
   .djm-os-form-grid {
     grid-template-columns: minmax(0, 1fr);
