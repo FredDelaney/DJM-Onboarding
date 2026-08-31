@@ -62,6 +62,7 @@ function parsePlayerPage(markdown: string, season: string, sourceUrl: string) {
   const role = officialRole(positionRaw);
   let activeCompetition = "";
   let seasonRow: any = null;
+  let latestSeasonRow: any = null;
   const matches: any[] = [];
 
   for (const line of markdown.split(/\r?\n/)) {
@@ -70,18 +71,27 @@ function parsePlayerPage(markdown: string, season: string, sourceUrl: string) {
     if (activeCompetition !== "veikkausliiga") continue;
 
     const values = tableCells(line);
-    if (String(values[0] || "").trim() === season && values.length >= 15) {
-      seasonRow = {
-        season_label: season, club_name: clean(values[1]), appearances: integer(values[2]), minutes: integer(values[3]), goals: integer(values[4]), assists: integer(values[5]), starts: integer(values[6]), sub_in: integer(values[7]), sub_out: integer(values[8]), fouls: integer(values[9]), yellow_cards: integer(values[10]), red_cards: integer(values[11]), offsides: integer(values[12]), penalties: integer(values[13]), penalty_goals: integer(values[14]),
+    const rowSeason = String(values[0] || "").trim();
+    if (/^20\d{2}$/.test(rowSeason) && values.length >= 15) {
+      const candidate = {
+        season_label: rowSeason, club_name: clean(values[1]), appearances: integer(values[2]), minutes: integer(values[3]), goals: integer(values[4]), assists: integer(values[5]), starts: integer(values[6]), sub_in: integer(values[7]), sub_out: integer(values[8]), fouls: integer(values[9]), yellow_cards: integer(values[10]), red_cards: integer(values[11]), offsides: integer(values[12]), penalties: integer(values[13]), penalty_goals: integer(values[14]),
       };
+      if (!latestSeasonRow || Number(rowSeason) > Number(latestSeasonRow.season_label)) latestSeasonRow = candidate;
+      if (rowSeason === season) seasonRow = candidate;
       continue;
     }
     const date = finnishDate(values[0]);
     if (!date || values.length < 15) continue;
     matches.push({ provider_match_id: matchIdFrom(line) || `${date}:${norm(values[1])}`, match_date: date, match_label: clean(values[1]), minutes: integer(values[3]), goals: integer(values[4]), assists: integer(values[5]), starts: integer(values[6]), sub_in: integer(values[7]), sub_out: integer(values[8]), fouls: integer(values[9]), yellow_cards: integer(values[10]), red_cards: integer(values[11]), offsides: integer(values[12]), penalties: integer(values[13]), penalty_goals: integer(values[14]) });
   }
-  if (!seasonRow) throw new Error(`Official Veikkausliiga section has no ${season} season row`);
-  return { providerPlayerId, bio: { birth, height_cm: height, nationality, position_raw: positionRaw, role }, season: seasonRow, matches };
+  seasonRow ||= latestSeasonRow;
+  if (!seasonRow) throw new Error("Official Veikkausliiga section has no published season row");
+  return {
+    providerPlayerId,
+    bio: { birth, height_cm: height, nationality, position_raw: positionRaw, role },
+    season: seasonRow,
+    matches: matches.filter((match) => String(match.match_date || "").startsWith(seasonRow.season_label)),
+  };
 }
 function parseLeaguePage(markdown: string) {
   const rows: any[] = [];
@@ -127,11 +137,17 @@ async function authorise(request: Request, admin: any) {
   return profile?.role === "admin";
 }
 
-async function syncSubject(admin: any, subject: any, context: any) {
+async function syncSubject(admin: any, subject: any, contexts: Map<string, any>) {
   const sourceUrl = trustedOfficialUrl(subject.stats_url);
   if (!sourceUrl) return { ok: false, subject_id: subject.subject_id, reason: "No supported official stats URL" };
-  const season = String(subject.current_season_label || new Date().getUTCFullYear());
-  const parsed = parsePlayerPage(await reader(sourceUrl.toString()), season, sourceUrl.toString());
+  const requestedSeason = String(subject.current_season_label || new Date().getUTCFullYear());
+  const parsed = parsePlayerPage(await reader(sourceUrl.toString()), requestedSeason, sourceUrl.toString());
+  const season = String(parsed.season.season_label);
+  let context = contexts.get(season);
+  if (!context) {
+    context = await buildLeagueContext(season);
+    contexts.set(season, context);
+  }
   const providerPlayerId = parsed.providerPlayerId || `page:${norm(subject.full_name)}`;
   const role = parsed.bio.role || officialRole(subject.primary_position) || context.roles.get(providerPlayerId) || null;
   if (providerPlayerId && role) context.roles.set(providerPlayerId, role);
@@ -165,7 +181,7 @@ Deno.serve(async (request: Request) => {
     const contexts = new Map<string, any>();
     const results = [];
     for (const subject of subjects) {
-      try { const season = String(subject.current_season_label || new Date().getUTCFullYear()); let context = contexts.get(season); if (!context) { context = await buildLeagueContext(season); contexts.set(season, context); } results.push(await syncSubject(admin, subject, context)); }
+      try { results.push(await syncSubject(admin, subject, contexts)); }
       catch (error) { results.push({ ok: false, subject_id: subject.subject_id, reason: errorText(error) }); }
     }
     return json({ ok: true, provider: "official_league", attempted: results.length, refreshed: results.filter((row: any) => row.ok).length, failed: results.filter((row: any) => !row.ok).length, results, completed_at: new Date().toISOString() });
