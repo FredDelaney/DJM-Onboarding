@@ -137,42 +137,23 @@ function inferTier(country, league) {
 
 async function ensureCompetitionBenchmark(admin, provider, providerCompetitionId, league, country, userId) {
   if (!providerCompetitionId || !league) return { competitionId: null, benchmark: null };
-  const key = `${provider}:${providerCompetitionId}`;
-  let { data: comp } = await admin.schema("djm_os").from("competitions").select("id,provider_ids").eq("canonical_key", key).maybeSingle();
   const tier = inferTier(country, league);
-  const providerIds = { ...(comp?.provider_ids || {}), [provider]: providerCompetitionId };
-  if (!comp) {
-    const { data, error } = await admin.schema("djm_os").from("competitions").insert({
-      canonical_key:key, display_name:league, country:canonicalCountry(country), level_tier:tier, aliases:[league],
-      provider_ids:providerIds, created_by:userId, updated_by:userId
-    }).select("id,provider_ids").single();
-    if (error) throw error; comp = data;
-  } else {
-    await admin.schema("djm_os").from("competitions").update({
-      display_name:league, country:canonicalCountry(country), level_tier:tier, provider_ids:providerIds, updated_by:userId, updated_at:nowIso()
-    }).eq("id", comp.id);
-  }
-  if (!tier) return { competitionId: comp.id, benchmark: null };
-  const cc = canonicalCountry(country);
-  const { data: anchor } = await admin.schema("djm_os").from("country_league_strength_anchors").select("*").eq("country", cc).maybeSingle();
-  if (!anchor) return { competitionId: comp.id, benchmark: null };
-  const penalty = ({1:0,2:12,3:20,4:27,5:33})[tier];
-  if (penalty == null) return { competitionId: comp.id, benchmark: null };
-  const strength = Math.max(10, Number(anchor.strength_score) - penalty);
-  const canonical = `${key}:iffhs_2025:t${tier}`;
-  const payload = {
-    canonical_key:canonical, league_name:league, country:cc, strength_score:strength, source_url:anchor.source_url,
-    source_note:tier===1?`IFFHS 2025 national top-division anchor, rank ${anchor.iffhs_rank}.`:`Derived from IFFHS 2025 national top-division anchor with DJM tier-${tier} penalty of ${penalty} points.`,
-    verified_at:nowIso(), updated_by:userId, competition_id:comp.id, review_cadence_days:365, raw_strength_value:anchor.iffhs_points,
-    raw_strength_scale:"IFFHS 2025 national league points", benchmark_provider:tier===1?"iffhs_2025":"djm_iffhs_tier_decay_v1",
-    benchmark_metric:"national_league_strength", methodology:tier===1?anchor.methodology:`${anchor.methodology} Lower division adjustment is model-derived and explicitly tier-based.`,
-    methodology_version:"djm_global_league_strength_v1", source_reference:`IFFHS rank ${anchor.iffhs_rank}; tier ${tier}`,
-    observed_at:anchor.observed_at, next_review_at:"2027-02-01T00:00:00Z"
+  const { data, error } = await admin.rpc("djm_refresh_player_data_context", {
+    p_mode: "benchmark",
+    p_payload: {
+      provider,
+      provider_competition_id: String(providerCompetitionId),
+      league,
+      country: canonicalCountry(country),
+      tier,
+      user_id: userId,
+    },
+  });
+  if (error) throw error;
+  return {
+    competitionId: data?.competitionId || null,
+    benchmark: data?.benchmark || null,
   };
-  const { data: old } = await admin.schema("djm_os").from("league_benchmarks").select("id").eq("canonical_key",canonical).maybeSingle();
-  if (old?.id) { const { error } = await admin.schema("djm_os").from("league_benchmarks").update(payload).eq("id", old.id); if (error) throw error; }
-  else { const { error } = await admin.schema("djm_os").from("league_benchmarks").insert(payload); if (error) throw error; }
-  return { competitionId: comp.id, benchmark:{ strength_score:strength, tier, source:tier===1?"IFFHS 2025":"IFFHS 2025 + DJM tier decay" } };
 }
 
 function nameScore(remote, player) {
@@ -426,11 +407,11 @@ async function pitchCurrentRefresh(admin, player, userId, key) {
     else{const {error}=await admin.from("career_entries").insert(payload);if(error)throw error}
   }
 
-  const {error:snapErr}=await admin.schema("djm_os").from("player_provider_stat_snapshots").upsert({
-    player_id:player.id,provider:"pitchapi",provider_player_id:found.playerId,provider_team_id:String(teamId||""),provider_competition_id:String(league.id),
+  const {error:snapErr}=await admin.rpc("djm_upsert_pitchapi_player_snapshot",{p_snapshot:{
+    player_id:player.id,provider_player_id:found.playerId,provider_team_id:String(teamId||""),provider_competition_id:String(league.id),
     provider_season_id:seasonLabel,season_label:seasonLabel,club_name:teamName||player.current_club,competition_name:league.name,
     metrics:{current_season:fullTarget,current_window:cur,window_matches:windowMatches.length},observed_at:now,synced_at:now
-  },{onConflict:"player_id,provider,provider_season_id,provider_competition_id,provider_team_id"});
+  }});
   if(snapErr)throw snapErr;
 
   let performanceSnapshot=null;
@@ -445,9 +426,9 @@ async function pitchCurrentRefresh(admin, player, userId, key) {
       observed_at:now,verified_at:now,verified_by:userId,confidence:perf.confidence,
       raw_metrics:{current:cur,category_components:{attacking:perf.attacking.detail,creativity:perf.creativity.detail,progression:perf.progression.detail,possession:perf.possession.detail,defending:perf.defending.detail,aerial:perf.aerial.detail,goalkeeping:perf.goalkeeping.detail,physical:perf.physical.detail,discipline:perf.discipline.detail}},
       metadata:{methodology_version:"djm_pitchapi_current_peer_v1",peer_count:perf.peerCount,minimum_minutes:perf.threshold,match_window:windowMatches.length,season:seasonLabel,current_data:true}};
-    const {data:old}=await admin.schema("djm_os").from("player_performance_snapshots").select("id").eq("player_id",player.id).eq("provider","pitchapi_current_peer_v1").eq("source_reference",ref).maybeSingle();
-    if(old?.id){const {error}=await admin.schema("djm_os").from("player_performance_snapshots").update(payload).eq("id",old.id);if(error)throw error;performanceSnapshot={id:old.id,...perf}}
-    else{const {data,error}=await admin.schema("djm_os").from("player_performance_snapshots").insert(payload).select("id").single();if(error)throw error;performanceSnapshot={id:data.id,...perf}}
+    const {data:id,error}=await admin.rpc("djm_upsert_pitchapi_performance_snapshot",{p_snapshot:payload});
+    if(error)throw error;
+    performanceSnapshot={id,...perf};
   }
 
   return {ok:true,patch,league,season:seasonLabel,playerId:found.playerId,teamId,teamName,benchmark:cb.benchmark,performance:performanceSnapshot,
@@ -487,9 +468,10 @@ Deno.serve(async(req)=>{
     const keys=await resolveProviderKeys();
     const body=await req.json().catch(()=>({}));
     if(String(body?.mode||"refresh").toLowerCase()==="status"){
-      const {count:anchors}=await admin.schema("djm_os").from("country_league_strength_anchors").select("*",{count:"exact",head:true});
+      const {data:status,error:statusError}=await admin.rpc("djm_refresh_player_data_context",{p_mode:"status",p_payload:{}});
+      if(statusError)throw statusError;
       return json({ok:true,provider_priority:["pitchapi_current","api_football_historical"],pitchapi_configured:Boolean(keys.pitchKey),api_football_configured:Boolean(keys.apiKey),
-        secret_names_are_ignored:true,configured_secret_values:keys.configuredSecrets,benchmark_anchors:anchors||0,current_data_strategy:"PitchAPI current first, API-Football historical fallback only"});
+        secret_names_are_ignored:true,configured_secret_values:keys.configuredSecrets,benchmark_anchors:Number(status?.benchmark_anchors||0),current_data_strategy:"PitchAPI current first, API-Football historical fallback only"});
     }
     const playerId=String(body?.player_id||"").trim();if(!playerId)return json({ok:false,error:"Player is required"},400);
     const {data:player,error:pe}=await admin.from("players").select("id,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,primary_position,current_club,current_league,current_country,current_season_start,current_competition_id,football_provider_ids").eq("id",playerId).maybeSingle();

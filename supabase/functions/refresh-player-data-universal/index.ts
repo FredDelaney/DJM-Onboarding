@@ -368,13 +368,11 @@ async function refreshSportsDb(admin, player) {
     }
   }
 
-  const { error: snapErr } = await admin
-    .schema("djm_os")
-    .from("player_provider_stat_snapshots")
-    .upsert(
-      {
+  const { error: snapErr } = await admin.rpc(
+    "djm_upsert_weekly_provider_snapshot",
+    {
+      p_snapshot: {
         player_id: player.id,
-        provider: "thesportsdb",
         provider_player_id: providerPlayerId,
         provider_team_id: String(current.provider_team_id || ""),
         provider_competition_id: String(providerCompetitionId),
@@ -390,11 +388,8 @@ async function refreshSportsDb(admin, player) {
         observed_at: now,
         synced_at: now,
       },
-      {
-        onConflict:
-          "player_id,provider,provider_season_id,provider_competition_id,provider_team_id",
-      },
-    );
+    },
+  );
   if (snapErr) throw snapErr;
 
   return {
