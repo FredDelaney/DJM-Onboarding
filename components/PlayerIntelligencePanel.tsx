@@ -251,7 +251,7 @@ export default function PlayerIntelligencePanel({
           <div className={styles.orbitGlow} aria-hidden="true" />
           <div className={styles.scoreCore}>
             <span>GLOBAL LEVEL</span>
-            <strong>{scoreValue == null ? '—' : Math.round(scoreValue)}</strong>
+            <strong>{scoreValue == null ? '–' : Math.round(scoreValue)}</strong>
             <small>{scorePublishable ? '/ 100' : 'CALIBRATING'}</small>
           </div>
         </div>
@@ -282,7 +282,7 @@ export default function PlayerIntelligencePanel({
         <Metric
           icon={<Activity size={16} />}
           label="Real peer cohort"
-          value={basis?.peer_count == null ? '—' : String(basis.peer_count)}
+          value={basis?.peer_count == null ? '–' : String(basis.peer_count)}
           detail="Comparable observed players"
         />
       </div>
@@ -308,12 +308,12 @@ export default function PlayerIntelligencePanel({
           <div className={styles.projectionTop}>
             <div>
               <span className={styles.projectionKicker}><BrainCircuit size={14} /> 5Y OUTLOOK</span>
-              <h3>{projectionAvailable && forecastScore != null ? Math.round(forecastScore) : '—'}</h3>
+              <h3>{projectionAvailable && forecastScore != null ? Math.round(forecastScore) : '–'}</h3>
               <p>Expected level at year five</p>
             </div>
             <div className={styles.ceiling}>
               <span>UPSIDE CEILING</span>
-              <strong>{projectionAvailable && ceilingScore != null ? Math.round(ceilingScore) : '—'}</strong>
+              <strong>{projectionAvailable && ceilingScore != null ? Math.round(ceilingScore) : '–'}</strong>
             </div>
           </div>
 
@@ -331,7 +331,7 @@ export default function PlayerIntelligencePanel({
                 </div>
                 <div>
                   <span>Age / role prior</span>
-                  <strong>{projection?.age ?? '—'} · {projection?.position_group || '—'}</strong>
+                  <strong>{projection?.age ?? '–'} · {projection?.position_group || '–'}</strong>
                 </div>
               </div>
               <p className={styles.projectionNote}>
@@ -382,14 +382,14 @@ export default function PlayerIntelligencePanel({
           <div className={styles.diagnosticGrid}>
             <Diagnostic label="Canonical model" value={prettyModel(score?.model_version)} />
             <Diagnostic label="Publication state" value={scorePublishable ? 'Published for decisions' : 'Internal prior only'} />
-            <Diagnostic label="Internal model prior" value={rawScoreValue == null ? '—' : String(Math.round(rawScoreValue))} />
+            <Diagnostic label="Internal model prior" value={rawScoreValue == null ? '–' : String(Math.round(rawScoreValue))} />
             <Diagnostic label="Score state" value={scoreState || 'Unknown'} />
             <Diagnostic label="Provider" value={provenance?.provider || basis?.provider || 'Unknown'} />
             <Diagnostic label="Evidence grade" value={evidenceGrade || 'Unknown'} />
             <Diagnostic label="Competition score" value={formatNumber(basis?.competition_level_score)} />
             <Diagnostic label="Role score" value={formatNumber(basis?.role_score)} />
             <Diagnostic label="Observed minutes" value={formatInteger(basis?.minutes)} />
-            <Diagnostic label="Appearances / starts" value={`${basis?.appearances ?? '—'} / ${basis?.starts ?? '—'}`} />
+            <Diagnostic label="Appearances / starts" value={`${basis?.appearances ?? '–'} / ${basis?.starts ?? '–'}`} />
             <Diagnostic label="Missing optional signals" value={missing.length ? missing.map(inputLabel).join(', ') : 'None'} />
             <Diagnostic label="Input fingerprint" value={basis?.input_fingerprint || 'Not available'} />
             <Diagnostic label="Last calculated" value={score?.calculated_at ? compactDateTime(score.calculated_at) : 'Unknown'} />
@@ -495,7 +495,7 @@ function Trajectory({ current, rows }: { current: number | null; rows: any[] }) 
       {points.map((point, index) => (
         <div className={styles.trajectoryPoint} key={`${point.label}-${index}`}>
           <span>{point.label}</span>
-          <strong>{point.value == null ? '—' : Math.round(point.value)}</strong>
+          <strong>{point.value == null ? '–' : Math.round(point.value)}</strong>
           {index < points.length - 1 ? <i aria-hidden="true" /> : null}
         </div>
       ))}
@@ -530,30 +530,30 @@ function numeric(value: unknown): number | null {
 
 function formatPercent(value: unknown) {
   const number = numeric(value);
-  if (number == null) return '—';
+  if (number == null) return '–';
   return `${Math.round(number <= 1 ? number * 100 : number)}%`;
 }
 
 function formatBand(band: any) {
   const low = numeric(band?.low);
   const high = numeric(band?.high);
-  return low == null || high == null ? '—' : `${Math.round(low)}–${Math.round(high)}`;
+  return low == null || high == null ? '–' : `${Math.round(low)}–${Math.round(high)}`;
 }
 
 function formatProjectionRange(projection: any) {
   const low = numeric(projection?.range_low);
   const high = numeric(projection?.range_high);
-  return low == null || high == null ? '—' : `${Math.round(low)}–${Math.round(high)}`;
+  return low == null || high == null ? '–' : `${Math.round(low)}–${Math.round(high)}`;
 }
 
 function formatNumber(value: unknown) {
   const number = numeric(value);
-  return number == null ? '—' : number.toFixed(1).replace(/\.0$/, '');
+  return number == null ? '–' : number.toFixed(1).replace(/\.0$/, '');
 }
 
 function formatInteger(value: unknown) {
   const number = numeric(value);
-  return number == null ? '—' : Math.round(number).toLocaleString();
+  return number == null ? '–' : Math.round(number).toLocaleString();
 }
 
 function normaliseMissingInputs(value: unknown) {
