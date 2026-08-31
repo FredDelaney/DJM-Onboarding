@@ -60,7 +60,8 @@ test('mobile staff navigation and full-bleed heroes stay inside the viewport', (
   const responsive = read('app/responsive-polish.css');
   const overhaul = read('app/djm-os-ux-overhaul.css');
   assert.match(responsive, /\.djm-os-product-nav,[\s\S]*min-width: 0;[\s\S]*max-width: 100%;/);
-  assert.match(overhaul, /\.ux-settings-hero \{ margin-left: -12px; margin-right: -12px;/);
+  assert.match(responsive, /@media \(max-width: 420px\)[\s\S]*padding: 9px 6px;/);
+  assert.match(overhaul, /\.ux-settings-hero \{ margin-left: -10px; margin-right: -10px;/);
 });
 
 test('player navigation is Home, DJM and Me while legacy destinations stay contextual', () => {
