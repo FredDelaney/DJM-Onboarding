@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertTriangle, CheckCircle2, LoaderCircle } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { djmRpc } from '@/lib/djm-os';
 import styles from './TellDjmRecentCaptures.module.css';
@@ -50,24 +50,31 @@ export default function TellDjmRecentCaptures({
   onOpen: (captureId: string) => void;
 }) {
   const [items, setItems] = useState<RecentCapture[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const firstLoadRef = useRef(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (initial = false) => {
+    if (initial) setInitialLoading(true);
+    else setRefreshing(true);
+
     try {
       const result = await djmRpc<RecentCapture[]>('djm_tell_recent_captures', {
         p_limit: 8,
       });
       setItems(Array.isArray(result) ? result : []);
     } catch {
-      setItems([]);
+      if (initial) setItems([]);
     } finally {
-      setLoading(false);
+      if (initial) setInitialLoading(false);
+      else setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    const initial = firstLoadRef.current;
+    firstLoadRef.current = false;
+    void load(initial);
   }, [load, refreshKey]);
 
   return (
@@ -80,17 +87,17 @@ export default function TellDjmRecentCaptures({
         <button
           type="button"
           className={styles.refresh}
-          onClick={() => void load()}
-          disabled={loading}
+          onClick={() => void load(false)}
+          disabled={refreshing}
         >
-          {loading ? 'Checking...' : 'Refresh'}
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
-      {loading && !items.length ? (
+      {initialLoading && !items.length ? (
         <div className={styles.empty}>Checking your recent captures...</div>
       ) : items.length ? (
-        <div className={styles.list}>
+        <div className={styles.list} aria-busy={refreshing}>
           {items.map((item) => {
             const attention = ['needs_input', 'needs_review'].includes(item.status);
             const failed = ['partial', 'failed', 'budget_blocked'].includes(item.status);

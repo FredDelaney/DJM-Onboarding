@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import TellDjmCapture from '@/components/TellDjmCapture';
 import TellDjmRecentCaptures from '@/components/TellDjmRecentCaptures';
@@ -89,6 +89,10 @@ export default function TellDjmFullPage() {
   const [recentRefreshKey, setRecentRefreshKey] = useState(0);
   const [access, setAccess] = useState<TellAccess | null>(null);
 
+  const handleCaptureCompleted = useCallback(() => {
+    setRecentRefreshKey((value) => value + 1);
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const value = params.get('from') || '';
@@ -149,7 +153,6 @@ export default function TellDjmFullPage() {
     };
   }, []);
 
-
   useEffect(() => {
     setRouteContext(routeFallback);
     if (!sourceRoute.startsWith('/')) return;
@@ -194,7 +197,7 @@ export default function TellDjmFullPage() {
         context={context}
         resumeCaptureId={selectedCaptureId}
         maxAudioSeconds={Number(access.max_audio_seconds || 240)}
-        onCompleted={() => setRecentRefreshKey((value) => value + 1)}
+        onCompleted={handleCaptureCompleted}
       />
       <TellDjmRecentCaptures
         refreshKey={recentRefreshKey}
