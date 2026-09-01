@@ -39,6 +39,9 @@ verify_jwt = true
 [functions.refresh-player-peer-data]
 verify_jwt = true
 
+[functions.refresh-player-stats-free]
+verify_jwt = true
+
 [functions.weekly-player-refresh]
 verify_jwt = false
 

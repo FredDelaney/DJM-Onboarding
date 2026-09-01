@@ -4,7 +4,7 @@ import test from "node:test";
 
 const hub = readFileSync("components/PlayerConnectionHub.tsx", "utf8");
 const playerPage = readFileSync("app/admin/players/[id]/page.tsx", "utf8");
-const intelligence = readFileSync("components/PlayerIntelligencePanel.tsx", "utf8");
+const statsPanel = readFileSync("components/PlayerStatsPanel.tsx", "utf8");
 const providerContract = readFileSync(
   "supabase/migrations/20260830184500_djm_player_provider_snapshot_contract_v1.sql",
   "utf8",
@@ -32,8 +32,8 @@ test("connected sources persist on the canonical player record", () => {
   assert.match(hub, /onPlayerChange\(data as PlayerRecord\)/);
 });
 
-test("saving a football source starts the permitted provider ladder without scraping Transfermarkt", () => {
-  assert.match(hub, /refresh-player-data-universal/);
+test("saving a football source starts the free stats ladder without scraping Transfermarkt", () => {
+  assert.match(hub, /refresh-player-stats-free/);
   assert.match(hub, /lastSync > sevenDaysAgo/);
   assert.match(hub, /void refresh\("background"\)/);
   assert.match(hub, /\/profil\\\/spieler\\\/\\d\+/);
@@ -51,12 +51,14 @@ test("provider snapshot storage accepts every deployed refresh provider", () => 
   assert.match(hub, /player_provider_stat_snapshots/);
 });
 
-test("global intelligence is concise while advanced evidence remains behind progressive disclosure", () => {
-  assert.match(playerPage, /<PlayerIntelligencePanel[\s\S]*compact/);
-  assert.match(intelligence, /DJM GLOBAL INTELLIGENCE/);
-  assert.match(intelligence, /SCORE DRIVERS/);
-  assert.match(intelligence, /<details/);
-  assert.match(intelligence, /Analyst diagnostics/);
-  assert.match(intelligence, /Missing evidence is treated as uncertainty, never as zero performance/);
-  assert.match(intelligence, /5Y OUTLOOK/);
+test("player overview exposes sourced stats while unfinished intelligence stays hidden", () => {
+  assert.match(playerPage, /<PlayerStatsPanel[\s\S]*compact/);
+  assert.doesNotMatch(playerPage, /<PlayerIntelligencePanel/);
+  assert.match(statsPanel, /PLAYER STATS/);
+  assert.match(statsPanel, /STATS ONLY/);
+  assert.match(statsPanel, /career_entries/);
+  assert.match(statsPanel, /Refresh free stats/);
+  assert.match(statsPanel, /Scoring, projections and player[\s\S]*comparison are intentionally hidden/);
+  assert.doesNotMatch(statsPanel, /DJM GLOBAL INTELLIGENCE/);
+  assert.doesNotMatch(statsPanel, /5Y OUTLOOK/);
 });
