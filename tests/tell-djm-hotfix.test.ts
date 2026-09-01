@@ -12,10 +12,16 @@ const resolverMigration = readFileSync(
 );
 
 test('Tell DJM desktop launcher leaves the top workspace visible', () => {
-  assert.match(launcherCss, /place-items:start center/);
-  assert.match(launcherCss, /padding:84px 18px 18px/);
-  assert.match(launcherCss, /calc\(100vh - 102px\)/);
-  assert.match(launcherCss, /@media\(max-width:760px\).*place-items:end center/s);
+  assert.match(launcherCss, /place-items:\s*start center/);
+  assert.match(
+    launcherCss,
+    /padding:\s*max\(84px,\s*env\(safe-area-inset-top\)\)\s+18px/,
+  );
+  assert.match(launcherCss, /calc\(100dvh - 102px\)/);
+  assert.match(
+    launcherCss,
+    /@media\s*\(max-width:\s*760px\)[\s\S]*place-items:\s*end center/,
+  );
 });
 
 test('Tell DJM resolver qualifies pg_trgm similarity under locked search_path', () => {
