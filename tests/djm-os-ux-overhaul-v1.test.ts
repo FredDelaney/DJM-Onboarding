@@ -88,8 +88,9 @@ test('player Home has one dominant action and no second career navigation system
 test('routine player maintenance is one-click and not a CSV or JSON upload workflow', () => {
   const admin = read('app/admin/page.tsx');
   assert.match(admin, /Update all/);
-  assert.match(admin, /refresh-player-data-universal/);
-  assert.match(admin, /refresh-player-peer-data/);
+  assert.match(admin, /refresh-player-stats-free/);
+assert.doesNotMatch(admin, /refresh-player-data-universal/);
+assert.doesNotMatch(admin, /refresh-player-peer-data/);
   assert.match(admin, /if \(!isAdmin \|\| batchBusy\) return/);
   assert.doesNotMatch(admin, /type="file"/);
   assert.doesNotMatch(admin, /accept=.*csv/i);
