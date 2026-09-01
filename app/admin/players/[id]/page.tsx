@@ -47,8 +47,8 @@ import ClubReadyPanel
 import SeasonRecordEditor
   from '@/components/SeasonRecordEditor';
 
-import PlayerIntelligencePanel
-  from '@/components/PlayerIntelligencePanel';
+import PlayerStatsPanel
+  from '@/components/PlayerStatsPanel';
 
 import PlayerConnectionHub
   from '@/components/PlayerConnectionHub';
@@ -2788,7 +2788,7 @@ const removePlayer=async(
             </aside>
             </div>
 
-            <PlayerIntelligencePanel
+            <PlayerStatsPanel
               playerId={id}
               compact
             />
