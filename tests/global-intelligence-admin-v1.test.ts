@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migration = readFileSync(
-  'supabase/migrations/20260831203000_djm_global_intelligence_admin_v1.sql',
+  'supabase/migrations/20260831200726_djm_global_intelligence_admin_v1.sql',
   'utf8',
 );
 const panel = readFileSync('components/PlayerIntelligencePanel.tsx', 'utf8');
@@ -39,14 +39,14 @@ test('official evidence is refreshed weekly without a paid provider dependency',
 });
 
 test('the admin score is visual, automated and honest about missing evidence', () => {
-  assert.match(panel, /GLOBAL PLAYER INTELLIGENCE/);
-  assert.match(panel, /V7\.1 diversity-calibrated model/);
-  assert.match(panel, /componentOrder/);
-  assert.match(panel, /ComponentBar/);
-  assert.match(panel, /Missing data is never scored as zero/);
-  assert.match(panel, /Auto collecting/);
-  assert.match(panel, /refresh-official-football-data/);
+  assert.match(panel, /DJM GLOBAL INTELLIGENCE/);
+  assert.match(panel, /V7\.1/);
+  assert.match(panel, /SCORE DRIVERS/);
+  assert.match(panel, /SignalCard/);
+  assert.match(panel, /Missing evidence is treated as uncertainty, never as zero performance/);
+  assert.match(panel, /5Y OUTLOOK/);
   assert.match(panel, /djm_refresh_player_global_intelligence/);
+  assert.match(panel, /CALIBRATING/);
   assert.doesNotMatch(panel, /Recalculate V5/);
 });
 

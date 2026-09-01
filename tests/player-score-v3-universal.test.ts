@@ -63,9 +63,9 @@ test("TheSportsDB does not overwrite reviewed evidence owned by another source",
 test("current player intelligence UI keeps the historical refresh path under the global model", () => {
   assert.match(panel, /refresh-player-data-universal/);
   assert.match(panel, /djm_player_global_intelligence/);
-  assert.match(panel, /GLOBAL PLAYER INTELLIGENCE/);
+  assert.match(panel, /DJM GLOBAL INTELLIGENCE/);
   assert.match(panel, /score_tier/);
-  assert.match(panel, /provisional_confidence/);
+  assert.match(panel, /score\?\.confidence/);
   assert.match(panel, /Evidence confidence/);
   assert.doesNotMatch(panel, /neutral-imputed at 50/);
 });

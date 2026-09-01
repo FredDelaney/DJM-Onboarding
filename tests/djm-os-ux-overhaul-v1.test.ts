@@ -198,14 +198,15 @@ test('legacy top-level products redirect into the simplified information archite
   assert.match(read('app/(djm-os)/brain/page.tsx'), /redirect\('\/settings'\)/);
 });
 
-test('global intelligence preserves unknown evidence and keeps legacy exceptions separate', () => {
+test('global intelligence protects the V9 evidence and audit contract', () => {
   const source = read('components/PlayerIntelligencePanel.tsx');
-  assert.match(source, /Missing: treated as unknown/);
-  assert.match(source, /Advanced evidence and exceptions/);
-  assert.match(source, /manual_score/);
-  assert.match(source, /manual_potential_score/);
+  assert.match(source, /Missing evidence is treated as uncertainty, never as zero performance/);
+  assert.match(source, /Analyst diagnostics/);
+  assert.match(source, /Legacy V5/);
+  assert.match(source, /Audit-only preview · never canonical/);
   assert.match(source, /djm_player_global_intelligence/);
-  assert.match(source, /V5 remains stored for audit compatibility/);
+  assert.doesNotMatch(source, /manual_score/);
+  assert.doesNotMatch(source, /manual_potential_score/);
 });
 
 test('simplification preserves player-service operations and moves admin utilities to settings', () => {
