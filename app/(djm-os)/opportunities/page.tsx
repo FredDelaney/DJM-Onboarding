@@ -276,6 +276,36 @@ export default function OpportunitiesPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const position =
+      selectedNeed?.need_position ||
+      selectedNeed?.position ||
+      selectedNeed?.title ||
+      null;
+    const detail = selectedNeed
+      ? {
+          route: '/opportunities',
+          context_type: 'club_need',
+          label: [selectedNeed.organisation_name, position]
+            .filter(Boolean)
+            .join(' · '),
+          organisation_id: selectedNeed.organisation_id || null,
+          organisation_name: selectedNeed.organisation_name || null,
+          person_id: selectedNeed.source_person_id || null,
+          person_name: selectedNeed.source_person_name || null,
+          club_need_id: selectedNeed.id || null,
+          need_position: position,
+        }
+      : null;
+
+    window.dispatchEvent(new CustomEvent('djm:tell-context', { detail }));
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent('djm:tell-context', { detail: null }),
+      );
+    };
+  }, [selectedNeed]);
+
   const activeNeeds = useMemo(
     () =>
       needs.filter((need) =>
