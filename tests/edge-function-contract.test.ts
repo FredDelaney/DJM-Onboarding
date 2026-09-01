@@ -23,6 +23,8 @@ test('every deployed Edge Function has source and explicit JWT configuration', (
     'djm-build-src-00',
     'djm-network-capture',
     'djm-network-import',
+    'djm-tell-capture',
+    'djm-tell-process',
     'djm-transfermarkt-enrich',
     'import-player-evidence-json',
     'import-player-stats',
