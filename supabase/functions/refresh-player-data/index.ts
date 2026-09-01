@@ -466,8 +466,11 @@ Deno.serve(async(req)=>{
     const {data:authData,error:authError}=await admin.auth.getUser(token);if(authError||!authData?.user)return json({ok:false,error:"Unauthorized"},401);
     const {data:profile}=await admin.from("profiles").select("role").eq("id",authData.user.id).maybeSingle();if(profile?.role!=="admin")return json({ok:false,error:"Admin access required"},403);
     const keys=await resolveProviderKeys();
-    const body=await req.json().catch(()=>({}));
-    if(String(body?.mode||"refresh").toLowerCase()==="status"){
+const body=await req.json().catch(()=>({}));
+const mode=String(body?.mode||"refresh").toLowerCase();
+const statsOnly=mode==="free_stats";
+
+if(mode==="status"){
       const {data:status,error:statusError}=await admin.rpc("djm_refresh_player_data_context",{p_mode:"status",p_payload:{}});
       if(statusError)throw statusError;
       return json({ok:true,provider_priority:["pitchapi_current","api_football_historical"],pitchapi_configured:Boolean(keys.pitchKey),api_football_configured:Boolean(keys.apiKey),
@@ -478,7 +481,7 @@ Deno.serve(async(req)=>{
     if(pe)throw pe;if(!player)return json({ok:false,error:"Player not found"},404);
 
     let current=null,currentError=null;
-    if(keys.pitchKey){try{current=await pitchCurrentRefresh(admin,player,authData.user.id,keys.pitchKey)}catch(e){currentError=e instanceof Error?e.message:String(e)}}
+    if(keys.pitchKey&&!statsOnly){try{current=await pitchCurrentRefresh(admin,player,authData.user.id,keys.pitchKey)}catch(e){currentError=e instanceof Error?e.message:String(e)}}
     if(current?.ok){
       const {error:ue}=await admin.from("players").update(current.patch).eq("id",player.id);if(ue)throw ue;
       let scoreResult=null;try{const{data,error}=await caller.rpc("djm_player_scorecard",{p_player_id:player.id});if(error)throw error;scoreResult=data}catch(e){console.warn(JSON.stringify({provider:"pitchapi",operation:"recalculate_player_score",entity_id:player.id,result_status:"skipped",error:e instanceof Error?e.message:String(e)}))}
@@ -494,13 +497,18 @@ Deno.serve(async(req)=>{
       const patch={football_provider_ids:ids};if(!player.height_cm){const h=whole(fallback.profile?.height);if(h&&h>=140&&h<=220)patch.height_cm=h}
       if((!Array.isArray(player.nationalities)||!player.nationalities.length)&&fallback.profile?.nationality)patch.nationalities=[String(fallback.profile.nationality)];
       const{error}=await admin.from("players").update(patch).eq("id",player.id);if(error)throw error;
-      return json({ok:true,primary_provider:"API-Football",current_data:false,access_mode:"historical_fallback",pitchapi_reason:current?.reason||currentError||"PitchAPI current coverage unavailable.",
+      return json({ok:true,primary_provider:"API-Football",current_data:false,access_mode:statsOnly?"free_stats":"historical_fallback",pitchapi_reason:statsOnly
+  ?"Deep provider intentionally skipped in free stats mode."
+  :current?.reason||currentError||"PitchAPI current coverage unavailable.",
+                   score_refresh:false,
         seasons_checked:fallback.seasons,rows_inserted:fallback.inserted,rows_updated:fallback.updated,conflicts_kept_for_review:fallback.conflicts,
-        message:"PitchAPI current coverage was unavailable for this player. DJM refreshed historical/profile evidence from API-Football but did not treat it as current performance."});
+        message:statsOnly
+  ?"Free player stats refreshed from API-Football without running DJM scoring."
+  :"PitchAPI current coverage was unavailable for this player. DJM refreshed historical/profile evidence from API-Football but did not treat it as current performance."});
     }
-    return json({ok:false,error:"No free provider could supply usable data for this player.",pitchapi_reason:current?.reason||currentError||"PitchAPI key or coverage unavailable.",api_football_reason:fallback?.reason||"API-Football key or historical record unavailable.",existing_data_changed:false},422);
-  }catch(e){
-    const message=e instanceof Error?e.message:"Player data refresh failed";
+    return json({ok:false,error:"No free provider could supply usable data for this player.",pitchapi_reason:statsOnly
+  ?"Deep provider intentionally skipped in free stats mode."
+  :current?.reason||currentError||"PitchAPI key or coverage unavailable.";
     console.error(JSON.stringify({operation:"refresh_player",result_status:"failed",error:message}));
     return json({ok:false,error:message,existing_data_changed:false},500);
   }
