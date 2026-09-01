@@ -1,0 +1,723 @@
+.needGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.needCard {
+  min-width: 0;
+  display: grid;
+  gap: 15px;
+  padding: 20px;
+  border: 1px solid #dbe4e9;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(229, 185, 53, 0.10), transparent 13rem),
+    #fff;
+  box-shadow: 0 14px 36px rgba(6, 31, 58, 0.055);
+}
+
+.needCard:hover {
+  border-color: #c7d5dd;
+  box-shadow: 0 18px 42px rgba(6, 31, 58, 0.08);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.cardHeader > svg {
+  flex: 0 0 auto;
+  color: #718796;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.priorityChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f3f6f7;
+  color: #647a89;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.clubName {
+  display: block;
+  margin-top: 13px;
+  color: #5d7484;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.needCard h3 {
+  margin: 4px 0 0;
+  color: #122f46;
+  font-size: 23px;
+  line-height: 1.06;
+  letter-spacing: -.035em;
+}
+
+.secondary {
+  margin: 6px 0 0;
+  color: #718593;
+  font-size: 10px;
+}
+
+.cardFacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.cardFacts > div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e5ebef;
+  border-radius: 11px;
+  background: #f8fafb;
+}
+
+.cardFacts span,
+.cardFacts strong {
+  display: block;
+}
+
+.cardFacts span {
+  color: #8a99a4;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.cardFacts strong {
+  overflow: hidden;
+  margin-top: 5px;
+  color: #25455c;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardNotes {
+  min-height: 49px;
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #536d80;
+  font-size: 11px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.cardRelationship {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid #e3e9ed;
+  border-radius: 11px;
+  background: #fff;
+  color: #49677c;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.cardRelationship svg {
+  flex: 0 0 auto;
+  color: #2f7653;
+}
+
+.cardRelationship span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #edf1f3;
+  color: #7d8d98;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.cardFooter > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardFooter > div span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.workspace {
+  margin-bottom: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(13, 49, 76, .10);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(6, 31, 58, .10);
+}
+
+.workspaceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 24px 26px;
+  border-bottom: 1px solid #e9eef1;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(229,185,53,.18), transparent 20rem),
+    linear-gradient(135deg, #f9fbfc, #fff);
+}
+
+.workspaceClub {
+  display: block;
+  margin-top: 13px;
+  color: #5b7384;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.workspaceHeader h2 {
+  margin: 5px 0 0;
+  color: #0d2b42;
+  font-size: clamp(26px, 3.3vw, 40px);
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+
+.workspaceHeader p {
+  max-width: 740px;
+  margin: 10px 0 0;
+  color: #667d8e;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.workspaceActions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.workspaceBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(310px, .65fr);
+  gap: 0;
+}
+
+.briefColumn {
+  min-width: 0;
+  padding: 22px;
+  border-right: 1px solid #e9eef1;
+}
+
+.sideColumn {
+  min-width: 0;
+  padding: 22px;
+  background: #f8fafb;
+}
+
+.briefSection,
+.sideCard {
+  border: 1px solid #e1e8ec;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.briefSection {
+  padding: 18px;
+}
+
+.sideCard {
+  overflow: hidden;
+}
+
+.sideCard + .sideCard {
+  margin-top: 14px;
+}
+
+.sectionHeading,
+.sideCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionHeading {
+  margin-bottom: 15px;
+}
+
+.sectionHeading span,
+.sideCardHeader span,
+.editSectionHead span,
+.noteBlock span {
+  color: #8a99a5;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.sectionHeading h3,
+.sideCardHeader h3,
+.editSectionHead h3 {
+  margin: 4px 0 0;
+  color: #14364e;
+  font-size: 15px;
+  letter-spacing: -.02em;
+}
+
+.sectionHeading > svg,
+.sideCardHeader > svg {
+  color: #6f8594;
+}
+
+.factGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.briefFact {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid #e5ebee;
+  border-radius: 11px;
+  background: #fafcfc;
+}
+
+.briefFact > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #82939f;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.briefFact > span svg {
+  flex: 0 0 auto;
+  color: #486a80;
+}
+
+.briefFact strong {
+  display: block;
+  margin-top: 8px;
+  overflow: hidden;
+  color: #193d55;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+}
+
+.notesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.noteBlock {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #e1e8ec;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.noteFeatured {
+  grid-column: 1 / -1;
+  border-color: rgba(229,185,53,.45);
+  background: #fffdf5;
+}
+
+.noteBlock p {
+  margin: 8px 0 0;
+  color: #4d687b;
+  font-size: 11px;
+  line-height: 1.62;
+  white-space: pre-wrap;
+}
+
+.sideCardHeader {
+  padding: 15px 16px 13px;
+  border-bottom: 1px solid #e7ecef;
+}
+
+.sideCardHeader .ux-secondary-action {
+  min-height: 34px;
+}
+
+.contactCard {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+}
+
+.contactCard strong {
+  color: #14364e;
+  font-size: 14px;
+}
+
+.contactCard span {
+  color: #5d7485;
+  font-size: 10px;
+}
+
+.contactCard small {
+  color: #7b8d9a;
+  font-size: 9px;
+}
+
+.contactCard a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 11px;
+  border-top: 1px solid #e8edef;
+  color: #234e68;
+  font-size: 10px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.missingCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  color: #8b6b1d;
+}
+
+.missingCard strong {
+  color: #5e4916;
+  font-size: 11px;
+}
+
+.missingCard p {
+  margin: 4px 0 0;
+  color: #7e6a36;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.taskList {
+  display: grid;
+}
+
+.taskRow {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 13px 15px;
+  border-top: 1px solid #edf1f3;
+}
+
+.taskRow:first-child {
+  border-top: 0;
+}
+
+.taskRow strong {
+  color: #173a51;
+  font-size: 10px;
+}
+
+.taskRow p {
+  margin: 3px 0;
+  color: #647c8d;
+  font-size: 9px;
+}
+
+.taskRow small {
+  color: #8b99a3;
+  font-size: 8px;
+  text-transform: capitalize;
+}
+
+.taskDone {
+  opacity: .56;
+}
+
+.editTaskButton {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid #d7e1e6;
+  border-radius: 8px;
+  background: #fff;
+  color: #49697d;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.emptyTasks {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 16px;
+  color: #7e8e99;
+}
+
+.emptyTasks p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.taskForm,
+.editForm {
+  display: grid;
+  gap: 14px;
+}
+
+.taskForm {
+  padding: 15px;
+  border-bottom: 1px solid #e7ecef;
+  background: #fbfcfd;
+}
+
+.editForm {
+  padding: 22px;
+}
+
+.editForm > section {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e9eef1;
+}
+
+.editForm > section:last-of-type {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.editSectionHead {
+  margin-bottom: 12px;
+}
+
+.formGridTwo,
+.formGridFour {
+  display: grid;
+  gap: 10px;
+}
+
+.formGridTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.formGridFour {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.editForm label,
+.taskForm label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: #456277;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.editForm input,
+.editForm select,
+.editForm textarea,
+.taskForm input,
+.taskForm select {
+  width: 100%;
+  min-height: 41px;
+  padding: 9px 10px;
+  border: 1px solid #d4dfe5;
+  border-radius: 9px;
+  outline: 0;
+  background: #fff;
+  color: #173a51;
+  font: inherit;
+  font-size: 11px;
+}
+
+.editForm textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.editForm input:focus,
+.editForm select:focus,
+.editForm textarea:focus,
+.taskForm input:focus,
+.taskForm select:focus {
+  border-color: #7995a7;
+  box-shadow: 0 0 0 3px rgba(34,83,113,.07);
+}
+
+.formActions,
+.taskFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.candidateIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #edf2f5;
+  color: #4a687c;
+}
+
+@media (max-width: 1160px) {
+  .needGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspaceBody {
+    grid-template-columns: 1fr;
+  }
+
+  .briefColumn {
+    border-right: 0;
+    border-bottom: 1px solid #e9eef1;
+  }
+
+  .factGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .formGridFour {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .workspaceHeader {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .workspaceActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .workspaceActions > button {
+    flex: 1 1 auto;
+  }
+
+  .briefColumn,
+  .sideColumn,
+  .editForm {
+    padding: 16px;
+  }
+
+  .factGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .notesGrid,
+  .formGridTwo,
+  .formGridFour {
+    grid-template-columns: 1fr;
+  }
+
+  .noteFeatured {
+    grid-column: auto;
+  }
+
+  .cardFacts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardActions {
+    grid-template-columns: 1fr;
+  }
+
+  .cardFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .taskRow {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .needCard {
+    padding: 16px;
+    border-radius: 15px;
+  }
+
+  .workspace {
+    border-radius: 17px;
+  }
+
+  .workspaceHeader h2 {
+    font-size: 28px;
+  }
+
+  .factGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspaceActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .taskRow {
+    grid-template-columns: 1fr;
+  }
+
+  .editTaskButton {
+    width: fit-content;
+  }
+}
