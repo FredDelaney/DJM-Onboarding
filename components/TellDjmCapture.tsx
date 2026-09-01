@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Send,
   Square,
+  Trash2,
   Type,
   WifiOff,
 } from 'lucide-react';
@@ -128,6 +129,7 @@ export default function TellDjmCapture({
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [answering, setAnswering] = useState<string | null>(null);
+  const [deletingCapture, setDeletingCapture] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -582,6 +584,42 @@ export default function TellDjmCapture({
     }
   };
 
+  const deleteCapture = async () => {
+    const captureId = receipt?.capture?.id;
+    if (!captureId || deletingCapture) return;
+
+    const ok = window.confirm(
+      'Delete this Tell DJM update? This removes the unresolved capture from DJM. ' +
+        'It cannot delete an update that has already applied changes unless those changes are undone first.',
+    );
+
+    if (!ok) return;
+
+    setDeletingCapture(true);
+    setError('');
+
+    try {
+      await djmRpc('djm_tell_delete_capture', {
+        p_capture_id: captureId,
+      });
+
+      forgetActiveTellDjmCapture(captureId);
+      displayCaptureRef.current = null;
+      setReceipt(null);
+      setStatus('Tell DJM update deleted.');
+      onCompleted?.({
+        capture: {
+          id: captureId,
+          status: 'deleted',
+        },
+      });
+    } catch (deleteError) {
+      setError(friendlyError(deleteError));
+    } finally {
+      setDeletingCapture(false);
+    }
+  };
+
   const terminalStatus = receipt?.capture?.status || '';
   const needsAttention = [
     'needs_input',
@@ -590,6 +628,17 @@ export default function TellDjmCapture({
     'failed',
     'budget_blocked',
   ].includes(terminalStatus);
+  const hasAppliedActions = (receipt?.actions || []).some(
+    (action) => action.status === 'applied',
+  );
+  const canDeleteCapture =
+    [
+      'needs_input',
+      'needs_review',
+      'partial',
+      'failed',
+      'budget_blocked',
+    ].includes(terminalStatus) && !hasAppliedActions;
 
   return (
     <div className={styles.shell}>
@@ -738,6 +787,21 @@ export default function TellDjmCapture({
                 Retry failed updates
               </button>
               <span>DJM reuses the saved transcript and plan. It does not create duplicates.</span>
+            </div>
+          ) : null}
+
+          {canDeleteCapture ? (
+            <div className={styles.retryRow}>
+              <button
+                type="button"
+                className={styles.retryButton}
+                onClick={() => void deleteCapture()}
+                disabled={deletingCapture}
+              >
+                <Trash2 size={12} />
+                {deletingCapture ? 'Deleting...' : 'Delete this update'}
+              </button>
+              <span>Discard this unresolved Tell DJM capture.</span>
             </div>
           ) : null}
 

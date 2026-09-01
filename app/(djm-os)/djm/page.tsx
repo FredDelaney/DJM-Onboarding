@@ -62,6 +62,7 @@ export default function DjmHomePage() {
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(EMPTY_PORTFOLIO);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
+  const [actionBusy, setActionBusy] = useState('');
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -72,7 +73,7 @@ export default function DjmHomePage() {
         Promise.all([
           supabase.from('players').select('id,first_name,last_name,preferred_name,date_of_birth,primary_position,current_club,current_league,current_country,contract_status,contract_expiry,football_status,verification_status,agency_priority,next_action,next_action_due,current_season_label,current_season_start,transfermarkt_url,wyscout_url,stats_url'),
           supabase.from('player_private').select('player_id,market_preferences,preferred_move_timing,travel_availability,passports_held,work_rights'),
-          supabase.from('player_requests').select('id,player_id,title,message,request_type,status,due_at,player_reply,created_at,updated_at'),
+          supabase.from('player_requests').select('id,player_id,title,message,request_type,status,due_at,player_reply,created_by,created_at,updated_at'),
           supabase.from('weekly_checkins').select('id,player_id,week_start,availability_status,club_situation_changed,club_situation_notes,fitness_status,fitness_notes,support_request,player_notes,submitted_at').order('week_start', { ascending: false }),
           supabase.from('player_opportunities').select('id,player_id,club_name,country,stage,next_action,next_action_due,updated_at'),
           supabase.from('player_agreements').select('id,player_id,agreement_type,status,title,start_date,end_date,visible_to_player,created_at,updated_at'),
@@ -134,6 +135,9 @@ export default function DjmHomePage() {
       action_at: issue.dueAt || null,
       kind: issue.kind,
       source: 'player' as const,
+      record_id: issue.recordId || null,
+      can_complete:
+        ['message', 'request'].includes(issue.kind) && Boolean(issue.recordId),
     }));
 
     const commandItems = (Array.isArray(command?.focus) ? command.focus : []).map((item: any) => ({
@@ -145,6 +149,8 @@ export default function DjmHomePage() {
       action_at: item.action_at || null,
       kind: item.kind || 'system',
       source: 'system' as const,
+      record_id: item.id || null,
+      can_complete: item.kind === 'task' || item.action === 'complete',
     }));
 
     const deduped = new Map<string, any>();
@@ -158,6 +164,35 @@ export default function DjmHomePage() {
       .sort((a, b) => b.score - a.score || String(a.action_at || '').localeCompare(String(b.action_at || '')))
       .slice(0, 12);
   }, [command?.focus, portfolio.issues]);
+
+  const completeQueueItem = async (item: any) => {
+    if (!item?.record_id || !item?.can_complete || actionBusy) return;
+
+    setActionBusy(item.id);
+    setError('');
+
+    try {
+      if (item.source === 'system' && item.kind === 'task') {
+        await djmRpc('djm_network_set_task_status', {
+          p_task_id: item.record_id,
+          p_status: 'completed',
+        });
+      } else if (
+        item.source === 'player' &&
+        ['message', 'request'].includes(item.kind)
+      ) {
+        await djmRpc('djm_complete_player_request', {
+          p_request_id: item.record_id,
+        });
+      }
+
+      await load();
+    } catch (completeError) {
+      setError(friendlyError(completeError));
+    } finally {
+      setActionBusy('');
+    }
+  };
 
   const liveNeeds = Array.isArray(command?.opportunities) ? command.opportunities : [];
   const summary = command?.summary || {};
@@ -196,15 +231,39 @@ export default function DjmHomePage() {
           {!busy && combinedQueue.length ? (
             <div className="ux-action-list">
               {combinedQueue.map((item, index) => (
-                <Link className="ux-action-row" href={item.href} key={item.id}>
-                  <div className={`ux-action-rank ${item.score >= 90 ? 'is-urgent' : item.score >= 70 ? 'is-next' : ''}`}>{index + 1}</div>
-                  <div className="ux-action-copy">
-                    <strong>{item.title}</strong>
-                    <p>{item.subtitle}</p>
-                    <small>{item.action_at ? compactDateTime(item.action_at) : item.source === 'player' ? 'Player service' : 'DJM system'}</small>
-                  </div>
-                  <ArrowRight size={17} />
-                </Link>
+                <div
+                  key={item.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: item.can_complete
+                      ? 'minmax(0,1fr) auto'
+                      : '1fr',
+                    gap: 8,
+                    alignItems: 'stretch',
+                  }}
+                >
+                  <Link className="ux-action-row" href={item.href}>
+                    <div className={`ux-action-rank ${item.score >= 90 ? 'is-urgent' : item.score >= 70 ? 'is-next' : ''}`}>{index + 1}</div>
+                    <div className="ux-action-copy">
+                      <strong>{item.title}</strong>
+                      <p>{item.subtitle}</p>
+                      <small>{item.action_at ? compactDateTime(item.action_at) : item.source === 'player' ? 'Player service' : 'DJM system'}</small>
+                    </div>
+                    <ArrowRight size={17} />
+                  </Link>
+
+                  {item.can_complete ? (
+                    <button
+                      type="button"
+                      className="ux-secondary-action"
+                      disabled={actionBusy === item.id}
+                      onClick={() => void completeQueueItem(item)}
+                      style={{ alignSelf: 'center', minWidth: 72 }}
+                    >
+                      {actionBusy === item.id ? 'Saving...' : 'Done'}
+                    </button>
+                  ) : null}
+                </div>
               ))}
             </div>
           ) : null}

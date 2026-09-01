@@ -37,6 +37,8 @@ import {
   supabase
 } from '@/lib/supabase';
 
+import {djmRpc} from '@/lib/djm-os';
+
 import {
   getClubReadyState
 } from '@/lib/clubReady';
@@ -110,6 +112,7 @@ export default function AdminPlayer(){
   const [reqTitle,setReqTitle]=useState('');
   const [reqMsg,setReqMsg]=useState('');
   const [reqType,setReqType]=useState('action');
+  const [replyingToRequestId,setReplyingToRequestId]=useState('');
 
   const [note,setNote]=useState('');
 
@@ -341,6 +344,7 @@ supabase
     requests.filter(
       r=>
         r.status!=='completed'
+        &&r.created_by==null
         &&
         ['message','signal']
           .includes(r.request_type)
@@ -1151,6 +1155,53 @@ flash('Photo updated');
 
  const sendRequest=async()=>{
   if(!reqTitle.trim()){
+    return;
+  }
+
+  if(replyingToRequestId){
+    if(!reqMsg.trim()){
+      flash('Write the reply before sending');
+      return;
+    }
+
+    try{
+      await djmRpc('djm_player_send_reply',{
+        p_player_id:id,
+        p_request_id:replyingToRequestId,
+        p_title:reqTitle.trim()||'Reply from DJM',
+        p_message:reqMsg.trim()
+      });
+
+      const push=
+        await supabase
+          .functions
+          .invoke(
+            'dispatch-player-push',
+            {
+              body:{
+                reason:'request'
+              }
+            }
+          );
+
+      setReqTitle('');
+      setReqMsg('');
+      setReqType('action');
+      setReplyingToRequestId('');
+      await load();
+
+      flash(
+        push.error
+          ?'Reply sent · push pending'
+          :'Reply sent'
+      );
+    }catch(replyError:any){
+      flash(
+        replyError?.message
+        ||'Could not send reply'
+      );
+    }
+
     return;
   }
 
@@ -2841,7 +2892,9 @@ const removePlayer=async(
                       >
                         {r.request_type
                           ==='message'
-                          ?'Player message · '
+                          ?r.created_by
+                            ?'DJM message · '
+                            :'Player message · '
                           :r.request_type
                             ==='signal'
                             ?'Check-in alert · '
@@ -2857,6 +2910,26 @@ const removePlayer=async(
                         {r.status}
                       </span>
                     </div>
+
+                    {r.status!=='completed'
+                      &&r.created_by==null
+                      &&['message','signal'].includes(r.request_type)
+                      ?(
+                        <button
+                          type="button"
+                          className="btn btn-quiet btn-sm"
+                          onClick={()=>{
+                            setReplyingToRequestId(r.id);
+                            setReqTitle(`Re: ${r.title}`);
+                            setReqMsg('');
+                            setReqType('message');
+                          }}
+                        >
+                          Reply
+                        </button>
+                      )
+                      :null
+                    }
 
                     <span className="tiny muted">
                       {fmtDate(
@@ -2925,6 +2998,35 @@ const removePlayer=async(
               )}
 
               <div className="stack">
+                {replyingToRequestId&&(
+                  <div
+                    className="small muted"
+                    style={{
+                      display:'flex',
+                      alignItems:'center',
+                      justifyContent:'space-between',
+                      gap:10
+                    }}
+                  >
+                    <span>
+                      Replying to {requests.find(r=>r.id===replyingToRequestId)?.title||'player message'}
+                    </span>
+
+                    <button
+                      type="button"
+                      className="btn btn-quiet btn-sm"
+                      onClick={()=>{
+                        setReplyingToRequestId('');
+                        setReqTitle('');
+                        setReqMsg('');
+                        setReqType('action');
+                      }}
+                    >
+                      Cancel reply
+                    </button>
+                  </div>
+                )}
+
                 <input
                   className="input"
                   value={reqTitle}
@@ -2952,10 +3054,14 @@ const removePlayer=async(
                   onClick={sendRequest}
                   disabled={
                     !reqTitle.trim()
+                    ||(Boolean(replyingToRequestId)&&!reqMsg.trim())
                   }
                 >
                   <Send size={15}/>
-                  Send to player
+                  {replyingToRequestId
+                    ?'Send reply'
+                    :'Send to player'
+                  }
                 </button>
               </div>
             </aside>

@@ -27,6 +27,7 @@ export type AdminIssue = {
   href: string;
   score: number;
   dueAt?: string | null;
+  recordId?: string | null;
 };
 
 export type AdminPlayerSnapshot = {
@@ -220,11 +221,15 @@ export function buildAdminPortfolio({
     const playerRequests = (requestsByPlayer.get(playerId) || []).filter(
       (request) => request.status !== 'completed' && request.status !== 'dismissed',
     );
-    const incomingMessages = playerRequests.filter((request) =>
-      ['message', 'signal'].includes(String(request.request_type)),
+    const incomingMessages = playerRequests.filter(
+      (request) =>
+        request.created_by == null &&
+        ['message', 'signal'].includes(String(request.request_type)),
     );
     const outgoingRequests = playerRequests.filter(
-      (request) => !['message', 'signal'].includes(String(request.request_type)),
+      (request) =>
+        request.created_by != null &&
+        !['message', 'signal'].includes(String(request.request_type)),
     );
     const playerOpportunities = opportunitiesByPlayer.get(playerId) || [];
     const liveOpportunities = playerOpportunities.filter(
@@ -271,6 +276,7 @@ export function buildAdminPortfolio({
         href: issueHref(playerId, 'inbox'),
         score: 110 + incomingMessages.length,
         dueAt: message.created_at,
+        recordId: String(message.id),
       });
     }
 
@@ -456,6 +462,7 @@ export function buildAdminPortfolio({
         href: issueHref(playerId, 'inbox'),
         score: 36 + outgoingRequests.length,
         dueAt: outgoingRequests[0].due_at,
+        recordId: String(outgoingRequests[0].id),
       });
     }
 

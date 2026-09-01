@@ -24,6 +24,7 @@ import {
   Search,
   ShieldCheck,
   Target,
+  Trash2,
   UserRound,
   WalletCards,
   X,
@@ -252,6 +253,7 @@ export default function OpportunitiesPage() {
   const [taskForm, setTaskForm] = useState<TaskForm>(emptyTaskForm);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskBusy, setTaskBusy] = useState(false);
+  const [deletingNeed, setDeletingNeed] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -608,6 +610,58 @@ export default function OpportunitiesPage() {
     }
   };
 
+  const deleteNeed = async () => {
+    if (!selectedNeed || deletingNeed) return;
+
+    setError('');
+    setMessage('');
+
+    try {
+      const impact: any = await djmRpc('djm_delete_preview', {
+        p_entity_type: 'club_need',
+        p_entity_id: selectedNeed.id,
+      });
+
+      const position =
+        selectedNeed.need_position ||
+        selectedNeed.position ||
+        selectedNeed.title ||
+        'club need';
+
+      const ok = window.confirm(
+        `Delete ${selectedNeed.organisation_name} · ${position}? ` +
+          `This permanently removes this recruitment need and ${Number(
+            impact?.matches || 0,
+          )} candidate match${Number(impact?.matches || 0) === 1 ? '' : 'es'}. ` +
+          'Existing deals and follow-up tasks are kept but disconnected from this need. ' +
+          'The club and its contacts are not deleted.',
+      );
+
+      if (!ok) return;
+
+      setDeletingNeed(true);
+
+      await djmRpc('djm_delete_entity', {
+        p_entity_type: 'club_need',
+        p_entity_id: selectedNeed.id,
+        p_confirm: true,
+      });
+
+      setSelectedNeed(null);
+      setWorkspace(null);
+      setEditingNeed(false);
+      setShowTaskForm(false);
+      setTaskForm(emptyTaskForm);
+      setMessage('Club need deleted.');
+
+      await load();
+    } catch (deleteError) {
+      setError(friendlyError(deleteError));
+    } finally {
+      setDeletingNeed(false);
+    }
+  };
+
   const createOpportunity = async (
     candidate: any,
     candidateType: 'signed' | 'prospect',
@@ -825,6 +879,8 @@ export default function OpportunitiesPage() {
                 setShowTaskForm(false);
               }}
               onFindCandidates={() => void openMatches(selectedNeed)}
+              deletingNeed={deletingNeed}
+              onDeleteNeed={() => void deleteNeed()}
               showTaskForm={showTaskForm}
               taskForm={taskForm}
               setTaskForm={setTaskForm}
@@ -1062,6 +1118,8 @@ function NeedWorkspace({
   onSaveNeed,
   onClose,
   onFindCandidates,
+  deletingNeed,
+  onDeleteNeed,
   showTaskForm,
   taskForm,
   setTaskForm,
@@ -1085,6 +1143,8 @@ function NeedWorkspace({
   onSaveNeed: (event: FormEvent) => Promise<void>;
   onClose: () => void;
   onFindCandidates: () => void;
+  deletingNeed: boolean;
+  onDeleteNeed: () => void;
   showTaskForm: boolean;
   taskForm: TaskForm;
   setTaskForm: Dispatch<SetStateAction<TaskForm>>;
@@ -1139,6 +1199,17 @@ function NeedWorkspace({
             <Edit3 size={15} />
             {editingNeed ? 'Cancel edit' : 'Edit brief'}
           </button>
+          <button
+            type="button"
+            className="ux-secondary-action"
+            onClick={onDeleteNeed}
+            disabled={deletingNeed}
+            style={{ color: '#9d2f2f' }}
+          >
+            <Trash2 size={15} />
+            {deletingNeed ? 'Deleting...' : 'Delete need'}
+          </button>
+
           <button type="button" className="ux-primary-action" onClick={onFindCandidates}>
             <Search size={15} />
             Find candidates
