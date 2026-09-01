@@ -99,13 +99,19 @@ export default function PlayersPage() {
         const player = queue.shift();
         if (!player) return;
         try {
-          const result: any = await djmInvoke('refresh-player-data-universal', { player_id: player.id });
-          try {
-            await djmInvoke('refresh-player-peer-data', { player_id: player.id });
-          } catch {
-            // Peer coverage is optional. The player refresh remains valid.
-          }
-          results.push({ id: player.id, ok: true, review: Boolean(result?.needs_review || result?.conflict_kept_for_review) });
+          const result: any = await djmInvoke('refresh-player-stats-free', {
+  player_id: player.id,
+});
+
+results.push({
+  id: player.id,
+  ok: Boolean(result?.ok),
+  review: Boolean(
+    result?.thesportsdb?.conflict ||
+    result?.thesportsdb?.conflict_kept_for_review ||
+    result?.api_football?.conflicts_kept_for_review,
+  ),
+});
         } catch {
           results.push({ id: player.id, ok: false });
         }
@@ -116,7 +122,7 @@ export default function PlayersPage() {
     const success = results.filter((row) => row.ok).length;
     const review = results.filter((row) => row.review).length;
     const failed = results.length - success;
-    setMessage(`${success} player${success === 1 ? '' : 's'} checked · ${review} need review · ${failed} failed.`);
+    setMessage(`${success} player${success === 1 ? '' : 's'} refreshed · ${review} need review · ${failed} failed.`);
     setBatchBusy(false);
     await load();
   };
