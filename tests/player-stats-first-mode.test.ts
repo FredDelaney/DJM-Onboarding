@@ -52,7 +52,7 @@ test('manual free refresh uses free sources and never requests a score rebuild',
   assert.doesNotMatch(freeRefresh, /djm_refresh_player_global_intelligence/);
 
   assert.match(refreshPlayerData, /statsOnly/);
-  assert.match(refreshPlayerData, /keys\.pitchKey && !statsOnly/);
+  assert.match(refreshPlayerData, /keys\.pitchKey\s*&&\s*!statsOnly/);
 });
 
 test('background free refresh remains rotating and stale-first', () => {
