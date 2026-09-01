@@ -78,7 +78,7 @@ test("current UI supersedes V4 copy while preserving transparent evidence semant
   assert.match(panel, /Evidence grade/);
   assert.match(panel, /Evidence range/);
   assert.match(panel, /djm_player_global_intelligence/);
-  assert.match(panel, /Missing: treated as unknown/);
+  assert.match(panel, /Missing evidence is treated as uncertainty, never as zero performance/);
   assert.doesNotMatch(panel, /neutral-imputed at 50/);
   assert.doesNotMatch(panel, /Missing: omitted from V4 provisional/);
 });

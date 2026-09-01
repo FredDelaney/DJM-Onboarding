@@ -53,10 +53,10 @@ test("provider snapshot storage accepts every deployed refresh provider", () => 
 
 test("global intelligence is concise while advanced evidence remains behind progressive disclosure", () => {
   assert.match(playerPage, /<PlayerIntelligencePanel[\s\S]*compact/);
-  assert.match(intelligence, /GLOBAL PLAYER INTELLIGENCE/);
-  assert.match(intelligence, /What is shaping the score/);
+  assert.match(intelligence, /DJM GLOBAL INTELLIGENCE/);
+  assert.match(intelligence, /SCORE DRIVERS/);
   assert.match(intelligence, /<details/);
-  assert.match(intelligence, /Advanced evidence and exceptions/);
-  assert.match(intelligence, /Missing data is never scored as zero/);
-  assert.match(intelligence, /Official data refreshes weekly/);
+  assert.match(intelligence, /Analyst diagnostics/);
+  assert.match(intelligence, /Missing evidence is treated as uncertainty, never as zero performance/);
+  assert.match(intelligence, /5Y OUTLOOK/);
 });

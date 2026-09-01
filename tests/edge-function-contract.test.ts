@@ -24,6 +24,7 @@ test('every deployed Edge Function has source and explicit JWT configuration', (
     'djm-network-capture',
     'djm-network-import',
     'djm-transfermarkt-enrich',
+    'import-player-evidence-json',
     'import-player-stats',
     'refresh-clubelo-team-strength',
     'refresh-global-football-identity',

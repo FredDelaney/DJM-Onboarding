@@ -52,7 +52,8 @@ test("Player Score recalculation uses the signed-in admin JWT", () => {
 
 test("player profile exposes one-click global refresh and a reviewed Transfermarkt value", () => {
   assert.match(panel, /Refresh intelligence/);
-  assert.match(panel, /Save reviewed value/);
+  assert.match(panel, /VERIFIED MARKET INPUT/);
+  assert.match(panel, /Save \+ rebuild score/);
   assert.match(panel, /djm_refresh_player_global_intelligence/);
   assert.match(panel, /transfermarkt_market_value/);
 });

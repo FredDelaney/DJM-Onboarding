@@ -176,10 +176,10 @@ test("score-driving source changes mark the score stale rather than silently lea
 test("the UI explains the global evidence state instead of presenting confidence as certainty", () => {
   assert.match(ui, /Evidence confidence/);
   assert.match(ui, /Evidence grade/);
-  assert.match(ui, /V7\.1 diversity-calibrated model/);
-  assert.match(ui, /current-level intelligence score, not a talent verdict/);
-  assert.match(ui, /evidence range is heuristic/);
-  assert.match(ui, /Missing: treated as unknown/);
+  assert.match(ui, /DJM Global Score V7\.1/);
+  assert.match(ui, /One score\. Global context\. Explainable evidence\./);
+  assert.match(ui, /Uncertainty band, not a statistical CI/);
+  assert.match(ui, /Missing evidence is treated as uncertainty, never as zero performance/);
   assert.match(ui, /djm_refresh_player_global_intelligence/);
   assert.doesNotMatch(ui, /neutral-imputed at 50/);
   assert.doesNotMatch(ui, /omitted from V4 provisional/);
