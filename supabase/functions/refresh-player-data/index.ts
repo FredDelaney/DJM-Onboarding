@@ -506,10 +506,26 @@ if(mode==="status"){
   ?"Free player stats refreshed from API-Football without running DJM scoring."
   :"PitchAPI current coverage was unavailable for this player. DJM refreshed historical/profile evidence from API-Football but did not treat it as current performance."});
     }
-    return json({ok:false,error:"No free provider could supply usable data for this player.",pitchapi_reason:statsOnly
-  ?"Deep provider intentionally skipped in free stats mode."
-  :current?.reason||currentError||"PitchAPI key or coverage unavailable.";
-    console.error(JSON.stringify({operation:"refresh_player",result_status:"failed",error:message}));
-    return json({ok:false,error:message,existing_data_changed:false},500);
+       return json({
+      ok:false,
+      error:"No free provider could supply usable data for this player.",
+      pitchapi_reason:statsOnly
+        ?"Deep provider intentionally skipped in free stats mode."
+        :current?.reason||currentError||"PitchAPI key or coverage unavailable.",
+      api_football_reason:fallback?.reason||"API-Football key or historical record unavailable.",
+      existing_data_changed:false,
+    },422);
+  }catch(e){
+    const message=e instanceof Error?e.message:"Player data refresh failed";
+    console.error(JSON.stringify({
+      operation:"refresh_player",
+      result_status:"failed",
+      error:message
+    }));
+    return json({
+      ok:false,
+      error:message,
+      existing_data_changed:false
+    },500);
   }
 });
