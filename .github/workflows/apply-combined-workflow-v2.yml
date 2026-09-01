@@ -43,11 +43,13 @@ jobs:
           from pathlib import Path
           path = Path('app/admin/players/[id]/page.tsx')
           text = path.read_text()
-          old = "|| (replyingToRequestId&&!reqMsg.trim())"
-          new = "|| (Boolean(replyingToRequestId)&&!reqMsg.trim())"
-          if old not in text:
-              raise SystemExit('Expected reply disabled expression not found')
-          path.write_text(text.replace(old, new, 1))
+          old = "||(replyingToRequestId&&!reqMsg.trim())"
+          new = "||(Boolean(replyingToRequestId)&&!reqMsg.trim())"
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit('Reply disabled expression was not found in either expected form')
+          path.write_text(text)
           PY
 
       - name: Install
