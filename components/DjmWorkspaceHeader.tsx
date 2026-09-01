@@ -14,6 +14,7 @@ import Link from 'next/link';
 import Brand from '@/components/Brand';
 import DjmGlobalSearch from '@/components/DjmGlobalSearch';
 import DjmQuickCapture from '@/components/DjmQuickCapture';
+import DjmTellDjmLauncher from '@/components/DjmTellDjmLauncher';
 import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
 
 const items: WorkspaceTab[] = [
@@ -57,6 +58,7 @@ export default function DjmWorkspaceHeader({
         <WorkspaceTabs items={items} ariaLabel="DJM workspaces" />
 
         <div className="djm-os-button-row djm-os-header-actions">
+          <DjmTellDjmLauncher />
           <DjmQuickCapture />
           <DjmGlobalSearch />
           <Link

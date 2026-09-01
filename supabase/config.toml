@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.refresh-clubelo-team-strength]
 verify_jwt = false
+
+[functions.djm-tell-capture]
+verify_jwt = true
+
+[functions.djm-tell-process]
+verify_jwt = false
