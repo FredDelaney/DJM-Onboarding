@@ -30,6 +30,10 @@ import {
 } from 'lucide-react';
 
 import DjmOsShell from '@/components/DjmOsShell';
+import {
+  ClubNeedContactControl,
+  ClubNeedIdentity,
+} from '@/components/ClubNeedCardResource';
 import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
 import styles from './page.module.css';
 
@@ -254,7 +258,7 @@ export default function OpportunitiesPage() {
     setError('');
     try {
       const [needData, clubData, opportunityData] = await Promise.all([
-        djmRpc<any[]>('djm_market_needs_v2', { p_status: null }),
+        djmRpc<any[]>('djm_market_needs_v3', { p_status: null }),
         djmRpc<any[]>('djm_network_organisations', { p_search: null, p_limit: 300 }),
         djmRpc<any[]>('djm_opportunities', { p_status: 'active' }),
       ]);
@@ -424,7 +428,7 @@ export default function OpportunitiesPage() {
       );
       await load();
       if (result?.need_id) {
-        const refreshed = await djmRpc<any[]>('djm_market_needs_v2', {
+        const refreshed = await djmRpc<any[]>('djm_market_needs_v3', {
           p_status: null,
         });
         const created = (refreshed || []).find(
@@ -948,7 +952,7 @@ function NeedCard({
               P{need.priority || 3} · {priorityLabel(need.priority)}
             </span>
           </div>
-          <strong className={styles.clubName}>{need.organisation_name}</strong>
+          <ClubNeedIdentity need={need} />
           <h3>{position}</h3>
           {need.secondary_position ? (
             <p className={styles.secondary}>Also: {need.secondary_position}</p>
@@ -979,16 +983,7 @@ function NeedCard({
           'No recruitment notes recorded yet.'}
       </p>
 
-      <div className={styles.cardRelationship}>
-        <Contact size={14} />
-        <span>
-          {need.source_person_name
-            ? `${need.source_person_name}${
-                need.source_person_role ? ` · ${need.source_person_role}` : ''
-              }`
-            : 'No club contact linked'}
-        </span>
-      </div>
+      <ClubNeedContactControl need={need} />
 
       <div className={styles.cardFooter}>
         <div>
