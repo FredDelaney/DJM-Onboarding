@@ -1,6 +1,137 @@
-.trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;border:0;border-radius:10px;background:#17364d;padding:0 11px;color:#fff;font:inherit;font-size:10px;font-weight:900;cursor:pointer}.overlay{position:fixed;inset:0;z-index:120;display:grid;place-items:start center;background:rgba(10,29,42,.36);backdrop-filter:blur(8px);padding:84px 18px 18px}.modal{width:min(620px,100%);max-height:min(760px,calc(100vh - 102px));overflow:auto;border:1px solid rgba(255,255,255,.7);border-radius:22px;background:#f7f9fa;box-shadow:0 30px 90px rgba(15,39,55,.25)}.head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 0}.head span{color:#6f8592;font-size:9px;font-weight:850}.close{display:grid;place-items:center;width:30px;height:30px;border:1px solid #dfe6e9;border-radius:9px;background:#fff;color:#5f7482;cursor:pointer}.body{padding:10px 14px 14px}.full{display:block;margin:10px auto 2px;width:fit-content;color:#566f7f;font-size:9px;font-weight:850;text-decoration:none}@media(max-width:760px){.trigger span{display:none}.trigger{width:36px;padding:0}.overlay{place-items:end center;padding:0}.modal{width:100%;max-height:92vh;border-radius:22px 22px 0 0}}
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: #17364d;
+  padding: 0 11px;
+  color: #fff;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
 
-.close:disabled{cursor:wait;opacity:.42}.modal{overscroll-behavior:contain}.overlay{overscroll-behavior:contain}.close:focus-visible,.trigger:focus-visible{outline:3px solid rgba(72,126,151,.24);outline-offset:2px}@media(max-width:760px){.body{padding-bottom:max(14px,env(safe-area-inset-bottom))}}
-@media(prefers-reduced-motion:reduce){.modal,.trigger{scroll-behavior:auto}}
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: start center;
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: rgba(10, 29, 42, 0.36);
+  backdrop-filter: blur(8px);
+  padding: max(84px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
+}
 
-.fullDisabled{display:block;margin:10px auto 2px;width:fit-content;color:#9aa8b0;font-size:9px;font-weight:850;text-align:center}
+.modal {
+  width: min(620px, 100%);
+  max-height: min(760px, calc(100dvh - 102px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 22px;
+  background: #f7f9fa;
+  box-shadow: 0 30px 90px rgba(15, 39, 55, 0.25);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 0;
+}
+
+.head span {
+  color: #6f8592;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #dfe6e9;
+  border-radius: 9px;
+  background: #fff;
+  color: #5f7482;
+  cursor: pointer;
+}
+
+.close:disabled {
+  cursor: wait;
+  opacity: 0.42;
+}
+
+.body {
+  padding: 10px 14px 14px;
+}
+
+.full {
+  display: block;
+  margin: 10px auto 2px;
+  width: fit-content;
+  color: #566f7f;
+  font-size: 9px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.fullDisabled {
+  display: block;
+  margin: 10px auto 2px;
+  width: fit-content;
+  color: #9aa8b0;
+  font-size: 9px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.close:focus-visible,
+.trigger:focus-visible {
+  outline: 3px solid rgba(72, 126, 151, 0.24);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .trigger span {
+    display: none;
+  }
+
+  .trigger {
+    width: 36px;
+    padding: 0;
+  }
+
+  .overlay {
+    place-items: end center;
+    min-height: 100dvh;
+    padding: max(8px, env(safe-area-inset-top)) 0 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: calc(100dvh - max(8px, env(safe-area-inset-top)));
+    border-radius: 22px 22px 0 0;
+  }
+
+  .body {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal,
+  .trigger {
+    scroll-behavior: auto;
+  }
+}

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Mic, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState } from 'react';
 
 import TellDjmCapture from '@/components/TellDjmCapture';
@@ -84,6 +85,7 @@ function fullScreenHref(pathname: string, context: TellContext) {
 export default function DjmTellDjmLauncher() {
   const [open, setOpen] = useState(false);
   const [unsafeToClose, setUnsafeToClose] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname() || '/djm';
   const routeFallback = useMemo(() => fallbackContext(pathname), [pathname]);
   const [routeContext, setRouteContext] = useState<TellContext>(routeFallback);
@@ -93,6 +95,11 @@ export default function DjmTellDjmLauncher() {
     [routeContext, workspaceContext],
   );
   const [access, setAccess] = useState<TellAccess | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -149,7 +156,71 @@ export default function DjmTellDjmLauncher() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, unsafeToClose]);
 
+  useEffect(() => {
+    if (!open || !mounted) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, mounted]);
+
   if (!access?.enabled) return null;
+
+  const dialog =
+    open && mounted
+      ? createPortal(
+          <div
+            className={styles.overlay}
+            onClick={(event) => {
+              if (event.target !== event.currentTarget || unsafeToClose) return;
+              setOpen(false);
+            }}
+          >
+            <div
+              className={styles.modal}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="tell-djm-dialog-title"
+            >
+              <div className={styles.head}>
+                <span id="tell-djm-dialog-title">Say what happened. DJM does the admin.</span>
+                <button
+                  type="button"
+                  className={styles.close}
+                  onClick={() => setOpen(false)}
+                  aria-label={unsafeToClose ? 'Finish saving before closing Tell DJM' : 'Close Tell DJM'}
+                  disabled={unsafeToClose}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+              <div className={styles.body}>
+                <TellDjmCapture
+                  compact
+                  context={context}
+                  onUnsafeToCloseChange={setUnsafeToClose}
+                  maxAudioSeconds={Number(access.max_audio_seconds || 240)}
+                />
+                {unsafeToClose ? (
+                  <span className={styles.fullDisabled} aria-disabled="true">
+                    Finish saving before opening full screen
+                  </span>
+                ) : (
+                  <Link
+                    className={styles.full}
+                    href={fullScreenHref(pathname, context)}
+                    onClick={() => setOpen(false)}
+                  >
+                    Open full screen
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <>
@@ -163,51 +234,7 @@ export default function DjmTellDjmLauncher() {
         <Mic size={15} />
         <span>Tell DJM</span>
       </button>
-
-      {open ? (
-        <div className={styles.overlay}>
-          <div
-            className={styles.modal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="tell-djm-dialog-title"
-          >
-            <div className={styles.head}>
-              <span id="tell-djm-dialog-title">Say what happened. DJM does the admin.</span>
-              <button
-                type="button"
-                className={styles.close}
-                onClick={() => setOpen(false)}
-                aria-label={unsafeToClose ? 'Finish saving before closing Tell DJM' : 'Close Tell DJM'}
-                disabled={unsafeToClose}
-              >
-                <X size={15} />
-              </button>
-            </div>
-            <div className={styles.body}>
-              <TellDjmCapture
-                compact
-                context={context}
-                onUnsafeToCloseChange={setUnsafeToClose}
-                maxAudioSeconds={Number(access.max_audio_seconds || 240)}
-              />
-              {unsafeToClose ? (
-                <span className={styles.fullDisabled} aria-disabled="true">
-                  Finish saving before opening full screen
-                </span>
-              ) : (
-                <Link
-                  className={styles.full}
-                  href={fullScreenHref(pathname, context)}
-                  onClick={() => setOpen(false)}
-                >
-                  Open full screen
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {dialog}
     </>
   );
 }
