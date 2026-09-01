@@ -219,12 +219,16 @@ test('simplification preserves player-service operations and moves admin utiliti
   assert.match(read('app/(djm-os)/settings/player-experience/page.tsx'), /announcements/);
 });
 
-test('opportunity matching consumes the real current candidate RPC shape', () => {
+test('opportunity matching consumes the current candidate RPC shape without restoring player scoring', () => {
   const source = read('app/(djm-os)/opportunities/page.tsx');
+
   assert.match(source, /djm_market_candidates_v2/);
   assert.match(source, /row\.player_position \|\| row\.primary_position/);
-  assert.match(source, /overall_score \?\? row\.match_score/);
   assert.match(source, /djm_opportunity_upsert/);
+  assert.match(source, /This is a scouting shortlist, not a player score/);
+
+  assert.doesNotMatch(source, /overall_score \?\? row\.match_score/);
+  assert.doesNotMatch(source, /\/compare/);
 });
 
 test('release source contains no hard reload, synthetic randomness or em dash', () => {
