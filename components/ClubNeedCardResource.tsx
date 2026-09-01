@@ -1,9 +1,10 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import {
   Contact,
   ExternalLink,
+  Link2,
   Pencil,
   Plus,
   Save,
@@ -23,6 +24,14 @@ type NeedLike = {
   source_person_id?: string | null;
   source_person_name?: string | null;
   source_person_role?: string | null;
+};
+
+type ClubContact = {
+  id: string;
+  full_name?: string | null;
+  role_title?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
 };
 
 export function ClubNeedIdentity({ need }: { need: NeedLike }) {
@@ -145,9 +154,16 @@ export function ClubNeedIdentity({ need }: { need: NeedLike }) {
 }
 
 export function ClubNeedContactControl({ need }: { need: NeedLike }) {
+  const [linkedPersonId, setLinkedPersonId] = useState(need.source_person_id || '');
   const [linkedName, setLinkedName] = useState(need.source_person_name || '');
   const [linkedRole, setLinkedRole] = useState(need.source_person_role || '');
   const [showForm, setShowForm] = useState(false);
+
+  const [contacts, setContacts] = useState<ClubContact[]>([]);
+  const [contactsBusy, setContactsBusy] = useState(false);
+  const [existingPersonId, setExistingPersonId] = useState(
+    need.source_person_id || '',
+  );
 
   const [fullName, setFullName] = useState('');
   const [roleTitle, setRoleTitle] = useState('');
@@ -156,6 +172,65 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  const loadExistingContacts = useCallback(async () => {
+    setContactsBusy(true);
+    setError('');
+
+    try {
+      const data: any = await djmRpc('djm_network_club_workspace', {
+        p_organisation_id: need.organisation_id,
+      });
+      const nextContacts = Array.isArray(data?.contacts) ? data.contacts : [];
+      setContacts(nextContacts);
+      setExistingPersonId((current) => {
+        if (current && nextContacts.some((contact: ClubContact) => contact.id === current)) {
+          return current;
+        }
+        if (
+          linkedPersonId &&
+          nextContacts.some((contact: ClubContact) => contact.id === linkedPersonId)
+        ) {
+          return linkedPersonId;
+        }
+        return '';
+      });
+    } catch (loadError) {
+      setContacts([]);
+      setError(friendlyError(loadError));
+    } finally {
+      setContactsBusy(false);
+    }
+  }, [linkedPersonId, need.organisation_id]);
+
+  useEffect(() => {
+    if (!showForm) return;
+    void loadExistingContacts();
+  }, [loadExistingContacts, showForm]);
+
+  const linkExisting = async () => {
+    if (!existingPersonId) return;
+
+    setBusy(true);
+    setError('');
+
+    try {
+      const result: any = await djmRpc('djm_market_link_need_contact', {
+        p_need_id: need.id,
+        p_person_id: existingPersonId,
+      });
+
+      const selected = contacts.find((contact) => contact.id === existingPersonId);
+      setLinkedPersonId(existingPersonId);
+      setLinkedName(result?.full_name || selected?.full_name || 'Club contact');
+      setLinkedRole(result?.role_title || selected?.role_title || '');
+      setShowForm(false);
+    } catch (linkError) {
+      setError(friendlyError(linkError));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -173,6 +248,7 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
         p_whatsapp: whatsapp.trim() || null,
       });
 
+      setLinkedPersonId(result?.person_id || '');
       setLinkedName(result?.full_name || fullName.trim());
       setLinkedRole(result?.role_title || roleTitle.trim());
       setFullName('');
@@ -200,7 +276,7 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
           ) : (
             <>
               <strong>No club contact linked</strong>
-              <span>Add the person who owns or supplied this need.</span>
+              <span>Link someone already in Network or create a new contact.</span>
             </>
           )}
         </div>
@@ -217,11 +293,57 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
 
       {showForm ? (
         <form className={styles.inlinePanel} onSubmit={save}>
+          <div className={styles.existingContactBlock}>
+            <div className={styles.sectionHeading}>
+              <strong>Use an existing club contact</strong>
+              <span>Select someone already saved against this club in DJM Network.</span>
+            </div>
+
+            {contactsBusy ? (
+              <p className={styles.helper}>Loading club contacts...</p>
+            ) : contacts.length ? (
+              <div className={styles.existingLinkRow}>
+                <label>
+                  Existing contact
+                  <select
+                    value={existingPersonId}
+                    onChange={(event) => setExistingPersonId(event.target.value)}
+                  >
+                    <option value="">Choose a club contact</option>
+                    {contacts.map((contact) => (
+                      <option key={contact.id} value={contact.id}>
+                        {contact.full_name || 'Unnamed contact'}
+                        {contact.role_title ? ` · ${contact.role_title}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  className={styles.save}
+                  disabled={busy || !existingPersonId}
+                  onClick={() => void linkExisting()}
+                >
+                  <Link2 size={13} />
+                  {busy ? 'Linking...' : 'Link contact'}
+                </button>
+              </div>
+            ) : (
+              <p className={styles.helper}>
+                No existing contacts are saved against this club yet.
+              </p>
+            )}
+          </div>
+
+          <div className={styles.divider}>
+            <span>or create a new contact</span>
+          </div>
+
           <div className={styles.formGrid}>
             <label>
               Name
               <input
-                required
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
                 placeholder="Chris Greenacre"
@@ -258,8 +380,8 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
           </div>
 
           <p className={styles.helper}>
-            Saving creates or updates the Network contact, links the contact to
-            this club, and attaches them to this specific recruitment need.
+            Creating a new person adds or updates them in DJM Network, links them
+            to this club, and attaches them to this specific recruitment need.
           </p>
 
           {error ? <p className={styles.error}>{error}</p> : null}
@@ -273,9 +395,13 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
               <X size={13} />
               Cancel
             </button>
-            <button type="submit" className={styles.save} disabled={busy}>
+            <button
+              type="submit"
+              className={styles.save}
+              disabled={busy || !fullName.trim()}
+            >
               <Save size={13} />
-              {busy ? 'Saving...' : 'Save contact'}
+              {busy ? 'Saving...' : 'Create and link'}
             </button>
           </div>
         </form>
