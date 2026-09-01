@@ -37,6 +37,19 @@ jobs:
       - name: Apply exact source patches
         run: node tools/apply-combined-workflow-v2.mjs
 
+      - name: Correct reply disabled boolean
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/admin/players/[id]/page.tsx')
+          text = path.read_text()
+          old = "|| (replyingToRequestId&&!reqMsg.trim())"
+          new = "|| (Boolean(replyingToRequestId)&&!reqMsg.trim())"
+          if old not in text:
+              raise SystemExit('Expected reply disabled expression not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Install
         run: npm ci --no-audit --no-fund
 
