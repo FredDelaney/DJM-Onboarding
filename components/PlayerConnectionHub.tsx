@@ -158,26 +158,25 @@ export default function PlayerConnectionHub({
     if (mode === "manual") setMessage("");
 
     try {
-      const result: any = await djmInvoke("refresh-player-data-universal", {
-        mode: "refresh",
-        player_id: player.id,
-      });
+      const result: any = await djmInvoke("refresh-player-stats-free", {
+  player_id: player.id,
+});
       if (!result?.ok) {
         throw new Error(result?.error || "No provider supplied new player data.");
       }
       setMessage(
         result?.message ||
-          "Player data refreshed and connected evidence updated across DJM.",
+          "Free-source player stats refreshed across DJM.",
       );
       setProviderSync(new Date().toISOString());
     } catch (refreshError) {
       const detail = friendlyError(refreshError);
       if (mode === "source") {
         setMessage(
-          `Source saved across DJM. Automatic football data refresh needs review: ${detail}`,
+          `Source saved across DJM. Free stats refresh needs review: ${detail}`,
         );
       } else if (mode === "background") {
-        setMessage(`Weekly football data refresh needs review: ${detail}`);
+        setMessage(`Free stats refresh needs review: ${detail}`);
       } else {
         setError(detail);
       }
@@ -286,7 +285,7 @@ export default function PlayerConnectionHub({
           <h2 id="player-connection-title">One record. Everything attached.</h2>
           <p>
             Paste one trusted profile link or upload a file. DJM attaches it to
-            this player everywhere, refreshes permitted data sources and only asks
+            this player everywhere, refreshes free permitted data sources and only asks
             for review when evidence conflicts.
           </p>
         </div>
@@ -344,11 +343,11 @@ export default function PlayerConnectionHub({
           >
             <RefreshCw size={17} className={refreshing ? styles.spin : ""} />
             <span>
-              <strong>{refreshing ? "Refreshing data..." : "Refresh now"}</strong>
+              <strong>{refreshing ? "Refreshing stats..." : "Refresh free stats"}</strong>
               <small>
                 {providerSync
                   ? `Last provider sync ${compactDateTime(providerSync)}`
-                  : "Checks every connected provider"}
+                  : "Checks free permitted sources first"}
               </small>
             </span>
           </button>
