@@ -183,6 +183,8 @@ function needToForm(need: any): NeedForm {
 }
 
 function money(value: unknown, currency = 'EUR') {
+  if (value == null || value === '') return 'Not set';
+
   const number = Number(value);
   if (!Number.isFinite(number)) return 'Not set';
   try {
