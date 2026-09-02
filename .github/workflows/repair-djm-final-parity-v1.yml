@@ -1,0 +1,155 @@
+name: Repair DJM final parity V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-djm-final-parity-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-djm-final-parity-v1
+  cancel-in-progress: false
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://xogoigaaskmuspiehkba.supabase.co
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_6hsUuNGMGMxecHXNv2xtiw_GIwRJJsU
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Recover and apply final parity payload
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+          import base64
+          import json
+
+          workflow_path = Path('.github/workflows/apply-djm-final-parity-v1.yml')
+          text = workflow_path.read_text()
+
+          payload_line = next(
+              (
+                  line.strip()
+                  for line in text.splitlines()
+                  if line.strip().startswith('payloads = json.loads(')
+              ),
+              None,
+          )
+          if not payload_line:
+              raise SystemExit('Could not recover final parity payload')
+
+          prefix = 'payloads = json.loads('
+          if not payload_line.endswith(')'):
+              raise SystemExit('Final parity payload line is malformed')
+
+          literal = payload_line[len(prefix):-1]
+          payloads = json.loads(ast.literal_eval(literal))
+
+          for file_path, payload in payloads.items():
+              target = Path(file_path)
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(base64.b64decode(payload, validate=True))
+
+          target = Path('components/ConnectionsPanel.tsx')
+          source = target.read_text()
+
+          anchor = "type ReminderIntensity = 'minimal' | 'normal' | 'everything';\n\n"
+          helper = (
+              "type ReminderIntensity = 'minimal' | 'normal' | 'everything';\n\n"
+              "const deviceTimezone = () => {\n"
+              "  try {\n"
+              "    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';\n"
+              "  } catch {\n"
+              "    return 'UTC';\n"
+              "  }\n"
+              "};\n\n"
+          )
+
+          if 'const deviceTimezone = () =>' not in source:
+              if anchor not in source:
+                  raise SystemExit('Reminder intensity anchor not found')
+              source = source.replace(anchor, helper, 1)
+
+          source = source.replace(
+              "  timezone: 'Europe/London',",
+              "  timezone: deviceTimezone(),",
+          )
+          source = source.replace(
+              "          timezone: saved.timezone || 'Europe/London',",
+              "          timezone: saved.timezone || deviceTimezone(),",
+          )
+          target.write_text(source)
+          PY
+
+      - name: Repair free-stats delegation contract test
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/player-stats-first-mode.test.ts')
+          source = path.read_text()
+
+          old = (
+              '  assert.match(freeRefresh, /mode: "free_stats"/);\n'
+              '  assert.match(freeRefresh, /API_FOOTBALL_KEY/);\n'
+              '  assert.match(freeRefresh, /sevenDaysAgo/);\n'
+          )
+
+          new = (
+              '  assert.match(freeRefresh, /mode: "free_stats"/);\n'
+              '  assert.match(freeRefresh, /refresh-player-data/);\n'
+              '  assert.match(refreshPlayerData, /API_FOOTBALL_KEY/);\n'
+              '  assert.match(freeRefresh, /sevenDaysAgo/);\n'
+          )
+
+          if old not in source:
+              raise SystemExit('Expected stale API-Football test contract was not found')
+
+          path.write_text(source.replace(old, new, 1))
+          PY
+
+      - name: Check patch hygiene
+        run: git diff --check
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Full release gate
+        run: npm run check
+
+      - name: Commit verified final parity
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git rm -f             ".github/workflows/apply-djm-final-parity-v1.yml"             ".github/workflows/repair-djm-final-parity-v1.yml"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Align DJM production source parity"
+          git push origin HEAD:main
