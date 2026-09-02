@@ -1,0 +1,118 @@
+name: Apply DJM source parity V3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-djm-source-parity-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-djm-source-parity-v3
+  cancel-in-progress: false
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://xogoigaaskmuspiehkba.supabase.co
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_6hsUuNGMGMxecHXNv2xtiw_GIwRJJsU
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Guard exact verified release source
+        shell: bash
+        run: |
+          EXPECTED="7425109110790777203287bad5b42f42d6de14c4"
+          git merge-base --is-ancestor "$EXPECTED" HEAD
+
+          UNEXPECTED="$(git diff --name-only "$EXPECTED"..HEAD | grep -v '^\.github/workflows/apply-djm-source-parity-v3\.yml$' || true)"
+          if [ -n "$UNEXPECTED" ]; then
+            echo "Source changed since verified release commit $EXPECTED:"
+            echo "$UNEXPECTED"
+            echo "Stopping rather than modifying unexpected source."
+            exit 1
+          fi
+
+      - name: Record live sensitive document migration
+        shell: bash
+        run: |
+          TARGET="supabase/migrations/20260902142316_protect_sensitive_player_documents_from_club_shares_v1.sql"
+          if [ -e "$TARGET" ]; then
+            echo "$TARGET already exists unexpectedly. Stopping for review."
+            exit 1
+          fi
+
+          cat > "$TARGET" <<'SQL'
+          create or replace function private.prevent_sensitive_player_document_share()
+          returns trigger
+          language plpgsql
+          security definer
+          set search_path to 'public', 'pg_catalog'
+          as $function$
+          begin
+            if coalesce(new.club_shareable,false)
+               and lower(coalesce(new.document_type,'')) in ('passport','visa','id','medical','contract','agreement') then
+              new.club_shareable := false;
+            end if;
+            return new;
+          end;
+          $function$;
+
+          revoke execute on function private.prevent_sensitive_player_document_share() from public;
+          revoke execute on function private.prevent_sensitive_player_document_share() from anon;
+          revoke execute on function private.prevent_sensitive_player_document_share() from authenticated;
+
+          drop trigger if exists trg_prevent_sensitive_player_document_share on public.player_documents;
+          create trigger trg_prevent_sensitive_player_document_share
+          before insert or update of club_shareable, document_type
+          on public.player_documents
+          for each row
+          execute function private.prevent_sensitive_player_document_share();
+
+          update public.player_documents
+          set club_shareable = false
+          where coalesce(club_shareable,false)
+            and lower(coalesce(document_type,'')) in ('passport','visa','id','medical','contract','agreement');
+          SQL
+
+      - name: Check patch hygiene
+        run: git diff --check
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Full release gate
+        run: npm run check
+
+      - name: Commit verified source parity
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git rm -f ".github/workflows/apply-djm-source-parity-v3.yml"
+          git add "supabase/migrations/20260902142316_protect_sensitive_player_documents_from_club_shares_v1.sql"
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Record sensitive document share protection migration"
+          git push origin HEAD:main
