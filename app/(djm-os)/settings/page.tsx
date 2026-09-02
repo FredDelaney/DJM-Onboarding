@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
+  CalendarClock,
   CheckCircle2,
   RefreshCw,
   Settings,
@@ -90,6 +91,14 @@ export default function SettingsPage() {
           meta="Player-facing content"
           href="/settings/player-experience"
           action="Manage player experience"
+        />
+        <SettingsCard
+          icon={<CalendarClock size={20} />}
+          title="Connections & reminders"
+          text="Calendar sync, device notifications, account security and reminder preferences in one place."
+          meta="Calendar · notifications · security"
+          href="/settings/connections"
+          action="Manage connections"
         />
         <SettingsCard
           icon={<Settings size={20} />}

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, LogOut, MessageCircle, UserRound } from 'lucide-react';
+import { Home, LogOut, MessageCircle, Settings2, UserRound } from 'lucide-react';
 
 import Brand from './Brand';
 import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
@@ -224,7 +224,7 @@ export function PlayerShell({
 
   const mobileActive = (href: string) => {
     if (href === '/profile') {
-      return ['/profile', '/career', '/check-in', '/cv', '/documents'].some(
+      return ['/profile', '/career', '/check-in', '/cv', '/documents', '/connections'].some(
         (prefix) => path === prefix || path.startsWith(`${prefix}/`),
       );
     }
@@ -247,6 +247,14 @@ export function PlayerShell({
           />
 
           <div className="djm-os-button-row djm-os-header-actions">
+            <Link
+              href="/connections"
+              className="djm-os-icon-button"
+              aria-label="Connections"
+              title="Connections"
+            >
+              <Settings2 size={17} />
+            </Link>
             <button
               type="button"
               className="djm-os-icon-button"
