@@ -285,16 +285,16 @@ export default function ConnectionsPanel({
 
   return (
     <div className={styles.wrap}>
-      {error ? <div className={styles.error}>{error}</div> : null}
-      {message ? <div className={styles.success}><Check size={16} />{message}</div> : null}
+      {error ? <div className={styles.error} role="alert">{error}</div> : null}
+      {message ? <div className={styles.success} role="status"><Check size={16} />{message}</div> : null}
 
       <section className={`${styles.card} ${styles.securityCard}`}>
         <div className={styles.cardHead}>
           <div className={styles.icon}><ShieldCheck size={20} /></div>
           <div>
             <span>SECURITY</span>
-            <h2>Fast access, proper fallback.</h2>
-            <p>Password recovery always remains available. Passkeys use your device biometrics or secure unlock.</p>
+            <h2>Secure access, simple recovery.</h2>
+            <p>Recover access through your confirmed DJM email. Faster sign-in options appear here when they are available for your account and device.</p>
           </div>
         </div>
 
@@ -308,26 +308,28 @@ export default function ConnectionsPanel({
             <a className={styles.secondaryButton} href="/forgot-password">Reset password</a>
           </div>
 
-          <div className={styles.row}>
-            <div className={styles.rowIcon}><Fingerprint size={18} /></div>
-            <div className={styles.rowCopy}>
-              <strong>Face ID or passkey</strong>
-              <span>
-                {!passkeysEnabled
-                  ? 'DJM passkeys are ready in the app and waiting for the Supabase project switch.'
-                  : !passkeysSupported
-                    ? 'This browser does not support passkeys.'
+          {passkeysEnabled ? (
+            <div className={styles.row}>
+              <div className={styles.rowIcon}><Fingerprint size={18} /></div>
+              <div className={styles.rowCopy}>
+                <strong>Face ID or passkey</strong>
+                <span>
+                  {!passkeysSupported
+                    ? 'Passkeys are not available on this browser or device.'
                     : passkeys.length
                       ? `${passkeys.length} passkey${passkeys.length === 1 ? '' : 's'} registered.`
                       : 'Use Face ID, Touch ID, Windows Hello or your password manager.'}
-              </span>
+                </span>
+              </div>
+              {passkeysSupported ? (
+                <button className={styles.primaryButton} type="button" onClick={() => void addPasskey()} disabled={busy === 'passkey'}>
+                  <Fingerprint size={16} /> {busy === 'passkey' ? 'Adding...' : 'Add passkey'}
+                </button>
+              ) : (
+                <span className={styles.statusPill}>Unavailable on this device</span>
+              )}
             </div>
-            {passkeysEnabled && passkeysSupported ? (
-              <button className={styles.primaryButton} type="button" onClick={() => void addPasskey()} disabled={busy === 'passkey'}>
-                <Fingerprint size={16} /> {busy === 'passkey' ? 'Adding...' : 'Add passkey'}
-              </button>
-            ) : <span className={styles.statusPill}>{passkeysEnabled ? 'Unavailable' : 'Coming on switch'}</span>}
-          </div>
+          ) : null}
 
           {passkeys.map((passkey) => (
             <div className={styles.passkeyRow} key={passkey.id}>
@@ -384,6 +386,7 @@ export default function ConnectionsPanel({
             <button
               key={value}
               type="button"
+              aria-pressed={preferences.reminder_intensity === value}
               className={preferences.reminder_intensity === value ? styles.activeSegment : ''}
               onClick={() => setPreferences((current) => ({ ...current, reminder_intensity: value }))}
             >
@@ -408,14 +411,15 @@ export default function ConnectionsPanel({
             checked={preferences.morning_brief}
             onChange={(checked) => setPreferences((current) => ({ ...current, morning_brief: checked }))}
           />
-          <SettingToggle
-            icon={<Mail size={18} />}
-            title="Email reminders"
-            text={emailDelivery.enabled ? 'Important reminders can also reach your DJM account email.' : 'Ready in DJM, waiting for the transactional email sender to be connected.'}
-            checked={emailDelivery.enabled && preferences.email_reminders}
-            disabled={!emailDelivery.enabled}
-            onChange={(checked) => setPreferences((current) => ({ ...current, email_reminders: checked }))}
-          />
+          {emailDelivery.enabled ? (
+            <SettingToggle
+              icon={<Mail size={18} />}
+              title="Email reminders"
+              text="Important reminders can also reach your DJM account email."
+              checked={preferences.email_reminders}
+              onChange={(checked) => setPreferences((current) => ({ ...current, email_reminders: checked }))}
+            />
+          ) : null}
         </div>
 
         <div className={styles.deviceRow}>
