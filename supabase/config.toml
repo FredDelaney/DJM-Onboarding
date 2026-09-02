@@ -68,3 +68,11 @@ verify_jwt = false
 
 [functions.dispatch-djm-email]
 verify_jwt = false
+
+[auth.passkey]
+enabled = true
+
+[auth.webauthn]
+rp_display_name = "DJM Player"
+rp_id = "djmsports.com"
+rp_origins = ["https://app.djmsports.com"]

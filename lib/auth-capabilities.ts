@@ -3,12 +3,18 @@ export type DjmAuthCapabilities = {
   passkeysSupported: boolean;
 };
 
-export async function getDjmAuthCapabilities(): Promise<DjmAuthCapabilities> {
-  const passkeysSupported =
+function browserSupportsPasskeys() {
+  return (
     typeof window !== 'undefined' &&
+    window.isSecureContext &&
     'PublicKeyCredential' in window &&
     typeof navigator !== 'undefined' &&
-    typeof navigator.credentials !== 'undefined';
+    typeof navigator.credentials !== 'undefined'
+  );
+}
+
+export async function getDjmAuthCapabilities(): Promise<DjmAuthCapabilities> {
+  const passkeysSupported = browserSupportsPasskeys();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -23,10 +29,17 @@ export async function getDjmAuthCapabilities(): Promise<DjmAuthCapabilities> {
       cache: 'no-store',
     });
     const data = await response.json().catch(() => ({}));
-    return {
-      passkeysEnabled: Boolean(response.ok && data?.passkeys_enabled),
-      passkeysSupported,
-    };
+
+    const passkeysEnabled = Boolean(
+      response.ok &&
+        (
+          data?.passkey_enabled === true ||
+          data?.passkeys_enabled === true ||
+          data?.webauthn?.enabled === true
+        ),
+    );
+
+    return { passkeysEnabled, passkeysSupported };
   } catch {
     return { passkeysEnabled: false, passkeysSupported };
   }

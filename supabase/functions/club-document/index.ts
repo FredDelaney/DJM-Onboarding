@@ -6,7 +6,17 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
+  "Cache-Control": "no-store",
 };
+
+const SENSITIVE_TYPES = new Set([
+  "passport",
+  "visa",
+  "id",
+  "medical",
+  "contract",
+  "agreement",
+]);
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: cors });
@@ -25,7 +35,9 @@ Deno.serve(async (req: Request) => {
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !service) return json({ error: "Service unavailable" }, 500);
 
-    const db = createClient(url, service, { auth: { persistSession: false } });
+    const db = createClient(url, service, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     const now = new Date().toISOString();
 
     const { data: share, error: shareError } = await db
@@ -70,13 +82,20 @@ Deno.serve(async (req: Request) => {
 
     const { data: doc, error: docError } = await db
       .from("player_documents")
-      .select("id,title,bucket_id,object_path,club_shareable,player_id")
+      .select("id,title,document_type,bucket_id,object_path,club_shareable,player_id")
       .eq("id", document_id)
       .eq("player_id", share.player_id)
       .eq("club_shareable", true)
       .maybeSingle();
 
     if (docError || !doc) return json({ error: "Document unavailable" }, 404);
+
+    const documentType = String(doc.document_type || "").trim().toLowerCase();
+    if (SENSITIVE_TYPES.has(documentType)) {
+      return json({ error: "Sensitive documents cannot be shared with clubs" }, 403);
+    }
+
+    if (!doc.object_path) return json({ error: "Document unavailable" }, 404);
 
     const { data: signed, error: signedError } = await db.storage
       .from(doc.bucket_id || "player-private")

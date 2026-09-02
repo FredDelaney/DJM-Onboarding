@@ -101,10 +101,29 @@ export default function SignIn() {
     try {
       const { data, error } = await supabase.auth.signInWithPasskey();
       if (error) throw error;
-      if (!data.user) throw new Error('DJM could not identify this passkey.');
+      if (!data.user) throw new Error('passkey_not_found');
       await routeUser(data.user.id);
     } catch (error: any) {
-      setMsg(error?.message || 'Passkey sign-in was cancelled or unavailable.');
+      const code = String(error?.code || '').toLowerCase();
+      const name = String(error?.name || '').toLowerCase();
+      const text = String(error?.message || '').toLowerCase();
+
+      if (
+        name.includes('notallowed') ||
+        code.includes('credential_not_found') ||
+        text.includes('cancel') ||
+        text.includes('credential') ||
+        text.includes('passkey_not_found')
+      ) {
+        setMsg('No passkey was used. Sign in with your password below. You can set up Face ID or a passkey from Connections once you are in.');
+      } else if (
+        code.includes('passkey_disabled') ||
+        (text.includes('passkey') && text.includes('disabled'))
+      ) {
+        setMsg('Quick sign-in is not enabled for this DJM environment. Use your password below.');
+      } else {
+        setMsg('Face ID or passkey sign-in did not complete. Use your password below and try quick sign-in again later.');
+      }
     } finally {
       setPasskeyBusy(false);
     }
@@ -141,11 +160,18 @@ export default function SignIn() {
 
           {mode === 'login' && passkeyReady ? (
             <button className="btn btn-navy btn-block" style={{ marginTop: 26 }} type="button" onClick={() => void signInWithPasskey()} disabled={passkeyBusy}>
-              <Fingerprint size={18} /> {passkeyBusy ? 'Checking passkey...' : 'Continue with Face ID or passkey'}
+              <Fingerprint size={18} /> {passkeyBusy ? 'Opening secure sign-in...' : 'Use Face ID or passkey'}
             </button>
           ) : null}
 
-          {mode === 'login' && passkeyReady ? <div className="small muted" style={{ textAlign: 'center', margin: '18px 0 -8px' }}>or use your password</div> : null}
+          {mode === 'login' && passkeyReady ? (
+            <>
+              <div className="small muted" style={{ textAlign: 'center', margin: '10px 0 -8px', lineHeight: 1.5 }}>
+                No email or password needed if you have already set up a passkey on this device or password manager.
+              </div>
+              <div className="small muted" style={{ textAlign: 'center', margin: '18px 0 -8px' }}>or sign in with your password</div>
+            </>
+          ) : null}
 
           <form onSubmit={submit} className="stack" style={{ marginTop: 30 }}>
             <div className="field">

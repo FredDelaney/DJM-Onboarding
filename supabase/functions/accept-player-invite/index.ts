@@ -8,6 +8,7 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
+  "Cache-Control": "no-store",
 };
 
 Deno.serve(async (req: Request) => {
@@ -20,7 +21,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { token, email, password, privacy_notice_version } = await req.json();
+    const {
+      token,
+      email,
+      password,
+      privacy_notice_version,
+      privacy_acknowledged,
+    } = await req.json();
 
     const passwordValue = String(password || "");
     const strongPassword =
@@ -39,9 +46,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (privacy_notice_version !== PRIVACY_NOTICE_VERSION) {
+    if (
+      privacy_notice_version !== PRIVACY_NOTICE_VERSION ||
+      privacy_acknowledged !== true
+    ) {
       return new Response(JSON.stringify({
-        error: "Please review the DJM Player Privacy Notice before continuing",
+        error: "Please review and accept the current DJM Player Privacy Notice before continuing",
       }), {
         status: 400,
         headers: cors,
@@ -94,6 +104,7 @@ Deno.serve(async (req: Request) => {
         full_name: fullName,
         invite_token: token,
         privacy_notice_version: PRIVACY_NOTICE_VERSION,
+        privacy_acknowledged: true,
         privacy_notice_acknowledged_at: acknowledgedAt,
       },
     });

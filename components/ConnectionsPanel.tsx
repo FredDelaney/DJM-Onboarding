@@ -243,6 +243,15 @@ export default function ConnectionsPanel({
 
   const addPasskey = async () => {
     if (busy) return;
+    if (!passkeysEnabled) {
+      setError('Face ID or passkey sign-in is not enabled for this DJM environment.');
+      return;
+    }
+    if (!passkeysSupported) {
+      setError('This browser or device cannot create a passkey here. Your password will keep working.');
+      return;
+    }
+
     setBusy('passkey');
     setError('');
     try {
@@ -251,9 +260,21 @@ export default function ConnectionsPanel({
       const list = await supabase.auth.passkey.list();
       if (list.error) throw list.error;
       setPasskeys(list.data || []);
-      flash('Face ID or passkey added.');
+      flash('Quick sign-in is ready on this device.');
     } catch (passkeyError: any) {
-      setError(passkeyError?.message || 'Passkey could not be added.');
+      const code = String(passkeyError?.code || '').toLowerCase();
+      const name = String(passkeyError?.name || '').toLowerCase();
+      const text = String(passkeyError?.message || '').toLowerCase();
+
+      if (name.includes('notallowed') || text.includes('cancel')) {
+        setError('Passkey setup was cancelled. Nothing changed and your password still works.');
+      } else if (code.includes('credential_exists') || text.includes('already')) {
+        setError('This passkey is already linked to your DJM account.');
+      } else if (code.includes('passkey_disabled')) {
+        setError('Face ID or passkey sign-in is not enabled for this DJM environment.');
+      } else {
+        setError('Passkey setup did not complete. Your password still works, so you can try again safely.');
+      }
     } finally {
       setBusy('');
     }
@@ -294,7 +315,7 @@ export default function ConnectionsPanel({
           <div>
             <span>SECURITY</span>
             <h2>Secure access, simple recovery.</h2>
-            <p>Recover access through your confirmed DJM email. Faster sign-in options appear here when they are available for your account and device.</p>
+            <p>Recover access through your confirmed DJM email. Your password always works. Set up Face ID or a passkey once for faster sign-in without typing your email or password.</p>
           </div>
         </div>
 
@@ -318,12 +339,12 @@ export default function ConnectionsPanel({
                     ? 'Passkeys are not available on this browser or device.'
                     : passkeys.length
                       ? `${passkeys.length} passkey${passkeys.length === 1 ? '' : 's'} registered.`
-                      : 'Use Face ID, Touch ID, Windows Hello or your password manager.'}
+                      : 'Set it up once here, then use Face ID, Touch ID, Windows Hello or your password manager at sign-in.'}
                 </span>
               </div>
               {passkeysSupported ? (
                 <button className={styles.primaryButton} type="button" onClick={() => void addPasskey()} disabled={busy === 'passkey'}>
-                  <Fingerprint size={16} /> {busy === 'passkey' ? 'Adding...' : 'Add passkey'}
+                  <Fingerprint size={16} /> {busy === 'passkey' ? 'Setting up...' : passkeys.length ? 'Add another passkey' : 'Set up quick sign-in'}
                 </button>
               ) : (
                 <span className={styles.statusPill}>Unavailable on this device</span>

@@ -92,6 +92,8 @@ export default function Join() {
             password,
             privacy_notice_version:
               PRIVACY_NOTICE_VERSION,
+            privacy_acknowledged:
+              privacyAccepted,
           },
         },
       );

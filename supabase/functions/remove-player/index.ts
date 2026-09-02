@@ -6,6 +6,7 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
+  "Cache-Control": "no-store",
 };
 
 const json = (body: unknown, status = 200) =>
@@ -74,17 +75,19 @@ Deno.serve(async (req: Request) => {
     });
 
     const { data: authData, error: authError } = await admin.auth.getUser(token);
-    const user = authData?.user;
-    if (authError || !user) return json({ error: "Unauthorized" }, 401);
+    const caller = authData?.user;
+    if (authError || !caller) return json({ error: "Unauthorized" }, 401);
 
-    const { data: profile, error: profileError } = await admin
+    const { data: callerProfile, error: callerProfileError } = await admin
       .from("profiles")
       .select("role")
-      .eq("id", user.id)
+      .eq("id", caller.id)
       .maybeSingle();
 
-    if (profileError) throw profileError;
-    if (profile?.role !== "admin") return json({ error: "Admin access required" }, 403);
+    if (callerProfileError) throw callerProfileError;
+    if (callerProfile?.role !== "admin") {
+      return json({ error: "Admin access required" }, 403);
+    }
 
     const body = await req.json().catch(() => ({}));
     const playerId = String(body?.player_id || "").trim();
@@ -102,23 +105,64 @@ Deno.serve(async (req: Request) => {
     if (!player) return json({ error: "Player not found" }, 404);
 
     const playerName =
-      [player.first_name, player.last_name].filter(Boolean).join(" ") ||
-      player.preferred_name ||
-      "REMOVE";
+      [player.first_name, player.last_name].filter(Boolean).join(" ").trim() ||
+      player.preferred_name?.trim() ||
+      "Unnamed player";
 
-    if (
-      confirmation.toLowerCase() !== playerName.toLowerCase() &&
-      confirmation !== "REMOVE"
-    ) {
-      return json({ error: "Confirmation did not match" }, 400);
+    if (confirmation.toLowerCase() !== playerName.toLowerCase()) {
+      return json({ error: "Confirmation did not match the player name" }, 400);
     }
 
-    const { data: docs, error: docsError } = await admin
-      .from("player_documents")
-      .select("bucket_id,object_path")
-      .eq("player_id", playerId);
+    if (player.user_id === caller.id) {
+      return json({ error: "A DJM staff account cannot be removed through player deletion" }, 409);
+    }
+
+    if (player.user_id) {
+      const [{ data: linkedProfile, error: linkedProfileError }, { data: teamMember, error: teamMemberError }] =
+        await Promise.all([
+          admin
+            .from("profiles")
+            .select("role")
+            .eq("id", player.user_id)
+            .maybeSingle(),
+          admin
+            .schema("djm_os")
+            .from("team_members")
+            .select("is_active")
+            .eq("user_id", player.user_id)
+            .eq("is_active", true)
+            .maybeSingle(),
+        ]);
+
+      if (linkedProfileError) throw linkedProfileError;
+      if (teamMemberError) throw teamMemberError;
+
+      if (
+        linkedProfile?.role === "admin" ||
+        linkedProfile?.role === "scout" ||
+        teamMember?.is_active
+      ) {
+        return json({
+          error: "This player is linked to a DJM staff account and must be unlinked manually",
+        }, 409);
+      }
+    }
+
+    const [{ data: docs, error: docsError }, { data: publicProfile, error: publicProfileError }] =
+      await Promise.all([
+        admin
+          .from("player_documents")
+          .select("bucket_id,object_path")
+          .eq("player_id", playerId),
+        admin
+          .from("player_public_profiles")
+          .select("profile_photo_path,hero_image_path")
+          .eq("player_id", playerId)
+          .maybeSingle(),
+      ]);
 
     if (docsError) throw docsError;
+    if (publicProfileError) throw publicProfileError;
 
     const byBucket = new Map<string, string[]>();
     for (const doc of docs || []) {
@@ -142,21 +186,23 @@ Deno.serve(async (req: Request) => {
         ...(byBucket.get("player-public") || []),
         ...publicFolder,
         ...(player.profile_photo_path ? [player.profile_photo_path] : []),
+        ...(publicProfile?.profile_photo_path ? [publicProfile.profile_photo_path] : []),
+        ...(publicProfile?.hero_image_path ? [publicProfile.hero_image_path] : []),
       ],
     );
-
-    let storageRemoved = 0;
-    for (const [bucket, paths] of byBucket.entries()) {
-      storageRemoved += await removePaths(admin, bucket, paths);
-    }
 
     let authDeleted = false;
     if (player.user_id) {
       const { error: deleteAuthError } = await admin.auth.admin.deleteUser(player.user_id);
       if (deleteAuthError) {
-        throw new Error(`Player files were removed but the linked login could not be removed: ${deleteAuthError.message}`);
+        throw new Error(`Could not remove linked player login: ${deleteAuthError.message}`);
       }
       authDeleted = true;
+    }
+
+    let storageRemoved = 0;
+    for (const [bucket, paths] of byBucket.entries()) {
+      storageRemoved += await removePaths(admin, bucket, paths);
     }
 
     const { data: deletedRows, error: deletePlayerError } = await admin
@@ -170,11 +216,23 @@ Deno.serve(async (req: Request) => {
       throw new Error("The player login was removed but the player record could not be deleted");
     }
 
+    const { data: stillThere } = await admin
+      .from("players")
+      .select("id")
+      .eq("id", playerId)
+      .maybeSingle();
+
+    if (stillThere) {
+      throw new Error("Player record still exists after deletion attempt");
+    }
+
     return json({
       ok: true,
+      player_id: playerId,
       player_name: playerName,
       auth_deleted: authDeleted,
       storage_objects_removed: storageRemoved,
+      retained_operational_history: true,
     });
   } catch (error) {
     return json(

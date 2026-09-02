@@ -12,7 +12,7 @@ test('password recovery and passkey sign-in are wired into authentication', () =
 
   assert.match(signIn, /\/forgot-password/);
   assert.match(signIn, /signInWithPasskey/);
-  assert.match(signIn, /Continue with Face ID or passkey/);
+  assert.match(signIn, /Use Face ID or passkey/);
   assert.match(forgot, /resetPasswordForEmail/);
   assert.match(forgot, /\/reset-password/);
   assert.match(reset, /PASSWORD_RECOVERY/);

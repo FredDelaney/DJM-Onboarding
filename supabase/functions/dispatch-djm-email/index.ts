@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const APP_URL = Deno.env.get("DJM_APP_URL") || "https://djm-player.vercel.app";
+const APP_URL = Deno.env.get("DJM_APP_URL") || "https://app.djmsports.com";
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-djm-cron",
