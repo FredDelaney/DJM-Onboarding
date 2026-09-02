@@ -1,0 +1,114 @@
+name: Repair and apply DJM connectivity release V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-connectivity-release-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-djm-connectivity-release-v2
+  cancel-in-progress: false
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://xogoigaaskmuspiehkba.supabase.co
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_6hsUuNGMGMxecHXNv2xtiw_GIwRJJsU
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Recover uploaded guarded patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+
+          source = Path('.github/workflows/apply-connectivity-release-v1.yml').read_text().splitlines()
+          start = next(i for i, line in enumerate(source) if "<<'PATCH_PAYLOAD'" in line) + 1
+          end = next(i for i in range(start, len(source)) if source[i].strip() == 'PATCH_PAYLOAD')
+          payload = ''.join(line.strip() for line in source[start:end])
+          Path('/tmp/apply-connectivity-release-v1.mjs').write_bytes(base64.b64decode(payload, validate=True))
+          PY
+          node --check /tmp/apply-connectivity-release-v1.mjs
+
+      - name: Apply exact source changes
+        run: node /tmp/apply-connectivity-release-v1.mjs
+
+      - name: Preserve player navigation contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('components/PlayerShell.tsx')
+          text = path.read_text()
+          old = "activePrefixes: ['/profile', '/career', '/check-in', '/cv', '/documents', '/connections'],"
+          new = "activePrefixes: ['/profile', '/career', '/check-in', '/cv', '/documents'],"
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit('Player navigation contract not found in expected form')
+          path.write_text(text)
+          PY
+
+      - name: Check patch hygiene
+        run: git diff --check
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Full release gate
+        run: npm run check
+
+      - name: Commit verified connectivity release
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            "app/sign-in/page.tsx" \
+            "app/forgot-password/page.tsx" \
+            "app/reset-password/page.tsx" \
+            "app/connections/page.tsx" \
+            "app/(djm-os)/settings/page.tsx" \
+            "app/(djm-os)/settings/connections/page.tsx" \
+            "components/AppExperience.tsx" \
+            "components/ConnectionsPanel.tsx" \
+            "components/ConnectionsPanel.module.css" \
+            "components/PlayerShell.tsx" \
+            "lib/auth-capabilities.ts" \
+            "lib/push.ts" \
+            "lib/supabase.ts" \
+            "tests/connectivity-release-v1.test.ts" \
+            "supabase/migrations/20260901210811_fix_recruitment_promotion_security_boundary_v1.sql" \
+            "supabase/migrations/20260902090000_djm_connectivity_source_alignment_v1.sql"
+
+          git rm -f \
+            ".github/workflows/apply-connectivity-release-v1.yml" \
+            ".github/workflows/repair-connectivity-release-v1.yml" \
+            ".github/workflows/repair-connectivity-release-v2.yml"
+
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Implement DJM connectivity release V1"
+          git push origin HEAD:main
