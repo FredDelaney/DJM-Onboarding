@@ -25,6 +25,14 @@ import styles from './ConnectionsPanel.module.css';
 
 type ReminderIntensity = 'minimal' | 'normal' | 'everything';
 
+const deviceTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+};
+
 type PreferenceState = {
   task_reminders: boolean;
   email_reminders: boolean;
@@ -39,7 +47,7 @@ const defaultPreferences = (email: string): PreferenceState => ({
   email_reminders: false,
   morning_brief: false,
   reminder_intensity: 'normal',
-  timezone: 'Europe/London',
+  timezone: deviceTimezone(),
   email_address: email,
 });
 
@@ -104,7 +112,7 @@ export default function ConnectionsPanel({
           email_reminders: Boolean(saved.email_reminders),
           morning_brief: Boolean(saved.morning_brief),
           reminder_intensity: (saved.reminder_intensity || 'normal') as ReminderIntensity,
-          timezone: saved.timezone || 'Europe/London',
+          timezone: saved.timezone || deviceTimezone(),
           email_address: saved.email_address || email,
         });
       } else {

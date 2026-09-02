@@ -44,7 +44,8 @@ test('comparison route is disabled while comparison quality is not decision-grad
 test('manual free refresh uses free sources and never requests a score rebuild', () => {
   assert.match(freeRefresh, /syncTheSportsDbWeekly/);
   assert.match(freeRefresh, /mode: "free_stats"/);
-  assert.match(freeRefresh, /API_FOOTBALL_KEY/);
+  assert.match(freeRefresh, /refresh-player-data/);
+  assert.match(refreshPlayerData, /API_FOOTBALL_KEY/);
   assert.match(freeRefresh, /sevenDaysAgo/);
   assert.match(freeRefresh, /score_refresh: false/);
   assert.match(freeRefresh, /comparison_refresh: false/);
