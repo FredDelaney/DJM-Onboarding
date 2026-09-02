@@ -19,8 +19,10 @@ test('every deployed Edge Function has source and explicit JWT configuration', (
   assert.deepEqual(functionNames, [
     'accept-player-invite',
     'club-document',
+    'dispatch-djm-email',
     'dispatch-player-push',
     'djm-build-src-00',
+    'djm-calendar-feed',
     'djm-network-capture',
     'djm-network-import',
     'djm-tell-capture',

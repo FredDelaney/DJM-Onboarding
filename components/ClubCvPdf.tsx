@@ -446,7 +446,7 @@ const styles =
 
     statValue: {
       color: NAVY,
-      fontSize: 20,
+      fontSize: 17,
       lineHeight: 1,
       fontWeight: 700,
     },
@@ -829,7 +829,7 @@ export function ClubCvPdfDocument({
   const stats =
     dossierHeadlineStats(
       profile,
-      4,
+      6,
     );
 
   const performance =

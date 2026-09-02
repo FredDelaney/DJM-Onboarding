@@ -357,186 +357,111 @@ export const dossierPositionMap = (
 
 export const dossierHeadlineStats = (
   profile: any,
-  limit = 4,
+  limit = 6,
 ) => {
+  const key = (value: unknown) =>
+    String(value || '')
+      .toLowerCase()
+      .replace(/\s+/g, '');
+
   const manual =
-    dossierList(
-      profile?.key_stats,
-    )
+    dossierList(profile?.key_stats)
       .map((item: any) => ({
-        label:
-          String(
-            item?.label ??
-              item?.name ??
-              '',
-          ).trim(),
-
-        value:
-          String(
-            item?.value ??
-              item?.stat ??
-              '',
-          ).trim(),
+        label: String(item?.label ?? item?.name ?? '').trim(),
+        value: String(item?.value ?? item?.stat ?? '').trim(),
       }))
-      .filter(
-        (item) =>
-          item.label &&
-          item.value,
-      );
+      .filter((item) => item.label && item.value);
 
-  const output =
-    [...manual];
+  const output = [...manual];
+  const seen = new Set(output.map((item) => key(item.label)));
+  const career = dossierCareer(profile);
+  const selected = career[0] || null;
+  const selectedYear = numeric(selected?.stats_year);
+  const selectedLabel = String(
+    selected?.season_label ?? selected?.season ?? '',
+  )
+    .trim()
+    .toLowerCase()
+    .replaceAll('/', '-')
+    .replace(/\s+/g, '');
 
-  const seen =
-    new Set(
-      output.map(
-        (item) =>
-          item.label
-            .toLowerCase(),
-      ),
-    );
+  const periodRows = selected
+    ? career.filter((row: any) => {
+        const rowYear = numeric(row?.stats_year);
+        const rowLabel = String(
+row?.season_label ?? row?.season ?? '',
+        )
+.trim()
+.toLowerCase()
+.replaceAll('/', '-')
+.replace(/\s+/g, '');
 
-  const latest =
-    dossierCareer(
-      profile,
-    )[0];
+        if (selectedYear !== null && rowYear !== null) {
+return rowYear === selectedYear;
+        }
 
-  if (!latest) {
-    return output.slice(
-      0,
-      limit,
-    );
-  }
+        return rowLabel && rowLabel === selectedLabel;
+      })
+    : [];
 
-  const apps =
-    numeric(
-      latest.appearances,
-    );
+  const sum = (
+    field:
+      | 'appearances'
+      | 'starts'
+      | 'minutes'
+      | 'goals'
+      | 'assists',
+  ) => {
+    const known = periodRows
+      .map((row: any) => numeric(row?.[field]))
+      .filter((value): value is number => value !== null);
 
-  const starts =
-    numeric(
-      latest.starts,
-    );
-
-  const minutes =
-    numeric(
-      latest.minutes,
-    );
-
-  const goals =
-    numeric(
-      latest.goals,
-    );
-
-  const assists =
-    numeric(
-      latest.assists,
-    );
-
-  const contributions =
-    goals !== null ||
-    assists !== null
-      ? (goals || 0) +
-        (assists || 0)
+    return known.length
+      ? known.reduce((total, value) => total + value, 0)
       : null;
-
-  const candidates: any = {
-    Apps:
-      apps,
-
-    Starts:
-      starts,
-
-    Minutes:
-      minutes !== null
-        ? minutes.toLocaleString(
-            'en-GB',
-          )
-        : null,
-
-    Goals:
-      goals,
-
-    Assists:
-      assists,
-
-    'G + A':
-      contributions,
   };
 
-  const group =
-    positionGroup(
-      profile?.primary_position,
-    );
+  const apps = sum('appearances');
+  const starts = sum('starts');
+  const minutes = sum('minutes');
+  const goals = sum('goals');
+  const assists = sum('assists');
+  const contributions =
+    goals !== null || assists !== null
+      ? (goals || 0) + (assists || 0)
+      : null;
 
-  const order =
-    group === 'goalkeeper'
-      ? [
-          'Starts',
-          'Apps',
-          'Minutes',
-        ]
-      : group === 'defensive'
-        ? [
-            'Starts',
-            'Minutes',
-            'Apps',
-            'Goals',
-          ]
-        : group === 'attacking'
-          ? [
-              'Apps',
-              'Goals',
-              'Assists',
-              'G + A',
-              'Minutes',
-            ]
-          : [
-              'Apps',
-              'Starts',
-              'Minutes',
-              'Goals',
-              'Assists',
-            ];
+  const candidates: Record<string, number | string | null> = {
+    Apps: apps,
+    Starts: starts,
+    Minutes:
+      minutes !== null
+        ? minutes.toLocaleString('en-GB')
+        : null,
+    Goals: goals,
+    Assists: assists,
+    'G+A': contributions,
+  };
 
-  order.forEach(
+  ['Apps', 'Starts', 'Minutes', 'Goals', 'Assists', 'G+A'].forEach(
     (label) => {
-      if (
-        output.length >=
-        limit
-      ) {
-        return;
-      }
+      if (output.length >= limit) return;
 
-      const value =
-        candidates[label];
-
+      const value = candidates[label];
       if (
         value === null ||
         value === undefined ||
-        seen.has(
-          label.toLowerCase(),
-        )
+        seen.has(key(label))
       ) {
         return;
       }
 
-      output.push({
-        label,
-        value:
-          String(value),
-      });
-
-      seen.add(
-        label.toLowerCase(),
-      );
+      output.push({ label, value: String(value) });
+      seen.add(key(label));
     },
   );
 
-  return output.slice(
-    0,
-    limit,
-  );
+  return output.slice(0, limit);
 };
 
 export const dossierPerformance = (

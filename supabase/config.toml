@@ -62,3 +62,9 @@ verify_jwt = true
 
 [functions.djm-tell-process]
 verify_jwt = false
+
+[functions.djm-calendar-feed]
+verify_jwt = false
+
+[functions.dispatch-djm-email]
+verify_jwt = false

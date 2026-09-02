@@ -12,12 +12,19 @@ import {
 } from 'lucide-react';
 
 import { compactDateTime, friendlyError } from '@/lib/djm-os';
+import {
+  aggregateFootballStats,
+  distinctFootballValues,
+  headlineSeasonRows,
+  resolveHeadlineSeason,
+} from '@/lib/football-season-stats';
 import { supabase } from '@/lib/supabase';
 import styles from './PlayerStatsPanel.module.css';
 
 type CareerRow = {
   id: string;
   season_label: string | null;
+  stats_year: number | null;
   club_name: string | null;
   league: string | null;
   country: string | null;
@@ -122,7 +129,7 @@ export default function PlayerStatsPanel({
       supabase
         .from('career_entries')
         .select(
-          'id,season_label,club_name,league,country,appearances,starts,minutes,goals,assists,source_name,source_provider,source_url,source_reviewed_at,source_synced_at',
+          'id,season_label,stats_year,club_name,league,country,appearances,starts,minutes,goals,assists,source_name,source_provider,source_url,source_reviewed_at,source_synced_at',
         )
         .eq('player_id', playerId)
         .order('season_label', { ascending: false })
@@ -146,32 +153,34 @@ export default function PlayerStatsPanel({
     };
   }, [load]);
 
-  const seasonLabels = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          rows
-            .map((row) => String(row.season_label || '').trim())
-            .filter(Boolean),
-        ),
-      ).sort(seasonSort),
-    [rows],
+  const currentSeason = useMemo(
+    () => resolveHeadlineSeason(rows, player?.current_season_label),
+    [player?.current_season_label, rows],
   );
 
-  const currentSeason =
-    player?.current_season_label && seasonLabels.includes(player.current_season_label)
-      ? player.current_season_label
-      : seasonLabels[0] || null;
-
   const currentRows = useMemo(
-    () =>
-      currentSeason
-        ? rows.filter((row) => String(row.season_label || '') === currentSeason)
-        : [],
+    () => headlineSeasonRows(rows, currentSeason),
     [currentSeason, rows],
   );
 
-  const current = useMemo(() => aggregate(currentRows), [currentRows]);
+  const current = useMemo(() => aggregateFootballStats(currentRows), [currentRows]);
+
+  const clubs = useMemo(
+    () => distinctFootballValues(currentRows, 'club_name'),
+    [currentRows],
+  );
+  const competitions = useMemo(
+    () => distinctFootballValues(currentRows, 'league'),
+    [currentRows],
+  );
+  const clubContext =
+    clubs.length > 1
+      ? clubs.join(' + ')
+      : clubs[0] || player?.current_club || 'Not available';
+  const competitionContext =
+    competitions.length > 1
+      ? 'All competitions'
+      : competitions[0] || player?.current_league || 'Not available';
 
   const sourceNames = useMemo(
     () =>
@@ -200,13 +209,13 @@ export default function PlayerStatsPanel({
     const contributions =
       current.goals == null && current.assists == null
         ? null
-        : (current.goals || 0) + (current.assists || 0);
+        : current.contributions;
 
     return [
       {
         label: 'Apps',
         value: formatInteger(current.appearances),
-        detail: currentSeason || 'Current season',
+        detail: `${currentSeason || 'Current season'}${competitions.length > 1 ? ' · all competitions' : ''}`,
       },
       {
         label: 'Starts',
@@ -234,7 +243,7 @@ export default function PlayerStatsPanel({
         detail: 'Goal contributions',
       },
     ];
-  }, [current, currentSeason]);
+  }, [competitions.length, current, currentSeason]);
 
   const refreshStats = async () => {
     setBusy(true);
@@ -315,11 +324,11 @@ export default function PlayerStatsPanel({
         </div>
         <div>
           <span>Club</span>
-          <strong>{player?.current_club || currentRows[0]?.club_name || 'Not available'}</strong>
+          <strong>{clubContext}</strong>
         </div>
         <div>
           <span>Competition</span>
-          <strong>{player?.current_league || currentRows[0]?.league || 'Not available'}</strong>
+          <strong>{competitionContext}</strong>
         </div>
         <div>
           <span>Position</span>

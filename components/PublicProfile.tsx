@@ -100,7 +100,7 @@ export default function PublicProfile({
   const headlineStats =
     dossierHeadlineStats(
       profile,
-      4,
+      6,
     );
 
   const performance =
