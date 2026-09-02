@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
 } from 'react';
+import Link from 'next/link';
 import {
   useParams,
   useRouter,
@@ -21,6 +22,8 @@ import {
 } from '@/lib/password';
 import { supabase } from '@/lib/supabase';
 
+const PRIVACY_NOTICE_VERSION = '2026-09-02';
+
 export default function Join() {
   const { token } =
     useParams<{ token: string }>();
@@ -35,6 +38,8 @@ export default function Join() {
   const [msg, setMsg] =
     useState('');
   const [busy, setBusy] =
+    useState(false);
+  const [privacyAccepted, setPrivacyAccepted] =
     useState(false);
 
   useEffect(() => {
@@ -59,6 +64,11 @@ export default function Join() {
 
     if (!invite?.email) return;
 
+    if (!privacyAccepted) {
+      setMsg('Please review the DJM Player Privacy Notice before continuing.');
+      return;
+    }
+
     if (!isStrongPassword(password)) {
       setMsg(STRONG_PASSWORD_MESSAGE);
       return;
@@ -80,6 +90,8 @@ export default function Join() {
             token,
             email: invite.email,
             password,
+            privacy_notice_version:
+              PRIVACY_NOTICE_VERSION,
           },
         },
       );
@@ -232,6 +244,51 @@ export default function Join() {
               />
             </div>
 
+            <label
+              style={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+                padding: '4px 0 2px',
+                color: 'var(--muted)',
+                fontSize: 13,
+                lineHeight: 1.5,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(event) =>
+                  setPrivacyAccepted(
+                    event.target.checked,
+                  )
+                }
+                style={{
+                  width: 17,
+                  height: 17,
+                  marginTop: 2,
+                  flex: '0 0 auto',
+                  accentColor: 'var(--navy)',
+                }}
+              />
+              <span>
+                I have read the{' '}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    color: 'var(--blue)',
+                    fontWeight: 800,
+                  }}
+                >
+                  DJM Player Privacy Notice
+                </Link>{' '}
+                and understand how DJM uses my information.
+              </span>
+            </label>
+
             {msg && (
               <div className="join-message">
                 {msg}
@@ -240,7 +297,7 @@ export default function Join() {
 
             <button
               className="btn btn-navy btn-block join-continue"
-              disabled={busy}
+              disabled={busy || !privacyAccepted}
             >
               {busy
                 ? 'Creating…'

@@ -1,0 +1,36 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(245, 233, 0, 0.12), transparent 28rem),
+    #f5f7fa;
+  color: #0b1f35;
+  padding: 34px 18px 72px;
+}
+.shell { width: min(920px, 100%); margin: 0 auto; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 28px; }
+.back { display: inline-flex; align-items: center; gap: 8px; color: #0b3155; font-size: 14px; font-weight: 700; text-decoration: none; }
+.hero { background: #071f39; color: white; border-radius: 28px; padding: clamp(28px, 5vw, 52px); box-shadow: 0 24px 70px rgba(7, 31, 57, 0.14); }
+.kicker { color: #f5e900; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+.hero h1 { max-width: 700px; margin: 12px 0 14px; font-size: clamp(34px, 6vw, 58px); line-height: 0.98; letter-spacing: -0.045em; }
+.hero p { max-width: 720px; margin: 0; color: #d6dfeb; font-size: 16px; line-height: 1.65; }
+.updated { display: inline-flex; margin-top: 22px; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 999px; padding: 8px 12px; color: #d6dfeb; font-size: 12px; }
+.summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 18px 0; }
+.summaryCard, .section { background: white; border: 1px solid #e4e9ef; border-radius: 22px; box-shadow: 0 12px 34px rgba(7, 31, 57, 0.05); }
+.summaryCard { padding: 22px; }
+.summaryCard strong { display: block; margin-bottom: 7px; font-size: 15px; }
+.summaryCard span { color: #627286; font-size: 13px; line-height: 1.55; }
+.section { padding: clamp(24px, 4vw, 38px); margin-top: 14px; }
+.section h2 { margin: 0 0 13px; font-size: 23px; letter-spacing: -0.025em; }
+.section p, .section li { color: #4e6074; font-size: 14px; line-height: 1.7; }
+.section ul { margin: 10px 0 0; padding-left: 20px; }
+.rights { border-left: 4px solid #f5e900; }
+.contact { background: #eef3f8; border-radius: 16px; padding: 18px; margin-top: 18px; color: #4e6074; font-size: 14px; line-height: 1.65; }
+.contact a { color: #0b3155; font-weight: 800; }
+.footer { color: #708094; font-size: 12px; line-height: 1.6; padding: 22px 4px 0; }
+
+@media (max-width: 720px) {
+  .page { padding: 18px 12px 52px; }
+  .topbar { margin-bottom: 16px; }
+  .summary { grid-template-columns: 1fr; }
+  .hero, .summaryCard, .section { border-radius: 20px; }
+}

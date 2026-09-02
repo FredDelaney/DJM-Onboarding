@@ -5,69 +5,181 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
 };
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: cors });
+
+const unique = (values: string[]) => [...new Set(values.filter(Boolean))];
+
+async function collectFolder(
+  admin: any,
+  bucket: string,
+  prefix: string,
+  depth = 0,
+): Promise<string[]> {
+  if (!prefix || depth > 8) return [];
+
+  const { data, error } = await admin.storage
+    .from(bucket)
+    .list(prefix, { limit: 1000, sortBy: { column: "name", order: "asc" } });
+
+  if (error) {
+    throw new Error(`Could not inspect ${bucket} storage before removal: ${error.message}`);
+  }
+
+  const paths: string[] = [];
+  for (const item of data || []) {
+    const next = `${prefix}/${item.name}`;
+    if (item.id) {
+      paths.push(next);
+    } else {
+      paths.push(...await collectFolder(admin, bucket, next, depth + 1));
+    }
+  }
+  return paths;
+}
+
+async function removePaths(admin: any, bucket: string, paths: string[]) {
+  const items = unique(paths);
+  let removed = 0;
+
+  for (let index = 0; index < items.length; index += 100) {
+    const batch = items.slice(index, index + 100);
+    const { error } = await admin.storage.from(bucket).remove(batch);
+    if (error) {
+      throw new Error(`Could not remove ${bucket} files: ${error.message}`);
+    }
+    removed += batch.length;
+  }
+
+  return removed;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...cors, "Content-Type": "application/json" } });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const authHeader = req.headers.get("Authorization") || "";
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    if (!token) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+    const url = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
 
-    const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    if (!url || !serviceKey) return json({ error: "Service unavailable" }, 500);
+    if (!token) return json({ error: "Unauthorized" }, 401);
+
+    const admin = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
     const { data: authData, error: authError } = await admin.auth.getUser(token);
     const user = authData?.user;
-    if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+    if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
-    const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).maybeSingle();
-    if (profile?.role !== "admin") return new Response(JSON.stringify({ error: "Admin access required" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (profile?.role !== "admin") return json({ error: "Admin access required" }, 403);
 
     const body = await req.json().catch(() => ({}));
-    const playerId = String(body?.player_id || "");
+    const playerId = String(body?.player_id || "").trim();
     const confirmation = String(body?.confirmation || "").trim();
-    if (!playerId) return new Response(JSON.stringify({ error: "Missing player" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
 
-    const { data: player, error: playerError } = await admin.from("players").select("id,user_id,first_name,last_name,preferred_name,profile_photo_path").eq("id", playerId).maybeSingle();
-    if (playerError || !player) return new Response(JSON.stringify({ error: "Player not found" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
+    if (!playerId) return json({ error: "Missing player" }, 400);
 
-    const playerName = [player.first_name, player.last_name].filter(Boolean).join(" ") || player.preferred_name || "REMOVE";
-    if (confirmation.toLowerCase() !== playerName.toLowerCase() && confirmation !== "REMOVE") {
-      return new Response(JSON.stringify({ error: "Confirmation did not match" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    const { data: player, error: playerError } = await admin
+      .from("players")
+      .select("id,user_id,first_name,last_name,preferred_name,profile_photo_path")
+      .eq("id", playerId)
+      .maybeSingle();
+
+    if (playerError) throw playerError;
+    if (!player) return json({ error: "Player not found" }, 404);
+
+    const playerName =
+      [player.first_name, player.last_name].filter(Boolean).join(" ") ||
+      player.preferred_name ||
+      "REMOVE";
+
+    if (
+      confirmation.toLowerCase() !== playerName.toLowerCase() &&
+      confirmation !== "REMOVE"
+    ) {
+      return json({ error: "Confirmation did not match" }, 400);
     }
 
-    const { data: docs } = await admin.from("player_documents").select("bucket_id,object_path").eq("player_id", playerId);
+    const { data: docs, error: docsError } = await admin
+      .from("player_documents")
+      .select("bucket_id,object_path")
+      .eq("player_id", playerId);
+
+    if (docsError) throw docsError;
+
     const byBucket = new Map<string, string[]>();
     for (const doc of docs || []) {
       if (!doc?.object_path) continue;
       const bucket = doc.bucket_id || "player-private";
-      const paths = byBucket.get(bucket) || [];
-      paths.push(doc.object_path);
-      byBucket.set(bucket, paths);
+      byBucket.set(bucket, [...(byBucket.get(bucket) || []), doc.object_path]);
     }
-    if (player.profile_photo_path) {
-      const paths = byBucket.get("player-public") || [];
-      paths.push(player.profile_photo_path);
-      byBucket.set("player-public", paths);
+
+    if (player.user_id) {
+      const privateFolder = await collectFolder(admin, "player-private", player.user_id);
+      byBucket.set(
+        "player-private",
+        [...(byBucket.get("player-private") || []), ...privateFolder],
+      );
     }
+
+    const publicFolder = await collectFolder(admin, "player-public", `admin/${playerId}`);
+    byBucket.set(
+      "player-public",
+      [
+        ...(byBucket.get("player-public") || []),
+        ...publicFolder,
+        ...(player.profile_photo_path ? [player.profile_photo_path] : []),
+      ],
+    );
+
+    let storageRemoved = 0;
     for (const [bucket, paths] of byBucket.entries()) {
-      if (paths.length) await admin.storage.from(bucket).remove(paths);
+      storageRemoved += await removePaths(admin, bucket, paths);
     }
 
-    const { error: deletePlayerError } = await admin.from("players").delete().eq("id", playerId);
-    if (deletePlayerError) throw deletePlayerError;
-
-    let auth_deleted = false;
+    let authDeleted = false;
     if (player.user_id) {
       const { error: deleteAuthError } = await admin.auth.admin.deleteUser(player.user_id);
-      auth_deleted = !deleteAuthError;
+      if (deleteAuthError) {
+        throw new Error(`Player files were removed but the linked login could not be removed: ${deleteAuthError.message}`);
+      }
+      authDeleted = true;
     }
 
-    return new Response(JSON.stringify({ ok: true, player_name: playerName, auth_deleted }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
+    const { data: deletedRows, error: deletePlayerError } = await admin
+      .from("players")
+      .delete()
+      .eq("id", playerId)
+      .select("id");
+
+    if (deletePlayerError) throw deletePlayerError;
+    if (!deletedRows?.length) {
+      throw new Error("The player login was removed but the player record could not be deleted");
+    }
+
+    return json({
+      ok: true,
+      player_name: playerName,
+      auth_deleted: authDeleted,
+      storage_objects_removed: storageRemoved,
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Could not remove player" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    return json(
+      { error: error instanceof Error ? error.message : "Could not remove player" },
+      500,
+    );
   }
 });

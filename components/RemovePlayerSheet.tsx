@@ -83,10 +83,14 @@ export default function RemovePlayerSheet({
 
         <p>
           This permanently removes the
-          player record, dossier,
-          check-ins, requests,
-          opportunities, share links and
-          stored player files.
+          player record, linked player
+          login, dossier, check-ins,
+          requests, opportunities, share
+          links and stored player files.
+          Internal recruitment or audit
+          history that DJM needs to retain
+          may remain without the player
+          link.
         </p>
 
         <div
@@ -138,7 +142,7 @@ export default function RemovePlayerSheet({
 
             {busy
               ? 'Removing…'
-              : 'Remove player'}
+              : 'Remove player completely'}
           </button>
         </div>
       </section>

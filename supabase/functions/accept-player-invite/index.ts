@@ -1,6 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+const PRIVACY_NOTICE_VERSION = "2026-09-02";
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -18,7 +20,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { token, email, password } = await req.json();
+    const { token, email, password, privacy_notice_version } = await req.json();
 
     const passwordValue = String(password || "");
     const strongPassword =
@@ -31,6 +33,15 @@ Deno.serve(async (req: Request) => {
     if (!token || !email || !strongPassword) {
       return new Response(JSON.stringify({
         error: "Use at least 12 characters with uppercase, lowercase, a number and a symbol",
+      }), {
+        status: 400,
+        headers: cors,
+      });
+    }
+
+    if (privacy_notice_version !== PRIVACY_NOTICE_VERSION) {
+      return new Response(JSON.stringify({
+        error: "Please review the DJM Player Privacy Notice before continuing",
       }), {
         status: 400,
         headers: cors,
@@ -73,11 +84,18 @@ Deno.serve(async (req: Request) => {
       player?.preferred_name?.trim() ||
       "DJM Player";
 
+    const acknowledgedAt = new Date().toISOString();
+
     const { data, error } = await admin.auth.admin.createUser({
       email: invite.email,
       password: passwordValue,
       email_confirm: true,
-      user_metadata: { full_name: fullName, invite_token: token },
+      user_metadata: {
+        full_name: fullName,
+        invite_token: token,
+        privacy_notice_version: PRIVACY_NOTICE_VERSION,
+        privacy_notice_acknowledged_at: acknowledgedAt,
+      },
     });
 
     if (error) {
@@ -87,7 +105,26 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, user_id: data.user?.id }), {
+    const { error: auditError } = await admin.from("audit_events").insert({
+      actor_id: data.user?.id || null,
+      action: "privacy_notice_acknowledged",
+      entity_type: "players",
+      entity_id: invite.player_id,
+      metadata: {
+        version: PRIVACY_NOTICE_VERSION,
+        acknowledged_at: acknowledgedAt,
+      },
+    });
+
+    if (auditError) {
+      console.error("privacy notice audit write failed", auditError.message);
+    }
+
+    return new Response(JSON.stringify({
+      ok: true,
+      user_id: data.user?.id,
+      privacy_notice_version: PRIVACY_NOTICE_VERSION,
+    }), {
       status: 200,
       headers: cors,
     });
