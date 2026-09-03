@@ -1,0 +1,260 @@
+name: Apply DJM flexible attention and faster Tell DJM V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-djm-flexible-attention-tell-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-djm-flexible-attention-tell-v2
+  cancel-in-progress: false
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://xogoigaaskmuspiehkba.supabase.co
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_6hsUuNGMGMxecHXNv2xtiw_GIwRJJsU
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Guard exact failed V1 source
+        shell: bash
+        run: |
+          VERIFIED_SOURCE="500a7804c3492a1b02a34793b2be0c83c5378bd2"
+          V1_BLOB="eae0dce118010a4673ff0de9acdaf49ae6f114d0"
+
+          git merge-base --is-ancestor "$VERIFIED_SOURCE" HEAD
+
+          UNEXPECTED="$(git diff --name-only "$VERIFIED_SOURCE"..HEAD \
+            | grep -Ev '^\.github/workflows/apply-djm-flexible-attention-tell-v[12]\.yml$' || true)"
+          if [ -n "$UNEXPECTED" ]; then
+            echo "Unexpected source changes exist:"
+            echo "$UNEXPECTED"
+            exit 1
+          fi
+
+          test -f ".github/workflows/apply-djm-flexible-attention-tell-v1.yml"
+          test "$(git rev-parse HEAD:.github/workflows/apply-djm-flexible-attention-tell-v1.yml)" = "$V1_BLOB"
+
+      - name: Apply the exact V1 source transformations
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          workflow = Path(".github/workflows/apply-djm-flexible-attention-tell-v1.yml")
+          lines = workflow.read_text().splitlines()
+
+          selected = [
+              "Record live task completion migration",
+              "Record retained intelligence deletion migration",
+              "Record universal player deletion migration",
+              "Record flexible Home and notification migration",
+              "Align remove-player source with live V8",
+              "Align push dispatcher source with live V7",
+              "Make Home attention flexible",
+              "Make Tell DJM feel immediate",
+              "Add regression coverage",
+          ]
+
+          def extract_run(step_name: str) -> str:
+              marker = f"      - name: {step_name}"
+              try:
+                  start = lines.index(marker)
+              except ValueError as exc:
+                  raise SystemExit(f"Missing V1 step: {step_name}") from exc
+
+              run_line = None
+              for idx in range(start + 1, len(lines)):
+                  if lines[idx].startswith("      - "):
+                      break
+                  if lines[idx] == "        run: |":
+                      run_line = idx
+                      break
+
+              if run_line is None:
+                  raise SystemExit(f"Missing run block for V1 step: {step_name}")
+
+              body = []
+              for idx in range(run_line + 1, len(lines)):
+                  line = lines[idx]
+                  if line.startswith("      - "):
+                      break
+                  if line.startswith("          "):
+                      body.append(line[10:])
+                  elif line.strip() == "":
+                      body.append("")
+                  else:
+                      raise SystemExit(
+                          f"Unexpected indentation in V1 step {step_name}: {line!r}"
+                      )
+
+              script = "\n".join(body).rstrip() + "\n"
+              if not script.strip():
+                  raise SystemExit(f"Empty run block for V1 step: {step_name}")
+              return script
+
+          for step in selected:
+              print(f"Applying verified V1 step: {step}", flush=True)
+              subprocess.run(
+                  ["bash", "-euo", "pipefail", "-c", extract_run(step)],
+                  check=True,
+              )
+          PY
+
+      - name: Update superseded regression expectations
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_exact(path: str, old: str, new: str, label: str):
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f"Expected regression source not found: {label}")
+              file.write_text(text.replace(old, new, 1))
+
+          replace_exact(
+              "tests/final-release-hardening-v2.test.ts",
+              "test('player deletion preserves staff safeguards while cleaning storage completely', () => {",
+              "test('player deletion preserves staff safeguards while cleaning storage completely', () => {",
+              "final deletion test",
+          )
+          replace_exact(
+              "tests/final-release-hardening-v2.test.ts",
+              "  assert.ok(authDelete < playerDelete);",
+              "  assert.ok(playerDelete < authDelete);",
+              "final deletion ordering",
+          )
+
+          replace_exact(
+              "tests/prelaunch-hardening-v1.test.ts",
+              "test('complete player removal fails closed and removes auth before the player row', () => {",
+              "test('complete player removal commits the player row before irreversible auth cleanup', () => {",
+              "prelaunch deletion test title",
+          )
+          replace_exact(
+              "tests/prelaunch-hardening-v1.test.ts",
+              "  assert.ok(authDelete < playerDelete);",
+              "  assert.ok(playerDelete < authDelete);",
+              "prelaunch deletion ordering",
+          )
+
+          replace_exact(
+              "tests/tell-djm-full-v1.test.ts",
+              "  assert.match(capture, /const POLL_ATTEMPTS = 90/);",
+              "  assert.match(capture, /const POLL_MS = 650/);\n  assert.match(capture, /const POLL_ATTEMPTS = 180/);",
+              "Tell DJM durable polling window",
+          )
+
+          regression = Path("tests/flexible-home-tell-djm.test.ts")
+          text = regression.read_text()
+          pattern = re.compile(
+              r"test\('player deletion commits the player row before irreversible account cleanup', \(\) => \{.*?\n\}\);",
+              re.S,
+          )
+          replacement = """test('player deletion commits the player row before irreversible account cleanup', () => {
+            const deleteDeclaration = removePlayer.indexOf('const { data: deletedRows');
+            const playerDelete = removePlayer.indexOf('.delete()', deleteDeclaration);
+            const authDelete = removePlayer.indexOf('admin.auth.admin.deleteUser');
+            assert.ok(deleteDeclaration >= 0, 'player deletion block must exist');
+            assert.ok(playerDelete > deleteDeclaration, 'player row must be deleted in the deletion block');
+            assert.ok(authDelete > playerDelete, 'auth cleanup must happen after the player row is gone');
+            assert.match(removePlayer, /linked_account_preserved/);
+          });"""
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit("Could not replace the new player deletion regression test")
+          regression.write_text(text)
+          PY
+
+      - name: Verify intended diff only
+        shell: bash
+        run: |
+          git diff --check
+
+          ALLOWED='^(\.github/workflows/apply-djm-flexible-attention-tell-v[12]\.yml|app/\(djm-os\)/djm/page\.tsx|components/TellDjmCapture\.tsx|supabase/functions/(djm-tell-process|dispatch-player-push|remove-player)/index\.ts|supabase/migrations/20260902220616_fix_player_request_completion_wrapper_v1\.sql|supabase/migrations/20260902221740_detach_retained_football_intelligence_before_player_delete_v1\.sql|supabase/migrations/20260902222300_make_player_removal_universal_v2\.sql|supabase/migrations/20260903054235_flexible_home_attention_and_notification_quality_v1\.sql|tests/(flexible-home-tell-djm|final-release-hardening-v2|prelaunch-hardening-v1|tell-djm-full-v1)\.test\.ts)$'
+
+          BAD="$(git status --short | sed -E 's/^.. //' | grep -Ev "$ALLOWED" || true)"
+          if [ -n "$BAD" ]; then
+            echo "Unexpected files changed:"
+            echo "$BAD"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Full release gate
+        run: npm run check
+
+      - name: Independent critical assertions
+        shell: bash
+        run: |
+          node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types \
+            --test \
+            tests/flexible-home-tell-djm.test.ts \
+            tests/final-release-hardening-v2.test.ts \
+            tests/prelaunch-hardening-v1.test.ts \
+            tests/tell-djm-full-v1.test.ts
+
+          grep -Fq "const POLL_MS = 650;" components/TellDjmCapture.tsx
+          grep -Fq "const POLL_ATTEMPTS = 180;" components/TellDjmCapture.tsx
+          grep -Fq 'reasoning: { effort: "none" },' supabase/functions/djm-tell-process/index.ts
+          grep -Fq "djm_home_item_controls" "app/(djm-os)/djm/page.tsx"
+          grep -Fq "Remove from Home" "app/(djm-os)/djm/page.tsx"
+          grep -Fq "Snooze until tomorrow" "app/(djm-os)/djm/page.tsx"
+
+      - name: Commit only after every gate is green
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git rm -f \
+            ".github/workflows/apply-djm-flexible-attention-tell-v1.yml" \
+            ".github/workflows/apply-djm-flexible-attention-tell-v2.yml"
+
+          git add \
+            "app/(djm-os)/djm/page.tsx" \
+            "components/TellDjmCapture.tsx" \
+            "supabase/functions/djm-tell-process/index.ts" \
+            "supabase/functions/dispatch-player-push/index.ts" \
+            "supabase/functions/remove-player/index.ts" \
+            "supabase/migrations/20260902220616_fix_player_request_completion_wrapper_v1.sql" \
+            "supabase/migrations/20260902221740_detach_retained_football_intelligence_before_player_delete_v1.sql" \
+            "supabase/migrations/20260902222300_make_player_removal_universal_v2.sql" \
+            "supabase/migrations/20260903054235_flexible_home_attention_and_notification_quality_v1.sql" \
+            "tests/flexible-home-tell-djm.test.ts" \
+            "tests/final-release-hardening-v2.test.ts" \
+            "tests/prelaunch-hardening-v1.test.ts" \
+            "tests/tell-djm-full-v1.test.ts"
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "No verified source changes to commit."
+            exit 1
+          fi
+
+          git commit -m "Make Home attention flexible and speed up Tell DJM"
+          git push origin HEAD:main
