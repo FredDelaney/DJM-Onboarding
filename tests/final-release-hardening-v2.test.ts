@@ -41,7 +41,7 @@ test('player deletion preserves staff safeguards while cleaning storage complete
   const playerDelete = source.indexOf('.from("players")\n      .delete()');
   assert.ok(authDelete > -1);
   assert.ok(playerDelete > -1);
-  assert.ok(authDelete < playerDelete);
+  assert.ok(playerDelete < authDelete);
 });
 
 test('passkey readiness uses secure WebAuthn and accepts current Supabase settings fields', () => {

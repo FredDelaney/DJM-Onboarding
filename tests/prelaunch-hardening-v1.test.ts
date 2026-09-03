@@ -39,7 +39,7 @@ test('club documents stop when the dossier is withdrawn or unverified', () => {
   assert.match(source, /Share link unavailable/);
 });
 
-test('complete player removal fails closed and removes auth before the player row', () => {
+test('complete player removal commits the player row before irreversible auth cleanup', () => {
   const source = readFileSync('supabase/functions/remove-player/index.ts', 'utf8');
 
   assert.match(source, /collectFolder/);
@@ -52,6 +52,6 @@ test('complete player removal fails closed and removes auth before the player ro
 
   assert.ok(authDelete > -1);
   assert.ok(playerDelete > -1);
-  assert.ok(authDelete < playerDelete);
+  assert.ok(playerDelete < authDelete);
   assert.match(source, /storage_objects_removed/);
 });

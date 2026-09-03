@@ -77,8 +77,8 @@ type Receipt = {
 };
 
 const DEFAULT_MAX_SECONDS = 240;
-const POLL_MS = 1400;
-const POLL_ATTEMPTS = 90;
+const POLL_MS = 650;
+const POLL_ATTEMPTS = 180;
 const TERMINAL = new Set([
   'done',
   'needs_input',
@@ -167,7 +167,14 @@ export default function TellDjmCapture({
             });
             if (displayCaptureRef.current === captureId) setReceipt(next);
             const nextStatus = next?.capture?.status || '';
-            if (TERMINAL.has(nextStatus)) {
+              if (displayCaptureRef.current === captureId && !TERMINAL.has(nextStatus)) {
+                setStatus(
+                  next?.capture?.transcript_text
+                    ? 'Transcript ready. Doing it now...'
+                    : 'Transcribing...',
+                );
+              }
+              if (TERMINAL.has(nextStatus)) {
               forgetActiveTellDjmCapture(captureId);
               if (displayCaptureRef.current === captureId) setStatus('');
               onCompleted?.(next);
@@ -366,7 +373,7 @@ export default function TellDjmCapture({
         return;
       }
 
-      setStatus('Safely saved. DJM is sorting it out...');
+      setStatus('Transcribing...');
       await uploadPending(pending);
       setBusy(false);
     } catch (uploadError) {
@@ -866,7 +873,7 @@ export default function TellDjmCapture({
           </div>
 
           {receipt.capture.transcript_text ? (
-            <details className={styles.details}>
+            <details className={styles.details} open={!TERMINAL.has(receipt.capture.status)}>
               <summary>
                 <FileText
                   size={11}

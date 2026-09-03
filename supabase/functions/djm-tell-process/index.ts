@@ -424,12 +424,13 @@ async function interpret(
     body: JSON.stringify({
       model,
       store: false,
-      reasoning: { effort: "low" },
+      reasoning: { effort: "none" },
       max_output_tokens: 4000,
       instructions: [
         "You convert an internal football-agency debrief into safe DJM actions.",
         "Extract only information the speaker stated explicitly or clearly and directly implied.",
         "Unknown means null. Never invent missing values.",
+        "For clearly stated reversible task, interaction and claim actions, use high confidence when every required fact is explicit and resolved.",
         "Never guess a club, contact, player, currency, unit, salary, transfer fee, contract fact, registration fact or date.",
         "Use current_context to resolve pronouns or omitted entities when the context is clear, but an explicitly named club, contact, player or prospect always overrides page context.",
         "Do not produce player scores, rankings, future projections or comparisons.",

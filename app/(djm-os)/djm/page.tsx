@@ -63,13 +63,15 @@ export default function DjmHomePage() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
   const [actionBusy, setActionBusy] = useState('');
+  const [homeControls, setHomeControls] = useState<any[]>([]);
 
   const load = useCallback(async () => {
     setBusy(true);
     setError('');
     try {
-      const [commandResult, queryResults] = await Promise.all([
+      const [commandResult, controlResult, queryResults] = await Promise.all([
         djmRpc<any>('djm_command_center'),
+        djmRpc<any[]>('djm_home_item_controls'),
         Promise.all([
           supabase.from('players').select('id,first_name,last_name,preferred_name,date_of_birth,primary_position,current_club,current_league,current_country,contract_status,contract_expiry,football_status,verification_status,agency_priority,next_action,next_action_due,current_season_label,current_season_start,transfermarkt_url,wyscout_url,stats_url'),
           supabase.from('player_private').select('player_id,market_preferences,preferred_move_timing,travel_availability,passports_held,work_rights'),
@@ -87,6 +89,7 @@ export default function DjmHomePage() {
       if (firstFailure) throw firstFailure;
 
       setCommand(commandResult || null);
+      setHomeControls(Array.isArray(controlResult) ? controlResult : []);
       setPortfolioData({
         players: rowData(queryResults[0]),
         privateRows: rowData(queryResults[1]),
@@ -125,9 +128,26 @@ export default function DjmHomePage() {
     [portfolioData],
   );
 
-  const combinedQueue = useMemo(() => {
+  const activeControlKeys = useMemo(
+      () => new Set(
+        homeControls
+          .filter((control) =>
+            control?.state === 'dismissed' ||
+            (control?.state === 'snoozed' &&
+              control?.snoozed_until &&
+              new Date(control.snoozed_until).getTime() > Date.now()),
+          )
+          .map((control) => String(control.item_key)),
+      ),
+      [homeControls],
+    );
+
+    const combinedQueue = useMemo(() => {
     const playerIssues = portfolio.issues.map((issue) => ({
       id: `player-${issue.id}`,
+      control_key: issue.recordId
+        ? `player:${issue.kind}:${issue.recordId}`
+        : `player:${issue.kind}:${issue.playerId}:${issue.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80)}`,
       title: issue.title,
       subtitle: `${issue.playerName} · ${issue.detail}`,
       href: issue.href,
@@ -142,6 +162,7 @@ export default function DjmHomePage() {
 
     const commandItems = (Array.isArray(command?.focus) ? command.focus : []).map((item: any) => ({
       id: `system-${item.kind || 'item'}-${item.id || item.title}`,
+      control_key: `system:${item.kind || 'item'}:${item.id || String(item.title || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80)}`,
       title: item.title || 'DJM action',
       subtitle: item.subtitle || 'Review the latest context.',
       href: normaliseLegacyHref(item.href || '/djm'),
@@ -161,9 +182,10 @@ export default function DjmHomePage() {
     });
 
     return [...deduped.values()]
+      .filter((item) => !activeControlKeys.has(item.control_key))
       .sort((a, b) => b.score - a.score || String(a.action_at || '').localeCompare(String(b.action_at || '')))
       .slice(0, 12);
-  }, [command?.focus, portfolio.issues]);
+  }, [activeControlKeys, command?.focus, portfolio.issues]);
 
   const completeQueueItem = async (item: any) => {
     if (!item?.record_id || !item?.can_complete || actionBusy) return;
@@ -194,7 +216,43 @@ export default function DjmHomePage() {
     }
   };
 
-  const liveNeeds = Array.isArray(command?.opportunities) ? command.opportunities : [];
+  const setQueueItemControl = async (item: any, action: 'dismiss' | 'snooze') => {
+      if (!item?.control_key || actionBusy) return;
+
+      let snoozedUntil: string | null = null;
+      if (action === 'snooze') {
+        const until = new Date();
+        until.setDate(until.getDate() + 1);
+        until.setHours(9, 0, 0, 0);
+        snoozedUntil = until.toISOString();
+      }
+
+      setActionBusy(`control-${item.id}`);
+      setError('');
+
+      try {
+        await djmRpc('djm_home_set_item_control', {
+          p_item_key: item.control_key,
+          p_action: action,
+          p_snoozed_until: snoozedUntil,
+        });
+
+        setHomeControls((current) => [
+          ...current.filter((control) => control?.item_key !== item.control_key),
+          {
+            item_key: item.control_key,
+            state: action === 'dismiss' ? 'dismissed' : 'snoozed',
+            snoozed_until: snoozedUntil,
+          },
+        ]);
+      } catch (controlError) {
+        setError(friendlyError(controlError));
+      } finally {
+        setActionBusy('');
+      }
+    };
+
+    const liveNeeds = Array.isArray(command?.opportunities) ? command.opportunities : [];
   const summary = command?.summary || {};
   const urgentCount = combinedQueue.filter((item) => Number(item.score || 0) >= 90).length;
   const displayName = auth.profile?.display_name?.split(' ')?.[0] || 'DJM';
@@ -204,8 +262,8 @@ export default function DjmHomePage() {
       <section className="ux-staff-home-hero">
         <div>
           <p className="ux-eyebrow">{greeting()}, {displayName}.</p>
-          <h2>{combinedQueue.length ? `${combinedQueue.length} things deserve DJM's attention.` : 'DJM is under control.'}</h2>
-          <p>Player service, club demand, relationships and deals are ranked together. Routine automation stays quiet.</p>
+          <h2>{combinedQueue.length ? 'Here is what is worth a look.' : 'DJM is under control.'}</h2>
+          <p>Important work is surfaced here. Clear it, snooze it or remove it from Home when it is not useful.</p>
         </div>
         <button type="button" className="ux-secondary-action" onClick={() => void load()} disabled={busy}>
           <RefreshCw size={15} className={busy ? 'spin' : ''} /> Refresh
@@ -223,27 +281,25 @@ export default function DjmHomePage() {
       <div className="ux-staff-home-grid">
         <section className="ux-surface ux-priority-surface">
           <div className="ux-surface-head">
-            <div><p className="ux-eyebrow">TODAY</p><h2>What should DJM do next?</h2></div>
+            <div><p className="ux-eyebrow">ATTENTION</p><h2>DJM attention</h2></div>
             <span>{combinedQueue.length}</span>
           </div>
 
           {busy ? <div className="ux-loading-row"><RefreshCw className="spin" size={18} />Connecting the agency picture...</div> : null}
           {!busy && combinedQueue.length ? (
             <div className="ux-action-list">
-              {combinedQueue.map((item, index) => (
+              {combinedQueue.map((item) => (
                 <div
                   key={item.id}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: item.can_complete
-                      ? 'minmax(0,1fr) auto'
-                      : '1fr',
+                    gridTemplateColumns: 'minmax(0,1fr) auto',
                     gap: 8,
                     alignItems: 'stretch',
                   }}
                 >
                   <Link className="ux-action-row" href={item.href}>
-                    <div className={`ux-action-rank ${item.score >= 90 ? 'is-urgent' : item.score >= 70 ? 'is-next' : ''}`}>{index + 1}</div>
+                    <div className={`ux-action-rank ${item.score >= 90 ? 'is-urgent' : item.score >= 70 ? 'is-next' : ''}`}><Clock3 size={15} /></div>
                     <div className="ux-action-copy">
                       <strong>{item.title}</strong>
                       <p>{item.subtitle}</p>
@@ -252,23 +308,47 @@ export default function DjmHomePage() {
                     <ArrowRight size={17} />
                   </Link>
 
-                  {item.can_complete ? (
+                  <div style={{ alignSelf: 'center', display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {item.can_complete ? (
+                      <button
+                        type="button"
+                        className="ux-secondary-action"
+                        disabled={Boolean(actionBusy)}
+                        onClick={() => void completeQueueItem(item)}
+                        style={{ minWidth: 72 }}
+                      >
+                        {actionBusy === item.id ? 'Saving...' : 'Done'}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="ux-secondary-action"
-                      disabled={actionBusy === item.id}
-                      onClick={() => void completeQueueItem(item)}
-                      style={{ alignSelf: 'center', minWidth: 72 }}
+                      aria-label="Snooze until tomorrow"
+                      title="Snooze until tomorrow"
+                      disabled={Boolean(actionBusy)}
+                      onClick={() => void setQueueItemControl(item, 'snooze')}
+                      style={{ minWidth: 42, paddingInline: 10 }}
                     >
-                      {actionBusy === item.id ? 'Saving...' : 'Done'}
+                      <Clock3 size={16} />
                     </button>
-                  ) : null}
+                    <button
+                      type="button"
+                      className="ux-secondary-action"
+                      aria-label="Remove from Home"
+                      title="Remove from Home"
+                      disabled={Boolean(actionBusy)}
+                      onClick={() => void setQueueItemControl(item, 'dismiss')}
+                      style={{ minWidth: 42, paddingInline: 10 }}
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           ) : null}
           {!busy && !combinedQueue.length ? (
-            <div className="ux-evidence-empty"><CheckCircle2 size={28} /><div><strong>Nothing urgent.</strong><p>Automation is healthy and there is no ranked action waiting.</p></div></div>
+            <div className="ux-evidence-empty"><CheckCircle2 size={28} /><div><strong>All clear.</strong><p>Nothing you have kept on Home needs attention right now.</p></div></div>
           ) : null}
         </section>
 
