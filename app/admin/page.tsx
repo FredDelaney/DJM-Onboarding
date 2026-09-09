@@ -574,7 +574,7 @@ function SignedPlayerCard({
 
         <div className="roster-card-body">
           <div className="roster-data-strip">
-            <CardStat label="Age" value={String(age(player.date_of_birth) ?? '—')} />
+            <CardStat label="Age" value={String(age(player.date_of_birth) ?? '-')} />
             <CardStat label="Contract" value={contract} />
             <CardStat label="Status" value={status} />
           </div>
