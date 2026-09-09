@@ -1,0 +1,116 @@
+/* Staff iPhone layout correction.
+   Loaded last so older responsive layers cannot re-expand the header. */
+
+@media (max-width: 760px) {
+  .ux-staff-header .djm-os-header-inner {
+    width: calc(100% - 24px) !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "brand actions"
+      "nav nav" !important;
+    align-items: center !important;
+    gap: 8px 10px !important;
+    padding: 10px 0 8px !important;
+  }
+
+  .ux-staff-header .djm-os-brand-row {
+    grid-area: brand !important;
+    min-width: 0 !important;
+  }
+
+  .ux-staff-header .djm-os-header-actions {
+    grid-area: actions !important;
+    width: auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    justify-self: end !important;
+    gap: 6px !important;
+  }
+
+  .ux-staff-header .djm-os-header-actions > * {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    flex: 0 0 40px !important;
+    padding-inline: 0 !important;
+  }
+
+  .ux-staff-header .djm-os-header-actions > * span {
+    display: none !important;
+  }
+
+  .ux-staff-header .djm-os-product-nav {
+    grid-area: nav !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: stretch !important;
+    gap: 2px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .ux-staff-header .djm-os-product-link {
+    min-width: 0 !important;
+    min-height: 40px !important;
+    flex: 1 1 0 !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    padding: 8px 4px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
+
+  .ux-staff-header .djm-os-product-link svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex: 0 0 15px !important;
+  }
+
+  .ux-staff-header .djm-os-product-link.is-active::after {
+    left: 6px !important;
+    right: 6px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .ux-staff-header .djm-os-header-inner {
+    width: calc(100% - 18px) !important;
+    gap: 7px 8px !important;
+  }
+
+  .ux-staff-header .djm-os-header-actions {
+    gap: 4px !important;
+  }
+
+  .ux-staff-header .djm-os-header-actions > * {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    flex-basis: 38px !important;
+  }
+
+  .ux-staff-header .djm-os-product-link {
+    gap: 3px !important;
+    padding-inline: 2px !important;
+    font-size: 9px !important;
+  }
+
+  .ux-staff-header .djm-os-product-link svg {
+    width: 14px !important;
+    height: 14px !important;
+    flex-basis: 14px !important;
+  }
+}
