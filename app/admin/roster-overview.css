@@ -1,553 +1,853 @@
-/* DJM Roster Studio
-   Editorial roster cards for /admin. Progressive enhancement only.
-   Existing page structure and behaviour remain untouched. */
+/* DJM Roster Studio V2
+   Purpose-built signed-player and prospect cards.
+   Mobile-first. No :has() card reconstruction. */
 
-@supports selector(.ux-player-row:has(.ux-player-contract)) {
-  .djm-roster-visual-layer {
-    --roster-navy: #061a2e;
-    --roster-navy-2: #0a2946;
-    --roster-ice: #d9e6ee;
-    --roster-gold: #d8ad2f;
-    --roster-line: rgba(211, 226, 235, .16);
-  }
+.roster-overview {
+  --roster-navy: #061a2e;
+  --roster-navy-2: #0b2d4d;
+  --roster-ink: #102f47;
+  --roster-muted: #6f8392;
+  --roster-line: #dfe8ed;
+  --roster-gold: #d8ad2f;
+  --roster-gold-soft: #f7edcc;
+  --roster-green: #2f7653;
+  --roster-red: #99433e;
+  --roster-radius: 24px;
+  position: relative;
+}
 
-  .djm-roster-visual-layer .ux-page-toolbar {
-    margin-bottom: 22px;
-  }
+.roster-command {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 16px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 88% -20%, rgba(216,173,47,.25), transparent 35%),
+    linear-gradient(135deg, #061a2e 0%, #0a2946 68%, #113b5d 100%);
+  box-shadow: 0 24px 58px rgba(6,26,46,.13);
+}
 
-  .djm-roster-visual-layer .ux-player-list {
-    overflow: visible;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(14px, 1.5vw, 22px);
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-  }
+.roster-command::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -70% 30%;
+  height: 160px;
+  background: radial-gradient(ellipse, rgba(255,255,255,.08), transparent 66%);
+  pointer-events: none;
+}
 
-  .djm-roster-visual-layer .ux-player-row {
-    position: relative;
-    isolation: isolate;
-    min-width: 0;
-    min-height: 438px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    padding: 0;
-    border: 1px solid rgba(255, 255, 255, .12);
-    border-radius: 28px;
-    background: var(--roster-navy);
-    color: #fff;
-    text-decoration: none;
+.roster-command-copy {
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+}
+
+.roster-command-kicker {
+  color: #e7bf4f;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.roster-command-copy > strong {
+  color: #fff;
+  font-size: clamp(20px, 2.3vw, 28px);
+  line-height: 1.08;
+  letter-spacing: -.035em;
+}
+
+.roster-command-copy > small {
+  color: rgba(222,234,241,.7);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.roster-segmented {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  border-color: rgba(255,255,255,.11) !important;
+  background: rgba(255,255,255,.08) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.roster-segmented button {
+  color: rgba(232,240,245,.68) !important;
+}
+
+.roster-segmented button.is-active {
+  background: #fff !important;
+  color: var(--roster-navy) !important;
+}
+
+.roster-toolbar {
+  margin-bottom: 18px !important;
+}
+
+.roster-search {
+  flex: 1;
+  max-width: 520px;
+}
+
+.roster-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 1.55vw, 22px);
+}
+
+.roster-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(9,44,69,.09);
+  border-radius: var(--roster-radius);
+  background: #fff;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.72) inset,
+    0 20px 55px -34px rgba(6,26,46,.55);
+  transform: translateZ(0);
+  transition:
+    transform .36s cubic-bezier(.2,.75,.25,1),
+    box-shadow .36s cubic-bezier(.2,.75,.25,1),
+    border-color .36s ease;
+}
+
+.roster-card-link {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.roster-card-link:focus-visible {
+  outline: 3px solid rgba(216,173,47,.56);
+  outline-offset: -3px;
+  border-radius: inherit;
+}
+
+.roster-player-media,
+.roster-prospect-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.roster-player-media {
+  min-height: 292px;
+  background:
+    radial-gradient(circle at 67% 20%, #1d5677 0%, #0a2d49 36%, #061a2e 78%);
+}
+
+.roster-player-photo {
+  object-fit: cover;
+  object-position: center 16%;
+  filter: saturate(.93) contrast(1.03);
+  transform: scale(1.002);
+  transition: transform .7s cubic-bezier(.2,.7,.2,1), filter .45s ease;
+}
+
+.roster-player-media.no-photo {
+  display: grid;
+  place-items: center;
+}
+
+.roster-monogram {
+  position: relative;
+  z-index: 0;
+  color: rgba(255,255,255,.17);
+  font-size: clamp(82px, 9vw, 116px);
+  font-weight: 760;
+  letter-spacing: -.08em;
+}
+
+.roster-media-shade {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(3,15,26,.08) 0%, rgba(3,15,26,.12) 40%, rgba(3,15,26,.86) 83%, rgba(3,15,26,.98) 100%),
+    linear-gradient(90deg, rgba(4,20,35,.18), transparent 60%);
+  pointer-events: none;
+}
+
+.roster-card-topline {
+  position: absolute;
+  z-index: 3;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.roster-type-mark {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 999px;
+  background: rgba(4,22,38,.44);
+  color: rgba(240,246,249,.84);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .11em;
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+}
+
+.roster-type-mark svg {
+  color: #e7bd47;
+}
+
+.roster-owner {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px 4px 5px;
+  border: 1px solid rgba(236,196,79,.34);
+  border-radius: 999px;
+  background: rgba(6,24,40,.72);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(0,0,0,.13);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.roster-owner > b {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--roster-gold);
+  color: #102338;
+  font-size: 8px;
+  font-weight: 950;
+}
+
+.roster-owner > span {
+  display: grid;
+  gap: 1px;
+  padding-right: 2px;
+  line-height: 1;
+}
+
+.roster-owner small {
+  color: rgba(232,239,244,.57);
+  font-size: 6px;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+
+.roster-owner strong {
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .055em;
+}
+
+.roster-owner.is-unassigned {
+  border-color: rgba(242,195,73,.48);
+  background: rgba(88,64,5,.78);
+}
+
+.roster-owner.is-unassigned > b {
+  background: #f4c64d;
+  color: #392b02;
+  font-size: 11px;
+}
+
+.roster-player-identity {
+  position: absolute;
+  z-index: 3;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  min-width: 0;
+}
+
+.roster-player-identity > span,
+.roster-prospect-copy > .roster-stage-line span {
+  color: #e5bd49;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.roster-player-identity h2,
+.roster-prospect-copy h2 {
+  margin: 5px 0 6px;
+  color: #fff;
+  font-size: clamp(25px, 2.25vw, 34px);
+  font-weight: 790;
+  line-height: .98;
+  letter-spacing: -.052em;
+  text-wrap: balance;
+}
+
+.roster-player-identity p,
+.roster-prospect-copy p {
+  overflow: hidden;
+  margin: 0;
+  color: rgba(227,238,244,.78);
+  font-size: 10px;
+  font-weight: 630;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-card-body {
+  padding: 14px;
+  background:
+    linear-gradient(180deg, #fff 0%, #fbfcfd 100%);
+}
+
+.roster-data-strip {
+  display: grid;
+  grid-template-columns: .55fr 1.15fr 1fr;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.roster-stat {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px solid #e8eef1;
+  border-radius: 12px;
+  background: #f8fafb;
+}
+
+.roster-stat small {
+  color: #8a99a4;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.roster-stat strong {
+  overflow: hidden;
+  color: #173b54;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-action-line {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 32px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 9px 10px;
+  border: 1px solid #e3eaee;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.roster-action-icon {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eef3f6;
+  color: #315b75;
+}
+
+.roster-action-line > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.roster-action-line small {
+  color: #8b9aa5;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.roster-action-line strong {
+  overflow: hidden;
+  color: #173b54;
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-action-line span:not(.roster-action-icon) {
+  color: #8395a1;
+  font-size: 7px;
+}
+
+.roster-action-line > svg {
+  color: #9aabb5;
+}
+
+.roster-action-line.is-quiet {
+  background: #f8fafb;
+}
+
+.roster-action-line.is-attention {
+  border-color: #ead58d;
+  background: #fffbef;
+}
+
+.roster-action-line.is-attention .roster-action-icon {
+  background: #fff2c9;
+  color: #806212;
+}
+
+.roster-action-line.is-overdue {
+  border-color: #edc9c5;
+  background: #fff5f3;
+}
+
+.roster-action-line.is-overdue .roster-action-icon {
+  background: #fbe3df;
+  color: var(--roster-red);
+}
+
+.roster-action-line.is-overdue small,
+.roster-action-line.is-overdue strong {
+  color: var(--roster-red);
+}
+
+/* Prospect card */
+
+.roster-prospect-card {
+  background: #fff;
+}
+
+.roster-prospect-card.is-overdue {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.72) inset,
+    0 24px 58px -34px rgba(153,67,62,.46);
+}
+
+.roster-prospect-hero {
+  min-height: 230px;
+  display: flex;
+  align-items: flex-end;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 90% -10%, rgba(216,173,47,.24), transparent 34%),
+    radial-gradient(circle at 8% 110%, rgba(39,92,126,.55), transparent 38%),
+    linear-gradient(145deg, #061a2e 0%, #0a2946 72%, #113e61 100%);
+}
+
+.roster-prospect-watermark {
+  position: absolute;
+  z-index: 0;
+  top: 53%;
+  right: -8px;
+  color: rgba(255,255,255,.055);
+  font-size: 112px;
+  font-weight: 800;
+  line-height: .8;
+  letter-spacing: -.1em;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.roster-prospect-copy {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  width: 100%;
+  padding-top: 55px;
+}
+
+.roster-stage-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.roster-stage-line b {
+  min-width: 31px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 9px;
+  background: rgba(255,255,255,.08);
+  color: #f4f7f9;
+  font-size: 8px;
+}
+
+.roster-prospect-copy h2 {
+  max-width: 90%;
+  margin-top: 7px;
+}
+
+.roster-stage-rail {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 17px;
+}
+
+.roster-stage-rail i {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.14);
+}
+
+.roster-stage-rail i.is-active {
+  background: linear-gradient(90deg, #c99a1b, #edc95d);
+  box-shadow: 0 0 12px rgba(216,173,47,.16);
+}
+
+.roster-prospect-body {
+  padding-top: 12px;
+}
+
+.roster-prospect-signals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.roster-prospect-signals > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px solid #e6ecef;
+  border-radius: 12px;
+  background: #f8fafb;
+}
+
+.roster-prospect-signals small {
+  color: #8a99a4;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: .09em;
+}
+
+.roster-prospect-signals strong {
+  color: #183b53;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.roster-prospect-signals span {
+  overflow: hidden;
+  color: #7c8e9a;
+  font-size: 7px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-prospect-signals > div.is-positive {
+  border-color: #d4e7dc;
+  background: #f3f8f5;
+}
+
+.roster-prospect-signals > div.is-positive strong {
+  color: var(--roster-green);
+}
+
+.roster-prospect-signals > div.is-attention {
+  border-color: #ead78f;
+  background: #fffbef;
+}
+
+.roster-prospect-signals > div.is-attention strong {
+  color: #7d6315;
+}
+
+.roster-prospect-signals > div.is-danger {
+  border-color: #eccbc7;
+  background: #fff5f3;
+}
+
+.roster-prospect-signals > div.is-danger strong {
+  color: var(--roster-red);
+}
+
+.roster-empty {
+  grid-column: 1 / -1;
+  min-height: 180px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .roster-card:hover {
+    transform: translateY(-7px);
+    border-color: rgba(13,60,90,.17);
     box-shadow:
-      0 1px 0 rgba(255,255,255,.07) inset,
-      0 28px 70px -38px rgba(6, 26, 46, .72);
-    transform: translateZ(0);
-    transition:
-      transform .42s cubic-bezier(.2,.75,.25,1),
-      box-shadow .42s cubic-bezier(.2,.75,.25,1),
-      border-color .42s ease;
+      0 1px 0 rgba(255,255,255,.72) inset,
+      0 34px 80px -38px rgba(6,26,46,.62);
   }
 
-  .djm-roster-visual-layer .ux-player-row:last-child {
-    border-bottom: 1px solid rgba(255, 255, 255, .12);
+  .roster-signed-card:hover .roster-player-photo {
+    transform: scale(1.035);
+    filter: saturate(.98) contrast(1.04);
   }
 
-  .djm-roster-visual-layer .ux-player-row::after {
-    content: "";
-    position: absolute;
-    z-index: 8;
-    top: -65%;
-    left: -65%;
-    width: 70%;
-    height: 220%;
-    pointer-events: none;
-    background: linear-gradient(
-      112deg,
-      transparent 38%,
-      rgba(255,255,255,.09) 48%,
-      rgba(255,255,255,.19) 50%,
-      rgba(255,255,255,.07) 53%,
-      transparent 63%
-    );
-    transform: translateX(-48%) rotate(8deg);
-    opacity: 0;
-    transition: transform .85s cubic-bezier(.2,.7,.2,1), opacity .35s ease;
+  .roster-card:hover .roster-action-line > svg {
+    transform: translateX(2px);
   }
 
-  .djm-roster-visual-layer .ux-player-row:focus-visible {
-    outline: 3px solid rgba(216, 173, 47, .58);
-    outline-offset: 4px;
+  .roster-action-line > svg {
+    transition: transform .22s ease;
+  }
+}
+
+@media (max-width: 1150px) {
+  .roster-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .roster-overview {
+    --roster-radius: 21px;
   }
 
-  /* Signed player: full-bleed editorial portrait */
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) {
-    justify-content: flex-end;
-    background:
-      radial-gradient(circle at 82% 8%, rgba(216,173,47,.22), transparent 31%),
-      linear-gradient(155deg, #0c3151 0%, #061a2e 63%, #04131f 100%);
+  .roster-command {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 15px;
+    margin-left: -2px;
+    margin-right: -2px;
+    padding: 18px;
+    border-radius: 20px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract)::before {
-    content: "";
-    position: absolute;
-    z-index: 2;
-    inset: 0;
-    pointer-events: none;
-    background:
-      linear-gradient(180deg, rgba(3,15,26,.03) 0%, rgba(3,15,26,.1) 34%, rgba(3,15,26,.83) 72%, rgba(3,15,26,.98) 100%),
-      linear-gradient(90deg, rgba(5,23,39,.28), transparent 56%);
+  .roster-command-copy > strong {
+    font-size: 23px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-avatar {
-    position: absolute;
-    z-index: 0;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 0;
-    background:
-      radial-gradient(circle at 60% 24%, rgba(36,88,120,.95), rgba(6,26,46,.98) 54%),
-      #061a2e;
-    color: rgba(255,255,255,.26);
-    font-size: clamp(62px, 7vw, 92px);
-    font-weight: 760;
-    letter-spacing: -.08em;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center 16%;
-    filter: saturate(.9) contrast(1.035);
-    transform: scale(1.001);
-    transition: transform .75s cubic-bezier(.2,.7,.2,1), filter .5s ease;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-main {
-    position: relative;
-    z-index: 4;
-    width: auto;
-    min-width: 0;
-    margin: 0;
-    padding: 0 22px 84px;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-main::before {
-    content: "DJM PLAYER";
-    display: block;
-    margin-bottom: 8px;
-    color: #e0ba4b;
-    font-size: 8px;
-    font-weight: 900;
-    letter-spacing: .17em;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-main > strong {
-    display: block;
-    max-width: calc(100% - 20px);
-    color: #fff;
-    font-size: clamp(25px, 2.2vw, 34px);
-    font-weight: 790;
-    line-height: .98;
-    letter-spacing: -.052em;
-    text-wrap: balance;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-main > p {
+  .roster-command-copy > small {
     max-width: 92%;
-    overflow: visible;
-    margin: 9px 0 0;
-    color: rgba(226,237,243,.82);
-    font-size: 11px;
-    font-weight: 650;
-    line-height: 1.42;
-    text-overflow: unset;
-    white-space: normal;
+    font-size: 9px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-main > small {
-    display: -webkit-box;
-    overflow: hidden;
-    margin-top: 15px;
-    padding-top: 13px;
-    border-top: 1px solid rgba(220,234,242,.17);
-    color: rgba(228,238,244,.7);
+  .roster-segmented {
+    width: 100%;
+  }
+
+  .roster-segmented button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .roster-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+
+  .roster-search {
+    width: 100%;
+    max-width: none;
+  }
+
+  .roster-toolbar .ux-toolbar-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .roster-toolbar .ux-toolbar-actions > :only-child {
+    grid-column: 1 / -1;
+  }
+
+  .roster-toolbar .ux-primary-action,
+  .roster-toolbar .ux-secondary-action {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .roster-card-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .roster-card {
+    border-radius: 21px;
+    box-shadow: 0 16px 42px -30px rgba(6,26,46,.55);
+  }
+
+  .roster-player-media {
+    min-height: 242px;
+  }
+
+  .roster-player-photo {
+    object-position: center 14%;
+  }
+
+  .roster-card-topline {
+    top: 13px;
+    left: 13px;
+    right: 13px;
+  }
+
+  .roster-type-mark {
+    min-height: 28px;
+    padding: 0 8px;
+    font-size: 6px;
+  }
+
+  .roster-owner {
+    min-height: 32px;
+    padding-right: 8px;
+  }
+
+  .roster-owner > b {
+    width: 23px;
+    height: 23px;
+  }
+
+  .roster-owner strong {
+    font-size: 7px;
+  }
+
+  .roster-owner small {
+    font-size: 5.5px;
+  }
+
+  .roster-player-identity {
+    left: 15px;
+    right: 15px;
+    bottom: 15px;
+  }
+
+  .roster-player-identity h2,
+  .roster-prospect-copy h2 {
+    max-width: 100%;
+    font-size: 27px;
+  }
+
+  .roster-player-identity p,
+  .roster-prospect-copy p {
     font-size: 9px;
-    font-weight: 650;
-    line-height: 1.45;
+  }
+
+  .roster-card-body {
+    padding: 12px;
+  }
+
+  .roster-data-strip {
+    gap: 6px;
+  }
+
+  .roster-stat {
+    padding: 9px;
+  }
+
+  .roster-stat strong {
+    font-size: 9px;
+  }
+
+  .roster-action-line {
+    min-height: 58px;
+    padding: 8px 9px;
+  }
+
+  .roster-action-line strong {
     white-space: normal;
+    display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
 
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-meta {
-    position: absolute;
-    z-index: 5;
-    top: 18px;
-    right: 18px;
-    min-width: 62px;
-    display: grid;
-    gap: 2px;
-    padding: 9px 11px;
-    border: 1px solid rgba(255,255,255,.16);
-    border-radius: 14px;
-    background: rgba(5,24,41,.44);
-    color: #fff;
-    text-align: right;
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
-    box-shadow: 0 10px 30px rgba(0,0,0,.13);
+  .roster-prospect-hero {
+    min-height: 215px;
+    padding: 15px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-meta strong {
-    color: #fff;
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.05;
+  .roster-prospect-copy {
+    padding-top: 58px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-meta span {
-    color: rgba(225,236,243,.63);
-    font-size: 7px;
-    font-weight: 800;
-    letter-spacing: .08em;
-    text-transform: uppercase;
+  .roster-prospect-watermark {
+    right: 2px;
+    font-size: 94px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-contract {
-    top: auto;
-    right: auto;
-    bottom: 20px;
-    left: 22px;
-    min-width: 0;
-    max-width: calc(100% - 90px);
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    text-align: left;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: none;
+  .roster-prospect-signals > div {
+    padding: 9px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-contract strong {
-    overflow: hidden;
-    display: block;
-    color: #eef5f8;
-    font-size: 10px;
-    font-weight: 800;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-contract span {
-    margin-top: 3px;
-    color: rgba(218,231,238,.52);
-  }
-
-  .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) > svg {
-    position: absolute;
-    z-index: 6;
-    right: 20px;
-    bottom: 18px;
-    width: 38px;
-    height: 38px;
-    padding: 10px;
-    border: 1px solid rgba(255,255,255,.16);
-    border-radius: 50%;
-    background: rgba(255,255,255,.1);
-    color: #fff;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    transition: transform .35s ease, background .35s ease;
-  }
-
-  /* Prospect: recruitment intelligence tile */
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) {
-    min-height: 438px;
-    padding: 25px;
-    background:
-      radial-gradient(circle at 13% 8%, rgba(216,173,47,.18), transparent 22%),
-      radial-gradient(circle at 94% 88%, rgba(40,100,139,.36), transparent 35%),
-      linear-gradient(148deg, #0b3150 0%, #061a2e 58%, #04131f 100%);
-  }
-
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract))::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    pointer-events: none;
-    opacity: .46;
-    background-image:
-      linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
-    background-size: 34px 34px;
-    mask-image: linear-gradient(to bottom right, #000, transparent 78%);
-  }
-
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-avatar {
-    position: relative;
-    z-index: 2;
-    width: 92px;
-    height: 92px;
-    flex: 0 0 auto;
-    overflow: hidden;
-    margin: 0 0 26px;
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: 26px;
-    background:
-      linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.035));
-    color: #f1d269;
-    font-size: 25px;
-    font-weight: 820;
-    letter-spacing: -.04em;
-    box-shadow:
-      0 16px 40px rgba(0,0,0,.18),
-      inset 0 1px 0 rgba(255,255,255,.1);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-avatar::after {
-    content: "";
-    position: absolute;
-    inset: 8px;
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 19px;
-    pointer-events: none;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main {
-    position: relative;
-    z-index: 2;
-    min-width: 0;
-    width: 100%;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main::before {
-    content: "RECRUITMENT";
-    display: block;
-    margin-bottom: 8px;
-    color: rgba(223,185,74,.96);
-    font-size: 8px;
-    font-weight: 900;
-    letter-spacing: .17em;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main > strong {
-    display: block;
-    max-width: calc(100% - 34px);
-    color: #fff;
-    font-size: clamp(23px, 2vw, 31px);
-    font-weight: 790;
-    line-height: 1;
-    letter-spacing: -.048em;
-    text-wrap: balance;
-  }
-
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main > p {
-    overflow: visible;
-    margin: 9px 0 0;
-    color: rgba(218,232,240,.72);
-    font-size: 11px;
-    font-weight: 620;
-    line-height: 1.45;
-    text-overflow: unset;
+  .roster-prospect-signals span {
     white-space: normal;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 390px) {
+  .roster-owner > span {
+    display: none;
   }
 
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main > div {
-    width: 100%;
-    margin-top: auto !important;
-    padding-top: 22px;
-    border-top: 1px solid rgba(218,232,240,.13);
+  .roster-owner {
+    padding: 4px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main > div > span {
-    min-height: 28px !important;
-    padding: 5px 9px !important;
-    border-radius: 999px !important;
-    font-size: 8px !important;
-    font-weight: 850 !important;
-    letter-spacing: .02em;
-    box-shadow: 0 7px 18px rgba(0,0,0,.1);
+  .roster-owner > b {
+    width: 26px;
+    height: 26px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main > div > span:first-child {
-    border-color: rgba(255,255,255,.14) !important;
-    background: rgba(255,255,255,.09) !important;
-    color: #e7f0f5 !important;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-meta {
-    position: absolute;
-    z-index: 5;
-    top: 24px;
-    right: 24px;
-    min-width: 0;
+  .roster-owner.is-unassigned > span {
     display: grid;
-    gap: 1px;
-    padding: 8px 10px;
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: 13px;
-    background: rgba(255,255,255,.075);
-    text-align: right;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
   }
 
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-meta strong {
-    color: #f2d269;
-    font-size: 13px;
-    font-weight: 880;
+  .roster-owner.is-unassigned {
+    padding-right: 8px;
   }
 
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-meta span {
-    color: rgba(216,230,238,.5);
-    font-size: 7px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .08em;
+  .roster-data-strip {
+    grid-template-columns: .48fr 1.2fr .9fr;
   }
 
-  .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) > svg {
-    position: absolute;
-    z-index: 5;
-    right: 22px;
-    bottom: 20px;
-    width: 38px;
-    height: 38px;
-    padding: 10px;
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: 50%;
-    background: rgba(255,255,255,.075);
-    color: #fff;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    transition: transform .35s ease, background .35s ease;
+  .roster-stat {
+    padding: 8px;
   }
 
-  /* Slightly more intentional toolbar, without turning it into another card */
-  .djm-roster-visual-layer .ux-segmented {
-    border-color: rgba(11,49,77,.1);
-    background: rgba(235,241,244,.72);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+  .roster-stat small {
+    font-size: 6px;
   }
 
-  .djm-roster-visual-layer .ux-search-control {
-    border-color: rgba(11,49,77,.12);
-    box-shadow: 0 10px 30px rgba(6,31,58,.035);
+  .roster-stat strong {
+    font-size: 8px;
   }
+}
 
-  @media (hover: hover) and (pointer: fine) {
-    .djm-roster-visual-layer .ux-player-row:hover {
-      background-color: var(--roster-navy);
-      border-color: rgba(255,255,255,.22);
-      box-shadow:
-        0 1px 0 rgba(255,255,255,.11) inset,
-        0 42px 86px -38px rgba(6,26,46,.8);
-      transform: translateY(-7px) scale(1.008);
-    }
-
-    .djm-roster-visual-layer .ux-player-row:hover::after {
-      opacity: 1;
-      transform: translateX(230%) rotate(8deg);
-    }
-
-    .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract):hover .ux-player-avatar img {
-      transform: scale(1.045);
-      filter: saturate(.98) contrast(1.055);
-    }
-
-    .djm-roster-visual-layer .ux-player-row:hover > svg {
-      background: rgba(255,255,255,.16);
-      transform: translateX(3px);
-    }
-  }
-
-  @media (max-width: 1160px) {
-    .djm-roster-visual-layer .ux-player-list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 720px) {
-    .djm-roster-visual-layer .ux-player-list {
-      grid-template-columns: 1fr;
-      gap: 14px;
-    }
-
-    .djm-roster-visual-layer .ux-player-row,
-    .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)),
-    .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) {
-      min-height: 410px;
-      border-radius: 24px;
-    }
-
-    .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-main {
-      padding-right: 20px;
-      padding-left: 20px;
-    }
-
-    .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) {
-      padding: 22px;
-    }
-
-    .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-avatar {
-      width: 82px;
-      height: 82px;
-      margin-bottom: 22px;
-      border-radius: 23px;
-    }
-
-    .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-meta {
-      display: grid;
-    }
-
-    .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-meta {
-      display: grid;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .djm-roster-visual-layer .ux-player-row,
-    .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)),
-    .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) {
-      min-height: 392px;
-    }
-
-    .djm-roster-visual-layer .ux-player-row:has(.ux-player-contract) .ux-player-main > strong,
-    .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main > strong {
-      font-size: 26px;
-    }
-
-    .djm-roster-visual-layer .ux-player-row:not(:has(.ux-player-contract)) .ux-player-main > div {
-      padding-right: 42px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .djm-roster-visual-layer .ux-player-row,
-    .djm-roster-visual-layer .ux-player-row::after,
-    .djm-roster-visual-layer .ux-player-row .ux-player-avatar img,
-    .djm-roster-visual-layer .ux-player-row > svg {
-      transition: none !important;
-    }
-
-    .djm-roster-visual-layer .ux-player-row:hover {
-      transform: none;
-    }
+@media (prefers-reduced-motion: reduce) {
+  .roster-card,
+  .roster-player-photo,
+  .roster-action-line > svg {
+    transition: none !important;
   }
 }
