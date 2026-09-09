@@ -6,7 +6,6 @@ import DjmWorkspaceHeader from '@/components/DjmWorkspaceHeader';
 import { useAdmin } from '@/components/AdminShell';
 import { supabase } from '@/lib/supabase';
 
-
 export default function DjmOsShell({
   title,
   eyebrow,
@@ -18,6 +17,10 @@ export default function DjmOsShell({
 }) {
   const auth = useAdmin();
   const router = useRouter();
+  const pageKey = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -29,7 +32,7 @@ export default function DjmOsShell({
       <main className="djm-os-loading">
         <Brand />
         <div className="djm-os-loading-line" />
-        <span>Loading DJM Intelligence…</span>
+        <span>Loading DJM Intelligence...</span>
       </main>
     );
   }
@@ -37,7 +40,7 @@ export default function DjmOsShell({
   if (!auth.user) return null;
 
   return (
-    <div className="djm-os-root">
+    <div className="djm-os-root" data-djm-page={pageKey}>
       <DjmWorkspaceHeader onSignOut={signOut} />
 
       <main className="djm-os-main">

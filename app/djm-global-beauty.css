@@ -1,0 +1,1101 @@
+/* DJM Global Beauty Sweep V1
+   Final design-system layer.
+   Loaded last at the root so it can calmly normalise older visual generations.
+   No feature logic lives here. */
+
+:root {
+  --djm-navy: #071d31;
+  --djm-navy-2: #0c2f4d;
+  --djm-ink: #14364d;
+  --djm-muted: #6f8290;
+  --djm-line: #dfe7eb;
+  --djm-soft: #f5f7f8;
+  --djm-white: #ffffff;
+  --djm-yellow: #d6ad33;
+  --djm-green: #2e7452;
+  --djm-red: #98443f;
+  --ux-navy: #071d31;
+  --ux-navy-2: #0c2f4d;
+  --ux-ink: #14364d;
+  --ux-muted: #6f8290;
+  --ux-line: #dfe7eb;
+  --ux-soft: #f5f7f8;
+  --ux-warm: #fbfaf7;
+  --ux-yellow: #d6ad33;
+  --ux-green: #2e7452;
+  --ux-red: #98443f;
+  --ux-radius: 18px;
+  --ux-shadow: 0 16px 44px -34px rgba(7, 29, 49, .38);
+  --djm-focus: 0 0 0 3px rgba(214, 173, 51, .22);
+}
+
+html {
+  background: #f5f7f8;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: #f5f7f8;
+  color: var(--djm-ink);
+}
+
+::selection {
+  background: rgba(214, 173, 51, .24);
+  color: var(--djm-navy);
+}
+
+a,
+button,
+input,
+select,
+textarea,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid rgba(214, 173, 51, .72);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   1. SHARED AUTHENTICATED HEADER
+   ========================================================= */
+
+.djm-os-header {
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(5, 24, 40, .955);
+  box-shadow: 0 8px 28px rgba(4, 18, 30, .08);
+  backdrop-filter: blur(20px) saturate(125%);
+  -webkit-backdrop-filter: blur(20px) saturate(125%);
+}
+
+.djm-os-header-inner {
+  width: min(1460px, calc(100% - 32px));
+  min-height: 66px;
+  gap: 20px;
+}
+
+.djm-os-chip,
+.ux-os-chip {
+  display: none !important;
+}
+
+.djm-os-product-nav {
+  gap: 4px;
+}
+
+.djm-os-product-link {
+  position: relative;
+  min-height: 38px;
+  gap: 7px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  color: rgba(235, 242, 246, .62);
+  font-size: 12px;
+  font-weight: 760;
+  transition:
+    color .18s ease,
+    background .18s ease,
+    transform .18s ease;
+}
+
+.djm-os-product-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, .055);
+}
+
+.djm-os-product-link.is-active {
+  color: #fff;
+  background: rgba(255, 255, 255, .095);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .045);
+}
+
+.djm-os-product-link.is-active::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  right: 11px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #b98a13, #e6c356);
+}
+
+.workspace-tab-badge {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  background: #d6ad33;
+  color: #15283a;
+  font-size: 8px;
+}
+
+.djm-os-product-link.is-active .workspace-tab-badge {
+  background: #d6ad33;
+  color: #15283a;
+}
+
+.djm-os-icon-button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, .085) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, .045) !important;
+  color: rgba(242, 247, 249, .76) !important;
+  box-shadow: none !important;
+}
+
+.djm-os-icon-button:hover {
+  background: rgba(255, 255, 255, .08) !important;
+  color: #fff !important;
+}
+
+.djm-os-header-actions {
+  gap: 7px;
+}
+
+/* =========================================================
+   2. STAFF SHELL AND PAGE HIERARCHY
+   ========================================================= */
+
+.djm-os-root {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(36, 91, 126, .055), transparent 29rem),
+    linear-gradient(180deg, #f8fafb 0%, #f4f6f7 100%);
+}
+
+.djm-os-main {
+  width: min(1400px, calc(100% - 32px));
+  padding: 28px 0 72px;
+}
+
+.djm-os-page-head {
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.djm-os-page-head h1 {
+  margin-top: 4px;
+  color: var(--djm-navy);
+  font-size: clamp(31px, 3.2vw, 42px);
+  font-weight: 790;
+  line-height: .98;
+  letter-spacing: -.048em;
+}
+
+.djm-os-eyebrow {
+  color: #7c8d98;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+
+.djm-os-user {
+  display: none;
+}
+
+.djm-os-root[data-djm-page="home"] .djm-os-page-head,
+.djm-os-root[data-djm-page="players"] .djm-os-page-head,
+.djm-os-root[data-djm-page="settings"] .djm-os-page-head {
+  display: none;
+}
+
+/* =========================================================
+   3. ACTION LANGUAGE
+   Navy performs actions. Gold communicates accent and focus.
+   ========================================================= */
+
+.ux-primary-action,
+.ux-secondary-action,
+.ux-primary-button,
+.ux-secondary-button {
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 820;
+  letter-spacing: -.005em;
+  box-shadow: none;
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    background .16s ease,
+    color .16s ease,
+    box-shadow .16s ease;
+}
+
+.ux-primary-action,
+.ux-primary-button {
+  border: 1px solid #071d31 !important;
+  background: #071d31 !important;
+  color: #fff !important;
+}
+
+.ux-primary-action:hover,
+.ux-primary-button:hover {
+  background: #0b2d49 !important;
+  border-color: #0b2d49 !important;
+  box-shadow: 0 10px 24px -18px rgba(7, 29, 49, .72);
+}
+
+.ux-secondary-action,
+.ux-secondary-button {
+  border: 1px solid #d7e0e5 !important;
+  background: rgba(255, 255, 255, .96) !important;
+  color: #264c65 !important;
+}
+
+.ux-secondary-action:hover,
+.ux-secondary-button:hover {
+  border-color: #c7d4db !important;
+  background: #fff !important;
+}
+
+.ux-primary-action:hover,
+.ux-secondary-action:hover,
+.ux-primary-button:hover,
+.ux-secondary-button:hover {
+  transform: translateY(-1px);
+}
+
+.ux-primary-action:active,
+.ux-secondary-action:active,
+.ux-primary-button:active,
+.ux-secondary-button:active {
+  transform: translateY(0);
+}
+
+.ux-primary-action:disabled,
+.ux-secondary-action:disabled {
+  opacity: .52;
+  transform: none;
+}
+
+/* =========================================================
+   4. SEARCH, SEGMENTED CONTROLS AND FORMS
+   ========================================================= */
+
+.ux-page-toolbar {
+  gap: 10px;
+  margin-bottom: 13px;
+}
+
+.ux-search-control {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #dce4e8;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .94);
+  color: #7a8c98;
+  box-shadow: none;
+}
+
+.ux-search-control:focus-within {
+  border-color: rgba(173, 139, 34, .52);
+  box-shadow: var(--djm-focus);
+}
+
+.ux-search-control input {
+  font-size: 11px;
+}
+
+.ux-segmented {
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #dfe7eb;
+  border-radius: 11px;
+  background: #f3f6f7;
+}
+
+.ux-segmented button {
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 8px;
+  color: #6d818f;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.ux-segmented button.is-active {
+  background: #fff;
+  color: #173a52;
+  box-shadow: 0 4px 13px -10px rgba(7, 29, 49, .6);
+}
+
+.ux-segmented button span {
+  background: #edf2f4;
+  color: #71828e;
+}
+
+.djm-os-root input:not([type="checkbox"]):not([type="radio"]),
+.djm-os-root select,
+.djm-os-root textarea,
+.ux-player-root input:not([type="checkbox"]):not([type="radio"]),
+.ux-player-root select,
+.ux-player-root textarea {
+  border-color: #d8e1e6;
+  border-radius: 10px;
+  background: #fff;
+  color: #16394f;
+  box-shadow: none;
+}
+
+.djm-os-root input:not([type="checkbox"]):not([type="radio"]):focus,
+.djm-os-root select:focus,
+.djm-os-root textarea:focus,
+.ux-player-root input:not([type="checkbox"]):not([type="radio"]):focus,
+.ux-player-root select:focus,
+.ux-player-root textarea:focus {
+  border-color: rgba(173, 139, 34, .55);
+  outline: 0;
+  box-shadow: var(--djm-focus);
+}
+
+.ux-simple-form {
+  gap: 12px;
+  padding: 15px 20px 20px;
+}
+
+.ux-simple-form label,
+.ux-form-wide label {
+  color: #526e80;
+  font-size: 9px;
+  font-weight: 780;
+}
+
+.ux-simple-form input,
+.ux-simple-form select,
+.ux-simple-form textarea,
+.ux-filter-row select {
+  min-height: 43px;
+  font-size: 11px;
+}
+
+/* =========================================================
+   5. SURFACES
+   Cards should group information, not decorate every element.
+   ========================================================= */
+
+.ux-surface,
+.ux-comparison-panel,
+.djm-os-panel,
+.ux-player-list,
+.ux-pipeline-list {
+  border: 1px solid rgba(16, 54, 77, .075);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 16px 42px -36px rgba(7, 29, 49, .5);
+}
+
+.ux-surface-head,
+.djm-os-panel-head {
+  padding: 17px 19px 12px;
+  border-bottom: 0;
+}
+
+.ux-surface-head h2,
+.ux-panel-heading h2,
+.djm-os-panel-head h2 {
+  color: #15364d;
+  font-size: 16px;
+  font-weight: 790;
+  letter-spacing: -.025em;
+}
+
+.ux-surface-head p,
+.ux-panel-heading p {
+  color: #748793;
+  font-size: 10px;
+}
+
+.ux-surface-head > a,
+.ux-surface-head > button {
+  color: #41647a;
+  font-size: 9px;
+}
+
+.ux-eyebrow {
+  margin-bottom: 5px;
+  color: #8a6e18;
+  font-size: 8px;
+  letter-spacing: .12em;
+}
+
+.ux-muted-copy {
+  color: #748793;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.ux-alert {
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  font-size: 10px;
+}
+
+.ux-alert-error {
+  border-color: #ead2cf;
+  background: #fff7f6;
+  color: #91443f;
+}
+
+.ux-alert-success {
+  border-color: #d4e4da;
+  background: #f5f9f6;
+  color: #346f51;
+}
+
+.ux-loading-row {
+  min-height: 96px;
+  font-size: 10px;
+}
+
+.ux-evidence-empty {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   6. STAFF HOME
+   ========================================================= */
+
+.ux-staff-home-hero,
+.ux-settings-hero,
+.ux-compare-topbar {
+  margin-bottom: 13px;
+  padding: 22px 24px;
+  border: 1px solid rgba(255, 255, 255, .055);
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 88% -10%, rgba(214, 173, 51, .15), transparent 34%),
+    linear-gradient(135deg, #071d31 0%, #0b2e4a 70%, #123e5d 100%);
+  box-shadow: 0 24px 58px -38px rgba(7, 29, 49, .72);
+}
+
+.ux-staff-home-hero h2,
+.ux-settings-hero h2,
+.ux-compare-topbar h1 {
+  font-size: clamp(25px, 2.7vw, 34px);
+  font-weight: 790;
+  line-height: 1.02;
+}
+
+.ux-staff-home-hero p:not(.ux-eyebrow),
+.ux-settings-hero p:not(.ux-eyebrow),
+.ux-compare-topbar .ux-subtitle {
+  margin-top: 8px;
+  color: rgba(221, 233, 240, .7);
+  font-size: 11px;
+}
+
+.ux-signal-strip {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ux-signal {
+  grid-template-columns: auto auto 1fr;
+  gap: 9px;
+  padding: 12px 14px;
+  border: 1px solid rgba(16, 54, 77, .07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .82);
+}
+
+.ux-signal strong {
+  font-size: 18px;
+}
+
+.ux-signal span {
+  color: #71838f;
+  font-size: 9px;
+}
+
+.ux-signal.is-attention {
+  border-color: rgba(214, 173, 51, .26);
+  background: #fdfaf0;
+}
+
+.ux-staff-home-grid,
+.ux-home-side-stack {
+  gap: 12px;
+}
+
+.ux-action-row {
+  gap: 11px;
+  padding: 12px 16px;
+  border-bottom-color: #eef2f4;
+}
+
+.ux-action-row:hover {
+  background: #fafbfc;
+}
+
+.ux-action-rank {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: #eff3f5;
+}
+
+.ux-action-copy strong {
+  font-size: 11px;
+}
+
+.ux-action-copy p {
+  color: #607887;
+  font-size: 9.5px;
+}
+
+.ux-action-copy small {
+  font-size: 8px;
+}
+
+.ux-mini-list > a {
+  padding: 11px 16px;
+}
+
+.ux-health-lines {
+  padding-inline: 16px;
+}
+
+/* =========================================================
+   7. LISTS, PIPELINES AND METRICS
+   ========================================================= */
+
+.djm-os-metrics {
+  gap: 8px;
+  margin-bottom: 13px;
+}
+
+.djm-os-metric {
+  min-height: 92px;
+  padding: 15px;
+  border: 1px solid rgba(16, 54, 77, .075);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: none;
+}
+
+.djm-os-metric strong {
+  font-size: 25px;
+}
+
+.djm-os-metric span {
+  margin-top: 6px;
+  color: #758793;
+  font-size: 9px;
+}
+
+.djm-os-metric.is-attention {
+  border-color: rgba(214, 173, 51, .25);
+  box-shadow: inset 0 2px 0 #d6ad33;
+}
+
+.ux-player-row,
+.ux-pipeline-row {
+  gap: 13px;
+  padding: 12px 15px;
+  border-bottom-color: #edf1f3;
+}
+
+.ux-player-row:hover,
+.ux-pipeline-row:hover {
+  background: #fafbfc;
+}
+
+.ux-player-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.ux-player-main strong {
+  font-size: 11px;
+}
+
+.ux-player-main p {
+  font-size: 9.5px;
+}
+
+.ux-player-main small,
+.ux-player-meta span {
+  font-size: 8px;
+}
+
+/* =========================================================
+   8. OPPORTUNITY AND MATCH CARDS
+   ========================================================= */
+
+.ux-need-grid {
+  gap: 10px;
+}
+
+.ux-need-card {
+  min-height: 176px;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(16, 54, 77, .085);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: none;
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease;
+}
+
+.ux-need-card:hover {
+  border-color: #cbd8df;
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px -34px rgba(7, 29, 49, .5);
+}
+
+.ux-need-card h3 {
+  color: #15364d;
+  font-size: 17px;
+}
+
+.ux-need-card strong {
+  color: #687f8e;
+  font-size: 9px;
+}
+
+.ux-need-card p {
+  color: #647987;
+  font-size: 10px;
+}
+
+.ux-match-row {
+  border-color: #e4eaed;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.ux-fit-badge {
+  border-radius: 11px;
+  background: #faf5e5;
+}
+
+/* =========================================================
+   9. MODALS, DETAILS AND PROGRESSIVE DISCLOSURE
+   ========================================================= */
+
+.ux-modal {
+  border: 1px solid rgba(16, 54, 77, .08);
+  border-radius: 20px !important;
+  background: #fff;
+  box-shadow: 0 32px 90px -36px rgba(5, 24, 40, .64);
+}
+
+.ux-modal-backdrop {
+  background: rgba(5, 20, 34, .48) !important;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+details {
+  color: inherit;
+}
+
+.ux-score-advanced,
+.ux-player-season-fold {
+  border-color: #e2e9ed;
+  box-shadow: none;
+}
+
+.ux-model-note {
+  border-radius: 9px;
+  background: #f6f8f9;
+}
+
+/* =========================================================
+   10. PLAYER APP
+   Personal, simple and calmer than staff OS.
+   ========================================================= */
+
+.ux-player-root {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(34, 91, 126, .05), transparent 24rem),
+    #f6f8f9;
+}
+
+.player-workspace-header .djm-os-header-inner {
+  min-height: 64px;
+}
+
+.ux-player-page {
+  width: min(980px, calc(100% - 28px));
+  margin-top: 17px;
+  gap: 12px;
+}
+
+.ux-player-hero {
+  min-height: 326px;
+  gap: 20px;
+  padding: 24px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #071d31, #123d5b);
+  box-shadow: 0 26px 64px -42px rgba(7, 29, 49, .8);
+}
+
+.ux-player-hero-copy h1 {
+  font-size: clamp(30px, 4.5vw, 45px);
+}
+
+.ux-player-hero-copy p {
+  color: rgba(220, 232, 239, .72);
+  font-size: 10px;
+}
+
+.ux-player-primary-action {
+  gap: 7px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 14px;
+  background: rgba(5, 24, 40, .34);
+  box-shadow: none;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.ux-player-primary-action > span {
+  color: #e4c055;
+  font-size: 7px;
+}
+
+.ux-player-primary-action > strong {
+  font-size: 14px;
+}
+
+.ux-player-primary-action > p {
+  color: rgba(220, 232, 239, .72);
+  font-size: 9px;
+}
+
+.ux-player-three {
+  gap: 8px;
+}
+
+.ux-player-card {
+  padding: 16px;
+  border: 1px solid rgba(16, 54, 77, .075);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .95);
+  box-shadow: 0 14px 36px -34px rgba(7, 29, 49, .5);
+}
+
+.ux-player-summary-card {
+  min-height: 132px;
+  gap: 7px;
+}
+
+.ux-player-summary-card strong {
+  font-size: 11px;
+}
+
+.ux-player-summary-card p {
+  color: #6c808d;
+  font-size: 8.5px;
+}
+
+.ux-player-club-card {
+  gap: 18px;
+}
+
+.ux-player-club-card h2 {
+  font-size: 17px;
+}
+
+.ux-player-club-card p {
+  font-size: 9px;
+}
+
+.ux-player-season-fold {
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .95);
+}
+
+.ux-player-privacy-line {
+  color: #8696a0;
+}
+
+.ux-soft-warning {
+  border-color: #eadfb9;
+  background: #fdf9ed;
+  color: #755d15;
+}
+
+.ux-player-mobile-nav {
+  border-top: 1px solid rgba(12, 48, 72, .09) !important;
+  background: rgba(255, 255, 255, .93) !important;
+  box-shadow: 0 -10px 35px rgba(7, 29, 49, .06) !important;
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+}
+
+.ux-player-mobile-nav .nav-item {
+  color: #82919a !important;
+}
+
+.ux-player-mobile-nav .nav-item.active {
+  color: #0e3652 !important;
+}
+
+.ux-player-mobile-nav .nav-item.active::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #d6ad33;
+  transform: translateX(-50%);
+}
+
+/* =========================================================
+   11. RESPONSIVE SIMPLICITY
+   ========================================================= */
+
+@media (max-width: 960px) {
+  .djm-os-header-inner,
+  .djm-os-main {
+    width: min(100% - 24px, 1400px);
+  }
+
+  .ux-staff-home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ux-home-side-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ux-need-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .djm-os-header {
+    box-shadow: none;
+  }
+
+  .djm-os-header-inner {
+    width: calc(100% - 20px);
+    min-height: 58px;
+  }
+
+  .djm-os-main {
+    width: calc(100% - 20px);
+    padding: 20px 0 88px;
+  }
+
+  .djm-os-page-head {
+    margin-bottom: 16px;
+  }
+
+  .djm-os-page-head h1 {
+    font-size: 29px;
+  }
+
+  .djm-os-eyebrow {
+    font-size: 8px;
+  }
+
+  .djm-os-product-link {
+    min-height: 38px;
+    font-size: 11px;
+  }
+
+  .ux-page-toolbar {
+    gap: 8px;
+  }
+
+  .ux-staff-home-hero,
+  .ux-settings-hero,
+  .ux-compare-topbar {
+    padding: 18px;
+    border-radius: 19px;
+  }
+
+  .ux-staff-home-hero h2,
+  .ux-settings-hero h2,
+  .ux-compare-topbar h1 {
+    font-size: 25px;
+  }
+
+  .ux-staff-home-hero p:not(.ux-eyebrow),
+  .ux-settings-hero p:not(.ux-eyebrow),
+  .ux-compare-topbar .ux-subtitle {
+    font-size: 9px;
+  }
+
+  .ux-signal-strip {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .ux-signal {
+    min-height: 48px;
+    padding: 9px 11px;
+  }
+
+  .ux-signal strong {
+    font-size: 16px;
+  }
+
+  .ux-home-side-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .ux-action-row {
+    padding: 11px 12px;
+  }
+
+  .ux-action-copy p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .ux-surface,
+  .ux-comparison-panel,
+  .djm-os-panel,
+  .ux-player-list,
+  .ux-pipeline-list {
+    border-radius: 15px;
+  }
+
+  .ux-surface-head,
+  .djm-os-panel-head {
+    padding: 15px 14px 10px;
+  }
+
+  .ux-simple-form {
+    padding: 13px 14px 16px;
+  }
+
+  .ux-need-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ux-need-card {
+    min-height: 154px;
+  }
+
+  .ux-player-page {
+    width: calc(100% - 20px);
+    margin: 12px auto calc(82px + env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+
+  .ux-player-hero {
+    min-height: 420px;
+    grid-template-columns: 1fr;
+    align-content: end;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .ux-player-hero-copy h1 {
+    font-size: 32px;
+  }
+
+  .ux-player-primary-action {
+    align-self: end;
+    padding: 13px 0 0;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .ux-player-primary-action .ux-primary-button {
+    min-height: 42px;
+  }
+
+  .ux-player-three {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .ux-player-summary-card {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .ux-player-club-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ux-player-club-card .ux-secondary-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .djm-os-header-inner {
+    width: calc(100% - 18px);
+  }
+
+  .djm-os-main,
+  .ux-player-page {
+    width: calc(100% - 18px);
+  }
+
+  .djm-os-page-head h1 {
+    font-size: 27px;
+  }
+
+  .ux-toolbar-actions {
+    gap: 6px;
+  }
+
+  .ux-primary-action,
+  .ux-secondary-action,
+  .ux-primary-button,
+  .ux-secondary-button {
+    min-height: 42px;
+  }
+}
+
+/* =========================================================
+   12. MOTION AND ACCESSIBILITY
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .ux-primary-action,
+  .ux-secondary-action,
+  .ux-primary-button,
+  .ux-secondary-button,
+  .djm-os-product-link,
+  .ux-need-card {
+    transition: none !important;
+  }
+}
