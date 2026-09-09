@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Home, LogOut, MessageCircle, Settings2, UserRound } from 'lucide-react';
 
 import Brand from './Brand';
+import PlayerVoiceLauncher from '@/components/PlayerVoiceLauncher';
 import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
 import { supabase } from '@/lib/supabase';
 
@@ -247,6 +248,7 @@ export function PlayerShell({
           />
 
           <div className="djm-os-button-row djm-os-header-actions">
+            <PlayerVoiceLauncher />
             <Link
               href="/connections"
               className="djm-os-icon-button"
