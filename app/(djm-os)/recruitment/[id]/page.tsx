@@ -17,6 +17,7 @@ import {
 
 import DjmOsShell from '@/components/DjmOsShell';
 import ResearchLinkRail from '@/components/ResearchLinkRail';
+import StaffAssignmentPicker from '@/components/StaffAssignmentPicker';
 import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
 import { buildResearchLinks } from '@/lib/research-links';
 
@@ -375,7 +376,7 @@ export default function RecruitmentTargetPage() {
 
         .prospect-command-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
 
         .prospect-command-cell {
@@ -856,6 +857,27 @@ export default function RecruitmentTargetPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="prospect-command-cell">
+                <StaffAssignmentPicker
+                  kind="prospect"
+                  entityId={id}
+                  assignedUserId={target.owner_user_id}
+                  onAssigned={(userId) =>
+                    setData((current: any) =>
+                      current
+                        ? {
+                            ...current,
+                            target: {
+                              ...current.target,
+                              owner_user_id: userId,
+                            },
+                          }
+                        : current,
+                    )
+                  }
+                />
               </div>
 
               <div className="prospect-command-cell">
