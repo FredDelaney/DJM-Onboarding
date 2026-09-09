@@ -237,24 +237,172 @@ results.push({
         </section>
       ) : null}
 
-      {!busy && view === 'prospects' ? (
-        <section className="ux-player-list">
-          {filteredProspects.map((player) => (
-            <Link href={`/recruitment/${player.id}`} className="ux-player-row" key={player.id}>
-              <div className="ux-player-avatar ux-player-avatar-letter">{initials(player.full_name)}</div>
-              <div className="ux-player-main">
-                <strong>{player.full_name}</strong>
-                <p>{[player.primary_position, player.current_club, player.current_country].filter(Boolean).join(' · ') || 'Profile being enriched'}</p>
-                <small>{String(player.recruitment_stage || 'identified').replaceAll('_', ' ')}{player.next_action_at ? ` · next ${compactDate(player.next_action_at)}` : ''}</small>
-              </div>
-              <div className="ux-player-meta"><strong>{player.recruitment_priority || 3}</strong><span>priority</span></div>
-              <ArrowRight size={17} />
-            </Link>
-          ))}
-          {!filteredProspects.length ? <EmptyState text="No prospects match this search." /> : null}
-        </section>
-      ) : null}
+    {!busy && view === 'prospects' ? (
+  <section className="ux-player-list">
+    {filteredProspects.map((player) => {
+      const rawStage = String(player.recruitment_stage || 'identified');
+      const stage = rawStage.replaceAll('_', ' ');
+      const active = !['signed', 'declined', 'lost', 'paused'].includes(rawStage);
 
+      const contacted = Boolean(player.first_contact_at);
+      const lastContact = player.last_contact_at || player.first_contact_at;
+
+      const nextAt = player.next_action_at
+        ? new Date(player.next_action_at)
+        : null;
+
+      const overdue = Boolean(
+        active &&
+        nextAt &&
+        nextAt.getTime() < Date.now(),
+      );
+
+      const nextLabel = !active
+        ? null
+        : !contacted
+          ? 'Contact player'
+          : !nextAt
+            ? 'Set next step'
+            : overdue
+              ? `Overdue · ${nextAt.toLocaleString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}`
+              : `Follow up · ${nextAt.toLocaleString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}`;
+
+      const nextColours = overdue
+        ? {
+            background: '#fff0ee',
+            borderColor: '#efc7c2',
+            color: '#99433e',
+          }
+        : contacted && !nextAt
+          ? {
+              background: '#fff7db',
+              borderColor: '#ead47e',
+              color: '#7e6515',
+            }
+          : !contacted
+            ? {
+                background: '#f4f6f7',
+                borderColor: '#dce4e8',
+                color: '#637b8b',
+              }
+            : {
+                background: '#eef5fb',
+                borderColor: '#cfe0ec',
+                color: '#315f7d',
+              };
+
+      return (
+        <Link
+          href={`/recruitment/${player.id}`}
+          className="ux-player-row"
+          key={player.id}
+        >
+          <div className="ux-player-avatar ux-player-avatar-letter">
+            {initials(player.full_name)}
+          </div>
+
+          <div className="ux-player-main">
+            <strong>{player.full_name}</strong>
+
+            <p>
+              {[player.primary_position, player.current_club, player.current_country]
+                .filter(Boolean)
+                .join(' · ') || 'Profile being enriched'}
+            </p>
+
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 6,
+                marginTop: 7,
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: 25,
+                  padding: '3px 8px',
+                  border: '1px solid #dbe4e9',
+                  borderRadius: 999,
+                  background: '#f4f7f8',
+                  color: '#3f5f73',
+                  fontSize: 9,
+                  fontWeight: 850,
+                  textTransform: 'capitalize',
+                }}
+              >
+                {stage}
+              </span>
+
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: 25,
+                  padding: '3px 8px',
+                  border: contacted
+                    ? '1px solid #cce2d5'
+                    : '1px solid #dbe4e9',
+                  borderRadius: 999,
+                  background: contacted ? '#eff8f3' : '#f4f6f7',
+                  color: contacted ? '#2f7653' : '#637b8b',
+                  fontSize: 9,
+                  fontWeight: 850,
+                }}
+              >
+                {contacted
+                  ? `✓ Contacted · ${compactDate(lastContact)}`
+                  : 'Not contacted'}
+              </span>
+
+              {nextLabel ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minHeight: 25,
+                    padding: '3px 8px',
+                    border: `1px solid ${nextColours.borderColor}`,
+                    borderRadius: 999,
+                    background: nextColours.background,
+                    color: nextColours.color,
+                    fontSize: 9,
+                    fontWeight: 850,
+                  }}
+                >
+                  {nextLabel}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="ux-player-meta">
+            <strong>P{player.recruitment_priority || 3}</strong>
+            <span>priority</span>
+          </div>
+
+          <ArrowRight size={17} />
+        </Link>
+      );
+    })}
+
+    {!filteredProspects.length ? (
+      <EmptyState text="No prospects match this search." />
+    ) : null}
+  </section>
+) : null}
       {inviteOpen && isAdmin ? (
         <div className="ux-modal-backdrop" role="presentation" onMouseDown={() => setInviteOpen(false)}>
           <section className="ux-modal" role="dialog" aria-modal="true" aria-label="Invite player" onMouseDown={(event) => event.stopPropagation()}>
