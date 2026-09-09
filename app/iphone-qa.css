@@ -67,6 +67,9 @@
 }
 
 @media (max-width: 760px) {
+     .djm-os-header {
+    padding-top: env(safe-area-inset-top);
+  }
   /* Help the browser keep the active field clear of the software keyboard. */
   :is(input, select, textarea) {
     scroll-margin-top: 96px;
