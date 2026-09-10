@@ -1284,3 +1284,384 @@
     transition: none !important;
   }
 }
+
+/* =========================================================
+   MOBILE ROSTER QUALITY PASS
+   Keeps Roster V3 structure and ownership behaviour intact.
+   ========================================================= */
+
+@media (max-width: 760px) {
+  .roster-v3 {
+    --djmv3-card-radius: 18px;
+  }
+
+  .roster-masthead {
+    margin: 0 0 9px;
+    padding: 16px 15px 0;
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 91% -12%, rgba(216,173,47,.19), transparent 32%),
+      linear-gradient(138deg,#051827 0%,#082844 62%,#0d3654 100%);
+    box-shadow: 0 22px 48px -39px rgba(5,24,39,.78);
+  }
+
+  .roster-masthead::before {
+    opacity: .3;
+  }
+
+  .roster-masthead-ghost {
+    top: 15px;
+    right: -2px;
+    font-size: 66px;
+  }
+
+  .roster-masthead-top {
+    gap: 12px;
+  }
+
+  .roster-kicker {
+    gap: 6px;
+    font-size: 6.7px;
+    letter-spacing: .135em;
+  }
+
+  .roster-kicker::before {
+    width: 14px;
+  }
+
+  .roster-masthead-copy h2 {
+    max-width: 94%;
+    margin: 8px 0 4px;
+    font-size: 25px;
+    line-height: .99;
+  }
+
+  .roster-masthead-copy p {
+    max-width: 94%;
+    color: rgba(224,235,241,.58);
+    font-size: 8.3px;
+    line-height: 1.45;
+  }
+
+  .roster-v3-segmented {
+    min-height: 38px;
+    padding: 3px !important;
+    border-color: rgba(255,255,255,.095) !important;
+    border-radius: 11px !important;
+    background: rgba(255,255,255,.055) !important;
+    box-shadow: none;
+  }
+
+  .roster-v3-segmented button {
+    min-height: 31px !important;
+    padding: 0 8px !important;
+    font-size: 8px !important;
+  }
+
+  .roster-v3-segmented button.is-active {
+    box-shadow: none !important;
+  }
+
+  .roster-scoreboard {
+    margin-top: 14px;
+  }
+
+  .score-metric {
+    min-height: 55px;
+    padding: 10px 6px 12px 0;
+  }
+
+  .score-metric + .score-metric {
+    padding-left: 9px;
+    border-left-color: rgba(255,255,255,.075);
+  }
+
+  .score-metric small {
+    margin-bottom: 3px;
+    font-size: 5px;
+    letter-spacing: .1em;
+  }
+
+  .score-metric strong {
+    font-size: 17px;
+    font-weight: 770;
+  }
+
+  .score-metric span {
+    margin-top: 3px;
+    color: rgba(222,233,240,.43);
+    font-size: 5.7px;
+  }
+
+  .score-metric.is-attention::after {
+    width: 30px;
+  }
+
+  .roster-owner-rail {
+    gap: 6px;
+    margin: 0 -1px 9px;
+    padding: 1px 1px 4px;
+  }
+
+  .roster-owner-rail > button {
+    min-width: 104px;
+    min-height: 40px;
+    grid-template-columns: 27px minmax(0,1fr) auto;
+    gap: 7px;
+    padding: 4px 7px 4px 4px;
+    border-color: #e2e8ec;
+    border-radius: 12px;
+    background: rgba(255,255,255,.93);
+    box-shadow: none;
+  }
+
+  .roster-owner-rail > button.is-active {
+    border-color: rgba(216,173,47,.42);
+    box-shadow: inset 0 0 0 1px rgba(216,173,47,.07);
+  }
+
+  .owner-filter-avatar {
+    width: 27px;
+    height: 27px;
+    border-radius: 9px;
+    font-size: 6.5px;
+  }
+
+  .owner-filter-copy small {
+    font-size: 5px;
+  }
+
+  .owner-filter-copy strong {
+    font-size: 7px;
+  }
+
+  .roster-owner-rail > button > b {
+    min-width: 17px;
+    height: 17px;
+    font-size: 6.5px;
+  }
+
+  .roster-v3-toolbar {
+    gap: 7px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .roster-v3-search {
+    min-height: 40px !important;
+    border-radius: 10px !important;
+  }
+
+  .roster-v3-toolbar .ux-toolbar-actions {
+    gap: 6px !important;
+  }
+
+  .roster-v3-toolbar .ux-primary-action,
+  .roster-v3-toolbar .ux-secondary-action {
+    min-height: 40px !important;
+    border-radius: 10px !important;
+    font-size: 8.5px !important;
+  }
+
+  .roster-v3-grid {
+    gap: 9px;
+  }
+
+  .roster-v3-card {
+    border-color: rgba(12,52,78,.085);
+    border-radius: 18px;
+    box-shadow: 0 17px 42px -35px rgba(5,24,39,.58);
+  }
+
+  .signed-media {
+    aspect-ratio: 1.47 / 1;
+    background: radial-gradient(circle at 68% 18%,#1d5576,#0a2c48 40%,#051827 80%);
+  }
+
+  .signed-photo-tone {
+    background:
+      linear-gradient(180deg,rgba(2,14,24,.025) 0%,rgba(2,14,24,.07) 44%,rgba(2,14,24,.78) 82%,rgba(2,14,24,.97) 100%),
+      linear-gradient(90deg,rgba(4,20,34,.17),transparent 58%);
+  }
+
+  .signed-card-index,
+  .prospect-card-index {
+    top: 12px;
+    left: 12px;
+    font-size: 7px;
+  }
+
+  .signed-type,
+  .prospect-type {
+    top: 10px;
+    left: 39px;
+    min-height: 23px;
+    padding: 0 7px;
+    font-size: 5.5px;
+  }
+
+  .signed-identity {
+    left: 14px;
+    right: 14px;
+    bottom: 13px;
+  }
+
+  .signed-identity > span,
+  .prospect-stage-row > span {
+    font-size: 6.5px;
+  }
+
+  .signed-identity h3,
+  .prospect-content h3 {
+    margin-top: 4px;
+    margin-bottom: 5px;
+    font-size: 25px;
+    line-height: .98;
+  }
+
+  .signed-identity p,
+  .prospect-content p {
+    color: rgba(227,238,244,.68);
+    font-size: 8px;
+  }
+
+  .roster-owner-control {
+    top: 9px;
+    right: 9px;
+    min-height: 32px;
+    max-width: 124px;
+    grid-template-columns: 23px minmax(0,1fr) 10px;
+    gap: 5px;
+    padding: 3px 6px 3px 3px;
+    border-color: rgba(231,190,70,.31);
+    box-shadow: none;
+  }
+
+  .roster-owner-avatar {
+    width: 23px;
+    height: 23px;
+    font-size: 6.5px;
+  }
+
+  .roster-owner-copy small {
+    font-size: 4.5px;
+  }
+
+  .roster-owner-copy strong {
+    font-size: 6.4px;
+  }
+
+  .roster-v3-body {
+    padding: 0 11px 9px;
+  }
+
+  .roster-v3-facts {
+    min-height: 52px;
+  }
+
+  .roster-v3-fact {
+    gap: 2px;
+    padding: 8px 6px 7px 0;
+  }
+
+  .roster-v3-fact + .roster-v3-fact {
+    padding-left: 7px;
+  }
+
+  .roster-v3-fact small {
+    font-size: 5px;
+  }
+
+  .roster-v3-fact strong {
+    font-size: 8px;
+  }
+
+  .roster-v3-action {
+    min-height: 55px;
+    grid-template-columns: 28px minmax(0,1fr) 14px;
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .roster-v3-action-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+  }
+
+  .roster-v3-action small {
+    font-size: 5px;
+  }
+
+  .roster-v3-action strong {
+    font-size: 8.7px;
+    line-height: 1.3;
+  }
+
+  .roster-v3-action span:not(.roster-v3-action-icon) {
+    font-size: 6.5px;
+  }
+
+  .prospect-hero {
+    min-height: 184px;
+    padding: 14px;
+  }
+
+  .prospect-watermark {
+    right: 3px;
+    font-size: 82px;
+  }
+
+  .prospect-content {
+    padding-top: 52px;
+  }
+
+  .prospect-progress {
+    gap: 3px;
+    margin-top: 13px;
+  }
+
+  .prospect-progress > span {
+    height: 2px;
+  }
+
+  .prospect-signals {
+    min-height: 59px;
+  }
+
+  .prospect-signal {
+    gap: 2px;
+    padding: 8px 7px 7px 0;
+  }
+
+  .prospect-signal + .prospect-signal {
+    padding-left: 8px;
+  }
+
+  .prospect-signal small {
+    font-size: 5px;
+  }
+
+  .prospect-signal strong {
+    font-size: 8px;
+  }
+
+  .prospect-signal span {
+    font-size: 6.5px;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 390px) {
+  .roster-masthead-copy h2 {
+    font-size: 23px;
+  }
+
+  .signed-media {
+    aspect-ratio: 1.4 / 1;
+  }
+
+  .signed-identity h3,
+  .prospect-content h3 {
+    font-size: 23px;
+  }
+}
