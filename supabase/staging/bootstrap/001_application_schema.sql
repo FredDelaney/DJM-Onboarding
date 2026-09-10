@@ -961,3 +961,231 @@ create table djm_os.football_fixtures (
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+-- ============================================================================
+-- SECTION 3C: djm_os base tables 21-30 of 81
+-- Structure only. No production rows are copied.
+-- ============================================================================
+
+create table djm_os.football_intelligence_enrichment_queue (
+  subject_id uuid NOT NULL,
+  target_confidence smallint DEFAULT 80 NOT NULL,
+  current_confidence smallint DEFAULT 0 NOT NULL,
+  priority smallint DEFAULT 3 NOT NULL,
+  status text DEFAULT 'queued'::text NOT NULL,
+  missing_evidence jsonb DEFAULT '[]'::jsonb NOT NULL,
+  last_attempt_at timestamp with time zone,
+  next_attempt_at timestamp with time zone DEFAULT now() NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  last_error text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.football_intelligence_subjects (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  player_id uuid,
+  prospect_id uuid,
+  representation_status text DEFAULT 'prospect'::text NOT NULL,
+  full_name text NOT NULL,
+  date_of_birth date,
+  nationality text,
+  primary_position text,
+  current_club text,
+  current_league text,
+  current_country text,
+  current_competition_id uuid,
+  current_season_label text,
+  current_season_start date,
+  football_provider_ids jsonb DEFAULT '{}'::jsonb NOT NULL,
+  stats_url text,
+  transfermarkt_url text,
+  wyscout_url text,
+  canonical_key text,
+  external_data_status text DEFAULT 'never'::text NOT NULL,
+  external_data_checked_at timestamp with time zone,
+  external_data_error text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  transfermarkt_market_value numeric,
+  transfermarkt_market_value_currency text,
+  transfermarkt_value_verified_at timestamp with time zone,
+  identity_confidence numeric,
+  identity_provider text,
+  identity_verified_at timestamp with time zone
+);
+
+create table djm_os.football_subject_career_entries (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  subject_id uuid NOT NULL,
+  source_entry_id uuid,
+  club_name text,
+  country text,
+  league text,
+  competition_id uuid,
+  season_label text,
+  start_date date,
+  end_date date,
+  appearances integer,
+  starts integer,
+  minutes integer,
+  goals integer,
+  assists integer,
+  source_provider text,
+  source_name text,
+  source_url text,
+  source_reviewed_at timestamp with time zone,
+  source_synced_at timestamp with time zone,
+  provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.football_subject_identity_evidence (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  subject_id uuid NOT NULL,
+  provider text NOT NULL,
+  provider_player_id text NOT NULL,
+  confidence numeric NOT NULL,
+  observed_data jsonb DEFAULT '{}'::jsonb NOT NULL,
+  observed_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.football_subject_match_snapshots (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  subject_id uuid NOT NULL,
+  provider text NOT NULL,
+  provider_player_id text NOT NULL,
+  provider_match_id text NOT NULL,
+  provider_team_id text,
+  provider_opponent_id text,
+  provider_competition_id text,
+  provider_season_id text,
+  competition_id uuid,
+  season_label text,
+  match_date date NOT NULL,
+  team_name text,
+  opponent_name text,
+  home_away text,
+  position_group text,
+  provider_position text,
+  started boolean,
+  minutes integer,
+  metrics jsonb DEFAULT '{}'::jsonb NOT NULL,
+  metric_schema_version text DEFAULT 'djm_match_metrics_v1'::text NOT NULL,
+  data_depth text DEFAULT 'unknown'::text NOT NULL,
+  confidence numeric,
+  provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
+  observed_at timestamp with time zone NOT NULL,
+  synced_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  fixture_id uuid,
+  team_id uuid,
+  opponent_team_id uuid,
+  kickoff_at timestamp with time zone,
+  payload_hash text,
+  request_metadata jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+create table djm_os.football_subject_projection_snapshots (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  subject_id uuid NOT NULL,
+  as_of_date date DEFAULT CURRENT_DATE NOT NULL,
+  horizon_years smallint DEFAULT 5 NOT NULL,
+  current_score numeric(5,2),
+  forecast_y1 numeric(5,2),
+  forecast_y3 numeric(5,2),
+  forecast_y5 numeric(5,2),
+  ceiling_score numeric(5,2),
+  lower_bound_score numeric(5,2),
+  upper_bound_score numeric(5,2),
+  confidence smallint DEFAULT 0 NOT NULL,
+  projection_state text DEFAULT 'unavailable'::text NOT NULL,
+  position_group text,
+  age_years numeric(5,2),
+  career_history_depth integer DEFAULT 0 NOT NULL,
+  drivers jsonb DEFAULT '{}'::jsonb NOT NULL,
+  input_summary jsonb DEFAULT '{}'::jsonb NOT NULL,
+  model_version text NOT NULL,
+  methodology_version text NOT NULL,
+  input_fingerprint text,
+  calculated_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.football_subject_provider_snapshots (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  subject_id uuid NOT NULL,
+  provider text NOT NULL,
+  provider_player_id text NOT NULL,
+  provider_team_id text DEFAULT ''::text NOT NULL,
+  provider_competition_id text DEFAULT ''::text NOT NULL,
+  provider_season_id text NOT NULL,
+  season_label text,
+  club_name text,
+  competition_name text,
+  metrics jsonb DEFAULT '{}'::jsonb NOT NULL,
+  metric_schema_version text DEFAULT 'djm_metrics_v1'::text NOT NULL,
+  data_depth text DEFAULT 'unknown'::text NOT NULL,
+  confidence numeric,
+  provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
+  observed_at timestamp with time zone NOT NULL,
+  synced_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.football_subject_scorecards (
+  subject_id uuid NOT NULL,
+  display_score smallint,
+  model_score smallint,
+  provisional_score smallint,
+  potential_score smallint,
+  score_tier text DEFAULT 'unavailable'::text NOT NULL,
+  confidence smallint DEFAULT 0 NOT NULL,
+  data_coverage smallint DEFAULT 0 NOT NULL,
+  position_group text,
+  basis jsonb DEFAULT '{}'::jsonb NOT NULL,
+  missing_inputs jsonb DEFAULT '[]'::jsonb NOT NULL,
+  model_version text,
+  calculated_at timestamp with time zone,
+  provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.football_team_strength_snapshots (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  provider text NOT NULL,
+  snapshot_date date NOT NULL,
+  team_name text NOT NULL,
+  team_key text NOT NULL,
+  country_code text,
+  level_tier integer,
+  elo numeric,
+  rank integer,
+  provider_from date,
+  provider_to date,
+  source_url text,
+  observed_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.football_teams (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  canonical_key text NOT NULL,
+  display_name text NOT NULL,
+  short_name text,
+  country text,
+  gender text,
+  provider_ids jsonb DEFAULT '{}'::jsonb NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
