@@ -1,42 +1,48 @@
-/* DJM staff mobile layout.
-   Loaded last. Keeps the utility header compact and the four core workspaces
-   permanently visible as a second navigation row on phones. */
+/* DJM staff mobile premium shell.
+   Structure stays unchanged: compact utility header plus visible workspace rail. */
 
 .djm-mobile-workspace-nav {
   display: none !important;
 }
 
 @media (max-width: 760px) {
+  :root {
+    --djm-mobile-safe-top: env(safe-area-inset-top, 0px);
+    --djm-mobile-gold: #d8ae32;
+    --djm-mobile-text: #f5f8fa;
+    --djm-mobile-muted: rgba(226, 235, 240, .58);
+  }
+
   .ux-staff-header {
     top: 0 !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: var(--djm-mobile-safe-top) !important;
     overflow: visible !important;
+    background: linear-gradient(180deg, rgba(5,24,40,.995), rgba(7,29,49,.988)) !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(22px) saturate(122%) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(122%) !important;
   }
 
   .ux-staff-header .djm-os-header-inner {
-    width: calc(100% - 20px) !important;
-    min-height: 56px !important;
+    width: calc(100% - 24px) !important;
+    min-height: 52px !important;
     margin: 0 auto !important;
-    padding: 8px 0 !important;
+    padding: 7px 0 6px !important;
     display: grid !important;
-    grid-template-columns: 34px minmax(0, 1fr) !important;
+    grid-template-columns: 32px minmax(0,1fr) !important;
     align-items: center !important;
     gap: 10px !important;
   }
 
-  .ux-staff-header .djm-os-brand-row {
-    grid-column: 1 !important;
-    width: 34px !important;
-    min-width: 34px !important;
-    max-width: 34px !important;
-    overflow: visible !important;
-  }
-
+  .ux-staff-header .djm-os-brand-row,
   .ux-staff-header .brand {
-    width: 34px !important;
-    min-width: 34px !important;
-    max-width: 34px !important;
+    grid-column: 1 !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
     gap: 0 !important;
+    overflow: visible !important;
   }
 
   .ux-staff-header .brand-copy,
@@ -47,13 +53,14 @@
 
   .ux-staff-header .brand-mark,
   .ux-staff-header .brand-mark img {
-    width: 34px !important;
-    height: 34px !important;
+    width: 32px !important;
+    height: 32px !important;
   }
 
   .ux-staff-header .brand-mark {
     display: grid !important;
     place-items: center !important;
+    opacity: .98 !important;
   }
 
   .ux-staff-header .brand-mark img {
@@ -67,15 +74,15 @@
 
   .ux-staff-header .djm-os-header-actions {
     grid-column: 2 !important;
+    justify-self: end !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    justify-self: end !important;
     display: flex !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: flex-end !important;
-    gap: 5px !important;
+    gap: 4px !important;
     overflow: visible !important;
   }
 
@@ -84,40 +91,47 @@
   .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
     box-sizing: border-box !important;
-    width: 40px !important;
-    min-width: 40px !important;
-    max-width: 40px !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    max-height: 40px !important;
+    width: 37px !important;
+    min-width: 37px !important;
+    max-width: 37px !important;
+    height: 37px !important;
+    min-height: 37px !important;
+    max-height: 37px !important;
     margin: 0 !important;
     padding: 0 !important;
     border-radius: 11px !important;
-    flex: 0 0 40px !important;
+    flex: 0 0 37px !important;
     display: grid !important;
     place-items: center !important;
     gap: 0 !important;
     overflow: hidden !important;
+    transition: transform .14s ease, background .14s ease, border-color .14s ease, opacity .14s ease !important;
   }
 
   .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"] {
-    color: #f4f8fa !important;
-    background: #153d59 !important;
-    border: 1px solid rgba(255, 255, 255, .06) !important;
+    color: #e7c55a !important;
+    background: rgba(255,255,255,.045) !important;
+    border: 1px solid rgba(216,174,50,.28) !important;
+    box-shadow: inset 0 0 0 1px rgba(216,174,50,.025) !important;
   }
 
   .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger {
-    color: #071d31 !important;
-    background: #e3b832 !important;
-    border: 1px solid #e3b832 !important;
+    color: #102538 !important;
+    background: linear-gradient(180deg,#e4bd48 0%,#d8ae32 100%) !important;
+    border: 1px solid rgba(255,225,126,.52) !important;
+    box-shadow: 0 7px 18px -11px rgba(216,174,50,.88), inset 0 1px 0 rgba(255,255,255,.28) !important;
   }
 
   .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
-    color: rgba(239, 245, 248, .82) !important;
-    background: rgba(255, 255, 255, .055) !important;
-    border: 1px solid rgba(255, 255, 255, .16) !important;
+    color: rgba(239,245,248,.76) !important;
+    background: rgba(255,255,255,.035) !important;
+    border: 1px solid rgba(255,255,255,.095) !important;
     box-shadow: none !important;
+  }
+
+  .ux-staff-header .djm-os-header-actions > .djm-os-icon-button[aria-label="Sign out"] {
+    color: rgba(239,245,248,.54) !important;
   }
 
   .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"] > span,
@@ -128,16 +142,20 @@
   }
 
   .ux-staff-header .djm-os-header-actions svg {
-    width: 19px !important;
-    height: 19px !important;
+    width: 17px !important;
+    height: 17px !important;
     flex: none !important;
+    stroke-width: 2 !important;
   }
 
-  /* Core workspaces: visible directly below the header, never hidden behind iOS chrome. */
+  .ux-staff-header .djm-os-header-actions > *:active {
+    transform: scale(.955) !important;
+  }
+
   .djm-mobile-workspace-nav {
     position: sticky !important;
     z-index: 29 !important;
-    top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    top: calc(52px + var(--djm-mobile-safe-top)) !important;
     left: auto !important;
     right: auto !important;
     bottom: auto !important;
@@ -145,43 +163,47 @@
     max-width: none !important;
     min-width: 0 !important;
     margin: 0 !important;
-    padding: 5px 6px 6px !important;
+    padding: 3px 8px 8px !important;
     display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 0 !important;
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    gap: 4px !important;
     overflow: visible !important;
-    background: rgba(5, 24, 40, .985) !important;
-    border-top: 1px solid rgba(255, 255, 255, .07) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, .09) !important;
-    box-shadow: 0 8px 24px rgba(4, 18, 30, .10) !important;
-    backdrop-filter: blur(18px) saturate(125%) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(125%) !important;
+    background: linear-gradient(180deg,rgba(7,29,49,.99),rgba(5,24,40,.985)) !important;
+    border-top: 1px solid rgba(255,255,255,.045) !important;
+    border-bottom: 1px solid rgba(255,255,255,.075) !important;
+    box-shadow: 0 12px 26px -24px rgba(3,17,29,.92) !important;
+    backdrop-filter: blur(22px) saturate(122%) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(122%) !important;
   }
 
   .djm-mobile-workspace-nav .djm-os-product-link {
     position: relative !important;
     min-width: 0 !important;
-    min-height: 49px !important;
-    padding: 5px 2px !important;
+    min-height: 47px !important;
+    padding: 5px 2px 6px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 3px !important;
-    border-radius: 10px !important;
+    border: 1px solid transparent !important;
+    border-radius: 12px !important;
     background: transparent !important;
-    color: rgba(235, 242, 246, .68) !important;
+    color: var(--djm-mobile-muted) !important;
     box-shadow: none !important;
     font-size: 9px !important;
-    font-weight: 780 !important;
+    font-weight: 760 !important;
+    letter-spacing: -.01em !important;
     line-height: 1 !important;
     white-space: nowrap !important;
+    transition: color .16s ease, background .16s ease, border-color .16s ease, transform .16s ease !important;
   }
 
   .djm-mobile-workspace-nav .djm-os-product-link svg {
-    width: 18px !important;
-    height: 18px !important;
-    flex: 0 0 18px !important;
+    width: 17px !important;
+    height: 17px !important;
+    flex: 0 0 17px !important;
+    stroke-width: 1.9 !important;
   }
 
   .djm-mobile-workspace-nav .djm-os-product-link > span {
@@ -189,43 +211,55 @@
   }
 
   .djm-mobile-workspace-nav .djm-os-product-link.is-active {
-    color: #fff !important;
-    background: rgba(255, 255, 255, .07) !important;
+    color: var(--djm-mobile-text) !important;
+    background: linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.055)) !important;
+    border-color: rgba(255,255,255,.075) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.045) !important;
+  }
+
+  .djm-mobile-workspace-nav .djm-os-product-link.is-active svg {
+    color: #e2bd50 !important;
   }
 
   .djm-mobile-workspace-nav .djm-os-product-link.is-active::after {
     content: "" !important;
     position: absolute !important;
     top: auto !important;
-    bottom: 0 !important;
-    left: 20% !important;
-    right: 20% !important;
+    bottom: -1px !important;
+    left: 50% !important;
+    right: auto !important;
+    width: 20px !important;
     height: 2px !important;
     border-radius: 999px !important;
-    background: linear-gradient(90deg, #b98a13, #e6c356) !important;
+    background: linear-gradient(90deg,#b98a13,#e6c356) !important;
+    transform: translateX(-50%) !important;
+    box-shadow: 0 0 12px rgba(216,174,50,.26) !important;
+  }
+
+  .djm-mobile-workspace-nav .djm-os-product-link:active {
+    transform: scale(.975) !important;
   }
 
   .djm-os-main {
     padding-bottom: 72px !important;
   }
 
-  /* Keep the Network metrics readable on phones. */
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metrics {
     display: grid !important;
-    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(6,minmax(0,1fr)) !important;
     gap: 0 !important;
     margin-bottom: 12px !important;
     overflow: hidden !important;
-    border: 1px solid #dfe7eb !important;
-    border-radius: 15px !important;
-    background: #fff !important;
-    box-shadow: none !important;
+    border: 1px solid #e1e7eb !important;
+    border-radius: 14px !important;
+    background: rgba(255,255,255,.96) !important;
+    box-shadow: 0 14px 36px -34px rgba(7,29,49,.42) !important;
   }
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric {
     min-width: 0 !important;
-    min-height: 68px !important;
-    padding: 9px 6px !important;
+    min-height: 64px !important;
+    padding: 9px 5px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -233,7 +267,7 @@
     gap: 4px !important;
     border: 0 !important;
     border-radius: 0 !important;
-    background: #fff !important;
+    background: transparent !important;
     box-shadow: none !important;
     text-align: center !important;
   }
@@ -244,18 +278,18 @@
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(n+4) {
     grid-column: span 3 !important;
-    border-top: 1px solid #e7edef !important;
+    border-top: 1px solid #edf1f3 !important;
   }
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(2),
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(3),
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(5) {
-    border-left: 1px solid #e7edef !important;
+    border-left: 1px solid #edf1f3 !important;
   }
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric strong {
     color: #15364d !important;
-    font-size: 21px !important;
+    font-size: 20px !important;
     font-weight: 790 !important;
     line-height: 1 !important;
     letter-spacing: -.045em !important;
@@ -263,26 +297,35 @@
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric span {
     margin: 0 !important;
-    color: #7e8f9a !important;
+    color: #87959e !important;
     font-size: 7.5px !important;
-    font-weight: 760 !important;
-    line-height: 1.25 !important;
+    font-weight: 740 !important;
+    line-height: 1.2 !important;
   }
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric.is-attention {
-    background: #fffdf7 !important;
-    box-shadow: inset 0 2px 0 rgba(214, 173, 51, .9) !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric.is-attention strong {
-    color: #745b13 !important;
+    color: #8a6d17 !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric.is-attention::before {
+    content: "" !important;
+    width: 14px !important;
+    height: 2px !important;
+    margin-bottom: 1px !important;
+    border-radius: 999px !important;
+    background: #d6ad33 !important;
   }
 }
 
 @media (max-width: 350px) {
   .ux-staff-header .djm-os-header-inner {
-    width: calc(100% - 14px) !important;
-    grid-template-columns: 30px minmax(0, 1fr) !important;
+    width: calc(100% - 16px) !important;
+    grid-template-columns: 29px minmax(0,1fr) !important;
     gap: 7px !important;
   }
 
@@ -290,30 +333,49 @@
   .ux-staff-header .brand,
   .ux-staff-header .brand-mark,
   .ux-staff-header .brand-mark img {
-    width: 30px !important;
-    min-width: 30px !important;
-    max-width: 30px !important;
-    height: 30px !important;
+    width: 29px !important;
+    min-width: 29px !important;
+    max-width: 29px !important;
+    height: 29px !important;
   }
 
   .ux-staff-header .djm-os-header-actions {
-    gap: 4px !important;
+    gap: 3px !important;
   }
 
   .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"],
   .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
-    width: 36px !important;
-    min-width: 36px !important;
-    max-width: 36px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    max-height: 36px !important;
-    flex-basis: 36px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    flex-basis: 34px !important;
   }
 
   .djm-mobile-workspace-nav {
-    top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    top: calc(52px + var(--djm-mobile-safe-top)) !important;
+    gap: 2px !important;
+    padding-inline: 5px !important;
+  }
+
+  .djm-mobile-workspace-nav .djm-os-product-link {
+    font-size: 8.5px !important;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .ux-staff-header .djm-os-header-inner {
+    width: auto !important;
+    margin-left: max(12px,env(safe-area-inset-left,0px)) !important;
+    margin-right: max(12px,env(safe-area-inset-right,0px)) !important;
+  }
+
+  .djm-mobile-workspace-nav {
+    padding-left: max(8px,env(safe-area-inset-left,0px)) !important;
+    padding-right: max(8px,env(safe-area-inset-right,0px)) !important;
   }
 }
