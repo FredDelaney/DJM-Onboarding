@@ -1,0 +1,20 @@
+create index ai_feature_routes_primary_model_idx on platform.ai_feature_routes(primary_model_key);
+create index ai_feature_routes_fallback_model_idx on platform.ai_feature_routes(fallback_model_key) where fallback_model_key is not null;
+create index ai_usage_events_feature_key_idx on platform.ai_usage_events(feature_key);
+create index ai_usage_events_usage_event_idx on platform.ai_usage_events(usage_event_id) where usage_event_id is not null;
+create index credit_ledger_feature_key_idx on platform.credit_ledger(feature_key) where feature_key is not null;
+create index operational_incidents_tenant_idx on platform.operational_incidents(tenant_id) where tenant_id is not null;
+create index role_permissions_permission_key_idx on platform.role_permissions(permission_key);
+create index tenant_ai_overrides_feature_idx on platform.tenant_ai_route_overrides(feature_key);
+create index tenant_ai_overrides_primary_model_idx on platform.tenant_ai_route_overrides(primary_model_key) where primary_model_key is not null;
+create index tenant_ai_overrides_fallback_model_idx on platform.tenant_ai_route_overrides(fallback_model_key) where fallback_model_key is not null;
+create index usage_events_feature_key_idx on platform.usage_events(feature_key);
+
+revoke all on function platform.effective_entitlement(uuid,text) from public, anon, authenticated;
+revoke all on function platform.resolve_tenant_by_hostname(text) from public, anon, authenticated;
+revoke all on function platform.effective_plan_limits(uuid) from public, anon, authenticated;
+revoke all on function platform.role_has_permission(text,text) from public, anon, authenticated;
+revoke all on function platform.member_has_permission(uuid,uuid,text) from public, anon, authenticated;
+revoke all on function platform.run_housekeeping() from public, anon, authenticated;
+revoke all on function platform.touch_updated_at() from public, anon, authenticated;
+revoke all on function platform.bump_tenant_runtime_version() from public, anon, authenticated;
