@@ -531,3 +531,42 @@ create table public.weekly_checkins (
   submitted_at timestamp with time zone DEFAULT now() NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+-- ============================================================================
+-- SECTION 2: private base tables
+-- Structure only. No production rows, API keys, push keys, scheduler secrets,
+-- email credentials, or other configuration values are copied.
+-- Constraints, grants and functions are added only in later verified sections.
+-- ============================================================================
+
+create table private.djm_competition_tier_aliases (
+  country_key text NOT NULL,
+  league_key text NOT NULL,
+  country_name text NOT NULL,
+  canonical_name text NOT NULL,
+  tier smallint NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table private.djm_email_config (
+  singleton boolean DEFAULT true NOT NULL,
+  enabled boolean DEFAULT false NOT NULL,
+  provider text DEFAULT 'resend'::text NOT NULL,
+  api_key text,
+  from_address text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table private.push_scheduler_config (
+  singleton boolean DEFAULT true NOT NULL,
+  secret text NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table private.web_push_config (
+  singleton boolean DEFAULT true NOT NULL,
+  subject text NOT NULL,
+  public_key text NOT NULL,
+  private_key text NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
