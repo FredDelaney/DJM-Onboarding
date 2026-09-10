@@ -919,7 +919,7 @@
     font-size: 6px !important;
   }
 
-  .djm-os-root[data-djm-page="djm-network"] .djm-os-button-row {
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-toolbar > .djm-os-button-row {
     display: grid !important;
     grid-template-columns: minmax(0,.9fr) minmax(0,1.25fr) 40px !important;
     gap: 6px !important;
@@ -937,7 +937,7 @@
     box-shadow: none !important;
   }
 
-  .djm-os-root[data-djm-page="djm-network"] .djm-os-button-row > button:last-child {
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-toolbar > .djm-os-button-row > button:last-child {
     grid-column: auto !important;
     width: 40px !important;
     padding: 0 !important;
@@ -1078,11 +1078,11 @@
     font-size: 8px !important;
   }
 
-  .djm-os-root[data-djm-page="djm-network"] .djm-os-button-row {
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-toolbar > .djm-os-button-row {
     grid-template-columns: minmax(0,.88fr) minmax(0,1.18fr) 38px !important;
   }
 
-  .djm-os-root[data-djm-page="djm-network"] .djm-os-button-row > button:last-child {
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-toolbar > .djm-os-button-row > button:last-child {
     width: 38px !important;
   }
 }
@@ -1115,5 +1115,20 @@
   .ux-staff-header .djm-os-header-actions > *,
   .djm-mobile-workspace-nav .djm-os-product-link {
     transition: none !important;
+  }
+}
+
+/* Header invariant: page-level button layouts must never reflow the global staff utility bar. */
+@media (max-width: 760px) {
+  .ux-staff-header .djm-os-header-actions.djm-os-button-row {
+    display: flex !important;
+    grid-template-columns: none !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
   }
 }
