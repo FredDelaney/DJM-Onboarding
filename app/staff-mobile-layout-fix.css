@@ -1,24 +1,38 @@
-/* Staff mobile layout correction. Loaded last. Mobile only. */
+/* DJM staff mobile header.
+   Loaded last. This file owns the staff header and Network metrics on phones. */
 
 @media (max-width: 760px) {
   .ux-staff-header {
-    padding-top: env(safe-area-inset-top) !important;
+    top: 0 !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    overflow: visible !important;
   }
 
   .ux-staff-header .djm-os-header-inner {
     width: calc(100% - 20px) !important;
-    min-height: 0 !important;
+    min-height: 56px !important;
+    margin: 0 auto !important;
+    padding: 8px 0 !important;
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-columns: 34px minmax(0, 1fr) !important;
     grid-template-areas: "brand actions" !important;
     align-items: center !important;
-    gap: 8px !important;
-    padding: 7px 0 8px !important;
+    gap: 12px !important;
   }
 
   .ux-staff-header .djm-os-brand-row {
     grid-area: brand !important;
-    min-width: 32px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    overflow: visible !important;
+  }
+
+  .ux-staff-header .brand {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    gap: 0 !important;
   }
 
   .ux-staff-header .brand-copy,
@@ -27,91 +41,100 @@
     display: none !important;
   }
 
+  .ux-staff-header .brand-mark,
+  .ux-staff-header .brand-mark img {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
   .ux-staff-header .brand-mark {
     display: grid !important;
     place-items: center !important;
   }
 
   .ux-staff-header .brand-mark img {
-    width: 32px !important;
-    height: 32px !important;
     object-fit: contain !important;
+    border-radius: 0 !important;
   }
 
   .ux-staff-header .djm-os-header-actions {
     grid-area: actions !important;
+    justify-self: end !important;
     width: auto !important;
     min-width: 0 !important;
-    display: flex !important;
-    flex-wrap: nowrap !important;
+    max-width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, 40px) !important;
+    grid-auto-flow: column !important;
     align-items: center !important;
-    justify-content: flex-end !important;
-    justify-self: end !important;
-    gap: 4px !important;
+    justify-content: end !important;
+    gap: 6px !important;
+    overflow: visible !important;
   }
 
   .ux-staff-header .djm-os-header-actions > * {
-    width: 34px !important;
-    min-width: 34px !important;
-    max-width: none !important;
-    height: 34px !important;
-    min-height: 34px !important;
-    flex: 0 0 auto !important;
-    padding-inline: 0 !important;
-    border-radius: 10px !important;
+    box-sizing: border-box !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 11px !important;
+    flex: none !important;
+    display: grid !important;
+    place-items: center !important;
+    gap: 0 !important;
+    overflow: hidden !important;
   }
 
-  .ux-staff-header .djm-os-header-actions button[aria-label="Tell DJM"] {
-    width: 84px !important;
-    min-width: 84px !important;
-    padding-inline: 10px !important;
-    gap: 6px !important;
+  /* Tell DJM */
+  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"] {
+    color: #f4f8fa !important;
+    background: #153d59 !important;
+    border: 1px solid rgba(255, 255, 255, .06) !important;
   }
 
-  .ux-staff-header .djm-os-header-actions button[aria-label="Tell DJM"] span {
-    display: inline !important;
-    font-size: 9px !important;
-    font-weight: 850 !important;
-    white-space: nowrap !important;
+  /* Add */
+  .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger {
+    color: #071d31 !important;
+    background: #e3b832 !important;
+    border: 1px solid #e3b832 !important;
   }
 
-  .ux-staff-header .djm-os-header-actions .djm-os-capture-trigger {
-    width: 48px !important;
-    min-width: 48px !important;
-    padding-inline: 7px !important;
-    gap: 4px !important;
+  /* Search */
+  .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger {
+    color: rgba(239, 245, 248, .82) !important;
+    background: rgba(255, 255, 255, .055) !important;
+    border: 1px solid rgba(255, 255, 255, .16) !important;
   }
 
-  .ux-staff-header .djm-os-header-actions .djm-os-capture-trigger span {
-    display: inline !important;
-    font-size: 8.5px !important;
-    font-weight: 820 !important;
+  /* Settings and Sign out */
+  .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
+    color: rgba(239, 245, 248, .82) !important;
+    background: rgba(255, 255, 255, .055) !important;
+    border: 1px solid rgba(255, 255, 255, .16) !important;
+    box-shadow: none !important;
   }
 
-  .ux-staff-header .djm-os-header-actions .djm-os-search-trigger {
-    width: 62px !important;
-    min-width: 62px !important;
-    padding-inline: 7px !important;
-    gap: 4px !important;
-  }
-
-  .ux-staff-header .djm-os-header-actions .djm-os-search-trigger span {
-    display: inline !important;
-    font-size: 8.5px !important;
-    font-weight: 820 !important;
-    white-space: nowrap !important;
-  }
-
-  .ux-staff-header .djm-os-header-actions .djm-os-search-trigger kbd {
+  .ux-staff-header .djm-os-header-actions > * > span,
+  .ux-staff-header .djm-os-header-actions > * > kbd {
     display: none !important;
   }
 
   .ux-staff-header .djm-os-header-actions svg {
-    width: 15px !important;
-    height: 15px !important;
-    flex: 0 0 15px !important;
+    width: 19px !important;
+    height: 19px !important;
+    flex: none !important;
   }
 
+  .ux-staff-header .djm-os-header-actions > *:active {
+    transform: scale(.97) !important;
+  }
+
+  /* Main staff navigation becomes the mobile bottom bar. */
   .ux-staff-header .djm-os-product-nav {
     position: fixed !important;
     z-index: 70 !important;
@@ -121,14 +144,14 @@
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
+    margin: 0 !important;
+    padding: 5px 6px max(6px, env(safe-area-inset-bottom, 0px)) !important;
     display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     gap: 0 !important;
-    margin: 0 !important;
-    padding: 5px 6px max(5px, env(safe-area-inset-bottom)) !important;
     overflow: visible !important;
-    border-top: 1px solid rgba(255, 255, 255, .09) !important;
     background: rgba(5, 24, 40, .985) !important;
+    border-top: 1px solid rgba(255, 255, 255, .09) !important;
     box-shadow: 0 -10px 30px rgba(4, 18, 30, .12) !important;
     backdrop-filter: blur(18px) saturate(125%) !important;
     -webkit-backdrop-filter: blur(18px) saturate(125%) !important;
@@ -137,16 +160,16 @@
   .ux-staff-header .djm-os-product-link {
     position: relative !important;
     min-width: 0 !important;
-    min-height: 48px !important;
+    min-height: 49px !important;
+    padding: 5px 2px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 3px !important;
-    padding: 5px 2px !important;
     border-radius: 10px !important;
     background: transparent !important;
-    color: rgba(235, 242, 246, .6) !important;
+    color: rgba(235, 242, 246, .62) !important;
     box-shadow: none !important;
     font-size: 9px !important;
     font-weight: 780 !important;
@@ -166,18 +189,22 @@
   }
 
   .ux-staff-header .djm-os-product-link.is-active::after {
-    left: 18% !important;
-    right: 18% !important;
+    content: "" !important;
+    position: absolute !important;
     top: 0 !important;
     bottom: auto !important;
+    left: 20% !important;
+    right: 20% !important;
     height: 2px !important;
+    border-radius: 999px !important;
     background: linear-gradient(90deg, #b98a13, #e6c356) !important;
   }
 
   .djm-os-main {
-    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
+  /* Network metrics: compact 3 + 2 arrangement on phones. */
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metrics {
     display: grid !important;
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
@@ -192,13 +219,13 @@
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric {
     min-width: 0 !important;
-    min-height: 70px !important;
+    min-height: 68px !important;
+    padding: 9px 6px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 4px !important;
-    padding: 9px 6px !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: #fff !important;
@@ -223,7 +250,7 @@
 
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metric strong {
     color: #15364d !important;
-    font-size: 22px !important;
+    font-size: 21px !important;
     font-weight: 790 !important;
     line-height: 1 !important;
     letter-spacing: -.045em !important;
@@ -247,58 +274,40 @@
   }
 }
 
-@media (max-width: 390px) {
+/* Very narrow phones only. Keep all five actions visible. */
+@media (max-width: 350px) {
   .ux-staff-header .djm-os-header-inner {
-    width: calc(100% - 16px) !important;
+    width: calc(100% - 14px) !important;
+    grid-template-columns: 30px minmax(0, 1fr) !important;
+    gap: 8px !important;
   }
 
+  .ux-staff-header .djm-os-brand-row,
+  .ux-staff-header .brand,
+  .ux-staff-header .brand-mark,
   .ux-staff-header .brand-mark img {
     width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
     height: 30px !important;
   }
 
   .ux-staff-header .djm-os-header-actions {
-    gap: 3px !important;
+    grid-template-columns: repeat(5, 36px) !important;
+    gap: 4px !important;
   }
 
   .ux-staff-header .djm-os-header-actions > * {
-    width: 32px !important;
-    min-width: 32px !important;
-    height: 32px !important;
-    min-height: 32px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
   }
 
-  .ux-staff-header .djm-os-header-actions button[aria-label="Tell DJM"] {
-    width: 74px !important;
-    min-width: 74px !important;
-    padding-inline: 8px !important;
-  }
-
-  .ux-staff-header .djm-os-header-actions button[aria-label="Tell DJM"] span {
-    font-size: 8px !important;
-  }
-
-  .ux-staff-header .djm-os-header-actions .djm-os-capture-trigger,
-  .ux-staff-header .djm-os-header-actions .djm-os-search-trigger {
-    width: 32px !important;
-    min-width: 32px !important;
-    padding-inline: 0 !important;
-  }
-
-  .ux-staff-header .djm-os-header-actions .djm-os-capture-trigger span,
-  .ux-staff-header .djm-os-header-actions .djm-os-search-trigger span {
-    display: none !important;
-  }
-
-  .ux-staff-header .djm-os-product-link {
-    font-size: 8.5px !important;
-  }
-
-  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric {
-    min-height: 66px !important;
-  }
-
-  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric strong {
-    font-size: 20px !important;
+  .ux-staff-header .djm-os-header-actions svg {
+    width: 18px !important;
+    height: 18px !important;
   }
 }
