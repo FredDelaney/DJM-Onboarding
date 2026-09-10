@@ -1,23 +1,38 @@
-/* Staff iPhone layout correction.
-   Loaded last so older responsive layers cannot re-expand the header. */
+/* Staff mobile layout correction.
+   Keep this file loaded last. Mobile only. */
 
 @media (max-width: 760px) {
   .ux-staff-header .djm-os-header-inner {
-    width: calc(100% - 24px) !important;
+    width: calc(100% - 20px) !important;
     min-height: 0 !important;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
-    grid-template-areas:
-      "brand actions"
-      "nav nav" !important;
+    grid-template-areas: "brand actions" !important;
     align-items: center !important;
-    gap: 8px 10px !important;
-    padding: 10px 0 8px !important;
+    gap: 8px !important;
+    padding: 6px 0 7px !important;
   }
 
   .ux-staff-header .djm-os-brand-row {
     grid-area: brand !important;
     min-width: 0 !important;
+  }
+
+  .ux-staff-header .brand-copy,
+  .ux-staff-header .djm-os-chip,
+  .ux-staff-header .ux-os-chip {
+    display: none !important;
+  }
+
+  .ux-staff-header .brand-mark {
+    display: grid !important;
+    place-items: center !important;
+  }
+
+  .ux-staff-header .brand-mark img {
+    width: 32px !important;
+    height: 32px !important;
+    object-fit: contain !important;
   }
 
   .ux-staff-header .djm-os-header-actions {
@@ -29,88 +44,196 @@
     align-items: center !important;
     justify-content: flex-end !important;
     justify-self: end !important;
-    gap: 6px !important;
+    gap: 4px !important;
   }
 
   .ux-staff-header .djm-os-header-actions > * {
-    width: 40px !important;
-    min-width: 40px !important;
-    max-width: 40px !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    flex: 0 0 40px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    flex: 0 0 34px !important;
     padding-inline: 0 !important;
+    border-radius: 10px !important;
   }
 
   .ux-staff-header .djm-os-header-actions > * span {
     display: none !important;
   }
 
+  .ux-staff-header .djm-os-header-actions svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
   .ux-staff-header .djm-os-product-nav {
-    grid-area: nav !important;
+    position: fixed !important;
+    z-index: 70 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     width: 100% !important;
+    max-width: none !important;
     min-width: 0 !important;
-    max-width: 100% !important;
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    justify-content: stretch !important;
-    gap: 2px !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 0 !important;
     margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
+    padding: 5px 6px max(5px, env(safe-area-inset-bottom)) !important;
+    overflow: visible !important;
+    border-top: 1px solid rgba(255, 255, 255, .09) !important;
+    background: rgba(5, 24, 40, .985) !important;
+    box-shadow: 0 -10px 30px rgba(4, 18, 30, .12) !important;
+    backdrop-filter: blur(18px) saturate(125%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(125%) !important;
   }
 
   .ux-staff-header .djm-os-product-link {
+    position: relative !important;
     min-width: 0 !important;
-    min-height: 40px !important;
-    flex: 1 1 0 !important;
+    min-height: 48px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
     justify-content: center !important;
-    gap: 5px !important;
-    padding: 8px 4px !important;
-    font-size: 10px !important;
+    gap: 3px !important;
+    padding: 5px 2px !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: rgba(235, 242, 246, .6) !important;
+    box-shadow: none !important;
+    font-size: 9px !important;
+    font-weight: 780 !important;
+    line-height: 1 !important;
     white-space: nowrap !important;
   }
 
   .ux-staff-header .djm-os-product-link svg {
-    width: 15px !important;
-    height: 15px !important;
-    flex: 0 0 15px !important;
+    width: 18px !important;
+    height: 18px !important;
+    flex: 0 0 18px !important;
+  }
+
+  .ux-staff-header .djm-os-product-link.is-active {
+    color: #fff !important;
+    background: rgba(255, 255, 255, .07) !important;
   }
 
   .ux-staff-header .djm-os-product-link.is-active::after {
-    left: 6px !important;
-    right: 6px !important;
+    left: 18% !important;
+    right: 18% !important;
+    top: 0 !important;
+    bottom: auto !important;
+    height: 2px !important;
+    background: linear-gradient(90deg, #b98a13, #e6c356) !important;
+  }
+
+  .djm-os-main {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metrics {
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    margin-bottom: 12px !important;
+    overflow: hidden !important;
+    border: 1px solid #dfe7eb !important;
+    border-radius: 15px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric {
+    min-width: 0 !important;
+    min-height: 70px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    padding: 9px 6px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    text-align: center !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(-n+3) {
+    grid-column: span 2 !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(n+4) {
+    grid-column: span 3 !important;
+    border-top: 1px solid #e7edef !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(2),
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(3),
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric:nth-child(5) {
+    border-left: 1px solid #e7edef !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric strong {
+    color: #15364d !important;
+    font-size: 22px !important;
+    font-weight: 790 !important;
+    line-height: 1 !important;
+    letter-spacing: -.045em !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric span {
+    margin: 0 !important;
+    color: #7e8f9a !important;
+    font-size: 7.5px !important;
+    font-weight: 760 !important;
+    line-height: 1.25 !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric.is-attention {
+    background: #fffdf7 !important;
+    box-shadow: inset 0 2px 0 rgba(214, 173, 51, .9) !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric.is-attention strong {
+    color: #745b13 !important;
   }
 }
 
 @media (max-width: 390px) {
   .ux-staff-header .djm-os-header-inner {
-    width: calc(100% - 18px) !important;
-    gap: 7px 8px !important;
+    width: calc(100% - 16px) !important;
+  }
+
+  .ux-staff-header .brand-mark img {
+    width: 30px !important;
+    height: 30px !important;
   }
 
   .ux-staff-header .djm-os-header-actions {
-    gap: 4px !important;
+    gap: 3px !important;
   }
 
   .ux-staff-header .djm-os-header-actions > * {
-    width: 38px !important;
-    min-width: 38px !important;
-    max-width: 38px !important;
-    height: 38px !important;
-    min-height: 38px !important;
-    flex-basis: 38px !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
   }
 
   .ux-staff-header .djm-os-product-link {
-    gap: 3px !important;
-    padding-inline: 2px !important;
-    font-size: 9px !important;
+    font-size: 8.5px !important;
   }
 
-  .ux-staff-header .djm-os-product-link svg {
-    width: 14px !important;
-    height: 14px !important;
-    flex-basis: 14px !important;
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric {
+    min-height: 66px !important;
+  }
+
+  .djm-os-root[data-djm-page="djm-network"] .djm-os-metric strong {
+    font-size: 20px !important;
   }
 }
