@@ -780,3 +780,184 @@ create table djm_os.competitions (
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+-- ============================================================================
+-- SECTION 3B: djm_os base tables 11-20 of 81
+-- Structure only. No production rows are copied.
+-- ============================================================================
+
+create table djm_os.contact_methods (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  person_id uuid NOT NULL,
+  channel text NOT NULL,
+  value text NOT NULL,
+  normalised_value text,
+  is_primary boolean DEFAULT false NOT NULL,
+  is_verified boolean DEFAULT false NOT NULL,
+  last_verified_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.conversation_threads (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  channel text NOT NULL,
+  owner_user_id uuid NOT NULL,
+  person_id uuid,
+  organisation_id uuid,
+  external_thread_id text,
+  thread_label text,
+  status text DEFAULT 'active'::text NOT NULL,
+  first_message_at timestamp with time zone,
+  last_message_at timestamp with time zone,
+  message_count integer DEFAULT 0 NOT NULL,
+  latest_summary text,
+  source_metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.country_league_strength_anchors (
+  country text NOT NULL,
+  iffhs_rank integer NOT NULL,
+  iffhs_points numeric,
+  strength_score smallint NOT NULL,
+  source_name text DEFAULT 'IFFHS Strongest National League 2025'::text NOT NULL,
+  source_url text DEFAULT 'https://iffhs.com/en/news/iffhs-awards-2025-the-strongest-league-of-the-world-4862'::text NOT NULL,
+  observed_at timestamp with time zone DEFAULT '2026-01-16 00:00:00+00'::timestamp with time zone NOT NULL,
+  methodology text DEFAULT 'DJM maps the published IFFHS national top-division points to a 45-100 log scale. Rank-only fallback is used only when points are unavailable.'::text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.deal_rooms (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  title text NOT NULL,
+  organisation_id uuid NOT NULL,
+  source_person_id uuid,
+  player_id uuid,
+  prospect_id uuid,
+  club_need_id uuid,
+  owner_user_id uuid,
+  stage text DEFAULT 'qualifying'::text NOT NULL,
+  status text DEFAULT 'active'::text NOT NULL,
+  expected_commission numeric,
+  currency text DEFAULT 'EUR'::text NOT NULL,
+  probability smallint DEFAULT 25 NOT NULL,
+  primary_blocker text,
+  next_decision text,
+  next_action_at timestamp with time zone,
+  last_meaningful_at timestamp with time zone,
+  source text,
+  outcome_reason text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  next_action_text text,
+  model_probability smallint,
+  manual_probability smallint,
+  probability_source text DEFAULT 'model'::text NOT NULL,
+  probability_basis jsonb DEFAULT '{}'::jsonb NOT NULL,
+  pitch_status text DEFAULT 'not_created'::text NOT NULL,
+  transfer_fee numeric,
+  player_salary numeric,
+  salary_period text,
+  financial_notes text,
+  closed_at timestamp with time zone
+);
+
+create table djm_os.employments (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  person_id uuid NOT NULL,
+  organisation_id uuid NOT NULL,
+  role_title text,
+  department text,
+  started_on date,
+  ended_on date,
+  is_current boolean DEFAULT true NOT NULL,
+  source_url text,
+  confidence numeric(5,4),
+  last_verified_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.entity_links (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  entity_kind text NOT NULL,
+  entity_id uuid NOT NULL,
+  platform text NOT NULL,
+  label text NOT NULL,
+  url text NOT NULL,
+  sort_order smallint DEFAULT 0 NOT NULL,
+  is_public boolean DEFAULT false NOT NULL,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.entity_resolution_queue (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  source_type text NOT NULL,
+  source_id uuid NOT NULL,
+  candidate_entity_type text,
+  candidate_entity_id uuid,
+  candidate_label text,
+  confidence numeric(5,4),
+  reason text,
+  status text DEFAULT 'open'::text NOT NULL,
+  owner_user_id uuid,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  resolved_at timestamp with time zone,
+  resolved_by uuid
+);
+
+create table djm_os.events (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  event_type text NOT NULL,
+  actor_user_id uuid,
+  person_id uuid,
+  organisation_id uuid,
+  player_id uuid,
+  interaction_id uuid,
+  payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+  source text,
+  confidence numeric(5,4),
+  occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  processed_at timestamp with time zone
+);
+
+create table djm_os.external_identity_links (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  entity_type text NOT NULL,
+  entity_id uuid NOT NULL,
+  provider text NOT NULL,
+  external_id text NOT NULL,
+  external_url text,
+  confidence numeric(5,4) DEFAULT 1 NOT NULL,
+  last_verified_at timestamp with time zone,
+  metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.football_fixtures (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  canonical_key text NOT NULL,
+  competition_id uuid,
+  season_label text,
+  match_date date NOT NULL,
+  kickoff_at timestamp with time zone,
+  status text DEFAULT 'scheduled'::text NOT NULL,
+  home_team_id uuid,
+  away_team_id uuid,
+  home_team_name text,
+  away_team_name text,
+  home_score integer,
+  away_score integer,
+  venue text,
+  provider_ids jsonb DEFAULT '{}'::jsonb NOT NULL,
+  metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
