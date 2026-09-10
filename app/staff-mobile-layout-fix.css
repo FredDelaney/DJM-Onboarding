@@ -2,6 +2,10 @@
    Keep this file loaded last. Mobile only. */
 
 @media (max-width: 760px) {
+  .ux-staff-header {
+    padding-top: max(calc(env(safe-area-inset-top) + 4px), 14px) !important;
+  }
+
   .ux-staff-header .djm-os-header-inner {
     width: calc(100% - 20px) !important;
     min-height: 0 !important;
