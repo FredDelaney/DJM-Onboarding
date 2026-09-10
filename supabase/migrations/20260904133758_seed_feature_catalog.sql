@@ -1,0 +1,32 @@
+insert into platform.feature_catalog
+  (feature_key, display_name, category, description, billable, metered, default_enabled)
+values
+  ('core_player_management','Player management','core','Core represented-player and prospect workflows.',false,false,true),
+  ('core_network','Agency network','core','Contacts, clubs and relationship operations.',false,false,true),
+  ('core_opportunities','Opportunities','core','Club needs and player opportunity workflows.',false,false,true),
+  ('core_deals','Deals','core','Deal execution and outcome tracking.',false,false,true),
+  ('core_player_portal','Player portal','core','Player-facing service experience.',false,false,true),
+  ('core_cv','Player CV','core','Player CV and dossier generation.',false,false,true),
+  ('core_club_sharing','Club sharing','core','Secure club Decision Rooms and share links.',false,false,true),
+  ('intelligence_player_scoring','Player scoring','intelligence','Deterministic player-level intelligence when evidence supports it.',true,false,false),
+  ('intelligence_potential','Potential projection','intelligence','Evidence-aware player potential and career projection.',true,false,false),
+  ('intelligence_comparison','Player comparison','intelligence','Contextual player comparison.',true,false,false),
+  ('intelligence_club_match','Club match','intelligence','Contextual player-to-club/need fit.',true,false,false),
+  ('intelligence_relationships','Relationship intelligence','intelligence','Agency-private relationship and route-to-market intelligence.',true,false,false),
+  ('intelligence_opportunity_engine','Opportunity Engine','intelligence','Need-to-match-to-route-to-action intelligence across authorised tenant and football data.',true,false,false),
+  ('intelligence_career_engine','Career Intelligence Engine','intelligence','Evidence-backed current level, trajectory, scenario and next-move intelligence.',true,false,false),
+  ('automation_action_engine','Agency Action Engine','automation','Structured capture and proposed operational actions from authorised signals.',true,false,false),
+  ('business_agency_intelligence','Agency Business Intelligence','business','Agency health, relationship coverage, pipeline, market and operating intelligence.',true,false,false),
+  ('business_commissions','Commission intelligence','business','Commission schedules, forecasts, due/paid/overdue tracking and commercial visibility.',true,false,false),
+  ('player_service_intelligence','Player Service Intelligence','player_service','Player-service coverage, approved activity visibility and retention-supporting intelligence.',true,false,false),
+  ('ai_assistant','AI assistant','ai','Permission-aware natural-language assistant.',true,true,false),
+  ('ai_player_analysis','AI player analysis','ai','AI interpretation/explanation of authorised football intelligence.',true,true,false),
+  ('speech_capture','Speech capture','speech','Voice capture, transcription and structured action extraction.',true,true,false),
+  ('custom_branding','Custom branding','branding','Agency logo, colours and branded player/club surfaces.',true,false,true),
+  ('custom_domain','Custom domain','branding','Customer-owned web domain.',true,false,false),
+  ('branded_email','Branded email','branding','Verified tenant-specific outbound sender identity.',true,false,false),
+  ('premium_data_integrations','Premium data integrations','integration','Licensed premium football-data integrations.',true,true,false),
+  ('api_access','API access','integration','Customer API access where permitted.',true,true,false),
+  ('enterprise_sso','Enterprise SSO','enterprise','Enterprise identity integration.',true,false,false),
+  ('enterprise_dedicated_infrastructure','Dedicated infrastructure','enterprise','Dedicated database/storage/deployment option.',true,false,false)
+on conflict (feature_key) do nothing;
