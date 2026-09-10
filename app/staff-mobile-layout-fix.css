@@ -1,5 +1,9 @@
-/* DJM staff mobile header.
-   Loaded last. This file owns the staff header and Network metrics on phones. */
+/* DJM staff mobile layout.
+   Loaded last. Mobile navigation is rendered outside the sticky header. */
+
+.djm-mobile-workspace-nav {
+  display: none !important;
+}
 
 @media (max-width: 760px) {
   .ux-staff-header {
@@ -15,13 +19,12 @@
     padding: 8px 0 !important;
     display: grid !important;
     grid-template-columns: 34px minmax(0, 1fr) !important;
-    grid-template-areas: "brand actions" !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
 
   .ux-staff-header .djm-os-brand-row {
-    grid-area: brand !important;
+    grid-column: 1 !important;
     width: 34px !important;
     min-width: 34px !important;
     max-width: 34px !important;
@@ -57,22 +60,28 @@
     border-radius: 0 !important;
   }
 
+  .ux-staff-header .djm-desktop-workspace-nav {
+    display: none !important;
+  }
+
   .ux-staff-header .djm-os-header-actions {
-    grid-area: actions !important;
-    justify-self: end !important;
+    grid-column: 2 !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    display: grid !important;
-    grid-template-columns: repeat(5, 40px) !important;
-    grid-auto-flow: column !important;
+    justify-self: end !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
     align-items: center !important;
-    justify-content: end !important;
-    gap: 6px !important;
+    justify-content: flex-end !important;
+    gap: 5px !important;
     overflow: visible !important;
   }
 
-  .ux-staff-header .djm-os-header-actions > * {
+  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"],
+  .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger,
+  .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger,
+  .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
     box-sizing: border-box !important;
     width: 40px !important;
     min-width: 40px !important;
@@ -83,35 +92,26 @@
     margin: 0 !important;
     padding: 0 !important;
     border-radius: 11px !important;
-    flex: none !important;
+    flex: 0 0 40px !important;
     display: grid !important;
     place-items: center !important;
     gap: 0 !important;
     overflow: hidden !important;
   }
 
-  /* Tell DJM */
   .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"] {
     color: #f4f8fa !important;
     background: #153d59 !important;
     border: 1px solid rgba(255, 255, 255, .06) !important;
   }
 
-  /* Add */
   .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger {
     color: #071d31 !important;
     background: #e3b832 !important;
     border: 1px solid #e3b832 !important;
   }
 
-  /* Search */
-  .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger {
-    color: rgba(239, 245, 248, .82) !important;
-    background: rgba(255, 255, 255, .055) !important;
-    border: 1px solid rgba(255, 255, 255, .16) !important;
-  }
-
-  /* Settings and Sign out */
+  .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
     color: rgba(239, 245, 248, .82) !important;
     background: rgba(255, 255, 255, .055) !important;
@@ -119,8 +119,10 @@
     box-shadow: none !important;
   }
 
-  .ux-staff-header .djm-os-header-actions > * > span,
-  .ux-staff-header .djm-os-header-actions > * > kbd {
+  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"] > span,
+  .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger > span,
+  .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger > span,
+  .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger > kbd {
     display: none !important;
   }
 
@@ -130,17 +132,13 @@
     flex: none !important;
   }
 
-  .ux-staff-header .djm-os-header-actions > *:active {
-    transform: scale(.97) !important;
-  }
-
-  /* Main staff navigation becomes the mobile bottom bar. */
-  .ux-staff-header .djm-os-product-nav {
+  .djm-mobile-workspace-nav {
     position: fixed !important;
     z-index: 70 !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
+    top: auto !important;
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
@@ -157,7 +155,7 @@
     -webkit-backdrop-filter: blur(18px) saturate(125%) !important;
   }
 
-  .ux-staff-header .djm-os-product-link {
+  .djm-mobile-workspace-nav .djm-os-product-link {
     position: relative !important;
     min-width: 0 !important;
     min-height: 49px !important;
@@ -177,18 +175,18 @@
     white-space: nowrap !important;
   }
 
-  .ux-staff-header .djm-os-product-link svg {
+  .djm-mobile-workspace-nav .djm-os-product-link svg {
     width: 18px !important;
     height: 18px !important;
     flex: 0 0 18px !important;
   }
 
-  .ux-staff-header .djm-os-product-link.is-active {
+  .djm-mobile-workspace-nav .djm-os-product-link.is-active {
     color: #fff !important;
     background: rgba(255, 255, 255, .07) !important;
   }
 
-  .ux-staff-header .djm-os-product-link.is-active::after {
+  .djm-mobile-workspace-nav .djm-os-product-link.is-active::after {
     content: "" !important;
     position: absolute !important;
     top: 0 !important;
@@ -204,7 +202,6 @@
     padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
-  /* Network metrics: compact 3 + 2 arrangement on phones. */
   .djm-os-root[data-djm-page="djm-network"] .djm-os-metrics {
     display: grid !important;
     grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
@@ -274,12 +271,11 @@
   }
 }
 
-/* Very narrow phones only. Keep all five actions visible. */
 @media (max-width: 350px) {
   .ux-staff-header .djm-os-header-inner {
     width: calc(100% - 14px) !important;
     grid-template-columns: 30px minmax(0, 1fr) !important;
-    gap: 8px !important;
+    gap: 7px !important;
   }
 
   .ux-staff-header .djm-os-brand-row,
@@ -293,21 +289,19 @@
   }
 
   .ux-staff-header .djm-os-header-actions {
-    grid-template-columns: repeat(5, 36px) !important;
     gap: 4px !important;
   }
 
-  .ux-staff-header .djm-os-header-actions > * {
+  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"],
+  .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger,
+  .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger,
+  .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
     width: 36px !important;
     min-width: 36px !important;
     max-width: 36px !important;
     height: 36px !important;
     min-height: 36px !important;
     max-height: 36px !important;
-  }
-
-  .ux-staff-header .djm-os-header-actions svg {
-    width: 18px !important;
-    height: 18px !important;
+    flex-basis: 36px !important;
   }
 }

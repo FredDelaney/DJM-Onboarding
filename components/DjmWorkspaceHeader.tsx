@@ -45,40 +45,52 @@ export default function DjmWorkspaceHeader({
   onSignOut: () => void | Promise<void>;
 }) {
   return (
-    <header className="djm-os-header ux-staff-header">
-      <div className="djm-os-header-inner">
-        <div className="djm-os-brand-row">
-          <Brand />
-          <span className="djm-os-chip ux-os-chip">
-            <UserRound size={14} />
-            DJM OS
-          </span>
-        </div>
+    <>
+      <header className="djm-os-header ux-staff-header">
+        <div className="djm-os-header-inner">
+          <div className="djm-os-brand-row">
+            <Brand />
+            <span className="djm-os-chip ux-os-chip">
+              <UserRound size={14} />
+              DJM OS
+            </span>
+          </div>
 
-        <WorkspaceTabs items={items} ariaLabel="DJM workspaces" />
+          <WorkspaceTabs
+            items={items}
+            ariaLabel="DJM workspaces"
+            className="djm-desktop-workspace-nav"
+          />
 
-        <div className="djm-os-button-row djm-os-header-actions">
-          <DjmTellDjmLauncher />
-          <DjmQuickCapture />
-          <DjmGlobalSearch />
-          <Link
-            href="/settings"
-            className="djm-os-icon-button"
-            aria-label="Settings"
-            title="Settings"
-          >
-            <Settings size={17} />
-          </Link>
-          <button
-            type="button"
-            className="djm-os-icon-button"
-            onClick={() => void onSignOut()}
-            aria-label="Sign out"
-          >
-            <LogOut size={17} />
-          </button>
+          <div className="djm-os-button-row djm-os-header-actions">
+            <DjmTellDjmLauncher />
+            <DjmQuickCapture />
+            <DjmGlobalSearch />
+            <Link
+              href="/settings"
+              className="djm-os-icon-button"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <Settings size={17} />
+            </Link>
+            <button
+              type="button"
+              className="djm-os-icon-button"
+              onClick={() => void onSignOut()}
+              aria-label="Sign out"
+            >
+              <LogOut size={17} />
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <WorkspaceTabs
+        items={items}
+        ariaLabel="DJM mobile workspaces"
+        className="djm-mobile-workspace-nav"
+      />
+    </>
   );
 }
