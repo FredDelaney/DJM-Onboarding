@@ -570,3 +570,213 @@ create table private.web_push_config (
   private_key text NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+-- ============================================================================
+-- SECTION 3A: djm_os base tables 1-10 of 81
+-- Structure only. No production rows are copied.
+-- ============================================================================
+
+create table djm_os.automation_incidents (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  incident_type text NOT NULL,
+  severity text DEFAULT 'warning'::text NOT NULL,
+  title text NOT NULL,
+  detail text,
+  entity_type text,
+  entity_id uuid,
+  fingerprint text,
+  status text DEFAULT 'open'::text NOT NULL,
+  detected_at timestamp with time zone DEFAULT now() NOT NULL,
+  resolved_at timestamp with time zone
+);
+
+create table djm_os.booking_profiles (
+  user_id uuid NOT NULL,
+  slug text NOT NULL,
+  is_enabled boolean DEFAULT false NOT NULL,
+  default_duration_minutes smallint DEFAULT 30 NOT NULL,
+  minimum_notice_hours smallint DEFAULT 12 NOT NULL,
+  buffer_minutes smallint DEFAULT 15 NOT NULL,
+  timezone text DEFAULT 'Europe/Rome'::text NOT NULL,
+  availability jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.booking_requests (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  booking_user_id uuid NOT NULL,
+  person_id uuid,
+  organisation_id uuid,
+  guest_name text NOT NULL,
+  guest_email text NOT NULL,
+  guest_phone text,
+  starts_at timestamp with time zone NOT NULL,
+  ends_at timestamp with time zone NOT NULL,
+  timezone text,
+  status text DEFAULT 'pending'::text NOT NULL,
+  meeting_id uuid,
+  notes text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.calendar_connections (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  user_id uuid NOT NULL,
+  provider text NOT NULL,
+  external_account_id text,
+  calendar_id text,
+  email text,
+  status text DEFAULT 'pending'::text NOT NULL,
+  scopes text[] DEFAULT '{}'::text[] NOT NULL,
+  last_synced_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.captures (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  submitted_by uuid NOT NULL,
+  channel text DEFAULT 'whatsapp'::text NOT NULL,
+  capture_type text DEFAULT 'text'::text NOT NULL,
+  raw_text text,
+  source_uri text,
+  person_id uuid,
+  organisation_id uuid,
+  status text DEFAULT 'queued'::text NOT NULL,
+  confidence numeric(5,4),
+  extracted_json jsonb DEFAULT '{}'::jsonb NOT NULL,
+  error_message text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  processed_at timestamp with time zone,
+  client_capture_id uuid,
+  player_id uuid,
+  context_json jsonb DEFAULT '{}'::jsonb NOT NULL,
+  transcript_text text,
+  summary text,
+  usage_json jsonb DEFAULT '{}'::jsonb NOT NULL,
+  processing_version text,
+  attempt_count integer DEFAULT 0 NOT NULL,
+  next_attempt_at timestamp with time zone DEFAULT now() NOT NULL,
+  locked_at timestamp with time zone,
+  locked_by text,
+  completed_at timestamp with time zone,
+  parent_capture_id uuid,
+  audio_duration_seconds numeric,
+  keep_audio boolean DEFAULT false NOT NULL,
+  audio_delete_after timestamp with time zone,
+  receipt_json jsonb DEFAULT '{}'::jsonb NOT NULL,
+  last_error_code text
+);
+
+create table djm_os.change_observations (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  entity_type text NOT NULL,
+  entity_id uuid NOT NULL,
+  change_type text NOT NULL,
+  previous_value jsonb,
+  observed_value jsonb NOT NULL,
+  source_uri text,
+  source_name text,
+  confidence numeric(5,4) DEFAULT 0.5 NOT NULL,
+  status text DEFAULT 'pending'::text NOT NULL,
+  detected_at timestamp with time zone DEFAULT now() NOT NULL,
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  applied_at timestamp with time zone,
+  fingerprint text
+);
+
+create table djm_os.channel_connections (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  user_id uuid NOT NULL,
+  channel text NOT NULL,
+  provider text,
+  external_account_id text,
+  display_label text,
+  status text DEFAULT 'planned'::text NOT NULL,
+  capabilities text[] DEFAULT '{}'::text[] NOT NULL,
+  last_synced_at timestamp with time zone,
+  last_error text,
+  metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+create table djm_os.claims (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  interaction_id uuid,
+  person_id uuid,
+  organisation_id uuid,
+  player_id uuid,
+  claim_type text NOT NULL,
+  claim_key text,
+  value_json jsonb NOT NULL,
+  confidence numeric(5,4) DEFAULT 0.5 NOT NULL,
+  valid_from timestamp with time zone,
+  valid_until timestamp with time zone,
+  last_verified_at timestamp with time zone,
+  source_uri text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  verification_status text DEFAULT 'unverified'::text NOT NULL,
+  verified_by uuid,
+  verified_at timestamp with time zone,
+  source_key text
+);
+
+create table djm_os.club_needs (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  organisation_id uuid NOT NULL,
+  source_person_id uuid,
+  owner_user_id uuid,
+  source_interaction_id uuid,
+  title text NOT NULL,
+  "position" text,
+  preferred_foot text,
+  min_age smallint,
+  max_age smallint,
+  transfer_type text,
+  transfer_budget numeric,
+  salary_budget numeric,
+  currency text,
+  salary_period text,
+  registration_notes text,
+  profile_notes text,
+  status text DEFAULT 'active'::text NOT NULL,
+  confidence numeric(5,4) DEFAULT 0.5 NOT NULL,
+  confirmed_at timestamp with time zone,
+  expires_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  source_message_id uuid,
+  secondary_position text,
+  min_height_cm smallint,
+  salary_tax_basis text,
+  nationality_preferences text[] DEFAULT '{}'::text[] NOT NULL,
+  passport_requirements text,
+  foreign_player_notes text,
+  playing_style text,
+  raw_request text,
+  source_context text,
+  received_at timestamp with time zone DEFAULT now() NOT NULL,
+  priority smallint DEFAULT 3 NOT NULL,
+  need_type text DEFAULT 'confirmed'::text NOT NULL,
+  prediction_probability smallint,
+  prediction_basis jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+create table djm_os.competitions (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  canonical_key text NOT NULL,
+  display_name text NOT NULL,
+  country text,
+  gender text,
+  level_tier smallint,
+  aliases text[] DEFAULT '{}'::text[] NOT NULL,
+  provider_ids jsonb DEFAULT '{}'::jsonb NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  created_by uuid,
+  updated_by uuid,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
