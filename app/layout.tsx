@@ -14,6 +14,7 @@ import './iphone-qa.css';
 import './djm-os-ux-overhaul.css';
 import './djm-global-beauty.css';
 import './staff-mobile-layout-fix.css';
+import './djm-os-v3.css';
 
 export const metadata = {
   title: 'DJM Player',

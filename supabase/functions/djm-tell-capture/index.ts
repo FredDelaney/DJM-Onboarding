@@ -203,9 +203,16 @@ Deno.serve(async (req) => {
           headers: {
             "Content-Type": "application/json",
             Authorization: authHeader,
+            "x-region": "eu-west-1",
           },
           body: JSON.stringify({ capture_id: captureId, mode: "process" }),
-        }).catch(() => undefined),
+        }).catch((error) => {
+          console.warn(JSON.stringify({
+            operation: "djm_tell_kick_worker",
+            capture_id: captureId,
+            error: error instanceof Error ? error.message : "Worker kick failed",
+          }));
+        }),
       );
     }
 

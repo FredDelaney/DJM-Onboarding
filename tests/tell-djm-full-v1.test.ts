@@ -11,6 +11,8 @@ const header = read('components/DjmWorkspaceHeader.tsx');
 const offline = read('lib/tell-djm-offline.ts');
 const upload = read('supabase/functions/djm-tell-capture/index.ts');
 const worker = read('supabase/functions/djm-tell-process/index.ts');
+const aiRouter = read('supabase/functions/_shared/djm-ai-router.ts');
+const contextLib = read('lib/djm-context.ts');
 const migration = read(
   'supabase/migrations/20260901150000_djm_tell_djm_full_v1.sql',
 );
@@ -84,7 +86,10 @@ test('OpenAI usage is server-side and uses the verified current model APIs', () 
   assert.doesNotMatch(capture, /OPENAI_API_KEY/);
   assert.match(worker, /gpt-transcribe/);
   assert.match(worker, /keywords\[\]/);
-  assert.match(worker, /gpt-5\.6-terra/);
+  assert.match(worker, /selectDjmAiRoute/);
+  assert.match(aiRouter, /gpt-5\.6-luna/);
+  assert.match(aiRouter, /gpt-5\.6-terra/);
+  assert.match(aiRouter, /gpt-5\.6-sol/);
   assert.match(worker, /https:\/\/api\.openai\.com\/v1\/responses/);
   assert.match(worker, /type: "json_schema"/);
   assert.match(worker, /strict: true/);
@@ -208,11 +213,13 @@ test('only full-access users get one-tap creation of a genuinely new club', () =
 
 test('global mic inherits stable context from player club contact recruitment and opportunity routes', () => {
   assert.match(launcher, /usePathname/);
-  assert.match(launcher, /\/admin\/players\//);
-  assert.match(launcher, /\/network\/clubs\//);
-  assert.match(launcher, /\/network\/contacts\//);
-  assert.match(launcher, /\/recruitment\//);
-  assert.match(launcher, /opportunities\|market\/deals/);
+  assert.match(launcher, /contextFromRoute/);
+  assert.match(contextLib, /\/admin\/players/);
+  assert.match(contextLib, /\/network\/clubs/);
+  assert.match(contextLib, /\/network\/contacts/);
+  assert.match(contextLib, /\/recruitment/);
+  assert.match(contextLib, /\/opportunities/);
+  assert.match(contextLib, /\/market\/deals/);
   assert.match(launcher, /djm_tell_context_for_route/);
   assert.match(migration, /create or replace function public\.djm_tell_context_for_route/);
   assert.match(migration, /'context_type','opportunity'/);
@@ -298,12 +305,12 @@ test('recording and unsafe save guard against accidental navigation', () => {
 });
 
 test('full-screen Tell DJM preserves route and active workspace context', () => {
-  assert.match(launcher, /fullScreenHref/);
-  assert.match(launcher, /club_need_id: context\.club_need_id/);
+  assert.match(launcher, /tellDjmHref/);
+  assert.match(contextLib, /club_need_id: context\.club_need_id/);
   assert.match(launcher, /djm:tell-context/);
   assert.match(fullPage, /new URLSearchParams\(window\.location\.search\)/);
   assert.match(fullPage, /setQueryContext/);
-  assert.match(fullPage, /club_need_id/);
+  assert.match(contextLib, /club_need_id/);
   assert.match(fullPage, /djm_tell_context_for_route/);
   assert.match(fullPage, /context=\{context\}/);
 });
@@ -338,7 +345,8 @@ test('attention states reuse the existing DJM notification and web-push stack wi
 test('push links reopen the exact capture receipt', () => {
   assert.match(migration, /'\/tell\?capture='\|\|v_capture\.id::text/);
   assert.match(fullPage, /params\.get\('capture'\)/);
-  assert.match(fullPage, /new RegExp\(`\^\$\{UUID\}\$`\)\.test\(requestedCaptureId\)/);
+  assert.match(fullPage, /DJM_UUID_PATTERN\.test\(requestedCaptureId\)/);
+  assert.match(contextLib, /DJM_UUID_PATTERN = new RegExp/);
   assert.match(fullPage, /setSelectedCaptureId\(requestedCaptureId\)/);
 });
 

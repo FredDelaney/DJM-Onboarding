@@ -1,50 +1,60 @@
 'use client';
 
 import { supabase } from '@/lib/supabase';
+import { measureDjmOperation } from '@/lib/djm-performance';
 
 export async function djmRpc<T = any>(
   name: string,
   args: Record<string, any> = {},
 ): Promise<T> {
-  const { data, error } = await supabase.rpc(name as any, args as any);
+  return measureDjmOperation('rpc', name, async () => {
+    const { data, error } = await supabase.rpc(name as any, args as any);
 
-  if (error) {
-    throw new Error(error.message || `DJM request failed: ${name}`);
-  }
+    if (error) {
+      throw new Error(error.message || `DJM request failed: ${name}`);
+    }
 
-  return data as T;
+    return data as T;
+  });
 }
 
 export async function djmInvoke<T = any>(
   functionName: string,
   body: FormData | Record<string, any>,
 ): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(functionName, { body });
-
-  if (error) {
-    let message = error.message || `DJM function failed: ${functionName}`;
-    const context = (error as any)?.context;
-
-    if (context && typeof context.clone === 'function') {
-      try {
-        const response = context.clone();
-        const payload = await response.json();
-        message = payload?.error || payload?.message || message;
-      } catch {
-        try {
-          const response = context.clone();
-          const text = await response.text();
-          if (text?.trim()) message = text.trim();
-        } catch {
-          // Keep the original functions error message.
-        }
-      }
+  return measureDjmOperation('edge', functionName, async () => {
+    const options: any = { body };
+    if (functionName === 'djm-tell-capture' || functionName === 'djm-tell-process') {
+      options.region = 'eu-west-1';
     }
 
-    throw new Error(message);
-  }
+    const { data, error } = await supabase.functions.invoke(functionName, options);
 
-  return data as T;
+    if (error) {
+      let message = error.message || `DJM function failed: ${functionName}`;
+      const context = (error as any)?.context;
+
+      if (context && typeof context.clone === 'function') {
+        try {
+          const response = context.clone();
+          const payload = await response.json();
+          message = payload?.error || payload?.message || message;
+        } catch {
+          try {
+            const response = context.clone();
+            const text = await response.text();
+            if (text?.trim()) message = text.trim();
+          } catch {
+            // Keep the original functions error message.
+          }
+        }
+      }
+
+      throw new Error(message);
+    }
+
+    return data as T;
+  });
 }
 
 export const compactDate = (value?: string | null) => {

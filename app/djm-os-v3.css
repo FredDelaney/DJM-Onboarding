@@ -1,0 +1,278 @@
+/* DJM OS v3 visual foundation.
+   Staff operating system only. Player-facing layouts remain untouched. */
+
+.djm-os-root {
+  --djm-v3-bg: #f3f6f9;
+  --djm-v3-surface: rgba(255, 255, 255, 0.94);
+  --djm-v3-surface-solid: #ffffff;
+  --djm-v3-border: rgba(15, 43, 67, 0.10);
+  --djm-v3-border-strong: rgba(15, 43, 67, 0.17);
+  --djm-v3-shadow: 0 18px 50px rgba(6, 31, 58, 0.07);
+  --djm-v3-shadow-hover: 0 22px 58px rgba(6, 31, 58, 0.11);
+  --djm-v3-radius: 20px;
+  --djm-v3-radius-small: 13px;
+  --djm-v3-motion: 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  background:
+    radial-gradient(circle at 85% -10%, rgba(245, 233, 0, 0.10), transparent 34rem),
+    linear-gradient(180deg, #f8fafc 0%, var(--djm-v3-bg) 54%, #eef3f7 100%);
+  color: #102235;
+  font-feature-settings: 'ss01' 1, 'cv02' 1, 'cv03' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+.djm-os-root *,
+.djm-os-root *::before,
+.djm-os-root *::after {
+  box-sizing: border-box;
+}
+
+.djm-os-header {
+  min-height: 66px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(5, 25, 46, 0.94);
+  box-shadow: 0 10px 34px rgba(4, 19, 35, 0.12);
+  backdrop-filter: blur(24px) saturate(1.25);
+}
+
+.djm-os-header-inner {
+  width: min(1520px, calc(100% - 38px));
+  min-height: 66px;
+  gap: 20px;
+}
+
+.djm-os-chip {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0.08em;
+}
+
+.djm-os-main {
+  width: min(1520px, calc(100% - 38px));
+  padding: 30px 0 84px;
+}
+
+.djm-os-page-head {
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.djm-os-page-head h1 {
+  margin-top: 5px;
+  font-size: clamp(30px, 3.1vw, 43px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+.djm-os-eyebrow {
+  color: #718393;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+}
+
+.djm-os-user {
+  padding: 8px 11px;
+  border: 1px solid var(--djm-v3-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.djm-os-user span {
+  font-size: 12px;
+}
+
+.djm-os-user small {
+  font-size: 9px;
+}
+
+.djm-os-panel,
+.djm-os-metric,
+.djm-os-person-card,
+.djm-os-club-card {
+  border-color: var(--djm-v3-border);
+  background: var(--djm-v3-surface);
+  box-shadow: var(--djm-v3-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.djm-os-panel {
+  border-radius: var(--djm-v3-radius);
+}
+
+.djm-os-metric {
+  border-radius: 17px;
+}
+
+.djm-os-person-card,
+.djm-os-club-card {
+  border-radius: 16px;
+}
+
+.djm-os-panel,
+.djm-os-metric,
+.djm-os-person-card,
+.djm-os-club-card,
+.djm-os-search-result {
+  transition:
+    transform var(--djm-v3-motion),
+    box-shadow var(--djm-v3-motion),
+    border-color var(--djm-v3-motion),
+    background var(--djm-v3-motion);
+}
+
+@media (hover: hover) {
+  .djm-os-person-card:hover,
+  .djm-os-club-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--djm-v3-border-strong);
+    box-shadow: var(--djm-v3-shadow-hover);
+  }
+}
+
+.djm-os-panel-head {
+  padding: 19px 21px 15px;
+  border-bottom-color: rgba(15, 43, 67, 0.075);
+}
+
+.djm-os-panel-head h2 {
+  font-size: 16px;
+  letter-spacing: -0.025em;
+}
+
+.djm-os-primary-button,
+.djm-os-secondary-button,
+.djm-os-mini-button,
+.djm-os-icon-button,
+.djm-os-search-trigger,
+.djm-os-capture-trigger {
+  transition:
+    transform var(--djm-v3-motion),
+    background var(--djm-v3-motion),
+    border-color var(--djm-v3-motion),
+    box-shadow var(--djm-v3-motion),
+    color var(--djm-v3-motion);
+}
+
+.djm-os-primary-button,
+.djm-os-secondary-button {
+  min-height: 39px;
+  border-radius: 11px;
+}
+
+.djm-os-primary-button {
+  box-shadow: 0 8px 20px rgba(6, 31, 58, 0.13);
+}
+
+.djm-os-secondary-button {
+  border-color: var(--djm-v3-border);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.djm-os-icon-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.065);
+}
+
+.djm-os-icon-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.djm-os-search-trigger,
+.djm-os-capture-trigger {
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  background: rgba(255, 255, 255, 0.065) !important;
+  box-shadow: none !important;
+}
+
+.djm-os-search-trigger:hover,
+.djm-os-capture-trigger:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+.djm-os-search-overlay {
+  background: rgba(3, 14, 26, 0.52);
+  backdrop-filter: blur(10px);
+}
+
+.djm-os-search-modal,
+.djm-os-capture-modal {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 22px;
+  background: rgba(252, 253, 254, 0.975);
+  box-shadow: 0 32px 90px rgba(2, 18, 32, 0.28);
+}
+
+.djm-os-search-modal-head {
+  min-height: 64px;
+  border-bottom-color: var(--djm-v3-border);
+}
+
+.djm-os-search-result {
+  border-radius: 13px;
+}
+
+.djm-os-search-result:hover {
+  border-color: rgba(6, 31, 58, 0.13);
+  background: #f7f9fb;
+}
+
+.djm-os-root :where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid rgba(245, 233, 0, 0.56);
+  outline-offset: 2px;
+}
+
+.djm-home-v2-hero {
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(245, 233, 0, 0.14), transparent 23rem),
+    linear-gradient(135deg, #061f3a 0%, #092b4c 100%) !important;
+  box-shadow: 0 28px 65px rgba(6, 31, 58, 0.16) !important;
+}
+
+.djm-home-v2-task {
+  border-color: var(--djm-v3-border) !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: 0 8px 28px rgba(6, 31, 58, 0.045) !important;
+}
+
+.djm-home-v2-task:hover {
+  border-color: var(--djm-v3-border-strong) !important;
+  box-shadow: 0 14px 36px rgba(6, 31, 58, 0.075) !important;
+}
+
+@media (max-width: 900px) {
+  .djm-os-header-inner,
+  .djm-os-main {
+    width: min(100% - 24px, 1520px);
+  }
+
+  .djm-os-main {
+    padding-top: 22px;
+  }
+
+  .djm-os-page-head {
+    align-items: flex-start;
+  }
+
+  .djm-os-user {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .djm-os-root *,
+  .djm-os-root *::before,
+  .djm-os-root *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

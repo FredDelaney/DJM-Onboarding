@@ -5,6 +5,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import TellDjmCapture from '@/components/TellDjmCapture';
 import TellDjmRecentCaptures from '@/components/TellDjmRecentCaptures';
 import { djmRpc } from '@/lib/djm-os';
+import {
+  contextFromRoute,
+  contextFromSearchParams,
+  DJM_UUID_PATTERN,
+  mergeDjmContext,
+  type DjmEntityContext,
+} from '@/lib/djm-context';
 
 type TellAccess = {
   enabled?: boolean;
@@ -12,77 +19,16 @@ type TellAccess = {
   max_audio_seconds?: number | null;
 };
 
-type TellContext = {
-  route?: string | null;
-  label?: string | null;
-  context_type?: string | null;
-  organisation_id?: string | null;
-  organisation_name?: string | null;
-  person_id?: string | null;
-  person_name?: string | null;
-  player_id?: string | null;
-  player_name?: string | null;
-  prospect_id?: string | null;
-  prospect_name?: string | null;
-  opportunity_id?: string | null;
-  club_need_id?: string | null;
-  need_position?: string | null;
-};
-
-const UUID =
-  '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})';
-
-function fallbackContext(pathname: string): TellContext {
-  const match = (pattern: RegExp) => pathname.match(pattern)?.[1] || null;
-
-  const playerId = match(new RegExp(`^/admin/players/${UUID}(?:/|$)`));
-  if (playerId) {
-    return { route: pathname, player_id: playerId, context_type: 'player' };
-  }
-
-  const clubId = match(new RegExp(`^/network/clubs/${UUID}(?:/|$)`));
-  if (clubId) {
-    return { route: pathname, organisation_id: clubId, context_type: 'club' };
-  }
-
-  const personId = match(new RegExp(`^/network/contacts/${UUID}(?:/|$)`));
-  if (personId) {
-    return { route: pathname, person_id: personId, context_type: 'contact' };
-  }
-
-  const prospectId = match(new RegExp(`^/recruitment/${UUID}(?:/|$)`));
-  if (prospectId) {
-    return {
-      route: pathname,
-      prospect_id: prospectId,
-      context_type: 'recruitment',
-    };
-  }
-
-  const opportunityId = match(
-    new RegExp(`^/(?:opportunities|market/deals)/${UUID}(?:/|$)`),
-  );
-  if (opportunityId) {
-    return {
-      route: pathname,
-      opportunity_id: opportunityId,
-      context_type: 'opportunity',
-    };
-  }
-
-  return { route: pathname };
-}
-
 export default function TellDjmFullPage() {
   const [sourceRoute, setSourceRoute] = useState('');
   const routeFallback = useMemo(
-    () => (sourceRoute.startsWith('/') ? fallbackContext(sourceRoute) : {}),
+    () => (sourceRoute.startsWith('/') ? contextFromRoute(sourceRoute) : {}),
     [sourceRoute],
   );
-  const [routeContext, setRouteContext] = useState<TellContext>(routeFallback);
-  const [queryContext, setQueryContext] = useState<TellContext>({});
+  const [routeContext, setRouteContext] = useState<DjmEntityContext>(routeFallback);
+  const [queryContext, setQueryContext] = useState<DjmEntityContext>({});
   const context = useMemo(
-    () => ({ ...routeContext, ...queryContext }),
+    () => mergeDjmContext(routeContext, queryContext),
     [queryContext, routeContext],
   );
   const [selectedCaptureId, setSelectedCaptureId] = useState<string | null>(null);
@@ -98,43 +44,8 @@ export default function TellDjmFullPage() {
     const value = params.get('from') || '';
     const requestedCaptureId = params.get('capture');
     setSourceRoute(value);
-    const inlineContext: TellContext = {};
-    const idKeys = new Set([
-      'organisation_id',
-      'person_id',
-      'player_id',
-      'prospect_id',
-      'opportunity_id',
-      'club_need_id',
-    ]);
-    [
-      'context_type',
-      'label',
-      'organisation_id',
-      'organisation_name',
-      'person_id',
-      'person_name',
-      'player_id',
-      'player_name',
-      'prospect_id',
-      'prospect_name',
-      'opportunity_id',
-      'club_need_id',
-      'need_position',
-    ].forEach((key) => {
-      const contextValue = params.get(key);
-      if (
-        contextValue &&
-        (!idKeys.has(key) || new RegExp(`^${UUID}$`).test(contextValue))
-      ) {
-        (inlineContext as Record<string, string>)[key] = contextValue;
-      }
-    });
-    setQueryContext(inlineContext);
-    if (
-      requestedCaptureId &&
-      new RegExp(`^${UUID}$`).test(requestedCaptureId)
-    ) {
+    setQueryContext(contextFromSearchParams(params));
+    if (requestedCaptureId && DJM_UUID_PATTERN.test(requestedCaptureId)) {
       setSelectedCaptureId(requestedCaptureId);
     }
   }, []);
@@ -158,7 +69,7 @@ export default function TellDjmFullPage() {
     if (!sourceRoute.startsWith('/')) return;
 
     let active = true;
-    void djmRpc<TellContext>('djm_tell_context_for_route', {
+    void djmRpc<DjmEntityContext>('djm_tell_context_for_route', {
       p_route: sourceRoute,
     })
       .then((resolved) => {

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { estimateDjmAiCost, selectDjmAiRoute } from "../_shared/djm-ai-router.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -412,6 +413,7 @@ async function transcribe(
 async function interpret(
   openAiKey: string,
   model: string,
+  reasoningEffort: "none" | "low" | "medium",
   capture: any,
   transcript: string,
 ) {
@@ -424,7 +426,7 @@ async function interpret(
     body: JSON.stringify({
       model,
       store: false,
-      reasoning: { effort: "none" },
+      reasoning: { effort: reasoningEffort },
       max_output_tokens: 4000,
       instructions: [
         "You convert an internal football-agency debrief into safe DJM actions.",
@@ -798,6 +800,7 @@ async function getPlan(
 ) {
   const storedPlan = capture?.extracted_json?.tell_djm_plan;
   let transcript = String(capture?.transcript_text || "").trim();
+  const timings: Record<string, number> = {};
 
   if (!transcript) {
     const { data: vocabulary, error: vocabularyError } = await admin.rpc(
@@ -806,7 +809,9 @@ async function getPlan(
     );
     if (vocabularyError) throw vocabularyError;
 
+    const transcriptionStarted = performance.now();
     transcript = await transcribe(openAiKey, admin, capture, vocabulary);
+    timings.transcription_ms = Math.round(performance.now() - transcriptionStarted);
     const transcriptionCost =
       capture.capture_type === "audio"
         ? (Number(capture.duration_seconds || 0) / 60) *
@@ -821,6 +826,7 @@ async function getPlan(
         p_usage: {
           transcription_seconds: capture.duration_seconds || null,
           transcription_cost_usd: Number(transcriptionCost.toFixed(6)),
+          transcription_ms: timings.transcription_ms || 0,
           estimated_cost_usd: Number(transcriptionCost.toFixed(6)),
         },
       },
@@ -832,24 +838,28 @@ async function getPlan(
     return {
       transcript,
       plan: storedPlan,
-      modelUsage: capture.usage_json || {},
+      modelUsage: { ...(capture.usage_json || {}), ...timings },
       reusedPlan: true,
     };
   }
 
+  const aiRoute = selectDjmAiRoute('tell_djm', { text: transcript });
+  const interpretationStarted = performance.now();
   const { plan, usage } = await interpret(
     openAiKey,
-    capture?.settings?.interpreter_model || "gpt-5.6-terra",
+    aiRoute.model,
+    aiRoute.reasoning_effort,
     capture,
     transcript,
+  );
+  timings.interpretation_ms = Math.round(
+    performance.now() - interpretationStarted,
   );
 
   const inputTokens = Number(usage?.input_tokens || 0);
   const outputTokens = Number(usage?.output_tokens || 0);
   const settings = capture.settings || {};
-  const modelCost =
-    (inputTokens / 1_000_000) * Number(settings.interpreter_input_usd_per_million || 2) +
-    (outputTokens / 1_000_000) * Number(settings.interpreter_output_usd_per_million || 12);
+  const modelCost = estimateDjmAiCost(aiRoute, inputTokens, outputTokens);
   const existingTranscriptionCost = Number(
     capture?.usage_json?.transcription_cost_usd ||
       ((Number(capture.duration_seconds || 0) / 60) *
@@ -865,6 +875,9 @@ async function getPlan(
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       interpretation_cost_usd: Number(modelCost.toFixed(6)),
+      interpretation_model: aiRoute.model,
+      interpretation_tier: aiRoute.tier,
+      interpretation_ms: timings.interpretation_ms || 0,
       estimated_cost_usd: Number(estimatedCost.toFixed(6)),
     },
   });
@@ -877,6 +890,10 @@ async function getPlan(
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       interpretation_cost_usd: Number(modelCost.toFixed(6)),
+      interpretation_model: aiRoute.model,
+      interpretation_tier: aiRoute.tier,
+      interpretation_ms: timings.interpretation_ms || 0,
+      transcription_ms: timings.transcription_ms || 0,
       estimated_cost_usd: Number(estimatedCost.toFixed(6)),
     },
     reusedPlan: false,
@@ -967,11 +984,13 @@ async function processOne(
   }
 
   try {
+    const processingStarted = performance.now();
     const { transcript, plan, modelUsage } = await getPlan(
       admin,
       openAiKey,
       capture,
     );
+    const actionStarted = performance.now();
 
     const actionKeys = new Set<string>();
     const needActions = plan.actions.filter((item: any) => item?.type === "upsert_club_need");
@@ -1005,32 +1024,39 @@ async function processOne(
       }
 
       const isScoutObservation = action.type === "log_scout_observation";
-      const club = await resolveEntity(
+      const clubPromise = resolveEntity(
         admin,
         capture,
         "club",
         isScoutObservation ? null : action.club_name,
       );
-      const contact = await resolveEntity(
-        admin,
-        capture,
-        "contact",
-        action.contact_name,
-        action.club_name || club.label || capture?.context_json?.organisation_name || null,
-      );
-      const player = await resolveEntity(
+      const playerPromise = resolveEntity(
         admin,
         capture,
         "player",
         isScoutObservation ? null : action.player_name,
       );
-      const prospect = await resolveEntity(
+      const prospectPromise = resolveEntity(
         admin,
         capture,
         "prospect",
         isScoutObservation ? action.player_name : null,
         action.player_current_club,
       );
+
+      const club = await clubPromise;
+      const contactPromise = resolveEntity(
+        admin,
+        capture,
+        "contact",
+        action.contact_name,
+        action.club_name || club.label || capture?.context_json?.organisation_name || null,
+      );
+      const [contact, player, prospect] = await Promise.all([
+        contactPromise,
+        playerPromise,
+        prospectPromise,
+      ]);
 
       let blocked = false;
       let forceReviewReason = "";
@@ -1253,9 +1279,12 @@ async function processOne(
       }
     }
 
+    const actionApplicationMs = Math.round(performance.now() - actionStarted);
     const usage = {
       ...(capture.usage_json || {}),
       ...(modelUsage || {}),
+      action_application_ms: actionApplicationMs,
+      processing_elapsed_ms: Math.round(performance.now() - processingStarted),
     };
 
     const { data: completed, error: completeError } = await admin.rpc(

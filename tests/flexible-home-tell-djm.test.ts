@@ -5,6 +5,7 @@ import test from 'node:test';
 const home = readFileSync('app/(djm-os)/djm/page.tsx', 'utf8');
 const tellCapture = readFileSync('components/TellDjmCapture.tsx', 'utf8');
 const tellProcess = readFileSync('supabase/functions/djm-tell-process/index.ts', 'utf8');
+const aiRouter = readFileSync('supabase/functions/_shared/djm-ai-router.ts', 'utf8');
 const push = readFileSync('supabase/functions/dispatch-player-push/index.ts', 'utf8');
 const removePlayer = readFileSync('supabase/functions/remove-player/index.ts', 'utf8');
 const homeMigration = readFileSync(
@@ -17,7 +18,7 @@ test('DJM Home supports dismiss and snooze without deleting source records', () 
   assert.match(home, /djm_home_set_item_control/);
   assert.match(home, /Remove from Home/);
   assert.match(home, /Snooze until tomorrow/);
-  assert.match(home, /DJM attention/);
+  assert.match(home, /worth your attention/);
   assert.doesNotMatch(home, /What should DJM do next\?/);
   assert.match(homeMigration, /home_item_controls/);
   assert.match(homeMigration, /state in \('dismissed','snoozed'\)/i);
@@ -30,11 +31,13 @@ test('dismissed and snoozed tasks can suppress reminder delivery', () => {
   assert.match(homeMigration, /interval '8 hours'/);
 });
 
-test('Tell DJM polls faster, surfaces transcript progress and uses non-reasoning extraction', () => {
+test('Tell DJM polls faster, surfaces transcript progress and uses routed reasoning effort', () => {
   assert.match(tellCapture, /const POLL_MS = 650;/);
   assert.match(tellCapture, /Transcript ready\. Doing it now\.\.\./);
   assert.match(tellCapture, /open=\{!TERMINAL\.has\(receipt\.capture\.status\)\}/);
-  assert.match(tellProcess, /reasoning: \{ effort: "none" \}/);
+  assert.match(tellProcess, /reasoning: \{ effort: reasoningEffort \}/);
+  assert.match(tellProcess, /selectDjmAiRoute/);
+  assert.match(aiRouter, /reasoning_effort: 'none'/);
 });
 
 test('push delivery groups related task, request and Tell DJM notifications', () => {
