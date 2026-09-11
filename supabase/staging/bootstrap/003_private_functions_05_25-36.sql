@@ -71,7 +71,7 @@ begin
 
   return found;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_queue_smart_reminders()
@@ -183,7 +183,7 @@ begin
 
   return jsonb_build_object('queued',queued,'checked_at',now());
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_refresh_public_profile_from_career()
@@ -200,7 +200,7 @@ begin
   where pp.player_id=v_player_id;
   return coalesce(new,old);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_sync_notification_preference_aliases()
@@ -235,7 +235,7 @@ begin
   new.reminder_intensity := new.reminder_mode;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v4_benchmark_quality(p_provider text, p_freshness text)
@@ -268,7 +268,7 @@ begin
 
   return least(1,greatest(0,v_provider*v_freshness));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v4_role_score(p_weighted_minutes numeric, p_weighted_appearances numeric, p_weighted_starts numeric, p_starts_known boolean)
@@ -292,7 +292,7 @@ begin
 
   return least(100,greatest(0,v_minutes));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v4_sample_reliability(p_minutes numeric, p_confidence numeric)
@@ -306,7 +306,7 @@ AS $function$
     greatest(0::numeric, sqrt(least(greatest(coalesce(p_minutes,0),0),900) / 900.0))
     * greatest(0.35::numeric, least(1::numeric, coalesce(p_confidence,0.60)))
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_benchmark_quality(p_provider text, p_freshness text)
@@ -339,7 +339,7 @@ begin
 
   return least(1::numeric, greatest(0::numeric, v_provider * v_freshness));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_career_evidence_date(p_club_name text, p_current_club text, p_season_label text, p_start_date date, p_end_date date, p_source_reviewed_at timestamp with time zone, p_source_synced_at timestamp with time zone, p_as_of date)
@@ -400,7 +400,7 @@ begin
 
   return v_fallback;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_experience_quality(p_age integer, p_reviewed_seasons integer, p_reviewed_career_minutes numeric)
@@ -428,7 +428,7 @@ begin
 
   return least(1::numeric, greatest(0::numeric, sqrt(v_season_quality * v_minutes_quality)));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_mark_player_score_stale_from_input()
@@ -455,7 +455,7 @@ begin
   if tg_op='DELETE' then return old; end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_mark_player_score_stale_from_player()
@@ -474,7 +474,7 @@ begin
   where player_id=new.id;
   return new;
 end;
-$function$
+$function$;
 
 
 commit;

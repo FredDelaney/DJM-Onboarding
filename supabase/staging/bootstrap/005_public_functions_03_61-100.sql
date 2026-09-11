@@ -30,7 +30,7 @@ begin
  for r in select id from djm_os.messages where thread_id=p_thread_id order by sent_at loop perform djm_os.process_message_rule_based(r.id); v_count:=v_count+1; end loop;
  perform djm_os.thread_interaction_rollup(p_thread_id);
  return jsonb_build_object('thread_id',p_thread_id,'person_id',p_person_id,'organisation_id',p_organisation_id,'linked',true,'messages_reprocessed',v_count);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_add_need_contact(p_need_id uuid, p_full_name text, p_role_title text DEFAULT NULL::text, p_email text DEFAULT NULL::text, p_whatsapp text DEFAULT NULL::text)
@@ -125,7 +125,7 @@ begin
     'created', coalesce((v_result->>'created')::boolean, false)
   );
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_assign_need_owner(p_need_id uuid, p_owner_user_id uuid)
@@ -143,7 +143,7 @@ begin
   insert into djm_os.events(event_type,actor_user_id,organisation_id,payload,source,confidence,occurred_at)
   select 'CLUB_NEED_OWNER_UPDATED',auth.uid(),n.organisation_id,jsonb_build_object('club_need_id',n.id,'previous_owner_user_id',v_before,'owner_user_id',p_owner_user_id),'manual_ui',1,now() from djm_os.club_needs n where n.id=p_need_id;
   return jsonb_build_object('need_id',p_need_id,'owner_user_id',p_owner_user_id);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_candidates(p_need_id uuid)
@@ -158,7 +158,7 @@ begin
     'signed_players',coalesce((select jsonb_agg(to_jsonb(x) order by x.overall_score desc nulls last) from (select * from public.djm_market_matches(p_need_id)) x),'[]'::jsonb),
     'recruitment_targets',coalesce((select jsonb_agg(to_jsonb(x) order by x.match_score desc nulls last) from (select * from public.djm_scout_need_matches(p_need_id)) x),'[]'::jsonb)
   );
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_candidates_v2(p_need_id uuid)
@@ -190,7 +190,7 @@ begin
       from public.djm_scout_need_matches(p_need_id) x
     ), '[]'::jsonb)
   );
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_create_need(p_organisation_id uuid, p_title text, p_position text, p_source_person_id uuid DEFAULT NULL::uuid, p_preferred_foot text DEFAULT NULL::text, p_min_age smallint DEFAULT NULL::smallint, p_max_age smallint DEFAULT NULL::smallint, p_transfer_type text DEFAULT NULL::text, p_transfer_budget numeric DEFAULT NULL::numeric, p_salary_budget numeric DEFAULT NULL::numeric, p_currency text DEFAULT NULL::text, p_salary_period text DEFAULT NULL::text, p_profile_notes text DEFAULT NULL::text, p_registration_notes text DEFAULT NULL::text, p_expires_at timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -227,7 +227,7 @@ begin
 
   return jsonb_build_object('need_id',v_id);
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_create_need_from_text(p_organisation_id uuid, p_text text, p_source_person_id uuid DEFAULT NULL::uuid)
@@ -300,7 +300,7 @@ begin
     )
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_create_need_v2(p_organisation_id uuid, p_title text, p_position text, p_source_person_id uuid DEFAULT NULL::uuid, p_secondary_position text DEFAULT NULL::text, p_preferred_foot text DEFAULT NULL::text, p_min_age smallint DEFAULT NULL::smallint, p_max_age smallint DEFAULT NULL::smallint, p_min_height_cm smallint DEFAULT NULL::smallint, p_transfer_type text DEFAULT NULL::text, p_transfer_budget numeric DEFAULT NULL::numeric, p_salary_budget numeric DEFAULT NULL::numeric, p_currency text DEFAULT NULL::text, p_salary_period text DEFAULT NULL::text, p_salary_tax_basis text DEFAULT NULL::text, p_nationality_preferences text[] DEFAULT '{}'::text[], p_passport_requirements text DEFAULT NULL::text, p_foreign_player_notes text DEFAULT NULL::text, p_playing_style text DEFAULT NULL::text, p_profile_notes text DEFAULT NULL::text, p_registration_notes text DEFAULT NULL::text, p_raw_request text DEFAULT NULL::text, p_source_context text DEFAULT NULL::text, p_received_at timestamp with time zone DEFAULT now(), p_priority smallint DEFAULT 3, p_need_type text DEFAULT 'confirmed'::text, p_prediction_probability smallint DEFAULT NULL::smallint, p_prediction_basis jsonb DEFAULT '{}'::jsonb, p_expires_at timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -354,7 +354,7 @@ begin
   );
 
   return jsonb_build_object('need_id', v_id, 'need_type', v_need_type);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_deal_probability(p_need_id uuid, p_player_id uuid DEFAULT NULL::uuid, p_prospect_id uuid DEFAULT NULL::uuid)
@@ -370,7 +370,7 @@ AS $function$ declare v_fit numeric:=50;v_access numeric:=40;v_demand numeric:=6
   v_timing:=case when exists(select 1 from djm_os.club_needs n where n.id=p_need_id and n.expires_at is not null and n.expires_at < now()+interval '14 days') then 80 else 60 end;
   v_total:=round(v_fit*0.35+v_access*0.2+v_demand*0.2+v_willing*0.15+v_timing*0.1);
   return jsonb_build_object('probability',greatest(0,least(95,v_total)),'football_fit',round(v_fit),'djm_access',round(v_access),'demand_confidence',round(v_demand),'player_willingness',round(v_willing),'timing',round(v_timing),'model','heuristic_v1');
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_link_need_contact(p_need_id uuid, p_person_id uuid)
@@ -452,7 +452,7 @@ begin
     'role_title', v_role_title
   );
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_matches(p_need_id uuid)
@@ -465,7 +465,7 @@ AS $function$
   from djm_os.player_matches m join public.players p on p.id=m.player_id
   where m.club_need_id=p_need_id
   order by m.overall_score desc nulls last,coalesce(nullif(trim(concat_ws(' ',p.first_name,p.last_name)),''),p.preferred_name,'Player');
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_need_workspace(p_need_id uuid)
@@ -612,7 +612,7 @@ begin
 
   return v_result;
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_needs(p_status text DEFAULT NULL::text)
@@ -627,7 +627,7 @@ AS $function$
   from djm_os.club_needs n join djm_os.organisations o on o.id=n.organisation_id
   where p_status is null or p_status='' or n.status=p_status
   order by case when n.status in ('active','open','confirmed') then 0 else 1 end,n.updated_at desc;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_needs_v2(p_status text DEFAULT NULL::text)
@@ -744,7 +744,7 @@ begin
     ) x
   ), '[]'::jsonb);
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_needs_v3(p_status text DEFAULT NULL::text)
@@ -777,7 +777,7 @@ begin
       on o.id = nullif(x.item->>'organisation_id', '')::uuid
   ), '[]'::jsonb);
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_set_match_status(p_match_id uuid, p_status text)
@@ -808,7 +808,7 @@ begin
 
   return jsonb_build_object('match_id',p_match_id,'status',v_status);
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_set_need_status(p_need_id uuid, p_status text)
@@ -839,7 +839,7 @@ begin
 
   return jsonb_build_object('need_id',p_need_id,'status',v_status);
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_update_club_identity(p_organisation_id uuid, p_league_name text DEFAULT NULL::text, p_country text DEFAULT NULL::text, p_transfermarkt_url text DEFAULT NULL::text)
@@ -902,7 +902,7 @@ begin
     'transfermarkt_url', v_tm
   );
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_update_need(p_need_id uuid, p_title text, p_position text, p_preferred_foot text DEFAULT NULL::text, p_min_age smallint DEFAULT NULL::smallint, p_max_age smallint DEFAULT NULL::smallint, p_transfer_type text DEFAULT NULL::text, p_transfer_budget numeric DEFAULT NULL::numeric, p_salary_budget numeric DEFAULT NULL::numeric, p_currency text DEFAULT NULL::text, p_salary_period text DEFAULT NULL::text, p_profile_notes text DEFAULT NULL::text, p_registration_notes text DEFAULT NULL::text, p_expires_at timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -939,7 +939,7 @@ begin
 
   return jsonb_build_object('need_id',p_need_id,'updated',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_update_need_v2(p_need_id uuid, p_organisation_id uuid, p_title text, p_position text, p_source_person_id uuid DEFAULT NULL::uuid, p_secondary_position text DEFAULT NULL::text, p_preferred_foot text DEFAULT NULL::text, p_min_age smallint DEFAULT NULL::smallint, p_max_age smallint DEFAULT NULL::smallint, p_min_height_cm smallint DEFAULT NULL::smallint, p_transfer_type text DEFAULT NULL::text, p_transfer_budget numeric DEFAULT NULL::numeric, p_salary_budget numeric DEFAULT NULL::numeric, p_currency text DEFAULT NULL::text, p_salary_period text DEFAULT NULL::text, p_salary_tax_basis text DEFAULT NULL::text, p_nationality_preferences text[] DEFAULT '{}'::text[], p_passport_requirements text DEFAULT NULL::text, p_foreign_player_notes text DEFAULT NULL::text, p_playing_style text DEFAULT NULL::text, p_profile_notes text DEFAULT NULL::text, p_registration_notes text DEFAULT NULL::text, p_raw_request text DEFAULT NULL::text, p_source_context text DEFAULT NULL::text, p_received_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_priority smallint DEFAULT 3, p_need_type text DEFAULT 'confirmed'::text, p_prediction_probability smallint DEFAULT NULL::smallint, p_prediction_basis jsonb DEFAULT '{}'::jsonb, p_expires_at timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -1005,7 +1005,7 @@ begin
   );
 
   return jsonb_build_object('need_id', p_need_id, 'updated', true);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_market_upsert_need_task(p_need_id uuid, p_title text, p_task_id uuid DEFAULT NULL::uuid, p_due_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_person_id uuid DEFAULT NULL::uuid, p_priority smallint DEFAULT 3, p_status text DEFAULT 'open'::text)
@@ -1156,7 +1156,7 @@ begin
     'status', v_status
   );
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_merge_people(p_keep_id uuid, p_merge_id uuid)
@@ -1203,7 +1203,7 @@ AS $function$ declare r record; v_keep text; v_merge text; begin
  delete from djm_os.people where id=p_merge_id;
  update djm_os.merge_candidates set status='merged',resolved_at=now(),resolved_by=auth.uid() where entity_type='person' and ((left_id=p_keep_id and right_id=p_merge_id) or (left_id=p_merge_id and right_id=p_keep_id));
  return jsonb_build_object('kept_id',p_keep_id,'merged_id',p_merge_id,'kept_name',v_keep,'merged_name',v_merge);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_my_identity()
@@ -1213,7 +1213,7 @@ CREATE OR REPLACE FUNCTION public.djm_my_identity()
 AS $function$
 select jsonb_build_object('user_id',tm.user_id,'display_name',tm.display_name,'timezone',tm.timezone,'whatsapp_export_names',tm.whatsapp_export_names,'role_title',tm.role_title)
 from djm_os.team_members tm where tm.user_id=(select auth.uid()) and tm.is_active
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_activity(p_limit integer DEFAULT 50)
@@ -1230,7 +1230,7 @@ AS $function$
   left join djm_os.organisations o on o.id=e.organisation_id
   order by e.occurred_at desc
   limit greatest(1,least(coalesce(p_limit,50),250));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_booking_profiles()
@@ -1241,7 +1241,7 @@ CREATE OR REPLACE FUNCTION public.djm_network_booking_profiles()
 AS $function$
   select b.user_id,t.display_name,b.slug,b.is_enabled,b.default_duration_minutes,b.minimum_notice_hours,b.buffer_minutes,b.timezone,b.availability
   from djm_os.booking_profiles b join djm_os.team_members t on t.user_id=b.user_id order by t.display_name;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_capture_asset(p_storage_path text, p_capture_type text, p_channel text DEFAULT 'whatsapp'::text, p_person_id uuid DEFAULT NULL::uuid, p_organisation_id uuid DEFAULT NULL::uuid)
@@ -1258,7 +1258,7 @@ declare v_capture_id uuid;begin
   insert into djm_os.events(event_type,actor_user_id,person_id,organisation_id,payload,source,confidence,occurred_at)
   values('CAPTURE_NEEDS_REVIEW',auth.uid(),p_person_id,p_organisation_id,jsonb_build_object('capture_id',v_capture_id,'capture_type',p_capture_type,'storage_path',trim(p_storage_path)),'djm_capture',1,now());
   return jsonb_build_object('capture_id',v_capture_id,'status','needs_review');
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_capture_smart(p_text text, p_channel text DEFAULT 'whatsapp'::text, p_person_id uuid DEFAULT NULL::uuid, p_organisation_id uuid DEFAULT NULL::uuid, p_occurred_at timestamp with time zone DEFAULT now())
@@ -1340,7 +1340,7 @@ begin
     'resolution',v_resolution
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_capture_text(p_text text, p_channel text DEFAULT 'whatsapp'::text, p_person_id uuid DEFAULT NULL::uuid, p_organisation_id uuid DEFAULT NULL::uuid, p_occurred_at timestamp with time zone DEFAULT now())
@@ -1398,7 +1398,7 @@ begin
     confidence = case when v_needs_review then 0.72 else 1 end, processed_at = now() where id=v_capture_id;
   return jsonb_build_object('capture_id',v_capture_id,'interaction_id',v_interaction_id,'task_id',v_task_id,'position',v_position,'needs_review',v_needs_review);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_club(p_organisation_id uuid)
@@ -1428,7 +1428,7 @@ select jsonb_build_object(
     where i.organisation_id=p_organisation_id order by i.occurred_at desc limit 40
   ) x),'[]'::jsonb)
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_club_contacts(p_search text DEFAULT NULL::text, p_limit integer DEFAULT 200)
@@ -1457,7 +1457,7 @@ AS $function$
     and (p_search is null or p_search='' or concat_ws(' ',p.full_name,o.name,e.role_title,p.country,p.city) ilike '%'||p_search||'%')
   order by coalesce(r.strength_score,0) desc, p.full_name
   limit greatest(1,least(coalesce(p_limit,200),500));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_club_coverage()
@@ -1489,7 +1489,7 @@ select s.id,s.name,s.country,s.current_contacts,s.strong_contacts,s.last_interac
   case when s.score>=75 then 'Strong' when s.score>=45 then 'Developing' else 'Thin' end
 from scored s
 order by s.score desc,s.name;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_club_workspace(p_organisation_id uuid)
@@ -1544,7 +1544,7 @@ begin
     )
   ) into v;
   return v;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_complete_meeting(p_meeting_id uuid, p_summary text, p_next_action text DEFAULT NULL::text, p_next_action_due timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -1575,7 +1575,7 @@ begin
   values('MEETING_COMPLETED',auth.uid(),v_m.person_id,v_m.organisation_id,v_interaction,jsonb_build_object('meeting_id',p_meeting_id,'task_id',v_task),'network',1,now());
   return jsonb_build_object('meeting_id',p_meeting_id,'interaction_id',v_interaction,'task_id',v_task);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_create_meeting_draft(p_title text, p_starts_at timestamp with time zone, p_ends_at timestamp with time zone, p_person_id uuid DEFAULT NULL::uuid, p_organisation_id uuid DEFAULT NULL::uuid, p_invitee_email text DEFAULT NULL::text, p_timezone text DEFAULT NULL::text)
@@ -1591,7 +1591,7 @@ AS $function$ declare v_id uuid; begin
   insert into djm_os.events(event_type,actor_user_id,person_id,organisation_id,payload,source,confidence,occurred_at)
   values('MEETING_DRAFT_CREATED',auth.uid(),p_person_id,p_organisation_id,jsonb_build_object('meeting_id',v_id,'starts_at',p_starts_at,'ends_at',p_ends_at),'network',1,now());
   return jsonb_build_object('meeting_id',v_id,'status','draft');
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_create_task(p_title text, p_due_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_person_id uuid DEFAULT NULL::uuid, p_organisation_id uuid DEFAULT NULL::uuid, p_owner_user_id uuid DEFAULT NULL::uuid, p_priority smallint DEFAULT 3, p_task_type text DEFAULT 'manual'::text)
@@ -1612,7 +1612,7 @@ begin
   values('TASK_CREATED',auth.uid(),p_person_id,p_organisation_id,jsonb_build_object('task_id',v_id,'owner_user_id',v_owner),'network',1,now());
   return jsonb_build_object('task_id',v_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_dashboard()
@@ -1655,7 +1655,7 @@ AS $function$
       order by n.updated_at desc limit 6
     ) x), '[]'::jsonb)
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_hide_timeline_item(p_person_id uuid, p_item_type text, p_item_id uuid)
@@ -1701,7 +1701,7 @@ begin
 
   return jsonb_build_object('hidden',true,'item_type',p_item_type,'item_id',p_item_id);
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_link_opportunity(p_opportunity_id uuid, p_organisation_id uuid DEFAULT NULL::uuid, p_person_id uuid DEFAULT NULL::uuid, p_club_need_id uuid DEFAULT NULL::uuid)
@@ -1716,7 +1716,7 @@ begin
   on conflict(opportunity_id) do update set organisation_id=excluded.organisation_id,person_id=excluded.person_id,club_need_id=excluded.club_need_id,linked_by=auth.uid(),updated_at=now();
   return jsonb_build_object('opportunity_id',p_opportunity_id,'linked',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_log_contact_interaction(p_person_id uuid, p_channel text, p_summary text, p_organisation_id uuid DEFAULT NULL::uuid, p_occurred_at timestamp with time zone DEFAULT now(), p_create_followup_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_followup_title text DEFAULT NULL::text)
@@ -1850,7 +1850,7 @@ begin
     'needs_review',v_needs_review
   );
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_log_contact_interaction_local(p_person_id uuid, p_channel text, p_summary text, p_organisation_id uuid DEFAULT NULL::uuid, p_occurred_date date DEFAULT CURRENT_DATE, p_occurred_time time without time zone DEFAULT LOCALTIME, p_timezone text DEFAULT 'Europe/Rome'::text, p_create_followup_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_followup_title text DEFAULT NULL::text)
@@ -1899,7 +1899,7 @@ begin
     'timezone', p_timezone
   );
 end
-$function$
+$function$;
 
 
 commit;

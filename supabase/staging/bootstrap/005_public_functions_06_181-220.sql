@@ -49,7 +49,7 @@ begin
   order by s.updated_at desc
   limit greatest(1, least(coalesce(p_limit, 20), 100));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_service_replace_official_subject_evidence(p_subject_id uuid, p_snapshot jsonb, p_peers jsonb DEFAULT '[]'::jsonb, p_matches jsonb DEFAULT '[]'::jsonb)
@@ -215,7 +215,7 @@ begin
     'match_count', v_match_count
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_service_upsert_global_subject_evidence(p_subject_id uuid, p_provider text, p_snapshot jsonb, p_peers jsonb DEFAULT NULL::jsonb)
@@ -258,7 +258,7 @@ begin
 
   perform djm_os.refresh_football_subject_scorecard(p_subject_id);
   return jsonb_build_object('ok',true,'subject_id',p_subject_id,'provider',p_provider,'provider_player_id',v_provider_player_id,'peer_rows',v_count);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_set_whatsapp_export_names(p_names text[])
@@ -270,7 +270,7 @@ begin
  if not exists(select 1 from djm_os.team_members where user_id=(select auth.uid()) and is_active) then raise exception 'DJM team access required'; end if;
  update djm_os.team_members set whatsapp_export_names=coalesce(p_names,'{}'::text[]),updated_at=now() where user_id=(select auth.uid());
  return public.djm_my_identity();
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_signed_player_directory(p_search text DEFAULT NULL::text, p_limit integer DEFAULT 250)
@@ -294,7 +294,7 @@ begin
       limit greatest(1,least(coalesce(p_limit,250),500))
     ) x
   ),'[]'::jsonb);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_source_monitor_due(p_limit integer DEFAULT 25)
@@ -308,7 +308,7 @@ from djm_os.source_monitors sm
 where sm.status='active' and sm.next_check_at<=now()
 order by sm.next_check_at asc,sm.created_at asc
 limit greatest(1,least(coalesce(p_limit,25),100));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_source_monitor_result(p_monitor_id uuid, p_http_status integer, p_hash text, p_changed boolean, p_error text DEFAULT NULL::text)
@@ -336,7 +336,7 @@ begin
    values('source_changed',v_monitor.entity_type,v_monitor.entity_id,'Public source changed','Known source changed: '||v_monitor.source_url,'open',now(),now());
  end if;
  return jsonb_build_object('ok',true,'changed',p_changed);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_store_message(p_thread_id uuid, p_sent_at timestamp with time zone, p_direction text, p_raw_text text DEFAULT NULL::text, p_external_message_id text DEFAULT NULL::text, p_sender_label text DEFAULT NULL::text, p_message_type text DEFAULT 'text'::text, p_asset_uri text DEFAULT NULL::text, p_transcript_text text DEFAULT NULL::text, p_reply_to_external_id text DEFAULT NULL::text)
@@ -351,7 +351,7 @@ AS $function$ declare v_id uuid; v_hash text; v_new boolean:=false; begin
   on conflict(thread_id,message_hash) where message_hash is not null do nothing returning id into v_id;
   if v_id is not null then v_new:=true; update djm_os.conversation_threads set first_message_at=least(coalesce(first_message_at,p_sent_at),p_sent_at),last_message_at=greatest(coalesce(last_message_at,p_sent_at),p_sent_at),message_count=message_count+1,updated_at=now() where id=p_thread_id; end if;
   return jsonb_build_object('message_id',v_id,'created',v_new,'duplicate',not v_new);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_subject_global_intelligence(p_subject_id uuid)
@@ -496,7 +496,7 @@ begin
     )
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_sync_player_market_fact(p_player_id uuid)
@@ -512,7 +512,7 @@ begin
   select p.id, pp.market_preferences, pp.relocation_preferences, pp.salary_expectation, pp.travel_availability, coalesce(pp.passports_held,'{}'), pp.work_rights, pp.preferred_move_timing, now()
   from public.players p left join public.player_private pp on pp.player_id=p.id where p.id=p_player_id
   on conflict(player_id) do update set market_preferences=excluded.market_preferences,relocation_preferences=excluded.relocation_preferences,salary_expectation=excluded.salary_expectation,travel_availability=excluded.travel_availability,passports_held=excluded.passports_held,work_rights=excluded.work_rights,preferred_move_timing=excluded.preferred_move_timing,last_synced_at=now();
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_system_snapshot_latest()
@@ -520,7 +520,7 @@ CREATE OR REPLACE FUNCTION public.djm_system_snapshot_latest()
  LANGUAGE sql
  STABLE
  SET search_path TO ''
-AS $function$ select jsonb_build_object('id',s.id,'created_at',s.created_at,'counts',s.counts,'payload',s.payload) from djm_os.system_snapshots s where s.snapshot_type='operational' order by s.created_at desc limit 1; $function$
+AS $function$ select jsonb_build_object('id',s.id,'created_at',s.created_at,'counts',s.counts,'payload',s.payload) from djm_os.system_snapshots s where s.snapshot_type='operational' order by s.created_at desc limit 1; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_task_assign_owner(p_task_id uuid, p_owner_user_id uuid)
@@ -554,7 +554,7 @@ begin
 
   return jsonb_build_object('task_id',p_task_id,'owner_user_id',p_owner_user_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_team_members_list()
@@ -566,7 +566,7 @@ AS $function$
 begin
   if not djm_os.is_team_member() then raise exception 'DJM team access required'; end if;
   return coalesce((select jsonb_agg(jsonb_build_object('user_id',tm.user_id,'display_name',tm.display_name,'role_title',tm.role_title,'timezone',tm.timezone) order by tm.display_name) from djm_os.team_members tm where tm.is_active=true),'[]'::jsonb);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_team_metrics(p_days integer DEFAULT 30)
@@ -586,7 +586,7 @@ AS $function$
     (select count(*) from djm_os.relationships r where r.team_member_id=tm.user_id and coalesce(r.strength_score,0)>=70) strong_relationships
    from djm_os.team_members tm where tm.is_active=true
  ) select jsonb_build_object('days',(select days from d),'team',coalesce(jsonb_agg(to_jsonb(members) order by members.display_name),'[]'::jsonb),'company',jsonb_build_object('people',(select count(*) from djm_os.people),'clubs',(select count(*) from djm_os.organisations where organisation_type='club'),'active_needs',(select count(*) from djm_os.club_needs where status in ('active','open','confirmed')),'open_tasks',(select count(*) from djm_os.tasks where status not in ('done','completed','cancelled')),'messages',(select count(*) from djm_os.messages),'prospects',(select count(*) from djm_os.scouting_prospects)) ) from members;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_answer_question(p_question_id uuid, p_value jsonb)
@@ -804,7 +804,7 @@ begin
     'status','queued'
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_apply_action(p_capture_id uuid, p_action_hash text, p_action_index integer, p_action_type text, p_confidence numeric, p_evidence text, p_payload jsonb)
@@ -1353,7 +1353,7 @@ exception
       'error',sqlerrm
     );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_apply_scout_observation(p_capture_id uuid, p_action_hash text, p_action_index integer, p_confidence numeric, p_evidence text, p_payload jsonb)
@@ -1564,7 +1564,7 @@ exception
     do update set status='failed',error_message=excluded.error_message,updated_at=now();
     return jsonb_build_object('status','failed','error',sqlerrm);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_audio_cleanup_due(p_limit integer DEFAULT 50)
@@ -1589,7 +1589,7 @@ AS $function$
     order by c.audio_delete_after
     limit greatest(1,least(coalesce(p_limit,50),200))
   ) due;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_budget_status()
@@ -1612,7 +1612,7 @@ begin
   where created_at>=date_trunc('month',now()) and processing_version='tell_djm_v1';
   return jsonb_build_object('budget_usd',v_budget,'estimated_spend_usd',v_spend);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_context_for_route(p_route text)
@@ -1751,7 +1751,7 @@ begin
 
   return jsonb_build_object('route',v_path);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_create_confirmed_club(p_capture_id uuid, p_name text, p_country text DEFAULT NULL::text)
@@ -1826,7 +1826,7 @@ begin
     'score',1
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_create_confirmed_contact(p_capture_id uuid, p_full_name text, p_organisation_id uuid, p_role_title text DEFAULT NULL::text)
@@ -1945,7 +1945,7 @@ begin
     'score',1
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_current_access()
@@ -1981,7 +1981,7 @@ begin
     'max_audio_seconds',coalesce(v_limit,240)
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_delete_capture(p_capture_id uuid)
@@ -2068,7 +2068,7 @@ begin
     'capture_id', p_capture_id
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_enqueue_capture(p_client_capture_id uuid, p_capture_type text, p_source_uri text DEFAULT NULL::text, p_raw_text text DEFAULT NULL::text, p_channel text DEFAULT 'voice_debrief'::text, p_person_id uuid DEFAULT NULL::uuid, p_organisation_id uuid DEFAULT NULL::uuid, p_player_id uuid DEFAULT NULL::uuid, p_context_json jsonb DEFAULT '{}'::jsonb, p_duration_seconds numeric DEFAULT NULL::numeric, p_parent_capture_id uuid DEFAULT NULL::uuid)
@@ -2141,7 +2141,7 @@ begin
 
   return jsonb_build_object('capture_id',v_capture.id,'status',v_capture.status,'duplicate',false);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_mark_audio_deleted(p_capture_id uuid)
@@ -2158,7 +2158,7 @@ AS $function$
         true
       )
   where id=p_capture_id;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_notify_attention(p_capture_id uuid)
@@ -2242,7 +2242,7 @@ begin
     'fingerprint',v_fingerprint
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_orphan_audio_cleanup_due(p_limit integer DEFAULT 50)
@@ -2269,7 +2269,7 @@ AS $function$
     order by o.created_at
     limit greatest(1,least(coalesce(p_limit,50),200))
   ) orphan;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_receipt(p_capture_id uuid)
@@ -2328,7 +2328,7 @@ begin
   if v_result is null then raise exception 'Capture not found'; end if;
   return v_result;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_recent_captures(p_limit integer DEFAULT 8)
@@ -2379,7 +2379,7 @@ begin
 
   return v_result;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_record_question(p_capture_id uuid, p_field_key text, p_prompt text, p_reason text, p_candidates jsonb, p_context_json jsonb DEFAULT '{}'::jsonb)
@@ -2411,7 +2411,7 @@ begin
 
   return v_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_resolve_entity(p_user_id uuid, p_entity_type text, p_name text, p_organisation_name text DEFAULT NULL::text)
@@ -2506,7 +2506,7 @@ begin
     'matched_by','person_candidates'
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_resolve_entity_typed(p_user_id uuid, p_entity_type text, p_name text, p_organisation_name text DEFAULT NULL::text)
@@ -2853,7 +2853,7 @@ begin
     'matched_by','fuzzy'
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_retry_capture(p_capture_id uuid)
@@ -2918,7 +2918,7 @@ begin
 
   return jsonb_build_object('capture_id',p_capture_id,'status','queued');
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_undo_action(p_action_id uuid)
@@ -3031,7 +3031,7 @@ begin
     'undone',true
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_user_can_process(p_user_id uuid, p_capture_id uuid)
@@ -3050,7 +3050,7 @@ AS $function$
       and p.is_enabled=true
       and tm.is_active=true
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_vocabulary(p_limit integer DEFAULT 120)
@@ -3101,7 +3101,7 @@ AS $function$
       ) x
     ),'[]'::jsonb)
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_worker_claim(p_capture_id uuid DEFAULT NULL::uuid, p_worker text DEFAULT 'tell-djm-worker'::text)
@@ -3191,7 +3191,7 @@ begin
 
   return v_payload;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_worker_complete(p_capture_id uuid, p_transcript text, p_summary text, p_usage jsonb DEFAULT '{}'::jsonb)
@@ -3248,7 +3248,7 @@ begin
 
   return jsonb_build_object('capture_id',p_capture_id,'status',v_status);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_worker_fail(p_capture_id uuid, p_error text, p_code text DEFAULT 'processing_failed'::text, p_retryable boolean DEFAULT true)
@@ -3291,7 +3291,7 @@ begin
 
   return jsonb_build_object('capture_id',p_capture_id,'status',v_status);
 end;
-$function$
+$function$;
 
 
 commit;

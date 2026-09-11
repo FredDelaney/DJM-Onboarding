@@ -63,7 +63,7 @@ begin
   v_band:=case when v_conf>=92 then 4 when v_conf>=85 then 6 when v_conf>=80 then 7 when v_conf>=65 then 11 when v_conf>=50 then 15 else 22 end;
   return jsonb_build_object('score',round(v_score,2),'confidence',v_conf,'data_coverage',round(100*v_coverage),'evidence_grade',v_grade,'score_state',v_state,'identity_quality',round(v_identity,3),'observed_effective_weight',round(v_observed,2),'available_nominal_weight',round(v_available,2),'neutral_prior_score',50,'neutral_prior_strength',round(v_prior,2),'component_count',v_used,'components_used',v_used_detail,'evidence_band',jsonb_build_object('low',greatest(0,round(v_score)::int-v_band),'high',least(100,round(v_score)::int+v_band),'type','heuristic_evidence_band_not_statistical_confidence_interval'));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.global_score_v7_self_test()
@@ -113,7 +113,7 @@ begin
 
   test_name:='confidence_never_claims_certainty'; passed:=(rich->>'confidence')::int<100; details:=rich; return next;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.global_subject_season_quality(p_subject_id uuid, p_provider_season_id text)
@@ -139,7 +139,7 @@ begin
  if v_provider_year=v_current-1 then return .65; end if;
  if v_provider_year=v_expected_year-2 or v_provider_year=v_current-2 then return .30; end if;
  return .12;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.has_eu_passport(p_passports text[])
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION djm_os.has_eu_passport(p_passports text[])
  SET search_path TO ''
 AS $function$
 select exists(select 1 from unnest(coalesce(p_passports,'{}'::text[])) x where lower(x) in ('austria','belgium','bulgaria','croatia','cyprus','czech republic','czechia','denmark','estonia','finland','france','germany','greece','hungary','ireland','italy','latvia','lithuania','luxembourg','malta','netherlands','poland','portugal','romania','slovakia','slovenia','spain','sweden'))
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.infer_contact_label(p_label text)
@@ -239,7 +239,7 @@ begin
     'raw_label', v_label
   );
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.infer_global_league_tier(p_country text, p_league text)
@@ -274,7 +274,7 @@ begin
   elsif c='new zealand' then if l like '%national league%' then return 1; elsif l like '%northern league%' or l like '%central league%' or l like '%southern league%' then return 2; end if;
   end if;
   return null;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.inherit_signed_player_owner()
@@ -293,7 +293,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.is_secondary_team_name(p_name text)
@@ -303,7 +303,7 @@ CREATE OR REPLACE FUNCTION djm_os.is_secondary_team_name(p_name text)
  SET search_path TO ''
 AS $function$
 select lower(coalesce(p_name,'')) ~ '(^|[^a-z0-9])(reserve|reserves|academy|u18|u19|u20|u21|u22|u23|under 18|under 19|under 20|under 21|under 23)([^a-z0-9]|$)';
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.is_team_member()
@@ -316,7 +316,7 @@ AS $function$
     select 1 from djm_os.team_members tm
     where tm.user_id = auth.uid() and tm.is_active = true
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.maintenance_tick()
@@ -355,7 +355,7 @@ begin
 
   return jsonb_build_object('stale_needs',v_stale_needs,'captures_for_review',v_review,'relationship_suggestions',v_suggestions);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.market_consensus_score(p_value numeric, p_currency text)
@@ -370,7 +370,7 @@ begin
   if v_eur is null then return null; end if;
   return greatest(10::numeric,least(98::numeric,50 + 20*(ln(v_eur/1000000.0)/ln(10.0))));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.market_preference_score(p_preferences text, p_country text)
@@ -386,7 +386,7 @@ select case
   when lower(p_preferences) ~ '(open|anywhere|worldwide|global|europe|asia|scandinavia)' then 78
   when lower(p_preferences) ~ ('(not|no|avoid|exclude)[^,.]{0,20}'||lower(p_country)) then 20
   else 60 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.market_value_eur_equivalent(p_value numeric, p_currency text)
@@ -402,7 +402,7 @@ AS $function$
     when upper(p_currency)='USD' then p_value * 0.86
     else null
   end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.market_value_quality(p_verified_at timestamp with time zone, p_value numeric, p_currency text)
@@ -419,7 +419,7 @@ AS $function$
     when p_verified_at >= now()-interval '365 days' then .58::numeric
     else .30::numeric
   end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.message_after_insert_trigger()
@@ -427,7 +427,7 @@ CREATE OR REPLACE FUNCTION djm_os.message_after_insert_trigger()
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ begin begin perform djm_os.process_message_rule_based(new.id); exception when others then update djm_os.messages set processing_status='needs_review' where id=new.id; raise warning 'DJM message processing failed for %: %',new.id,sqlerrm; end; return new; end; $function$
+AS $function$ begin begin perform djm_os.process_message_rule_based(new.id); exception when others then update djm_os.messages set processing_status='needs_review' where id=new.id; raise warning 'DJM message processing failed for %: %',new.id,sqlerrm; end; return new; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.mirror_player_match_to_subject()
@@ -501,7 +501,7 @@ begin
     updated_at=now();
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.mirror_player_provider_snapshot_to_subject()
@@ -552,7 +552,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.mirror_player_scorecard_to_subject()
@@ -578,7 +578,7 @@ begin
   perform djm_os.refresh_football_subject_scorecard(v_subject_id);
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.normalise_need_position(p_text text)
@@ -600,7 +600,7 @@ AS $function$ select case
  when p_text ~* '\mattacking midfield(er)?|number 10|no\.? ?10\M' then '10'
  when p_text ~* '\mstriker|centre forward|center forward|\mcf\M' then 'ST'
  when p_text ~* '\mgoalkeeper|keeper|\mgk\M' then 'GK'
- else null end; $function$
+ else null end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.normalise_projection_position(p_position text)
@@ -620,7 +620,7 @@ AS $function$
     when upper(coalesce(p_position,'')) in ('ST','CF','STRIKER','CENTRE FORWARD','CENTER FORWARD') then 'ST'
     else null
   end;
-$function$
+$function$;
 
 
 commit;

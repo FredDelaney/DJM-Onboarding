@@ -23,7 +23,7 @@ AS $function$
     private.is_admin()
     or exists (select 1 from public.players p where p.id = target_player_id and p.user_id = auth.uid())
     or exists (select 1 from public.staff_player_access a where a.player_id = target_player_id and a.staff_user_id = auth.uid());
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.can_view_sensitive_player(target_player_id uuid)
@@ -35,7 +35,7 @@ AS $function$
   select private.is_admin()
     or exists (select 1 from public.players p where p.id=target_player_id and p.user_id=auth.uid())
     or exists (select 1 from public.staff_player_access a where a.player_id=target_player_id and a.staff_user_id=auth.uid() and a.can_edit=true);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.career_change_requires_review()
@@ -65,7 +65,7 @@ begin
 
   return coalesce(new, old);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_age_performance_adjustment(p_age integer, p_position_group text, p_performance_score numeric)
@@ -95,6 +95,6 @@ begin
   if v_years = 0 then return 0; end if;
   return -least(6::numeric, v_years * v_step * v_factor);
 end;
-$function$
+$function$;
 
 commit;

@@ -135,7 +135,7 @@ begin
   on conflict(subject_id) do update set display_score=excluded.display_score,model_score=excluded.model_score,provisional_score=excluded.provisional_score,potential_score=excluded.potential_score,score_tier=excluded.score_tier,confidence=excluded.confidence,data_coverage=excluded.data_coverage,position_group=excluded.position_group,basis=excluded.basis,missing_inputs=excluded.missing_inputs,model_version=excluded.model_version,calculated_at=excluded.calculated_at,provenance=excluded.provenance,updated_at=now();
 
   return jsonb_build_object('subject_id',s.id,'display_score',round(v_score),'confidence',v_conf,'evidence_grade',v_grade,'score_state',v_state,'competition_level_score',v_comp,'role_score',v_role_score,'production_score',v_prod_score,'peer_count',v_peer_count,'model_version','djm_global_score_v6_basic_influence');
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_global_scorecards_batch(p_limit integer DEFAULT 1000)
@@ -157,7 +157,7 @@ begin
   end loop;
   return jsonb_build_object('ok',v_failed=0,'refreshed',v_ok,'failed',v_failed,'errors',v_errors,'completed_at',now());
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_need_matches(p_need_id uuid)
@@ -266,7 +266,7 @@ begin
     reasoning = excluded.reasoning,
     updated_at = now()
   where djm_os.player_matches.status = 'suggested';
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_projection_from_score_trigger()
@@ -279,7 +279,7 @@ begin
   perform djm_os.refresh_football_subject_projection(new.subject_id);
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_recruitment_followups()
@@ -348,7 +348,7 @@ begin
   v_count := v_count + v_changed;
   return v_count;
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_recruitment_suggestions()
@@ -368,7 +368,7 @@ begin
   select coalesce(sp.owner_user_id,(select tm.user_id from djm_os.team_members tm where tm.is_active order by tm.created_at limit 1)),'recruitment_high_priority_untouched','Make first contact: '||sp.full_name,'High-priority recruitment target has not been contacted yet'||case when sp.current_club is not null then ' · '||sp.current_club else '' end,least(100,sp.recruitment_priority*20)::smallint,'open','recruitment-untouched:'||sp.id::text,'recruitment',now(),now()+interval '7 days'
   from djm_os.scouting_prospects sp where sp.linked_player_id is null and sp.recruitment_stage in ('identified','researching','ready_to_contact') and sp.recruitment_priority>=4 and sp.first_contact_at is null and not exists(select 1 from djm_os.suggestions s where s.fingerprint='recruitment-untouched:'||sp.id::text and s.status='open' and s.expires_at>now());
   get diagnostics v_rows=row_count; v_count:=v_count+v_rows; return v_count;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_relationship_graph()
@@ -386,7 +386,7 @@ declare v_count integer:=0;v_rows integer;begin
  on conflict(from_type,from_id,to_type,to_id,relation_type) do update set strength=excluded.strength,confidence=excluded.confidence,observed_at=now(),status='active',updated_at=now();
  get diagnostics v_rows=row_count;v_count:=v_count+v_rows;
  return v_count;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_relationship_scores()
@@ -472,7 +472,7 @@ begin
 
   return jsonb_build_object('relationships_scored',v_count);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_review_inbox()
@@ -509,7 +509,7 @@ begin
 
   return jsonb_build_object('captures_added',v_caps,'claims_added',v_claims);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_scheduler_status()
@@ -528,7 +528,7 @@ begin
  get diagnostics v=row_count;
  return v;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_source_trust()
@@ -546,7 +546,7 @@ AS $function$ declare v integer:=0; begin
   from djm_os.claims c where c.source_key is not null group by coalesce(c.claim_type,'claim'),c.source_key
   on conflict(source_type,source_key) do update set reliability_score=excluded.reliability_score,verified_claims=excluded.verified_claims,contradicted_claims=excluded.contradicted_claims,last_calculated_at=now(),updated_at=now();
   get diagnostics v=row_count; return jsonb_build_object('sources_refreshed',v);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_subject_from_player_performance_trigger()
@@ -569,7 +569,7 @@ begin
   end if;
   return coalesce(new, old);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_today_suggestions()
@@ -635,7 +635,7 @@ begin
   update djm_os.suggestions set status='expired' where status='open' and expires_at is not null and expires_at<now();
   return jsonb_build_object('relationship',v_rel,'needs',v_need,'matches',v_match,'tasks',v_task);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.registration_fit_score(p_registration_notes text, p_work_rights text, p_passports text[], p_country text)
@@ -650,7 +650,7 @@ select case
   when lower(p_registration_notes) ~ '(eu passport|eu national|european passport)' then case when djm_os.has_eu_passport(p_passports) then 100 else 35 end
   when p_country is not null and lower(coalesce(p_work_rights,'')) like '%'||lower(p_country)||'%' then 95
   else 65 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.safe_json_number(p_value text)
@@ -663,7 +663,7 @@ begin
   if p_value is null or btrim(p_value)='' then return null; end if;
   if btrim(p_value) ~ '^-?[0-9]+([.][0-9]+)?$' then return btrim(p_value)::numeric; end if;
   return null;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.seed_freshness_queue()
@@ -692,7 +692,7 @@ begin
   select 'prospect',s.id,'prospect_status',55,'Keep prospect club, contract and representation status fresh',now(),coalesce(s.transfermarkt_url,s.wyscout_url,'public_sources') from djm_os.scouting_prospects s where coalesce(s.last_verified_at,s.updated_at)<now()-interval '60 days'
   on conflict(entity_type,entity_id,check_type) do update set priority=greatest(djm_os.freshness_queue.priority,excluded.priority),reason=excluded.reason,next_check_at=least(djm_os.freshness_queue.next_check_at,excluded.next_check_at),source_hint=coalesce(excluded.source_hint,djm_os.freshness_queue.source_hint),updated_at=now(); get diagnostics v_prospects=row_count;
   return jsonb_build_object('people',v_people,'organisations',v_orgs,'needs',v_needs,'players',v_players,'prospects',v_prospects);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.seed_source_monitors()
@@ -721,7 +721,7 @@ begin
   get diagnostics v_rows=row_count;v_count:=v_count+v_rows;
 
   return v_count;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.seed_tell_djm_permission()
@@ -742,7 +742,7 @@ begin
       updated_at = now();
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.subject_career_context(p_subject_id uuid)
@@ -771,7 +771,7 @@ begin
   v_quality:=least(1.0,(1-exp(-v_minutes/3600.0))*.65 + least(1.0,v_seasons/3.0)*.20 + least(1.0,v_weight/2.5)*.15);
   if v_latest is not null and v_latest<current_date-interval '3 years' then v_quality:=v_quality*.65; end if;
   return jsonb_build_object('score',round(coalesce(v_recent,v_score),2),'quality',round(v_quality,3),'seasons',v_seasons,'minutes',round(v_minutes),'latest_evidence_date',v_latest,'best_observed_level',v_best,'all_history_weighted_level',round(v_score,2));
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.subject_identity_quality(p_subject_id uuid)
@@ -784,7 +784,7 @@ AS $function$
     coalesce((select case when s.identity_confidence is null then 0::numeric else greatest(0::numeric,least(1::numeric,s.identity_confidence))*case when s.identity_verified_at is null then .75 when s.identity_verified_at>=now()-interval '2 years' then 1.0 when s.identity_verified_at>=now()-interval '5 years' then .85 else .65 end end from djm_os.football_intelligence_subjects s where s.id=p_subject_id),0),
     coalesce((select max(greatest(0::numeric,least(1::numeric,e.confidence))) from djm_os.football_subject_identity_evidence e where e.subject_id=p_subject_id),0)
   );
-$function$
+$function$;
 
 
 commit;

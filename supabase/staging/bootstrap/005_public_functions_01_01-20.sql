@@ -77,7 +77,7 @@ begin
 
   return jsonb_build_object('token',v_token,'player_id',v_player_id,'existing',false);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_active_team_members()
@@ -94,7 +94,7 @@ AS $function$
       where caller.user_id=auth.uid() and caller.is_active
     )
   order by lower(coalesce(tm.display_name,'')), tm.created_at;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_add_memory(p_statement text, p_memory_type text DEFAULT 'observation'::text, p_person_id uuid DEFAULT NULL::uuid, p_organisation_id uuid DEFAULT NULL::uuid, p_player_id uuid DEFAULT NULL::uuid, p_prospect_id uuid DEFAULT NULL::uuid, p_club_need_id uuid DEFAULT NULL::uuid, p_confidence numeric DEFAULT 0.7, p_source_url text DEFAULT NULL::text, p_source_kind text DEFAULT NULL::text, p_source_label text DEFAULT NULL::text, p_observed_at timestamp with time zone DEFAULT now(), p_valid_until timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -107,7 +107,7 @@ AS $function$ declare v_id uuid; begin
   insert into djm_os.memories(memory_type,statement,person_id,organisation_id,player_id,prospect_id,club_need_id,confidence,source_url,source_kind,source_label,observed_at,valid_until,created_by)
   values(coalesce(nullif(trim(p_memory_type),''),'observation'),trim(p_statement),p_person_id,p_organisation_id,p_player_id,p_prospect_id,p_club_need_id,greatest(0,least(1,coalesce(p_confidence,0.7))),nullif(trim(p_source_url),''),nullif(trim(p_source_kind),''),nullif(trim(p_source_label),''),coalesce(p_observed_at,now()),p_valid_until,(select auth.uid())) returning id into v_id;
   return jsonb_build_object('memory_id',v_id);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_add_relationship_edge(p_from_type text, p_from_id uuid, p_to_type text, p_to_id uuid, p_relation_type text, p_strength smallint DEFAULT 50, p_confidence numeric DEFAULT 0.7, p_source_url text DEFAULT NULL::text, p_source_kind text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
@@ -120,7 +120,7 @@ AS $function$ declare v_id uuid; begin
   values(trim(p_from_type),p_from_id,trim(p_to_type),p_to_id,trim(p_relation_type),greatest(0,least(100,p_strength)),greatest(0,least(1,p_confidence)),nullif(trim(p_source_url),''),nullif(trim(p_source_kind),''),nullif(trim(p_notes),''),(select auth.uid()))
   on conflict(from_type,from_id,to_type,to_id,relation_type) do update set strength=excluded.strength,confidence=excluded.confidence,source_url=coalesce(excluded.source_url,djm_os.relationship_edges.source_url),source_kind=coalesce(excluded.source_kind,djm_os.relationship_edges.source_kind),notes=coalesce(excluded.notes,djm_os.relationship_edges.notes),observed_at=now(),updated_at=now(),status='active' returning id into v_id;
   return jsonb_build_object('edge_id',v_id);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_assign_player(p_player_id uuid, p_assigned_to_user_id uuid)
@@ -166,7 +166,7 @@ begin
 
   return jsonb_build_object('player_id',p_player_id,'assigned_to_user_id',p_assigned_to_user_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_assign_player_request(p_request_id uuid, p_assigned_to_user_id uuid)
@@ -202,7 +202,7 @@ begin
 
   return jsonb_build_object('request_id',p_request_id,'assigned_to_user_id',p_assigned_to_user_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_attach_whatsapp_thread(p_thread_id uuid, p_person_id uuid)
@@ -272,7 +272,7 @@ begin
     'attached', true
   );
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_automation_health()
@@ -300,7 +300,7 @@ select jsonb_build_object(
  'last_snapshot',(select max(created_at) from djm_os.system_snapshots where snapshot_type='operational'),
  'cron_jobs',coalesce((select jsonb_agg(jsonb_build_object('jobname',j.jobname,'schedule',j.schedule,'active',j.active) order by j.jobname) from djm_os.scheduler_status j),'[]'::jsonb)
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_best_route_to_club(p_organisation_id uuid)
@@ -315,7 +315,7 @@ AS $function$
    from djm_os.employments e join djm_os.people p on p.id=e.person_id join djm_os.relationships r on r.person_id=p.id join djm_os.team_members tm on tm.user_id=r.team_member_id
    where e.organisation_id=p_organisation_id and e.is_current=true and tm.is_active=true
  ) select routes.person_id,routes.person_name,routes.role_title,routes.team_member_id,routes.team_member_name,routes.strength_score,routes.access_score,routes.last_meaningful_at,routes.route_score from routes order by routes.route_score desc,routes.person_name;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_best_route_to_person(p_person_id uuid)
@@ -329,7 +329,7 @@ AS $function$
  from djm_os.relationships r join djm_os.team_members tm on tm.user_id=r.team_member_id
  where r.person_id=p_person_id and tm.is_active=true
  order by coalesce(r.strength_score,0) desc,coalesce(r.access_score,0) desc,r.last_meaningful_at desc nulls last;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_bootstrap_from_player_app()
@@ -359,7 +359,7 @@ begin
   on conflict(player_id) do update set market_preferences=excluded.market_preferences,relocation_preferences=excluded.relocation_preferences,salary_expectation=excluded.salary_expectation,travel_availability=excluded.travel_availability,passports_held=excluded.passports_held,work_rights=excluded.work_rights,preferred_move_timing=excluded.preferred_move_timing,last_synced_at=now();
   get diagnostics v_facts=row_count;
   return jsonb_build_object('organisation_inputs_processed',v_orgs,'player_market_facts_synced',v_facts,'opportunities_linked',v_links);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_calendar_feed_items(p_user_id uuid)
@@ -440,7 +440,7 @@ AS $function$
   union all select * from staff_request_items
   union all select * from birthday_items
   order by 3;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_career_evidence_date(p_season_label text, p_start_date date, p_end_date date)
@@ -485,7 +485,7 @@ begin
 
   return null;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_catch_me_up(p_person_id uuid)
@@ -506,7 +506,7 @@ AS $function$
   'open_tasks',coalesce((select jsonb_agg(to_jsonb(x) order by x.due_at asc nulls last) from (select t.id,t.title,t.due_at,t.priority,t.owner_user_id from djm_os.tasks t where t.person_id=p_person_id and t.status not in ('done','completed','cancelled'))x),'[]'::jsonb),
   'best_route',coalesce((select jsonb_agg(to_jsonb(x)) from (select * from public.djm_best_route_to_person(p_person_id) limit 3)x),'[]'::jsonb)
  );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_channel_connections()
@@ -514,7 +514,7 @@ CREATE OR REPLACE FUNCTION public.djm_channel_connections()
  LANGUAGE sql
  STABLE
  SET search_path TO ''
-AS $function$ select c.id,c.channel,c.provider,c.display_label,c.status,c.capabilities,c.last_synced_at,c.last_error,c.created_at from djm_os.channel_connections c where c.user_id=auth.uid() order by c.channel,c.provider; $function$
+AS $function$ select c.id,c.channel,c.provider,c.display_label,c.status,c.capabilities,c.last_synced_at,c.last_error,c.created_at from djm_os.channel_connections c where c.user_id=auth.uid() order by c.channel,c.provider; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_command_center()
@@ -901,7 +901,7 @@ begin
     'automation',public.djm_automation_health()
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_complete_player_request(p_request_id uuid)
@@ -911,7 +911,7 @@ CREATE OR REPLACE FUNCTION public.djm_complete_player_request(p_request_id uuid)
  SET search_path TO ''
 AS $function$
   select djm_os.complete_player_request_internal(p_request_id);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_contact_readiness(p_person_id uuid)
@@ -930,14 +930,14 @@ begin
  elsif v_strength>=65 or v_access>=70 then v_state:='green';v_reason:='Relationship/access is strong enough for a purposeful approach.';
  else v_state:='amber';v_reason:='Approach relationship-first and only with a clear reason to contact.'; end if;
  return jsonb_build_object('state',v_state,'reason',v_reason,'preferred_channel',coalesce(v_channel,'unknown'),'relationship_strength',v_strength,'access',v_access,'recent_outbound',v_outbound14,'recent_inbound',v_inbound14,'last_interaction_at',v_last);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_create_import_batch(p_source_type text, p_source_name text DEFAULT NULL::text, p_source_uri text DEFAULT NULL::text)
  RETURNS uuid
  LANGUAGE plpgsql
  SET search_path TO ''
-AS $function$ declare v_id uuid; begin insert into djm_os.import_batches(submitted_by,source_type,source_name,source_uri) values(auth.uid(),lower(trim(p_source_type)),nullif(trim(coalesce(p_source_name,'')),''),nullif(trim(coalesce(p_source_uri,'')),'')) returning id into v_id; return v_id; end; $function$
+AS $function$ declare v_id uuid; begin insert into djm_os.import_batches(submitted_by,source_type,source_name,source_uri) values(auth.uid(),lower(trim(p_source_type)),nullif(trim(coalesce(p_source_name,'')),''),nullif(trim(coalesce(p_source_uri,'')),'')) returning id into v_id; return v_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_deal_room(p_deal_room_id uuid)
@@ -957,7 +957,7 @@ select jsonb_build_object(
    select id,title,due_at,status,priority from djm_os.tasks where club_need_id=(select club_need_id from djm_os.deal_rooms where id=p_deal_room_id) and status not in ('done','completed','cancelled')
  ) t),'[]'::jsonb)
 );
-$function$
+$function$;
 
 
 commit;

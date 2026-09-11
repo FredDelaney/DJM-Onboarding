@@ -39,7 +39,7 @@ begin
 
   return jsonb_build_object('capture_id',p_capture_id,'stored',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_tell_worker_store_transcript(p_capture_id uuid, p_transcript text, p_usage jsonb DEFAULT '{}'::jsonb)
@@ -62,7 +62,7 @@ begin
 
   return jsonb_build_object('capture_id',p_capture_id,'stored',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_thread_messages(p_thread_id uuid, p_before timestamp with time zone DEFAULT NULL::timestamp with time zone, p_limit integer DEFAULT 100)
@@ -70,7 +70,7 @@ CREATE OR REPLACE FUNCTION public.djm_thread_messages(p_thread_id uuid, p_before
  LANGUAGE sql
  STABLE
  SET search_path TO ''
-AS $function$ select m.id,m.sent_at,m.direction,m.sender_label,m.raw_text,m.message_type,m.asset_uri,m.transcript_text,m.processing_status from djm_os.messages m join djm_os.conversation_threads t on t.id=m.thread_id where m.thread_id=p_thread_id and (p_before is null or m.sent_at<p_before) and t.owner_user_id=auth.uid() order by m.sent_at desc limit greatest(1,least(coalesce(p_limit,100),500)); $function$
+AS $function$ select m.id,m.sent_at,m.direction,m.sender_label,m.raw_text,m.message_type,m.asset_uri,m.transcript_text,m.processing_status from djm_os.messages m join djm_os.conversation_threads t on t.id=m.thread_id where m.thread_id=p_thread_id and (p_before is null or m.sent_at<p_before) and t.owner_user_id=auth.uid() order by m.sent_at desc limit greatest(1,least(coalesce(p_limit,100),500)); $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_today()
@@ -106,7 +106,7 @@ select jsonb_build_object(
    order by t.priority desc,t.due_at asc nulls last limit 10
  ) x),'[]'::jsonb)
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_universal_search(p_query text, p_limit integer DEFAULT 30)
@@ -127,7 +127,7 @@ with q as (select lower(trim(coalesce(p_query,''))) v), results(entity_type,enti
  union all select 'club_need',n.id,coalesce(n.title,n.position),coalesce(o.name,'')||case when n.position is not null then ' · '||n.position else '' end,coalesce(n.profile_notes,''),70 from djm_os.club_needs n join djm_os.organisations o on o.id=n.organisation_id cross join q where n.status in ('active','open','confirmed') and (q.v='' or lower(coalesce(n.title,'')||' '||coalesce(n.position,'')||' '||coalesce(o.name,'')||' '||coalesce(n.profile_notes,'')) like '%'||q.v||'%')
 )
 select entity_type,entity_id,title,subtitle,detail,score from results order by score desc,title limit greatest(1,least(coalesce(p_limit,30),100));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_upsert_clubelo_snapshot(p_snapshot_date date, p_rows jsonb, p_source_url text)
@@ -149,7 +149,7 @@ begin
    v_count:=v_count+1;
  end loop;
  return jsonb_build_object('ok',true,'snapshot_date',p_snapshot_date,'rows',v_count);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_upsert_pitchapi_performance_snapshot(p_snapshot jsonb)
@@ -277,7 +277,7 @@ begin
 
   return v_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_upsert_pitchapi_player_snapshot(p_snapshot jsonb)
@@ -346,7 +346,7 @@ begin
 
   return v_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_upsert_thread(p_channel text, p_external_thread_id text, p_person_id uuid DEFAULT NULL::uuid, p_organisation_id uuid DEFAULT NULL::uuid, p_thread_label text DEFAULT NULL::text, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -358,7 +358,7 @@ AS $function$ declare v_id uuid; begin
   values(lower(trim(p_channel)),auth.uid(),p_person_id,p_organisation_id,nullif(trim(coalesce(p_external_thread_id,'')),''),nullif(trim(coalesce(p_thread_label,'')),''),coalesce(p_metadata,'{}'::jsonb))
   on conflict(owner_user_id,channel,external_thread_id) do update set person_id=coalesce(excluded.person_id,djm_os.conversation_threads.person_id),organisation_id=coalesce(excluded.organisation_id,djm_os.conversation_threads.organisation_id),thread_label=coalesce(excluded.thread_label,djm_os.conversation_threads.thread_label),source_metadata=djm_os.conversation_threads.source_metadata||excluded.source_metadata,updated_at=now()
   returning id into v_id; return v_id;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_upsert_weekly_provider_snapshot(p_snapshot jsonb)
@@ -431,14 +431,14 @@ begin
 
   return v_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_verify_claim(p_claim_id uuid, p_status text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO ''
-AS $function$ declare v text:=lower(trim(p_status)); begin if v not in ('verified','contradicted','unverified','stale') then raise exception 'Invalid verification status'; end if; update djm_os.claims set verification_status=v,verified_by=case when v in ('verified','contradicted') then auth.uid() else null end,verified_at=case when v in ('verified','contradicted') then now() else null end,last_verified_at=case when v='verified' then now() else last_verified_at end where id=p_claim_id; if not found then raise exception 'Claim not found'; end if; return jsonb_build_object('claim_id',p_claim_id,'status',v); end; $function$
+AS $function$ declare v text:=lower(trim(p_status)); begin if v not in ('verified','contradicted','unverified','stale') then raise exception 'Invalid verification status'; end if; update djm_os.claims set verification_status=v,verified_by=case when v in ('verified','contradicted') then auth.uid() else null end,verified_at=case when v in ('verified','contradicted') then now() else null end,last_verified_at=case when v='verified' then now() else last_verified_at end where id=p_claim_id; if not found then raise exception 'Claim not found'; end if; return jsonb_build_object('claim_id',p_claim_id,'status',v); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_web_push_public_key()
@@ -448,7 +448,7 @@ CREATE OR REPLACE FUNCTION public.djm_web_push_public_key()
  SET search_path TO 'private', 'pg_catalog'
 AS $function$
   select public_key from private.web_push_config where singleton=true limit 1
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_weekly_intelligence(p_weeks_back integer DEFAULT 0)
@@ -486,7 +486,7 @@ select jsonb_build_object(
     select * from public.djm_network_club_coverage() where coverage_score<45 limit 10
   ) x),'[]'::jsonb)
 ) from bounds b;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_weekly_refresh_snapshot_status()
@@ -513,7 +513,7 @@ AS $function$
     where snapshot.provider = 'thesportsdb'
     order by snapshot.player_id, snapshot.synced_at desc
   ) latest;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_club_share(share_token uuid)
@@ -581,7 +581,7 @@ AS $function$
     and p.verification_status = 'verified'
     and p.verified_at is not null
   limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_push_scheduler_secret()
@@ -589,7 +589,7 @@ CREATE OR REPLACE FUNCTION public.get_push_scheduler_secret()
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'private', 'pg_catalog'
-AS $function$ select secret from private.push_scheduler_config where singleton=true limit 1 $function$
+AS $function$ select secret from private.push_scheduler_config where singleton=true limit 1 $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_web_push_config()
@@ -597,7 +597,7 @@ CREATE OR REPLACE FUNCTION public.get_web_push_config()
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'private', 'pg_catalog'
-AS $function$ select subject,public_key,private_key from private.web_push_config where singleton=true limit 1 $function$
+AS $function$ select subject,public_key,private_key from private.web_push_config where singleton=true limit 1 $function$;
 
 
 CREATE OR REPLACE FUNCTION public.track_club_share_view(share_token uuid)
@@ -624,7 +624,7 @@ begin
     update djm_os.deal_rooms set pitch_status = 'opened', updated_at = now() where id = share_row.opportunity_id;
   end if;
   return true;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_player_invite(invite_token uuid)
@@ -638,7 +638,7 @@ AS $function$
   from public.player_invites i
   where i.token = invite_token
   limit 1;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.validate_player_invite_v2(invite_token uuid)
@@ -660,7 +660,7 @@ AS $function$
   left join public.players p on p.id = i.player_id
   where i.token = invite_token
   limit 1;
-$function$
+$function$;
 
 
 commit;

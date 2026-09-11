@@ -20,7 +20,7 @@ CREATE OR REPLACE FUNCTION djm_os.normalise_team_key(p_name text)
  SET search_path TO ''
 AS $function$
  select nullif(trim(regexp_replace(lower(coalesce(p_name,'')),'[^a-z0-9]+',' ','g')),'');
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.normalize_transfermarkt_enrichment_status()
@@ -38,7 +38,7 @@ begin
   end;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.opportunity_event_bridge()
@@ -70,7 +70,7 @@ begin
   end;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.peer_metric_percentile(p_provider text, p_competition text, p_season text, p_role text, p_metric text, p_value numeric, p_higher_is_better boolean DEFAULT true)
@@ -94,7 +94,7 @@ begin
   v_pct:=100.0*(v_below+.5*v_equal)/v_n;
   return jsonb_build_object('percentile',round(v_pct,2),'n',v_n);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.player_change_bridge()
@@ -121,7 +121,7 @@ begin
   exception when others then raise warning 'DJM Player bridge skipped for player %: %',new.id,sqlerrm; end;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.position_category_weights(p_position_group text)
@@ -142,7 +142,7 @@ AS $function$
     ('ST','attacking',50),('ST','creativity',15),('ST','physical',15),('ST','aerial',10),('ST','possession',5),('ST','discipline',5)
   ) as v(position_group, category, nominal_weight)
   where v.position_group = p_position_group;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.position_matches_player(p_need_position text, p_primary text, p_secondary text[])
@@ -174,7 +174,7 @@ AS $function$
     else player_roles like '%' || need || '%'
   end
   from values_normalised;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.position_metric_weights(p_role text)
@@ -191,7 +191,7 @@ select w.metric_key,w.nominal_weight,w.higher_is_better from (
     ('goalkeeper','savePercentage',24::numeric,true),('goalkeeper','goalsPrevented90',18::numeric,true),('goalkeeper','rating',18::numeric,true),('goalkeeper','cleanSheetRate',10::numeric,true),('goalkeeper','goalsConceded90',10::numeric,false),('goalkeeper','passAccuracy',8::numeric,true),('goalkeeper','passes90',5::numeric,true),('goalkeeper','longPassAccuracy',7::numeric,true)
 ) as w(role_name,metric_key,nominal_weight,higher_is_better)
 where w.role_name=lower(coalesce(p_role,''));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.process_message_rule_based(p_message_id uuid)
@@ -242,7 +242,7 @@ begin
  update djm_os.messages set processing_status='processed',extracted_json=coalesce(extracted_json,'{}'::jsonb)||jsonb_build_object('position',v_position,'club_need_id',v_need,'task_id',v_task) where id=m.id;
  perform djm_os.thread_interaction_rollup(t.id);
  return jsonb_build_object('processed',true,'position',v_position,'club_need_id',v_need,'task_id',v_task,'review_id',v_review);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.queue_change_review_items()
@@ -265,7 +265,7 @@ AS $function$ declare v integer:=0; begin
   where c.status='pending' and c.confidence<0.95 and not exists(select 1 from djm_os.review_items r where r.review_type='entity_change' and r.payload->>'change_observation_id'=c.id::text and r.status='open');
   get diagnostics v=row_count;
   return jsonb_build_object('review_items',v);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.queue_transfermarkt_refresh_on_change()
@@ -281,7 +281,7 @@ begin
     new.transfermarkt_enrichment_status:='queued';
   end if;
   return new;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.recalculate_relationship_scores(p_person_id uuid DEFAULT NULL::uuid)
@@ -310,7 +310,7 @@ begin
   ) select count(*) into v_count from updated;
   return v_count;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.recover_stale_enrichment_locks()
@@ -319,7 +319,7 @@ CREATE OR REPLACE FUNCTION djm_os.recover_stale_enrichment_locks()
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-declare v int; begin update djm_os.freshness_queue set status='queued',locked_at=null,next_check_at=now(),updated_at=now() where status='processing' and locked_at<now()-interval '45 minutes'; get diagnostics v=row_count; return v; end $function$
+declare v int; begin update djm_os.freshness_queue set status='queued',locked_at=null,next_check_at=now(),updated_at=now() where status='processing' and locked_at<now()-interval '45 minutes'; get diagnostics v=row_count; return v; end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_football_subject_enrichment_queue(p_subject_id uuid)
@@ -342,7 +342,7 @@ begin
     values(p_subject_id,80,coalesce(sc.confidence,0),'queued',v_missing,now(),now())
     on conflict(subject_id) do update set current_confidence=excluded.current_confidence,status=case when djm_os.football_intelligence_enrichment_queue.status='running' then 'running' else 'queued' end,missing_evidence=excluded.missing_evidence,next_attempt_at=least(djm_os.football_intelligence_enrichment_queue.next_attempt_at,now()),updated_at=now();
   end if;
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_football_subject_from_career_trigger()
@@ -359,7 +359,7 @@ begin
   end if;
   return case when tg_op='DELETE' then old else new end;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_football_subject_from_match_trigger()
@@ -376,7 +376,7 @@ begin
   end if;
   return case when tg_op='DELETE' then old else new end;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_football_subject_projection(p_subject_id uuid)
@@ -602,7 +602,7 @@ begin
 
   return v_projection;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_football_subject_score_from_provider_trigger()
@@ -619,7 +619,7 @@ begin
   end if;
   return case when tg_op='DELETE' then old else new end;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_football_subject_scorecard(p_subject_id uuid)
@@ -665,7 +665,7 @@ begin
   perform djm_os.refresh_football_subject_enrichment_queue(p_subject_id);
   return jsonb_build_object('subject_id',p_subject_id,'display_score',v_score,'confidence',v_conf,'data_coverage',v_coverage,'evidence_grade',v_grade,'score_state',v_state,'model_version','djm_global_score_v7_1_diversity_calibrated','components',components,'missing_inputs',missing);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.refresh_football_subject_scorecard_trigger()
@@ -678,7 +678,7 @@ begin
   perform djm_os.refresh_football_subject_scorecard(coalesce(new.id,old.id));
   return coalesce(new,old);
 end;
-$function$
+$function$;
 
 
 commit;

@@ -81,7 +81,7 @@ begin
 
   return jsonb_build_object('resolved',true,'competition_id',c.id,'competition_name',m.canonical_name,'tier',m.tier,'strength_score',v_strength,'source','IFFHS 2025');
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_benchmark_score_stale_trigger()
@@ -124,7 +124,7 @@ begin
   if tg_op = 'DELETE' then return old; end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_career_score_stale_trigger()
@@ -144,7 +144,7 @@ begin
   if tg_op = 'DELETE' then return old; end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_current_recency_weight(p_date date)
@@ -161,6 +161,6 @@ AS $function$
     when current_date - p_date <= 730 then 0.45::numeric
     else 0::numeric
   end;
-$function$
+$function$;
 
 commit;

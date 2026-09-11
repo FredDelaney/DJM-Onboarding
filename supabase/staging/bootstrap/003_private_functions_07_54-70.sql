@@ -113,7 +113,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.protect_player_request_fields()
@@ -145,7 +145,7 @@ begin
   if new.status='completed' and old.status is distinct from 'completed' then new.completed_at := now(); end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.protect_player_system_fields()
@@ -168,7 +168,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.protect_profile_admin_fields()
@@ -188,7 +188,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.protect_public_profile_admin_fields()
@@ -229,7 +229,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.queue_admin_inbound_notification()
@@ -283,7 +283,7 @@ begin
   );
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.queue_announcement_notifications()
@@ -304,7 +304,7 @@ begin
   on conflict do nothing;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.queue_player_request_notification()
@@ -324,7 +324,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.queue_weekly_checkin_reminders()
@@ -360,7 +360,7 @@ begin
   get diagnostics inserted_count = row_count;
   return inserted_count;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.set_public_profile_career_timeline()
@@ -423,7 +423,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.set_updated_at()
@@ -435,14 +435,14 @@ begin
   new.updated_at = now();
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.set_updated_at_document()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'pg_catalog'
-AS $function$ begin new.created_at=coalesce(new.created_at,now()); return new; end $function$
+AS $function$ begin new.created_at=coalesce(new.created_at,now()); return new; end $function$;
 
 
 CREATE OR REPLACE FUNCTION private.stamp_admin_note_author()
@@ -457,7 +457,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.surface_checkin_signal()
@@ -504,7 +504,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.sync_allowlist_profile_role()
@@ -523,7 +523,7 @@ begin
   where lower(email)=lower(new.email);
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.sync_djm_team_membership()
@@ -560,7 +560,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.unpublish_dossier_when_verification_is_lost()
@@ -583,7 +583,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 commit;

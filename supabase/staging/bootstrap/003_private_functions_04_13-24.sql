@@ -26,7 +26,7 @@ AS $function$
     when current_date - p_date <= 2190 then 0.35::numeric
     else 0.15::numeric
   end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_mark_player_score_stale(p_player_id uuid, p_reason text)
@@ -63,7 +63,7 @@ begin
     );
   end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_normalize_season_label(p_label text)
@@ -73,7 +73,7 @@ CREATE OR REPLACE FUNCTION private.djm_normalize_season_label(p_label text)
  SET search_path TO 'pg_catalog'
 AS $function$
   select regexp_replace(replace(lower(btrim(coalesce(p_label,''))),'/','-'),'[[:space:]]+','','g')
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_player_competition_score_stale_trigger()
@@ -90,7 +90,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_player_score_v5_compute(p_player_id uuid, p_as_of date, p_refresh_base boolean)
@@ -720,7 +720,7 @@ begin
     'basis',b
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_position_group(p_position text)
@@ -742,7 +742,7 @@ begin
   if v ~ '^(ST|CF|9|STRIKER|CENTRE_FORWARD|CENTER_FORWARD|CENTRAL_FORWARD|FORWARD|SECOND_STRIKER)$' then return 'ST'; end if;
   return 'UNKNOWN';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_position_performance_score(p_position_group text, p_overall numeric, p_attacking numeric, p_creativity numeric, p_progression numeric, p_possession numeric, p_defending numeric, p_aerial numeric, p_goalkeeping numeric, p_physical numeric, p_discipline numeric)
@@ -816,7 +816,7 @@ begin
   if v_weight < 50 then return null; end if;
   return v_weighted / v_weight;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_potential_age_adjustment(p_age integer, p_position_group text)
@@ -840,7 +840,7 @@ begin
   if p_age <= v_peak_end then return 0; end if;
   return -least(18::numeric, (p_age - v_peak_end) * 2);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_queue_channels(p_user_id uuid, p_kind text, p_title text, p_body text, p_url text, p_payload jsonb, p_dedupe_base text)
@@ -855,7 +855,7 @@ begin
   if private.djm_queue_email(p_user_id,p_kind,p_title,p_body,p_url,p_payload,'email:' || p_dedupe_base) then queued := queued + 1; end if;
   return queued;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_queue_delivery(p_user_id uuid, p_kind text, p_title text, p_body text, p_url text, p_payload jsonb, p_dedupe_key text)
@@ -889,7 +889,7 @@ begin
   email_queued:=private.djm_queue_email(p_user_id,p_kind,p_title,p_body,p_url,p_payload,p_dedupe_key);
   return coalesce(push_queued,false) or coalesce(email_queued,false);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_queue_email(p_user_id uuid, p_kind text, p_title text, p_body text, p_url text, p_payload jsonb, p_dedupe_key text)
@@ -909,7 +909,7 @@ begin
   on conflict(dedupe_key) do nothing;
   return found;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_queue_player_birthday_emails(p_today date DEFAULT NULL::date, p_dry_run boolean DEFAULT false)
@@ -962,7 +962,7 @@ begin
   end loop;
   return jsonb_build_object('local_date',v_today,'local_hour',v_local_hour,'delivery_configured',v_delivery_enabled,'birthday_candidates',v_candidate_count,'active_email_recipients',v_recipient_count,'queued',v_queued,'dry_run',p_dry_run);
 end
-$function$
+$function$;
 
 
 commit;

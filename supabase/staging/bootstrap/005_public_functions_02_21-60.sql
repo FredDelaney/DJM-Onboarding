@@ -28,7 +28,7 @@ declare v_status text;begin
  v_status:=case when p_stage='won' then 'won' when p_stage='lost' then 'lost' when p_stage='paused' then 'paused' else 'active' end;
  update djm_os.deal_rooms set stage=p_stage,status=v_status,probability=case when p_stage='won' then 100 when p_stage='lost' then 0 else coalesce(p_probability,probability) end,outcome_reason=coalesce(nullif(trim(p_outcome_reason),''),outcome_reason),last_meaningful_at=now(),updated_at=now() where id=p_deal_room_id;
  return jsonb_build_object('ok',true,'status',v_status);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_deal_room_upsert(p_id uuid DEFAULT NULL::uuid, p_title text DEFAULT NULL::text, p_organisation_id uuid DEFAULT NULL::uuid, p_source_person_id uuid DEFAULT NULL::uuid, p_player_id uuid DEFAULT NULL::uuid, p_prospect_id uuid DEFAULT NULL::uuid, p_club_need_id uuid DEFAULT NULL::uuid, p_stage text DEFAULT 'qualifying'::text, p_expected_commission numeric DEFAULT NULL::numeric, p_currency text DEFAULT 'EUR'::text, p_probability smallint DEFAULT 25, p_primary_blocker text DEFAULT NULL::text, p_next_decision text DEFAULT NULL::text, p_next_action_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_source text DEFAULT 'manual'::text)
@@ -64,7 +64,7 @@ begin
     if v_id is null then raise exception 'Deal room not found'; end if;
   end if;
   return jsonb_build_object('deal_room_id',v_id,'status',v_status,'probability',v_probability);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_deal_rooms(p_status text DEFAULT 'active'::text)
@@ -86,7 +86,7 @@ left join djm_os.scouting_prospects sp on sp.id=d.prospect_id
 left join djm_os.team_members tm on tm.user_id=d.owner_user_id
 where p_status is null or d.status=p_status
 order by case when d.status='active' then 0 else 1 end, d.next_action_at nulls last, weighted_value desc, d.updated_at desc;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_delete_entity(p_entity_type text, p_entity_id uuid, p_confirm boolean DEFAULT false)
@@ -106,7 +106,7 @@ begin
  else raise exception 'Unsupported entity type'; end if;
  insert into djm_os.events(event_type,actor_user_id,payload,source,confidence,occurred_at) values('ENTITY_DELETED',(select auth.uid()),jsonb_build_object('entity_type',p_entity_type,'deleted_id',p_entity_id,'name',v_name),'manual_delete',1,now());
  return jsonb_build_object('deleted',true,'entity_type',p_entity_type,'id',p_entity_id,'name',v_name);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_delete_preview(p_entity_type text, p_entity_id uuid)
@@ -122,7 +122,7 @@ begin
  elsif p_entity_type='deal_room' then return jsonb_build_object('entity_type','deal_room','exists',exists(select 1 from djm_os.deal_rooms where id=p_entity_id));
  elsif p_entity_type='club_need' then return jsonb_build_object('entity_type','club_need','matches',(select count(*) from djm_os.player_matches where club_need_id=p_entity_id),'tasks',(select count(*) from djm_os.tasks where club_need_id=p_entity_id),'deals',(select count(*) from djm_os.deal_rooms where club_need_id=p_entity_id));
  else raise exception 'Unsupported entity type'; end if;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_disable_calendar_subscription()
@@ -143,7 +143,7 @@ begin
 
   return true;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_email_delivery_config()
@@ -154,7 +154,7 @@ CREATE OR REPLACE FUNCTION public.djm_email_delivery_config()
 AS $function$
   select jsonb_build_object('enabled',coalesce(enabled,false),'provider',provider,'api_key',api_key,'from_address',from_address)
   from private.djm_email_config where singleton=true limit 1
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_email_delivery_status()
@@ -165,7 +165,7 @@ CREATE OR REPLACE FUNCTION public.djm_email_delivery_status()
 AS $function$
   select jsonb_build_object('enabled',coalesce(enabled,false) and api_key is not null and from_address is not null,'provider',provider,'from_address',case when from_address is not null then from_address else null end)
   from private.djm_email_config where singleton=true limit 1
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_enrichment_claim(p_limit integer DEFAULT 10)
@@ -190,7 +190,7 @@ begin
    from pick where q.id=pick.id returning q.*
  )
  select u.id,u.entity_type,u.entity_id,u.check_type,u.priority,u.reason,u.source_hint from upd u;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_enrichment_due(p_limit integer DEFAULT 25)
@@ -237,7 +237,7 @@ where q.status in ('queued','due','pending','failed')
   and exists(select 1 from djm_os.team_members tm where tm.user_id=(select auth.uid()) and tm.is_active)
 order by q.priority desc,coalesce(q.next_check_at,q.created_at),q.created_at
 limit greatest(1,least(coalesce(p_limit,25),100))
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_enrichment_fail(p_job_id uuid, p_error text, p_retry_hours integer DEFAULT 24)
@@ -250,7 +250,7 @@ begin
  update djm_os.freshness_queue set status='failed',locked_at=null,next_check_at=now()+make_interval(hours=>greatest(1,least(coalesce(p_retry_hours,24),168))),result_json=coalesce(result_json,'{}'::jsonb)||jsonb_build_object('last_error',left(coalesce(p_error,'Unknown error'),1000),'failed_at',now()),updated_at=now() where id=p_job_id;
  if not found then raise exception 'Enrichment job not found'; end if;
  return jsonb_build_object('job_id',p_job_id,'status','failed','retry_at',(select next_check_at from djm_os.freshness_queue where id=p_job_id));
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_enrichment_submit(p_job_id uuid, p_observed jsonb, p_source_uri text, p_source_name text, p_confidence numeric)
@@ -321,7 +321,7 @@ begin
      locked_at=null,updated_at=now()
  where id=q.id;
  return coalesce(v_result,'{}'::jsonb)||jsonb_build_object('job_id',q.id,'completed',true);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_entity_link_delete(p_link_id uuid)
@@ -340,7 +340,7 @@ begin
   elsif v_link.entity_kind='recruitment' then update djm_os.scouting_prospects set transfermarkt_url=case when v_link.platform='transfermarkt' and transfermarkt_url=v_link.url then null else transfermarkt_url end,wyscout_url=case when v_link.platform='wyscout' and wyscout_url=v_link.url then null else wyscout_url end,video_url=case when v_link.platform in ('video','youtube','vimeo') and video_url=v_link.url then null else video_url end,instagram_url=case when v_link.platform='instagram' and instagram_url=v_link.url then null else instagram_url end,updated_at=now() where id=v_link.entity_id; end if;
   insert into djm_os.events(event_type,actor_user_id,person_id,organisation_id,player_id,payload,source,confidence,occurred_at) values('ENTITY_LINK_REMOVED',auth.uid(),case when v_link.entity_kind='contact' then v_link.entity_id else null end,case when v_link.entity_kind='club' then v_link.entity_id else null end,case when v_link.entity_kind='player' then v_link.entity_id else null end,jsonb_build_object('entity_kind',v_link.entity_kind,'entity_id',v_link.entity_id,'platform',v_link.platform,'label',v_link.label),'manual_ui',1,now());
   return true;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_entity_link_upsert(p_id uuid DEFAULT NULL::uuid, p_entity_kind text DEFAULT NULL::text, p_entity_id uuid DEFAULT NULL::uuid, p_platform text DEFAULT NULL::text, p_label text DEFAULT NULL::text, p_url text DEFAULT NULL::text, p_sort_order smallint DEFAULT 0, p_is_public boolean DEFAULT false)
@@ -374,7 +374,7 @@ begin
   elsif v_kind='recruitment' then update djm_os.scouting_prospects set transfermarkt_url=case when v_platform='transfermarkt' then v_url else transfermarkt_url end,wyscout_url=case when v_platform='wyscout' then v_url else wyscout_url end,video_url=case when v_platform in ('video','youtube','vimeo') then v_url else video_url end,instagram_url=case when v_platform='instagram' then v_url else instagram_url end,updated_at=now(),last_verified_at=now() where id=p_entity_id; end if;
   insert into djm_os.events(event_type,actor_user_id,person_id,organisation_id,player_id,payload,source,confidence,occurred_at) values('ENTITY_LINK_SAVED',auth.uid(),case when v_kind='contact' then p_entity_id else null end,case when v_kind='club' then p_entity_id else null end,case when v_kind='player' then p_entity_id else null end,jsonb_build_object('entity_kind',v_kind,'entity_id',p_entity_id,'platform',v_platform,'label',v_label,'url',v_url),'manual_ui',1,now());
   return jsonb_build_object('id',v_id,'platform',v_platform,'label',v_label,'url',v_url);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_entity_links(p_entity_kind text, p_entity_id uuid)
@@ -388,7 +388,7 @@ begin
   if not djm_os.is_team_member() then raise exception 'DJM team access required'; end if;
   if v_kind not in ('contact','club','player','recruitment') then raise exception 'Invalid entity kind'; end if;
   return coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'entity_kind',l.entity_kind,'entity_id',l.entity_id,'platform',l.platform,'label',l.label,'url',l.url,'sort_order',l.sort_order,'is_public',l.is_public,'updated_at',l.updated_at) order by l.sort_order,l.platform) from djm_os.entity_links l where l.entity_kind=v_kind and l.entity_id=p_entity_id),'[]'::jsonb);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_entity_memories(p_entity_type text, p_entity_id uuid, p_limit integer DEFAULT 25)
@@ -400,7 +400,7 @@ AS $function$
 select m.id,m.memory_type,m.statement,m.confidence,m.source_url,m.source_kind,m.source_label,m.observed_at,m.valid_until,m.status from djm_os.memories m
 where (p_entity_type='person' and m.person_id=p_entity_id) or (p_entity_type='club' and m.organisation_id=p_entity_id) or (p_entity_type='signed_player' and m.player_id=p_entity_id) or (p_entity_type='recruitment_target' and m.prospect_id=p_entity_id) or (p_entity_type='club_need' and m.club_need_id=p_entity_id)
 order by m.observed_at desc limit greatest(1,least(coalesce(p_limit,25),100));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_football_subject_comparison(p_subject_id uuid, p_compare_competition_id uuid DEFAULT NULL::uuid)
@@ -495,7 +495,7 @@ begin
 
   return v_result;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_football_subject_score_v6(p_subject_id uuid)
@@ -507,7 +507,7 @@ AS $function$
 begin
   if not djm_os.is_team_member() then raise exception 'DJM team access required'; end if;
   return djm_os.refresh_football_subject_scorecard(p_subject_id);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_football_subject_scores()
@@ -538,7 +538,7 @@ begin
   join djm_os.football_subject_scorecards sc on sc.subject_id=s.id
   order by s.updated_at desc;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_founder_home()
@@ -553,7 +553,7 @@ AS $function$ select jsonb_build_object(
  'meetings',coalesce((select jsonb_agg(to_jsonb(x) order by x.starts_at) from (select * from public.djm_network_meetings('mine',now(),now()+interval '7 days') limit 10)x),'[]'::jsonb),
  'metrics',public.djm_team_metrics(30),
  'automation',public.djm_automation_health()
- ); $function$
+ ); $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_get_calendar_subscription()
@@ -583,7 +583,7 @@ begin
     'updated_at', row_data.updated_at
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_global_apply_identity(p_subject_id uuid, p_provider text, p_provider_player_id text, p_confidence numeric, p_observed_data jsonb, p_observed_at timestamp with time zone)
@@ -614,7 +614,7 @@ begin
   update djm_os.football_intelligence_enrichment_queue set attempts=attempts+1,last_attempt_at=now(),next_attempt_at=now()+interval '12 hours',status='queued',last_error=null,updated_at=now() where subject_id=p_subject_id;
   perform djm_os.refresh_football_subject_scorecard(p_subject_id);
   return jsonb_build_object('ok',true,'subject_id',p_subject_id,'provider',p_provider,'provider_player_id',p_provider_player_id,'identity_confidence',v_conf);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_global_enrichment_batch(p_limit integer DEFAULT 20)
@@ -632,7 +632,7 @@ begin
   where q.status in ('queued','blocked') and q.current_confidence<q.target_confidence and q.next_attempt_at<=now()
   order by q.priority asc,q.current_confidence asc,q.updated_at asc
   limit greatest(1,least(coalesce(p_limit,20),25));
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_global_enrichment_fail(p_subject_id uuid, p_error text, p_delay_hours integer DEFAULT 12)
@@ -645,7 +645,7 @@ begin
  if coalesce(auth.role(),'') <> 'service_role' then raise exception 'service role required'; end if;
  update djm_os.football_intelligence_enrichment_queue set attempts=attempts+1,last_attempt_at=now(),next_attempt_at=now()+make_interval(hours=>greatest(1,least(coalesce(p_delay_hours,12),168))),status=case when attempts>=5 then 'blocked' else 'queued' end,last_error=left(p_error,500),updated_at=now() where subject_id=p_subject_id;
  update djm_os.football_intelligence_subjects set external_data_checked_at=now(),external_data_error=left(p_error,500),updated_at=now() where id=p_subject_id;
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_home()
@@ -713,7 +713,7 @@ select jsonb_build_object(
    ) u order by score desc,action_at nulls last limit 12
  ) x),'[]'::jsonb)
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_home_item_controls()
@@ -741,7 +741,7 @@ AS $function$
         )
     ),'[]'::jsonb)
   end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_home_set_item_control(p_item_key text, p_action text, p_snoozed_until timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -793,14 +793,14 @@ begin
     'snoozed_until',case when v_action='snooze' then p_snoozed_until else null end
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_import_add_row(p_batch_id uuid, p_row_number integer, p_raw jsonb)
  RETURNS uuid
  LANGUAGE plpgsql
  SET search_path TO ''
-AS $function$ declare v_id uuid; begin if not exists(select 1 from djm_os.import_batches b where b.id=p_batch_id and b.submitted_by=auth.uid()) then raise exception 'Import batch not found'; end if; insert into djm_os.import_rows(batch_id,row_number,raw_json) values(p_batch_id,p_row_number,p_raw) on conflict(batch_id,row_number) do update set raw_json=excluded.raw_json,status='queued',error_message=null,processed_at=null returning id into v_id; update djm_os.import_batches set total_rows=(select count(*) from djm_os.import_rows where batch_id=p_batch_id) where id=p_batch_id; return v_id; end; $function$
+AS $function$ declare v_id uuid; begin if not exists(select 1 from djm_os.import_batches b where b.id=p_batch_id and b.submitted_by=auth.uid()) then raise exception 'Import batch not found'; end if; insert into djm_os.import_rows(batch_id,row_number,raw_json) values(p_batch_id,p_row_number,p_raw) on conflict(batch_id,row_number) do update set raw_json=excluded.raw_json,status='queued',error_message=null,processed_at=null returning id into v_id; update djm_os.import_batches set total_rows=(select count(*) from djm_os.import_rows where batch_id=p_batch_id) where id=p_batch_id; return v_id; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_import_contacts(p_source_name text, p_contacts jsonb)
@@ -824,7 +824,7 @@ begin
  end loop;
  update djm_os.import_batches set status=case when v_errors>0 then 'completed_with_errors' else 'completed' end,total_rows=v_count,processed_rows=v_count,error_rows=v_errors,created_people=v_created,updated_people=v_updated,summary=jsonb_build_object('created_people',v_created,'updated_people',v_updated,'errors',v_errors),completed_at=now() where id=v_batch;
  return jsonb_build_object('batch_id',v_batch,'contacts_received',v_count,'created_people',v_created,'updated_people',v_updated,'errors',v_errors);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_import_detail(p_batch_id uuid)
@@ -838,7 +838,7 @@ select jsonb_build_object(
  'messages',coalesce((select jsonb_agg(jsonb_build_object('id',m.id,'thread_id',m.thread_id,'sent_at',m.sent_at,'direction',m.direction,'sender_label',m.sender_label,'message_type',m.message_type,'processing_status',m.processing_status) order by m.sent_at) from djm_os.messages m where m.import_batch_id=b.id),'[]'::jsonb)
 )
 from djm_os.import_batches b where b.id=p_batch_id and b.submitted_by=(select auth.uid()) and exists(select 1 from djm_os.team_members tm where tm.user_id=(select auth.uid()) and tm.is_active)
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_import_history(p_limit integer DEFAULT 50)
@@ -850,7 +850,7 @@ select b.id,b.source_type,b.source_name,b.status,b.total_rows,b.processed_rows,b
 from djm_os.import_batches b
 where b.submitted_by=(select auth.uid()) and exists(select 1 from djm_os.team_members tm where tm.user_id=(select auth.uid()) and tm.is_active)
 order by b.created_at desc limit greatest(1,least(coalesce(p_limit,50),200))
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_import_whatsapp_messages(p_source_name text, p_external_thread_id text, p_thread_label text, p_person_id uuid, p_organisation_id uuid, p_messages jsonb, p_metadata jsonb DEFAULT '{}'::jsonb)
@@ -878,7 +878,7 @@ begin
     where not exists(select 1 from djm_os.review_items r where r.review_type='thread_identity' and r.payload->>'thread_id'=v_thread::text and r.status='open');
   end if;
   return jsonb_build_object('thread_id',v_thread,'batch_id',v_batch,'messages_received',v_count,'messages_inserted',v_inserted,'duplicates',v_dupes);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_intelligence_benchmark_delete(p_id uuid)
@@ -896,7 +896,7 @@ begin
   values('BENCHMARK_REMOVED', auth.uid(), jsonb_build_object('benchmark_id', p_id, 'competition_id', v_competition_id), 'manual_ui', 1, now());
   return true;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_intelligence_benchmark_import(p_source_name text, p_source_url text, p_observed_at timestamp with time zone, p_records jsonb)
@@ -1022,7 +1022,7 @@ begin
 
   return jsonb_build_object('imported', v_count, 'source_name', trim(p_source_name), 'observed_at', p_observed_at);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_intelligence_benchmark_upsert(p_id uuid DEFAULT NULL::uuid, p_competition_id uuid DEFAULT NULL::uuid, p_display_name text DEFAULT NULL::text, p_country text DEFAULT NULL::text, p_gender text DEFAULT NULL::text, p_level_tier smallint DEFAULT NULL::smallint, p_aliases text[] DEFAULT '{}'::text[], p_provider_ids jsonb DEFAULT '{}'::jsonb, p_strength_score smallint DEFAULT NULL::smallint, p_source_url text DEFAULT NULL::text, p_source_note text DEFAULT NULL::text, p_verified_at timestamp with time zone DEFAULT now(), p_review_cadence_days integer DEFAULT 365)
@@ -1183,7 +1183,7 @@ begin
     'player_scores_recalculated', v_recalculated
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_intelligence_data()
@@ -1338,7 +1338,7 @@ AS $function$
       order by ps.created_at desc limit 100
     ) s), '[]'::jsonb)
   ) end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_intelligence_manual_import(p_player_id uuid, p_source_name text, p_source_url text DEFAULT NULL::text, p_records jsonb DEFAULT '[]'::jsonb)
@@ -1447,7 +1447,7 @@ exception when others then
     'facts_discovered', 0
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_intelligence_player(p_player_id uuid)
@@ -1472,7 +1472,7 @@ AS $function$
       order by created_at desc limit 30
     ) ps), '[]'::jsonb)
   ) end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_intelligence_review_suggestion(p_suggestion_id uuid, p_decision text)
@@ -1582,7 +1582,7 @@ begin
 
   return jsonb_build_object('suggestion_id', p_suggestion_id, 'decision', p_decision, 'run_status', v_run_status, 'career_entry_id', v_career_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_league_benchmark_upsert(p_league_name text, p_country text, p_strength_score smallint, p_source_url text DEFAULT NULL::text, p_source_note text DEFAULT NULL::text)
@@ -1598,7 +1598,7 @@ begin
   v_key:=lower(regexp_replace(trim(coalesce(p_country,'')||'|'||p_league_name),'\s+',' ','g'));
   insert into djm_os.league_benchmarks(canonical_key,league_name,country,strength_score,source_url,source_note,verified_at,updated_by) values(v_key,trim(p_league_name),nullif(trim(coalesce(p_country,'')),''),p_strength_score,nullif(trim(coalesce(p_source_url,'')),''),nullif(trim(coalesce(p_source_note,'')),''),now(),auth.uid()) on conflict(canonical_key) do update set league_name=excluded.league_name,country=excluded.country,strength_score=excluded.strength_score,source_url=excluded.source_url,source_note=excluded.source_note,verified_at=now(),updated_by=auth.uid(),updated_at=now() returning id into v_id;
   return jsonb_build_object('id',v_id,'canonical_key',v_key,'strength_score',p_strength_score);
-end; $function$
+end; $function$;
 
 
 commit;

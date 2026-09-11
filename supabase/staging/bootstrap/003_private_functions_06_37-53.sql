@@ -42,7 +42,7 @@ begin
   if tg_op='DELETE' then return old; end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_recency_weight(p_evidence_date date, p_as_of date)
@@ -63,7 +63,7 @@ AS $function$
       )
     )
   end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_role_quality(p_effective_minutes numeric, p_effective_appearances numeric)
@@ -85,7 +85,7 @@ AS $function$
       )
     )
   end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_role_score(p_effective_minutes numeric, p_effective_appearances numeric, p_effective_starts numeric, p_starts_known boolean)
@@ -114,7 +114,7 @@ begin
 
   return least(100::numeric, greatest(0::numeric, v_minutes));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.djm_v5_snapshot_quality(p_minutes numeric, p_source_confidence numeric)
@@ -131,7 +131,7 @@ AS $function$
       * greatest(.35::numeric, least(1::numeric, coalesce(p_source_confidence,.60)))
     )
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.enforce_public_profile_publish_rules()
@@ -154,7 +154,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.handle_new_user()
@@ -253,7 +253,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.is_admin()
@@ -266,7 +266,7 @@ AS $function$
     select 1 from public.profiles
     where id = auth.uid() and role = 'admin'
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.normalize_career_competition_label()
@@ -290,7 +290,7 @@ begin
   end;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.normalize_cv_key_stats()
@@ -303,7 +303,7 @@ begin
   new.key_stats := private.player_authoritative_key_stats(new.player_id, new.key_stats);
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.player_authoritative_key_stats(p_player_id uuid, p_manual jsonb DEFAULT '[]'::jsonb)
@@ -428,7 +428,7 @@ begin
   end if;
   return v_result;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.player_career_timeline(p_player_id uuid)
@@ -476,7 +476,7 @@ AS $function$
         and ce.source_provider is not null
       )
     );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.player_is_currently_verified(p_player_id uuid)
@@ -492,7 +492,7 @@ AS $function$
       and p.verification_status = 'verified'
       and p.verified_at is not null
   );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.prevent_sensitive_player_document_share()
@@ -508,7 +508,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.protect_admin_allowlist()
@@ -551,7 +551,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.protect_career_entry_staff_writes()
@@ -570,7 +570,7 @@ begin
   end if;
   return coalesce(new, old);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.protect_document_club_share_approval()
@@ -596,7 +596,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 commit;

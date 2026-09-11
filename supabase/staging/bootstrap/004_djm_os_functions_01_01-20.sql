@@ -38,7 +38,7 @@ AS $function$ declare v_org uuid; v_old_org uuid; v_old_name text; v_key text; v
     if v_owner is not null and (v_old_org is distinct from v_org) then insert into djm_os.notifications(user_id,notification_type,title,body,priority,person_id,organisation_id,fingerprint,expires_at) values(v_owner,'contact_moved',coalesce((select full_name from djm_os.people where id=p_person_id),'Contact')||' changed club',coalesce(v_old_name,'Previous club')||' → '||trim(p_club_name),88,p_person_id,v_org,'move:'||p_person_id::text||':'||v_org::text,now()+interval '14 days') on conflict(fingerprint) where fingerprint is not null do nothing; end if;
   else perform djm_os.queue_change_review_items(); end if;
   return jsonb_build_object('observation_id',v_obs,'organisation_id',v_org,'applied',v_applied,'confidence',p_confidence);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.assign_player_request_owner()
@@ -74,7 +74,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.autopilot_tick()
@@ -140,7 +140,7 @@ begin
     'ran_at',now()
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.canonical_org_key(p_name text)
@@ -148,7 +148,7 @@ CREATE OR REPLACE FUNCTION djm_os.canonical_org_key(p_name text)
  LANGUAGE sql
  IMMUTABLE
  SET search_path TO ''
-AS $function$ select nullif(regexp_replace(lower(trim(coalesce(p_name,''))),'[^a-z0-9]+','','g'),'') $function$
+AS $function$ select nullif(regexp_replace(lower(trim(coalesce(p_name,''))),'[^a-z0-9]+','','g'),'') $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.clean_recruitment_player_name()
@@ -162,7 +162,7 @@ begin
   end if;
   return new;
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.club_need_match_trigger()
@@ -170,7 +170,7 @@ CREATE OR REPLACE FUNCTION djm_os.club_need_match_trigger()
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
-AS $function$ begin begin perform djm_os.refresh_need_matches(new.id); exception when others then raise warning 'DJM match refresh failed for need %: %',new.id,sqlerrm; end; return new; end; $function$
+AS $function$ begin begin perform djm_os.refresh_need_matches(new.id); exception when others then raise warning 'DJM match refresh failed for need %: %',new.id,sqlerrm; end; return new; end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.clubelo_country_code(p_country text)
@@ -229,7 +229,7 @@ select case lower(trim(coalesce(p_country,'')))
   when 'luxembourg' then 'LUX' when 'lux' then 'LUX'
   when 'malta' then 'MLT' when 'mlt' then 'MLT'
   else null end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.clubelo_country_strength_context(p_country text)
@@ -268,7 +268,7 @@ begin
   v_quality:=least(.95,least(1,v_n/6.0)*case when v_age<=3 then .95 when v_age<=10 then .88 when v_age<=30 then .72 else .50 end);
   return jsonb_build_object('score',round(v_score,2),'quality',round(v_quality,3),'country_code',v_cc,'clubs_used',v_n,'top_club_average_elo',round(v_avg,2),'snapshot_date',v_date,'provider','clubelo');
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.clubelo_team_context(p_club text, p_country text, p_level_tier integer DEFAULT NULL::integer)
@@ -353,7 +353,7 @@ begin
     'match_similarity',round(coalesce(v_best_sim,1),3),'country_code',t.country_code,'level_tier',t.level_tier
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.complete_player_request_internal(p_request_id uuid)
@@ -400,7 +400,7 @@ begin
     'completed', v_updated > 0
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.create_system_snapshot()
@@ -422,7 +422,7 @@ AS $function$ declare v_id uuid; begin
  returning id into v_id;
  delete from djm_os.system_snapshots where snapshot_type='operational' and created_at<now()-interval '90 days';
  return v_id;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.detach_retained_football_intelligence_before_player_delete()
@@ -510,7 +510,7 @@ begin
 
   return old;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.detect_automation_incidents()
@@ -537,7 +537,7 @@ AS $function$ declare v integer:=0; x integer; begin
  update djm_os.automation_incidents a set status='resolved',resolved_at=now()
  where a.status='open' and ((a.incident_type='capture_stuck' and not exists(select 1 from djm_os.captures c where c.id=a.entity_id and c.status in ('queued','processing') and c.created_at<now()-interval '2 hours')) or (a.incident_type='message_review' and not exists(select 1 from djm_os.messages m where m.id=a.entity_id and m.processing_status='needs_review')) or (a.incident_type='freshness_locked' and not exists(select 1 from djm_os.freshness_queue f where f.id=a.entity_id and f.locked_at is not null and f.locked_at<now()-interval '1 hour' and f.status not in ('completed','failed'))));
  return jsonb_build_object('new_incidents',v,'open_incidents',(select count(*) from djm_os.automation_incidents where status='open'));
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.ensure_organisation(p_name text, p_country text DEFAULT NULL::text)
@@ -558,7 +558,7 @@ begin
     update djm_os.organisations set country=coalesce(country,nullif(trim(p_country),'')),name=coalesce(nullif(trim(p_name),''),name),updated_at=now() where id=v_id;
   end if;
   return v_id;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.generate_merge_candidates()
@@ -576,7 +576,7 @@ AS $function$ declare v integer:=0; begin
   on conflict(entity_type,left_id,right_id) do nothing;
   get diagnostics v=row_count;
   return jsonb_build_object('candidates',v);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.generate_notifications()
@@ -610,7 +610,7 @@ begin
   on conflict(fingerprint) where fingerprint is not null do nothing;
   get diagnostics x=row_count; v_count:=v_count+x;
   return jsonb_build_object('notifications_generated',v_count);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.global_broad_role(p_position text)
@@ -626,7 +626,7 @@ begin
   if g in ('DM','CM','AM') or n like '%midfield%' then return 'midfielder'; end if;
   if g in ('W','ST') or n like '%forward%' or n like '%striker%' or n like '%winger%' then return 'attacker'; end if;
   return 'unknown';
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.global_competition_level_score(p_country text, p_league text, p_level_tier integer DEFAULT NULL::integer)
@@ -661,7 +661,7 @@ begin
   v_penalty:=case v_tier when 0 then 0 when 1 then 0 when 2 then 8 when 3 then 15 when 4 then 22 else 28 end;
   return round(greatest(15,least(100,v_base-v_penalty)),2);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.global_country_strength_quality(p_country text)
@@ -685,7 +685,7 @@ begin
   elsif v_rank then return .65;
   else return 0; end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.global_country_top_league_score(p_country text)
@@ -712,7 +712,7 @@ begin
   if v_base is not null and v_club_score is not null then return round(v_base*.80+v_club_score*.20,2); end if;
   return round(coalesce(v_base,v_club_score),2);
 end;
-$function$
+$function$;
 
 
 commit;

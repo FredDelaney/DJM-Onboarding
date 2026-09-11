@@ -58,7 +58,7 @@ select jsonb_build_object(
     where lower(po.stage) not in ('closed','lost','placed','won')
   ) x),'[]'::jsonb)
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_meetings(p_scope text DEFAULT 'mine'::text, p_from timestamp with time zone DEFAULT (now() - '30 days'::interval), p_to timestamp with time zone DEFAULT (now() + '180 days'::interval))
@@ -74,7 +74,7 @@ AS $function$
   left join djm_os.organisations o on o.id=m.organisation_id
   where (p_scope='all' or m.owner_user_id=auth.uid()) and m.starts_at>=p_from and m.starts_at<=p_to
   order by m.starts_at;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_opportunities(p_scope text DEFAULT 'mine'::text)
@@ -94,7 +94,7 @@ AS $function$
   left join djm_os.team_members tm on tm.user_id=po.owner_id
   where p_scope='all' or po.owner_id is null or po.owner_id=auth.uid()
   order by case when lower(po.stage) in ('closed','lost','placed','won') then 1 else 0 end,po.next_action_due asc nulls last,po.updated_at desc;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_organisations(p_search text DEFAULT NULL::text, p_limit integer DEFAULT 100)
@@ -111,7 +111,7 @@ AS $function$
   where p_search is null or p_search='' or o.name ilike '%' || p_search || '%'
   order by coalesce((select max(i.occurred_at) from djm_os.interactions i where i.organisation_id=o.id), o.updated_at) desc nulls last, o.name
   limit greatest(1, least(coalesce(p_limit,100),250));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_people(p_search text DEFAULT NULL::text, p_limit integer DEFAULT 100)
@@ -136,7 +136,7 @@ AS $function$
   where p_search is null or p_search = '' or p.full_name ilike '%' || p_search || '%' or eo.name ilike '%' || p_search || '%'
   order by coalesce(li.last_interaction_at, r.last_meaningful_at, p.updated_at) desc nulls last, p.full_name
   limit greatest(1, least(coalesce(p_limit,100),250));
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_person(p_person_id uuid)
@@ -153,7 +153,7 @@ select jsonb_build_object(
   'interactions',coalesce((select jsonb_agg(to_jsonb(i) order by i.occurred_at desc) from (select i.id,i.occurred_at,i.channel,i.direction,i.summary,i.sentiment,i.source_type,i.organisation_id,o.name organisation_name,tm.display_name team_member_name from djm_os.interactions i left join djm_os.organisations o on o.id=i.organisation_id left join djm_os.team_members tm on tm.user_id=i.team_member_id where i.person_id=p_person_id order by i.occurred_at desc limit 40) i),'[]'::jsonb),
   'tasks',coalesce((select jsonb_agg(to_jsonb(t) order by t.due_at asc nulls last,t.priority desc) from (select id,title,task_type,owner_user_id,due_at,status,priority,source from djm_os.tasks where person_id=p_person_id and status not in ('done','completed','cancelled')) t),'[]'::jsonb)
 );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_resolve_review(p_review_id uuid, p_resolution text, p_note text DEFAULT NULL::text)
@@ -180,7 +180,7 @@ begin
   values('REVIEW_RESOLVED',auth.uid(),v_item.person_id,v_item.organisation_id,v_item.player_id,jsonb_build_object('review_id',p_review_id,'resolution',v_res,'note',nullif(trim(p_note),'')),'review_inbox',1,now());
   return jsonb_build_object('review_id',p_review_id,'status',v_res);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_review_inbox(p_scope text DEFAULT 'mine'::text)
@@ -197,7 +197,7 @@ AS $function$
   left join djm_os.organisations o on o.id=r.organisation_id
   where r.status='open' and (p_scope='all' or r.owner_user_id is null or r.owner_user_id=auth.uid())
   order by coalesce(r.confidence,0) asc,r.created_at;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_set_task_status(p_task_id uuid, p_status text)
@@ -216,7 +216,7 @@ begin
   insert into djm_os.events(event_type,actor_user_id,payload,source,confidence,occurred_at) values('TASK_STATUS_CHANGED',auth.uid(),jsonb_build_object('task_id',p_task_id,'status',v_new),'network',1,now());
   return jsonb_build_object('task_id',p_task_id,'status',v_new);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_suggestions()
@@ -231,7 +231,7 @@ AS $function$
   left join djm_os.organisations o on o.id=s.organisation_id
   where s.status='open' and (s.owner_user_id is null or s.owner_user_id=auth.uid()) and (s.expires_at is null or s.expires_at>now())
   order by s.score desc,s.created_at desc;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_tasks(p_scope text DEFAULT 'mine'::text)
@@ -249,7 +249,7 @@ AS $function$
   where p_scope='all' or t.owner_user_id is null or t.owner_user_id=auth.uid()
   order by case when t.status in ('done','completed','cancelled') then 1 else 0 end,
            t.priority desc,t.due_at asc nulls last,t.created_at desc;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_update_club_profile(p_organisation_id uuid, p_name text, p_country text DEFAULT NULL::text, p_city text DEFAULT NULL::text, p_website_url text DEFAULT NULL::text)
@@ -284,7 +284,7 @@ begin
   values('CLUB_PROFILE_UPDATED',auth.uid(),p_organisation_id,jsonb_build_object('name',v_name),'network',1,now());
   return jsonb_build_object('organisation_id',p_organisation_id,'updated',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_update_contact_profile(p_person_id uuid, p_full_name text, p_preferred_name text DEFAULT NULL::text, p_country text DEFAULT NULL::text, p_city text DEFAULT NULL::text, p_club_name text DEFAULT NULL::text, p_club_country text DEFAULT NULL::text, p_role_title text DEFAULT NULL::text)
@@ -344,7 +344,7 @@ begin
 
   return jsonb_build_object('person_id',p_person_id,'organisation_id',v_org_id,'full_name',v_name,'club_name',nullif(trim(p_club_name),''),'role_title',nullif(trim(p_role_title),''));
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_update_relationship(p_person_id uuid, p_strength_score smallint DEFAULT NULL::smallint, p_access_score smallint DEFAULT NULL::smallint, p_trust_score smallint DEFAULT NULL::smallint, p_notes text DEFAULT NULL::text)
@@ -371,7 +371,7 @@ begin
   insert into djm_os.events(event_type,actor_user_id,person_id,payload,source,confidence,occurred_at)
   values('RELATIONSHIP_UPDATED',v_uid,p_person_id,jsonb_build_object('strength',p_strength_score,'access',p_access_score,'trust',p_trust_score,'notes',p_notes),'network',1,now());
   return jsonb_build_object('ok',true,'person_id',p_person_id);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_upsert_club(p_name text, p_country text DEFAULT NULL::text, p_city text DEFAULT NULL::text, p_website_url text DEFAULT NULL::text)
@@ -394,7 +394,7 @@ begin
   insert into djm_os.events(event_type,actor_user_id,organisation_id,payload,source,confidence,occurred_at)
   values('CLUB_UPSERTED',(select auth.uid()),v_id,jsonb_build_object('name',trim(p_name)),'network',1,now());
   return jsonb_build_object('organisation_id',v_id);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_network_upsert_person(p_full_name text, p_person_type text DEFAULT 'club_contact'::text, p_whatsapp text DEFAULT NULL::text, p_email text DEFAULT NULL::text, p_linkedin_url text DEFAULT NULL::text, p_country text DEFAULT NULL::text, p_city text DEFAULT NULL::text, p_club_name text DEFAULT NULL::text, p_role_title text DEFAULT NULL::text, p_club_country text DEFAULT NULL::text)
@@ -483,14 +483,14 @@ begin
 
   return jsonb_build_object('person_id',v_person_id,'organisation_id',v_org_id,'created',v_created,'inferred',v_inferred_conf>0,'needs_review',v_needs_review);
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_notification_action(p_id uuid, p_action text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SET search_path TO ''
-AS $function$ declare v text:=lower(trim(p_action)); begin if v not in ('read','unread','dismissed') then raise exception 'Invalid action'; end if; update djm_os.notifications set status=v,read_at=case when v='read' then now() else read_at end where id=p_id and user_id=auth.uid(); if not found then raise exception 'Notification not found'; end if; return jsonb_build_object('id',p_id,'status',v); end; $function$
+AS $function$ declare v text:=lower(trim(p_action)); begin if v not in ('read','unread','dismissed') then raise exception 'Invalid action'; end if; update djm_os.notifications set status=v,read_at=case when v='read' then now() else read_at end where id=p_id and user_id=auth.uid(); if not found then raise exception 'Notification not found'; end if; return jsonb_build_object('id',p_id,'status',v); end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_notifications(p_limit integer DEFAULT 30)
@@ -498,7 +498,7 @@ CREATE OR REPLACE FUNCTION public.djm_notifications(p_limit integer DEFAULT 30)
  LANGUAGE sql
  STABLE
  SET search_path TO ''
-AS $function$ select n.id,n.notification_type,n.title,n.body,n.priority,n.person_id,n.organisation_id,n.player_id,n.club_need_id,n.task_id,n.status,n.created_at,n.expires_at from djm_os.notifications n where n.user_id=auth.uid() and n.status<>'dismissed' and (n.expires_at is null or n.expires_at>now()) order by case when n.status='unread' then 0 else 1 end,n.priority desc,n.created_at desc limit greatest(1,least(coalesce(p_limit,30),100)); $function$
+AS $function$ select n.id,n.notification_type,n.title,n.body,n.priority,n.person_id,n.organisation_id,n.player_id,n.club_need_id,n.task_id,n.status,n.created_at,n.expires_at from djm_os.notifications n where n.user_id=auth.uid() and n.status<>'dismissed' and (n.expires_at is null or n.expires_at>now()) order by case when n.status='unread' then 0 else 1 end,n.priority desc,n.created_at desc limit greatest(1,least(coalesce(p_limit,30),100)); $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_operating_home()
@@ -536,7 +536,7 @@ begin
       order by rank_score desc,due_at nulls last limit 12
     ) x),'[]'::jsonb)
   );
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunities(p_status text DEFAULT 'active'::text)
@@ -567,7 +567,7 @@ begin
       where p_status is null or p_status = '' or d.status = p_status
     ) x
   ), '[]'::jsonb);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity(p_opportunity_id uuid)
@@ -619,7 +619,7 @@ begin
       ) s
     ), '[]'::jsonb)
   );
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity_assign_owner(p_opportunity_id uuid, p_owner_user_id uuid)
@@ -637,7 +637,7 @@ begin
   insert into djm_os.events(event_type,actor_user_id,organisation_id,payload,source,confidence,occurred_at)
   values('OPPORTUNITY_OWNER_UPDATED',auth.uid(),v_org,jsonb_build_object('opportunity_id',p_opportunity_id,'previous_owner_user_id',v_before,'owner_user_id',p_owner_user_id),'manual_ui',1,now());
   return jsonb_build_object('opportunity_id',p_opportunity_id,'owner_user_id',p_owner_user_id);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity_close(p_opportunity_id uuid, p_outcome text, p_reason text)
@@ -665,7 +665,7 @@ begin
     jsonb_build_object('opportunity_id', v_deal.id, 'outcome', v_stage, 'reason', nullif(trim(coalesce(p_reason, '')), '')),
     'opportunity_os', 1, now());
   return jsonb_build_object('opportunity_id', v_deal.id, 'stage', v_stage, 'status', v_status);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity_create_pitch(p_opportunity_id uuid, p_message text DEFAULT NULL::text, p_expires_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_selected_sections jsonb DEFAULT '{}'::jsonb)
@@ -699,7 +699,7 @@ begin
     'opportunity_os', 1, now());
 
   return jsonb_build_object('share_id', v_share_id, 'token', v_token, 'pitch_status', 'ready');
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity_mark_pitch_sent(p_share_id uuid)
@@ -716,7 +716,7 @@ begin
   update djm_os.deal_rooms set pitch_status = 'sent', stage = case when stage = 'potential' then 'pitched' else stage end, updated_at = now()
   where id = v_opportunity;
   return jsonb_build_object('share_id', p_share_id, 'pitch_status', 'sent');
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity_probability(p_need_id uuid, p_player_id uuid DEFAULT NULL::uuid, p_prospect_id uuid DEFAULT NULL::uuid, p_stage text DEFAULT 'potential'::text, p_primary_blocker text DEFAULT NULL::text, p_next_action_at timestamp with time zone DEFAULT NULL::timestamp with time zone)
@@ -776,7 +776,7 @@ begin
     'model', 'DJM opportunity model v2',
     'calculated_at', now()
   );
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity_update_identity(p_opportunity_id uuid, p_organisation_id uuid, p_source_person_id uuid DEFAULT NULL::uuid, p_player_id uuid DEFAULT NULL::uuid, p_prospect_id uuid DEFAULT NULL::uuid, p_club_need_id uuid DEFAULT NULL::uuid)
@@ -830,7 +830,7 @@ begin
     'manual_ui',1,now());
 
   return jsonb_build_object('opportunity_id',p_opportunity_id,'model_probability',v_model,'probability',v_effective,'probability_source',case when v_manual is null then 'model' else 'manual' end);
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity_update_pitch(p_share_id uuid, p_label text DEFAULT NULL::text, p_message text DEFAULT NULL::text, p_expires_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_selected_sections jsonb DEFAULT NULL::jsonb, p_active boolean DEFAULT true)
@@ -855,7 +855,7 @@ begin
   insert into djm_os.events(event_type,actor_user_id,organisation_id,player_id,payload,source,confidence,occurred_at)
   values('PITCH_UPDATED',auth.uid(),v_org,v_player,jsonb_build_object('opportunity_id',v_opportunity,'share_id',p_share_id,'active',coalesce(p_active,true),'expires_at',p_expires_at),'manual_ui',1,now());
   return jsonb_build_object('share_id',p_share_id,'opportunity_id',v_opportunity,'active',coalesce(p_active,true));
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_opportunity_upsert(p_id uuid DEFAULT NULL::uuid, p_title text DEFAULT NULL::text, p_organisation_id uuid DEFAULT NULL::uuid, p_source_person_id uuid DEFAULT NULL::uuid, p_player_id uuid DEFAULT NULL::uuid, p_prospect_id uuid DEFAULT NULL::uuid, p_club_need_id uuid DEFAULT NULL::uuid, p_stage text DEFAULT 'potential'::text, p_expected_commission numeric DEFAULT NULL::numeric, p_currency text DEFAULT 'EUR'::text, p_primary_blocker text DEFAULT NULL::text, p_next_decision text DEFAULT NULL::text, p_next_action_text text DEFAULT NULL::text, p_next_action_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_transfer_fee numeric DEFAULT NULL::numeric, p_player_salary numeric DEFAULT NULL::numeric, p_salary_period text DEFAULT NULL::text, p_financial_notes text DEFAULT NULL::text, p_manual_probability smallint DEFAULT NULL::smallint, p_source text DEFAULT 'opportunity_os'::text)
@@ -938,7 +938,7 @@ begin
   );
 
   return jsonb_build_object('opportunity_id', v_id, 'model_probability', v_model_probability, 'probability', v_probability, 'probability_source', case when p_manual_probability is null then 'model' else 'manual' end);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_peer_refresh_context(p_mode text, p_player_id uuid DEFAULT NULL::uuid, p_competition_id uuid DEFAULT NULL::uuid, p_provider_competition_id text DEFAULT NULL::text, p_display_name text DEFAULT NULL::text, p_country text DEFAULT NULL::text, p_user_id uuid DEFAULT NULL::uuid)
@@ -1061,7 +1061,7 @@ begin
 
   raise exception 'Unsupported peer refresh context mode.';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_comparison(p_player_id uuid, p_compare_competition_id uuid DEFAULT NULL::uuid)
@@ -1092,7 +1092,7 @@ begin
   v_base := jsonb_set(v_base,'{semantics,potential}',to_jsonb('Five-year uncertainty-aware development forecast. Not a calibrated probability of career success.'::text),true);
   return v_base;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_comparison_legacy_v5(p_player_id uuid, p_compare_competition_id uuid DEFAULT NULL::uuid)
@@ -1349,7 +1349,7 @@ begin
 
   return v_result;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_global_intelligence(p_player_id uuid)
@@ -1369,7 +1369,7 @@ begin
   end if;
   return public.djm_subject_global_intelligence(v_subject_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_performance_data(p_player_id uuid)
@@ -1391,7 +1391,7 @@ AS $function$
       from djm_os.player_performance_snapshots s where s.player_id = p_player_id), '[]'::jsonb),
     'scorecard', (select to_jsonb(ps) from djm_os.player_scorecards ps where ps.player_id = p_player_id)
   ) end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_performance_snapshot_upsert(p_player_id uuid, p_snapshot jsonb)
@@ -1508,7 +1508,7 @@ begin
 
   return jsonb_build_object('id', v_id, 'position_group', v_group, 'performance_score', round(v_score,2));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_score_competition_context(p_player_id uuid)
@@ -1643,7 +1643,7 @@ begin
     'evidence_date', ce.evidence_date
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_score_override(p_player_id uuid, p_score smallint DEFAULT NULL::smallint, p_potential_score smallint DEFAULT NULL::smallint, p_reason text DEFAULT NULL::text)
@@ -1683,7 +1683,7 @@ begin
 
   return public.djm_player_scorecard(p_player_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_scorecard(p_player_id uuid)
@@ -1723,7 +1723,7 @@ begin
     )
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_scorecard_v2_core(p_player_id uuid)
@@ -2052,7 +2052,7 @@ begin
     'calculated_at',s.calculated_at
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.djm_player_scorecard_v4_runtime_core(p_player_id uuid)
@@ -2417,7 +2417,7 @@ begin
     'calculated_at',s.calculated_at
   );
 end;
-$function$
+$function$;
 
 
 commit;

@@ -54,7 +54,7 @@ begin
   values(actor,action_name,tg_table_name,entity,meta);
   return coalesce(new,old);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.can_edit_player(target_player_id uuid)
@@ -67,7 +67,7 @@ AS $function$
     private.is_admin()
     or exists (select 1 from public.players p where p.id = target_player_id and p.user_id = auth.uid())
     or exists (select 1 from public.staff_player_access a where a.player_id = target_player_id and a.staff_user_id = auth.uid() and a.can_edit = true);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.can_staff_edit_player(target_player_id uuid)
@@ -78,7 +78,7 @@ CREATE OR REPLACE FUNCTION private.can_staff_edit_player(target_player_id uuid)
 AS $function$
   select private.is_admin()
     or exists (select 1 from public.staff_player_access a where a.player_id=target_player_id and a.staff_user_id=auth.uid() and a.can_edit=true);
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.can_staff_view_player(target_player_id uuid)
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION private.can_staff_view_player(target_player_id uuid)
 AS $function$
   select private.is_admin()
     or exists (select 1 from public.staff_player_access a where a.player_id=target_player_id and a.staff_user_id=auth.uid());
-$function$
+$function$;
 
 
 commit;

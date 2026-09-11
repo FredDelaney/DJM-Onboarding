@@ -130,7 +130,7 @@ begin
     'rule','Match Influence is minutes- and recency-weighted. Opponent difficulty is primary; team result is adjusted for expected strength; provider match rating is used only when present.'
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.subject_position_production(p_subject_id uuid)
@@ -163,7 +163,7 @@ begin
     'selection_rule','highest_quality_verified_position_signal'
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.subject_position_production_provider_v7(p_subject_id uuid)
@@ -233,7 +233,7 @@ begin
     'rule','Only position-relevant metrics that exist for both the player and a real same-role cohort are used. Basic official metrics can create a limited-quality role signal; missing metrics are never zero-imputed.'
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.subject_reviewed_performance_signal(p_subject_id uuid)
@@ -366,7 +366,7 @@ begin
     'rule','A reviewed percentile snapshot may replace the provider/cohort production signal only when its evidence-quality score is higher. Missing categories are never zero-imputed.'
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.subject_team_context(p_subject_id uuid)
@@ -383,7 +383,7 @@ begin
   v_tier:=coalesce(c.level_tier,djm_os.infer_global_league_tier(coalesce(s.current_country,c.country),coalesce(s.current_league,c.display_name)));
   return djm_os.clubelo_team_context(s.current_club,coalesce(s.current_country,c.country),v_tier);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.sync_football_subject_from_player()
@@ -430,7 +430,7 @@ begin
     where id=v_subject_id;
   end if;
   return new;
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.sync_football_subject_from_prospect()
@@ -469,7 +469,7 @@ begin
     where id=v_subject_id;
   end if;
   return new;
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.sync_official_peer_role_to_player_snapshot()
@@ -500,7 +500,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.sync_official_subject_career_snapshot()
@@ -597,7 +597,7 @@ begin
 
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.sync_opportunity_identity_trigger()
@@ -630,7 +630,7 @@ begin
     on conflict(opportunity_id) do update set organisation_id=excluded.organisation_id,person_id=coalesce(excluded.person_id,djm_os.opportunity_links.person_id),confidence=excluded.confidence,linked_by=coalesce(excluded.linked_by,djm_os.opportunity_links.linked_by),updated_at=now();
   end if;
   return new;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.sync_player_private_trigger()
@@ -647,7 +647,7 @@ begin
   insert into djm_os.events(event_type,player_id,payload,source,occurred_at) values('PLAYER_MARKET_PREFERENCES_CHANGED',new.player_id,jsonb_build_object('market_preferences',new.market_preferences,'relocation_preferences',new.relocation_preferences,'salary_expectation',new.salary_expectation,'preferred_move_timing',new.preferred_move_timing,'passports_held',new.passports_held,'work_rights',new.work_rights),'djm_player',now());
   for n in select id from djm_os.club_needs where status in ('active','open','confirmed') loop perform djm_os.refresh_need_matches(n.id); end loop;
   return new;
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.sync_recruitment_followup_task_title()
@@ -664,7 +664,7 @@ begin
     and title is distinct from 'Follow up recruitment target: '||new.full_name;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.sync_subject_career_from_player_entry()
@@ -688,7 +688,7 @@ begin
   end if;
   perform djm_os.refresh_football_subject_scorecard(v_subject_id);
   return coalesce(new,old);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.thread_interaction_rollup(p_thread_id uuid)
@@ -709,7 +709,7 @@ AS $function$ declare t djm_os.conversation_threads%rowtype; v_interaction uuid;
   update djm_os.conversation_threads set latest_summary=v_summary where id=p_thread_id;
   if t.person_id is not null then insert into djm_os.relationships(team_member_id,person_id,last_meaningful_at,first_known_at,strength_score) values(t.owner_user_id,t.person_id,t.last_message_at,t.first_message_at,35) on conflict(team_member_id,person_id) do update set last_meaningful_at=greatest(coalesce(djm_os.relationships.last_meaningful_at,excluded.last_meaningful_at),excluded.last_meaningful_at),first_known_at=least(coalesce(djm_os.relationships.first_known_at,excluded.first_known_at),excluded.first_known_at),updated_at=now(); end if;
   return v_interaction;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION djm_os.validate_player_primary_staff()
@@ -727,7 +727,7 @@ begin
   end if;
   return new;
 end;
-$function$
+$function$;
 
 
 commit;
