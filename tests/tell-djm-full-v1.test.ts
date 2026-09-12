@@ -250,6 +250,11 @@ test('scout reports and prospects are retry-safe', () => {
   assert.match(migration, /djm_tell_undo_action/);
 });
 
+test('completed conversations are logged even when the debrief also creates downstream actions', () => {
+  assert.match(worker, /Use log_interaction whenever the speaker explicitly says they spoke, called, met, messaged or had a conversation/);
+  assert.match(worker, /The summary must describe only actions present in the actions array/);
+});
+
 test('needs-review actions stay stable while other questions are answered', () => {
   assert.match(migration, /and status in \('pending','failed'\);/);
   assert.doesNotMatch(migration, /and status in \('pending','failed','needs_review'\);/);

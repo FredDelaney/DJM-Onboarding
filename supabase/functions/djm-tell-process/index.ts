@@ -417,6 +417,8 @@ async function interpret(
         "Extract only information the speaker stated explicitly or clearly and directly implied.",
         "Unknown means null. Never invent missing values.",
         "For clearly stated reversible task, interaction and claim actions, use high confidence when every required fact is explicit and resolved.",
+        "Use log_interaction whenever the speaker explicitly says they spoke, called, met, messaged or had a conversation with a named or clearly resolved contact or club. Include it even when the same debrief also creates a club need, claim, player suggestion or task.",
+        "The summary must describe only actions present in the actions array. Never say something was logged, saved, created or updated unless a corresponding action is present.",
         "Never guess a club, contact, player, currency, unit, salary, transfer fee, contract fact, registration fact or date.",
         "Use current_context to resolve pronouns or omitted entities when the context is clear, but an explicitly named club, contact, player or prospect always overrides page context.",
         "Do not produce player scores, rankings, future projections or comparisons.",
