@@ -15,126 +15,24 @@ const json = (body: unknown, status = 200) =>
     headers: { ...cors, "Content-Type": "application/json" },
   });
 
-const ACTION_TYPES = [
-  "log_interaction",
-  "upsert_club_need",
-  "create_task",
-  "add_claim",
-  "suggest_player",
-  "exclude_player",
-  "log_scout_observation",
-] as const;
+const nullableString = { type: ["string", "null"] };
+const nullableNumber = { type: ["number", "null"] };
+const nullableInteger = { type: ["integer", "null"] };
 
-const POSITION_VALUES = [
-  null,
-  "GK",
-  "RB",
-  "LB",
-  "CB",
-  "RCB",
-  "LCB",
-  "6",
-  "8",
-  "10",
-  "RW",
-  "LW",
-  "Winger",
-  "ST",
-];
-
-const actionSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
+const actionBranch = (type: string, props: Record<string, unknown>) => {
+  const properties = {
     key: { type: "string", minLength: 1 },
-    type: { type: "string", enum: ACTION_TYPES },
+    type: { type: "string", enum: [type] },
     confidence: { type: "number", minimum: 0, maximum: 1 },
     evidence: { type: "string", minLength: 1 },
-    club_name: { type: ["string", "null"] },
-    contact_name: { type: ["string", "null"] },
-    player_name: { type: ["string", "null"] },
-    player_current_club: { type: ["string", "null"] },
-    club_country: { type: ["string", "null"] },
-    player_current_country: { type: ["string", "null"] },
-    contact_role: { type: ["string", "null"] },
-    scout_source_type: { type: ["string", "null"], enum: [null, "live", "video", "data", "reference", "conversation"] },
-    scout_recommendation: { type: ["string", "null"], enum: [null, "strong_yes", "yes", "monitor", "no", "strong_no"] },
-    strengths: { type: ["string", "null"] },
-    risks: { type: ["string", "null"] },
-    title: { type: ["string", "null"] },
-    summary: { type: ["string", "null"] },
-    position: { type: ["string", "null"], enum: POSITION_VALUES },
-    secondary_position: { type: ["string", "null"] },
-    preferred_foot: {
-      type: ["string", "null"],
-      enum: [null, "left", "right", "either"],
-    },
-    min_age: { type: ["integer", "null"], minimum: 14, maximum: 50 },
-    max_age: { type: ["integer", "null"], minimum: 14, maximum: 50 },
-    min_height_cm: { type: ["integer", "null"], minimum: 140, maximum: 230 },
-    transfer_type: { type: ["string", "null"] },
-    transfer_budget: { type: ["number", "null"], minimum: 0 },
-    transfer_budget_raw: { type: ["string", "null"] },
-    salary_budget: { type: ["number", "null"], minimum: 0 },
-    salary_budget_raw: { type: ["string", "null"] },
-    currency: { type: ["string", "null"] },
-    salary_period: { type: ["string", "null"] },
-    salary_tax_basis: { type: ["string", "null"] },
-    registration_notes: { type: ["string", "null"] },
-    profile_notes: { type: ["string", "null"] },
-    playing_style: { type: ["string", "null"] },
-    need_type: {
-      type: ["string", "null"],
-      enum: [null, "confirmed", "predicted"],
-    },
-    priority: { type: ["integer", "null"], minimum: 1, maximum: 5 },
-    due_at: { type: ["string", "null"] },
-    claim_type: { type: ["string", "null"] },
-    claim_key: { type: ["string", "null"] },
-    claim_value: { type: ["string", "null"] },
-  },
-  required: [
-    "key",
-    "type",
-    "confidence",
-    "evidence",
-    "club_name",
-    "contact_name",
-    "player_name",
-    "player_current_club",
-    "club_country",
-    "player_current_country",
-    "contact_role",
-    "scout_source_type",
-    "scout_recommendation",
-    "strengths",
-    "risks",
-    "title",
-    "summary",
-    "position",
-    "secondary_position",
-    "preferred_foot",
-    "min_age",
-    "max_age",
-    "min_height_cm",
-    "transfer_type",
-    "transfer_budget",
-    "transfer_budget_raw",
-    "salary_budget",
-    "salary_budget_raw",
-    "currency",
-    "salary_period",
-    "salary_tax_basis",
-    "registration_notes",
-    "profile_notes",
-    "playing_style",
-    "need_type",
-    "priority",
-    "due_at",
-    "claim_type",
-    "claim_key",
-    "claim_value",
-  ],
+    ...props,
+  };
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties,
+    required: Object.keys(properties),
+  };
 };
 
 const planSchema = {
@@ -145,11 +43,96 @@ const planSchema = {
     actions: {
       type: "array",
       maxItems: 12,
-      items: actionSchema,
+      items: {
+        anyOf: [
+          actionBranch("create_task", {
+            title: nullableString,
+            due_at: nullableString,
+            priority: nullableInteger,
+            club_name: nullableString,
+            contact_name: nullableString,
+            player_name: nullableString,
+          }),
+          actionBranch("log_interaction", {
+            summary: nullableString,
+            club_name: nullableString,
+            contact_name: nullableString,
+            player_name: nullableString,
+          }),
+          actionBranch("add_claim", {
+            claim_type: nullableString,
+            claim_key: nullableString,
+            claim_value: nullableString,
+            club_name: nullableString,
+            contact_name: nullableString,
+            player_name: nullableString,
+          }),
+          actionBranch("suggest_player", {
+            club_name: nullableString,
+            player_name: nullableString,
+            position: nullableString,
+          }),
+          actionBranch("exclude_player", {
+            club_name: nullableString,
+            player_name: nullableString,
+            position: nullableString,
+          }),
+          actionBranch("log_scout_observation", {
+            player_name: nullableString,
+            player_current_club: nullableString,
+            player_current_country: nullableString,
+            scout_source_type: nullableString,
+            scout_recommendation: nullableString,
+            strengths: nullableString,
+            risks: nullableString,
+            position: nullableString,
+            secondary_position: nullableString,
+            preferred_foot: nullableString,
+            profile_notes: nullableString,
+          }),
+          actionBranch("upsert_club_need", {
+            club_name: nullableString,
+            club_country: nullableString,
+            contact_name: nullableString,
+            title: nullableString,
+            position: nullableString,
+            secondary_position: nullableString,
+            preferred_foot: nullableString,
+            min_age: nullableInteger,
+            max_age: nullableInteger,
+            min_height_cm: nullableInteger,
+            transfer_type: nullableString,
+            transfer_budget: nullableNumber,
+            transfer_budget_raw: nullableString,
+            salary_budget: nullableNumber,
+            salary_budget_raw: nullableString,
+            currency: nullableString,
+            salary_period: nullableString,
+            salary_tax_basis: nullableString,
+            registration_notes: nullableString,
+            profile_notes: nullableString,
+            playing_style: nullableString,
+            need_type: nullableString,
+            priority: nullableInteger,
+          }),
+        ],
+      },
     },
   },
   required: ["summary", "actions"],
 };
+
+const FAST_SERVICE_MODELS = new Set([
+  "gpt-5.6-luna",
+  "gpt-5.6-terra",
+  "gpt-5.6-sol",
+]);
+
+function tellDjmOutputTokenCap(model: string) {
+  if (model === "gpt-5.6-luna") return 1000;
+  if (model === "gpt-5.6-terra") return 2200;
+  return 4000;
+}
 
 class HttpModelError extends Error {
   status: number;
@@ -426,8 +409,9 @@ async function interpret(
     body: JSON.stringify({
       model,
       store: false,
+      ...(FAST_SERVICE_MODELS.has(model) ? { service_tier: "fast" } : {}),
       reasoning: { effort: reasoningEffort },
-      max_output_tokens: 4000,
+      max_output_tokens: tellDjmOutputTokenCap(model),
       instructions: [
         "You convert an internal football-agency debrief into safe DJM actions.",
         "Extract only information the speaker stated explicitly or clearly and directly implied.",

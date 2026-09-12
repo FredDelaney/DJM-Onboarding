@@ -77,7 +77,9 @@ type Receipt = {
 };
 
 const DEFAULT_MAX_SECONDS = 240;
-const POLL_MS = 650;
+const ACTIVE_POLL_MS = 200;
+const TRANSCRIBING_POLL_MS = 400;
+const BACKGROUND_POLL_MS = 1000;
 const POLL_ATTEMPTS = 180;
 const TERMINAL = new Set([
   'done',
@@ -161,29 +163,48 @@ export default function TellDjmCapture({
 
       try {
         for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
+          let delayMs = TRANSCRIBING_POLL_MS;
           try {
             const next = await djmRpc<Receipt>('djm_tell_receipt', {
               p_capture_id: captureId,
             });
             if (displayCaptureRef.current === captureId) setReceipt(next);
+
             const nextStatus = next?.capture?.status || '';
-              if (displayCaptureRef.current === captureId && !TERMINAL.has(nextStatus)) {
-                setStatus(
-                  next?.capture?.transcript_text
-                    ? 'Transcript ready. Doing it now...'
-                    : 'Transcribing...',
-                );
-              }
-              if (TERMINAL.has(nextStatus)) {
+            const transcriptReady = Boolean(next?.capture?.transcript_text);
+
+            if (
+              displayCaptureRef.current === captureId &&
+              !TERMINAL.has(nextStatus)
+            ) {
+              setStatus(
+                transcriptReady
+                  ? 'Transcript ready. Doing it now...'
+                  : 'Transcribing...',
+              );
+            }
+
+            if (TERMINAL.has(nextStatus)) {
               forgetActiveTellDjmCapture(captureId);
               if (displayCaptureRef.current === captureId) setStatus('');
               onCompleted?.(next);
               return;
             }
+
+            delayMs = transcriptReady
+              ? ACTIVE_POLL_MS
+              : TRANSCRIBING_POLL_MS;
+            if (attempt >= 40) delayMs = BACKGROUND_POLL_MS;
           } catch {
             // The durable worker owns the job. A transient receipt read can retry.
+            delayMs = BACKGROUND_POLL_MS;
           }
-          await new Promise((resolve) => window.setTimeout(resolve, POLL_MS));
+
+          if (attempt < POLL_ATTEMPTS - 1) {
+            await new Promise((resolve) =>
+              window.setTimeout(resolve, delayMs),
+            );
+          }
         }
 
         if (displayCaptureRef.current === captureId) {

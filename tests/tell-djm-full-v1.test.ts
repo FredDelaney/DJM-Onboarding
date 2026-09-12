@@ -410,7 +410,9 @@ test('partial or failed captures can retry only their unfinished work from the p
 });
 
 test('receipt polling spans the durable one-minute cron fallback without fan-out on reconnect', () => {
-  assert.match(capture, /const POLL_MS = 650/);
+  assert.match(capture, /const ACTIVE_POLL_MS = 200/);
+  assert.match(capture, /const BACKGROUND_POLL_MS = 1000/);
+  assert.match(capture, /if \(attempt >= 40\) delayMs = BACKGROUND_POLL_MS/);
   assert.match(capture, /const POLL_ATTEMPTS = 180/);
   assert.match(capture, /pollingRef/);
   assert.match(capture, /uploadPending\(item, false\)/);

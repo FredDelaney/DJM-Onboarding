@@ -32,7 +32,9 @@ test('dismissed and snoozed tasks can suppress reminder delivery', () => {
 });
 
 test('Tell DJM polls faster, surfaces transcript progress and uses routed reasoning effort', () => {
-  assert.match(tellCapture, /const POLL_MS = 650;/);
+  assert.match(tellCapture, /const ACTIVE_POLL_MS = 200;/);
+  assert.match(tellCapture, /const TRANSCRIBING_POLL_MS = 400;/);
+  assert.match(tellCapture, /const BACKGROUND_POLL_MS = 1000;/);
   assert.match(tellCapture, /Transcript ready\. Doing it now\.\.\./);
   assert.match(tellCapture, /open=\{!TERMINAL\.has\(receipt\.capture\.status\)\}/);
   assert.match(tellProcess, /reasoning: \{ effort: reasoningEffort \}/);
