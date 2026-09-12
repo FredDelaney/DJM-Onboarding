@@ -1,0 +1,33 @@
+:root {
+  --tenant-primary: #061f3a;
+  --tenant-secondary: #ffffff;
+  --tenant-accent: #f5e900;
+}
+
+/*
+ * Tenant colours deliberately map only to established
+ * DJM design tokens at this stage. DJM therefore remains
+ * visually identical while other agencies inherit their
+ * configured primary and accent identity.
+ */
+html[data-tenant] {
+  --navy: var(--tenant-primary);
+  --yellow: var(--tenant-accent);
+}
+
+.tenant-lettermark {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+
+  border-radius: inherit;
+
+  background: var(--tenant-primary);
+  color: var(--tenant-secondary);
+
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
