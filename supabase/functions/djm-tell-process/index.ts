@@ -791,7 +791,10 @@ async function getPlan(
   if (!transcript) {
     const { data: vocabulary, error: vocabularyError } = await admin.rpc(
       "djm_tell_vocabulary",
-      { p_limit: 120 },
+      {
+        p_limit: 120,
+        p_user_id: capture.submitted_by,
+      },
     );
     if (vocabularyError) throw vocabularyError;
 
