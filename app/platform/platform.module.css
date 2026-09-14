@@ -1,8 +1,8 @@
 .page {
   min-height: 100dvh;
   background:
-    radial-gradient(circle at 4% -10%, rgba(11, 94, 168, 0.09), transparent 28rem),
-    radial-gradient(circle at 96% 0%, rgba(245, 233, 0, 0.06), transparent 24rem),
+    radial-gradient(circle at 4% -10%, rgba(124, 108, 242, 0.09), transparent 28rem),
+    radial-gradient(circle at 96% 0%, rgba(190, 178, 255, 0.06), transparent 24rem),
     #f6f7f9;
   color: #0a0a0c;
 }
@@ -49,12 +49,12 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: #061f3a;
+  background: #18131f;
   color: #fff;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  box-shadow: 0 9px 24px rgba(6, 31, 58, 0.16);
+  box-shadow: 0 9px 24px rgba(24, 19, 31, 0.16);
 }
 
 .brandBlock > div:last-child {
@@ -117,8 +117,8 @@
 }
 
 .iconButton:hover {
-  background: rgba(6, 31, 58, 0.06);
-  color: #061f3a;
+  background: rgba(24, 19, 31, 0.06);
+  color: #18131f;
 }
 
 .workspaceButton {
@@ -190,15 +190,15 @@
 }
 
 .primaryButton {
-  background: #061f3a;
+  background: #18131f;
   color: #fff;
-  box-shadow: 0 10px 24px rgba(6, 31, 58, 0.16);
+  box-shadow: 0 10px 24px rgba(24, 19, 31, 0.16);
 }
 
 .primaryButton:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: #0a3157;
-  box-shadow: 0 14px 30px rgba(6, 31, 58, 0.2);
+  background: #2a2138;
+  box-shadow: 0 14px 30px rgba(24, 19, 31, 0.2);
 }
 
 .secondaryButton {
@@ -228,7 +228,7 @@
   gap: 9px;
   border-radius: 14px;
   font-size: 12px;
-  box-shadow: 0 8px 24px rgba(6, 31, 58, 0.04);
+  box-shadow: 0 8px 24px rgba(24, 19, 31, 0.04);
 }
 
 .alert {
@@ -264,7 +264,7 @@
   border: 1px solid rgba(10, 10, 12, 0.065);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 10px 38px rgba(6, 31, 58, 0.045);
+  box-shadow: 0 10px 38px rgba(24, 19, 31, 0.045);
 }
 
 .metricAttention {
@@ -333,7 +333,7 @@
   border: 1px solid rgba(10, 10, 12, 0.065);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 14px 48px rgba(6, 31, 58, 0.045);
+  box-shadow: 0 14px 48px rgba(24, 19, 31, 0.045);
 }
 
 .agendaPanel,
@@ -520,7 +520,7 @@
   height: 100%;
   min-width: 2px;
   border-radius: inherit;
-  background: #0b5ea8;
+  background: #7c6cf2;
 }
 
 .signalFooter {
@@ -604,7 +604,7 @@
 .filters button.activeFilter {
   background: #fff;
   color: #1f2328;
-  box-shadow: 0 2px 8px rgba(6, 31, 58, 0.07);
+  box-shadow: 0 2px 8px rgba(24, 19, 31, 0.07);
 }
 
 .customerList {
@@ -630,8 +630,8 @@
 
 .customerCard:hover {
   transform: translateY(-1px);
-  border-color: rgba(11, 94, 168, 0.15);
-  box-shadow: 0 12px 28px rgba(6, 31, 58, 0.06);
+  border-color: rgba(124, 108, 242, 0.15);
+  box-shadow: 0 12px 28px rgba(24, 19, 31, 0.06);
 }
 
 .customerIdentity {
@@ -696,7 +696,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #0b5ea8;
+  background: #7c6cf2;
 }
 
 .customerProgress strong {
@@ -877,8 +877,8 @@
 
 .field input:focus,
 .field select:focus {
-  border-color: rgba(11, 94, 168, 0.38);
-  box-shadow: 0 0 0 3px rgba(11, 94, 168, 0.08);
+  border-color: rgba(124, 108, 242, 0.38);
+  box-shadow: 0 0 0 3px rgba(124, 108, 242, 0.08);
 }
 
 .planPicker {
@@ -904,8 +904,8 @@
 .planOption:hover,
 .selectedPlan {
   transform: translateY(-1px);
-  border-color: rgba(11, 94, 168, 0.26);
-  box-shadow: 0 9px 24px rgba(6, 31, 58, 0.06);
+  border-color: rgba(124, 108, 242, 0.26);
+  box-shadow: 0 9px 24px rgba(24, 19, 31, 0.06);
 }
 
 .selectedPlan {
@@ -930,7 +930,7 @@
 }
 
 .planOption div span {
-  color: #0b5ea8;
+  color: #7c6cf2;
   font-size: 9px;
   font-weight: 800;
 }
@@ -1294,7 +1294,7 @@
   height: 6px;
   margin-top: 4px;
   border-radius: 50%;
-  background: #0b5ea8;
+  background: #7c6cf2;
 }
 
 .auditRow div {
@@ -1340,7 +1340,7 @@
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: #061f3a;
+  background: #18131f;
   color: #fff;
 }
 
@@ -1365,12 +1365,12 @@
   border: 1px solid rgba(10, 10, 12, 0.07);
   border-radius: 24px;
   background: #fff;
-  box-shadow: 0 20px 70px rgba(6, 31, 58, 0.08);
+  box-shadow: 0 20px 70px rgba(24, 19, 31, 0.08);
   text-align: center;
 }
 
 .deniedCard > svg {
-  color: #0b5ea8;
+  color: #7c6cf2;
 }
 
 .deniedCard h1 {
@@ -1392,7 +1392,7 @@
   padding: 0 14px;
   border: 0;
   border-radius: 11px;
-  background: #061f3a;
+  background: #18131f;
   color: #fff;
   font-size: 11px;
   font-weight: 750;

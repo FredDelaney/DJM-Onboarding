@@ -4,7 +4,6 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
-  ArrowUpRight,
   Building2,
   Check,
   ChevronRight,
@@ -151,8 +150,8 @@ const EMPTY_AGENCY: NewAgencyState = {
   hostname: '',
   websiteUrl: '',
   supportEmail: '',
-  primaryColor: '#061F3A',
-  accentColor: '#F5E900',
+  primaryColor: '#111827',
+  accentColor: '#7C6CF2',
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -257,7 +256,7 @@ export default function PlatformPage() {
       } = await supabase.auth.getSession();
 
       if (!session?.user) {
-        router.replace('/sign-in');
+        router.replace('/platform/sign-in');
         return;
       }
 
@@ -288,7 +287,7 @@ export default function PlatformPage() {
   useEffect(() => {
     const hostname = window.location.hostname.toLowerCase();
     setEnvironmentLabel(
-      hostname.includes('djm-platform-staging')
+      hostname.includes('staging') || hostname.includes('localhost')
         ? 'Staging'
         : 'Production',
     );
@@ -475,7 +474,7 @@ export default function PlatformPage() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    router.replace('/sign-in');
+    router.replace('/platform/sign-in');
   };
 
   if (loading) {
@@ -485,8 +484,8 @@ export default function PlatformPage() {
           <Sparkles size={18} />
         </div>
         <div>
-          <strong>Opening platform</strong>
-          <span>Loading the operator cockpit</span>
+          <strong>Opening ReDream</strong>
+          <span>Loading the ReDream Systems control plane</span>
         </div>
       </main>
     );
@@ -498,10 +497,10 @@ export default function PlatformPage() {
         <div className={styles.deniedCard}>
           <ShieldCheck size={26} />
           <p className={styles.eyebrow}>PRIVATE CONTROL PLANE</p>
-          <h1>Platform operator access required</h1>
-          <p>This workspace is separate from agency administration and is only available to authorised platform operators.</p>
-          <button type="button" onClick={() => router.replace('/home')}>
-            Return to workspace
+          <h1>ReDream operator access required</h1>
+          <p>This control plane is separate from agency administration and is only available to authorised ReDream Systems operators.</p>
+          <button type="button" onClick={() => void signOut()}>
+            Sign in with another account
           </button>
         </div>
       </main>
@@ -512,9 +511,9 @@ export default function PlatformPage() {
     <main className={styles.page}>
       <header className={styles.topbar}>
         <div className={styles.brandBlock}>
-          <div className={styles.brandMark}><Layers3 size={20} /></div>
+          <div className={styles.brandMark}>R</div>
           <div>
-            <strong>Platform</strong>
+            <strong>ReDream Systems</strong>
             <span>Operator cockpit</span>
           </div>
         </div>
@@ -527,15 +526,11 @@ export default function PlatformPage() {
           <button
             type="button"
             className={styles.iconButton}
-            aria-label="Refresh platform"
+            aria-label="Refresh ReDream"
             onClick={() => void load(true)}
             disabled={refreshing}
           >
             <RefreshCw size={17} className={refreshing ? styles.spin : ''} />
-          </button>
-          <button type="button" className={styles.workspaceButton} onClick={() => router.push('/djm')}>
-            Open workspace
-            <ArrowUpRight size={15} />
           </button>
           <button type="button" className={styles.iconButton} aria-label="Sign out" onClick={() => void signOut()}>
             <LogOut size={16} />
@@ -546,7 +541,7 @@ export default function PlatformPage() {
       <div className={styles.canvas}>
         <section className={styles.hero}>
           <div>
-            <p className={styles.eyebrow}>COMMERCIAL OPERATING SYSTEM</p>
+            <p className={styles.eyebrow}>REDREAM SYSTEMS</p>
             <h1>Know what needs you before a customer asks.</h1>
             <p className={styles.heroCopy}>
               Trials, onboarding, risk, usage, capacity and expansion in one ranked operating view.
