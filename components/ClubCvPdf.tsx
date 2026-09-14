@@ -28,6 +28,7 @@ import {
 
 type DownloadArgs = {
   profile: any;
+  agency?: any;
   photoUrl?: string | null;
   logoUrl?: string | null;
   filename?: string;
@@ -805,16 +806,116 @@ const styles =
 
 export function ClubCvPdfDocument({
   profile,
+  agency,
   photoUrl,
   logoUrl,
 }: {
   profile: any;
+  agency?: any;
   photoUrl?: string | null;
   logoUrl?: string | null;
 }) {
   const name =
     profile?.display_name ||
-    'DJM Player';
+    'Player';
+
+  const agencyName =
+    String(
+      agency?.display_name ||
+        'Agency',
+    ).trim() || 'Agency';
+
+  const agencyShortName =
+    String(
+      agency?.short_name ||
+        agencyName,
+    ).trim() || agencyName;
+
+  const agencyPortalName =
+    String(
+      agency?.portal_name ||
+        `${agencyShortName} Player`,
+    ).trim() ||
+    `${agencyShortName} Player`;
+
+  const agencyEmail =
+    String(
+      agency?.support_email ||
+        '',
+    ).trim();
+
+  const brandMark =
+    agencyShortName
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(
+        (part: string) =>
+          part[0],
+      )
+      .join('')
+      .slice(0, 3)
+      .toUpperCase() ||
+    'A';
+
+  const cleanBrandColour = (
+    value: unknown,
+    fallback: string,
+  ) => {
+    const colour =
+      String(value || '').trim();
+
+    return /^#[0-9a-f]{6}$/i.test(
+      colour,
+    )
+      ? colour
+      : fallback;
+  };
+
+  const primaryColor =
+    cleanBrandColour(
+      agency?.primary_color,
+      NAVY,
+    );
+
+  const accentColor =
+    cleanBrandColour(
+      agency?.accent_color,
+      YELLOW,
+    );
+
+  const brandStyles =
+    StyleSheet.create({
+      hero: {
+        backgroundColor:
+          primaryColor,
+      },
+      accent: {
+        backgroundColor:
+          accentColor,
+      },
+      accentText: {
+        color: accentColor,
+      },
+      logoFallback: {
+        backgroundColor:
+          accentColor,
+      },
+      logoFallbackText: {
+        color: primaryColor,
+      },
+      primaryText: {
+        color: primaryColor,
+      },
+      primaryBackground: {
+        backgroundColor:
+          primaryColor,
+      },
+      contactEmail: {
+        backgroundColor:
+          accentColor,
+        color: primaryColor,
+      },
+    });
 
   const verified =
     dossierVerifiedDate(
@@ -923,22 +1024,21 @@ export function ClubCvPdfDocument({
     sources.length > 0;
 
   const email =
-    profile?.contact_email ||
-    'jesse.edge@djmsports.com';
+    agencyEmail;
 
   return (
     <Document
-      title={`${name} - DJM Player Dossier`}
-      author="DJM Sports Management"
+      title={`${name} - ${agencyName} Player Dossier`}
+      author={agencyName}
       subject="Professional player dossier"
-      creator="DJM Player"
+      creator={agencyPortalName}
     >
       <Page
         size="A4"
         style={styles.page}
       >
         <View
-          style={styles.hero}
+          style={[styles.hero, brandStyles.hero]}
           wrap={false}
         >
           <View
@@ -960,16 +1060,12 @@ export function ClubCvPdfDocument({
                 />
               ) : (
                 <View
-                  style={
-                    styles.logoFallback
-                  }
+                  style={[styles.logoFallback, brandStyles.logoFallback]}
                 >
                   <Text
-                    style={
-                      styles.logoFallbackText
-                    }
+                    style={[styles.logoFallbackText, brandStyles.logoFallbackText]}
                   >
-                    DJM
+                    {brandMark}
                   </Text>
                 </View>
               )}
@@ -979,7 +1075,7 @@ export function ClubCvPdfDocument({
                   styles.brandName
                 }
               >
-                DJM SPORTS MANAGEMENT
+                {agencyName.toUpperCase()}
               </Text>
             </View>
 
@@ -989,7 +1085,7 @@ export function ClubCvPdfDocument({
               }
             >
               {verified
-                ? `DJM REVIEWED · ${verified.toUpperCase()}`
+                ? `${agencyShortName.toUpperCase()} REVIEWED · ${verified.toUpperCase()}`
                 : 'PLAYER DOSSIER'}
             </Text>
           </View>
@@ -1005,9 +1101,7 @@ export function ClubCvPdfDocument({
               }
             >
               <View
-                style={
-                  styles.yellowLine
-                }
+                style={[styles.yellowLine, brandStyles.accent]}
               />
 
               <Text
@@ -1015,7 +1109,7 @@ export function ClubCvPdfDocument({
                   styles.kickerDark
                 }
               >
-                DJM PLAYER DOSSIER
+                PLAYER DOSSIER
               </Text>
 
               <Text
@@ -1105,7 +1199,7 @@ export function ClubCvPdfDocument({
               {profile?.transfermarkt_url && (
                 <Link
                   src={profile.transfermarkt_url}
-                  style={styles.heroSourceLink}
+                  style={[styles.heroSourceLink, brandStyles.accentText]}
                 >
                   TRANSFERMARKT PROFILE ↗
                 </Link>
@@ -1174,9 +1268,7 @@ export function ClubCvPdfDocument({
                     </Text>
 
                     <Text
-                      style={
-                        styles.factValue
-                      }
+                      style={[styles.factValue, brandStyles.primaryText]}
                     >
                       {clip(
                         value,
@@ -1194,7 +1286,7 @@ export function ClubCvPdfDocument({
             <View style={styles.playerProfile} wrap={false}>
               <View style={styles.playerProfileCopy}>
                 <Text style={styles.kicker}>PLAYER PROFILE</Text>
-                <Text style={styles.roleTitle}>
+                <Text style={[styles.roleTitle, brandStyles.primaryText]}>
                   {clip(profile?.primary_position || 'Professional footballer', 44)}
                 </Text>
                 <Text style={styles.roleMeta}>
@@ -1217,7 +1309,7 @@ export function ClubCvPdfDocument({
                     {clip(
                       profile?.why_review ||
                         profile?.headline ||
-                        'Contact DJM Sports Management for the player profile, current availability and full-match footage.',
+                        `${agencyName} can provide the player profile, current availability and full-match footage.`,
                       330,
                     )}
                   </Text>
@@ -1295,9 +1387,7 @@ export function ClubCvPdfDocument({
                         }
                       >
                         <Text
-                          style={
-                            styles.statValue
-                          }
+                          style={[styles.statValue, brandStyles.primaryText]}
                         >
                           {clip(
                             item.value,
@@ -1393,6 +1483,7 @@ export function ClubCvPdfDocument({
                               <View
                                 style={[
                                   styles.barFill,
+                                  brandStyles.primaryBackground,
                                   {
                                     width:
                                       `${row.visualPercentage}%`,
@@ -1463,7 +1554,7 @@ export function ClubCvPdfDocument({
               styles.footerText
             }
           >
-            DJM SPORTS MANAGEMENT
+            {agencyName.toUpperCase()}
           </Text>
 
           <Text
@@ -1482,9 +1573,7 @@ export function ClubCvPdfDocument({
           style={styles.page}
         >
           <View
-            style={
-              styles.pageTwoHeader
-            }
+            style={[styles.pageTwoHeader, brandStyles.hero]}
           >
             <View
               style={
@@ -1522,7 +1611,7 @@ export function ClubCvPdfDocument({
                   styles.heroVerified
                 }
               >
-                DJM PLAYER DOSSIER
+                PLAYER DOSSIER
               </Text>
             </View>
           </View>
@@ -1550,9 +1639,7 @@ export function ClubCvPdfDocument({
                   </Text>
 
                   <Text
-                    style={
-                      styles.pageTitle
-                    }
+                    style={[styles.pageTitle, brandStyles.primaryText]}
                   >
                     Season by season.
                   </Text>
@@ -1601,9 +1688,7 @@ export function ClubCvPdfDocument({
                         }
                       >
                         <Text
-                          style={
-                            styles.careerSeason
-                          }
+                          style={[styles.careerSeason, brandStyles.primaryText]}
                         >
                           {row.season_label ||
                             row.season ||
@@ -1836,9 +1921,7 @@ export function ClubCvPdfDocument({
                       src={
                         source.url
                       }
-                      style={
-                        styles.sourceLink
-                      }
+                      style={[styles.sourceLink, brandStyles.primaryText]}
                     >
                       {
                         source.label
@@ -1850,9 +1933,7 @@ export function ClubCvPdfDocument({
             )}
 
             <View
-              style={
-                styles.contact
-              }
+              style={[styles.contact, brandStyles.hero]}
               wrap={false}
             >
               <View>
@@ -1861,7 +1942,7 @@ export function ClubCvPdfDocument({
                     styles.contactKicker
                   }
                 >
-                  DJM SPORTS MANAGEMENT
+                  {agencyName.toUpperCase()}
                 </Text>
 
                 <Text
@@ -1872,7 +1953,7 @@ export function ClubCvPdfDocument({
                   Discuss {clip(
                     name,
                     28,
-                  )} with DJM.
+                  )} with {agencyShortName}.
                 </Text>
 
                 <Text
@@ -1893,11 +1974,9 @@ export function ClubCvPdfDocument({
 
               <Link
                 src={`mailto:${email}`}
-                style={
-                  styles.contactEmail
-                }
+                style={[styles.contactEmail, brandStyles.contactEmail]}
               >
-                Contact DJM
+                Contact {agencyShortName}
               </Link>
             </View>
           </View>
@@ -1913,7 +1992,7 @@ export function ClubCvPdfDocument({
                 styles.footerText
               }
             >
-              DJM SPORTS MANAGEMENT
+              {agencyName.toUpperCase()}
             </Text>
 
             <Text
@@ -1934,6 +2013,7 @@ export function ClubCvPdfDocument({
 
 export async function downloadClubCv({
   profile,
+  agency,
   photoUrl,
   logoUrl,
   filename,
@@ -1942,6 +2022,7 @@ export async function downloadClubCv({
   (
     <ClubCvPdfDocument
       profile={profile}
+      agency={agency}
       photoUrl={
         photoUrl || null
       }
@@ -1968,7 +2049,7 @@ const blob =
 
   link.download =
     filename ||
-    `${profile?.display_name || 'DJM-Player'}-DJM-Player-Dossier.pdf`;
+    `${profile?.display_name || 'Player'}-${agency?.short_name || agency?.display_name || 'Agency'}-Player-Dossier.pdf`;
 
   document.body.appendChild(
     link,

@@ -36,12 +36,14 @@ import {
 
 export default function PublicProfile({
   profile,
+  agency,
   documents = [],
   shareToken,
   pitchMessage,
   targetClub,
 }: {
   profile: any;
+  agency?: any;
   documents?: any[];
   shareToken?: string;
   pitchMessage?: string | null;
@@ -66,6 +68,51 @@ export default function PublicProfile({
       </div>
     );
   }
+
+  const agencyName =
+    String(
+      agency?.display_name ||
+        'Agency',
+    ).trim() || 'Agency';
+
+  const agencyShortName =
+    String(
+      agency?.short_name ||
+        agencyName,
+    ).trim() || agencyName;
+
+  const agencyEmail =
+    String(
+      agency?.support_email ||
+        '',
+    ).trim();
+
+  const agencyLogo =
+    agency?.light_logo_asset ||
+    agency?.logo_asset ||
+    agency?.compact_logo_asset ||
+    null;
+
+  const agencyMark =
+    agencyShortName
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(
+        (part: string) =>
+          part[0],
+      )
+      .join('')
+      .slice(0, 3)
+      .toUpperCase();
+
+  const dossierStyle = {
+    '--navy':
+      agency?.primary_color ||
+      '#061f3a',
+    '--yellow':
+      agency?.accent_color ||
+      '#f5e900',
+  } as any;
 
   const photo =
     publicFile(
@@ -133,8 +180,7 @@ export default function PublicProfile({
     null;
 
   const email =
-    profile.contact_email ||
-    'jesse.edge@djmsports.com';
+    agencyEmail;
 
   const nationality =
     dossierNationality(
@@ -220,12 +266,18 @@ export default function PublicProfile({
 
         await downloadClubCv({
           profile,
+          agency,
           photoUrl:
             photo || null,
           logoUrl:
-            `${window.location.origin}/djm-mark.png`,
+            agencyLogo
+              ? new URL(
+                  String(agencyLogo),
+                  window.location.origin,
+                ).toString()
+              : null,
           filename:
-            `${profile.display_name || 'DJM-Player'}-DJM-Player-Dossier.pdf`,
+            `${profile.display_name || 'Player'}-${agencyShortName}-Player-Dossier.pdf`,
         });
       } catch (
         error: any
@@ -282,25 +334,31 @@ export default function PublicProfile({
     };
 
   return (
-    <main className="dossier-root">
+    <main className="dossier-root" style={dossierStyle}>
       <section className="dossier-hero">
         <div className="dossier-container">
           <div className="dossier-top">
             <div className="dossier-brand">
               <span className="dossier-brand-mark">
-                <img
-                  src="/djm-mark.png"
-                  alt=""
-                />
+                {agencyLogo ? (
+                  <img
+                    src={agencyLogo}
+                    alt=""
+                  />
+                ) : (
+                  <span aria-hidden="true">
+                    {agencyMark}
+                  </span>
+                )}
               </span>
 
               <div>
                 <strong>
-                  DJM
+                  {agencyShortName}
                 </strong>
 
                 <span>
-                  SPORTS MANAGEMENT
+                  {agencyName.toUpperCase()}
                 </span>
               </div>
             </div>
@@ -332,7 +390,7 @@ export default function PublicProfile({
               <div className="dossier-accent" />
 
               <div className="dossier-eyebrow">
-                DJM PLAYER DOSSIER
+                PLAYER DOSSIER
               </div>
 
               <h1 className="dossier-name">
@@ -364,7 +422,7 @@ export default function PublicProfile({
                     <ShieldCheck
                       size={13}
                     />
-                    DJM reviewed
+                    {agencyShortName} reviewed
                     {verified
                       ? ` · ${verified}`
                       : ''}
@@ -450,7 +508,7 @@ export default function PublicProfile({
                   <Mail
                     size={16}
                   />
-                  Speak to DJM
+                  Speak to {agencyShortName}
                 </a>
               </div>
             </div>
@@ -555,10 +613,10 @@ export default function PublicProfile({
                 <p>{profile.headline || [profile.primary_position, profile.current_club].filter(Boolean).join(' · ')}</p>
 
                 <div className="dossier-role-facts">
-                  <div><span>Current club</span><strong>{profile.current_club || 'Available through DJM'}</strong></div>
+                  <div><span>Current club</span><strong>{profile.current_club || `Available through ${agencyShortName}`}</strong></div>
                   <div><span>Additional positions</span><strong>{dossierList(profile.secondary_positions).join(' · ') || '-'}</strong></div>
                   <div><span>Preferred foot</span><strong>{profile.preferred_foot || '-'}</strong></div>
-                  <div><span>Status</span><strong>{profile.current_status || 'Contact DJM'}</strong></div>
+                  <div><span>Status</span><strong>{profile.current_status || `Contact ${agencyShortName}`}</strong></div>
                 </div>
 
                 <div className="dossier-position-key">
@@ -581,7 +639,7 @@ export default function PublicProfile({
 
               <div className="dossier-why">
                 {profile.why_review ||
-                  'Contact DJM Sports Management for the player’s current profile and availability information.'}
+                  `${agencyName} can provide the player’s current profile and availability information.`}
               </div>
             </div>
 
@@ -591,8 +649,7 @@ export default function PublicProfile({
               </span>
 
               <strong>
-                DJM Sports
-                Management
+                {agencyName}
               </strong>
 
               <p>
@@ -1065,8 +1122,7 @@ export default function PublicProfile({
                         </strong>
 
                         <span>
-                          Secure DJM
-                          document
+                          {`Secure ${agencyShortName} document`}
                         </span>
                       </div>
 
@@ -1122,7 +1178,7 @@ export default function PublicProfile({
         <div className="dossier-container dossier-contact-inner">
           <div>
             <div className="dossier-contact-kicker">
-              DJM SPORTS MANAGEMENT
+              {agencyName.toUpperCase()}
             </div>
 
             <h2>
@@ -1139,7 +1195,7 @@ export default function PublicProfile({
               financial parameters,
               full-match footage or a
               direct player discussion,
-              speak with DJM.
+              speak with {agencyName}.
             </p>
           </div>
 
@@ -1151,7 +1207,7 @@ export default function PublicProfile({
               size={17}
             />
 
-            Contact DJM
+            Contact {agencyShortName}
           </a>
         </div>
       </section>
@@ -1159,13 +1215,13 @@ export default function PublicProfile({
       <footer className="dossier-footer">
         <div className="dossier-container">
           <strong>
-            DJM SPORTS MANAGEMENT
+            {agencyName.toUpperCase()}
           </strong>
 
           <span>
             {verified
               ? `Player information reviewed ${verified}`
-              : 'Professional player dossier prepared by DJM Sports Management'}
+              : `Professional player dossier prepared by ${agencyName}`}
           </span>
         </div>
       </footer>
