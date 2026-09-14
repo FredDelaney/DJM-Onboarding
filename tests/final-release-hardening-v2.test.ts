@@ -81,9 +81,12 @@ test('club-share metadata privacy fix is reproducible from source control', () =
   assert.match(migration, /'agreement'/);
 });
 
-test('application email deep links default to the stable DJM production domain', () => {
+test('application email deep links resolve from the tenant verified domain', () => {
   const source = read('supabase/functions/dispatch-djm-email/index.ts');
 
-  assert.match(source, /https:\/\/app\.djmsports\.com/);
+  assert.match(source, /platform_server_email_tenant_context/);
+  assert.match(source, /tenantContext\?\.domain\?\.hostname/);
+  assert.match(source, /const deepLink = `https:\/\/\$\{hostname\}\$\{path\}`/);
+  assert.doesNotMatch(source, /https:\/\/app\.djmsports\.com/);
   assert.doesNotMatch(source, /djm-player\.vercel\.app/);
 });

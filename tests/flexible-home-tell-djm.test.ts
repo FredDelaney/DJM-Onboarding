@@ -42,10 +42,13 @@ test('Tell DJM polls faster, surfaces transcript progress and uses routed reason
   assert.match(aiRouter, /reasoning_effort: 'none'/);
 });
 
-test('push delivery groups related task, request and Tell DJM notifications', () => {
-  assert.match(push, /djm-task-\$\{payload\.task_id\}/);
-  assert.match(push, /djm-request-\$\{payload\.request_id\}/);
-  assert.match(push, /djm-tell-\$\{payload\.capture_id\}/);
+test('push delivery groups related notifications without tenant-specific branding', () => {
+  assert.match(push, /task-\$\{payload\.task_id\}/);
+  assert.match(push, /request-\$\{payload\.request_id\}/);
+  assert.match(push, /capture-\$\{payload\.capture_id\}/);
+  assert.doesNotMatch(push, /djm-task-/);
+  assert.doesNotMatch(push, /djm-request-/);
+  assert.doesNotMatch(push, /djm-tell-/);
 });
 
 test('player deletion commits the player row before irreversible account cleanup', () => {

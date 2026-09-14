@@ -58,21 +58,36 @@ test(
 );
 
 test(
-  'unresolved tenant resolution preserves the existing DJM experience',
+  'unresolved tenant resolution fails neutral and feature access fails closed',
   () => {
     assert.match(
       runtime,
-      /slug: 'djm-sports-management'/,
+      /slug: 'unresolved'/,
     );
 
     assert.match(
       runtime,
-      /primary_color: '#061F3A'/,
+      /display_name: 'Workspace'/,
+    );
+
+    assert.match(
+      runtime,
+      /primary_color: '#111827'/,
     );
 
     assert.match(
       provider,
+      /isTenantFeatureEnabled/,
+    );
+
+    assert.doesNotMatch(
+      provider,
       /if \(!runtime\.resolved\) return true/,
+    );
+
+    assert.doesNotMatch(
+      runtime,
+      /DJM_TENANT_RUNTIME/,
     );
   },
 );
