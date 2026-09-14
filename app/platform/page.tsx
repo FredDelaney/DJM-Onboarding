@@ -225,6 +225,7 @@ export default function PlatformPage() {
   const router = useRouter();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [environmentLabel, setEnvironmentLabel] = useState('Environment');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
@@ -283,6 +284,15 @@ export default function PlatformPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const hostname = window.location.hostname.toLowerCase();
+    setEnvironmentLabel(
+      hostname.includes('djm-platform-staging')
+        ? 'Staging'
+        : 'Production',
+    );
+  }, []);
 
   const openCustomer = useCallback(async (tenantId: string) => {
     setSelectedTenantId(tenantId);
@@ -502,7 +512,7 @@ export default function PlatformPage() {
     <main className={styles.page}>
       <header className={styles.topbar}>
         <div className={styles.brandBlock}>
-          <div className={styles.brandMark}>DJM</div>
+          <div className={styles.brandMark}><Layers3 size={20} /></div>
           <div>
             <strong>Platform</strong>
             <span>Operator cockpit</span>
@@ -512,7 +522,7 @@ export default function PlatformPage() {
         <div className={styles.topbarActions}>
           <div className={styles.liveStatus}>
             <span />
-            Production
+            {environmentLabel}
           </div>
           <button
             type="button"
@@ -524,7 +534,7 @@ export default function PlatformPage() {
             <RefreshCw size={17} className={refreshing ? styles.spin : ''} />
           </button>
           <button type="button" className={styles.workspaceButton} onClick={() => router.push('/djm')}>
-            DJM workspace
+            Open workspace
             <ArrowUpRight size={15} />
           </button>
           <button type="button" className={styles.iconButton} aria-label="Sign out" onClick={() => void signOut()}>
