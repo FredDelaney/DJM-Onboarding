@@ -57,6 +57,18 @@ export async function generateMetadata():
   const runtime =
     await getRequestTenantRuntime();
 
+  if (!runtime.resolved) {
+    return {
+      title: 'Workspace unavailable',
+      description:
+        'This domain is not connected to an active workspace.',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
   const isDjm =
     runtime.slug ===
     'djm-sports-management';
@@ -163,7 +175,37 @@ export default async function RootLayout({
         <TenantRuntimeProvider
           runtime={runtime}
         >
-          {children}
+          {runtime.resolved ? (
+            children
+          ) : (
+            <main
+              className="tenant-unresolved-shell"
+              role="main"
+            >
+              <section
+                className="tenant-unresolved-card"
+                aria-labelledby="tenant-unresolved-title"
+              >
+                <p className="tenant-unresolved-eyebrow">
+                  Private workspace
+                </p>
+
+                <h1 id="tenant-unresolved-title">
+                  Workspace unavailable
+                </h1>
+
+                <p>
+                  This domain is not connected to an
+                  active workspace.
+                </p>
+
+                <p className="tenant-unresolved-help">
+                  Check the address or contact the
+                  organisation that sent you this link.
+                </p>
+              </section>
+            </main>
+          )}
         </TenantRuntimeProvider>
       </body>
     </html>

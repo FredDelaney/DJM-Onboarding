@@ -40,22 +40,22 @@ export type TenantRuntime = {
   features: Record<string, TenantFeatureRuntime>;
 };
 
-export const DJM_TENANT_RUNTIME: TenantRuntime = {
+export const UNRESOLVED_TENANT_RUNTIME: TenantRuntime = {
   resolved: false,
-  slug: 'djm-sports-management',
-  tenant_type: 'sports_management',
+  slug: 'unresolved',
+  tenant_type: 'unknown',
   runtime_version: 0,
   branding: {
-    display_name: 'DJM Sports Management',
-    short_name: 'DJM',
-    portal_name: 'DJM Player',
+    display_name: 'Workspace',
+    short_name: null,
+    portal_name: null,
     logo_asset: null,
     compact_logo_asset: null,
     light_logo_asset: null,
     favicon_asset: null,
-    primary_color: '#061F3A',
+    primary_color: '#111827',
     secondary_color: '#FFFFFF',
-    accent_color: '#F5E900',
+    accent_color: '#64748B',
     support_email: null,
     website_url: null,
     phone: null,
@@ -65,18 +65,29 @@ export const DJM_TENANT_RUNTIME: TenantRuntime = {
     domain_type: null,
   },
   plan: {
-    key: 'enterprise',
-    name: 'Enterprise',
-    rank: 40,
+    key: null,
+    name: null,
+    rank: 0,
     limits: {},
   },
   settings: {
     locale: 'en-GB',
-    timezone: 'Europe/Rome',
+    timezone: 'UTC',
     default_currency: 'EUR',
   },
   features: {},
 };
+
+export function isTenantFeatureEnabled(
+  runtime: TenantRuntime,
+  featureKey: string,
+) {
+  return (
+    runtime.resolved &&
+    runtime.features[featureKey]?.enabled ===
+      true
+  );
+}
 
 function asRecord(value: unknown): Record<string, any> {
   return value &&
@@ -155,22 +166,20 @@ function fallbackRuntime(
   hostname: string | null,
 ): TenantRuntime {
   return {
-    ...DJM_TENANT_RUNTIME,
+    ...UNRESOLVED_TENANT_RUNTIME,
     branding: {
-      ...DJM_TENANT_RUNTIME.branding,
+      ...UNRESOLVED_TENANT_RUNTIME.branding,
     },
     domain: {
-      ...DJM_TENANT_RUNTIME.domain,
+      ...UNRESOLVED_TENANT_RUNTIME.domain,
       hostname,
     },
     plan: {
-      ...DJM_TENANT_RUNTIME.plan,
-      limits: {
-        ...DJM_TENANT_RUNTIME.plan.limits,
-      },
+      ...UNRESOLVED_TENANT_RUNTIME.plan,
+      limits: {},
     },
     settings: {
-      ...DJM_TENANT_RUNTIME.settings,
+      ...UNRESOLVED_TENANT_RUNTIME.settings,
     },
     features: {},
   };
@@ -183,6 +192,12 @@ function coerceRuntime(
   const source = asRecord(payload);
 
   if (source.resolved !== true) {
+    return fallbackRuntime(hostname);
+  }
+
+  const slug = cleanString(source.slug);
+
+  if (!slug) {
     return fallbackRuntime(hostname);
   }
 
@@ -204,9 +219,7 @@ function coerceRuntime(
 
   return {
     resolved: true,
-    slug:
-      cleanString(source.slug) ||
-      DJM_TENANT_RUNTIME.slug,
+    slug,
     tenant_type:
       cleanString(source.tenant_type) ||
       'agency',
@@ -231,7 +244,7 @@ function coerceRuntime(
       primary_color:
         cleanColour(
           branding.primary_color,
-          '#061F3A',
+          '#111827',
         ),
       secondary_color:
         cleanColour(
@@ -241,7 +254,7 @@ function coerceRuntime(
       accent_color:
         cleanColour(
           branding.accent_color,
-          '#F5E900',
+          '#64748B',
         ),
       support_email:
         cleanString(branding.support_email),
@@ -273,7 +286,7 @@ function coerceRuntime(
         'en-GB',
       timezone:
         cleanString(settings.timezone) ||
-        'Europe/Rome',
+        'UTC',
       default_currency:
         cleanString(settings.default_currency) ||
         'EUR',

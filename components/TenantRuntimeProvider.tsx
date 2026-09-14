@@ -5,8 +5,9 @@ import {
   useContext,
 } from 'react';
 
-import type {
-  TenantRuntime,
+import {
+  isTenantFeatureEnabled,
+  type TenantRuntime,
 } from '../lib/tenant-runtime';
 
 const TenantRuntimeContext =
@@ -46,16 +47,9 @@ export function useTenantFeature(
 ) {
   const runtime = useTenantRuntime();
 
-  /*
-   * Fail open only for the unresolved DJM fallback.
-   * This preserves the live DJM experience if tenant
-   * resolution is temporarily unavailable.
-   */
-  if (!runtime.resolved) return true;
-
-  return (
-    runtime.features[featureKey]?.enabled ===
-    true
+  return isTenantFeatureEnabled(
+    runtime,
+    featureKey,
   );
 }
 

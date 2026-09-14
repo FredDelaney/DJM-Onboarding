@@ -287,6 +287,29 @@ Deno.serve(async (request) => {
     );
   }
 
+  const slug =
+    safeText(data.slug);
+
+  if (!slug) {
+    console.error(
+      JSON.stringify({
+        operation:
+          "platform_tenant_runtime",
+        hostname,
+        error:
+          "Active tenant runtime is missing a slug",
+      }),
+    );
+
+    return json(
+      {
+        error:
+          "Tenant runtime is incomplete",
+      },
+      500,
+    );
+  }
+
   const branding =
     safeObject(data.branding);
 
@@ -301,8 +324,7 @@ Deno.serve(async (request) => {
 
   return json({
     resolved: true,
-    slug:
-      safeText(data.slug),
+    slug,
     tenant_type:
       safeText(
         data.tenant_type,
@@ -344,7 +366,7 @@ Deno.serve(async (request) => {
       primary_color:
         safeColour(
           branding.primary_color,
-          "#061F3A",
+          "#111827",
         ),
       secondary_color:
         safeColour(
@@ -354,7 +376,7 @@ Deno.serve(async (request) => {
       accent_color:
         safeColour(
           branding.accent_color,
-          "#F5E900",
+          "#64748B",
         ),
       support_email:
         safeText(
