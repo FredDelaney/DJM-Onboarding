@@ -1,0 +1,5 @@
+create index if not exists deal_negotiation_guardrails_deal_room_id_idx on platform.deal_negotiation_guardrails(deal_room_id);
+create index if not exists deal_negotiation_guardrails_created_by_idx on platform.deal_negotiation_guardrails(created_by);
+create index if not exists deal_negotiation_guardrails_updated_by_idx on platform.deal_negotiation_guardrails(updated_by);
+create index if not exists deal_negotiation_guardrails_approved_by_idx on platform.deal_negotiation_guardrails(approved_by);
+create index if not exists player_career_strategies_player_id_idx on platform.player_career_strategies(player_id);;

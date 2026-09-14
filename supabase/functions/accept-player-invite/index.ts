@@ -2,24 +2,21 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const PRIVACY_NOTICE_VERSION = "2026-09-02";
-
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json",
   "Cache-Control": "no-store",
 };
+const reply = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: cors });
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: cors,
-    });
-  }
-
+  if (req.method !== "POST") return reply({ error: "Method not allowed" }, 405);
+  let createdUserId: string | null = null;
   try {
     const {
       token,
@@ -28,38 +25,39 @@ Deno.serve(async (req: Request) => {
       privacy_notice_version,
       privacy_acknowledged,
     } = await req.json();
-
-    const passwordValue = String(password || "");
+    const tokenValue = String(token || "").trim(),
+      emailValue = String(email || "")
+        .trim()
+        .toLowerCase(),
+      passwordValue = String(password || "");
     const strongPassword =
       passwordValue.length >= 12 &&
       /[a-z]/.test(passwordValue) &&
       /[A-Z]/.test(passwordValue) &&
       /\d/.test(passwordValue) &&
       /[^A-Za-z0-9]/.test(passwordValue);
-
-    if (!token || !email || !strongPassword) {
-      return new Response(JSON.stringify({
-        error: "Use at least 12 characters with uppercase, lowercase, a number and a symbol",
-      }), {
-        status: 400,
-        headers: cors,
-      });
-    }
-
+    if (!tokenValue || !emailValue || !strongPassword)
+      return reply(
+        {
+          error:
+            "Use at least 12 characters with uppercase, lowercase, a number and a symbol",
+        },
+        400,
+      );
     if (
       privacy_notice_version !== PRIVACY_NOTICE_VERSION ||
       privacy_acknowledged !== true
-    ) {
-      return new Response(JSON.stringify({
-        error: "Please review and accept the current DJM Player Privacy Notice before continuing",
-      }), {
-        status: 400,
-        headers: cors,
-      });
-    }
+    )
+      return reply(
+        {
+          error:
+            "Please review and accept the current DJM Player Privacy Notice before continuing",
+        },
+        400,
+      );
 
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const url = Deno.env.get("SUPABASE_URL")!,
+      serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -67,84 +65,118 @@ Deno.serve(async (req: Request) => {
     const { data: invite, error: inviteError } = await admin
       .from("player_invites")
       .select("id,email,status,expires_at,player_id")
-      .eq("token", token)
+      .eq("token", tokenValue)
       .maybeSingle();
-
     if (
       inviteError ||
       !invite ||
       invite.status !== "pending" ||
       new Date(invite.expires_at).getTime() <= Date.now() ||
-      invite.email.toLowerCase() !== String(email).toLowerCase()
-    ) {
-      return new Response(JSON.stringify({ error: "This DJM invitation is no longer valid" }), {
-        status: 400,
-        headers: cors,
-      });
-    }
+      invite.email.toLowerCase() !== emailValue
+    )
+      return reply({ error: "This invitation is no longer valid" }, 400);
 
-    const { data: player } = await admin
+    const { data: player, error: playerError } = await admin
       .from("players")
-      .select("first_name,last_name,preferred_name")
+      .select("id,tenant_id,first_name,last_name,preferred_name,user_id")
       .eq("id", invite.player_id)
       .maybeSingle();
+    if (playerError || !player)
+      return reply({ error: "The invited player record is unavailable" }, 400);
+    if (player.user_id)
+      return reply(
+        {
+          error:
+            "This player account is already linked. Please sign in instead.",
+        },
+        409,
+      );
 
-    const fullName =
-      [player?.first_name, player?.last_name].filter(Boolean).join(" ").trim() ||
-      player?.preferred_name?.trim() ||
-      "DJM Player";
+    const { data: recover, error: recoverError } = await admin.rpc(
+      "platform_server_recoverable_invite_auth_user",
+      { p_token: tokenValue, p_email: emailValue },
+    );
+    if (recoverError) throw recoverError;
+    let userId: string | null = recover?.recoverable
+      ? String(recover.user_id || "")
+      : null;
 
-    const acknowledgedAt = new Date().toISOString();
-
-    const { data, error } = await admin.auth.admin.createUser({
-      email: invite.email,
-      password: passwordValue,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-        invite_token: token,
-        privacy_notice_version: PRIVACY_NOTICE_VERSION,
-        privacy_acknowledged: true,
-        privacy_notice_acknowledged_at: acknowledgedAt,
-      },
-    });
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: cors,
-      });
+    if (!userId) {
+      const fullName =
+        [player.first_name, player.last_name]
+          .filter(Boolean)
+          .join(" ")
+          .trim() ||
+        player.preferred_name?.trim() ||
+        "Player";
+      const acknowledgedAt = new Date().toISOString();
+      const { data: userData, error: userError } =
+        await admin.auth.admin.createUser({
+          email: emailValue,
+          password: passwordValue,
+          email_confirm: true,
+          user_metadata: {
+            full_name: fullName,
+            invite_token: tokenValue,
+            invited_player_id: player.id,
+            invited_tenant_id: player.tenant_id,
+            privacy_notice_version: PRIVACY_NOTICE_VERSION,
+            privacy_acknowledged: true,
+            privacy_notice_acknowledged_at: acknowledgedAt,
+          },
+        });
+      if (userError || !userData.user)
+        return reply(
+          { error: userError?.message || "Unable to create player account" },
+          400,
+        );
+      userId = userData.user.id;
+      createdUserId = userId;
     }
 
-    const { error: auditError } = await admin.from("audit_events").insert({
-      actor_id: data.user?.id || null,
-      action: "privacy_notice_acknowledged",
-      entity_type: "players",
-      entity_id: invite.player_id,
-      metadata: {
-        version: PRIVACY_NOTICE_VERSION,
-        acknowledged_at: acknowledgedAt,
+    const acceptedAt = new Date().toISOString();
+    // Privacy acceptance and audit_events are persisted transactionally by
+    // platform_server_complete_player_invite_acceptance.
+    const { data: completion, error: completionError } = await admin.rpc(
+      "platform_server_complete_player_invite_acceptance",
+      {
+        p_token: tokenValue,
+        p_email: emailValue,
+        p_user_id: userId,
+        p_notice_version: PRIVACY_NOTICE_VERSION,
+        p_accepted_at: acceptedAt,
       },
-    });
-
-    if (auditError) {
-      console.error("privacy notice audit write failed", auditError.message);
+    );
+    if (completionError) {
+      if (createdUserId) {
+        const cleanup = await admin.auth.admin.deleteUser(createdUserId);
+        if (cleanup.error)
+          console.error("orphan auth cleanup failed", cleanup.error.message);
+        createdUserId = null;
+      }
+      return reply(
+        {
+          error:
+            "Unable to finish player account setup. No partial player account has been retained.",
+        },
+        500,
+      );
     }
 
-    return new Response(JSON.stringify({
+    createdUserId = null;
+    return reply({
       ok: true,
-      user_id: data.user?.id,
+      user_id: userId,
+      tenant_id: completion?.tenant_id,
+      player_id: completion?.player_id,
       privacy_notice_version: PRIVACY_NOTICE_VERSION,
-    }), {
-      status: 200,
-      headers: cors,
+      recovered_existing_invite_account: Boolean(recover?.recoverable),
     });
   } catch (e) {
-    return new Response(
-      JSON.stringify({
-        error: e instanceof Error ? e.message : "Unable to accept invitation",
-      }),
-      { status: 500, headers: cors },
+    console.error("accept-player-invite", e);
+    return reply(
+      { error: e instanceof Error ? e.message : "Unable to accept invitation" },
+      500,
     );
   }
 });
