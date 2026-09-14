@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
       return reply(
         {
           error:
-            "Please review and accept the current DJM Player Privacy Notice before continuing",
+            "Please review and accept the current Privacy Notice before continuing",
         },
         400,
       );

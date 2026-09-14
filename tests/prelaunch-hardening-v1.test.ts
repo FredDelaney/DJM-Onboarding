@@ -6,7 +6,7 @@ test('join requires the current privacy notice before account activation', () =>
   const join = readFileSync('app/join/[token]/page.tsx', 'utf8');
   const accept = readFileSync('supabase/functions/accept-player-invite/index.ts', 'utf8');
 
-  assert.match(join, /PRIVACY_NOTICE_VERSION = '2026-09-02'/);
+  assert.match(join, /PRIVACY_NOTICE_VERSION\s*=\s*["']2026-09-02["']/);
   assert.match(join, /privacyAccepted/);
   assert.match(join, /href="\/privacy"/);
   assert.match(join, /privacy_notice_version:/);
