@@ -1,0 +1,10 @@
+{
+  "name": "ReDream Systems",
+  "short_name": "ReDream",
+  "description": "The operating system behind modern football agencies.",
+  "start_url": "/platform",
+  "scope": "/platform",
+  "display": "standalone",
+  "background_color": "#f7f7f8",
+  "theme_color": "#18131f"
+}

@@ -206,7 +206,7 @@ const titleCase = (value?: string | null) =>
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const actionLabel = (value?: string | null) =>
-  value ? ACTION_LABELS[value] || titleCase(value) : 'Monitor customer';
+  value ? ACTION_LABELS[value] || titleCase(value) : 'Monitor agency';
 
 const healthTone = (band?: string | null) => {
   if (band === 'critical') return styles.critical;
@@ -285,6 +285,14 @@ export default function PlatformPage() {
   }, [load]);
 
   useEffect(() => {
+    const configuredEnvironment =
+      process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT?.trim();
+
+    if (configuredEnvironment) {
+      setEnvironmentLabel(configuredEnvironment);
+      return;
+    }
+
     const hostname = window.location.hostname.toLowerCase();
     setEnvironmentLabel(
       hostname.includes('staging') || hostname.includes('localhost')
@@ -542,9 +550,9 @@ export default function PlatformPage() {
         <section className={styles.hero}>
           <div>
             <p className={styles.eyebrow}>REDREAM SYSTEMS</p>
-            <h1>Know what needs you before a customer asks.</h1>
+            <h1>Know which agency needs attention before they ask.</h1>
             <p className={styles.heroCopy}>
-              Trials, onboarding, risk, usage, capacity and expansion in one ranked operating view.
+              Trials, onboarding, risk, adoption and expansion in one ranked operating view.
             </p>
           </div>
 
@@ -579,7 +587,7 @@ export default function PlatformPage() {
             icon={<CircleDollarSign size={17} />}
             label="Contracted MRR"
             value={compactMoney(summary.contracted_mrr_cents || 0, currency)}
-            note={`${summary.live_customers || 0} live customer${summary.live_customers === 1 ? '' : 's'}`}
+            note={`${summary.live_customers || 0} live agenc${summary.live_customers === 1 ? 'y' : 'ies'}`}
           />
           <Metric
             icon={<Clock3 size={17} />}
@@ -592,7 +600,7 @@ export default function PlatformPage() {
             icon={<AlertTriangle size={17} />}
             label="At risk"
             value={String(summary.at_risk_customers || 0)}
-            note={`${summary.customers_needing_action || 0} customer${summary.customers_needing_action === 1 ? '' : 's'} need action`}
+            note={`${summary.customers_needing_action || 0} agenc${summary.customers_needing_action === 1 ? 'y' : 'ies'} need action`}
             attention={Boolean(summary.at_risk_customers)}
           />
           <Metric
@@ -603,9 +611,9 @@ export default function PlatformPage() {
           />
           <Metric
             icon={<Zap size={17} />}
-            label="AI cost, 30d"
+            label="AI spend, 30d"
             value={money(Math.round((summary.ai_cost_micros_30d || 0) / 10000), 'USD')}
-            note={`${summary.external_customers || 0} external tenant${summary.external_customers === 1 ? '' : 's'}`}
+            note={`${summary.external_customers || 0} external agenc${summary.external_customers === 1 ? 'y' : 'ies'}`}
           />
         </section>
 
@@ -643,8 +651,8 @@ export default function PlatformPage() {
               {!portfolio?.agenda?.length ? (
                 <div className={styles.clearState}>
                   <ShieldCheck size={21} />
-                  <strong>No urgent customer action</strong>
-                  <span>The portfolio has no external customer currently below the action threshold.</span>
+                  <strong>No urgent agency action</strong>
+                  <span>The portfolio has no external agency currently below the action threshold.</span>
                 </div>
               ) : null}
             </div>
@@ -654,14 +662,14 @@ export default function PlatformPage() {
             <div className={styles.panelHeading}>
               <div>
                 <p className={styles.eyebrow}>PORTFOLIO SIGNAL</p>
-                <h2>Customer base</h2>
+                <h2>Agency portfolio</h2>
               </div>
               <Gauge size={18} />
             </div>
 
             <div className={styles.signalStack}>
               <Signal
-                label="External customers"
+                label="External agencies"
                 value={summary.external_customers || 0}
                 max={Math.max(summary.total_tenants || 1, 1)}
               />
@@ -695,7 +703,7 @@ export default function PlatformPage() {
         <section className={styles.customersSection}>
           <div className={styles.sectionHeading}>
             <div>
-              <p className={styles.eyebrow}>CUSTOMERS</p>
+              <p className={styles.eyebrow}>AGENCIES</p>
               <h2>Agency portfolio</h2>
             </div>
 
@@ -709,7 +717,7 @@ export default function PlatformPage() {
                 />
               </label>
 
-              <div className={styles.filters} role="tablist" aria-label="Customer filters">
+              <div className={styles.filters} role="tablist" aria-label="Agency filters">
                 {[
                   ['all', 'All'],
                   ['attention', 'Needs action'],
@@ -783,7 +791,7 @@ export default function PlatformPage() {
               <div className={styles.emptyCustomers}>
                 <Building2 size={23} />
                 <strong>No agencies match this view</strong>
-                <span>Change the filter or create a new customer.</span>
+                <span>Change the filter or create a new agency.</span>
               </div>
             ) : null}
           </div>
@@ -801,7 +809,7 @@ export default function PlatformPage() {
           >
             <div className={styles.modalHeader}>
               <div>
-                <p className={styles.eyebrow}>NEW CUSTOMER</p>
+                <p className={styles.eyebrow}>NEW AGENCY</p>
                 <h2>Launch an agency</h2>
                 <p>Provision the workspace, commercial plan and brand in one operation.</p>
               </div>
