@@ -168,6 +168,18 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,platform_role:adminRecord.role,invite});
     }
 
+    if(action==="mark_owner_invite_sent"){
+      const inviteId=text(body?.invite_id);
+      const channel=text(body?.channel).toLowerCase()||"link";
+      if(!inviteId) return json({error:"invite_id is required"},400);
+      const invite=await rpc("platform_server_operator_mark_owner_invite_sent",{
+        p_invite_id:inviteId,
+        p_actor_user_id:userId,
+        p_channel:channel
+      });
+      return json({ok:true,platform_role:adminRecord.role,invite});
+    }
+
     if(action==="set_onboarding_task"){
       const tenantId=text(body?.tenant_id);const taskKey=text(body?.task_key);const status=text(body?.status).toLowerCase();
       if(!tenantId||!taskKey||!status) return json({error:"tenant_id, task_key and status are required"},400);

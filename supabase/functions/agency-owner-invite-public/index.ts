@@ -8,10 +8,16 @@ const cors = {
   "Content-Type": "application/json",
   "Cache-Control": "no-store",
 };
-const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: cors });
+const reply = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: cors });
 const tokenPattern = /^[0-9a-f]{64}$/i;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const strongPassword = (value: string) => value.length >= 12 && /[a-z]/.test(value) && /[A-Z]/.test(value) && /\d/.test(value) && /[^A-Za-z0-9]/.test(value);
+const strongPassword = (value: string) =>
+  value.length >= 12 &&
+  /[a-z]/.test(value) &&
+  /[A-Z]/.test(value) &&
+  /\d/.test(value) &&
+  /[^A-Za-z0-9]/.test(value);
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -29,9 +35,17 @@ Deno.serve(async (req: Request) => {
     const url = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !serviceKey) return reply({ error: "Service unavailable" }, 500);
-    const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+    const admin = createClient(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
-    const { data: invite, error: inviteError } = await admin.rpc("platform_server_public_owner_invite_preflight", { p_token: token });
+    const preflightRpc =
+      action === "preflight"
+        ? "platform_server_public_owner_invite_open"
+        : "platform_server_public_owner_invite_preflight";
+    const { data: invite, error: inviteError } = await admin.rpc(preflightRpc, {
+      p_token: token,
+    });
     if (inviteError) {
       console.error("agency-owner-invite-public preflight", inviteError.message);
       return reply({ error: "Unable to validate invitation" }, 500);
@@ -44,13 +58,27 @@ Deno.serve(async (req: Request) => {
     const email = String(body?.email || "").trim().toLowerCase();
     const password = String(body?.password || "");
     const fullName = String(body?.full_name || "").trim().replace(/\s+/g, " ");
-    if (!emailPattern.test(email) || email !== String(invite.email || "").toLowerCase()) return reply({ error: "Invitation email does not match" }, 400);
-    if (!strongPassword(password)) return reply({ error: "Use at least 12 characters with uppercase, lowercase, a number and a symbol" }, 400);
-    if (fullName.length < 2 || fullName.length > 120) return reply({ error: "Enter your full name" }, 400);
+    if (!emailPattern.test(email) || email !== String(invite.email || "").toLowerCase()) {
+      return reply({ error: "Invitation email does not match" }, 400);
+    }
+    if (!strongPassword(password)) {
+      return reply({ error: "Use at least 12 characters with uppercase, lowercase, a number and a symbol" }, 400);
+    }
+    if (fullName.length < 2 || fullName.length > 120) {
+      return reply({ error: "Enter your full name" }, 400);
+    }
 
-    const { data: existingId, error: existingError } = await admin.rpc("platform_server_find_auth_user_by_email", { p_email: email });
+    const { data: existingId, error: existingError } = await admin.rpc(
+      "platform_server_find_auth_user_by_email",
+      { p_email: email },
+    );
     if (existingError) throw existingError;
-    if (existingId) return reply({ error: "An account already exists for this email. Sign in to accept the agency invitation.", account_exists: true }, 409);
+    if (existingId) {
+      return reply({
+        error: "An account already exists for this email. Sign in to accept the agency invitation.",
+        account_exists: true,
+      }, 409);
+    }
 
     let createdUserId: string | null = null;
     try {
@@ -64,15 +92,20 @@ Deno.serve(async (req: Request) => {
           invited_tenant_id: invite?.tenant?.id || null,
         },
       });
-      if (userError || !userData.user) return reply({ error: userError?.message || "Unable to create account" }, 400);
+      if (userError || !userData.user) {
+        return reply({ error: userError?.message || "Unable to create account" }, 400);
+      }
       createdUserId = userData.user.id;
 
-      const { data: completion, error: completionError } = await admin.rpc("platform_server_complete_owner_invite", {
-        p_token: token,
-        p_email: email,
-        p_user_id: createdUserId,
-        p_accepted_at: new Date().toISOString(),
-      });
+      const { data: completion, error: completionError } = await admin.rpc(
+        "platform_server_complete_owner_invite",
+        {
+          p_token: token,
+          p_email: email,
+          p_user_id: createdUserId,
+          p_accepted_at: new Date().toISOString(),
+        },
+      );
       if (completionError) throw completionError;
       createdUserId = null;
       return reply({ ok: true, account_created: true, workspace: completion });

@@ -5,7 +5,7 @@ import test from 'node:test';
 const read = (path: string) => readFileSync(path, 'utf8');
 
 test('agency owner invitations store only hashed tokens and keep RPCs server-only', () => {
-  const migration = read('supabase/migrations/20260915082000_add_secure_agency_owner_invites_v1.sql');
+  const migration = read('supabase/migrations/20260915081449_add_secure_agency_owner_invites_v1.sql');
 
   assert.match(migration, /token_hash text not null unique/);
   assert.match(migration, /extensions\.digest\(v_token, 'sha256'\)/);
