@@ -1,0 +1,397 @@
+.card {
+  margin-top: 10px;
+  padding: 17px;
+  border: 1px solid rgba(10, 10, 12, 0.065);
+  border-radius: 17px;
+  background:
+    linear-gradient(180deg, rgba(23, 121, 78, 0.035), transparent 120px),
+    #fff;
+}
+
+.heading,
+.progressMeta,
+.interventionTop,
+.privacyControl,
+.privacyControl > div,
+.formActions,
+.operatorMove {
+  display: flex;
+  align-items: center;
+}
+
+.heading {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.heading p {
+  margin: 0 0 5px;
+  color: #93969d;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.heading h3 {
+  margin: 0;
+  color: #25292f;
+  font-size: 16px;
+}
+
+.status {
+  min-height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.status strong {
+  font-size: 11px;
+}
+
+.ready {
+  background: #eef8f1;
+  color: #23734a;
+}
+
+.blocked {
+  background: #fff6e8;
+  color: #8a5a0a;
+}
+
+.progress {
+  height: 6px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eceef1;
+}
+
+.progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3e6b55, #69a27f);
+  transition: width 180ms ease;
+}
+
+.progressMeta {
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 7px;
+  color: #8a8e94;
+  font-size: 8px;
+}
+
+.hostname {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  max-width: 55%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intervention {
+  margin-top: 13px;
+  padding: 12px;
+  border: 1px solid rgba(110, 86, 32, 0.09);
+  border-radius: 13px;
+  background: #fffbf3;
+}
+
+.interventionTop {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.interventionTop span,
+.interventionTop small {
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.interventionTop span {
+  color: #7c5b15;
+}
+
+.interventionTop small {
+  color: #aaa08d;
+}
+
+.intervention > strong {
+  display: block;
+  margin-top: 8px;
+  color: #322c24;
+  font-size: 12px;
+}
+
+.intervention > p {
+  margin: 4px 0 0;
+  color: #827665;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.operatorMove {
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 9px;
+  color: #5f5548;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.arrowMark {
+  flex: 0 0 auto;
+  color: #6e5620;
+  font-weight: 900;
+}
+
+.gates {
+  margin-top: 11px;
+  display: grid;
+  gap: 5px;
+}
+
+.gate {
+  min-height: 47px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(10, 10, 12, 0.05);
+  border-radius: 11px;
+  background: #fafbfb;
+}
+
+.gateMark {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(10, 10, 12, 0.09);
+  border-radius: 7px;
+  color: transparent;
+}
+
+.gateComplete {
+  border-color: rgba(35, 116, 74, 0.15);
+  background: #eef8f1;
+  color: #23744a;
+}
+
+.gate > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.gate strong {
+  color: #44484e;
+  font-size: 9px;
+}
+
+.gate small {
+  overflow: hidden;
+  color: #95989e;
+  font-size: 8px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gate em {
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: #f1f3f5;
+  color: #7c8086;
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.privacyControl {
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(10, 10, 12, 0.06);
+}
+
+.privacyControl > div {
+  min-width: 0;
+  gap: 8px;
+}
+
+.privacyControl > div > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.privacyControl strong {
+  color: #454950;
+  font-size: 9px;
+}
+
+.privacyControl small {
+  overflow: hidden;
+  color: #94979d;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.privacyIcon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: #f3f4f6;
+  color: #5d6269;
+}
+
+.privacyControl > button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid rgba(10, 10, 12, 0.08);
+  border-radius: 9px;
+  background: #fff;
+  color: #4a4f55;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.privacyForm {
+  margin-top: 10px;
+  padding: 11px;
+  border-radius: 12px;
+  background: #f7f8f9;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.formGrid label {
+  display: grid;
+  gap: 5px;
+}
+
+.formGrid label > span {
+  color: #777b82;
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.formGrid input {
+  width: 100%;
+  height: 37px;
+  padding: 0 9px;
+  border: 1px solid rgba(10, 10, 12, 0.08);
+  border-radius: 9px;
+  outline: 0;
+  background: #fff;
+  color: #25292f;
+  font-size: 9px;
+}
+
+.formGrid input:focus {
+  border-color: rgba(86, 71, 118, 0.35);
+  box-shadow: 0 0 0 3px rgba(124, 108, 242, 0.08);
+}
+
+.fullField {
+  grid-column: 1 / -1;
+}
+
+.legalBoundary {
+  margin-top: 9px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #888c92;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.legalBoundary svg {
+  flex: 0 0 auto;
+  color: #4d7b5f;
+}
+
+.formActions {
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.formActions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6c647a;
+  font-size: 8px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.formActions button {
+  min-height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 9px;
+  background: #18131f;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.formActions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 520px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fullField {
+    grid-column: auto;
+  }
+
+  .gate {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .gate em {
+    grid-column: 2;
+    width: fit-content;
+  }
+}

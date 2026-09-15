@@ -35,6 +35,11 @@ import AgencyActivationCard, {
   type OwnerInvite,
   type OwnerInviteLink,
 } from './AgencyActivationCard';
+import AgencyGoLiveCard, {
+  type GoLiveReadiness,
+  type OperatorIntervention,
+  type PrivacyReadiness,
+} from './AgencyGoLiveCard';
 
 import styles from './platform.module.css';
 
@@ -83,6 +88,8 @@ type Customer = {
     ai_events_30d?: number | null;
   } | null;
   activation_journey?: ActivationJourney | null;
+  go_live_readiness?: GoLiveReadiness | null;
+  operator_intervention?: OperatorIntervention | null;
   capacity?: {
     staff_pct?: number | null;
     player_pct?: number | null;
@@ -118,6 +125,11 @@ type Portfolio = {
     customers_needing_action?: number;
     first_value_ready?: number;
     activation_score_avg?: number;
+    launch_ready?: number;
+    launch_blocked?: number;
+    launch_readiness_avg?: number;
+    redream_actions?: number;
+    customer_actions?: number;
   };
   agenda: Customer[];
   customers: Customer[];
@@ -129,6 +141,9 @@ type CustomerDetail = {
   lifecycle?: Record<string, any> | null;
   plan?: Record<string, any> | null;
   activation_journey?: ActivationJourney | null;
+  go_live_readiness?: GoLiveReadiness | null;
+  operator_intervention?: OperatorIntervention | null;
+  privacy_readiness?: PrivacyReadiness | null;
   owner_invites?: OwnerInvite[];
   domains?: Array<Record<string, any>>;
   onboarding_tasks?: Array<Record<string, any>>;
@@ -242,7 +257,7 @@ export default function PlatformPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'attention' | 'trials' | 'risk' | 'expansion'>('all');
+  const [filter, setFilter] = useState<'all' | 'attention' | 'launch' | 'trials' | 'risk' | 'expansion'>('all');
 
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CustomerDetail | null>(null);
@@ -354,6 +369,8 @@ export default function PlatformPage() {
           customer.plan_name,
           customer.stage,
           customer.next_action,
+          customer.operator_intervention?.label,
+          customer.operator_intervention?.why,
           ...(customer.risk_flags || []),
           ...(customer.expansion_signals || []),
         ]
@@ -363,7 +380,8 @@ export default function PlatformPage() {
           .includes(q);
 
       if (!matchesSearch) return false;
-      if (filter === 'attention') return Number(customer.action_priority ?? 999) < 80 && customer.stage !== 'internal';
+      if (filter === 'attention') return Number(customer.operator_intervention?.priority ?? 999) < 90 && customer.stage !== 'internal';
+      if (filter === 'launch') return customer.stage !== 'internal' && customer.go_live_readiness?.ready === false;
       if (filter === 'trials') return customer.stage === 'trial';
       if (filter === 'risk') return ['risk', 'critical'].includes(String(customer.health_band));
       if (filter === 'expansion') return Boolean(customer.expansion_signals?.length);
@@ -571,9 +589,9 @@ export default function PlatformPage() {
         <section className={styles.hero}>
           <div>
             <p className={styles.eyebrow}>REDREAM SYSTEMS</p>
-            <h1>Know which agency needs attention before they ask.</h1>
+            <h1>Know what blocks launch, value and revenue before the agency asks.</h1>
             <p className={styles.heroCopy}>
-              Trials, onboarding, risk, adoption and expansion in one ranked operating view.
+              ReDream separates launch readiness, working value and commercial intervention so you always know who should act next.
             </p>
           </div>
 
@@ -611,11 +629,11 @@ export default function PlatformPage() {
             note={`${summary.live_customers || 0} live agenc${summary.live_customers === 1 ? 'y' : 'ies'}`}
           />
           <Metric
-            icon={<Clock3 size={17} />}
-            label="Active trials"
-            value={String(summary.active_trials || 0)}
-            note={`${summary.trials_expiring_7d || 0} expiring within 7 days`}
-            attention={Boolean(summary.trials_expiring_7d)}
+            icon={<ShieldCheck size={17} />}
+            label="Launch ready"
+            value={`${summary.launch_ready || 0}/${summary.external_customers || 0}`}
+            note={`Average readiness ${summary.launch_readiness_avg || 0}%`}
+            attention={Boolean(summary.launch_blocked)}
           />
           <Metric
             icon={<AlertTriangle size={17} />}
@@ -626,9 +644,10 @@ export default function PlatformPage() {
           />
           <Metric
             icon={<TrendingUp size={17} />}
-            label="Expansion"
-            value={String(summary.expansion_candidates || 0)}
-            note={`${summary.onboarding_customers || 0} onboarding now`}
+            label="Needs ReDream"
+            value={String(summary.redream_actions || 0)}
+            note={`${summary.customer_actions || 0} waiting on agency action`}
+            attention={Boolean(summary.redream_actions)}
           />
           <Metric
             icon={<Gauge size={17} />}
@@ -664,11 +683,11 @@ export default function PlatformPage() {
                   <span className={styles.agendaRank}>{String(index + 1).padStart(2, '0')}</span>
                   <div className={styles.agendaIdentity}>
                     <strong>{customer.display_name}</strong>
-                    <span>{actionLabel(customer.next_action)}</span>
+                    <span>{customer.operator_intervention?.label || actionLabel(customer.next_action)}</span>
                   </div>
                   <div className={styles.agendaSignal}>
                     <span className={`${styles.healthDot} ${healthTone(customer.health_band)}`} />
-                    {customer.health_score ?? '-'}
+                    {customer.operator_intervention?.responsible_party === 'agency_owner' ? 'Agency' : 'ReDream'}
                   </div>
                   <ChevronRight size={16} />
                 </button>
@@ -700,18 +719,18 @@ export default function PlatformPage() {
                 max={Math.max(summary.total_tenants || 1, 1)}
               />
               <Signal
+                label="Launch ready"
+                value={summary.launch_ready || 0}
+                max={Math.max(summary.external_customers || 1, 1)}
+              />
+              <Signal
+                label="First value reached"
+                value={summary.first_value_ready || 0}
+                max={Math.max(summary.external_customers || 1, 1)}
+              />
+              <Signal
                 label="Live"
                 value={summary.live_customers || 0}
-                max={Math.max(summary.external_customers || 1, 1)}
-              />
-              <Signal
-                label="Onboarding"
-                value={summary.onboarding_customers || 0}
-                max={Math.max(summary.external_customers || 1, 1)}
-              />
-              <Signal
-                label="Expansion-ready"
-                value={summary.expansion_candidates || 0}
                 max={Math.max(summary.external_customers || 1, 1)}
               />
             </div>
@@ -719,8 +738,8 @@ export default function PlatformPage() {
             <div className={styles.signalFooter}>
               <Activity size={16} />
               <div>
-                <strong>{summary.customers_needing_action || 0} requiring operator attention</strong>
-                <span>Ranked automatically from health, urgency, adoption, onboarding and commercial signals.</span>
+                <strong>{summary.redream_actions || 0} need ReDream · {summary.customer_actions || 0} wait on the agency</strong>
+                <span>Ranked from launch blockers, first value, trial urgency, incidents and revenue impact.</span>
               </div>
             </div>
           </article>
@@ -747,6 +766,7 @@ export default function PlatformPage() {
                 {[
                   ['all', 'All'],
                   ['attention', 'Needs action'],
+                  ['launch', 'Launch blocked'],
                   ['trials', 'Trials'],
                   ['risk', 'Risk'],
                   ['expansion', 'Expansion'],
@@ -790,11 +810,11 @@ export default function PlatformPage() {
                 </div>
 
                 <div className={styles.customerProgress}>
-                  <span>Onboarding</span>
+                  <span>Launch readiness</span>
                   <div>
-                    <i style={{ width: `${Math.max(0, Math.min(100, customer.onboarding?.progress_pct || 0))}%` }} />
+                    <i style={{ width: `${Math.max(0, Math.min(100, customer.go_live_readiness?.readiness_pct || 0))}%` }} />
                   </div>
-                  <strong>{customer.onboarding?.progress_pct ?? 0}%</strong>
+                  <strong>{customer.go_live_readiness?.readiness_pct ?? 0}%</strong>
                 </div>
 
                 <div className={styles.activationMini}>
@@ -813,8 +833,8 @@ export default function PlatformPage() {
                 </div>
 
                 <div className={styles.nextAction}>
-                  <span>Next move</span>
-                  <strong>{actionLabel(customer.next_action)}</strong>
+                  <span>{customer.operator_intervention?.responsible_party === 'agency_owner' ? 'Agency to act' : 'Next intervention'}</span>
+                  <strong>{customer.operator_intervention?.label || actionLabel(customer.next_action)}</strong>
                 </div>
 
                 <ScoreRing score={customer.health_score || 0} band={customer.health_band} />
@@ -1048,11 +1068,8 @@ export default function PlatformPage() {
                 <div className={styles.detailStats}>
                   <DetailStat label="Stage" value={titleCase(detail.lifecycle?.stage || detail.tenant?.status)} />
                   <DetailStat label="Plan" value={titleCase(detail.plan?.plan_key || 'None')} />
-                  <DetailStat
-                    label="Onboarding"
-                    value={`${detail.onboarding_tasks?.filter((task) => task.status === 'complete').length || 0}/${detail.onboarding_tasks?.filter((task) => task.required).length || 0}`}
-                  />
-                  <DetailStat label="Members" value={String(detail.memberships?.filter((member) => member.status === 'active').length || 0)} />
+                  <DetailStat label="Launch" value={`${detail.go_live_readiness?.readiness_pct || 0}%`} />
+                  <DetailStat label="First value" value={detail.activation_journey?.first_value_ready ? 'Reached' : 'Not yet'} />
                 </div>
 
                 <section className={styles.drawerSection}>
@@ -1108,6 +1125,23 @@ export default function PlatformPage() {
                   </div>
                 </section>
 
+                <AgencyGoLiveCard
+                  tenantId={selectedTenantId}
+                  agencyName={detail?.branding?.display_name || detail?.tenant?.legal_name || 'Agency'}
+                  internal={detail?.lifecycle?.stage === 'internal'}
+                  readiness={detail.go_live_readiness}
+                  intervention={detail.operator_intervention}
+                  privacy={detail.privacy_readiness}
+                  onRefresh={async () => {
+                    await Promise.all([
+                      openCustomer(selectedTenantId),
+                      load(true),
+                    ]);
+                  }}
+                  onNotice={setNotice}
+                  onError={setError}
+                />
+
                 <AgencyActivationCard
                   tenantId={selectedTenantId}
                   ownerEmail={
@@ -1149,25 +1183,21 @@ export default function PlatformPage() {
 
                   <div className={styles.taskList}>
                     {(detail.onboarding_tasks || []).map((task) => {
-                      const complete = task.status === 'complete';
-                      const busy = detailBusy === `task:${task.task_key}`;
+                      const complete = ['complete', 'waived'].includes(String(task.status));
                       return (
-                        <button
-                          type="button"
+                        <div
                           key={task.task_key}
                           className={`${styles.taskRow} ${complete ? styles.taskComplete : ''}`}
-                          onClick={() => void updateOnboardingTask(task.task_key, complete ? 'pending' : 'complete')}
-                          disabled={busy}
                         >
                           <span className={styles.taskCheck}>
-                            {busy ? <LoaderCircle size={14} className={styles.spin} /> : complete ? <Check size={14} /> : null}
+                            {complete ? <Check size={14} /> : null}
                           </span>
                           <div>
                             <strong>{task.title}</strong>
-                            <span>{task.description || (task.required ? 'Required activation step' : 'Optional')}</span>
+                            <span>{task.description || (task.required ? 'Required setup evidence' : 'Optional')}</span>
                           </div>
-                          {task.required ? <small>Required</small> : null}
-                        </button>
+                          <small>{complete ? 'Observed' : task.required ? 'Required' : titleCase(task.status)}</small>
+                        </div>
                       );
                     })}
                   </div>
