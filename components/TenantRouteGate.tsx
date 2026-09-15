@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 export function TenantRouteGate({
@@ -11,9 +12,26 @@ export function TenantRouteGate({
   fallback: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
   const isPlatformControlPlane =
     pathname === '/platform' ||
     pathname.startsWith('/platform/');
+
+  const isReDreamControlPlane = Boolean(
+    process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT,
+  );
+
+  const shouldRedirectReDreamRoot =
+    isReDreamControlPlane && pathname === '/';
+
+  useEffect(() => {
+    if (shouldRedirectReDreamRoot) {
+      router.replace('/platform');
+    }
+  }, [router, shouldRedirectReDreamRoot]);
+
+  if (shouldRedirectReDreamRoot) return null;
 
   return <>{isPlatformControlPlane ? children : fallback}</>;
 }

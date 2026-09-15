@@ -18,6 +18,12 @@ test(
     );
     assert.match(
       gate,
+      /process\.env\.NEXT_PUBLIC_REDREAM_ENVIRONMENT/,
+    );
+    assert.match(gate, /pathname === '\/'/);
+    assert.match(gate, /router\.replace\('\/platform'\)/);
+    assert.match(
+      gate,
       /isPlatformControlPlane \? children : fallback/,
     );
   },
