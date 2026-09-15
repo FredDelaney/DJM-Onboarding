@@ -26,6 +26,7 @@ import {
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
 import { djmInvoke, friendlyError, relativeDate } from '@/lib/djm-os';
 import { supabase } from '@/lib/supabase';
+import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -117,6 +118,7 @@ export default function AgencyOperatingWorkspace() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [proposal, setProposal] = useState<any>(null);
+  const [rosterImportOpen, setRosterImportOpen] = useState(false);
 
   const workspaceName =
     workspace?.display_name ||
@@ -468,18 +470,32 @@ export default function AgencyOperatingWorkspace() {
             </p>
             <h1>{view === 'home' ? 'Today' : human(view)}</h1>
           </div>
-          <button
-            type="button"
-            className={styles.refresh}
-            onClick={() => void loadView()}
-            disabled={busy}
-          >
-            <RefreshCw
-              size={15}
-              className={busy ? styles.spin : ''}
-            />
-            Refresh
-          </button>
+          <div className={styles.headActions}>
+            {view === 'home' &&
+            ['owner', 'admin', 'operations'].includes(
+              workspace.role,
+            ) ? (
+              <button
+                type="button"
+                className={styles.refresh}
+                onClick={() => setRosterImportOpen(true)}
+              >
+                Import roster
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={styles.refresh}
+              onClick={() => void loadView()}
+              disabled={busy}
+            >
+              <RefreshCw
+                size={15}
+                className={busy ? styles.spin : ''}
+              />
+              Refresh
+            </button>
+          </div>
         </header>
 
         {error ? <ErrorBox text={error} /> : null}
@@ -508,6 +524,17 @@ export default function AgencyOperatingWorkspace() {
           </>
         ) : null}
       </main>
+
+      {rosterImportOpen ? (
+        <AgencyRosterMigrationPanel
+          workspaceName={workspaceName}
+          invoke={invoke}
+          onClose={() => setRosterImportOpen(false)}
+          onImported={async () => {
+            await loadView();
+          }}
+        />
+      ) : null}
 
       {proposal ? (
         <div className={styles.modalBackdrop}>
