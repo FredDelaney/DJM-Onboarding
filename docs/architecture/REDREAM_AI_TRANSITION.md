@@ -79,7 +79,7 @@ Existing mobile recording controls, safe-area padding, dynamic viewport sizing, 
 
 ## Validation
 
-- `npm run check`: 419 tests, 419 passed, 0 failed; TypeScript passed; Next.js production build passed.
+- `npm run check`: 423 tests, 423 passed, 0 failed; TypeScript passed; Next.js production build passed.
 - 31 real embedded PostgreSQL tests cover dual membership, tenant permission differences, foreign history/receipt/retry/question/undo/delete denial, raw UUID denial, nested entity/alias validation, capture-bound vocabulary/resolution, one-tap entity creation, unlinked writes, scouting writes, matcher isolation, revoked membership, worker grants, legacy wrappers, link recovery, activation evidence and successful central AI ledger writes.
 - Offline tests cover saved origin, older records, custom-domain/runtime routing, active-record immutability, legacy storage recovery and upload request construction.
 - Compatibility tests cover shared Edge handlers, neutral core UI, conditional DJM branding, old persistence/processing, and safe return/deep-link paths.
@@ -145,3 +145,11 @@ Receipt reads now retain the RPC error code, so denied/expired-session responses
 Capture owns abort controllers for its receipt reads. Closing Capture or changing workspaces cancels requests and delay timers, suppresses late results, and prevents completed background uploads from starting a new poll on an unmounted screen. The controller identity check preserves correct behaviour during React effect remounts. This reduces avoidable network reads without changing worker execution.
 
 The full page now observes query changes as well as workspace changes, so opening a different capture URL in the same workspace updates the selected receipt. Four behavioural tests verify immediate access-denial termination, late-result suppression, transient-error recovery and cancellation of a long delay. Existing route tests verify reactive query handling. Hosted session expiry and mobile navigation remain part of the staging canary.
+
+## Failed-save recovery refinement
+
+Voice and text use one save routine that distinguishes uploaded, locally queued and unsaved states. If browser storage fails, an online upload can still succeed. If both fail, the component keeps the exact pending draft, including its recording Blob, capture ID and immutable workspace, in memory and offers Try saving again. It prevents new capture submission and keeps close/navigation guards active until local or server persistence succeeds.
+
+Locally queued text is cleared from the editor after durable persistence, avoiding a second capture when the user resubmits a note already queued. The unsaved state uses a warning icon and explicitly states that closing the browser would lose the in-memory note. This is an honest last-resort recovery path, not a claim that memory survives a tab or browser crash.
+
+Four behavioural tests cover local failure with online success, network failure after local success, combined failure followed by a same-ID/same-workspace voice retry, and offline persistence failure. Source contracts also verify that the retry button and navigation guards remain connected to the retained draft. Real-device storage quota and microphone testing remain in the staging canary.

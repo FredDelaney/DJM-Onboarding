@@ -1,5 +1,6 @@
 'use client';
 
+import { saveAiDraft } from '@/lib/ai-draft-save';
 import { pollCaptureReceipt } from '@/lib/capture-polling';
 import { flushAiQueue, uploadAiCaptureOnce } from '@/lib/ai-upload-queue';
 
@@ -138,6 +139,7 @@ export default function AiCapture({
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [unsavedDraft, setUnsavedDraft] = useState<PendingAiCapture | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [answering, setAnswering] = useState<string | null>(null);
   const [deletingCapture, setDeletingCapture] = useState(false);
@@ -154,8 +156,8 @@ export default function AiCapture({
   const displayCaptureRef = useRef<string | null>(null);
 
   useEffect(() => {
-    onUnsafeToCloseChange?.(recording || busy);
-  }, [busy, onUnsafeToCloseChange, recording]);
+    onUnsafeToCloseChange?.(recording || busy || Boolean(unsavedDraft));
+  }, [busy, onUnsafeToCloseChange, recording, unsavedDraft]);
 
   useEffect(() => {
     displayCaptureRef.current = null;
@@ -329,7 +331,7 @@ export default function AiCapture({
   }, [flushPending, pollReceipt]);
 
   useEffect(() => {
-    const unsafe = recording || busy;
+    const unsafe = recording || busy || Boolean(unsavedDraft);
     if (!unsafe) return;
 
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -357,7 +359,7 @@ export default function AiCapture({
       window.removeEventListener('beforeunload', beforeUnload);
       document.removeEventListener('click', guardLinks, true);
     };
-  }, [busy, recording]);
+  }, [busy, recording, unsavedDraft]);
 
   const stopTracks = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -369,6 +371,31 @@ export default function AiCapture({
   };
 
   useEffect(() => () => stopTracks(), []);
+
+  const persistDraft = async (pending: PendingAiCapture) => {
+    setUnsavedDraft(pending);
+    setBusy(true);
+    setError('');
+    setReceipt(null);
+    setStatus('Saving your note...');
+    const result = await saveAiDraft(pending, {
+      saveLocal: savePendingAiCapture,
+      upload: uploadPending,
+      online: () => navigator.onLine,
+    });
+    setBusy(false);
+    if (result.state === 'unsaved') {
+      setStatus('Not saved yet. Keep this screen open, reconnect and try saving again.');
+      setError(result.error ? friendlyError(result.error) : 'This browser could not store the note.');
+      return;
+    }
+    setUnsavedDraft(null);
+    setText('');
+    if (result.state === 'queued') {
+      setStatus('Saved on this phone. ReDream will retry automatically when connected.');
+      if (result.error) setError(friendlyError(result.error));
+    }
+  };
 
   const submitBlob = async (blob: Blob, durationSeconds: number) => {
     const id = crypto.randomUUID();
@@ -387,49 +414,11 @@ export default function AiCapture({
       parentCaptureId: null,
     };
 
-    setBusy(true);
-    setError('');
-    setReceipt(null);
-    setStatus('Saving your note...');
-
-    let locallySaved = false;
-    try {
-      try {
-        await savePendingAiCapture(pending);
-        locallySaved = true;
-      } catch {
-        locallySaved = false;
-      }
-
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        setBusy(false);
-        if (!locallySaved) {
-          throw new Error(
-            'You are offline and this browser could not safely store the voice note. Reconnect before closing this screen.',
-          );
-        }
-        setStatus(
-          'Saved on this phone. ReDream will upload it when you are back online.',
-        );
-        return;
-      }
-
-      setStatus('Transcribing...');
-      await uploadPending(pending);
-      setBusy(false);
-    } catch (uploadError) {
-      setBusy(false);
-      setStatus(
-        locallySaved
-          ? 'Saved on this phone. ReDream will retry automatically.'
-          : 'ReDream could not safely save this note. Keep this screen open and retry when connected.',
-      );
-      setError(friendlyError(uploadError));
-    }
+    await persistDraft(pending);
   };
 
   const startRecording = async () => {
-    if (recording || busy) return;
+    if (recording || busy || unsavedDraft) return;
 
     setError('');
     setReceipt(null);
@@ -504,7 +493,7 @@ export default function AiCapture({
   };
 
   const submitText = async () => {
-    if (!text.trim() || busy) return;
+    if (!text.trim() || busy || unsavedDraft) return;
 
     const id = crypto.randomUUID();
     const pending: PendingAiCapture = {
@@ -522,46 +511,7 @@ export default function AiCapture({
       parentCaptureId: null,
     };
 
-    setBusy(true);
-    setReceipt(null);
-    setError('');
-    setStatus('Safely saving this to ReDream...');
-
-    let locallySaved = false;
-    try {
-      try {
-        await savePendingAiCapture(pending);
-        locallySaved = true;
-      } catch {
-        locallySaved = false;
-      }
-
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        setBusy(false);
-        if (!locallySaved) {
-          throw new Error(
-            'You are offline and this browser could not safely store the note. Reconnect before closing this screen.',
-          );
-        }
-        setStatus(
-          'Saved on this phone. ReDream will upload it when you are back online.',
-        );
-        setText('');
-        return;
-      }
-
-      await uploadPending(pending);
-      setBusy(false);
-      setText('');
-    } catch (submitError) {
-      setBusy(false);
-      setStatus(
-        locallySaved
-          ? 'Saved on this phone. ReDream will retry automatically.'
-          : 'ReDream could not safely save this note. Keep this screen open and retry when connected.',
-      );
-      setError(friendlyError(submitError));
-    }
+    await persistDraft(pending);
   };
 
   const answerQuestion = async (
@@ -714,7 +664,7 @@ export default function AiCapture({
               type="button"
               className={recording ? styles.micRecording : styles.mic}
               onClick={recording ? stopRecording : startRecording}
-              disabled={busy}
+              disabled={busy || Boolean(unsavedDraft)}
               aria-label={recording ? 'Finish recording' : 'Start recording'}
             >
               {recording ? (
@@ -742,6 +692,7 @@ export default function AiCapture({
           <div className={styles.textPanel}>
             <textarea
               autoFocus
+              disabled={busy || Boolean(unsavedDraft)}
               value={text}
               onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                 setText(event.target.value)
@@ -752,7 +703,7 @@ export default function AiCapture({
               type="button"
               className={styles.primary}
               onClick={() => void submitText()}
-              disabled={busy || !text.trim()}
+              disabled={busy || Boolean(unsavedDraft) || !text.trim()}
             >
               <Send size={14} />
               {busy ? 'Saving...' : 'Capture'}
@@ -765,7 +716,7 @@ export default function AiCapture({
             type="button"
             className={styles.secondary}
             onClick={() => setMode(mode === 'voice' ? 'text' : 'voice')}
-            disabled={recording || busy}
+            disabled={recording || busy || Boolean(unsavedDraft)}
           >
             {mode === 'voice' ? <Type size={14} /> : <Mic size={14} />}
             {mode === 'voice' ? 'Type instead' : 'Use voice'}
@@ -785,6 +736,8 @@ export default function AiCapture({
             <WifiOff size={14} />
           ) : busy ? (
             <LoaderCircle size={14} />
+          ) : unsavedDraft ? (
+            <AlertTriangle size={14} />
           ) : (
             <CheckCircle2 size={14} />
           )}
@@ -796,6 +749,15 @@ export default function AiCapture({
         <div className={styles.status} role="alert">
           <AlertTriangle size={14} />
           {error}
+        </div>
+      ) : null}
+
+      {unsavedDraft && !busy ? (
+        <div className={styles.status}>
+          <span>Your note is still in this screen. It will be lost if the browser closes before saving.</span>
+          <button type="button" className={styles.primary} onClick={() => void persistDraft(unsavedDraft)}>
+            Try saving again
+          </button>
         </div>
       ) : null}
 

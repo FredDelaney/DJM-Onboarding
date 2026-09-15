@@ -38,8 +38,11 @@ test('voice capture uses browser recording with runtime MIME detection', () => {
 
 test('offline capture is persisted before claiming it is safe', () => {
   assert.match(offline, /indexedDB\.open/);
-  assert.match(capture, /let locallySaved = false/);
-  assert.match(capture, /if \(!locallySaved\)/);
+  const draftSave = readFileSync('lib/ai-draft-save.ts', 'utf8');
+  assert.match(draftSave, /let locallySaved = false/);
+  assert.match(draftSave, /locallySaved \? 'queued' : 'unsaved'/);
+  assert.match(capture, /persistDraft\(unsavedDraft\)/);
+  assert.match(capture, /recording \|\| busy \|\| Boolean\(unsavedDraft\)/);
   assert.match(capture, /Saved on this phone/);
   assert.match(capture, /window\.addEventListener\('online'/);
 });
@@ -290,7 +293,7 @@ test('safely uploaded captures survive refresh and reconnect to their receipt', 
 });
 
 test('server acknowledgement releases navigation while AI continues in background', () => {
-  assert.match(capture, /await uploadPending\(pending\);\n      setBusy\(false\)/);
+  assert.match(capture, /await saveAiDraft\(pending,[\s\S]*?setBusy\(false\)/);
   assert.doesNotMatch(capture, /setBusy\(true\);\n        setStatus\('Got it\. ReDream is finishing/);
   assert.match(capture, /You can close this screen/);
 });
