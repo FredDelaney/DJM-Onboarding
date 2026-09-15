@@ -22,9 +22,18 @@ test(
     );
     assert.match(gate, /pathname === '\/'/);
     assert.match(gate, /router\.replace\('\/platform'\)/);
+    assert.ok(
+      gate.includes('isPlatformControlPlane || isAgencyActivationRoute'),
+    );
+    assert.ok(
+      gate.includes("pathname === '/activate'"),
+    );
+    assert.ok(
+      gate.includes("pathname.startsWith('/activate/')"),
+    );
     assert.match(
       gate,
-      /isPlatformControlPlane \? children : fallback/,
+      /\? children\s*:\s*fallback/,
     );
   },
 );

@@ -338,15 +338,17 @@ export default function AgencyOwnerJoinPage() {
             workspace is now isolated to this organisation.
           </p>
 
-          {workspace.hostname ? (
+          {workspace.tenant_slug ? (
             <button
               type="button"
               className={styles.primaryButton}
               onClick={() =>
-                window.location.assign(`https://${workspace.hostname}`)
+                window.location.assign(
+                  `/activate/${encodeURIComponent(workspace.tenant_slug || '')}`,
+                )
               }
             >
-              Open {portalName}
+              Continue to {portalName}
               <ArrowRight size={17} />
             </button>
           ) : (
@@ -355,8 +357,8 @@ export default function AgencyOwnerJoinPage() {
               <div>
                 <strong>Owner access is complete</strong>
                 <span>
-                  Your agency address is still being connected. You can close
-                  this page safely.
+                  Your agency setup route could not be resolved. Contact the
+                  organisation that sent this invitation.
                 </span>
               </div>
             </div>

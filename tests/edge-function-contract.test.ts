@@ -19,6 +19,7 @@ test("every deployed Edge Function has source and explicit JWT configuration", (
   assert.deepEqual(functionNames, [
     "accept-player-invite",
     "agency-adoption",
+    "agency-launch",
     "agency-market",
     "agency-os",
     "agency-owner-invite",

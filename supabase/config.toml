@@ -118,3 +118,6 @@ verify_jwt = true
 
 [functions.agency-privacy]
 verify_jwt = true
+
+[functions.agency-launch]
+verify_jwt = true
