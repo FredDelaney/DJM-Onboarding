@@ -61,6 +61,18 @@ type Plan = {
   metadata?: Record<string, unknown> | null;
 };
 
+type CustomerAttention = {
+  requires_action?: boolean | null;
+  state?: string | null;
+  sort_rank?: number | null;
+  source?: string | null;
+  label?: string | null;
+  why_now?: string | null;
+  responsible_party?: string | null;
+  due_at?: string | null;
+  waiting_until?: string | null;
+};
+
 type Customer = {
   tenant_id: string;
   slug: string;
@@ -93,6 +105,7 @@ type Customer = {
   activation_journey?: ActivationJourney | null;
   go_live_readiness?: GoLiveReadiness | null;
   operator_intervention?: OperatorIntervention | null;
+  attention?: CustomerAttention | null;
   capacity?: {
     staff_pct?: number | null;
     player_pct?: number | null;
@@ -133,6 +146,11 @@ type Portfolio = {
     launch_readiness_avg?: number;
     redream_actions?: number;
     customer_actions?: number;
+    due_now?: number;
+    followups_due?: number;
+    trials_urgent?: number;
+    stalled_activation?: number;
+    waiting_on_agency?: number;
   };
   agenda: Customer[];
   customers: Customer[];
@@ -147,6 +165,7 @@ type CustomerDetail = {
   go_live_readiness?: GoLiveReadiness | null;
   operator_intervention?: OperatorIntervention | null;
   intervention_orchestration?: InterventionOrchestration | null;
+  attention?: CustomerAttention | null;
   privacy_readiness?: PrivacyReadiness | null;
   owner_invites?: OwnerInvite[];
   domains?: Array<Record<string, any>>;
@@ -237,6 +256,21 @@ const titleCase = (value?: string | null) =>
 
 const actionLabel = (value?: string | null) =>
   value ? ACTION_LABELS[value] || titleCase(value) : 'Monitor agency';
+
+const attentionBadge = (state?: string | null) => {
+  if (state === 'overdue') return 'OVERDUE';
+  if (state === 'today') return 'TODAY';
+  if (state === 'soon') return 'SOON';
+  if (state === 'stalled') return 'STALLED';
+  return 'NOW';
+};
+
+const attentionTone = (state?: string | null) => {
+  if (state === 'overdue') return styles.agendaUrgent;
+  if (state === 'today' || state === 'soon') return styles.agendaSoon;
+  if (state === 'stalled') return styles.agendaStalled;
+  return styles.agendaNow;
+};
 
 const healthTone = (band?: string | null) => {
   if (band === 'critical') return styles.critical;
@@ -375,6 +409,8 @@ export default function PlatformPage() {
           customer.next_action,
           customer.operator_intervention?.label,
           customer.operator_intervention?.why,
+          customer.attention?.label,
+          customer.attention?.why_now,
           ...(customer.risk_flags || []),
           ...(customer.expansion_signals || []),
         ]
@@ -384,7 +420,7 @@ export default function PlatformPage() {
           .includes(q);
 
       if (!matchesSearch) return false;
-      if (filter === 'attention') return Number(customer.operator_intervention?.priority ?? 999) < 90 && customer.stage !== 'internal';
+      if (filter === 'attention') return customer.stage !== 'internal' && customer.attention?.requires_action === true;
       if (filter === 'launch') return customer.stage !== 'internal' && customer.go_live_readiness?.ready === false;
       if (filter === 'trials') return customer.stage === 'trial';
       if (filter === 'risk') return ['risk', 'critical'].includes(String(customer.health_band));
@@ -647,11 +683,11 @@ export default function PlatformPage() {
             attention={Boolean(summary.at_risk_customers)}
           />
           <Metric
-            icon={<TrendingUp size={17} />}
-            label="Needs ReDream"
-            value={String(summary.redream_actions || 0)}
-            note={`${summary.customer_actions || 0} waiting on agency action`}
-            attention={Boolean(summary.redream_actions)}
+            icon={<Clock3 size={17} />}
+            label="Due now"
+            value={String(summary.due_now || 0)}
+            note={`${summary.followups_due || 0} follow-ups due · ${summary.trials_urgent || 0} urgent trials`}
+            attention={Boolean(summary.due_now)}
           />
           <Metric
             icon={<Gauge size={17} />}
@@ -684,14 +720,18 @@ export default function PlatformPage() {
                   key={customer.tenant_id}
                   onClick={() => void openCustomer(customer.tenant_id)}
                 >
-                  <span className={styles.agendaRank}>{String(index + 1).padStart(2, '0')}</span>
+                  <span
+                    className={`${styles.agendaRank} ${attentionTone(customer.attention?.state)}`}
+                  >
+                    {attentionBadge(customer.attention?.state)}
+                  </span>
                   <div className={styles.agendaIdentity}>
-                    <strong>{customer.display_name}</strong>
-                    <span>{customer.operator_intervention?.label || actionLabel(customer.next_action)}</span>
+                    <strong>{customer.display_name} · {customer.attention?.label || customer.operator_intervention?.label || actionLabel(customer.next_action)}</strong>
+                    <span>{customer.attention?.why_now || customer.operator_intervention?.why || actionLabel(customer.next_action)}</span>
                   </div>
                   <div className={styles.agendaSignal}>
                     <span className={`${styles.healthDot} ${healthTone(customer.health_band)}`} />
-                    {customer.operator_intervention?.responsible_party === 'agency_owner' ? 'Agency' : 'ReDream'}
+                    {customer.attention?.responsible_party === 'agency_owner' ? 'Agency' : 'ReDream'}
                   </div>
                   <ChevronRight size={16} />
                 </button>
@@ -742,8 +782,8 @@ export default function PlatformPage() {
             <div className={styles.signalFooter}>
               <Activity size={16} />
               <div>
-                <strong>{summary.redream_actions || 0} need ReDream · {summary.customer_actions || 0} wait on the agency</strong>
-                <span>Ranked from launch blockers, first value, trial urgency, incidents and revenue impact.</span>
+                <strong>{summary.due_now || 0} due now · {summary.waiting_on_agency || 0} deliberately waiting</strong>
+                <span>Ranked from explicit follow-ups, trial deadlines, owner-invite timing and observed activation progress.</span>
               </div>
             </div>
           </article>
@@ -837,8 +877,8 @@ export default function PlatformPage() {
                 </div>
 
                 <div className={styles.nextAction}>
-                  <span>{customer.operator_intervention?.responsible_party === 'agency_owner' ? 'Agency to act' : 'Next intervention'}</span>
-                  <strong>{customer.operator_intervention?.label || actionLabel(customer.next_action)}</strong>
+                  <span>{customer.attention?.requires_action ? 'Due now' : customer.attention?.state === 'waiting' ? 'Waiting on agency' : 'Next intervention'}</span>
+                  <strong>{customer.attention?.label || customer.operator_intervention?.label || actionLabel(customer.next_action)}</strong>
                 </div>
 
                 <ScoreRing score={customer.health_score || 0} band={customer.health_band} />
