@@ -83,12 +83,22 @@ export default {fetch:async(req:Request)=>{
         if(Object.keys(lifecycleUpdates).length>2) await rpc("platform_server_operator_update_customer",lifecycleUpdates);
       }
 
+      let ownerInvite:unknown=null;
+      if(tenantId&&ownerEmail&&!ownerUserId){
+        ownerInvite=await rpc("platform_server_operator_create_owner_invite",{
+          p_tenant_id:tenantId,
+          p_email:ownerEmail,
+          p_actor_user_id:userId,
+          p_expires_hours:clamp(body?.owner_invite_hours,1,720,168)
+        });
+      }
+
       return json({
         ok:true,
         platform_role:adminRecord.role,
         customer,
-        owner:{email:ownerEmail||null,user_id:ownerUserId,attached:Boolean(ownerUserId),invite_required:Boolean(ownerEmail&&!ownerUserId)},
-        next_action:ownerEmail&&!ownerUserId?"Verify the customer hostname, then invite the owner from the operator console.":"Continue onboarding."
+        owner:{email:ownerEmail||null,user_id:ownerUserId,attached:Boolean(ownerUserId),invite_required:Boolean(ownerEmail&&!ownerUserId),invite:ownerInvite},
+        next_action:ownerInvite?"Send the owner invitation and continue onboarding.":"Continue onboarding."
       },201);
     }
 
@@ -135,8 +145,27 @@ export default {fetch:async(req:Request)=>{
       const tenantId=text(body?.tenant_id);const email=text(body?.email).toLowerCase();
       if(!tenantId||!email) return json({error:"tenant_id and email are required"},400);
       const existing=await rpc("platform_server_find_auth_user_by_email",{p_email:email});
-      if(!existing) return json({error:"No account exists for this email yet","owner_invite_required":true,email},409);
+      if(!existing) return json({error:"No account exists for this email yet",owner_invite_required:true,email},409);
       return json({ok:true,platform_role:adminRecord.role,owner:await rpc("platform_server_operator_attach_owner",{p_tenant_id:tenantId,p_user_id:String(existing),p_actor_user_id:userId})});
+    }
+
+    if(action==="create_owner_invite"){
+      const tenantId=text(body?.tenant_id);const email=text(body?.email).toLowerCase();
+      if(!tenantId||!email) return json({error:"tenant_id and email are required"},400);
+      const invite=await rpc("platform_server_operator_create_owner_invite",{
+        p_tenant_id:tenantId,
+        p_email:email,
+        p_actor_user_id:userId,
+        p_expires_hours:clamp(body?.expires_hours,1,720,168)
+      });
+      return json({ok:true,platform_role:adminRecord.role,invite});
+    }
+
+    if(action==="revoke_owner_invite"){
+      const inviteId=text(body?.invite_id);
+      if(!inviteId) return json({error:"invite_id is required"},400);
+      const invite=await rpc("platform_server_operator_revoke_owner_invite",{p_invite_id:inviteId,p_actor_user_id:userId});
+      return json({ok:true,platform_role:adminRecord.role,invite});
     }
 
     if(action==="set_onboarding_task"){

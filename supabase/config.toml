@@ -109,3 +109,9 @@ verify_jwt = false
 
 [functions.player-invite-public]
 verify_jwt = false
+
+[functions.agency-owner-invite-public]
+verify_jwt = false
+
+[functions.agency-owner-invite]
+verify_jwt = true

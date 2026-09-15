@@ -21,6 +21,8 @@ test("every deployed Edge Function has source and explicit JWT configuration", (
     "agency-adoption",
     "agency-market",
     "agency-os",
+    "agency-owner-invite",
+    "agency-owner-invite-public",
     "club-document",
     "club-pitch-response",
     "club-share-public",
