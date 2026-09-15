@@ -15,6 +15,10 @@ test('agency owner activation is white-label and supports new and existing accou
   assert.match(join, /--agency-primary/);
   assert.doesNotMatch(join, /DJM Player|DJM Sports|ReDream Systems/);
   assert.doesNotMatch(layout, /DJM Player|DJM Sports|ReDream Systems/);
+  assert.match(layout, /appleWebApp/);
+  assert.match(layout, /title: 'Agency Workspace'/);
+  assert.match(layout, /export const viewport: Viewport/);
+  assert.match(layout, /themeColor: '#111827'/);
 });
 
 test('owner activation never persists the readable invite token in browser storage', () => {
