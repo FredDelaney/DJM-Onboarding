@@ -141,6 +141,24 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,platform_role:adminRecord.role,branding:await rpc("platform_server_operator_update_branding",{p_tenant_id:tenantId,p_actor_user_id:userId,p_branding:obj(body?.branding)})});
     }
 
+    if(action==="update_privacy_profile"){
+      const tenantId=text(body?.tenant_id);
+      const controllerName=text(body?.controller_name);
+      const noticeUrl=text(body?.privacy_notice_url);
+      const noticeVersion=text(body?.notice_version);
+      if(!tenantId||!controllerName||!noticeUrl||!noticeVersion) return json({error:"tenant_id, controller_name, privacy_notice_url and notice_version are required"},400);
+      const privacy=await rpc("platform_server_operator_update_privacy_profile",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_controller_name:controllerName,
+        p_privacy_contact_email:text(body?.privacy_contact_email).toLowerCase()||null,
+        p_privacy_notice_url:noticeUrl,
+        p_notice_version:noticeVersion,
+        p_effective_at:text(body?.effective_at)||null
+      });
+      return json({ok:true,platform_role:adminRecord.role,privacy});
+    }
+
     if(action==="attach_owner_by_email"){
       const tenantId=text(body?.tenant_id);const email=text(body?.email).toLowerCase();
       if(!tenantId||!email) return json({error:"tenant_id and email are required"},400);

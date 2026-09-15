@@ -115,3 +115,6 @@ verify_jwt = false
 
 [functions.agency-owner-invite]
 verify_jwt = true
+
+[functions.agency-privacy]
+verify_jwt = true
