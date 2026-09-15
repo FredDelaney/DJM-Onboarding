@@ -333,7 +333,7 @@ test('pending local notes retry while the app remains open and connected', () =>
   assert.match(capture, /window\.setInterval/);
   assert.match(capture, /60_000/);
   assert.match(capture, /document\.visibilityState === 'visible'/);
-  assert.match(capture, /pending\.slice\(0, 20\)/);
+  assert.match(capture, /flushAiQueue\(listPendingAiCaptures/);
 });
 
 

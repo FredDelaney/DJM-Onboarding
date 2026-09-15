@@ -1,5 +1,7 @@
 'use client';
 
+import { flushAiQueue, uploadAiCaptureOnce } from '@/lib/ai-upload-queue';
+
 import { pendingAiWorkspace } from '@/lib/ai-workspace';
 import { useAiWorkspaceContext } from './useAiWorkspace';
 
@@ -245,37 +247,41 @@ export default function AiCapture({
 
   const uploadPending = useCallback(
     async (pending: PendingAiCapture, showReceipt = true) => {
-      const form = new FormData();
-      form.append('client_capture_id', pending.id);
-      form.append('channel', pending.channel);
-      const pendingWorkspace = pendingAiWorkspace(pending);
-      if (pendingWorkspace != null) form.append('workspace_slug', pendingWorkspace);
-      form.append('context_json', JSON.stringify(pending.context || {}));
-      if (pending.text.trim()) form.append('text', pending.text.trim());
-      if (pending.parentCaptureId) {
-        form.append('parent_capture_id', pending.parentCaptureId);
-      }
-      if (pending.durationSeconds != null) {
-        form.append('duration_seconds', String(pending.durationSeconds));
-      }
-      if (pending.blob) {
-        const file = new File(
-          [pending.blob],
-          pending.fileName || `ai-capture-${pending.id}.webm`,
-          { type: pending.mimeType || pending.blob.type || 'audio/webm' },
-        );
-        form.append('file', file);
-      }
+      const captureId = await uploadAiCaptureOnce(pending.id, async () => {
+        const form = new FormData();
+        form.append('client_capture_id', pending.id);
+        form.append('channel', pending.channel);
+        const pendingWorkspace = pendingAiWorkspace(pending);
+        if (pendingWorkspace != null) form.append('workspace_slug', pendingWorkspace);
+        form.append('context_json', JSON.stringify(pending.context || {}));
+        if (pending.text.trim()) form.append('text', pending.text.trim());
+        if (pending.parentCaptureId) {
+          form.append('parent_capture_id', pending.parentCaptureId);
+        }
+        if (pending.durationSeconds != null) {
+          form.append('duration_seconds', String(pending.durationSeconds));
+        }
+        if (pending.blob) {
+          const file = new File(
+            [pending.blob],
+            pending.fileName || `ai-capture-${pending.id}.webm`,
+            { type: pending.mimeType || pending.blob.type || 'audio/webm' },
+          );
+          form.append('file', file);
+        }
 
-      const result: any = await platformInvoke('redream-ai-capture', form);
-      if (!result?.capture_id) {
-        throw new Error('Your update could not be confirmed. Please try again.');
-      }
+        const result: any = await platformInvoke('redream-ai-capture', form);
+        if (!result?.capture_id) {
+          throw new Error('Your update could not be confirmed. Please try again.');
+        }
 
-      rememberActiveAiCapture(result.capture_id, pendingWorkspace, pending.workspace);
-      await removePendingAiCapture(pending.id).catch(() => undefined);
-      if (showReceipt && pendingWorkspace === workspaceSlug) void pollReceipt(result.capture_id, true);
-      return result.capture_id as string;
+        rememberActiveAiCapture(result.capture_id, pendingWorkspace, pending.workspace);
+        await removePendingAiCapture(pending.id).catch(() => undefined);
+        return result.capture_id as string;
+      });
+      // Each caller may open its own receipt even when the upload was shared.
+      if (showReceipt && pendingAiWorkspace(pending) === workspaceSlug) void pollReceipt(captureId, true);
+      return captureId;
     },
     [pollReceipt, workspaceSlug],
   );
@@ -283,21 +289,12 @@ export default function AiCapture({
   const flushPending = useCallback(async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
-    let pending: PendingAiCapture[] = [];
-    try {
-      pending = await listPendingAiCaptures();
-    } catch {
-      return;
-    }
-
     let uploadedAny = false;
-    for (const item of pending.slice(0, 20)) {
-      try {
-        await uploadPending(item, false);
-        uploadedAny = true;
-      } catch {
-        return;
-      }
+    try {
+      const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false), () => navigator.onLine);
+      uploadedAny = result.uploaded > 0;
+    } catch {
+      return; // Local storage is unavailable; existing pending data is untouched.
     }
 
     if (uploadedAny) {

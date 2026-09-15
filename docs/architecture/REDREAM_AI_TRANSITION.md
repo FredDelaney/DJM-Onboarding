@@ -79,7 +79,7 @@ Existing mobile recording controls, safe-area padding, dynamic viewport sizing, 
 
 ## Validation
 
-- `npm run check`: 411 tests, 411 passed, 0 failed; TypeScript passed; Next.js production build passed.
+- `npm run check`: 415 tests, 415 passed, 0 failed; TypeScript passed; Next.js production build passed.
 - 31 real embedded PostgreSQL tests cover dual membership, tenant permission differences, foreign history/receipt/retry/question/undo/delete denial, raw UUID denial, nested entity/alias validation, capture-bound vocabulary/resolution, one-tap entity creation, unlinked writes, scouting writes, matcher isolation, revoked membership, worker grants, legacy wrappers, link recovery, activation evidence and successful central AI ledger writes.
 - Offline tests cover saved origin, older records, custom-domain/runtime routing, active-record immutability, legacy storage recovery and upload request construction.
 - Compatibility tests cover shared Edge handlers, neutral core UI, conditional DJM branding, old persistence/processing, and safe return/deep-link paths.
@@ -131,3 +131,9 @@ The legacy Deno router wrapper now imports `./ai-router.ts` explicitly. Extensio
 The activation migration explicitly revokes anonymous/authenticated execution and grants both platform endpoints to service_role, including on fresh installations. The database tests execute both complete endpoints, verify meaningful AI evidence changes, and assert their grants. No deployed migration history was edited: this branch's new activation migration remains repository-only.
 
 Remaining DJM strings in current Edge source are limited to compatibility environment names, old module/type aliases and two provider User-Agent identities. Stable calendar UIDs and the deployed URL fallback also remain intentionally unchanged. No customer records, historical evidence labels or provider contracts were rewritten.
+
+## Offline reliability refinement
+
+The upload queue now continues after a rejected capture, including when more than twenty old records precede an uploadable note. Failed entries stay in IndexedDB. Overlapping reconnect/visible-page drains share one operation, and foreground/background uploads share one in-flight request per capture ID. Each caller can still open its own receipt after the shared upload completes. Losing connectivity pauses the drain; a later reconnect retries retained entries.
+
+Four behavioural tests cover rejected-agency queue starvation, overlapping drains, foreground/background request deduplication, failure recovery and connectivity loss. This coordination is per browser JavaScript context; server idempotency remains the protection across tabs/devices. It does not add model calls, dependencies, a new state framework or a polling interval.
