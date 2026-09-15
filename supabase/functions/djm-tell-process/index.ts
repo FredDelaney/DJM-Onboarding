@@ -615,8 +615,8 @@ async function resolveEntity(
     };
   }
 
-  const { data, error } = await admin.rpc("djm_tell_resolve_entity", {
-    p_user_id: capture.submitted_by,
+  const { data, error } = await admin.rpc("djm_tell_capture_resolve_entity", {
+    p_capture_id: capture.capture_id,
     p_entity_type: type,
     p_name: name,
     p_organisation_name: organisationName || null,
@@ -790,10 +790,10 @@ async function getPlan(
 
   if (!transcript) {
     const { data: vocabulary, error: vocabularyError } = await admin.rpc(
-      "djm_tell_vocabulary",
+      "djm_tell_capture_vocabulary",
       {
         p_limit: 120,
-        p_user_id: capture.submitted_by,
+        p_capture_id: capture.capture_id,
       },
     );
     if (vocabularyError) throw vocabularyError;
@@ -957,6 +957,7 @@ async function processOne(
   );
   if (claimError) throw claimError;
   if (!capture?.capture_id) return { processed: false };
+  console.info(JSON.stringify({ operation: "tell_capture_claimed", capture_id: capture.capture_id, tenant_id: capture.tenant_id }));
 
   const budget = Number(capture?.settings?.monthly_ai_budget_usd || 5);
   const spent = Number(capture?.estimated_month_spend || 0);
@@ -1304,6 +1305,7 @@ async function processOne(
     console.error(JSON.stringify({
       operation: "tell_djm_process",
       capture_id: capture.capture_id,
+      tenant_id: capture.tenant_id,
       status: failed?.status || "failed",
       retryable,
       error: message,

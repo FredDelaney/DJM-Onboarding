@@ -29,6 +29,10 @@ export function TenantRuntimeProvider({
   );
 }
 
+export function useOptionalTenantRuntime() {
+  return useContext(TenantRuntimeContext);
+}
+
 export function useTenantRuntime() {
   const runtime =
     useContext(TenantRuntimeContext);

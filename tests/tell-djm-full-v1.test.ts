@@ -284,8 +284,8 @@ test('safely uploaded captures survive refresh and reconnect to their receipt', 
   assert.match(offline, /rememberActiveTellDjmCapture/);
   assert.match(offline, /listActiveTellDjmCaptures/);
   assert.match(offline, /forgetActiveTellDjmCapture/);
-  assert.match(capture, /rememberActiveTellDjmCapture\(result\.capture_id\)/);
-  assert.match(capture, /listActiveTellDjmCaptures\(\)\.slice\(-1\)/);
+  assert.match(capture, /rememberActiveTellDjmCapture\(result\.capture_id, pendingWorkspace\)/);
+  assert.match(capture, /listActiveTellDjmCaptures\(\)\.filter\([\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
   assert.match(capture, /forgetActiveTellDjmCapture\(captureId\)/);
 });
 
@@ -421,7 +421,7 @@ test('receipt polling spans the durable one-minute cron fallback without fan-out
   assert.match(capture, /const POLL_ATTEMPTS = 180/);
   assert.match(capture, /pollingRef/);
   assert.match(capture, /uploadPending\(item, false\)/);
-  assert.match(capture, /listActiveTellDjmCaptures\(\)\.slice\(-1\)/);
+  assert.match(capture, /listActiveTellDjmCaptures\(\)\.filter\([\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
 });
 
 test('rare orphan voice uploads are also removed after the retention window', () => {

@@ -113,8 +113,10 @@ export function contextFromSearchParams(
 export function tellDjmHref(
   pathname: string,
   context: DjmEntityContext,
+  workspaceSlug?: string | null,
 ): string {
   const params = new URLSearchParams({ from: pathname });
+  if (workspaceSlug != null) params.set('workspace', workspaceSlug);
   const values: Record<string, string | null | undefined> = {
     context_type: context.context_type,
     label: context.label,

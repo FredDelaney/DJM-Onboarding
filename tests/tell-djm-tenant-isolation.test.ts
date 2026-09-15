@@ -30,11 +30,11 @@ const staffMigration = readFileSync(
 );
 
 test(
-  'Tell DJM vocabulary resolves inside the capture submitter tenant',
+  'Tell DJM vocabulary resolves inside the stored capture tenant',
   () => {
     assert.match(
       tellSource,
-      /"djm_tell_vocabulary"[\s\S]{0,160}p_user_id:\s*capture\.submitted_by/,
+      /"djm_tell_capture_vocabulary"[\s\S]{0,160}p_capture_id:\s*capture\.capture_id/,
     );
   },
 );

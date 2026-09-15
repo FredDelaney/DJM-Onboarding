@@ -1,5 +1,7 @@
 'use client';
 
+import { useTellWorkspace } from './useTellWorkspace';
+
 import { AlertTriangle, CheckCircle2, LoaderCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -49,9 +51,12 @@ export default function TellDjmRecentCaptures({
   refreshKey?: number;
   onOpen: (captureId: string) => void;
 }) {
+  const workspaceSlug = useTellWorkspace();
   const [items, setItems] = useState<RecentCapture[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const currentWorkspace = useRef(workspaceSlug);
+  currentWorkspace.current = workspaceSlug;
   const firstLoadRef = useRef(true);
 
   const load = useCallback(async (initial = false) => {
@@ -61,15 +66,22 @@ export default function TellDjmRecentCaptures({
     try {
       const result = await djmRpc<RecentCapture[]>('djm_tell_recent_captures', {
         p_limit: 8,
-      });
+      }, workspaceSlug);
+      if (currentWorkspace.current !== workspaceSlug) return;
       setItems(Array.isArray(result) ? result : []);
     } catch {
+      if (currentWorkspace.current !== workspaceSlug) return;
       if (initial) setItems([]);
     } finally {
       if (initial) setInitialLoading(false);
       else setRefreshing(false);
     }
-  }, []);
+  }, [workspaceSlug]);
+
+  useEffect(() => {
+    setItems([]);
+    firstLoadRef.current = true;
+  }, [workspaceSlug]);
 
   useEffect(() => {
     const initial = firstLoadRef.current;

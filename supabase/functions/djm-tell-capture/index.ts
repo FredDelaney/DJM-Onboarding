@@ -55,24 +55,33 @@ Deno.serve(async (req) => {
     const { data: authData, error: authError } = await admin.auth.getUser(token);
     if (authError || !authData?.user) return json({ error: "Unauthorized" }, 401);
 
+    const form = await req.formData();
+    const context = parseContext(String(form.get("context_json") || "{}"));
+    const routeWorkspace = /^\/workspace\/([^/?#]+)/.exec(String(context.route || ""))?.[1];
+    const requestedWorkspace = form.has("workspace_slug")
+      ? String(form.get("workspace_slug"))
+      : routeWorkspace || (/^\/(agency|workspace)(?:\/|$)/.test(String(context.route || "")) ? "unresolved" : null);
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (requestedWorkspace !== null) headers["x-redream-workspace"] = requestedWorkspace;
+
     const client = createClient(url, anonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
+      global: { headers },
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
     const { data: access, error: accessError } = await client.rpc(
       "djm_tell_current_access",
     );
-    if (accessError) throw accessError;
+    if (accessError) return json({ error: "Workspace access denied" }, 403);
+    const tenantId = access?.tenant_id;
+    if (!tenantId) return json({ error: "Workspace access denied" }, 403);
     if (!access?.enabled) {
       return json({ error: "Tell DJM is not enabled for this account" }, 403);
     }
 
-    const form = await req.formData();
     const clientCaptureId = String(form.get("client_capture_id") || "").trim();
     const channel = String(form.get("channel") || "voice_debrief").trim();
     const text = String(form.get("text") || "").trim();
-    const context = parseContext(String(form.get("context_json") || "{}"));
     const durationRaw = String(form.get("duration_seconds") || "").trim();
     const parentCaptureId = String(form.get("parent_capture_id") || "").trim() || null;
     const file = form.get("file");
@@ -150,7 +159,7 @@ Deno.serve(async (req) => {
           : baseMime.includes("wav")
             ? "wav"
             : "webm";
-      const path = `${authData.user.id}/tell-djm/${day}/${clientCaptureId}-${safeName(file.name || `voice.${extension}`)}`;
+      const path = `${tenantId}/${authData.user.id}/tell/${day}/${clientCaptureId}-${safeName(file.name || `voice.${extension}`)}`;
 
       const { error: uploadError } = await admin.storage.from(bucket).upload(
         path,
@@ -210,6 +219,7 @@ Deno.serve(async (req) => {
           console.warn(JSON.stringify({
             operation: "djm_tell_kick_worker",
             capture_id: captureId,
+            tenant_id: tenantId,
             error: error instanceof Error ? error.message : "Worker kick failed",
           }));
         }),
@@ -230,7 +240,7 @@ Deno.serve(async (req) => {
       error: error instanceof Error ? error.message : "Tell DJM capture failed",
     }));
     return json(
-      { error: error instanceof Error ? error.message : "Tell DJM capture failed" },
+      { error: "Capture could not be saved. Please try again." },
       500,
     );
   }

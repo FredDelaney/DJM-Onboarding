@@ -1,4 +1,5 @@
 export type PendingTellDjmCapture = {
+  workspaceSlug?: string | null;
   id: string;
   createdAt: string;
   channel: string;
@@ -69,6 +70,7 @@ export async function listPendingTellDjmCaptures(): Promise<PendingTellDjmCaptur
 
 
 export type ActiveTellDjmCapture = {
+  workspaceSlug?: string | null;
   captureId: string;
   createdAt: string;
 };
@@ -105,12 +107,13 @@ function writeActiveCaptures(items: ActiveTellDjmCapture[]) {
   }
 }
 
-export function rememberActiveTellDjmCapture(captureId: string) {
+export function rememberActiveTellDjmCapture(captureId: string, workspaceSlug: string | null = null) {
   if (!captureId) return;
-  const current = readActiveCaptures().filter(
-    (item) => item.captureId !== captureId,
-  );
-  current.push({ captureId, createdAt: new Date().toISOString() });
+  const saved = readActiveCaptures();
+  const existing = saved.find((item) => item.captureId === captureId);
+  if (existing?.workspaceSlug !== undefined && existing.workspaceSlug !== workspaceSlug) return;
+  const current = saved.filter((item) => item.captureId !== captureId);
+  current.push({ captureId, workspaceSlug, createdAt: new Date().toISOString() });
   writeActiveCaptures(current);
 }
 

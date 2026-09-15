@@ -1,5 +1,7 @@
 'use client';
 
+import { useTellWorkspace } from './useTellWorkspace';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import TellDjmCapture from '@/components/TellDjmCapture';
@@ -20,6 +22,7 @@ type TellAccess = {
 };
 
 export default function TellDjmFullPage() {
+  const workspaceSlug = useTellWorkspace();
   const [sourceRoute, setSourceRoute] = useState('');
   const routeFallback = useMemo(
     () => (sourceRoute.startsWith('/') ? contextFromRoute(sourceRoute) : {}),
@@ -43,16 +46,18 @@ export default function TellDjmFullPage() {
     const params = new URLSearchParams(window.location.search);
     const value = params.get('from') || '';
     const requestedCaptureId = params.get('capture');
+    setSelectedCaptureId(null);
     setSourceRoute(value);
     setQueryContext(contextFromSearchParams(params));
     if (requestedCaptureId && DJM_UUID_PATTERN.test(requestedCaptureId)) {
       setSelectedCaptureId(requestedCaptureId);
     }
-  }, []);
+  }, [workspaceSlug]);
 
   useEffect(() => {
+    setAccess(null);
     let active = true;
-    void djmRpc<TellAccess>('djm_tell_current_access')
+    void djmRpc<TellAccess>('djm_tell_current_access', {}, workspaceSlug)
       .then((result) => {
         if (active) setAccess(result || { enabled: false });
       })
@@ -62,7 +67,7 @@ export default function TellDjmFullPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [workspaceSlug]);
 
   useEffect(() => {
     setRouteContext(routeFallback);
@@ -71,7 +76,7 @@ export default function TellDjmFullPage() {
     let active = true;
     void djmRpc<DjmEntityContext>('djm_tell_context_for_route', {
       p_route: sourceRoute,
-    })
+    }, workspaceSlug)
       .then((resolved) => {
         if (!active) return;
         setRouteContext({ ...routeFallback, ...(resolved || {}) });
@@ -83,7 +88,7 @@ export default function TellDjmFullPage() {
     return () => {
       active = false;
     };
-  }, [routeFallback, sourceRoute]);
+  }, [routeFallback, sourceRoute, workspaceSlug]);
 
   if (access === null) {
     return (
@@ -105,12 +110,14 @@ export default function TellDjmFullPage() {
   return (
     <>
       <TellDjmCapture
+        key={workspaceSlug || 'legacy'}
         context={context}
         resumeCaptureId={selectedCaptureId}
         maxAudioSeconds={Number(access.max_audio_seconds || 240)}
         onCompleted={handleCaptureCompleted}
       />
       <TellDjmRecentCaptures
+        key={workspaceSlug || 'legacy'}
         refreshKey={recentRefreshKey}
         onOpen={(captureId) => {
           setSelectedCaptureId(null);

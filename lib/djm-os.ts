@@ -6,9 +6,12 @@ import { measureDjmOperation } from '@/lib/djm-performance';
 export async function djmRpc<T = any>(
   name: string,
   args: Record<string, any> = {},
+  workspaceSlug?: string | null,
 ): Promise<T> {
   return measureDjmOperation('rpc', name, async () => {
-    const { data, error } = await supabase.rpc(name as any, args as any);
+    const request = supabase.rpc(name as any, args as any);
+    if (workspaceSlug != null) request.setHeader('x-redream-workspace', workspaceSlug);
+    const { data, error } = await request;
 
     if (error) {
       throw new Error(error.message || `DJM request failed: ${name}`);

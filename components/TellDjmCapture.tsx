@@ -1,5 +1,8 @@
 'use client';
 
+import { pendingTellWorkspace } from '@/lib/tell-workspace';
+import { useTellWorkspace } from './useTellWorkspace';
+
 import {
   AlertTriangle,
   Check,
@@ -123,6 +126,7 @@ export default function TellDjmCapture({
   maxAudioSeconds?: number;
 }) {
   const [mode, setMode] = useState<'voice' | 'text'>('voice');
+  const workspaceSlug = useTellWorkspace();
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [text, setText] = useState('');
@@ -139,11 +143,19 @@ export default function TellDjmCapture({
   const startedAtRef = useRef(0);
   const timerRef = useRef<number | null>(null);
   const pollingRef = useRef<Set<string>>(new Set());
+  const activeWorkspaceRef = useRef(workspaceSlug);
+  activeWorkspaceRef.current = workspaceSlug;
   const displayCaptureRef = useRef<string | null>(null);
 
   useEffect(() => {
     onUnsafeToCloseChange?.(recording || busy);
   }, [busy, onUnsafeToCloseChange, recording]);
+
+  useEffect(() => {
+    displayCaptureRef.current = null;
+    setReceipt(null);
+    setStatus('');
+  }, [workspaceSlug]);
 
   const contextPayload = useCallback(
     () => ({
@@ -163,11 +175,13 @@ export default function TellDjmCapture({
 
       try {
         for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
+          if (activeWorkspaceRef.current !== workspaceSlug) return;
           let delayMs = TRANSCRIBING_POLL_MS;
           try {
             const next = await djmRpc<Receipt>('djm_tell_receipt', {
               p_capture_id: captureId,
-            });
+            }, workspaceSlug);
+            if (activeWorkspaceRef.current !== workspaceSlug) return;
             if (displayCaptureRef.current === captureId) setReceipt(next);
 
             const nextStatus = next?.capture?.status || '';
@@ -216,22 +230,24 @@ export default function TellDjmCapture({
         pollingRef.current.delete(captureId);
       }
     },
-    [onCompleted],
+    [onCompleted, workspaceSlug],
   );
 
 
   useEffect(() => {
     if (!resumeCaptureId) return;
-    rememberActiveTellDjmCapture(resumeCaptureId);
+    rememberActiveTellDjmCapture(resumeCaptureId, workspaceSlug);
     setStatus('Checking this Tell DJM update...');
     void pollReceipt(resumeCaptureId, true);
-  }, [pollReceipt, resumeCaptureId]);
+  }, [pollReceipt, resumeCaptureId, workspaceSlug]);
 
   const uploadPending = useCallback(
     async (pending: PendingTellDjmCapture, showReceipt = true) => {
       const form = new FormData();
       form.append('client_capture_id', pending.id);
       form.append('channel', pending.channel);
+      const pendingWorkspace = pendingTellWorkspace(pending);
+      if (pendingWorkspace != null) form.append('workspace_slug', pendingWorkspace);
       form.append('context_json', JSON.stringify(pending.context || {}));
       if (pending.text.trim()) form.append('text', pending.text.trim());
       if (pending.parentCaptureId) {
@@ -254,12 +270,12 @@ export default function TellDjmCapture({
         throw new Error('DJM did not return a capture ID');
       }
 
-      rememberActiveTellDjmCapture(result.capture_id);
+      rememberActiveTellDjmCapture(result.capture_id, pendingWorkspace);
       await removePendingTellDjmCapture(pending.id).catch(() => undefined);
-      if (showReceipt) void pollReceipt(result.capture_id, true);
+      if (showReceipt && pendingWorkspace === workspaceSlug) void pollReceipt(result.capture_id, true);
       return result.capture_id as string;
     },
-    [pollReceipt],
+    [pollReceipt, workspaceSlug],
   );
 
   const flushPending = useCallback(async () => {
@@ -283,17 +299,17 @@ export default function TellDjmCapture({
     }
 
     if (uploadedAny) {
-      const latest = listActiveTellDjmCaptures().slice(-1)[0];
+      const latest = listActiveTellDjmCaptures().filter((item) => (item.workspaceSlug ?? null) === workspaceSlug).slice(-1)[0];
       if (latest && !displayCaptureRef.current) {
         void pollReceipt(latest.captureId, true);
       }
     }
-  }, [pollReceipt, uploadPending]);
+  }, [pollReceipt, uploadPending, workspaceSlug]);
 
   useEffect(() => {
     void flushPending();
 
-    const active = listActiveTellDjmCaptures().slice(-1)[0];
+    const active = listActiveTellDjmCaptures().filter((item) => (item.workspaceSlug ?? null) === workspaceSlug).slice(-1)[0];
     if (active && !displayCaptureRef.current) {
       void pollReceipt(active.captureId, true);
     }
@@ -360,6 +376,7 @@ export default function TellDjmCapture({
       channel: 'voice_debrief',
       text: '',
       context: contextPayload(),
+      workspaceSlug,
       mimeType: blob.type || 'audio/webm',
       fileName: `tell-djm-${id}.${blob.type.includes('mp4') ? 'm4a' : 'webm'}`,
       durationSeconds,
@@ -493,6 +510,7 @@ export default function TellDjmCapture({
       channel: 'typed_debrief',
       text: text.trim(),
       context: contextPayload(),
+      workspaceSlug,
       mimeType: null,
       fileName: null,
       durationSeconds: null,
@@ -552,7 +570,7 @@ export default function TellDjmCapture({
       const result: any = await djmRpc('djm_tell_answer_question', {
         p_question_id: questionId,
         p_value: candidate,
-      });
+      }, workspaceSlug);
 
       if (result?.capture_id) {
         setStatus('Got it. DJM is finishing the update...');
@@ -578,7 +596,7 @@ export default function TellDjmCapture({
     try {
       const next: any = await djmRpc('djm_tell_undo_action', {
         p_action_id: actionId,
-      });
+      }, workspaceSlug);
       if (next?.capture_id) void pollReceipt(next.capture_id);
     } catch (undoError) {
       setError(friendlyError(undoError));
@@ -594,9 +612,9 @@ export default function TellDjmCapture({
     try {
       const result: any = await djmRpc('djm_tell_retry_capture', {
         p_capture_id: captureId,
-      });
+      }, workspaceSlug);
       if (result?.capture_id) {
-        rememberActiveTellDjmCapture(result.capture_id);
+        rememberActiveTellDjmCapture(result.capture_id, workspaceSlug);
         try {
           await djmInvoke('djm-tell-process', {
             capture_id: result.capture_id,
@@ -629,7 +647,7 @@ export default function TellDjmCapture({
     try {
       await djmRpc('djm_tell_delete_capture', {
         p_capture_id: captureId,
-      });
+      }, workspaceSlug);
 
       forgetActiveTellDjmCapture(captureId);
       displayCaptureRef.current = null;

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTellWorkspace } from './useTellWorkspace';
+
 import Link from 'next/link';
 import { Mic, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -26,6 +28,7 @@ export default function DjmTellDjmLauncher() {
   const [open, setOpen] = useState(false);
   const [unsafeToClose, setUnsafeToClose] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const workspaceSlug = useTellWorkspace();
   const pathname = usePathname() || '/djm';
   const routeFallback = useMemo(() => contextFromRoute(pathname), [pathname]);
   const [routeContext, setRouteContext] = useState<DjmEntityContext>(routeFallback);
@@ -42,8 +45,10 @@ export default function DjmTellDjmLauncher() {
   }, []);
 
   useEffect(() => {
+    setAccess(null);
+    setWorkspaceContext(null);
     let active = true;
-    void djmRpc<TellAccess>('djm_tell_current_access')
+    void djmRpc<TellAccess>('djm_tell_current_access', {}, workspaceSlug)
       .then((result) => {
         if (active) setAccess(result || { enabled: false });
       })
@@ -53,7 +58,7 @@ export default function DjmTellDjmLauncher() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [workspaceSlug]);
 
   useEffect(() => {
     setRouteContext(routeFallback);
@@ -61,7 +66,7 @@ export default function DjmTellDjmLauncher() {
     let active = true;
     void djmRpc<DjmEntityContext>('djm_tell_context_for_route', {
       p_route: pathname,
-    })
+    }, workspaceSlug)
       .then((resolved) => {
         if (!active) return;
         setRouteContext({ ...routeFallback, ...(resolved || {}) });
@@ -73,7 +78,7 @@ export default function DjmTellDjmLauncher() {
     return () => {
       active = false;
     };
-  }, [pathname, routeFallback]);
+  }, [pathname, routeFallback, workspaceSlug]);
 
   useEffect(() => {
     const onWorkspaceContext = (event: Event) => {
@@ -84,7 +89,7 @@ export default function DjmTellDjmLauncher() {
     return () => {
       window.removeEventListener('djm:tell-context', onWorkspaceContext);
     };
-  }, []);
+  }, [workspaceSlug]);
 
   useEffect(() => {
     if (!open) return;
@@ -136,6 +141,7 @@ export default function DjmTellDjmLauncher() {
               </div>
               <div className={styles.body}>
                 <TellDjmCapture
+                  key={workspaceSlug || 'legacy'}
                   compact
                   context={context}
                   onUnsafeToCloseChange={setUnsafeToClose}
@@ -148,7 +154,7 @@ export default function DjmTellDjmLauncher() {
                 ) : (
                   <Link
                     className={styles.full}
-                    href={tellDjmHref(pathname, context)}
+                    href={tellDjmHref(pathname, context, workspaceSlug)}
                     onClick={() => setOpen(false)}
                   >
                     Open full screen
