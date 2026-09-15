@@ -4,8 +4,8 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, Database, RefreshCw, Save, ShieldCheck } from "lucide-react";
 
-import DjmOsShell from "@/components/DjmOsShell";
-import { compactDateTime, djmRpc, friendlyError } from "@/lib/djm-os";
+import AgencyShell from "@/components/AgencyShell";
+import { compactDateTime, platformRpc, friendlyError } from "@/lib/platform-client";
 
 import styles from "./page.module.css";
 
@@ -61,7 +61,7 @@ export default function PlayerPerformancePage() {
 
   const loadPlayer = useCallback(async (id: string) => {
     if (!id) return;
-    const result: any = await djmRpc("djm_player_performance_data", { p_player_id: id });
+    const result: any = await platformRpc("djm_player_performance_data", { p_player_id: id });
     setData(result || {});
     setForm((current: any) => ({
       ...current,
@@ -74,7 +74,7 @@ export default function PlayerPerformancePage() {
     setPlayerId(id);
     void (async () => {
       try {
-        const intelligence: any = await djmRpc("djm_intelligence_data");
+        const intelligence: any = await platformRpc("djm_intelligence_data");
         setPlayers(intelligence?.players || []);
         if (id) await loadPlayer(id);
       } catch (e) {
@@ -105,11 +105,11 @@ export default function PlayerPerformancePage() {
             : value,
         ]),
       );
-      await djmRpc("djm_player_performance_snapshot_upsert", {
+      await platformRpc("djm_player_performance_snapshot_upsert", {
         p_player_id: playerId,
         p_snapshot: snapshot,
       });
-      const score: any = await djmRpc("djm_player_scorecard", { p_player_id: playerId });
+      const score: any = await platformRpc("djm_player_scorecard", { p_player_id: playerId });
       setMessage(
         score?.status === "calculated"
           ? `Performance evidence saved. Player Score recalculated to ${score.model_score}.`
@@ -125,7 +125,7 @@ export default function PlayerPerformancePage() {
   };
 
   return (
-    <DjmOsShell eyebrow="Position-adjusted evidence" title="Player Performance">
+    <AgencyShell eyebrow="Position-adjusted evidence" title="Player Performance">
       <div className={styles.toolbar}>
         <Link href="/brain/data" className="djm-os-secondary-button"><ArrowLeft size={15} /> Intelligence Data</Link>
         {playerId ? <button type="button" className="djm-os-secondary-button" onClick={() => void loadPlayer(playerId)} disabled={busy}><RefreshCw size={15} /> Refresh</button> : null}
@@ -155,7 +155,7 @@ export default function PlayerPerformancePage() {
 
       {playerId ? <div className={styles.grid}>
         <section className={styles.panel}>
-          <header><span>VERIFIED SNAPSHOT</span><h2>Add performance evidence</h2><p>Overall percentile can be supplied directly. Otherwise enter enough position categories for DJM to calculate a transparent weighted performance score.</p></header>
+          <header><span>VERIFIED SNAPSHOT</span><h2>Add performance evidence</h2><p>Overall percentile can be supplied directly. Otherwise enter enough position categories for ReDream to calculate a transparent weighted performance score.</p></header>
           <form className={styles.form} onSubmit={save}>
             <div className={styles.two}>
               <label>Season<input value={form.season_label} onChange={(e) => setForm({ ...form, season_label: e.target.value })} placeholder="2026" /></label>
@@ -190,6 +190,6 @@ export default function PlayerPerformancePage() {
           </div>
         </section>
       </div> : null}
-    </DjmOsShell>
+    </AgencyShell>
   );
 }

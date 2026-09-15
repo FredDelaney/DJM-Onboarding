@@ -15,10 +15,10 @@ import {
   UserPlus,
 } from 'lucide-react';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import ResearchLinkRail from '@/components/ResearchLinkRail';
 import StaffAssignmentPicker from '@/components/StaffAssignmentPicker';
-import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, platformRpc, friendlyError } from '@/lib/platform-client';
 import { buildResearchLinks } from '@/lib/research-links';
 
 const STAGES = [
@@ -67,7 +67,7 @@ export default function RecruitmentTargetPage() {
   const load = async () => {
     setError('');
     try {
-      const result: any = await djmRpc('djm_recruitment_target', {
+      const result: any = await platformRpc('djm_recruitment_target', {
         p_prospect_id: id,
       });
 
@@ -135,7 +135,7 @@ export default function RecruitmentTargetPage() {
     setError('');
     setNotice('');
     try {
-      await djmRpc('djm_recruitment_set_stage', {
+      await platformRpc('djm_recruitment_set_stage', {
         p_prospect_id: id,
         p_stage: stage,
         p_next_action_at: target?.next_action_at || null,
@@ -157,7 +157,7 @@ export default function RecruitmentTargetPage() {
     setNotice('');
 
     try {
-      await djmRpc('djm_recruitment_log_interaction', {
+      await platformRpc('djm_recruitment_log_interaction', {
         p_prospect_id: id,
         p_channel: channel,
         p_summary: summary.trim(),
@@ -185,7 +185,7 @@ export default function RecruitmentTargetPage() {
     setNotice('');
 
     try {
-      await djmRpc('djm_recruitment_set_next_action', {
+      await platformRpc('djm_recruitment_set_next_action', {
         p_prospect_id: id,
         p_next_action_at: new Date(followUp).toISOString(),
         p_note: followUpNote.trim() || null,
@@ -212,13 +212,13 @@ export default function RecruitmentTargetPage() {
 
   const promote = async () => {
     const ok = window.confirm(
-      'Confirm this player has signed with DJM and create their Signed Player record?',
+      'Confirm this player has signed with the agency and create their Signed Player record?',
     );
     if (!ok) return;
 
     setPromoting(true);
     try {
-      const result: any = await djmRpc(
+      const result: any = await platformRpc(
         'djm_recruitment_promote_to_signed_player',
         { p_prospect_id: id },
       );
@@ -239,7 +239,7 @@ export default function RecruitmentTargetPage() {
     setNotice('');
 
     try {
-      await djmRpc('djm_recruitment_update_profile', {
+      await platformRpc('djm_recruitment_update_profile', {
         p_prospect_id: id,
         p_transfermarkt_url: profile.transfermarkt_url || null,
         p_market_value:
@@ -271,7 +271,7 @@ export default function RecruitmentTargetPage() {
 
   const deleteTarget = async () => {
     try {
-      const impact: any = await djmRpc('djm_delete_preview', {
+      const impact: any = await platformRpc('djm_delete_preview', {
         p_entity_type: 'recruitment_target',
         p_entity_id: id,
       });
@@ -286,7 +286,7 @@ export default function RecruitmentTargetPage() {
 
       if (!ok) return;
 
-      await djmRpc('djm_delete_entity', {
+      await platformRpc('djm_delete_entity', {
         p_entity_type: 'recruitment_target',
         p_entity_id: id,
         p_confirm: true,
@@ -299,7 +299,7 @@ export default function RecruitmentTargetPage() {
   };
 
   return (
-    <DjmOsShell
+    <AgencyShell
       eyebrow="Prospect"
       title={target?.full_name || 'Recruitment target'}
     >
@@ -914,7 +914,7 @@ export default function RecruitmentTargetPage() {
                       {overdue
                         ? 'This follow-up is overdue.'
                         : target.next_action_at
-                          ? 'DJM will keep this in the task flow.'
+                          ? 'The agency will keep this in the task flow.'
                           : 'Set this now so the prospect cannot be forgotten.'}
                     </span>
                     <button
@@ -1013,7 +1013,7 @@ export default function RecruitmentTargetPage() {
                       value={direction}
                       onChange={(event) => setDirection(event.target.value)}
                     >
-                      <option value="outbound">DJM contacted player</option>
+                      <option value="outbound">The agency contacted player</option>
                       <option value="inbound">Player replied</option>
                       <option value="mutual">Call / conversation</option>
                     </select>
@@ -1473,7 +1473,7 @@ export default function RecruitmentTargetPage() {
                         </strong>
                         <p>{item.summary}</p>
                         <small>
-                          {item.owner_name || 'DJM'} ·{' '}
+                          {item.owner_name || 'The agency'} ·{' '}
                           {compactDateTime(item.occurred_at)}
                         </small>
                       </div>
@@ -1492,7 +1492,7 @@ export default function RecruitmentTargetPage() {
               <div className="djm-os-panel-head">
                 <div>
                   <h2>Next actions</h2>
-                  <p>What DJM needs to do from here.</p>
+                  <p>What the agency needs to do from here.</p>
                 </div>
               </div>
 
@@ -1545,7 +1545,7 @@ export default function RecruitmentTargetPage() {
           </div>
         </>
       )}
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 
@@ -1571,7 +1571,7 @@ function stageLabel(value?: string | null) {
 }
 
 function interactionDirection(value?: string | null) {
-  if (value === 'outbound') return 'DJM contacted player';
+  if (value === 'outbound') return 'The agency contacted player';
   if (value === 'inbound') return 'Player replied';
   if (value === 'mutual') return 'Conversation';
   return 'Interaction';

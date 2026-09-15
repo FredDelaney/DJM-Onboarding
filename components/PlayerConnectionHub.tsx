@@ -19,7 +19,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { compactDateTime, djmInvoke, friendlyError } from "@/lib/djm-os";
+import { compactDateTime, platformInvoke, friendlyError } from "@/lib/platform-client";
 import {
   isTransfermarktUrl,
   normaliseWebUrl,
@@ -158,7 +158,7 @@ export default function PlayerConnectionHub({
     if (mode === "manual") setMessage("");
 
     try {
-      const result: any = await djmInvoke("refresh-player-stats-free", {
+      const result: any = await platformInvoke("refresh-player-stats-free", {
   player_id: player.id,
 });
       if (!result?.ok) {
@@ -166,14 +166,14 @@ export default function PlayerConnectionHub({
       }
       setMessage(
         result?.message ||
-          "Free-source player stats refreshed across DJM.",
+          "Free-source player stats refreshed across ReDream.",
       );
       setProviderSync(new Date().toISOString());
     } catch (refreshError) {
       const detail = friendlyError(refreshError);
       if (mode === "source") {
         setMessage(
-          `Source saved across DJM. Free stats refresh needs review: ${detail}`,
+          `Source saved across ReDream. Free stats refresh needs review: ${detail}`,
         );
       } else if (mode === "background") {
         setMessage(`Free stats refresh needs review: ${detail}`);
@@ -259,7 +259,7 @@ export default function PlayerConnectionHub({
           ? researchSourceLabel(url, "Stats profile")
           : SOURCE_FIELDS.find((item) => item.field === field)?.label ||
             "Player source";
-      setMessage(`${label} connected to ${playerName(player)} across DJM.`);
+      setMessage(`${label} connected to ${playerName(player)} across ReDream.`);
 
       if (field !== "instagram_url") {
         await refresh("source");
@@ -284,7 +284,7 @@ export default function PlayerConnectionHub({
           </span>
           <h2 id="player-connection-title">One record. Everything attached.</h2>
           <p>
-            Paste one trusted profile link or upload a file. DJM attaches it to
+            Paste one trusted profile link or upload a file. ReDream attaches it to
             this player everywhere, refreshes free permitted data sources and only asks
             for review when evidence conflicts.
           </p>
@@ -318,7 +318,7 @@ export default function PlayerConnectionHub({
           </div>
           <small>
             Transfermarkt is stored as a research reference. Current statistics
-            come from permitted provider integrations and reviewed DJM evidence.
+            come from permitted provider integrations and reviewed ReDream evidence.
           </small>
         </form>
 

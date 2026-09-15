@@ -1,4 +1,4 @@
-export type DjmAuthCapabilities = {
+export type AuthCapabilities = {
   passkeysEnabled: boolean;
   passkeysSupported: boolean;
 };
@@ -13,7 +13,7 @@ function browserSupportsPasskeys() {
   );
 }
 
-export async function getDjmAuthCapabilities(): Promise<DjmAuthCapabilities> {
+export async function getAuthCapabilities(): Promise<AuthCapabilities> {
   const passkeysSupported = browserSupportsPasskeys();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -44,3 +44,7 @@ export async function getDjmAuthCapabilities(): Promise<DjmAuthCapabilities> {
     return { passkeysEnabled: false, passkeysSupported };
   }
 }
+
+// Legacy source compatibility.
+export { getAuthCapabilities as getDjmAuthCapabilities };
+export type DjmAuthCapabilities = AuthCapabilities;

@@ -769,7 +769,7 @@ void ctx.refresh();
             </h1>
 
             <p className="page-intro">
-              Keep it accurate once. DJM uses the same information when opportunities move quickly.
+              Keep it accurate once. Your agency uses the same information when opportunities move quickly.
             </p>
           </div>
 
@@ -825,10 +825,10 @@ void ctx.refresh();
             <span>
               {p.verification_status ===
               'verified'
-                ? 'Reviewed by DJM'
+                ? 'Reviewed by your agency'
                 : p.verification_status ===
                     'reviewing'
-                  ? 'DJM review required'
+                  ? 'Your agency review required'
                   : 'Keep your record current'}
             </span>
 
@@ -860,8 +860,8 @@ void ctx.refresh();
             summary={careerSummary}
             meta={
               pr.salary_expectation
-                ? 'Private to DJM · financial expectations saved'
-                : 'Private to DJM'
+                ? 'Private to your agency · financial expectations saved'
+                : 'Private to your agency'
             }
             onClick={() =>
               setEditor('career')
@@ -882,8 +882,8 @@ void ctx.refresh();
                   (video) =>
                     video.featured,
                 )
-                  ? 'Featured footage available to DJM'
-                  : 'DJM chooses what clubs see'
+                  ? 'Featured footage available to your agency'
+                  : 'Your agency chooses what clubs see'
               }
               onClick={() =>
                 setEditor('media')
@@ -925,7 +925,7 @@ void ctx.refresh();
               </span>
 
               <small>
-                Private storage controlled by DJM
+                Private storage controlled by your agency
               </small>
             </div>
 
@@ -1379,11 +1379,11 @@ function CareerEditor({
 
         <div>
           <strong>
-            Private to you and DJM
+            Private to you and your agency
           </strong>
 
           <span>
-            These details help DJM qualify the right opportunities. They are not automatically included in your club dossier.
+            These details help your agency qualify the right opportunities. They are not automatically included in your club dossier.
           </span>
         </div>
       </div>
@@ -1530,7 +1530,7 @@ function CareerEditor({
                   event.target.value,
               })
             }
-            placeholder="Be realistic. This helps DJM target the right opportunities."
+            placeholder="Be realistic. This helps your agency target the right opportunities."
           />
         </div>
 
@@ -1564,7 +1564,7 @@ function CareerEditor({
                 value,
             })
           }
-          placeholder="Private to DJM"
+          placeholder="Private to your agency"
         />
       </div>
     </div>
@@ -1598,7 +1598,7 @@ function MediaEditor({
         </div>
 
         <p>
-          Add a current highlight or match link. DJM decides which footage belongs in the club-facing dossier.
+          Add a current highlight or match link. Your agency decides which footage belongs in the club-facing dossier.
         </p>
 
         <div className="profile-media-add-row">
@@ -1694,7 +1694,7 @@ function MediaEditor({
               No footage saved yet.
             </strong>
             <span>
-              Add your best current footage so DJM can find it instantly.
+              Add your best current footage so your agency can find it instantly.
             </span>
           </div>
         )}
@@ -1723,7 +1723,7 @@ function SourcesEditor({
           </strong>
 
           <span>
-            External profiles give DJM a verification trail. Your dossier statistics are reviewed separately by DJM.
+            External profiles give your agency a verification trail. Your dossier statistics are reviewed separately by your agency.
           </span>
         </div>
       </div>

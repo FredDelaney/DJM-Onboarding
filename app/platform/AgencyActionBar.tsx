@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { djmInvoke, friendlyError } from '@/lib/djm-os';
+import { platformInvoke, friendlyError } from '@/lib/platform-client';
 
 import styles from './AgencyActionBar.module.css';
 
@@ -112,7 +112,7 @@ export default function AgencyActionBar({
 
     try {
       if (action.action === 'go_live_customer') {
-        await djmInvoke('platform-ops', {
+        await platformInvoke('platform-ops', {
           action: 'go_live_customer',
           tenant_id: tenantId,
         });

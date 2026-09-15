@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { djmInvoke, friendlyError } from '@/lib/djm-os';
+import { platformInvoke, friendlyError } from '@/lib/platform-client';
 
 import styles from './AgencyInterventionCard.module.css';
 
@@ -113,7 +113,7 @@ export default function AgencyInterventionCard({
     onError('');
 
     try {
-      await djmInvoke('platform-ops', {
+      await platformInvoke('platform-ops', {
         action: 'record_intervention_event',
         tenant_id: tenantId,
         event_type: eventType,

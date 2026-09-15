@@ -1,15 +1,30 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
+import { resolveTenantRuntime } from '@/lib/tenant-runtime';
 import { ArrowLeft } from 'lucide-react';
 
 import Brand from '@/components/Brand';
 import styles from './privacy.module.css';
 
 export const metadata = {
-  title: 'Privacy | DJM Player',
-  description: 'How DJM Sports Management handles personal information in DJM Player.',
+  title: 'Privacy | ReDream',
+  description: 'Privacy information for your agency workspace.',
 };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const requestHeaders = await headers();
+  const runtime = await resolveTenantRuntime(requestHeaders.get('x-forwarded-host') || requestHeaders.get('host'));
+  // This existing notice describes the DJM legal controller only. Do not relabel it for another agency.
+  if (!runtime.resolved || runtime.slug !== 'djm-sports-management') {
+    return <main className={styles.page}><div className={styles.shell}>
+      <Brand /><h1>Privacy information</h1>
+      <p>Ask your agency for its privacy notice and information about your personal data.</p>
+      {runtime.resolved && runtime.branding.support_email
+        ? <a href={`mailto:${runtime.branding.support_email}`}>Contact {runtime.branding.display_name}</a>
+        : <p>Contact the representative who invited you to this workspace.</p>}
+      <p><Link href="/sign-in">Back to sign in</Link></p>
+    </div></main>;
+  }
   return (
     <main className={styles.page}>
       <div className={styles.shell}>

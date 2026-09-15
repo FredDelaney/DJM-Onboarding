@@ -19,7 +19,7 @@ const commandCentre = readFileSync(
   'utf8',
 );
 const tellDjm = readFileSync(
-  new URL('../components/TellDjmCapture.tsx', import.meta.url),
+  new URL('../components/AiCapture.tsx', import.meta.url),
   'utf8',
 );
 const migration = readFileSync(
@@ -65,7 +65,7 @@ test('Home command centre routes player-linked tasks back to the player inbox', 
 });
 
 test('Tell DJM unresolved captures use the guarded delete RPC', () => {
-  assert.match(tellDjm, /djm_tell_delete_capture/);
+  assert.match(tellDjm, /redream_ai_delete_capture/);
   assert.match(tellDjm, /Delete this update/);
   assert.match(migration, /a\.status = 'applied'/);
   assert.match(migration, /Undo the applied updates before deleting it/);

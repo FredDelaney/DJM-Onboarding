@@ -188,7 +188,7 @@ export default function MySeason({
         {isVerified ? (
           <span className="season-verified-pill">
             <ShieldCheck size={13} />
-            DJM verified
+            Your agency verified
           </span>
         ) : (
           <span className="season-private">
@@ -205,7 +205,7 @@ export default function MySeason({
                 VERIFIED CAREER DATA
               </span>
               <strong>
-                Club-facing numbers DJM has reviewed.
+                Club-facing numbers your agency has reviewed.
               </strong>
             </div>
             {verifiedDate && (
@@ -287,7 +287,7 @@ export default function MySeason({
           <ShieldCheck size={20} />
           <div>
             <strong>
-              DJM is building your verified football record.
+              Your agency is building your verified football record.
             </strong>
             <span>
               Official club-facing numbers appear here once they have been reviewed.
@@ -303,7 +303,7 @@ export default function MySeason({
               YOUR WEEKLY LOG
             </span>
             <strong>
-              A private record for you and DJM.
+              A private record for you and your agency.
             </strong>
           </div>
           <Activity size={18} />
@@ -416,7 +416,7 @@ export default function MySeason({
                 Match numbers are optional.
               </strong>
               <span>
-                Your weekly check-in is mainly for availability, how you are feeling and anything DJM should know.
+                Your weekly check-in is mainly for availability, how you are feeling and anything your agency should know.
               </span>
             </div>
           </div>
@@ -424,7 +424,7 @@ export default function MySeason({
 
         <div className="season-foot season-premium-foot">
           <span>
-            Player-entered numbers stay in your private log. DJM verifies statistics separately before clubs see them.
+            Player-entered numbers stay in your private log. Your agency verifies statistics separately before clubs see them.
           </span>
           <Link href="/check-in">
             {latestWeekly

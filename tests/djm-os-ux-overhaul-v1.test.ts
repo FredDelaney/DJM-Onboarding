@@ -47,7 +47,7 @@ const userFacingSourceFiles = () =>
   });
 
 test('staff navigation exposes four operational workspaces only', () => {
-  const source = read('components/DjmWorkspaceHeader.tsx');
+  const source = read('components/WorkspaceHeader.tsx');
   for (const label of ['Home', 'Players', 'Opportunities', 'Network']) {
     assert.match(source, new RegExp(`label: '${label}'`));
   }
@@ -69,7 +69,7 @@ test('mobile staff navigation and full-bleed heroes stay inside the viewport', (
 test('player navigation is Home, DJM and Me while legacy destinations stay contextual', () => {
   const source = read('components/PlayerShell.tsx');
   assert.match(source, /label: 'Home'/);
-  assert.match(source, /label: 'DJM'/);
+  assert.match(source, /label: 'Your agency'/);
   assert.match(source, /label: 'Me'/);
   assert.match(source, /activePrefixes: \['\/profile', '\/career', '\/check-in', '\/cv', '\/documents'\]/);
   assert.doesNotMatch(source, /label: 'Career'/);
@@ -81,7 +81,7 @@ test('player Home has one dominant action and no second career navigation system
   assert.match(source, /ux-player-primary-action/);
   assert.doesNotMatch(source, /PlayerCareerNavigator/);
   assert.match(source, /THIS WEEK/);
-  assert.match(source, /FROM DJM/);
+  assert.match(source, /FROM YOUR AGENCY/);
   assert.match(source, /MY PROFILE/);
 });
 

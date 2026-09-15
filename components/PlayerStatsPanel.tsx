@@ -11,7 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-import { compactDateTime, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, friendlyError } from '@/lib/platform-client';
 import {
   aggregateFootballStats,
   distinctFootballValues,
@@ -292,7 +292,7 @@ export default function PlayerStatsPanel({
           </div>
           <h2>Verified football data, without invented intelligence.</h2>
           <p>
-            DJM is showing sourced player statistics only. Scoring, projections and player
+            Your agency is showing sourced player statistics only. Scoring, projections and player
             comparison are intentionally hidden until the underlying data is strong enough.
           </p>
         </div>

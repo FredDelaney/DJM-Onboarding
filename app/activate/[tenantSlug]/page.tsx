@@ -20,7 +20,7 @@ import {
 } from 'react';
 import { useParams } from 'next/navigation';
 
-import { djmInvoke, friendlyError } from '@/lib/djm-os';
+import { platformInvoke, friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 
 import styles from './page.module.css';
@@ -201,7 +201,7 @@ export default function AgencyLaunchPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await djmInvoke<{ launch?: LaunchData }>('agency-launch', {
+      const result = await platformInvoke<{ launch?: LaunchData }>('agency-launch', {
         action: 'get',
         tenant_slug: runtime.slug,
       });
@@ -326,7 +326,7 @@ export default function AgencyLaunchPage() {
     setError('');
     setNotice('');
     try {
-      const result = await djmInvoke<{ launch?: LaunchData }>('agency-launch', {
+      const result = await platformInvoke<{ launch?: LaunchData }>('agency-launch', {
         action,
         tenant_slug: runtime.slug,
         ...body,
@@ -365,7 +365,7 @@ export default function AgencyLaunchPage() {
     setError('');
     setNotice('');
     try {
-      await djmInvoke('agency-privacy', {
+      await platformInvoke('agency-privacy', {
         action: 'update',
         tenant_id: launch.tenant_id,
         controller_name: privacy.controllerName,

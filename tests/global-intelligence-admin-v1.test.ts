@@ -39,7 +39,7 @@ test('official evidence is refreshed weekly without a paid provider dependency',
 });
 
 test('the admin score is visual, automated and honest about missing evidence', () => {
-  assert.match(panel, /DJM GLOBAL INTELLIGENCE/);
+  assert.match(panel, /GLOBAL INTELLIGENCE/);
   assert.match(panel, /V7\.1/);
   assert.match(panel, /SCORE DRIVERS/);
   assert.match(panel, /SignalCard/);

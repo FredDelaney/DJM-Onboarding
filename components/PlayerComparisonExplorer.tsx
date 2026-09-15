@@ -13,7 +13,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 
-import { compactDateTime, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, platformInvoke, platformRpc, friendlyError } from '@/lib/platform-client';
 
 type ComparisonTab = 'profile' | 'peers' | 'leagues' | 'development';
 
@@ -92,7 +92,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
     async (compareCompetitionId?: string | null) => {
       setError('');
       try {
-        const result: any = await djmRpc('djm_player_comparison', {
+        const result: any = await platformRpc('djm_player_comparison', {
           p_player_id: playerId,
           p_compare_competition_id: compareCompetitionId || null,
         });
@@ -155,7 +155,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
   useEffect(() => {
     if (tab !== 'leagues' || catalog.length) return;
     let active = true;
-    void djmInvoke<any>('refresh-player-peer-data', { mode: 'catalog' })
+    void platformInvoke<any>('refresh-player-peer-data', { mode: 'catalog' })
       .then((result) => {
         if (active) setCatalog(Array.isArray(result?.leagues) ? result.leagues : []);
       })
@@ -243,9 +243,9 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
     setError('');
     setMessage('');
     try {
-      await djmInvoke('refresh-player-data-universal', { player_id: playerId });
+      await platformInvoke('refresh-player-data-universal', { player_id: playerId });
       try {
-        await djmInvoke('refresh-player-peer-data', { player_id: playerId });
+        await platformInvoke('refresh-player-peer-data', { player_id: playerId });
       } catch {
         // Player refresh can still be useful when the provider has no peer coverage.
       }
@@ -278,13 +278,13 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
     try {
       let result: any;
       if (selectedCatalogLeague) {
-        result = await djmInvoke('refresh-player-peer-data', {
+        result = await platformInvoke('refresh-player-peer-data', {
           provider_competition_id: selectedCatalogLeague.id,
           competition_name: selectedCatalogLeague.name,
           country_code: selectedCatalogLeague.country_code,
         });
       } else if (leagueCompare) {
-        result = await djmInvoke('refresh-player-peer-data', { competition_id: leagueCompare });
+        result = await platformInvoke('refresh-player-peer-data', { competition_id: leagueCompare });
       } else {
         return;
       }
@@ -363,10 +363,10 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
           <Link className="ux-back-link" href={`/admin/players/${playerId}`}>
             <ArrowLeft size={15} /> Player record
           </Link>
-          <p className="ux-eyebrow">DJM FOOTBALL INTELLIGENCE</p>
+          <p className="ux-eyebrow">FOOTBALL INTELLIGENCE</p>
           <h1>{playerLabel(player)} comparison room</h1>
           <p className="ux-subtitle">
-            Current evidence, real provider peers, competition context and development potential kept separate so DJM can see what each signal actually means.
+            Current evidence, real provider peers, competition context and development potential kept separate so you can see what each signal actually means.
           </p>
         </div>
         <button className="ux-primary-action" type="button" onClick={() => void updateData()} disabled={busy}>
@@ -397,7 +397,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
         <div>
           <span>Potential</span>
           <strong>{potentialScore ?? '-'}</strong>
-          <small>{potentialScore == null ? 'Not defensible yet' : 'DJM stored potential'}</small>
+          <small>{potentialScore == null ? 'Not defensible yet' : 'ReDream stored potential'}</small>
         </div>
       </section>
 
@@ -412,7 +412,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
         <section className="ux-comparison-panel">
           <PanelHeading
             title="Where he sits in his position"
-            text="Verified provider percentiles against the peer cohort used by DJM. Missing categories stay missing."
+            text="Verified provider percentiles against the peer cohort used by ReDream. Missing categories stay missing."
           />
           {performance ? (
             <div className="ux-percentile-list">
@@ -425,7 +425,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
           ) : (
             <EvidenceEmpty
               title="No trustworthy position profile yet"
-              text="Update data. DJM will only create percentiles when the provider sample is large enough."
+              text="Update data. ReDream will only create percentiles when the provider sample is large enough."
             />
           )}
           {performance?.peer_group_description ? (
@@ -469,7 +469,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
           ) : (
             <EvidenceEmpty
               title="Peer dots need a larger real sample"
-              text="DJM will not draw synthetic players. Refresh the player when PitchAPI has current competition coverage."
+              text="ReDream will not draw synthetic players. Refresh the player when PitchAPI has current competition coverage."
             />
           )}
           <p className="ux-evidence-note">
@@ -484,7 +484,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
         <section className="ux-comparison-panel">
           <PanelHeading
             title="What changes if we move the comparison league?"
-            text="League strength and player performance are separate signals. When the same provider covers both leagues, DJM can also place his actual current metrics against real same-position players in the target league."
+            text="League strength and player performance are separate signals. When the same provider covers both leagues, ReDream can also place his actual current metrics against real same-position players in the target league."
           />
 
           <div className="ux-filter-row">
@@ -493,7 +493,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
               <select value={leagueChoice} onChange={(event) => void selectLeague(event.target.value)}>
                 <option value="">Choose league</option>
                 {competitions.filter((row: any) => String(row.competition_id || '') !== String(player?.current_competition_id || '')).length ? (
-                  <optgroup label="DJM leagues">
+                  <optgroup label="ReDream leagues">
                     {competitions
                       .filter((row: any) => String(row.competition_id || '') !== String(player?.current_competition_id || ''))
                       .map((row: any) => (
@@ -539,7 +539,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
                   <p className="ux-eyebrow">SAME PROVIDER · DIFFERENT LEAGUE</p>
                   <h3>{targetLeagueName} position cohort</h3>
                   <p>
-                    The highlighted point is {playerLabel(player)}'s actual current PitchAPI metric. DJM does not translate that into a fake target-league percentile.
+                    The highlighted point is {playerLabel(player)}'s actual current PitchAPI metric. ReDream does not translate that into a fake target-league percentile.
                   </p>
                 </div>
                 {targetPitchId ? (
@@ -582,7 +582,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
                   ) : (
                     <EvidenceEmpty
                       title="Target league peer evidence is not ready"
-                      text="Load the target league cohort. DJM requires at least six real same-role peers and a shared observed metric before drawing this comparison."
+                      text="Load the target league cohort. ReDream requires at least six real same-role peers and a shared observed metric before drawing this comparison."
                     />
                   )}
                   <p className="ux-evidence-note">
@@ -596,7 +596,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
               ) : (
                 <EvidenceEmpty
                   title="League-strength comparison only"
-                  text="This competition does not yet have a verified PitchAPI identity in DJM, so no player dots are shown."
+                  text="This competition does not yet have a verified PitchAPI identity in ReDream, so no player dots are shown."
                 />
               )}
             </div>
@@ -608,7 +608,7 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
         <section className="ux-comparison-panel">
           <PanelHeading
             title="Current level and development ceiling"
-            text="Current level comes from V5. Potential is shown only when DJM has a stored evidence-backed or reviewed potential value."
+            text="Current level comes from V5. Potential is shown only when ReDream has a stored evidence-backed or reviewed potential value."
           />
           {displayScore != null ? (
             <div className="ux-development-track">
@@ -627,16 +627,16 @@ export default function PlayerComparisonExplorer({ playerId }: { playerId: strin
               </div>
               <div className="ux-development-notes">
                 <div><CircleGauge size={18} /><span><strong>V5 current level</strong>{score?.evidence_band_low != null && score?.evidence_band_high != null ? ` · evidence band ${score.evidence_band_low}-${score.evidence_band_high}` : ''}</span></div>
-                <div><TrendingUp size={18} /><span><strong>Potential</strong>{potentialScore == null ? ' · not enough evidence for a defensible forecast' : ' · stored DJM potential, separate from current level'}</span></div>
+                <div><TrendingUp size={18} /><span><strong>Potential</strong>{potentialScore == null ? ' · not enough evidence for a defensible forecast' : ' · stored ReDream potential, separate from current level'}</span></div>
               </div>
             </div>
           ) : (
-            <EvidenceEmpty title="Current level is not available" text="V5 needs enough trusted evidence before DJM can show a current-level marker." />
+            <EvidenceEmpty title="Current level is not available" text="V5 needs enough trusted evidence before ReDream can show a current-level marker." />
           )}
           <div className="ux-method-note">
             <CheckCircle2 size={18} />
             <p>
-              This is not presented as SciSports SciSkill or a scientifically calibrated future-career probability. DJM should only calibrate its own predictive potential after it has a sufficiently large labelled longitudinal player dataset.
+              This is not presented as SciSports SciSkill or a scientifically calibrated future-career probability. ReDream should only calibrate its own predictive potential after it has a sufficiently large labelled longitudinal player dataset.
             </p>
           </div>
         </section>

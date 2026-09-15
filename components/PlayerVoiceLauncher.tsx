@@ -4,8 +4,8 @@ import { AlertTriangle, CheckCircle2, LoaderCircle, Mic, Square, X } from 'lucid
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 
-import { djmInvoke, friendlyError } from '@/lib/djm-os';
-import { chooseRecordingMimeType } from '@/lib/tell-djm-offline';
+import { platformInvoke, friendlyError } from '@/lib/platform-client';
+import { chooseRecordingMimeType } from '@/lib/ai-offline';
 import styles from './PlayerVoiceLauncher.module.css';
 
 const MAX_SECONDS = 240;
@@ -95,9 +95,9 @@ export default function PlayerVoiceLauncher() {
       );
       form.append('duration_seconds', String(durationSeconds));
 
-      const result = await djmInvoke<VoiceResult>('djm-player-voice-message', form);
+      const result = await platformInvoke<VoiceResult>('djm-player-voice-message', form);
       if (!result?.delivered || !result?.transcript) {
-        throw new Error('DJM could not confirm that the voice message was delivered');
+        throw new Error('ReDream could not confirm that the voice message was delivered');
       }
 
       retryBlobRef.current = null;
@@ -209,7 +209,7 @@ export default function PlayerVoiceLauncher() {
           >
             <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="player-voice-title">
               <div className={styles.head}>
-                <strong id="player-voice-title">Voice message to DJM</strong>
+                <strong id="player-voice-title">Voice message to your agency</strong>
                 <button
                   type="button"
                   className={styles.close}
@@ -223,7 +223,7 @@ export default function PlayerVoiceLauncher() {
 
               <div className={styles.body}>
                 <p className={styles.copy}>
-                  Speak naturally. DJM transcribes the message and sends it straight to your agency team.
+                  Speak naturally. ReDream transcribes the message and sends it straight to your agency team.
                 </p>
 
                 {!transcript ? (
@@ -264,7 +264,7 @@ export default function PlayerVoiceLauncher() {
                   <div className={styles.success}>
                     <strong>
                       <CheckCircle2 size={14} />
-                      Sent to DJM
+                      Sent to your agency
                     </strong>
                     {transcript}
                   </div>
@@ -292,8 +292,8 @@ export default function PlayerVoiceLauncher() {
         type="button"
         className={styles.trigger}
         onClick={() => setOpen(true)}
-        aria-label="Voice message to DJM"
-        title="Voice message to DJM"
+        aria-label="Voice message to your agency"
+        title="Voice message to your agency"
       >
         <Mic size={15} />
         <span>Voice</span>

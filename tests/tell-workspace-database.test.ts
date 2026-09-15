@@ -73,7 +73,25 @@ before(async () => {
     assert.ok(match,name);
     await db.exec(match[0]);
   }
+  await db.exec("create table platform.feature_catalog(feature_key text primary key,category text); insert into platform.feature_catalog values ('ai_assistant','ai'),('speech_transcription','speech');");
+  const ledger=readFileSync('supabase/migrations/20260904135443_create_usage_and_ai_ledgers.sql','utf8');
+  for(const table of ['usage_events','ai_usage_events']) {
+    const ddl=ledger.match(new RegExp(`create table platform.${table} \\([\\s\\S]*?\\n\\);`));
+    assert.ok(ddl); await db.exec(ddl[0]);
+  }
+  await db.exec('create unique index on platform.usage_events(tenant_id,feature_key,idempotency_key) where idempotency_key is not null; create unique index on platform.ai_usage_events(tenant_id,external_request_id) where external_request_id is not null;');
+  await db.exec(definition(readFileSync('supabase/migrations/20260904135738_create_server_only_platform_api.sql','utf8'),'public.platform_server_record_usage'));
+  await db.exec(definition(readFileSync('supabase/migrations/20260904135944_add_metered_authorization_and_ai_recording.sql','utf8'),'public.platform_server_record_ai_usage'));
+  for(const [file,name] of [
+    ['20260912101815_repair_tell_djm_ai_usage_ledger.sql','djm_tell_worker_store_plan'],
+    ['20260912102454_avoid_typed_tell_djm_speech_telemetry.sql','djm_tell_worker_store_transcript'],
+  ]) {
+    const source=readFileSync('supabase/migrations/'+file,'utf8');
+    const ddl=source.match(new RegExp(`create or replace function public.${name}\\([\\s\\S]*?\\n\\$function\\$;`));
+    assert.ok(ddl,name); await db.exec(ddl[0]);
+  }
   await db.exec(migration);
+  await db.exec(readFileSync('supabase/migrations/20260915194224_redream_ai_canonical_api.sql','utf8'));
   await db.exec('create trigger trg_djm_need_match_refresh after insert or update on djm_os.club_needs for each row execute function djm_os.club_need_match_trigger()');
   for (const table of ['tell_djm_permissions','tell_djm_actions','tell_djm_questions','tell_djm_aliases','claims','employments','events','review_items','notifications','scouting_prospects','scouting_reports']) await db.exec(`create trigger assign_workspace_tenant before insert or update on djm_os.${table} for each row execute function private.assign_workspace_tenant()`);
   // Minimal infrastructure helpers outside this slice, with no outbound integrations.
@@ -270,4 +288,62 @@ test('worker claim returns capture tenant and tenant-specific permissions under 
     assert.equal(claimed.tenant_id,north);
     assert.equal(claimed.permission_scope,'full');
   } finally { await db.exec('reset role'); await workspace(); }
+});
+
+test('canonical API and compatibility aliases share one implementation and identical grants', async () => {
+  await workspace();
+  assert.deepEqual(await value('public.redream_ai_current_access()'),await value('public.djm_tell_current_access()'));
+  const aliases=await db.query<{proname:string;prosrc:string}>("select proname,prosrc from pg_proc where pronamespace='public'::regnamespace and proname like 'djm_tell_%' and prolang=(select oid from pg_language where lanname='sql')");
+  assert.ok(aliases.rows.length>20);
+  for(const row of aliases.rows) assert.match(row.prosrc,/^select public\.redream_ai_\w+\(/,row.proname);
+  for(const role of ['anon','authenticated','service_role']) for(const suffix of ['current_access()','worker_claim(uuid,text)']) {
+    assert.equal(await value(`has_function_privilege('${role}','public.djm_tell_${suffix}','execute')`),await value(`has_function_privilege('${role}','public.redream_ai_${suffix}','execute')`));
+  }
+  await assert.rejects(()=>value('public.redream_ai_receipt($1)',[djmCapture]),/Capture access denied/);
+});
+test('legacy link recovery resolves stored tenant but rejects a conflicting workspace or revoked member',async()=>{
+  await workspace(null);
+  assert.equal(await value('public.redream_ai_capture_workspace($1)',[northCapture]),'northstar');
+  await workspace('djm-sports-management');
+  await assert.rejects(()=>value('public.redream_ai_capture_workspace($1)',[northCapture]),/Capture access denied/);
+  await workspace();
+  await db.query("update platform.tenant_memberships set status='inactive' where tenant_id=$1",[north]);
+  try { await assert.rejects(()=>value('public.redream_ai_capture_workspace($1)',[northCapture]),/Capture access denied/); }
+  finally {await db.query("update platform.tenant_memberships set status='active' where tenant_id=$1",[north]);}
+});
+test('activation evidence excludes transcripts and undone actions and stays tenant-scoped',async()=>{
+  const activation=readFileSync('supabase/migrations/20260915194621_redream_ai_activation_evidence.sql','utf8');
+  await db.exec(definition(activation,'private.ai_first_value'));
+  await workspace();
+  const capture=(await enqueue()).capture_id;
+  await db.query('update djm_os.captures set completed_at=now() where id=$1',[capture]);
+  const before=await value('capture_count from private.ai_first_value($1)',[north]);
+  const foreignBefore=await value('capture_count from private.ai_first_value($1)',[djm]);
+  const action=await value("public.redream_ai_apply_action($1,'activation-proof',0,'create_task',1,'A sourced instruction',$2)",[capture,{title:'Call synthetic player'}]);
+  assert.equal(action.status,'applied');
+  assert.equal(await value('capture_count from private.ai_first_value($1)',[north]),before+1);
+  assert.equal(await value('capture_count from private.ai_first_value($1)',[djm]),foreignBefore);
+  await db.query("update djm_os.tell_djm_actions set status='undone' where capture_id=$1",[capture]);
+  assert.equal(await value('capture_count from private.ai_first_value($1)',[north]),before);
+});
+test('new notification function emits workspace capture deep links',async()=>{
+  const source=await value("pg_get_functiondef('public.redream_ai_notify_attention(uuid)'::regprocedure)");
+  assert.match(source,/\/workspace\/.*\/capture\?capture=/);
+  assert.doesNotMatch(source,/\/tell\?workspace=/);
+});
+
+test('worker plan writes successful AI spend to the central ledger using stored capture tenant',async()=>{
+  await workspace('djm-sports-management');
+  const usage={interpretation_model:'synthetic-model',interpretation_cost_usd:0.0123,interpretation_ms:125,input_tokens:45,output_tokens:12};
+  await value('public.redream_ai_worker_store_plan($1,$2,$3,$4)',[northCapture,'Synthetic sourced note',{},usage]);
+  await value('public.djm_tell_worker_store_plan($1,$2,$3,$4)',[northCapture,'Synthetic sourced note',{},usage]);
+  const rows=await db.query<any>('select * from platform.ai_usage_events where source_fingerprint=$1',[northCapture]);
+  assert.equal(rows.rows.length,1,'legacy/canonical retries must not duplicate cost');
+  assert.equal(rows.rows[0].tenant_id,north);
+  assert.equal(rows.rows[0].model,'synthetic-model');
+  assert.equal(rows.rows[0].latency_ms,125);
+  assert.equal(Number(rows.rows[0].input_tokens),45);
+  assert.equal(Number(rows.rows[0].estimated_cost_micros),12300);
+  assert.equal(rows.rows[0].status,'succeeded');
+  await workspace();
 });

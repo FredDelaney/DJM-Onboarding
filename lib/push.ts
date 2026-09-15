@@ -60,7 +60,7 @@ export async function enableWebPush(userId: string) {
   }
 
   if (isIosDevice() && !isStandalone()) {
-    throw new Error('Add DJM to your iPhone Home Screen before enabling notifications.');
+    throw new Error('Add your agency to your iPhone Home Screen before enabling notifications.');
   }
 
   const { data: vapid, error: keyError } = await supabase.rpc('djm_web_push_public_key');

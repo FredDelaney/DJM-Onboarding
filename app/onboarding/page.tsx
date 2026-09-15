@@ -413,7 +413,7 @@ export default function Onboarding() {
             We couldn’t find your invited player record.
           </h2>
           <p className="muted">
-            Contact DJM and we’ll fix the invitation.
+            Contact your agency and we’ll fix the invitation.
           </p>
         </div>
       </div>
@@ -428,7 +428,7 @@ export default function Onboarding() {
           <Check size={29} />
         </div>
         <div className="section-kicker">
-          DJM PLAYER
+          PLAYER WORKSPACE
         </div>
         <h1>You’re in.</h1>
         <p>
@@ -445,13 +445,13 @@ export default function Onboarding() {
       title:
         'We’ve already started your profile.',
       copy:
-        'Check what DJM already knows. Correct anything that is wrong and add only what is missing.',
+        'Check what your agency already knows. Correct anything that is wrong and add only what is missing.',
     },
     {
       title:
         'Check your football now.',
       copy:
-        'Your current playing situation. If DJM has already filled something in, just confirm it looks right.',
+        'Your current playing situation. If your agency has already filled something in, just confirm it looks right.',
     },
     {
       title:
@@ -463,7 +463,7 @@ export default function Onboarding() {
       title:
         'Add what we can’t create for you.',
       copy:
-        'Useful source links and current footage help DJM verify your profile. They are optional.',
+        'Useful source links and current footage help your agency verify your profile. They are optional.',
     },
   ][step];
 
@@ -519,7 +519,7 @@ export default function Onboarding() {
                   Review, don’t rebuild.
                 </strong>
                 <span>
-                  We have already created your DJM player record. Most fields below are optional.
+                  We have already created your agency player record. Most fields below are optional.
                 </span>
               </div>
             </div>
@@ -922,7 +922,7 @@ export default function Onboarding() {
             <div className="onboarding-private-banner">
               <ShieldCheck size={18} />
               <div>
-                <strong>Private to DJM.</strong>
+                <strong>Private to your agency.</strong>
                 <span>
                   These answers help your agents understand what makes sense for you. Clubs do not automatically see them.
                 </span>
@@ -1075,7 +1075,7 @@ export default function Onboarding() {
                   Only add what you have handy.
                 </strong>
                 <span>
-                  DJM can verify and improve your presentation after you join. You do not need every link to finish.
+                  Your agency can verify and improve your presentation after you join. You do not need every link to finish.
                 </span>
               </div>
             </div>

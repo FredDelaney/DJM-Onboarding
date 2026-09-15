@@ -272,7 +272,7 @@ export function buildAdminPortfolio({
         severity: 'critical',
         kind: 'message',
         title: incomingMessages.length === 1 ? 'Reply to player' : `Reply to ${incomingMessages.length} player messages`,
-        detail: String(message.title || message.message || 'A player is waiting for DJM.'),
+        detail: String(message.title || message.message || 'A player is waiting for your agency.'),
         href: issueHref(playerId, 'inbox'),
         score: 110 + incomingMessages.length,
         dueAt: message.created_at,
@@ -314,7 +314,7 @@ export function buildAdminPortfolio({
         addIssue({
           severity: 'critical',
           kind: 'support',
-          title: 'Player asked DJM for support',
+          title: 'Player asked your agency for support',
           detail: String(latestCheckin.support_request),
           href: issueHref(playerId, 'activity'),
           score: 108,
@@ -329,7 +329,7 @@ export function buildAdminPortfolio({
           title: 'Club situation changed',
           detail: String(
             latestCheckin.club_situation_notes ||
-              'Review the change and update DJM’s next move.',
+              'Review the change and update your agency’s next move.',
           ),
           href: issueHref(playerId, 'activity'),
           score: 86,
@@ -341,7 +341,7 @@ export function buildAdminPortfolio({
         severity: 'routine',
         kind: 'checkin',
         title: 'Weekly check-in is due',
-        detail: 'DJM is operating without a current availability signal.',
+        detail: 'Your agency is operating without a current availability signal.',
         href: issueHref(playerId, 'inbox'),
         score: 44,
       });
@@ -352,7 +352,7 @@ export function buildAdminPortfolio({
       addIssue({
         severity: playerActionDays < 0 ? 'critical' : 'attention',
         kind: 'djm_action',
-        title: playerActionDays < 0 ? 'DJM action is overdue' : 'DJM action is due soon',
+        title: playerActionDays < 0 ? 'Your agency action is overdue' : 'Your agency action is due soon',
         detail: String(player.next_action),
         href: issueHref(playerId, 'overview'),
         score: playerActionDays < 0 ? 102 : 78 - playerActionDays,
@@ -400,7 +400,7 @@ export function buildAdminPortfolio({
       addIssue({
         severity: 'attention',
         kind: 'verification',
-        title: 'Player record needs DJM review',
+        title: 'Player record needs your agency review',
         detail: String(player.review_reason || 'Verify the football facts before club use.'),
         href: issueHref(playerId, 'profile'),
         score: 84,

@@ -182,7 +182,7 @@ export default function CareerPage() {
           <section className="card pad-lg">
             <h1>Your career space is being prepared.</h1>
             <p className="muted">
-              Contact DJM if this does not update shortly.
+              Contact your agency if this does not update shortly.
             </p>
           </section>
         </main>
@@ -247,7 +247,7 @@ export default function CareerPage() {
                 </Link>
               )}
               <Link href="/inbox?compose=1" className="btn career-ghost-btn">
-                Talk to DJM
+                Talk to your agency
               </Link>
             </div>
           </div>
@@ -331,13 +331,13 @@ export default function CareerPage() {
               {data.publicProfile?.published
                 ? 'Live and approved'
                 : data.publicProfile
-                  ? 'In DJM review'
+                  ? 'In your agency review'
                   : 'Not prepared yet'}
             </strong>
             <small>
               {data.publicProfile?.verified_at
                 ? `Verified ${fmtDate(data.publicProfile.verified_at)}`
-                : 'DJM controls publication'}
+                : 'Your agency controls publication'}
             </small>
           </div>
         </section>
@@ -425,7 +425,7 @@ export default function CareerPage() {
                   : 'Private preview'}
               </strong>
               <small>
-                Review the exact DJM-approved football information
+                Review the exact agency-approved football information
               </small>
               <ArrowRight size={15} />
             </Link>
@@ -533,7 +533,7 @@ export default function CareerPage() {
                 <strong>Build a career record worth carrying.</strong>
                 <span>
                   Add clubs and seasons once, then use the same trusted
-                  record in your DJM profile and club presentation.
+                  record in your agency profile and club presentation.
                 </span>
               </div>
               <Link href="/profile">

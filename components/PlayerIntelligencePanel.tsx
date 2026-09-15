@@ -18,7 +18,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 
-import { compactDateTime, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, platformInvoke, platformRpc, friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 import styles from './PlayerIntelligencePanel.module.css';
 
@@ -50,7 +50,7 @@ export default function PlayerIntelligencePanel({
 
   const load = useCallback(
     async (refresh = false) => {
-      const result: any = await djmRpc(
+      const result: any = await platformRpc(
         refresh ? 'djm_refresh_player_global_intelligence' : 'djm_player_global_intelligence',
         { p_player_id: playerId },
       );
@@ -145,7 +145,7 @@ export default function PlayerIntelligencePanel({
     setError('');
     setMessage('');
     try {
-      const result: any = await djmInvoke('refresh-player-data-universal', {
+      const result: any = await platformInvoke('refresh-player-data-universal', {
         mode: 'refresh',
         player_id: playerId,
       });
@@ -153,14 +153,14 @@ export default function PlayerIntelligencePanel({
 
       if (String(result?.primary_provider || '').toLowerCase() === 'pitchapi') {
         try {
-          await djmInvoke('refresh-player-peer-data', { player_id: playerId });
+          await platformInvoke('refresh-player-peer-data', { player_id: playerId });
         } catch {
           // Peer enrichment is additive. Never block the canonical score refresh.
         }
       }
 
       await load(true);
-      setMessage('Global intelligence refreshed and the DJM score has been rebuilt.');
+      setMessage('Global intelligence refreshed and the ReDream score has been rebuilt.');
     } catch (refreshError) {
       setError(friendlyError(refreshError));
     } finally {
@@ -174,7 +174,7 @@ export default function PlayerIntelligencePanel({
     setMessage('');
     try {
       await load(true);
-      setMessage('DJM Global Score and five-year outlook recalculated.');
+      setMessage('ReDream Global Score and five-year outlook recalculated.');
     } catch (recalculateError) {
       setError(friendlyError(recalculateError));
     } finally {
@@ -230,7 +230,7 @@ export default function PlayerIntelligencePanel({
       <header className={styles.hero}>
         <div className={styles.heroCopy}>
           <div className={styles.eyebrowRow}>
-            <span className={styles.eyebrow}><Sparkles size={13} /> DJM GLOBAL INTELLIGENCE</span>
+            <span className={styles.eyebrow}><Sparkles size={13} /> GLOBAL INTELLIGENCE</span>
             <span className={`${styles.status} ${styles[status.tone]}`}>{status.label}</span>
             <span className={styles.version}>V7.1</span>
           </div>
@@ -336,7 +336,7 @@ export default function PlayerIntelligencePanel({
               </div>
               <p className={styles.projectionNote}>
                 Research-informed development prior with uncertainty. It is designed to upgrade to a
-                trained longitudinal ensemble once DJM has enough player-season history, rather than
+                trained longitudinal ensemble once ReDream has enough player-season history, rather than
                 pretending a tiny internal sample is machine learning.
               </p>
             </>
@@ -587,7 +587,7 @@ function projectionReason(value: unknown) {
     subject_not_found: 'Universal player identity is still being resolved.',
     current_score_missing: 'Build the global current-level score first.',
     current_score_unavailable: 'Build the global current-level score first.',
-    current_score_not_yet_projection_grade: 'The current score needs stronger evidence before DJM publishes a development forecast.',
+    current_score_not_yet_projection_grade: 'The current score needs stronger evidence before ReDream publishes a development forecast.',
     date_of_birth_missing: 'Add a verified date of birth to unlock the development curve.',
     date_of_birth_required: 'Add a verified date of birth to unlock the development curve.',
     position_group_required: 'Resolve the player’s role before publishing a development curve.',
@@ -598,8 +598,8 @@ function projectionReason(value: unknown) {
 function prettyModel(value: unknown) {
   const raw = String(value || '');
   if (!raw) return 'Not calculated';
-  if (raw.includes('global_score_v7_1')) return 'DJM Global Score V7.1';
-  if (raw.includes('global_score_v7')) return 'DJM Global Score V7';
-  if (raw.includes('player_score_v5')) return 'DJM Player Score V5';
+  if (raw.includes('global_score_v7_1')) return 'ReDream Global Score V7.1';
+  if (raw.includes('global_score_v7')) return 'ReDream Global Score V7';
+  if (raw.includes('player_score_v5')) return 'Player Score V5';
   return raw.replaceAll('_', ' ');
 }

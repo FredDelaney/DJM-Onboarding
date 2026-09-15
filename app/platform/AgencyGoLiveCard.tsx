@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
-import { djmInvoke, friendlyError } from '@/lib/djm-os';
+import { platformInvoke, friendlyError } from '@/lib/platform-client';
 
 import styles from './AgencyGoLiveCard.module.css';
 
@@ -146,7 +146,7 @@ export default function AgencyGoLiveCard({
     onError('');
 
     try {
-      await djmInvoke('platform-ops', {
+      await platformInvoke('platform-ops', {
         action: 'update_privacy_profile',
         tenant_id: tenantId,
         controller_name: controller,

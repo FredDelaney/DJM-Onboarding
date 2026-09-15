@@ -5,7 +5,7 @@ import {
 import test from 'node:test';
 
 const tellSource = readFileSync(
-  'supabase/functions/djm-tell-process/index.ts',
+  'supabase/functions/_shared/ai-process.ts',
   'utf8',
 );
 
@@ -34,7 +34,7 @@ test(
   () => {
     assert.match(
       tellSource,
-      /"djm_tell_capture_vocabulary"[\s\S]{0,160}p_capture_id:\s*capture\.capture_id/,
+      /"redream_ai_capture_vocabulary"[\s\S]{0,160}p_capture_id:\s*capture\.capture_id/,
     );
   },
 );

@@ -1,5 +1,7 @@
 'use client';
 
+import AiLauncher from '@/components/AiLauncher';
+
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
@@ -24,7 +26,7 @@ import {
 } from 'react';
 
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
-import { djmInvoke, friendlyError, relativeDate } from '@/lib/djm-os';
+import { platformInvoke, friendlyError, relativeDate } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel';
 
@@ -144,7 +146,7 @@ export default function AgencyOperatingWorkspace() {
       if (!workspace?.tenant_id) {
         throw new Error('Agency workspace is not resolved.');
       }
-      return djmInvoke<T>('agency-os', {
+      return platformInvoke<T>('agency-os', {
         action,
         tenant_id: workspace.tenant_id,
         ...body,
@@ -164,7 +166,7 @@ export default function AgencyOperatingWorkspace() {
     setError('');
 
     try {
-      const result = await djmInvoke<{ tenants?: Workspace[] }>(
+      const result = await platformInvoke<{ tenants?: Workspace[] }>(
         'agency-os',
         { action: 'tenants' },
       );
@@ -414,6 +416,7 @@ export default function AgencyOperatingWorkspace() {
 
   return (
     <div className={styles.root} style={theme}>
+      <AiLauncher />
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <div className={styles.mark}>

@@ -20,9 +20,9 @@ import {
   X,
 } from 'lucide-react';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import ResearchLinkRail from '@/components/ResearchLinkRail';
-import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, platformRpc, friendlyError } from '@/lib/platform-client';
 import { buildResearchLinks } from '@/lib/research-links';
 
 const STAGES = [
@@ -77,13 +77,13 @@ export default function OpportunityPage() {
     setError('');
     try {
       const [result, team, clubData, contactData, needData, playerData, prospectData] = await Promise.all([
-        djmRpc<any>('djm_opportunity', { p_opportunity_id: id }),
-        djmRpc<any[]>('djm_team_members_list'),
-        djmRpc<any[]>('djm_network_organisations', { p_search: null, p_limit: 250 }),
-        djmRpc<any[]>('djm_network_club_contacts', { p_search: null, p_limit: 500 }),
-        djmRpc<any[]>('djm_market_needs_v2', { p_status: null }),
-        djmRpc<any[]>('djm_signed_player_directory', { p_search: null, p_limit: 500 }),
-        djmRpc<any[]>('djm_recruitment_targets', { p_search: null, p_stage: null, p_limit: 500 }),
+        platformRpc<any>('djm_opportunity', { p_opportunity_id: id }),
+        platformRpc<any[]>('djm_team_members_list'),
+        platformRpc<any[]>('djm_network_organisations', { p_search: null, p_limit: 250 }),
+        platformRpc<any[]>('djm_network_club_contacts', { p_search: null, p_limit: 500 }),
+        platformRpc<any[]>('djm_market_needs_v2', { p_status: null }),
+        platformRpc<any[]>('djm_signed_player_directory', { p_search: null, p_limit: 500 }),
+        platformRpc<any[]>('djm_recruitment_targets', { p_search: null, p_stage: null, p_limit: 500 }),
       ]);
 
       setData(result || null);
@@ -149,7 +149,7 @@ export default function OpportunityPage() {
       if (!form.organisation_id) throw new Error('Choose a club.');
       if (!selectedPlayerId && !selectedProspectId) throw new Error('Choose a player or recruitment target.');
 
-      await djmRpc('djm_opportunity_update_identity', {
+      await platformRpc('djm_opportunity_update_identity', {
         p_opportunity_id: id,
         p_organisation_id: form.organisation_id,
         p_source_person_id: form.source_person_id || null,
@@ -158,9 +158,9 @@ export default function OpportunityPage() {
         p_club_need_id: form.club_need_id || null,
       });
 
-      await djmRpc('djm_opportunity_upsert', {
+      await platformRpc('djm_opportunity_upsert', {
         p_id: id,
-        p_title: form.title.trim() || 'DJM opportunity',
+        p_title: form.title.trim() || 'Agency opportunity',
         p_organisation_id: form.organisation_id,
         p_source_person_id: form.source_person_id || null,
         p_player_id: selectedPlayerId,
@@ -181,7 +181,7 @@ export default function OpportunityPage() {
         p_source: 'opportunity_ui',
       });
 
-      await djmRpc('djm_opportunity_assign_owner', {
+      await platformRpc('djm_opportunity_assign_owner', {
         p_opportunity_id: id,
         p_owner_user_id: form.owner_user_id || null,
       });
@@ -199,7 +199,7 @@ export default function OpportunityPage() {
     const label = outcome === 'done' ? 'won' : 'lost';
     const reason = window.prompt(`Why was this opportunity ${label}?`, '') || '';
     try {
-      await djmRpc('djm_opportunity_close', {
+      await platformRpc('djm_opportunity_close', {
         p_opportunity_id: id,
         p_outcome: outcome,
         p_reason: reason || null,
@@ -214,11 +214,11 @@ export default function OpportunityPage() {
   const deleteOpportunity = async () => {
     if (!deal) return;
     const ok = window.confirm(
-      `Permanently delete ${deal.title || 'this opportunity'}? Use Won, Lost or Paused if DJM should retain the commercial history.`,
+      `Permanently delete ${deal.title || 'this opportunity'}? Use Won, Lost or Paused if the agency should retain the commercial history.`,
     );
     if (!ok) return;
     try {
-      await djmRpc('djm_delete_entity', {
+      await platformRpc('djm_delete_entity', {
         p_entity_type: 'deal_room',
         p_entity_id: id,
         p_confirm: true,
@@ -232,13 +232,13 @@ export default function OpportunityPage() {
   const createPitch = async (event: FormEvent) => {
     event.preventDefault();
     if (!deal?.player_id) {
-      setError('A club pitch requires a signed DJM player.');
+      setError('A club pitch requires a signed player.');
       return;
     }
     setBusy(true);
     setError('');
     try {
-      const result: any = await djmRpc('djm_opportunity_create_pitch', {
+      const result: any = await platformRpc('djm_opportunity_create_pitch', {
         p_opportunity_id: id,
         p_message: pitchForm.message.trim() || null,
         p_expires_at: isoOrNull(pitchForm.expires_at),
@@ -267,9 +267,9 @@ export default function OpportunityPage() {
     setBusy(true);
     setError('');
     try {
-      await djmRpc('djm_opportunity_update_pitch', {
+      await platformRpc('djm_opportunity_update_pitch', {
         p_share_id: pitch.id,
-        p_label: edit.label.trim() || deal?.title || 'DJM pitch',
+        p_label: edit.label.trim() || deal?.title || 'Agency pitch',
         p_message: edit.pitch_message.trim() || null,
         p_expires_at: isoOrNull(edit.expires_at),
         p_selected_sections: pitchSections(edit),
@@ -291,9 +291,9 @@ export default function OpportunityPage() {
     setBusy(true);
     setError('');
     try {
-      await djmRpc('djm_opportunity_update_pitch', {
+      await platformRpc('djm_opportunity_update_pitch', {
         p_share_id: pitch.id,
-        p_label: edit.label || pitch.label || deal?.title || 'DJM pitch',
+        p_label: edit.label || pitch.label || deal?.title || 'Agency pitch',
         p_message: edit.pitch_message || null,
         p_expires_at: isoOrNull(edit.expires_at),
         p_selected_sections: pitchSections(edit),
@@ -310,7 +310,7 @@ export default function OpportunityPage() {
 
   const markPitchSent = async (pitch: any) => {
     try {
-      await djmRpc('djm_opportunity_mark_pitch_sent', { p_share_id: pitch.id });
+      await platformRpc('djm_opportunity_mark_pitch_sent', { p_share_id: pitch.id });
       setMessage('Pitch marked sent.');
       await load();
     } catch (e) {
@@ -329,12 +329,12 @@ export default function OpportunityPage() {
 
   if (!deal || !form) {
     return (
-      <DjmOsShell eyebrow="Opportunity" title="Opportunity">
+      <AgencyShell eyebrow="Opportunity" title="Opportunity">
         <div className="djm-os-empty">
           <CircleDollarSign size={25} />
           <p>{busy ? 'Loading opportunity...' : error || 'Opportunity not found.'}</p>
         </div>
-      </DjmOsShell>
+      </AgencyShell>
     );
   }
 
@@ -344,7 +344,7 @@ export default function OpportunityPage() {
   const manualProbability = numberOrNull(deal.manual_probability);
 
   return (
-    <DjmOsShell eyebrow="Player to club opportunity" title={deal.title || 'Opportunity'}>
+    <AgencyShell eyebrow="Player to club opportunity" title={deal.title || 'Opportunity'}>
       <div className="djm-os-toolbar">
         <Link href="/opportunities" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
           <ArrowLeft size={15} />
@@ -397,7 +397,7 @@ export default function OpportunityPage() {
             </div>
             <div className="djm-os-preview" style={{ background: '#f5f8fa', color: '#31465b' }}>
               <strong>Probability source</strong>
-              <p>{deal.probability_source === 'manual' ? 'Manual override' : 'DJM model'}</p>
+              <p>{deal.probability_source === 'manual' ? 'Manual override' : 'ReDream model'}</p>
             </div>
             <ProbabilityFactors basis={probabilityBasis} />
           </div>
@@ -497,7 +497,7 @@ export default function OpportunityPage() {
               </select>
             </label>
             <label>
-              DJM owner
+              agency owner
               <select value={form.owner_user_id} onChange={(event) => setForm({ ...form, owner_user_id: event.target.value })}>
                 <option value="">Unassigned</option>
                 {teamMembers.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}
@@ -514,7 +514,7 @@ export default function OpportunityPage() {
 
           <div className="djm-os-button-row" style={{ alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--djm-navy)' }}>Player type</span>
-            <button type="button" className={identityKind === 'player' ? 'djm-os-primary-button' : 'djm-os-secondary-button'} onClick={() => setIdentityKind('player')}>Signed DJM player</button>
+            <button type="button" className={identityKind === 'player' ? 'djm-os-primary-button' : 'djm-os-secondary-button'} onClick={() => setIdentityKind('player')}>Signed player</button>
             <button type="button" className={identityKind === 'recruitment' ? 'djm-os-primary-button' : 'djm-os-secondary-button'} onClick={() => setIdentityKind('recruitment')}>Recruitment target</button>
           </div>
 
@@ -559,7 +559,7 @@ export default function OpportunityPage() {
               <input value={form.currency} onChange={(event) => setForm({ ...form, currency: event.target.value.toUpperCase() })} />
             </label>
             <label>
-              Expected DJM commission
+              Expected agency commission
               <input type="number" min="0" value={form.expected_commission} onChange={(event) => setForm({ ...form, expected_commission: event.target.value })} />
             </label>
             <label>
@@ -623,7 +623,7 @@ export default function OpportunityPage() {
         </div>
 
         {!deal.player_id ? (
-          <div className="djm-os-empty"><Send size={24} /><p>Club pitch links are available once the Opportunity uses a signed DJM player.</p></div>
+          <div className="djm-os-empty"><Send size={24} /><p>Club pitch links are available once the Opportunity uses a signed player.</p></div>
         ) : null}
 
         {showPitchCreator ? (
@@ -714,7 +714,7 @@ export default function OpportunityPage() {
           <div className="djm-os-empty"><CircleDollarSign size={24} /><p>No linked actions yet.</p></div>
         )}
       </section>
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 
@@ -725,7 +725,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 function ProbabilityFactors({ basis }: { basis: Record<string, any> }) {
   const factors = [
     ['Club Match', basis.player_club_fit ?? basis.football_fit ?? basis.club_match ?? basis.fit],
-    ['DJM access', basis.djm_access ?? basis.access],
+    ['Agency access', basis.djm_access ?? basis.access],
     ['Demand confidence', basis.demand_confidence ?? basis.demand],
     ['Player willingness', basis.player_willingness ?? basis.willingness],
     ['Timing', basis.timing],

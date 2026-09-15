@@ -182,7 +182,7 @@ const tabs = (inboxCount: number): WorkspaceTab[] => [
   { href: '/home', label: 'Home', icon: Home },
   {
     href: '/inbox',
-    label: 'DJM',
+    label: 'Your agency',
     icon: MessageCircle,
     badge: inboxCount,
   },
@@ -219,7 +219,7 @@ export function PlayerShell({
 
   const mobile = [
     ['/home', 'Home', Home],
-    ['/inbox', 'DJM', MessageCircle],
+    ['/inbox', 'Your agency', MessageCircle],
     ['/profile', 'Me', UserRound],
   ] as const;
 

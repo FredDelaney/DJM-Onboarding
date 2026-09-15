@@ -5,9 +5,9 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { AlertCircle, ArrowLeft, Bell, ShieldCheck } from 'lucide-react';
 
 import AdminResourceStudio from '@/components/AdminResourceStudio';
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import { useAdmin } from '@/components/AdminShell';
-import { friendlyError } from '@/lib/djm-os';
+import { friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 
 export default function PlayerExperienceSettingsPage() {
@@ -53,7 +53,7 @@ export default function PlayerExperienceSettingsPage() {
     setMessage('');
     try {
       const { error: publishError } = await supabase.from('announcements').insert({
-        title: 'From DJM',
+        title: 'From the agency',
         body: announcement.trim(),
         published: true,
         created_by: userId,
@@ -71,13 +71,13 @@ export default function PlayerExperienceSettingsPage() {
   };
 
   return (
-    <DjmOsShell eyebrow="Settings · player service" title="Player experience">
+    <AgencyShell eyebrow="Settings · player service" title="Player experience">
       <Link href="/settings" className="ux-back-link"><ArrowLeft size={15} />Settings</Link>
       {error ? <div className="ux-alert ux-alert-error"><AlertCircle size={17} />{error}</div> : null}
       {message ? <div className="ux-alert ux-alert-success">{message}</div> : null}
 
       <section className="ux-surface">
-        <div className="ux-surface-head"><div><p className="ux-eyebrow">FROM DJM</p><h2>Meaningful player updates</h2><p>Use announcements for information players genuinely need. Successful automation should not create noise.</p></div><Bell size={20} /></div>
+        <div className="ux-surface-head"><div><p className="ux-eyebrow">FROM YOUR AGENCY</p><h2>Meaningful player updates</h2><p>Use announcements for information players genuinely need. Successful automation should not create noise.</p></div><Bell size={20} /></div>
         {isAdmin ? (
           <form className="ux-simple-form" onSubmit={publish}>
             <label>Announcement<textarea rows={4} value={announcement} onChange={(event) => setAnnouncement(event.target.value)} placeholder="What do players need to know?" /></label>
@@ -91,7 +91,7 @@ export default function PlayerExperienceSettingsPage() {
       </section>
 
       <section className="ux-surface ux-resource-settings">
-        <div className="ux-surface-head"><div><p className="ux-eyebrow">PLAYER LIBRARY</p><h2>Resources</h2><p>Keep the useful guidance players can access through their DJM experience.</p></div></div>
+        <div className="ux-surface-head"><div><p className="ux-eyebrow">PLAYER LIBRARY</p><h2>Resources</h2><p>Keep the useful guidance players can access through their player workspace.</p></div></div>
         <AdminResourceStudio
           resources={resources}
           canManage={isAdmin}
@@ -100,6 +100,6 @@ export default function PlayerExperienceSettingsPage() {
           onFlash={(text) => setMessage(text)}
         />
       </section>
-    </DjmOsShell>
+    </AgencyShell>
   );
 }

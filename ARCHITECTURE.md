@@ -1,6 +1,6 @@
-# DJM Intelligence architecture
+# ReDream architecture
 
-DJM Intelligence is one trusted data layer with four controlled experiences: Command for staff, Career for players, Decision for clubs and Brain for authorised natural-language intelligence.
+ReDream is one tenant-scoped data layer with four controlled experiences: Command for staff, Career for players, Decision for clubs and Brain for authorised natural-language intelligence.
 
 ## Runtime
 
@@ -25,3 +25,7 @@ Authorisation precedes retrieval. UI visibility is never the security boundary. 
 ## Intelligence rule
 
 Deterministic rules handle dates, hard constraints, freshness and priority. AI may extract, organise, compare and draft; material facts remain proposed until approved. High-consequence actions always require an authorised human.
+
+## Agency AI capture
+
+Capture uses the canonical `redream_ai_*` API and shared Edge handlers. Requested workspace slugs are untrusted context; membership is validated on the server. After creation, the stored capture tenant governs every resolver and write. See [migration and canary report](docs/architecture/REDREAM_AI_TRANSITION.md). The `djm_os` schema remains a deployed compatibility identifier shared by tenants.

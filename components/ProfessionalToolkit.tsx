@@ -188,7 +188,7 @@ export default function ProfessionalToolkit({
           <p>
             Short professional playbooks for moments that
             matter. Each one ends in a real action inside
-            DJM Player.
+            Player Workspace.
           </p>
         </div>
       </div>
@@ -225,7 +225,7 @@ export default function ProfessionalToolkit({
         <div className="djm-resource-library">
           <div className="djm-resource-library-head">
             <div>
-              <span>CURATED BY DJM</span>
+              <span>CURATED BY YOUR AGENCY</span>
               <strong>Agency resources</strong>
             </div>
             <BookOpen size={19} />
@@ -238,7 +238,7 @@ export default function ProfessionalToolkit({
               const content = (
                 <>
                   <span>
-                    {resource.category || 'DJM resource'}
+                    {resource.category || 'Your agency resource'}
                   </span>
                   <strong>
                     {resource.title || 'Player resource'}

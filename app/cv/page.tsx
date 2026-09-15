@@ -89,14 +89,14 @@ export default function CV() {
           </div>
 
           <h1 className="page-title">
-            DJM is preparing
+            Your agency is preparing
             your presentation.
           </h1>
 
           <p className="page-intro">
             Your club-facing
             dossier appears here
-            once DJM has prepared
+            once your agency has prepared
             the verified
             presentation.
           </p>
@@ -152,7 +152,7 @@ export default function CV() {
 
               <span>
                 This is the
-                presentation DJM uses
+                presentation your agency uses
                 for clubs.
               </span>
             </div>
@@ -171,7 +171,7 @@ export default function CV() {
 
             {pub.published
               ? 'Live'
-              : 'DJM preview'}
+              : 'Your agency preview'}
           </span>
         </div>
       </div>

@@ -44,6 +44,8 @@ test("every deployed Edge Function has source and explicit JWT configuration", (
     "platform-tenant-runtime",
     "player-invite-public",
     "player-os",
+    "redream-ai-capture",
+    "redream-ai-process",
     "refresh-clubelo-team-strength",
     "refresh-global-football-identity",
     "refresh-global-football-intelligence",

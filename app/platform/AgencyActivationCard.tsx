@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { djmInvoke, friendlyError } from '@/lib/djm-os';
+import { platformInvoke, friendlyError } from '@/lib/platform-client';
 
 import styles from './AgencyActivationCard.module.css';
 
@@ -139,7 +139,7 @@ export default function AgencyActivationCard({
     onError('');
 
     try {
-      const result = await djmInvoke<any>('platform-ops', {
+      const result = await platformInvoke<any>('platform-ops', {
         action: 'create_owner_invite',
         tenant_id: tenantId,
         email: ownerEmail.trim().toLowerCase(),
@@ -173,7 +173,7 @@ export default function AgencyActivationCard({
     try {
       await navigator.clipboard.writeText(liveInvite.url);
       try {
-        await djmInvoke('platform-ops', {
+        await platformInvoke('platform-ops', {
           action: 'mark_owner_invite_sent',
           invite_id: liveInvite.inviteId,
           channel: 'link',
@@ -202,7 +202,7 @@ export default function AgencyActivationCard({
     onError('');
 
     try {
-      await djmInvoke('platform-ops', {
+      await platformInvoke('platform-ops', {
         action: 'revoke_owner_invite',
         invite_id: inviteId,
       });

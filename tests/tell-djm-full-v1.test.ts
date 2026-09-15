@@ -3,27 +3,27 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const read = (path: string) => readFileSync(path, 'utf8');
-const capture = read('components/TellDjmCapture.tsx');
-const launcher = read('components/DjmTellDjmLauncher.tsx');
-const fullPage = read('components/TellDjmFullPage.tsx');
-const recent = read('components/TellDjmRecentCaptures.tsx');
-const header = read('components/DjmWorkspaceHeader.tsx');
-const offline = read('lib/tell-djm-offline.ts');
-const upload = read('supabase/functions/djm-tell-capture/index.ts');
-const worker = read('supabase/functions/djm-tell-process/index.ts');
-const aiRouter = read('supabase/functions/_shared/djm-ai-router.ts');
-const contextLib = read('lib/djm-context.ts');
+const capture = read('components/AiCapture.tsx');
+const launcher = read('components/AiLauncher.tsx');
+const fullPage = read('components/AiFullPage.tsx');
+const recent = read('components/AiRecentCaptures.tsx');
+const header = read('components/WorkspaceHeader.tsx');
+const offline = read('lib/ai-offline.ts');
+const upload = read('supabase/functions/_shared/ai-capture.ts');
+const worker = read('supabase/functions/_shared/ai-process.ts');
+const aiRouter = read('supabase/functions/_shared/ai-router.ts');
+const contextLib = read('lib/entity-context.ts');
 const migration = read(
   'supabase/migrations/20260901150000_djm_tell_djm_full_v1.sql',
 );
 const opportunitiesPath = 'app/(djm-os)/opportunities/page.tsx';
 
 test('Tell DJM is globally available without removing the existing Add workflow', () => {
-  assert.match(header, /DjmTellDjmLauncher/);
-  assert.match(header, /<DjmTellDjmLauncher \/>/);
-  assert.match(header, /<DjmQuickCapture \/>/);
-  assert.match(launcher, /Tell DJM/);
-  assert.match(launcher, /Say what happened\. DJM does the admin\./);
+  assert.match(header, /AiLauncher/);
+  assert.match(header, /<AiLauncher \/>/);
+  assert.match(header, /<QuickCapture \/>/);
+  assert.match(launcher, /Capture/);
+  assert.match(launcher, /Say what happened\. We’ll handle the admin\./);
 });
 
 test('voice capture uses browser recording with runtime MIME detection', () => {
@@ -59,7 +59,7 @@ test('capture retries are idempotent at both client and database layers', () => 
 
 test('audio remains private and the server validates the recording again', () => {
   assert.match(upload, /bucketInfo\.public/);
-  assert.match(upload, /Tell DJM capture bucket must remain private/);
+  assert.match(upload, /ReDream AI capture bucket must remain private/);
   assert.match(upload, /supportedAudioMimes/);
   assert.match(upload, /split\(";"\)/);
   assert.match(upload, /12 \* 1024 \* 1024/);
@@ -69,7 +69,7 @@ test('audio remains private and the server validates the recording again', () =>
 test('browser-triggered reprocessing supports CORS after one-tap answers', () => {
   assert.match(worker, /Access-Control-Allow-Origin/);
   assert.match(worker, /request\.method === "OPTIONS"/);
-  assert.match(capture, /djmInvoke\('djm-tell-process'/);
+  assert.match(capture, /platformInvoke\('redream-ai-process'/);
 });
 
 test('closing the phone cannot cancel processing', () => {
@@ -86,7 +86,7 @@ test('OpenAI usage is server-side and uses the verified current model APIs', () 
   assert.doesNotMatch(capture, /OPENAI_API_KEY/);
   assert.match(worker, /gpt-transcribe/);
   assert.match(worker, /keywords\[\]/);
-  assert.match(worker, /selectDjmAiRoute/);
+  assert.match(worker, /selectAiRoute/);
   assert.match(aiRouter, /gpt-5\.6-luna/);
   assert.match(aiRouter, /gpt-5\.6-terra/);
   assert.match(aiRouter, /gpt-5\.6-sol/);
@@ -104,7 +104,7 @@ test('paid interpretation is persisted so retries do not reinterpret the same no
 });
 
 test('AI can propose but deterministic DJM RPCs own all business writes', () => {
-  assert.match(worker, /djm_tell_apply_action/);
+  assert.match(worker, /redream_ai_apply_action/);
   assert.doesNotMatch(worker, /\.from\("club_needs"\)\.insert/);
   assert.doesNotMatch(worker, /\.from\("tasks"\)\.insert/);
   assert.match(migration, /create or replace function public\.djm_tell_apply_action/);
@@ -115,7 +115,7 @@ test('AI can propose but deterministic DJM RPCs own all business writes', () => 
 test('entities and financial currencies are never guessed', () => {
   assert.match(worker, /Which club did you mean/);
   assert.match(worker, /Which player did you mean/);
-  assert.match(worker, /DJM will not guess between people/);
+  assert.match(worker, /ReDream will not guess between people/);
   assert.match(worker, /What currency is the budget in/);
   assert.match(worker, /Unknown means null/);
   assert.match(worker, /bare 250 with no magnitude/);
@@ -220,14 +220,14 @@ test('global mic inherits stable context from player club contact recruitment an
   assert.match(contextLib, /\/recruitment/);
   assert.match(contextLib, /\/opportunities/);
   assert.match(contextLib, /\/market\/deals/);
-  assert.match(launcher, /djm_tell_context_for_route/);
+  assert.match(launcher, /redream_ai_context_for_route/);
   assert.match(migration, /create or replace function public\.djm_tell_context_for_route/);
   assert.match(migration, /'context_type','opportunity'/);
 });
 
 test('scout voice notes create or reuse Recruitment targets and dated scouting reports', () => {
   assert.match(worker, /log_scout_observation/);
-  assert.match(worker, /djm_tell_apply_scout_observation/);
+  assert.match(worker, /redream_ai_apply_scout_observation/);
   assert.match(migration, /djm_os\.scouting_prospects/);
   assert.match(migration, /djm_os\.scouting_reports/);
   assert.match(migration, /recruitment_stage,recruitment_priority/);
@@ -265,7 +265,7 @@ test('bare financial amounts require a one-tap magnitude decision before currenc
   assert.match(worker, /salary_budget_raw/);
   assert.match(worker, /transfer_budget_raw/);
   assert.match(worker, /What did “\$\{raw\}” mean\?/);
-  assert.match(worker, /DJM heard a financial amount but will not guess its magnitude/);
+  assert.match(worker, /ReDream heard a financial amount but will not guess its magnitude/);
   assert.match(worker, /kind: "omit_field"/);
   assert.match(worker, /never assume 250 means 250000/);
 });
@@ -280,18 +280,18 @@ test('Tell DJM raw workflow rows are private to the capture owner or full access
 
 
 test('safely uploaded captures survive refresh and reconnect to their receipt', () => {
-  assert.match(offline, /ACTIVE_KEY = 'djm-tell-djm-active-captures'/);
-  assert.match(offline, /rememberActiveTellDjmCapture/);
-  assert.match(offline, /listActiveTellDjmCaptures/);
-  assert.match(offline, /forgetActiveTellDjmCapture/);
-  assert.match(capture, /rememberActiveTellDjmCapture\(result\.capture_id, pendingWorkspace\)/);
-  assert.match(capture, /listActiveTellDjmCaptures\(\)\.filter\([\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
-  assert.match(capture, /forgetActiveTellDjmCapture\(captureId\)/);
+  assert.match(offline, /LEGACY_ACTIVE_KEY = 'djm-tell-djm-active-captures'/);
+  assert.match(offline, /rememberActiveAiCapture/);
+  assert.match(offline, /listActiveAiCaptures/);
+  assert.match(offline, /forgetActiveAiCapture/);
+  assert.match(capture, /rememberActiveAiCapture\(result\.capture_id, pendingWorkspace, pending.workspace\)/);
+  assert.match(capture, /listActiveAiCaptures\(\)\.filter\([\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
+  assert.match(capture, /forgetActiveAiCapture\(captureId\)/);
 });
 
 test('server acknowledgement releases navigation while AI continues in background', () => {
   assert.match(capture, /await uploadPending\(pending\);\n      setBusy\(false\)/);
-  assert.doesNotMatch(capture, /setBusy\(true\);\n        setStatus\('Got it\. DJM is finishing/);
+  assert.doesNotMatch(capture, /setBusy\(true\);\n        setStatus\('Got it\. ReDream is finishing/);
   assert.match(capture, /You can close this screen/);
 });
 
@@ -310,20 +310,20 @@ test('recording and unsafe save guard against accidental navigation', () => {
 });
 
 test('full-screen Tell DJM preserves route and active workspace context', () => {
-  assert.match(launcher, /tellDjmHref/);
+  assert.match(launcher, /aiCaptureHref/);
   assert.match(contextLib, /club_need_id: context\.club_need_id/);
   assert.match(launcher, /djm:tell-context/);
   assert.match(fullPage, /new URLSearchParams\(window\.location\.search\)/);
   assert.match(fullPage, /setQueryContext/);
   assert.match(contextLib, /club_need_id/);
-  assert.match(fullPage, /djm_tell_context_for_route/);
+  assert.match(fullPage, /redream_ai_context_for_route/);
   assert.match(fullPage, /context=\{context\}/);
 });
 
 test('Opportunities publishes the selected need to Tell DJM in the full repository', () => {
   if (!existsSync(opportunitiesPath)) return;
   const opportunities = read(opportunitiesPath);
-  assert.match(opportunities, /new CustomEvent\('djm:tell-context'/);
+  assert.match(opportunities, /new CustomEvent\('redream:ai-context'/);
   assert.match(opportunities, /club_need_id: selectedNeed\.id \|\| null/);
   assert.match(opportunities, /organisation_id: selectedNeed\.organisation_id \|\| null/);
   assert.match(opportunities, /\}, \[selectedNeed\]\);/);
@@ -350,15 +350,15 @@ test('attention states reuse the existing DJM notification and web-push stack wi
 test('push links reopen the exact capture receipt', () => {
   assert.match(migration, /'\/tell\?capture='\|\|v_capture\.id::text/);
   assert.match(fullPage, /params\.get\('capture'\)/);
-  assert.match(fullPage, /DJM_UUID_PATTERN\.test\(requestedCaptureId\)/);
-  assert.match(contextLib, /DJM_UUID_PATTERN = new RegExp/);
+  assert.match(fullPage, /UUID_PATTERN\.test\(requestedCaptureId\)/);
+  assert.match(contextLib, /UUID_PATTERN = new RegExp/);
   assert.match(fullPage, /setSelectedCaptureId\(requestedCaptureId\)/);
 });
 
 test('full-screen Tell DJM has a simple recent history that reopens receipts', () => {
   assert.match(migration, /create or replace function public\.djm_tell_recent_captures/);
   assert.match(migration, /c\.submitted_by=\(select auth\.uid\(\)\)/);
-  assert.match(fullPage, /TellDjmRecentCaptures/);
+  assert.match(fullPage, /AiRecentCaptures/);
   assert.match(fullPage, /resumeCaptureId=\{selectedCaptureId\}/);
   assert.match(capture, /resumeCaptureId/);
   assert.match(recent, /Needs one thing/);
@@ -373,10 +373,10 @@ test('Tell DJM launch switch defaults off until backend deployment and smoke tes
 });
 
 test('Tell DJM is feature-gated so frontend deployment cannot expose a broken backend', () => {
-  assert.match(launcher, /djm_tell_current_access/);
+  assert.match(launcher, /redream_ai_current_access/);
   assert.match(launcher, /if \(!access\?\.enabled\) return null/);
-  assert.match(fullPage, /djm_tell_current_access/);
-  assert.match(fullPage, /Tell DJM is not enabled yet/);
+  assert.match(fullPage, /redream_ai_current_access/);
+  assert.match(fullPage, /Capture is not enabled yet/);
   assert.match(capture, /maxAudioSeconds/);
 });
 
@@ -410,8 +410,8 @@ test('partial or failed captures can retry only their unfinished work from the p
   assert.match(migration, /create or replace function public\.djm_tell_retry_capture/);
   assert.match(migration, /v_capture\.status not in \('partial','failed'\)/);
   assert.match(capture, /Retry failed updates/);
-  assert.match(capture, /djm_tell_retry_capture/);
-  assert.match(capture, /DJM reuses the saved transcript and plan/);
+  assert.match(capture, /redream_ai_retry_capture/);
+  assert.match(capture, /ReDream reuses the saved transcript and plan/);
 });
 
 test('receipt polling spans the durable one-minute cron fallback without fan-out on reconnect', () => {
@@ -421,7 +421,7 @@ test('receipt polling spans the durable one-minute cron fallback without fan-out
   assert.match(capture, /const POLL_ATTEMPTS = 180/);
   assert.match(capture, /pollingRef/);
   assert.match(capture, /uploadPending\(item, false\)/);
-  assert.match(capture, /listActiveTellDjmCaptures\(\)\.filter\([\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
+  assert.match(capture, /listActiveAiCaptures\(\)\.filter\([\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
 });
 
 test('rare orphan voice uploads are also removed after the retention window', () => {
@@ -429,7 +429,7 @@ test('rare orphan voice uploads are also removed after the retention window', ()
   assert.match(migration, /o\.bucket_id='djm-network-captures'/);
   assert.match(migration, /o\.created_at<now\(\)-interval '8 days'/);
   assert.match(migration, /not exists \([\s\S]*c\.source_uri=o\.bucket_id\|\|'\/'\|\|o\.name/);
-  assert.match(worker, /djm_tell_orphan_audio_cleanup_due/);
+  assert.match(worker, /redream_ai_orphan_audio_cleanup_due/);
   assert.match(worker, /orphan_removed/);
 });
 

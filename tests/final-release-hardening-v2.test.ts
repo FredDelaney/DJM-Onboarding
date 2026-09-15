@@ -76,7 +76,7 @@ test('passkey UX is easy to recover from and production RP settings are source c
   assert.match(signIn, /Use Face ID or passkey/);
   assert.match(signIn, /Use your password below/);
   assert.match(panel, /Set up quick sign-in/);
-  assert.match(panel, /Recover access through your confirmed DJM email\./);
+  assert.match(panel, /Recover access through your confirmed ReDream email\./);
   assert.match(panel, /Your password always works/);
   assert.match(config, /\[auth\.passkey\]/);
   assert.match(config, /enabled = true/);

@@ -30,12 +30,12 @@ import {
   X,
 } from 'lucide-react';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import {
   ClubNeedContactControl,
   ClubNeedIdentity,
 } from '@/components/ClubNeedCardResource';
-import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, platformRpc, friendlyError } from '@/lib/platform-client';
 import styles from './page.module.css';
 
 type View = 'needs' | 'matches' | 'pipeline';
@@ -260,9 +260,9 @@ export default function OpportunitiesPage() {
     setError('');
     try {
       const [needData, clubData, opportunityData] = await Promise.all([
-        djmRpc<any[]>('djm_market_needs_v3', { p_status: null }),
-        djmRpc<any[]>('djm_network_organisations', { p_search: null, p_limit: 300 }),
-        djmRpc<any[]>('djm_opportunities', { p_status: 'active' }),
+        platformRpc<any[]>('djm_market_needs_v3', { p_status: null }),
+        platformRpc<any[]>('djm_network_organisations', { p_search: null, p_limit: 300 }),
+        platformRpc<any[]>('djm_opportunities', { p_status: 'active' }),
       ]);
       setNeeds(needData || []);
       setClubs((clubData || []).filter((club: any) => club.organisation_type === 'club'));
@@ -300,10 +300,10 @@ export default function OpportunitiesPage() {
         }
       : null;
 
-    window.dispatchEvent(new CustomEvent('djm:tell-context', { detail }));
+    window.dispatchEvent(new CustomEvent('redream:ai-context', { detail }));
     return () => {
       window.dispatchEvent(
-        new CustomEvent('djm:tell-context', { detail: null }),
+        new CustomEvent('redream:ai-context', { detail: null }),
       );
     };
   }, [selectedNeed]);
@@ -362,7 +362,7 @@ export default function OpportunitiesPage() {
   const loadClubContacts = useCallback(async (organisationId: string) => {
     if (!organisationId) return [];
     try {
-      const data: any = await djmRpc('djm_network_club_workspace', {
+      const data: any = await platformRpc('djm_network_club_workspace', {
         p_organisation_id: organisationId,
       });
       return Array.isArray(data?.contacts) ? data.contacts : [];
@@ -394,7 +394,7 @@ export default function OpportunitiesPage() {
     setWorkspaceBusy(true);
     setError('');
     try {
-      const result: any = await djmRpc('djm_market_need_workspace', {
+      const result: any = await platformRpc('djm_market_need_workspace', {
         p_need_id: needId,
       });
       setWorkspace(result || null);
@@ -425,7 +425,7 @@ export default function OpportunitiesPage() {
     setView('matches');
     setError('');
     try {
-      const result: any = await djmRpc('djm_market_candidates_v2', {
+      const result: any = await platformRpc('djm_market_candidates_v2', {
         p_need_id: need.id,
       });
       setCandidates(
@@ -446,7 +446,7 @@ export default function OpportunitiesPage() {
     setError('');
     setMessage('');
     try {
-      const result: any = await djmRpc('djm_market_create_need_from_text', {
+      const result: any = await platformRpc('djm_market_create_need_from_text', {
         p_organisation_id: clubId,
         p_text: requestText.trim(),
         p_source_person_id: sourcePersonId || null,
@@ -460,7 +460,7 @@ export default function OpportunitiesPage() {
       );
       await load();
       if (result?.need_id) {
-        const refreshed = await djmRpc<any[]>('djm_market_needs_v3', {
+        const refreshed = await platformRpc<any[]>('djm_market_needs_v3', {
           p_status: null,
         });
         const created = (refreshed || []).find(
@@ -501,7 +501,7 @@ export default function OpportunitiesPage() {
     setError('');
     setMessage('');
     try {
-      await djmRpc('djm_market_update_need_v2', {
+      await platformRpc('djm_market_update_need_v2', {
         p_need_id: selectedNeed.id,
         p_organisation_id: needForm.organisation_id,
         p_title: needForm.title.trim() || `${needForm.position.trim()} requirement`,
@@ -542,7 +542,7 @@ export default function OpportunitiesPage() {
 
       const currentStatus = String(selectedNeed.need_status || selectedNeed.status || '');
       if (needForm.status && needForm.status !== currentStatus) {
-        await djmRpc('djm_market_set_need_status', {
+        await platformRpc('djm_market_set_need_status', {
           p_need_id: selectedNeed.id,
           p_status: needForm.status,
         });
@@ -589,7 +589,7 @@ export default function OpportunitiesPage() {
     setError('');
     setMessage('');
     try {
-      await djmRpc('djm_market_upsert_need_task', {
+      await platformRpc('djm_market_upsert_need_task', {
         p_need_id: selectedNeed.id,
         p_title: taskForm.title.trim(),
         p_task_id: taskForm.id || null,
@@ -617,7 +617,7 @@ export default function OpportunitiesPage() {
     setMessage('');
 
     try {
-      const impact: any = await djmRpc('djm_delete_preview', {
+      const impact: any = await platformRpc('djm_delete_preview', {
         p_entity_type: 'club_need',
         p_entity_id: selectedNeed.id,
       });
@@ -641,7 +641,7 @@ export default function OpportunitiesPage() {
 
       setDeletingNeed(true);
 
-      await djmRpc('djm_delete_entity', {
+      await platformRpc('djm_delete_entity', {
         p_entity_type: 'club_need',
         p_entity_id: selectedNeed.id,
         p_confirm: true,
@@ -670,7 +670,7 @@ export default function OpportunitiesPage() {
     setError('');
     try {
       const name = candidate.player_name || candidate.full_name || 'Player';
-      const result: any = await djmRpc('djm_opportunity_upsert', {
+      const result: any = await platformRpc('djm_opportunity_upsert', {
         p_id: null,
         p_title: `${name} to ${selectedNeed.organisation_name}`,
         p_organisation_id: selectedNeed.organisation_id,
@@ -712,7 +712,7 @@ export default function OpportunitiesPage() {
     : [];
 
   return (
-    <DjmOsShell eyebrow="Demand to player to deal" title="Opportunities">
+    <AgencyShell eyebrow="Demand to player to deal" title="Opportunities">
       {error ? (
         <div className="ux-alert ux-alert-error">
           <AlertCircle size={17} />
@@ -791,7 +791,7 @@ export default function OpportunitiesPage() {
               <h2>What did the club actually ask for?</h2>
               <p>
                 Link the request to the club contact and preserve the original wording.
-                DJM will open the structured recruitment brief immediately after capture.
+                The agency will open the structured recruitment brief immediately after capture.
               </p>
             </div>
           </div>
@@ -1002,7 +1002,7 @@ export default function OpportunitiesPage() {
           ) : null}
         </section>
       ) : null}
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 
@@ -1420,7 +1420,7 @@ function NeedWorkspace({
                       <strong>{task.title}</strong>
                       <p>
                         {task.person_name || 'No contact'} ·{' '}
-                        {task.owner_name || 'DJM'}
+                        {task.owner_name || 'The agency'}
                       </p>
                       <small>
                         {task.due_at ? `Due ${compactDateTime(task.due_at)}` : 'No due date'}

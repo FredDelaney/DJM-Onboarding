@@ -12,8 +12,8 @@ test('Opportunity workspace consolidates Needs, Matches and Pipeline while prese
   assert.match(opportunities, /djm_opportunities/);
   assert.match(opportunities, /djm_opportunity_upsert/);
   assert.match(read('app/(djm-os)/opportunities/[id]/page.tsx'), /from '\.\.\/\.\.\/market\/deals\/\[id\]\/page'/);
-  assert.match(read('components/DjmWorkspaceHeader.tsx'), /href: '\/opportunities'/);
-  assert.match(read('components/DjmGlobalSearch.tsx'), /`\/opportunities\/\$\{item\.entity_id\}`/);
+  assert.match(read('components/WorkspaceHeader.tsx'), /href: '\/opportunities'/);
+  assert.match(read('components/WorkspaceSearch.tsx'), /`\/opportunities\/\$\{item\.entity_id\}`/);
 });
 
 test('Secure club shares render their approved club-specific pitch context', () => {

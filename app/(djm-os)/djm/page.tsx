@@ -14,13 +14,13 @@ import {
 
 import './home-v2.css';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import { useAdmin } from '@/components/AdminShell';
 import {
   buildAdminPortfolio,
   type AdminRow,
 } from '@/lib/admin-command-centre';
-import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, platformRpc, friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 
 type PortfolioData = {
@@ -56,7 +56,7 @@ const greeting = () => {
 
 const rowData = (result: any) => result?.data || [];
 
-export default function DjmHomePage() {
+export default function AgencyHomePage() {
   const auth = useAdmin();
   const [command, setCommand] = useState<any>(null);
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(EMPTY_PORTFOLIO);
@@ -71,8 +71,8 @@ export default function DjmHomePage() {
 
     try {
       const [commandResult, controlResult, queryResults] = await Promise.all([
-        djmRpc<any>('djm_command_center'),
-        djmRpc<any[]>('djm_home_item_controls'),
+        platformRpc<any>('djm_command_center'),
+        platformRpc<any[]>('djm_home_item_controls'),
         Promise.all([
           supabase
             .from('players')
@@ -207,7 +207,7 @@ export default function DjmHomePage() {
             .replace(/[^a-z0-9]+/g, '-')
             .slice(0, 80)
         }`,
-        title: item.title || 'DJM action',
+        title: item.title || 'Agency action',
         subtitle: item.subtitle || 'Review the latest context.',
         href: normaliseLegacyHref(item.href || '/djm'),
         score: Number(item.score || 50),
@@ -248,7 +248,7 @@ export default function DjmHomePage() {
 
     try {
       if (item.source === 'system' && item.kind === 'task') {
-        await djmRpc('djm_network_set_task_status', {
+        await platformRpc('djm_network_set_task_status', {
           p_task_id: item.record_id,
           p_status: 'completed',
         });
@@ -256,7 +256,7 @@ export default function DjmHomePage() {
         item.source === 'player' &&
         ['message', 'request'].includes(item.kind)
       ) {
-        await djmRpc('djm_complete_player_request', {
+        await platformRpc('djm_complete_player_request', {
           p_request_id: item.record_id,
         });
       }
@@ -288,7 +288,7 @@ export default function DjmHomePage() {
     setError('');
 
     try {
-      await djmRpc('djm_home_set_item_control', {
+      await platformRpc('djm_home_set_item_control', {
         p_item_key: item.control_key,
         p_action: action,
         p_snoozed_until: snoozedUntil,
@@ -316,10 +316,10 @@ export default function DjmHomePage() {
   const urgentCount = combinedQueue.filter(
     (item) => Number(item.score || 0) >= 90,
   ).length;
-  const displayName = auth.profile?.display_name?.split(' ')?.[0] || 'DJM';
+  const displayName = auth.profile?.display_name?.split(' ')?.[0] || 'The agency';
 
   return (
-    <DjmOsShell eyebrow="Agency operating system" title="Home">
+    <AgencyShell eyebrow="Agency operating system" title="Home">
       <div className="djm-home-v2">
         <section className="djm-home-v2-hero">
           <div className="djm-home-v2-hero-top">
@@ -420,7 +420,7 @@ export default function DjmHomePage() {
                             ? compactDateTime(item.action_at)
                             : item.source === 'player'
                               ? 'Player service'
-                              : 'DJM system'}
+                              : 'ReDream'}
                         </small>
                       </span>
 
@@ -549,7 +549,7 @@ export default function DjmHomePage() {
           </aside>
         </div>
       </div>
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 

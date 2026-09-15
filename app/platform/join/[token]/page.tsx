@@ -19,7 +19,7 @@ import {
 } from 'react';
 import { useParams } from 'next/navigation';
 
-import { djmInvoke, friendlyError } from '@/lib/djm-os';
+import { platformInvoke, friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 
 import styles from './page.module.css';
@@ -110,7 +110,7 @@ export default function AgencyOwnerJoinPage() {
 
       try {
         const [inviteResult, sessionResult] = await Promise.all([
-          djmInvoke<{ invite?: InvitePayload | null }>(
+          platformInvoke<{ invite?: InvitePayload | null }>(
             'agency-owner-invite-public',
             {
               action: 'preflight',
@@ -193,7 +193,7 @@ export default function AgencyOwnerJoinPage() {
     setMessage('');
 
     try {
-      const result = await djmInvoke<{ workspace?: Workspace }>(
+      const result = await platformInvoke<{ workspace?: Workspace }>(
         'agency-owner-invite',
         { token },
       );
@@ -220,7 +220,7 @@ export default function AgencyOwnerJoinPage() {
     setMessage('');
 
     try {
-      const result = await djmInvoke<{ workspace?: Workspace }>(
+      const result = await platformInvoke<{ workspace?: Workspace }>(
         'agency-owner-invite-public',
         {
           action: 'register',
@@ -274,7 +274,7 @@ export default function AgencyOwnerJoinPage() {
       });
       if (error) throw error;
 
-      const result = await djmInvoke<{ workspace?: Workspace }>(
+      const result = await platformInvoke<{ workspace?: Workspace }>(
         'agency-owner-invite',
         { token },
       );

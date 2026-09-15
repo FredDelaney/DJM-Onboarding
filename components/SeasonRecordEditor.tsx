@@ -638,7 +638,7 @@ const openNew = () => {
       setEditorOpen(false);
 
       setMessage(
-        'Season record saved · DJM review required.',
+        'Season record saved · your agency review required.',
       );
     };
 
@@ -692,7 +692,7 @@ const openNew = () => {
       setDeleteArmed(false);
 
       setMessage(
-        'Season record removed · DJM review required.',
+        'Season record removed · your agency review required.',
       );
     };
 
@@ -1286,7 +1286,7 @@ const openNew = () => {
 
                           {existing&&(
                             <small>
-                              DJM currently:
+                              Your agency currently:
                               {' '}
                               {
                                 statLine(
@@ -1641,7 +1641,7 @@ const openNew = () => {
                 <p className="small muted">
                   Optional external
                   reference used by
-                  DJM to review these
+                  your agency to review these
                   numbers.
                 </p>
 
@@ -1716,7 +1716,7 @@ const openNew = () => {
                             .value,
                         )
                       }
-                      placeholder="Transfermarkt / Wyscout / DJM record"
+                      placeholder="Transfermarkt / Wyscout / your agency record"
                     />
                   </div>
 

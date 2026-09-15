@@ -20,5 +20,5 @@ test('Connections exposes clear accessible interaction state', () => {
 
 test('Connections keeps the finished DJM security language', () => {
   assert.match(source, /Secure access, simple recovery\./);
-  assert.match(source, /Recover access through your confirmed DJM email\./);
+  assert.match(source, /Recover access through your confirmed ReDream email\./);
 });

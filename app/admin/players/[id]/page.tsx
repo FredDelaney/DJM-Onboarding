@@ -37,7 +37,7 @@ import {
   supabase
 } from '@/lib/supabase';
 
-import {djmRpc} from '@/lib/djm-os';
+import {platformRpc} from '@/lib/platform-client';
 
 import {
   getClubReadyState
@@ -639,14 +639,14 @@ const customKeyStats=
         logoUrl:
           `${window.location.origin}/djm-mark.png`,
         filename:
-          `${name}-DJM-Player-Dossier.pdf`
+          `${name}-Player-Dossier.pdf`
       });
 
-      flash('DJM player dossier downloaded');
+      flash('Player dossier downloaded');
     }catch(error:any){
       flash(
         error?.message
-        ||'Could not build DJM player dossier'
+        ||'Could not build the agency player dossier'
       );
     }finally{
       setPdfBusy(false);
@@ -1165,10 +1165,10 @@ flash('Photo updated');
     }
 
     try{
-      await djmRpc('djm_player_send_reply',{
+      await platformRpc('djm_player_send_reply',{
         p_player_id:id,
         p_request_id:replyingToRequestId,
-        p_title:reqTitle.trim()||'Reply from DJM',
+        p_title:reqTitle.trim()||'Reply from the agency',
         p_message:reqMsg.trim()
       });
 
@@ -2266,7 +2266,7 @@ const removePlayer=async(
 
                   {p.verification_status
                     ==='verified'
-                    ?'DJM verified'
+                    ?'Agency verified'
                     :p.verification_status
                       ==='reviewing'
                       ?'Review required'
@@ -2462,7 +2462,7 @@ const removePlayer=async(
             >
               <section className="admin-card">
                 <div className="section-kicker">
-                  NEXT DJM MOVE
+                  NEXT AGENCY MOVE
                 </div>
 
                 <h2 className="section-title">
@@ -2547,7 +2547,7 @@ const removePlayer=async(
                           e.target.value
                       })
                     }
-                    placeholder="What should DJM do next?"
+                    placeholder="What should the agency do next?"
                   />
                 </div>
               </section>
@@ -2664,7 +2664,7 @@ const removePlayer=async(
                           <strong>
                             {n.pinned
                               ?'Pinned note'
-                              :'DJM note'
+                              :'The agency note'
                             }
                           </strong>
 
@@ -2700,7 +2700,7 @@ const removePlayer=async(
                       e.target.value
                     )
                   }
-                  placeholder="Private DJM note…"
+                  placeholder="Private agency note…"
                 />
 
                 <button
@@ -2893,7 +2893,7 @@ const removePlayer=async(
                         {r.request_type
                           ==='message'
                           ?r.created_by
-                            ?'DJM message · '
+                            ?'The agency message · '
                             :'Player message · '
                           :r.request_type
                             ==='signal'
@@ -2955,7 +2955,7 @@ const removePlayer=async(
               </h3>
 
               <p className="small muted">
-                Use a DJM shortcut or write your own request.
+                Use an agency shortcut or write your own request.
               </p>
 
               {templates.length>0&&(
@@ -3091,7 +3091,7 @@ const removePlayer=async(
                       {p.primary_position||'Position pending'} · {p.current_club||'Club pending'} · {p.current_league||'League pending'}
                     </strong>
                     <small>
-                      DJM keeps this record connected. Open only to correct verified identity or contract information.
+                      The agency keeps this record connected. Open only to correct verified identity or contract information.
                     </small>
                   </span>
                   <span
@@ -3277,7 +3277,7 @@ const removePlayer=async(
                 <summary>
                   <span>
                     <span className="section-kicker">
-                      PRIVATE DJM / PLAYER
+                      PRIVATE AGENCY / PLAYER
                     </span>
                     <strong>
                       Contact, work rights and move preferences
@@ -3459,7 +3459,7 @@ const removePlayer=async(
                 </h3>
 
                 <p className="small muted">
-                  Keep the source links that clubs and DJM use to verify the sporting record.
+                  Keep the source links that clubs and the agency use to verify the sporting record.
                 </p>
 
                 <div className="source-row">
@@ -3510,7 +3510,7 @@ const removePlayer=async(
 
                 <p className="small muted">
                   Source editing now lives in one place. Connect or replace a
-                  profile at the top of this player record and DJM updates every
+                  profile at the top of this player record and the agency updates every
                   research, intelligence and dossier workflow from the same saved
                   link.
                 </p>
@@ -3664,7 +3664,7 @@ const removePlayer=async(
     {trustedSeasonLabel&&(
       <span className="pill pill-good">
         <Check size={12}/>
-        DJM reviewed
+        The agency reviewed
       </span>
     )}
   </div>
@@ -4454,7 +4454,7 @@ const removePlayer=async(
 
                             c.support_request
                               &&
-                              `Needs DJM: ${c.support_request}`
+                              `Needs the agency: ${c.support_request}`
                           ]
                             .filter(Boolean)
                             .join(' · ')
@@ -4584,7 +4584,7 @@ const removePlayer=async(
 
               <section className="admin-card">
                 <div className="section-kicker">
-                  DJM HISTORY
+                  AGENCY HISTORY
                 </div>
 
                 <div className="list-clean">
@@ -4629,7 +4629,7 @@ const removePlayer=async(
                         padding:'18px 0'
                       }}
                     >
-                      No sensitive DJM actions recorded yet.
+                      No sensitive agency actions recorded yet.
                     </div>
                   )}
                 </div>
@@ -4684,7 +4684,7 @@ const removePlayer=async(
                       margin:'0 0 8px'
                     }}
                   >
-                    Remove from DJM Player
+                    Remove from Player Workspace
                   </h3>
 
                   <p
@@ -4977,7 +4977,7 @@ const removePlayer=async(
               </h2>
 
               <p>
-                The public club profile will stop being available. Player data and the DJM dossier stay safely in the platform.
+                The public club profile will stop being available. Player data and the agency dossier stay safely in the platform.
               </p>
 
               <div className="club-confirm-actions">

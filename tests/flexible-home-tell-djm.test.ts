@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const home = readFileSync('app/(djm-os)/djm/page.tsx', 'utf8');
-const tellCapture = readFileSync('components/TellDjmCapture.tsx', 'utf8');
-const tellProcess = readFileSync('supabase/functions/djm-tell-process/index.ts', 'utf8');
-const aiRouter = readFileSync('supabase/functions/_shared/djm-ai-router.ts', 'utf8');
+const tellCapture = readFileSync('components/AiCapture.tsx', 'utf8');
+const tellProcess = readFileSync('supabase/functions/_shared/ai-process.ts', 'utf8');
+const aiRouter = readFileSync('supabase/functions/_shared/ai-router.ts', 'utf8');
 const push = readFileSync('supabase/functions/dispatch-player-push/index.ts', 'utf8');
 const removePlayer = readFileSync('supabase/functions/remove-player/index.ts', 'utf8');
 const homeMigration = readFileSync(
@@ -38,7 +38,7 @@ test('Tell DJM polls faster, surfaces transcript progress and uses routed reason
   assert.match(tellCapture, /Transcript ready\. Doing it now\.\.\./);
   assert.match(tellCapture, /open=\{!TERMINAL\.has\(receipt\.capture\.status\)\}/);
   assert.match(tellProcess, /reasoning: \{ effort: reasoningEffort \}/);
-  assert.match(tellProcess, /selectDjmAiRoute/);
+  assert.match(tellProcess, /selectAiRoute/);
   assert.match(aiRouter, /reasoning_effort: 'none'/);
 });
 

@@ -27,7 +27,7 @@ import {
 import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { djmInvoke, friendlyError } from '@/lib/djm-os';
+import { platformInvoke, friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 
 import AgencyActionBar, {
@@ -331,8 +331,8 @@ export default function PlatformPage() {
       }
 
       const [portfolioResult, plansResult] = await Promise.all([
-        djmInvoke<any>('platform-ops', { action: 'portfolio' }),
-        djmInvoke<any>('platform-ops', { action: 'plans' }),
+        platformInvoke<any>('platform-ops', { action: 'portfolio' }),
+        platformInvoke<any>('platform-ops', { action: 'plans' }),
       ]);
 
       setPortfolio(portfolioResult?.portfolio || null);
@@ -378,7 +378,7 @@ export default function PlatformPage() {
     setDetailBusy('');
     setDetailOwnerEmail('');
     try {
-      const result = await djmInvoke<any>('platform-ops', {
+      const result = await platformInvoke<any>('platform-ops', {
         action: 'customer_detail',
         tenant_id: tenantId,
       });
@@ -465,7 +465,7 @@ export default function PlatformPage() {
     const shortName = agency.displayName.trim().split(/\s+/).slice(0, 3).join(' ');
 
     try {
-      const result = await djmInvoke<any>('platform-ops', {
+      const result = await platformInvoke<any>('platform-ops', {
         action: 'create_customer',
         display_name: agency.displayName.trim(),
         slug: finalSlug,
@@ -526,7 +526,7 @@ export default function PlatformPage() {
     setDetailBusy('plan');
     setError('');
     try {
-      await djmInvoke('platform-ops', {
+      await platformInvoke('platform-ops', {
         action: 'update_customer',
         tenant_id: selectedTenantId,
         plan_key: detailPlan,
@@ -545,7 +545,7 @@ export default function PlatformPage() {
     setDetailBusy('owner');
     setError('');
     try {
-      await djmInvoke('platform-ops', {
+      await platformInvoke('platform-ops', {
         action: 'attach_owner_by_email',
         tenant_id: selectedTenantId,
         email: detailOwnerEmail.trim().toLowerCase(),
@@ -564,7 +564,7 @@ export default function PlatformPage() {
     setDetailBusy(`task:${taskKey}`);
     setError('');
     try {
-      await djmInvoke('platform-ops', {
+      await platformInvoke('platform-ops', {
         action: 'set_onboarding_task',
         tenant_id: selectedTenantId,
         task_key: taskKey,

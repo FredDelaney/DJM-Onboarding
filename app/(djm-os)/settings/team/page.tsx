@@ -4,9 +4,9 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, ArrowLeft, CheckCircle2, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import { useAdmin } from '@/components/AdminShell';
-import { friendlyError } from '@/lib/djm-os';
+import { friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 
 export default function TeamSettingsPage() {
@@ -133,7 +133,7 @@ export default function TeamSettingsPage() {
   };
 
   return (
-    <DjmOsShell eyebrow="Settings · least privilege" title="Team & permissions">
+    <AgencyShell eyebrow="Settings · least privilege" title="Team & permissions">
       <Link href="/settings" className="ux-back-link"><ArrowLeft size={15} />Settings</Link>
       {!isAdmin && !auth.loading ? (
         <div className="ux-evidence-empty"><ShieldCheck size={28} /><div><strong>Administrator access required.</strong><p>Scouts can use their assigned portfolio but cannot change team permissions.</p></div></div>
@@ -144,7 +144,7 @@ export default function TeamSettingsPage() {
       {isAdmin ? (
         <div className="ux-settings-two-col">
           <section className="ux-surface">
-            <div className="ux-surface-head"><div><p className="ux-eyebrow">TEAM</p><h2>Who can operate DJM?</h2><p>Admin has full access. Scout access remains scoped by RLS and player assignments.</p></div><UserPlus size={20} /></div>
+            <div className="ux-surface-head"><div><p className="ux-eyebrow">TEAM</p><h2>Who can operate the agency?</h2><p>Admin has full access. Scout access remains scoped by RLS and player assignments.</p></div><UserPlus size={20} /></div>
             <form className="ux-simple-form" onSubmit={addMember}>
               <label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label>Role<select value={role} onChange={(event) => setRole(event.target.value)}><option value="scout">Scout</option><option value="admin">Admin</option></select></label>
@@ -184,7 +184,7 @@ export default function TeamSettingsPage() {
           </section>
         </div>
       ) : null}
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 

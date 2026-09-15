@@ -45,7 +45,7 @@ export function TenantRouteGate({
     <>
       {isPlatformControlPlane ||
       isAgencyActivationRoute ||
-      isAgencyWorkspaceRoute
+      isAgencyWorkspaceRoute || pathname === '/tell' || pathname === '/sign-in' || pathname === '/privacy'
         ? children
         : fallback}
     </>
