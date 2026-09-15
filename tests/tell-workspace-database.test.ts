@@ -92,6 +92,21 @@ before(async () => {
   }
   await db.exec(migration);
   await db.exec(readFileSync('supabase/migrations/20260915194224_redream_ai_canonical_api.sql','utf8'));
+  // Minimal supporting platform structures let the complete activation migration compile
+  // and execute. Unrelated player-portal activity is explicitly stubbed, not fabricated.
+  await db.exec(`
+    alter table platform.tenant_memberships add column joined_at timestamptz default now();
+    create table public.player_opportunities(tenant_id uuid,created_at timestamptz default now());
+    create table platform.tenant_owner_invites(tenant_id uuid,status text,accepted_at timestamptz,first_opened_at timestamptz,first_sent_at timestamptz);
+    create table platform.tenant_onboarding_tasks(tenant_id uuid,required boolean,status text);
+    create table djm_os.deal_rooms(tenant_id uuid);
+    create table platform.tenant_operating_windows(tenant_id uuid,status text);
+    create table platform.player_value_proof_snapshots(tenant_id uuid,player_id uuid);
+    create table platform.tenant_integrations(tenant_id uuid,status text);
+    create table platform.tenant_migration_batches(tenant_id uuid,status text);
+    create function public.platform_server_player_activation_command(uuid,integer) returns jsonb language sql as $$ select '{}'::jsonb $$;
+  `);
+  await db.exec(readFileSync('supabase/migrations/20260915194621_redream_ai_activation_evidence.sql','utf8'));
   await db.exec('create trigger trg_djm_need_match_refresh after insert or update on djm_os.club_needs for each row execute function djm_os.club_need_match_trigger()');
   for (const table of ['tell_djm_permissions','tell_djm_actions','tell_djm_questions','tell_djm_aliases','claims','employments','events','review_items','notifications','scouting_prospects','scouting_reports']) await db.exec(`create trigger assign_workspace_tenant before insert or update on djm_os.${table} for each row execute function private.assign_workspace_tenant()`);
   // Minimal infrastructure helpers outside this slice, with no outbound integrations.
@@ -102,7 +117,7 @@ before(async () => {
     grant execute on function private.user_has_staff_tenant_access(uuid,uuid),private.primary_active_tenant_id(uuid),private.merge_tenant_candidate(uuid,uuid,text) to authenticated,service_role;`);
   await db.query("select set_config('test.user',$1,false)", [uid]);
   await db.query('insert into platform.tenants values ($1,$2,$3),($4,$5,$3)', [djm,'djm-sports-management','active',north,'northstar']);
-  await db.query("insert into platform.tenant_memberships values ($1,$3,'active','admin',true),($2,$3,'active','admin',false)",[djm,north,uid]);
+  await db.query("insert into platform.tenant_memberships(tenant_id,user_id,status,role,is_primary) values ($1,$3,'active','admin',true),($2,$3,'active','admin',false)",[djm,north,uid]);
   await db.query("insert into djm_os.team_members(user_id,display_name) values ($1,'Synthetic Member')",[uid]);
   await db.query("insert into djm_os.tell_djm_permissions(tenant_id,user_id,permission_scope,is_enabled) values ($1,$3,'full',true),($2,$3,'full',true)",[djm,north,uid]);
   await db.exec('insert into djm_os.tell_djm_settings(id,is_live) values (1,true)');
@@ -346,4 +361,24 @@ test('worker plan writes successful AI spend to the central ledger using stored 
   assert.equal(Number(rows.rows[0].estimated_cost_micros),12300);
   assert.equal(rows.rows[0].status,'succeeded');
   await workspace();
+});
+
+test('complete activation and adoption endpoints use applied AI evidence with service-only access',async()=>{
+  await workspace();
+  const capture=(await enqueue()).capture_id;
+  await db.query('update djm_os.captures set completed_at=now() where id=$1',[capture]);
+  const before=await value('public.platform_server_customer_activation($1)',[north]);
+  const action=await value("public.redream_ai_apply_action($1,'full-activation-proof',0,'create_task',1,'A sourced instruction',$2)",[capture,{title:'Confirm player preference'}]);
+  assert.equal(action.status,'applied');
+  const after=await value('public.platform_server_customer_activation($1)',[north]);
+  assert.equal(after.counts.meaningful_ai_captures,before.counts.meaningful_ai_captures+1);
+  assert.equal(after.milestones.find((item:any)=>item.key==='use_intelligence').complete,true);
+  const adoption=await value('public.platform_server_customer_adoption_path($1)',[north]);
+  assert.equal(adoption.tenant_id,north);
+  assert.equal(adoption.milestones.find((item:any)=>item.key==='tell_djm_first_value').state,'complete');
+  assert.match(adoption.milestones.find((item:any)=>item.key==='tell_djm_first_value').fact,/ReDream AI/);
+  for (const fn of ['platform_server_customer_adoption_path','platform_server_customer_activation']) {
+    assert.equal(await value(`has_function_privilege('authenticated','public.${fn}(uuid)','execute')`),false);
+    assert.equal(await value(`has_function_privilege('service_role','public.${fn}(uuid)','execute')`),true);
+  }
 });

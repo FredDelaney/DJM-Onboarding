@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const { error: accessError } = await client.rpc("djm_network_dashboard");
-    if (accessError) return json({ error: "DJM Network access required" }, 403);
+    if (accessError) return json({ error: "Agency network access required" }, 403);
 
     const contentType = req.headers.get("content-type") || "";
 

@@ -35,3 +35,18 @@ test('offline store and historical processing remain compatible',()=>{
   assert.match(read('supabase/migrations/20260915194224_redream_ai_canonical_api.sql'),/processing_version='tell_djm_v1'/);
   assert.match(read('supabase/functions/_shared/ai-process.ts'),/tell_djm_plan/);
 });
+
+test('legacy Deno router aliases use an explicit canonical module extension',()=>{
+  const alias=read('supabase/functions/_shared/djm-ai-router.ts');
+  assert.match(alias,/from '\.\/ai-router\.ts'/);
+  assert.doesNotMatch(alias,/from '\.\/ai-router'/);
+});
+test('non-AI Edge presentation no longer assumes the DJM agency',()=>{
+  for(const name of ['djm-network-capture','djm-network-import','djm-player-voice-message','club-pitch-response','import-player-evidence-json','import-player-stats','refresh-player-data','refresh-player-data-universal','refresh-player-peer-data','djm-transfermarkt-enrich']) {
+    assert.doesNotMatch(read(`supabase/functions/${name}/index.ts`),/\bDJM\b/,name);
+  }
+  const calendar=read('supabase/functions/djm-calendar-feed/index.ts');
+  assert.match(calendar,/X-WR-CALNAME:ReDream/);
+  assert.match(calendar,/UID:djm-/,'preserve subscription item identity');
+  assert.match(calendar,/REDREAM_APP_URL/);
+});

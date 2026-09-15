@@ -120,5 +120,5 @@ test("football providers are capability-gated and never expose Wyscout secrets t
   assert.match(providers, /WYSCOUT_API_PASSWORD/);
   assert.match(wyscout, /const MAX_ATTEMPTS = 3/);
   assert.match(wyscout, /response\.status === 429/);
-  assert.match(wyscout, /Existing DJM data was not changed/);
+  assert.match(wyscout, /Existing workspace data was not changed/);
 });

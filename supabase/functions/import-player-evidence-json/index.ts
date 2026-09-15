@@ -328,7 +328,7 @@ Deno.serve(async (request) => {
 
     const declaredPlayerId = cleanText(payload?.player?.id ?? payload?.player_id);
     if (declaredPlayerId && declaredPlayerId !== playerId) {
-      return reply({ ok: false, error: "The JSON player ID does not match the open DJM player." }, 409);
+      return reply({ ok: false, error: "The JSON player ID does not match the open player record." }, 409);
     }
 
     const source = payload?.source && typeof payload.source === "object" ? payload.source : {};

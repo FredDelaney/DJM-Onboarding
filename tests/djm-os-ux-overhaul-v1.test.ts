@@ -161,8 +161,8 @@ test('peer refresh supports verified target competitions without guessing an ide
   const bridge = read('supabase/migrations/20260830212500_djm_peer_refresh_service_bridge_v1.sql');
   assert.match(source, /competition_id/);
   assert.match(bridge, /provider_ids ->> 'pitchapi'/);
-  assert.match(source, /This competition does not yet have a verified PitchAPI identity in DJM/);
-  assert.match(source, /resolveCompetitionFromDjm/);
+  assert.match(source, /This competition does not yet have a verified PitchAPI identity in this workspace/);
+  assert.match(source, /resolveWorkspaceCompetition/);
 });
 
 test('peer refresh keeps the private schema outside PostgREST and uses service-only bridge RPCs', () => {

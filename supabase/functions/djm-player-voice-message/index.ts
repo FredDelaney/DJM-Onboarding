@@ -102,12 +102,12 @@ Deno.serve(async (req) => {
     if (!transcription.ok) {
       const detail = await transcription.text().catch(() => "");
       console.error(JSON.stringify({ operation: "player_voice_transcription", status: transcription.status, detail: detail.slice(0, 300) }));
-      return json({ error: "DJM could not transcribe that voice message. Please try again." }, 502);
+      return json({ error: "ReDream could not transcribe that voice message. Please try again." }, 502);
     }
 
     const payload = await transcription.json();
     const transcript = String(payload?.text || "").trim();
-    if (!transcript) return json({ error: "DJM could not hear any speech in that recording" }, 422);
+    if (!transcript) return json({ error: "ReDream could not hear any speech in that recording" }, 422);
 
     const { data: requestRow, error: insertError } = await client
       .from("player_requests")

@@ -79,13 +79,13 @@ Existing mobile recording controls, safe-area padding, dynamic viewport sizing, 
 
 ## Validation
 
-- `npm run check`: 408 tests, 408 passed, 0 failed; TypeScript passed; Next.js production build passed.
-- 30 real embedded PostgreSQL tests cover dual membership, tenant permission differences, foreign history/receipt/retry/question/undo/delete denial, raw UUID denial, nested entity/alias validation, capture-bound vocabulary/resolution, one-tap entity creation, unlinked writes, scouting writes, matcher isolation, revoked membership, worker grants, legacy wrappers, link recovery, activation evidence and successful central AI ledger writes.
+- `npm run check`: 411 tests, 411 passed, 0 failed; TypeScript passed; Next.js production build passed.
+- 31 real embedded PostgreSQL tests cover dual membership, tenant permission differences, foreign history/receipt/retry/question/undo/delete denial, raw UUID denial, nested entity/alias validation, capture-bound vocabulary/resolution, one-tap entity creation, unlinked writes, scouting writes, matcher isolation, revoked membership, worker grants, legacy wrappers, link recovery, activation evidence and successful central AI ledger writes.
 - Offline tests cover saved origin, older records, custom-domain/runtime routing, active-record immutability, legacy storage recovery and upload request construction.
 - Compatibility tests cover shared Edge handlers, neutral core UI, conditional DJM branding, old persistence/processing, and safe return/deep-link paths.
 - `git diff --check`: passed. Historical migration files were not edited.
 
-Limits: PGlite executes PostgreSQL with a focused structure-only fixture, not a complete Supabase deployment. The activation helper is executed; the full surrounding platform activation/adoption functions still require staging integration validation. No real customer data, Supabase Auth gateway, storage gateway, Edge runtime or external model was involved in local tests.
+Limits: PGlite executes PostgreSQL with a focused structure-only fixture, not a complete Supabase deployment. The full activation/adoption migration now compiles and its endpoints execute in the fixture. Supporting platform tables are minimal and unrelated player-portal activity is explicitly stubbed, so hosted integration still requires staging validation. No real customer data, Supabase Auth gateway, storage gateway, Edge runtime or external model was involved in local tests.
 
 ## Rollout prerequisites and remaining work
 
@@ -101,7 +101,7 @@ Deploy both canonical Edge entrypoints and the legacy entrypoints containing sha
 
 ### Before an external agency pilot
 
-Complete the authenticated canary below, including real phone recording, offline upload, sign-in recovery, private storage and tenant-level billing telemetry. Supply the agency's approved privacy notice. Audit remaining customer-facing errors and labels in non-AI legacy Edge/RPC domains: network import/capture, player data refresh/provider explanations, player voice messages and club-pitch responses still contain legacy platform wording. This broader server copy cleanup was deferred following the final instruction to prioritise essential work and conserve usage. Do not claim that every legacy server surface is fully white-label yet.
+Complete the authenticated canary below, including real phone recording, offline upload, sign-in recovery, private storage and tenant-level billing telemetry. Supply the agency's approved privacy notice. The follow-up removes legacy customer-facing Edge wording from network import/capture, player data refresh/provider explanations, player voice messages and club-pitch responses. Calendar presentation is neutral and supports REDREAM_APP_URL while preserving stable event UIDs and the existing deployed fallback. Existing historical SQL routines outside the capture domain still contain legacy explanatory text and need a separate forward-only copy migration. Do not claim that every legacy database-generated surface is fully white-label yet.
 
 ### Later
 
@@ -123,3 +123,11 @@ Remove compatibility aliases only after old clients, cron jobs and deployed envi
 12. Check platform.ai_usage_events for Northstar model, tokens, latency, estimated cost, outcome and timestamp. Retry through legacy/canonical paths and verify idempotency. Check tenant-filtered logs.
 13. Verify the meaningful AI milestone changes only after an applied target action. A transcript-only capture must not activate it; undoing its only applied action removes that evidence. Confirm full adoption/activation endpoints render normally.
 14. Repeat `/agency` on a resolved synthetic custom domain. Confirm correct branding, workspace, receipt links, mobile safe areas and recovery. Record end-to-end latency and any errors; do not mark the canary passed without evidence.
+
+## Follow-up verification
+
+The legacy Deno router wrapper now imports `./ai-router.ts` explicitly. Extensionless imports could fail in the Edge runtime even though the Next.js build accepts them. Regression coverage checks this compatibility path.
+
+The activation migration explicitly revokes anonymous/authenticated execution and grants both platform endpoints to service_role, including on fresh installations. The database tests execute both complete endpoints, verify meaningful AI evidence changes, and assert their grants. No deployed migration history was edited: this branch's new activation migration remains repository-only.
+
+Remaining DJM strings in current Edge source are limited to compatibility environment names, old module/type aliases and two provider User-Agent identities. Stable calendar UIDs and the deployed URL fallback also remain intentionally unchanged. No customer records, historical evidence labels or provider contracts were rewritten.

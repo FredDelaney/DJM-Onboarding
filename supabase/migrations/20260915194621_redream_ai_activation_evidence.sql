@@ -77,7 +77,7 @@ begin
 end;$$;
 
 revoke all on function public.platform_server_customer_adoption_path(uuid) from public,anon,authenticated;
-grant execute on function public.platform_server_customer_adoption_path(uuid) to service_role;;
+grant execute on function public.platform_server_customer_adoption_path(uuid) to service_role;
 
 create or replace function public.platform_server_customer_activation(p_tenant_id uuid)
 returns jsonb
@@ -164,3 +164,7 @@ select jsonb_build_object(
 )
 from scored;
 $function$;
+
+-- Explicit grants also protect a fresh installation; never depend on an older ACL.
+revoke all on function public.platform_server_customer_activation(uuid) from public,anon,authenticated;
+grant execute on function public.platform_server_customer_activation(uuid) to service_role;

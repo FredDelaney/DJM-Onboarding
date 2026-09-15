@@ -357,7 +357,7 @@ async function pitchCurrentRefresh(admin, player, userId, key) {
     return false;
   };
   if(!(await scan(targetMatches.slice(0,12))))await scan(targetMatches.slice(12,30));
-  if(!found)return{ok:false,reason:"PitchAPI covers the competition but DJM could not confidently match this player in the current-season lineups."};
+  if(!found)return{ok:false,reason:"PitchAPI covers the competition but ReDream could not confidently match this player in the current-season lineups."};
 
   const windowMatches=matches.slice(0,60);
   const matchRowsNested=await parallel(windowMatches,6,async m=>{
@@ -436,7 +436,7 @@ async function pitchCurrentRefresh(admin, player, userId, key) {
 }
 
 function candidateScore(c,p){const x=c?.player||{};const full=norm([p.first_name,p.last_name].filter(Boolean).join(" "));const pref=norm(p.preferred_name),cn=norm(x.name);let s=0;if(full&&cn===full)s+=7;else if(pref&&cn===pref)s+=6;else if(full&&(cn.includes(full)||full.includes(cn)))s+=3;const dob=String(p.date_of_birth||"").slice(0,10),cd=String(x?.birth?.date||"").slice(0,10);if(dob&&cd&&dob===cd)s+=12;return s}
-function chooseCandidate(xs,p){const r=xs.map(x=>({x,s:candidateScore(x,p)})).sort((a,b)=>b.s-a.s);if(!r.length)return null;if(r[0].s<7&&r[1]?.s===r[0].s)throw new Error("DJM found multiple players with the same name.");if(r[0].s<5)throw new Error("DJM could not confidently identify this player in API-Football.");return r[0].x}
+function chooseCandidate(xs,p){const r=xs.map(x=>({x,s:candidateScore(x,p)})).sort((a,b)=>b.s-a.s);if(!r.length)return null;if(r[0].s<7&&r[1]?.s===r[0].s)throw new Error("ReDream found multiple players with the same name.");if(r[0].s<5)throw new Error("ReDream could not confidently identify this player in API-Football.");return r[0].x}
 function seasonCandidates(p){const y=new Date().getUTCFullYear();const s=String(p.current_season_start||"").slice(0,4);const sy=/^\d{4}$/.test(s)?Number(s):null;return [...new Set([sy,y,y-1].filter(Number.isInteger))].slice(0,2)}
 function mappedSeasonRows(item,season){const out=[];for(const st of Array.isArray(item?.statistics)?item.statistics:[]){const apps=whole(st?.games?.appearences),mins=whole(st?.games?.minutes);if((apps??0)<=0&&(mins??0)<=0)continue;const team=clean(st?.team?.name);if(!team)continue;out.push({season_label:String(st?.league?.season??season),club_name:team,league:clean(st?.league?.name),country:clean(st?.league?.country),appearances:apps,starts:whole(st?.games?.lineups),minutes:mins,goals:whole(st?.goals?.total),assists:whole(st?.goals?.assists),provider_team_id:st?.team?.id==null?null:String(st.team.id),provider_competition_id:st?.league?.id==null?null:String(st.league.id),provider_season_id:String(st?.league?.season??season),provider_position:clean(st?.games?.position),raw_metrics:{games:st?.games??null,shots:st?.shots??null,goals:st?.goals??null,passes:st?.passes??null,tackles:st?.tackles??null,duels:st?.duels??null,dribbles:st?.dribbles??null,fouls:st?.fouls??null,cards:st?.cards??null,penalty:st?.penalty??null}})}return out}
 async function apiHistoricalRefresh(admin,player,key){
@@ -503,8 +503,8 @@ if(mode==="status"){
                    score_refresh:false,
         seasons_checked:fallback.seasons,rows_inserted:fallback.inserted,rows_updated:fallback.updated,conflicts_kept_for_review:fallback.conflicts,
         message:statsOnly
-  ?"Free player stats refreshed from API-Football without running DJM scoring."
-  :"PitchAPI current coverage was unavailable for this player. DJM refreshed historical/profile evidence from API-Football but did not treat it as current performance."});
+  ?"Free player stats refreshed from API-Football without recalculating player scores."
+  :"PitchAPI current coverage was unavailable for this player. ReDream refreshed historical/profile evidence from API-Football but did not treat it as current performance."});
     }
        return json({
       ok:false,

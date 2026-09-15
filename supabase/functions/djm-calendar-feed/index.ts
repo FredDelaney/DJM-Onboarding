@@ -1,7 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const APP_URL = Deno.env.get("DJM_APP_URL") || "https://djm-player.vercel.app";
+// Prefer the platform URL; preserve the existing deployment fallback and event UIDs.
+const APP_URL = Deno.env.get("REDREAM_APP_URL") || Deno.env.get("DJM_APP_URL") || "https://djm-player.vercel.app";
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -30,7 +31,7 @@ const buildEvent = (input: { item_id: string; title: string; due_at: string; url
     `DTSTART:${icsDate(start)}`,
     `DTEND:${icsDate(end)}`,
     `SUMMARY:${icsEscape(input.title)}`,
-    `DESCRIPTION:${icsEscape(`Open this item in DJM: ${fullUrl}`)}`,
+    `DESCRIPTION:${icsEscape(`Open this item in ReDream: ${fullUrl}`)}`,
     `URL:${icsEscape(fullUrl)}`,
     "STATUS:CONFIRMED",
     "TRANSP:TRANSPARENT",
@@ -79,11 +80,11 @@ Deno.serve(async (req: Request) => {
   const body = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//DJM Sports Management//DJM Calendar//EN",
+    "PRODID:-//ReDream//Agency Calendar//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:DJM",
-    "X-WR-CALDESC:Dated actions from DJM Player",
+    "X-WR-CALNAME:ReDream",
+    "X-WR-CALDESC:Dated actions from your agency workspace",
     "REFRESH-INTERVAL;VALUE=DURATION:PT15M",
     "X-PUBLISHED-TTL:PT15M",
     ...(items || []).map(buildEvent),
@@ -96,7 +97,7 @@ Deno.serve(async (req: Request) => {
     headers: {
       ...headers,
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'inline; filename="djm-calendar.ics"',
+      "Content-Disposition": 'inline; filename="redream-calendar.ics"',
       "Cache-Control": "private, no-store, max-age=0",
     },
   });

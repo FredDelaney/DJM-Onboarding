@@ -49,6 +49,6 @@ Deno.serve(async(req:Request)=>{
     });
     if(auditError) console.error("pitch response audit failed",auditError.message);
 
-    return json({ok:true,response:{response_type:after.response_type,updated_at:after.updated_at},truth_contract:{identity:"Responder identity is self-asserted and not verified by DJM.",stage:"This response does not automatically advance, win, lose or close a deal."}});
+    return json({ok:true,response:{response_type:after.response_type,updated_at:after.updated_at},truth_contract:{identity:"Responder identity is self-asserted and not verified by the agency.",stage:"This response does not automatically advance, win, lose or close a deal."}});
   }catch(error){console.error("club-pitch-response",error);return json({error:error instanceof Error?error.message:"Unable to save response"},500);}
 });

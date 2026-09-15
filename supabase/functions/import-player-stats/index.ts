@@ -369,7 +369,7 @@ async function transfermarktPreview(sourceUrl: string) {
     player: { name: null, club: rows?.[0]?.club_name || null },
     rows,
     recent_matches,
-    warnings: ["Transfermarkt data should be reviewed before applying. DJM approval records the source and review time."],
+    warnings: ["Transfermarkt data should be reviewed before applying. Agency approval records the source and review time."],
   };
 }
 
@@ -509,7 +509,7 @@ async function applyRows(admin: any, caller: any, playerId: string, rows: any[],
     minutes: cleanNumber(row?.minutes),
     goals: cleanNumber(row?.goals),
     assists: cleanNumber(row?.assists),
-    source_name: String(row?.source_name || sourceName || "DJM reviewed source").trim() || "DJM reviewed source",
+    source_name: String(row?.source_name || sourceName || "Agency reviewed source").trim() || "Agency reviewed source",
     source_url: String(row?.source_url || sourceUrl || "").trim() || null,
     sort_order: cleanNumber(row?.sort_order) ?? index,
   })).filter((row: any) => row.season_label && row.club_name);

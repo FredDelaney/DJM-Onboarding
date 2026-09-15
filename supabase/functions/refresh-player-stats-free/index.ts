@@ -221,7 +221,7 @@ async function researchCurrentPublicStats(openAiKey, player) {
           content: [
             {
               type: "input_text",
-              text: "You are DJM's conservative football statistics researcher. Find the current club/current league row only. Never infer missing numbers.",
+              text: "You are a conservative football statistics researcher for ReDream. Find the current club/current league row only. Never infer missing numbers.",
             },
           ],
         },
@@ -366,7 +366,7 @@ async function persistCurrentPublicStats(admin, player, research) {
   if (exact && !["public_web_evidence"].includes(normalise(exact.source_provider).replaceAll(" ", "_"))) {
     return {
       ok: true,
-      reason: "A stronger verified/manual/provider row already exists for the current season, so DJM left it untouched.",
+      reason: "A stronger verified/manual/provider row already exists for the current season, so ReDream left it untouched.",
       confidence: research.confidence,
       rows_inserted: 0,
       rows_updated: 0,
