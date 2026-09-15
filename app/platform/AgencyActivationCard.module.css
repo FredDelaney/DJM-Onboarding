@@ -1,0 +1,287 @@
+.card {
+  margin-top: 10px;
+  padding: 17px;
+  border: 1px solid rgba(10, 10, 12, 0.06);
+  border-radius: 17px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(124, 108, 242, 0.035),
+      transparent 110px
+    ),
+    #fff;
+}
+
+.heading,
+.inviteHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.heading p,
+.inviteHeader p {
+  margin: 0 0 5px;
+  color: #93969d;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.heading h3,
+.inviteHeader h4 {
+  margin: 0;
+  color: #25292f;
+}
+
+.heading h3 {
+  font-size: 16px;
+}
+
+.inviteHeader h4 {
+  font-size: 14px;
+}
+
+.inviteHeader svg {
+  color: #7d758c;
+}
+
+.score {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+}
+
+.score strong {
+  color: #2d2840;
+  font-size: 20px;
+  letter-spacing: -0.04em;
+}
+
+.score span {
+  color: #9b9da3;
+  font-size: 8px;
+}
+
+.scoreTrack {
+  height: 6px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eceef1;
+}
+
+.scoreTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #55496f, #8b79c8);
+  transition: width 220ms ease;
+}
+
+.nextStep {
+  margin-top: 12px;
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border-radius: 12px;
+  background: #f7f7f9;
+}
+
+.nextStep > span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background: #fff;
+  color: #66597d;
+}
+
+.nextStep div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.nextStep strong {
+  color: #383c42;
+  font-size: 10px;
+}
+
+.nextStep small {
+  color: #7f8389;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.milestones {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.milestones > div {
+  min-height: 50px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(10, 10, 12, 0.05);
+  border-radius: 11px;
+  background: #fafbfb;
+}
+
+.milestones > div > span {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(10, 10, 12, 0.09);
+  border-radius: 7px;
+  color: transparent;
+}
+
+.milestones .complete {
+  background: #f2f9f4;
+}
+
+.milestones .complete > span {
+  border-color: rgba(35, 116, 74, 0.16);
+  background: #fff;
+  color: #23744a;
+}
+
+.milestones div div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.milestones strong {
+  overflow: hidden;
+  color: #464a50;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.milestones small {
+  color: #999ca2;
+  font-size: 8px;
+}
+
+.inviteDivider {
+  height: 1px;
+  margin: 16px 0;
+  background: rgba(10, 10, 12, 0.06);
+}
+
+.ownerReady {
+  margin-top: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 11px;
+  background: #f1f8f3;
+  color: #33704d;
+  font-size: 9px;
+}
+
+.inviteStatus {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1.2fr 0.7fr 1fr;
+  gap: 6px;
+}
+
+.inviteStatus > div {
+  min-width: 0;
+  padding: 9px;
+  display: grid;
+  gap: 3px;
+  border-radius: 10px;
+  background: #f6f7f8;
+}
+
+.inviteStatus span {
+  color: #9a9da3;
+  font-size: 8px;
+}
+
+.inviteStatus strong {
+  overflow: hidden;
+  color: #44484e;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.inviteActions {
+  margin-top: 9px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inviteActions button {
+  min-height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(10, 10, 12, 0.08);
+  border-radius: 10px;
+  background: #fff;
+  color: #4c5056;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.inviteActions button:hover:not(:disabled) {
+  border-color: rgba(88, 74, 117, 0.24);
+  color: #3d344f;
+}
+
+.inviteActions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.inviteActions .dangerButton {
+  color: #8a4444;
+}
+
+.inviteHint {
+  margin: 8px 0 0;
+  color: #9a9da3;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 520px) {
+  .milestones {
+    grid-template-columns: 1fr;
+  }
+
+  .inviteStatus {
+    grid-template-columns: 1fr;
+  }
+}

@@ -30,6 +30,12 @@ import { useRouter } from 'next/navigation';
 import { djmInvoke, friendlyError } from '@/lib/djm-os';
 import { supabase } from '@/lib/supabase';
 
+import AgencyActivationCard, {
+  type ActivationJourney,
+  type OwnerInvite,
+  type OwnerInviteLink,
+} from './AgencyActivationCard';
+
 import styles from './platform.module.css';
 
 type Plan = {
@@ -76,6 +82,7 @@ type Customer = {
     ai_events_7d?: number | null;
     ai_events_30d?: number | null;
   } | null;
+  activation_journey?: ActivationJourney | null;
   capacity?: {
     staff_pct?: number | null;
     player_pct?: number | null;
@@ -109,6 +116,8 @@ type Portfolio = {
     contracted_mrr_cents?: number;
     ai_cost_micros_30d?: number;
     customers_needing_action?: number;
+    first_value_ready?: number;
+    activation_score_avg?: number;
   };
   agenda: Customer[];
   customers: Customer[];
@@ -119,6 +128,8 @@ type CustomerDetail = {
   branding?: Record<string, any> | null;
   lifecycle?: Record<string, any> | null;
   plan?: Record<string, any> | null;
+  activation_journey?: ActivationJourney | null;
+  owner_invites?: OwnerInvite[];
   domains?: Array<Record<string, any>>;
   onboarding_tasks?: Array<Record<string, any>>;
   memberships?: Array<Record<string, any>>;
@@ -243,6 +254,7 @@ export default function PlatformPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [agency, setAgency] = useState<NewAgencyState>({ ...EMPTY_AGENCY });
+  const [latestInvite, setLatestInvite] = useState<OwnerInviteLink | null>(null);
 
   const load = useCallback(async (quiet = false) => {
     if (quiet) setRefreshing(true);
@@ -407,10 +419,19 @@ export default function PlatformPage() {
       });
 
       const tenantId = String(result?.customer?.tenant_id || '');
+      const inviteId = String(result?.owner?.invite?.invite_id || '');
+      const invitePath = String(result?.owner?.invite?.invite_path || '');
+      if (tenantId && inviteId && invitePath) {
+        setLatestInvite({
+          tenantId,
+          inviteId,
+          url: `${window.location.origin}${invitePath}`,
+        });
+      }
       setNotice(
-        result?.owner?.invite_required
-          ? `${agency.displayName} is provisioned. The owner account still needs to be invited and attached.`
-          : `${agency.displayName} is provisioned and ready for onboarding.`,
+        invitePath
+          ? `${agency.displayName} is provisioned. The secure owner invitation is ready to share.`
+          : `${agency.displayName} is provisioned and ready for activation.`,
       );
       setAgency({ ...EMPTY_AGENCY });
       setCreateOpen(false);
@@ -610,10 +631,15 @@ export default function PlatformPage() {
             note={`${summary.onboarding_customers || 0} onboarding now`}
           />
           <Metric
-            icon={<Zap size={17} />}
-            label="AI spend, 30d"
-            value={money(Math.round((summary.ai_cost_micros_30d || 0) / 10000), 'USD')}
-            note={`${summary.external_customers || 0} external agenc${summary.external_customers === 1 ? 'y' : 'ies'}`}
+            icon={<Gauge size={17} />}
+            label="First value reached"
+            value={`${summary.first_value_ready || 0}/${summary.external_customers || 0}`}
+            note={`Average activation ${summary.activation_score_avg || 0}%`}
+            attention={
+              Boolean(summary.external_customers) &&
+              Number(summary.first_value_ready || 0) <
+                Number(summary.external_customers || 0)
+            }
           />
         </section>
 
@@ -772,9 +798,18 @@ export default function PlatformPage() {
                 </div>
 
                 <div className={styles.activationMini}>
-                  <span><UsersRound size={13} />{customer.activation?.staff || 0} staff</span>
-                  <span><Layers3 size={13} />{customer.activation?.players || 0} players</span>
-                  <span><Sparkles size={13} />{customer.activation?.ai_events_30d || 0} AI</span>
+                  <span>
+                    <Layers3 size={13} />
+                    {customer.activation_journey?.counts?.roster_players || 0} players
+                  </span>
+                  <span>
+                    <Globe2 size={13} />
+                    {customer.activation_journey?.counts?.relationships || 0} relationships
+                  </span>
+                  <span>
+                    <Sparkles size={13} />
+                    {customer.activation_journey?.score || 0}% activated
+                  </span>
                 </div>
 
                 <div className={styles.nextAction}>
@@ -994,11 +1029,11 @@ export default function PlatformPage() {
           <aside className={styles.drawer} onMouseDown={(event) => event.stopPropagation()}>
             <div className={styles.drawerHeader}>
               <div>
-                <p className={styles.eyebrow}>CUSTOMER</p>
+                <p className={styles.eyebrow}>AGENCY</p>
                 <h2>{detail?.branding?.display_name || detail?.tenant?.legal_name || 'Agency workspace'}</h2>
                 <span>{detail?.tenant?.slug || selectedTenantId}</span>
               </div>
-              <button type="button" className={styles.iconButton} aria-label="Close customer" onClick={closeDetail}>
+              <button type="button" className={styles.iconButton} aria-label="Close agency" onClick={closeDetail}>
                 <X size={17} />
               </button>
             </div>
@@ -1006,7 +1041,7 @@ export default function PlatformPage() {
             {detailLoading ? (
               <div className={styles.drawerLoading}>
                 <LoaderCircle size={19} className={styles.spin} />
-                Loading customer...
+                Loading agency...
               </div>
             ) : detail ? (
               <div className={styles.drawerBody}>
@@ -1073,11 +1108,41 @@ export default function PlatformPage() {
                   </div>
                 </section>
 
+                <AgencyActivationCard
+                  tenantId={selectedTenantId}
+                  ownerEmail={
+                    detailOwnerEmail ||
+                    String(detail.lifecycle?.owner_contact_email || '')
+                  }
+                  ownerActive={Boolean(
+                    detail.memberships?.some(
+                      (member) =>
+                        member.role === 'owner' &&
+                        member.status === 'active',
+                    ),
+                  )}
+                  journey={detail.activation_journey}
+                  invites={detail.owner_invites || []}
+                  initialInvite={
+                    latestInvite?.tenantId === selectedTenantId
+                      ? latestInvite
+                      : null
+                  }
+                  onRefresh={async () => {
+                    await Promise.all([
+                      openCustomer(selectedTenantId),
+                      load(true),
+                    ]);
+                  }}
+                  onNotice={setNotice}
+                  onError={setError}
+                />
+
                 <section className={styles.drawerSection}>
                   <div className={styles.drawerSectionHeading}>
                     <div>
-                      <p className={styles.eyebrow}>ACTIVATION</p>
-                      <h3>Onboarding</h3>
+                      <p className={styles.eyebrow}>SETUP</p>
+                      <h3>Workspace checklist</h3>
                     </div>
                     <Sparkles size={17} />
                   </div>
