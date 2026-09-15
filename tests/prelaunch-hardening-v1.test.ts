@@ -6,16 +6,22 @@ test('join requires the current privacy notice before account activation', () =>
   const join = readFileSync('app/join/[token]/page.tsx', 'utf8');
   const accept = readFileSync('supabase/functions/accept-player-invite/index.ts', 'utf8');
 
-  assert.match(join, /PRIVACY_NOTICE_VERSION\s*=\s*["']2026-09-02["']/);
+  assert.doesNotMatch(join, /const PRIVACY_NOTICE_VERSION/);
   assert.match(join, /privacyAccepted/);
-  assert.match(join, /href="\/privacy"/);
+  assert.match(join, /privacyNoticeUrl/);
+  assert.match(join, /privacyNoticeVersion/);
+  assert.match(join, /invite\?\.can_activate/);
   assert.match(join, /privacy_notice_version:/);
-  assert.match(join, /disabled=\{busy \|\| !privacyAccepted\}/);
+  assert.match(
+    join,
+    /disabled=\{busy \|\| !privacyAccepted \|\| !privacyReady\}/,
+  );
 
-  assert.match(accept, /PRIVACY_NOTICE_VERSION = "2026-09-02"/);
-  assert.match(accept, /privacy_notice_version !== PRIVACY_NOTICE_VERSION/);
+  assert.doesNotMatch(accept, /const PRIVACY_NOTICE_VERSION/);
+  assert.match(accept, /platform_server_public_invite_preflight/);
+  assert.match(accept, /expectedNoticeVersion/);
   assert.match(accept, /privacy_notice_acknowledged_at/);
-  assert.match(accept, /privacy_notice_acknowledged/);
+  assert.match(accept, /privacy_notice_version:/);
 });
 
 test('privacy notice explains the core DJM Player data boundaries', () => {

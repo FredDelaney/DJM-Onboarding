@@ -7,12 +7,26 @@ const read = (path: string) => readFileSync(path, 'utf8');
 test('privacy consent is explicit, versioned, timestamped and audited', () => {
   const join = read('app/join/[token]/page.tsx');
   const accept = read('supabase/functions/accept-player-invite/index.ts');
+  const migration = read(
+    'supabase/migrations/20260915102724_tenant_aware_player_privacy_acceptance_v1.sql',
+  );
 
   assert.match(join, /privacy_acknowledged:\s*privacyAccepted/);
+  assert.match(join, /privacyNoticeVersion/);
+
   assert.match(accept, /privacy_acknowledged !== true/);
   assert.match(accept, /privacy_notice_acknowledged_at/);
-  assert.match(accept, /privacy_notice_acknowledged/);
-  assert.match(accept, /audit_events/);
+  assert.match(
+    accept,
+    /platform_server_complete_player_invite_acceptance/,
+  );
+
+  assert.match(migration, /player_privacy_acceptances/);
+  assert.match(migration, /notice_controller_name/);
+  assert.match(migration, /notice_url/);
+  assert.match(migration, /notice_effective_at/);
+  assert.match(migration, /audit_events/);
+  assert.match(migration, /player_portal\.invite_accepted/);
 });
 
 test('club share documents keep sensitive document types private', () => {

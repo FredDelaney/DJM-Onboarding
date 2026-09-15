@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
 
 import { isStrongPassword, STRONG_PASSWORD_MESSAGE } from "@/lib/password";
 import { supabase } from "@/lib/supabase";
-
-const PRIVACY_NOTICE_VERSION = "2026-09-02";
 
 const cleanColour = (value: unknown, fallback: string) => {
   const colour = String(value || "").trim();
@@ -137,6 +134,16 @@ export default function Join() {
     String(agency?.portal_name || `${agencyShortName} Player`).trim() ||
     `${agencyShortName} Player`;
 
+  const privacy = invite?.privacy || {};
+  const privacyReady =
+    privacy?.ready === true &&
+    Boolean(String(privacy?.noticeVersion || "").trim()) &&
+    Boolean(String(privacy?.noticeUrl || "").trim());
+  const privacyNoticeVersion = String(privacy?.noticeVersion || "").trim();
+  const privacyNoticeUrl = String(privacy?.noticeUrl || "").trim();
+  const privacyControllerName =
+    String(privacy?.controllerName || agencyName).trim() || agencyName;
+
   const primaryColour = cleanColour(agency?.primary_color, "#061f3a");
 
   const accentColour = cleanColour(agency?.accent_color, "#f5e900");
@@ -151,6 +158,14 @@ export default function Join() {
     event.preventDefault();
 
     if (!invite?.email || !token) {
+      return;
+    }
+
+    if (!privacyReady || !privacyNoticeVersion) {
+      setMsg(
+        `${agencyName} must finish its privacy setup before player access can be activated.`,
+      );
+
       return;
     }
 
@@ -178,7 +193,7 @@ export default function Join() {
             token,
             email: invite.email,
             password,
-            privacy_notice_version: PRIVACY_NOTICE_VERSION,
+            privacy_notice_version: privacyNoticeVersion,
             privacy_acknowledged: privacyAccepted,
           },
         });
@@ -252,6 +267,53 @@ export default function Join() {
               ? `Ask ${agencyName} for a new player invitation.`
               : "Ask the representing agency for a new player invitation."}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (invite?.can_activate === false || !privacyReady) {
+    return (
+      <div className="center" style={tenantStyle}>
+        <div
+          className="card pad-lg"
+          style={{
+            maxWidth: 480,
+            textAlign: "center",
+          }}
+        >
+          <InviteBrand agency={agency} />
+
+          <ShieldCheck
+            size={28}
+            style={{
+              marginTop: 28,
+              color: "var(--blue)",
+            }}
+          />
+
+          <h2 style={{ marginTop: 16 }}>
+            Player access is being prepared.
+          </h2>
+
+          <p className="muted">
+            Your invitation is still valid, but {agencyName} needs to finish
+            its privacy setup before your account can be activated.
+          </p>
+
+          {agency?.support_email ? (
+            <a
+              href={`mailto:${agency.support_email}`}
+              style={{
+                display: "inline-block",
+                marginTop: 10,
+                color: "var(--blue)",
+                fontWeight: 800,
+              }}
+            >
+              Contact {agencyShortName}
+            </a>
+          ) : null}
         </div>
       </div>
     );
@@ -356,18 +418,19 @@ export default function Join() {
 
               <span>
                 I have read the{" "}
-                <Link
-                  href="/privacy"
+                <a
+                  href={privacyNoticeUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   style={{
                     color: "var(--blue)",
                     fontWeight: 800,
                   }}
                 >
                   Privacy Notice
-                </Link>{" "}
-                and understand how my information is used in this player portal.
+                </a>{" "}
+                from {privacyControllerName} and understand how my information
+                is used in this player portal.
               </span>
             </label>
 
@@ -375,7 +438,7 @@ export default function Join() {
 
             <button
               className="btn btn-navy btn-block join-continue"
-              disabled={busy || !privacyAccepted}
+              disabled={busy || !privacyAccepted || !privacyReady}
             >
               {busy ? "Creating…" : `Open my ${portalName}`}
 

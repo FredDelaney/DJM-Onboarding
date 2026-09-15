@@ -37,7 +37,11 @@ test("invite acceptance keeps privacy enforcement but uses tenant-neutral errors
 
   assert.match(accept, /privacy_acknowledged !== true/);
 
-  assert.match(accept, /PRIVACY_NOTICE_VERSION/);
+  assert.match(accept, /platform_server_public_invite_preflight/);
+
+  assert.match(accept, /expectedNoticeVersion/);
+
+  assert.doesNotMatch(accept, /const PRIVACY_NOTICE_VERSION/);
 
   assert.doesNotMatch(accept, /current DJM Player Privacy Notice/);
 });
