@@ -198,6 +198,24 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,platform_role:adminRecord.role,invite});
     }
 
+    if(action==="record_intervention_event"){
+      const tenantId=text(body?.tenant_id);
+      const eventType=text(body?.event_type).toLowerCase();
+      const channel=text(body?.channel).toLowerCase()||null;
+      const note=text(body?.note)||null;
+      const followUpAt=text(body?.follow_up_at)||null;
+      if(!tenantId||!eventType) return json({error:"tenant_id and event_type are required"},400);
+      const orchestration=await rpc("platform_server_operator_record_intervention_event",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_event_type:eventType,
+        p_channel:channel,
+        p_note:note,
+        p_follow_up_at:followUpAt
+      });
+      return json({ok:true,platform_role:adminRecord.role,orchestration});
+    }
+
     if(action==="set_onboarding_task"){
       const tenantId=text(body?.tenant_id);const taskKey=text(body?.task_key);const status=text(body?.status).toLowerCase();
       if(!tenantId||!taskKey||!status) return json({error:"tenant_id, task_key and status are required"},400);

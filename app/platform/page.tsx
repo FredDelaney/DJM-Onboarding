@@ -40,6 +40,9 @@ import AgencyGoLiveCard, {
   type OperatorIntervention,
   type PrivacyReadiness,
 } from './AgencyGoLiveCard';
+import AgencyInterventionCard, {
+  type InterventionOrchestration,
+} from './AgencyInterventionCard';
 
 import styles from './platform.module.css';
 
@@ -143,6 +146,7 @@ type CustomerDetail = {
   activation_journey?: ActivationJourney | null;
   go_live_readiness?: GoLiveReadiness | null;
   operator_intervention?: OperatorIntervention | null;
+  intervention_orchestration?: InterventionOrchestration | null;
   privacy_readiness?: PrivacyReadiness | null;
   owner_invites?: OwnerInvite[];
   domains?: Array<Record<string, any>>;
@@ -1132,6 +1136,20 @@ export default function PlatformPage() {
                   readiness={detail.go_live_readiness}
                   intervention={detail.operator_intervention}
                   privacy={detail.privacy_readiness}
+                  onRefresh={async () => {
+                    await Promise.all([
+                      openCustomer(selectedTenantId),
+                      load(true),
+                    ]);
+                  }}
+                  onNotice={setNotice}
+                  onError={setError}
+                />
+
+                <AgencyInterventionCard
+                  tenantId={selectedTenantId}
+                  agencyName={detail?.branding?.display_name || detail?.tenant?.legal_name || 'Agency'}
+                  orchestration={detail.intervention_orchestration}
                   onRefresh={async () => {
                     await Promise.all([
                       openCustomer(selectedTenantId),
