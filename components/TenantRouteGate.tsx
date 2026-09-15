@@ -22,6 +22,10 @@ export function TenantRouteGate({
     pathname === '/activate' ||
     pathname.startsWith('/activate/');
 
+  const isAgencyWorkspaceRoute =
+    pathname === '/workspace' ||
+    pathname.startsWith('/workspace/');
+
   const isReDreamControlPlane = Boolean(
     process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT,
   );
@@ -39,7 +43,9 @@ export function TenantRouteGate({
 
   return (
     <>
-      {isPlatformControlPlane || isAgencyActivationRoute
+      {isPlatformControlPlane ||
+      isAgencyActivationRoute ||
+      isAgencyWorkspaceRoute
         ? children
         : fallback}
     </>

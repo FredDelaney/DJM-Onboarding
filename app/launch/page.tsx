@@ -897,6 +897,17 @@ export default function AgencyLaunchPage() {
 
           <section className={styles.workCard}>{activeForm}</section>
 
+          {launch.activation?.first_value_ready ? (
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => window.location.assign('/agency')}
+            >
+              <ArrowRight size={15} />
+              Open operating workspace
+            </button>
+          ) : null}
+
           <div className={styles.valueStrip}>
             <div>
               <span>Working value</span>

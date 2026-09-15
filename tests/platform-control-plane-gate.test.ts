@@ -23,7 +23,15 @@ test(
     assert.match(gate, /pathname === '\/'/);
     assert.match(gate, /router\.replace\('\/platform'\)/);
     assert.ok(
-      gate.includes('isPlatformControlPlane || isAgencyActivationRoute'),
+      gate.includes('isPlatformControlPlane ||') &&
+        gate.includes('isAgencyActivationRoute ||') &&
+        gate.includes('isAgencyWorkspaceRoute'),
+    );
+    assert.ok(
+      gate.includes("pathname === '/workspace'"),
+    );
+    assert.ok(
+      gate.includes("pathname.startsWith('/workspace/')"),
     );
     assert.ok(
       gate.includes("pathname === '/activate'"),
