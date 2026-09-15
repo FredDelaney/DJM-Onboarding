@@ -1,0 +1,139 @@
+.card {
+  margin-top: 10px;
+  padding: 15px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(10, 10, 12, 0.07);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(124, 108, 242, 0.07), transparent 58%),
+    #fff;
+}
+
+.copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.kicker {
+  color: #847994;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+}
+
+.copy strong {
+  color: #24282e;
+  font-size: 12px;
+}
+
+.copy p {
+  margin: 0;
+  max-width: 620px;
+  color: #7c8087;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.actions button,
+.confirm button {
+  min-height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 9px;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.secondary,
+.confirm button {
+  border: 1px solid rgba(10, 10, 12, 0.09);
+  background: #fff;
+  color: #545860;
+}
+
+.primary {
+  border: 1px solid #18131f;
+  background: #18131f;
+  color: #fff;
+}
+
+.actions button:disabled,
+.confirm button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirm {
+  grid-column: 1 / -1;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 11px;
+  background: #f7f5fa;
+}
+
+.confirm > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #5b5364;
+}
+
+.confirm p {
+  margin: 0;
+  max-width: 650px;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.confirm > span {
+  display: flex;
+  gap: 6px;
+}
+
+.truth {
+  grid-column: 1 / -1;
+  color: #a0a3a8;
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 620px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+
+  .confirm {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

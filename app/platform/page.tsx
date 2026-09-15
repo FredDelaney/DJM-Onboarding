@@ -30,6 +30,9 @@ import { useRouter } from 'next/navigation';
 import { djmInvoke, friendlyError } from '@/lib/djm-os';
 import { supabase } from '@/lib/supabase';
 
+import AgencyActionBar, {
+  type CustomerActionSurface,
+} from './AgencyActionBar';
 import AgencyActivationCard, {
   type ActivationJourney,
   type OwnerInvite,
@@ -166,6 +169,7 @@ type CustomerDetail = {
   operator_intervention?: OperatorIntervention | null;
   intervention_orchestration?: InterventionOrchestration | null;
   attention?: CustomerAttention | null;
+  action_surface?: CustomerActionSurface | null;
   privacy_readiness?: PrivacyReadiness | null;
   owner_invites?: OwnerInvite[];
   domains?: Array<Record<string, any>>;
@@ -303,6 +307,7 @@ export default function PlatformPage() {
   const [detailPlan, setDetailPlan] = useState('');
   const [detailOwnerEmail, setDetailOwnerEmail] = useState('');
   const [detailBusy, setDetailBusy] = useState('');
+  const [privacyFocusToken, setPrivacyFocusToken] = useState(0);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -392,6 +397,20 @@ export default function PlatformPage() {
     setSelectedTenantId(null);
     setDetail(null);
     setDetailBusy('');
+    setPrivacyFocusToken(0);
+  };
+
+  const focusCustomerControl = (target: string) => {
+    if (!target) return;
+    if (target === 'privacy-control') {
+      setPrivacyFocusToken((current) => current + 1);
+    }
+    window.requestAnimationFrame(() => {
+      document.getElementById(target)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
   };
 
   const customers = useMemo(() => {
@@ -1116,7 +1135,22 @@ export default function PlatformPage() {
                   <DetailStat label="First value" value={detail.activation_journey?.first_value_ready ? 'Reached' : 'Not yet'} />
                 </div>
 
-                <section className={styles.drawerSection}>
+                <AgencyActionBar
+                  tenantId={selectedTenantId}
+                  agencyName={detail?.branding?.display_name || detail?.tenant?.legal_name || 'Agency'}
+                  surface={detail.action_surface}
+                  onFocus={focusCustomerControl}
+                  onRefresh={async () => {
+                    await Promise.all([
+                      openCustomer(selectedTenantId),
+                      load(true),
+                    ]);
+                  }}
+                  onNotice={setNotice}
+                  onError={setError}
+                />
+
+                <section id="commercial-control" className={styles.drawerSection}>
                   <div className={styles.drawerSectionHeading}>
                     <div>
                       <p className={styles.eyebrow}>COMMERCIAL</p>
@@ -1176,6 +1210,7 @@ export default function PlatformPage() {
                   readiness={detail.go_live_readiness}
                   intervention={detail.operator_intervention}
                   privacy={detail.privacy_readiness}
+                  privacyFocusToken={privacyFocusToken}
                   onRefresh={async () => {
                     await Promise.all([
                       openCustomer(selectedTenantId),
@@ -1261,7 +1296,7 @@ export default function PlatformPage() {
                   </div>
                 </section>
 
-                <section className={styles.drawerSection}>
+                <section id="domain-control" className={styles.drawerSection}>
                   <div className={styles.drawerSectionHeading}>
                     <div>
                       <p className={styles.eyebrow}>BRAND AND DOMAIN</p>

@@ -153,7 +153,7 @@ export default function AgencyInterventionCard({
   };
 
   return (
-    <section className={styles.card}>
+    <section id="intervention-control" className={styles.card}>
       <div className={styles.heading}>
         <div>
           <p>NEXT INTERVENTION</p>

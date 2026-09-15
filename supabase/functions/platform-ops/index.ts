@@ -198,6 +198,16 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,platform_role:adminRecord.role,invite});
     }
 
+    if(action==="go_live_customer"){
+      const tenantId=text(body?.tenant_id);
+      if(!tenantId) return json({error:"tenant_id is required"},400);
+      const result=await rpc("platform_server_operator_go_live_customer",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId
+      });
+      return json({ok:true,platform_role:adminRecord.role,result});
+    }
+
     if(action==="record_intervention_event"){
       const tenantId=text(body?.tenant_id);
       const eventType=text(body?.event_type).toLowerCase();

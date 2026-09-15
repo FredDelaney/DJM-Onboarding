@@ -217,7 +217,7 @@ export default function AgencyActivationCard({
   };
 
   return (
-    <section className={styles.card}>
+    <section id="activation-control" className={styles.card}>
       <div className={styles.heading}>
         <div>
           <p>TIME TO VALUE</p>

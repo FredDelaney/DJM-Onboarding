@@ -81,6 +81,7 @@ export default function AgencyGoLiveCard({
   readiness,
   intervention,
   privacy,
+  privacyFocusToken,
   onRefresh,
   onNotice,
   onError,
@@ -91,6 +92,7 @@ export default function AgencyGoLiveCard({
   readiness?: GoLiveReadiness | null;
   intervention?: OperatorIntervention | null;
   privacy?: PrivacyReadiness | null;
+  privacyFocusToken?: number;
   onRefresh: () => Promise<void>;
   onNotice: (value: string) => void;
   onError: (value: string) => void;
@@ -112,6 +114,10 @@ export default function AgencyGoLiveCard({
   useEffect(() => {
     setPrivacyOpen(false);
   }, [tenantId]);
+
+  useEffect(() => {
+    if (privacyFocusToken) setPrivacyOpen(true);
+  }, [privacyFocusToken]);
 
   const pct = Math.max(0, Math.min(100, Number(readiness?.readiness_pct || 0)));
   const gates = useMemo(() => readiness?.gates || [], [readiness?.gates]);
@@ -164,7 +170,7 @@ export default function AgencyGoLiveCard({
   };
 
   return (
-    <section className={styles.card}>
+    <section id="go-live-control" className={styles.card}>
       <div className={styles.heading}>
         <div>
           <p>GO-LIVE CONTROL</p>
@@ -223,7 +229,7 @@ export default function AgencyGoLiveCard({
       </div>
 
       {!internal ? (
-        <div className={styles.privacyControl}>
+        <div id="privacy-control" className={styles.privacyControl}>
           <div>
             <span className={styles.privacyIcon}>
               <LockKeyhole size={14} />
