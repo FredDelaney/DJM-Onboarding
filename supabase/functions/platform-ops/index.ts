@@ -18,24 +18,19 @@ export default {fetch:async(req:Request)=>{
     const userId=String(claims.id||claims.sub||"");
     if(!userId) return json({error:"Authenticated user identity missing"},401);
 
-    const {data:adminRecord,error:adminError}=await ctx.supabaseAdmin.schema("platform").from("platform_admins").select("role,status").eq("user_id",userId).eq("status","active").maybeSingle();
-    if(adminError) throw adminError;
+    const rpc=async(name:string,args:Record<string,unknown>={})=>{const {data,error}=await ctx.supabaseAdmin.rpc(name,args);if(error) throw error;return data;};
+    const adminRecord=await rpc("platform_server_operator_access",{p_user_id:userId});
     if(!adminRecord) return json({error:"Platform operator access required"},403);
 
     const body=await req.json().catch(()=>({}));
     const action=text(body?.action).toLowerCase()||"portfolio";
-    const rpc=async(name:string,args:Record<string,unknown>={})=>{const {data,error}=await ctx.supabaseAdmin.rpc(name,args);if(error) throw error;return data;};
 
     if(action==="portfolio"){
       return json({ok:true,platform_role:adminRecord.role,portfolio:await rpc("platform_server_operator_portfolio")});
     }
 
     if(action==="plans"){
-      const {data,error}=await ctx.supabaseAdmin.schema("platform").from("plan_catalog")
-        .select("plan_key,display_name,rank,status,customer_segment,limits,metadata,monthly_price_cents,price_currency,price_is_from")
-        .eq("status","active").order("rank",{ascending:true});
-      if(error) throw error;
-      return json({ok:true,platform_role:adminRecord.role,plans:data||[]});
+      return json({ok:true,platform_role:adminRecord.role,plans:await rpc("platform_server_operator_plans")||[]});
     }
 
     if(action==="create_customer"){
@@ -100,21 +95,9 @@ export default {fetch:async(req:Request)=>{
     if(action==="customer_detail"){
       const tenantId=text(body?.tenant_id);
       if(!tenantId) return json({error:"tenant_id is required"},400);
-      const [tenantQ,brandingQ,lifecycleQ,planQ,domainsQ,tasksQ,membersQ,entitlementsQ,auditQ]=await Promise.all([
-        ctx.supabaseAdmin.schema("platform").from("tenants").select("id,slug,tenant_type,status,legal_name,metadata,created_at,updated_at").eq("id",tenantId).maybeSingle(),
-        ctx.supabaseAdmin.schema("platform").from("tenant_branding").select("*").eq("tenant_id",tenantId).maybeSingle(),
-        ctx.supabaseAdmin.schema("platform").from("tenant_customer_lifecycle").select("*").eq("tenant_id",tenantId).maybeSingle(),
-        ctx.supabaseAdmin.schema("platform").from("tenant_plan_assignments").select("plan_key,status,billing_mode,effective_from,effective_until,configuration").eq("tenant_id",tenantId).in("status",["trialing","active"]).order("effective_from",{ascending:false}).limit(1).maybeSingle(),
-        ctx.supabaseAdmin.schema("platform").from("tenant_domains").select("id,hostname,domain_type,status,is_primary,verified_at,created_at").eq("tenant_id",tenantId).order("created_at",{ascending:true}),
-        ctx.supabaseAdmin.schema("platform").from("tenant_onboarding_tasks").select("task_key,category,title,description,status,required,sort_order,blocked_reason,completed_at").eq("tenant_id",tenantId).order("sort_order",{ascending:true}),
-        ctx.supabaseAdmin.schema("platform").from("tenant_memberships").select("user_id,role,status,is_primary,joined_at").eq("tenant_id",tenantId).order("joined_at",{ascending:true}),
-        ctx.supabaseAdmin.schema("platform").from("tenant_entitlements").select("feature_key,enabled,source,configuration,valid_from,valid_until,updated_at").eq("tenant_id",tenantId).order("feature_key",{ascending:true}),
-        ctx.supabaseAdmin.schema("platform").from("audit_events").select("id,actor_user_id,actor_kind,action,entity_type,entity_id,after_state,metadata,occurred_at").eq("tenant_id",tenantId).order("occurred_at",{ascending:false}).limit(50)
-      ]);
-      const firstError=[tenantQ,brandingQ,lifecycleQ,planQ,domainsQ,tasksQ,membersQ,entitlementsQ,auditQ].find((q:any)=>q.error)?.error;
-      if(firstError) throw firstError;
-      if(!tenantQ.data) return json({error:"Customer not found"},404);
-      return json({ok:true,platform_role:adminRecord.role,customer:{tenant:tenantQ.data,branding:brandingQ.data,lifecycle:lifecycleQ.data,plan:planQ.data,domains:domainsQ.data||[],onboarding_tasks:tasksQ.data||[],memberships:membersQ.data||[],feature_overrides:entitlementsQ.data||[],audit:auditQ.data||[]}});
+      const customer=await rpc("platform_server_operator_customer_detail",{p_tenant_id:tenantId});
+      if(!customer) return json({error:"Customer not found"},404);
+      return json({ok:true,platform_role:adminRecord.role,customer});
     }
 
     if(action==="update_customer"){
@@ -164,7 +147,9 @@ export default {fetch:async(req:Request)=>{
 
     return json({error:"Unknown action"},400);
   }catch(error){
+    const record=error&&typeof error==="object"?error as Record<string,unknown>:{};
+    const message=error instanceof Error?error.message:text(record.message)||text(record.details)||text(record.hint)||"Platform operations request failed";
     console.error("platform-ops",error);
-    return json({error:error instanceof Error?error.message:"Platform operations request failed"},500);
+    return json({error:message},500);
   }
 }};
