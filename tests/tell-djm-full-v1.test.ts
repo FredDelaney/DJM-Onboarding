@@ -313,7 +313,9 @@ test('full-screen Tell DJM preserves route and active workspace context', () => 
   assert.match(launcher, /aiCaptureHref/);
   assert.match(contextLib, /club_need_id: context\.club_need_id/);
   assert.match(launcher, /djm:tell-context/);
-  assert.match(fullPage, /new URLSearchParams\(window\.location\.search\)/);
+  assert.match(fullPage, /new URLSearchParams\(search\)/);
+  assert.match(fullPage, /useSearchParams\(\)\.toString\(\)/);
+  assert.match(fullPage, /\[workspaceSlug, search\]/);
   assert.match(fullPage, /setQueryContext/);
   assert.match(contextLib, /club_need_id/);
   assert.match(fullPage, /redream_ai_context_for_route/);
@@ -417,7 +419,7 @@ test('partial or failed captures can retry only their unfinished work from the p
 test('receipt polling spans the durable one-minute cron fallback without fan-out on reconnect', () => {
   assert.match(capture, /const ACTIVE_POLL_MS = 200/);
   assert.match(capture, /const BACKGROUND_POLL_MS = 1000/);
-  assert.match(capture, /if \(attempt >= 40\) delayMs = BACKGROUND_POLL_MS/);
+  assert.match(capture, /attempt >= 40 \? BACKGROUND_POLL_MS/);
   assert.match(capture, /const POLL_ATTEMPTS = 180/);
   assert.match(capture, /pollingRef/);
   assert.match(capture, /uploadPending\(item, false\)/);

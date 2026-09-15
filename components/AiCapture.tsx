@@ -1,5 +1,6 @@
 'use client';
 
+import { pollCaptureReceipt } from '@/lib/capture-polling';
 import { flushAiQueue, uploadAiCaptureOnce } from '@/lib/ai-upload-queue';
 
 import { pendingAiWorkspace } from '@/lib/ai-workspace';
@@ -146,7 +147,8 @@ export default function AiCapture({
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
   const timerRef = useRef<number | null>(null);
-  const pollingRef = useRef<Set<string>>(new Set());
+  const mountedRef = useRef(true);
+  const pollingRef = useRef<Map<string, AbortController>>(new Map());
   const activeWorkspaceRef = useRef(workspaceSlug);
   activeWorkspaceRef.current = workspaceSlug;
   const displayCaptureRef = useRef<string | null>(null);
@@ -171,67 +173,64 @@ export default function AiCapture({
     [context],
   );
 
+  useEffect(() => {
+    mountedRef.current = true;
+    const controllers = pollingRef.current;
+    return () => {
+      mountedRef.current = false;
+      controllers.forEach(controller => controller.abort());
+      controllers.clear();
+    };
+  }, [workspaceSlug]);
+
   const pollReceipt = useCallback(
     async (captureId: string, focus = true) => {
+      if (!mountedRef.current) return;
       if (focus) displayCaptureRef.current = captureId;
       if (pollingRef.current.has(captureId)) return;
-      pollingRef.current.add(captureId);
-
+      const controller = new AbortController();
+      pollingRef.current.set(captureId, controller);
+      let verified = false;
       try {
-        for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
-          if (activeWorkspaceRef.current !== workspaceSlug) return;
-          let delayMs = TRANSCRIBING_POLL_MS;
-          try {
-            const next = await platformRpc<Receipt>('redream_ai_receipt', {
-              p_capture_id: captureId,
-            }, workspaceSlug);
-            if (activeWorkspaceRef.current !== workspaceSlug) return;
+        await pollCaptureReceipt<Receipt>({
+          signal: controller.signal,
+          attempts: POLL_ATTEMPTS,
+          retryDelayMs: BACKGROUND_POLL_MS,
+          read: signal => platformRpc<Receipt>('redream_ai_receipt', {
+            p_capture_id: captureId,
+          }, workspaceSlug, signal),
+          received: (next, attempt) => {
+            if (activeWorkspaceRef.current !== workspaceSlug) return null;
+            verified = true;
             if (displayCaptureRef.current === captureId) setReceipt(next);
-
             const nextStatus = next?.capture?.status || '';
             const transcriptReady = Boolean(next?.capture?.transcript_text);
-
-            if (
-              displayCaptureRef.current === captureId &&
-              !TERMINAL.has(nextStatus)
-            ) {
-              setStatus(
-                transcriptReady
-                  ? 'Transcript ready. Doing it now...'
-                  : 'Transcribing...',
-              );
-            }
-
             if (TERMINAL.has(nextStatus)) {
               forgetActiveAiCapture(captureId);
               if (displayCaptureRef.current === captureId) setStatus('');
               onCompleted?.(next);
-              return;
+              return null;
             }
-
-            delayMs = transcriptReady
-              ? ACTIVE_POLL_MS
-              : TRANSCRIBING_POLL_MS;
-            if (attempt >= 40) delayMs = BACKGROUND_POLL_MS;
-          } catch {
-            // The durable worker owns the job. A transient receipt read can retry.
-            delayMs = BACKGROUND_POLL_MS;
-          }
-
-          if (attempt < POLL_ATTEMPTS - 1) {
-            await new Promise((resolve) =>
-              window.setTimeout(resolve, delayMs),
-            );
-          }
-        }
-
-        if (displayCaptureRef.current === captureId) {
-          setStatus(
-            'Safely saved. ReDream is still processing this in the background. You can close this screen.',
-          );
-        }
+            if (displayCaptureRef.current === captureId) {
+              setStatus(transcriptReady ? 'Transcript ready. Doing it now...' : 'Transcribing...');
+            }
+            return attempt >= 40 ? BACKGROUND_POLL_MS : transcriptReady ? ACTIVE_POLL_MS : TRANSCRIBING_POLL_MS;
+          },
+          denied: () => {
+            if (displayCaptureRef.current !== captureId) return;
+            setReceipt(null);
+            setStatus('');
+            setError('This update is not available in this workspace. Check your agency access and try again.');
+          },
+          exhausted: () => {
+            if (displayCaptureRef.current !== captureId) return;
+            setStatus(verified
+              ? 'Safely saved. ReDream is still processing this in the background. You can close this screen.'
+              : 'Unable to check this update right now. Reopen Capture when connected.');
+          },
+        });
       } finally {
-        pollingRef.current.delete(captureId);
+        if (pollingRef.current.get(captureId) === controller) pollingRef.current.delete(captureId);
       }
     },
     [onCompleted, workspaceSlug],

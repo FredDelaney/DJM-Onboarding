@@ -1,5 +1,7 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
+
 import { useAiWorkspace } from './useAiWorkspace';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,6 +25,7 @@ type AiAccess = {
 
 export default function AiFullPage() {
   const workspaceSlug = useAiWorkspace();
+  const search = useSearchParams().toString();
   const [sourceRoute, setSourceRoute] = useState('');
   const routeFallback = useMemo(
     () => (sourceRoute.startsWith('/') ? contextFromRoute(sourceRoute) : {}),
@@ -43,7 +46,7 @@ export default function AiFullPage() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(search);
     const value = params.get('from') || '';
     const requestedCaptureId = params.get('capture');
     setSelectedCaptureId(null);
@@ -52,7 +55,7 @@ export default function AiFullPage() {
     if (requestedCaptureId && UUID_PATTERN.test(requestedCaptureId)) {
       setSelectedCaptureId(requestedCaptureId);
     }
-  }, [workspaceSlug]);
+  }, [workspaceSlug, search]);
 
   useEffect(() => {
     setAccess(null);

@@ -7,14 +7,16 @@ export async function platformRpc<T = any>(
   name: string,
   args: Record<string, any> = {},
   workspaceSlug?: string | null,
+  signal?: AbortSignal,
 ): Promise<T> {
   return measureOperation('rpc', name, async () => {
     const request = supabase.rpc(name as any, args as any);
     if (workspaceSlug != null) request.setHeader('x-redream-workspace', workspaceSlug);
+    if (signal) request.abortSignal(signal);
     const { data, error } = await request;
 
     if (error) {
-      throw new Error(error.message || `Workspace request failed: ${name}`);
+      throw Object.assign(new Error(error.message || `Workspace request failed: ${name}`), { code: error.code });
     }
 
     return data as T;
