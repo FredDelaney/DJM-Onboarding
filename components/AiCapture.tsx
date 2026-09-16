@@ -654,6 +654,8 @@ export default function AiCapture({
     'failed',
     'budget_blocked',
   ].includes(terminalStatus);
+  const verifiedComplete = terminalStatus === 'done';
+  const inFlight = Boolean(terminalStatus) && !TERMINAL.has(terminalStatus);
   const hasAppliedActions = (receipt?.actions || []).some(
     (action) => action.status === 'applied',
   );
@@ -797,7 +799,9 @@ export default function AiCapture({
               <span>
                 {needsAttention
                   ? 'The safe parts are saved. ReDream only needs help with the items below.'
-                  : 'Everything below was written back and verified.'}
+                  : verifiedComplete
+                    ? 'Everything below was written back and verified.'
+                    : 'ReDream is finishing this capture. Nothing else is needed from you right now.'}
               </span>
             </div>
             <div
@@ -807,6 +811,8 @@ export default function AiCapture({
             >
               {needsAttention ? (
                 <AlertTriangle size={11} />
+              ) : inFlight ? (
+                <LoaderCircle size={11} />
               ) : (
                 <CheckCircle2 size={11} />
               )}
