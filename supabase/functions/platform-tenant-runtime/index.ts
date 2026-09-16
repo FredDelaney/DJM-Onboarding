@@ -13,10 +13,7 @@ const json = (body: unknown, status = 200) =>
     headers: {
       ...cors,
       "Content-Type": "application/json",
-      "Cache-Control":
-        status === 200
-          ? "public, max-age=60, stale-while-revalidate=300"
-          : "no-store",
+      "Cache-Control": "private, no-store",
     },
   });
 

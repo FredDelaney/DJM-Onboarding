@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { estimateAiCost, selectAiRoute } from "./ai-router.ts";
+import { applyConfirmedEntityResolutions, canonicalClaimKey } from "./ai-safety.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -426,6 +427,7 @@ async function interpret(
         "Use canonical football positions only: GK, RB, LB, CB, RCB, LCB, 6, 8, 10, RW, LW, Winger, ST.",
         "Use upsert_club_need only when a club requirement is confirmed or explicitly described as a predicted scouting need.",
         "Use add_claim for softer intelligence, reported contract information, player preferences, scout observations and anything that should remain sourced and unverified.",
+        "For add_claim, claim_key must be short lowercase ASCII snake_case, for example preferred_side, salary_expectation or transfer_preference. Never use spaces, punctuation or non-ASCII characters.",
         "Use create_task only when the speaker states a follow-up, commitment or reminder.",
         "Resolve explicit relative dates from the supplied capture time and timezone. If the time/date is genuinely unclear, leave due_at null.",
         "For salary and transfer budgets, copy the exact spoken amount phrase into salary_budget_raw or transfer_budget_raw whenever a budget is mentioned.",
@@ -994,7 +996,13 @@ async function processOne(
     for (const item of orderedActions) {
       const index = item.originalIndex;
       const sourceAction = item.action;
-      const action = enrichNeedDependentAction({ ...sourceAction }, needActions);
+      const action = applyConfirmedEntityResolutions(
+        capture,
+        enrichNeedDependentAction({ ...sourceAction }, needActions),
+      );
+      if (action.type === "add_claim") {
+        action.claim_key = canonicalClaimKey(action.claim_key, action.claim_type);
+      }
       const actionKey = String(action.key || `action_${index + 1}`).trim();
       if (!actionKey || actionKeys.has(actionKey)) {
         throw new Error("Interpreter returned duplicate or empty action keys");
