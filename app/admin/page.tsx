@@ -25,9 +25,9 @@ import {
   UserRound,
 } from 'lucide-react';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import { useAdmin } from '@/components/AdminShell';
-import { compactDate, djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDate, platformInvoke, platformRpc, friendlyError } from '@/lib/platform-client';
 import { publicFile, supabase } from '@/lib/supabase';
 
 type View = 'signed' | 'prospects';
@@ -76,12 +76,12 @@ export default function PlayersPage() {
             'id,first_name,last_name,preferred_name,date_of_birth,nationalities,primary_position,current_club,current_league,current_country,contract_status,contract_expiry,football_status,verification_status,agency_priority,next_action,next_action_due,profile_photo_path,primary_staff_user_id,updated_at',
           )
           .order('updated_at', { ascending: false }),
-        djmRpc<any[]>('djm_recruitment_targets', {
+        platformRpc<any[]>('djm_recruitment_targets', {
           p_search: null,
           p_stage: null,
           p_limit: 300,
         }),
-        djmRpc<TeamMember[]>('djm_active_team_members'),
+        platformRpc<TeamMember[]>('djm_active_team_members'),
       ]);
 
       if (playerResult.error) throw playerResult.error;
@@ -253,7 +253,7 @@ export default function PlayersPage() {
         if (!player) return;
 
         try {
-          const result: any = await djmInvoke('refresh-player-stats-free', {
+          const result: any = await platformInvoke('refresh-player-stats-free', {
             player_id: player.id,
           });
 
@@ -292,7 +292,7 @@ export default function PlayersPage() {
     setError('');
 
     try {
-      const invite: any = await djmRpc('create_player_invitation', {
+      const invite: any = await platformRpc('create_player_invitation', {
         invite_email: inviteEmail.trim().toLowerCase(),
         player_name: inviteName.trim() || null,
       });
@@ -320,7 +320,7 @@ export default function PlayersPage() {
     setMessage('');
 
     try {
-      const result: any = await djmRpc('djm_recruitment_quick_add', {
+      const result: any = await platformRpc('djm_recruitment_quick_add', {
         p_transfermarkt_url: transfermarktUrl.trim(),
         p_priority: 3,
         p_notes: prospectNote.trim() || null,
@@ -328,7 +328,7 @@ export default function PlayersPage() {
 
       if (result?.prospect_id) {
         try {
-          await djmInvoke('djm-transfermarkt-enrich', {
+          await platformInvoke('djm-transfermarkt-enrich', {
             prospect_id: result.prospect_id,
             url: transfermarktUrl.trim(),
           });
@@ -341,7 +341,7 @@ export default function PlayersPage() {
       setProspectNote('');
       setProspectOpen(false);
       setMessage(
-        'Prospect saved. DJM will enrich what it can from the connected source.',
+        'Prospect saved. The agency will enrich what it can from the connected source.',
       );
       await load();
     } catch (prospectError) {
@@ -350,7 +350,7 @@ export default function PlayersPage() {
   };
 
   return (
-    <DjmOsShell eyebrow="Represented players and recruitment" title="Players">
+    <AgencyShell eyebrow="Represented players and recruitment" title="Players">
       <div className="roster-v3">
         {error ? (
           <div className="ux-alert ux-alert-error">
@@ -369,7 +369,7 @@ export default function PlayersPage() {
           <div className="roster-masthead-top">
             <div className="roster-masthead-copy">
               <span className="roster-kicker">
-                {view === 'signed' ? 'DJM FIRST TEAM' : 'DJM RECRUITMENT'}
+                {view === 'signed' ? 'FIRST TEAM' : 'RECRUITMENT'}
               </span>
               <h2>
                 {view === 'signed'
@@ -380,7 +380,7 @@ export default function PlayersPage() {
                 {view === 'signed'
                   ? signedAssigned === players.length
                     ? 'Every player has clear agency ownership.'
-                    : `${players.length - signedAssigned} player${players.length - signedAssigned === 1 ? '' : 's'} still need a primary DJM owner.`
+                    : `${players.length - signedAssigned} player${players.length - signedAssigned === 1 ? '' : 's'} still need a primary agency owner.`
                   : 'Ownership, contact state and next action in one view.'}
               </p>
             </div>
@@ -458,7 +458,7 @@ export default function PlayersPage() {
             aria-pressed={ownerFilter === 'all'}
             onClick={() => setOwnerFilter('all')}
           >
-            <span className="owner-filter-avatar is-all">DJM</span>
+            <span className="owner-filter-avatar is-all">The agency</span>
             <span className="owner-filter-copy">
               <small>VIEW</small>
               <strong>ALL</strong>
@@ -576,7 +576,7 @@ export default function PlayersPage() {
               </label>
 
               <label>
-                Why are DJM interested?
+                Why is The agency interested?
                 <input
                   value={prospectNote}
                   onChange={(event) => setProspectNote(event.target.value)}
@@ -704,7 +704,7 @@ export default function PlayersPage() {
           </div>
         ) : null}
       </div>
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 
@@ -807,7 +807,7 @@ function SignedPlayerCard({
                 {player.next_action ||
                   (ownerName
                     ? 'No immediate action recorded'
-                    : 'Assign a primary DJM owner')}
+                    : 'Assign a primary agency owner')}
               </strong>
               {player.next_action_due ? (
                 <span>{compactDate(player.next_action_due)}</span>
@@ -1014,12 +1014,12 @@ function OwnerControl({
 
     try {
       if (kind === 'player') {
-        await djmRpc('djm_assign_player', {
+        await platformRpc('djm_assign_player', {
           p_player_id: entityId,
           p_assigned_to_user_id: next,
         });
       } else {
-        await djmRpc('djm_recruitment_assign_owner', {
+        await platformRpc('djm_recruitment_assign_owner', {
           p_prospect_id: entityId,
           p_owner_user_id: next,
         });
@@ -1038,14 +1038,14 @@ function OwnerControl({
       className={`roster-owner-control ${
         ownerName ? '' : 'is-unassigned'
       } ${busy ? 'is-busy' : ''}`}
-      title="Change DJM owner"
+      title="Change agency owner"
     >
       <span className="roster-owner-avatar">
         {ownerName ? initials(ownerName) : '!'}
       </span>
 
       <span className="roster-owner-copy">
-        <small>DJM OWNER</small>
+        <small>AGENCY OWNER</small>
         <strong>{ownerName ? firstName(ownerName).toUpperCase() : 'UNASSIGNED'}</strong>
       </span>
 

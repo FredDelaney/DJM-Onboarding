@@ -41,7 +41,7 @@ const EMPTY_DRAFT: ResourceDraft = {
 const STARTER_IDEAS: Array<Pick<ResourceDraft, 'title' | 'description' | 'category' | 'resource_type'>> = [
   {
     title: 'Contract meeting question sheet',
-    description: 'A DJM-reviewed checklist a player can open before a contract or renewal conversation.',
+    description: 'An agency-reviewed checklist a player can open before a contract or renewal conversation.',
     category: 'Contract',
     resource_type: 'document',
   },
@@ -180,7 +180,7 @@ export default function AdminResourceStudio({
             <span className="admin-command-kicker">PLAYER VALUE LIBRARY</span>
             <h2>Useful after the login, not just another link list.</h2>
             <p>
-              Publish DJM-reviewed tools into the player Career workspace. Drafts stay private until an admin turns them on.
+              Publish your agency-reviewed tools into the player Career workspace. Drafts stay private until an admin turns them on.
             </p>
           </div>
           <div className="admin-command-stat-pair" aria-label="Resource coverage">
@@ -238,7 +238,7 @@ export default function AdminResourceStudio({
         <div className="admin-command-panel-head is-compact">
           <div>
             <span className="admin-command-kicker">{editingId ? 'EDIT RESOURCE' : 'CREATE RESOURCE'}</span>
-            <h2>{editingId ? 'Refine the player value.' : 'Turn DJM knowledge into an asset.'}</h2>
+            <h2>{editingId ? 'Refine the player value.' : 'Turn your agency knowledge into an asset.'}</h2>
           </div>
           <FilePlus2 size={21} />
         </div>

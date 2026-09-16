@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const launcher = readFileSync('components/DjmTellDjmLauncher.tsx', 'utf8');
-const styles = readFileSync('components/DjmTellDjmLauncher.module.css', 'utf8');
+const launcher = readFileSync('components/AiLauncher.tsx', 'utf8');
+const styles = readFileSync('components/AiLauncher.module.css', 'utf8');
 
 test('Tell DJM popup escapes header stacking contexts through a body portal', () => {
   assert.match(launcher, /createPortal/);

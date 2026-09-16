@@ -83,10 +83,10 @@ export default function ResetPasswordPage() {
         <Brand light />
         <div>
           <div className="yellow-line" />
-          <h1>Choose a new DJM password.</h1>
+          <h1>Choose a new ReDream password.</h1>
           <p>Use a strong password you do not reuse elsewhere. Passkeys can then make future sign-in faster.</p>
         </div>
-        <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>DJM Sports Management · Secure recovery</span>
+        <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>ReDream · Secure recovery</span>
       </section>
 
       <section className="auth-form">

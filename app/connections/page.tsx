@@ -11,7 +11,7 @@ export default function PlayerConnectionsPage() {
     <PlayerShell inboxCount={ctx.openRequests.length}>
       <main className="ux-player-page">
         <section className="ux-player-page-heading">
-          <span className="ux-kicker">MY DJM</span>
+          <span className="ux-kicker">MY WORKSPACE</span>
           <h1>Connections</h1>
           <p>Security, calendar and reminders in one place.</p>
         </section>

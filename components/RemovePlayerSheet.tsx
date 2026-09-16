@@ -88,7 +88,7 @@ export default function RemovePlayerSheet({
           requests, opportunities, share
           links and stored player files.
           Internal recruitment or audit
-          history that DJM needs to retain
+          history that your agency needs to retain
           may remain without the player
           link.
         </p>

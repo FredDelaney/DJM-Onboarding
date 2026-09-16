@@ -13,9 +13,9 @@ import {
   UsersRound,
 } from 'lucide-react';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import { useAdmin } from '@/components/AdminShell';
-import { djmInvoke, djmRpc, friendlyError } from '@/lib/djm-os';
+import { platformInvoke, platformRpc, friendlyError } from '@/lib/platform-client';
 
 export default function SettingsPage() {
   const auth = useAdmin();
@@ -29,8 +29,8 @@ export default function SettingsPage() {
     setError('');
     try {
       const [commandResult, providerResult] = await Promise.all([
-        djmRpc<any>('djm_command_center'),
-        djmInvoke<any>('refresh-player-data', { mode: 'status' }).catch(() => null),
+        platformRpc<any>('djm_command_center'),
+        platformInvoke<any>('refresh-player-data', { mode: 'status' }).catch(() => null),
       ]);
       setCommand(commandResult || null);
       setProviderStatus(providerResult || null);
@@ -53,7 +53,7 @@ export default function SettingsPage() {
     Number(command?.summary?.overdue_tasks || 0);
 
   return (
-    <DjmOsShell eyebrow="Administration that stays out of the way" title="Settings">
+    <AgencyShell eyebrow="Administration that stays out of the way" title="Settings">
       {error ? <div className="ux-alert ux-alert-error"><AlertCircle size={17} />{error}</div> : null}
 
       <section className="ux-settings-hero">
@@ -87,7 +87,7 @@ export default function SettingsPage() {
         <SettingsCard
           icon={<ShieldCheck size={20} />}
           title="Player experience"
-          text="Publish player resources and meaningful DJM announcements without adding another primary workspace."
+          text="Publish player resources and meaningful agency announcements without adding another primary workspace."
           meta="Player-facing content"
           href="/settings/player-experience"
           action="Manage player experience"
@@ -114,7 +114,7 @@ export default function SettingsPage() {
         <div><p className="ux-eyebrow">OPERATING RULE</p><h2>No routine CSV or JSON.</h2></div>
         <p>Player information should arrive automatically or through one-click updates. Technical imports remain a developer fallback, not an everyday workflow for agents.</p>
       </section>
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 

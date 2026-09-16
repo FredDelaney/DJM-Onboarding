@@ -126,7 +126,7 @@ export function getClubReadyState(
     },
     {
       key: 'headline',
-      label: 'DJM positioning headline',
+      label: 'Your agency positioning headline',
       ok:
         String(
           cv?.intro_line || '',

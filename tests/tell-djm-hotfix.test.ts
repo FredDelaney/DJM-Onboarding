@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const launcherCss = readFileSync(
-  'components/DjmTellDjmLauncher.module.css',
+  'components/AiLauncher.module.css',
   'utf8',
 );
 const resolverMigration = readFileSync(

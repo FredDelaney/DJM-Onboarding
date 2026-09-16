@@ -370,7 +370,7 @@ export default function Documents() {
           agreements and career
           documents live here
           securely. Upload once,
-          then DJM has access
+          then your agency has access
           when it is genuinely
           needed.
         </p>
@@ -394,7 +394,7 @@ export default function Documents() {
               lineHeight: 1.5,
             }}
           >
-            Tell DJM what the
+            Tell your agency what the
             file is first, then
             choose the document.
           </p>
@@ -571,7 +571,7 @@ export default function Documents() {
             }}
           >
             Files are not
-            public. DJM can
+            public. Your agency can
             intentionally
             approve specific
             material for a club
@@ -696,7 +696,7 @@ export default function Documents() {
                   passport,
                   agreement or
                   any document
-                  DJM needs.
+                  your agency needs.
                 </span>
               </div>
             )}

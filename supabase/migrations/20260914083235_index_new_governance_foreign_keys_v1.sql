@@ -1,0 +1,11 @@
+create index if not exists agency_knowledge_cards_approved_by_idx on platform.agency_knowledge_cards(approved_by);
+create index if not exists agency_knowledge_cards_created_by_idx on platform.agency_knowledge_cards(created_by);
+create index if not exists agency_knowledge_cards_retired_by_idx on platform.agency_knowledge_cards(retired_by);
+create index if not exists agency_knowledge_cards_updated_by_idx on platform.agency_knowledge_cards(updated_by);
+create index if not exists operating_window_snapshots_captured_by_idx on platform.operating_window_snapshots(captured_by);
+create index if not exists tenant_migration_batches_applied_by_idx on platform.tenant_migration_batches(applied_by);
+create index if not exists tenant_migration_batches_approved_by_idx on platform.tenant_migration_batches(approved_by);
+create index if not exists tenant_migration_batches_created_by_idx on platform.tenant_migration_batches(created_by);
+create index if not exists tenant_migration_batches_updated_by_idx on platform.tenant_migration_batches(updated_by);
+create index if not exists tenant_operating_windows_created_by_idx on platform.tenant_operating_windows(created_by);
+create index if not exists tenant_operating_windows_updated_by_idx on platform.tenant_operating_windows(updated_by);;

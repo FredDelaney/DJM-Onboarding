@@ -11,7 +11,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import DjmOsShell from "@/components/DjmOsShell";
+import AgencyShell from "@/components/AgencyShell";
 import {
   OPTA_LEAGUE_BENCHMARK_METHOD,
   OPTA_LEAGUE_BENCHMARK_REFERENCE_URL,
@@ -19,7 +19,7 @@ import {
   parseBenchmarkJson,
   type BenchmarkImportRecord,
 } from "@/lib/benchmark-data";
-import { djmRpc, friendlyError } from "@/lib/djm-os";
+import { platformRpc, friendlyError } from "@/lib/platform-client";
 
 import styles from "./page.module.css";
 
@@ -39,7 +39,7 @@ export default function BenchmarkImportPage() {
 
   const load = useCallback(async () => {
     try {
-      const result: any = await djmRpc("djm_intelligence_data");
+      const result: any = await platformRpc("djm_intelligence_data");
       setData(result || {});
     } catch (loadError) {
       setError(friendlyError(loadError));
@@ -88,7 +88,7 @@ export default function BenchmarkImportPage() {
     setError("");
     setMessage("");
     try {
-      const result: any = await djmRpc("djm_intelligence_benchmark_import", {
+      const result: any = await platformRpc("djm_intelligence_benchmark_import", {
         p_source_name: sourceName.trim(),
         p_source_url: sourceUrl.trim(),
         p_observed_at: new Date(`${observedAt}T12:00:00Z`).toISOString(),
@@ -108,7 +108,7 @@ export default function BenchmarkImportPage() {
   };
 
   return (
-    <DjmOsShell eyebrow="Competition strength with provenance" title="Benchmark Acquisition">
+    <AgencyShell eyebrow="Competition strength with provenance" title="Benchmark Acquisition">
       <div className={styles.toolbar}>
         <Link href="/brain/data" className="djm-os-secondary-button">
           <ArrowLeft size={15} /> Intelligence Data
@@ -139,7 +139,7 @@ export default function BenchmarkImportPage() {
           <span>BENCHMARK ACQUISITION</span>
           <h2>Missing benchmark should be a task, not a dead end.</h2>
           <p>
-            DJM keeps competition strength source-backed. Opta Power Rankings is the preferred global methodology when DJM has licensed data or a reviewed authorised import. The application does not scrape the public site.
+            ReDream keeps competition strength source-backed. Opta Power Rankings is the preferred global methodology when ReDream has licensed data or a reviewed authorised import. The application does not scrape the public site.
           </p>
         </div>
         <div className={styles.rule}>
@@ -223,7 +223,7 @@ export default function BenchmarkImportPage() {
         <header>
           <span>PREVIEW</span>
           <h2>{preview.length ? `${preview.length} benchmark rows ready for review` : "No benchmark rows parsed yet"}</h2>
-          <p>Raw decimals are preserved. DJM rounds only the effective Player Score benchmark to the nearest integer.</p>
+          <p>Raw decimals are preserved. ReDream rounds only the effective Player Score benchmark to the nearest integer.</p>
         </header>
         {preview.length ? (
           <>
@@ -265,6 +265,6 @@ export default function BenchmarkImportPage() {
           <div className={styles.empty}>Paste or upload an authorised benchmark dataset, then build the preview.</div>
         )}
       </section>
-    </DjmOsShell>
+    </AgencyShell>
   );
 }

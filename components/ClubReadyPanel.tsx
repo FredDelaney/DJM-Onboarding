@@ -99,7 +99,7 @@ export default function ClubReadyPanel({
 
       {!state.isReady && (
         <p className="club-ready-copy">
-          DJM can save the player at any
+          Your agency can save the player at any
           stage, but the dossier cannot be
           marked Club Ready or published
           until these essentials are

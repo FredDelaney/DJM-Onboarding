@@ -1,12 +1,9 @@
-import DjmOsShell from '@/components/DjmOsShell';
-import TellDjmFullPage from '@/components/TellDjmFullPage';
+import CaptureSession from '@/components/CaptureSession';
+import LegacyCaptureRoute from '@/components/LegacyCaptureRoute';
 
-export default function TellDjmPage() {
-  return (
-    <DjmOsShell title="Tell DJM" eyebrow="Capture">
-      <div style={{ width: 'min(720px, 100%)', margin: '0 auto' }}>
-        <TellDjmFullPage />
-      </div>
-    </DjmOsShell>
-  );
+export default function LegacyCapturePage() {
+  return <main style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px' }}>
+    <h1>Capture</h1><p>ReDream AI</p>
+    <CaptureSession><LegacyCaptureRoute /></CaptureSession>
+  </main>;
 }

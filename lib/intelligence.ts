@@ -191,7 +191,7 @@ export const commandRecommendation = (
   if (kind === 'review') {
     return {
       kind: 'Review',
-      explanation: 'A material record needs human verification before DJM relies on it.',
+      explanation: 'A material record needs human verification before your agency relies on it.',
     };
   }
 

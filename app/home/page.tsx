@@ -27,7 +27,7 @@ type HomeData = {
   checkins: Array<Record<string, any>>;
   publicProfile: Record<string, any> | null;
   documents: Array<Record<string, any>>;
-  latestDjmUpdate: Record<string, any> | null;
+  latestAgencyUpdate: Record<string, any> | null;
 };
 
 const EMPTY_DATA: HomeData = {
@@ -35,7 +35,7 @@ const EMPTY_DATA: HomeData = {
   checkins: [],
   publicProfile: null,
   documents: [],
-  latestDjmUpdate: null,
+  latestAgencyUpdate: null,
 };
 
 const greeting = () => {
@@ -99,7 +99,7 @@ export default function Home() {
         checkins: checkinResult.data || [],
         publicProfile: profileResult.data || null,
         documents: documentResult.data || [],
-        latestDjmUpdate: updateResult.data?.[0] || null,
+        latestAgencyUpdate: updateResult.data?.[0] || null,
       });
       setRefreshIssue(
         [
@@ -138,7 +138,7 @@ export default function Home() {
       <PlayerShell>
         <main className="ux-player-page ux-player-empty">
           <section className="ux-player-card">
-            <h1>Your DJM profile is being prepared.</h1>
+            <h1>Your profile is being prepared.</h1>
             <p>There is nothing you need to do yet.</p>
           </section>
         </main>
@@ -169,11 +169,11 @@ export default function Home() {
 
   const primary = ctx.openRequests[0]
     ? {
-        eyebrow: 'DJM NEEDS ONE THING',
-        title: ctx.openRequests[0].title || 'DJM needs an update',
-        detail: ctx.openRequests[0].message || 'Open the request and send DJM what is needed.',
+        eyebrow: 'YOUR AGENCY NEEDS ONE THING',
+        title: ctx.openRequests[0].title || 'Your agency needs an update',
+        detail: ctx.openRequests[0].message || 'Open the request and send your agency what is needed.',
         href: '/inbox',
-        cta: 'Open DJM',
+        cta: 'Open your inbox',
       }
     : expiringDocument
       ? {
@@ -185,18 +185,18 @@ export default function Home() {
         }
       : checkinDue
         ? {
-            eyebrow: 'DJM NEEDS ONE THING',
+            eyebrow: 'YOUR AGENCY NEEDS ONE THING',
             title: 'Weekly check-in due',
-            detail: 'Tell DJM how you are, what has changed and whether you need anything.',
+            detail: 'Tell your agency how you are, what has changed and whether you need anything.',
             href: '/check-in',
             cta: 'Check in',
           }
         : {
             eyebrow: "YOU'RE ALL GOOD",
-            title: 'DJM has everything we need right now.',
+            title: 'Your agency has everything we need right now.',
             detail: 'We will only ask you when something actually needs your attention.',
             href: '/inbox',
-            cta: 'Open DJM',
+            cta: 'Open your inbox',
           };
 
   const outstandingReadiness = readiness.components.filter(
@@ -205,7 +205,7 @@ export default function Home() {
   const profileState = data.publicProfile?.published
     ? 'Ready for clubs'
     : readiness.score >= 80
-      ? 'Ready for DJM review'
+      ? 'Ready for your agency review'
       : `${outstandingReadiness} thing${outstandingReadiness === 1 ? '' : 's'} to finish`;
 
   return (
@@ -224,11 +224,11 @@ export default function Home() {
           ) : null}
           <div className="ux-player-hero-shade" />
           <div className="ux-player-hero-copy">
-            <span className="ux-kicker">DJM PLAYER</span>
+            <span className="ux-kicker">PLAYER WORKSPACE</span>
             <h1>{greeting()}, {firstName}.</h1>
             <p>
               {[player.current_club, player.primary_position].filter(Boolean).join(' · ') ||
-                'Your private connection to DJM'}
+                'Your private connection to your agency'}
             </p>
           </div>
 
@@ -258,16 +258,16 @@ export default function Home() {
             <p>
               {lastCheckin
                 ? humanStatus(lastCheckin.availability_status)
-                : 'DJM will ask only for information we cannot collect automatically.'}
+                : 'Your agency will ask only for information we cannot collect automatically.'}
             </p>
           </Link>
 
           <Link href="/inbox" className="ux-player-card ux-player-summary-card">
-            <span className="ux-kicker">FROM DJM</span>
+            <span className="ux-kicker">FROM YOUR AGENCY</span>
             <MessageCircle size={20} />
-            <strong>{data.latestDjmUpdate?.title || 'Your private agency line'}</strong>
+            <strong>{data.latestAgencyUpdate?.title || 'Your private agency line'}</strong>
             <p>
-              {data.latestDjmUpdate?.message ||
+              {data.latestAgencyUpdate?.message ||
                 'Messages, requests and meaningful representation updates live here.'}
             </p>
           </Link>
@@ -283,11 +283,11 @@ export default function Home() {
         <section className="ux-player-card ux-player-club-card">
           <div>
             <span className="ux-kicker">WHAT CLUBS SEE</span>
-            <h2>Your DJM club profile.</h2>
+            <h2>Your club profile.</h2>
             <p>
               {data.publicProfile?.published
                 ? 'Your approved profile is live. You can preview the exact club-facing version.'
-                : 'DJM is building one clean, verified profile from your current information.'}
+                : 'Your agency is building one clean, verified profile from your current information.'}
             </p>
           </div>
           <Link href="/cv" className="ux-secondary-button">
@@ -316,7 +316,7 @@ export default function Home() {
 
         <p className="ux-player-privacy-line">
           <ShieldCheck size={15} />
-          Private by default. DJM controls what can be shared externally.
+          Private by default. Your agency controls what can be shared externally.
         </p>
       </main>
     </PlayerShell>

@@ -119,7 +119,7 @@ export function calculateCareerReadiness({
       score: 0,
       label: 'Set-up required',
       summary:
-        'Complete your player record before DJM prepares it for opportunities.',
+        'Complete your player record before your agency prepares it for opportunities.',
       components: [],
     };
   }
@@ -235,8 +235,8 @@ export function calculateCareerReadiness({
       id: 'availability',
       label: 'Current availability',
       detail: checkinIsCurrent
-        ? 'DJM has your position for this week.'
-        : 'A current check-in tells DJM if it can move quickly.',
+        ? 'Your agency has your position for this week.'
+        : 'A current check-in tells your agency if it can move quickly.',
       href: '/check-in',
       score: availabilityScore,
       weight: 15,
@@ -270,10 +270,10 @@ export function calculateCareerReadiness({
       id: 'club-profile',
       label: 'Club presentation',
       detail: publicProfile?.published
-        ? 'Your DJM-approved club profile is live.'
+        ? 'Your agency-approved club profile is live.'
         : publicProfile
           ? 'Your club presentation exists and is awaiting publication.'
-          : 'DJM has not created a club-facing profile yet.',
+          : 'Your agency has not created a club-facing profile yet.',
       href: '/cv',
       score: profileScore,
       weight: 15,
@@ -285,7 +285,7 @@ export function calculateCareerReadiness({
       detail:
         marketScore === 100
           ? 'Your market, timing, travel and passport position is clear.'
-          : 'Tell DJM where, when and how you would consider moving.',
+          : 'Tell your agency where, when and how you would consider moving.',
       href: '/profile?edit=career',
       score: marketScore,
       weight: 10,
@@ -314,8 +314,8 @@ export function calculateCareerReadiness({
             : 'Action needed',
     summary:
       score >= 90
-        ? 'DJM has the core information needed to respond quickly when the right call comes.'
-        : 'This measures preparation, not football ability. Complete the weakest items to help DJM move faster.',
+        ? 'Your agency has the core information needed to respond quickly when the right call comes.'
+        : 'This measures preparation, not football ability. Complete the weakest items to help your agency move faster.',
     components,
   };
 }
@@ -334,15 +334,15 @@ export function buildWeeklyPlan({
   openRequests.slice(0, 2).forEach((request, index) => {
     items.push({
       id: `request-${String(request.id || index)}`,
-      eyebrow: 'DJM REQUEST',
+      eyebrow: 'AGENCY REQUEST',
       title:
         String(request.title || '') ||
-        'DJM needs an update',
+        'Your agency needs an update',
       detail:
         String(request.message || '') ||
         'Reply so your representative can keep moving this forward.',
       href: '/inbox',
-      cta: 'Reply to DJM',
+      cta: 'Reply to your agency',
       priority: 100 - index,
     });
   });
@@ -351,7 +351,7 @@ export function buildWeeklyPlan({
     items.push({
       id: 'weekly-checkin',
       eyebrow: '60-SECOND CHECK-IN',
-      title: 'Give DJM this week’s picture',
+      title: 'Give your agency this week’s picture',
       detail:
         'Confirm availability, fitness, minutes and anything that changed at your club.',
       href: '/check-in',
@@ -386,7 +386,7 @@ export function buildWeeklyPlan({
       eyebrow: 'YOU ARE UP TO DATE',
       title: 'Review what clubs can see',
       detail:
-        'Your core actions are complete. Check that your DJM club profile still tells the right story.',
+        'Your core actions are complete. Check that your agency club profile still tells the right story.',
       href: '/cv',
       cta: 'Review club profile',
       priority: 1,
@@ -432,7 +432,7 @@ export function getContractSignal(
   if (!hasText(player?.contract_expiry)) {
     return {
       label: 'Contract date needed',
-      detail: 'Confirm the end date with DJM',
+      detail: 'Confirm the end date with your agency',
       tone: 'missing',
       daysRemaining: null,
     };
@@ -449,7 +449,7 @@ export function getContractSignal(
   if (!Number.isFinite(daysRemaining)) {
     return {
       label: 'Contract date needs review',
-      detail: 'Ask DJM to verify it',
+      detail: 'Ask your agency to verify it',
       tone: 'attention',
       daysRemaining: null,
     };
@@ -466,8 +466,8 @@ export function getContractSignal(
             : 'Contract recorded',
     detail:
       daysRemaining <= 365
-        ? 'Plan the next conversation with DJM'
-        : 'DJM has the key date',
+        ? 'Plan the next conversation with your agency'
+        : 'Your agency has the key date',
     tone:
       daysRemaining <= 180
         ? 'missing'
@@ -484,7 +484,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
     category: 'Perform',
     title: 'Turn your last match into useful evidence',
     description:
-      'A focused post-match review that gives you and DJM more than a scoreline or stats page.',
+      'A focused post-match review that gives you and your agency more than a scoreline or stats page.',
     outcome:
       'One clear strength, one improvement action and the exact clips worth keeping.',
     minutes: 12,
@@ -516,7 +516,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
     category: 'Prepare',
     title: 'The 48-hour opportunity pack',
     description:
-      'Prepare the information and files DJM needs before a club call, trial or move becomes urgent.',
+      'Prepare the information and files your agency needs before a club call, trial or move becomes urgent.',
     outcome:
       'A current profile, trusted footage, travel documents and a clear move brief in one place.',
     minutes: 15,
@@ -535,7 +535,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Check the club view',
         detail:
-          'Open your DJM club profile and report anything that is wrong, stale or missing.',
+          'Open your agency club profile and report anything that is wrong, stale or missing.',
       },
     ],
     action: {
@@ -548,7 +548,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
     category: 'Communicate',
     title: 'Get more from your next agent call',
     description:
-      'A short preparation format for a focused conversation with DJM, especially when something has changed.',
+      'A short preparation format for a focused conversation with your agency, especially when something has changed.',
     outcome:
       'A clear update, the decision you need help with and an agreed next action.',
     minutes: 8,
@@ -562,16 +562,16 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Name the decision',
         detail:
-          'Ask one direct question: what decision or action do you need DJM to help with?',
+          'Ask one direct question: what decision or action do you need your agency to help with?',
       },
       {
         title: 'Leave with ownership',
         detail:
-          'Agree what you will do, what DJM will do and when you will speak again.',
+          'Agree what you will do, what your agency will do and when you will speak again.',
       },
     ],
     action: {
-      label: 'Send DJM the context',
+      label: 'Send your agency the context',
       href: '/inbox?compose=1',
     },
   },
@@ -582,7 +582,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
     description:
       'Organise the facts and questions that matter before a renewal, option or offer conversation.',
     outcome:
-      'A documented contract position and a question list for DJM and qualified legal advisers.',
+      'A documented contract position and a question list for your agency and qualified legal advisers.',
     minutes: 12,
     situations: ['contract', 'expiry', 'offer'],
     steps: [
@@ -616,7 +616,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
     description:
       'Decide what a realistic international move must work for before pressure and deadlines arrive.',
     outcome:
-      'Clear preferred markets, non-negotiables, travel readiness and family considerations for DJM.',
+      'Clear preferred markets, non-negotiables, travel readiness and family considerations for your agency.',
     minutes: 15,
     situations: ['move', 'international', 'passport'],
     steps: [
@@ -633,7 +633,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Confirm practical eligibility',
         detail:
-          'Record passports and known work rights, then ask DJM to verify any registration or permit question.',
+          'Record passports and known work rights, then ask your agency to verify any registration or permit question.',
       },
     ],
     action: {
@@ -669,7 +669,7 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       },
     ],
     action: {
-      label: 'Ask DJM for feedback',
+      label: 'Ask your agency for feedback',
       href: '/inbox?compose=1',
     },
   },
@@ -678,9 +678,9 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
     category: 'Protect',
     title: 'Communicate an injury or setback well',
     description:
-      'Give DJM useful context without turning the player app into a medical record.',
+      'Give your agency useful context without turning the player app into a medical record.',
     outcome:
-      'DJM understands your availability, expected next update and the support you want.',
+      'Your agency understands your availability, expected next update and the support you want.',
     minutes: 5,
     situations: ['injured', 'limited', 'setback'],
     steps: [
@@ -697,15 +697,15 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Say what support you need',
         detail:
-          'Tell DJM whether you need a conversation, practical help or simply for the agency to stay informed.',
+          'Tell your agency whether you need a conversation, practical help or simply for the agency to stay informed.',
       },
     ],
     action: {
-      label: 'Update DJM privately',
+      label: 'Update your agency privately',
       href: '/check-in',
     },
     note:
-      'DJM Player does not diagnose injuries or replace your club and qualified medical professionals.',
+      'Player Workspace does not diagnose injuries or replace your club and qualified medical professionals.',
   },
   {
     id: 'money-safety',
@@ -731,11 +731,11 @@ export const CAREER_PLAYBOOKS: CareerPlaybook[] = [
       {
         title: 'Bring in the right professional',
         detail:
-          'Ask DJM and use independently qualified legal, tax or financial advice before committing.',
+          'Ask your agency and use independently qualified legal, tax or financial advice before committing.',
       },
     ],
     action: {
-      label: 'Ask DJM to verify',
+      label: 'Ask your agency to verify',
       href: '/inbox?compose=1',
     },
     note:

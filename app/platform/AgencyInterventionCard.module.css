@@ -1,0 +1,51 @@
+.card {
+  margin-top: 10px;
+  padding: 17px;
+  border: 1px solid rgba(10, 10, 12, 0.065);
+  border-radius: 17px;
+  background: #fff;
+}
+.heading,.messageBox > div,.actions,.formRow,.goal,.evidence { display:flex; align-items:center; }
+.heading { justify-content:space-between; gap:12px; }
+.heading p { margin:0 0 5px; color:#9699a0; font-size:8px; font-weight:800; letter-spacing:.1em; }
+.heading h3 { margin:0; color:#25292f; font-size:16px; }
+.impact { padding:5px 8px; border-radius:999px; background:#f2eff7; color:#6b5d82; font-size:7px; font-weight:800; text-transform:uppercase; }
+.goal,.evidence { align-items:flex-start; gap:8px; margin-top:12px; padding:11px; border-radius:12px; }
+.goal { background:#f7f5fa; color:#5d5270; }
+.evidence { background:#f2f8f4; color:#377353; }
+.goal svg,.evidence svg { flex:0 0 auto; margin-top:2px; }
+.goal div,.evidence div { display:grid; gap:2px; }
+.goal span,.evidence span,.tracking span,.lastNote span,.activityForm label > span { color:#999ca2; font-size:7px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+.goal strong,.evidence strong { color:#484c52; font-size:9px; line-height:1.45; }
+.steps { margin-top:10px; display:grid; gap:5px; }
+.steps > div { min-height:38px; padding:7px 9px; display:grid; grid-template-columns:22px minmax(0,1fr); align-items:center; gap:8px; border:1px solid rgba(10,10,12,.05); border-radius:10px; background:#fbfbfc; }
+.steps > div > span { width:21px; height:21px; display:grid; place-items:center; border-radius:7px; background:#f0eef4; color:#6d6478; font-size:8px; font-weight:800; }
+.steps p,.messageBox p,.lastNote p,.truth { margin:0; }
+.steps p { color:#666a70; font-size:8px; line-height:1.45; }
+.messageBox { margin-top:11px; padding:11px; border:1px solid rgba(10,10,12,.05); border-radius:12px; background:#faf9fb; }
+.messageBox > div { gap:6px; color:#5d5667; }
+.messageBox > div strong { font-size:8px; }
+.messageBox p { margin-top:7px; color:#74717a; font-size:8px; line-height:1.5; }
+.messageBox button { margin-top:8px; min-height:28px; padding:0 8px; display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(10,10,12,.08); border-radius:8px; background:#fff; color:#53505a; font-size:7px; font-weight:800; }
+.tracking { margin-top:11px; display:grid; grid-template-columns:.65fr 1fr 1fr; gap:6px; }
+.tracking > div { min-width:0; padding:8px; display:grid; gap:3px; border-radius:9px; background:#f7f8f9; }
+.tracking strong { overflow:hidden; color:#51555b; font-size:8px; text-overflow:ellipsis; white-space:nowrap; }
+.due > div:last-child { background:#fff3ef; }
+.due > div:last-child span,.due > div:last-child strong { color:#a6503d; }
+.lastNote { margin-top:8px; padding:9px; border-left:2px solid #d4cde0; background:#faf9fb; }
+.lastNote p { margin-top:4px; color:#747178; font-size:8px; line-height:1.45; }
+.activityForm { margin-top:12px; padding-top:12px; border-top:1px solid rgba(10,10,12,.06); }
+.formRow { gap:7px; }
+.formRow label { flex:1; display:grid; gap:5px; }
+.formRow select,.formRow input,.noteField textarea { width:100%; border:1px solid rgba(10,10,12,.08); border-radius:9px; outline:0; background:#fff; color:#353940; font-size:8px; }
+.formRow select,.formRow input { height:34px; padding:0 8px; }
+.noteField { margin-top:7px; display:grid; gap:5px; }
+.noteField textarea { min-height:66px; padding:8px; resize:vertical; line-height:1.45; }
+.actions { justify-content:flex-end; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.actions button { min-height:30px; padding:0 8px; display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(10,10,12,.08); border-radius:8px; background:#fff; color:#555960; font-size:7px; font-weight:800; }
+.actions .primary { border-color:#18131f; background:#18131f; color:#fff; }
+.actions button:disabled { opacity:.45; cursor:not-allowed; }
+.truth { margin-top:9px; color:#a0a2a7; font-size:7px; line-height:1.45; }
+.spin { animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@media (max-width:520px) { .tracking,.formRow { grid-template-columns:1fr; } .formRow { display:grid; } }

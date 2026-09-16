@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { djmRpc, friendlyError } from '@/lib/djm-os';
+import { platformRpc, friendlyError } from '@/lib/platform-client';
 import type {
   ResearchEntityKind,
   ResearchLink,
@@ -223,7 +223,7 @@ export default function ResearchLinkRail({
   const loadManaged = useCallback(async () => {
     if (!entity) return;
     try {
-      const result = await djmRpc<ManagedLink[]>('djm_entity_links', {
+      const result = await platformRpc<ManagedLink[]>('djm_entity_links', {
         p_entity_kind: entity.kind,
         p_entity_id: entity.id,
       });
@@ -254,7 +254,7 @@ export default function ResearchLinkRail({
   const loadScore = useCallback(async () => {
     if (!entity || entity.kind !== 'player') return;
     try {
-      const result = await djmRpc<Scorecard>('djm_player_scorecard', {
+      const result = await platformRpc<Scorecard>('djm_player_scorecard', {
         p_player_id: entity.id,
       });
       setScore(result || null);
@@ -318,7 +318,7 @@ export default function ResearchLinkRail({
     setBusyPlatform(platform);
     setError('');
     try {
-      await djmRpc('djm_entity_link_upsert', {
+      await platformRpc('djm_entity_link_upsert', {
         p_id: draft.id || null,
         p_entity_kind: entity.kind,
         p_entity_id: entity.id,
@@ -345,7 +345,7 @@ export default function ResearchLinkRail({
     setBusyPlatform(platform);
     setError('');
     try {
-      await djmRpc('djm_entity_link_delete', { p_link_id: draft.id });
+      await platformRpc('djm_entity_link_delete', { p_link_id: draft.id });
       await loadManaged();
     } catch (e) {
       setError(friendlyError(e));
@@ -375,7 +375,7 @@ export default function ResearchLinkRail({
         if (!Number.isInteger(strength) || strength < 0 || strength > 100) {
           throw new Error('League strength must be a whole number between 0 and 100.');
         }
-        await djmRpc('djm_league_benchmark_upsert', {
+        await platformRpc('djm_league_benchmark_upsert', {
           p_league_name: currentLeague,
           p_country: currentCountry || null,
           p_strength_score: strength,
@@ -386,7 +386,7 @@ export default function ResearchLinkRail({
 
       const manualScore = scoreForm.score.trim() === '' ? null : Number(scoreForm.score);
       const manualPotential = scoreForm.potential.trim() === '' ? null : Number(scoreForm.potential);
-      await djmRpc('djm_player_score_override', {
+      await platformRpc('djm_player_score_override', {
         p_player_id: entity.id,
         p_score: manualScore,
         p_potential_score: manualPotential,
@@ -530,7 +530,7 @@ export default function ResearchLinkRail({
         <div style={{ ...panelStyle, background: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
             <div>
-              <strong style={{ display: 'block', color: '#17324d' }}>DJM Player Intelligence</strong>
+              <strong style={{ display: 'block', color: '#17324d' }}>Player Intelligence</strong>
               <span style={{ display: 'block', fontSize: 11, color: '#617487', marginTop: 2 }}>
                 Player Score is separate from Club Match and deal probability.
               </span>

@@ -60,7 +60,7 @@ function InboxContent() {
 
     if (error) {
       setToast(
-        'Could not refresh DJM updates',
+        'Could not refresh your agency updates',
       );
       return;
     }
@@ -168,7 +168,7 @@ function InboxContent() {
 
     setNote('');
     setCompose(false);
-    setToast('Sent to DJM');
+    setToast('Sent to your agency');
     setTimeout(
       () => setToast(''),
       1600,
@@ -178,7 +178,7 @@ function InboxContent() {
     void load();
   };
 
-  // Internal signal rows are for DJM/admin follow-up and must never
+  // Internal signal rows are for agency/admin follow-up and must never
   // be shown back to the player as an action or history item.
   const playerVisibleActions = requests.filter(
     (request) =>
@@ -207,10 +207,10 @@ function InboxContent() {
         <header className="djm-updates-head">
           <div>
             <div className="section-kicker">
-              DJM + YOU
+              YOUR AGENCY + YOU
             </div>
             <h1 className="page-title">
-              DJM updates.
+              Your agency updates.
             </h1>
             <p className="page-intro">
               Anything that needs your attention lives here. No admin, no clutter.
@@ -231,7 +231,7 @@ function InboxContent() {
         {compose && (
           <section className="djm-note-composer">
             <div className="section-kicker">
-              SEND DJM A NOTE
+              SEND YOUR AGENCY A NOTE
             </div>
             <h2>What do you need?</h2>
             <p>
@@ -262,7 +262,7 @@ function InboxContent() {
                 }
                 onClick={send}
               >
-                Send to DJM
+                Send to your agency
                 <Send size={15} />
               </button>
             </div>
@@ -288,7 +288,7 @@ function InboxContent() {
               </div>
               <strong>You’re all clear.</strong>
               <span>
-                When DJM needs something from you, it will appear here.
+                When your agency needs something from you, it will appear here.
               </span>
             </div>
           ) : (
@@ -345,7 +345,7 @@ function InboxContent() {
                     {isOpen && (
                       <div className="djm-request-reply">
                         <label className="label">
-                          Add a note to DJM
+                          Add a note to your agency
                           <span className="muted">
                             {' '}optional
                           </span>
@@ -358,7 +358,7 @@ function InboxContent() {
                               event.target.value,
                             )
                           }
-                          placeholder="Anything DJM should know?"
+                          placeholder="Anything your agency should know?"
                         />
                         <button
                           className="btn btn-navy btn-block"
@@ -382,7 +382,7 @@ function InboxContent() {
         {messages.length > 0 && (
           <section className="djm-history-section">
             <div className="section-kicker">
-              NOTES WITH DJM
+              NOTES WITH YOUR AGENCY
             </div>
             <div className="djm-history-list">
               {messages
@@ -398,7 +398,7 @@ function InboxContent() {
                     <div>
                       <strong>
                         {message.created_by
-                          ? 'DJM'
+                          ? 'Your agency'
                           : 'You'}
                       </strong>
                       <span>
@@ -463,7 +463,7 @@ function InboxContent() {
               setCompose(true)
             }
           >
-            Send DJM a note
+            Send your agency a note
             <ArrowRight size={14} />
           </button>
         </div>

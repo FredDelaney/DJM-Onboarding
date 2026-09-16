@@ -63,11 +63,20 @@ verify_jwt = true
 [functions.djm-tell-process]
 verify_jwt = false
 
+[functions.platform-tenant-runtime]
+verify_jwt = false
+
 [functions.djm-calendar-feed]
 verify_jwt = false
 
 [functions.dispatch-djm-email]
 verify_jwt = false
+
+[functions.refresh-player-stats-ai-worker]
+verify_jwt = false
+
+[functions.djm-player-voice-message]
+verify_jwt = true
 
 [auth.passkey]
 enabled = true
@@ -76,3 +85,45 @@ enabled = true
 rp_display_name = "DJM Player"
 rp_id = "djmsports.com"
 rp_origins = ["https://app.djmsports.com"]
+
+[functions.agency-os]
+verify_jwt = true
+
+[functions.player-os]
+verify_jwt = true
+
+[functions.agency-adoption]
+verify_jwt = true
+
+[functions.platform-ops]
+verify_jwt = true
+
+[functions.agency-market]
+verify_jwt = true
+
+[functions.club-pitch-response]
+verify_jwt = false
+
+[functions.club-share-public]
+verify_jwt = false
+
+[functions.player-invite-public]
+verify_jwt = false
+
+[functions.agency-owner-invite-public]
+verify_jwt = false
+
+[functions.agency-owner-invite]
+verify_jwt = true
+
+[functions.agency-privacy]
+verify_jwt = true
+
+[functions.agency-launch]
+verify_jwt = true
+
+[functions.redream-ai-capture]
+verify_jwt = true
+
+[functions.redream-ai-process]
+verify_jwt = false

@@ -26,13 +26,13 @@ import {
   X,
 } from "lucide-react";
 
-import DjmOsShell from "@/components/DjmOsShell";
+import AgencyShell from "@/components/AgencyShell";
 import {
   compactDateTime,
-  djmInvoke,
-  djmRpc,
+  platformInvoke,
+  platformRpc,
   friendlyError,
-} from "@/lib/djm-os";
+} from "@/lib/platform-client";
 import {
   buildEvidencePreview,
   parseManualSeasonCsv,
@@ -97,10 +97,10 @@ export default function IntelligenceDataPage() {
     setBusy(true);
     setError("");
     try {
-      const result: any = await djmRpc("djm_intelligence_data");
+      const result: any = await platformRpc("djm_intelligence_data");
       setData(result || {});
       try {
-        const capabilities: any = await djmInvoke("import-player-stats", {
+        const capabilities: any = await platformInvoke("import-player-stats", {
           mode: "capabilities",
         });
         setProviders(capabilities?.providers || []);
@@ -112,7 +112,7 @@ export default function IntelligenceDataPage() {
             configured: false,
             label: "API not configured",
             reason:
-              "Provider status could not be reached. Core DJM data remains available.",
+              "Provider status could not be reached. Core ReDream data remains available.",
           },
           {
             provider: "manual",
@@ -186,7 +186,7 @@ export default function IntelligenceDataPage() {
     setBusy(true);
     setError("");
     try {
-      const result: any = await djmRpc("djm_intelligence_manual_import", {
+      const result: any = await platformRpc("djm_intelligence_manual_import", {
         p_player_id: playerId,
         p_source_name: sourceName.trim(),
         p_source_url: sourceUrl.trim() || null,
@@ -195,11 +195,11 @@ export default function IntelligenceDataPage() {
       if (result?.status === "failed") {
         throw new Error(
           result.error ||
-            "The import failed. Existing DJM data was not changed.",
+            "The import failed. Existing ReDream data was not changed.",
         );
       }
       setMessage(
-        `${result.facts_discovered} season record${result.facts_discovered === 1 ? "" : "s"} added to evidence review. Canonical DJM data has not changed.`,
+        `${result.facts_discovered} season record${result.facts_discovered === 1 ? "" : "s"} added to evidence review. Canonical ReDream data has not changed.`,
       );
       setPreview([]);
       setImportText("");
@@ -219,7 +219,7 @@ export default function IntelligenceDataPage() {
     setBusy(true);
     setError("");
     try {
-      await djmRpc("djm_intelligence_review_suggestion", {
+      await platformRpc("djm_intelligence_review_suggestion", {
         p_suggestion_id: id,
         p_decision: decision,
       });
@@ -241,7 +241,7 @@ export default function IntelligenceDataPage() {
     setBusy(true);
     setError("");
     try {
-      await djmRpc("djm_intelligence_benchmark_upsert", {
+      await platformRpc("djm_intelligence_benchmark_upsert", {
         p_id: benchmark.id || null,
         p_competition_id: benchmark.competition_id || null,
         p_display_name: benchmark.display_name.trim(),
@@ -298,7 +298,7 @@ export default function IntelligenceDataPage() {
     )
       return;
     try {
-      await djmRpc("djm_intelligence_benchmark_delete", { p_id: item.id });
+      await platformRpc("djm_intelligence_benchmark_delete", { p_id: item.id });
       setMessage(
         "Benchmark removed. No competition identity or player data was deleted.",
       );
@@ -310,7 +310,7 @@ export default function IntelligenceDataPage() {
 
   const recalculate = async (id: string) => {
     try {
-      const score: any = await djmRpc("djm_player_scorecard", {
+      const score: any = await platformRpc("djm_player_scorecard", {
         p_player_id: id,
       });
       setMessage(
@@ -325,7 +325,7 @@ export default function IntelligenceDataPage() {
   };
 
   return (
-    <DjmOsShell
+    <AgencyShell
       eyebrow="Evidence, provenance and freshness"
       title="Intelligence Data"
     >
@@ -364,7 +364,7 @@ export default function IntelligenceDataPage() {
           <span>
             <ShieldCheck size={14} /> Trusted intelligence operations
           </span>
-          <h2>Evidence first. DJM truth second.</h2>
+          <h2>Evidence first. ReDream truth second.</h2>
           <p>
             Import licensed or authorised data, compare it with the current
             record, review conflicts and keep every score explainable.
@@ -513,7 +513,7 @@ export default function IntelligenceDataPage() {
                   ? `${selectedPlayer.player_name}, incoming seasons`
                   : "Choose a player"
               }
-              copy="Current DJM truth and incoming evidence stay visibly separate."
+              copy="Current ReDream truth and incoming evidence stay visibly separate."
             />
             {preview.length ? (
               <div className={styles.previewList}>
@@ -764,7 +764,7 @@ export default function IntelligenceDataPage() {
       ) : null}
 
       {view === "runs" ? <Runs runs={data.runs || []} /> : null}
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 
@@ -919,7 +919,7 @@ function SuggestionCard({
           >
             <span>{title(fact.field)}</span>
             <p>
-              <small>DJM</small>
+              <small>ReDream</small>
               <strong>{display(fact.currentValue)}</strong>
             </p>
             <p>
@@ -999,7 +999,7 @@ function BenchmarkCard({
       <div className={styles.benchmarkFacts}>
         <p>
           <span>Meaning</span>
-          <strong>Verified DJM competition-level input</strong>
+          <strong>Verified ReDream competition-level input</strong>
         </p>
         <p>
           <span>Freshness</span>
@@ -1015,7 +1015,7 @@ function BenchmarkCard({
         </p>
         <p>
           <span>Updated by</span>
-          <strong>{item.updated_by_name || "DJM staff"}</strong>
+          <strong>{item.updated_by_name || "agency staff"}</strong>
         </p>
       </div>
       <p className={styles.sourceNote}>

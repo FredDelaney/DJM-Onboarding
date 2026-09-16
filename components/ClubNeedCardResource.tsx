@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { djmRpc, friendlyError } from '@/lib/djm-os';
+import { platformRpc, friendlyError } from '@/lib/platform-client';
 import styles from './ClubNeedCardResource.module.css';
 
 type NeedLike = {
@@ -50,7 +50,7 @@ export function ClubNeedIdentity({ need }: { need: NeedLike }) {
     setError('');
 
     try {
-      await djmRpc('djm_market_update_club_identity', {
+      await platformRpc('djm_market_update_club_identity', {
         p_organisation_id: need.organisation_id,
         p_league_name: league.trim() || null,
         p_country: country.trim() || null,
@@ -178,7 +178,7 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
     setError('');
 
     try {
-      const data: any = await djmRpc('djm_network_club_workspace', {
+      const data: any = await platformRpc('djm_network_club_workspace', {
         p_organisation_id: need.organisation_id,
       });
       const nextContacts = Array.isArray(data?.contacts) ? data.contacts : [];
@@ -215,7 +215,7 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
     setError('');
 
     try {
-      const result: any = await djmRpc('djm_market_link_need_contact', {
+      const result: any = await platformRpc('djm_market_link_need_contact', {
         p_need_id: need.id,
         p_person_id: existingPersonId,
       });
@@ -240,7 +240,7 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
     setError('');
 
     try {
-      const result: any = await djmRpc('djm_market_add_need_contact', {
+      const result: any = await platformRpc('djm_market_add_need_contact', {
         p_need_id: need.id,
         p_full_name: fullName.trim(),
         p_role_title: roleTitle.trim() || null,
@@ -296,7 +296,7 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
           <div className={styles.existingContactBlock}>
             <div className={styles.sectionHeading}>
               <strong>Use an existing club contact</strong>
-              <span>Select someone already saved against this club in DJM Network.</span>
+              <span>Select someone already saved against this club in Network.</span>
             </div>
 
             {contactsBusy ? (
@@ -380,7 +380,7 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
           </div>
 
           <p className={styles.helper}>
-            Creating a new person adds or updates them in DJM Network, links them
+            Creating a new person adds or updates them in Network, links them
             to this club, and attaches them to this specific recruitment need.
           </p>
 

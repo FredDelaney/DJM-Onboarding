@@ -274,7 +274,7 @@ export default function CheckIn() {
             You’re done.
           </h1>
           <p className="page-intro">
-            DJM has the important update. Nothing else needed from you right now.
+            Your agency has the important update. Nothing else needed from you right now.
           </p>
           <Link
             href="/home"
@@ -355,7 +355,7 @@ export default function CheckIn() {
           <small>
             {existing
               ? 'UPDATE WHAT CHANGED'
-              : 'OR TELL DJM WHAT CHANGED'}
+              : 'OR TELL YOUR AGENCY WHAT CHANGED'}
           </small>
           <span />
         </div>
@@ -404,7 +404,7 @@ export default function CheckIn() {
               How’s the body?
             </h2>
             <p className="check-help">
-              No medical detail is required unless you want DJM to know.
+              No medical detail is required unless you want your agency to know.
             </p>
 
             <div className="choice-grid">
@@ -436,7 +436,7 @@ export default function CheckIn() {
               03
             </div>
             <h2 className="check-question">
-              Anything DJM should know?
+              Anything your agency should know?
             </h2>
             <p className="check-help">
               Selection, club conversations, travel, family, training or anything else that matters.
@@ -456,7 +456,7 @@ export default function CheckIn() {
               04
             </div>
             <h2 className="check-question">
-              Anything you need from DJM?
+              Anything you need from your agency?
             </h2>
             <p className="check-help">
               If you need us to do something, add it here. Leave this blank if not.
@@ -487,7 +487,7 @@ export default function CheckIn() {
                   My club, contract or move situation changed
                 </strong>
                 <small>
-                  Tick this only if DJM needs to know something new.
+                  Tick this only if your agency needs to know something new.
                 </small>
               </span>
             </label>
@@ -525,7 +525,7 @@ export default function CheckIn() {
                   Add this week’s match numbers
                 </h2>
                 <p className="check-help">
-                  Only if you want them in your private season log. DJM verifies club-facing stats separately.
+                  Only if you want them in your private season log. Your agency verifies club-facing stats separately.
                 </p>
               </div>
               {details ? (

@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Fingerprint } from 'lucide-react';
 
 import Brand from '@/components/Brand';
-import { getDjmAuthCapabilities } from '@/lib/auth-capabilities';
+import { getAuthCapabilities } from '@/lib/auth-capabilities';
 import { isStrongPassword, STRONG_PASSWORD_MESSAGE } from '@/lib/password';
+import { captureReturnPath } from '@/lib/capture-return-path';
 import { supabase } from '@/lib/supabase';
 
 export default function SignIn() {
@@ -28,6 +29,8 @@ export default function SignIn() {
       .eq('id', userId)
       .maybeSingle();
 
+    const captureReturn = captureReturnPath(new URLSearchParams(window.location.search).get('next'));
+    if (captureReturn) { router.replace(captureReturn); return; }
     router.replace(profile?.role === 'admin' || profile?.role === 'scout' ? '/admin' : '/home');
   };
 
@@ -37,7 +40,7 @@ export default function SignIn() {
       await routeUser(data.session.user.id);
     });
 
-    void getDjmAuthCapabilities().then((capabilities) => {
+    void getAuthCapabilities().then((capabilities) => {
       setPasskeyReady(capabilities.passkeysEnabled && capabilities.passkeysSupported);
     });
   }, []);
@@ -76,7 +79,7 @@ export default function SignIn() {
     if (error) {
       const text = error.message?.toLowerCase() || '';
       if (text.includes('database error saving new user') || text.includes('valid djm player invitation')) {
-        setMsg('This email is not authorised for DJM staff access.');
+        setMsg('This email is not authorised for agency staff access.');
       } else {
         setMsg(error.message);
       }
@@ -120,7 +123,7 @@ export default function SignIn() {
         code.includes('passkey_disabled') ||
         (text.includes('passkey') && text.includes('disabled'))
       ) {
-        setMsg('Quick sign-in is not enabled for this DJM environment. Use your password below.');
+        setMsg('Quick sign-in is not enabled for this workspace. Use your password below.');
       } else {
         setMsg('Face ID or passkey sign-in did not complete. Use your password below and try quick sign-in again later.');
       }
@@ -142,20 +145,20 @@ export default function SignIn() {
         <div>
           <div className="yellow-line" />
           <h1>Private by design. Simple by default.</h1>
-          <p>DJM Player keeps the player experience deliberately light while giving the agency the information needed to represent a career properly.</p>
+          <p>Player Workspace keeps the player experience deliberately light while giving the agency the information needed to represent a career properly.</p>
         </div>
-        <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>DJM Sports Management · Private player environment</span>
+        <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>ReDream · Private player environment</span>
       </section>
 
       <section className="auth-form">
         <div className="auth-box">
           <Link href="/" className="small muted row" style={{ display: 'inline-flex' }}><ArrowLeft size={15} />Back</Link>
-          <div className="caps" style={{ color: 'var(--blue)', marginTop: 40 }}>{mode === 'login' ? 'PRIVATE ACCESS' : 'DJM STAFF'}</div>
+          <div className="caps" style={{ color: 'var(--blue)', marginTop: 40 }}>{mode === 'login' ? 'PRIVATE ACCESS' : 'AGENCY STAFF'}</div>
           <h2>{mode === 'login' ? 'Welcome back.' : 'Create staff access.'}</h2>
           <p className="page-intro" style={{ fontSize: 15 }}>
             {mode === 'login'
-              ? 'Sign in to your DJM career space. New players join through a private invitation.'
-              : 'Only pre-authorised DJM staff emails can create an account.'}
+              ? 'Sign in to your ReDream career space. New players join through a private invitation.'
+              : 'Only pre-authorised agency staff emails can create an account.'}
           </p>
 
           {mode === 'login' && passkeyReady ? (
@@ -208,7 +211,7 @@ export default function SignIn() {
           </form>
 
           <button type="button" onClick={changeMode} style={{ border: 0, background: 'none', padding: 0, marginTop: 22, color: 'var(--blue)', fontWeight: 720, cursor: 'pointer' }}>
-            {mode === 'login' ? 'DJM staff: create authorised account' : 'Back to sign in'}
+            {mode === 'login' ? 'Agency staff: create authorised account' : 'Back to sign in'}
           </button>
         </div>
       </section>

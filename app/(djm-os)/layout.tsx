@@ -1,4 +1,4 @@
-export default function DjmOsLayout({
+export default function OperatingLayout({
   children,
 }: {
   children: React.ReactNode;

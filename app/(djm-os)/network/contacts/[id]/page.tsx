@@ -17,9 +17,9 @@ import {
   X,
 } from 'lucide-react';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import ResearchLinkRail from '@/components/ResearchLinkRail';
-import { compactDateTime, djmRpc, friendlyError } from '@/lib/djm-os';
+import { compactDateTime, platformRpc, friendlyError } from '@/lib/platform-client';
 import { buildResearchLinks, whatsappHref } from '@/lib/research-links';
 
 function cleanBriefText(value: unknown) {
@@ -167,10 +167,10 @@ export default function ContactWorkspacePage() {
     setError('');
     try {
       const [person, prepare, routeData, readinessData] = await Promise.all([
-        djmRpc('djm_network_person', { p_person_id: id }),
-        djmRpc('djm_prepare_me', { p_person_id: id }),
-        djmRpc<any[]>('djm_best_route_to_person', { p_person_id: id }),
-        djmRpc('djm_contact_readiness', { p_person_id: id }),
+        platformRpc('djm_network_person', { p_person_id: id }),
+        platformRpc('djm_prepare_me', { p_person_id: id }),
+        platformRpc<any[]>('djm_best_route_to_person', { p_person_id: id }),
+        platformRpc('djm_contact_readiness', { p_person_id: id }),
       ]);
       setData(person);
       setPrep(prepare);
@@ -224,7 +224,7 @@ export default function ContactWorkspacePage() {
 
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Rome';
 
-      await djmRpc('djm_network_log_contact_interaction_local', {
+      await platformRpc('djm_network_log_contact_interaction_local', {
         p_person_id: id,
         p_channel: channel,
         p_summary: summary.trim(),
@@ -253,15 +253,15 @@ export default function ContactWorkspacePage() {
     const isImported = item.item_type === 'message';
     const ok = window.confirm(
       isImported
-        ? 'Remove this WhatsApp message from DJM context? The original imported chat stays intact.'
-        : `Remove these ${timelineNoteLabel(item.channel).toLowerCase()} from DJM context? The underlying audit record stays intact.`,
+        ? 'Remove this WhatsApp message from the agency context? The original imported chat stays intact.'
+        : `Remove these ${timelineNoteLabel(item.channel).toLowerCase()} from the agency context? The underlying audit record stays intact.`,
     );
     if (!ok) return;
 
     setRemovingTimelineItem(key);
     setError('');
     try {
-      await djmRpc('djm_network_hide_timeline_item', {
+      await platformRpc('djm_network_hide_timeline_item', {
         p_person_id: id,
         p_item_type: item.item_type,
         p_item_id: item.id,
@@ -281,7 +281,7 @@ export default function ContactWorkspacePage() {
     setSavingProfile(true);
     setError('');
     try {
-      await djmRpc('djm_network_update_contact_profile', {
+      await platformRpc('djm_network_update_contact_profile', {
         p_person_id: id,
         p_full_name: profileForm.full_name.trim(),
         p_preferred_name: profileForm.preferred_name.trim() || null,
@@ -302,15 +302,15 @@ export default function ContactWorkspacePage() {
 
   const deleteContact = async () => {
     try {
-      const impact: any = await djmRpc('djm_delete_preview', {
+      const impact: any = await platformRpc('djm_delete_preview', {
         p_entity_type: 'club_contact',
         p_entity_id: id,
       });
       const ok = window.confirm(
-        `Permanently delete ${person?.full_name || 'this contact'}? This removes ${impact?.relationships || 0} DJM relationship records and ${impact?.employments || 0} employment records. Historical interactions that can safely survive will be detached. This cannot be undone.`,
+        `Permanently delete ${person?.full_name || 'this contact'}? This removes ${impact?.relationships || 0} agency relationship records and ${impact?.employments || 0} employment records. Historical interactions that can safely survive will be detached. This cannot be undone.`,
       );
       if (!ok) return;
-      await djmRpc('djm_delete_entity', {
+      await platformRpc('djm_delete_entity', {
         p_entity_type: 'club_contact',
         p_entity_id: id,
         p_confirm: true,
@@ -343,7 +343,7 @@ export default function ContactWorkspacePage() {
   const contactWhatsappLink = whatsappHref(whatsapp);
 
   return (
-    <DjmOsShell eyebrow="Club contact relationship" title={person?.full_name || 'Club contact'}>
+    <AgencyShell eyebrow="Club contact relationship" title={person?.full_name || 'Club contact'}>
       <div className="djm-os-toolbar">
         <Link href="/network" className="djm-os-secondary-button" style={{ textDecoration: 'none' }}>
           <ArrowLeft size={15} /> Network
@@ -406,7 +406,7 @@ export default function ContactWorkspacePage() {
               <div className="djm-os-panel-head">
                 <div>
                   <h2>Edit contact profile</h2>
-                  <p>Name, current club and role stay editable even when DJM inferred them automatically.</p>
+                  <p>Name, current club and role stay editable even when the agency inferred them automatically.</p>
                 </div>
                 <Pencil size={19} />
               </div>
@@ -478,7 +478,7 @@ export default function ContactWorkspacePage() {
           <section className="djm-os-metrics">
             <Metric label="Current club" value={currentEmployment?.organisation_name || '-'} />
             <Metric label="Role" value={currentEmployment?.role_title || '-'} />
-            <Metric label="Best DJM route" value={best?.team_member_name || '-'} />
+            <Metric label="Best agency route" value={best?.team_member_name || '-'} />
             <Metric label="Relationship" value={data.relationships?.[0]?.strength_score ?? 0} />
           </section>
 
@@ -535,7 +535,7 @@ export default function ContactWorkspacePage() {
                   {[
                     ['Last touch', lastTouch ? compactDateTime(lastTouch) : 'No history'],
                     ['Channel', channelLabel(lastChannel)],
-                    ['DJM owner', lastInteraction?.team_member || best?.team_member_name || 'DJM'],
+                    ['agency owner', lastInteraction?.team_member || best?.team_member_name || 'The agency'],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -583,9 +583,9 @@ export default function ContactWorkspacePage() {
                       {briefingTimeline.map((item: any) => {
                         const isLogged = item.item_type === 'logged';
                         const actor = isLogged
-                          ? `${timelineNoteLabel(item.channel)} · ${item.team_member_name || item.actor_label || 'DJM'}`
+                          ? `${timelineNoteLabel(item.channel)} · ${item.team_member_name || item.actor_label || 'The agency'}`
                           : item.direction === 'outbound'
-                            ? 'WhatsApp · DJM'
+                            ? 'WhatsApp · the agency'
                             : `WhatsApp · ${person?.preferred_name || person?.full_name || 'Contact'}`;
                         const visual = timelineCardStyle(item);
                         const key = `${item.item_type}-${item.id}`;
@@ -695,7 +695,7 @@ export default function ContactWorkspacePage() {
 
                 {!lastTouch && !openNeeds.length && !openTasks.length && !recentClaims.length && !upcomingMeetings.length ? (
                   <p style={{ margin: 0, color: '#66788a', fontSize: 12 }}>
-                    There is not enough history yet. The next conversation will start building DJM memory.
+                    There is not enough history yet. The next conversation will start building agency memory.
                   </p>
                 ) : null}
 
@@ -747,7 +747,7 @@ export default function ContactWorkspacePage() {
                         ? 'What was discussed on the call? Decisions, player needs, promises and next steps.'
                         : channel === 'meeting'
                           ? 'What happened in the meeting? Decisions, player needs, commitments and next steps.'
-                          : 'What did they say, what did DJM promise, what matters next?'
+                          : 'What did they say, what did the agency promise, what matters next?'
                     }
                   />
                 </label>
@@ -791,7 +791,7 @@ export default function ContactWorkspacePage() {
                         : 'Save conversation'}
                 </button>
                 <small style={{ color: '#7b8b99', fontSize: 10 }}>
-                  Saved notes immediately appear in Recent context and feed DJM follow-up / club-need intelligence.
+                  Saved notes immediately appear in Recent context and feed agency follow-up / club-need intelligence.
                 </small>
               </form>
             </section>
@@ -802,7 +802,7 @@ export default function ContactWorkspacePage() {
               <div className="djm-os-panel-head">
                 <div>
                   <h2>Contact methods</h2>
-                  <p>Shared across DJM.</p>
+                  <p>Shared across the agency.</p>
                 </div>
               </div>
               <div className="djm-os-list">
@@ -820,7 +820,7 @@ export default function ContactWorkspacePage() {
             <section className="djm-os-panel">
               <div className="djm-os-panel-head">
                 <div>
-                  <h2>DJM relationship ownership</h2>
+                  <h2>Agency relationship ownership</h2>
                   <p>Who knows this person and how strongly?</p>
                 </div>
               </div>
@@ -864,9 +864,9 @@ export default function ContactWorkspacePage() {
                             {isLogged && item.channel === 'meeting' ? <CalendarClock size={14} /> : null}
                             {!isLogged || item.channel === 'whatsapp' ? <MessageCircleMore size={14} /> : null}
                             {isLogged
-                              ? `${timelineNoteLabel(item.channel)} · ${item.team_member_name || item.actor_label || 'DJM'}`
+                              ? `${timelineNoteLabel(item.channel)} · ${item.team_member_name || item.actor_label || 'The agency'}`
                               : item.direction === 'outbound'
-                                ? 'WhatsApp · DJM'
+                                ? 'WhatsApp · the agency'
                                 : `WhatsApp · ${person?.preferred_name || person?.full_name || 'Contact'}`}
                           </strong>
                           <button
@@ -900,7 +900,7 @@ export default function ContactWorkspacePage() {
           </section>
         </>
       )}
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 

@@ -1,6 +1,8 @@
-# DJM Intelligence
+# ReDream
 
-DJM Intelligence is the connected operating platform for DJM Sports Management. It combines the private player experience, club-facing player dossiers, agency administration, club demand, recruitment, relationship intelligence, deal rooms and the DJM Brain.
+ReDream is a multi-tenant operating system for football agencies. It connects agency intelligence, player service, relationships, recruitment, club demand and deal workflows. DJM Sports Management is one agency tenant; Northstar is a synthetic staging tenant.
+
+The canonical AI capability is ReDream AI, presented as Capture inside each agency workspace. Legacy DJM database, storage and URL identifiers remain compatibility contracts, not the platform identity.
 
 ## Local development
 
@@ -33,9 +35,9 @@ The Supabase migrations directory is the production migration ledger. Edge Funct
 
 ## Security boundaries
 
-- Player-private, DJM-internal and club-shareable information are separate visibility states.
+- Player-private, agency-internal and club-shareable information are separate visibility states.
 - Public dossiers require a published profile and current verification.
-- Admin/scout profiles are synchronized into DJM team membership by a private trigger.
+- Admin/scout profiles are synchronized into operational team membership by a private trigger.
 - Anonymous table grants are limited to intentional public reads.
 - Capability-token functions validate expiry and scope before returning data.
 - Service-role keys are read only from server-side Edge Function environment variables.

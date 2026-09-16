@@ -25,7 +25,7 @@ export const providerStatuses = (): ProviderStatus[] => {
       configured: apiFootballConfigured,
       label: apiFootballConfigured ? "Free API connected" : "Free API key not configured",
       reason: apiFootballConfigured
-        ? "DJM can refresh player profiles and season statistics from the API-Football free plan."
+        ? "ReDream can refresh player profiles and season statistics from the API-Football free plan."
         : "Create a free API-Football account and add its server-side API key as API_FOOTBALL_KEY.",
     },
     {
@@ -49,14 +49,14 @@ export const providerStatuses = (): ProviderStatus[] => {
       capability: "reference_only",
       configured: true,
       label: "Value and reference",
-      reason: "DJM stores the linked profile and verified market value. Automated scraping remains disabled.",
+      reason: "ReDream stores the linked profile and verified market value. Automated scraping remains disabled.",
     },
     {
       provider: "sofascore",
       capability: "disabled",
       configured: false,
       label: "Unofficial automation disabled",
-      reason: "DJM does not make an undocumented SofaScore endpoint a production dependency.",
+      reason: "ReDream does not make an undocumented SofaScore endpoint a production dependency.",
     },
   ];
 };

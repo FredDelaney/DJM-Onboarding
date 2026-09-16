@@ -451,7 +451,7 @@ Deno.serve(async (req) => {
           "PitchAPI deep current",
           "TheSportsDB current/basic",
           "API-Football historical",
-          "Verified DJM evidence",
+          "Verified agency evidence",
         ],
         pitchapi_configured: Boolean(
           core?.pitchapi_configured || core?.configured,
@@ -534,20 +534,20 @@ Deno.serve(async (req) => {
       message = `Provisional Player Score ${score?.provisional_score} calculated at ${confidenceLabel}. Missing deep performance evidence is neutral-imputed, never fabricated, and the score will upgrade automatically when richer current data becomes available.`;
     } else if (score?.model_status === "not_enough_playing_time_data") {
       message =
-        "Player refresh completed, but DJM still needs at least 500 verified senior minutes inside the previous 24 months before publishing a rating.";
+        "Player refresh completed, but ReDream still needs at least 500 verified senior minutes inside the previous 24 months before publishing a rating.";
     } else if (score?.model_status === "competition_evidence_required") {
       message =
         "Player refresh completed, but the current or most recent valid senior competition still needs to be resolved.";
     } else {
       message =
-        "Player refresh completed. DJM preserved the available evidence but still cannot publish a defensible rating yet.";
+        "Player refresh completed. ReDream preserved the available evidence but still cannot publish a defensible rating yet.";
     }
 
     return json({
       ok: true,
       primary_provider: sports?.ok
         ? "TheSportsDB"
-        : core?.primary_provider || "DJM verified evidence",
+        : core?.primary_provider || "Agency verified evidence",
       current_data: Boolean(sports?.ok || core?.current_data),
       current_data_depth: sports?.ok
         ? "basic"

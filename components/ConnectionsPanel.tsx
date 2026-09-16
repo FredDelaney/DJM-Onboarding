@@ -17,7 +17,7 @@ import {
   SunMedium,
 } from 'lucide-react';
 
-import { getDjmAuthCapabilities } from '@/lib/auth-capabilities';
+import { getAuthCapabilities } from '@/lib/auth-capabilities';
 import { disableWebPush, enableWebPush, getPushReadiness, type PushReadiness } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 
@@ -97,7 +97,7 @@ export default function ConnectionsPanel({
           .maybeSingle(),
         supabase.rpc('djm_get_calendar_subscription'),
         supabase.rpc('djm_email_delivery_status'),
-        getDjmAuthCapabilities(),
+        getAuthCapabilities(),
         getPushReadiness(),
       ]);
 
@@ -244,7 +244,7 @@ export default function ConnectionsPanel({
   const addPasskey = async () => {
     if (busy) return;
     if (!passkeysEnabled) {
-      setError('Face ID or passkey sign-in is not enabled for this DJM environment.');
+      setError('Face ID or passkey sign-in is not enabled for this workspace.');
       return;
     }
     if (!passkeysSupported) {
@@ -269,9 +269,9 @@ export default function ConnectionsPanel({
       if (name.includes('notallowed') || text.includes('cancel')) {
         setError('Passkey setup was cancelled. Nothing changed and your password still works.');
       } else if (code.includes('credential_exists') || text.includes('already')) {
-        setError('This passkey is already linked to your DJM account.');
+        setError('This passkey is already linked to your ReDream account.');
       } else if (code.includes('passkey_disabled')) {
-        setError('Face ID or passkey sign-in is not enabled for this DJM environment.');
+        setError('Face ID or passkey sign-in is not enabled for this workspace.');
       } else {
         setError('Passkey setup did not complete. Your password still works, so you can try again safely.');
       }
@@ -299,7 +299,7 @@ export default function ConnectionsPanel({
   if (loading) {
     return (
       <div className={styles.loading}>
-        <RefreshCw size={18} className={styles.spin} /> Connecting your DJM account...
+        <RefreshCw size={18} className={styles.spin} /> Connecting your ReDream account...
       </div>
     );
   }
@@ -315,7 +315,7 @@ export default function ConnectionsPanel({
           <div>
             <span>SECURITY</span>
             <h2>Secure access, simple recovery.</h2>
-            <p>Recover access through your confirmed DJM email. Your password always works. Set up Face ID or a passkey once for faster sign-in without typing your email or password.</p>
+            <p>Recover access through your confirmed ReDream email. Your password always works. Set up Face ID or a passkey once for faster sign-in without typing your email or password.</p>
           </div>
         </div>
 
@@ -324,7 +324,7 @@ export default function ConnectionsPanel({
             <div className={styles.rowIcon}><KeyRound size={18} /></div>
             <div className={styles.rowCopy}>
               <strong>Password recovery</strong>
-              <span>{email || 'Your confirmed DJM account email'}</span>
+              <span>{email || 'Your confirmed ReDream account email'}</span>
             </div>
             <a className={styles.secondaryButton} href="/forgot-password">Reset password</a>
           </div>
@@ -366,8 +366,8 @@ export default function ConnectionsPanel({
           <div className={styles.icon}><CalendarDays size={20} /></div>
           <div>
             <span>CALENDAR</span>
-            <h2>Your DJM dates, where you already look.</h2>
-            <p>Subscribe once. Dated DJM actions then stay current from the private DJM feed.</p>
+            <h2>Your ReDream dates, where you already look.</h2>
+            <p>Subscribe once. Dated ReDream actions then stay current from the private ReDream feed.</p>
           </div>
         </div>
 
@@ -385,7 +385,7 @@ export default function ConnectionsPanel({
 
         <div className={styles.privateNote}>
           <ShieldCheck size={16} />
-          <span>The feed contains only dated DJM action titles, times and deep links. Treat the subscription URL like a password.</span>
+          <span>The feed contains only dated ReDream action titles, times and deep links. Treat the subscription URL like a password.</span>
           <button type="button" onClick={() => void rotateCalendar()} disabled={busy === 'calendar'}>
             <RotateCcw size={14} /> {busy === 'calendar' ? 'Resetting...' : 'Reset link'}
           </button>
@@ -398,7 +398,7 @@ export default function ConnectionsPanel({
           <div>
             <span>SMART REMINDERS</span>
             <h2>Only the reminders that matter.</h2>
-            <p>{mode === 'staff' ? 'DJM tasks and follow-ups are ranked by urgency.' : 'DJM requests and check-ins stay visible without notification noise.'}</p>
+            <p>{mode === 'staff' ? 'ReDream tasks and follow-ups are ranked by urgency.' : 'ReDream requests and check-ins stay visible without notification noise.'}</p>
           </div>
         </div>
 
@@ -421,13 +421,13 @@ export default function ConnectionsPanel({
           <SettingToggle
             icon={<Bell size={18} />}
             title="Task notifications"
-            text="Push reminders for dated DJM actions."
+            text="Push reminders for dated ReDream actions."
             checked={preferences.task_reminders}
             onChange={(checked) => setPreferences((current) => ({ ...current, task_reminders: checked }))}
           />
           <SettingToggle
             icon={<SunMedium size={18} />}
-            title="Morning DJM brief"
+            title="Morning ReDream brief"
             text="One concise morning summary, only when there is something to do."
             checked={preferences.morning_brief}
             onChange={(checked) => setPreferences((current) => ({ ...current, morning_brief: checked }))}
@@ -436,7 +436,7 @@ export default function ConnectionsPanel({
             <SettingToggle
               icon={<Mail size={18} />}
               title="Email reminders"
-              text="Important reminders can also reach your DJM account email."
+              text="Important reminders can also reach your ReDream account email."
               checked={preferences.email_reminders}
               onChange={(checked) => setPreferences((current) => ({ ...current, email_reminders: checked }))}
             />
@@ -504,9 +504,9 @@ function SettingToggle({
 }
 
 function pushCopy(state: PushReadiness) {
-  if (state === 'enabled') return 'DJM notifications are enabled on this device.';
-  if (state === 'needs_install') return 'On iPhone, add DJM to the Home Screen first, then enable notifications.';
+  if (state === 'enabled') return 'ReDream notifications are enabled on this device.';
+  if (state === 'needs_install') return 'On iPhone, add ReDream to the Home Screen first, then enable notifications.';
   if (state === 'denied') return 'Notifications are blocked in this device or browser settings.';
-  if (state === 'ready') return 'Ready to receive DJM reminders.';
+  if (state === 'ready') return 'Ready to receive ReDream reminders.';
   return 'Push notifications are not supported on this device.';
 }

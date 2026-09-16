@@ -17,14 +17,14 @@ import {
   UsersRound,
 } from 'lucide-react';
 
-import DjmOsShell from '@/components/DjmOsShell';
+import AgencyShell from '@/components/AgencyShell';
 import {
   compactDateTime,
-  djmInvoke,
-  djmRpc,
+  platformInvoke,
+  platformRpc,
   friendlyError,
   initials,
-} from '@/lib/djm-os';
+} from '@/lib/platform-client';
 
 type Tab = 'today' | 'clubs' | 'contacts' | 'capture' | 'imports';
 
@@ -111,20 +111,20 @@ export default function NetworkPage() {
         importData,
         meetingData,
       ] = await Promise.all([
-        djmRpc<any[]>('djm_network_club_contacts', {
+        platformRpc<any[]>('djm_network_club_contacts', {
           p_search: null,
           p_limit: 250,
         }),
-        djmRpc<any[]>('djm_network_organisations', {
+        platformRpc<any[]>('djm_network_organisations', {
           p_search: null,
           p_limit: 250,
         }),
-        djmRpc<any[]>('djm_network_tasks', { p_scope: 'mine' }),
-        djmRpc<any[]>('djm_network_suggestions'),
-        djmRpc<any[]>('djm_network_review_inbox', { p_scope: 'all' }),
-        djmRpc<any[]>('djm_network_activity', { p_limit: 40 }),
-        djmRpc<any[]>('djm_import_history', { p_limit: 20 }),
-        djmRpc<any[]>('djm_network_meetings', {
+        platformRpc<any[]>('djm_network_tasks', { p_scope: 'mine' }),
+        platformRpc<any[]>('djm_network_suggestions'),
+        platformRpc<any[]>('djm_network_review_inbox', { p_scope: 'all' }),
+        platformRpc<any[]>('djm_network_activity', { p_limit: 40 }),
+        platformRpc<any[]>('djm_import_history', { p_limit: 20 }),
+        platformRpc<any[]>('djm_network_meetings', {
           p_scope: 'mine',
           p_from: now.toISOString(),
           p_to: future.toISOString(),
@@ -201,7 +201,7 @@ export default function NetworkPage() {
     setBusy(true);
     setError('');
     try {
-      await djmRpc('djm_network_upsert_club', {
+      await platformRpc('djm_network_upsert_club', {
         p_name: clubForm.name.trim(),
         p_country: clubForm.country.trim() || null,
         p_city: clubForm.city.trim() || null,
@@ -209,7 +209,7 @@ export default function NetworkPage() {
       });
       setClubForm(EMPTY_CLUB);
       setShowAddClub(false);
-      flash('Club added to DJM Network');
+      flash('Club added to Network');
       await load();
       changeTab('clubs');
     } catch (e) {
@@ -226,7 +226,7 @@ export default function NetworkPage() {
     setBusy(true);
     setError('');
     try {
-      await djmRpc('djm_network_upsert_person', {
+      await platformRpc('djm_network_upsert_person', {
         p_full_name: contactForm.full_name.trim(),
         p_person_type: 'club_contact',
         p_whatsapp: contactForm.whatsapp.trim() || null,
@@ -252,7 +252,7 @@ export default function NetworkPage() {
 
   const completeTask = async (id: string) => {
     try {
-      await djmRpc('djm_network_set_task_status', {
+      await platformRpc('djm_network_set_task_status', {
         p_task_id: id,
         p_status: 'completed',
       });
@@ -265,7 +265,7 @@ export default function NetworkPage() {
 
   const resolveReview = async (id: string, resolution: string) => {
     try {
-      await djmRpc('djm_network_resolve_review', {
+      await platformRpc('djm_network_resolve_review', {
         p_review_id: id,
         p_resolution: resolution,
         p_note: null,
@@ -286,7 +286,7 @@ export default function NetworkPage() {
     setError('');
 
     try {
-      await djmRpc('djm_network_capture_text', {
+      await platformRpc('djm_network_capture_text', {
         p_text: text,
         p_channel: captureChannel,
         p_person_id: null,
@@ -294,7 +294,7 @@ export default function NetworkPage() {
         p_occurred_at: new Date().toISOString(),
       });
       setCaptureText('');
-      flash('Captured into DJM Network');
+      flash('Captured into Network');
       await load();
       changeTab('today');
     } catch (e) {
@@ -327,7 +327,7 @@ export default function NetworkPage() {
     setBusy(true);
     setError('');
     try {
-      const result = await djmInvoke(
+      const result = await platformInvoke(
         'djm-network-import',
         makeImportForm(true),
       );
@@ -344,7 +344,7 @@ export default function NetworkPage() {
     setBusy(true);
     setError('');
     try {
-      const result: any = await djmInvoke(
+      const result: any = await platformInvoke(
         'djm-network-import',
         makeImportForm(false),
       );
@@ -358,7 +358,7 @@ export default function NetworkPage() {
         ) as string[];
 
         for (const threadId of threadIds) {
-          await djmRpc('djm_attach_whatsapp_thread', {
+          await platformRpc('djm_attach_whatsapp_thread', {
             p_thread_id: threadId,
             p_person_id: selectedImportContact.id,
           });
@@ -390,12 +390,12 @@ export default function NetworkPage() {
 
   const rollbackImport = async (batchId: string) => {
     const ok = window.confirm(
-      'Undo this import batch? DJM will remove records created only by this batch and preserve anything still used elsewhere.',
+      'Undo this import batch? The agency will remove records created only by this batch and preserve anything still used elsewhere.',
     );
     if (!ok) return;
 
     try {
-      await djmRpc('djm_rollback_import', { p_batch_id: batchId });
+      await platformRpc('djm_rollback_import', { p_batch_id: batchId });
       flash('Import rolled back safely');
       await load();
     } catch (e) {
@@ -404,9 +404,9 @@ export default function NetworkPage() {
   };
 
   return (
-    <DjmOsShell
+    <AgencyShell
       eyebrow="Clubs, decision-makers and relationship memory"
-      title="DJM Network"
+      title="Network"
     >
       {toast ? <div className="djm-os-toast">{toast}</div> : null}
       {error ? (
@@ -628,7 +628,7 @@ export default function NetworkPage() {
                         <p>
                           {[task.person_name, task.organisation_name]
                             .filter(Boolean)
-                            .join(' · ') || 'DJM'}
+                            .join(' · ') || 'The agency'}
                         </p>
                         <small>{task.due_at ? `Due ${compactDateTime(task.due_at)}` : 'No deadline'}</small>
                       </div>
@@ -645,14 +645,14 @@ export default function NetworkPage() {
               ) : <Empty text="No open commitments." />}
             </Panel>
 
-            <Panel title="Worth doing" subtitle="Relationship signals DJM thinks matter">
+            <Panel title="Worth doing" subtitle="Relationship signals the agency thinks matter">
               {suggestions.length ? (
                 <div className="djm-os-list">
                   {suggestions.slice(0, 8).map((item) => (
                     <article className="djm-os-list-row" key={item.id}>
                       <div>
                         <strong>{item.title}</strong>
-                        <p>{item.reason || 'DJM intelligence suggestion'}</p>
+                        <p>{item.reason || 'Intelligence suggestion'}</p>
                         <small>
                           Score {item.score || 0}
                           {item.person_name ? ` · ${item.person_name}` : ''}
@@ -675,7 +675,7 @@ export default function NetworkPage() {
                       <div>
                         <strong>{item.title}</strong>
                         <p>{item.detail || item.review_type}</p>
-                        <small>{item.owner_name || 'DJM'} · {compactDateTime(item.created_at)}</small>
+                        <small>{item.owner_name || 'The agency'} · {compactDateTime(item.created_at)}</small>
                       </div>
                       <div className="djm-os-row-actions">
                         <button className="djm-os-mini-button" onClick={() => void resolveReview(item.id, 'resolved')}>Resolve</button>
@@ -687,7 +687,7 @@ export default function NetworkPage() {
               ) : <Empty text="Nothing needs human review." />}
             </Panel>
 
-            <Panel title="Recent DJM activity" subtitle="One shared relationship memory">
+            <Panel title="Recent agency activity" subtitle="One shared relationship memory">
               {activity.length ? (
                 <div className="djm-os-list">
                   {activity.slice(0, 8).map((item) => (
@@ -695,19 +695,19 @@ export default function NetworkPage() {
                       <span className="djm-os-feed-dot" />
                       <div>
                         <strong>
-                          {item.actor_name || 'DJM'} · {String(item.event_type || '').replaceAll('_', ' ').toLowerCase()}
+                          {item.actor_name || 'The agency'} · {String(item.event_type || '').replaceAll('_', ' ').toLowerCase()}
                         </strong>
                         <p>
                           {[item.person_name, item.organisation_name]
                             .filter(Boolean)
-                            .join(' · ') || item.source || 'DJM OS'}
+                            .join(' · ') || item.source || 'ReDream'}
                         </p>
                         <small>{compactDateTime(item.occurred_at)}</small>
                       </div>
                     </article>
                   ))}
                 </div>
-              ) : <Empty text="Activity will appear as DJM works." />}
+              ) : <Empty text="Activity will appear as the agency works." />}
             </Panel>
           </div>
         </>
@@ -718,7 +718,7 @@ export default function NetworkPage() {
           <div className="djm-os-panel-head">
             <div>
               <h2>Clubs</h2>
-              <p>One canonical club record with contacts, needs and DJM history.</p>
+              <p>One canonical club record with contacts, needs and agency history.</p>
             </div>
             <SearchBox value={search} onChange={setSearch} placeholder="Search clubs" />
           </div>
@@ -790,7 +790,7 @@ export default function NetworkPage() {
             <div className="djm-os-panel-head">
               <div>
                 <h2>Quick capture</h2>
-                <p>Paste a WhatsApp, call note or club conversation. DJM handles the admin.</p>
+                <p>Paste a WhatsApp, call note or club conversation. The agency handles the admin.</p>
               </div>
               <MessageCircleMore size={22} />
             </div>
@@ -818,7 +818,7 @@ export default function NetworkPage() {
               </label>
               <button className="djm-os-primary-button" type="submit" disabled={!captureText.trim() || busy}>
                 <Sparkles size={16} />
-                Capture into DJM
+                Capture into the agency
               </button>
             </form>
           </section>
@@ -888,7 +888,7 @@ export default function NetworkPage() {
                     ))}
                   </select>
                   <span style={{ marginTop: 5, color: '#7a8a98', fontSize: 11, fontWeight: 500 }}>
-                    Recommended when the person already exists in Network. DJM will attach the whole chat to that exact contact and their current club.
+                    Recommended when the person already exists in Network. The agency will attach the whole chat to that exact contact and their current club.
                   </span>
                 </label>
               ) : null}
@@ -928,7 +928,7 @@ export default function NetworkPage() {
                   <span style={{ display: 'block', marginTop: 3, color: '#66788a' }}>
                     {[selectedImportContact.role_title, selectedImportContact.current_organisation]
                       .filter(Boolean)
-                      .join(' · ') || 'Existing DJM club contact'}
+                      .join(' · ') || 'Existing club contact'}
                   </span>
                 </div>
               ) : null}
@@ -963,7 +963,7 @@ export default function NetworkPage() {
                   ) : (
                     <p>
                       {importPreviewCount
-                        ? `${importPreviewCount} records processed into DJM.`
+                        ? `${importPreviewCount} records processed into the agency.`
                         : 'Import completed.'}
                     </p>
                   )}
@@ -1005,7 +1005,7 @@ export default function NetworkPage() {
           </section>
         </div>
       ) : null}
-    </DjmOsShell>
+    </AgencyShell>
   );
 }
 

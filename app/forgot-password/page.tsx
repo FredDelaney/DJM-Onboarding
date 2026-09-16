@@ -36,10 +36,10 @@ export default function ForgotPasswordPage() {
         <Brand light />
         <div>
           <div className="yellow-line" />
-          <h1>Get back into DJM securely.</h1>
-          <p>Password recovery uses your confirmed account email. DJM never needs to know your password.</p>
+          <h1>Get back into ReDream securely.</h1>
+          <p>Password recovery uses your confirmed account email. ReDream never needs to know your password.</p>
         </div>
-        <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>DJM Sports Management · Private player environment</span>
+        <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>ReDream · Private player environment</span>
       </section>
 
       <section className="auth-form">
@@ -49,15 +49,15 @@ export default function ForgotPasswordPage() {
           <h2>{sent ? 'Check your email.' : 'Reset your password.'}</h2>
           <p className="page-intro" style={{ fontSize: 15 }}>
             {sent
-              ? 'If this address belongs to a DJM account, a secure reset link has been sent.'
-              : 'Enter the email you use for DJM. We will send a secure link to choose a new password.'}
+              ? 'If this address belongs to a ReDream account, a secure reset link has been sent.'
+              : 'Enter the email you use for ReDream. We will send a secure link to choose a new password.'}
           </p>
 
           {sent ? (
             <div className="stack" style={{ marginTop: 28 }}>
               <div className="card pad" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <ShieldCheck size={20} />
-                <div><strong>Recovery email requested</strong><p className="small muted" style={{ marginTop: 4 }}>Open the newest DJM recovery email. The link returns you to DJM to set a new password.</p></div>
+                <div><strong>Recovery email requested</strong><p className="small muted" style={{ marginTop: 4 }}>Open the newest ReDream recovery email. The link returns you to ReDream to set a new password.</p></div>
               </div>
               <Link href="/sign-in" className="btn btn-navy btn-block">Back to sign in <ArrowRight size={17} /></Link>
             </div>

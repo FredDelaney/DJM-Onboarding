@@ -61,7 +61,7 @@ const fetchWyscout = async (path: string) => {
   }
 
   throw new Error(
-    `${lastError} Existing DJM data was not changed after ${MAX_ATTEMPTS} attempts${lastStatus ? ` (HTTP ${lastStatus})` : ""}.`,
+    `${lastError} Existing workspace data was not changed after ${MAX_ATTEMPTS} attempts${lastStatus ? ` (HTTP ${lastStatus})` : ""}.`,
   );
 };
 

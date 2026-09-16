@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const home = readFileSync('app/(djm-os)/djm/page.tsx', 'utf8');
-const tellCapture = readFileSync('components/TellDjmCapture.tsx', 'utf8');
-const tellProcess = readFileSync('supabase/functions/djm-tell-process/index.ts', 'utf8');
+const tellCapture = readFileSync('components/AiCapture.tsx', 'utf8');
+const tellProcess = readFileSync('supabase/functions/_shared/ai-process.ts', 'utf8');
+const aiRouter = readFileSync('supabase/functions/_shared/ai-router.ts', 'utf8');
 const push = readFileSync('supabase/functions/dispatch-player-push/index.ts', 'utf8');
 const removePlayer = readFileSync('supabase/functions/remove-player/index.ts', 'utf8');
 const homeMigration = readFileSync(
@@ -17,7 +18,7 @@ test('DJM Home supports dismiss and snooze without deleting source records', () 
   assert.match(home, /djm_home_set_item_control/);
   assert.match(home, /Remove from Home/);
   assert.match(home, /Snooze until tomorrow/);
-  assert.match(home, /DJM attention/);
+  assert.match(home, /worth your attention/);
   assert.doesNotMatch(home, /What should DJM do next\?/);
   assert.match(homeMigration, /home_item_controls/);
   assert.match(homeMigration, /state in \('dismissed','snoozed'\)/i);
@@ -30,17 +31,24 @@ test('dismissed and snoozed tasks can suppress reminder delivery', () => {
   assert.match(homeMigration, /interval '8 hours'/);
 });
 
-test('Tell DJM polls faster, surfaces transcript progress and uses non-reasoning extraction', () => {
-  assert.match(tellCapture, /const POLL_MS = 650;/);
+test('Tell DJM polls faster, surfaces transcript progress and uses routed reasoning effort', () => {
+  assert.match(tellCapture, /const ACTIVE_POLL_MS = 200;/);
+  assert.match(tellCapture, /const TRANSCRIBING_POLL_MS = 400;/);
+  assert.match(tellCapture, /const BACKGROUND_POLL_MS = 1000;/);
   assert.match(tellCapture, /Transcript ready\. Doing it now\.\.\./);
   assert.match(tellCapture, /open=\{!TERMINAL\.has\(receipt\.capture\.status\)\}/);
-  assert.match(tellProcess, /reasoning: \{ effort: "none" \}/);
+  assert.match(tellProcess, /reasoning: \{ effort: reasoningEffort \}/);
+  assert.match(tellProcess, /selectAiRoute/);
+  assert.match(aiRouter, /reasoning_effort: 'none'/);
 });
 
-test('push delivery groups related task, request and Tell DJM notifications', () => {
-  assert.match(push, /djm-task-\$\{payload\.task_id\}/);
-  assert.match(push, /djm-request-\$\{payload\.request_id\}/);
-  assert.match(push, /djm-tell-\$\{payload\.capture_id\}/);
+test('push delivery groups related notifications without tenant-specific branding', () => {
+  assert.match(push, /task-\$\{payload\.task_id\}/);
+  assert.match(push, /request-\$\{payload\.request_id\}/);
+  assert.match(push, /capture-\$\{payload\.capture_id\}/);
+  assert.doesNotMatch(push, /djm-task-/);
+  assert.doesNotMatch(push, /djm-request-/);
+  assert.doesNotMatch(push, /djm-tell-/);
 });
 
 test('player deletion commits the player row before irreversible account cleanup', () => {

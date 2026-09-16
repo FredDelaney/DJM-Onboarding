@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import DjmWorkspaceHeader from './DjmWorkspaceHeader';
+import WorkspaceHeader from './WorkspaceHeader';
 import { supabase } from '@/lib/supabase';
 
 type AdminState = {
@@ -134,7 +134,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="admin-shell">
-      <DjmWorkspaceHeader onSignOut={signOut} />
+      <WorkspaceHeader onSignOut={signOut} />
       {children}
     </div>
   );

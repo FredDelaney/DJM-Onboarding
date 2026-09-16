@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const fullPage = readFileSync('components/TellDjmFullPage.tsx', 'utf8');
-const recent = readFileSync('components/TellDjmRecentCaptures.tsx', 'utf8');
+const fullPage = readFileSync('components/AiFullPage.tsx', 'utf8');
+const recent = readFileSync('components/AiRecentCaptures.tsx', 'utf8');
 
 test('Tell DJM full page uses a stable completion callback', () => {
   assert.match(fullPage, /useCallback/);

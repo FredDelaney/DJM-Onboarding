@@ -77,8 +77,8 @@ test('dossier and stats panel use the shared full-period rule and six totals', (
   assert.match(panel, /headlineSeasonRows/);
   assert.match(panel, /Season history/);
   assert.match(dossier, /limit = 6/);
-  assert.match(publicProfile, /dossierHeadlineStats\([\s\S]*profile,[\s\S]*6,/);
-  assert.match(pdf, /dossierHeadlineStats\([\s\S]*profile,[\s\S]*6,/);
+  assert.match(publicProfile, /dossierHeadlineStats\(\s*profile\s*,\s*6\s*,?\s*\)/);
+  assert.match(pdf, /dossierHeadlineStats\(\s*profile\s*,\s*6\s*,?\s*\)/);
 });
 
 test('production connectivity hotfixes and edge functions are source controlled', () => {

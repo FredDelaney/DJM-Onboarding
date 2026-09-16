@@ -167,7 +167,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const { error: accessError } = await client.rpc("djm_network_dashboard");
-    if (accessError) return json({ error: "DJM team access required" }, 403);
+    if (accessError) return json({ error: "Agency team access required" }, 403);
 
     return json({
       ok: false,
@@ -175,7 +175,7 @@ Deno.serve(async (req: Request) => {
       queued: false,
       capability: "reference_only",
       existing_data_changed: false,
-      message: "Transfermarkt is reference only. DJM kept the saved link. Open it for research or record authorised values through manual evidence review.",
+      message: "Transfermarkt is reference only. ReDream kept the saved link. Open it for research or record authorised values through manual evidence review.",
     }, 409);
 
     /* Legacy parser retained for a possible future licensed integration. It is unreachable by default. */
@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
         queued: Boolean(prospectId),
         status: "queued",
         message:
-          "Transfermarkt blocked the automated read. DJM kept the URL and queued sourced verification instead.",
+          "Transfermarkt blocked the automated read. ReDream kept the URL and queued sourced verification instead.",
       });
     }
 

@@ -279,7 +279,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
         ? 'These are explicit gaps. Absence from this list is not proof that every material fact is complete.'
         : 'Current checks found no exception, but important facts still require source review.',
       items,
-      provenance: 'DJM Command data-quality checks',
+      provenance: 'Agency command data-quality checks',
     };
   }
 
@@ -300,7 +300,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
         ? 'Open the relationship workspace for full context, promises, best route and conversation history. Direct messaging and research links are shown where available.'
         : 'No club contact matches those terms in the current authorised record.',
       items: contacts.slice(0, 12).map(formatContact),
-      provenance: 'DJM Network · current club contacts',
+      provenance: 'Network · current club contacts',
     };
   }
 
@@ -381,7 +381,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
       title: `${targets.length} recruitment target${targets.length === 1 ? '' : 's'} found`,
       summary: targets.length ? 'Open a target to review evidence, outreach history, representation stage and next action.' : 'No recruitment target matches those terms.',
       items: targets.slice(0, 12).map(formatRecruitment),
-      provenance: 'DJM Recruitment pipeline',
+      provenance: 'Recruitment pipeline',
     };
   }
 
@@ -403,7 +403,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
       title: `${players.length} signed player${players.length === 1 ? '' : 's'} found`,
       summary: players.length ? 'Results use the current master football record, including primary and secondary positions.' : 'No signed player matches those terms.',
       items: players.slice(0, 12).map(formatPlayer),
-      provenance: 'DJM signed-player master records',
+      provenance: 'ReDream signed-player master records',
     };
   }
 
@@ -415,7 +415,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
       title: `${clubs.length} club${clubs.length === 1 ? '' : 's'} found`,
       summary: clubs.length ? 'Open a club for decision-makers, live demand, relationship history and best routes in.' : 'No club matches those terms.',
       items: clubs.slice(0, 12).map(formatClub),
-      provenance: 'DJM Network · canonical club records',
+      provenance: 'Network · canonical club records',
     };
   }
 
@@ -426,7 +426,7 @@ export function buildBrainAnswer(query: string, data: BrainData): BrainAnswer {
       title: `${found.length} matching record${found.length === 1 ? '' : 's'}`,
       summary: 'Brain matched the question against names, clubs, countries, roles and playing positions across authorised sources.',
       items: found,
-      provenance: 'Cross-source DJM record search',
+      provenance: 'Cross-source ReDream record search',
     };
   }
 

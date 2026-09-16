@@ -47,7 +47,7 @@ const userFacingSourceFiles = () =>
   });
 
 test('staff navigation exposes four operational workspaces only', () => {
-  const source = read('components/DjmWorkspaceHeader.tsx');
+  const source = read('components/WorkspaceHeader.tsx');
   for (const label of ['Home', 'Players', 'Opportunities', 'Network']) {
     assert.match(source, new RegExp(`label: '${label}'`));
   }
@@ -69,7 +69,7 @@ test('mobile staff navigation and full-bleed heroes stay inside the viewport', (
 test('player navigation is Home, DJM and Me while legacy destinations stay contextual', () => {
   const source = read('components/PlayerShell.tsx');
   assert.match(source, /label: 'Home'/);
-  assert.match(source, /label: 'DJM'/);
+  assert.match(source, /label: 'Your agency'/);
   assert.match(source, /label: 'Me'/);
   assert.match(source, /activePrefixes: \['\/profile', '\/career', '\/check-in', '\/cv', '\/documents'\]/);
   assert.doesNotMatch(source, /label: 'Career'/);
@@ -81,7 +81,7 @@ test('player Home has one dominant action and no second career navigation system
   assert.match(source, /ux-player-primary-action/);
   assert.doesNotMatch(source, /PlayerCareerNavigator/);
   assert.match(source, /THIS WEEK/);
-  assert.match(source, /FROM DJM/);
+  assert.match(source, /FROM YOUR AGENCY/);
   assert.match(source, /MY PROFILE/);
 });
 
@@ -161,8 +161,8 @@ test('peer refresh supports verified target competitions without guessing an ide
   const bridge = read('supabase/migrations/20260830212500_djm_peer_refresh_service_bridge_v1.sql');
   assert.match(source, /competition_id/);
   assert.match(bridge, /provider_ids ->> 'pitchapi'/);
-  assert.match(source, /This competition does not yet have a verified PitchAPI identity in DJM/);
-  assert.match(source, /resolveCompetitionFromDjm/);
+  assert.match(source, /This competition does not yet have a verified PitchAPI identity in this workspace/);
+  assert.match(source, /resolveWorkspaceCompetition/);
 });
 
 test('peer refresh keeps the private schema outside PostgREST and uses service-only bridge RPCs', () => {

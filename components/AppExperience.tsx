@@ -62,23 +62,23 @@ export default function AppExperience({ userId, mode = 'player' }: { userId: str
 
   return (
     <section className="card pad app-experience">
-      <div className="section-kicker">{mode === 'admin' ? 'DJM ADMIN APP' : 'DJM PLAYER APP'}</div>
+      <div className="section-kicker">{mode === 'admin' ? 'REDREAM ADMIN APP' : 'PLAYER WORKSPACE APP'}</div>
       {!standalone ? (
         <div className="app-setting-row">
           <div className="list-icon"><Smartphone size={18} /></div>
-          <div className="list-copy"><strong>{mode === 'admin' ? 'Keep DJM Admin on your phone' : 'Keep DJM Player on your phone'}</strong><span>Open it like an app, without hunting for the link.</span></div>
+          <div className="list-copy"><strong>{mode === 'admin' ? 'Keep ReDream Admin on your phone' : 'Keep Player Workspace on your phone'}</strong><span>Open it like an app, without hunting for the link.</span></div>
           <button className="btn btn-quiet btn-sm" onClick={install}>{prompt ? <><Download size={14} /> Install</> : ios ? <><Share2 size={14} /> How</> : <><Download size={14} /> Install</>}</button>
         </div>
       ) : (
-        <div className="app-setting-row"><div className="list-icon"><Check size={18} /></div><div className="list-copy"><strong>Installed</strong><span>DJM Player is running as a standalone app.</span></div></div>
+        <div className="app-setting-row"><div className="list-icon"><Check size={18} /></div><div className="list-copy"><strong>Installed</strong><span>Player Workspace is running as a standalone app.</span></div></div>
       )}
 
       {pushState !== 'unsupported' ? (
         <div className="app-setting-row">
           <div className="list-icon"><Bell size={18} /></div>
           <div className="list-copy">
-            <strong>DJM notifications</strong>
-            <span>{pushState === 'enabled' ? 'This device can receive DJM alerts.' : pushState === 'denied' ? 'Notifications are blocked in your device settings.' : pushState === 'needs_install' ? 'Add DJM to your iPhone Home Screen first.' : mode === 'admin' ? 'Get notified when an important DJM action is due.' : 'Get notified when DJM needs something from you.'}</span>
+            <strong>ReDream notifications</strong>
+            <span>{pushState === 'enabled' ? 'This device can receive ReDream alerts.' : pushState === 'denied' ? 'Notifications are blocked in your device settings.' : pushState === 'needs_install' ? 'Add ReDream to your iPhone Home Screen first.' : mode === 'admin' ? 'Get notified when an important ReDream action is due.' : 'Get notified when ReDream needs something from you.'}</span>
           </div>
           {pushState === 'enabled' ? <span className="pill pill-green">On</span> : pushState === 'ready' ? <button className="btn btn-quiet btn-sm" onClick={() => void enablePush()} disabled={busy}>{busy ? 'Enabling...' : 'Enable'}</button> : null}
         </div>

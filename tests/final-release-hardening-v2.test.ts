@@ -7,12 +7,26 @@ const read = (path: string) => readFileSync(path, 'utf8');
 test('privacy consent is explicit, versioned, timestamped and audited', () => {
   const join = read('app/join/[token]/page.tsx');
   const accept = read('supabase/functions/accept-player-invite/index.ts');
+  const migration = read(
+    'supabase/migrations/20260915102724_tenant_aware_player_privacy_acceptance_v1.sql',
+  );
 
   assert.match(join, /privacy_acknowledged:\s*privacyAccepted/);
+  assert.match(join, /privacyNoticeVersion/);
+
   assert.match(accept, /privacy_acknowledged !== true/);
   assert.match(accept, /privacy_notice_acknowledged_at/);
-  assert.match(accept, /privacy_notice_acknowledged/);
-  assert.match(accept, /audit_events/);
+  assert.match(
+    accept,
+    /platform_server_complete_player_invite_acceptance/,
+  );
+
+  assert.match(migration, /player_privacy_acceptances/);
+  assert.match(migration, /notice_controller_name/);
+  assert.match(migration, /notice_url/);
+  assert.match(migration, /notice_effective_at/);
+  assert.match(migration, /audit_events/);
+  assert.match(migration, /player_portal\.invite_accepted/);
 });
 
 test('club share documents keep sensitive document types private', () => {
@@ -62,7 +76,7 @@ test('passkey UX is easy to recover from and production RP settings are source c
   assert.match(signIn, /Use Face ID or passkey/);
   assert.match(signIn, /Use your password below/);
   assert.match(panel, /Set up quick sign-in/);
-  assert.match(panel, /Recover access through your confirmed DJM email\./);
+  assert.match(panel, /Recover access through your confirmed ReDream email\./);
   assert.match(panel, /Your password always works/);
   assert.match(config, /\[auth\.passkey\]/);
   assert.match(config, /enabled = true/);
@@ -81,9 +95,12 @@ test('club-share metadata privacy fix is reproducible from source control', () =
   assert.match(migration, /'agreement'/);
 });
 
-test('application email deep links default to the stable DJM production domain', () => {
+test('application email deep links resolve from the tenant verified domain', () => {
   const source = read('supabase/functions/dispatch-djm-email/index.ts');
 
-  assert.match(source, /https:\/\/app\.djmsports\.com/);
+  assert.match(source, /platform_server_email_tenant_context/);
+  assert.match(source, /tenantContext\?\.domain\?\.hostname/);
+  assert.match(source, /const deepLink = `https:\/\/\$\{hostname\}\$\{path\}`/);
+  assert.doesNotMatch(source, /https:\/\/app\.djmsports\.com/);
   assert.doesNotMatch(source, /djm-player\.vercel\.app/);
 });

@@ -346,7 +346,7 @@ async function resolveCompetitionFromPlayer(admin, playerId) {
   });
   if (error) throw error;
   if (!provider?.provider_competition_id || !provider?.provider_season_id) {
-    throw new Error("Update player data first so DJM can resolve a current PitchAPI competition and season.");
+    throw new Error("Update player data first so ReDream can resolve a current PitchAPI competition and season.");
   }
   return {
     providerCompetitionId: String(provider.provider_competition_id),
@@ -387,16 +387,16 @@ async function resolveCompetitionFromProvider(admin, providerCompetitionId, requ
   };
 }
 
-async function resolveCompetitionFromDjm(admin, competitionId, key) {
+async function resolveWorkspaceCompetition(admin, competitionId, key) {
   const { data: competition, error } = await admin.rpc("djm_peer_refresh_context", {
     p_mode: "competition",
     p_competition_id: competitionId,
   });
   if (error) throw error;
-  if (!competition) throw new Error("DJM competition not found.");
+  if (!competition) throw new Error("Workspace competition not found.");
   const providerCompetitionId = clean(competition?.provider_competition_id);
   if (!providerCompetitionId) {
-    throw new Error("This competition does not yet have a verified PitchAPI identity in DJM.");
+    throw new Error("This competition does not yet have a verified PitchAPI identity in this workspace.");
   }
 
   const detail = await pitch(`/v1/leagues/${providerCompetitionId}`, key);
@@ -460,7 +460,7 @@ Deno.serve(async (request) => {
     const context = playerId
       ? await resolveCompetitionFromPlayer(admin, playerId)
       : competitionId
-        ? await resolveCompetitionFromDjm(admin, competitionId, key)
+        ? await resolveWorkspaceCompetition(admin, competitionId, key)
         : await resolveCompetitionFromProvider(
             admin,
             providerCompetitionId,
@@ -508,7 +508,7 @@ Deno.serve(async (request) => {
       return json(
         {
           ok: false,
-          error: `PitchAPI returned ${aggregated.length} players with a trustworthy 180-minute sample for ${context.competitionName || "this competition"}. DJM requires at least six.`,
+          error: `PitchAPI returned ${aggregated.length} players with a trustworthy 180-minute sample for ${context.competitionName || "this competition"}. At least six verified peers are required.`,
           peer_count: aggregated.length,
           competition_id: context.competitionId || competitionId || null,
           provider_competition_id: context.providerCompetitionId,

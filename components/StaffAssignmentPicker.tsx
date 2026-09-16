@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { UserRound } from 'lucide-react';
 
-import { djmRpc, friendlyError } from '@/lib/djm-os';
+import { platformRpc, friendlyError } from '@/lib/platform-client';
 
 type AssignmentKind = 'prospect' | 'player' | 'request' | 'task';
 
@@ -38,7 +38,7 @@ export default function StaffAssignmentPicker({
   useEffect(() => {
     let active = true;
 
-    void djmRpc<TeamMember[]>('djm_active_team_members')
+    void platformRpc<TeamMember[]>('djm_active_team_members')
       .then((rows) => {
         if (active) setTeam(Array.isArray(rows) ? rows : []);
       })
@@ -61,22 +61,22 @@ export default function StaffAssignmentPicker({
 
     try {
       if (kind === 'prospect') {
-        await djmRpc('djm_recruitment_assign_owner', {
+        await platformRpc('djm_recruitment_assign_owner', {
           p_prospect_id: entityId,
           p_owner_user_id: next || null,
         });
       } else if (kind === 'player') {
-        await djmRpc('djm_assign_player', {
+        await platformRpc('djm_assign_player', {
           p_player_id: entityId,
           p_assigned_to_user_id: next || null,
         });
       } else if (kind === 'request') {
-        await djmRpc('djm_assign_player_request', {
+        await platformRpc('djm_assign_player_request', {
           p_request_id: entityId,
           p_assigned_to_user_id: next || null,
         });
       } else {
-        await djmRpc('djm_task_assign_owner', {
+        await platformRpc('djm_task_assign_owner', {
           p_task_id: entityId,
           p_owner_user_id: next || null,
         });

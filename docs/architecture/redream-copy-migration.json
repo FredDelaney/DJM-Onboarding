@@ -1,0 +1,1712 @@
+[
+  {
+    "file": "app/(djm-os)/brain/benchmarks/import/page.tsx",
+    "before": "DJM keeps competition strength source-backed. Opta Power Rankings is the preferred global methodology when DJM has licensed data or a reviewed authorised import. The application does not scrape the public site.",
+    "after": "ReDream keeps competition strength source-backed. Opta Power Rankings is the preferred global methodology when ReDream has licensed data or a reviewed authorised import. The application does not scrape the public site."
+  },
+  {
+    "file": "app/(djm-os)/brain/benchmarks/import/page.tsx",
+    "before": "Raw decimals are preserved. DJM rounds only the effective Player Score benchmark to the nearest integer.",
+    "after": "Raw decimals are preserved. ReDream rounds only the effective Player Score benchmark to the nearest integer."
+  },
+  {
+    "file": "app/(djm-os)/brain/data/page.tsx",
+    "before": "\"Provider status could not be reached. Core DJM data remains available.\"",
+    "after": "\"Provider status could not be reached. Core ReDream data remains available.\""
+  },
+  {
+    "file": "app/(djm-os)/brain/data/page.tsx",
+    "before": "\"The import failed. Existing DJM data was not changed.\"",
+    "after": "\"The import failed. Existing ReDream data was not changed.\""
+  },
+  {
+    "file": "app/(djm-os)/brain/data/page.tsx",
+    "before": "} added to evidence review. Canonical DJM data has not changed.`",
+    "after": "} added to evidence review. Canonical ReDream data has not changed.`"
+  },
+  {
+    "file": "app/(djm-os)/brain/data/page.tsx",
+    "before": "Evidence first. DJM truth second.",
+    "after": "Evidence first. ReDream truth second."
+  },
+  {
+    "file": "app/(djm-os)/brain/data/page.tsx",
+    "before": "\"Current DJM truth and incoming evidence stay visibly separate.\"",
+    "after": "\"Current ReDream truth and incoming evidence stay visibly separate.\""
+  },
+  {
+    "file": "app/(djm-os)/brain/data/page.tsx",
+    "before": "DJM",
+    "after": "ReDream"
+  },
+  {
+    "file": "app/(djm-os)/brain/data/page.tsx",
+    "before": "Verified DJM competition-level input",
+    "after": "Verified ReDream competition-level input"
+  },
+  {
+    "file": "app/(djm-os)/brain/data/page.tsx",
+    "before": "\"DJM staff\"",
+    "after": "\"agency staff\""
+  },
+  {
+    "file": "app/(djm-os)/brain/performance/page.tsx",
+    "before": "Overall percentile can be supplied directly. Otherwise enter enough position categories for DJM to calculate a transparent weighted performance score.",
+    "after": "Overall percentile can be supplied directly. Otherwise enter enough position categories for ReDream to calculate a transparent weighted performance score."
+  },
+  {
+    "file": "app/(djm-os)/djm/page.tsx",
+    "before": "'DJM action'",
+    "after": "'Agency action'"
+  },
+  {
+    "file": "app/(djm-os)/djm/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/djm/page.tsx",
+    "before": "'DJM system'",
+    "after": "'ReDream'"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "'DJM opportunity'",
+    "after": "'Agency opportunity'"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "}? Use Won, Lost or Paused if DJM should retain the commercial history.`",
+    "after": "}? Use Won, Lost or Paused if the agency should retain the commercial history.`"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "'A club pitch requires a signed DJM player.'",
+    "after": "'A club pitch requires a signed player.'"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "'DJM pitch'",
+    "after": "'Agency pitch'"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "'DJM pitch'",
+    "after": "'Agency pitch'"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "'DJM model'",
+    "after": "'ReDream model'"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "DJM owner",
+    "after": "agency owner"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "Signed DJM player",
+    "after": "Signed player"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "Expected DJM commission",
+    "after": "Expected agency commission"
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "Club pitch links are available once the Opportunity uses a signed DJM player.",
+    "after": "Club pitch links are available once the Opportunity uses a signed player."
+  },
+  {
+    "file": "app/(djm-os)/market/deals/[id]/page.tsx",
+    "before": "'DJM access'",
+    "after": "'Agency access'"
+  },
+  {
+    "file": "app/(djm-os)/network/clubs/[id]/page.tsx",
+    "before": "Automatic data stays editable. Saving here becomes DJM's current truth.",
+    "after": "Automatic data stays editable. Saving here becomes the agency's current truth."
+  },
+  {
+    "file": "app/(djm-os)/network/clubs/[id]/page.tsx",
+    "before": "Who should DJM use to approach this club?",
+    "after": "Who should the agency use to approach this club?"
+  },
+  {
+    "file": "app/(djm-os)/network/clubs/[id]/page.tsx",
+    "before": "Only things DJM genuinely needs to do.",
+    "after": "Only things the agency genuinely needs to do."
+  },
+  {
+    "file": "app/(djm-os)/network/clubs/[id]/page.tsx",
+    "before": "`Best DJM route: ${",
+    "after": "`Best agency route: ${"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "'Remove this WhatsApp message from DJM context? The original imported chat stays intact.'",
+    "after": "'Remove this WhatsApp message from the agency context? The original imported chat stays intact.'"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "} from DJM context? The underlying audit record stays intact.`",
+    "after": "} from the agency context? The underlying audit record stays intact.`"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "} DJM relationship records and ${",
+    "after": "} agency relationship records and ${"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "Name, current club and role stay editable even when DJM inferred them automatically.",
+    "after": "Name, current club and role stay editable even when the agency inferred them automatically."
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "\"Best DJM route\"",
+    "after": "\"Best agency route\""
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "'DJM owner'",
+    "after": "'agency owner'"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "'WhatsApp \u00b7 DJM'",
+    "after": "'WhatsApp \u00b7 the agency'"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "There is not enough history yet. The next conversation will start building DJM memory.",
+    "after": "There is not enough history yet. The next conversation will start building agency memory."
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "'What did they say, what did DJM promise, what matters next?'",
+    "after": "'What did they say, what did the agency promise, what matters next?'"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "Saved notes immediately appear in Recent context and feed DJM follow-up / club-need intelligence.",
+    "after": "Saved notes immediately appear in Recent context and feed agency follow-up / club-need intelligence."
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "Shared across DJM.",
+    "after": "Shared across the agency."
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "DJM relationship ownership",
+    "after": "Agency relationship ownership"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/network/contacts/[id]/page.tsx",
+    "before": "'WhatsApp \u00b7 DJM'",
+    "after": "'WhatsApp \u00b7 the agency'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'Club added to DJM Network'",
+    "after": "'Club added to Network'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'Captured into DJM Network'",
+    "after": "'Captured into Network'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'Undo this import batch? DJM will remove records created only by this batch and preserve anything still used elsewhere.'",
+    "after": "'Undo this import batch? The agency will remove records created only by this batch and preserve anything still used elsewhere.'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "\"DJM Network\"",
+    "after": "\"Network\""
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "\"Relationship signals DJM thinks matter\"",
+    "after": "\"Relationship signals the agency thinks matter\""
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'DJM intelligence suggestion'",
+    "after": "'Intelligence suggestion'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "\"Recent DJM activity\"",
+    "after": "\"Recent agency activity\""
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'DJM OS'",
+    "after": "'ReDream'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "\"Activity will appear as DJM works.\"",
+    "after": "\"Activity will appear as the agency works.\""
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "One canonical club record with contacts, needs and DJM history.",
+    "after": "One canonical club record with contacts, needs and agency history."
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "Paste a WhatsApp, call note or club conversation. DJM handles the admin.",
+    "after": "Paste a WhatsApp, call note or club conversation. The agency handles the admin."
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "Capture into DJM",
+    "after": "Capture into the agency"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "Recommended when the person already exists in Network. DJM will attach the whole chat to that exact contact and their current club.",
+    "after": "Recommended when the person already exists in Network. The agency will attach the whole chat to that exact contact and their current club."
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "'Existing DJM club contact'",
+    "after": "'Existing club contact'"
+  },
+  {
+    "file": "app/(djm-os)/network/page.tsx",
+    "before": "} records processed into DJM.`",
+    "after": "} records processed into the agency.`"
+  },
+  {
+    "file": "app/(djm-os)/opportunities/page.tsx",
+    "before": "Link the request to the club contact and preserve the original wording.\n                DJM will open the structured recruitment brief immediately after capture.",
+    "after": "Link the request to the club contact and preserve the original wording.\n                The agency will open the structured recruitment brief immediately after capture."
+  },
+  {
+    "file": "app/(djm-os)/opportunities/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/recruitment/[id]/page.tsx",
+    "before": "'Confirm this player has signed with DJM and create their Signed Player record?'",
+    "after": "'Confirm this player has signed with the agency and create their Signed Player record?'"
+  },
+  {
+    "file": "app/(djm-os)/recruitment/[id]/page.tsx",
+    "before": "'DJM will keep this in the task flow.'",
+    "after": "'The agency will keep this in the task flow.'"
+  },
+  {
+    "file": "app/(djm-os)/recruitment/[id]/page.tsx",
+    "before": "DJM contacted player",
+    "after": "The agency contacted player"
+  },
+  {
+    "file": "app/(djm-os)/recruitment/[id]/page.tsx",
+    "before": "'DJM'",
+    "after": "'The agency'"
+  },
+  {
+    "file": "app/(djm-os)/recruitment/[id]/page.tsx",
+    "before": "What DJM needs to do from here.",
+    "after": "What the agency needs to do from here."
+  },
+  {
+    "file": "app/(djm-os)/recruitment/[id]/page.tsx",
+    "before": "'DJM contacted player'",
+    "after": "'The agency contacted player'"
+  },
+  {
+    "file": "app/(djm-os)/settings/page.tsx",
+    "before": "\"Publish player resources and meaningful DJM announcements without adding another primary workspace.\"",
+    "after": "\"Publish player resources and meaningful agency announcements without adding another primary workspace.\""
+  },
+  {
+    "file": "app/(djm-os)/settings/player-experience/page.tsx",
+    "before": "'From DJM'",
+    "after": "'From the agency'"
+  },
+  {
+    "file": "app/(djm-os)/settings/player-experience/page.tsx",
+    "before": "FROM DJM",
+    "after": "FROM YOUR AGENCY"
+  },
+  {
+    "file": "app/(djm-os)/settings/player-experience/page.tsx",
+    "before": "Keep the useful guidance players can access through their DJM experience.",
+    "after": "Keep the useful guidance players can access through their player workspace."
+  },
+  {
+    "file": "app/(djm-os)/settings/team/page.tsx",
+    "before": "Who can operate DJM?",
+    "after": "Who can operate the agency?"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "'Prospect saved. DJM will enrich what it can from the connected source.'",
+    "after": "'Prospect saved. The agency will enrich what it can from the connected source.'"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "'DJM FIRST TEAM'",
+    "after": "'FIRST TEAM'"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "'DJM RECRUITMENT'",
+    "after": "'RECRUITMENT'"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "} still need a primary DJM owner.`",
+    "after": "} still need a primary agency owner.`"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "DJM",
+    "after": "The agency"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "Why are DJM interested?",
+    "after": "Why is the agency interested?"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "'Assign a primary DJM owner'",
+    "after": "'Assign a primary agency owner'"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "\"Change DJM owner\"",
+    "after": "\"Change agency owner\""
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "before": "DJM OWNER",
+    "after": "AGENCY OWNER"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "}-DJM-Player-Dossier.pdf`",
+    "after": "}-Player-Dossier.pdf`"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "'DJM player dossier downloaded'",
+    "after": "'Player dossier downloaded'"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "'Could not build DJM player dossier'",
+    "after": "'Could not build the agency player dossier'"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "'Reply from DJM'",
+    "after": "'Reply from the agency'"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "'DJM verified'",
+    "after": "'Agency verified'"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "NEXT DJM MOVE",
+    "after": "NEXT AGENCY MOVE"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "\"What should DJM do next?\"",
+    "after": "\"What should the agency do next?\""
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "'DJM note'",
+    "after": "'The agency note'"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "\"Private DJM note\u2026\"",
+    "after": "\"Private agency note\u2026\""
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "'DJM message \u00b7 '",
+    "after": "'The agency message \u00b7 '"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "Use a DJM shortcut or write your own request.",
+    "after": "Use an agency shortcut or write your own request."
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "DJM keeps this record connected. Open only to correct verified identity or contract information.",
+    "after": "The agency keeps this record connected. Open only to correct verified identity or contract information."
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "PRIVATE DJM / PLAYER",
+    "after": "PRIVATE AGENCY / PLAYER"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "Keep the source links that clubs and DJM use to verify the sporting record.",
+    "after": "Keep the source links that clubs and the agency use to verify the sporting record."
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "Source editing now lives in one place. Connect or replace a\n                  profile at the top of this player record and DJM updates every\n                  research, intelligence and dossier workflow from the same saved\n                  link.",
+    "after": "Source editing now lives in one place. Connect or replace a\n                  profile at the top of this player record and the agency updates every\n                  research, intelligence and dossier workflow from the same saved\n                  link."
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "DJM reviewed",
+    "after": "The agency reviewed"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "`Needs DJM: ${",
+    "after": "`Needs the agency: ${"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "DJM HISTORY",
+    "after": "AGENCY HISTORY"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "No sensitive DJM actions recorded yet.",
+    "after": "No sensitive agency actions recorded yet."
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "Remove from DJM Player",
+    "after": "Remove from Player Workspace"
+  },
+  {
+    "file": "app/admin/players/[id]/page.tsx",
+    "before": "The public club profile will stop being available. Player data and the DJM dossier stay safely in the platform.",
+    "after": "The public club profile will stop being available. Player data and the agency dossier stay safely in the platform."
+  },
+  {
+    "file": "app/career/page.tsx",
+    "before": "Contact DJM if this does not update shortly.",
+    "after": "Contact your agency if this does not update shortly."
+  },
+  {
+    "file": "app/career/page.tsx",
+    "before": "Talk to DJM",
+    "after": "Talk to your agency"
+  },
+  {
+    "file": "app/career/page.tsx",
+    "before": "'In DJM review'",
+    "after": "'In your agency review'"
+  },
+  {
+    "file": "app/career/page.tsx",
+    "before": "'DJM controls publication'",
+    "after": "'Your agency controls publication'"
+  },
+  {
+    "file": "app/career/page.tsx",
+    "before": "Review the exact DJM-approved football information",
+    "after": "Review the exact agency-approved football information"
+  },
+  {
+    "file": "app/career/page.tsx",
+    "before": "Add clubs and seasons once, then use the same trusted\n                  record in your DJM profile and club presentation.",
+    "after": "Add clubs and seasons once, then use the same trusted\n                  record in your agency profile and club presentation."
+  },
+  {
+    "file": "app/check-in/page.tsx",
+    "before": "DJM has the important update. Nothing else needed from you right now.",
+    "after": "Your agency has the important update. Nothing else needed from you right now."
+  },
+  {
+    "file": "app/check-in/page.tsx",
+    "before": "'OR TELL DJM WHAT CHANGED'",
+    "after": "'OR TELL YOUR AGENCY WHAT CHANGED'"
+  },
+  {
+    "file": "app/check-in/page.tsx",
+    "before": "No medical detail is required unless you want DJM to know.",
+    "after": "No medical detail is required unless you want your agency to know."
+  },
+  {
+    "file": "app/check-in/page.tsx",
+    "before": "Anything DJM should know?",
+    "after": "Anything your agency should know?"
+  },
+  {
+    "file": "app/check-in/page.tsx",
+    "before": "Anything you need from DJM?",
+    "after": "Anything you need from your agency?"
+  },
+  {
+    "file": "app/check-in/page.tsx",
+    "before": "Tick this only if DJM needs to know something new.",
+    "after": "Tick this only if your agency needs to know something new."
+  },
+  {
+    "file": "app/check-in/page.tsx",
+    "before": "Only if you want them in your private season log. DJM verifies club-facing stats separately.",
+    "after": "Only if you want them in your private season log. Your agency verifies club-facing stats separately."
+  },
+  {
+    "file": "app/connections/page.tsx",
+    "before": "MY DJM",
+    "after": "MY WORKSPACE"
+  },
+  {
+    "file": "app/cv/page.tsx",
+    "before": "DJM is preparing\n            your presentation.",
+    "after": "Your agency is preparing\n            your presentation."
+  },
+  {
+    "file": "app/cv/page.tsx",
+    "before": "Your club-facing\n            dossier appears here\n            once DJM has prepared\n            the verified\n            presentation.",
+    "after": "Your club-facing\n            dossier appears here\n            once your agency has prepared\n            the verified\n            presentation."
+  },
+  {
+    "file": "app/cv/page.tsx",
+    "before": "This is the\n                presentation DJM uses\n                for clubs.",
+    "after": "This is the\n                presentation your agency uses\n                for clubs."
+  },
+  {
+    "file": "app/cv/page.tsx",
+    "before": "'DJM preview'",
+    "after": "'Your agency preview'"
+  },
+  {
+    "file": "app/documents/page.tsx",
+    "before": "Passports,\n          agreements and career\n          documents live here\n          securely. Upload once,\n          then DJM has access\n          when it is genuinely\n          needed.",
+    "after": "Passports,\n          agreements and career\n          documents live here\n          securely. Upload once,\n          then your agency has access\n          when it is genuinely\n          needed."
+  },
+  {
+    "file": "app/documents/page.tsx",
+    "before": "Tell DJM what the\n            file is first, then\n            choose the document.",
+    "after": "Tell your agency what the\n            file is first, then\n            choose the document."
+  },
+  {
+    "file": "app/documents/page.tsx",
+    "before": "Files are not\n            public. DJM can\n            intentionally\n            approve specific\n            material for a club\n            share when\n            appropriate.",
+    "after": "Files are not\n            public. Your agency can\n            intentionally\n            approve specific\n            material for a club\n            share when\n            appropriate."
+  },
+  {
+    "file": "app/documents/page.tsx",
+    "before": "Upload a\n                  passport,\n                  agreement or\n                  any document\n                  DJM needs.",
+    "after": "Upload a\n                  passport,\n                  agreement or\n                  any document\n                  your agency needs."
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "before": "Get back into DJM securely.",
+    "after": "Get back into ReDream securely."
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "before": "Password recovery uses your confirmed account email. DJM never needs to know your password.",
+    "after": "Password recovery uses your confirmed account email. ReDream never needs to know your password."
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "before": "DJM Sports Management \u00b7 Private player environment",
+    "after": "ReDream \u00b7 Private player environment"
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "before": "'If this address belongs to a DJM account, a secure reset link has been sent.'",
+    "after": "'If this address belongs to a ReDream account, a secure reset link has been sent.'"
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "before": "'Enter the email you use for DJM. We will send a secure link to choose a new password.'",
+    "after": "'Enter the email you use for ReDream. We will send a secure link to choose a new password.'"
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "before": "Open the newest DJM recovery email. The link returns you to DJM to set a new password.",
+    "after": "Open the newest ReDream recovery email. The link returns you to ReDream to set a new password."
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "Your DJM profile is being prepared.",
+    "after": "Your profile is being prepared."
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'DJM NEEDS ONE THING'",
+    "after": "'YOUR AGENCY NEEDS ONE THING'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'DJM needs an update'",
+    "after": "'Your agency needs an update'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'Open the request and send DJM what is needed.'",
+    "after": "'Open the request and send your agency what is needed.'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'Open DJM'",
+    "after": "'Open your inbox'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'DJM NEEDS ONE THING'",
+    "after": "'YOUR AGENCY NEEDS ONE THING'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'Tell DJM how you are, what has changed and whether you need anything.'",
+    "after": "'Tell your agency how you are, what has changed and whether you need anything.'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'DJM has everything we need right now.'",
+    "after": "'Your agency has everything we need right now.'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'Open DJM'",
+    "after": "'Open your inbox'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'Ready for DJM review'",
+    "after": "'Ready for your agency review'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "DJM PLAYER",
+    "after": "PLAYER WORKSPACE"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'Your private connection to DJM'",
+    "after": "'Your private connection to your agency'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'DJM will ask only for information we cannot collect automatically.'",
+    "after": "'Your agency will ask only for information we cannot collect automatically.'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "FROM DJM",
+    "after": "FROM YOUR AGENCY"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "Your DJM club profile.",
+    "after": "Your club profile."
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "'DJM is building one clean, verified profile from your current information.'",
+    "after": "'Your agency is building one clean, verified profile from your current information.'"
+  },
+  {
+    "file": "app/home/page.tsx",
+    "before": "Private by default. DJM controls what can be shared externally.",
+    "after": "Private by default. Your agency controls what can be shared externally."
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "'Could not refresh DJM updates'",
+    "after": "'Could not refresh your agency updates'"
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "'Sent to DJM'",
+    "after": "'Sent to your agency'"
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "DJM + YOU",
+    "after": "YOUR AGENCY + YOU"
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "DJM updates.",
+    "after": "Your agency updates."
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "SEND DJM A NOTE",
+    "after": "SEND YOUR AGENCY A NOTE"
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "Send to DJM",
+    "after": "Send to your agency"
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "When DJM needs something from you, it will appear here.",
+    "after": "When your agency needs something from you, it will appear here."
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "Add a note to DJM",
+    "after": "Add a note to your agency"
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "\"Anything DJM should know?\"",
+    "after": "\"Anything your agency should know?\""
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "NOTES WITH DJM",
+    "after": "NOTES WITH YOUR AGENCY"
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "'DJM'",
+    "after": "'Your agency'"
+  },
+  {
+    "file": "app/inbox/page.tsx",
+    "before": "Send DJM a note",
+    "after": "Send your agency a note"
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "before": "Contact DJM and we\u2019ll fix the invitation.",
+    "after": "Contact your agency and we\u2019ll fix the invitation."
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "before": "DJM PLAYER",
+    "after": "PLAYER WORKSPACE"
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "before": "'Check what DJM already knows. Correct anything that is wrong and add only what is missing.'",
+    "after": "'Check what your agency already knows. Correct anything that is wrong and add only what is missing.'"
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "before": "'Your current playing situation. If DJM has already filled something in, just confirm it looks right.'",
+    "after": "'Your current playing situation. If your agency has already filled something in, just confirm it looks right.'"
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "before": "'Useful source links and current footage help DJM verify your profile. They are optional.'",
+    "after": "'Useful source links and current footage help your agency verify your profile. They are optional.'"
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "before": "We have already created your DJM player record. Most fields below are optional.",
+    "after": "We have already created your agency player record. Most fields below are optional."
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "before": "Private to DJM.",
+    "after": "Private to your agency."
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "before": "DJM can verify and improve your presentation after you join. You do not need every link to finish.",
+    "after": "Your agency can verify and improve your presentation after you join. You do not need every link to finish."
+  },
+  {
+    "file": "app/p/[slug]/page.tsx",
+    "before": "This DJM player profile is not currently published.",
+    "after": "This player profile is not currently published."
+  },
+  {
+    "file": "app/page.tsx",
+    "before": "DJM PLAYER",
+    "after": "PLAYER WORKSPACE"
+  },
+  {
+    "file": "app/page.tsx",
+    "before": "A private career space for represented DJM players. Keep your football information current, check in with your agent, share what DJM needs and stay ready when opportunities move quickly.",
+    "after": "A private career space for represented players. Keep your football information current, check in with your agent, share what your agency needs and stay ready when opportunities move quickly."
+  },
+  {
+    "file": "app/page.tsx",
+    "before": "Open DJM Player",
+    "after": "Open Player Workspace"
+  },
+  {
+    "file": "app/page.tsx",
+    "before": "Contact DJM",
+    "after": "Contact your agency"
+  },
+  {
+    "file": "app/page.tsx",
+    "before": "Direct DJM inbox",
+    "after": "Direct agency inbox"
+  },
+  {
+    "file": "app/page.tsx",
+    "before": "You and DJM control what stays private and what clubs can see.",
+    "after": "You and your agency control what stays private and what clubs can see."
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "Keep it accurate once. DJM uses the same information when opportunities move quickly.",
+    "after": "Keep it accurate once. Your agency uses the same information when opportunities move quickly."
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "'Reviewed by DJM'",
+    "after": "'Reviewed by your agency'"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "'DJM review required'",
+    "after": "'Your agency review required'"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "'Private to DJM \u00b7 financial expectations saved'",
+    "after": "'Private to your agency \u00b7 financial expectations saved'"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "'Private to DJM'",
+    "after": "'Private to your agency'"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "'Featured footage available to DJM'",
+    "after": "'Featured footage available to your agency'"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "'DJM chooses what clubs see'",
+    "after": "'Your agency chooses what clubs see'"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "Private storage controlled by DJM",
+    "after": "Private storage controlled by your agency"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "Private to you and DJM",
+    "after": "Private to you and your agency"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "These details help DJM qualify the right opportunities. They are not automatically included in your club dossier.",
+    "after": "These details help your agency qualify the right opportunities. They are not automatically included in your club dossier."
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "\"Be realistic. This helps DJM target the right opportunities.\"",
+    "after": "\"Be realistic. This helps your agency target the right opportunities.\""
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "\"Private to DJM\"",
+    "after": "\"Private to your agency\""
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "Add a current highlight or match link. DJM decides which footage belongs in the club-facing dossier.",
+    "after": "Add a current highlight or match link. Your agency decides which footage belongs in the club-facing dossier."
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "Add your best current footage so DJM can find it instantly.",
+    "after": "Add your best current footage so your agency can find it instantly."
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "before": "External profiles give DJM a verification trail. Your dossier statistics are reviewed separately by DJM.",
+    "after": "External profiles give your agency a verification trail. Your dossier statistics are reviewed separately by your agency."
+  },
+  {
+    "file": "app/reset-password/page.tsx",
+    "before": "Choose a new DJM password.",
+    "after": "Choose a new ReDream password."
+  },
+  {
+    "file": "app/reset-password/page.tsx",
+    "before": "DJM Sports Management \u00b7 Secure recovery",
+    "after": "ReDream \u00b7 Secure recovery"
+  },
+  {
+    "file": "app/sign-in/page.tsx",
+    "before": "'This email is not authorised for DJM staff access.'",
+    "after": "'This email is not authorised for agency staff access.'"
+  },
+  {
+    "file": "app/sign-in/page.tsx",
+    "before": "'Quick sign-in is not enabled for this DJM environment. Use your password below.'",
+    "after": "'Quick sign-in is not enabled for this workspace. Use your password below.'"
+  },
+  {
+    "file": "app/sign-in/page.tsx",
+    "before": "DJM Player keeps the player experience deliberately light while giving the agency the information needed to represent a career properly.",
+    "after": "Player Workspace keeps the player experience deliberately light while giving the agency the information needed to represent a career properly."
+  },
+  {
+    "file": "app/sign-in/page.tsx",
+    "before": "DJM Sports Management \u00b7 Private player environment",
+    "after": "ReDream \u00b7 Private player environment"
+  },
+  {
+    "file": "app/sign-in/page.tsx",
+    "before": "'DJM STAFF'",
+    "after": "'AGENCY STAFF'"
+  },
+  {
+    "file": "app/sign-in/page.tsx",
+    "before": "'Sign in to your DJM career space. New players join through a private invitation.'",
+    "after": "'Sign in to your ReDream career space. New players join through a private invitation.'"
+  },
+  {
+    "file": "app/sign-in/page.tsx",
+    "before": "'Only pre-authorised DJM staff emails can create an account.'",
+    "after": "'Only pre-authorised agency staff emails can create an account.'"
+  },
+  {
+    "file": "app/sign-in/page.tsx",
+    "before": "'DJM staff: create authorised account'",
+    "after": "'Agency staff: create authorised account'"
+  },
+  {
+    "file": "components/AdminResourceStudio.tsx",
+    "before": "'A DJM-reviewed checklist a player can open before a contract or renewal conversation.'",
+    "after": "'An agency-reviewed checklist a player can open before a contract or renewal conversation.'"
+  },
+  {
+    "file": "components/AdminResourceStudio.tsx",
+    "before": "Publish DJM-reviewed tools into the player Career workspace. Drafts stay private until an admin turns them on.",
+    "after": "Publish your agency-reviewed tools into the player Career workspace. Drafts stay private until an admin turns them on."
+  },
+  {
+    "file": "components/AdminResourceStudio.tsx",
+    "before": "'Turn DJM knowledge into an asset.'",
+    "after": "'Turn your agency knowledge into an asset.'"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "'DJM ADMIN APP'",
+    "after": "'REDREAM ADMIN APP'"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "'DJM PLAYER APP'",
+    "after": "'PLAYER WORKSPACE APP'"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "'Keep DJM Admin on your phone'",
+    "after": "'Keep ReDream Admin on your phone'"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "'Keep DJM Player on your phone'",
+    "after": "'Keep Player Workspace on your phone'"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "DJM Player is running as a standalone app.",
+    "after": "Player Workspace is running as a standalone app."
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "DJM notifications",
+    "after": "ReDream notifications"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "'This device can receive DJM alerts.'",
+    "after": "'This device can receive ReDream alerts.'"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "'Add DJM to your iPhone Home Screen first.'",
+    "after": "'Add ReDream to your iPhone Home Screen first.'"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "'Get notified when an important DJM action is due.'",
+    "after": "'Get notified when an important ReDream action is due.'"
+  },
+  {
+    "file": "components/AppExperience.tsx",
+    "before": "'Get notified when DJM needs something from you.'",
+    "after": "'Get notified when ReDream needs something from you.'"
+  },
+  {
+    "file": "components/ClubNeedCardResource.tsx",
+    "before": "Select someone already saved against this club in DJM Network.",
+    "after": "Select someone already saved against this club in Network."
+  },
+  {
+    "file": "components/ClubNeedCardResource.tsx",
+    "before": "Creating a new person adds or updates them in DJM Network, links them\n            to this club, and attaches them to this specific recruitment need.",
+    "after": "Creating a new person adds or updates them in Network, links them\n            to this club, and attaches them to this specific recruitment need."
+  },
+  {
+    "file": "components/ClubReadyPanel.tsx",
+    "before": "DJM can save the player at any\n          stage, but the dossier cannot be\n          marked Club Ready or published\n          until these essentials are\n          complete.",
+    "after": "Your agency can save the player at any\n          stage, but the dossier cannot be\n          marked Club Ready or published\n          until these essentials are\n          complete."
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'Face ID or passkey sign-in is not enabled for this DJM environment.'",
+    "after": "'Face ID or passkey sign-in is not enabled for this workspace.'"
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'This passkey is already linked to your DJM account.'",
+    "after": "'This passkey is already linked to your ReDream account.'"
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'Face ID or passkey sign-in is not enabled for this DJM environment.'",
+    "after": "'Face ID or passkey sign-in is not enabled for this workspace.'"
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "Connecting your DJM account...",
+    "after": "Connecting your ReDream account..."
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "Recover access through your confirmed DJM email. Your password always works. Set up Face ID or a passkey once for faster sign-in without typing your email or password.",
+    "after": "Recover access through your confirmed ReDream email. Your password always works. Set up Face ID or a passkey once for faster sign-in without typing your email or password."
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'Your confirmed DJM account email'",
+    "after": "'Your confirmed ReDream account email'"
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "Your DJM dates, where you already look.",
+    "after": "Your ReDream dates, where you already look."
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "Subscribe once. Dated DJM actions then stay current from the private DJM feed.",
+    "after": "Subscribe once. Dated ReDream actions then stay current from the private ReDream feed."
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "The feed contains only dated DJM action titles, times and deep links. Treat the subscription URL like a password.",
+    "after": "The feed contains only dated ReDream action titles, times and deep links. Treat the subscription URL like a password."
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'DJM tasks and follow-ups are ranked by urgency.'",
+    "after": "'ReDream tasks and follow-ups are ranked by urgency.'"
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'DJM requests and check-ins stay visible without notification noise.'",
+    "after": "'ReDream requests and check-ins stay visible without notification noise.'"
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "\"Push reminders for dated DJM actions.\"",
+    "after": "\"Push reminders for dated ReDream actions.\""
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "\"Morning DJM brief\"",
+    "after": "\"Morning ReDream brief\""
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "\"Important reminders can also reach your DJM account email.\"",
+    "after": "\"Important reminders can also reach your ReDream account email.\""
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'DJM notifications are enabled on this device.'",
+    "after": "'ReDream notifications are enabled on this device.'"
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'On iPhone, add DJM to the Home Screen first, then enable notifications.'",
+    "after": "'On iPhone, add ReDream to the Home Screen first, then enable notifications.'"
+  },
+  {
+    "file": "components/ConnectionsPanel.tsx",
+    "before": "'Ready to receive DJM reminders.'",
+    "after": "'Ready to receive ReDream reminders.'"
+  },
+  {
+    "file": "components/MySeason.tsx",
+    "before": "DJM verified",
+    "after": "Your agency verified"
+  },
+  {
+    "file": "components/MySeason.tsx",
+    "before": "Club-facing numbers DJM has reviewed.",
+    "after": "Club-facing numbers your agency has reviewed."
+  },
+  {
+    "file": "components/MySeason.tsx",
+    "before": "DJM is building your verified football record.",
+    "after": "Your agency is building your verified football record."
+  },
+  {
+    "file": "components/MySeason.tsx",
+    "before": "A private record for you and DJM.",
+    "after": "A private record for you and your agency."
+  },
+  {
+    "file": "components/MySeason.tsx",
+    "before": "Your weekly check-in is mainly for availability, how you are feeling and anything DJM should know.",
+    "after": "Your weekly check-in is mainly for availability, how you are feeling and anything your agency should know."
+  },
+  {
+    "file": "components/MySeason.tsx",
+    "before": "Player-entered numbers stay in your private log. DJM verifies statistics separately before clubs see them.",
+    "after": "Player-entered numbers stay in your private log. Your agency verifies statistics separately before clubs see them."
+  },
+  {
+    "file": "components/PlayerCareerNavigator.tsx",
+    "before": "'Ask DJM before it matters'",
+    "after": "'Ask your agency before it matters'"
+  },
+  {
+    "file": "components/PlayerCareerNavigator.tsx",
+    "before": "Private to you and DJM unless you approve a club-facing record.",
+    "after": "Private to you and your agency unless you approve a club-facing record."
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "DJM FOOTBALL INTELLIGENCE",
+    "after": "FOOTBALL INTELLIGENCE"
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "Current evidence, real provider peers, competition context and development potential kept separate so DJM can see what each signal actually means.",
+    "after": "Current evidence, real provider peers, competition context and development potential kept separate so you can see what each signal actually means."
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "'DJM stored potential'",
+    "after": "'ReDream stored potential'"
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"Verified provider percentiles against the peer cohort used by DJM. Missing categories stay missing.\"",
+    "after": "\"Verified provider percentiles against the peer cohort used by ReDream. Missing categories stay missing.\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"Update data. DJM will only create percentiles when the provider sample is large enough.\"",
+    "after": "\"Update data. ReDream will only create percentiles when the provider sample is large enough.\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"DJM will not draw synthetic players. Refresh the player when PitchAPI has current competition coverage.\"",
+    "after": "\"ReDream will not draw synthetic players. Refresh the player when PitchAPI has current competition coverage.\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"League strength and player performance are separate signals. When the same provider covers both leagues, DJM can also place his actual current metrics against real same-position players in the target league.\"",
+    "after": "\"League strength and player performance are separate signals. When the same provider covers both leagues, ReDream can also place his actual current metrics against real same-position players in the target league.\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"DJM leagues\"",
+    "after": "\"ReDream leagues\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "'s actual current PitchAPI metric. DJM does not translate that into a fake target-league percentile.",
+    "after": "'s actual current PitchAPI metric. ReDream does not translate that into a fake target-league percentile."
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"Load the target league cohort. DJM requires at least six real same-role peers and a shared observed metric before drawing this comparison.\"",
+    "after": "\"Load the target league cohort. ReDream requires at least six real same-role peers and a shared observed metric before drawing this comparison.\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"This competition does not yet have a verified PitchAPI identity in DJM, so no player dots are shown.\"",
+    "after": "\"This competition does not yet have a verified PitchAPI identity in ReDream, so no player dots are shown.\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"Current level comes from V5. Potential is shown only when DJM has a stored evidence-backed or reviewed potential value.\"",
+    "after": "\"Current level comes from V5. Potential is shown only when ReDream has a stored evidence-backed or reviewed potential value.\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "' \u00b7 stored DJM potential, separate from current level'",
+    "after": "' \u00b7 stored ReDream potential, separate from current level'"
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "\"V5 needs enough trusted evidence before DJM can show a current-level marker.\"",
+    "after": "\"V5 needs enough trusted evidence before ReDream can show a current-level marker.\""
+  },
+  {
+    "file": "components/PlayerComparisonExplorer.tsx",
+    "before": "This is not presented as SciSports SciSkill or a scientifically calibrated future-career probability. DJM should only calibrate its own predictive potential after it has a sufficiently large labelled longitudinal player dataset.",
+    "after": "This is not presented as SciSports SciSkill or a scientifically calibrated future-career probability. ReDream should only calibrate its own predictive potential after it has a sufficiently large labelled longitudinal player dataset."
+  },
+  {
+    "file": "components/PlayerConnectionHub.tsx",
+    "before": "\"Free-source player stats refreshed across DJM.\"",
+    "after": "\"Free-source player stats refreshed across ReDream.\""
+  },
+  {
+    "file": "components/PlayerConnectionHub.tsx",
+    "before": "`Source saved across DJM. Free stats refresh needs review: ${",
+    "after": "`Source saved across ReDream. Free stats refresh needs review: ${"
+  },
+  {
+    "file": "components/PlayerConnectionHub.tsx",
+    "before": "} across DJM.`",
+    "after": "} across ReDream.`"
+  },
+  {
+    "file": "components/PlayerConnectionHub.tsx",
+    "before": "Paste one trusted profile link or upload a file. DJM attaches it to\n            this player everywhere, refreshes free permitted data sources and only asks\n            for review when evidence conflicts.",
+    "after": "Paste one trusted profile link or upload a file. ReDream attaches it to\n            this player everywhere, refreshes free permitted data sources and only asks\n            for review when evidence conflicts."
+  },
+  {
+    "file": "components/PlayerConnectionHub.tsx",
+    "before": "Transfermarkt is stored as a research reference. Current statistics\n            come from permitted provider integrations and reviewed DJM evidence.",
+    "after": "Transfermarkt is stored as a research reference. Current statistics\n            come from permitted provider integrations and reviewed ReDream evidence."
+  },
+  {
+    "file": "components/PlayerIntelligencePanel.tsx",
+    "before": "'Global intelligence refreshed and the DJM score has been rebuilt.'",
+    "after": "'Global intelligence refreshed and the ReDream score has been rebuilt.'"
+  },
+  {
+    "file": "components/PlayerIntelligencePanel.tsx",
+    "before": "'DJM Global Score and five-year outlook recalculated.'",
+    "after": "'ReDream Global Score and five-year outlook recalculated.'"
+  },
+  {
+    "file": "components/PlayerIntelligencePanel.tsx",
+    "before": "DJM GLOBAL INTELLIGENCE",
+    "after": "GLOBAL INTELLIGENCE"
+  },
+  {
+    "file": "components/PlayerIntelligencePanel.tsx",
+    "before": "Research-informed development prior with uncertainty. It is designed to upgrade to a\n                trained longitudinal ensemble once DJM has enough player-season history, rather than\n                pretending a tiny internal sample is machine learning.",
+    "after": "Research-informed development prior with uncertainty. It is designed to upgrade to a\n                trained longitudinal ensemble once ReDream has enough player-season history, rather than\n                pretending a tiny internal sample is machine learning."
+  },
+  {
+    "file": "components/PlayerIntelligencePanel.tsx",
+    "before": "'The current score needs stronger evidence before DJM publishes a development forecast.'",
+    "after": "'The current score needs stronger evidence before ReDream publishes a development forecast.'"
+  },
+  {
+    "file": "components/PlayerIntelligencePanel.tsx",
+    "before": "'DJM Global Score V7.1'",
+    "after": "'ReDream Global Score V7.1'"
+  },
+  {
+    "file": "components/PlayerIntelligencePanel.tsx",
+    "before": "'DJM Global Score V7'",
+    "after": "'ReDream Global Score V7'"
+  },
+  {
+    "file": "components/PlayerIntelligencePanel.tsx",
+    "before": "'DJM Player Score V5'",
+    "after": "'Player Score V5'"
+  },
+  {
+    "file": "components/PlayerShell.tsx",
+    "before": "'DJM'",
+    "after": "'Your agency'"
+  },
+  {
+    "file": "components/PlayerShell.tsx",
+    "before": "'DJM'",
+    "after": "'Your agency'"
+  },
+  {
+    "file": "components/PlayerStatsPanel.tsx",
+    "before": "DJM is showing sourced player statistics only. Scoring, projections and player\n            comparison are intentionally hidden until the underlying data is strong enough.",
+    "after": "Your agency is showing sourced player statistics only. Scoring, projections and player\n            comparison are intentionally hidden until the underlying data is strong enough."
+  },
+  {
+    "file": "components/PlayerVoiceLauncher.tsx",
+    "before": "'DJM could not confirm that the voice message was delivered'",
+    "after": "'ReDream could not confirm that the voice message was delivered'"
+  },
+  {
+    "file": "components/PlayerVoiceLauncher.tsx",
+    "before": "Voice message to DJM",
+    "after": "Voice message to your agency"
+  },
+  {
+    "file": "components/PlayerVoiceLauncher.tsx",
+    "before": "Speak naturally. DJM transcribes the message and sends it straight to your agency team.",
+    "after": "Speak naturally. ReDream transcribes the message and sends it straight to your agency team."
+  },
+  {
+    "file": "components/PlayerVoiceLauncher.tsx",
+    "before": "Sent to DJM",
+    "after": "Sent to your agency"
+  },
+  {
+    "file": "components/PlayerVoiceLauncher.tsx",
+    "before": "\"Voice message to DJM\"",
+    "after": "\"Voice message to your agency\""
+  },
+  {
+    "file": "components/PlayerVoiceLauncher.tsx",
+    "before": "\"Voice message to DJM\"",
+    "after": "\"Voice message to your agency\""
+  },
+  {
+    "file": "components/ProfessionalToolkit.tsx",
+    "before": "Short professional playbooks for moments that\n            matter. Each one ends in a real action inside\n            DJM Player.",
+    "after": "Short professional playbooks for moments that\n            matter. Each one ends in a real action inside\n            Player Workspace."
+  },
+  {
+    "file": "components/ProfessionalToolkit.tsx",
+    "before": "CURATED BY DJM",
+    "after": "CURATED BY YOUR AGENCY"
+  },
+  {
+    "file": "components/ProfessionalToolkit.tsx",
+    "before": "'DJM resource'",
+    "after": "'Your agency resource'"
+  },
+  {
+    "file": "components/RemovePlayerSheet.tsx",
+    "before": "This permanently removes the\n          player record, linked player\n          login, dossier, check-ins,\n          requests, opportunities, share\n          links and stored player files.\n          Internal recruitment or audit\n          history that DJM needs to retain\n          may remain without the player\n          link.",
+    "after": "This permanently removes the\n          player record, linked player\n          login, dossier, check-ins,\n          requests, opportunities, share\n          links and stored player files.\n          Internal recruitment or audit\n          history that your agency needs to retain\n          may remain without the player\n          link."
+  },
+  {
+    "file": "components/ResearchLinkRail.tsx",
+    "before": "DJM Player Intelligence",
+    "after": "Player Intelligence"
+  },
+  {
+    "file": "components/SeasonRecordEditor.tsx",
+    "before": "'Season record saved \u00b7 DJM review required.'",
+    "after": "'Season record saved \u00b7 your agency review required.'"
+  },
+  {
+    "file": "components/SeasonRecordEditor.tsx",
+    "before": "'Season record removed \u00b7 DJM review required.'",
+    "after": "'Season record removed \u00b7 your agency review required.'"
+  },
+  {
+    "file": "components/SeasonRecordEditor.tsx",
+    "before": "DJM currently:",
+    "after": "Your agency currently:"
+  },
+  {
+    "file": "components/SeasonRecordEditor.tsx",
+    "before": "Optional external\n                  reference used by\n                  DJM to review these\n                  numbers.",
+    "after": "Optional external\n                  reference used by\n                  your agency to review these\n                  numbers."
+  },
+  {
+    "file": "components/SeasonRecordEditor.tsx",
+    "before": "\"Transfermarkt / Wyscout / DJM record\"",
+    "after": "\"Transfermarkt / Wyscout / your agency record\""
+  },
+  {
+    "file": "lib/admin-command-centre.ts",
+    "before": "'A player is waiting for DJM.'",
+    "after": "'A player is waiting for your agency.'"
+  },
+  {
+    "file": "lib/admin-command-centre.ts",
+    "before": "'Player asked DJM for support'",
+    "after": "'Player asked your agency for support'"
+  },
+  {
+    "file": "lib/admin-command-centre.ts",
+    "before": "'Review the change and update DJM\u2019s next move.'",
+    "after": "'Review the change and update your agency\u2019s next move.'"
+  },
+  {
+    "file": "lib/admin-command-centre.ts",
+    "before": "'DJM is operating without a current availability signal.'",
+    "after": "'Your agency is operating without a current availability signal.'"
+  },
+  {
+    "file": "lib/admin-command-centre.ts",
+    "before": "'DJM action is overdue'",
+    "after": "'Your agency action is overdue'"
+  },
+  {
+    "file": "lib/admin-command-centre.ts",
+    "before": "'DJM action is due soon'",
+    "after": "'Your agency action is due soon'"
+  },
+  {
+    "file": "lib/admin-command-centre.ts",
+    "before": "'Player record needs DJM review'",
+    "after": "'Player record needs your agency review'"
+  },
+  {
+    "file": "lib/brain.ts",
+    "before": "'DJM Command data-quality checks'",
+    "after": "'Agency command data-quality checks'"
+  },
+  {
+    "file": "lib/brain.ts",
+    "before": "'DJM Network \u00b7 current club contacts'",
+    "after": "'Network \u00b7 current club contacts'"
+  },
+  {
+    "file": "lib/brain.ts",
+    "before": "'DJM Recruitment pipeline'",
+    "after": "'Recruitment pipeline'"
+  },
+  {
+    "file": "lib/brain.ts",
+    "before": "'DJM signed-player master records'",
+    "after": "'ReDream signed-player master records'"
+  },
+  {
+    "file": "lib/brain.ts",
+    "before": "'DJM Network \u00b7 canonical club records'",
+    "after": "'Network \u00b7 canonical club records'"
+  },
+  {
+    "file": "lib/brain.ts",
+    "before": "'Cross-source DJM record search'",
+    "after": "'Cross-source ReDream record search'"
+  },
+  {
+    "file": "lib/clubReady.ts",
+    "before": "'DJM positioning headline'",
+    "after": "'Your agency positioning headline'"
+  },
+  {
+    "file": "lib/intelligence.ts",
+    "before": "'A material record needs human verification before DJM relies on it.'",
+    "after": "'A material record needs human verification before your agency relies on it.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Complete your player record before DJM prepares it for opportunities.'",
+    "after": "'Complete your player record before your agency prepares it for opportunities.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'DJM has your position for this week.'",
+    "after": "'Your agency has your position for this week.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'A current check-in tells DJM if it can move quickly.'",
+    "after": "'A current check-in tells your agency if it can move quickly.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Your DJM-approved club profile is live.'",
+    "after": "'Your agency-approved club profile is live.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'DJM has not created a club-facing profile yet.'",
+    "after": "'Your agency has not created a club-facing profile yet.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Tell DJM where, when and how you would consider moving.'",
+    "after": "'Tell your agency where, when and how you would consider moving.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'DJM has the core information needed to respond quickly when the right call comes.'",
+    "after": "'Your agency has the core information needed to respond quickly when the right call comes.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'This measures preparation, not football ability. Complete the weakest items to help DJM move faster.'",
+    "after": "'This measures preparation, not football ability. Complete the weakest items to help your agency move faster.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'DJM REQUEST'",
+    "after": "'AGENCY REQUEST'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'DJM needs an update'",
+    "after": "'Your agency needs an update'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Reply to DJM'",
+    "after": "'Reply to your agency'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Give DJM this week\u2019s picture'",
+    "after": "'Give your agency this week\u2019s picture'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Your core actions are complete. Check that your DJM club profile still tells the right story.'",
+    "after": "'Your core actions are complete. Check that your agency club profile still tells the right story.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Confirm the end date with DJM'",
+    "after": "'Confirm the end date with your agency'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Ask DJM to verify it'",
+    "after": "'Ask your agency to verify it'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Plan the next conversation with DJM'",
+    "after": "'Plan the next conversation with your agency'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'DJM has the key date'",
+    "after": "'Your agency has the key date'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'A focused post-match review that gives you and DJM more than a scoreline or stats page.'",
+    "after": "'A focused post-match review that gives you and your agency more than a scoreline or stats page.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Prepare the information and files DJM needs before a club call, trial or move becomes urgent.'",
+    "after": "'Prepare the information and files your agency needs before a club call, trial or move becomes urgent.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Open your DJM club profile and report anything that is wrong, stale or missing.'",
+    "after": "'Open your agency club profile and report anything that is wrong, stale or missing.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'A short preparation format for a focused conversation with DJM, especially when something has changed.'",
+    "after": "'A short preparation format for a focused conversation with your agency, especially when something has changed.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Ask one direct question: what decision or action do you need DJM to help with?'",
+    "after": "'Ask one direct question: what decision or action do you need your agency to help with?'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Agree what you will do, what DJM will do and when you will speak again.'",
+    "after": "'Agree what you will do, what your agency will do and when you will speak again.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Send DJM the context'",
+    "after": "'Send your agency the context'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'A documented contract position and a question list for DJM and qualified legal advisers.'",
+    "after": "'A documented contract position and a question list for your agency and qualified legal advisers.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Clear preferred markets, non-negotiables, travel readiness and family considerations for DJM.'",
+    "after": "'Clear preferred markets, non-negotiables, travel readiness and family considerations for your agency.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Record passports and known work rights, then ask DJM to verify any registration or permit question.'",
+    "after": "'Record passports and known work rights, then ask your agency to verify any registration or permit question.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Ask DJM for feedback'",
+    "after": "'Ask your agency for feedback'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Give DJM useful context without turning the player app into a medical record.'",
+    "after": "'Give your agency useful context without turning the player app into a medical record.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'DJM understands your availability, expected next update and the support you want.'",
+    "after": "'Your agency understands your availability, expected next update and the support you want.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Tell DJM whether you need a conversation, practical help or simply for the agency to stay informed.'",
+    "after": "'Tell your agency whether you need a conversation, practical help or simply for the agency to stay informed.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Update DJM privately'",
+    "after": "'Update your agency privately'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'DJM Player does not diagnose injuries or replace your club and qualified medical professionals.'",
+    "after": "'Player Workspace does not diagnose injuries or replace your club and qualified medical professionals.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Ask DJM and use independently qualified legal, tax or financial advice before committing.'",
+    "after": "'Ask your agency and use independently qualified legal, tax or financial advice before committing.'"
+  },
+  {
+    "file": "lib/player-career.ts",
+    "before": "'Ask DJM to verify'",
+    "after": "'Ask your agency to verify'"
+  },
+  {
+    "file": "lib/push.ts",
+    "before": "'Add DJM to your iPhone Home Screen before enabling notifications.'",
+    "after": "'Add your agency to your iPhone Home Screen before enabling notifications.'"
+  }
+]
