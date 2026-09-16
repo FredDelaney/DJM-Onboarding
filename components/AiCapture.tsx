@@ -298,11 +298,9 @@ export default function AiCapture({
   );
 
   const flushPending = useCallback(async () => {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-
     let uploadedAny = false;
     try {
-      const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false), () => navigator.onLine);
+      const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false));
       uploadedAny = result.uploaded > 0;
       if (result.failed > 0 && mountedRef.current) setError('Some saved notes could not upload. They remain on this phone; check your connection and original account. Older notes without an account need recovery.');
     } catch {
