@@ -30,7 +30,6 @@ begin
     v_definition := replace(v_definition,'TELL_DJM_','REDREAM_AI_');
     v_definition := replace(v_definition,'Tell DJM','ReDream AI');
     v_definition := replace(v_definition,'DJM','ReDream');
-    v_definition := replace(v_definition,'''/tell?workspace=''||t.slug||''&capture=''', '''/workspace/''||t.slug||''/capture?capture=''');
     execute v_definition;
     select string_agg(format('%I',arg),', ' order by ord) into v_call
     from unnest(r.proargnames) with ordinality as args(arg,ord) where ord<=r.pronargs;
@@ -73,3 +72,18 @@ end;
 $$;
 revoke all on function public.redream_ai_capture_workspace(uuid) from public,anon;
 grant execute on function public.redream_ai_capture_workspace(uuid) to authenticated;
+
+-- User-only resolver APIs cannot identify the capture tenant. Retire every
+-- overload rather than infer authority from a primary membership or active job.
+-- Already-running old workers fail closed; queued work resumes with the shared worker.
+do $retire$
+declare r record;
+begin
+  for r in select p.oid::regprocedure signature from pg_proc p
+    where p.pronamespace='public'::regnamespace and p.proname in
+      ('djm_tell_resolve_entity','djm_tell_resolve_entity_typed','djm_tell_resolve_entity_typed_unscoped','djm_tell_vocabulary')
+  loop
+    execute format('revoke all on function %s from public,anon,authenticated,service_role',r.signature);
+  end loop;
+end;
+$retire$;

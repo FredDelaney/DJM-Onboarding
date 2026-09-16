@@ -24,8 +24,14 @@ export function pendingAiWorkspace(capture: {
   workspaceSlug?: string | null;
   context?: Record<string, unknown>;
 }): string | null {
-  if (capture.workspace) return capture.workspace.workspaceSlug;
-  if (capture.workspaceSlug !== undefined) return capture.workspaceSlug;
+  if (capture.workspace != null) {
+    const slug = capture.workspace.workspaceSlug;
+    if (slug === null && capture.workspace.runtimeOrigin === 'legacy') return aiWorkspaceSlug(null, capture.workspace.originRoute || '');
+    return typeof slug === 'string' && slug.length > 0 ? slug : 'unresolved';
+  }
+  if (capture.workspaceSlug !== undefined && capture.workspaceSlug !== null) {
+    return typeof capture.workspaceSlug === 'string' && capture.workspaceSlug.length > 0 ? capture.workspaceSlug : 'unresolved';
+  }
   // Older records retain their original route, including explicit workspace routes.
   return aiWorkspaceSlug(null, String(capture.context?.route || ''));
 }

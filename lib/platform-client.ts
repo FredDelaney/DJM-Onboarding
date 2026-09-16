@@ -26,9 +26,11 @@ export async function platformRpc<T = any>(
 export async function platformInvoke<T = any>(
   functionName: string,
   body: FormData | Record<string, any>,
+  accessToken?: string,
 ): Promise<T> {
   return measureOperation('edge', functionName, async () => {
     const options: any = { body };
+    if (accessToken) options.headers = { Authorization: `Bearer ${accessToken}` };
     if (functionName === 'djm-tell-capture' || functionName === 'djm-tell-process' || functionName === 'redream-ai-capture' || functionName === 'redream-ai-process') {
       options.region = 'eu-west-1';
     }

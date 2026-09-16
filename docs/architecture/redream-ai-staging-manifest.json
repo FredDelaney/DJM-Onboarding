@@ -1,0 +1,157 @@
+{
+  "branch": "saas/tell-djm-tenant-context",
+  "base_commit": "a6257822f67ec2df9b77764610424a6b00b56bb2",
+  "target": "ReDream staging only; operator must verify project IDs before execution",
+  "executed": false,
+  "migrations": [
+    {
+      "path": "supabase/migrations/20260915192303_tell_capture_workspace_boundary.sql",
+      "sha256": "19ce3362b097c1a18fc95fa10bccc7e09c9b07200c5bb28bd43b9772bcc7a087"
+    },
+    {
+      "path": "supabase/migrations/20260915194224_redream_ai_canonical_api.sql",
+      "sha256": "02c3fd2480ac453933cae2fa36dbb2ba146fc669397a67187ed206e50544c837"
+    },
+    {
+      "path": "supabase/migrations/20260915194621_redream_ai_activation_evidence.sql",
+      "sha256": "f15f0d8c0473e758aabf77073f542ea9d37828bbd21c2f0c6e46989e5ec3e26b"
+    }
+  ],
+  "required_ai_deployment_order": [
+    "redream-ai-process",
+    "redream-ai-capture",
+    "djm-tell-process",
+    "djm-tell-capture"
+  ],
+  "affected_edge_functions": [
+    {
+      "function": "club-pitch-response",
+      "reasons": [
+        "supabase/functions/club-pitch-response/index.ts"
+      ],
+      "verify_jwt": false
+    },
+    {
+      "function": "djm-calendar-feed",
+      "reasons": [
+        "supabase/functions/djm-calendar-feed/index.ts"
+      ],
+      "verify_jwt": false
+    },
+    {
+      "function": "djm-network-capture",
+      "reasons": [
+        "supabase/functions/djm-network-capture/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "djm-network-import",
+      "reasons": [
+        "supabase/functions/djm-network-import/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "djm-player-voice-message",
+      "reasons": [
+        "supabase/functions/djm-player-voice-message/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "djm-tell-capture",
+      "reasons": [
+        "supabase/functions/_shared/ai-capture.ts",
+        "supabase/functions/djm-tell-capture/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "djm-tell-process",
+      "reasons": [
+        "supabase/functions/_shared/ai-process.ts",
+        "supabase/functions/_shared/ai-router.ts",
+        "supabase/functions/djm-tell-process/index.ts"
+      ],
+      "verify_jwt": false
+    },
+    {
+      "function": "djm-transfermarkt-enrich",
+      "reasons": [
+        "supabase/functions/djm-transfermarkt-enrich/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "import-player-evidence-json",
+      "reasons": [
+        "supabase/functions/import-player-evidence-json/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "import-player-stats",
+      "reasons": [
+        "supabase/functions/_shared/football-data/providers.ts",
+        "supabase/functions/_shared/football-data/wyscout.ts",
+        "supabase/functions/import-player-stats/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "redream-ai-capture",
+      "reasons": [
+        "supabase/functions/_shared/ai-capture.ts",
+        "supabase/functions/redream-ai-capture/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "redream-ai-process",
+      "reasons": [
+        "supabase/functions/_shared/ai-process.ts",
+        "supabase/functions/_shared/ai-router.ts",
+        "supabase/functions/redream-ai-process/index.ts"
+      ],
+      "verify_jwt": false
+    },
+    {
+      "function": "refresh-player-data",
+      "reasons": [
+        "supabase/functions/refresh-player-data/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "refresh-player-data-universal",
+      "reasons": [
+        "supabase/functions/refresh-player-data-universal/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "refresh-player-peer-data",
+      "reasons": [
+        "supabase/functions/refresh-player-peer-data/index.ts"
+      ],
+      "verify_jwt": true
+    },
+    {
+      "function": "refresh-player-stats-ai-worker",
+      "reasons": [
+        "supabase/functions/refresh-player-stats-ai-worker/index.ts"
+      ],
+      "verify_jwt": false
+    },
+    {
+      "function": "refresh-player-stats-free",
+      "reasons": [
+        "supabase/functions/refresh-player-stats-free/index.ts"
+      ],
+      "verify_jwt": true
+    }
+  ],
+  "frontend": "Next.js app from the reviewed branch commit, after migrations and all four AI entrypoints",
+  "shared_modules_deploy_separately": false
+}

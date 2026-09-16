@@ -57,6 +57,7 @@ begin
     for v_key,v_value in select key,value from jsonb_each(p_payload) loop
       v_type := case v_key
         when 'person_id' then 'person' when 'source_person_id' then 'person'
+        when 'contact_id' then 'person'
         when 'organisation_id' then 'club' when 'player_id' then 'player'
         when 'prospect_id' then 'prospect' when 'club_need_id' then 'club_need'
         when 'interaction_id' then 'interaction' when 'task_id' then 'task'
@@ -116,7 +117,7 @@ begin
   if tg_table_name='tell_djm_permissions' then
     v_user_id := nullif(v_row->>'user_id','')::uuid;
     if v_tenant is null then v_tenant := private.primary_active_tenant_id(v_user_id); end if;
-    if not private.user_has_staff_tenant_access(v_tenant,v_user_id) then
+    if coalesce((v_row->>'is_enabled')::boolean,false) and not private.user_has_staff_tenant_access(v_tenant,v_user_id) then
       raise exception 'Permission workspace access denied' using errcode='23514';
     end if;
 
@@ -338,6 +339,13 @@ begin
 end;
 $$;
 
+create or replace function private.tell_request_workspace_slug()
+returns text language sql stable security definer set search_path='' as $$
+  select slug from platform.tenants where id=private.tell_request_tenant();
+$$;
+revoke all on function private.tell_request_workspace_slug() from public,anon;
+grant execute on function private.tell_request_workspace_slug() to authenticated;
+
 create or replace function public.djm_tell_current_access()
 returns jsonb
 language plpgsql
@@ -365,6 +373,7 @@ begin
 
   return jsonb_build_object(
     'tenant_id',private.tell_request_tenant(),
+    'workspace_slug',private.tell_request_workspace_slug(),
     'enabled',coalesce(v_enabled,false) and coalesce(v_system_live,false),
     'system_live',coalesce(v_system_live,false),
     'permission_scope',coalesce(v_scope,'read_only'),
@@ -446,7 +455,7 @@ begin
   select * into v_capture
   from djm_os.captures
   where id=p_capture_id
-    and processing_version='tell_djm_v1';
+    and processing_version='tell_djm_v1' for update;
 
   if not found then raise exception 'Capture not found'; end if;
 
@@ -680,7 +689,7 @@ begin
 
   select * into v_question
   from djm_os.tell_djm_questions
-  where id=p_question_id and status='open';
+  where id=p_question_id and status='open' for update;
   if not found then raise exception 'Question is no longer open'; end if;
 
   perform private.tell_assert_capture(v_question.capture_id,true);
@@ -986,7 +995,7 @@ begin
   perform private.tell_request_tenant();
   if length(v_name)<2 then raise exception 'Club name is required'; end if;
 
-  select * into v_capture from djm_os.captures where id=p_capture_id;
+  select * into v_capture from djm_os.captures where id=p_capture_id for update;
   if not found then raise exception 'Capture not found'; end if;
 
   if not exists (
@@ -1068,7 +1077,7 @@ begin
     raise exception 'Contact name and club are required';
   end if;
 
-  select * into v_capture from djm_os.captures where id=p_capture_id;
+  select * into v_capture from djm_os.captures where id=p_capture_id for update;
   if not found then raise exception 'Capture not found'; end if;
 
   if v_capture.submitted_by<>auth.uid()
@@ -1326,6 +1335,16 @@ begin
 end;
 $$;
 
+-- An invoker query could hide another tenant's binding behind RLS.
+create or replace function private.tell_audio_binding_allowed(p_uri text,p_tenant uuid)
+returns boolean language sql stable security definer set search_path='' as $$
+  select p_tenant=private.tell_request_tenant() and not exists (
+    select 1 from djm_os.captures where source_uri=p_uri and tenant_id is distinct from p_tenant
+  );
+$$;
+revoke all on function private.tell_audio_binding_allowed(text,uuid) from public,anon;
+grant execute on function private.tell_audio_binding_allowed(text,uuid) to authenticated;
+
 create or replace function public.djm_tell_enqueue_capture(
   p_client_capture_id uuid,
   p_capture_type text,
@@ -1357,19 +1376,30 @@ begin
   perform private.tell_assert_entities(v_tenant,p_context_json);
   if p_context_json ? 'resolutions' then raise exception 'Capture context denied' using errcode='23514'; end if;
   if p_parent_capture_id is not null then perform private.tell_assert_capture(p_parent_capture_id); end if;
-  if p_source_uri is not null and p_source_uri not like
-    'djm-network-captures/'||v_tenant::text||'/'||auth.uid()::text||'/tell/%' then
-    raise exception 'Capture recording access denied' using errcode='42501';
+  if p_source_uri is not null and not (
+    p_source_uri like 'djm-network-captures/'||v_tenant::text||'/'||auth.uid()::text||'/tell/%'
+    or (
+      -- Old capture Edge versions have no workspace header and use this user-owned path.
+      not (coalesce(nullif(current_setting('request.headers',true),''),'{}')::jsonb ? 'x-redream-workspace')
+      and p_source_uri like 'djm-network-captures/'||auth.uid()::text||'/tell-djm/%'
+    )
+  ) then raise exception 'Capture recording access denied' using errcode='42501'; end if;
+  if p_source_uri is not null then
+    perform pg_advisory_xact_lock(hashtextextended(p_source_uri,1));
   end if;
+  if p_source_uri is not null and exists (
+    select 1 where not private.tell_audio_binding_allowed(p_source_uri,v_tenant)
+  ) then raise exception 'Capture recording access denied' using errcode='42501'; end if;
   if p_client_capture_id is null then raise exception 'Client capture ID is required'; end if;
   if p_capture_type not in ('audio','text') then raise exception 'Tell DJM currently supports audio and text captures'; end if;
   if coalesce(length(trim(p_raw_text)),0)=0 and p_source_uri is null then raise exception 'Capture content is required'; end if;
 
   if not exists (
     select 1 from djm_os.tell_djm_permissions p cross join djm_os.tell_djm_settings s
-    where p.user_id=auth.uid() and p.tenant_id=v_tenant and p.is_enabled=true and s.id=1 and s.is_live=true
+    where p.user_id=auth.uid() and p.tenant_id=v_tenant and p.is_enabled=true and p.permission_scope in ('full','scout') and s.id=1 and s.is_live=true
   ) then raise exception 'Tell DJM is not enabled for this account'; end if;
 
+  perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text||':'||p_client_capture_id::text,0));
   select * into v_capture from djm_os.captures
   where tenant_id=v_tenant and submitted_by=auth.uid() and client_capture_id=p_client_capture_id limit 1;
   if found then return jsonb_build_object('capture_id',v_capture.id,'status',v_capture.status,'duplicate',true); end if;
@@ -1426,7 +1456,7 @@ declare
 begin
   select * into v_capture
   from djm_os.captures
-  where id=p_capture_id;
+  where id=p_capture_id for update;
 
   if not found then raise exception 'Capture not found'; end if;
   if not private.user_has_staff_tenant_access(v_capture.tenant_id,v_capture.submitted_by) then
@@ -1946,7 +1976,8 @@ exception
     do update
     set status='failed',
         error_message=excluded.error_message,
-        updated_at=now();
+        updated_at=now()
+    where djm_os.tell_djm_actions.status not in ('applied','undone','needs_review');
 
     return jsonb_build_object(
       'status','failed',
@@ -1983,7 +2014,7 @@ declare
   v_created_prospect boolean:=false;
   v_review jsonb;
 begin
-  select * into v_capture from djm_os.captures where id=p_capture_id;
+  select * into v_capture from djm_os.captures where id=p_capture_id for update;
   if not found then raise exception 'Capture not found'; end if;
   if not private.user_has_staff_tenant_access(v_capture.tenant_id,v_capture.submitted_by) then
     raise exception 'Capture workspace access denied' using errcode='42501';
@@ -2172,7 +2203,8 @@ exception
       p_confidence,p_evidence,p_payload,p_payload,left(sqlerrm,1000)
     )
     on conflict (capture_id,action_hash)
-    do update set status='failed',error_message=excluded.error_message,updated_at=now();
+    do update set status='failed',error_message=excluded.error_message,updated_at=now()
+    where djm_os.tell_djm_actions.status not in ('applied','undone','needs_review');
     return jsonb_build_object('status','failed','error',sqlerrm);
 end;
 $$;
@@ -2219,7 +2251,7 @@ begin
     select 1
     from djm_os.tell_djm_questions q
     where q.capture_id = v_capture.id
-      and q.status not in ('answered', 'superseded', 'cancelled')
+      and q.status = 'open'
     union all
     select 1
     from djm_os.tell_djm_actions a
@@ -2384,7 +2416,7 @@ as $$
     select 1
     from djm_os.captures c
     join djm_os.tell_djm_permissions p on p.user_id=c.submitted_by and p.tenant_id=c.tenant_id
-    join djm_os.team_members tm on tm.user_id=c.submitted_by
+    left join djm_os.team_members tm on tm.user_id=c.submitted_by
     where c.id=p_capture_id
       and c.submitted_by=p_user_id
       and p.is_enabled=true
@@ -2983,6 +3015,14 @@ with check (processing_version is distinct from 'tell_djm_v1' or (
   )
 ));
 
+create policy tell_capture_insert_permission on djm_os.captures as restrictive
+for insert to authenticated with check (processing_version is distinct from 'tell_djm_v1' or (
+  submitted_by=auth.uid() and exists (
+    select 1 from djm_os.tell_djm_permissions p where p.tenant_id=captures.tenant_id
+      and p.user_id=auth.uid() and p.is_enabled and p.permission_scope in ('full','scout')
+  )
+));
+
 do $policies$
 declare v_table text;
 begin
@@ -3004,6 +3044,9 @@ declare
   v_id uuid;
   v_payload jsonb;
 begin
+  -- Old binaries identify jobs as edge: and cannot provide capture-bound lookups.
+  -- Reject them from the first migration onward, including between migrations.
+  if p_worker is null or p_worker not like 'redream-ai:%' then return null; end if;
   with candidate as (
     select c.id
     from djm_os.captures c
@@ -3043,7 +3086,7 @@ begin
     ),0)
   ) into v_payload
   from djm_os.captures c
-  join djm_os.team_members tm on tm.user_id=c.submitted_by
+  left join djm_os.team_members tm on tm.user_id=c.submitted_by
   left join djm_os.tell_djm_permissions p on p.user_id=c.submitted_by and p.tenant_id=c.tenant_id
   cross join djm_os.tell_djm_settings s
   where c.id=v_id and s.id=1;
@@ -3204,7 +3247,7 @@ begin
     s.football_score, s.commercial_score, s.registration_score, s.career_score, null::numeric,
     jsonb_build_object(
       'source', 'djm_fit_prediction_v3',
-      'model', 'DJM fit model v3',
+      'model', 'ReDream fit model v3',
       'coverage', s.coverage,
       'components', jsonb_build_object(
         'football_fit', s.football_score,
@@ -3272,3 +3315,18 @@ begin
     updated_at = now()
   where djm_os.player_matches.status = 'suggested';
 end $function$;
+
+-- User-only resolver APIs cannot identify the capture tenant. Retire every
+-- overload rather than infer authority from a primary membership or active job.
+-- Already-running old workers fail closed; queued work resumes with the shared worker.
+do $retire$
+declare r record;
+begin
+  for r in select p.oid::regprocedure signature from pg_proc p
+    where p.pronamespace='public'::regnamespace and p.proname in
+      ('djm_tell_resolve_entity','djm_tell_resolve_entity_typed','djm_tell_resolve_entity_typed_unscoped','djm_tell_vocabulary')
+  loop
+    execute format('revoke all on function %s from public,anon,authenticated,service_role',r.signature);
+  end loop;
+end;
+$retire$;

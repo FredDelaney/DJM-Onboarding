@@ -4,7 +4,7 @@ returns table(capture_count integer,first_action_at timestamptz)
 language sql stable security definer set search_path='' as $$
   select count(distinct c.id)::integer,min(a.applied_at)
   from djm_os.captures c join djm_os.tell_djm_actions a on a.capture_id=c.id and a.tenant_id=c.tenant_id
-  where c.tenant_id=p_tenant_id and c.completed_at is not null
+  where c.tenant_id=p_tenant_id and c.completed_at is not null and c.status='done'
     and c.processing_version='tell_djm_v1' and a.status='applied'
     and a.target_id is not null and a.applied_at is not null;
 $$;

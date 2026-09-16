@@ -26,7 +26,7 @@ The final scope follows the request to prioritise essential security, capture fu
 | djm-tell-capture / djm-tell-process | redream-ai-capture / redream-ai-process | Both entrypoints import the same handler |
 | /tell capture links | /workspace/:slug/capture | Old capture links resolve authorised stored tenant before redirect |
 
-The canonical SQL migration excludes the retired user-primary resolver/vocabulary APIs; current workers use capture-bound resolver/vocabulary APIs. Worker functions remain service-only. Existing non-AI `agency-os` is already a neutral tenant-aware API and remains unchanged.
+The first migration revokes all overloads of the retired user-primary resolver/vocabulary APIs and rejects obsolete worker claims; the canonical SQL migration keeps those APIs revoked; current workers use capture-bound resolver/vocabulary APIs. Worker functions remain service-only. Existing non-AI `agency-os` is already a neutral tenant-aware API and remains unchanged.
 
 Package metadata, README, architecture overview, current shared app/player/staff UI and AI errors now distinguish agency work from platform identity. The reviewed presentation changes are recorded in `redream-copy-migration.json` (342 initial literal changes, with editorial corrections). They do not rename customer records or historical SQL.
 
@@ -55,9 +55,9 @@ Package metadata, README, architecture overview, current shared app/player/staff
 
 ## Offline and recovery
 
-Pending records save immutable origin context with the recording. Reconnecting in another workspace uploads using that saved origin. A cross-workspace upload does not replace the current workspace's displayed receipt. Failed uploads remain queued.
+Pending records save immutable origin context and originating account with the recording. Even legacy entry routes snapshot the server-resolved workspace from current_access. Upload uses a token snapshot for that same account. Reconnecting in another workspace uploads using that saved origin. A cross-workspace upload does not replace the current workspace's displayed receipt. Failed uploads remain queued.
 
-Existing IndexedDB version 1 is reused, preserving old audio blobs. Old records infer an explicit saved workspace route when present; legacy records with no origin retain legacy server routing. Their missing original tenant cannot be reconstructed from data never recorded.
+Existing IndexedDB version 1 is reused, preserving old audio blobs. Old records infer an explicit saved workspace route when present; legacy records with no origin are retained without inventing an owner or tenant. Their missing original tenant cannot be reconstructed from data never recorded. The reviewed client now also requires a recorded originating account. Older unbound pending notes remain stored and are held for supervised recovery; they are not silently uploaded by the new client.
 
 Active capture records retain workspace context. Canonical and legacy localStorage lists are merged and written together for older app versions, retaining the existing 20-entry/seven-day recovery window. Unknown legacy entries resolve through a server-authorised capture lookup. Failed recovery does not remove the entry. Already-scoped entries cannot be moved by remembering them from another workspace.
 
@@ -69,18 +69,18 @@ New audio path: `<tenant-id>/<user-id>/tell/<date>/<capture-file>` inside the ex
 
 The existing central usage path now reads tenant from the capture. It records model, status, token counts, latency and estimated cost in platform.ai_usage_events, using existing idempotency keys. Database tests execute the real worker-plan and central ledger functions and prove canonical/legacy retries produce one Northstar row even when DJM is selected. Actual hosted gateway/worker delivery still needs staging verification.
 
-Activation now requires a completed capture with a same-tenant applied action, target ID and application timestamp. A transcript alone, or an undone action, does not count. The existing adoption milestone key is retained for API compatibility. This records operational value, not talent or preparation scoring.
+Activation now requires a capture with status `done` and a completion timestamp with a same-tenant applied action, target ID and application timestamp. A transcript alone, or an undone action, does not count. The existing adoption milestone key is retained for API compatibility. This records operational value, not talent or preparation scoring.
 
 ## Performance and mobile
 
 No new global state system, model calls or polling frequency was added. Permission lookup is per workspace; launcher route context and permission requests run independently. Offline recovery resolves only entries missing origin, in parallel. Existing receipt polling and 60-second visible-page offline retry remain. Canonical RPC wrappers add one local SQL delegation only for old callers. Current callers go directly to canonical functions.
 
-Existing mobile recording controls, safe-area padding, dynamic viewport sizing, internal scrolling and recording/navigation guards remain. Capture is now mounted in the agency workspace. No authenticated mobile browser, real microphone, flaky-network or hosted latency benchmark was performed. Those are canary checks, not claimed results.
+Existing mobile recording controls, safe-area padding, dynamic viewport sizing, internal scrolling and recording/navigation guards remain. Capture is now mounted in the agency workspace. No authenticated mobile browser, real microphone, flaky-network or hosted latency benchmark was performed. Delayed microphone acquisition is guarded against duplicate starts and stale/unmounted lifecycle completion; this is source-reviewed, not a physical-phone result. Those are canary checks, not claimed results.
 
 ## Validation
 
-- `npm run check`: 423 tests, 423 passed, 0 failed; TypeScript passed; Next.js production build passed.
-- 31 real embedded PostgreSQL tests cover dual membership, tenant permission differences, foreign history/receipt/retry/question/undo/delete denial, raw UUID denial, nested entity/alias validation, capture-bound vocabulary/resolution, one-tap entity creation, unlinked writes, scouting writes, matcher isolation, revoked membership, worker grants, legacy wrappers, link recovery, activation evidence and successful central AI ledger writes.
+- Reviewed `npm run check`: 432 tests, 432 passed, 0 failed; TypeScript passed; Next.js production build passed.
+- 38 real embedded PostgreSQL tests cover dual membership, tenant permission differences, foreign history/receipt/retry/question/undo/delete denial, raw UUID denial, nested entity/alias validation, capture-bound vocabulary/resolution, one-tap entity creation, unlinked writes, scouting writes, matcher isolation, revoked membership, worker grants, legacy wrappers, link recovery, activation evidence and successful central AI ledger writes.
 - Offline tests cover saved origin, older records, custom-domain/runtime routing, active-record immutability, legacy storage recovery and upload request construction.
 - Compatibility tests cover shared Edge handlers, neutral core UI, conditional DJM branding, old persistence/processing, and safe return/deep-link paths.
 - `git diff --check`: passed. Historical migration files were not edited.
@@ -97,7 +97,7 @@ An authorised operator must verify the target staging migration history, take th
 2. `20260915194224_redream_ai_canonical_api.sql`
 3. `20260915194621_redream_ai_activation_evidence.sql`
 
-Deploy both canonical Edge entrypoints and the legacy entrypoints containing shared handlers, then this frontend. Retain old functions and existing cron scheduling during the transition. Verify worker secret/JWT configuration and private bucket policies. REDREAM_AI_* environment names take precedence; existing DJM_AI_* values remain accepted. Do not run divergent old/new worker implementations. Validate the full migration chain and full activation/adoption functions in staging before exposing the UI.
+Deploy canonical process first, then canonical capture, then both legacy entrypoints containing the same shared handlers, then this frontend. Retain existing cron scheduling: after the legacy process entrypoint is updated it runs the shared worker. Old worker binaries use an obsolete claim marker and receive no work from the first migration onward. Processing therefore pauses while uploads remain durable and queued. Already-running old workers can fail on retired lookups; inspect and retry those captures after deployment. This is a controlled queue-preserving transition, not a zero-interruption worker rollout. Verify worker secret/JWT configuration and private bucket policies. REDREAM_AI_* environment names take precedence; existing DJM_AI_* values remain accepted. Do not run divergent old/new worker implementations. Validate the full migration chain and full activation/adoption functions in staging before exposing the UI.
 
 ### Before an external agency pilot
 
@@ -153,3 +153,9 @@ Voice and text use one save routine that distinguishes uploaded, locally queued 
 Locally queued text is cleared from the editor after durable persistence, avoiding a second capture when the user resubmits a note already queued. The unsaved state uses a warning icon and explicitly states that closing the browser would lose the in-memory note. This is an honest last-resort recovery path, not a claim that memory survives a tab or browser crash.
 
 Four behavioural tests cover local failure with online success, network failure after local success, combined failure followed by a same-ID/same-workspace voice retry, and offline persistence failure. Source contracts also verify that the retry button and navigation guards remain connected to the retained draft. Real-device storage quota and microphone testing remain in the staging canary.
+
+## Adversarial review, 16 September 2026
+
+See [the review and release decision](REDREAM_AI_PRESTAGING_REVIEW.md), [RPC ACL inventory](REDREAM_AI_RPC_AUDIT.md) and [file inventory](REDREAM_AI_REVIEW_FILES.md). These supersede earlier compatibility claims where they differ. A controlled staging rehearsal is appropriate; unrestricted rollout and external-pilot readiness remain unproven.
+
+Close stale pre-transition tabs before shared-device tests. Those historical binaries do not enforce the new offline account binding. Retain/export and recover ownerless legacy notes with their original account and workspace established; never assign them to whichever account happens to sign in. Do not clear browser storage as an upgrade step.

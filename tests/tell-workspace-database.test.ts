@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { after, before, test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
@@ -90,8 +90,21 @@ before(async () => {
     const ddl=source.match(new RegExp(`create or replace function public.${name}\\([\\s\\S]*?\\n\\$function\\$;`));
     assert.ok(ddl,name); await db.exec(ddl[0]);
   }
+  // Compile the whole legacy public RPC inventory before the rename/grant migration.
+  // Unrelated dependencies are not executed by this focused fixture.
+  await db.exec('set check_function_bodies=off');
+  for (const file of readdirSync('supabase/staging/bootstrap').filter(f=>f.startsWith('005_')).sort()) {
+    const source=readFileSync('supabase/staging/bootstrap/'+file,'utf8');
+    for (const match of source.matchAll(/CREATE OR REPLACE FUNCTION public\.djm_tell_[\s\S]*?\$function\$;/g)) await db.exec(match[0]);
+  }
+  // Latest pre-branch definitions, including canonical ledgers, override bootstrap.
+  for (const file of readdirSync('supabase/migrations').filter(f=>f>='20260904' && f<'20260915192303').sort()) {
+    const source=readFileSync('supabase/migrations/'+file,'utf8');
+    for (const match of source.matchAll(/create or replace function public\.djm_tell_[\s\S]*?\n(?:\$\$|\$function\$);/gi)) await db.exec(match[0]);
+  }
   await db.exec(migration);
   await db.exec(readFileSync('supabase/migrations/20260915194224_redream_ai_canonical_api.sql','utf8'));
+  await db.exec('set check_function_bodies=on');
   // Minimal supporting platform structures let the complete activation migration compile
   // and execute. Unrelated player-portal activity is explicitly stubbed, not fabricated.
   await db.exec(`
@@ -142,6 +155,7 @@ test('permissions are independent and access resolves the requested tenant', asy
   await assert.rejects(enqueue);
   await workspace(null);
   assert.equal((await value('public.djm_tell_current_access()')).enabled,true);
+  assert.equal((await value('public.djm_tell_current_access()')).workspace_slug,'djm-sports-management');
   await db.query('update djm_os.tell_djm_permissions set is_enabled=true where tenant_id=$1',[north]);
   await workspace();
 });
@@ -299,7 +313,7 @@ test('worker claim returns capture tenant and tenant-specific permissions under 
   await workspace(null);
   await db.exec('set role service_role');
   try {
-    const claimed=await value("public.djm_tell_worker_claim($1,'synthetic-test')",[northCapture]);
+    const claimed=await value("public.redream_ai_worker_claim($1,'redream-ai:synthetic-test')",[northCapture]);
     assert.equal(claimed.tenant_id,north);
     assert.equal(claimed.permission_scope,'full');
   } finally { await db.exec('reset role'); await workspace(); }
@@ -310,7 +324,7 @@ test('canonical API and compatibility aliases share one implementation and ident
   assert.deepEqual(await value('public.redream_ai_current_access()'),await value('public.djm_tell_current_access()'));
   const aliases=await db.query<{proname:string;prosrc:string}>("select proname,prosrc from pg_proc where pronamespace='public'::regnamespace and proname like 'djm_tell_%' and prolang=(select oid from pg_language where lanname='sql')");
   assert.ok(aliases.rows.length>20);
-  for(const row of aliases.rows) assert.match(row.prosrc,/^select public\.redream_ai_\w+\(/,row.proname);
+  for(const row of aliases.rows) if(row.proname!=='djm_tell_worker_claim' && !['djm_tell_vocabulary','djm_tell_resolve_entity','djm_tell_resolve_entity_typed','djm_tell_resolve_entity_typed_unscoped'].includes(row.proname)) assert.match(row.prosrc,/^select public\.redream_ai_\w+\(/,row.proname);
   for(const role of ['anon','authenticated','service_role']) for(const suffix of ['current_access()','worker_claim(uuid,text)']) {
     assert.equal(await value(`has_function_privilege('${role}','public.djm_tell_${suffix}','execute')`),await value(`has_function_privilege('${role}','public.redream_ai_${suffix}','execute')`));
   }
@@ -331,20 +345,23 @@ test('activation evidence excludes transcripts and undone actions and stays tena
   await db.exec(definition(activation,'private.ai_first_value'));
   await workspace();
   const capture=(await enqueue()).capture_id;
-  await db.query('update djm_os.captures set completed_at=now() where id=$1',[capture]);
+  await db.query("update djm_os.captures set completed_at=now(),status='done' where id=$1",[capture]);
   const before=await value('capture_count from private.ai_first_value($1)',[north]);
   const foreignBefore=await value('capture_count from private.ai_first_value($1)',[djm]);
   const action=await value("public.redream_ai_apply_action($1,'activation-proof',0,'create_task',1,'A sourced instruction',$2)",[capture,{title:'Call synthetic player'}]);
   assert.equal(action.status,'applied');
   assert.equal(await value('capture_count from private.ai_first_value($1)',[north]),before+1);
+  await db.query("update djm_os.captures set status='failed' where id=$1",[capture]);
+  assert.equal(await value('capture_count from private.ai_first_value($1)',[north]),before);
+  await db.query("update djm_os.captures set status='done' where id=$1",[capture]);
   assert.equal(await value('capture_count from private.ai_first_value($1)',[djm]),foreignBefore);
   await db.query("update djm_os.tell_djm_actions set status='undone' where capture_id=$1",[capture]);
   assert.equal(await value('capture_count from private.ai_first_value($1)',[north]),before);
 });
-test('new notification function emits workspace capture deep links',async()=>{
+test('notifications retain rolling-compatible links with explicit workspace',async()=>{
   const source=await value("pg_get_functiondef('public.redream_ai_notify_attention(uuid)'::regprocedure)");
-  assert.match(source,/\/workspace\/.*\/capture\?capture=/);
-  assert.doesNotMatch(source,/\/tell\?workspace=/);
+  assert.match(source,/\/tell\?workspace=/);
+  assert.doesNotMatch(source,/\/workspace\/.*\/capture\?capture=/);
 });
 
 test('worker plan writes successful AI spend to the central ledger using stored capture tenant',async()=>{
@@ -366,7 +383,7 @@ test('worker plan writes successful AI spend to the central ledger using stored 
 test('complete activation and adoption endpoints use applied AI evidence with service-only access',async()=>{
   await workspace();
   const capture=(await enqueue()).capture_id;
-  await db.query('update djm_os.captures set completed_at=now() where id=$1',[capture]);
+  await db.query("update djm_os.captures set completed_at=now(),status='done' where id=$1",[capture]);
   const before=await value('public.platform_server_customer_activation($1)',[north]);
   const action=await value("public.redream_ai_apply_action($1,'full-activation-proof',0,'create_task',1,'A sourced instruction',$2)",[capture,{title:'Confirm player preference'}]);
   assert.equal(action.status,'applied');
@@ -380,5 +397,92 @@ test('complete activation and adoption endpoints use applied AI evidence with se
   for (const fn of ['platform_server_customer_adoption_path','platform_server_customer_activation']) {
     assert.equal(await value(`has_function_privilege('authenticated','public.${fn}(uuid)','execute')`),false);
     assert.equal(await value(`has_function_privilege('service_role','public.${fn}(uuid)','execute')`),true);
+  }
+});
+
+
+test('old worker dispatch cannot claim work or invoke user-only resolvers',async()=>{
+  assert.equal(await value("public.djm_tell_worker_claim($1,'old-binary')",[northCapture]),null);
+  const retired=await db.query<{signature:string}>("select oid::regprocedure::text signature from pg_proc where pronamespace='public'::regnamespace and proname in ('djm_tell_resolve_entity','djm_tell_resolve_entity_typed','djm_tell_resolve_entity_typed_unscoped','djm_tell_vocabulary')");
+  assert.ok(retired.rows.length>=3);
+  for(const {signature} of retired.rows) for(const role of ['anon','authenticated','service_role']) assert.equal(await value(`has_function_privilege('${role}',$1,'execute')`,[signature]),false,signature);
+});
+
+test('legacy audio enqueue works only without explicit workspace and cannot rebind an existing URI',async()=>{
+  const uri=`djm-network-captures/${uid}/tell-djm/2026-09-16/legacy.webm`;
+  await workspace(null);
+  const old=await value("public.djm_tell_enqueue_capture(gen_random_uuid(),'audio',$1)",[uri]);
+  assert.equal(await value('tenant_id from djm_os.captures where id=$1',[old.capture_id]),djm);
+  await workspace();
+  await assert.rejects(()=>value("public.redream_ai_enqueue_capture(gen_random_uuid(),'audio',$1)",[uri]),/Capture recording access denied/);
+  await db.query('update platform.tenant_memberships set is_primary=(tenant_id=$1)',[north]);
+  await workspace(null);
+  try { await assert.rejects(()=>value("public.redream_ai_enqueue_capture(gen_random_uuid(),'audio',$1)",[uri]),/Capture recording access denied/); }
+  finally { await db.query('update platform.tenant_memberships set is_primary=(tenant_id=$1)',[djm]); await workspace(); }
+});
+
+test('bad repeated action cannot erase an applied action or duplicate its target',async()=>{
+  const args=[northCapture,'repeat-safe',0,'create_task',1,'source',{title:'One task only'}];
+  const first=await value('public.redream_ai_apply_action($1,$2,$3,$4,$5,$6,$7)',args);
+  assert.equal(first.status,'applied');
+  const repeated=await value('public.djm_tell_apply_action($1,$2,$3,$4,$5,$6,$7)',args);
+  assert.equal(repeated.target_id,first.target_id);
+  args[6]={title:'Invalid retry',organisation_id:foreignOrg} as any;
+  await value('public.redream_ai_apply_action($1,$2,$3,$4,$5,$6,$7)',args);
+  assert.equal(await value("status from djm_os.tell_djm_actions where capture_id=$1 and action_hash='repeat-safe'",[northCapture]),'applied');
+  assert.equal(await value("count(*)::int from djm_os.tasks where title='One task only'"),1);
+});
+
+test('read-only cannot enqueue and revoked permissions can still be disabled',async()=>{
+  await db.query("update djm_os.tell_djm_permissions set permission_scope='read_only' where tenant_id=$1",[north]);
+  await assert.rejects(enqueue);
+  await db.query("update platform.tenant_memberships set status='inactive' where tenant_id=$1",[north]);
+  await db.query('update djm_os.tell_djm_permissions set is_enabled=false where tenant_id=$1',[north]);
+  await db.query("update platform.tenant_memberships set status='active' where tenant_id=$1",[north]);
+  await db.query("update djm_os.tell_djm_permissions set permission_scope='full',is_enabled=true where tenant_id=$1",[north]);
+});
+
+test('every canonical RPC has explicit grants, empty search path and a restricted legacy equivalent',async()=>{
+  const rows=await db.query<any>(`select p.oid::regprocedure::text signature,p.proname,p.prosecdef,p.proconfig,
+    has_function_privilege('anon',p.oid,'execute') anon,
+    has_function_privilege('authenticated',p.oid,'execute') authenticated,
+    has_function_privilege('service_role',p.oid,'execute') service_role
+    from pg_proc p where p.pronamespace='public'::regnamespace and (p.proname like 'redream_ai_%' or p.proname like 'djm_tell_%') order by p.proname,p.oid`);
+  assert.ok(rows.rows.length>60);
+  const clientNames=new Set(['answer_question','budget_status','capture_workspace','context_for_route','create_confirmed_club','create_confirmed_contact','current_access','delete_capture','enqueue_capture','receipt','recent_captures','retry_capture','undo_action']);
+  for(const row of rows.rows) {
+    assert.equal(row.anon,false,row.signature);
+    if(row.proname.startsWith('redream_ai_')) {
+      assert.equal(row.authenticated,clientNames.has(row.proname.slice('redream_ai_'.length)),row.signature);
+      assert.notEqual(row.authenticated,row.service_role,row.signature);
+      assert.ok(row.proconfig.some((c:string)=>c.startsWith('search_path=')),row.signature);
+    }
+  }
+  if(process.env.REDREAM_REVIEW_RPC_REPORT) writeFileSync(process.env.REDREAM_REVIEW_RPC_REPORT,JSON.stringify(rows.rows,null,2)+'\n');
+});
+
+
+test('authenticated direct insertion cannot bypass read-only permission',async()=>{
+  await workspace();
+  await db.query("update djm_os.tell_djm_permissions set permission_scope='read_only' where tenant_id=$1",[north]);
+  await db.exec("create policy fixture_staff_insert on djm_os.captures for insert to authenticated with check (true); set role authenticated;");
+  try {
+    await assert.rejects(()=>db.query("insert into djm_os.captures(tenant_id,submitted_by,capture_type,channel,processing_version) values ($1,$2,'text','typed_debrief','tell_djm_v1')",[north,uid]),/row-level security/);
+  } finally {
+    await db.exec('reset role');
+    await db.query("update djm_os.tell_djm_permissions set permission_scope='full' where tenant_id=$1",[north]);
+  }
+});
+
+
+test('nested foreign entity references and forged tenant IDs fail closed',async()=>{
+  const person='50000000-0000-4000-8000-000000000001';
+  const player='50000000-0000-4000-8000-000000000002';
+  const prospect='50000000-0000-4000-8000-000000000003';
+  await db.query("insert into djm_os.people(id,tenant_id,full_name) values ($1,$2,'Foreign Person')",[person,djm]);
+  await db.query("insert into public.players(id,tenant_id,first_name,last_name) values ($1,$2,'Foreign','Player')",[player,djm]);
+  await db.query("insert into djm_os.scouting_prospects(id,tenant_id,full_name) values ($1,$2,'Foreign Prospect')",[prospect,djm]);
+  for(const payload of [{contact_id:person},{person_id:person},{player_id:player},{prospect_id:prospect},{organisation_id:foreignOrg},{tenant_id:djm},{candidates:[{entity_type:'club',entity_id:foreignOrg}]}]) {
+    await assert.rejects(()=>value('private.tell_assert_entities($1,$2)',[north,{nested:[payload]}]),/Capture reference denied/);
   }
 });

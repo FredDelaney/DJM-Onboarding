@@ -1,6 +1,7 @@
 import { pendingAiWorkspace, type AiWorkspaceContext } from './ai-workspace.ts';
 
 export type PendingAiCapture = {
+  userId?: string;
   workspace?: AiWorkspaceContext;
   workspaceSlug?: string | null;
   id: string;
@@ -40,38 +41,51 @@ function openDb(): Promise<IDBDatabase> {
 
 export async function savePendingAiCapture(capture: PendingAiCapture) {
   const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
+  try { await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
     tx.objectStore(STORE).put(capture);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('Could not save pending capture'));
-  });
-  db.close();
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Could not save pending capture'));
+  }); } finally { db.close(); }
 }
 
 export async function removePendingAiCapture(id: string) {
   const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
+  try { await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
     tx.objectStore(STORE).delete(id);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('Could not remove pending capture'));
-  });
-  db.close();
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Could not remove pending capture'));
+  }); } finally { db.close(); }
 }
 
 export async function listPendingAiCaptures(): Promise<PendingAiCapture[]> {
   const db = await openDb();
-  const items = await new Promise<PendingAiCapture[]>((resolve, reject) => {
+  let items: PendingAiCapture[];
+  try { items = await new Promise<PendingAiCapture[]>((resolve, reject) => {
     const tx = db.transaction(STORE, 'readonly');
     const request = tx.objectStore(STORE).getAll();
+    tx.onabort = () => reject(tx.error || new Error('Could not read pending captures'));
     request.onsuccess = () => resolve((request.result || []) as PendingAiCapture[]);
     request.onerror = () => reject(request.error || new Error('Could not read pending captures'));
-  });
-  db.close();
-  return items.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }); } finally { db.close(); }
+  // Keep malformed records in storage for recovery; do not let one poison the queue.
+  return items.filter(isPendingAiCapture).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+
+export function isPendingAiCapture(value: unknown): value is PendingAiCapture {
+  if (!value || typeof value !== 'object') return false;
+  const item = value as Partial<PendingAiCapture>;
+  return typeof item.id === 'string' && typeof item.createdAt === 'string'
+    && typeof item.channel === 'string' && typeof item.text === 'string'
+    && (item.blob == null || item.blob instanceof Blob);
+}
+
+export function assertAiCaptureOwner(pending: PendingAiCapture, userId: string | undefined) {
+  if (!pending.userId) throw new Error('This older saved note has no recorded account. It is retained on this phone for recovery.');
+  if (!userId || pending.userId !== userId) throw new Error('Sign in to the account that saved this note to upload it.');
+}
 
 export type ActiveAiCapture = {
   workspace?: AiWorkspaceContext;

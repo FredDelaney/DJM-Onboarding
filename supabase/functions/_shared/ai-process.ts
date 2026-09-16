@@ -434,7 +434,7 @@ async function interpret(
         "When a salary amount is explicit but its period is not, keep salary_period null.",
         "Use preferred_foot values left, right or either only when stated.",
         "For a direct club request, use need_type confirmed. Use predicted only when the speaker explicitly describes an inferred future need.",
-        "Use suggest_player when the speaker says a named ReDream player is worth sending or considering for a club need. Repeat the need club and position on the suggest_player action when they are clear from the same transcript.",
+        "Use suggest_player when the speaker says a named agency player is worth sending or considering for a club need. Repeat the need club and position on the suggest_player action when they are clear from the same transcript.",
         "Use exclude_player when the speaker explicitly says a named player is not suitable for that need. Repeat the need club and position on the exclude_player action when they are clear from the same transcript.",
         "Use log_scout_observation when a scout or team member describes watching, assessing or monitoring an unsigned or recruitment player. Use player_current_club for the player current club, not club_name.",
         "For log_scout_observation, use player_current_country for the player current country. Never invent numeric scout scores. Capture only explicit recommendation, strengths, risks, role/position and notes.",
@@ -952,7 +952,7 @@ async function processOne(
     "redream_ai_worker_claim",
     {
       p_capture_id: captureId || null,
-      p_worker: `edge:${crypto.randomUUID()}`,
+      p_worker: `redream-ai:${crypto.randomUUID()}`,
     },
   );
   if (claimError) throw claimError;
@@ -965,7 +965,7 @@ async function processOne(
   if (spent + minimumReserve > budget) {
     await admin.rpc("redream_ai_worker_fail", {
       p_capture_id: capture.capture_id,
-      p_error: `Monthly ReDream AI AI budget of $${budget.toFixed(2)} has been reached`,
+      p_error: `Monthly ReDream AI budget of $${budget.toFixed(2)} has been reached`,
       p_code: "budget_exhausted",
       p_retryable: false,
     });
@@ -1114,7 +1114,7 @@ async function processOne(
             entityQuestionPrompt("player", action.player_name),
             player.candidates.length
               ? "ReDream will not attach information to the wrong player."
-              : "This person is not confidently matched to a signed ReDream player.",
+              : "This person is not confidently matched to a signed agency player.",
             candidates,
             { spoken_name: action.player_name, action_key: actionKey },
           );

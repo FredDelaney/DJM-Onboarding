@@ -10,6 +10,7 @@ export default function LegacyCaptureRoute() {
   const captureId = params.get('capture');
   const [error, setError] = useState('');
   useEffect(() => {
+    setError('');
     if (!captureId) return;
     let active = true;
     const requested = params.get('workspace');

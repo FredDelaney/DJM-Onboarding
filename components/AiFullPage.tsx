@@ -18,6 +18,7 @@ import {
 } from '@/lib/entity-context';
 
 type AiAccess = {
+  workspace_slug?: string;
   enabled?: boolean;
   permission_scope?: string | null;
   max_audio_seconds?: number | null;
@@ -117,6 +118,7 @@ export default function AiFullPage() {
         context={context}
         resumeCaptureId={selectedCaptureId}
         maxAudioSeconds={Number(access.max_audio_seconds || 240)}
+        resolvedWorkspaceSlug={access.workspace_slug}
         onCompleted={handleCaptureCompleted}
       />
       <AiRecentCaptures

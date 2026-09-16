@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { pendingAiWorkspace, aiWorkspaceSlug } from '../lib/ai-workspace.ts';
-import { rememberActiveAiCapture, listActiveAiCaptures, recoverLegacyAiCaptures } from '../lib/ai-offline.ts';
+import { rememberActiveAiCapture, listActiveAiCaptures, recoverLegacyAiCaptures, isPendingAiCapture, assertAiCaptureOwner } from '../lib/ai-offline.ts';
 
 test('offline workspace is immutable after navigation to another agency', () => {
   const pending = { workspaceSlug: 'northstar', context: { route: '/workspace/northstar' } };
@@ -56,4 +56,21 @@ test('upload uses persisted workspace and tenant-first storage with no shared he
 
 test('new origin object takes precedence over stale compatibility fields',()=>{
   assert.equal(pendingAiWorkspace({workspace:{workspaceSlug:'northstar',originRoute:'/agency',runtimeOrigin:'runtime'},workspaceSlug:'djm-sports-management'}),'northstar');
+});
+
+
+test('malformed saved origin cannot silently select the primary workspace',()=>{
+  for(const workspace of [{}, {workspaceSlug:12}, {workspaceSlug:''}, {workspaceSlug:null,runtimeOrigin:'runtime'}]) {
+    assert.equal(pendingAiWorkspace({workspace} as any),'unresolved');
+  }
+  assert.equal(pendingAiWorkspace({workspace:{workspaceSlug:null,runtimeOrigin:'legacy',originRoute:'/tell'}}),null);
+});
+
+test('malformed pending records cannot poison sorting or upload, old valid shapes stay recoverable',()=>{
+  for(const item of [null,{}, {id:'x',createdAt:12}, {id:'x',createdAt:'today',channel:'text',text:12}]) assert.equal(isPendingAiCapture(item),false);
+  const old={id:'old',createdAt:new Date().toISOString(),channel:'typed_debrief',text:'saved',blob:null};
+  assert.equal(isPendingAiCapture(old),true);
+  assert.throws(()=>assertAiCaptureOwner(old as any,'different-user'),/no recorded account/);
+  assert.throws(()=>assertAiCaptureOwner({...old,userId:'original'} as any,'different-user'),/account that saved/);
+  assert.doesNotThrow(()=>assertAiCaptureOwner({...old,userId:'original'} as any,'original'));
 });

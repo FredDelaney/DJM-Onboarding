@@ -90,7 +90,7 @@ export default function AiRecentCaptures({
   }, [load, refreshKey]);
 
   return (
-    <section className={styles.section} aria-label="Recent Capture captures">
+    <section className={styles.section} aria-label="Recent captures">
       <div className={styles.head}>
         <div>
           <strong>Recent</strong>

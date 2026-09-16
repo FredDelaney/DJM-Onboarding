@@ -1,5 +1,7 @@
 'use client';
 
+import { supabase } from '@/lib/supabase';
+import { assertAiCaptureOwner } from '@/lib/ai-offline';
 import { saveAiDraft } from '@/lib/ai-draft-save';
 import { pollCaptureReceipt } from '@/lib/capture-polling';
 import { flushAiQueue, uploadAiCaptureOnce } from '@/lib/ai-upload-queue';
@@ -122,6 +124,7 @@ export default function AiCapture({
   onUnsafeToCloseChange,
   resumeCaptureId,
   maxAudioSeconds = DEFAULT_MAX_SECONDS,
+  resolvedWorkspaceSlug,
 }: {
   context?: Context;
   compact?: boolean;
@@ -129,9 +132,11 @@ export default function AiCapture({
   onUnsafeToCloseChange?: (unsafe: boolean) => void;
   resumeCaptureId?: string | null;
   maxAudioSeconds?: number;
+  resolvedWorkspaceSlug?: string | null;
 }) {
   const [mode, setMode] = useState<'voice' | 'text'>('voice');
-  const workspace = useAiWorkspaceContext();
+  const requestedWorkspace = useAiWorkspaceContext();
+  const workspace = { ...requestedWorkspace, workspaceSlug: requestedWorkspace.workspaceSlug ?? resolvedWorkspaceSlug ?? 'unresolved' };
   const workspaceSlug = workspace.workspaceSlug;
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -144,6 +149,8 @@ export default function AiCapture({
   const [answering, setAnswering] = useState<string | null>(null);
   const [deletingCapture, setDeletingCapture] = useState(false);
 
+  const recordingRequestRef = useRef(false);
+  const lifecycleRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -180,6 +187,7 @@ export default function AiCapture({
     const controllers = pollingRef.current;
     return () => {
       mountedRef.current = false;
+      lifecycleRef.current += 1;
       controllers.forEach(controller => controller.abort());
       controllers.clear();
     };
@@ -249,6 +257,8 @@ export default function AiCapture({
   const uploadPending = useCallback(
     async (pending: PendingAiCapture, showReceipt = true) => {
       const captureId = await uploadAiCaptureOnce(pending.id, async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        assertAiCaptureOwner(pending, session?.user.id);
         const form = new FormData();
         form.append('client_capture_id', pending.id);
         form.append('channel', pending.channel);
@@ -271,7 +281,7 @@ export default function AiCapture({
           form.append('file', file);
         }
 
-        const result: any = await platformInvoke('redream-ai-capture', form);
+        const result: any = await platformInvoke('redream-ai-capture', form, session!.access_token);
         if (!result?.capture_id) {
           throw new Error('Your update could not be confirmed. Please try again.');
         }
@@ -294,6 +304,7 @@ export default function AiCapture({
     try {
       const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false), () => navigator.onLine);
       uploadedAny = result.uploaded > 0;
+      if (result.failed > 0 && mountedRef.current) setError('Some saved notes could not upload. They remain on this phone; check your connection and original account. Older notes without an account need recovery.');
     } catch {
       return; // Local storage is unavailable; existing pending data is untouched.
     }
@@ -397,12 +408,13 @@ export default function AiCapture({
     }
   };
 
-  const submitBlob = async (blob: Blob, durationSeconds: number) => {
+  const submitBlob = async (blob: Blob, durationSeconds: number, userId: string) => {
     const id = crypto.randomUUID();
     const pending: PendingAiCapture = {
       id,
       createdAt: new Date().toISOString(),
       channel: 'voice_debrief',
+      userId,
       text: '',
       context: contextPayload(),
       workspaceSlug,
@@ -418,7 +430,10 @@ export default function AiCapture({
   };
 
   const startRecording = async () => {
-    if (recording || busy || unsavedDraft) return;
+    if (recording || recordingRequestRef.current || busy || unsavedDraft) return;
+    recordingRequestRef.current = true;
+    const lifecycle = lifecycleRef.current;
+    setBusy(true);
 
     setError('');
     setReceipt(null);
@@ -432,6 +447,8 @@ export default function AiCapture({
         throw new Error('Microphone recording is not supported in this browser');
       }
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sign in before recording a note.');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -439,12 +456,16 @@ export default function AiCapture({
           autoGainControl: true,
         },
       });
+      if (!mountedRef.current || lifecycle !== lifecycleRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      streamRef.current = stream;
       const mimeType = chooseRecordingMimeType();
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
         : new MediaRecorder(stream);
 
-      streamRef.current = stream;
       recorderRef.current = recorder;
       chunksRef.current = [];
       startedAtRef.current = Date.now();
@@ -465,7 +486,7 @@ export default function AiCapture({
         chunksRef.current = [];
         stopTracks();
         setRecording(false);
-        void submitBlob(blob, duration);
+        void submitBlob(blob, duration, session.user.id);
       };
 
       recorder.start(1000);
@@ -483,7 +504,10 @@ export default function AiCapture({
     } catch (recordError) {
       stopTracks();
       setRecording(false);
-      setError(friendlyError(recordError));
+      if (mountedRef.current) setError(friendlyError(recordError));
+    } finally {
+      recordingRequestRef.current = false;
+      if (mountedRef.current) setBusy(false);
     }
   };
 
@@ -495,9 +519,13 @@ export default function AiCapture({
   const submitText = async () => {
     if (!text.trim() || busy || unsavedDraft) return;
 
+    setBusy(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setBusy(false); setError('Sign in before saving a note.'); return; }
     const id = crypto.randomUUID();
     const pending: PendingAiCapture = {
       id,
+      userId: session.user.id,
       createdAt: new Date().toISOString(),
       channel: 'typed_debrief',
       text: text.trim(),

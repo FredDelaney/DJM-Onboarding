@@ -19,6 +19,7 @@ import {
 import styles from './AiLauncher.module.css';
 
 type AiAccess = {
+  workspace_slug?: string;
   enabled?: boolean;
   permission_scope?: string | null;
   max_audio_seconds?: number | null;
@@ -148,6 +149,7 @@ export default function AiLauncher() {
                   context={context}
                   onUnsafeToCloseChange={setUnsafeToClose}
                   maxAudioSeconds={Number(access.max_audio_seconds || 240)}
+                  resolvedWorkspaceSlug={access.workspace_slug}
                 />
                 {unsafeToClose ? (
                   <span className={styles.fullDisabled} aria-disabled="true">
