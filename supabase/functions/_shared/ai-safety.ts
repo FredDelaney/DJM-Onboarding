@@ -21,6 +21,15 @@ function canonicalResolvedLabel(value: any) {
     .trim();
 }
 
+function resolvedContactSurface(fieldKey: unknown) {
+  const prefix = "entity:contact:";
+  const raw = String(fieldKey || "");
+  if (!raw.startsWith(prefix)) return "";
+
+  const contactSlug = raw.slice(prefix.length).split(":")[0] || "";
+  return normaliseEntityName(contactSlug.replace(/-/g, " "));
+}
+
 export function applyConfirmedEntityResolutions(capture: any, action: any) {
   const next = { ...action };
   const contactName = normaliseEntityName(next.contact_name);
@@ -28,10 +37,14 @@ export function applyConfirmedEntityResolutions(capture: any, action: any) {
 
   const matches = captureResolutions(capture).filter((item: any) => {
     const value = item?.value;
-    if (!String(item?.field_key || "").startsWith("entity:contact:")) return false;
+    const fieldKey = String(item?.field_key || "");
+    if (!fieldKey.startsWith("entity:contact:")) return false;
     if (!value?.entity_id || value?.entity_type !== "player") return false;
 
-    return normaliseEntityName(canonicalResolvedLabel(value)) === contactName;
+    const canonicalName = normaliseEntityName(canonicalResolvedLabel(value));
+    const originalMention = resolvedContactSurface(fieldKey);
+
+    return canonicalName === contactName || originalMention === contactName;
   });
 
   const selected = matches.length
@@ -39,6 +52,7 @@ export function applyConfirmedEntityResolutions(capture: any, action: any) {
     : null;
 
   if (selected?.entity_id) {
+    next.player_id = String(selected.entity_id);
     next.player_name = canonicalResolvedLabel(selected) || next.contact_name;
     next.contact_name = null;
   }

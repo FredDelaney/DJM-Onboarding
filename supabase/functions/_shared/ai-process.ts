@@ -6,7 +6,7 @@ import { applyConfirmedEntityResolutions, canonicalClaimKey } from "./ai-safety.
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-region",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -1028,12 +1028,25 @@ async function processOne(
         "club",
         isScoutObservation ? null : action.club_name,
       );
-      const playerPromise = resolveEntity(
-        admin,
-        capture,
-        "player",
-        isScoutObservation ? null : action.player_name,
-      );
+      const playerPromise = !isScoutObservation && action.player_id
+        ? Promise.resolve({
+            id: String(action.player_id),
+            label: action.player_name || null,
+            candidates: [],
+            fieldKey: entityFieldKey(
+              "player",
+              action.player_name || String(action.player_id),
+            ),
+            resolvedBy: "user",
+            omitted: false,
+            review: false,
+          })
+        : resolveEntity(
+            admin,
+            capture,
+            "player",
+            isScoutObservation ? null : action.player_name,
+          );
       const prospectPromise = resolveEntity(
         admin,
         capture,
