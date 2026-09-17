@@ -73,7 +73,7 @@ before(async () => {
     assert.ok(match,name);
     await db.exec(match[0]);
   }
-  await db.exec("create table platform.feature_catalog(feature_key text primary key,category text); insert into platform.feature_catalog values ('ai_assistant','ai'),('speech_transcription','speech');");
+  await db.exec("create table platform.feature_catalog(feature_key text primary key,category text); insert into platform.feature_catalog values ('ai_assistant','ai'),('speech_capture','speech');");
   const ledger=readFileSync('supabase/migrations/20260904135443_create_usage_and_ai_ledgers.sql','utf8');
   for(const table of ['usage_events','ai_usage_events']) {
     const ddl=ledger.match(new RegExp(`create table platform.${table} \\([\\s\\S]*?\\n\\);`));
@@ -104,6 +104,9 @@ before(async () => {
   }
   await db.exec(migration);
   await db.exec(readFileSync('supabase/migrations/20260915194224_redream_ai_canonical_api.sql','utf8'));
+  const usageLedgerCompatibility = readdirSync('supabase/migrations').find((file) => file.endsWith('_redream_ai_usage_ledger_compatibility.sql'));
+  assert.ok(usageLedgerCompatibility, 'redream AI usage ledger compatibility migration');
+  await db.exec(readFileSync(`supabase/migrations/${usageLedgerCompatibility}`, 'utf8'));
   await db.exec('set check_function_bodies=on');
   // Minimal supporting platform structures let the complete activation migration compile
   // and execute. Unrelated player-portal activity is explicitly stubbed, not fabricated.
@@ -485,4 +488,29 @@ test('nested foreign entity references and forged tenant IDs fail closed',async(
   for(const payload of [{contact_id:person},{person_id:person},{player_id:player},{prospect_id:prospect},{organisation_id:foreignOrg},{tenant_id:djm},{candidates:[{entity_type:'club',entity_id:foreignOrg}]}]) {
     await assert.rejects(()=>value('private.tell_assert_entities($1,$2)',[north,{nested:[payload]}]),/Capture reference denied/);
   }
+});
+
+
+test('rolling upgrade reuses legacy Tell DJM AI usage ids', async () => {
+  const suffix = 'rolling-upgrade-test';
+  const legacyId = `tell-djm:${northCapture}:${suffix}`;
+  const redreamId = `redream:${northCapture}:${suffix}`;
+
+  await value(
+    "public.platform_server_record_ai_usage($1,$2,'ai_assistant','openai','legacy-model','succeeded',10,0,2,99,null::bigint,50,'legacy-test',$3,$4,$4,null::text,'{}'::jsonb)",
+    [north, uid, northCapture, legacyId],
+  );
+
+  await value(
+    "public.redream_ai_record_ai_usage_from_capture($1,'ai_assistant','new-model','succeeded',11,0,3,100,51,'new-test',$2,'{}'::jsonb)",
+    [northCapture, suffix],
+  );
+
+  const rows = await db.query<{ external_request_id: string }>(
+    'select external_request_id from platform.ai_usage_events where tenant_id=$1 and source_fingerprint=$2 and external_request_id in ($3,$4)',
+    [north, northCapture, legacyId, redreamId],
+  );
+
+  assert.equal(rows.rows.length, 1);
+  assert.equal(rows.rows[0]?.external_request_id, legacyId);
 });
