@@ -88,12 +88,47 @@ export async function GET() {
       .favicon_asset;
 
   if (iconAsset) {
-    manifest.icons = [
-      {
-        src: iconAsset,
-        purpose: 'any',
-      },
-    ];
+    const iconBundle =
+      iconAsset.startsWith('/')
+        ? iconAsset.match(
+            /^(.*\/)?icon-512\.png$/,
+          )
+        : null;
+
+    if (iconBundle) {
+      const iconBase =
+        iconBundle[1] || '/';
+
+      manifest.icons = [
+        {
+          src:
+            `${iconBase}icon-192.png`,
+          sizes: '192x192',
+          type: 'image/png',
+          purpose: 'any',
+        },
+        {
+          src: iconAsset,
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any',
+        },
+        {
+          src:
+            `${iconBase}icon-maskable-512.png`,
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable',
+        },
+      ];
+    } else {
+      manifest.icons = [
+        {
+          src: iconAsset,
+          purpose: 'any',
+        },
+      ];
+    }
   }
 
   return json(manifest);

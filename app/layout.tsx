@@ -84,16 +84,47 @@ export async function generateMetadata():
   const favicon =
     runtime.branding.favicon_asset;
 
+  const iconBundle =
+    favicon?.startsWith('/')
+      ? favicon.match(
+          /^(.*\/)?icon-512\.png$/,
+        )
+      : null;
+
+  const iconBase =
+    iconBundle
+      ? iconBundle[1] || '/'
+      : null;
+
+  const icons = favicon
+    ? iconBase
+      ? {
+          icon: [
+            {
+              url: `${iconBase}icon-192.png`,
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              url: favicon,
+              sizes: '512x512',
+              type: 'image/png',
+            },
+          ],
+          apple:
+            `${iconBase}apple-touch-icon.png`,
+        }
+      : {
+          icon: favicon,
+          apple: favicon,
+        }
+    : undefined;
+
   return {
     title,
     description,
     manifest: '/workspace-manifest.webmanifest',
-    icons: favicon
-      ? {
-          icon: favicon,
-          apple: favicon,
-        }
-      : undefined,
+    icons,
     appleWebApp: {
       capable: true,
       title,
