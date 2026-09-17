@@ -146,6 +146,12 @@ const findDomain=(control:any,domainId:string)=>{
   return domains.find((domain:any)=>String(domain?.id||"")===domainId)||null;
 };
 
+const providerManagedDomain=(domain:any)=>{
+  const metadata=obj(domain?.metadata);
+  return text(metadata.provider).toLowerCase()==="vercel"
+    || text(metadata.created_from).toLowerCase()==="platform_ops";
+};
+
 const recordProviderState=async(
   rpc:Rpc,
   domainId:string,
@@ -419,6 +425,10 @@ export default {fetch:async(req:Request)=>{
       const control=await rpc("platform_server_operator_domain_control",{p_tenant_id:tenantId});
       const domain=findDomain(control,domainId);
       if(!domain||String(domain.domain_type)!=="custom") return json({error:"Custom domain not found"},404);
+      if(!providerManagedDomain(domain)) return json({
+        error:"Existing workspace domains cannot be managed through ReDream provider controls",
+        code:"custom_domain_not_provider_managed",
+      },409);
       const hostname=String(domain.hostname||"").toLowerCase();
       if(!hostname) return json({error:"Custom domain hostname is missing"},409);
 
@@ -495,6 +505,10 @@ export default {fetch:async(req:Request)=>{
       const before=await rpc("platform_server_operator_domain_control",{p_tenant_id:tenantId});
       const target=findDomain(before,domainId);
       if(!target||String(target.domain_type)!=="custom") return json({error:"Custom domain not found"},404);
+      if(!providerManagedDomain(target)) return json({
+        error:"Existing workspace domains cannot be disconnected through ReDream domain control",
+        code:"custom_domain_not_provider_managed",
+      },409);
       const hostname=String(target.hostname||"").toLowerCase();
 
       const domain=await rpc("platform_server_operator_disable_custom_domain",{
@@ -670,7 +684,7 @@ export default {fetch:async(req:Request)=>{
     const message=error instanceof Error?error.message:text(record.message)||text(record.details)||text(record.hint)||"Platform operations request failed";
     console.error("platform-ops",error);
     const lower=message.toLowerCase();
-    const status=lower.includes("not_in_plan")?403:lower.includes("already_registered")?409:lower.includes("managed_redream_domain_not_custom")?400:lower.includes("invalid_")?400:500;
+    const status=lower.includes("not_in_plan")?403:lower.includes("already_registered")?409:lower.includes("not_provider_managed")?409:lower.includes("managed_redream_domain_not_custom")?400:lower.includes("invalid_")?400:500;
     return json({error:message},status);
   }
 }};
