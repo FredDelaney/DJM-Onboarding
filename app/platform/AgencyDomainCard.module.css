@@ -1,0 +1,392 @@
+.card {
+  margin-top: 10px;
+  padding: 16px;
+  border: 1px solid rgba(10, 10, 12, 0.06);
+  border-radius: 17px;
+  background: #fff;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: #7f838a;
+}
+
+.heading p {
+  margin: 0 0 8px;
+  color: #7f838a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.heading h3 {
+  margin: 0;
+  color: #12171d;
+  font-size: 15px;
+  letter-spacing: -0.035em;
+}
+
+.managedBlock {
+  margin-top: 13px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(24, 121, 78, 0.1);
+  border-radius: 13px;
+  background: #f4faf6;
+}
+
+.managedIcon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #e7f5ec;
+  color: #18794e;
+}
+
+.managedCopy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.managedCopy > span {
+  color: #6f8e7d;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.managedCopy strong {
+  overflow-wrap: anywhere;
+  color: #26352d;
+  font-size: 10px;
+}
+
+.managedCopy small {
+  color: #7d9185;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.goodBadge,
+.pendingBadge {
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.goodBadge {
+  background: #e7f5ec;
+  color: #18794e;
+}
+
+.pendingBadge {
+  background: #fff5dd;
+  color: #8a6715;
+}
+
+.primaryLine {
+  margin-top: 8px;
+  padding: 8px 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.primaryLine > span {
+  color: #999ca2;
+  font-size: 8px;
+}
+
+.primaryLine a {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow-wrap: anywhere;
+  color: #6655d8;
+  font-size: 8px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.divider {
+  height: 1px;
+  margin: 15px 0;
+  background: rgba(10, 10, 12, 0.06);
+}
+
+.customHeading > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.customHeading strong {
+  color: #30343a;
+  font-size: 11px;
+}
+
+.customHeading > div span {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #f1f2f4;
+  color: #878b91;
+  font-size: 7px;
+  font-weight: 750;
+}
+
+.customHeading p {
+  margin: 5px 0 0;
+  color: #8b8f95;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.addRow {
+  margin-top: 11px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.addRow input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(10, 10, 12, 0.09);
+  border-radius: 10px;
+  outline: 0;
+  background: #fff;
+  color: #20242a;
+  font-size: 10px;
+}
+
+.addRow input:focus {
+  border-color: rgba(124, 108, 242, 0.36);
+  box-shadow: 0 0 0 3px rgba(124, 108, 242, 0.07);
+}
+
+.addRow button,
+.actions button {
+  border: 1px solid rgba(10, 10, 12, 0.09);
+  border-radius: 10px;
+  background: #fff;
+  color: #34383e;
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.addRow button {
+  min-height: 38px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.addRow button:disabled,
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.infoBox {
+  margin-top: 9px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  border-radius: 10px;
+  background: #f6f7f9;
+  color: #787c83;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.domainList {
+  margin-top: 11px;
+  display: grid;
+  gap: 8px;
+}
+
+.domainItem {
+  padding: 10px;
+  border: 1px solid rgba(10, 10, 12, 0.055);
+  border-radius: 12px;
+  background: #fafbfb;
+}
+
+.domainTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.domainTop > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.domainTop strong {
+  overflow-wrap: anywhere;
+  color: #30343a;
+  font-size: 10px;
+}
+
+.domainTop span {
+  color: #91949a;
+  font-size: 8px;
+}
+
+.dnsBox {
+  margin-top: 9px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.dnsTitle {
+  color: #797d84;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.dnsRecord {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 0.8fr) minmax(0, 1.5fr) 26px;
+  align-items: center;
+  gap: 5px;
+}
+
+.dnsRecord > span {
+  color: #686c72;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.dnsRecord code {
+  overflow: hidden;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: #f5f6f7;
+  color: #5a5e65;
+  font-family: inherit;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dnsRecord button {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: #f5f6f7;
+  color: #777b82;
+}
+
+.actions {
+  margin-top: 9px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.actions button {
+  min-height: 30px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.actions .dangerButton {
+  margin-left: auto;
+  border-color: rgba(154, 62, 62, 0.1);
+  color: #9a3e3e;
+}
+
+.empty {
+  min-height: 60px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 11px;
+  background: #f8f9fa;
+  color: #96999f;
+}
+
+.empty > div {
+  display: grid;
+  gap: 2px;
+}
+
+.empty strong {
+  color: #565a61;
+  font-size: 9px;
+}
+
+.empty span {
+  color: #94979d;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.spin {
+  animation: spin 850ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 540px) {
+  .managedBlock {
+    align-items: flex-start;
+  }
+
+  .goodBadge,
+  .pendingBadge {
+    display: none;
+  }
+
+  .dnsRecord {
+    grid-template-columns: 42px minmax(0, 1fr) 26px;
+  }
+
+  .dnsRecord code:first-of-type {
+    grid-column: 2 / 3;
+  }
+
+  .dnsRecord code:last-of-type {
+    grid-column: 2 / 3;
+  }
+}

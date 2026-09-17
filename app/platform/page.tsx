@@ -46,6 +46,9 @@ import AgencyGoLiveCard, {
 import AgencyInterventionCard, {
   type InterventionOrchestration,
 } from './AgencyInterventionCard';
+import AgencyDomainCard, {
+  type DomainControl,
+} from './AgencyDomainCard';
 
 import styles from './platform.module.css';
 
@@ -173,6 +176,7 @@ type CustomerDetail = {
   privacy_readiness?: PrivacyReadiness | null;
   owner_invites?: OwnerInvite[];
   domains?: Array<Record<string, any>>;
+  domain_control?: DomainControl | null;
   onboarding_tasks?: Array<Record<string, any>>;
   memberships?: Array<Record<string, any>>;
   feature_overrides?: Array<Record<string, any>>;
@@ -186,7 +190,6 @@ type NewAgencyState = {
   ownerEmail: string;
   planKey: string;
   trialDays: number;
-  hostname: string;
   websiteUrl: string;
   supportEmail: string;
   primaryColor: string;
@@ -200,7 +203,6 @@ const EMPTY_AGENCY: NewAgencyState = {
   ownerEmail: '',
   planKey: 'pro',
   trialDays: 14,
-  hostname: '',
   websiteUrl: '',
   supportEmail: '',
   primaryColor: '#111827',
@@ -475,7 +477,6 @@ export default function PlatformPage() {
         trial_days: agency.trialDays,
         stage: 'onboarding',
         billing_mode: 'manual',
-        hostname: agency.hostname.trim().toLowerCase() || null,
         branding: {
           display_name: agency.displayName.trim(),
           short_name: shortName,
@@ -1035,15 +1036,6 @@ export default function PlatformPage() {
                 </label>
 
                 <label className={styles.field}>
-                  <span>Custom domain</span>
-                  <input
-                    value={agency.hostname}
-                    onChange={(event) => setAgency((current) => ({ ...current, hostname: event.target.value }))}
-                    placeholder="app.agency.com"
-                  />
-                </label>
-
-                <label className={styles.field}>
                   <span>Website</span>
                   <input
                     value={agency.websiteUrl}
@@ -1296,10 +1288,10 @@ export default function PlatformPage() {
                   </div>
                 </section>
 
-                <section id="domain-control" className={styles.drawerSection}>
+                <section className={styles.drawerSection}>
                   <div className={styles.drawerSectionHeading}>
                     <div>
-                      <p className={styles.eyebrow}>BRAND AND DOMAIN</p>
+                      <p className={styles.eyebrow}>BRAND</p>
                       <h3>Customer surface</h3>
                     </div>
                     <Globe2 size={17} />
@@ -1315,23 +1307,20 @@ export default function PlatformPage() {
                       <span>{detail.branding?.website_url || 'No website set'}</span>
                     </div>
                   </div>
-
-                  <div className={styles.domainList}>
-                    {(detail.domains || []).map((domain) => (
-                      <div className={styles.domainRow} key={domain.id}>
-                        <Globe2 size={14} />
-                        <div>
-                          <strong>{domain.hostname}</strong>
-                          <span>{titleCase(domain.domain_type)}</span>
-                        </div>
-                        <small className={domain.status === 'active' ? styles.domainActive : ''}>
-                          {titleCase(domain.status)}
-                        </small>
-                      </div>
-                    ))}
-                    {!detail.domains?.length ? <span className={styles.mutedText}>No domain configured yet.</span> : null}
-                  </div>
                 </section>
+
+                <AgencyDomainCard
+                  tenantId={selectedTenantId}
+                  initialControl={detail.domain_control}
+                  onRefresh={async () => {
+                    await Promise.all([
+                      openCustomer(selectedTenantId),
+                      load(true),
+                    ]);
+                  }}
+                  onNotice={setNotice}
+                  onError={setError}
+                />
 
                 <section className={styles.drawerSection}>
                   <div className={styles.drawerSectionHeading}>
