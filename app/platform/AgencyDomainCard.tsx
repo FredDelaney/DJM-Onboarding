@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { friendlyError, platformInvoke } from '@/lib/platform-client';
 
@@ -82,6 +82,10 @@ const dnsRecords = (domain?: DomainRecord | null) => {
   return Array.isArray(records) ? records : [];
 };
 
+const isProviderManaged = (domain?: DomainRecord | null) =>
+  domain?.metadata?.provider === 'vercel' ||
+  domain?.metadata?.created_from === 'platform_ops';
+
 export default function AgencyDomainCard({
   tenantId,
   initialControl,
@@ -96,6 +100,35 @@ export default function AgencyDomainCard({
     useState<Infrastructure | null>(null);
   const [hostname, setHostname] = useState('');
   const [busy, setBusy] = useState('');
+
+  useEffect(() => {
+    setControl(initialControl || null);
+  }, [initialControl, tenantId]);
+
+  useEffect(() => {
+    let active = true;
+
+    setInfrastructure(null);
+    setHostname('');
+    setBusy('');
+
+    void platformInvoke<any>('platform-ops', {
+      action: 'domain_control',
+      tenant_id: tenantId,
+    })
+      .then((result) => {
+        if (!active) return;
+        setControl(result?.domain_control || null);
+        setInfrastructure(result?.infrastructure || null);
+      })
+      .catch(() => {
+        // The parent customer load still provides safe read-only domain state.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [tenantId]);
 
   const domains = control?.domains || [];
   const platformDomain = useMemo(
@@ -120,7 +153,7 @@ export default function AgencyDomainCard({
   const run = async (
     key: string,
     body: Record<string, any>,
-    success: string,
+    success: string | ((result: any) => string),
   ) => {
     if (busy) return;
     setBusy(key);
@@ -129,11 +162,10 @@ export default function AgencyDomainCard({
       const result = await platformInvoke<any>('platform-ops', body);
       if (result?.domain_control) {
         setControl(result.domain_control);
-      } else {
-        await refreshControl();
       }
+      await refreshControl();
       await onRefresh();
-      onNotice(success);
+      onNotice(typeof success === 'function' ? success(result) : success);
     } catch (error) {
       onError(friendlyError(error));
       try {
@@ -144,6 +176,24 @@ export default function AgencyDomainCard({
     } finally {
       setBusy('');
     }
+  };
+
+  const assignManagedDomain = async () => {
+    await run(
+      'assign-platform',
+      {
+        action: 'assign_platform_domain',
+        tenant_id: tenantId,
+      },
+      (result) => {
+        const assigned =
+          String(result?.domain?.hostname || '') ||
+          String(result?.domain_control?.platform_hostname || '');
+        return assigned
+          ? `${assigned} is ready as the managed ReDream address.`
+          : 'Managed ReDream address assigned.';
+      },
+    );
   };
 
   const addCustomDomain = async () => {
@@ -171,6 +221,14 @@ export default function AgencyDomainCard({
     }
   };
 
+  const managedDescription = platformDomain
+    ? 'Automatically managed by ReDream and kept as the permanent fallback.'
+    : infrastructure === null
+      ? 'Checking managed ReDream address availability.'
+      : infrastructure.redream_domain_configured
+        ? 'Managed ReDream infrastructure is ready. Assign this agency its permanent fallback address.'
+        : 'Managed ReDream addresses are not enabled in this environment yet.';
+
   return (
     <section id="domain-control" className={styles.card}>
       <div className={styles.heading}>
@@ -190,9 +248,7 @@ export default function AgencyDomainCard({
           <strong>
             {control?.platform_hostname || 'Not assigned yet'}
           </strong>
-          <small>
-            Automatically managed by ReDream and kept as the permanent fallback.
-          </small>
+          <small>{managedDescription}</small>
         </div>
         {platformDomain?.status === 'verified' ? (
           <span className={styles.goodBadge}>
@@ -201,6 +257,34 @@ export default function AgencyDomainCard({
           </span>
         ) : null}
       </div>
+
+      {!platformDomain && infrastructure?.redream_domain_configured ? (
+        <div className={styles.actions}>
+          <button
+            type="button"
+            onClick={() => void assignManagedDomain()}
+            disabled={Boolean(busy)}
+          >
+            {busy === 'assign-platform' ? (
+              <LoaderCircle size={13} className={styles.spin} />
+            ) : (
+              <ShieldCheck size={13} />
+            )}
+            Set up ReDream address
+          </button>
+        </div>
+      ) : null}
+
+      {!platformDomain && infrastructure?.redream_domain_configured === false ? (
+        <div className={styles.infoBox}>
+          <CircleAlert size={15} />
+          <span>
+            Managed ReDream address infrastructure is not enabled in this
+            environment yet. Existing verified workspace addresses are
+            unaffected.
+          </span>
+        </div>
+      ) : null}
 
       {control?.primary_hostname ? (
         <div className={styles.primaryLine}>
@@ -224,8 +308,8 @@ export default function AgencyDomainCard({
           <span>Optional</span>
         </div>
         <p>
-          Use an agency-owned address such as app.agency.com. The ReDream
-          address remains available even after a custom domain becomes primary.
+          Use an agency-owned address such as app.agency.com. A managed ReDream
+          address remains available as the fallback once it has been assigned.
         </p>
       </div>
 
@@ -248,7 +332,11 @@ export default function AgencyDomainCard({
             <button
               type="button"
               onClick={() => void addCustomDomain()}
-              disabled={!hostname.trim() || Boolean(busy)}
+              disabled={
+                !hostname.trim() ||
+                Boolean(busy) ||
+                infrastructure?.provider_configured !== true
+              }
             >
               {busy === 'add' ? (
                 <LoaderCircle size={14} className={styles.spin} />
@@ -264,7 +352,7 @@ export default function AgencyDomainCard({
               <CircleAlert size={15} />
               <span>
                 Custom-domain automation is not configured on this environment
-                yet. The ReDream workspace address is unaffected.
+                yet. Existing workspace addresses are unaffected.
               </span>
             </div>
           ) : null}
@@ -275,6 +363,7 @@ export default function AgencyDomainCard({
         {customDomains.map((domain) => {
           const records = dnsRecords(domain);
           const verified = domain.status === 'verified';
+          const providerManaged = isProviderManaged(domain);
 
           return (
             <div className={styles.domainItem} key={domain.id}>
@@ -284,6 +373,7 @@ export default function AgencyDomainCard({
                   <span>
                     {statusLabel(domain.status)}
                     {domain.is_primary ? ' · Primary' : ''}
+                    {!providerManaged ? ' · Existing workspace domain' : ''}
                   </span>
                 </div>
 
@@ -324,7 +414,7 @@ export default function AgencyDomainCard({
               ) : null}
 
               <div className={styles.actions}>
-                {!verified && domain.status !== 'disabled' ? (
+                {providerManaged && !verified && domain.status !== 'disabled' ? (
                   <button
                     type="button"
                     onClick={() =>
@@ -335,9 +425,10 @@ export default function AgencyDomainCard({
                           tenant_id: tenantId,
                           domain_id: domain.id,
                         },
-                        verified
-                          ? `${domain.hostname} is verified.`
-                          : `Checked ${domain.hostname}.`,
+                        (result) =>
+                          result?.verified
+                            ? `${domain.hostname} is verified.`
+                            : `Checked ${domain.hostname}. DNS is still propagating or needs attention.`,
                       )
                     }
                     disabled={Boolean(busy)}
@@ -351,7 +442,7 @@ export default function AgencyDomainCard({
                   </button>
                 ) : null}
 
-                {verified && !domain.is_primary ? (
+                {providerManaged && verified && !domain.is_primary ? (
                   <button
                     type="button"
                     onClick={() =>
@@ -376,14 +467,14 @@ export default function AgencyDomainCard({
                   </button>
                 ) : null}
 
-                {domain.status !== 'disabled' ? (
+                {providerManaged && domain.status !== 'disabled' ? (
                   <button
                     type="button"
                     className={styles.dangerButton}
                     onClick={() => {
                       if (
                         window.confirm(
-                          `Disconnect ${domain.hostname}? The ReDream address will remain available.`,
+                          `Disconnect ${domain.hostname}? The ReDream address remains available when configured.`,
                         )
                       ) {
                         void run(
@@ -393,7 +484,7 @@ export default function AgencyDomainCard({
                             tenant_id: tenantId,
                             domain_id: domain.id,
                           },
-                          `${domain.hostname} disconnected. The ReDream address remains available.`,
+                          `${domain.hostname} disconnected.`,
                         );
                       }
                     }}
@@ -418,8 +509,8 @@ export default function AgencyDomainCard({
             <div>
               <strong>No custom domain connected</strong>
               <span>
-                This is completely optional. The ReDream address is already
-                enough to use the workspace.
+                This is completely optional. A managed ReDream address is
+                enough once it has been assigned.
               </span>
             </div>
           </div>
