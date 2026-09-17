@@ -93,7 +93,7 @@ test(
 );
 
 test(
-  'root shell exposes tenant identity, plan and theme without a tenant switcher',
+  'root shell exposes tenant identity plan and theme without a tenant switcher',
   () => {
     assert.match(
       layout,
@@ -133,7 +133,7 @@ test(
 );
 
 test(
-  'brand component preserves DJM but does not leak the DJM mark into another agency',
+  'brand component is tenant-derived with a neutral lettermark fallback',
   () => {
     assert.match(
       brand,
@@ -142,17 +142,42 @@ test(
 
     assert.match(
       brand,
-      /isDjm/,
+      /branding\.logo_asset/,
     );
 
     assert.match(
       brand,
-      /isDjm[\s\S]{0,120}'\/djm-mark\.png'/,
+      /branding\.compact_logo_asset/,
+    );
+
+    assert.match(
+      brand,
+      /branding\.light_logo_asset/,
+    );
+
+    assert.match(
+      brand,
+      /branding\.portal_name/,
     );
 
     assert.match(
       brand,
       /tenant-lettermark/,
+    );
+
+    assert.doesNotMatch(
+      brand,
+      /\bisDjm\b/,
+    );
+
+    assert.doesNotMatch(
+      brand,
+      /djm-sports-management/,
+    );
+
+    assert.doesNotMatch(
+      brand,
+      /\/djm-mark\.png/,
     );
   },
 );

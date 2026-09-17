@@ -19,9 +19,16 @@ export default function Brand({
   const branding =
     runtime.branding;
 
-  const isDjm =
-    runtime.slug ===
-    'djm-sports-management';
+  const displayName =
+    branding.display_name.trim();
+
+  const shortName =
+    branding.short_name?.trim() ||
+    null;
+
+  const portalName =
+    branding.portal_name?.trim() ||
+    null;
 
   const logoAsset =
     (light
@@ -33,14 +40,11 @@ export default function Brand({
     branding.logo_asset;
 
   const logoSrc =
-    logoAsset ||
-    (isDjm
-      ? '/djm-mark.png'
-      : null);
+    logoAsset || null;
 
   const markText = (
-    branding.short_name ||
-    branding.display_name ||
+    shortName ||
+    displayName ||
     'Agency'
   )
     .split(/\s+/)
@@ -50,17 +54,24 @@ export default function Brand({
     .slice(0, 2)
     .toUpperCase();
 
-  const primaryLabel = isDjm
-    ? 'DJM PLAYER'
-    : (
-        branding.portal_name ||
-        branding.short_name ||
-        branding.display_name
-      ).toUpperCase();
+  const primaryLabel = (
+    portalName ||
+    shortName ||
+    displayName
+  ).toUpperCase();
 
-  const secondaryLabel = isDjm
-    ? 'SPORTS MANAGEMENT'
-    : branding.display_name.toUpperCase();
+  const secondaryLabel =
+    shortName &&
+    displayName
+      .toLowerCase()
+      .startsWith(
+        `${shortName.toLowerCase()} `,
+      )
+      ? displayName
+          .slice(shortName.length)
+          .trim()
+          .toUpperCase()
+      : displayName.toUpperCase();
 
   return (
     <Link
@@ -69,16 +80,14 @@ export default function Brand({
         light ? 'brand-light' : ''
       }`}
       aria-label={
-        branding.display_name
+        displayName
       }
     >
       <span className="brand-mark">
         {logoSrc ? (
           <img
             src={logoSrc}
-            alt={
-              branding.display_name
-            }
+            alt={displayName}
           />
         ) : (
           <span

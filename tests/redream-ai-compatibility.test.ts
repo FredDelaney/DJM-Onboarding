@@ -16,10 +16,18 @@ test('canonical and legacy Edge entrypoints delegate to the same handler',()=>{
     }
   }
 });
-test('shared agency presentation is neutral and DJM legal/brand copy is tenant conditional',()=>{
+test('shared agency presentation is tenant-derived while the existing DJM privacy boundary remains conditional',()=>{
   for(const file of ['AiCapture','AiLauncher','AiFullPage','AiRecentCaptures','AgencyOperatingWorkspace','WorkspaceHeader']) assert.doesNotMatch(read(`components/${file}.tsx`),/Tell DJM|\bDJM\b/);
-  assert.match(read('components/Brand.tsx'),/runtime.slug ===\s*'djm-sports-management'/);
-  assert.match(read('components/Brand.tsx'),/\? 'DJM PLAYER'/);
+
+  const brand=read('components/Brand.tsx');
+  assert.match(brand,/useTenantRuntime/);
+  assert.match(brand,/branding\.portal_name/);
+  assert.match(brand,/branding\.logo_asset/);
+  assert.match(brand,/tenant-lettermark/);
+  assert.doesNotMatch(brand,/djm-sports-management/);
+  assert.doesNotMatch(brand,/\bisDjm\b/);
+  assert.doesNotMatch(brand,/DJM PLAYER/);
+
   assert.match(read('app/privacy/page.tsx'),/runtime.slug !== 'djm-sports-management'/);
   assert.doesNotMatch(read('app/page.tsx'),/djmsports\.com/);
   assert.match(read('components/AgencyOperatingWorkspace.tsx'),/<AiLauncher/);

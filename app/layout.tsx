@@ -73,18 +73,13 @@ export async function generateMetadata():
     };
   }
 
-  const isDjm =
-    runtime.slug ===
-    'djm-sports-management';
-
   const title =
     runtime.branding.portal_name ||
     runtime.branding.short_name ||
     runtime.branding.display_name;
 
-  const description = isDjm
-    ? 'Private career app by DJM Sports Management'
-    : `Private player and agency platform by ${runtime.branding.display_name}`;
+  const description =
+    `Private career app by ${runtime.branding.display_name}`;
 
   const favicon =
     runtime.branding.favicon_asset;
@@ -98,24 +93,7 @@ export async function generateMetadata():
           icon: favicon,
           apple: favicon,
         }
-      : isDjm
-        ? {
-            icon: [
-              {
-                url: '/icon-192.png',
-                sizes: '192x192',
-                type: 'image/png',
-              },
-              {
-                url: '/icon-512.png',
-                sizes: '512x512',
-                type: 'image/png',
-              },
-            ],
-            apple:
-              '/apple-touch-icon.png',
-          }
-        : undefined,
+      : undefined,
     appleWebApp: {
       capable: true,
       title,
