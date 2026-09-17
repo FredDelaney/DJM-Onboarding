@@ -47,11 +47,13 @@ test('ReDream action bar focuses existing controls and confirms high-impact exec
   const goLive = read('app/platform/AgencyGoLiveCard.tsx');
   const activation = read('app/platform/AgencyActivationCard.tsx');
   const intervention = read('app/platform/AgencyInterventionCard.tsx');
+  const domain = read('app/platform/AgencyDomainCard.tsx');
 
   assert.match(page, /AgencyActionBar/);
   assert.match(page, /action_surface/);
   assert.match(page, /commercial-control/);
-  assert.match(page, /domain-control/);
+  assert.match(page, /AgencyDomainCard/);
+  assert.match(domain, /id="domain-control"/);
   assert.match(goLive, /id="go-live-control"/);
   assert.match(goLive, /id="privacy-control"/);
   assert.match(activation, /id="activation-control"/);
