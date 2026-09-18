@@ -191,6 +191,9 @@ type NewAgencyState = {
   planKey: string;
   commercialStart: 'trial' | 'onboarding';
   trialDays: number;
+  contractAmount: string;
+  contractCurrency: string;
+  annualCommitment: boolean;
   websiteUrl: string;
   supportEmail: string;
   primaryColor: string;
@@ -205,6 +208,9 @@ const EMPTY_AGENCY: NewAgencyState = {
   planKey: 'pro',
   commercialStart: 'trial',
   trialDays: 14,
+  contractAmount: '',
+  contractCurrency: 'EUR',
+  annualCommitment: false,
   websiteUrl: '',
   supportEmail: '',
   primaryColor: '#111827',
@@ -326,6 +332,7 @@ export default function PlatformPage() {
   const [detailAnnualCommitment, setDetailAnnualCommitment] = useState(false);
   const [confirmingConversion, setConfirmingConversion] = useState(false);
   const [confirmingPlanChange, setConfirmingPlanChange] = useState(false);
+  const [confirmingContractUpdate, setConfirmingContractUpdate] = useState(false);
   const [detailBusy, setDetailBusy] = useState('');
   const [privacyFocusToken, setPrivacyFocusToken] = useState(0);
 
@@ -402,6 +409,7 @@ export default function PlatformPage() {
     setDetailAnnualCommitment(false);
     setConfirmingConversion(false);
     setConfirmingPlanChange(false);
+    setConfirmingContractUpdate(false);
     try {
       const result = await platformInvoke<any>('platform-ops', {
         action: 'customer_detail',
@@ -436,6 +444,7 @@ export default function PlatformPage() {
     setDetailBusy('');
     setConfirmingConversion(false);
     setConfirmingPlanChange(false);
+    setConfirmingContractUpdate(false);
     setPrivacyFocusToken(0);
   };
 
@@ -549,6 +558,20 @@ export default function PlatformPage() {
   const planChangeEvidenceMatches =
     selectedCustomer?.capacity?.next_plan_key === detailPlan;
 
+  const agencyContractMonthlyCents = useMemo(() => {
+    const normalized = agency.contractAmount.trim().replace(',', '.');
+    const amount = Number(normalized);
+    return Number.isFinite(amount) && amount > 0
+      ? Math.round(amount * 100)
+      : 0;
+  }, [agency.contractAmount]);
+
+  const agencyContractCurrency = agency.contractCurrency.trim().toUpperCase();
+  const directOnboardingReady =
+    agency.commercialStart !== 'onboarding' ||
+    (agencyContractMonthlyCents > 0 &&
+      /^[A-Z]{3}$/.test(agencyContractCurrency));
+
   const conversionMonthlyCents = useMemo(() => {
     const normalized = detailContractAmount.trim().replace(',', '.');
     const amount = Number(normalized);
@@ -563,6 +586,27 @@ export default function PlatformPage() {
       detailPlan &&
       conversionMonthlyCents > 0 &&
       /^[A-Z]{3}$/.test(conversionCurrency),
+  );
+
+  const currentContractMonthlyCents = Number(
+    detail?.lifecycle?.contracted_monthly_cents || 0,
+  );
+  const currentContractCurrency = String(
+    detail?.lifecycle?.contract_currency || 'EUR',
+  ).toUpperCase();
+  const currentAnnualCommitment = Boolean(
+    detail?.lifecycle?.annual_commitment,
+  );
+  const contractHasChanges =
+    conversionMonthlyCents !== currentContractMonthlyCents ||
+    conversionCurrency !== currentContractCurrency ||
+    detailAnnualCommitment !== currentAnnualCommitment;
+  const contractUpdateReady = Boolean(
+    selectedCustomer &&
+      !['trial', 'internal'].includes(selectedCustomer.stage) &&
+      conversionMonthlyCents > 0 &&
+      /^[A-Z]{3}$/.test(conversionCurrency) &&
+      contractHasChanges,
   );
 
   const commercialDecision = useMemo(() => {
@@ -617,7 +661,14 @@ export default function PlatformPage() {
 
   const createAgency = async (event: FormEvent) => {
     event.preventDefault();
-    if (creating || !agency.displayName.trim() || !agency.planKey) return;
+    if (
+      creating ||
+      !agency.displayName.trim() ||
+      !agency.planKey ||
+      !directOnboardingReady
+    ) {
+      return;
+    }
 
     setCreating(true);
     setError('');
@@ -638,6 +689,18 @@ export default function PlatformPage() {
           agency.commercialStart === 'trial' ? agency.trialDays : 14,
         stage: agency.commercialStart,
         billing_mode: 'manual',
+        contracted_monthly_cents:
+          agency.commercialStart === 'onboarding'
+            ? agencyContractMonthlyCents
+            : undefined,
+        contract_currency:
+          agency.commercialStart === 'onboarding'
+            ? agencyContractCurrency
+            : undefined,
+        annual_commitment:
+          agency.commercialStart === 'onboarding'
+            ? agency.annualCommitment
+            : undefined,
         branding: {
           display_name: agency.displayName.trim(),
           short_name: shortName,
@@ -719,6 +782,34 @@ export default function PlatformPage() {
       );
     } catch (conversionError) {
       setError(friendlyError(conversionError));
+    } finally {
+      setDetailBusy('');
+    }
+  };
+
+  const updateCommercialContract = async () => {
+    if (!selectedTenantId || !contractUpdateReady || detailBusy) return;
+
+    if (!confirmingContractUpdate) {
+      setConfirmingContractUpdate(true);
+      return;
+    }
+
+    setDetailBusy('contract');
+    setError('');
+    try {
+      await platformInvoke('platform-ops', {
+        action: 'update_customer',
+        tenant_id: selectedTenantId,
+        contracted_monthly_cents: conversionMonthlyCents,
+        contract_currency: conversionCurrency,
+        annual_commitment: detailAnnualCommitment,
+      });
+      setConfirmingContractUpdate(false);
+      await Promise.all([openCustomer(selectedTenantId), load(true)]);
+      setNotice('Commercial contract evidence updated.');
+    } catch (contractError) {
+      setError(friendlyError(contractError));
     } finally {
       setDetailBusy('');
     }
@@ -1268,6 +1359,69 @@ export default function PlatformPage() {
                 </button>
               </div>
 
+              {agency.commercialStart === 'onboarding' ? (
+                <div className={styles.directContract}>
+                  <div className={styles.commercialSubhead}>
+                    <span>Signed commercial terms</span>
+                    <small>
+                      Direct onboarding requires real contract evidence because
+                      go-live is blocked until contracted MRR is recorded.
+                    </small>
+                  </div>
+                  <div className={styles.conversionFields}>
+                    <label className={styles.field}>
+                      <span>Contract MRR</span>
+                      <input
+                        inputMode="decimal"
+                        value={agency.contractAmount}
+                        onChange={(event) =>
+                          setAgency((current) => ({
+                            ...current,
+                            contractAmount: event.target.value,
+                          }))
+                        }
+                        placeholder="500.00"
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      <span>Currency</span>
+                      <input
+                        value={agency.contractCurrency}
+                        maxLength={3}
+                        onChange={(event) =>
+                          setAgency((current) => ({
+                            ...current,
+                            contractCurrency: event.target.value
+                              .replace(/[^a-z]/gi, '')
+                              .slice(0, 3)
+                              .toUpperCase(),
+                          }))
+                        }
+                        placeholder="EUR"
+                      />
+                    </label>
+                    <label className={styles.commitmentToggle}>
+                      <input
+                        type="checkbox"
+                        checked={agency.annualCommitment}
+                        onChange={(event) =>
+                          setAgency((current) => ({
+                            ...current,
+                            annualCommitment: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>
+                        <strong>Annual commitment</strong>
+                        <small>
+                          Record only when the signed agreement is annual.
+                        </small>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              ) : null}
+
               <div className={styles.formGrid}>
                 {agency.commercialStart === 'trial' ? (
                   <label className={styles.field}>
@@ -1344,7 +1498,11 @@ export default function PlatformPage() {
                 <button type="button" className={styles.secondaryButton} onClick={() => setCreateOpen(false)} disabled={creating}>
                   Cancel
                 </button>
-                <button type="submit" className={styles.primaryButton} disabled={creating}>
+                <button
+                  type="submit"
+                  className={styles.primaryButton}
+                  disabled={creating || !directOnboardingReady}
+                >
                   {creating ? <LoaderCircle size={16} className={styles.spin} /> : <Zap size={16} />}
                   {creating ? 'Provisioning...' : 'Provision agency'}
                 </button>
@@ -1508,6 +1666,7 @@ export default function PlatformPage() {
                             onChange={(event) => {
                               setDetailContractAmount(event.target.value);
                               setConfirmingConversion(false);
+                              setConfirmingContractUpdate(false);
                             }}
                             placeholder="500.00"
                           />
@@ -1526,6 +1685,7 @@ export default function PlatformPage() {
                                   .toUpperCase(),
                               );
                               setConfirmingConversion(false);
+                              setConfirmingContractUpdate(false);
                             }}
                             placeholder="EUR"
                           />
@@ -1538,6 +1698,7 @@ export default function PlatformPage() {
                             onChange={(event) => {
                               setDetailAnnualCommitment(event.target.checked);
                               setConfirmingConversion(false);
+                              setConfirmingContractUpdate(false);
                             }}
                           />
                           <span>
@@ -1590,6 +1751,125 @@ export default function PlatformPage() {
                           : confirmingConversion
                             ? 'Confirm conversion'
                             : 'Review conversion'}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {selectedCustomer &&
+                  !['trial', 'internal'].includes(selectedCustomer.stage) ? (
+                    <div className={styles.contractControl}>
+                      <div className={styles.commercialSubhead}>
+                        <span>Commercial contract</span>
+                        <small>
+                          Record or correct contract evidence without changing
+                          the plan, lifecycle stage or go-live state.
+                        </small>
+                      </div>
+
+                      <div className={styles.conversionFields}>
+                        <label className={styles.field}>
+                          <span>Contract MRR</span>
+                          <input
+                            inputMode="decimal"
+                            value={detailContractAmount}
+                            onChange={(event) => {
+                              setDetailContractAmount(event.target.value);
+                              setConfirmingContractUpdate(false);
+                            }}
+                            placeholder="500.00"
+                          />
+                        </label>
+
+                        <label className={styles.field}>
+                          <span>Currency</span>
+                          <input
+                            value={detailContractCurrency}
+                            maxLength={3}
+                            onChange={(event) => {
+                              setDetailContractCurrency(
+                                event.target.value
+                                  .replace(/[^a-z]/gi, '')
+                                  .slice(0, 3)
+                                  .toUpperCase(),
+                              );
+                              setConfirmingContractUpdate(false);
+                            }}
+                            placeholder="EUR"
+                          />
+                        </label>
+
+                        <label className={styles.commitmentToggle}>
+                          <input
+                            type="checkbox"
+                            checked={detailAnnualCommitment}
+                            onChange={(event) => {
+                              setDetailAnnualCommitment(event.target.checked);
+                              setConfirmingContractUpdate(false);
+                            }}
+                          />
+                          <span>
+                            <strong>Annual commitment</strong>
+                            <small>
+                              Keep this aligned to the signed commercial agreement.
+                            </small>
+                          </span>
+                        </label>
+                      </div>
+
+                      {confirmingContractUpdate ? (
+                        <div className={styles.contractConfirm}>
+                          <strong>
+                            {currentContractMonthlyCents > 0
+                              ? 'Confirm contract update'
+                              : 'Confirm contract evidence'}
+                          </strong>
+                          <span>
+                            {currentContractMonthlyCents > 0
+                              ? `${money(
+                                  currentContractMonthlyCents,
+                                  currentContractCurrency,
+                                )}/mo to `
+                              : ''}
+                            {money(
+                              conversionMonthlyCents,
+                              conversionCurrency,
+                            )}
+                            /mo
+                            {detailAnnualCommitment
+                              ? ' · annual commitment'
+                              : ''}
+                          </span>
+                          <small>
+                            This writes commercial evidence only. Plan and
+                            lifecycle state stay unchanged.
+                          </small>
+                        </div>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        className={
+                          confirmingContractUpdate
+                            ? styles.primaryButton
+                            : styles.secondaryButton
+                        }
+                        onClick={() => void updateCommercialContract()}
+                        disabled={
+                          detailBusy === 'contract' || !contractUpdateReady
+                        }
+                      >
+                        {detailBusy === 'contract' ? (
+                          <LoaderCircle size={15} className={styles.spin} />
+                        ) : confirmingContractUpdate ? (
+                          <Check size={15} />
+                        ) : (
+                          <ArrowRight size={15} />
+                        )}
+                        {detailBusy === 'contract'
+                          ? 'Updating...'
+                          : confirmingContractUpdate
+                            ? 'Confirm contract'
+                            : 'Review contract'}
                       </button>
                     </div>
                   ) : null}

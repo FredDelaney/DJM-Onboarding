@@ -1950,3 +1950,51 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.directContract,
+.contractControl {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(124, 108, 242, 0.13);
+  border-radius: 14px;
+  background: #fbfaff;
+}
+
+.directContract .commercialSubhead,
+.contractControl .commercialSubhead {
+  margin-top: 0;
+}
+
+.contractControl > .primaryButton,
+.contractControl > .secondaryButton {
+  width: 100%;
+  margin-top: 9px;
+}
+
+.contractConfirm {
+  margin-top: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 3px;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(24, 19, 31, 0.045);
+}
+
+.contractConfirm strong {
+  color: #2d3238;
+  font-size: 10px;
+}
+
+.contractConfirm span {
+  color: #5e6470;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.contractConfirm small {
+  color: #90959c;
+  font-size: 8px;
+  line-height: 1.4;
+}
