@@ -87,6 +87,15 @@ const money = (value: unknown, currency = 'EUR') => {
   }
 };
 
+const careerGateLabel = (value: unknown) => {
+  const state = String(value || '').trim().toLowerCase();
+  if (!state) return 'Recorded';
+  if (state.startsWith('open_')) return 'Open to progress';
+  if (state.startsWith('review_')) return 'Review needed';
+  if (state.startsWith('hold_')) return 'Held by career control';
+  return human(state);
+};
+
 export default function AgencyOperatingWorkspace() {
   const runtime = useTenantRuntime();
   const params = useParams<{ tenantSlug?: string }>();
@@ -908,17 +917,76 @@ function Opportunities({ data }: { data: any }) {
       <section className={styles.sectionCard}>
         <div className={styles.sectionHead}><p className={styles.eyebrow}>CLUB DEMAND</p><h2>Needs worth acting on</h2></div>
         <div className={styles.list}>
-          {needs.map((item: any) => (
-            <article className={styles.listRow} key={item.club_need_id}>
-              <div className={styles.rank}>{item.command_rank || '•'}</div>
-              <div className={styles.listCopy}>
-                <strong>{item.club?.name} · {item.need?.title}</strong>
-                <span>{item.next_action?.instruction || 'Review the recorded need.'}</span>
-                <small>{human(item.need?.need_type)} · {item.need?.position || 'Position open'} · {human(item.coverage_state)}</small>
-              </div>
-              <div className={styles.sideStat}><strong>{item.candidate_coverage?.recorded_candidates || 0}</strong><small>candidates</small></div>
-            </article>
-          ))}
+          {needs.map((item: any) => {
+            const candidates = Array.isArray(
+              item?.candidate_coverage?.candidates,
+            )
+              ? item.candidate_coverage.candidates
+              : [];
+            const visibleCandidates = candidates.slice(0, 4);
+            const hiddenCandidates = Math.max(
+              0,
+              candidates.length - visibleCandidates.length,
+            );
+
+            return (
+              <article className={styles.listRow} key={item.club_need_id}>
+                <div className={styles.rank}>{item.command_rank || '•'}</div>
+                <div className={styles.listCopy}>
+                  <strong>{item.club?.name} · {item.need?.title}</strong>
+                  <span>
+                    {item.next_action?.instruction ||
+                      'Review the recorded need.'}
+                  </span>
+                  <small>
+                    {human(item.need?.need_type)} ·{' '}
+                    {item.need?.position || 'Position open'} ·{' '}
+                    {human(item.coverage_state)}
+                  </small>
+
+                  <div
+                    className={styles.routeCandidates}
+                    aria-label="Recorded player routes"
+                  >
+                    {visibleCandidates.map((candidate: any) => (
+                      <div
+                        className={styles.routeCandidate}
+                        key={
+                          candidate.player_match_id ||
+                          candidate.player_id ||
+                          candidate.player_name
+                        }
+                      >
+                        <b>{candidate.player_name || 'Player'}</b>
+                        <small>
+                          {careerGateLabel(
+                            candidate.career_gate_state ||
+                              candidate.match_status,
+                          )}
+                        </small>
+                      </div>
+                    ))}
+                    {!visibleCandidates.length ? (
+                      <div className={styles.routeCandidateEmpty}>
+                        No recorded candidate yet
+                      </div>
+                    ) : null}
+                    {hiddenCandidates ? (
+                      <div className={styles.routeCandidateMore}>
+                        +{hiddenCandidates} more
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <div className={styles.sideStat}>
+                  <strong>
+                    {item.candidate_coverage?.recorded_candidates || 0}
+                  </strong>
+                  <small>candidates</small>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
     </div>

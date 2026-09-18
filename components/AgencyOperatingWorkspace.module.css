@@ -96,3 +96,57 @@
     width: 100%;
   }
 }
+
+
+.routeCandidates {
+  margin-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.routeCandidate,
+.routeCandidateEmpty,
+.routeCandidateMore {
+  min-height: 28px;
+  padding: 5px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e4e7ea;
+  border-radius: 9px;
+  background: #f8f9fa;
+}
+
+.routeCandidate {
+  color: #454d57;
+}
+
+.routeCandidate b {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.routeCandidate small {
+  color: #858c95;
+  font-size: 8px;
+  line-height: 1.2;
+}
+
+.routeCandidateEmpty,
+.routeCandidateMore {
+  color: #858c95;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+@media (max-width: 680px) {
+  .routeCandidates {
+    margin-top: 7px;
+  }
+
+  .routeCandidate {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+}
