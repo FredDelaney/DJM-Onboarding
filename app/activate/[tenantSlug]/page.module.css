@@ -132,3 +132,94 @@ button.firstPlayerRoute:hover {
     min-height: auto;
   }
 }
+
+
+.workingLoopForm {
+  gap: 20px;
+}
+
+.workingLoopIntro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(10, 10, 12, 0.065);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--launch-accent) 4%, #fff),
+      #fff 72%
+    );
+}
+
+.workingLoopStage {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+}
+
+.workingLoopStage > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--launch-primary);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.workingLoopStage > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.workingLoopStage strong {
+  color: #34383e;
+  font-size: 9px;
+}
+
+.workingLoopStage p {
+  margin: 0;
+  color: #858990;
+  font-size: 7.5px;
+  line-height: 1.45;
+}
+
+.workingLoopArrow {
+  color: #a1a4aa;
+}
+
+.workingLoopTruth {
+  padding: 10px 11px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 11px;
+  background: #f6f7f9;
+  color: #70757c;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.workingLoopTruth svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #3f7655;
+}
+
+@media (max-width: 620px) {
+  .workingLoopIntro {
+    grid-template-columns: 1fr;
+  }
+
+  .workingLoopArrow {
+    display: none;
+  }
+}

@@ -106,14 +106,14 @@ const STEP_COPY: Record<
     copy: 'Add one player now, or bring in your existing roster with the same checked import workflow. Either route creates real agency records, not onboarding placeholders.',
   },
   first_relationship: {
-    eyebrow: 'FIRST RELATIONSHIP',
-    title: 'Add one club contact you actually know.',
-    copy: 'A real relationship makes the next opportunity and follow-up workflow useful immediately.',
+    eyebrow: 'FIRST WORKING LOOP',
+    title: 'Put one player in motion.',
+    copy: 'Connect a real club contact to a live route for one of your players. One guided action creates the relationship and the opportunity evidence needed for first value.',
   },
   first_opportunity: {
-    eyebrow: 'FIRST LIVE OPPORTUNITY',
-    title: 'Capture something commercially real.',
-    copy: 'Use a club requirement or live route you are already working on. This is the moment the workspace becomes operational.',
+    eyebrow: 'FINISH THE LIVE ROUTE',
+    title: 'Complete the opportunity you started.',
+    copy: 'Your club relationship is already safe. Add the live route for one player and the workspace can reach first working value.',
   },
   owner_setup_complete: {
     eyebrow: 'OWNER SETUP COMPLETE',
@@ -425,19 +425,62 @@ export default function AgencyLaunchPage() {
     );
   };
 
-  const saveRelationship = async (event: FormEvent) => {
+  const saveWorkingLoop = async (event: FormEvent) => {
     event.preventDefault();
-    await invokeLaunch(
-      'create_first_relationship',
-      {
+    if (!launch || busy) return;
+
+    setBusy('create_first_working_loop');
+    setError('');
+    setNotice('');
+
+    let opportunityFailure = '';
+
+    try {
+      await platformInvoke('agency-launch', {
+        action: 'create_first_relationship',
+        tenant_slug: runtime.slug,
         contact_name: relationship.contactName,
         club_name: relationship.clubName,
         contact_role: relationship.role || null,
         country: relationship.country || null,
         notes: relationship.notes || null,
-      },
-      'First club relationship added.',
-    );
+      });
+
+      try {
+        const result = await platformInvoke<{ launch?: LaunchData }>('agency-launch', {
+          action: 'create_first_opportunity',
+          tenant_slug: runtime.slug,
+          player_id: opportunity.playerId,
+          club_name: relationship.clubName,
+          country: relationship.country || null,
+          summary: opportunity.summary || null,
+          next_action: opportunity.nextAction || null,
+        });
+
+        if (result?.launch) setLaunch(result.launch);
+      } catch (opportunityError) {
+        opportunityFailure = friendlyError(opportunityError);
+      }
+
+      await loadLaunch();
+
+      if (opportunityFailure) {
+        setNotice('Club relationship saved. Your progress is safe.');
+        setError(
+          `Finish the live opportunity below to reach first value. ${opportunityFailure}`,
+        );
+      } else {
+        setNotice(
+          'First working loop created. Your club relationship and live opportunity are now in the workspace.',
+        );
+      }
+    } catch (relationshipError) {
+      const message = friendlyError(relationshipError);
+      await loadLaunch();
+      setError(message);
+    } finally {
+      setBusy('');
+    }
   };
 
   const saveOpportunity = async (event: FormEvent) => {
@@ -699,8 +742,50 @@ export default function AgencyLaunchPage() {
 
     if (nextStep === 'first_relationship') {
       return (
-        <form className={styles.form} onSubmit={saveRelationship}>
+        <form
+          className={`${styles.form} ${styles.workingLoopForm}`}
+          onSubmit={saveWorkingLoop}
+        >
+          <div className={styles.workingLoopIntro} aria-label="First working loop">
+            <div className={styles.workingLoopStage}>
+              <span>1</span>
+              <div>
+                <strong>Real club relationship</strong>
+                <p>Add the person and club you are genuinely working with.</p>
+              </div>
+            </div>
+            <ArrowRight size={16} className={styles.workingLoopArrow} />
+            <div className={styles.workingLoopStage}>
+              <span>2</span>
+              <div>
+                <strong>Live player route</strong>
+                <p>Attach one represented player and the next commercial move.</p>
+              </div>
+            </div>
+          </div>
+
           <div className={styles.grid}>
+            <Field label="Player">
+              <select
+                value={opportunity.playerId}
+                onChange={(event) =>
+                  setOpportunity((current) => ({
+                    ...current,
+                    playerId: event.target.value,
+                  }))
+                }
+                required
+              >
+                <option value="">Choose player</option>
+                {(launch.players || []).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name ||
+                      `${item.first_name || ''} ${item.last_name || ''}`.trim()}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
             <Field label="Club contact">
               <input
                 value={relationship.contactName}
@@ -710,49 +795,114 @@ export default function AgencyLaunchPage() {
                     contactName: event.target.value,
                   }))
                 }
+                placeholder="Name of the person you know"
                 required
               />
             </Field>
+
             <Field label="Club">
               <input
                 value={relationship.clubName}
-                onChange={(event) =>
-                  setRelationship((current) => ({ ...current, clubName: event.target.value }))
-                }
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setRelationship((current) => ({
+                    ...current,
+                    clubName: value,
+                  }));
+                  setOpportunity((current) => ({
+                    ...current,
+                    clubName: value,
+                  }));
+                }}
+                placeholder="Club on this live route"
                 required
               />
             </Field>
-            <Field label="Role">
+
+            <Field label="Contact role">
               <input
                 value={relationship.role}
                 onChange={(event) =>
-                  setRelationship((current) => ({ ...current, role: event.target.value }))
+                  setRelationship((current) => ({
+                    ...current,
+                    role: event.target.value,
+                  }))
                 }
                 placeholder="Sporting Director"
               />
             </Field>
+
             <Field label="Country">
               <input
                 value={relationship.country}
-                onChange={(event) =>
-                  setRelationship((current) => ({ ...current, country: event.target.value }))
-                }
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setRelationship((current) => ({
+                    ...current,
+                    country: value,
+                  }));
+                  setOpportunity((current) => ({
+                    ...current,
+                    country: value,
+                  }));
+                }}
               />
             </Field>
+
+            <Field label="Next action">
+              <input
+                value={opportunity.nextAction}
+                onChange={(event) =>
+                  setOpportunity((current) => ({
+                    ...current,
+                    nextAction: event.target.value,
+                  }))
+                }
+                placeholder="Call, pitch, send profile..."
+              />
+            </Field>
+
             <Field label="Relationship context" wide>
               <textarea
                 value={relationship.notes}
                 onChange={(event) =>
-                  setRelationship((current) => ({ ...current, notes: event.target.value }))
+                  setRelationship((current) => ({
+                    ...current,
+                    notes: event.target.value,
+                  }))
                 }
                 rows={3}
-                placeholder="How you know them or the most useful context."
+                placeholder="How you know them or the context that matters."
+              />
+            </Field>
+
+            <Field label="What is live?" wide>
+              <textarea
+                value={opportunity.summary}
+                onChange={(event) =>
+                  setOpportunity((current) => ({
+                    ...current,
+                    summary: event.target.value,
+                  }))
+                }
+                rows={4}
+                placeholder="What is the club looking for, why does this player fit, or what are you trying to make happen?"
               />
             </Field>
           </div>
+
+          <div className={styles.workingLoopTruth}>
+            <ShieldCheck size={15} />
+            <span>
+              This saves the real club relationship first, then the live
+              opportunity against the selected player. Progress advances only
+              from records that were actually saved.
+            </span>
+          </div>
+
           <Primary
-            busy={busy === 'create_first_relationship'}
-            label="Add first relationship"
+            busy={busy === 'create_first_working_loop'}
+            label="Create first working loop"
           />
         </form>
       );
