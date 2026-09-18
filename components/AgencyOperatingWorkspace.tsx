@@ -58,6 +58,36 @@ const NAV: Array<{
   { key: 'opportunities', label: 'Opportunities', icon: BriefcaseBusiness },
 ];
 
+const VIEW_PRESENTATION: Record<
+  View,
+  { eyebrow: string; title: string; description: string }
+> = {
+  home: {
+    eyebrow: 'DAILY OPERATING PICTURE',
+    title: 'Today',
+    description:
+      'The clearest next actions across players, relationships and live business.',
+  },
+  players: {
+    eyebrow: 'ROSTER COMMAND',
+    title: 'Players',
+    description:
+      'Protect live business, move careers and keep every represented player owned.',
+  },
+  network: {
+    eyebrow: 'RELATIONSHIP INTELLIGENCE',
+    title: 'Network',
+    description:
+      'Club access, live demand and relationship strength in one operating view.',
+  },
+  opportunities: {
+    eyebrow: 'COMMERCIAL EXECUTION',
+    title: 'Opportunities',
+    description:
+      'Work live deals and club demand with the recorded routes that can move them.',
+  },
+};
+
 const ALLOWED_ROLES = ['owner', 'admin', 'agent', 'operations'];
 
 const human = (value: unknown) =>
@@ -138,6 +168,7 @@ export default function AgencyOperatingWorkspace() {
     workspace?.display_name ||
     runtime.branding.display_name ||
     'Agency workspace';
+  const viewPresentation = VIEW_PRESENTATION[view];
 
   const theme = {
     '--agency-primary':
@@ -493,11 +524,22 @@ export default function AgencyOperatingWorkspace() {
 
       <main className={styles.main}>
         <header className={styles.pageHead}>
-          <div>
-            <p className={styles.eyebrow}>
-              {workspace.short_name || workspaceName}
+          <div className={styles.pageHeadCopy}>
+            <div className={styles.pageHeadTitleLine}>
+              <div>
+                <p className={styles.eyebrow}>
+                  {viewPresentation.eyebrow}
+                </p>
+                <h1>{viewPresentation.title}</h1>
+              </div>
+              <span className={styles.workspaceLive}>
+                <i />
+                Live workspace
+              </span>
+            </div>
+            <p className={styles.pageDescription}>
+              {viewPresentation.description}
             </p>
-            <h1>{view === 'home' ? 'Today' : human(view)}</h1>
           </div>
           <div className={styles.headActions}>
             {view === 'home' &&
@@ -678,6 +720,54 @@ function Metric({
   );
 }
 
+function WorkspaceIntro({
+  eyebrow,
+  title,
+  copy,
+  icon: Icon,
+  badge,
+}: {
+  eyebrow: string;
+  title: string;
+  copy: string;
+  icon: typeof Users;
+  badge: string;
+}) {
+  return (
+    <section className={styles.viewIntro}>
+      <div className={styles.viewIntroCopy}>
+        <p className={styles.eyebrow}>{eyebrow}</p>
+        <h2>{title}</h2>
+        <p>{copy}</p>
+      </div>
+      <div className={styles.viewIntroBadge}>
+        <Icon size={16} />
+        <span>{badge}</span>
+      </div>
+    </section>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  copy,
+}: {
+  icon: typeof Users;
+  title: string;
+  copy: string;
+}) {
+  return (
+    <div className={styles.emptyState}>
+      <div className={styles.emptyStateIcon}>
+        <Icon size={18} />
+      </div>
+      <strong>{title}</strong>
+      <span>{copy}</span>
+    </div>
+  );
+}
+
 function Home({
   data,
   actionBusy,
@@ -694,13 +784,16 @@ function Home({
   const revenue = data?.revenue?.by_currency?.[0] || null;
   const roster = data?.roster_command?.summary || {};
   const top = commands[0] || null;
+  const topOneTap =
+    top?.actionability?.mode === 'one_tap' &&
+    top?.actionability?.evidence_gate === 'ready';
 
   return (
     <div className={styles.stack}>
       <section className={styles.heroCard}>
-        <div>
+        <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>
-            {top ? 'DO THIS FIRST' : 'CLEAR'}
+            {top ? 'DO THIS FIRST' : 'OPERATING PICTURE CLEAR'}
           </p>
           <h2>
             {top?.title ||
@@ -708,15 +801,39 @@ function Home({
           </h2>
           <p>
             {top?.why_now ||
-              'The workspace will surface the next evidence-backed action here.'}
+              'The next evidence-backed action will rise here as the agency changes.'}
           </p>
         </div>
-        {top ? (
-          <div className={styles.heroMeta}>
-            <span>{human(top.priority_band || 'high')}</span>
-            <small>{relativeDate(top.due_at)}</small>
-          </div>
-        ) : null}
+
+        <div className={styles.heroRight}>
+          {top ? (
+            <div className={styles.heroMeta}>
+              <span>{human(top.priority_band || 'high')}</span>
+              <small>{relativeDate(top.due_at)}</small>
+            </div>
+          ) : (
+            <div className={styles.heroClear}>
+              <CheckCircle2 size={18} />
+              <span>Queue clear</span>
+            </div>
+          )}
+
+          {topOneTap ? (
+            <button
+              type="button"
+              className={styles.heroPrimaryAction}
+              onClick={() => onPrepare(top)}
+              disabled={Boolean(actionBusy)}
+            >
+              {actionBusy === top.command_id ? (
+                <LoaderCircle size={15} className={styles.spin} />
+              ) : (
+                <ArrowRight size={15} />
+              )}
+              {top.actionability?.cta || 'Prepare action'}
+            </button>
+          ) : null}
+        </div>
       </section>
 
       <section className={styles.metrics}>
@@ -752,8 +869,13 @@ function Home({
 
       <section className={styles.sectionCard}>
         <div className={styles.sectionHead}>
-          <p className={styles.eyebrow}>OPERATING QUEUE</p>
-          <h2>What needs attention now</h2>
+          <div>
+            <p className={styles.eyebrow}>OPERATING QUEUE</p>
+            <h2>What needs attention now</h2>
+          </div>
+          <span className={styles.sectionCount}>
+            {commands.length} current
+          </span>
         </div>
         <div className={styles.list}>
           {commands.slice(0, 8).map((command: any) => {
@@ -800,7 +922,11 @@ function Home({
             );
           })}
           {!commands.length ? (
-            <div className={styles.empty}>No current commands.</div>
+            <EmptyState
+              icon={CheckCircle2}
+              title="Operating queue is clear"
+              copy="New evidence-backed actions will appear here when something needs attention."
+            />
           ) : null}
         </div>
       </section>
@@ -815,31 +941,56 @@ function Players({ data }: { data: any }) {
 
   return (
     <div className={styles.stack}>
+      <WorkspaceIntro
+        eyebrow="ROSTER COMMAND"
+        title="Protect value. Move careers."
+        copy="A live view of where each player needs protection, market activation or a clear next move."
+        icon={Users}
+        badge={`${items.length} represented`}
+      />
+
       <section className={styles.metrics}>
         <Metric label="Active players" value={String(summary.active_players ?? items.length)} detail="Current represented roster" />
         <Metric label="Deal protection" value={String(summary.live_deals_needing_protection || 0)} detail="Players with live business to protect" />
         <Metric label="Market activation" value={String(summary.players_needing_market_activation || 0)} detail="Players needing active market work" />
         <Metric label="Unassigned" value={String(summary.players_without_primary_staff || 0)} detail="Players without primary staff owner" />
       </section>
+
       <section className={styles.cards}>
-        {items.map((item: any) => (
-          <article className={styles.card} key={item.player_id}>
-            <div className={styles.cardTop}>
-              <div>
-                <p className={styles.eyebrow}>PRIORITY {item.priority_rank || '-'}</p>
-                <h2>{item.player?.name || 'Player'}</h2>
-                <p>{human(item.player?.football_status)}</p>
+        {items.map((item: any) => {
+          const playerName = item.player?.name || 'Player';
+          return (
+            <article className={styles.card} key={item.player_id}>
+              <div className={styles.entityHeader}>
+                <div className={styles.entityMark}>
+                  {initials(playerName) || 'P'}
+                </div>
+                <div className={styles.entityIdentity}>
+                  <p className={styles.eyebrow}>PRIORITY {item.priority_rank || '-'}</p>
+                  <h2>{playerName}</h2>
+                  <p>{human(item.player?.football_status)}</p>
+                </div>
+                <span className={styles.pill}>{human(item.service?.state)}</span>
               </div>
-              <span className={styles.pill}>{human(item.service?.state)}</span>
-            </div>
-            <div className={styles.facts}>
-              <div><span>Next action</span><strong>{item.player?.next_action || 'No action recorded'}</strong><small>{relativeDate(item.player?.next_action_due)}</small></div>
-              <div><span>Live deals</span><strong>{item.live_deals?.count || 0}</strong><small>{item.live_deals?.highest_probability ? `${item.live_deals.highest_probability}% recorded probability` : 'No active deal'}</small></div>
-              <div><span>Career control</span><strong>{human(item.career?.alignment_state)}</strong><small>{item.blocks_external_escalation ? 'External escalation blocked' : human(item.execution_window)}</small></div>
-            </div>
-            {item.why_now?.[0] ? <div className={styles.reason}>{item.why_now[0]}</div> : null}
-          </article>
-        ))}
+
+              <div className={styles.facts}>
+                <div><span>Next action</span><strong>{item.player?.next_action || 'No action recorded'}</strong><small>{relativeDate(item.player?.next_action_due)}</small></div>
+                <div><span>Live deals</span><strong>{item.live_deals?.count || 0}</strong><small>{item.live_deals?.highest_probability ? `${item.live_deals.highest_probability}% recorded probability` : 'No active deal'}</small></div>
+                <div><span>Career control</span><strong>{human(item.career?.alignment_state)}</strong><small>{item.blocks_external_escalation ? 'External escalation blocked' : human(item.execution_window)}</small></div>
+              </div>
+
+              {item.why_now?.[0] ? <div className={styles.reason}>{item.why_now[0]}</div> : null}
+            </article>
+          );
+        })}
+
+        {!items.length ? (
+          <EmptyState
+            icon={Users}
+            title="No represented players yet"
+            copy="Once the first player is active, their service position and live business will appear here."
+          />
+        ) : null}
       </section>
     </div>
   );
@@ -852,31 +1003,56 @@ function NetworkView({ data }: { data: any }) {
 
   return (
     <div className={styles.stack}>
+      <WorkspaceIntro
+        eyebrow="RELATIONSHIP INTELLIGENCE"
+        title="Know where the real access is."
+        copy="Keep club relationships, current demand and live business in the same operating picture."
+        icon={Network}
+        badge={`${items.length} relevant clubs`}
+      />
+
       <section className={styles.metrics}>
         <Metric label="Relevant clubs" value={String(summary.relevant_clubs ?? items.length)} detail="Accounts with current relevance" />
         <Metric label="Live business" value={String(summary.live_business_to_protect || 0)} detail="Club accounts with active deals" />
         <Metric label="Roster gaps" value={String(summary.confirmed_roster_gaps || 0)} detail="Confirmed needs without recorded match" />
         <Metric label="Access development" value={String(summary.live_demand_access_development || 0)} detail="Live demand needing stronger route" />
       </section>
+
       <section className={styles.cards}>
-        {items.map((item: any) => (
-          <article className={styles.card} key={item.organisation_id}>
-            <div className={styles.cardTop}>
-              <div>
-                <p className={styles.eyebrow}>{human(item.state)}</p>
-                <h2>{item.club?.name || 'Club'}</h2>
-                <p>{[item.club?.city, item.club?.country].filter(Boolean).join(', ')}</p>
+        {items.map((item: any) => {
+          const clubName = item.club?.name || 'Club';
+          return (
+            <article className={styles.card} key={item.organisation_id}>
+              <div className={styles.entityHeader}>
+                <div className={styles.entityMark}>
+                  {initials(clubName) || 'C'}
+                </div>
+                <div className={styles.entityIdentity}>
+                  <p className={styles.eyebrow}>{human(item.state)}</p>
+                  <h2>{clubName}</h2>
+                  <p>{[item.club?.city, item.club?.country].filter(Boolean).join(', ')}</p>
+                </div>
+                <span className={styles.score}>{item.direct_relationship?.access_score ?? '-'}</span>
               </div>
-              <span className={styles.score}>{item.direct_relationship?.access_score ?? '-'}</span>
-            </div>
-            <div className={styles.facts}>
-              <div><span>Best contact</span><strong>{item.direct_relationship?.best_recorded_contact || 'No contact'}</strong><small>{item.direct_relationship?.role_title || 'No role'}</small></div>
-              <div><span>Active needs</span><strong>{item.demand?.active_needs || 0}</strong><small>{item.demand?.confirmed_needs || 0} confirmed</small></div>
-              <div><span>Active deals</span><strong>{item.live_business?.active_deals || 0}</strong><small>{item.live_business?.deals_needing_action || 0} need action</small></div>
-            </div>
-            {item.next_action?.instruction ? <div className={styles.reason}>{item.next_action.instruction}</div> : null}
-          </article>
-        ))}
+
+              <div className={styles.facts}>
+                <div><span>Best contact</span><strong>{item.direct_relationship?.best_recorded_contact || 'No contact'}</strong><small>{item.direct_relationship?.role_title || 'No role'}</small></div>
+                <div><span>Active needs</span><strong>{item.demand?.active_needs || 0}</strong><small>{item.demand?.confirmed_needs || 0} confirmed</small></div>
+                <div><span>Active deals</span><strong>{item.live_business?.active_deals || 0}</strong><small>{item.live_business?.deals_needing_action || 0} need action</small></div>
+              </div>
+
+              {item.next_action?.instruction ? <div className={styles.reason}>{item.next_action.instruction}</div> : null}
+            </article>
+          );
+        })}
+
+        {!items.length ? (
+          <EmptyState
+            icon={Network}
+            title="No relevant club relationships yet"
+            copy="Recorded contacts, access strength and current club demand will build this view."
+          />
+        ) : null}
       </section>
     </div>
   );
@@ -890,6 +1066,14 @@ function Opportunities({ data }: { data: any }) {
 
   return (
     <div className={styles.stack}>
+      <WorkspaceIntro
+        eyebrow="COMMERCIAL EXECUTION"
+        title="Live business and live demand."
+        copy="Work the deals already moving while keeping club needs and recorded player routes visible beside them."
+        icon={BriefcaseBusiness}
+        badge={`${dealItems.length} deals · ${needs.length} needs`}
+      />
+
       <section className={styles.metrics}>
         <Metric label="Active deals" value={String(deals?.summary?.active_deals ?? dealItems.length)} detail={`${deals?.summary?.progressing_deals || 0} progressing`} />
         <Metric label="Stage reviews" value={String(deals?.summary?.stage_reviews_due || 0)} detail="Due now" />
@@ -897,98 +1081,128 @@ function Opportunities({ data }: { data: any }) {
         <Metric label="Ready pursuits" value={String(demand?.summary?.ready_for_deep_pursuit_review || 0)} detail="Ready for human deep review" />
       </section>
 
-      <section className={styles.sectionCard}>
-        <div className={styles.sectionHead}><p className={styles.eyebrow}>LIVE DEALS</p><h2>Commercial pipeline</h2></div>
-        <div className={styles.list}>
-          {dealItems.map((deal: any) => (
-            <article className={styles.listRow} key={deal.deal_room_id}>
-              <div className={styles.rank}>{deal.rank || '•'}</div>
-              <div className={styles.listCopy}>
-                <strong>{deal.title}</strong>
-                <span>{deal.next_best_move?.instruction || deal.next_decision || 'Review the deal.'}</span>
-                <small>{human(deal.stage)} · {deal.organisation} · {deal.currency ? money(deal.expected_commission, deal.currency) : '-'}</small>
-              </div>
-              <div className={styles.sideStat}><strong>{deal.probability ?? '-'}%</strong><small>{human(deal.momentum_state)}</small></div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.sectionCard}>
-        <div className={styles.sectionHead}><p className={styles.eyebrow}>CLUB DEMAND</p><h2>Needs worth acting on</h2></div>
-        <div className={styles.list}>
-          {needs.map((item: any) => {
-            const candidates = Array.isArray(
-              item?.candidate_coverage?.candidates,
-            )
-              ? item.candidate_coverage.candidates
-              : [];
-            const visibleCandidates = candidates.slice(0, 4);
-            const hiddenCandidates = Math.max(
-              0,
-              candidates.length - visibleCandidates.length,
-            );
-
-            return (
-              <article className={styles.listRow} key={item.club_need_id}>
-                <div className={styles.rank}>{item.command_rank || '•'}</div>
+      <div className={styles.opportunityColumns}>
+        <section className={`${styles.sectionCard} ${styles.opportunityPanel}`}>
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>LIVE DEALS</p>
+              <h2>Commercial pipeline</h2>
+            </div>
+            <span className={styles.sectionCount}>{dealItems.length} live</span>
+          </div>
+          <div className={styles.list}>
+            {dealItems.map((deal: any) => (
+              <article className={styles.listRow} key={deal.deal_room_id}>
+                <div className={styles.rank}>{deal.rank || '•'}</div>
                 <div className={styles.listCopy}>
-                  <strong>{item.club?.name} · {item.need?.title}</strong>
-                  <span>
-                    {item.next_action?.instruction ||
-                      'Review the recorded need.'}
-                  </span>
-                  <small>
-                    {human(item.need?.need_type)} ·{' '}
-                    {item.need?.position || 'Position open'} ·{' '}
-                    {human(item.coverage_state)}
-                  </small>
-
-                  <div
-                    className={styles.routeCandidates}
-                    aria-label="Recorded player routes"
-                  >
-                    {visibleCandidates.map((candidate: any) => (
-                      <div
-                        className={styles.routeCandidate}
-                        key={
-                          candidate.player_match_id ||
-                          candidate.player_id ||
-                          candidate.player_name
-                        }
-                      >
-                        <b>{candidate.player_name || 'Player'}</b>
-                        <small>
-                          {careerGateLabel(
-                            candidate.career_gate_state ||
-                              candidate.match_status,
-                          )}
-                        </small>
-                      </div>
-                    ))}
-                    {!visibleCandidates.length ? (
-                      <div className={styles.routeCandidateEmpty}>
-                        No recorded candidate yet
-                      </div>
-                    ) : null}
-                    {hiddenCandidates ? (
-                      <div className={styles.routeCandidateMore}>
-                        +{hiddenCandidates} more
-                      </div>
-                    ) : null}
-                  </div>
+                  <strong>{deal.title}</strong>
+                  <span>{deal.next_best_move?.instruction || deal.next_decision || 'Review the deal.'}</span>
+                  <small>{human(deal.stage)} · {deal.organisation} · {deal.currency ? money(deal.expected_commission, deal.currency) : '-'}</small>
                 </div>
-                <div className={styles.sideStat}>
-                  <strong>
-                    {item.candidate_coverage?.recorded_candidates || 0}
-                  </strong>
-                  <small>candidates</small>
-                </div>
+                <div className={styles.sideStat}><strong>{deal.probability ?? '-'}%</strong><small>{human(deal.momentum_state)}</small></div>
               </article>
-            );
-          })}
-        </div>
-      </section>
+            ))}
+
+            {!dealItems.length ? (
+              <EmptyState
+                icon={BriefcaseBusiness}
+                title="No live deals recorded"
+                copy="Active deal rooms will appear here with their next recorded decision and commercial context."
+              />
+            ) : null}
+          </div>
+        </section>
+
+        <section className={`${styles.sectionCard} ${styles.opportunityPanel}`}>
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>CLUB DEMAND</p>
+              <h2>Needs worth acting on</h2>
+            </div>
+            <span className={styles.sectionCount}>{needs.length} active</span>
+          </div>
+          <div className={styles.list}>
+            {needs.map((item: any) => {
+              const candidates = Array.isArray(
+                item?.candidate_coverage?.candidates,
+              )
+                ? item.candidate_coverage.candidates
+                : [];
+              const visibleCandidates = candidates.slice(0, 4);
+              const hiddenCandidates = Math.max(
+                0,
+                candidates.length - visibleCandidates.length,
+              );
+
+              return (
+                <article className={styles.listRow} key={item.club_need_id}>
+                  <div className={styles.rank}>{item.command_rank || '•'}</div>
+                  <div className={styles.listCopy}>
+                    <strong>{item.club?.name} · {item.need?.title}</strong>
+                    <span>
+                      {item.next_action?.instruction ||
+                        'Review the recorded need.'}
+                    </span>
+                    <small>
+                      {human(item.need?.need_type)} ·{' '}
+                      {item.need?.position || 'Position open'} ·{' '}
+                      {human(item.coverage_state)}
+                    </small>
+
+                    <div
+                      className={styles.routeCandidates}
+                      aria-label="Recorded player routes"
+                    >
+                      {visibleCandidates.map((candidate: any) => (
+                        <div
+                          className={styles.routeCandidate}
+                          key={
+                            candidate.player_match_id ||
+                            candidate.player_id ||
+                            candidate.player_name
+                          }
+                        >
+                          <b>{candidate.player_name || 'Player'}</b>
+                          <small>
+                            {careerGateLabel(
+                              candidate.career_gate_state ||
+                                candidate.match_status,
+                            )}
+                          </small>
+                        </div>
+                      ))}
+                      {!visibleCandidates.length ? (
+                        <div className={styles.routeCandidateEmpty}>
+                          No recorded candidate yet
+                        </div>
+                      ) : null}
+                      {hiddenCandidates ? (
+                        <div className={styles.routeCandidateMore}>
+                          +{hiddenCandidates} more
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className={styles.sideStat}>
+                    <strong>
+                      {item.candidate_coverage?.recorded_candidates || 0}
+                    </strong>
+                    <small>candidates</small>
+                  </div>
+                </article>
+              );
+            })}
+
+            {!needs.length ? (
+              <EmptyState
+                icon={Target}
+                title="No active club demand"
+                copy="Recorded club needs will appear here with route coverage and candidate context."
+              />
+            ) : null}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
