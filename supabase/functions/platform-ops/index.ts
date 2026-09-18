@@ -371,8 +371,31 @@ export default {fetch:async(req:Request)=>{
       if(!tenantId) return json({error:"tenant_id is required"},400);
       const customer=await rpc("platform_server_operator_customer_detail",{p_tenant_id:tenantId});
       if(!customer) return json({error:"Customer not found"},404);
+      const renewalAttention=await rpc("platform_server_customer_attention_with_renewal",{p_tenant_id:tenantId});
       const domainControl=await rpc("platform_server_operator_domain_control",{p_tenant_id:tenantId});
-      return json({ok:true,platform_role:adminRecord.role,customer:{...customer,domain_control:domainControl}});
+      const customerRecord=obj(customer);
+      const existingSurface=obj(customerRecord.action_surface);
+      const renewalSurface=String(obj(renewalAttention).source||"")==="renewal"
+        ? {
+            ...existingSurface,
+            attention_action:{
+              key:"open_renewal",
+              label:"Review renewal",
+              mode:"focus",
+              target:"commercial-control"
+            }
+          }
+        : existingSurface;
+      return json({
+        ok:true,
+        platform_role:adminRecord.role,
+        customer:{
+          ...customerRecord,
+          attention:renewalAttention,
+          action_surface:renewalSurface,
+          domain_control:domainControl
+        }
+      });
     }
 
     if(action==="domain_control"){
@@ -574,6 +597,19 @@ export default {fetch:async(req:Request)=>{
         p_notes:body?.notes===undefined?null:String(body.notes)
       });
       return json({ok:true,platform_role:adminRecord.role,customer:updated});
+    }
+
+    if(action==="set_contract_term"){
+      const tenantId=text(body?.tenant_id);
+      if(!tenantId) return json({error:"tenant_id is required"},400);
+      const rawTerm=body?.contract_term_ends_on;
+      const term=rawTerm===null||rawTerm===""?null:text(rawTerm);
+      const result=await rpc("platform_server_operator_set_contract_term",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_contract_term_ends_on:term
+      });
+      return json({ok:true,platform_role:adminRecord.role,result});
     }
 
     if(action==="set_customer_service_state"){
