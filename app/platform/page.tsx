@@ -246,6 +246,17 @@ const compactMoney = (cents = 0, currency = 'EUR') =>
     maximumFractionDigits: 1,
   }).format(cents / 100);
 
+const aiCost = (micros = 0) =>
+  new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Math.max(0, micros) / 1_000_000);
+
+const capacityPercent = (value?: number | null) =>
+  Math.max(0, Math.min(100, Number(value || 0)));
+
 const slugify = (value: string) =>
   value
     .trim()
@@ -454,6 +465,76 @@ export default function PlatformPage() {
   const currency =
     portfolio?.customers?.find((customer) => customer.stage !== 'internal')?.commercial?.contract_currency ||
     'EUR';
+
+  const selectedCustomer = useMemo(
+    () =>
+      selectedTenantId
+        ? portfolio?.customers?.find(
+            (customer) => customer.tenant_id === selectedTenantId,
+          ) || null
+        : null,
+    [portfolio?.customers, selectedTenantId],
+  );
+
+  const selectedPlan = useMemo(
+    () =>
+      plans.find(
+        (plan) =>
+          plan.plan_key ===
+          (detailPlan || selectedCustomer?.plan_key || detail?.plan?.plan_key),
+      ) || null,
+    [detail?.plan?.plan_key, detailPlan, plans, selectedCustomer?.plan_key],
+  );
+
+  const commercialDecision = useMemo(() => {
+    if (!selectedCustomer) {
+      return {
+        label: 'Commercial evidence loading',
+        copy: 'Waiting for the portfolio snapshot for this agency.',
+      };
+    }
+
+    if (selectedCustomer.stage === 'trial') {
+      const days =
+        selectedCustomer.trial_days_left === null ||
+        selectedCustomer.trial_days_left === undefined
+          ? null
+          : Math.max(0, selectedCustomer.trial_days_left);
+
+      if (selectedCustomer.activation_journey?.first_value_ready) {
+        return {
+          label: 'Conversion evidence available',
+          copy:
+            days === null
+              ? 'First working value is recorded. Review contracted terms before changing the customer stage.'
+              : `First working value is recorded with ${days} day${days === 1 ? '' : 's'} left in the trial. Review contracted terms before changing the customer stage.`,
+        };
+      }
+
+      return {
+        label: 'Trial still proving value',
+        copy:
+          days === null
+            ? 'First working value is not recorded yet. Keep the commercial decision tied to evidence, not login activity.'
+            : `${days} day${days === 1 ? '' : 's'} remain and first working value is not recorded yet. Keep the commercial decision tied to evidence, not login activity.`,
+      };
+    }
+
+    if (selectedCustomer.expansion_signals?.length) {
+      return {
+        label: 'Expansion evidence available',
+        copy: selectedCustomer.expansion_signals
+          .slice(0, 3)
+          .map((signal) => titleCase(signal))
+          .join(' · '),
+      };
+    }
+
+    return {
+      label: 'Commercial position stable',
+      copy: 'No evidence-led expansion signal is currently recorded.',
+    };
+  }, [selectedCustomer]);
 
   const createAgency = async (event: FormEvent) => {
     event.preventDefault();
@@ -1146,9 +1227,124 @@ export default function PlatformPage() {
                   <div className={styles.drawerSectionHeading}>
                     <div>
                       <p className={styles.eyebrow}>COMMERCIAL</p>
-                      <h3>Plan and owner</h3>
+                      <h3>Plan and conversion</h3>
                     </div>
                     <CircleDollarSign size={17} />
+                  </div>
+
+                  <div className={styles.commercialMetrics}>
+                    <CommercialMetric
+                      label="Current plan"
+                      value={
+                        selectedCustomer?.plan_name ||
+                        selectedPlan?.display_name ||
+                        titleCase(detail.plan?.plan_key || 'None')
+                      }
+                      detail={
+                        selectedPlan
+                          ? planPrice(selectedPlan)
+                          : 'No list price resolved'
+                      }
+                    />
+                    <CommercialMetric
+                      label="Trial position"
+                      value={
+                        selectedCustomer?.stage === 'trial'
+                          ? selectedCustomer.trial_days_left === null ||
+                            selectedCustomer.trial_days_left === undefined
+                            ? 'Active trial'
+                            : `${Math.max(0, selectedCustomer.trial_days_left)} days left`
+                          : titleCase(
+                              selectedCustomer?.stage ||
+                                detail.lifecycle?.stage ||
+                                'Unknown',
+                            )
+                      }
+                      detail={
+                        selectedCustomer?.attention?.source === 'trial'
+                          ? selectedCustomer.attention.why_now ||
+                            'Trial review is due.'
+                          : 'Evidence-derived lifecycle state'
+                      }
+                    />
+                    <CommercialMetric
+                      label="Contracted MRR"
+                      value={
+                        selectedCustomer?.commercial
+                          ?.contracted_monthly_cents
+                          ? money(
+                              selectedCustomer.commercial
+                                .contracted_monthly_cents,
+                              selectedCustomer.commercial.contract_currency ||
+                                'EUR',
+                            )
+                          : 'Not set'
+                      }
+                      detail={
+                        selectedCustomer?.commercial?.annual_commitment
+                          ? 'Annual commitment recorded'
+                          : 'Monthly commercial position'
+                      }
+                    />
+                    <CommercialMetric
+                      label="AI cost 30d"
+                      value={aiCost(
+                        selectedCustomer?.commercial?.ai_cost_micros_30d || 0,
+                      )}
+                      detail="Estimated model cost in US dollars"
+                    />
+                  </div>
+
+                  <div className={styles.commercialDecision}>
+                    <div>
+                      <p className={styles.eyebrow}>DECISION SIGNAL</p>
+                      <strong>{commercialDecision.label}</strong>
+                      <span>{commercialDecision.copy}</span>
+                    </div>
+                    {selectedCustomer?.capacity?.next_plan_name ? (
+                      <div className={styles.nextPlanSignal}>
+                        <TrendingUp size={15} />
+                        <span>
+                          Next plan evidence
+                          <strong>
+                            {selectedCustomer.capacity.next_plan_name}
+                          </strong>
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.capacityGrid}>
+                    <CommercialCapacity
+                      label="Player capacity"
+                      value={capacityPercent(
+                        selectedCustomer?.capacity?.player_pct,
+                      )}
+                    />
+                    <CommercialCapacity
+                      label="Staff capacity"
+                      value={capacityPercent(
+                        selectedCustomer?.capacity?.staff_pct,
+                      )}
+                    />
+                  </div>
+
+                  {selectedCustomer?.expansion_signals?.length ? (
+                    <div className={styles.expansionSignals}>
+                      {selectedCustomer.expansion_signals
+                        .slice(0, 4)
+                        .map((signal) => (
+                          <span key={signal}>{titleCase(signal)}</span>
+                        ))}
+                    </div>
+                  ) : null}
+
+                  <div className={styles.commercialSubhead}>
+                    <span>Plan control</span>
+                    <small>
+                      Changing plan changes entitlements. It does not convert
+                      the lifecycle stage by itself.
+                    </small>
                   </div>
 
                   <div className={styles.inlineControls}>
@@ -1171,6 +1367,14 @@ export default function PlatformPage() {
                       {detailBusy === 'plan' ? <LoaderCircle size={15} className={styles.spin} /> : <Check size={15} />}
                       Save
                     </button>
+                  </div>
+
+                  <div className={styles.commercialSubhead}>
+                    <span>Account owner</span>
+                    <small>
+                      Attach the accountable agency owner without changing
+                      commercial evidence.
+                    </small>
                   </div>
 
                   <div className={styles.inlineControls}>
@@ -1448,6 +1652,44 @@ function DetailStat({ label, value }: { label: string; value: string }) {
     <div className={styles.detailStat}>
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function CommercialMetric({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className={styles.commercialMetric}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </div>
+  );
+}
+
+function CommercialCapacity({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className={styles.commercialCapacity}>
+      <div>
+        <span>{label}</span>
+        <strong>{Math.round(value)}%</strong>
+      </div>
+      <div className={styles.commercialCapacityTrack}>
+        <i style={{ width: `${value}%` }} />
+      </div>
     </div>
   );
 }
