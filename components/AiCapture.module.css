@@ -2,3 +2,217 @@
 
 .mic:focus-visible,.micRecording:focus-visible,.secondary:focus-visible,.primary:focus-visible,.answer:focus-visible,.smallButton:focus-visible{outline:3px solid rgba(72,126,151,.22);outline-offset:3px}.status[role="status"]{min-height:40px}@media(prefers-reduced-motion:reduce){.wave span{animation:none;height:10px}.mic,.micRecording{transition:none}}
 .retryRow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 11px;border:1px solid #ecd7da;border-radius:11px;background:#fff7f7}.retryRow span{color:#86676b;font-size:8px;line-height:1.4}.retryButton{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;min-height:32px;border:1px solid #dec3c7;border-radius:9px;background:#fff;color:#7d3e45;padding:0 10px;font:inherit;font-size:9px;font-weight:900;cursor:pointer}.retryButton:hover{border-color:#cda9ae}@media(max-width:640px){.retryRow{display:grid}.retryButton{justify-self:start}}
+
+/* Tell DJM showcase polish */
+
+.shell {
+  gap: 18px;
+}
+
+.hero {
+  position: relative;
+  min-height: 330px;
+  align-content: center;
+  overflow: hidden;
+  padding: 30px 22px 26px;
+  border-color: rgba(23, 54, 77, 0.08);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% -12%, rgba(79, 128, 154, 0.18), transparent 17rem),
+    radial-gradient(circle at 92% 12%, rgba(190, 211, 222, 0.18), transparent 15rem),
+    linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
+  box-shadow: 0 20px 58px rgba(23, 54, 77, 0.08);
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  right: -155px;
+  bottom: -170px;
+  border: 1px solid rgba(23, 54, 77, 0.06);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.context,
+.prompt,
+.mic,
+.micRecording,
+.timer,
+.wave,
+.actions,
+.textPanel {
+  position: relative;
+  z-index: 1;
+}
+
+.context {
+  min-height: 29px;
+  padding: 0 10px;
+  border: 1px solid rgba(23, 54, 77, 0.06);
+  background: rgba(242, 246, 247, 0.86);
+  box-shadow: 0 5px 16px rgba(23, 54, 77, 0.035);
+}
+
+.prompt strong {
+  color: #112f44;
+  font-size: 22px;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.prompt span {
+  max-width: 390px;
+  margin-top: 7px;
+  color: #718693;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.mic,
+.micRecording {
+  width: 94px;
+  height: 94px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at 35% 27%, rgba(255, 255, 255, 0.13), transparent 32%),
+    linear-gradient(145deg, #1c405b, #112f44);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 20px 44px rgba(23, 54, 77, 0.22);
+}
+
+.mic:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 24px 50px rgba(23, 54, 77, 0.26);
+}
+
+.micRecording {
+  box-shadow:
+    0 0 0 10px rgba(23, 54, 77, 0.06),
+    0 0 0 18px rgba(23, 54, 77, 0.025),
+    0 22px 48px rgba(23, 54, 77, 0.22);
+}
+
+.timer {
+  font-size: 25px;
+  letter-spacing: -0.035em;
+}
+
+.secondary {
+  min-height: 38px;
+  padding: 0 13px;
+  border-color: rgba(23, 54, 77, 0.1);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 6px 16px rgba(23, 54, 77, 0.03);
+}
+
+.textPanel {
+  max-width: 560px;
+}
+
+.textPanel textarea {
+  min-height: 132px;
+  border-color: rgba(23, 54, 77, 0.11);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 2px rgba(23, 54, 77, 0.025);
+}
+
+.primary {
+  min-height: 40px;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #1c405b, #112f44);
+  box-shadow: 0 8px 20px rgba(23, 54, 77, 0.14);
+}
+
+.status {
+  min-height: 44px;
+  padding: 11px 13px;
+  border-color: rgba(23, 54, 77, 0.07);
+  border-radius: 13px;
+  background: rgba(248, 250, 251, 0.94);
+  box-shadow: 0 7px 20px rgba(23, 54, 77, 0.035);
+}
+
+.receipt {
+  gap: 13px;
+  padding: 17px;
+  border-color: rgba(23, 54, 77, 0.07);
+  border-radius: 19px;
+  box-shadow: 0 14px 36px rgba(23, 54, 77, 0.045);
+}
+
+.receiptHead {
+  gap: 16px;
+}
+
+.receiptHead strong {
+  color: #112f44;
+  font-size: 15px;
+  letter-spacing: -0.015em;
+}
+
+.receiptHead span {
+  margin-top: 5px;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.state,
+.stateAttention {
+  min-height: 26px;
+  padding: 0 8px;
+}
+
+.actionList {
+  gap: 8px;
+}
+
+.actionRow {
+  min-height: 48px;
+  padding: 10px 11px;
+  border-color: rgba(23, 54, 77, 0.055);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff, #fbfcfd);
+}
+
+.questions {
+  padding: 13px;
+  border-radius: 14px;
+}
+
+.details {
+  padding-top: 11px;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    min-height: 430px;
+    padding: 28px 16px 24px;
+    border-radius: 20px;
+  }
+
+  .prompt strong {
+    font-size: 21px;
+  }
+
+  .prompt span {
+    max-width: 320px;
+  }
+
+  .mic,
+  .micRecording {
+    width: 100px;
+    height: 100px;
+  }
+
+  .receipt {
+    padding: 14px;
+  }
+}
