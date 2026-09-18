@@ -1,1 +1,134 @@
 @import "../../launch/page.module.css";
+
+
+.firstPlayerExperience {
+  display: grid;
+  gap: 18px;
+}
+
+.firstPlayerRoutes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.firstPlayerRoute {
+  min-width: 0;
+  min-height: 118px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 11px;
+  border: 1px solid rgba(10, 10, 12, 0.08);
+  border-radius: 14px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+}
+
+button.firstPlayerRoute {
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+button.firstPlayerRoute:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(
+    in srgb,
+    var(--launch-accent) 30%,
+    rgba(10, 10, 12, 0.08)
+  );
+  box-shadow: 0 10px 30px rgba(24, 19, 31, 0.055);
+}
+
+.firstPlayerRouteActive {
+  border-color: color-mix(
+    in srgb,
+    var(--launch-accent) 22%,
+    rgba(10, 10, 12, 0.08)
+  );
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--launch-accent) 5%, #fff),
+      #fff 70%
+    );
+}
+
+.firstPlayerRouteIcon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: color-mix(
+    in srgb,
+    var(--launch-accent) 8%,
+    #f4f5f7
+  );
+  color: var(--launch-primary);
+}
+
+.firstPlayerRoute > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.firstPlayerRoute small {
+  color: #92969c;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.firstPlayerRoute strong {
+  color: #2b2f35;
+  font-size: 10px;
+}
+
+.firstPlayerRoute p {
+  margin: 0;
+  color: #7a7f86;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.firstPlayerDivider {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: #9a9da3;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.firstPlayerDivider::before {
+  content: '';
+  width: 100%;
+  height: 1px;
+  position: absolute;
+  background: rgba(10, 10, 12, 0.065);
+}
+
+.firstPlayerDivider span {
+  position: relative;
+  padding: 0 9px;
+  background: #fff;
+}
+
+@media (max-width: 620px) {
+  .firstPlayerRoutes {
+    grid-template-columns: 1fr;
+  }
+
+  .firstPlayerRoute {
+    min-height: auto;
+  }
+}
