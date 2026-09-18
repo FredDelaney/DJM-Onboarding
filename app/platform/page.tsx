@@ -167,6 +167,7 @@ type CustomerDetail = {
   branding?: Record<string, any> | null;
   lifecycle?: Record<string, any> | null;
   plan?: Record<string, any> | null;
+  billing_account?: Record<string, any> | null;
   activation_journey?: ActivationJourney | null;
   go_live_readiness?: GoLiveReadiness | null;
   operator_intervention?: OperatorIntervention | null;
@@ -333,6 +334,10 @@ export default function PlatformPage() {
   const [confirmingConversion, setConfirmingConversion] = useState(false);
   const [confirmingPlanChange, setConfirmingPlanChange] = useState(false);
   const [confirmingContractUpdate, setConfirmingContractUpdate] = useState(false);
+  const [serviceStateTarget, setServiceStateTarget] = useState<
+    'live' | 'at_risk' | 'paused' | 'churned' | null
+  >(null);
+  const [serviceStateReason, setServiceStateReason] = useState('');
   const [detailBusy, setDetailBusy] = useState('');
   const [privacyFocusToken, setPrivacyFocusToken] = useState(0);
 
@@ -410,6 +415,8 @@ export default function PlatformPage() {
     setConfirmingConversion(false);
     setConfirmingPlanChange(false);
     setConfirmingContractUpdate(false);
+    setServiceStateTarget(null);
+    setServiceStateReason('');
     try {
       const result = await platformInvoke<any>('platform-ops', {
         action: 'customer_detail',
@@ -445,6 +452,8 @@ export default function PlatformPage() {
     setConfirmingConversion(false);
     setConfirmingPlanChange(false);
     setConfirmingContractUpdate(false);
+    setServiceStateTarget(null);
+    setServiceStateReason('');
     setPrivacyFocusToken(0);
   };
 
@@ -608,6 +617,61 @@ export default function PlatformPage() {
       /^[A-Z]{3}$/.test(conversionCurrency) &&
       contractHasChanges,
   );
+
+  const serviceState = String(
+    detail?.lifecycle?.stage || selectedCustomer?.stage || '',
+  );
+
+  const serviceStateActions = useMemo(() => {
+    if (serviceState === 'live') {
+      return [
+        { state: 'at_risk' as const, label: 'Mark at risk' },
+        { state: 'paused' as const, label: 'Pause service' },
+        { state: 'churned' as const, label: 'End customer' },
+      ];
+    }
+    if (serviceState === 'at_risk') {
+      return [
+        { state: 'live' as const, label: 'Return to live' },
+        { state: 'paused' as const, label: 'Pause service' },
+        { state: 'churned' as const, label: 'End customer' },
+      ];
+    }
+    if (serviceState === 'paused') {
+      return [
+        { state: 'live' as const, label: 'Resume service' },
+        { state: 'churned' as const, label: 'End customer' },
+      ];
+    }
+    return [];
+  }, [serviceState]);
+
+  const serviceStateNeedsReason =
+    serviceStateTarget === 'paused' || serviceStateTarget === 'churned';
+  const serviceStateReady = Boolean(
+    serviceStateTarget &&
+      serviceStateTarget !== serviceState &&
+      (!serviceStateNeedsReason || serviceStateReason.trim()),
+  );
+
+  const serviceStateEffect = useMemo(() => {
+    if (serviceStateTarget === 'at_risk') {
+      return 'Keeps workspace access and billing unchanged while flagging the customer for retention attention.';
+    }
+    if (serviceStateTarget === 'paused') {
+      return 'Suspends workspace access. An active billing account moves to on hold. No customer data is deleted and the active plan is retained.';
+    }
+    if (serviceStateTarget === 'live' && serviceState === 'paused') {
+      return 'Restores workspace access. Billing returns to active only when ReDream previously placed it on hold; past-due billing remains past due.';
+    }
+    if (serviceStateTarget === 'live') {
+      return 'Returns the customer to live service without changing plan or contract terms.';
+    }
+    if (serviceStateTarget === 'churned') {
+      return 'Closes workspace access, cancels the billing account and ends the active plan. Customer data is retained.';
+    }
+    return '';
+  }, [serviceState, serviceStateTarget]);
 
   const commercialDecision = useMemo(() => {
     if (!selectedCustomer) {
@@ -810,6 +874,45 @@ export default function PlatformPage() {
       setNotice('Commercial contract evidence updated.');
     } catch (contractError) {
       setError(friendlyError(contractError));
+    } finally {
+      setDetailBusy('');
+    }
+  };
+
+  const updateCustomerServiceState = async () => {
+    if (
+      !selectedTenantId ||
+      !serviceStateTarget ||
+      !serviceStateReady ||
+      detailBusy
+    ) {
+      return;
+    }
+
+    setDetailBusy('service-state');
+    setError('');
+    try {
+      await platformInvoke('platform-ops', {
+        action: 'set_customer_service_state',
+        tenant_id: selectedTenantId,
+        state: serviceStateTarget,
+        reason: serviceStateReason.trim() || null,
+      });
+      const completedState = serviceStateTarget;
+      setServiceStateTarget(null);
+      setServiceStateReason('');
+      await Promise.all([openCustomer(selectedTenantId), load(true)]);
+      setNotice(
+        completedState === 'churned'
+          ? 'Customer service ended with commercial state synchronised.'
+          : completedState === 'paused'
+            ? 'Customer service paused with workspace and billing state synchronised.'
+            : completedState === 'live'
+              ? 'Customer returned to live service.'
+              : 'Customer marked at risk.',
+      );
+    } catch (serviceStateError) {
+      setError(friendlyError(serviceStateError));
     } finally {
       setDetailBusy('');
     }
@@ -2010,6 +2113,169 @@ export default function PlatformPage() {
                     </button>
                   </div>
                 </section>
+
+                {['live', 'at_risk', 'paused', 'churned'].includes(
+                  serviceState,
+                ) ? (
+                  <section
+                    id="service-lifecycle-control"
+                    className={styles.drawerSection}
+                  >
+                    <div className={styles.drawerSectionHeading}>
+                      <div>
+                        <p className={styles.eyebrow}>SERVICE LIFECYCLE</p>
+                        <h3>Customer state</h3>
+                      </div>
+                      <Activity size={17} />
+                    </div>
+
+                    <div className={styles.serviceStateSummary}>
+                      <span>
+                        Lifecycle
+                        <strong>{titleCase(serviceState)}</strong>
+                      </span>
+                      <span>
+                        Workspace
+                        <strong>
+                          {titleCase(String(detail.tenant?.status || 'unknown'))}
+                        </strong>
+                      </span>
+                      <span>
+                        Billing
+                        <strong>
+                          {titleCase(
+                            String(
+                              detail.billing_account?.status ||
+                                'not configured',
+                            ),
+                          )}
+                        </strong>
+                      </span>
+                    </div>
+
+                    {serviceState === 'churned' ? (
+                      <div className={styles.serviceTerminal}>
+                        <strong>Customer ended</strong>
+                        <span>
+                          Workspace access is closed and this control does not
+                          reactivate churned customers.
+                        </span>
+                        {detail.lifecycle?.cancellation_reason ? (
+                          <small>
+                            Reason: {String(detail.lifecycle.cancellation_reason)}
+                          </small>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <>
+                        <div className={styles.serviceStateActions}>
+                          {serviceStateActions.map((action) => (
+                            <button
+                              type="button"
+                              key={action.state}
+                              className={
+                                action.state === 'churned'
+                                  ? styles.dangerButton
+                                  : styles.secondaryButton
+                              }
+                              onClick={() => {
+                                setServiceStateTarget(action.state);
+                                setServiceStateReason('');
+                              }}
+                              disabled={detailBusy === 'service-state'}
+                            >
+                              {action.state === 'at_risk' ? (
+                                <AlertTriangle size={14} />
+                              ) : action.state === 'paused' ? (
+                                <Clock3 size={14} />
+                              ) : action.state === 'churned' ? (
+                                <X size={14} />
+                              ) : (
+                                <Check size={14} />
+                              )}
+                              {action.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {serviceStateTarget ? (
+                          <div className={styles.serviceStateConfirm}>
+                            <div>
+                              <p className={styles.eyebrow}>
+                                CONFIRM {titleCase(serviceStateTarget).toUpperCase()}
+                              </p>
+                              <strong>{serviceStateEffect}</strong>
+                            </div>
+
+                            {serviceStateNeedsReason ? (
+                              <label className={styles.field}>
+                                <span>
+                                  {serviceStateTarget === 'churned'
+                                    ? 'Cancellation reason'
+                                    : 'Pause reason'}
+                                </span>
+                                <textarea
+                                  value={serviceStateReason}
+                                  onChange={(event) =>
+                                    setServiceStateReason(event.target.value)
+                                  }
+                                  rows={3}
+                                  maxLength={500}
+                                  placeholder={
+                                    serviceStateTarget === 'churned'
+                                      ? 'Why is the customer ending service?'
+                                      : 'Why is service being paused?'
+                                  }
+                                />
+                              </label>
+                            ) : null}
+
+                            <div className={styles.serviceConfirmActions}>
+                              <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={() => {
+                                  setServiceStateTarget(null);
+                                  setServiceStateReason('');
+                                }}
+                                disabled={detailBusy === 'service-state'}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                className={
+                                  serviceStateTarget === 'churned'
+                                    ? styles.dangerButton
+                                    : styles.primaryButton
+                                }
+                                onClick={() =>
+                                  void updateCustomerServiceState()
+                                }
+                                disabled={
+                                  detailBusy === 'service-state' ||
+                                  !serviceStateReady
+                                }
+                              >
+                                {detailBusy === 'service-state' ? (
+                                  <LoaderCircle
+                                    size={14}
+                                    className={styles.spin}
+                                  />
+                                ) : (
+                                  <Check size={14} />
+                                )}
+                                {detailBusy === 'service-state'
+                                  ? 'Updating...'
+                                  : 'Confirm state change'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+                  </section>
+                ) : null}
 
                 <AgencyGoLiveCard
                   tenantId={selectedTenantId}
