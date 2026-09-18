@@ -155,6 +155,7 @@ type Portfolio = {
     due_now?: number;
     followups_due?: number;
     trials_urgent?: number;
+    renewals_due?: number;
     stalled_activation?: number;
     waiting_on_agency?: number;
   };
@@ -331,6 +332,8 @@ export default function PlatformPage() {
   const [detailContractAmount, setDetailContractAmount] = useState('');
   const [detailContractCurrency, setDetailContractCurrency] = useState('EUR');
   const [detailAnnualCommitment, setDetailAnnualCommitment] = useState(false);
+  const [detailContractTermEnd, setDetailContractTermEnd] = useState('');
+  const [confirmingContractTerm, setConfirmingContractTerm] = useState(false);
   const [confirmingConversion, setConfirmingConversion] = useState(false);
   const [confirmingPlanChange, setConfirmingPlanChange] = useState(false);
   const [confirmingContractUpdate, setConfirmingContractUpdate] = useState(false);
@@ -412,9 +415,13 @@ export default function PlatformPage() {
     setDetailContractAmount('');
     setDetailContractCurrency('EUR');
     setDetailAnnualCommitment(false);
+    setDetailContractTermEnd('');
+    setConfirmingContractTerm(false);
     setConfirmingConversion(false);
     setConfirmingPlanChange(false);
     setConfirmingContractUpdate(false);
+    setConfirmingContractTerm(false);
+    setDetailContractTermEnd('');
     setServiceStateTarget(null);
     setServiceStateReason('');
     try {
@@ -437,6 +444,9 @@ export default function PlatformPage() {
       );
       setDetailAnnualCommitment(
         Boolean(next?.lifecycle?.annual_commitment),
+      );
+      setDetailContractTermEnd(
+        String(next?.lifecycle?.contract_term_ends_on || ''),
       );
     } catch (detailError) {
       setError(friendlyError(detailError));
@@ -618,6 +628,32 @@ export default function PlatformPage() {
       contractHasChanges,
   );
 
+  const currentContractTermEnd = String(
+    detail?.lifecycle?.contract_term_ends_on || '',
+  );
+  const contractedOn = String(detail?.lifecycle?.contracted_at || '').slice(
+    0,
+    10,
+  );
+  const contractTermChanged =
+    detailContractTermEnd !== currentContractTermEnd;
+  const contractTermFormatValid =
+    !detailContractTermEnd ||
+    /^\d{4}-\d{2}-\d{2}$/.test(detailContractTermEnd);
+  const contractTermChronologyValid =
+    !detailContractTermEnd ||
+    !contractedOn ||
+    detailContractTermEnd >= contractedOn;
+  const contractTermReady = Boolean(
+    selectedCustomer &&
+      !['trial', 'internal', 'churned'].includes(selectedCustomer.stage) &&
+      currentContractMonthlyCents > 0 &&
+      detail?.lifecycle?.contracted_at &&
+      contractTermChanged &&
+      contractTermFormatValid &&
+      contractTermChronologyValid,
+  );
+
   const serviceState = String(
     detail?.lifecycle?.stage || selectedCustomer?.stage || '',
   );
@@ -704,6 +740,15 @@ export default function PlatformPage() {
           days === null
             ? 'First working value is not recorded yet. Keep the commercial decision tied to evidence, not login activity.'
             : `${days} day${days === 1 ? '' : 's'} remain and first working value is not recorded yet. Keep the commercial decision tied to evidence, not login activity.`,
+      };
+    }
+
+    if (selectedCustomer.attention?.source === 'renewal') {
+      return {
+        label: selectedCustomer.attention.label || 'Renewal attention',
+        copy:
+          selectedCustomer.attention.why_now ||
+          'Review the recorded contract term and renewal timing.',
       };
     }
 
@@ -874,6 +919,36 @@ export default function PlatformPage() {
       setNotice('Commercial contract evidence updated.');
     } catch (contractError) {
       setError(friendlyError(contractError));
+    } finally {
+      setDetailBusy('');
+    }
+  };
+
+  const updateContractTerm = async () => {
+    if (!selectedTenantId || !contractTermReady || detailBusy) return;
+
+    if (!confirmingContractTerm) {
+      setConfirmingContractTerm(true);
+      return;
+    }
+
+    setDetailBusy('contract-term');
+    setError('');
+    try {
+      await platformInvoke('platform-ops', {
+        action: 'set_contract_term',
+        tenant_id: selectedTenantId,
+        contract_term_ends_on: detailContractTermEnd || null,
+      });
+      setConfirmingContractTerm(false);
+      await Promise.all([openCustomer(selectedTenantId), load(true)]);
+      setNotice(
+        detailContractTermEnd
+          ? 'Contract term end date recorded for renewal tracking.'
+          : 'Contract term end date cleared after explicit review.',
+      );
+    } catch (termError) {
+      setError(friendlyError(termError));
     } finally {
       setDetailBusy('');
     }
@@ -1974,6 +2049,91 @@ export default function PlatformPage() {
                             ? 'Confirm contract'
                             : 'Review contract'}
                       </button>
+
+                      <div className={styles.contractTermControl}>
+                        <div className={styles.commercialSubhead}>
+                          <span>Contract term</span>
+                          <small>
+                            Record the signed term end date so ReDream can
+                            surface renewal work at the right time. No end date
+                            is guessed automatically.
+                          </small>
+                        </div>
+
+                        <div className={styles.contractTermRow}>
+                          <label className={styles.field}>
+                            <span>Term ends</span>
+                            <input
+                              type="date"
+                              value={detailContractTermEnd}
+                              onChange={(event) => {
+                                setDetailContractTermEnd(event.target.value);
+                                setConfirmingContractTerm(false);
+                              }}
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            className={
+                              confirmingContractTerm
+                                ? styles.primaryButton
+                                : styles.secondaryButton
+                            }
+                            onClick={() => void updateContractTerm()}
+                            disabled={
+                              detailBusy === 'contract-term' ||
+                              !contractTermReady
+                            }
+                          >
+                            {detailBusy === 'contract-term' ? (
+                              <LoaderCircle
+                                size={15}
+                                className={styles.spin}
+                              />
+                            ) : confirmingContractTerm ? (
+                              <Check size={15} />
+                            ) : (
+                              <Clock3 size={15} />
+                            )}
+                            {detailBusy === 'contract-term'
+                              ? 'Updating...'
+                              : confirmingContractTerm
+                                ? 'Confirm term'
+                                : 'Review term'}
+                          </button>
+                        </div>
+
+                        {!contractTermChronologyValid ? (
+                          <small className={styles.contractTermWarning}>
+                            The term end date cannot be before the recorded
+                            contract date.
+                          </small>
+                        ) : null}
+
+                        {detailAnnualCommitment &&
+                        !currentContractTermEnd &&
+                        !detailContractTermEnd ? (
+                          <small className={styles.contractTermWarning}>
+                            This annual commitment has no term end date, so
+                            renewal timing cannot yet be tracked.
+                          </small>
+                        ) : null}
+
+                        {confirmingContractTerm ? (
+                          <div className={styles.contractTermConfirm}>
+                            <strong>Confirm contract term change</strong>
+                            <span>
+                              {currentContractTermEnd || 'Not recorded'} to{' '}
+                              {detailContractTermEnd || 'Not recorded'}
+                            </span>
+                            <small>
+                              This changes renewal evidence only. It does not
+                              change MRR, plan, billing state or lifecycle.
+                            </small>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   ) : null}
 
