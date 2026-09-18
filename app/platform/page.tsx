@@ -189,6 +189,7 @@ type NewAgencyState = {
   legalName: string;
   ownerEmail: string;
   planKey: string;
+  commercialStart: 'trial' | 'onboarding';
   trialDays: number;
   websiteUrl: string;
   supportEmail: string;
@@ -202,6 +203,7 @@ const EMPTY_AGENCY: NewAgencyState = {
   legalName: '',
   ownerEmail: '',
   planKey: 'pro',
+  commercialStart: 'trial',
   trialDays: 14,
   websiteUrl: '',
   supportEmail: '',
@@ -319,6 +321,10 @@ export default function PlatformPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailPlan, setDetailPlan] = useState('');
   const [detailOwnerEmail, setDetailOwnerEmail] = useState('');
+  const [detailContractAmount, setDetailContractAmount] = useState('');
+  const [detailContractCurrency, setDetailContractCurrency] = useState('EUR');
+  const [detailAnnualCommitment, setDetailAnnualCommitment] = useState(false);
+  const [confirmingConversion, setConfirmingConversion] = useState(false);
   const [detailBusy, setDetailBusy] = useState('');
   const [privacyFocusToken, setPrivacyFocusToken] = useState(0);
 
@@ -390,6 +396,10 @@ export default function PlatformPage() {
     setDetailLoading(true);
     setDetailBusy('');
     setDetailOwnerEmail('');
+    setDetailContractAmount('');
+    setDetailContractCurrency('EUR');
+    setDetailAnnualCommitment(false);
+    setConfirmingConversion(false);
     try {
       const result = await platformInvoke<any>('platform-ops', {
         action: 'customer_detail',
@@ -399,6 +409,18 @@ export default function PlatformPage() {
       setDetail(next);
       setDetailPlan(String(next?.plan?.plan_key || ''));
       setDetailOwnerEmail(String(next?.lifecycle?.owner_contact_email || ''));
+      const contractedCents = Number(
+        next?.lifecycle?.contracted_monthly_cents || 0,
+      );
+      setDetailContractAmount(
+        contractedCents > 0 ? (contractedCents / 100).toFixed(2) : '',
+      );
+      setDetailContractCurrency(
+        String(next?.lifecycle?.contract_currency || 'EUR').toUpperCase(),
+      );
+      setDetailAnnualCommitment(
+        Boolean(next?.lifecycle?.annual_commitment),
+      );
     } catch (detailError) {
       setError(friendlyError(detailError));
     } finally {
@@ -410,6 +432,7 @@ export default function PlatformPage() {
     setSelectedTenantId(null);
     setDetail(null);
     setDetailBusy('');
+    setConfirmingConversion(false);
     setPrivacyFocusToken(0);
   };
 
@@ -486,6 +509,22 @@ export default function PlatformPage() {
     [detail?.plan?.plan_key, detailPlan, plans, selectedCustomer?.plan_key],
   );
 
+  const conversionMonthlyCents = useMemo(() => {
+    const normalized = detailContractAmount.trim().replace(',', '.');
+    const amount = Number(normalized);
+    return Number.isFinite(amount) && amount > 0
+      ? Math.round(amount * 100)
+      : 0;
+  }, [detailContractAmount]);
+
+  const conversionCurrency = detailContractCurrency.trim().toUpperCase();
+  const conversionReady = Boolean(
+    selectedCustomer?.stage === 'trial' &&
+      detailPlan &&
+      conversionMonthlyCents > 0 &&
+      /^[A-Z]{3}$/.test(conversionCurrency),
+  );
+
   const commercialDecision = useMemo(() => {
     if (!selectedCustomer) {
       return {
@@ -555,8 +594,9 @@ export default function PlatformPage() {
         legal_name: agency.legalName.trim() || agency.displayName.trim(),
         plan_key: agency.planKey,
         owner_email: agency.ownerEmail.trim().toLowerCase() || null,
-        trial_days: agency.trialDays,
-        stage: 'onboarding',
+        trial_days:
+          agency.commercialStart === 'trial' ? agency.trialDays : 14,
+        stage: agency.commercialStart,
         billing_mode: 'manual',
         branding: {
           display_name: agency.displayName.trim(),
@@ -600,6 +640,47 @@ export default function PlatformPage() {
       setError(friendlyError(createError));
     } finally {
       setCreating(false);
+    }
+  };
+
+  const convertTrial = async () => {
+    if (
+      !selectedTenantId ||
+      !conversionReady ||
+      detailBusy ||
+      selectedCustomer?.stage !== 'trial'
+    ) {
+      return;
+    }
+
+    if (!confirmingConversion) {
+      setConfirmingConversion(true);
+      return;
+    }
+
+    setDetailBusy('conversion');
+    setError('');
+
+    try {
+      await platformInvoke('platform-ops', {
+        action: 'update_customer',
+        tenant_id: selectedTenantId,
+        plan_key: detailPlan,
+        stage: 'onboarding',
+        contracted_monthly_cents: conversionMonthlyCents,
+        contract_currency: conversionCurrency,
+        annual_commitment: detailAnnualCommitment,
+      });
+
+      setConfirmingConversion(false);
+      await Promise.all([openCustomer(selectedTenantId), load(true)]);
+      setNotice(
+        `${selectedCustomer.display_name} is converted from trial with contracted MRR recorded.`,
+      );
+    } catch (conversionError) {
+      setError(friendlyError(conversionError));
+    } finally {
+      setDetailBusy('');
     }
   };
 
@@ -1099,22 +1180,68 @@ export default function PlatformPage() {
                 ))}
               </div>
 
+              <div className={styles.commercialStartPicker}>
+                <button
+                  type="button"
+                  className={
+                    agency.commercialStart === 'trial'
+                      ? styles.commercialStartActive
+                      : ''
+                  }
+                  onClick={() =>
+                    setAgency((current) => ({
+                      ...current,
+                      commercialStart: 'trial',
+                    }))
+                  }
+                >
+                  <strong>Start as trial</strong>
+                  <span>
+                    Starts the trial clock and keeps conversion evidence visible.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={
+                    agency.commercialStart === 'onboarding'
+                      ? styles.commercialStartActive
+                      : ''
+                  }
+                  onClick={() =>
+                    setAgency((current) => ({
+                      ...current,
+                      commercialStart: 'onboarding',
+                    }))
+                  }
+                >
+                  <strong>Direct onboarding</strong>
+                  <span>
+                    Use when commercial terms are already agreed outside a trial.
+                  </span>
+                </button>
+              </div>
+
               <div className={styles.formGrid}>
-                <label className={styles.field}>
-                  <span>Trial days</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={90}
-                    value={agency.trialDays}
-                    onChange={(event) =>
-                      setAgency((current) => ({
-                        ...current,
-                        trialDays: Math.max(1, Math.min(90, Number(event.target.value) || 14)),
-                      }))
-                    }
-                  />
-                </label>
+                {agency.commercialStart === 'trial' ? (
+                  <label className={styles.field}>
+                    <span>Trial days</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={90}
+                      value={agency.trialDays}
+                      onChange={(event) =>
+                        setAgency((current) => ({
+                          ...current,
+                          trialDays: Math.max(
+                            1,
+                            Math.min(90, Number(event.target.value) || 14),
+                          ),
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
 
                 <label className={styles.field}>
                   <span>Website</span>
@@ -1314,6 +1441,112 @@ export default function PlatformPage() {
                     ) : null}
                   </div>
 
+                  {selectedCustomer?.stage === 'trial' ? (
+                    <div className={styles.trialConversion}>
+                      <div className={styles.commercialSubhead}>
+                        <span>Convert trial</span>
+                        <small>
+                          Record the agreed contract and move the customer from
+                          Trial to Onboarding. Go-live remains a separate
+                          evidence-guarded action.
+                        </small>
+                      </div>
+
+                      <div className={styles.conversionFields}>
+                        <label className={styles.field}>
+                          <span>Contract MRR</span>
+                          <input
+                            inputMode="decimal"
+                            value={detailContractAmount}
+                            onChange={(event) => {
+                              setDetailContractAmount(event.target.value);
+                              setConfirmingConversion(false);
+                            }}
+                            placeholder="500.00"
+                          />
+                        </label>
+
+                        <label className={styles.field}>
+                          <span>Currency</span>
+                          <input
+                            value={detailContractCurrency}
+                            maxLength={3}
+                            onChange={(event) => {
+                              setDetailContractCurrency(
+                                event.target.value
+                                  .replace(/[^a-z]/gi, '')
+                                  .slice(0, 3)
+                                  .toUpperCase(),
+                              );
+                              setConfirmingConversion(false);
+                            }}
+                            placeholder="EUR"
+                          />
+                        </label>
+
+                        <label className={styles.commitmentToggle}>
+                          <input
+                            type="checkbox"
+                            checked={detailAnnualCommitment}
+                            onChange={(event) => {
+                              setDetailAnnualCommitment(event.target.checked);
+                              setConfirmingConversion(false);
+                            }}
+                          />
+                          <span>
+                            <strong>Annual commitment</strong>
+                            <small>
+                              Record only when the signed commercial agreement
+                              is annual.
+                            </small>
+                          </span>
+                        </label>
+                      </div>
+
+                      {confirmingConversion ? (
+                        <div className={styles.conversionConfirm}>
+                          <strong>Confirm paid conversion</strong>
+                          <span>
+                            {selectedPlan?.display_name ||
+                              titleCase(detailPlan)}{' '}
+                            · {money(
+                              conversionMonthlyCents,
+                              conversionCurrency,
+                            )}
+                            /mo
+                            {detailAnnualCommitment
+                              ? ' · annual commitment'
+                              : ''}
+                          </span>
+                          <small>
+                            This records contracted MRR and the contract date.
+                            It does not mark the agency live.
+                          </small>
+                        </div>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => void convertTrial()}
+                        disabled={!conversionReady || detailBusy === 'conversion'}
+                      >
+                        {detailBusy === 'conversion' ? (
+                          <LoaderCircle size={15} className={styles.spin} />
+                        ) : confirmingConversion ? (
+                          <Check size={15} />
+                        ) : (
+                          <ArrowRight size={15} />
+                        )}
+                        {detailBusy === 'conversion'
+                          ? 'Converting...'
+                          : confirmingConversion
+                            ? 'Confirm conversion'
+                            : 'Review conversion'}
+                      </button>
+                    </div>
+                  ) : null}
+
                   <div className={styles.capacityGrid}>
                     <CommercialCapacity
                       label="Player capacity"
@@ -1350,7 +1583,13 @@ export default function PlatformPage() {
                   <div className={styles.inlineControls}>
                     <label className={styles.field}>
                       <span>Plan</span>
-                      <select value={detailPlan} onChange={(event) => setDetailPlan(event.target.value)}>
+                      <select
+                        value={detailPlan}
+                        onChange={(event) => {
+                          setDetailPlan(event.target.value);
+                          setConfirmingConversion(false);
+                        }}
+                      >
                         {plans.map((plan) => (
                           <option value={plan.plan_key} key={plan.plan_key}>
                             {plan.display_name} · {planPrice(plan)}
