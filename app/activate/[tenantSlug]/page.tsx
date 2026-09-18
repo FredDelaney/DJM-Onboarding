@@ -4,11 +4,13 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
+  FileSpreadsheet,
   LoaderCircle,
   LockKeyhole,
   LogOut,
   ShieldCheck,
   Sparkles,
+  UserRoundPlus,
 } from 'lucide-react';
 import {
   CSSProperties,
@@ -22,6 +24,7 @@ import { useParams } from 'next/navigation';
 
 import { platformInvoke, friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
+import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel';
 
 import styles from './page.module.css';
 
@@ -99,8 +102,8 @@ const STEP_COPY: Record<
   },
   first_player: {
     eyebrow: 'FIRST PLAYER',
-    title: 'Start with one real player.',
-    copy: 'Use a real represented player so the workspace proves value on genuine agency work from the start.',
+    title: 'Put your real players into the workspace.',
+    copy: 'Add one player now, or bring in your existing roster with the same checked import workflow. Either route creates real agency records, not onboarding placeholders.',
   },
   first_relationship: {
     eyebrow: 'FIRST RELATIONSHIP',
@@ -150,6 +153,7 @@ export default function AgencyLaunchPage() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [rosterImportOpen, setRosterImportOpen] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -291,6 +295,24 @@ export default function AgencyLaunchPage() {
     launch?.branding?.display_name ||
     runtime.branding.display_name ||
     'Agency workspace';
+
+  const invokeAgencyOs = useCallback(
+    async <T,>(
+      action: string,
+      body: Record<string, unknown> = {},
+    ): Promise<T> => {
+      if (!launch?.tenant_id) {
+        throw new Error('Agency workspace is not resolved.');
+      }
+
+      return platformInvoke<T>('agency-os', {
+        action,
+        tenant_id: launch.tenant_id,
+        ...body,
+      });
+    },
+    [launch?.tenant_id],
+  );
 
   const signIn = async (event: FormEvent) => {
     event.preventDefault();
@@ -562,8 +584,56 @@ export default function AgencyLaunchPage() {
 
     if (nextStep === 'first_player') {
       return (
-        <form className={styles.form} onSubmit={savePlayer}>
-          <div className={styles.grid}>
+        <div className={styles.firstPlayerExperience}>
+          <div
+            className={styles.firstPlayerRoutes}
+            aria-label="First player options"
+          >
+            <div
+              className={`${styles.firstPlayerRoute} ${styles.firstPlayerRouteActive}`}
+            >
+              <span className={styles.firstPlayerRouteIcon}>
+                <UserRoundPlus size={17} />
+              </span>
+              <div>
+                <small>QUICK START</small>
+                <strong>Add one player now</strong>
+                <p>
+                  Best when you want to see the operating workflow with one
+                  represented player first.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className={styles.firstPlayerRoute}
+              onClick={() => {
+                setError('');
+                setNotice('');
+                setRosterImportOpen(true);
+              }}
+            >
+              <span className={styles.firstPlayerRouteIcon}>
+                <FileSpreadsheet size={17} />
+              </span>
+              <div>
+                <small>EXISTING ROSTER</small>
+                <strong>Bring your players in</strong>
+                <p>
+                  Upload a CSV or paste CSV rows. Every player is checked before
+                  anything is written.
+                </p>
+              </div>
+            </button>
+          </div>
+
+          <div className={styles.firstPlayerDivider}>
+            <span>Or add one player below</span>
+          </div>
+
+          <form className={styles.form} onSubmit={savePlayer}>
+            <div className={styles.grid}>
             <Field label="First name">
               <input
                 value={player.firstName}
@@ -618,8 +688,12 @@ export default function AgencyLaunchPage() {
               />
             </Field>
           </div>
-          <Primary busy={busy === 'create_first_player'} label="Add first player" />
-        </form>
+            <Primary
+              busy={busy === 'create_first_player'}
+              label="Add first player"
+            />
+          </form>
+        </div>
       );
     }
 
@@ -945,6 +1019,20 @@ export default function AgencyLaunchPage() {
           </div>
         </section>
       </div>
+
+      {rosterImportOpen ? (
+        <AgencyRosterMigrationPanel
+          workspaceName={workspaceName}
+          invoke={invokeAgencyOs}
+          onClose={() => setRosterImportOpen(false)}
+          onImported={async () => {
+            setNotice(
+              'Roster imported. Your first player milestone now comes from the real roster.',
+            );
+            await loadLaunch();
+          }}
+        />
+      ) : null}
     </main>
   );
 }
