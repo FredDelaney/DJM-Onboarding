@@ -116,9 +116,9 @@ const STEP_COPY: Record<
     copy: 'Your club relationship is already safe. Add the live route for one player and the workspace can reach first working value.',
   },
   owner_setup_complete: {
-    eyebrow: 'OWNER SETUP COMPLETE',
-    title: 'Your workspace has real working value.',
-    copy: 'Your identity, privacy foundation and first operating loop are in place. Progress remains evidence-led as your agency starts using the workspace.',
+    eyebrow: 'FIRST VALUE REACHED',
+    title: 'Your agency is operating now.',
+    copy: 'You have a real player, a real club relationship and a live opportunity in the workspace. From here, stop setting up and start working the business.',
   },
 };
 
@@ -977,10 +977,11 @@ export default function AgencyLaunchPage() {
       <div className={styles.completePanel}>
         <CheckCircle2 size={28} />
         <div>
-          <strong>Owner setup complete</strong>
+          <strong>First working value reached</strong>
           <p>
-            Your workspace now contains the minimum real operating loop: agency
-            identity, privacy foundation, player, club relationship and live opportunity.
+            Your first player, club relationship and live route are now real
+            operating records. Continue directly into Opportunities and work
+            from the evidence you just created.
           </p>
         </div>
       </div>
@@ -1142,10 +1143,14 @@ export default function AgencyLaunchPage() {
             <button
               type="button"
               className={styles.primaryButton}
-              onClick={() => window.location.assign(`/workspace/${encodeURIComponent(runtime.slug)}`)}
+              onClick={() =>
+                window.location.assign(
+                  `/workspace/${encodeURIComponent(runtime.slug)}?view=opportunities&handoff=first-value`,
+                )
+              }
             >
               <ArrowRight size={15} />
-              Open operating workspace
+              Enter live opportunities
             </button>
           ) : null}
 

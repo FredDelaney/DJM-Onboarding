@@ -121,6 +121,9 @@ export default function AgencyOperatingWorkspace() {
   const [password, setPassword] = useState('');
   const [proposal, setProposal] = useState<any>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
+  const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
+    () => search.get('handoff') === 'first-value',
+  );
 
   const workspaceName =
     workspace?.display_name ||
@@ -269,6 +272,20 @@ export default function AgencyOperatingWorkspace() {
       document.title = `${workspaceName} | ${human(view)}`;
     }
   }, [view, workspace, workspaceName]);
+
+  useEffect(() => {
+    if (search.get('handoff') !== 'first-value') return;
+
+    const next = new URLSearchParams(search.toString());
+    next.delete('handoff');
+    const query = next.toString();
+
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${basePath}${query ? `?${query}` : ''}`,
+    );
+  }, [basePath, search]);
 
   const signIn = async (event: FormEvent) => {
     event.preventDefault();
@@ -500,6 +517,31 @@ export default function AgencyOperatingWorkspace() {
             </button>
           </div>
         </header>
+
+        {showFirstValueHandoff && view === 'opportunities' ? (
+          <section className={styles.firstValueHandoff}>
+            <div className={styles.firstValueHandoffIcon}>
+              <CheckCircle2 size={20} />
+            </div>
+            <div className={styles.firstValueHandoffCopy}>
+              <p className={styles.eyebrow}>FIRST WORKING VALUE REACHED</p>
+              <h2>Your agency is operating now.</h2>
+              <p>
+                The player, club relationship and live route you just created
+                are now part of the real workspace. Keep the opportunity
+                current here, then use Today for the next evidence-backed
+                action.
+              </p>
+            </div>
+            <button
+              type="button"
+              className={styles.firstValueHandoffAction}
+              onClick={() => setShowFirstValueHandoff(false)}
+            >
+              Continue working
+            </button>
+          </section>
+        ) : null}
 
         {error ? <ErrorBox text={error} /> : null}
 
