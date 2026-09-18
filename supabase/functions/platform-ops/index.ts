@@ -576,6 +576,21 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,platform_role:adminRecord.role,customer:updated});
     }
 
+    if(action==="set_customer_service_state"){
+      const tenantId=text(body?.tenant_id);
+      const state=text(body?.state).toLowerCase();
+      const reason=text(body?.reason)||null;
+      if(!tenantId||!state) return json({error:"tenant_id and state are required"},400);
+      if(!["live","at_risk","paused","churned"].includes(state)) return json({error:"Invalid customer service state"},400);
+      const result=await rpc("platform_server_operator_set_customer_service_state",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_state:state,
+        p_reason:reason
+      });
+      return json({ok:true,platform_role:adminRecord.role,result});
+    }
+
     if(action==="set_feature"){
       const tenantId=text(body?.tenant_id);const featureKey=text(body?.feature_key);
       if(!tenantId||!featureKey||typeof body?.enabled!=="boolean") return json({error:"tenant_id, feature_key and boolean enabled are required"},400);
@@ -684,7 +699,7 @@ export default {fetch:async(req:Request)=>{
     const message=error instanceof Error?error.message:text(record.message)||text(record.details)||text(record.hint)||"Platform operations request failed";
     console.error("platform-ops",error);
     const lower=message.toLowerCase();
-    const status=lower.includes("not_in_plan")?403:lower.includes("already_registered")?409:lower.includes("not_provider_managed")?409:lower.includes("managed_redream_domain_not_custom")?400:lower.includes("invalid_")?400:500;
+    const status=lower.includes("not_in_plan")?403:lower.includes("already_registered")?409:lower.includes("not_provider_managed")?409:lower.includes("managed_redream_domain_not_custom")?400:lower.includes("transition_not_allowed")?409:lower.includes("reason_required")?400:lower.includes("invalid_")?400:500;
     return json({error:message},status);
   }
 }};
