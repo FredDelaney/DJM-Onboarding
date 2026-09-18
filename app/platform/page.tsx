@@ -1125,18 +1125,47 @@ export default function PlatformPage() {
 
       <div className={styles.canvas}>
         <section className={styles.hero}>
-          <div>
-            <p className={styles.eyebrow}>REDREAM SYSTEMS</p>
+          <div className={styles.heroMain}>
+            <div className={styles.heroKicker}>
+              <span>REDREAM SYSTEMS</span>
+              <b>
+                <Sparkles size={12} />
+                Portfolio control
+              </b>
+            </div>
+
             <h1>Know what blocks launch, value and revenue before the agency asks.</h1>
             <p className={styles.heroCopy}>
               ReDream separates launch readiness, working value and commercial intervention so you always know who should act next.
             </p>
+
+            <div className={styles.heroPills} aria-label="Portfolio snapshot">
+              <span>
+                <strong>{summary.external_customers || 0}</strong>
+                agencies
+              </span>
+              <span>
+                <strong>{summary.live_customers || 0}</strong>
+                live
+              </span>
+              <span>
+                <strong>{summary.customers_needing_action || 0}</strong>
+                need action
+              </span>
+            </div>
           </div>
 
-          <button type="button" className={styles.primaryButton} onClick={() => setCreateOpen(true)}>
-            <Plus size={16} />
-            New agency
-          </button>
+          <div className={styles.heroActions}>
+            <div className={styles.heroStatus}>
+              <i />
+              <span>Portfolio live</span>
+              <small>{environmentLabel}</small>
+            </div>
+            <button type="button" className={styles.heroPrimaryButton} onClick={() => setCreateOpen(true)}>
+              <Plus size={16} />
+              New agency
+            </button>
+          </div>
         </section>
 
         {error ? (

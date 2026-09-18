@@ -2167,3 +2167,406 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ReDream control plane showcase polish */
+
+.page {
+  background:
+    radial-gradient(circle at 6% -7%, rgba(124, 108, 242, 0.14), transparent 31rem),
+    radial-gradient(circle at 94% 9%, rgba(191, 181, 255, 0.1), transparent 29rem),
+    linear-gradient(180deg, #f5f6f8 0%, #f8f9fa 44%, #f4f5f7 100%);
+}
+
+.topbar {
+  min-height: 76px;
+  border-bottom-color: rgba(18, 21, 26, 0.055);
+  background: rgba(248, 249, 250, 0.84);
+  box-shadow: 0 8px 30px rgba(17, 24, 39, 0.025);
+}
+
+.brandMark {
+  background:
+    radial-gradient(circle at 28% 22%, rgba(151, 137, 255, 0.75), transparent 42%),
+    linear-gradient(145deg, #21182c, #100d15);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 30px rgba(24, 19, 31, 0.22);
+}
+
+.canvas {
+  width: min(1520px, calc(100% - clamp(28px, 5vw, 78px)));
+  padding-top: clamp(32px, 4.7vw, 66px);
+}
+
+.hero {
+  position: relative;
+  min-height: 330px;
+  margin-bottom: 18px;
+  padding: clamp(28px, 4vw, 48px);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 83% 16%, rgba(145, 126, 255, 0.28), transparent 24rem),
+    radial-gradient(circle at 62% 115%, rgba(107, 90, 215, 0.15), transparent 25rem),
+    linear-gradient(132deg, #17121f 0%, #241a31 58%, #121018 100%);
+  color: #fff;
+  box-shadow: 0 28px 74px rgba(24, 19, 31, 0.17);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  width: 390px;
+  height: 390px;
+  right: -170px;
+  bottom: -250px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.heroMain,
+.heroActions {
+  position: relative;
+  z-index: 1;
+}
+
+.heroMain {
+  align-self: center;
+  max-width: 900px;
+}
+
+.heroKicker {
+  margin-bottom: 17px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.heroKicker > span {
+  color: #c8bfff;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.heroKicker b {
+  min-height: 27px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0;
+  backdrop-filter: blur(10px);
+}
+
+.hero h1 {
+  max-width: 900px;
+  color: #fff;
+  font-size: clamp(38px, 4.8vw, 68px);
+  font-weight: 690;
+  line-height: 0.98;
+  letter-spacing: -0.058em;
+}
+
+.heroCopy {
+  max-width: 720px;
+  margin-top: 18px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.heroPills {
+  margin-top: 25px;
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.heroPills span {
+  min-height: 37px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 9px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+}
+
+.heroPills strong {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.heroActions {
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.heroStatus {
+  min-width: 150px;
+  padding: 11px 12px;
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  gap: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(10px);
+}
+
+.heroStatus i {
+  width: 7px;
+  height: 7px;
+  margin-top: 3px;
+  grid-row: 1 / 3;
+  border-radius: 50%;
+  background: #4dd08b;
+  box-shadow: 0 0 0 4px rgba(77, 208, 139, 0.09);
+}
+
+.heroStatus span {
+  color: rgba(255, 255, 255, 0.83);
+  font-size: 9px;
+  font-weight: 820;
+}
+
+.heroStatus small {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 8px;
+}
+
+.heroPrimaryButton {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 13px;
+  background: #fff;
+  color: #1b1522;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.heroPrimaryButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+}
+
+.metricsGrid {
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.metricCard {
+  position: relative;
+  min-height: 156px;
+  overflow: hidden;
+  border-color: rgba(17, 22, 28, 0.055);
+  border-radius: 21px;
+  background: rgba(255, 255, 255, 0.93);
+  box-shadow: 0 13px 36px rgba(24, 19, 31, 0.045);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.metricCard::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(124, 108, 242, 0.55), transparent 70%);
+}
+
+.metricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(24, 19, 31, 0.065);
+}
+
+.metricAttention {
+  background: linear-gradient(180deg, #fffaf0, #fff);
+}
+
+.operatingGrid {
+  gap: 18px;
+  margin-bottom: 30px;
+}
+
+.agendaPanel,
+.signalPanel,
+.customersSection {
+  border-color: rgba(17, 22, 28, 0.055);
+  box-shadow: 0 16px 44px rgba(24, 19, 31, 0.045);
+}
+
+.agendaPanel {
+  overflow: hidden;
+}
+
+.panelHeading {
+  padding-bottom: 4px;
+}
+
+.agendaRow {
+  min-height: 70px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+  border-top-color: rgba(15, 18, 23, 0.045);
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.agendaRow:hover {
+  background: #faf9fc;
+  transform: translateX(2px);
+}
+
+.signalPanel {
+  border-color: rgba(38, 29, 49, 0.14);
+  background:
+    radial-gradient(circle at 88% 0%, rgba(145, 126, 255, 0.22), transparent 15rem),
+    linear-gradient(150deg, #201827, #17131d);
+  color: #fff;
+  box-shadow: 0 20px 50px rgba(24, 19, 31, 0.11);
+}
+
+.signalPanel .eyebrow {
+  color: #b9aff5;
+}
+
+.signalPanel .panelHeading h2,
+.signalPanel .signalRow strong,
+.signalPanel .signalFooter strong {
+  color: #fff;
+}
+
+.signalPanel .panelHeading > svg {
+  color: #b9aff5;
+}
+
+.signalPanel .signalRow span,
+.signalPanel .signalFooter span {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.signalPanel .signalTrack {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.signalPanel .signalTrack i {
+  background: linear-gradient(90deg, #8e7cff, #beb4ff);
+}
+
+.signalPanel .signalFooter {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.customersSection {
+  border-radius: 24px;
+}
+
+.customerCard {
+  min-height: 98px;
+  border-color: rgba(17, 22, 28, 0.05);
+  border-radius: 18px;
+  box-shadow: 0 5px 16px rgba(24, 19, 31, 0.02);
+}
+
+.customerCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(124, 108, 242, 0.2);
+  box-shadow: 0 15px 34px rgba(24, 19, 31, 0.07);
+}
+
+.customerAvatar {
+  width: 43px;
+  height: 43px;
+  border: 1px solid rgba(124, 108, 242, 0.08);
+  background:
+    linear-gradient(145deg, #f0eefc, #f7f9fb);
+  color: #574b9f;
+  box-shadow: 0 7px 18px rgba(24, 19, 31, 0.04);
+}
+
+@media (max-width: 820px) {
+  .hero {
+    min-height: 0;
+    padding: 26px 22px;
+    align-items: flex-start;
+  }
+
+  .heroActions {
+    min-width: 0;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .heroStatus {
+    width: fit-content;
+  }
+
+  .heroPrimaryButton {
+    width: 100%;
+  }
+
+  .metricCard:hover,
+  .customerCard:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .hero {
+    border-radius: 23px;
+  }
+
+  .hero h1 {
+    font-size: 36px;
+  }
+
+  .heroPills {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .heroPills span {
+    min-width: 0;
+    padding: 8px;
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+  }
+}
