@@ -325,6 +325,7 @@ export default function PlatformPage() {
   const [detailContractCurrency, setDetailContractCurrency] = useState('EUR');
   const [detailAnnualCommitment, setDetailAnnualCommitment] = useState(false);
   const [confirmingConversion, setConfirmingConversion] = useState(false);
+  const [confirmingPlanChange, setConfirmingPlanChange] = useState(false);
   const [detailBusy, setDetailBusy] = useState('');
   const [privacyFocusToken, setPrivacyFocusToken] = useState(0);
 
@@ -400,6 +401,7 @@ export default function PlatformPage() {
     setDetailContractCurrency('EUR');
     setDetailAnnualCommitment(false);
     setConfirmingConversion(false);
+    setConfirmingPlanChange(false);
     try {
       const result = await platformInvoke<any>('platform-ops', {
         action: 'customer_detail',
@@ -433,6 +435,7 @@ export default function PlatformPage() {
     setDetail(null);
     setDetailBusy('');
     setConfirmingConversion(false);
+    setConfirmingPlanChange(false);
     setPrivacyFocusToken(0);
   };
 
@@ -499,6 +502,16 @@ export default function PlatformPage() {
     [portfolio?.customers, selectedTenantId],
   );
 
+  const currentPlan = useMemo(
+    () =>
+      plans.find(
+        (plan) =>
+          plan.plan_key ===
+          (detail?.plan?.plan_key || selectedCustomer?.plan_key),
+      ) || null,
+    [detail?.plan?.plan_key, plans, selectedCustomer?.plan_key],
+  );
+
   const selectedPlan = useMemo(
     () =>
       plans.find(
@@ -508,6 +521,33 @@ export default function PlatformPage() {
       ) || null,
     [detail?.plan?.plan_key, detailPlan, plans, selectedCustomer?.plan_key],
   );
+
+  const planChangeReady = Boolean(
+    detailPlan &&
+      currentPlan &&
+      selectedPlan &&
+      detailPlan !== currentPlan.plan_key,
+  );
+
+  const planChangeKind = useMemo(() => {
+    if (!currentPlan || !selectedPlan) return 'Plan change';
+
+    const currentPrice = currentPlan.monthly_price_cents;
+    const targetPrice = selectedPlan.monthly_price_cents;
+
+    if (
+      typeof currentPrice === 'number' &&
+      typeof targetPrice === 'number'
+    ) {
+      if (targetPrice > currentPrice) return 'Upgrade';
+      if (targetPrice < currentPrice) return 'Downgrade';
+    }
+
+    return 'Plan change';
+  }, [currentPlan, selectedPlan]);
+
+  const planChangeEvidenceMatches =
+    selectedCustomer?.capacity?.next_plan_key === detailPlan;
 
   const conversionMonthlyCents = useMemo(() => {
     const normalized = detailContractAmount.trim().replace(',', '.');
@@ -685,7 +725,13 @@ export default function PlatformPage() {
   };
 
   const updateCustomerPlan = async () => {
-    if (!selectedTenantId || !detailPlan || detailBusy) return;
+    if (!selectedTenantId || !planChangeReady || detailBusy) return;
+
+    if (!confirmingPlanChange) {
+      setConfirmingPlanChange(true);
+      return;
+    }
+
     setDetailBusy('plan');
     setError('');
     try {
@@ -694,8 +740,9 @@ export default function PlatformPage() {
         tenant_id: selectedTenantId,
         plan_key: detailPlan,
       });
+      setConfirmingPlanChange(false);
       await Promise.all([openCustomer(selectedTenantId), load(true)]);
-      setNotice('Plan updated.');
+      setNotice('Plan updated after explicit review.');
     } catch (updateError) {
       setError(friendlyError(updateError));
     } finally {
@@ -1576,7 +1623,8 @@ export default function PlatformPage() {
                     <span>Plan control</span>
                     <small>
                       Changing plan changes entitlements. It does not convert
-                      the lifecycle stage by itself.
+                      the lifecycle stage by itself. Every change requires
+                      explicit review and confirmation.
                     </small>
                   </div>
 
@@ -1588,6 +1636,7 @@ export default function PlatformPage() {
                         onChange={(event) => {
                           setDetailPlan(event.target.value);
                           setConfirmingConversion(false);
+                          setConfirmingPlanChange(false);
                         }}
                       >
                         {plans.map((plan) => (
@@ -1599,14 +1648,58 @@ export default function PlatformPage() {
                     </label>
                     <button
                       type="button"
-                      className={styles.secondaryButton}
+                      className={
+                        confirmingPlanChange
+                          ? styles.primaryButton
+                          : styles.secondaryButton
+                      }
                       onClick={() => void updateCustomerPlan()}
-                      disabled={detailBusy === 'plan' || detailPlan === detail.plan?.plan_key}
+                      disabled={detailBusy === 'plan' || !planChangeReady}
                     >
-                      {detailBusy === 'plan' ? <LoaderCircle size={15} className={styles.spin} /> : <Check size={15} />}
-                      Save
+                      {detailBusy === 'plan' ? (
+                        <LoaderCircle size={15} className={styles.spin} />
+                      ) : confirmingPlanChange ? (
+                        <Check size={15} />
+                      ) : (
+                        <ArrowRight size={15} />
+                      )}
+                      {detailBusy === 'plan'
+                        ? 'Updating...'
+                        : confirmingPlanChange
+                          ? 'Confirm plan change'
+                          : 'Review plan change'}
                     </button>
                   </div>
+
+                  {confirmingPlanChange && currentPlan && selectedPlan ? (
+                    <div className={styles.planChangeConfirm}>
+                      <div>
+                        <p className={styles.eyebrow}>{planChangeKind.toUpperCase()}</p>
+                        <strong>
+                          {currentPlan.display_name} to {selectedPlan.display_name}
+                        </strong>
+                        <span>
+                          {planPrice(currentPlan)} to {planPrice(selectedPlan)}
+                        </span>
+                      </div>
+                      <div className={styles.planChangeEvidence}>
+                        <small>
+                          {planChangeEvidenceMatches
+                            ? 'This target matches the recorded next-plan capacity evidence.'
+                            : 'No automatic upgrade decision is being made. Confirm only if this commercial change is intended.'}
+                        </small>
+                        {selectedCustomer?.expansion_signals?.length ? (
+                          <div className={styles.expansionSignals}>
+                            {selectedCustomer.expansion_signals
+                              .slice(0, 3)
+                              .map((signal) => (
+                                <span key={signal}>{titleCase(signal)}</span>
+                              ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className={styles.commercialSubhead}>
                     <span>Account owner</span>
