@@ -49,6 +49,14 @@ test('players and relationships use tenant-neutral premium entity presentation',
   assert.match(workspace, /initials\(clubName\)/);
   assert.match(workspace, /Warm introduction/);
   assert.match(workspace, /redream_autopilot_clubs/);
+  assert.match(
+    workspace,
+    /active_players \?\? items\.length\} players/,
+  );
+  assert.doesNotMatch(
+    workspace,
+    /active_players \?\? items\.length\} represented/,
+  );
   assert.doesNotMatch(workspace, /DJM Sports Management/);
   assert.doesNotMatch(workspace, /ReDream/);
 });
@@ -69,7 +77,7 @@ test('Market and Deals separate demand creation from commercial execution withou
 
 test('every primary operating area has an intentional empty state', () => {
   assert.match(workspace, /Operating queue is clear/);
-  assert.match(workspace, /No represented players yet/);
+  assert.match(workspace, /No players recorded yet/);
   assert.match(workspace, /No relevant club relationships yet/);
   assert.match(workspace, /No live deals recorded/);
   assert.match(workspace, /No active club demand/);

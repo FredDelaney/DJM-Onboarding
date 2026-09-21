@@ -1116,7 +1116,7 @@ function Players({ data }: { data: any }) {
           'A live operating view of player service, career timing, market coverage and preparation gaps.'
         }
         icon={Users}
-        badge={`${summary.active_players ?? items.length} represented`}
+        badge={`${summary.active_players ?? items.length} players`}
       />
 
       <section className={styles.metrics}>
@@ -1271,7 +1271,7 @@ function Players({ data }: { data: any }) {
         {!items.length ? (
           <EmptyState
             icon={Users}
-            title="No represented players yet"
+            title="No players recorded yet"
             copy="Once the first player is active, their service position and live business will appear here."
           />
         ) : null}
