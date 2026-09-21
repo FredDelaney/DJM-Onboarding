@@ -84,7 +84,7 @@ const VIEW_PRESENTATION: Record<
     eyebrow: 'MARKET AUTOPILOT',
     title: 'Market',
     description:
-      'Work real club demand, player routes and career-approved market opportunities.',
+      'Work real club demand, player routes and career-controlled market opportunities.',
   },
   deals: {
     eyebrow: 'DEAL CONTROL',

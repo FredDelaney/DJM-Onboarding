@@ -63,6 +63,14 @@ test('players and relationships use tenant-neutral premium entity presentation',
 
 test('Market and Deals separate demand creation from commercial execution without inventing probability', () => {
   assert.match(workspace, /Find the route worth moving\./);
+  assert.match(
+    workspace,
+    /career-controlled market opportunities/,
+  );
+  assert.doesNotMatch(
+    workspace,
+    /career-approved market opportunities/,
+  );
   assert.match(workspace, /Move the deal, not the admin\./);
   assert.match(workspace, /className=\{styles\.opportunityColumns\}/);
   assert.match(workspace, /Needs worth acting on/);
