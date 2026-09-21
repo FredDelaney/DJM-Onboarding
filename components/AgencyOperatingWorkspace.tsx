@@ -284,7 +284,11 @@ export default function AgencyOperatingWorkspace() {
 
         setData({ home, operations });
       } else if (view === 'players') {
-        setData(await invoke('roster_command', { limit: 100 }));
+        setData(
+          await rpc<any>('redream_autopilot_players', {
+            p_limit: 100,
+          }),
+        );
       } else if (view === 'network') {
         setData(await invoke('club_portfolio_control', { limit: 100 }));
       } else {
@@ -1068,51 +1072,173 @@ function Home({
 }
 
 function Players({ data }: { data: any }) {
-  const roster = data?.roster || data || {};
-  const items = Array.isArray(roster?.items) ? roster.items : [];
-  const summary = roster?.summary || {};
+  const service = data?.service || {};
+  const items = Array.isArray(service?.players)
+    ? service.players
+    : [];
+  const summary = service?.summary || {};
+  const representation = data?.representation_records?.summary || {};
+  const relationship = data?.relationship_control?.summary || {};
+  const nextPlayerAction = data?.next_player_action || {};
 
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
-        eyebrow="ROSTER COMMAND"
+        eyebrow="PLAYER AUTOPILOT"
         title="Protect value. Move careers."
-        copy="A live view of where each player needs protection, market activation or a clear next move."
+        copy={
+          nextPlayerAction?.instruction ||
+          'A live operating view of player service, career timing, market coverage and preparation gaps.'
+        }
         icon={Users}
-        badge={`${items.length} represented`}
+        badge={`${summary.active_players ?? items.length} represented`}
       />
 
       <section className={styles.metrics}>
-        <Metric label="Active players" value={String(summary.active_players ?? items.length)} detail="Current represented roster" />
-        <Metric label="Deal protection" value={String(summary.live_deals_needing_protection || 0)} detail="Players with live business to protect" />
-        <Metric label="Market activation" value={String(summary.players_needing_market_activation || 0)} detail="Players needing active market work" />
-        <Metric label="Unassigned" value={String(summary.players_without_primary_staff || 0)} detail="Players without primary staff owner" />
+        <Metric
+          label="Service risk"
+          value={String(summary.service_risk || 0)}
+          detail={`${summary.urgent_service_queue || 0} urgent`}
+        />
+
+        <Metric
+          label="Contract critical"
+          value={String(summary.contract_critical_window || 0)}
+          detail="Recorded contract windows"
+        />
+
+        <Metric
+          label="Market gaps"
+          value={String(summary.market_coverage_gaps || 0)}
+          detail="No recorded active coverage"
+        />
+
+        <Metric
+          label="Representation review"
+          value={String(
+            representation.records_needing_review || 0,
+          )}
+          detail={`${representation.missing_representation_records || 0} missing records`}
+        />
       </section>
 
       <section className={styles.cards}>
         {items.map((item: any) => {
           const playerName = item.player?.name || 'Player';
+
+          const serviceState =
+            item.service_control?.state ||
+            'recorded';
+
+          const nextMove =
+            item.next_service_move?.instruction ||
+            item.player?.next_action ||
+            'No next action recorded';
+
+          const controlFix =
+            item.next_control_fix?.instruction ||
+            item.next_preparation_fix?.instruction ||
+            '';
+
+          const marketState =
+            item.market_coverage?.state ||
+            'no_market_state';
+
+          const activeDeals = Number(
+            item.market_coverage?.active_deals || 0,
+          );
+
+          const contractRemaining =
+            item.career_timing?.contract_days_remaining;
+
+          const contractDetail =
+            item.player?.contract_status === 'free_agent'
+              ? 'Free agent'
+              : Number.isFinite(Number(contractRemaining))
+                ? `${contractRemaining} days recorded`
+                : item.player?.contract_expiry
+                  ? relativeDate(item.player.contract_expiry)
+                  : 'No expiry recorded';
+
+          const serviceGaps = Array.isArray(
+            item.service_control?.gaps,
+          )
+            ? item.service_control.gaps
+            : [];
+
           return (
-            <article className={styles.card} key={item.player_id}>
+            <article
+              className={styles.card}
+              key={item.player_id}
+            >
               <div className={styles.entityHeader}>
                 <div className={styles.entityMark}>
                   {initials(playerName) || 'P'}
                 </div>
+
                 <div className={styles.entityIdentity}>
-                  <p className={styles.eyebrow}>PRIORITY {item.priority_rank || '-'}</p>
+                  <p className={styles.eyebrow}>
+                    PLAYER SERVICE
+                  </p>
+
                   <h2>{playerName}</h2>
-                  <p>{human(item.player?.football_status)}</p>
+
+                  <p>
+                    {human(item.player?.football_status)}
+                    {item.player?.agency_priority
+                      ? ` · ${human(item.player.agency_priority)} priority`
+                      : ''}
+                  </p>
                 </div>
-                <span className={styles.pill}>{human(item.service?.state)}</span>
+
+                <span className={styles.pill}>
+                  {human(serviceState)}
+                </span>
               </div>
 
               <div className={styles.facts}>
-                <div><span>Next action</span><strong>{item.player?.next_action || 'No action recorded'}</strong><small>{relativeDate(item.player?.next_action_due)}</small></div>
-                <div><span>Live deals</span><strong>{item.live_deals?.count || 0}</strong><small>{item.live_deals?.highest_probability ? `${item.live_deals.highest_probability}% recorded probability` : 'No active deal'}</small></div>
-                <div><span>Career control</span><strong>{human(item.career?.alignment_state)}</strong><small>{item.blocks_external_escalation ? 'External escalation blocked' : human(item.execution_window)}</small></div>
+                <div>
+                  <span>Next move</span>
+                  <strong>{nextMove}</strong>
+                  <small>
+                    {relativeDate(item.player?.next_action_due)}
+                  </small>
+                </div>
+
+                <div>
+                  <span>Market coverage</span>
+                  <strong>{human(marketState)}</strong>
+                  <small>
+                    {activeDeals
+                      ? `${activeDeals} active recorded deal${activeDeals === 1 ? '' : 's'}`
+                      : 'No active deal recorded'}
+                  </small>
+                </div>
+
+                <div>
+                  <span>Career timing</span>
+                  <strong>
+                    {human(
+                      item.career_timing?.market_trigger ||
+                        item.player?.contract_status ||
+                        'recorded',
+                    )}
+                  </strong>
+                  <small>{contractDetail}</small>
+                </div>
               </div>
 
-              {item.why_now?.[0] ? <div className={styles.reason}>{item.why_now[0]}</div> : null}
+              {controlFix ? (
+                <div className={styles.reason}>
+                  {controlFix}
+                </div>
+              ) : null}
+
+              {!controlFix && serviceGaps[0] ? (
+                <div className={styles.reason}>
+                  {human(serviceGaps[0])}
+                </div>
+              ) : null}
             </article>
           );
         })}
@@ -1125,6 +1251,41 @@ function Players({ data }: { data: any }) {
           />
         ) : null}
       </section>
+
+      {Number(
+        relationship.immediate_service_interventions || 0,
+      ) > 0 ? (
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>
+                PLAYER RELATIONSHIPS
+              </p>
+              <h2>Service interventions</h2>
+            </div>
+
+            <span className={styles.sectionCount}>
+              {relationship.immediate_service_interventions} current
+            </span>
+          </div>
+
+          <div className={styles.emptyState}>
+            <div className={styles.emptyStateIcon}>
+              <CircleAlert size={18} />
+            </div>
+
+            <strong>
+              Protect the player relationship before lower-value admin.
+            </strong>
+
+            <span>
+              These are operational service exceptions based on recorded
+              ownership, actions, requests and coverage. They are not a
+              measure of player satisfaction or agent quality.
+            </span>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
