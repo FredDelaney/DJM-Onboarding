@@ -26,7 +26,12 @@ import {
 } from 'react';
 
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
-import { platformInvoke, friendlyError, relativeDate } from '@/lib/platform-client';
+import {
+  platformInvoke,
+  platformRpc,
+  friendlyError,
+  relativeDate,
+} from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel';
 
@@ -198,6 +203,24 @@ export default function AgencyOperatingWorkspace() {
     [workspace?.tenant_id],
   );
 
+  const rpc = useCallback(
+    async <T,>(
+      name: string,
+      args: Record<string, unknown> = {},
+    ): Promise<T> => {
+      if (!workspace?.slug) {
+        throw new Error('Agency workspace is not resolved.');
+      }
+
+      return platformRpc<T>(
+        name,
+        args,
+        workspace.slug,
+      );
+    },
+    [workspace?.slug],
+  );
+
   const resolveWorkspace = useCallback(async () => {
     if (!targetSlug) {
       setError('This agency workspace could not be resolved.');
@@ -249,7 +272,17 @@ export default function AgencyOperatingWorkspace() {
 
     try {
       if (view === 'home') {
-        setData(await invoke('home', { command_limit: 8 }));
+        const [home, operations] = await Promise.all([
+          rpc<any>('redream_autopilot_home', {
+            p_limit: 8,
+          }),
+          rpc<any>('redream_autopilot_operations', {
+            p_horizon_days: 90,
+            p_limit: 20,
+          }),
+        ]);
+
+        setData({ home, operations });
       } else if (view === 'players') {
         setData(await invoke('roster_command', { limit: 100 }));
       } else if (view === 'network') {
@@ -266,7 +299,7 @@ export default function AgencyOperatingWorkspace() {
     } finally {
       setBusy(false);
     }
-  }, [invoke, view, workspace?.tenant_id]);
+  }, [invoke, rpc, view, workspace?.tenant_id]);
 
   useEffect(() => {
     let active = true;
@@ -580,8 +613,7 @@ export default function AgencyOperatingWorkspace() {
               <p>
                 The player, club relationship and live route you just created
                 are now part of the real workspace. Keep the opportunity
-                current here, then use Today for the next evidence-backed
-                action.
+                current here, then use Today for the next evidence-backed action.
               </p>
             </div>
             <button
@@ -778,15 +810,43 @@ function Home({
   onPrepare: (command: any) => void;
 }) {
   const home = data?.home || {};
-  const commands = Array.isArray(home?.attention?.commands)
-    ? home.attention.commands
+  const operations = data?.operations || {};
+
+  const confirm = Array.isArray(home?.attention?.confirm)
+    ? home.attention.confirm
     : [];
-  const revenue = data?.revenue?.by_currency?.[0] || null;
-  const roster = data?.roster_command?.summary || {};
-  const top = commands[0] || null;
+
+  const judgement = Array.isArray(home?.attention?.judgement)
+    ? home.attention.judgement
+    : [];
+
+  const delegable = Array.isArray(home?.attention?.delegable)
+    ? home.attention.delegable
+    : [];
+
+  const needsYou = [...judgement, ...confirm].sort(
+    (a: any, b: any) =>
+      Number(b?.priority_score || 0) -
+      Number(a?.priority_score || 0),
+  );
+
+  const top = needsYou[0] || delegable[0] || null;
+
   const topOneTap =
     top?.actionability?.mode === 'one_tap' &&
     top?.actionability?.evidence_gate === 'ready';
+
+  const overdueDeadlines = Number(
+    operations?.deadlines?.summary?.overdue || 0,
+  );
+
+  const completedDelegated = Number(
+    home?.delegated_work?.completed_count || 0,
+  );
+
+  const activeDelegated = Number(
+    home?.delegated_work?.active_count || 0,
+  );
 
   return (
     <div className={styles.stack}>
@@ -795,26 +855,31 @@ function Home({
           <p className={styles.eyebrow}>
             {top ? 'DO THIS FIRST' : 'OPERATING PICTURE CLEAR'}
           </p>
+
           <h2>
             {top?.title ||
-              'No urgent operating action is recorded.'}
+              'Nothing currently needs your judgement.'}
           </h2>
+
           <p>
-            {top?.why_now ||
-              'The next evidence-backed action will rise here as the agency changes.'}
+            {top?.recommended_action ||
+              top?.why_now ||
+              'Autopilot will bring work back when a decision, confirmation or exception genuinely needs a person.'}
           </p>
         </div>
 
         <div className={styles.heroRight}>
           {top ? (
             <div className={styles.heroMeta}>
-              <span>{human(top.priority_band || 'high')}</span>
+              <span>
+                {human(top.priority_band || 'review')}
+              </span>
               <small>{relativeDate(top.due_at)}</small>
             </div>
           ) : (
             <div className={styles.heroClear}>
               <CheckCircle2 size={18} />
-              <span>Queue clear</span>
+              <span>Under control</span>
             </div>
           )}
 
@@ -826,7 +891,10 @@ function Home({
               disabled={Boolean(actionBusy)}
             >
               {actionBusy === top.command_id ? (
-                <LoaderCircle size={15} className={styles.spin} />
+                <LoaderCircle
+                  size={15}
+                  className={styles.spin}
+                />
               ) : (
                 <ArrowRight size={15} />
               )}
@@ -838,65 +906,127 @@ function Home({
 
       <section className={styles.metrics}>
         <Metric
-          label="Expected commission"
-          value={
-            revenue
-              ? money(revenue.expected_commission, revenue.currency)
-              : '-'
-          }
-          detail={`${revenue?.active_deals || 0} active deals`}
+          label="Needs you"
+          value={String(needsYou.length)}
+          detail="Judgement or confirmation"
         />
+
         <Metric
-          label="Weighted commission"
-          value={
-            revenue
-              ? money(revenue.weighted_commission, revenue.currency)
-              : '-'
-          }
-          detail="Recorded probability context only"
+          label="Autopilot can handle"
+          value={String(delegable.length)}
+          detail="Safe reversible work"
         />
+
         <Metric
-          label="Players"
-          value={String(roster.active_players ?? '-')}
-          detail={`${roster.live_deals_needing_protection || 0} need deal protection`}
+          label="Overdue deadlines"
+          value={String(overdueDeadlines)}
+          detail="Recorded operating dates"
         />
+
         <Metric
-          label="Needs attention"
-          value={String(home?.attention?.high_count ?? 0)}
-          detail={`${home?.attention?.critical_count || 0} critical`}
+          label="Delegated work"
+          value={String(activeDelegated)}
+          detail={`${completedDelegated} completed`}
         />
       </section>
 
       <section className={styles.sectionCard}>
         <div className={styles.sectionHead}>
           <div>
-            <p className={styles.eyebrow}>OPERATING QUEUE</p>
-            <h2>What needs attention now</h2>
+            <p className={styles.eyebrow}>NEEDS YOU</p>
+            <h2>Decisions and confirmations</h2>
           </div>
+
           <span className={styles.sectionCount}>
-            {commands.length} current
+            {needsYou.length} current
           </span>
         </div>
+
         <div className={styles.list}>
-          {commands.slice(0, 8).map((command: any) => {
+          {needsYou.slice(0, 8).map((command: any) => (
+            <article
+              className={styles.listRow}
+              key={command.command_id}
+            >
+              <div className={styles.rank}>
+                {command.rank || '•'}
+              </div>
+
+              <div className={styles.listCopy}>
+                <strong>{command.title}</strong>
+
+                <span>
+                  {command.recommended_action ||
+                    command.why_now ||
+                    'Review the current evidence.'}
+                </span>
+
+                <small>
+                  {human(command.command_type)} ·{' '}
+                  {relativeDate(command.due_at)}
+                </small>
+              </div>
+
+              <span className={styles.needsInput}>
+                {command.actionability?.requires_input
+                  ? 'Needs detail'
+                  : 'Review'}
+              </span>
+            </article>
+          ))}
+
+          {!needsYou.length ? (
+            <EmptyState
+              icon={CheckCircle2}
+              title="Operating queue is clear"
+              copy="Autopilot will surface the next decision or exception when one genuinely requires a person."
+            />
+          ) : null}
+        </div>
+      </section>
+
+      <section className={styles.sectionCard}>
+        <div className={styles.sectionHead}>
+          <div>
+            <p className={styles.eyebrow}>AUTOPILOT</p>
+            <h2>Work Autopilot can prepare</h2>
+          </div>
+
+          <span className={styles.sectionCount}>
+            {delegable.length} ready
+          </span>
+        </div>
+
+        <div className={styles.list}>
+          {delegable.slice(0, 8).map((command: any) => {
             const oneTap =
               command?.actionability?.mode === 'one_tap' &&
               command?.actionability?.evidence_gate === 'ready';
 
             return (
-              <article className={styles.listRow} key={command.command_id}>
-                <div className={styles.rank}>{command.rank || '•'}</div>
+              <article
+                className={styles.listRow}
+                key={command.command_id}
+              >
+                <div className={styles.rank}>
+                  {command.rank || '•'}
+                </div>
+
                 <div className={styles.listCopy}>
                   <strong>{command.title}</strong>
+
                   <span>
                     {command.recommended_action ||
                       command.why_now ||
-                      'Review current evidence.'}
+                      'Safe internal work is ready.'}
                   </span>
+
                   <small>
-                    {human(command.command_type)} · {relativeDate(command.due_at)}
+                    {human(command.command_type)} ·{' '}
+                    {relativeDate(command.due_at)}
                   </small>
                 </div>
+
                 {oneTap ? (
                   <button
                     type="button"
@@ -905,27 +1035,30 @@ function Home({
                     disabled={Boolean(actionBusy)}
                   >
                     {actionBusy === command.command_id ? (
-                      <LoaderCircle size={14} className={styles.spin} />
+                      <LoaderCircle
+                        size={14}
+                        className={styles.spin}
+                      />
                     ) : (
                       <ArrowRight size={14} />
                     )}
+
                     {command.actionability?.cta || 'Prepare'}
                   </button>
                 ) : (
                   <span className={styles.needsInput}>
-                    {command.actionability?.requires_input
-                      ? 'Needs detail'
-                      : 'Review'}
+                    Review
                   </span>
                 )}
               </article>
             );
           })}
-          {!commands.length ? (
+
+          {!delegable.length ? (
             <EmptyState
               icon={CheckCircle2}
-              title="Operating queue is clear"
-              copy="New evidence-backed actions will appear here when something needs attention."
+              title="No delegated work waiting"
+              copy="Routine work will appear here only when Autopilot has enough evidence to prepare it safely."
             />
           ) : null}
         </div>

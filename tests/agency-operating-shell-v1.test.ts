@@ -23,9 +23,11 @@ test('agency workspace is deliberately limited to four daily operating areas', (
   assert.doesNotMatch(app, /label: 'Brain'/);
 });
 
-test('agency workspace consumes existing authoritative agency-os surfaces', () => {
+test('agency workspace uses ReDream Autopilot for Home while preserving guarded existing surfaces', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
-  assert.match(app, /invoke\('home'/);
+  assert.match(app, /redream_autopilot_home/);
+  assert.match(app, /redream_autopilot_operations/);
+  assert.match(app, /workspace\.slug/);
   assert.match(app, /invoke\('roster_command'/);
   assert.match(app, /invoke\('club_portfolio_control'/);
   assert.match(app, /invoke\('deal_portfolio'/);
