@@ -14,27 +14,30 @@ test('agency workspace authorises with tenant memberships rather than legacy glo
   assert.doesNotMatch(app, /\.from\('profiles'\)/);
 });
 
-test('agency workspace is deliberately limited to four daily operating areas', () => {
+test('agency workspace exposes five focused daily operating areas', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
   assert.match(app, /label: 'Home'/);
   assert.match(app, /label: 'Players'/);
+  assert.match(app, /label: 'Market'/);
+  assert.match(app, /label: 'Deals'/);
   assert.match(app, /label: 'Network'/);
-  assert.match(app, /label: 'Opportunities'/);
+  assert.doesNotMatch(app, /label: 'Opportunities'/);
   assert.doesNotMatch(app, /label: 'Brain'/);
+  assert.match(app, /rawRequestedView === 'opportunities'/);
 });
 
-test('agency workspace uses tenant-native Autopilot reads while preserving guarded legacy surfaces', () => {
+test('agency workspace uses tenant-native Autopilot reads while preserving the relationship surface', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
   assert.match(app, /redream_autopilot_home/);
   assert.match(app, /redream_autopilot_operations/);
   assert.match(app, /redream_autopilot_players/);
+  assert.match(app, /redream_autopilot_market/);
+  assert.match(app, /redream_autopilot_deals/);
   assert.match(app, /workspace\.slug/);
   assert.match(app, /service_control/);
   assert.match(app, /market_coverage/);
   assert.match(app, /representation_records/);
   assert.match(app, /invoke\('club_portfolio_control'/);
-  assert.match(app, /invoke\('deal_portfolio'/);
-  assert.match(app, /invoke\('demand_control_fast'/);
 });
 
 test('one-tap actions still require prepare and explicit confirmation', () => {

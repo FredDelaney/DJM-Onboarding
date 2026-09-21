@@ -11,11 +11,12 @@ const css = readFileSync(
   'utf8',
 );
 
-test('showcase polish preserves the four-area agency operating model', () => {
+test('showcase polish presents the five-area agency operating model', () => {
   assert.match(workspace, /label: 'Home'/);
   assert.match(workspace, /label: 'Players'/);
+  assert.match(workspace, /label: 'Market'/);
+  assert.match(workspace, /label: 'Deals'/);
   assert.match(workspace, /label: 'Network'/);
-  assert.match(workspace, /label: 'Opportunities'/);
   assert.match(workspace, /VIEW_PRESENTATION/);
   assert.doesNotMatch(workspace, /label: 'Brain'/);
 });
@@ -49,12 +50,16 @@ test('players and network use tenant-neutral premium entity presentation', () =>
   assert.doesNotMatch(workspace, /ReDream/);
 });
 
-test('Opportunities becomes a commercial command centre without adding scoring', () => {
-  assert.match(workspace, /Live business and live demand\./);
+test('Market and Deals separate demand creation from commercial execution without inventing probability', () => {
+  assert.match(workspace, /Find the route worth moving\./);
+  assert.match(workspace, /Move the deal, not the admin\./);
   assert.match(workspace, /className=\{styles\.opportunityColumns\}/);
-  assert.match(workspace, /Commercial pipeline/);
   assert.match(workspace, /Needs worth acting on/);
+  assert.match(workspace, /Pursuits needing judgement/);
+  assert.match(workspace, /Commercial pipeline/);
   assert.match(workspace, /candidate_coverage\?\.candidates/);
+  assert.match(workspace, /redream_autopilot_market/);
+  assert.match(workspace, /redream_autopilot_deals/);
   assert.doesNotMatch(workspace, /candidate\.overall_score/);
   assert.doesNotMatch(workspace, /candidate\.readiness_score/);
 });

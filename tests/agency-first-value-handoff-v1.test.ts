@@ -43,10 +43,14 @@ test('operating workspace treats the handoff as transient presentation only', ()
   assert.doesNotMatch(workspace, /sessionStorage/);
 });
 
-test('handoff appears only in opportunities and can disappear immediately', () => {
+test('handoff resolves legacy opportunities into Market and can disappear immediately', () => {
   assert.match(
     workspace,
-    /showFirstValueHandoff && view === 'opportunities'/,
+    /showFirstValueHandoff && view === 'market'/,
+  );
+  assert.match(
+    workspace,
+    /rawRequestedView === 'opportunities'/,
   );
   assert.match(workspace, /FIRST WORKING VALUE REACHED/);
   assert.match(workspace, /Continue working/);
@@ -58,7 +62,8 @@ test('handoff appears only in opportunities and can disappear immediately', () =
 
 test('handoff preserves normal evidence-led workspace navigation', () => {
   assert.match(workspace, /Today/);
-  assert.match(workspace, /Opportunities/);
+  assert.match(workspace, /Market/);
+  assert.match(workspace, /Deals/);
   assert.match(workspace, /next evidence-backed action/);
   assert.doesNotMatch(workspace, /mark.*first.*value/i);
   assert.doesNotMatch(workspace, /complete.*first.*value/i);

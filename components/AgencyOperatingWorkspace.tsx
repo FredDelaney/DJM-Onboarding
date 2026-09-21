@@ -37,7 +37,7 @@ import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel'
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
-type View = 'home' | 'players' | 'network' | 'opportunities';
+type View = 'home' | 'players' | 'market' | 'deals' | 'network';
 
 type Workspace = {
   tenant_id: string;
@@ -59,8 +59,9 @@ const NAV: Array<{
 }> = [
   { key: 'home', label: 'Home', icon: Target },
   { key: 'players', label: 'Players', icon: Users },
+  { key: 'market', label: 'Market', icon: Target },
+  { key: 'deals', label: 'Deals', icon: BriefcaseBusiness },
   { key: 'network', label: 'Network', icon: Network },
-  { key: 'opportunities', label: 'Opportunities', icon: BriefcaseBusiness },
 ];
 
 const VIEW_PRESENTATION: Record<
@@ -74,22 +75,28 @@ const VIEW_PRESENTATION: Record<
       'The clearest next actions across players, relationships and live business.',
   },
   players: {
-    eyebrow: 'ROSTER COMMAND',
+    eyebrow: 'PLAYER AUTOPILOT',
     title: 'Players',
     description:
-      'Protect live business, move careers and keep every represented player owned.',
+      'Protect player service, career timing and active market coverage.',
+  },
+  market: {
+    eyebrow: 'MARKET AUTOPILOT',
+    title: 'Market',
+    description:
+      'Work real club demand, player routes and career-approved market opportunities.',
+  },
+  deals: {
+    eyebrow: 'DEAL CONTROL',
+    title: 'Deals',
+    description:
+      'Protect momentum, commercial control and the next decision across live deals.',
   },
   network: {
     eyebrow: 'RELATIONSHIP INTELLIGENCE',
     title: 'Network',
     description:
       'Club access, live demand and relationship strength in one operating view.',
-  },
-  opportunities: {
-    eyebrow: 'COMMERCIAL EXECUTION',
-    title: 'Opportunities',
-    description:
-      'Work live deals and club demand with the recorded routes that can move them.',
   },
 };
 
@@ -136,7 +143,12 @@ export default function AgencyOperatingWorkspace() {
   const params = useParams<{ tenantSlug?: string }>();
   const search = useSearchParams();
 
-  const requestedView = String(search.get('view') || 'home');
+  const rawRequestedView = String(search.get('view') || 'home');
+  const requestedView =
+    rawRequestedView === 'opportunities'
+      ? 'market'
+      : rawRequestedView;
+
   const view: View = NAV.some((item) => item.key === requestedView)
     ? (requestedView as View)
     : 'home';
@@ -289,14 +301,24 @@ export default function AgencyOperatingWorkspace() {
             p_limit: 100,
           }),
         );
-      } else if (view === 'network') {
-        setData(await invoke('club_portfolio_control', { limit: 100 }));
+      } else if (view === 'market') {
+        setData(
+          await rpc<any>('redream_autopilot_market', {
+            p_limit: 100,
+          }),
+        );
+      } else if (view === 'deals') {
+        setData(
+          await rpc<any>('redream_autopilot_deals', {
+            p_limit: 100,
+          }),
+        );
       } else {
-        const [deals, demand] = await Promise.all([
-          invoke('deal_portfolio', { limit: 100 }),
-          invoke('demand_control_fast', { limit: 100 }),
-        ]);
-        setData({ deals, demand });
+        setData(
+          await invoke('club_portfolio_control', {
+            limit: 100,
+          }),
+        );
       }
     } catch (loadError) {
       setError(friendlyError(loadError));
@@ -606,7 +628,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
         </header>
 
-        {showFirstValueHandoff && view === 'opportunities' ? (
+        {showFirstValueHandoff && view === 'market' ? (
           <section className={styles.firstValueHandoff}>
             <div className={styles.firstValueHandoffIcon}>
               <CheckCircle2 size={20} />
@@ -649,10 +671,9 @@ export default function AgencyOperatingWorkspace() {
               />
             ) : null}
             {view === 'players' ? <Players data={data} /> : null}
+            {view === 'market' ? <Market data={data} /> : null}
+            {view === 'deals' ? <Deals data={data} /> : null}
             {view === 'network' ? <NetworkView data={data} /> : null}
-            {view === 'opportunities' ? (
-              <Opportunities data={data} />
-            ) : null}
           </>
         ) : null}
       </main>
@@ -1352,69 +1373,79 @@ function NetworkView({ data }: { data: any }) {
   );
 }
 
-function Opportunities({ data }: { data: any }) {
-  const deals = data?.deals?.deals || data?.deals || {};
-  const dealItems = Array.isArray(deals?.deals) ? deals.deals : [];
-  const demand = data?.demand?.coverage || data?.demand || {};
-  const needs = Array.isArray(demand?.items) ? demand.items : [];
+function Market({ data }: { data: any }) {
+  const demand = data?.demand || {};
+  const needs = Array.isArray(demand?.items)
+    ? demand.items
+    : [];
+
+  const pursuits = Array.isArray(data?.pursuits?.items)
+    ? data.pursuits.items
+    : [];
+
+  const demandSummary = demand?.summary || {};
+  const pitchSummary = data?.pitch_readiness?.summary || {};
+  const pursuitSummary = data?.pursuits?.summary || {};
+  const nextMarketAction = data?.next_market_action || {};
 
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
-        eyebrow="COMMERCIAL EXECUTION"
-        title="Live business and live demand."
-        copy="Work the deals already moving while keeping club needs and recorded player routes visible beside them."
-        icon={BriefcaseBusiness}
-        badge={`${dealItems.length} deals · ${needs.length} needs`}
+        eyebrow="MARKET AUTOPILOT"
+        title="Find the route worth moving."
+        copy={
+          nextMarketAction?.instruction ||
+          'Club demand, player fit, career control and relationship access in one market operating view.'
+        }
+        icon={Target}
+        badge={`${demandSummary.active_needs ?? needs.length} active needs`}
       />
 
       <section className={styles.metrics}>
-        <Metric label="Active deals" value={String(deals?.summary?.active_deals ?? dealItems.length)} detail={`${deals?.summary?.progressing_deals || 0} progressing`} />
-        <Metric label="Stage reviews" value={String(deals?.summary?.stage_reviews_due || 0)} detail="Due now" />
-        <Metric label="Active needs" value={String(demand?.summary?.active_needs ?? needs.length)} detail={`${demand?.summary?.roster_gaps || 0} roster gaps`} />
-        <Metric label="Ready pursuits" value={String(demand?.summary?.ready_for_deep_pursuit_review || 0)} detail="Ready for human deep review" />
+        <Metric
+          label="Active needs"
+          value={String(
+            demandSummary.active_needs ?? needs.length,
+          )}
+          detail="Recorded club demand"
+        />
+
+        <Metric
+          label="Roster gaps"
+          value={String(demandSummary.roster_gaps || 0)}
+          detail="Needs without a recorded roster route"
+        />
+
+        <Metric
+          label="Live pursuits"
+          value={String(
+            pursuitSummary.pursuit_count ?? pursuits.length,
+          )}
+          detail="Recorded player-club routes"
+        />
+
+        <Metric
+          label="Career holds"
+          value={String(pitchSummary.career_holds || 0)}
+          detail="Human-owned strategy required"
+        />
       </section>
 
       <div className={styles.opportunityColumns}>
-        <section className={`${styles.sectionCard} ${styles.opportunityPanel}`}>
-          <div className={styles.sectionHead}>
-            <div>
-              <p className={styles.eyebrow}>LIVE DEALS</p>
-              <h2>Commercial pipeline</h2>
-            </div>
-            <span className={styles.sectionCount}>{dealItems.length} live</span>
-          </div>
-          <div className={styles.list}>
-            {dealItems.map((deal: any) => (
-              <article className={styles.listRow} key={deal.deal_room_id}>
-                <div className={styles.rank}>{deal.rank || '•'}</div>
-                <div className={styles.listCopy}>
-                  <strong>{deal.title}</strong>
-                  <span>{deal.next_best_move?.instruction || deal.next_decision || 'Review the deal.'}</span>
-                  <small>{human(deal.stage)} · {deal.organisation} · {deal.currency ? money(deal.expected_commission, deal.currency) : '-'}</small>
-                </div>
-                <div className={styles.sideStat}><strong>{deal.probability ?? '-'}%</strong><small>{human(deal.momentum_state)}</small></div>
-              </article>
-            ))}
-
-            {!dealItems.length ? (
-              <EmptyState
-                icon={BriefcaseBusiness}
-                title="No live deals recorded"
-                copy="Active deal rooms will appear here with their next recorded decision and commercial context."
-              />
-            ) : null}
-          </div>
-        </section>
-
-        <section className={`${styles.sectionCard} ${styles.opportunityPanel}`}>
+        <section
+          className={`${styles.sectionCard} ${styles.opportunityPanel}`}
+        >
           <div className={styles.sectionHead}>
             <div>
               <p className={styles.eyebrow}>CLUB DEMAND</p>
               <h2>Needs worth acting on</h2>
             </div>
-            <span className={styles.sectionCount}>{needs.length} active</span>
+
+            <span className={styles.sectionCount}>
+              {needs.length} active
+            </span>
           </div>
+
           <div className={styles.list}>
             {needs.map((item: any) => {
               const candidates = Array.isArray(
@@ -1422,6 +1453,7 @@ function Opportunities({ data }: { data: any }) {
               )
                 ? item.candidate_coverage.candidates
                 : [];
+
               const visibleCandidates = candidates.slice(0, 4);
               const hiddenCandidates = Math.max(
                 0,
@@ -1429,14 +1461,24 @@ function Opportunities({ data }: { data: any }) {
               );
 
               return (
-                <article className={styles.listRow} key={item.club_need_id}>
-                  <div className={styles.rank}>{item.command_rank || '•'}</div>
+                <article
+                  className={styles.listRow}
+                  key={item.club_need_id}
+                >
+                  <div className={styles.rank}>
+                    {item.command_rank || '•'}
+                  </div>
+
                   <div className={styles.listCopy}>
-                    <strong>{item.club?.name} · {item.need?.title}</strong>
+                    <strong>
+                      {item.club?.name} · {item.need?.title}
+                    </strong>
+
                     <span>
                       {item.next_action?.instruction ||
                         'Review the recorded need.'}
                     </span>
+
                     <small>
                       {human(item.need?.need_type)} ·{' '}
                       {item.need?.position || 'Position open'} ·{' '}
@@ -1456,7 +1498,10 @@ function Opportunities({ data }: { data: any }) {
                             candidate.player_name
                           }
                         >
-                          <b>{candidate.player_name || 'Player'}</b>
+                          <b>
+                            {candidate.player_name || 'Player'}
+                          </b>
+
                           <small>
                             {careerGateLabel(
                               candidate.career_gate_state ||
@@ -1465,11 +1510,13 @@ function Opportunities({ data }: { data: any }) {
                           </small>
                         </div>
                       ))}
+
                       {!visibleCandidates.length ? (
                         <div className={styles.routeCandidateEmpty}>
                           No recorded candidate yet
                         </div>
                       ) : null}
+
                       {hiddenCandidates ? (
                         <div className={styles.routeCandidateMore}>
                           +{hiddenCandidates} more
@@ -1477,9 +1524,11 @@ function Opportunities({ data }: { data: any }) {
                       ) : null}
                     </div>
                   </div>
+
                   <div className={styles.sideStat}>
                     <strong>
-                      {item.candidate_coverage?.recorded_candidates || 0}
+                      {item.candidate_coverage
+                        ?.recorded_candidates || 0}
                     </strong>
                     <small>candidates</small>
                   </div>
@@ -1496,7 +1545,264 @@ function Opportunities({ data }: { data: any }) {
             ) : null}
           </div>
         </section>
+
+        <section
+          className={`${styles.sectionCard} ${styles.opportunityPanel}`}
+        >
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>
+                PLAYER-CLUB ROUTES
+              </p>
+              <h2>Pursuits needing judgement</h2>
+            </div>
+
+            <span className={styles.sectionCount}>
+              {pursuits.length} recorded
+            </span>
+          </div>
+
+          <div className={styles.list}>
+            {pursuits.map((item: any) => {
+              const accessMode =
+                item.access_strategy?.recommended_mode ||
+                item.best_access_route?.route_state ||
+                'recorded_route';
+
+              const nextAction =
+                item.career_strategy_gate?.next_action
+                  ?.instruction ||
+                item.best_access_route?.why_this_route ||
+                'Review the pursuit evidence.';
+
+              return (
+                <article
+                  className={styles.listRow}
+                  key={item.player_match_id}
+                >
+                  <div className={styles.rank}>
+                    {item.rank || '•'}
+                  </div>
+
+                  <div className={styles.listCopy}>
+                    <strong>
+                      {item.player?.name || 'Player'} →{' '}
+                      {item.club?.name || 'Club'}
+                    </strong>
+
+                    <span>{nextAction}</span>
+
+                    <small>
+                      {human(item.readiness_state)} ·{' '}
+                      {careerGateLabel(
+                        item.career_strategy_gate?.state,
+                      )}{' '}
+                      · {human(accessMode)}
+                    </small>
+                  </div>
+
+                  <div className={styles.sideStat}>
+                    <strong>
+                      {human(
+                        item.pursuit_operating_mode ||
+                          'review',
+                      )}
+                    </strong>
+                    <small>operating state</small>
+                  </div>
+                </article>
+              );
+            })}
+
+            {!pursuits.length ? (
+              <EmptyState
+                icon={Target}
+                title="No active player-club pursuits"
+                copy="Recorded player routes will appear here only when real club demand and player context exist."
+              />
+            ) : null}
+          </div>
+        </section>
       </div>
+    </div>
+  );
+}
+
+function Deals({ data }: { data: any }) {
+  const portfolio = data?.portfolio || {};
+
+  const deals = Array.isArray(portfolio?.deals)
+    ? portfolio.deals
+    : [];
+
+  const summary = portfolio?.summary || {};
+  const risk = data?.commercial_risk || {};
+  const nextDealAction = data?.next_deal_action || {};
+
+  return (
+    <div className={styles.stack}>
+      <WorkspaceIntro
+        eyebrow="DEAL CONTROL"
+        title="Move the deal, not the admin."
+        copy={
+          nextDealAction?.instruction ||
+          'Live commercial work ordered around ownership, momentum, evidence and the next recorded decision.'
+        }
+        icon={BriefcaseBusiness}
+        badge={`${summary.active_deals ?? deals.length} active deals`}
+      />
+
+      <section className={styles.metrics}>
+        <Metric
+          label="Active deals"
+          value={String(
+            summary.active_deals ?? deals.length,
+          )}
+          detail="Recorded live deal rooms"
+        />
+
+        <Metric
+          label="Stage reviews"
+          value={String(summary.stage_reviews_due || 0)}
+          detail="Recorded reviews due"
+        />
+
+        <Metric
+          label="Recovery"
+          value={String(
+            (summary.momentum_recovery_deals || 0) +
+              (summary.commercial_rescue_deals || 0),
+          )}
+          detail="Cooling or stalled work"
+        />
+
+        <Metric
+          label="Negotiation prep"
+          value={String(
+            summary.negotiation_preparation_required_count || 0,
+          )}
+          detail="Recorded preparation gaps"
+        />
+      </section>
+
+      <section className={styles.sectionCard}>
+        <div className={styles.sectionHead}>
+          <div>
+            <p className={styles.eyebrow}>LIVE DEALS</p>
+            <h2>Commercial pipeline</h2>
+          </div>
+
+          <span className={styles.sectionCount}>
+            {deals.length} live
+          </span>
+        </div>
+
+        <div className={styles.list}>
+          {deals.map((deal: any) => {
+            const nextMove =
+              deal.next_best_move?.instruction ||
+              deal.next_control_fix?.instruction ||
+              deal.next_decision ||
+              'Review the deal.';
+
+            return (
+              <article
+                className={styles.listRow}
+                key={deal.deal_room_id}
+              >
+                <div className={styles.rank}>
+                  {deal.rank || '•'}
+                </div>
+
+                <div className={styles.listCopy}>
+                  <strong>{deal.title}</strong>
+
+                  <span>{nextMove}</span>
+
+                  <small>
+                    {human(deal.stage)} ·{' '}
+                    {deal.organisation || 'Club'} ·{' '}
+                    {deal.currency
+                      ? money(
+                          deal.expected_commission,
+                          deal.currency,
+                        )
+                      : 'Commission not recorded'}
+                  </small>
+                </div>
+
+                <div className={styles.sideStat}>
+                  <strong>
+                    {human(
+                      deal.momentum_state || 'recorded',
+                    )}
+                  </strong>
+
+                  <small>
+                    {human(
+                      deal.control_state ||
+                        deal.rescue_state ||
+                        'control recorded',
+                    )}
+                  </small>
+                </div>
+              </article>
+            );
+          })}
+
+          {!deals.length ? (
+            <EmptyState
+              icon={BriefcaseBusiness}
+              title="No live deals recorded"
+              copy="Active deal rooms will appear here with their next recorded decision and commercial context."
+            />
+          ) : null}
+        </div>
+      </section>
+
+      {Number(
+        risk?.summary?.red_intervention_deals || 0,
+      ) > 0 ||
+      Number(
+        risk?.summary?.amber_recovery_deals || 0,
+      ) > 0 ? (
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>
+                COMMERCIAL CONTROL
+              </p>
+              <h2>Deals needing recovery</h2>
+            </div>
+
+            <span className={styles.sectionCount}>
+              {Number(
+                risk?.summary?.red_intervention_deals || 0,
+              ) +
+                Number(
+                  risk?.summary?.amber_recovery_deals || 0,
+                )}{' '}
+              current
+            </span>
+          </div>
+
+          <div className={styles.emptyState}>
+            <div className={styles.emptyStateIcon}>
+              <CircleAlert size={18} />
+            </div>
+
+            <strong>
+              Protect momentum before adding more pipeline.
+            </strong>
+
+            <span>
+              Recovery states use recorded evidence, control,
+              momentum and access. They do not change recorded deal
+              probability or forecast a result.
+            </span>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
