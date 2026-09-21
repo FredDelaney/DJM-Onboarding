@@ -34,6 +34,9 @@ import {
 } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
 import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel';
+import AgencyActionDrawer, {
+  type AgencyActionRequest,
+} from '@/components/AgencyActionDrawer';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -101,6 +104,24 @@ const VIEW_PRESENTATION: Record<
 };
 
 const ALLOWED_ROLES = ['owner', 'admin', 'agent', 'operations'];
+
+const commandWorkingView = (command: any): View => {
+  const source = String(command?.source_type || '');
+
+  if (source === 'deal_room') return 'deals';
+  if (source === 'club_need') return 'market';
+  if (source === 'player') return 'players';
+
+  if (
+    source === 'organisation' ||
+    source === 'person' ||
+    source === 'relationship'
+  ) {
+    return 'relationships';
+  }
+
+  return 'home';
+};
 
 const human = (value: unknown) =>
   String(value || '')
@@ -178,6 +199,8 @@ export default function AgencyOperatingWorkspace() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [proposal, setProposal] = useState<any>(null);
+  const [actionRequest, setActionRequest] =
+    useState<AgencyActionRequest | null>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -387,6 +410,46 @@ export default function AgencyOperatingWorkspace() {
       `${basePath}${query ? `?${query}` : ''}`,
     );
   }, [basePath, search]);
+
+  const openCommandAction = (command: any) => {
+    const destination = commandWorkingView(command);
+
+    const fallbackHref =
+      destination === 'home'
+        ? basePath
+        : `${basePath}?view=${destination}`;
+
+    setActionRequest({
+      key: `command:${String(command?.command_id || 'review')}`,
+      eyebrow: human(
+        command?.command_type || 'Agency action',
+      ),
+      title:
+        command?.title ||
+        'Agency action',
+      instruction:
+        command?.recommended_action ||
+        command?.why_now ||
+        'Review the current evidence and decide the next step.',
+      label:
+        command?.actionability?.cta ||
+        (command?.actionability?.requires_input
+          ? 'Continue action'
+          : 'Prepare action'),
+      action: 'action_prepare',
+      payload: {
+        command_id: command?.command_id,
+      },
+      context: command?.due_at
+        ? relativeDate(command.due_at)
+        : null,
+      fallbackHref,
+      fallbackLabel:
+        destination === 'home'
+          ? 'Return to Today'
+          : `Open ${NAV.find((item) => item.key === destination)?.label || 'working area'}`,
+    });
+  };
 
   const signIn = async (event: FormEvent) => {
     event.preventDefault();
@@ -670,17 +733,58 @@ export default function AgencyOperatingWorkspace() {
                 data={data}
                 actionBusy={actionBusy}
                 onPrepare={prepareCommand}
+                onOpenAction={openCommandAction}
               />
             ) : null}
-            {view === 'players' ? <Players data={data} /> : null}
-            {view === 'market' ? <Market data={data} /> : null}
-            {view === 'deals' ? <Deals data={data} /> : null}
+            {view === 'players' ? (
+              <Players
+                data={data}
+                onOpenAction={(request) =>
+                  setActionRequest(request)
+                }
+              />
+            ) : null}
+            {view === 'market' ? (
+              <Market
+                data={data}
+                onOpenAction={(request) =>
+                  setActionRequest(request)
+                }
+              />
+            ) : null}
+            {view === 'deals' ? (
+              <Deals
+                data={data}
+                onOpenAction={(request) =>
+                  setActionRequest(request)
+                }
+              />
+            ) : null}
             {view === 'relationships' ? (
-              <Relationships data={data} />
+              <Relationships
+                data={data}
+                onOpenAction={(request) =>
+                  setActionRequest(request)
+                }
+              />
             ) : null}
           </>
         ) : null}
       </main>
+
+      {actionRequest ? (
+        <AgencyActionDrawer
+          request={actionRequest}
+          invoke={(action, body) =>
+            invoke<any>(action, body)
+          }
+          onClose={() => setActionRequest(null)}
+          onProposal={(nextProposal) => {
+            setActionRequest(null);
+            setProposal(nextProposal);
+          }}
+        />
+      ) : null}
 
       {rosterImportOpen ? (
         <AgencyRosterMigrationPanel
@@ -833,10 +937,12 @@ function Home({
   data,
   actionBusy,
   onPrepare,
+  onOpenAction,
 }: {
   data: any;
   actionBusy: string;
   onPrepare: (command: any) => void;
+  onOpenAction: (command: any) => void;
 }) {
   const home = data?.home || {};
   const operations = data?.operations || {};
@@ -912,23 +1018,34 @@ function Home({
             </div>
           )}
 
-          {topOneTap ? (
-            <button
-              type="button"
-              className={styles.heroPrimaryAction}
-              onClick={() => onPrepare(top)}
-              disabled={Boolean(actionBusy)}
-            >
-              {actionBusy === top.command_id ? (
-                <LoaderCircle
-                  size={15}
-                  className={styles.spin}
-                />
-              ) : (
+          {top ? (
+            topOneTap ? (
+              <button
+                type="button"
+                className={styles.heroPrimaryAction}
+                onClick={() => onPrepare(top)}
+                disabled={Boolean(actionBusy)}
+              >
+                {actionBusy === top.command_id ? (
+                  <LoaderCircle
+                    size={15}
+                    className={styles.spin}
+                  />
+                ) : (
+                  <ArrowRight size={15} />
+                )}
+                {top.actionability?.cta || 'Prepare action'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.heroPrimaryAction}
+                onClick={() => onOpenAction(top)}
+              >
                 <ArrowRight size={15} />
-              )}
-              {top.actionability?.cta || 'Prepare action'}
-            </button>
+                {top.actionability?.cta || 'Open action'}
+              </button>
+            )
           ) : null}
         </div>
       </section>
@@ -996,11 +1113,16 @@ function Home({
                 </small>
               </div>
 
-              <span className={styles.needsInput}>
+              <button
+                type="button"
+                className={styles.compactButton}
+                onClick={() => onOpenAction(command)}
+              >
+                <ArrowRight size={14} />
                 {command.actionability?.requires_input
-                  ? 'Needs detail'
+                  ? 'Continue'
                   : 'Review'}
-              </span>
+              </button>
             </article>
           ))}
 
@@ -1075,9 +1197,14 @@ function Home({
                     {command.actionability?.cta || 'Prepare'}
                   </button>
                 ) : (
-                  <span className={styles.needsInput}>
+                  <button
+                    type="button"
+                    className={styles.compactButton}
+                    onClick={() => onOpenAction(command)}
+                  >
+                    <ArrowRight size={14} />
                     Review
-                  </span>
+                  </button>
                 )}
               </article>
             );
@@ -1096,7 +1223,15 @@ function Home({
   );
 }
 
-function Players({ data }: { data: any }) {
+function Players({
+  data,
+  onOpenAction,
+}: {
+  data: any;
+  onOpenAction: (
+    request: AgencyActionRequest,
+  ) => void;
+}) {
   const service = data?.service || {};
   const items = Array.isArray(service?.players)
     ? service.players
@@ -1104,17 +1239,12 @@ function Players({ data }: { data: any }) {
   const summary = service?.summary || {};
   const representation = data?.representation_records?.summary || {};
   const relationship = data?.relationship_control?.summary || {};
-  const nextPlayerAction = data?.next_player_action || {};
-
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="PLAYER AUTOPILOT"
         title="Protect value. Move careers."
-        copy={
-          nextPlayerAction?.instruction ||
-          'A live operating view of player service, career timing, market coverage and preparation gaps.'
-        }
+        copy="Player service, career timing, market coverage and preparation gaps ordered by recorded evidence."
         icon={Users}
         badge={`${summary.active_players ?? items.length} players`}
       />
@@ -1191,6 +1321,36 @@ function Players({ data }: { data: any }) {
             ? item.service_control.gaps
             : [];
 
+          const playerAction = controlFix
+            ? {
+                key: `player-control:${item.player_id}`,
+                eyebrow: 'PLAYER CONTROL',
+                title: playerName,
+                instruction: controlFix,
+                label: 'Fix control',
+                action: 'player_control_fix_prepare',
+                payload: {
+                  player_id: item.player_id,
+                },
+                context: human(serviceState),
+              }
+            : item.next_service_move?.instruction
+              ? {
+                  key: `player-service:${item.player_id}`,
+                  eyebrow: 'PLAYER SERVICE',
+                  title: playerName,
+                  instruction:
+                    item.next_service_move.instruction,
+                  label: 'Prepare next move',
+                  action:
+                    'player_service_move_prepare',
+                  payload: {
+                    player_id: item.player_id,
+                  },
+                  context: human(serviceState),
+                }
+              : null;
+
           return (
             <article
               className={styles.card}
@@ -1264,6 +1424,21 @@ function Players({ data }: { data: any }) {
                   {human(serviceGaps[0])}
                 </div>
               ) : null}
+
+              {playerAction ? (
+                <div className={styles.cardActions}>
+                  <button
+                    type="button"
+                    className={styles.compactButton}
+                    onClick={() =>
+                      onOpenAction(playerAction)
+                    }
+                  >
+                    <ArrowRight size={14} />
+                    {playerAction.label}
+                  </button>
+                </div>
+              ) : null}
             </article>
           );
         })}
@@ -1300,7 +1475,7 @@ function Players({ data }: { data: any }) {
             </div>
 
             <strong>
-              Protect the player relationship before lower-value admin.
+              Player service exceptions are surfaced on the cards above.
             </strong>
 
             <span>
@@ -1315,23 +1490,26 @@ function Players({ data }: { data: any }) {
   );
 }
 
-function Relationships({ data }: { data: any }) {
+function Relationships({
+  data,
+  onOpenAction,
+}: {
+  data: any;
+  onOpenAction: (
+    request: AgencyActionRequest,
+  ) => void;
+}) {
   const accounts = data?.accounts || {};
   const items = Array.isArray(accounts?.clubs)
     ? accounts.clubs
     : [];
   const summary = accounts?.summary || {};
-  const nextClubAction = data?.next_club_action || {};
-
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="RELATIONSHIP AUTOPILOT"
         title="Know who can move the conversation."
-        copy={
-          nextClubAction?.instruction ||
-          'Direct access, warm introductions, current demand and live commercial relevance in one relationship view.'
-        }
+        copy="Recorded direct access, warm introductions, current demand and live commercial relevance in one relationship view."
         icon={Network}
         badge={`${summary.relevant_clubs ?? items.length} relevant clubs`}
       />
@@ -1455,6 +1633,78 @@ function Relationships({ data }: { data: any }) {
                   {topPlay.recommended_action}
                 </div>
               ) : null}
+
+              {topPlay.play_id ? (
+                <div className={styles.cardActions}>
+                  <button
+                    type="button"
+                    className={styles.compactButton}
+                    onClick={() =>
+                      onOpenAction({
+                        key:
+                          `relationship-play:${topPlay.play_id}`,
+                        eyebrow:
+                          'RELATIONSHIP PLAY',
+                        title:
+                          topPlay.title ||
+                          clubName,
+                        instruction:
+                          topPlay.recommended_action ||
+                          'Prepare the strongest recorded relationship route.',
+                        label:
+                          String(
+                            topPlay.access_route_mode ||
+                              '',
+                          ).includes('warm')
+                            ? 'Prepare introduction'
+                            : 'Prepare play',
+                        action: 'play_prepare',
+                        payload: {
+                          play_id:
+                            topPlay.play_id,
+                        },
+                        context: clubName,
+                        fallbackHref:
+                          ['protect_live_deal', 'remove_deal_blocker'].includes(
+                            String(topPlay.play_type || ''),
+                          )
+                            ? '?view=deals'
+                            : String(
+                                  topPlay.play_type || '',
+                                ) === 'source_for_confirmed_need'
+                              ? '?view=market'
+                              : String(
+                                    topPlay.play_type || '',
+                                  ) === 'pitch_now'
+                                ? '?view=market'
+                                : '?view=relationships',
+                        fallbackLabel:
+                          ['protect_live_deal', 'remove_deal_blocker'].includes(
+                            String(topPlay.play_type || ''),
+                          )
+                            ? 'Open Deals'
+                            : String(
+                                  topPlay.play_type || '',
+                                ) === 'pitch_now'
+                              ? 'Open Market'
+                              : String(
+                                    topPlay.play_type || '',
+                                  ) === 'source_for_confirmed_need'
+                                ? 'Open Market'
+                                : 'Return to Relationships',
+                      })
+                    }
+                  >
+                    <ArrowRight size={14} />
+                    {String(
+                      topPlay.access_route_mode ||
+                        '',
+                    ).includes('warm')
+                      ? 'Prepare introduction'
+                      : 'Prepare play'}
+                  </button>
+                </div>
+              ) : null}
             </article>
           );
         })}
@@ -1471,7 +1721,15 @@ function Relationships({ data }: { data: any }) {
   );
 }
 
-function Market({ data }: { data: any }) {
+function Market({
+  data,
+  onOpenAction,
+}: {
+  data: any;
+  onOpenAction: (
+    request: AgencyActionRequest,
+  ) => void;
+}) {
   const demand = data?.demand || {};
   const needs = Array.isArray(demand?.items)
     ? demand.items
@@ -1484,17 +1742,12 @@ function Market({ data }: { data: any }) {
   const demandSummary = demand?.summary || {};
   const pitchSummary = data?.pitch_readiness?.summary || {};
   const pursuitSummary = data?.pursuits?.summary || {};
-  const nextMarketAction = data?.next_market_action || {};
-
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="MARKET AUTOPILOT"
         title="Find the route worth moving."
-        copy={
-          nextMarketAction?.instruction ||
-          'Club demand, player fit, career control and relationship access in one market operating view.'
-        }
+        copy="Recorded club demand and player-club routes, with career control and relationship access made explicit."
         icon={Target}
         badge={`${demandSummary.active_needs ?? needs.length} active needs`}
       />
@@ -1606,6 +1859,42 @@ function Market({ data }: { data: any }) {
                                 candidate.match_status,
                             )}
                           </small>
+
+                          {candidate.player_id ? (
+                            <button
+                              type="button"
+                              className={
+                                styles.routeCandidateAction
+                              }
+                              onClick={() =>
+                                onOpenAction({
+                                  key:
+                                    `career-candidate:${candidate.player_id}`,
+                                  eyebrow:
+                                    'PLAYER-CLUB ROUTE',
+                                  title:
+                                    candidate.player_name ||
+                                    'Player route',
+                                  instruction:
+                                    candidate.career_gate_reason ||
+                                    'Review the player-owned career strategy before external activity.',
+                                  label:
+                                    'Review career strategy',
+                                  action:
+                                    'career_strategy_action_prepare',
+                                  payload: {
+                                    player_id:
+                                      candidate.player_id,
+                                  },
+                                  context:
+                                    item.club?.name ||
+                                    item.need?.title,
+                                })
+                              }
+                            >
+                              Review
+                            </button>
+                          ) : null}
                         </div>
                       ))}
 
@@ -1623,12 +1912,47 @@ function Market({ data }: { data: any }) {
                     </div>
                   </div>
 
-                  <div className={styles.sideStat}>
-                    <strong>
-                      {item.candidate_coverage
-                        ?.recorded_candidates || 0}
-                    </strong>
-                    <small>candidates</small>
+                  <div className={styles.rowActions}>
+                    <div className={styles.sideStat}>
+                      <strong>
+                        {item.candidate_coverage
+                          ?.recorded_candidates || 0}
+                      </strong>
+                      <small>candidates</small>
+                    </div>
+
+                    {!candidates.length ? (
+                      <button
+                        type="button"
+                        className={styles.compactButton}
+                        onClick={() =>
+                          onOpenAction({
+                            key:
+                              `scouting:${item.club_need_id}`,
+                            eyebrow: 'CLUB DEMAND',
+                            title:
+                              `${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`,
+                            instruction:
+                              item.next_action
+                                ?.instruction ||
+                              'Create controlled scouting work against the recorded club need.',
+                            label: 'Prepare search',
+                            action:
+                              'scouting_mandate_prepare',
+                            payload: {
+                              club_need_id:
+                                item.club_need_id,
+                            },
+                            context:
+                              item.need?.position ||
+                              'Recorded club need',
+                          })
+                        }
+                      >
+                        <ArrowRight size={14} />
+                        Start search
+                      </button>
+                    ) : null}
                   </div>
                 </article>
               );
@@ -1699,14 +2023,50 @@ function Market({ data }: { data: any }) {
                     </small>
                   </div>
 
-                  <div className={styles.sideStat}>
-                    <strong>
-                      {human(
-                        item.pursuit_operating_mode ||
-                          'review',
-                      )}
-                    </strong>
-                    <small>operating state</small>
+                  <div className={styles.rowActions}>
+                    <div className={styles.sideStat}>
+                      <strong>
+                        {human(
+                          item.pursuit_operating_mode ||
+                            'review',
+                        )}
+                      </strong>
+                      <small>operating state</small>
+                    </div>
+
+                    {item.player?.player_id ? (
+                      <button
+                        type="button"
+                        className={styles.compactButton}
+                        onClick={() =>
+                          onOpenAction({
+                            key:
+                              `career-pursuit:${item.player.player_id}`,
+                            eyebrow:
+                              'PLAYER-CLUB ROUTE',
+                            title:
+                              `${item.player?.name || 'Player'} → ${item.club?.name || 'Club'}`,
+                            instruction:
+                              nextAction,
+                            label: 'Review strategy',
+                            action:
+                              'career_strategy_action_prepare',
+                            payload: {
+                              player_id:
+                                item.player.player_id,
+                            },
+                            context:
+                              careerGateLabel(
+                                item.career_strategy_gate
+                                  ?.state,
+                              ),
+                          })
+                        }
+                      >
+                        <ArrowRight size={14} />
+                        Review strategy
+                      </button>
+                    ) : null}
                   </div>
                 </article>
               );
@@ -1726,7 +2086,15 @@ function Market({ data }: { data: any }) {
   );
 }
 
-function Deals({ data }: { data: any }) {
+function Deals({
+  data,
+  onOpenAction,
+}: {
+  data: any;
+  onOpenAction: (
+    request: AgencyActionRequest,
+  ) => void;
+}) {
   const portfolio = data?.portfolio || {};
 
   const deals = Array.isArray(portfolio?.deals)
@@ -1735,17 +2103,12 @@ function Deals({ data }: { data: any }) {
 
   const summary = portfolio?.summary || {};
   const risk = data?.commercial_risk || {};
-  const nextDealAction = data?.next_deal_action || {};
-
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="DEAL CONTROL"
         title="Move the deal, not the admin."
-        copy={
-          nextDealAction?.instruction ||
-          'Live commercial work ordered around ownership, momentum, evidence and the next recorded decision.'
-        }
+        copy="Live commercial work ordered around ownership, momentum, evidence and the next recorded decision."
         icon={BriefcaseBusiness}
         badge={`${summary.active_deals ?? deals.length} active deals`}
       />
@@ -1797,11 +2160,54 @@ function Deals({ data }: { data: any }) {
 
         <div className={styles.list}>
           {deals.map((deal: any) => {
+            const controlInstruction =
+              deal.next_control_fix?.instruction || '';
+
             const nextMove =
+              controlInstruction ||
               deal.next_best_move?.instruction ||
-              deal.next_control_fix?.instruction ||
               deal.next_decision ||
               'Review the deal.';
+
+            const dealAction =
+              controlInstruction
+                ? {
+                    key:
+                      `deal-control:${deal.deal_room_id}`,
+                    eyebrow: 'DEAL CONTROL',
+                    title:
+                      deal.title || 'Live deal',
+                    instruction:
+                      controlInstruction,
+                    label: 'Fix control',
+                    action:
+                      'deal_control_fix_prepare',
+                    payload: {
+                      deal_room_id:
+                        deal.deal_room_id,
+                    },
+                    context:
+                      deal.organisation ||
+                      deal.stage,
+                  }
+                : {
+                    key:
+                      `deal-next:${deal.deal_room_id}`,
+                    eyebrow: 'DEAL NEXT MOVE',
+                    title:
+                      deal.title || 'Live deal',
+                    instruction: nextMove,
+                    label: 'Prepare next move',
+                    action:
+                      'deal_next_move_prepare',
+                    payload: {
+                      deal_room_id:
+                        deal.deal_room_id,
+                    },
+                    context:
+                      deal.organisation ||
+                      deal.stage,
+                  };
 
             return (
               <article
@@ -1829,20 +2235,34 @@ function Deals({ data }: { data: any }) {
                   </small>
                 </div>
 
-                <div className={styles.sideStat}>
-                  <strong>
-                    {human(
-                      deal.momentum_state || 'recorded',
-                    )}
-                  </strong>
+                <div className={styles.rowActions}>
+                  <div className={styles.sideStat}>
+                    <strong>
+                      {human(
+                        deal.momentum_state ||
+                          'recorded',
+                      )}
+                    </strong>
 
-                  <small>
-                    {human(
-                      deal.control_state ||
-                        deal.rescue_state ||
-                        'control recorded',
-                    )}
-                  </small>
+                    <small>
+                      {human(
+                        deal.control_state ||
+                          deal.rescue_state ||
+                          'control recorded',
+                      )}
+                    </small>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles.compactButton}
+                    onClick={() =>
+                      onOpenAction(dealAction)
+                    }
+                  >
+                    <ArrowRight size={14} />
+                    {dealAction.label}
+                  </button>
                 </div>
               </article>
             );
@@ -1890,7 +2310,7 @@ function Deals({ data }: { data: any }) {
             </div>
 
             <strong>
-              Protect momentum before adding more pipeline.
+              Recovery actions are surfaced on the live deal rows above.
             </strong>
 
             <span>
