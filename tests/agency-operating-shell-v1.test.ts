@@ -20,10 +20,12 @@ test('agency workspace exposes five focused daily operating areas', () => {
   assert.match(app, /label: 'Players'/);
   assert.match(app, /label: 'Market'/);
   assert.match(app, /label: 'Deals'/);
-  assert.match(app, /label: 'Network'/);
+  assert.match(app, /label: 'Relationships'/);
+  assert.doesNotMatch(app, /label: 'Network'/);
   assert.doesNotMatch(app, /label: 'Opportunities'/);
   assert.doesNotMatch(app, /label: 'Brain'/);
   assert.match(app, /rawRequestedView === 'opportunities'/);
+  assert.match(app, /rawRequestedView === 'network'/);
 });
 
 test('agency workspace uses tenant-native Autopilot reads while preserving the relationship surface', () => {
@@ -33,11 +35,12 @@ test('agency workspace uses tenant-native Autopilot reads while preserving the r
   assert.match(app, /redream_autopilot_players/);
   assert.match(app, /redream_autopilot_market/);
   assert.match(app, /redream_autopilot_deals/);
+  assert.match(app, /redream_autopilot_clubs/);
   assert.match(app, /workspace\.slug/);
   assert.match(app, /service_control/);
   assert.match(app, /market_coverage/);
   assert.match(app, /representation_records/);
-  assert.match(app, /invoke\('club_portfolio_control'/);
+  assert.doesNotMatch(app, /invoke\('club_portfolio_control'/);
 });
 
 test('one-tap actions still require prepare and explicit confirmation', () => {

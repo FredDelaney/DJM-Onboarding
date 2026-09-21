@@ -37,7 +37,7 @@ import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel'
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
-type View = 'home' | 'players' | 'market' | 'deals' | 'network';
+type View = 'home' | 'players' | 'market' | 'deals' | 'relationships';
 
 type Workspace = {
   tenant_id: string;
@@ -61,7 +61,7 @@ const NAV: Array<{
   { key: 'players', label: 'Players', icon: Users },
   { key: 'market', label: 'Market', icon: Target },
   { key: 'deals', label: 'Deals', icon: BriefcaseBusiness },
-  { key: 'network', label: 'Network', icon: Network },
+  { key: 'relationships', label: 'Relationships', icon: Network },
 ];
 
 const VIEW_PRESENTATION: Record<
@@ -92,11 +92,11 @@ const VIEW_PRESENTATION: Record<
     description:
       'Protect momentum, commercial control and the next decision across live deals.',
   },
-  network: {
-    eyebrow: 'RELATIONSHIP INTELLIGENCE',
-    title: 'Network',
+  relationships: {
+    eyebrow: 'RELATIONSHIP AUTOPILOT',
+    title: 'Relationships',
     description:
-      'Club access, live demand and relationship strength in one operating view.',
+      'Know where real access exists, who can open the door and which club relationships matter now.',
   },
 };
 
@@ -147,7 +147,9 @@ export default function AgencyOperatingWorkspace() {
   const requestedView =
     rawRequestedView === 'opportunities'
       ? 'market'
-      : rawRequestedView;
+      : rawRequestedView === 'network'
+        ? 'relationships'
+        : rawRequestedView;
 
   const view: View = NAV.some((item) => item.key === requestedView)
     ? (requestedView as View)
@@ -313,10 +315,10 @@ export default function AgencyOperatingWorkspace() {
             p_limit: 100,
           }),
         );
-      } else {
+      } else if (view === 'relationships') {
         setData(
-          await invoke('club_portfolio_control', {
-            limit: 100,
+          await rpc<any>('redream_autopilot_clubs', {
+            p_limit: 100,
           }),
         );
       }
@@ -673,7 +675,9 @@ export default function AgencyOperatingWorkspace() {
             {view === 'players' ? <Players data={data} /> : null}
             {view === 'market' ? <Market data={data} /> : null}
             {view === 'deals' ? <Deals data={data} /> : null}
-            {view === 'network' ? <NetworkView data={data} /> : null}
+            {view === 'relationships' ? (
+              <Relationships data={data} />
+            ) : null}
           </>
         ) : null}
       </main>
@@ -1311,52 +1315,146 @@ function Players({ data }: { data: any }) {
   );
 }
 
-function NetworkView({ data }: { data: any }) {
-  const clubs = data?.clubs || data || {};
-  const items = Array.isArray(clubs?.items) ? clubs.items : [];
-  const summary = clubs?.summary || {};
+function Relationships({ data }: { data: any }) {
+  const accounts = data?.accounts || {};
+  const items = Array.isArray(accounts?.clubs)
+    ? accounts.clubs
+    : [];
+  const summary = accounts?.summary || {};
+  const nextClubAction = data?.next_club_action || {};
 
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
-        eyebrow="RELATIONSHIP INTELLIGENCE"
-        title="Know where the real access is."
-        copy="Keep club relationships, current demand and live business in the same operating picture."
+        eyebrow="RELATIONSHIP AUTOPILOT"
+        title="Know who can move the conversation."
+        copy={
+          nextClubAction?.instruction ||
+          'Direct access, warm introductions, current demand and live commercial relevance in one relationship view.'
+        }
         icon={Network}
-        badge={`${items.length} relevant clubs`}
+        badge={`${summary.relevant_clubs ?? items.length} relevant clubs`}
       />
 
       <section className={styles.metrics}>
-        <Metric label="Relevant clubs" value={String(summary.relevant_clubs ?? items.length)} detail="Accounts with current relevance" />
-        <Metric label="Live business" value={String(summary.live_business_to_protect || 0)} detail="Club accounts with active deals" />
-        <Metric label="Roster gaps" value={String(summary.confirmed_roster_gaps || 0)} detail="Confirmed needs without recorded match" />
-        <Metric label="Access development" value={String(summary.live_demand_access_development || 0)} detail="Live demand needing stronger route" />
+        <Metric
+          label="Relevant clubs"
+          value={String(summary.relevant_clubs ?? items.length)}
+          detail="Accounts with current relevance"
+        />
+        <Metric
+          label="Live deal clubs"
+          value={String(summary.clubs_with_active_deals || 0)}
+          detail="Commercial relationships to protect"
+        />
+        <Metric
+          label="Confirmed demand"
+          value={String(summary.clubs_with_confirmed_demand || 0)}
+          detail="Recorded confirmed club needs"
+        />
+        <Metric
+          label="Warm introductions"
+          value={String(
+            summary.live_accounts_with_strong_introduction_option || 0,
+          )}
+          detail="Strong recorded introduction routes"
+        />
       </section>
 
       <section className={styles.cards}>
         {items.map((item: any) => {
-          const clubName = item.club?.name || 'Club';
+          const clubName = item.name || 'Club';
+          const access = item.access || {};
+          const demand = item.demand || {};
+          const commercial = item.commercial || {};
+          const topPlay = item.top_play || {};
+
+          const useIntroduction =
+            Number(access.introduction_score || 0) >
+            Number(access.direct_score || 0);
+
+          const routeName = useIntroduction
+            ? access.introduction_via || 'Warm introduction'
+            : access.best_direct_contact || 'No recorded contact';
+
+          const routeDetail = useIntroduction
+            ? access.introduction_target
+              ? `Introduction to ${access.introduction_target}`
+              : 'Recorded introduction route'
+            : access.best_direct_role ||
+              human(access.direct_state || 'recorded access');
+
           return (
-            <article className={styles.card} key={item.organisation_id}>
+            <article
+              className={styles.card}
+              key={item.organisation_id}
+            >
               <div className={styles.entityHeader}>
                 <div className={styles.entityMark}>
                   {initials(clubName) || 'C'}
                 </div>
+
                 <div className={styles.entityIdentity}>
-                  <p className={styles.eyebrow}>{human(item.state)}</p>
+                  <p className={styles.eyebrow}>
+                    {human(
+                      item.account_state ||
+                        'relationship recorded',
+                    )}
+                  </p>
                   <h2>{clubName}</h2>
-                  <p>{[item.club?.city, item.club?.country].filter(Boolean).join(', ')}</p>
+                  <p>
+                    {[item.city, item.country]
+                      .filter(Boolean)
+                      .join(', ')}
+                    {item.league_name
+                      ? ` · ${item.league_name}`
+                      : ''}
+                  </p>
                 </div>
-                <span className={styles.score}>{item.direct_relationship?.access_score ?? '-'}</span>
+
+                <span className={styles.pill}>
+                  {useIntroduction
+                    ? 'Warm introduction'
+                    : human(
+                        access.direct_state ||
+                          'Recorded access',
+                      )}
+                </span>
               </div>
 
               <div className={styles.facts}>
-                <div><span>Best contact</span><strong>{item.direct_relationship?.best_recorded_contact || 'No contact'}</strong><small>{item.direct_relationship?.role_title || 'No role'}</small></div>
-                <div><span>Active needs</span><strong>{item.demand?.active_needs || 0}</strong><small>{item.demand?.confirmed_needs || 0} confirmed</small></div>
-                <div><span>Active deals</span><strong>{item.live_business?.active_deals || 0}</strong><small>{item.live_business?.deals_needing_action || 0} need action</small></div>
+                <div>
+                  <span>Best route</span>
+                  <strong>{routeName}</strong>
+                  <small>{routeDetail}</small>
+                </div>
+
+                <div>
+                  <span>Current demand</span>
+                  <strong>
+                    {demand.active_needs || 0} active
+                  </strong>
+                  <small>
+                    {demand.confirmed_needs || 0} confirmed
+                  </small>
+                </div>
+
+                <div>
+                  <span>Live business</span>
+                  <strong>
+                    {commercial.active_deals || 0} active
+                  </strong>
+                  <small>
+                    {commercial.deals_needing_action || 0} need action
+                  </small>
+                </div>
               </div>
 
-              {item.next_action?.instruction ? <div className={styles.reason}>{item.next_action.instruction}</div> : null}
+              {topPlay.recommended_action ? (
+                <div className={styles.reason}>
+                  {topPlay.recommended_action}
+                </div>
+              ) : null}
             </article>
           );
         })}
@@ -1365,7 +1463,7 @@ function NetworkView({ data }: { data: any }) {
           <EmptyState
             icon={Network}
             title="No relevant club relationships yet"
-            copy="Recorded contacts, access strength and current club demand will build this view."
+            copy="Recorded contacts, access routes, club demand and commercial activity will build this view."
           />
         ) : null}
       </section>

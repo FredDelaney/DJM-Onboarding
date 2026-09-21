@@ -16,7 +16,8 @@ test('showcase polish presents the five-area agency operating model', () => {
   assert.match(workspace, /label: 'Players'/);
   assert.match(workspace, /label: 'Market'/);
   assert.match(workspace, /label: 'Deals'/);
-  assert.match(workspace, /label: 'Network'/);
+  assert.match(workspace, /label: 'Relationships'/);
+  assert.doesNotMatch(workspace, /label: 'Network'/);
   assert.match(workspace, /VIEW_PRESENTATION/);
   assert.doesNotMatch(workspace, /label: 'Brain'/);
 });
@@ -40,12 +41,14 @@ test('showcase polish does not bypass guarded agency action execution', () => {
   assert.doesNotMatch(workspace, /set_contract_term/);
 });
 
-test('players and network use tenant-neutral premium entity presentation', () => {
+test('players and relationships use tenant-neutral premium entity presentation', () => {
   assert.match(workspace, /Protect value\. Move careers\./);
-  assert.match(workspace, /Know where the real access is\./);
+  assert.match(workspace, /Know who can move the conversation\./);
   assert.match(workspace, /className=\{styles\.entityMark\}/);
   assert.match(workspace, /initials\(playerName\)/);
   assert.match(workspace, /initials\(clubName\)/);
+  assert.match(workspace, /Warm introduction/);
+  assert.match(workspace, /redream_autopilot_clubs/);
   assert.doesNotMatch(workspace, /DJM Sports Management/);
   assert.doesNotMatch(workspace, /ReDream/);
 });
