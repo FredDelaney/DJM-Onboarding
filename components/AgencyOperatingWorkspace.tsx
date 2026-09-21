@@ -534,7 +534,6 @@ export default function AgencyOperatingWorkspace() {
 
   return (
     <div className={styles.root} style={theme}>
-      <AiLauncher />
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <div className={styles.mark}>
@@ -603,6 +602,7 @@ export default function AgencyOperatingWorkspace() {
             </p>
           </div>
           <div className={styles.headActions}>
+            <AiLauncher />
             {view === 'home' &&
             ['owner', 'admin', 'operations'].includes(
               workspace.role,

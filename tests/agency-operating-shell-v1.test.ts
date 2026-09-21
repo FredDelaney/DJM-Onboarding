@@ -43,6 +43,31 @@ test('agency workspace uses tenant-native Autopilot reads while preserving the r
   assert.doesNotMatch(app, /invoke\('club_portfolio_control'/);
 });
 
+test('Capture stays out of the workspace grid and mobile navigation fits all five areas', () => {
+  const app = read('components/AgencyOperatingWorkspace.tsx');
+  const css = read('components/AgencyOperatingWorkspace.module.css');
+
+  assert.doesNotMatch(
+    app,
+    /<div className=\{styles\.root\} style=\{theme\}>\s*<AiLauncher \/>/,
+  );
+
+  assert.match(
+    app,
+    /<div className=\{styles\.headActions\}>\s*<AiLauncher \/>/,
+  );
+
+  assert.match(
+    css,
+    /\.nav\{grid-template-columns:repeat\(5,1fr\);gap:3px\}/,
+  );
+
+  assert.doesNotMatch(
+    css,
+    /\.nav\{grid-template-columns:repeat\(4,1fr\);gap:3px\}/,
+  );
+});
+
 test('one-tap actions still require prepare and explicit confirmation', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
   assert.match(app, /actionability\?\.mode === 'one_tap'/);
