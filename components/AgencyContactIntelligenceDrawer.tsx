@@ -17,6 +17,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -128,6 +129,33 @@ export default function AgencyContactIntelligenceDrawer({
 
   const [linkedin, setLinkedin] =
     useState('');
+
+  const emailInputRef =
+    useRef<HTMLInputElement>(null);
+
+  const whatsappInputRef =
+    useRef<HTMLInputElement>(null);
+
+  const phoneInputRef =
+    useRef<HTMLInputElement>(null);
+
+  const openReachEditor = (
+    field: 'email' | 'whatsapp' | 'phone',
+  ) => {
+    setEditingReach(true);
+    setError('');
+
+    window.requestAnimationFrame(() => {
+      const target =
+        field === 'email'
+          ? emailInputRef
+          : field === 'whatsapp'
+            ? whatsappInputRef
+            : phoneInputRef;
+
+      target.current?.focus();
+    });
+  };
 
   const load = useCallback(async () => {
     const personId = clean(
@@ -841,6 +869,11 @@ export default function AgencyContactIntelligenceDrawer({
                         ?.is_verified,
                     )
                   }
+                  onActivate={() =>
+                    openReachEditor(
+                      'email',
+                    )
+                  }
                 />
 
                 <ContactLine
@@ -860,6 +893,11 @@ export default function AgencyContactIntelligenceDrawer({
                         ?.is_verified,
                     )
                   }
+                  onActivate={() =>
+                    openReachEditor(
+                      'whatsapp',
+                    )
+                  }
                 />
 
                 <ContactLine
@@ -872,6 +910,11 @@ export default function AgencyContactIntelligenceDrawer({
                     Boolean(
                       reach?.phone
                         ?.is_verified,
+                    )
+                  }
+                  onActivate={() =>
+                    openReachEditor(
+                      'phone',
                     )
                   }
                 />
@@ -889,6 +932,7 @@ export default function AgencyContactIntelligenceDrawer({
                   <label>
                     Email
                     <input
+                      ref={emailInputRef}
                       type="email"
                       value={email}
                       onChange={(
@@ -907,6 +951,7 @@ export default function AgencyContactIntelligenceDrawer({
                   <label>
                     WhatsApp
                     <input
+                      ref={whatsappInputRef}
                       value={
                         whatsapp
                       }
@@ -926,6 +971,7 @@ export default function AgencyContactIntelligenceDrawer({
                   <label>
                     Phone
                     <input
+                      ref={phoneInputRef}
                       value={phone}
                       onChange={(
                         event,
@@ -1427,15 +1473,25 @@ function ContactLine({
   label,
   value,
   verified,
+  onActivate,
 }: {
   label: string;
   value: string;
   verified: boolean;
+  onActivate: () => void;
 }) {
+  const missing =
+    value.startsWith('Add ');
+
   return (
-    <div
-      className={
-        styles.contactLine
+    <button
+      type="button"
+      className={`${styles.contactLine} ${styles.contactLineButton}`}
+      onClick={onActivate}
+      aria-label={
+        missing
+          ? value
+          : `Edit ${label}`
       }
     >
       <div>
@@ -1444,11 +1500,13 @@ function ContactLine({
       </div>
 
       <small>
-        {verified
-          ? 'Verified'
-          : 'Not verified'}
+        {missing
+          ? 'Add'
+          : verified
+            ? 'Verified'
+            : 'Not verified'}
       </small>
-    </div>
+    </button>
   );
 }
 

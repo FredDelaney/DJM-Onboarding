@@ -110,6 +110,48 @@ test('Missing reach data stays actionable rather than blank', () => {
   );
 });
 
+test('Missing reach rows open and focus the exact editor field', () => {
+  assert.match(
+    drawer,
+    /openReachEditor/,
+  );
+
+  assert.match(
+    drawer,
+    /openReachEditor\(\s*'email'/,
+  );
+
+  assert.match(
+    drawer,
+    /openReachEditor\(\s*'whatsapp'/,
+  );
+
+  assert.match(
+    drawer,
+    /openReachEditor\(\s*'phone'/,
+  );
+
+  assert.match(
+    drawer,
+    /ref=\{emailInputRef\}/,
+  );
+
+  assert.match(
+    drawer,
+    /ref=\{whatsappInputRef\}/,
+  );
+
+  assert.match(
+    drawer,
+    /ref=\{phoneInputRef\}/,
+  );
+
+  assert.match(
+    drawer,
+    /contactLineButton/,
+  );
+});
+
 test('External profiles remain tenant-scoped evidence', () => {
   assert.match(
     migration,
