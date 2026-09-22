@@ -35,7 +35,7 @@ test('agency workspace uses tenant-native Autopilot reads while preserving the r
   assert.match(app, /redream_autopilot_players/);
   assert.match(app, /redream_autopilot_market/);
   assert.match(app, /redream_autopilot_deals/);
-  assert.match(app, /redream_autopilot_clubs/);
+  assert.match(app, /redream_autopilot_relationships/);
   assert.match(app, /workspace\.slug/);
   assert.match(app, /service_control/);
   assert.match(app, /market_coverage/);

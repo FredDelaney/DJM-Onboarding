@@ -13,6 +13,7 @@ import {
   LogOut,
   Network,
   RefreshCw,
+  Search,
   ShieldCheck,
   Target,
   Users,
@@ -340,8 +341,9 @@ export default function AgencyOperatingWorkspace() {
         );
       } else if (view === 'relationships') {
         setData(
-          await rpc<any>('redream_autopilot_clubs', {
+          await rpc<any>('redream_autopilot_relationships', {
             p_limit: 100,
+            p_contact_limit: 250,
           }),
         );
       }
@@ -1581,303 +1583,978 @@ function Relationships({
     request: AgencyActionRequest,
   ) => void;
 }) {
+  const [relationshipView, setRelationshipView] =
+    useState<'clubs' | 'contacts'>('clubs');
+  const [relationshipSearch, setRelationshipSearch] =
+    useState('');
+
   const accounts = data?.accounts || {};
-  const items = Array.isArray(accounts?.clubs)
+  const clubs = Array.isArray(accounts?.clubs)
     ? accounts.clubs
     : [];
-  const summary = accounts?.summary || {};
+  const clubSummary = accounts?.summary || {};
+
+  const contactData = data?.contacts || {};
+  const contacts = Array.isArray(contactData?.items)
+    ? contactData.items
+    : [];
+  const contactSummary = contactData?.summary || {};
+
+  const searchValue = relationshipSearch
+    .trim()
+    .toLowerCase();
+
+  const filteredContacts = useMemo(() => {
+    if (!searchValue) return contacts;
+
+    return contacts.filter((item: any) => {
+      const person = item.person || {};
+      const employment = item.employment || {};
+
+      return [
+        person.full_name,
+        person.preferred_name,
+        person.country,
+        person.city,
+        employment.role_title,
+        employment.department,
+        employment.organisation_name,
+        employment.organisation_country,
+        employment.organisation_city,
+        employment.league_name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(searchValue);
+    });
+  }, [contacts, searchValue]);
+
+  const filteredClubs = useMemo(() => {
+    if (!searchValue) return clubs;
+
+    return clubs.filter((item: any) =>
+      [
+        item.name,
+        item.city,
+        item.country,
+        item.league_name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(searchValue),
+    );
+  }, [clubs, searchValue]);
+
+  const contactsByClub = useMemo(() => {
+    const grouped = new Map<string, any[]>();
+
+    contacts.forEach((contact: any) => {
+      const organisationId = String(
+        contact.employment?.organisation_id || '',
+      );
+
+      if (!organisationId) return;
+
+      const current = grouped.get(organisationId) || [];
+      current.push(contact);
+      grouped.set(organisationId, current);
+    });
+
+    grouped.forEach((group) => {
+      group.sort(
+        (a, b) =>
+          Number(
+            b.relationship?.route_score || 0,
+          ) -
+          Number(
+            a.relationship?.route_score || 0,
+          ),
+      );
+    });
+
+    return grouped;
+  }, [contacts]);
+
+  const openClubFromContact = (
+    clubName: string,
+  ) => {
+    setRelationshipView('clubs');
+    setRelationshipSearch(clubName);
+  };
+
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="RELATIONSHIP AUTOPILOT"
         title="Know who can move the conversation."
-        copy="Recorded direct access, warm introductions, current demand and live commercial relevance in one relationship view."
+        copy="Clubs and the people behind them, connected to recorded access, live demand, commercial activity and agency relationship memory."
         icon={Network}
-        badge={`${summary.relevant_clubs ?? items.length} relevant clubs`}
+        badge={`${clubSummary.relevant_clubs ?? clubs.length} relevant clubs`}
       />
 
       <section className={styles.metrics}>
         <Metric
           label="Relevant clubs"
-          value={String(summary.relevant_clubs ?? items.length)}
+          value={String(
+            clubSummary.relevant_clubs ??
+              clubs.length,
+          )}
           detail="Accounts with current relevance"
         />
+
         <Metric
-          label="Live deal clubs"
-          value={String(summary.clubs_with_active_deals || 0)}
-          detail="Commercial relationships to protect"
-        />
-        <Metric
-          label="Confirmed demand"
-          value={String(summary.clubs_with_confirmed_demand || 0)}
-          detail="Recorded confirmed club needs"
-        />
-        <Metric
-          label="Warm introductions"
+          label="Club contacts"
           value={String(
-            summary.live_accounts_with_strong_introduction_option || 0,
+            contactSummary.club_contacts ??
+              contacts.length,
           )}
-          detail="Strong recorded introduction routes"
+          detail="Current recorded club people"
+        />
+
+        <Metric
+          label="Strong direct routes"
+          value={String(
+            contactSummary
+              .strong_recorded_direct_relationships ||
+              0,
+          )}
+          detail="Strong recorded agency access"
+        />
+
+        <Metric
+          label="Open follow-up"
+          value={String(
+            contactSummary
+              .contacts_with_open_follow_up ||
+              0,
+          )}
+          detail="Contacts with recorded work"
         />
       </section>
 
-      <section className={styles.cards}>
-        {items.map((item: any) => {
-          const clubName = item.name || 'Club';
-          const access = item.access || {};
-          const demand = item.demand || {};
-          const commercial = item.commercial || {};
-          const topPlay = item.top_play || {};
+      <section
+        className={styles.relationshipToolbar}
+        aria-label="Relationship workspace controls"
+      >
+        <div
+          className={styles.relationshipTabs}
+          role="group"
+          aria-label="Relationship view"
+        >
+          <button
+            type="button"
+            className={
+              relationshipView === 'clubs'
+                ? styles.relationshipTabActive
+                : styles.relationshipTab
+            }
+            aria-pressed={
+              relationshipView === 'clubs'
+            }
+            onClick={() =>
+              setRelationshipView('clubs')
+            }
+          >
+            Clubs
+            <span>{clubs.length}</span>
+          </button>
 
-          const useIntroduction =
-            Number(access.introduction_score || 0) >
-            Number(access.direct_score || 0);
+          <button
+            type="button"
+            className={
+              relationshipView === 'contacts'
+                ? styles.relationshipTabActive
+                : styles.relationshipTab
+            }
+            aria-pressed={
+              relationshipView === 'contacts'
+            }
+            onClick={() =>
+              setRelationshipView('contacts')
+            }
+          >
+            Contacts
+            <span>{contacts.length}</span>
+          </button>
+        </div>
 
-          const routeName = useIntroduction
-            ? access.introduction_via || 'Warm introduction'
-            : access.best_direct_contact || 'No recorded contact';
+        <label
+          className={styles.relationshipSearch}
+        >
+          <Search size={15} />
 
-          const routeDetail = useIntroduction
-            ? access.introduction_target
-              ? `Introduction to ${access.introduction_target}`
-              : 'Recorded introduction route'
-            : access.best_direct_role ||
-              human(access.direct_state || 'recorded access');
+          <input
+            type="search"
+            value={relationshipSearch}
+            onChange={(event) =>
+              setRelationshipSearch(
+                event.target.value,
+              )
+            }
+            placeholder={
+              relationshipView === 'contacts'
+                ? 'Search name, club, role or country'
+                : 'Search clubs'
+            }
+            aria-label={
+              relationshipView === 'contacts'
+                ? 'Search club contacts'
+                : 'Search clubs'
+            }
+          />
 
-          const playType = String(
-            topPlay.play_type || '',
-          );
-
-          const warmPlay = String(
-            topPlay.access_route_mode || '',
-          ).includes('warm');
-
-          const playActionLabel = warmPlay
-            ? 'Prepare introduction'
-            : [
-                  'protect_live_deal',
-                  'remove_deal_blocker',
-                ].includes(playType)
-              ? 'Protect deal'
-              : playType ===
-                    'source_for_confirmed_need'
-                ? 'Work confirmed need'
-                : playType === 'pitch_now'
-                  ? 'Review pitch route'
-                  : 'Prepare play';
-
-          const playSuccessCondition = warmPlay
-            ? 'A controlled introduction task is prepared from the recorded route. No external message is sent automatically.'
-            : [
-                  'protect_live_deal',
-                  'remove_deal_blocker',
-                ].includes(playType)
-              ? 'The recorded relationship action is prepared against the live deal and remains human-controlled.'
-              : playType ===
-                    'source_for_confirmed_need'
-                ? 'A controlled sourcing task is prepared against the confirmed club need.'
-                : playType === 'pitch_now'
-                  ? 'The pitch route is reviewed and prepared for human-led external action.'
-                  : 'The recommended relationship play is prepared against the recorded evidence.';
-
-          const playConfirmationLabel = warmPlay
-            ? 'Create introduction task'
-            : [
-                  'protect_live_deal',
-                  'remove_deal_blocker',
-                ].includes(playType)
-              ? 'Create deal relationship task'
-              : playType ===
-                    'source_for_confirmed_need'
-                ? 'Create sourcing task'
-                : playType === 'pitch_now'
-                  ? 'Review pitch route'
-                  : 'Create relationship task';
-
-          const relationshipFacts = [
-            {
-              label: 'Club',
-              value: clubName,
-              detail:
-                [
-                  item.city,
-                  item.country,
-                  item.league_name,
-                ]
-                  .filter(Boolean)
-                  .join(' · ') ||
-                'Club context recorded',
-            },
-            {
-              label: 'Best route',
-              value: routeName,
-              detail: routeDetail,
-            },
-            {
-              label: 'Current demand',
-              value:
-                `${Number(demand.active_needs || 0)} active`,
-              detail:
-                `${Number(demand.confirmed_needs || 0)} confirmed`,
-            },
-            {
-              label: 'Live business',
-              value:
-                `${Number(commercial.active_deals || 0)} active`,
-              detail:
-                `${Number(commercial.deals_needing_action || 0)} need action`,
-            },
-          ];
-
-          return (
-            <article
-              className={styles.card}
-              key={item.organisation_id}
+          {relationshipSearch ? (
+            <button
+              type="button"
+              onClick={() =>
+                setRelationshipSearch('')
+              }
+              aria-label="Clear relationship search"
             >
-              <div className={styles.entityHeader}>
-                <div className={styles.entityMark}>
-                  {initials(clubName) || 'C'}
-                </div>
+              Clear
+            </button>
+          ) : null}
+        </label>
+      </section>
 
-                <div className={styles.entityIdentity}>
-                  <p className={styles.eyebrow}>
-                    {human(
-                      item.account_state ||
-                        'relationship recorded',
-                    )}
-                  </p>
-                  <h2>{clubName}</h2>
-                  <p>
-                    {[item.city, item.country]
-                      .filter(Boolean)
-                      .join(', ')}
-                    {item.league_name
-                      ? ` · ${item.league_name}`
-                      : ''}
-                  </p>
-                </div>
+      {relationshipView === 'clubs' ? (
+        <section className={styles.cards}>
+          {filteredClubs.map((item: any) => {
+            const clubName =
+              item.name || 'Club';
 
-                <span className={styles.pill}>
-                  {useIntroduction
-                    ? 'Warm introduction'
-                    : human(
-                        access.direct_state ||
-                          'Recorded access',
-                      )}
-                </span>
-              </div>
+            const access =
+              item.access || {};
 
-              <div className={styles.facts}>
-                <div>
-                  <span>Best route</span>
-                  <strong>{routeName}</strong>
-                  <small>{routeDetail}</small>
-                </div>
+            const demand =
+              item.demand || {};
 
-                <div>
-                  <span>Current demand</span>
-                  <strong>
-                    {demand.active_needs || 0} active
-                  </strong>
-                  <small>
-                    {demand.confirmed_needs || 0} confirmed
-                  </small>
-                </div>
+            const commercial =
+              item.commercial || {};
 
-                <div>
-                  <span>Live business</span>
-                  <strong>
-                    {commercial.active_deals || 0} active
-                  </strong>
-                  <small>
-                    {commercial.deals_needing_action || 0} need action
-                  </small>
-                </div>
-              </div>
+            const topPlay =
+              item.top_play || {};
 
-              {topPlay.recommended_action ? (
-                <div className={styles.reason}>
-                  {topPlay.recommended_action}
-                </div>
-              ) : null}
+            const clubContacts =
+              contactsByClub.get(
+                String(
+                  item.organisation_id || '',
+                ),
+              ) || [];
 
-              {topPlay.play_id ? (
-                <div className={styles.cardActions}>
-                  <button
-                    type="button"
-                    className={styles.compactButton}
-                    onClick={() =>
-                      onOpenAction({
-                        key:
-                          `relationship-play:${topPlay.play_id}`,
-                        eyebrow:
-                          'RELATIONSHIP PLAY',
-                        title:
-                          topPlay.title ||
-                          clubName,
-                        instruction:
-                          topPlay.recommended_action ||
-                          'Prepare the strongest recorded relationship route.',
-                        label: playActionLabel,
-                        action: 'play_prepare',
-                        payload: {
-                          play_id:
-                            topPlay.play_id,
-                        },
-                        context: clubName,
-                        facts: relationshipFacts,
-                        successCondition:
-                          playSuccessCondition,
-                        confirmationLabel:
-                          playConfirmationLabel,
-                        fallbackHref:
-                          ['protect_live_deal', 'remove_deal_blocker'].includes(
-                            String(topPlay.play_type || ''),
-                          )
-                            ? '?view=deals'
-                            : String(
-                                  topPlay.play_type || '',
-                                ) === 'source_for_confirmed_need'
-                              ? '?view=market'
-                              : String(
-                                    topPlay.play_type || '',
-                                  ) === 'pitch_now'
-                                ? '?view=market'
-                                : '?view=relationships',
-                        fallbackLabel:
-                          ['protect_live_deal', 'remove_deal_blocker'].includes(
-                            String(topPlay.play_type || ''),
-                          )
-                            ? 'Open Deals'
-                            : String(
-                                  topPlay.play_type || '',
-                                ) === 'pitch_now'
-                              ? 'Open Market'
-                              : String(
-                                    topPlay.play_type || '',
-                                  ) === 'source_for_confirmed_need'
-                                ? 'Open Market'
-                                : 'Return to Relationships',
-                      })
+            const keyContacts =
+              clubContacts.slice(0, 3);
+
+            const useIntroduction =
+              Number(
+                access.introduction_score || 0,
+              ) >
+              Number(
+                access.direct_score || 0,
+              );
+
+            const routeName =
+              useIntroduction
+                ? access.introduction_via ||
+                  'Warm introduction'
+                : access.best_direct_contact ||
+                  'No recorded contact';
+
+            const routeDetail =
+              useIntroduction
+                ? access.introduction_target
+                  ? `Introduction to ${access.introduction_target}`
+                  : 'Recorded introduction route'
+                : access.best_direct_role ||
+                  human(
+                    access.direct_state ||
+                      'recorded access',
+                  );
+
+            const playType = String(
+              topPlay.play_type || '',
+            );
+
+            const warmPlay = String(
+              topPlay.access_route_mode || '',
+            ).includes('warm');
+
+            const playActionLabel =
+              warmPlay
+                ? 'Prepare introduction'
+                : [
+                      'protect_live_deal',
+                      'remove_deal_blocker',
+                    ].includes(playType)
+                  ? 'Protect deal'
+                  : playType ===
+                        'source_for_confirmed_need'
+                    ? 'Work confirmed need'
+                    : playType === 'pitch_now'
+                      ? 'Review pitch route'
+                      : 'Prepare play';
+
+            const playSuccessCondition =
+              warmPlay
+                ? 'A controlled introduction task is prepared from the recorded route. No external message is sent automatically.'
+                : [
+                      'protect_live_deal',
+                      'remove_deal_blocker',
+                    ].includes(playType)
+                  ? 'The recorded relationship action is prepared against the live deal and remains human-controlled.'
+                  : playType ===
+                        'source_for_confirmed_need'
+                    ? 'A controlled sourcing task is prepared against the confirmed club need.'
+                    : playType === 'pitch_now'
+                      ? 'The pitch route is reviewed and prepared for human-led external action.'
+                      : 'The recommended relationship play is prepared against the recorded evidence.';
+
+            const playConfirmationLabel =
+              warmPlay
+                ? 'Create introduction task'
+                : [
+                      'protect_live_deal',
+                      'remove_deal_blocker',
+                    ].includes(playType)
+                  ? 'Create deal relationship task'
+                  : playType ===
+                        'source_for_confirmed_need'
+                    ? 'Create sourcing task'
+                    : playType === 'pitch_now'
+                      ? 'Review pitch route'
+                      : 'Create relationship task';
+
+            const relationshipFacts = [
+              {
+                label: 'Club',
+                value: clubName,
+                detail:
+                  [
+                    item.city,
+                    item.country,
+                    item.league_name,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') ||
+                  'Club context recorded',
+              },
+              {
+                label: 'Best route',
+                value: routeName,
+                detail: routeDetail,
+              },
+              {
+                label: 'Current demand',
+                value:
+                  `${Number(demand.active_needs || 0)} active`,
+                detail:
+                  `${Number(demand.confirmed_needs || 0)} confirmed`,
+              },
+              {
+                label: 'Live business',
+                value:
+                  `${Number(commercial.active_deals || 0)} active`,
+                detail:
+                  `${Number(commercial.deals_needing_action || 0)} need action`,
+              },
+            ];
+
+            return (
+              <article
+                className={styles.card}
+                key={item.organisation_id}
+              >
+                <div
+                  className={styles.entityHeader}
+                >
+                  <div
+                    className={styles.entityMark}
+                  >
+                    {initials(clubName) || 'C'}
+                  </div>
+
+                  <div
+                    className={
+                      styles.entityIdentity
                     }
                   >
-                    <ArrowRight size={14} />
-                    {playActionLabel}
-                  </button>
-                </div>
-              ) : null}
-            </article>
-          );
-        })}
+                    <p className={styles.eyebrow}>
+                      {human(
+                        item.account_state ||
+                          'relationship recorded',
+                      )}
+                    </p>
 
-        {!items.length ? (
-          <EmptyState
-            icon={Network}
-            title="No relevant club relationships yet"
-            copy="Recorded contacts, access routes, club demand and commercial activity will build this view."
-          />
-        ) : null}
-      </section>
+                    <h2>{clubName}</h2>
+
+                    <p>
+                      {[item.city, item.country]
+                        .filter(Boolean)
+                        .join(', ')}
+
+                      {item.league_name
+                        ? ` · ${item.league_name}`
+                        : ''}
+                    </p>
+                  </div>
+
+                  <span
+                    className={styles.pill}
+                  >
+                    {useIntroduction
+                      ? 'Warm introduction'
+                      : human(
+                          access.direct_state ||
+                            'Recorded access',
+                        )}
+                  </span>
+                </div>
+
+                <div className={styles.facts}>
+                  <div>
+                    <span>Best route</span>
+                    <strong>
+                      {routeName}
+                    </strong>
+                    <small>
+                      {routeDetail}
+                    </small>
+                  </div>
+
+                  <div>
+                    <span>Current demand</span>
+                    <strong>
+                      {demand.active_needs || 0}{' '}
+                      active
+                    </strong>
+                    <small>
+                      {demand.confirmed_needs ||
+                        0}{' '}
+                      confirmed
+                    </small>
+                  </div>
+
+                  <div>
+                    <span>Live business</span>
+                    <strong>
+                      {commercial.active_deals ||
+                        0}{' '}
+                      active
+                    </strong>
+                    <small>
+                      {commercial
+                        .deals_needing_action ||
+                        0}{' '}
+                      need action
+                    </small>
+                  </div>
+                </div>
+
+                <div
+                  className={
+                    styles.clubPeople
+                  }
+                >
+                  <div
+                    className={
+                      styles.clubPeopleHead
+                    }
+                  >
+                    <div>
+                      <span>KEY PEOPLE</span>
+                      <strong>
+                        {keyContacts.length
+                          ? 'Who we know here'
+                          : 'No current contact recorded'}
+                      </strong>
+                    </div>
+
+                    {clubContacts.length >
+                    keyContacts.length ? (
+                      <small>
+                        +
+                        {clubContacts.length -
+                          keyContacts.length}{' '}
+                        more
+                      </small>
+                    ) : null}
+                  </div>
+
+                  {keyContacts.length ? (
+                    <div
+                      className={
+                        styles.clubPeopleList
+                      }
+                    >
+                      {keyContacts.map(
+                        (contact: any) => {
+                          const person =
+                            contact.person || {};
+
+                          const employment =
+                            contact.employment ||
+                            {};
+
+                          const relationship =
+                            contact.relationship ||
+                            {};
+
+                          return (
+                            <div
+                              className={
+                                styles.clubPerson
+                              }
+                              key={
+                                contact.person_id
+                              }
+                            >
+                              <div
+                                className={
+                                  styles.clubPersonAvatar
+                                }
+                              >
+                                {initials(
+                                  person.full_name ||
+                                    'Contact',
+                                ) || 'P'}
+                              </div>
+
+                              <div
+                                className={
+                                  styles.clubPersonMain
+                                }
+                              >
+                                <strong>
+                                  {person.full_name ||
+                                    'Club contact'}
+                                </strong>
+
+                                <span>
+                                  {employment.role_title ||
+                                    'Club contact'}
+                                </span>
+                              </div>
+
+                              <small
+                                className={
+                                  styles.clubPersonRoute
+                                }
+                              >
+                                {human(
+                                  relationship.route_state ||
+                                    'not recorded',
+                                )}
+                              </small>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  ) : (
+                    <p
+                      className={
+                        styles.clubPeopleEmpty
+                      }
+                    >
+                      Add or capture the people
+                      behind this club to build a
+                      usable relationship route.
+                    </p>
+                  )}
+                </div>
+
+                {topPlay.recommended_action ? (
+                  <div
+                    className={styles.reason}
+                  >
+                    {topPlay.recommended_action}
+                  </div>
+                ) : null}
+
+                {topPlay.play_id ? (
+                  <div
+                    className={
+                      styles.cardActions
+                    }
+                  >
+                    <button
+                      type="button"
+                      className={
+                        styles.compactButton
+                      }
+                      onClick={() =>
+                        onOpenAction({
+                          key:
+                            `relationship-play:${topPlay.play_id}`,
+                          eyebrow:
+                            'RELATIONSHIP PLAY',
+                          title:
+                            topPlay.title ||
+                            clubName,
+                          instruction:
+                            topPlay.recommended_action ||
+                            'Prepare the strongest recorded relationship route.',
+                          label:
+                            playActionLabel,
+                          action:
+                            'play_prepare',
+                          payload: {
+                            play_id:
+                              topPlay.play_id,
+                          },
+                          context: clubName,
+                          facts:
+                            relationshipFacts,
+                          successCondition:
+                            playSuccessCondition,
+                          confirmationLabel:
+                            playConfirmationLabel,
+                          fallbackHref:
+                            [
+                              'protect_live_deal',
+                              'remove_deal_blocker',
+                            ].includes(
+                              String(
+                                topPlay.play_type ||
+                                  '',
+                              ),
+                            )
+                              ? '?view=deals'
+                              : String(
+                                    topPlay.play_type ||
+                                      '',
+                                  ) ===
+                                  'source_for_confirmed_need'
+                                ? '?view=market'
+                                : String(
+                                      topPlay.play_type ||
+                                        '',
+                                    ) ===
+                                    'pitch_now'
+                                  ? '?view=market'
+                                  : '?view=relationships',
+                          fallbackLabel:
+                            [
+                              'protect_live_deal',
+                              'remove_deal_blocker',
+                            ].includes(
+                              String(
+                                topPlay.play_type ||
+                                  '',
+                              ),
+                            )
+                              ? 'Open Deals'
+                              : String(
+                                    topPlay.play_type ||
+                                      '',
+                                  ) ===
+                                  'pitch_now'
+                                ? 'Open Market'
+                                : String(
+                                      topPlay.play_type ||
+                                        '',
+                                    ) ===
+                                    'source_for_confirmed_need'
+                                  ? 'Open Market'
+                                  : 'Return to Relationships',
+                        })
+                      }
+                    >
+                      <ArrowRight size={14} />
+                      {playActionLabel}
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+
+          {!filteredClubs.length ? (
+            <EmptyState
+              icon={Network}
+              title={
+                relationshipSearch
+                  ? 'No clubs match this search'
+                  : 'No relevant club relationships yet'
+              }
+              copy={
+                relationshipSearch
+                  ? 'Try another club, country or league.'
+                  : 'Recorded contacts, access routes, club demand and commercial activity will build this view.'
+              }
+            />
+          ) : null}
+        </section>
+      ) : (
+        <section
+          className={`${styles.cards} ${styles.relationshipCards}`}
+        >
+          {filteredContacts.map(
+            (item: any) => {
+              const person =
+                item.person || {};
+
+              const employment =
+                item.employment || {};
+
+              const relationship =
+                item.relationship || {};
+
+              const activity =
+                item.activity || {};
+
+              const clubContext =
+                item.club_context || {};
+
+              const work =
+                item.work || {};
+
+              const fullName =
+                person.full_name ||
+                'Club contact';
+
+              const clubName =
+                employment.organisation_name ||
+                'Club not recorded';
+
+              const location = [
+                employment.organisation_city,
+                employment.organisation_country,
+              ]
+                .filter(Boolean)
+                .join(', ');
+
+              const activeDeals = Number(
+                clubContext.active_deals || 0,
+              );
+
+              const confirmedNeeds = Number(
+                clubContext.confirmed_needs ||
+                  0,
+              );
+
+              const openTasks = Number(
+                work.open_tasks || 0,
+              );
+
+              const overdueTasks = Number(
+                work.overdue_tasks || 0,
+              );
+
+              return (
+                <article
+                  className={`${styles.card} ${styles.contactCard}`}
+                  key={item.person_id}
+                >
+                  <div
+                    className={
+                      styles.entityHeader
+                    }
+                  >
+                    <div
+                      className={
+                        styles.entityMark
+                      }
+                    >
+                      {initials(fullName) || 'P'}
+                    </div>
+
+                    <div
+                      className={
+                        styles.entityIdentity
+                      }
+                    >
+                      <p
+                        className={
+                          styles.eyebrow
+                        }
+                      >
+                        {human(
+                          item.operating_state ||
+                            'relationship recorded',
+                        )}
+                      </p>
+
+                      <h2>{fullName}</h2>
+
+                      <p>
+                        {[
+                          employment.role_title,
+                          clubName,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    </div>
+
+                    <span
+                      className={styles.pill}
+                    >
+                      {human(
+                        relationship.route_state ||
+                          'not recorded',
+                      )}
+                    </span>
+                  </div>
+
+                  <div
+                    className={
+                      styles.contactContext
+                    }
+                  >
+                    <div>
+                      <span>CLUB</span>
+                      <strong>
+                        {clubName}
+                      </strong>
+                      <small>
+                        {location ||
+                          employment.league_name ||
+                          'Location not recorded'}
+                      </small>
+                    </div>
+
+                    <div>
+                      <span>
+                        RELATIONSHIP OWNER
+                      </span>
+                      <strong>
+                        {relationship.owner_name ||
+                          'No recorded owner'}
+                      </strong>
+                      <small>
+                        {relationship.route_score
+                          ? `Recorded route ${relationship.route_score}`
+                          : 'No direct relationship score recorded'}
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className={styles.facts}>
+                    <div>
+                      <span>
+                        Last interaction
+                      </span>
+                      <strong>
+                        {activity.last_interaction_at
+                          ? relativeDate(
+                              activity.last_interaction_at,
+                            )
+                          : 'Not recorded'}
+                      </strong>
+                      <small>
+                        {Number(
+                          activity.interactions_30d ||
+                            0,
+                        )}{' '}
+                        in last 30 days
+                      </small>
+                    </div>
+
+                    <div>
+                      <span>
+                        Club context
+                      </span>
+                      <strong>
+                        {activeDeals}{' '}
+                        {activeDeals === 1
+                          ? 'live deal'
+                          : 'live deals'}
+                      </strong>
+                      <small>
+                        {confirmedNeeds}{' '}
+                        confirmed{' '}
+                        {confirmedNeeds === 1
+                          ? 'need'
+                          : 'needs'}
+                      </small>
+                    </div>
+
+                    <div>
+                      <span>Follow-up</span>
+                      <strong>
+                        {openTasks}{' '}
+                        {openTasks === 1
+                          ? 'open item'
+                          : 'open items'}
+                      </strong>
+                      <small>
+                        {overdueTasks
+                          ? `${overdueTasks} overdue`
+                          : work.next_task_due
+                            ? relativeDate(
+                                work.next_task_due,
+                              )
+                            : 'Nothing due'}
+                      </small>
+                    </div>
+                  </div>
+
+                  {item.contact?.email ||
+                  item.contact?.whatsapp ? (
+                    <div
+                      className={
+                        styles.contactMethods
+                      }
+                    >
+                      {item.contact?.email ? (
+                        <span>
+                          {item.contact.email}
+                        </span>
+                      ) : null}
+
+                      {item.contact?.whatsapp ? (
+                        <span>
+                          {item.contact.whatsapp}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div
+                    className={
+                      styles.cardActions
+                    }
+                  >
+                    <button
+                      type="button"
+                      className={
+                        styles.compactButton
+                      }
+                      onClick={() =>
+                        openClubFromContact(
+                          clubName,
+                        )
+                      }
+                    >
+                      <ArrowRight size={14} />
+                      View club context
+                    </button>
+                  </div>
+                </article>
+              );
+            },
+          )}
+
+          {!filteredContacts.length ? (
+            <EmptyState
+              icon={Users}
+              title={
+                relationshipSearch
+                  ? 'No contacts match this search'
+                  : 'No club contacts recorded yet'
+              }
+              copy={
+                relationshipSearch
+                  ? 'Search by person, club, role, city or country.'
+                  : 'Club decision-makers and relationship routes will appear here as they are captured.'
+              }
+            />
+          ) : null}
+        </section>
+      )}
     </div>
   );
 }

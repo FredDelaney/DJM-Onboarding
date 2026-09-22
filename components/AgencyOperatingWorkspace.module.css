@@ -1385,3 +1385,353 @@
   }
 }
 
+
+
+/* Relationships Autopilot v2 */
+
+.relationshipToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 6px 0 2px;
+}
+
+.relationshipTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid #e4e7ea;
+  border-radius: 12px;
+  background: #eef0f2;
+}
+
+.relationshipTab,
+.relationshipTabActive {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 720;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.relationshipTab {
+  background: transparent;
+  color: #737a84;
+}
+
+.relationshipTab:hover {
+  color: #343b44;
+}
+
+.relationshipTabActive {
+  background: #fff;
+  color: #252b33;
+  box-shadow:
+    0 1px 2px rgba(18, 24, 31, 0.07);
+}
+
+.relationshipTab span,
+.relationshipTabActive span {
+  min-width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #eceef1;
+  color: #777e87;
+  font-size: 9px;
+  font-weight: 780;
+}
+
+.relationshipTabActive span {
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-accent) 9%,
+      #f1f3f5
+    );
+  color: #4c545e;
+}
+
+.relationshipSearch {
+  width: min(390px, 100%);
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid #e3e6e9;
+  border-radius: 11px;
+  background: #fff;
+  color: #8a9199;
+}
+
+.relationshipSearch:focus-within {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--agency-accent) 32%,
+      #d8dce1
+    );
+  box-shadow:
+    0 0 0 3px
+    color-mix(
+      in srgb,
+      var(--agency-accent) 7%,
+      transparent
+    );
+}
+
+.relationshipSearch input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #292f36;
+  font: inherit;
+  font-size: 12px;
+}
+
+.relationshipSearch input::placeholder {
+  color: #989ea6;
+}
+
+.relationshipSearch button {
+  border: 0;
+  background: transparent;
+  color: #7b828b;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.clubPeople {
+  overflow: hidden;
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
+  background: #fafbfb;
+}
+
+.clubPeopleHead {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  border-bottom: 1px solid #eceef0;
+}
+
+.clubPeopleHead > div {
+  display: grid;
+  gap: 3px;
+}
+
+.clubPeopleHead span {
+  color: #9298a0;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.clubPeopleHead strong {
+  color: #343b43;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.clubPeopleHead small {
+  color: #898f97;
+  font-size: 9px;
+}
+
+.clubPeopleList {
+  display: grid;
+}
+
+.clubPerson {
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    32px
+    minmax(0, 1fr)
+    auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.clubPerson + .clubPerson {
+  border-top: 1px solid #eceef0;
+}
+
+.clubPersonAvatar {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #eef0f2;
+  color: #5d6570;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.clubPersonMain {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.clubPersonMain strong {
+  overflow: hidden;
+  color: #30363e;
+  font-size: 11px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clubPersonMain span {
+  overflow: hidden;
+  color: #818891;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clubPersonRoute {
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: #fff;
+  color: #69717b;
+  font-size: 8px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.clubPeopleEmpty {
+  margin: 0;
+  padding: 13px;
+  color: #858c95;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.relationshipCards {
+  align-items: start;
+}
+
+.contactCard {
+  gap: 16px;
+}
+
+.contactContext {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #e8eaed;
+  border-radius: 11px;
+  background: #fafbfb;
+}
+
+.contactContext > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 12px 13px;
+}
+
+.contactContext > div + div {
+  border-left: 1px solid #e8eaed;
+}
+
+.contactContext span {
+  color: #9298a0;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.contactContext strong {
+  overflow: hidden;
+  color: #343b43;
+  font-size: 11px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contactContext small {
+  color: #858c95;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.contactMethods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.contactMethods span {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 7px 9px;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  background: #fafbfb;
+  color: #69717a;
+  font-size: 9px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .relationshipToolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .relationshipTabs {
+    width: 100%;
+  }
+
+  .relationshipTab,
+  .relationshipTabActive {
+    flex: 1;
+  }
+
+  .relationshipSearch {
+    width: 100%;
+  }
+
+  .contactContext {
+    grid-template-columns: 1fr;
+  }
+
+  .contactContext > div + div {
+    border-left: 0;
+    border-top: 1px solid #e8eaed;
+  }
+}

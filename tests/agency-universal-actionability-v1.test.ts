@@ -356,7 +356,7 @@ test('Relationship Action Workspace carries live club context into the play', ()
   );
   assert.match(
     workspace,
-    /facts: relationshipFacts/,
+    /facts:\s*relationshipFacts/,
   );
 });
 
@@ -387,7 +387,7 @@ test('Relationship plays remain human-controlled and distinguish their real next
   );
   assert.match(
     workspace,
-    /action: 'play_prepare'/,
+    /action:\s*'play_prepare'/,
   );
 });
 

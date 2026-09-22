@@ -48,7 +48,7 @@ test('players and relationships use tenant-neutral premium entity presentation',
   assert.match(workspace, /initials\(playerName\)/);
   assert.match(workspace, /initials\(clubName\)/);
   assert.match(workspace, /Warm introduction/);
-  assert.match(workspace, /redream_autopilot_clubs/);
+  assert.match(workspace, /redream_autopilot_relationships/);
   assert.match(
     workspace,
     /active_players \?\? items\.length\} players/,
