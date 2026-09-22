@@ -80,7 +80,7 @@ test('Market routes expose scouting and career prerequisites directly', () => {
   assert.match(drawer, /career_strategy_save/);
   assert.match(drawer, /career_strategy_confirm/);
   assert.match(drawer, /career_strategy_approve/);
-  assert.match(drawer, /Save strategy draft/);
+  assert.match(drawer, /Save strategy and continue/);
 });
 
 test('Deal actions use the guarded next-move and control-fix boundaries', () => {
@@ -117,7 +117,7 @@ test('Relationship plays can be prepared beside the relationship evidence', () =
   );
   assert.match(
     drawer,
-    /\(result \|\| error\) && request\.fallbackHref/,
+    /showFallback/,
   );
 });
 
@@ -137,5 +137,287 @@ test('aggregate warnings point to actionable rows instead of becoming dead ends'
   assert.doesNotMatch(
     workspace,
     /Protect momentum before adding more pipeline/,
+  );
+});
+
+test('Action Workspace prepares immediately after one user click', () => {
+  assert.match(drawer, /preparedRef/);
+  assert.match(drawer, /void prepare\(\)/);
+  assert.match(drawer, /Checking the latest context/);
+  assert.doesNotMatch(
+    drawer,
+    />\\s*Prepare action\\s*</,
+  );
+});
+
+test('Action Workspace owns confirmation execution success and undo in one surface', () => {
+  assert.match(drawer, /action_execute/);
+  assert.match(drawer, /action_undo/);
+  assert.match(drawer, /DONE/);
+  assert.match(drawer, /UNDONE/);
+  assert.match(drawer, /onApplied/);
+});
+
+test('career strategy progresses from strategy to confirmation to approval without repeating confirmation', () => {
+  assert.match(
+    drawer,
+    /strategyActionType ===\s*'confirm_strategy_with_player'/,
+  );
+  assert.match(
+    drawer,
+    /strategyActionType ===\s*'complete_strategy_approval'/,
+  );
+  assert.doesNotMatch(
+    drawer,
+    /showCareerApproval\s*=\s*allowedNextSteps\.includes[^;]+!showCareerConfirmation/s,
+  );
+  assert.match(
+    drawer,
+    /Strategy[\s\S]+Player confirms[\s\S]+Agency approves/,
+  );
+});
+
+test('Action Workspace can present live evidence and success criteria before confirmation', () => {
+  assert.match(drawer, /request\.facts/);
+  assert.match(drawer, /Done when/);
+  assert.match(drawer, /You stay in control/);
+  assert.match(workspace, /facts:\s*\[/);
+});
+
+test('Action Workspace stays tenant-neutral inside customer workspaces', () => {
+  assert.doesNotMatch(
+    drawer,
+    /ReDream|DJM Sports Management/,
+  );
+  assert.match(
+    drawer,
+    /Reviewing current evidence/,
+  );
+});
+
+test('Player Action Workspace explains why the action matters before asking for judgement', () => {
+  assert.match(
+    workspace,
+    /const playerFacts = \[/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Service control'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Next move'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Career timing'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Market coverage'/,
+  );
+  assert.match(
+    workspace,
+    /Assign primary owner/,
+  );
+  assert.match(
+    workspace,
+    /One accountable primary staff member owns the player/,
+  );
+});
+
+test('Player preparation warnings are not misrouted as service-control mutations', () => {
+  assert.doesNotMatch(
+    workspace,
+    /const controlFix =\s*item\.next_control_fix\?\.instruction \|\|\s*item\.next_preparation_fix\?\.instruction/s,
+  );
+});
+
+test('Market search actions expose the recorded club brief before creating work', () => {
+  assert.match(
+    workspace,
+    /label: 'Need'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Profile'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Coverage'/,
+  );
+  assert.match(
+    workspace,
+    /At least one credible candidate route is recorded against this club need/,
+  );
+  assert.match(
+    workspace,
+    /Create search task/,
+  );
+});
+
+test('Market career actions expose career control without presenting readiness as probability', () => {
+  assert.match(
+    workspace,
+    /label:\s*'Career control'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Access route'/,
+  );
+  assert.match(
+    workspace,
+    /Work-allocation signal, not success probability/,
+  );
+  assert.match(
+    workspace,
+    /The player-owned career strategy is current before the pursuit progresses externally/,
+  );
+});
+
+test('Deal Action Workspace exposes commercial blockers route and value before judgement', () => {
+  assert.match(
+    workspace,
+    /const dealFacts = \[/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Primary blocker'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Commercial value'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Access route'/,
+  );
+  assert.match(
+    workspace,
+    /Warm introduction via/,
+  );
+  assert.match(
+    workspace,
+    /deal\.next_best_move\s*\?\.success_condition/,
+  );
+});
+
+test('Deal actions distinguish internal introduction preparation from external sending', () => {
+  assert.match(
+    workspace,
+    /Prepare introduction/,
+  );
+  assert.match(
+    workspace,
+    /Create introduction task/,
+  );
+  assert.match(
+    workspace,
+    /without sending an external message/,
+  );
+  assert.match(
+    workspace,
+    /hasExpectedCommission/,
+  );
+  assert.match(
+    workspace,
+    /const hasExpectedCommission =[\s\S]*deal\.expected_commission !== null[\s\S]*Number\.isFinite\(/,
+  );
+  assert.match(
+    workspace,
+    /const commissionValue =[\s\S]*hasExpectedCommission && deal\.currency[\s\S]*Commission not recorded/,
+  );
+  assert.match(
+    workspace,
+    /\{commissionValue\}/,
+  );
+});
+
+test('Relationship Action Workspace carries live club context into the play', () => {
+  assert.match(
+    workspace,
+    /const relationshipFacts = \[/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Club'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Best route'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Current demand'/,
+  );
+  assert.match(
+    workspace,
+    /label: 'Live business'/,
+  );
+  assert.match(
+    workspace,
+    /facts: relationshipFacts/,
+  );
+});
+
+test('Relationship plays remain human-controlled and distinguish their real next action', () => {
+  assert.match(
+    workspace,
+    /Create introduction task/,
+  );
+  assert.match(
+    workspace,
+    /No external message is sent automatically/,
+  );
+  assert.match(
+    workspace,
+    /Protect deal/,
+  );
+  assert.match(
+    workspace,
+    /Work confirmed need/,
+  );
+  assert.match(
+    workspace,
+    /Review pitch route/,
+  );
+  assert.match(
+    workspace,
+    /human-led external action/,
+  );
+  assert.match(
+    workspace,
+    /action: 'play_prepare'/,
+  );
+});
+
+test('Action Workspace uses customer language instead of execution plumbing', () => {
+  assert.match(drawer, /Current context/);
+  assert.match(
+    drawer,
+    /Context[\s\S]+Decision[\s\S]+Confirm/,
+  );
+  assert.match(drawer, /WHY NOW/);
+  assert.match(drawer, /YOUR DECISION/);
+  assert.match(drawer, /Done when/);
+  assert.match(drawer, /You stay in control/);
+  assert.match(
+    drawer,
+    /Done\. The latest view is up to/,
+  );
+
+  assert.doesNotMatch(drawer, /READY TO APPLY/);
+  assert.doesNotMatch(drawer, /ACTION APPLIED/);
+  assert.doesNotMatch(drawer, /ACTION REVERTED/);
+  assert.doesNotMatch(drawer, /tenant evidence/);
+  assert.doesNotMatch(workspace, /tenant evidence/);
+  assert.doesNotMatch(
+    workspace,
+    /The server will/,
+  );
+  assert.doesNotMatch(drawer, /safety boundary/);
+  assert.doesNotMatch(
+    drawer,
+    /workspace has updated the\s+workspace/,
   );
 });

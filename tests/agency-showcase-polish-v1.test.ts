@@ -36,7 +36,7 @@ test('Today has one visually dominant evidence-backed next action', () => {
 test('showcase polish does not bypass guarded agency action execution', () => {
   assert.match(workspace, /action_prepare/);
   assert.match(workspace, /action_execute/);
-  assert.match(workspace, /Nothing is applied until you confirm/);
+  assert.match(workspace, /Nothing changes until you confirm/);
   assert.doesNotMatch(workspace, /set_customer_service_state/);
   assert.doesNotMatch(workspace, /set_contract_term/);
 });

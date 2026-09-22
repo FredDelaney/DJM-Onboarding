@@ -73,7 +73,7 @@ test('one-tap actions still require prepare and explicit confirmation', () => {
   assert.match(app, /actionability\?\.mode === 'one_tap'/);
   assert.match(app, /action_prepare/);
   assert.match(app, /action_execute/);
-  assert.match(app, /Nothing is applied until you confirm/);
+  assert.match(app, /Nothing changes until you confirm/);
 });
 
 test('temporary same-origin workspace stays membership-bound before custom domain', () => {

@@ -443,6 +443,28 @@ export default function AgencyOperatingWorkspace() {
       context: command?.due_at
         ? relativeDate(command.due_at)
         : null,
+      facts: [
+        {
+          label: 'Type',
+          value: human(
+            command?.command_type ||
+              'Agency action',
+          ),
+        },
+        {
+          label: 'Priority',
+          value: human(
+            command?.priority_band ||
+              'Review',
+          ),
+        },
+        {
+          label: 'Due',
+          value: command?.due_at
+            ? relativeDate(command.due_at)
+            : 'No deadline recorded',
+        },
+      ],
       fallbackHref,
       fallbackLabel:
         destination === 'home'
@@ -774,14 +796,14 @@ export default function AgencyOperatingWorkspace() {
 
       {actionRequest ? (
         <AgencyActionDrawer
+          key={actionRequest.key}
           request={actionRequest}
           invoke={(action, body) =>
             invoke<any>(action, body)
           }
           onClose={() => setActionRequest(null)}
-          onProposal={(nextProposal) => {
-            setActionRequest(null);
-            setProposal(nextProposal);
+          onApplied={async () => {
+            await loadView();
           }}
         />
       ) : null}
@@ -812,8 +834,8 @@ export default function AgencyOperatingWorkspace() {
               )}
             </h2>
             <p>
-              Nothing is applied until you confirm. The server will
-              revalidate the action against the current tenant evidence.
+              Nothing changes until you confirm. The latest recorded
+              information will be checked again first.
             </p>
             <div className={styles.modalActions}>
               <button
@@ -1292,7 +1314,6 @@ function Players({
 
           const controlFix =
             item.next_control_fix?.instruction ||
-            item.next_preparation_fix?.instruction ||
             '';
 
           const marketState =
@@ -1321,18 +1342,72 @@ function Players({
             ? item.service_control.gaps
             : [];
 
+          const playerFacts = [
+            {
+              label: 'Service control',
+              value: human(serviceState),
+              detail: serviceGaps.length
+                ? `${serviceGaps.length} recorded gap${serviceGaps.length === 1 ? '' : 's'}`
+                : 'No service-control gap recorded',
+            },
+            {
+              label: 'Next move',
+              value: nextMove,
+              detail:
+                item.player?.next_action_due
+                  ? relativeDate(
+                      item.player.next_action_due,
+                    )
+                  : 'No due date recorded',
+            },
+            {
+              label: 'Career timing',
+              value: human(
+                item.career_timing?.market_trigger ||
+                  item.player?.contract_status ||
+                  'recorded',
+              ),
+              detail: contractDetail,
+            },
+            {
+              label: 'Market coverage',
+              value: human(marketState),
+              detail: activeDeals
+                ? `${activeDeals} active recorded deal${activeDeals === 1 ? '' : 's'}`
+                : 'No active deal recorded',
+            },
+          ];
+
           const playerAction = controlFix
             ? {
                 key: `player-control:${item.player_id}`,
                 eyebrow: 'PLAYER CONTROL',
                 title: playerName,
                 instruction: controlFix,
-                label: 'Fix control',
+                label:
+                  item.next_control_fix?.fix_type ===
+                  'assign_primary_staff'
+                    ? 'Assign owner'
+                    : 'Fix control',
                 action: 'player_control_fix_prepare',
                 payload: {
                   player_id: item.player_id,
                 },
                 context: human(serviceState),
+                facts: playerFacts,
+                successCondition:
+                  item.next_control_fix
+                    ?.success_condition ||
+                  (item.next_control_fix
+                    ?.fix_type ===
+                  'assign_primary_staff'
+                    ? 'One accountable primary staff member owns the player.'
+                    : 'The recorded player-control gap is resolved.'),
+                confirmationLabel:
+                  item.next_control_fix?.fix_type ===
+                  'assign_primary_staff'
+                    ? 'Assign primary owner'
+                    : 'Apply control fix',
               }
             : item.next_service_move?.instruction
               ? {
@@ -1348,6 +1423,13 @@ function Players({
                     player_id: item.player_id,
                   },
                   context: human(serviceState),
+                  facts: playerFacts,
+                  successCondition:
+                    item.next_service_move
+                      ?.success_condition ||
+                    'The player action is completed and a new next action is recorded if further work remains.',
+                  confirmationLabel:
+                    'Create player action',
                 }
               : null;
 
@@ -1562,6 +1644,91 @@ function Relationships({
             : access.best_direct_role ||
               human(access.direct_state || 'recorded access');
 
+          const playType = String(
+            topPlay.play_type || '',
+          );
+
+          const warmPlay = String(
+            topPlay.access_route_mode || '',
+          ).includes('warm');
+
+          const playActionLabel = warmPlay
+            ? 'Prepare introduction'
+            : [
+                  'protect_live_deal',
+                  'remove_deal_blocker',
+                ].includes(playType)
+              ? 'Protect deal'
+              : playType ===
+                    'source_for_confirmed_need'
+                ? 'Work confirmed need'
+                : playType === 'pitch_now'
+                  ? 'Review pitch route'
+                  : 'Prepare play';
+
+          const playSuccessCondition = warmPlay
+            ? 'A controlled introduction task is prepared from the recorded route. No external message is sent automatically.'
+            : [
+                  'protect_live_deal',
+                  'remove_deal_blocker',
+                ].includes(playType)
+              ? 'The recorded relationship action is prepared against the live deal and remains human-controlled.'
+              : playType ===
+                    'source_for_confirmed_need'
+                ? 'A controlled sourcing task is prepared against the confirmed club need.'
+                : playType === 'pitch_now'
+                  ? 'The pitch route is reviewed and prepared for human-led external action.'
+                  : 'The recommended relationship play is prepared against the recorded evidence.';
+
+          const playConfirmationLabel = warmPlay
+            ? 'Create introduction task'
+            : [
+                  'protect_live_deal',
+                  'remove_deal_blocker',
+                ].includes(playType)
+              ? 'Create deal relationship task'
+              : playType ===
+                    'source_for_confirmed_need'
+                ? 'Create sourcing task'
+                : playType === 'pitch_now'
+                  ? 'Review pitch route'
+                  : 'Create relationship task';
+
+          const relationshipFacts = [
+            {
+              label: 'Club',
+              value: clubName,
+              detail:
+                [
+                  item.city,
+                  item.country,
+                  item.league_name,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') ||
+                'Club context recorded',
+            },
+            {
+              label: 'Best route',
+              value: routeName,
+              detail: routeDetail,
+            },
+            {
+              label: 'Current demand',
+              value:
+                `${Number(demand.active_needs || 0)} active`,
+              detail:
+                `${Number(demand.confirmed_needs || 0)} confirmed`,
+            },
+            {
+              label: 'Live business',
+              value:
+                `${Number(commercial.active_deals || 0)} active`,
+              detail:
+                `${Number(commercial.deals_needing_action || 0)} need action`,
+            },
+          ];
+
           return (
             <article
               className={styles.card}
@@ -1651,19 +1818,18 @@ function Relationships({
                         instruction:
                           topPlay.recommended_action ||
                           'Prepare the strongest recorded relationship route.',
-                        label:
-                          String(
-                            topPlay.access_route_mode ||
-                              '',
-                          ).includes('warm')
-                            ? 'Prepare introduction'
-                            : 'Prepare play',
+                        label: playActionLabel,
                         action: 'play_prepare',
                         payload: {
                           play_id:
                             topPlay.play_id,
                         },
                         context: clubName,
+                        facts: relationshipFacts,
+                        successCondition:
+                          playSuccessCondition,
+                        confirmationLabel:
+                          playConfirmationLabel,
                         fallbackHref:
                           ['protect_live_deal', 'remove_deal_blocker'].includes(
                             String(topPlay.play_type || ''),
@@ -1696,12 +1862,7 @@ function Relationships({
                     }
                   >
                     <ArrowRight size={14} />
-                    {String(
-                      topPlay.access_route_mode ||
-                        '',
-                    ).includes('warm')
-                      ? 'Prepare introduction'
-                      : 'Prepare play'}
+                    {playActionLabel}
                   </button>
                 </div>
               ) : null}
@@ -1889,6 +2050,59 @@ function Market({
                                   context:
                                     item.club?.name ||
                                     item.need?.title,
+                                  facts: [
+                                    {
+                                      label: 'Player',
+                                      value:
+                                        candidate.player_name ||
+                                        'Player',
+                                      detail: human(
+                                        candidate.match_status ||
+                                          'recorded candidate',
+                                      ),
+                                    },
+                                    {
+                                      label: 'Club need',
+                                      value:
+                                        item.need?.title ||
+                                        'Recorded player need',
+                                      detail:
+                                        item.club?.name ||
+                                        'Club recorded',
+                                    },
+                                    {
+                                      label:
+                                        'Career control',
+                                      value:
+                                        careerGateLabel(
+                                          candidate.career_gate_state ||
+                                            candidate.match_status,
+                                        ),
+                                      detail:
+                                        candidate.career_gate_reason ||
+                                        'Player-owned strategy status recorded',
+                                    },
+                                    {
+                                      label: 'Route status',
+                                      value: human(
+                                        item.coverage_state ||
+                                          'recorded',
+                                      ),
+                                      detail:
+                                        `${Number(item.candidate_coverage?.recorded_candidates || 0)} candidate route${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'} recorded`,
+                                    },
+                                  ],
+                                  successCondition:
+                                    String(
+                                      candidate.career_gate_state ||
+                                        '',
+                                    ).startsWith(
+                                      'hold_',
+                                    )
+                                      ? 'The player-owned career strategy is recorded and current before external activity progresses.'
+                                      : 'The career-control requirement is resolved before external activity progresses.',
+                                  confirmationLabel:
+                                    'Continue career review',
                                 })
                               }
                             >
@@ -1946,6 +2160,64 @@ function Market({
                             context:
                               item.need?.position ||
                               'Recorded club need',
+                            facts: [
+                              {
+                                label: 'Need',
+                                value:
+                                  item.need?.title ||
+                                  'Recorded player need',
+                                detail:
+                                  `${human(item.need?.need_type || 'recorded')} · ${item.club?.name || 'Club recorded'}`,
+                              },
+                              {
+                                label: 'Profile',
+                                value:
+                                  [
+                                    item.need?.position,
+                                    item.need?.preferred_foot
+                                      ? `${item.need.preferred_foot} foot`
+                                      : null,
+                                    item.need?.min_height_cm
+                                      ? `${item.need.min_height_cm}cm+`
+                                      : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ') ||
+                                  'Profile not fully recorded',
+                                detail: item.need
+                                  ?.transfer_type
+                                  ? human(
+                                      item.need
+                                        .transfer_type,
+                                    )
+                                  : 'Transfer type not recorded',
+                              },
+                              {
+                                label: 'Coverage',
+                                value:
+                                  `${Number(item.candidate_coverage?.recorded_candidates || 0)} recorded candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
+                                detail: human(
+                                  item.coverage_state ||
+                                    'coverage not recorded',
+                                ),
+                              },
+                              {
+                                label: 'Timing',
+                                value:
+                                  item.need?.expires_at
+                                    ? relativeDate(
+                                        item.need
+                                          .expires_at,
+                                      )
+                                    : 'No expiry recorded',
+                                detail:
+                                  'Recorded club-demand timing',
+                              },
+                            ],
+                            successCondition:
+                              'At least one credible candidate route is recorded against this club need.',
+                            confirmationLabel:
+                              'Create search task',
                           })
                         }
                       >
@@ -2060,6 +2332,69 @@ function Market({
                                 item.career_strategy_gate
                                   ?.state,
                               ),
+                            facts: [
+                              {
+                                label: 'Player',
+                                value:
+                                  item.player?.name ||
+                                  'Player',
+                                detail:
+                                  item.club?.name ||
+                                  'Club recorded',
+                              },
+                              {
+                                label:
+                                  'Career control',
+                                value:
+                                  careerGateLabel(
+                                    item
+                                      .career_strategy_gate
+                                      ?.state,
+                                  ),
+                                detail:
+                                  item
+                                    .career_strategy_gate
+                                    ?.next_action
+                                    ?.instruction ||
+                                  'Player-owned strategy control recorded',
+                              },
+                              {
+                                label: 'Access route',
+                                value:
+                                  item.best_access_route
+                                    ?.person_name ||
+                                  human(accessMode),
+                                detail:
+                                  item.best_access_route
+                                    ?.role_title ||
+                                  item.best_access_route
+                                    ?.why_this_route ||
+                                  'Recorded relationship route',
+                              },
+                              {
+                                label:
+                                  'Operating readiness',
+                                value: human(
+                                  item.readiness_state ||
+                                    'review',
+                                ),
+                                detail:
+                                  'Work-allocation signal, not success probability',
+                              },
+                            ],
+                            successCondition:
+                              String(
+                                item
+                                  .career_strategy_gate
+                                  ?.state ||
+                                  '',
+                              ).startsWith(
+                                'hold_',
+                              )
+                                ? 'The player-owned career strategy is current before the pursuit progresses externally.'
+                                : 'The recorded career-control action is completed before the pursuit progresses externally.',
+                            confirmationLabel:
+                              'Continue strategy review',
                           })
                         }
                       >
@@ -2169,6 +2504,92 @@ function Deals({
               deal.next_decision ||
               'Review the deal.';
 
+            const hasExpectedCommission =
+              deal.expected_commission !== null &&
+              deal.expected_commission !== undefined &&
+              deal.expected_commission !== '' &&
+              Number.isFinite(
+                Number(deal.expected_commission),
+              );
+
+            const commissionValue =
+              hasExpectedCommission && deal.currency
+                ? money(
+                    deal.expected_commission,
+                    deal.currency,
+                  )
+                : 'Commission not recorded';
+
+            const introductionContext =
+              deal.next_best_move
+                ?.introduction_context || {};
+
+            const introductionTarget =
+              introductionContext?.target_contact
+                ?.name || '';
+
+            const introductionRole =
+              introductionContext?.target_contact
+                ?.role_title || '';
+
+            const introductionVia =
+              introductionContext?.intermediary
+                ?.name || '';
+
+            const hasIntroductionRoute = Boolean(
+              introductionTarget ||
+                introductionVia,
+            );
+
+            const needsOwner =
+              /owner|ownership/i.test(
+                controlInstruction,
+              );
+
+            const dealFacts = [
+              {
+                label: 'Stage',
+                value: human(
+                  deal.stage || 'recorded',
+                ),
+                detail: human(
+                  deal.momentum_state ||
+                    'momentum recorded',
+                ),
+              },
+              {
+                label: 'Primary blocker',
+                value:
+                  deal.primary_blocker ||
+                  'No blocker recorded',
+                detail: human(
+                  deal.control_state ||
+                    deal.rescue_state ||
+                    'control recorded',
+                ),
+              },
+              {
+                label: 'Commercial value',
+                value: commissionValue,
+                detail:
+                  hasExpectedCommission
+                    ? 'Expected commission'
+                    : 'Expected commission not recorded',
+              },
+              {
+                label: 'Access route',
+                value:
+                  introductionTarget ||
+                  deal.organisation ||
+                  'No route recorded',
+                detail:
+                  introductionVia
+                    ? `Warm introduction via ${introductionVia}`
+                    : introductionRole ||
+                      'No warm introduction recorded',
+              },
+            ];
+
             const dealAction =
               controlInstruction
                 ? {
@@ -2179,7 +2600,9 @@ function Deals({
                       deal.title || 'Live deal',
                     instruction:
                       controlInstruction,
-                    label: 'Fix control',
+                    label: needsOwner
+                      ? 'Assign owner'
+                      : 'Fix control',
                     action:
                       'deal_control_fix_prepare',
                     payload: {
@@ -2189,6 +2612,17 @@ function Deals({
                     context:
                       deal.organisation ||
                       deal.stage,
+                    facts: dealFacts,
+                    successCondition:
+                      deal.next_control_fix
+                        ?.success_condition ||
+                      (needsOwner
+                        ? 'One accountable owner controls the live deal.'
+                        : 'The recorded deal-control gap is resolved.'),
+                    confirmationLabel:
+                      needsOwner
+                        ? 'Assign deal owner'
+                        : 'Apply control fix',
                   }
                 : {
                     key:
@@ -2197,7 +2631,9 @@ function Deals({
                     title:
                       deal.title || 'Live deal',
                     instruction: nextMove,
-                    label: 'Prepare next move',
+                    label: hasIntroductionRoute
+                      ? 'Prepare introduction'
+                      : 'Prepare next move',
                     action:
                       'deal_next_move_prepare',
                     payload: {
@@ -2207,6 +2643,17 @@ function Deals({
                     context:
                       deal.organisation ||
                       deal.stage,
+                    facts: dealFacts,
+                    successCondition:
+                      deal.next_best_move
+                        ?.success_condition ||
+                      (hasIntroductionRoute
+                        ? 'A controlled introduction task is created without sending an external message.'
+                        : 'A decision-producing next move is recorded against the live deal.'),
+                    confirmationLabel:
+                      hasIntroductionRoute
+                        ? 'Create introduction task'
+                        : 'Create deal checkpoint',
                   };
 
             return (
@@ -2226,12 +2673,7 @@ function Deals({
                   <small>
                     {human(deal.stage)} ·{' '}
                     {deal.organisation || 'Club'} ·{' '}
-                    {deal.currency
-                      ? money(
-                          deal.expected_commission,
-                          deal.currency,
-                        )
-                      : 'Commission not recorded'}
+                    {commissionValue}
                   </small>
                 </div>
 
