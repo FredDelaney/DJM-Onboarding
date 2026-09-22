@@ -828,3 +828,560 @@
     justify-content:center
   }
 }
+
+/* Premium workspace visual system v1 */
+
+.root {
+  grid-template-columns: 232px minmax(0, 1fr);
+  background: #f7f8fa;
+}
+
+.sidebar {
+  gap: 30px;
+  padding: 28px 16px 22px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-primary) 94%,
+      #0d1118
+    );
+  box-shadow: none;
+}
+
+.brand {
+  padding: 0 5px;
+}
+
+.mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-accent) 18%,
+      rgba(255, 255, 255, 0.08)
+    );
+  box-shadow: none;
+}
+
+.brand strong {
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+
+.brand span {
+  font-size: 10px;
+}
+
+.nav {
+  gap: 4px;
+}
+
+.nav a {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  transition:
+    color 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.nav a:hover {
+  transform: none;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.nav a.navActive {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.075);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: none;
+}
+
+.main {
+  width: min(1280px, 100%);
+  padding:
+    38px
+    clamp(26px, 4vw, 56px)
+    72px;
+}
+
+.pageHead {
+  margin-bottom: 28px;
+}
+
+.pageHeadCopy {
+  gap: 7px;
+}
+
+.pageHead h1 {
+  margin-top: 4px;
+  font-size: clamp(34px, 4vw, 46px);
+  font-weight: 760;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.pageDescription {
+  max-width: 650px;
+  color: #737983;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.workspaceLive {
+  min-height: 24px;
+  margin-bottom: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #777e87;
+  font-size: 10px;
+}
+
+.heroCard {
+  min-height: 176px;
+  padding: 30px 32px;
+  border: 0;
+  border-radius: 20px;
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-primary) 94%,
+      #121822
+    );
+  box-shadow:
+    0 18px 48px rgba(17, 24, 39, 0.13);
+}
+
+.heroCard::before,
+.heroCard::after {
+  display: none;
+}
+
+.heroCard h2 {
+  max-width: 740px;
+  margin-top: 8px;
+  font-size: clamp(28px, 3vw, 36px);
+  line-height: 1.07;
+  letter-spacing: -0.042em;
+}
+
+.heroCard p:last-child {
+  max-width: 680px;
+  margin-top: 11px;
+  color: rgba(255, 255, 255, 0.67);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.heroRight {
+  min-width: 180px;
+}
+
+.heroMeta span {
+  padding: 6px 9px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: none;
+}
+
+.heroPrimaryAction {
+  min-height: 44px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: none;
+  font-size: 11px;
+}
+
+.heroPrimaryAction:hover {
+  background: #f5f6f8;
+}
+
+.metrics {
+  gap: 10px;
+}
+
+.metric {
+  gap: 7px;
+  padding: 18px;
+  border: 1px solid #e7e9ec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.metric::before {
+  display: none;
+}
+
+.metric:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.metric span,
+.facts span {
+  color: #858b94;
+  font-size: 10px;
+  letter-spacing: 0.055em;
+}
+
+.metric strong {
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 740;
+}
+
+.metric small,
+.facts small {
+  color: #8b9199;
+  font-size: 11px;
+}
+
+.sectionCard,
+.card {
+  border: 1px solid #e7e9ec;
+  box-shadow: none;
+}
+
+.sectionCard {
+  border-radius: 16px;
+}
+
+.sectionHead {
+  min-height: 64px;
+  padding: 18px 20px 14px;
+  background: #fff;
+}
+
+.sectionHead h2 {
+  font-size: 19px;
+  font-weight: 720;
+  letter-spacing: -0.03em;
+}
+
+.sectionCount {
+  min-height: 26px;
+  padding: 0 8px;
+  border-color: #e8eaed;
+  background: #f7f8f9;
+  font-size: 9px;
+}
+
+.listRow {
+  padding: 17px 20px;
+  border-color: #eef0f2;
+}
+
+.listRow:hover {
+  background: #fafbfc;
+}
+
+.rank {
+  width: 27px;
+  height: 27px;
+  border: 0;
+  border-radius: 8px;
+  background: #f2f4f6;
+}
+
+.listCopy {
+  gap: 5px;
+}
+
+.listCopy strong {
+  color: #292f36;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.listCopy span {
+  color: #626a74;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.listCopy small {
+  color: #9298a0;
+  font-size: 10px;
+}
+
+.cards {
+  gap: 12px;
+}
+
+.card {
+  gap: 18px;
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.entityHeader {
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 11px;
+}
+
+.entityMark {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #e6e8eb;
+  border-radius: 11px;
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-accent) 6%,
+      #f8f9fa
+    );
+  box-shadow: none;
+}
+
+.entityIdentity h2 {
+  font-size: 19px;
+  font-weight: 730;
+}
+
+.entityIdentity > p:last-child {
+  font-size: 11px;
+}
+
+.reason {
+  padding: 11px 13px;
+  border: 0;
+  border-left: 2px solid
+    color-mix(
+      in srgb,
+      var(--agency-accent) 50%,
+      #d6dade
+    );
+  border-radius: 0 8px 8px 0;
+  background: #f8f9fa;
+  color: #606872;
+  font-size: 11px;
+}
+
+.facts {
+  gap: 14px;
+}
+
+.facts strong {
+  font-size: 12px;
+}
+
+.viewIntro {
+  min-height: 104px;
+  padding: 20px 22px;
+  border: 1px solid #e7e9ec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.viewIntroCopy h2 {
+  font-size: clamp(21px, 2.5vw, 27px);
+}
+
+.viewIntroCopy > p:last-child {
+  color: #747b84;
+  font-size: 12px;
+}
+
+.viewIntroBadge {
+  min-height: 36px;
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+.refresh,
+.compactButton,
+.primaryButton,
+.secondaryButton {
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+.compactButton {
+  padding: 0 12px;
+  font-size: 10px;
+}
+
+.firstValueHandoff {
+  padding: 16px 18px;
+  border: 1px solid #e7e9ec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.firstValueHandoffIcon {
+  border-radius: 10px;
+}
+
+.routeCandidate,
+.routeCandidateEmpty,
+.routeCandidateMore {
+  border-color: #e8eaed;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.rowActions {
+  gap: 8px;
+}
+
+@media (max-width: 960px) {
+  .root {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    padding: 20px 11px;
+  }
+
+  .brand > div:last-child,
+  .nav a span,
+  .sidebarFoot > div {
+    display: none;
+  }
+
+  .brand,
+  .nav a,
+  .sidebarFoot button {
+    justify-content: center;
+  }
+
+  .nav a {
+    padding: 0;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .root {
+    display: block;
+    padding-bottom: 72px;
+  }
+
+  .sidebar {
+    min-height: auto;
+    position: fixed;
+    z-index: 40;
+    inset: auto 0 0 0;
+    display: block;
+    padding:
+      8px
+      10px
+      calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .brand,
+  .sidebarFoot {
+    display: none;
+  }
+
+  .nav {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+  }
+
+  .nav a {
+    min-height: 48px;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 3px;
+    border-radius: 9px;
+    font-size: 9px;
+  }
+
+  .nav a span {
+    display: block;
+  }
+
+  .main {
+    padding: 24px 15px 36px;
+  }
+
+  .pageHead {
+    margin-bottom: 22px;
+  }
+
+  .pageHead h1 {
+    font-size: 33px;
+  }
+
+  .pageDescription {
+    max-width: 95%;
+    font-size: 11px;
+  }
+
+  .heroCard {
+    min-height: 0;
+    padding: 22px;
+    gap: 24px;
+    border-radius: 17px;
+  }
+
+  .heroCard h2 {
+    font-size: 27px;
+  }
+
+  .heroRight {
+    min-width: 0;
+    align-items: flex-start;
+  }
+
+  .heroPrimaryAction {
+    width: 100%;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .metric {
+    padding: 14px;
+  }
+
+  .viewIntro {
+    padding: 17px;
+  }
+
+  .entityHeader {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .entityMark {
+    width: 40px;
+    height: 40px;
+  }
+}
+
