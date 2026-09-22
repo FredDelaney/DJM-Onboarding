@@ -38,6 +38,7 @@ import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel'
 import AgencyActionDrawer, {
   type AgencyActionRequest,
 } from '@/components/AgencyActionDrawer';
+import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -787,6 +788,8 @@ export default function AgencyOperatingWorkspace() {
             {view === 'relationships' ? (
               <Relationships
                 data={data}
+                rpc={rpc}
+                onRefresh={loadView}
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
@@ -1576,9 +1579,16 @@ function Players({
 
 function Relationships({
   data,
+  rpc,
+  onRefresh,
   onOpenAction,
 }: {
   data: any;
+  rpc: <T,>(
+    name: string,
+    args?: Record<string, unknown>,
+  ) => Promise<T>;
+  onRefresh: () => Promise<void>;
   onOpenAction: (
     request: AgencyActionRequest,
   ) => void;
@@ -1587,6 +1597,9 @@ function Relationships({
     useState<'clubs' | 'contacts'>('clubs');
   const [relationshipSearch, setRelationshipSearch] =
     useState('');
+
+  const [selectedContact, setSelectedContact] =
+    useState<any>(null);
 
   const accounts = data?.accounts || {};
   const clubs = Array.isArray(accounts?.clubs)
@@ -2102,12 +2115,18 @@ function Relationships({
                             {};
 
                           return (
-                            <div
+                            <button
+                              type="button"
                               className={
                                 styles.clubPerson
                               }
                               key={
                                 contact.person_id
+                              }
+                              onClick={() =>
+                                setSelectedContact(
+                                  contact,
+                                )
                               }
                             >
                               <div
@@ -2147,7 +2166,7 @@ function Relationships({
                                     'not recorded',
                                 )}
                               </small>
-                            </div>
+                            </button>
                           );
                         },
                       )}
@@ -2524,6 +2543,21 @@ function Relationships({
                         styles.compactButton
                       }
                       onClick={() =>
+                        setSelectedContact(
+                          item,
+                        )
+                      }
+                    >
+                      <Users size={14} />
+                      Open contact
+                    </button>
+
+                    <button
+                      type="button"
+                      className={
+                        styles.compactButton
+                      }
+                      onClick={() =>
                         openClubFromContact(
                           clubName,
                         )
@@ -2555,6 +2589,23 @@ function Relationships({
           ) : null}
         </section>
       )}
+
+      {selectedContact ? (
+        <AgencyContactIntelligenceDrawer
+          contact={selectedContact}
+          rpc={rpc}
+          onClose={() =>
+            setSelectedContact(null)
+          }
+          onRefresh={onRefresh}
+          onOpenClub={(clubName) => {
+            setSelectedContact(null);
+            openClubFromContact(
+              clubName,
+            );
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1566,6 +1566,7 @@
 }
 
 .clubPerson {
+  width: 100%;
   min-width: 0;
   display: grid;
   grid-template-columns:
@@ -1575,6 +1576,15 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.clubPerson:hover {
+  background: #f5f6f7;
 }
 
 .clubPerson + .clubPerson {
