@@ -39,6 +39,9 @@ import AgencyActionDrawer, {
   type AgencyActionRequest,
 } from '@/components/AgencyActionDrawer';
 import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
+import AgencyEntityIntelligenceDrawer, {
+  type AgencyIntelligenceRequest,
+} from '@/components/AgencyEntityIntelligenceDrawer';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -203,6 +206,8 @@ export default function AgencyOperatingWorkspace() {
   const [proposal, setProposal] = useState<any>(null);
   const [actionRequest, setActionRequest] =
     useState<AgencyActionRequest | null>(null);
+  const [intelligenceRequest, setIntelligenceRequest] =
+    useState<AgencyIntelligenceRequest | null>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -767,6 +772,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
+                onOpenIntelligence={setIntelligenceRequest}
               />
             ) : null}
             {view === 'market' ? (
@@ -783,6 +789,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
+                onOpenIntelligence={setIntelligenceRequest}
               />
             ) : null}
             {view === 'relationships' ? (
@@ -809,6 +816,19 @@ export default function AgencyOperatingWorkspace() {
           onClose={() => setActionRequest(null)}
           onApplied={async () => {
             await loadView();
+          }}
+        />
+      ) : null}
+
+      {intelligenceRequest ? (
+        <AgencyEntityIntelligenceDrawer
+          key={intelligenceRequest.key}
+          request={intelligenceRequest}
+          invoke={(action, body) => invoke<any>(action, body)}
+          onClose={() => setIntelligenceRequest(null)}
+          onOpenAction={(request) => {
+            setIntelligenceRequest(null);
+            setActionRequest(request);
           }}
         />
       ) : null}
@@ -1253,10 +1273,14 @@ function Home({
 function Players({
   data,
   onOpenAction,
+  onOpenIntelligence,
 }: {
   data: any;
   onOpenAction: (
     request: AgencyActionRequest,
+  ) => void;
+  onOpenIntelligence: (
+    request: AgencyIntelligenceRequest,
   ) => void;
 }) {
   const service = data?.service || {};
@@ -1512,8 +1536,25 @@ function Players({
                 </div>
               ) : null}
 
-              {playerAction ? (
-                <div className={styles.cardActions}>
+              <div className={styles.cardActions}>
+                <button
+                  type="button"
+                  className={styles.compactButton}
+                  onClick={() =>
+                    onOpenIntelligence({
+                      key: `player-360:${item.player_id}`,
+                      kind: 'player',
+                      entityId: String(item.player_id),
+                      title: playerName,
+                      context: human(item.player?.football_status),
+                    })
+                  }
+                >
+                  <Search size={14} />
+                  Player 360
+                </button>
+
+                {playerAction ? (
                   <button
                     type="button"
                     className={styles.compactButton}
@@ -1524,8 +1565,8 @@ function Players({
                     <ArrowRight size={14} />
                     {playerAction.label}
                   </button>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </article>
           );
         })}
@@ -3152,10 +3193,14 @@ function Market({
 function Deals({
   data,
   onOpenAction,
+  onOpenIntelligence,
 }: {
   data: any;
   onOpenAction: (
     request: AgencyActionRequest,
+  ) => void;
+  onOpenIntelligence: (
+    request: AgencyIntelligenceRequest,
   ) => void;
 }) {
   const portfolio = data?.portfolio || {};
@@ -3422,6 +3467,23 @@ function Deals({
                       )}
                     </small>
                   </div>
+
+                  <button
+                    type="button"
+                    className={styles.compactButton}
+                    onClick={() =>
+                      onOpenIntelligence({
+                        key: `deal-war-room:${deal.deal_room_id}`,
+                        kind: 'deal',
+                        entityId: String(deal.deal_room_id),
+                        title: deal.title || 'Live deal',
+                        context: deal.organisation || human(deal.stage),
+                      })
+                    }
+                  >
+                    <BriefcaseBusiness size={14} />
+                    War room
+                  </button>
 
                   <button
                     type="button"
