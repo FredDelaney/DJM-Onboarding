@@ -4,6 +4,8 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
+  Eye,
+  EyeOff,
   FileSpreadsheet,
   LoaderCircle,
   LockKeyhole,
@@ -20,6 +22,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
 import { platformInvoke, friendlyError } from '@/lib/platform-client';
@@ -157,6 +160,7 @@ export default function AgencyLaunchPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const [brand, setBrand] = useState({
     displayName: runtime.branding.display_name || '',
@@ -1034,14 +1038,31 @@ export default function AgencyLaunchPage() {
             />
           </Field>
           <Field label="Password">
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
+            <div className={styles.authPasswordField}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword((current) => !current)}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
           </Field>
+          <Link
+            className={styles.recoveryLink}
+            href={`/forgot-password?next=${encodeURIComponent(
+              `/activate/${runtime.slug}`,
+            )}`}
+          >
+            Forgot password?
+          </Link>
           {error ? <div className={styles.error}>{error}</div> : null}
           <Primary busy={busy === 'sign-in'} label="Open owner workspace" />
         </form>

@@ -1,14 +1,26 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 import Brand from '@/components/Brand';
 import { isStrongPassword, STRONG_PASSWORD_MESSAGE } from '@/lib/password';
+import { recoveryReturnPath } from '@/lib/recovery-return-path';
 import { supabase } from '@/lib/supabase';
 
 export default function ResetPasswordPage() {
+  const search = useSearchParams();
+  const returnPath = useMemo(
+    () => recoveryReturnPath(search.get('next')),
+    [search],
+  );
+  const backHref = returnPath || '/sign-in';
+  const forgotHref = returnPath
+    ? `/forgot-password?next=${encodeURIComponent(returnPath)}`
+    : '/forgot-password';
+
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -83,22 +95,22 @@ export default function ResetPasswordPage() {
         <Brand light />
         <div>
           <div className="yellow-line" />
-          <h1>Choose a new ReDream password.</h1>
-          <p>Use a strong password you do not reuse elsewhere. Passkeys can then make future sign-in faster.</p>
+          <h1>Choose a new password for your workspace.</h1>
+          <p>Use a strong password you do not reuse elsewhere. You can return to the same agency journey when recovery is complete.</p>
         </div>
-        <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>ReDream · Secure recovery</span>
+        <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>Secure account recovery</span>
       </section>
 
       <section className="auth-form">
         <div className="auth-box">
-          <Link href="/sign-in" className="small muted row" style={{ display: 'inline-flex' }}><ArrowLeft size={15} />Back to sign in</Link>
+          <Link href={backHref} className="small muted row" style={{ display: 'inline-flex' }}><ArrowLeft size={15} />{returnPath ? 'Back to owner workspace' : 'Back to sign in'}</Link>
           <div className="caps" style={{ color: 'var(--blue)', marginTop: 40 }}>NEW PASSWORD</div>
           <h2>{complete ? 'Password updated.' : 'Secure your account.'}</h2>
 
           {complete ? (
             <div className="stack" style={{ marginTop: 28 }}>
               <div className="card pad" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}><ShieldCheck size={20} /><div><strong>Your new password is active.</strong><p className="small muted" style={{ marginTop: 4 }}>You have been signed out of the recovery session. Sign in again with your new password.</p></div></div>
-              <Link href="/sign-in" className="btn btn-navy btn-block">Sign in <ArrowRight size={17} /></Link>
+              <Link href={backHref} className="btn btn-navy btn-block">{returnPath ? 'Back to owner workspace' : 'Sign in'} <ArrowRight size={17} /></Link>
             </div>
           ) : ready ? (
             <form className="stack" style={{ marginTop: 30 }} onSubmit={submit}>
@@ -111,7 +123,7 @@ export default function ResetPasswordPage() {
           ) : (
             <div className="stack" style={{ marginTop: 28 }}>
               <div className="small" style={{ padding: 12, borderRadius: 12, background: '#f3f4f6' }}>{message}</div>
-              <Link href="/forgot-password" className="btn btn-navy btn-block">Request a new link <ArrowRight size={17} /></Link>
+              <Link href={forgotHref} className="btn btn-navy btn-block">Request a new link <ArrowRight size={17} /></Link>
             </div>
           )}
         </div>
