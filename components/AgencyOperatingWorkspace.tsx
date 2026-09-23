@@ -42,6 +42,9 @@ import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntellige
 import AgencyEntityIntelligenceDrawer, {
   type AgencyIntelligenceRequest,
 } from '@/components/AgencyEntityIntelligenceDrawer';
+import AgencyPursuitRoom, {
+  type AgencyPursuitRequest,
+} from '@/components/AgencyPursuitRoom';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -208,6 +211,8 @@ export default function AgencyOperatingWorkspace() {
     useState<AgencyActionRequest | null>(null);
   const [intelligenceRequest, setIntelligenceRequest] =
     useState<AgencyIntelligenceRequest | null>(null);
+  const [pursuitRequest, setPursuitRequest] =
+    useState<AgencyPursuitRequest | null>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -239,6 +244,24 @@ export default function AgencyOperatingWorkspace() {
         throw new Error('Agency workspace is not resolved.');
       }
       return platformInvoke<T>('agency-os', {
+        action,
+        tenant_id: workspace.tenant_id,
+        ...body,
+      });
+    },
+    [workspace?.tenant_id],
+  );
+
+  const marketInvoke = useCallback(
+    async <T,>(
+      action: string,
+      body: Record<string, unknown> = {},
+    ): Promise<T> => {
+      if (!workspace?.tenant_id) {
+        throw new Error('Agency workspace is not resolved.');
+      }
+
+      return platformInvoke<T>('agency-market', {
         action,
         tenant_id: workspace.tenant_id,
         ...body,
@@ -781,6 +804,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
+                onOpenPursuit={setPursuitRequest}
               />
             ) : null}
             {view === 'deals' ? (
@@ -829,6 +853,36 @@ export default function AgencyOperatingWorkspace() {
           onOpenAction={(request) => {
             setIntelligenceRequest(null);
             setActionRequest(request);
+          }}
+        />
+      ) : null}
+
+      {pursuitRequest ? (
+        <AgencyPursuitRoom
+          key={pursuitRequest.key}
+          request={pursuitRequest}
+          role={String(workspace?.role || '')}
+          marketData={data}
+          invoke={(action, body) =>
+            marketInvoke<any>(action, body)
+          }
+          onClose={() => setPursuitRequest(null)}
+          onOpenAction={(request) => {
+            setPursuitRequest(null);
+            setActionRequest(request);
+          }}
+          onOpenDeal={(dealRoomId, title, context) => {
+            setPursuitRequest(null);
+            setIntelligenceRequest({
+              key: `deal-war-room:${dealRoomId}`,
+              kind: 'deal',
+              entityId: dealRoomId,
+              title,
+              context,
+            });
+          }}
+          onApplied={async () => {
+            await loadView();
           }}
         />
       ) : null}
@@ -2654,10 +2708,14 @@ function Relationships({
 function Market({
   data,
   onOpenAction,
+  onOpenPursuit,
 }: {
   data: any;
   onOpenAction: (
     request: AgencyActionRequest,
+  ) => void;
+  onOpenPursuit: (
+    request: AgencyPursuitRequest,
   ) => void;
 }) {
   const demand = data?.demand || {};
@@ -3074,6 +3132,53 @@ function Market({
                       </strong>
                       <small>operating state</small>
                     </div>
+
+                    <button
+                      type="button"
+                      className={styles.compactButton}
+                      onClick={() =>
+                        onOpenPursuit({
+                          key:
+                            `pursuit:${item.player_match_id}`,
+                          playerMatchId:
+                            String(item.player_match_id),
+                          playerId:
+                            item.player?.player_id
+                              ? String(item.player.player_id)
+                              : null,
+                          playerName:
+                            item.player?.name ||
+                            'Player',
+                          clubId:
+                            item.club?.organisation_id
+                              ? String(item.club.organisation_id)
+                              : null,
+                          clubName:
+                            item.club?.name ||
+                            'Club',
+                          needTitle:
+                            item.need?.title ||
+                            null,
+                          careerGateState:
+                            item.career_strategy_gate?.state ||
+                            null,
+                          careerGateReason:
+                            item.career_strategy_gate?.reason ||
+                            null,
+                          accessLabel:
+                            item.best_access_route
+                              ?.person_name ||
+                            human(accessMode),
+                          accessDetail:
+                            item.best_access_route
+                              ?.why_this_route ||
+                            null,
+                        })
+                      }
+                    >
+                      <BriefcaseBusiness size={14} />
+                      Open pursuit
+                    </button>
 
                     {item.player?.player_id ? (
                       <button

@@ -34,6 +34,18 @@ export default {fetch:async(req:Request)=>{
     if(action==="pitch_readiness") return json({ok:true,tenant:workspace,readiness:await rpc("platform_server_pitch_readiness_command",{p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,100,50)})});
     if(action==="pitch_execution") return json({ok:true,tenant:workspace,execution:await rpc("platform_server_pitch_execution_command",{p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,500,100)})});
     if(action==="pitch_responses") return json({ok:true,tenant:workspace,responses:await rpc("platform_server_pitch_response_command",{p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,500,100)})});
+    if(action==="pitch_detail"){
+      const shareId=id(body?.share_id);if(!shareId)return json({error:"share_id is required"},400);
+      const {data:share,error:shareError}=await ctx.supabaseAdmin.from("club_share_links")
+        .select("id,player_id,organisation_id,opportunity_id,token,label,active,expires_at,revoked_at,pitch_message,pitch_status,selected_sections,sent_at,view_count,last_viewed_at,created_at")
+        .eq("id",shareId).maybeSingle();
+      if(shareError) throw shareError;
+      if(!share) return json({error:"Pitch not found for agency"},404);
+      const {data:player,error:playerError}=await ctx.supabaseAdmin.from("players").select("id").eq("id",share.player_id).eq("tenant_id",tenantId).maybeSingle();
+      if(playerError) throw playerError;
+      if(!player) return json({error:"Pitch not found for agency"},404);
+      return json({ok:true,tenant:workspace,pitch:share});
+    }
     if(action==="pitch_learning") return json({ok:true,tenant:workspace,learning:await rpc("platform_server_pitch_learning",{p_tenant_id:tenantId,p_window_days:clamp(body?.window_days,30,1460,365)})});
     if(action==="dossier_draft_create"){
       const playerId=id(body?.player_id);if(!playerId)return json({error:"player_id is required"},400);
