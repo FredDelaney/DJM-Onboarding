@@ -1,6 +1,6 @@
 # Data model
 
-The existing `public` player platform and `djm_os` agency domain remain canonical. Additions are additive and map to existing entities instead of creating a parallel CRM.
+The existing `public` player platform and `djm_os` agency domain remain canonical. Additions are additive and map to existing entities instead of creating a parallel operating-data model.
 
 Foundations: users/roles; players and private records; people/organisations/employments; relationships/interactions; claims/sources; club needs/matches; opportunities/deals; tasks/suggestions/reviews; evidence/documents; share snapshots; events/audit; integration cursors.
 

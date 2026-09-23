@@ -1,8 +1,8 @@
 .page {
   min-height: 100dvh;
   background:
-    radial-gradient(circle at 4% -10%, rgba(124, 108, 242, 0.09), transparent 28rem),
-    radial-gradient(circle at 96% 0%, rgba(190, 178, 255, 0.06), transparent 24rem),
+    radial-gradient(circle at 4% -10%, rgba(8, 107, 255, 0.09), transparent 28rem),
+    radial-gradient(circle at 96% 0%, rgba(125, 211, 252, 0.06), transparent 24rem),
     #f6f7f9;
   color: #0a0a0c;
 }
@@ -49,12 +49,12 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: #18131f;
+  background: #0a1b3d;
   color: #fff;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  box-shadow: 0 9px 24px rgba(24, 19, 31, 0.16);
+  box-shadow: 0 9px 24px rgba(10, 27, 61, 0.16);
 }
 
 .brandBlock > div:last-child {
@@ -117,8 +117,8 @@
 }
 
 .iconButton:hover {
-  background: rgba(24, 19, 31, 0.06);
-  color: #18131f;
+  background: rgba(10, 27, 61, 0.06);
+  color: #0a1b3d;
 }
 
 .workspaceButton {
@@ -190,15 +190,15 @@
 }
 
 .primaryButton {
-  background: #18131f;
+  background: #0a1b3d;
   color: #fff;
-  box-shadow: 0 10px 24px rgba(24, 19, 31, 0.16);
+  box-shadow: 0 10px 24px rgba(10, 27, 61, 0.16);
 }
 
 .primaryButton:hover:not(:disabled) {
   transform: translateY(-1px);
   background: #2a2138;
-  box-shadow: 0 14px 30px rgba(24, 19, 31, 0.2);
+  box-shadow: 0 14px 30px rgba(10, 27, 61, 0.2);
 }
 
 .secondaryButton {
@@ -228,7 +228,7 @@
   gap: 9px;
   border-radius: 14px;
   font-size: 12px;
-  box-shadow: 0 8px 24px rgba(24, 19, 31, 0.04);
+  box-shadow: 0 8px 24px rgba(10, 27, 61, 0.04);
 }
 
 .alert {
@@ -264,7 +264,7 @@
   border: 1px solid rgba(10, 10, 12, 0.065);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 10px 38px rgba(24, 19, 31, 0.045);
+  box-shadow: 0 10px 38px rgba(10, 27, 61, 0.045);
 }
 
 .metricAttention {
@@ -333,7 +333,7 @@
   border: 1px solid rgba(10, 10, 12, 0.065);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 14px 48px rgba(24, 19, 31, 0.045);
+  box-shadow: 0 14px 48px rgba(10, 27, 61, 0.045);
 }
 
 .agendaPanel,
@@ -418,7 +418,7 @@
 }
 
 .agendaNow {
-  background: #f2eff7;
+  background: #f2f7ff;
   color: #665877;
 }
 
@@ -546,7 +546,7 @@
   height: 100%;
   min-width: 2px;
   border-radius: inherit;
-  background: #7c6cf2;
+  background: #086bff;
 }
 
 .signalFooter {
@@ -630,7 +630,7 @@
 .filters button.activeFilter {
   background: #fff;
   color: #1f2328;
-  box-shadow: 0 2px 8px rgba(24, 19, 31, 0.07);
+  box-shadow: 0 2px 8px rgba(10, 27, 61, 0.07);
 }
 
 .customerList {
@@ -656,8 +656,8 @@
 
 .customerCard:hover {
   transform: translateY(-1px);
-  border-color: rgba(124, 108, 242, 0.15);
-  box-shadow: 0 12px 28px rgba(24, 19, 31, 0.06);
+  border-color: rgba(8, 107, 255, 0.15);
+  box-shadow: 0 12px 28px rgba(10, 27, 61, 0.06);
 }
 
 .customerIdentity {
@@ -722,7 +722,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #7c6cf2;
+  background: #086bff;
 }
 
 .customerProgress strong {
@@ -903,8 +903,8 @@
 
 .field input:focus,
 .field select:focus {
-  border-color: rgba(124, 108, 242, 0.38);
-  box-shadow: 0 0 0 3px rgba(124, 108, 242, 0.08);
+  border-color: rgba(8, 107, 255, 0.38);
+  box-shadow: 0 0 0 3px rgba(8, 107, 255, 0.08);
 }
 
 .planPicker {
@@ -930,8 +930,8 @@
 .planOption:hover,
 .selectedPlan {
   transform: translateY(-1px);
-  border-color: rgba(124, 108, 242, 0.26);
-  box-shadow: 0 9px 24px rgba(24, 19, 31, 0.06);
+  border-color: rgba(8, 107, 255, 0.26);
+  box-shadow: 0 9px 24px rgba(10, 27, 61, 0.06);
 }
 
 .selectedPlan {
@@ -956,7 +956,7 @@
 }
 
 .planOption div span {
-  color: #7c6cf2;
+  color: #086bff;
   font-size: 9px;
   font-weight: 800;
 }
@@ -1320,7 +1320,7 @@
   height: 6px;
   margin-top: 4px;
   border-radius: 50%;
-  background: #7c6cf2;
+  background: #086bff;
 }
 
 .auditRow div {
@@ -1366,7 +1366,7 @@
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: #18131f;
+  background: #0a1b3d;
   color: #fff;
 }
 
@@ -1391,12 +1391,12 @@
   border: 1px solid rgba(10, 10, 12, 0.07);
   border-radius: 24px;
   background: #fff;
-  box-shadow: 0 20px 70px rgba(24, 19, 31, 0.08);
+  box-shadow: 0 20px 70px rgba(10, 27, 61, 0.08);
   text-align: center;
 }
 
 .deniedCard > svg {
-  color: #7c6cf2;
+  color: #086bff;
 }
 
 .deniedCard h1 {
@@ -1418,7 +1418,7 @@
   padding: 0 14px;
   border: 0;
   border-radius: 11px;
-  background: #18131f;
+  background: #0a1b3d;
   color: #fff;
   font-size: 11px;
   font-weight: 750;
@@ -1614,9 +1614,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(124, 108, 242, 0.11);
+  border: 1px solid rgba(8, 107, 255, 0.11);
   border-radius: 14px;
-  background: linear-gradient(135deg, #f8f7ff, #fff 70%);
+  background: linear-gradient(135deg, #f8fbff, #fff 70%);
 }
 
 .commercialDecision > div:first-child {
@@ -1650,7 +1650,7 @@
   border-radius: 11px;
   background: #fff;
   color: #665877;
-  box-shadow: 0 4px 14px rgba(24, 19, 31, 0.05);
+  box-shadow: 0 4px 14px rgba(10, 27, 61, 0.05);
 }
 
 .nextPlanSignal > span {
@@ -1709,7 +1709,7 @@
   height: 100%;
   min-width: 2px;
   border-radius: inherit;
-  background: #7c6cf2;
+  background: #086bff;
 }
 
 .expansionSignals {
@@ -1783,14 +1783,14 @@
 }
 
 .commercialStartPicker button:hover {
-  border-color: rgba(124, 108, 242, 0.18);
+  border-color: rgba(8, 107, 255, 0.18);
   background: #fff;
 }
 
 .commercialStartPicker button.commercialStartActive {
-  border-color: rgba(124, 108, 242, 0.28);
-  background: #f8f7ff;
-  box-shadow: inset 0 0 0 1px rgba(124, 108, 242, 0.06);
+  border-color: rgba(8, 107, 255, 0.28);
+  background: #f8fbff;
+  box-shadow: inset 0 0 0 1px rgba(8, 107, 255, 0.06);
 }
 
 .commercialStartPicker strong {
@@ -1806,9 +1806,9 @@
 .trialConversion {
   margin-top: 12px;
   padding: 12px;
-  border: 1px solid rgba(124, 108, 242, 0.13);
+  border: 1px solid rgba(8, 107, 255, 0.13);
   border-radius: 14px;
-  background: #fbfaff;
+  background: #f8fafc;
 }
 
 .trialConversion .commercialSubhead {
@@ -1860,7 +1860,7 @@
   gap: 3px;
   border-radius: 11px;
   background: #fff;
-  box-shadow: 0 5px 16px rgba(24, 19, 31, 0.045);
+  box-shadow: 0 5px 16px rgba(10, 27, 61, 0.045);
 }
 
 .conversionConfirm strong {
@@ -1903,9 +1903,9 @@
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 10px;
-  border: 1px solid rgba(124, 108, 242, 0.14);
+  border: 1px solid rgba(8, 107, 255, 0.14);
   border-radius: 13px;
-  background: #fbfaff;
+  background: #f8fafc;
 }
 
 .planChangeConfirm > div {
@@ -1956,9 +1956,9 @@
 .contractControl {
   margin-top: 12px;
   padding: 12px;
-  border: 1px solid rgba(124, 108, 242, 0.13);
+  border: 1px solid rgba(8, 107, 255, 0.13);
   border-radius: 14px;
-  background: #fbfaff;
+  background: #f8fafc;
 }
 
 .directContract .commercialSubhead,
@@ -1979,7 +1979,7 @@
   gap: 3px;
   border-radius: 11px;
   background: #fff;
-  box-shadow: 0 5px 16px rgba(24, 19, 31, 0.045);
+  box-shadow: 0 5px 16px rgba(10, 27, 61, 0.045);
 }
 
 .contractConfirm strong {
@@ -2068,9 +2068,9 @@
   padding: 11px;
   display: grid;
   gap: 9px;
-  border: 1px solid rgba(124, 108, 242, 0.13);
+  border: 1px solid rgba(8, 107, 255, 0.13);
   border-radius: 13px;
-  background: #fbfaff;
+  background: #f8fafc;
 }
 
 .serviceStateConfirm strong,
@@ -2142,7 +2142,7 @@
   gap: 3px;
   border-radius: 11px;
   background: #fff;
-  box-shadow: 0 5px 16px rgba(24, 19, 31, 0.045);
+  box-shadow: 0 5px 16px rgba(10, 27, 61, 0.045);
 }
 
 .contractTermConfirm strong {
@@ -2173,7 +2173,7 @@
 
 .page {
   background:
-    radial-gradient(circle at 6% -7%, rgba(124, 108, 242, 0.14), transparent 31rem),
+    radial-gradient(circle at 6% -7%, rgba(8, 107, 255, 0.14), transparent 31rem),
     radial-gradient(circle at 94% 9%, rgba(191, 181, 255, 0.1), transparent 29rem),
     linear-gradient(180deg, #f5f6f8 0%, #f8f9fa 44%, #f4f5f7 100%);
 }
@@ -2188,10 +2188,10 @@
 .brandMark {
   background:
     radial-gradient(circle at 28% 22%, rgba(151, 137, 255, 0.75), transparent 42%),
-    linear-gradient(145deg, #21182c, #100d15);
+    linear-gradient(145deg, #0a1b3d, #050d1d);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 12px 30px rgba(24, 19, 31, 0.22);
+    0 12px 30px rgba(10, 27, 61, 0.22);
 }
 
 .canvas {
@@ -2211,9 +2211,9 @@
   background:
     radial-gradient(circle at 83% 16%, rgba(145, 126, 255, 0.28), transparent 24rem),
     radial-gradient(circle at 62% 115%, rgba(107, 90, 215, 0.15), transparent 25rem),
-    linear-gradient(132deg, #17121f 0%, #241a31 58%, #121018 100%);
+    linear-gradient(132deg, #07162f 0%, #0a1b3d 58%, #071121 100%);
   color: #fff;
-  box-shadow: 0 28px 74px rgba(24, 19, 31, 0.17);
+  box-shadow: 0 28px 74px rgba(10, 27, 61, 0.17);
 }
 
 .hero::after {
@@ -2248,7 +2248,7 @@
 }
 
 .heroKicker > span {
-  color: #c8bfff;
+  color: #93c5fd;
   font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.13em;
@@ -2367,7 +2367,7 @@
   border: 0;
   border-radius: 13px;
   background: #fff;
-  color: #1b1522;
+  color: #0b162c;
   cursor: pointer;
   font: inherit;
   font-size: 11px;
@@ -2395,7 +2395,7 @@
   border-color: rgba(17, 22, 28, 0.055);
   border-radius: 21px;
   background: rgba(255, 255, 255, 0.93);
-  box-shadow: 0 13px 36px rgba(24, 19, 31, 0.045);
+  box-shadow: 0 13px 36px rgba(10, 27, 61, 0.045);
   transition:
     transform 160ms ease,
     box-shadow 160ms ease;
@@ -2406,12 +2406,12 @@
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
-  background: linear-gradient(90deg, rgba(124, 108, 242, 0.55), transparent 70%);
+  background: linear-gradient(90deg, rgba(8, 107, 255, 0.55), transparent 70%);
 }
 
 .metricCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 42px rgba(24, 19, 31, 0.065);
+  box-shadow: 0 18px 42px rgba(10, 27, 61, 0.065);
 }
 
 .metricAttention {
@@ -2427,7 +2427,7 @@
 .signalPanel,
 .customersSection {
   border-color: rgba(17, 22, 28, 0.055);
-  box-shadow: 0 16px 44px rgba(24, 19, 31, 0.045);
+  box-shadow: 0 16px 44px rgba(10, 27, 61, 0.045);
 }
 
 .agendaPanel {
@@ -2449,7 +2449,7 @@
 }
 
 .agendaRow:hover {
-  background: #faf9fc;
+  background: #f8fafc;
   transform: translateX(2px);
 }
 
@@ -2457,13 +2457,13 @@
   border-color: rgba(38, 29, 49, 0.14);
   background:
     radial-gradient(circle at 88% 0%, rgba(145, 126, 255, 0.22), transparent 15rem),
-    linear-gradient(150deg, #201827, #17131d);
+    linear-gradient(150deg, #0a1b3d, #17131d);
   color: #fff;
-  box-shadow: 0 20px 50px rgba(24, 19, 31, 0.11);
+  box-shadow: 0 20px 50px rgba(10, 27, 61, 0.11);
 }
 
 .signalPanel .eyebrow {
-  color: #b9aff5;
+  color: #93c5fd;
 }
 
 .signalPanel .panelHeading h2,
@@ -2473,7 +2473,7 @@
 }
 
 .signalPanel .panelHeading > svg {
-  color: #b9aff5;
+  color: #93c5fd;
 }
 
 .signalPanel .signalRow span,
@@ -2486,7 +2486,7 @@
 }
 
 .signalPanel .signalTrack i {
-  background: linear-gradient(90deg, #8e7cff, #beb4ff);
+  background: linear-gradient(90deg, #2f80ff, #7dd3fc);
 }
 
 .signalPanel .signalFooter {
@@ -2502,23 +2502,23 @@
   min-height: 98px;
   border-color: rgba(17, 22, 28, 0.05);
   border-radius: 18px;
-  box-shadow: 0 5px 16px rgba(24, 19, 31, 0.02);
+  box-shadow: 0 5px 16px rgba(10, 27, 61, 0.02);
 }
 
 .customerCard:hover {
   transform: translateY(-2px);
-  border-color: rgba(124, 108, 242, 0.2);
-  box-shadow: 0 15px 34px rgba(24, 19, 31, 0.07);
+  border-color: rgba(8, 107, 255, 0.2);
+  box-shadow: 0 15px 34px rgba(10, 27, 61, 0.07);
 }
 
 .customerAvatar {
   width: 43px;
   height: 43px;
-  border: 1px solid rgba(124, 108, 242, 0.08);
+  border: 1px solid rgba(8, 107, 255, 0.08);
   background:
-    linear-gradient(145deg, #f0eefc, #f7f9fb);
-  color: #574b9f;
-  box-shadow: 0 7px 18px rgba(24, 19, 31, 0.04);
+    linear-gradient(145deg, #eef5ff, #f7f9fb);
+  color: #0756c9;
+  box-shadow: 0 7px 18px rgba(10, 27, 61, 0.04);
 }
 
 @media (max-width: 820px) {
@@ -2568,5 +2568,67 @@
     display: grid;
     justify-items: start;
     gap: 2px;
+  }
+}
+
+
+/* ReDream canonical operator branding */
+.page {
+  font-family:
+    var(--font-redream-inter),
+    Inter,
+    "SF Pro Text",
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  background:
+    radial-gradient(circle at 4% -10%, rgba(8, 107, 255, 0.10), transparent 28rem),
+    radial-gradient(circle at 96% 0%, rgba(34, 211, 238, 0.06), transparent 24rem),
+    #F8FAFC;
+}
+
+.brandLogo {
+  width: 176px;
+  height: auto;
+  object-fit: contain;
+}
+
+.brandContext {
+  padding-left: 12px;
+  border-left: 1px solid rgba(10, 27, 61, .12);
+  color: #64748B;
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.loadingMark img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.primaryButton {
+  background: #0A1B3D;
+  box-shadow: 0 10px 24px rgba(10, 27, 61, .16);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: #102A5A;
+  box-shadow: 0 14px 30px rgba(10, 27, 61, .20);
+}
+
+@media (max-width: 680px) {
+  .brandLogo {
+    width: 150px;
+  }
+
+  .brandContext {
+    display: none;
   }
 }

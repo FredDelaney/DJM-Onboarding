@@ -9,7 +9,7 @@
 .heading { justify-content:space-between; gap:12px; }
 .heading p { margin:0 0 5px; color:#9699a0; font-size:8px; font-weight:800; letter-spacing:.1em; }
 .heading h3 { margin:0; color:#25292f; font-size:16px; }
-.impact { padding:5px 8px; border-radius:999px; background:#f2eff7; color:#6b5d82; font-size:7px; font-weight:800; text-transform:uppercase; }
+.impact { padding:5px 8px; border-radius:999px; background:#f2f7ff; color:#6b5d82; font-size:7px; font-weight:800; text-transform:uppercase; }
 .goal,.evidence { align-items:flex-start; gap:8px; margin-top:12px; padding:11px; border-radius:12px; }
 .goal { background:#f7f5fa; color:#5d5270; }
 .evidence { background:#f2f8f4; color:#377353; }
@@ -43,7 +43,7 @@
 .noteField textarea { min-height:66px; padding:8px; resize:vertical; line-height:1.45; }
 .actions { justify-content:flex-end; gap:6px; margin-top:8px; flex-wrap:wrap; }
 .actions button { min-height:30px; padding:0 8px; display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(10,10,12,.08); border-radius:8px; background:#fff; color:#555960; font-size:7px; font-weight:800; }
-.actions .primary { border-color:#18131f; background:#18131f; color:#fff; }
+.actions .primary { border-color:#0a1b3d; background:#0a1b3d; color:#fff; }
 .actions button:disabled { opacity:.45; cursor:not-allowed; }
 .truth { margin-top:9px; color:#a0a2a7; font-size:7px; line-height:1.45; }
 .spin { animation:spin .8s linear infinite; }

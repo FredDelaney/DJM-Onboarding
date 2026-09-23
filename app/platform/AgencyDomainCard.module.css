@@ -180,8 +180,8 @@
 }
 
 .addRow input:focus {
-  border-color: rgba(124, 108, 242, 0.36);
-  box-shadow: 0 0 0 3px rgba(124, 108, 242, 0.07);
+  border-color: rgba(8, 107, 255, 0.36);
+  box-shadow: 0 0 0 3px rgba(8, 107, 255, 0.07);
 }
 
 .addRow button,

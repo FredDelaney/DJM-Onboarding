@@ -618,7 +618,7 @@ export default function NetworkPage() {
           </section>
 
           <div className="djm-os-grid djm-os-grid-2">
-            <Panel title="Must do" subtitle="Actual commitments, not CRM busywork">
+            <Panel title="Must do" subtitle="Actual commitments, not admin busywork">
               {tasks.length ? (
                 <div className="djm-os-list">
                   {tasks.slice(0, 8).map((task) => (

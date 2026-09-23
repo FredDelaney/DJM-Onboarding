@@ -4,7 +4,7 @@
 
 The previous player area was useful for administration but not compelling enough to earn a professional player's weekly attention. It exposed individual actions without connecting them to the player's real career questions: Am I ready when an opportunity appears? What does DJM need from me? Is my evidence strong enough? What is the next decision I should prepare for?
 
-This slice changes the player product from a collection of forms into a private career operating system. It deliberately does not imitate a scouting database, expose internal CRM data or invent performance analytics.
+This slice changes the player product from a collection of forms into a private career operating system. It deliberately does not imitate a scouting database, expose internal agency data or invent performance analytics.
 
 ## What was built
 

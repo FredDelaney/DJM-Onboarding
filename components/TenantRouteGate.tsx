@@ -6,9 +6,11 @@ import type { ReactNode } from 'react';
 export function TenantRouteGate({
   children,
   fallback,
+  allowReDreamPublicRoot = false,
 }: {
   children: ReactNode;
   fallback: ReactNode;
+  allowReDreamPublicRoot?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -24,12 +26,9 @@ export function TenantRouteGate({
     pathname === '/workspace' ||
     pathname.startsWith('/workspace/');
 
-  const isReDreamControlPlane = Boolean(
-    process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT,
-  );
-
   const isReDreamPublicRoot =
-    isReDreamControlPlane && pathname === '/';
+    allowReDreamPublicRoot &&
+    pathname === '/';
 
   return (
     <>

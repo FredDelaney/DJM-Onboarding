@@ -6,9 +6,9 @@
   border: 1px solid rgba(10, 10, 12, 0.075);
   border-radius: 19px;
   background:
-    radial-gradient(circle at 96% 2%, rgba(124, 108, 242, 0.11), transparent 32%),
+    radial-gradient(circle at 96% 2%, rgba(8, 107, 255, 0.11), transparent 32%),
     linear-gradient(180deg, #ffffff, #fcfcfd);
-  box-shadow: 0 10px 32px rgba(24, 19, 31, 0.045);
+  box-shadow: 0 10px 32px rgba(10, 27, 61, 0.045);
 }
 
 .loadingCard {
@@ -73,9 +73,9 @@
   display: grid;
   place-items: center;
   gap: 2px;
-  border: 1px solid rgba(124, 108, 242, 0.13);
+  border: 1px solid rgba(8, 107, 255, 0.13);
   border-radius: 12px;
-  background: rgba(124, 108, 242, 0.055);
+  background: rgba(8, 107, 255, 0.055);
 }
 
 .progressBadge strong {
@@ -135,7 +135,7 @@
 }
 
 .stepComplete:not(:last-child) .stepRail::after {
-  background: rgba(124, 108, 242, 0.34);
+  background: rgba(8, 107, 255, 0.34);
 }
 
 .stepMark {
@@ -154,15 +154,15 @@
 }
 
 .stepComplete .stepMark {
-  border-color: rgba(124, 108, 242, 0.2);
-  background: #7c6cf2;
+  border-color: rgba(8, 107, 255, 0.2);
+  background: #086bff;
   color: #fff;
 }
 
 .stepActive .stepMark {
-  border-color: rgba(124, 108, 242, 0.46);
-  box-shadow: 0 0 0 4px rgba(124, 108, 242, 0.08);
-  color: #7c6cf2;
+  border-color: rgba(8, 107, 255, 0.46);
+  box-shadow: 0 0 0 4px rgba(8, 107, 255, 0.08);
+  color: #086bff;
 }
 
 .step > strong,
@@ -206,10 +206,10 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  border: 1px solid rgba(124, 108, 242, 0.1);
+  border: 1px solid rgba(8, 107, 255, 0.1);
   border-radius: 14px;
   background:
-    linear-gradient(135deg, rgba(124, 108, 242, 0.07), transparent 62%),
+    linear-gradient(135deg, rgba(8, 107, 255, 0.07), transparent 62%),
     #fafafd;
 }
 
@@ -279,10 +279,10 @@
 }
 
 .primary {
-  border: 1px solid #18131f;
-  background: #18131f;
+  border: 1px solid #0a1b3d;
+  background: #0a1b3d;
   color: #fff;
-  box-shadow: 0 5px 14px rgba(24, 19, 31, 0.12);
+  box-shadow: 0 5px 14px rgba(10, 27, 61, 0.12);
 }
 
 .actions button:disabled,
@@ -297,7 +297,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(124, 108, 242, 0.1);
+  border: 1px solid rgba(8, 107, 255, 0.1);
   border-radius: 12px;
   background: #f7f5fa;
 }

@@ -255,9 +255,9 @@ const audiences = [
 
 const faqs = [
   {
-    question: 'Is ReDream a CRM?',
+    question: 'What makes ReDream different?',
     answer:
-      'No. ReDream is an operating system for football agencies. Its job is not simply to store contacts, players or deals. It connects those records into prioritised work, decisions, follow-up, player service and commercial execution.',
+      'ReDream is the operating system for football agencies. It connects players, clubs, relationships and deals into prioritised work, decisions, follow-up, player service and commercial execution.',
   },
   {
     question: 'Do we have to stop using the tools we already use?',
@@ -318,14 +318,13 @@ export default function ReDreamPublicLanding() {
           <Link
             href="/"
             className={styles.brand}
-            aria-label="ReDream Systems"
+            aria-label="ReDream Systems | Agency Autopilot"
           >
-            <span className={styles.brandMark}>R</span>
-
-            <span>
-              <strong>ReDream</strong>
-              <small>SYSTEMS</small>
-            </span>
+            <img
+              src="/brand/redream-lockup-light.png"
+              alt="ReDream Systems | Agency Autopilot"
+              className={styles.brandLogo}
+            />
           </Link>
 
           <nav className={styles.navLinks} aria-label="Primary">
@@ -349,7 +348,7 @@ export default function ReDreamPublicLanding() {
           <div className={styles.heroCopy}>
             <div className={styles.badge}>
               <Sparkles size={14} />
-              Not a CRM. The agency operating system.
+              The operating system for football agencies.
             </div>
 
             <h1>
@@ -968,9 +967,13 @@ export default function ReDreamPublicLanding() {
         <Link
           href="/"
           className={styles.footerBrand}
+          aria-label="ReDream Systems | Agency Autopilot"
         >
-          <span>R</span>
-          <strong>ReDream Systems</strong>
+          <img
+            src="/brand/redream-lockup-dark.png"
+            alt="ReDream Systems | Agency Autopilot"
+            className={styles.footerBrandLogo}
+          />
         </Link>
 
         <div>

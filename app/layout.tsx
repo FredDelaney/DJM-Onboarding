@@ -21,6 +21,7 @@ import type {
   Metadata,
   Viewport,
 } from 'next';
+import { Inter } from 'next/font/google';
 import { headers } from 'next/headers';
 
 import {
@@ -37,23 +38,38 @@ import {
 } from '../components/TenantRouteGate';
 
 import {
+  isReDreamCanonicalHostname,
+  shouldRenderReDreamPublicSite,
+} from '../lib/redream-public-host';
+
+import {
   resolveTenantRuntime,
 } from '../lib/tenant-runtime';
 
-const getRequestTenantRuntime = cache(
+const redreamInter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-redream-inter',
+});
+
+const getRequestHostname = cache(
   async () => {
     const requestHeaders = await headers();
 
-    const hostname =
+    return (
       requestHeaders.get(
         'x-forwarded-host',
       ) ||
-      requestHeaders.get('host');
-
-    return resolveTenantRuntime(
-      hostname,
+      requestHeaders.get('host')
     );
   },
+);
+
+const getRequestTenantRuntime = cache(
+  async () =>
+    resolveTenantRuntime(
+      await getRequestHostname(),
+    ),
 );
 
 export async function generateMetadata():
@@ -126,9 +142,20 @@ export async function generateMetadata():
     };
   }
 
-  const isReDreamPublicSite = Boolean(
-    process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT?.trim(),
-  );
+  const hostname =
+    await getRequestHostname();
+
+  const isReDreamPublicSite =
+    !runtime.resolved &&
+    shouldRenderReDreamPublicSite(
+      hostname,
+      process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT,
+    );
+
+  const isCanonicalReDreamHost =
+    isReDreamCanonicalHostname(
+      hostname,
+    );
 
   if (isReDreamPublicSite) {
     return {
@@ -139,10 +166,21 @@ export async function generateMetadata():
       alternates: {
         canonical: '/',
       },
-      robots: {
-        index: true,
-        follow: true,
+      manifest: '/redream.webmanifest',
+      icons: {
+        icon: '/brand/redream-app-icon.png',
+        shortcut: '/brand/redream-app-icon.png',
+        apple: '/brand/redream-app-icon.png',
       },
+      robots: isCanonicalReDreamHost
+        ? {
+            index: true,
+            follow: true,
+          }
+        : {
+            index: false,
+            follow: false,
+          },
       openGraph: {
         type: 'website',
         url: '/',
@@ -150,6 +188,21 @@ export async function generateMetadata():
         description:
           'Run player service, market work, relationships, deals and agency revenue from one controlled operating system.',
         siteName: 'ReDream Systems',
+        images: [
+          {
+            url: '/brand/redream-og.jpg',
+            width: 1200,
+            height: 630,
+            alt: 'ReDream Systems | Agency Autopilot',
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'ReDream | Operating system for football agencies',
+        description:
+          'Run player service, market work, relationships, deals and agency revenue from one controlled operating system.',
+        images: ['/brand/redream-og.jpg'],
       },
     };
   }
@@ -170,9 +223,20 @@ export async function generateViewport():
   const runtime =
     await getRequestTenantRuntime();
 
+  const hostname =
+    await getRequestHostname();
+
+  const isReDreamPublicSite =
+    !runtime.resolved &&
+    shouldRenderReDreamPublicSite(
+      hostname,
+      process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT,
+    );
+
   return {
-    themeColor:
-      runtime.branding.primary_color,
+    themeColor: isReDreamPublicSite
+      ? '#0A1B3D'
+      : runtime.branding.primary_color,
     width: 'device-width',
     initialScale: 1,
     viewportFit: 'cover',
@@ -187,6 +251,16 @@ export default async function RootLayout({
   const runtime =
     await getRequestTenantRuntime();
 
+  const hostname =
+    await getRequestHostname();
+
+  const isReDreamPublicSite =
+    !runtime.resolved &&
+    shouldRenderReDreamPublicSite(
+      hostname,
+      process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT,
+    );
+
   const tenantStyle = {
     '--tenant-primary':
       runtime.branding.primary_color,
@@ -198,6 +272,7 @@ export default async function RootLayout({
 
   return (
     <html
+      className={redreamInter.variable}
       lang={
         runtime.settings.locale ||
         'en-GB'
@@ -222,6 +297,9 @@ export default async function RootLayout({
             children
           ) : (
             <TenantRouteGate
+              allowReDreamPublicRoot={
+                isReDreamPublicSite
+              }
               fallback={
                 <main
                   className="tenant-unresolved-shell"

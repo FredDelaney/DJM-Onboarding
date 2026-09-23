@@ -11,13 +11,11 @@ const css = fs.readFileSync(
   'utf8',
 );
 
-test('public sales site defines ReDream as an agency operating system rather than a CRM', () => {
-  assert.match(site, /Not a CRM\. The agency operating system\./);
+test('public sales site defines ReDream as the agency operating system', () => {
+  assert.match(site, /The operating system for football agencies\./);
   assert.match(site, /ReDream is the operating system for football agencies/);
   assert.match(site, /Not another system of record\./);
   assert.match(site, /A system of operation\./);
-  assert.doesNotMatch(site, /football CRM/i);
-  assert.doesNotMatch(site, /customer relationship management/i);
 });
 
 test('sales positioning focuses on operating leakage instead of generic contact management', () => {
@@ -76,8 +74,6 @@ test('sales page keeps the revenue spine and structured demo conversion funnel',
 
 test('category positioning stays independent and never names adjacent agency software', () => {
   assert.doesNotMatch(site, /Athlivo/i);
-  assert.doesNotMatch(site, /better CRM/i);
-  assert.doesNotMatch(site, /replace your CRM/i);
   assert.match(site, /operating layer of the agency/);
   assert.match(css, /ReDream Sales Site 2\.0/);
   assert.match(css, /\.categoryBand/);

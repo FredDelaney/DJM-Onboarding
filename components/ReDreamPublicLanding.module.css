@@ -1,13 +1,18 @@
 .page {
-  --rd-ink: #17131f;
-  --rd-ink-2: #241b30;
-  --rd-purple: #7c6cf2;
-  --rd-purple-soft: #eeeafd;
-  --rd-lilac: #bfb4ff;
-  --rd-paper: #f7f7f8;
-  --rd-white: #ffffff;
-  --rd-muted: #756f7d;
-  --rd-line: rgba(23, 19, 31, 0.08);
+  --rd-ink: #111827;
+  --rd-ink-2: #0A1B3D;
+  --rd-purple: #086BFF;
+  --rd-purple-soft: #EAF2FF;
+  --rd-lilac: #7DD3FC;
+  --rd-paper: #F8FAFC;
+  --rd-white: #FFFFFF;
+  --rd-muted: #64748B;
+  --rd-midnight: #0A1B3D;
+  --rd-signal: #086BFF;
+  --rd-graphite: #111827;
+  --rd-steel: #94A3B8;
+  --rd-off-white: #F8FAFC;
+  --rd-line: rgba(17, 24, 39, 0.08);
 
   min-height: 100dvh;
   overflow: hidden;
@@ -136,9 +141,9 @@
   overflow: hidden;
   padding: 150px 0 82px;
   background:
-    radial-gradient(circle at 20% 18%, rgba(124,108,242,.25), transparent 30rem),
-    radial-gradient(circle at 86% 52%, rgba(124,108,242,.13), transparent 28rem),
-    linear-gradient(145deg, #17121f 0%, #21192d 58%, #15111c 100%);
+    radial-gradient(circle at 20% 18%, rgba(8, 107, 255,.25), transparent 30rem),
+    radial-gradient(circle at 86% 52%, rgba(8, 107, 255,.13), transparent 28rem),
+    linear-gradient(145deg, #07162f 0%, #0a1b3d 58%, #050d1d 100%);
   color: #fff;
 }
 
@@ -149,7 +154,7 @@
   width: 700px;
   height: 700px;
   border-radius: 50%;
-  background: rgba(124,108,242,.08);
+  background: rgba(8, 107, 255,.08);
   filter: blur(2px);
 }
 
@@ -175,9 +180,9 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid rgba(191,180,255,.18);
+  border: 1px solid rgba(125, 211, 252,.18);
   border-radius: 999px;
-  background: rgba(124,108,242,.09);
+  background: rgba(8, 107, 255,.09);
   color: var(--rd-lilac);
   font-size: 9px;
   font-weight: 850;
@@ -227,7 +232,7 @@
   border: 1px solid var(--rd-purple);
   background: var(--rd-purple);
   color: #fff;
-  box-shadow: 0 12px 30px rgba(124,108,242,.22);
+  box-shadow: 0 12px 30px rgba(8, 107, 255,.22);
 }
 
 .secondaryCta {
@@ -385,7 +390,7 @@
   gap: 6px;
   border-radius: 9px;
   background: var(--rd-purple-soft);
-  color: #6657db;
+  color: #086bff;
   font-size: 8px;
   font-weight: 850;
 }
@@ -515,8 +520,8 @@
   display: grid;
   place-items: center;
   border-radius: 9px;
-  background: #f4f2fb;
-  color: #6b5ddb;
+  background: #f2f7ff;
+  color: #086bff;
 }
 
 .queueRow strong,
@@ -604,7 +609,7 @@
   place-items: center;
   border-radius: 12px;
   background: var(--rd-purple-soft);
-  color: #6657db;
+  color: #086bff;
 }
 
 .productCard > p {
@@ -652,7 +657,7 @@
 .workflowNotes svg {
   flex: 0 0 auto;
   margin-top: 2px;
-  color: #6b5ddb;
+  color: #086bff;
 }
 
 .workflowNotes span {
@@ -665,7 +670,7 @@
   border: 1px solid var(--rd-line);
   border-radius: 20px;
   background: #fff;
-  box-shadow: 0 24px 70px rgba(23,19,31,.06);
+  box-shadow: 0 24px 70px rgba(17, 24, 39,.06);
 }
 
 .workflowStep {
@@ -707,8 +712,8 @@
   padding: 34px;
   border-radius: 24px;
   background:
-    radial-gradient(circle at 30% 10%, rgba(124,108,242,.18), transparent 20rem),
-    linear-gradient(145deg, #17121f, #21192d);
+    radial-gradient(circle at 30% 10%, rgba(8, 107, 255,.18), transparent 20rem),
+    linear-gradient(145deg, #07162f, #0a1b3d);
   color: #fff;
 }
 
@@ -718,9 +723,9 @@
   margin-bottom: 30px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(191,180,255,.2);
+  border: 1px solid rgba(125, 211, 252,.2);
   border-radius: 18px;
-  background: rgba(124,108,242,.1);
+  background: rgba(8, 107, 255,.1);
   color: var(--rd-lilac);
 }
 
@@ -763,8 +768,8 @@
 }
 
 .controlStack .humanControl {
-  border-color: rgba(191,180,255,.24);
-  background: rgba(124,108,242,.13);
+  border-color: rgba(125, 211, 252,.24);
+  background: rgba(8, 107, 255,.13);
   color: #fff;
 }
 
@@ -784,7 +789,7 @@
 }
 
 .principlesCopy > div > svg {
-  color: #6b5ddb;
+  color: #086bff;
 }
 
 .principlesCopy strong,
@@ -842,7 +847,7 @@
 }
 
 .securityItems svg {
-  color: #6b5ddb;
+  color: #086bff;
 }
 
 .pricingGrid {
@@ -864,8 +869,8 @@
 }
 
 .featuredPlan {
-  border-color: rgba(124,108,242,.38);
-  box-shadow: 0 20px 60px rgba(124,108,242,.09);
+  border-color: rgba(8, 107, 255,.38);
+  box-shadow: 0 20px 60px rgba(8, 107, 255,.09);
 }
 
 .planBadge {
@@ -875,7 +880,7 @@
   padding: 5px 7px;
   border-radius: 999px;
   background: var(--rd-purple-soft);
-  color: #6758d8;
+  color: #086bff;
   font-size: 7px;
   font-weight: 900;
   letter-spacing: .07em;
@@ -941,7 +946,7 @@
 .planFeatures svg {
   margin-top: 1px;
   flex: 0 0 auto;
-  color: #6b5ddb;
+  color: #086bff;
 }
 
 .planCta {
@@ -965,8 +970,8 @@
   align-items: center;
   border-radius: 26px;
   background:
-    radial-gradient(circle at 16% 10%, rgba(124,108,242,.22), transparent 23rem),
-    linear-gradient(145deg, #17121f, #21192d);
+    radial-gradient(circle at 16% 10%, rgba(8, 107, 255,.22), transparent 23rem),
+    linear-gradient(145deg, #07162f, #0a1b3d);
   color: #fff;
 }
 
@@ -1197,7 +1202,7 @@
 }
 
 .problemStrip strong {
-  color: #5f53c8;
+  color: #075dcc;
 }
 
 .problemStrip svg {
@@ -1237,7 +1242,7 @@
 }
 
 .transformLabel svg {
-  color: #776bdd;
+  color: #086bff;
 }
 
 .transformationCard > p {
@@ -1257,8 +1262,8 @@
   align-items: center;
   border-radius: 26px;
   background:
-    radial-gradient(circle at 12% 0%, rgba(124,108,242,.2), transparent 23rem),
-    linear-gradient(145deg, #17121f, #21192d);
+    radial-gradient(circle at 12% 0%, rgba(8, 107, 255,.2), transparent 23rem),
+    linear-gradient(145deg, #07162f, #0a1b3d);
   color: #fff;
 }
 
@@ -1338,8 +1343,8 @@
 }
 
 .categoryColumns .operationColumn {
-  border-color: rgba(191,180,255,.18);
-  background: rgba(124,108,242,.1);
+  border-color: rgba(125, 211, 252,.18);
+  background: rgba(8, 107, 255,.1);
 }
 
 .operationColumn li {
@@ -1366,7 +1371,7 @@
 }
 
 .outcomeCard > svg {
-  color: #6759d4;
+  color: #086bff;
 }
 
 .outcomeCard h3 {
@@ -1390,7 +1395,7 @@
   gap: 24px;
   align-items: center;
   border-radius: 17px;
-  background: #ece9fb;
+  background: #eaf2ff;
 }
 
 .inlineCta > div {
@@ -1437,11 +1442,11 @@
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background: rgba(124,108,242,.06);
+  background: rgba(8, 107, 255,.06);
 }
 
 .proofCard > small {
-  color: #8276df;
+  color: #086bff;
   font-size: 8px;
   font-weight: 900;
   letter-spacing: .1em;
@@ -1468,7 +1473,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #6b5ddb;
+  color: #086bff;
   font-size: 8px;
   font-weight: 850;
 }
@@ -1489,7 +1494,7 @@
 }
 
 .audienceCard small {
-  color: #8175df;
+  color: #086bff;
   font-size: 8px;
   font-weight: 900;
   letter-spacing: .1em;
@@ -1545,7 +1550,7 @@
 }
 
 .faqItem summary span {
-  color: #7467d8;
+  color: #086bff;
   font-size: 17px;
 }
 
@@ -1612,5 +1617,60 @@
 
   .inlineCta .primaryCta {
     width: 100%;
+  }
+}
+
+
+/* ReDream canonical brand assets */
+.page {
+  font-family:
+    var(--font-redream-inter),
+    Inter,
+    "SF Pro Text",
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.brandLogo {
+  width: 190px;
+  height: auto;
+  object-fit: contain;
+}
+
+.footerBrandLogo {
+  width: 210px;
+  height: auto;
+  object-fit: contain;
+}
+
+.brand,
+.footerBrand {
+  min-width: 0;
+}
+
+.hero {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(8, 107, 255, .28), transparent 31rem),
+    radial-gradient(circle at 86% 48%, rgba(34, 211, 238, .13), transparent 29rem),
+    linear-gradient(145deg, #050D1D 0%, #0A1B3D 58%, #07162F 100%);
+}
+
+.categoryBand,
+.finalCta {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(8, 107, 255, .22), transparent 24rem),
+    linear-gradient(145deg, #07162F, #0A1B3D);
+}
+
+@media (max-width: 760px) {
+  .brandLogo {
+    width: 156px;
+  }
+
+  .footerBrandLogo {
+    width: 184px;
   }
 }

@@ -18,7 +18,7 @@ test(
     );
     assert.match(
       gate,
-      /process\.env\.NEXT_PUBLIC_REDREAM_ENVIRONMENT/,
+      /allowReDreamPublicRoot/,
     );
     assert.match(gate, /isReDreamPublicRoot/);
     assert.match(gate, /pathname === '\/'/);

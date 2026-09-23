@@ -2,6 +2,9 @@ import { headers } from 'next/headers';
 
 import ReDreamPublicLanding from '@/components/ReDreamPublicLanding';
 import TenantPlayerLanding from '@/components/TenantPlayerLanding';
+import {
+  shouldRenderReDreamPublicSite,
+} from '@/lib/redream-public-host';
 import { resolveTenantRuntime } from '@/lib/tenant-runtime';
 
 export default async function Landing() {
@@ -14,9 +17,11 @@ export default async function Landing() {
   const runtime = await resolveTenantRuntime(hostname);
 
   const isReDreamPublicSite =
-    Boolean(
-      process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT?.trim(),
-    ) && !runtime.resolved;
+    !runtime.resolved &&
+    shouldRenderReDreamPublicSite(
+      hostname,
+      process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT,
+    );
 
   return isReDreamPublicSite
     ? <ReDreamPublicLanding />

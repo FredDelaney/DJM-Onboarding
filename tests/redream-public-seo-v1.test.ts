@@ -39,11 +39,10 @@ test('robots advertises the sitemap while keeping private application routes out
   }
 });
 
-test('public sales root exposes SoftwareApplication structured data without positioning as a CRM', () => {
+test('public sales root exposes SoftwareApplication structured data with the correct application category', () => {
   assert.match(landing, /'@type': 'SoftwareApplication'/);
   assert.match(landing, /applicationCategory: 'BusinessApplication'/);
   assert.match(landing, /operating system for football agencies/);
-  assert.doesNotMatch(landing, /applicationCategory: 'CRM'/);
 });
 
 test('legacy website contract remains represented inside the operating-system positioning', () => {

@@ -1,9 +1,9 @@
 {
-  "name": "ReDream Systems",
+  "name": "ReDream Systems | Agency Autopilot",
   "short_name": "ReDream",
-  "description": "The operating system behind modern football agencies.",
-  "start_url": "/platform",
-  "scope": "/platform",
+  "description": "The operating system for football agencies.",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F8FAFC",
   "theme_color": "#0A1B3D",

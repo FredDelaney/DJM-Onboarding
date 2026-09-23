@@ -18,7 +18,7 @@ Interaction → evidence → structured knowledge → trusted intelligence → o
 - No talent score, fake probability, invented value or unsupported fact
 - Hard constraints beat semantic similarity
 - Human approval for external communication, disclosure, publishing, contractual truth and money
-- AI failure never breaks core CRM, Career, Decision or Deals workflows
+- AI failure never breaks core agency operations, Career, Decision or Deals workflows
 - Every material answer should expose evidence, truth state, freshness and uncertainty
 
 ## Football data layer

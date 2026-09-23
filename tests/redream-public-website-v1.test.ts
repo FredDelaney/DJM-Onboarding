@@ -18,10 +18,10 @@ const player = fs.readFileSync(
 );
 
 test('ReDream public root is host-safe while resolved agency domains keep the tenant player landing', () => {
-  assert.match(page, /NEXT_PUBLIC_REDREAM_ENVIRONMENT/);
+  assert.match(page, /shouldRenderReDreamPublicSite/);
   assert.match(page, /resolveTenantRuntime/);
   assert.match(page, /x-forwarded-host/);
-  assert.match(page, /&& !runtime\.resolved/);
+  assert.match(page, /!runtime\.resolved\s*&&/);
   assert.match(page, /ReDreamPublicLanding/);
   assert.match(page, /TenantPlayerLanding/);
   assert.match(player, /useTenantRuntime/);
@@ -50,7 +50,7 @@ test('resolved tenant metadata wins before public ReDream metadata and unresolve
   assert.match(layout, /follow:\s*false/);
 });
 
-test('website presents the agency operating spine rather than a generic CRM pitch', () => {
+test('website presents the agency operating spine as a distinct operating category', () => {
   assert.match(marketing, /The operating system/);
   assert.match(marketing, /football agencies/);
   assert.match(marketing, /Tell ReDream/);

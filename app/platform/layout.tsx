@@ -14,8 +14,9 @@ export const metadata: Metadata = {
     follow: false,
   },
   icons: {
-    icon: '/platform/icon.svg',
-    shortcut: '/platform/icon.svg',
+    icon: '/brand/redream-app-icon.png',
+    shortcut: '/brand/redream-app-icon.png',
+    apple: '/brand/redream-app-icon.png',
   },
   appleWebApp: {
     capable: true,
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#18131f',
+  themeColor: '#0A1B3D',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',

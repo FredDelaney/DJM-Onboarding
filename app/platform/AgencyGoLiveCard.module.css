@@ -312,7 +312,7 @@
 
 .formGrid input:focus {
   border-color: rgba(86, 71, 118, 0.35);
-  box-shadow: 0 0 0 3px rgba(124, 108, 242, 0.08);
+  box-shadow: 0 0 0 3px rgba(8, 107, 255, 0.08);
 }
 
 .fullField {
@@ -358,7 +358,7 @@
   gap: 6px;
   border: 0;
   border-radius: 9px;
-  background: #18131f;
+  background: #0a1b3d;
   color: #fff;
   font-size: 8px;
   font-weight: 800;

@@ -6,7 +6,7 @@
   background:
     linear-gradient(
       180deg,
-      rgba(124, 108, 242, 0.035),
+      rgba(8, 107, 255, 0.035),
       transparent 110px
     ),
     #fff;
@@ -307,7 +307,7 @@
 }
 
 .inviteActions .emailButton {
-  border-color: color-mix(in srgb, #7c6cf2 28%, rgba(10,10,12,.08));
-  background: color-mix(in srgb, #7c6cf2 6%, #fff);
-  color: #5f53c8;
+  border-color: color-mix(in srgb, #086bff 28%, rgba(10,10,12,.08));
+  background: color-mix(in srgb, #086bff 6%, #fff);
+  color: #075dcc;
 }

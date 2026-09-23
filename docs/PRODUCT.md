@@ -2,7 +2,7 @@
 
 ## Player experience
 
-DJM Player should feel like a private career app, not a CRM exposed to a footballer.
+DJM Player should feel like a private career app built for the footballer, not an internal agency workspace exposed to them.
 
 The player should understand the product in seconds:
 

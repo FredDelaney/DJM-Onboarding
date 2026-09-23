@@ -1131,7 +1131,11 @@ export default function PlatformPage() {
     return (
       <main className={styles.loadingPage}>
         <div className={styles.loadingMark}>
-          <Sparkles size={18} />
+          <img
+            src="/brand/redream-mark.png"
+            alt=""
+            aria-hidden="true"
+          />
         </div>
         <div>
           <strong>Opening ReDream</strong>
@@ -1161,11 +1165,12 @@ export default function PlatformPage() {
     <main className={styles.page}>
       <header className={styles.topbar}>
         <div className={styles.brandBlock}>
-          <div className={styles.brandMark}>R</div>
-          <div>
-            <strong>ReDream Systems</strong>
-            <span>Operator cockpit</span>
-          </div>
+          <img
+            src="/brand/redream-lockup-dark.png"
+            alt="ReDream Systems | Agency Autopilot"
+            className={styles.brandLogo}
+          />
+          <span className={styles.brandContext}>Operator cockpit</span>
         </div>
 
         <div className={styles.topbarActions}>

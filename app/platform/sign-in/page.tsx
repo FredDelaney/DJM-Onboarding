@@ -55,11 +55,12 @@ export default function ReDreamOperatorSignIn() {
     <main className={styles.page}>
       <section className={styles.brandPanel}>
         <div className={styles.brand}>
-          <div className={styles.mark}>R</div>
-          <div>
-            <strong>ReDream Systems</strong>
-            <span>Private control plane</span>
-          </div>
+          <img
+            src="/brand/redream-lockup-light.png"
+            alt="ReDream Systems | Agency Autopilot"
+            className={styles.brandLogo}
+          />
+          <span className={styles.brandContext}>Private control plane</span>
         </div>
 
         <div className={styles.statement}>
