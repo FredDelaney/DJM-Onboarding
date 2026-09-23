@@ -51,6 +51,7 @@ import AgencyDomainCard, {
 } from './AgencyDomainCard';
 import DemoRequestsPanel, {
   type DemoRequest,
+  type DemoSalesUpdate,
   type FunnelSummary,
 } from './DemoRequestsPanel';
 
@@ -785,18 +786,52 @@ export default function PlatformPage() {
     status: 'contacted' | 'qualified' | 'closed',
   ) => {
     if (demoBusyId) return;
+    const request = demoRequests.find((item) => item.id === requestId);
+    if (!request) return;
+
     setDemoBusyId(requestId);
     setError('');
 
     try {
       await platformInvoke('platform-ops', {
-        action: 'demo_request_update',
+        action: 'demo_request_sales_update',
         request_id: requestId,
-        status,
+        sales_stage: status,
+        next_action: request.next_action || '',
+        next_follow_up_at: request.next_follow_up_at || null,
+        demo_scheduled_at: request.demo_scheduled_at || null,
+        operator_notes: request.operator_notes || '',
       });
       await load(true);
     } catch (demoError) {
       setError(friendlyError(demoError));
+    } finally {
+      setDemoBusyId('');
+    }
+  };
+
+  const updateDemoRequestSales = async (
+    requestId: string,
+    update: DemoSalesUpdate,
+  ) => {
+    if (demoBusyId) return;
+    setDemoBusyId(requestId);
+    setError('');
+
+    try {
+      await platformInvoke('platform-ops', {
+        action: 'demo_request_sales_update',
+        request_id: requestId,
+        sales_stage: update.salesStage,
+        next_action: update.nextAction,
+        next_follow_up_at: update.nextFollowUpAt,
+        demo_scheduled_at: update.demoScheduledAt,
+        operator_notes: update.operatorNotes,
+      });
+      await load(true);
+    } catch (demoError) {
+      setError(friendlyError(demoError));
+      throw demoError;
     } finally {
       setDemoBusyId('');
     }
@@ -839,6 +874,9 @@ export default function PlatformPage() {
 
     const finalSlug = agency.slug.trim() || slugify(agency.displayName);
     const shortName = agency.displayName.trim().split(/\s+/).slice(0, 3).join(' ');
+    const sourceRequest = pendingDemoRequestId
+      ? demoRequests.find((item) => item.id === pendingDemoRequestId) || null
+      : null;
 
     try {
       const result = await platformInvoke<any>('platform-ops', {
@@ -879,7 +917,22 @@ export default function PlatformPage() {
           website_url: agency.websiteUrl.trim() || null,
         },
         metadata: {
-          source: 'platform_cockpit',
+          source: sourceRequest ? 'redream_demo_request' : 'platform_cockpit',
+          demo_request_id: sourceRequest?.id || null,
+          prospect_context: sourceRequest
+            ? {
+                staff_size: sourceRequest.staff_size || null,
+                player_count: sourceRequest.player_count || null,
+                requested_plan: sourceRequest.requested_plan || null,
+                priority: sourceRequest.priority || null,
+                conversion_source:
+                  sourceRequest.acquisition?.conversion_source || null,
+                utm_source: sourceRequest.acquisition?.utm_source || null,
+                utm_campaign: sourceRequest.acquisition?.utm_campaign || null,
+                top_scenario:
+                  sourceRequest.lead_intelligence?.top_scenario || null,
+              }
+            : null,
         },
       });
 
@@ -1315,7 +1368,14 @@ export default function PlatformPage() {
           requests={demoRequests}
           summary={funnelSummary}
           busyId={demoBusyId}
+          customerStages={Object.fromEntries(
+            (portfolio?.customers || []).map((customer) => [
+              customer.tenant_id,
+              customer.stage,
+            ]),
+          )}
           onStatus={(id, status) => void updateDemoRequestStatus(id, status)}
+          onSalesUpdate={updateDemoRequestSales}
           onCreateAgency={startAgencyFromDemo}
         />
 

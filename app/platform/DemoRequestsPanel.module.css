@@ -6,14 +6,20 @@
   background: #fff;
 }
 
-.heading {
+.heading,
+.subheading,
+.drawerHeader,
+.drawerSectionTitle {
   display: flex;
   justify-content: space-between;
   gap: 24px;
   align-items: flex-start;
 }
 
-.heading p {
+.heading p,
+.subheading p,
+.drawerHeader p,
+.drawerSectionTitle p {
   margin: 0;
   color: #96909b;
   font-size: 8px;
@@ -24,12 +30,12 @@
 .heading h2 {
   margin: 4px 0 0;
   color: #29242f;
-  font-size: 19px;
-  letter-spacing: -.03em;
+  font-size: 21px;
+  letter-spacing: -.035em;
 }
 
 .heading span {
-  max-width: 690px;
+  max-width: 760px;
   margin-top: 5px;
   display: block;
   color: #827c87;
@@ -37,20 +43,156 @@
   line-height: 1.45;
 }
 
-.heading > strong {
+.heading > strong,
+.subheading > span {
   min-width: 34px;
   height: 34px;
   padding: 0 9px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: #f0edfb;
-  color: #685bd1;
+  background: #eaf2ff;
+  color: #086bff;
   font-size: 11px;
 }
 
-.funnelMetrics {
+.attentionBlock {
   margin-top: 15px;
+  padding: 13px;
+  border: 1px solid #e5ebf4;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fbfdff, #f7faff);
+}
+
+.subheading strong,
+.drawerSectionTitle strong {
+  display: block;
+  margin-top: 3px;
+  color: #342f3a;
+  font-size: 10px;
+}
+
+.attentionGrid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.attentionCard {
+  min-height: 96px;
+  padding: 11px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  text-align: left;
+  border: 1px solid #dde7f5;
+  border-radius: 11px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.attentionCard:hover {
+  border-color: #b9cff0;
+  box-shadow: 0 7px 22px rgba(10, 27, 61, .06);
+}
+
+.attentionTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.attentionTop strong {
+  color: #2f3540;
+  font-size: 9px;
+}
+
+.attentionTop em {
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #0a1b3d;
+  color: #fff;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.attentionCard > span:not(.attentionTop) {
+  color: #4f5968;
+  font-size: 8px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.attentionCard small {
+  color: #9299a4;
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.attentionEmpty {
+  grid-column: 1 / -1;
+  min-height: 82px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  color: #778294;
+  text-align: center;
+}
+
+.attentionEmpty strong {
+  color: #485363;
+  font-size: 9px;
+}
+
+.attentionEmpty span {
+  font-size: 8px;
+}
+
+.pipeline {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #e8ebf0;
+  border-radius: 12px;
+}
+
+.pipeline > div {
+  min-height: 54px;
+  padding: 8px 10px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  border-right: 1px solid #e8ebf0;
+  background: #fff;
+}
+
+.pipeline > div:last-child {
+  border-right: 0;
+}
+
+.pipeline span {
+  color: #8b929d;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.pipeline strong {
+  color: #273142;
+  font-size: 14px;
+}
+
+.funnelMetrics {
+  margin-top: 10px;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   overflow: hidden;
@@ -144,12 +286,23 @@
 
 .identity em[data-status="new"] {
   background: #eaf2ff;
-  color: #6657d8;
+  color: #086bff;
 }
 
+.identity em[data-status="demo"],
 .identity em[data-status="qualified"] {
   background: #edf7f0;
   color: #407357;
+}
+
+.identity em[data-status="trial"] {
+  background: #fff5df;
+  color: #815f21;
+}
+
+.identity em[data-status="customer"] {
+  background: #e8f4ff;
+  color: #235f93;
 }
 
 .prioritySignal {
@@ -182,14 +335,16 @@
   font-size: 8px;
 }
 
-.intelligence {
+.intelligence,
+.signalGrid {
   margin-top: 9px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
 
-.intelligence > div {
+.intelligence > div,
+.signalGrid > div {
   min-height: 49px;
   padding: 8px 9px;
   display: grid;
@@ -201,21 +356,25 @@
   background: #fbfafc;
 }
 
-.intelligence svg {
-  color: #6c5fd2;
+.intelligence svg,
+.signalGrid svg {
+  color: #086bff;
 }
 
-.intelligence span {
+.intelligence span,
+.signalGrid span {
   display: grid;
   gap: 2px;
 }
 
-.intelligence strong {
+.intelligence strong,
+.signalGrid strong {
   color: #4b4551;
   font-size: 8px;
 }
 
-.intelligence small {
+.intelligence small,
+.signalGrid small {
   color: #918a97;
   font-size: 7px;
 }
@@ -244,6 +403,32 @@
   line-height: 1.5;
 }
 
+.nextActionLine {
+  margin-top: 9px;
+  min-height: 34px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #7c8490;
+}
+
+.nextActionLine svg {
+  color: #086bff;
+}
+
+.nextActionLine strong {
+  color: #3d4755;
+  font-size: 8px;
+}
+
+.nextActionLine span {
+  margin-left: auto;
+  font-size: 7px;
+}
+
 .actions {
   margin-top: 10px;
   display: flex;
@@ -252,7 +437,9 @@
 }
 
 .actions a,
-.actions button {
+.actions button,
+.drawerFooter a,
+.drawerFooter button {
   min-height: 31px;
   padding: 0 9px;
   display: inline-flex;
@@ -266,9 +453,11 @@
   font: inherit;
   font-size: 8px;
   font-weight: 800;
+  text-decoration: none;
 }
 
-.actions button:disabled {
+.actions button:disabled,
+.saveButton:disabled {
   opacity: .5;
   cursor: wait;
 }
@@ -298,7 +487,339 @@
   line-height: 1.45;
 }
 
-@media (max-width: 900px) {
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(7, 18, 39, .36);
+  backdrop-filter: blur(4px);
+}
+
+.drawer {
+  width: min(580px, 94vw);
+  height: 100dvh;
+  padding: 22px;
+  overflow-y: auto;
+  background: #f8fafc;
+  box-shadow: -24px 0 70px rgba(7, 18, 39, .18);
+}
+
+.drawerHeader {
+  padding-bottom: 15px;
+  border-bottom: 1px solid #dfe5ec;
+}
+
+.drawerHeader h3 {
+  margin: 4px 0 0;
+  color: #17243a;
+  font-size: 23px;
+  letter-spacing: -.035em;
+}
+
+.drawerHeader span {
+  margin-top: 4px;
+  display: block;
+  color: #7d8795;
+  font-size: 9px;
+}
+
+.iconButton {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dce3eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #536071;
+  cursor: pointer;
+}
+
+.drawerScore {
+  margin-top: 13px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  border: 1px solid #dfe5ec;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.drawerScore > div {
+  min-height: 70px;
+  padding: 10px 12px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border-right: 1px solid #e5e9ef;
+}
+
+.drawerScore > div:last-child {
+  border-right: 0;
+}
+
+.drawerScore span {
+  color: #919aa6;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.drawerScore strong {
+  color: #0a1b3d;
+  font-size: 18px;
+}
+
+.drawerSection {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #dfe5ec;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.drawerSectionTitle > span {
+  color: #929aa5;
+  font-size: 7px;
+}
+
+.stagePicker {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stagePicker button {
+  min-height: 29px;
+  padding: 0 9px;
+  border: 1px solid #dfe5ec;
+  border-radius: 999px;
+  background: #fff;
+  color: #677383;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.stagePicker button[data-active="true"] {
+  border-color: #086bff;
+  background: #086bff;
+  color: #fff;
+}
+
+.field,
+.fieldGrid {
+  margin-top: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.field > span {
+  color: #697585;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+  background: #fbfcfd;
+  color: #273345;
+  font: inherit;
+  font-size: 9px;
+  outline: none;
+}
+
+.field input {
+  height: 36px;
+  padding: 0 10px;
+}
+
+.field textarea {
+  min-height: 108px;
+  padding: 9px 10px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: #8bbaff;
+  box-shadow: 0 0 0 3px rgba(8, 107, 255, .08);
+}
+
+.field input:disabled,
+.field textarea:disabled {
+  opacity: .65;
+}
+
+.saveButton {
+  margin-top: 10px;
+  min-height: 34px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 9px;
+  background: #0a1b3d;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.signalGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.prospectContext {
+  margin-top: 9px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.prospectContext span {
+  color: #929aa5;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.prospectContext p {
+  margin: 5px 0 0;
+  color: #4f5a69;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.detailList {
+  margin-top: 9px;
+  display: grid;
+  gap: 6px;
+}
+
+.detailList > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #edf0f4;
+  color: #8a929e;
+  font-size: 8px;
+}
+
+.detailList > span:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.detailList strong {
+  color: #4a5564;
+  font-weight: 800;
+  text-align: right;
+}
+
+.timeline {
+  margin-top: 10px;
+  display: grid;
+}
+
+.timeline > div:not(.timelineEmpty) {
+  position: relative;
+  min-height: 45px;
+  padding: 0 0 12px 21px;
+  border-left: 1px solid #dce5ef;
+  margin-left: 5px;
+}
+
+.timeline > div:last-child {
+  border-left-color: transparent;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -5px;
+  top: 2px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #086bff;
+  box-shadow: 0 0 0 1px #a8c9f8;
+}
+
+.timeline strong,
+.timeline small {
+  display: block;
+}
+
+.timeline strong {
+  color: #445061;
+  font-size: 8px;
+}
+
+.timeline small {
+  margin-top: 3px;
+  color: #929ba7;
+  font-size: 7px;
+}
+
+.timelineEmpty {
+  padding: 10px 0 2px;
+  color: #8d96a2;
+  font-size: 8px;
+}
+
+.drawerFooter {
+  position: sticky;
+  bottom: -22px;
+  margin: 14px -22px -22px;
+  padding: 13px 22px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #dbe2ea;
+  background: rgba(248, 250, 252, .96);
+  backdrop-filter: blur(8px);
+}
+
+.drawerFooter button {
+  border-color: #0a1b3d;
+  background: #0a1b3d;
+  color: #fff;
+}
+
+@media (max-width: 1000px) {
+  .attentionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pipeline {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pipeline > div {
+    border-bottom: 1px solid #e8ebf0;
+  }
+
   .funnelMetrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -317,9 +838,16 @@
     flex-direction: column;
   }
 
+  .attentionGrid,
   .intelligence,
-  .funnelMetrics {
+  .signalGrid,
+  .funnelMetrics,
+  .fieldGrid {
     grid-template-columns: 1fr;
+  }
+
+  .pipeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .actions {
@@ -330,5 +858,30 @@
   .actions a,
   .actions button {
     justify-content: center;
+  }
+
+  .nextActionLine {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .nextActionLine span {
+    width: 100%;
+    margin-left: 20px;
+  }
+
+  .drawer {
+    width: 100vw;
+    padding: 17px;
+  }
+
+  .drawerScore {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .drawerFooter {
+    bottom: -17px;
+    margin: 14px -17px -17px;
+    padding: 12px 17px;
   }
 }

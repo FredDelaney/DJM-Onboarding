@@ -323,6 +323,52 @@ export default {fetch:async(req:Request)=>{
       });
     }
 
+    if(action==="demo_request_sales_update"){
+      const requestId=text(body?.request_id);
+      const salesStage=text(body?.sales_stage).toLowerCase();
+      const allowedStage=new Set(["new","contacted","demo","qualified","closed"]);
+      if(!uuid.test(requestId)||!allowedStage.has(salesStage)){
+        return json({error:"Valid request_id and sales_stage are required"},400);
+      }
+
+      const nextAction=text(body?.next_action);
+      const operatorNotes=text(body?.operator_notes);
+      if(nextAction.length>500) return json({error:"next_action is too long"},400);
+      if(operatorNotes.length>6000) return json({error:"operator_notes is too long"},400);
+
+      const parseTimestamp=(value:unknown)=>{
+        const raw=text(value);
+        if(!raw) return null;
+        const parsed=Date.parse(raw);
+        return Number.isNaN(parsed)?null:new Date(parsed).toISOString();
+      };
+      const followUpRaw=text(body?.next_follow_up_at);
+      const demoRaw=text(body?.demo_scheduled_at);
+      const nextFollowUpAt=parseTimestamp(body?.next_follow_up_at);
+      const demoScheduledAt=parseTimestamp(body?.demo_scheduled_at);
+      if(followUpRaw&&!nextFollowUpAt) return json({error:"Valid next_follow_up_at is required"},400);
+      if(demoRaw&&!demoScheduledAt) return json({error:"Valid demo_scheduled_at is required"},400);
+
+      const updated=await rpc(
+        "platform_server_operator_update_demo_request_sales",
+        {
+          p_request_id:requestId,
+          p_sales_stage:salesStage,
+          p_next_action:nextAction||null,
+          p_next_follow_up_at:nextFollowUpAt,
+          p_demo_scheduled_at:demoScheduledAt,
+          p_operator_notes:operatorNotes||null,
+          p_actor_user_id:userId,
+        },
+      );
+
+      return json({
+        ok:true,
+        platform_role:adminRecord.role,
+        demo_request:updated,
+      });
+    }
+
     if(action==="create_customer"){
       const slug=text(body?.slug).toLowerCase();
       const displayName=text(body?.display_name);
