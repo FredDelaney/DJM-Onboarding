@@ -374,8 +374,8 @@ export default function DemoRequestsPanel({
                     fallbackAction(effectiveStage(item, customerStages))}
                 </span>
                 <small>
-                  {item.next_follow_up_at
-                    ? `Follow-up ${when(item.next_follow_up_at)}`
+                  {item.attention_due_at
+                    ? `${item.attention_reason || 'Due'} · ${when(item.attention_due_at)}`
                     : `${human(effectiveStage(item, customerStages))} · ${sourceLabel(item)}`}
                 </small>
               </button>

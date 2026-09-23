@@ -59,7 +59,7 @@ test('revenue mutations stay behind the platform operator service bridge', () =>
 });
 
 test('lead to agency handoff retains the sales origin and still requires explicit creation', () => {
-  assert.match(page, /prospect_context/);
+  assert.doesNotMatch(page, /prospect_context:/);
   assert.match(page, /demo_request_id/);
   assert.match(page, /sourceRequest/);
   assert.match(page, /onCreateAgency=\{startAgencyFromDemo\}/);
@@ -75,4 +75,22 @@ test('website journey remains bounded and uses only the existing first-party eve
   assert.match(migration, /scenario_kind/);
   assert.match(migration, /cta_key/);
   assert.match(migration, /metadata->>'mode'/);
+});
+
+
+const attentionFix = fs.readFileSync(
+  'supabase/migrations/20260923214500_redream_revenue_attention_due_fix_v1.sql',
+  'utf8',
+);
+
+test('prospect attention uses the earliest explicit due time and displays that same deadline', () => {
+  assert.match(attentionFix, /least\(d\.next_follow_up_at, d\.demo_scheduled_at\)/);
+  assert.match(panel, /item\.attention_due_at/);
+  assert.match(panel, /item\.attention_reason/);
+});
+
+test('lead conversion keeps one canonical prospect record instead of copying raw sales context into tenant metadata', () => {
+  assert.match(page, /demo_request_id: sourceRequest\?\.id \|\| null/);
+  assert.doesNotMatch(page, /prospect_context:/);
+  assert.doesNotMatch(page, /throw demoError/);
 });

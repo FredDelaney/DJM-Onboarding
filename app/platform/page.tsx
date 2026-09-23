@@ -831,7 +831,6 @@ export default function PlatformPage() {
       await load(true);
     } catch (demoError) {
       setError(friendlyError(demoError));
-      throw demoError;
     } finally {
       setDemoBusyId('');
     }
@@ -919,20 +918,6 @@ export default function PlatformPage() {
         metadata: {
           source: sourceRequest ? 'redream_demo_request' : 'platform_cockpit',
           demo_request_id: sourceRequest?.id || null,
-          prospect_context: sourceRequest
-            ? {
-                staff_size: sourceRequest.staff_size || null,
-                player_count: sourceRequest.player_count || null,
-                requested_plan: sourceRequest.requested_plan || null,
-                priority: sourceRequest.priority || null,
-                conversion_source:
-                  sourceRequest.acquisition?.conversion_source || null,
-                utm_source: sourceRequest.acquisition?.utm_source || null,
-                utm_campaign: sourceRequest.acquisition?.utm_campaign || null,
-                top_scenario:
-                  sourceRequest.lead_intelligence?.top_scenario || null,
-              }
-            : null,
         },
       });
 
