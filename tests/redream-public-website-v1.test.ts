@@ -17,8 +17,11 @@ const player = fs.readFileSync(
   'utf8',
 );
 
-test('ReDream environment receives a real public product site while tenant deployments keep player landing', () => {
+test('ReDream public root is host-safe while resolved agency domains keep the tenant player landing', () => {
   assert.match(page, /NEXT_PUBLIC_REDREAM_ENVIRONMENT/);
+  assert.match(page, /resolveTenantRuntime/);
+  assert.match(page, /x-forwarded-host/);
+  assert.match(page, /&& !runtime\.resolved/);
   assert.match(page, /ReDreamPublicLanding/);
   assert.match(page, /TenantPlayerLanding/);
   assert.match(player, /useTenantRuntime/);
@@ -32,7 +35,13 @@ test('public ReDream root is allowed by unresolved tenant gate instead of redire
   assert.doesNotMatch(gate, /shouldRedirectReDreamRoot/);
 });
 
-test('public metadata is indexable and product-specific without weakening unresolved customer-domain metadata', () => {
+test('resolved tenant metadata wins before public ReDream metadata and unresolved unknown domains remain private', () => {
+  const runtimeCheck = layout.indexOf('if (runtime.resolved)');
+  const publicCheck = layout.indexOf('if (isReDreamPublicSite)');
+
+  assert.ok(runtimeCheck >= 0);
+  assert.ok(publicCheck > runtimeCheck);
+  assert.match(layout, /Private career app by/);
   assert.match(layout, /Operating system for football agencies/);
   assert.match(layout, /index:\s*true/);
   assert.match(layout, /follow:\s*true/);

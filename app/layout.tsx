@@ -58,6 +58,74 @@ const getRequestTenantRuntime = cache(
 
 export async function generateMetadata():
   Promise<Metadata> {
+  const runtime =
+    await getRequestTenantRuntime();
+
+  if (runtime.resolved) {
+    const title =
+      runtime.branding.portal_name ||
+      runtime.branding.short_name ||
+      runtime.branding.display_name;
+
+    const description =
+      `Private career app by ${runtime.branding.display_name}`;
+
+    const favicon =
+      runtime.branding.favicon_asset;
+
+    const iconBundle =
+      favicon?.startsWith('/')
+        ? favicon.match(
+            /^(.*\/)?icon-512\.png$/,
+          )
+        : null;
+
+    const iconBase =
+      iconBundle
+        ? iconBundle[1] || '/'
+        : null;
+
+    const icons = favicon
+      ? iconBase
+        ? {
+            icon: [
+              {
+                url: `${iconBase}icon-192.png`,
+                sizes: '192x192',
+                type: 'image/png',
+              },
+              {
+                url: favicon,
+                sizes: '512x512',
+                type: 'image/png',
+              },
+            ],
+            apple:
+              `${iconBase}apple-touch-icon.png`,
+          }
+        : {
+            icon: favicon,
+            apple: favicon,
+          }
+      : undefined;
+
+    return {
+      title,
+      description,
+      manifest: '/workspace-manifest.webmanifest',
+      icons,
+      appleWebApp: {
+        capable: true,
+        title,
+        statusBarStyle:
+          'black-translucent',
+      },
+      formatDetection: {
+        telephone: false,
+      },
+    };
+  }
+
   const isReDreamPublicSite = Boolean(
     process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT?.trim(),
   );
@@ -86,81 +154,13 @@ export async function generateMetadata():
     };
   }
 
-  const runtime =
-    await getRequestTenantRuntime();
-
-  if (!runtime.resolved) {
-    return {
-      title: 'Workspace unavailable',
-      description:
-        'This domain is not connected to an active workspace.',
-      robots: {
-        index: false,
-        follow: false,
-      },
-    };
-  }
-
-  const title =
-    runtime.branding.portal_name ||
-    runtime.branding.short_name ||
-    runtime.branding.display_name;
-
-  const description =
-    `Private career app by ${runtime.branding.display_name}`;
-
-  const favicon =
-    runtime.branding.favicon_asset;
-
-  const iconBundle =
-    favicon?.startsWith('/')
-      ? favicon.match(
-          /^(.*\/)?icon-512\.png$/,
-        )
-      : null;
-
-  const iconBase =
-    iconBundle
-      ? iconBundle[1] || '/'
-      : null;
-
-  const icons = favicon
-    ? iconBase
-      ? {
-          icon: [
-            {
-              url: `${iconBase}icon-192.png`,
-              sizes: '192x192',
-              type: 'image/png',
-            },
-            {
-              url: favicon,
-              sizes: '512x512',
-              type: 'image/png',
-            },
-          ],
-          apple:
-            `${iconBase}apple-touch-icon.png`,
-        }
-      : {
-          icon: favicon,
-          apple: favicon,
-        }
-    : undefined;
-
   return {
-    title,
-    description,
-    manifest: '/workspace-manifest.webmanifest',
-    icons,
-    appleWebApp: {
-      capable: true,
-      title,
-      statusBarStyle:
-        'black-translucent',
-    },
-    formatDetection: {
-      telephone: false,
+    title: 'Workspace unavailable',
+    description:
+      'This domain is not connected to an active workspace.',
+    robots: {
+      index: false,
+      follow: false,
     },
   };
 }
