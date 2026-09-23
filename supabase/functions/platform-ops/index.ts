@@ -286,6 +286,17 @@ export default {fetch:async(req:Request)=>{
       });
     }
 
+    if(action==="funnel_summary"){
+      return json({
+        ok:true,
+        platform_role:adminRecord.role,
+        funnel_summary:await rpc(
+          "platform_server_operator_funnel_summary",
+          {p_days:clamp(body?.days,1,365,30)},
+        ),
+      });
+    }
+
     if(action==="demo_request_update"){
       const requestId=text(body?.request_id);
       const status=text(body?.status).toLowerCase();

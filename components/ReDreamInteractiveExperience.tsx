@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import ReDreamDemoRequestButton from '@/components/ReDreamDemoRequestButton';
+import { trackFunnel } from '@/lib/redream-funnel';
 import styles from './ReDreamInteractiveExperience.module.css';
 
 type ScenarioKey = 'club' | 'player' | 'deal' | 'relationship';
@@ -170,6 +171,7 @@ export default function ReDreamInteractiveExperience() {
 
   const chooseScenario = (key: ScenarioKey) => {
     const next = scenarios.find((item) => item.key === key) || scenarios[0];
+    trackFunnel('scenario_select', { scenario_kind: key });
     setScenarioKey(key);
     setNote(next.example);
     setStage(4);
@@ -181,6 +183,7 @@ export default function ReDreamInteractiveExperience() {
     if (!note.trim() || isRunning) return;
 
     if (intervalRef.current) clearInterval(intervalRef.current);
+    trackFunnel('scenario_run', { scenario_kind: scenarioKey });
     setStage(0);
     setIsRunning(true);
 
@@ -190,6 +193,7 @@ export default function ReDreamInteractiveExperience() {
       setStage(nextStage);
       if (nextStage >= stages.length - 1) {
         if (intervalRef.current) clearInterval(intervalRef.current);
+        trackFunnel('scenario_complete', { scenario_kind: scenarioKey });
         setIsRunning(false);
       }
     }, 420);
@@ -348,6 +352,7 @@ export default function ReDreamInteractiveExperience() {
           className={styles.conversionButton}
           label="Run ReDream on my agency"
           initialPriority={demoContext}
+          trackingKey="interactive_result"
         />
       </div>
 

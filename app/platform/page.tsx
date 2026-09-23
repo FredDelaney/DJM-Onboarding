@@ -51,6 +51,7 @@ import AgencyDomainCard, {
 } from './AgencyDomainCard';
 import DemoRequestsPanel, {
   type DemoRequest,
+  type FunnelSummary,
 } from './DemoRequestsPanel';
 
 import styles from './platform.module.css';
@@ -352,6 +353,7 @@ export default function PlatformPage() {
   const [agency, setAgency] = useState<NewAgencyState>({ ...EMPTY_AGENCY });
   const [latestInvite, setLatestInvite] = useState<OwnerInviteLink | null>(null);
   const [demoRequests, setDemoRequests] = useState<DemoRequest[]>([]);
+  const [funnelSummary, setFunnelSummary] = useState<FunnelSummary | null>(null);
   const [demoBusyId, setDemoBusyId] = useState('');
   const [pendingDemoRequestId, setPendingDemoRequestId] = useState<string | null>(null);
 
@@ -371,15 +373,17 @@ export default function PlatformPage() {
         return;
       }
 
-      const [portfolioResult, plansResult, demoResult] = await Promise.all([
+      const [portfolioResult, plansResult, demoResult, funnelResult] = await Promise.all([
         platformInvoke<any>('platform-ops', { action: 'portfolio' }),
         platformInvoke<any>('platform-ops', { action: 'plans' }),
         platformInvoke<any>('platform-ops', { action: 'demo_requests', limit: 50 }),
+        platformInvoke<any>('platform-ops', { action: 'funnel_summary', days: 30 }),
       ]);
 
       setPortfolio(portfolioResult?.portfolio || null);
       setPlans(plansResult?.plans || []);
       setDemoRequests(demoResult?.demo_requests || []);
+      setFunnelSummary(funnelResult?.funnel_summary || null);
     } catch (loadError) {
       const message = friendlyError(loadError);
       if (message.toLowerCase().includes('platform operator access required')) {
@@ -1309,6 +1313,7 @@ export default function PlatformPage() {
 
         <DemoRequestsPanel
           requests={demoRequests}
+          summary={funnelSummary}
           busyId={demoBusyId}
           onStatus={(id, status) => void updateDemoRequestStatus(id, status)}
           onCreateAgency={startAgencyFromDemo}

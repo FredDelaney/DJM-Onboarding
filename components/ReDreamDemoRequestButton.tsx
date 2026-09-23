@@ -9,6 +9,7 @@ import {
 import { FormEvent, useEffect, useState } from 'react';
 
 import { platformInvoke } from '@/lib/platform-client';
+import { getFunnelContext, trackFunnel } from '@/lib/redream-funnel';
 import styles from './ReDreamDemoRequestButton.module.css';
 
 type FormState = {
@@ -40,11 +41,13 @@ export default function ReDreamDemoRequestButton({
   label,
   requestedPlan = null,
   initialPriority = '',
+  trackingKey = 'unclassified',
 }: {
   className?: string;
   label: string;
   requestedPlan?: string | null;
   initialPriority?: string;
+  trackingKey?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -73,6 +76,8 @@ export default function ReDreamDemoRequestButton({
   }, [open, submitting]);
 
   const openForm = () => {
+    trackFunnel('cta_click', { cta_key: trackingKey });
+    trackFunnel('demo_open', { cta_key: trackingKey, metadata: { plan: requestedPlan } });
     setError('');
     setSubmittedEmail('');
     setStep(1);
@@ -100,6 +105,7 @@ export default function ReDreamDemoRequestButton({
     }
     setError('');
     setStep(2);
+    trackFunnel('demo_step_2', { cta_key: trackingKey, metadata: { plan: requestedPlan } });
   };
 
   const submit = async (event: FormEvent) => {
@@ -122,6 +128,7 @@ export default function ReDreamDemoRequestButton({
     setError('');
 
     try {
+      const funnel = getFunnelContext();
       await platformInvoke('redream-demo-request', {
         client_request_id: clientRequestId,
         full_name: form.fullName.trim(),
@@ -136,9 +143,17 @@ export default function ReDreamDemoRequestButton({
         company_website: form.companyWebsite,
         source_host: window.location.hostname,
         source_path: window.location.pathname,
-        referrer: document.referrer || null,
+        referrer: funnel?.referrer || document.referrer || null,
+        session_id: funnel?.session_id || null,
+        conversion_source: trackingKey,
+        utm_source: funnel?.utm_source || null,
+        utm_medium: funnel?.utm_medium || null,
+        utm_campaign: funnel?.utm_campaign || null,
+        utm_content: funnel?.utm_content || null,
+        utm_term: funnel?.utm_term || null,
       });
 
+      trackFunnel('demo_submit', { cta_key: trackingKey, metadata: { plan: requestedPlan } });
       setSubmittedEmail(form.email.trim().toLowerCase());
       setForm({ ...EMPTY_FORM });
       setRequestId(clientRequestId);

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import ReDreamDemoRequestButton from '@/components/ReDreamDemoRequestButton';
+import ReDreamFunnelTracker from '@/components/ReDreamFunnelTracker';
 import ReDreamInteractiveExperience from '@/components/ReDreamInteractiveExperience';
 import ReDreamProductStory from '@/components/ReDreamProductStory';
 import styles from './ReDreamPublicLanding.module.css';
@@ -56,6 +57,7 @@ const structuredData = {
 export default function ReDreamPublicLanding() {
   return (
     <main className={styles.page}>
+      <ReDreamFunnelTracker />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -83,6 +85,7 @@ export default function ReDreamPublicLanding() {
           <ReDreamDemoRequestButton
             className={styles.navCta}
             label="Run ReDream on my agency"
+            trackingKey="nav_demo"
           />
         </div>
       </header>
@@ -104,13 +107,14 @@ export default function ReDreamPublicLanding() {
             </p>
 
             <div className={styles.heroActions}>
-              <a href="#try-redream" className={styles.primaryLink}>
+              <a href="#try-redream" className={styles.primaryLink} data-funnel-cta="hero_try">
                 Try ReDream now
                 <ArrowRight size={15} />
               </a>
               <ReDreamDemoRequestButton
                 className={styles.secondaryButton}
                 label="Run it on my agency"
+                trackingKey="hero_demo"
               />
             </div>
 
@@ -160,7 +164,7 @@ export default function ReDreamPublicLanding() {
         <ReDreamInteractiveExperience />
       </section>
 
-      <section className={styles.spineSection} aria-label="ReDream operating spine">
+      <section className={styles.spineSection} id="operating-spine" aria-label="ReDream operating spine">
         <div className={styles.spineCopy}>
           <p>ONE OPERATING THREAD</p>
           <h2>From club demand to commission. One thread, full context.</h2>
@@ -257,11 +261,11 @@ export default function ReDreamPublicLanding() {
 
         <div className={styles.valueStrip}>
           <div><CircleDollarSign size={17} /><span><strong>First value before full rollout.</strong><small>Start with one player, one relationship and one live agency situation.</small></span></div>
-          <ReDreamDemoRequestButton className={styles.darkButton} label="Run ReDream on my agency" />
+          <ReDreamDemoRequestButton className={styles.darkButton} label="Run ReDream on my agency" trackingKey="pricing_demo" />
         </div>
       </section>
 
-      <section className={styles.finalCta}>
+      <section className={styles.finalCta} id="final-cta">
         <div>
           <p>BRING ONE REAL SITUATION</p>
           <h2>Bring one real situation. See how ReDream would run it.</h2>
@@ -269,7 +273,7 @@ export default function ReDreamPublicLanding() {
             A player, club need, live deal or relationship problem. Start there. We will show you what happens next across the rest of your agency.
           </span>
         </div>
-        <ReDreamDemoRequestButton className={styles.lightButton} label="Run ReDream on my agency" />
+        <ReDreamDemoRequestButton className={styles.lightButton} label="Run ReDream on my agency" trackingKey="final_demo" />
       </section>
 
       <footer className={styles.footer}>

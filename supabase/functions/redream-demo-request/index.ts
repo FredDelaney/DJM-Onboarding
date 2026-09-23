@@ -42,6 +42,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const clientRequestId = String(body?.client_request_id || "").trim();
+    const sessionId = text(body?.session_id, 40);
     const fullName = text(body?.full_name, 120);
     const requesterEmail = text(body?.email, 320)?.toLowerCase() || null;
     const agencyName = text(body?.agency_name, 160);
@@ -53,8 +54,17 @@ Deno.serve(async (req: Request) => {
     const sourceHost = text(body?.source_host, 255)?.toLowerCase() || null;
     const sourcePath = text(body?.source_path, 500);
     const referrer = text(body?.referrer, 1000);
+    const conversionSource = text(body?.conversion_source, 120);
+    const utmSource = text(body?.utm_source, 160);
+    const utmMedium = text(body?.utm_medium, 160);
+    const utmCampaign = text(body?.utm_campaign, 160);
+    const utmContent = text(body?.utm_content, 160);
+    const utmTerm = text(body?.utm_term, 160);
 
     if (!uuid.test(clientRequestId)) {
+      return reply({ error: "Unable to submit this request" }, 400);
+    }
+    if (sessionId && !uuid.test(sessionId)) {
       return reply({ error: "Unable to submit this request" }, 400);
     }
     if (!fullName || fullName.length < 2) {
@@ -66,11 +76,11 @@ Deno.serve(async (req: Request) => {
     if (!agencyName || agencyName.length < 2) {
       return reply({ error: "Enter your agency name" }, 400);
     }
-    if (!staffSize || !staffBands.has(staffSize)) {
-      return reply({ error: "Select your team size" }, 400);
+    if (staffSize && !staffBands.has(staffSize)) {
+      return reply({ error: "Select a valid team size" }, 400);
     }
-    if (!playerCount || !playerBands.has(playerCount)) {
-      return reply({ error: "Select your represented-player range" }, 400);
+    if (playerCount && !playerBands.has(playerCount)) {
+      return reply({ error: "Select a valid represented-player range" }, 400);
     }
     if (requestedPlan && !planKeys.has(requestedPlan)) {
       return reply({ error: "Invalid plan selection" }, 400);
@@ -108,6 +118,7 @@ Deno.serve(async (req: Request) => {
 
     const payload = {
       client_request_id: clientRequestId,
+      session_id: sessionId,
       full_name: fullName,
       email: requesterEmail,
       agency_name: agencyName,
@@ -119,6 +130,12 @@ Deno.serve(async (req: Request) => {
       source_host: sourceHost,
       source_path: sourcePath,
       referrer,
+      conversion_source: conversionSource,
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
+      utm_content: utmContent,
+      utm_term: utmTerm,
       user_agent: text(req.headers.get("user-agent"), 500),
       consent_at: new Date().toISOString(),
     };

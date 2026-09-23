@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { trackFunnel } from '@/lib/redream-funnel';
 import styles from './ReDreamProductStory.module.css';
 
 type ModeKey = 'needs' | 'market' | 'player' | 'deal';
@@ -155,7 +156,10 @@ export default function ReDreamProductStory() {
                 role="tab"
                 aria-selected={mode === item.key}
                 className={mode === item.key ? styles.activeMode : undefined}
-                onClick={() => setMode(item.key)}
+                onClick={() => {
+                  setMode(item.key);
+                  trackFunnel('product_mode', { metadata: { mode: item.key } });
+                }}
               >
                 <Icon size={15} />
                 <span>{item.label}</span>
