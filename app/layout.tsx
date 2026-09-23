@@ -58,6 +58,34 @@ const getRequestTenantRuntime = cache(
 
 export async function generateMetadata():
   Promise<Metadata> {
+  const isReDreamPublicSite = Boolean(
+    process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT?.trim(),
+  );
+
+  if (isReDreamPublicSite) {
+    return {
+      metadataBase: new URL('https://redreamsystems.com'),
+      title: 'ReDream | Operating system for football agencies',
+      description:
+        'ReDream connects player service, club demand, relationships, deals, negotiation, follow-up and commission control in one operating system for football agencies.',
+      alternates: {
+        canonical: '/',
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
+      openGraph: {
+        type: 'website',
+        url: '/',
+        title: 'ReDream | Operating system for football agencies',
+        description:
+          'Run player service, market work, relationships, deals and agency revenue from one controlled operating system.',
+        siteName: 'ReDream Systems',
+      },
+    };
+  }
+
   const runtime =
     await getRequestTenantRuntime();
 

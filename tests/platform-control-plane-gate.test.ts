@@ -5,7 +5,7 @@ import test from 'node:test';
 const read = (path: string) => readFileSync(path, 'utf8');
 
 test(
-  'platform control plane can render without weakening unresolved tenant gating',
+  'platform control plane and public ReDream root can render without weakening unresolved tenant gating',
   () => {
     const layout = read('app/layout.tsx');
     const gate = read('components/TenantRouteGate.tsx');
@@ -20,8 +20,12 @@ test(
       gate,
       /process\.env\.NEXT_PUBLIC_REDREAM_ENVIRONMENT/,
     );
+    assert.match(gate, /isReDreamPublicRoot/);
     assert.match(gate, /pathname === '\/'/);
-    assert.match(gate, /router\.replace\('\/platform'\)/);
+    assert.doesNotMatch(
+      gate,
+      /router\.replace\('\/platform'\)/,
+    );
     assert.ok(
       gate.includes('isPlatformControlPlane ||') &&
         gate.includes('isAgencyActivationRoute ||') &&
