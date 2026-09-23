@@ -41,6 +41,18 @@ const migration = fs.readFileSync(
   'utf8',
 );
 
+const bridgeMigrations = fs
+  .readdirSync('supabase/migrations')
+  .filter((name) =>
+    name.endsWith('_add_redream_demo_request_service_bridges_v1.sql'),
+  );
+
+assert.equal(bridgeMigrations.length, 1);
+const bridgeMigration = fs.readFileSync(
+  `supabase/migrations/${bridgeMigrations[0]}`,
+  'utf8',
+);
+
 test('public website uses a structured demo flow instead of mailto for conversion CTAs', () => {
   assert.match(website, /ReDreamDemoRequestButton/);
   assert.match(demo, /redream-demo-request/);
@@ -57,7 +69,7 @@ test('public demo endpoint is intentionally public but validates body consent an
   assert.match(publicEdge, /company_website/);
   assert.match(publicEdge, /body\?\.consent !== true/);
   assert.match(publicEdge, /client_request_id/);
-  assert.match(publicEdge, /23505/);
+  assert.match(publicEdge, /platform_server_create_demo_request/);
 });
 
 test('demo leads live in a private platform table without browser grants', () => {
@@ -66,6 +78,30 @@ test('demo leads live in a private platform table without browser grants', () =>
   assert.match(migration, /revoke all on table platform\.demo_requests from public, anon, authenticated/);
   assert.match(migration, /grant select, insert, update on table platform\.demo_requests to service_role/);
   assert.match(migration, /never provisions a tenant or starts a trial/);
+});
+
+
+test('demo request access stays behind service-only public bridges rather than exposing platform schema', () => {
+  assert.match(bridgeMigration, /platform_server_create_demo_request/);
+  assert.match(bridgeMigration, /platform_server_operator_demo_requests/);
+  assert.match(bridgeMigration, /platform_server_operator_update_demo_request/);
+  assert.match(bridgeMigration, /security definer/);
+  assert.match(bridgeMigration, /set search_path = ''/);
+  assert.match(
+    bridgeMigration,
+    /revoke all on function[\s\S]*from public, anon, authenticated/,
+  );
+  assert.match(
+    bridgeMigration,
+    /grant execute on function[\s\S]*to service_role/,
+  );
+  assert.match(
+    bridgeMigration,
+    /on conflict \(client_request_id\) do nothing/,
+  );
+  assert.doesNotMatch(bridgeMigration, /grant usage on schema platform/);
+  assert.match(platformOps, /platform_server_operator_demo_requests/);
+  assert.match(platformOps, /platform_server_operator_update_demo_request/);
 });
 
 test('operator cockpit can read and deliberately progress inbound demo requests', () => {

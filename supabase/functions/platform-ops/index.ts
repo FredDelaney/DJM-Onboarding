@@ -252,14 +252,15 @@ export default {fetch:async(req:Request)=>{
     }
 
     if(action==="demo_requests"){
-      const {data,error}=await ctx.supabaseAdmin
-        .schema("platform")
-        .from("demo_requests")
-        .select("id,full_name,email,agency_name,website_url,staff_size,player_count,priority,requested_plan,status,converted_tenant_id,contacted_at,created_at,updated_at")
-        .order("created_at",{ascending:false})
-        .limit(clamp(body?.limit,1,100,50));
-      if(error) throw error;
-      return json({ok:true,platform_role:adminRecord.role,demo_requests:data||[]});
+      const rows=await rpc(
+        "platform_server_operator_demo_requests",
+        {p_limit:clamp(body?.limit,1,100,50)},
+      );
+      return json({
+        ok:true,
+        platform_role:adminRecord.role,
+        demo_requests:Array.isArray(rows)?rows:[],
+      });
     }
 
     if(action==="demo_request_update"){
@@ -268,54 +269,24 @@ export default {fetch:async(req:Request)=>{
       const allowed=new Set(["contacted","qualified","converted","closed"]);
       if(!uuid.test(requestId)||!allowed.has(status)) return json({error:"Valid request_id and status are required"},400);
 
-      const {data:before,error:beforeError}=await ctx.supabaseAdmin
-        .schema("platform")
-        .from("demo_requests")
-        .select("*")
-        .eq("id",requestId)
-        .maybeSingle();
-      if(beforeError) throw beforeError;
-      if(!before) return json({error:"Demo request not found"},404);
-
       const convertedTenantId=status==="converted"?text(body?.converted_tenant_id):null;
       if(status==="converted"&&!uuid.test(convertedTenantId)) return json({error:"converted_tenant_id is required when a demo request becomes a customer"},400);
 
-      const update:Record<string,unknown>={
-        status,
-        converted_tenant_id:status==="converted"?convertedTenantId:null,
-        updated_at:new Date().toISOString(),
-      };
-      if(status==="contacted"&&!before.contacted_at){
-        update.contacted_at=new Date().toISOString();
-        update.contacted_by=userId;
-      }
+      const updated=await rpc(
+        "platform_server_operator_update_demo_request",
+        {
+          p_request_id:requestId,
+          p_status:status,
+          p_converted_tenant_id:convertedTenantId,
+          p_actor_user_id:userId,
+        },
+      );
 
-      const {data:after,error:updateError}=await ctx.supabaseAdmin
-        .schema("platform")
-        .from("demo_requests")
-        .update(update)
-        .eq("id",requestId)
-        .select("*")
-        .single();
-      if(updateError) throw updateError;
-
-      const {error:auditError}=await ctx.supabaseAdmin
-        .schema("platform")
-        .from("audit_events")
-        .insert({
-          tenant_id:status==="converted"?convertedTenantId:null,
-          actor_user_id:userId,
-          actor_kind:"platform_operator",
-          action:"demo_request.status_updated",
-          entity_type:"demo_request",
-          entity_id:requestId,
-          before_state:before,
-          after_state:after,
-          metadata:{source:"platform_ops"},
-        });
-      if(auditError) console.error("demo request audit failed",auditError.message);
-
-      return json({ok:true,platform_role:adminRecord.role,demo_request:after});
+      return json({
+        ok:true,
+        platform_role:adminRecord.role,
+        demo_request:updated,
+      });
     }
 
     if(action==="create_customer"){

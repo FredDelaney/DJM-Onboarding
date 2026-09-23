@@ -123,12 +123,14 @@ Deno.serve(async (req: Request) => {
       consent_at: new Date().toISOString(),
     };
 
-    const { error: insertError } = await admin
-      .schema("platform")
-      .from("demo_requests")
-      .insert(payload);
+    const { error: insertError } = await admin.rpc(
+      "platform_server_create_demo_request",
+      {
+        p_input: payload,
+      },
+    );
 
-    if (insertError && insertError.code !== "23505") {
+    if (insertError) {
       console.error("redream-demo-request insert", insertError.message);
       return reply({ error: "Unable to save the demo request" }, 500);
     }
