@@ -22,7 +22,7 @@ const modes = [
     eyebrow: 'HOME',
     title: 'Know where human judgement is needed now.',
     copy:
-      'ReDream collapses commitments, exceptions, market signals and deal blockers into a ranked decision queue instead of asking the agent to hunt for work.',
+      'ReDream collapses commitments, exceptions, market signals and deal blockers into one evidence-ranked decision queue.',
     icon: Sparkles,
   },
   {
@@ -40,7 +40,7 @@ const modes = [
     eyebrow: 'PLAYERS',
     title: 'See whether the agency is actually servicing the player.',
     copy:
-      'Player Service, commitments, career timing, representation and market activity live around one trusted picture instead of across separate conversations.',
+      'Player Service, commitments, career timing, representation and market activity sit around one trusted player picture.',
     icon: UsersRound,
   },
   {
@@ -49,7 +49,7 @@ const modes = [
     eyebrow: 'DEALS',
     title: 'Keep commercial momentum through negotiation and collection.',
     copy:
-      'Deal Control keeps ownership, terms, guardrails, next actions, Closeout & Collection and commission on the same commercial thread.',
+      'Deal Control keeps ownership, terms, guardrails, next actions, Closeout & Collection and commission on one commercial thread.',
     icon: BriefcaseBusiness,
   },
 ];
@@ -76,8 +76,8 @@ function Workspace({ mode }: { mode: ModeKey }) {
           </div>
           <div className={styles.panel}>
             <span>ACCESS INTELLIGENCE</span>
-            <div className={styles.routeCard}><Network size={15} /><div><strong>Warm route through James</strong><small>Direct relationship · sporting director</small></div></div>
-            <div className={styles.routeCard}><ArrowRight size={15} /><div><strong>Next move</strong><small>Prepare player introduction for approval</small></div></div>
+            <div className={styles.routeCard}><Network size={16} /><div><strong>Warm route through James</strong><small>Direct relationship · sporting director</small></div></div>
+            <div className={styles.routeCard}><ArrowRight size={16} /><div><strong>Next move</strong><small>Prepare player introduction for approval</small></div></div>
           </div>
         </div>
       </div>
@@ -114,7 +114,7 @@ function Workspace({ mode }: { mode: ModeKey }) {
           <div className={styles.timelineItem}><span>02</span><div><strong>Guardrails checked</strong><small>Player salary and sell-on priorities recorded</small></div></div>
           <div className={styles.timelineItem}><span>03</span><div><strong>Counter prepared</strong><small>Human approval required</small></div></div>
         </div>
-        <div className={styles.moneyBar}><CircleDollarSign size={15} /><span><strong>Closeout & Collection</strong><small>Commission stays connected after agreement</small></span></div>
+        <div className={styles.moneyBar}><CircleDollarSign size={16} /><span><strong>Closeout & Collection</strong><small>Commission stays connected after agreement</small></span></div>
       </div>
     );
   }

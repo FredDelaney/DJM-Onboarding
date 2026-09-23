@@ -29,10 +29,10 @@ const operatingSpine = [
 ];
 
 const plans = [
-  { name: 'Agency', price: '€149', suffix: '/month', capacity: '5 staff · 40 players' },
-  { name: 'Pro', price: '€399', suffix: '/month', capacity: '15 staff · 100 players' },
-  { name: 'Elite', price: '€799', suffix: '/month', capacity: '30 staff · 250 players' },
-  { name: 'Enterprise', price: 'From €1,500', suffix: '/month', capacity: 'Custom scale' },
+  { name: 'Agency', audience: 'Boutique agency', price: '€149', suffix: '/month', capacity: '5 staff · 40 players' },
+  { name: 'Pro', audience: 'Growing team', price: '€399', suffix: '/month', capacity: '15 staff · 100 players' },
+  { name: 'Elite', audience: 'Multi-market agency', price: '€799', suffix: '/month', capacity: '30 staff · 250 players' },
+  { name: 'Enterprise', audience: 'Large organisation', price: 'From €1,500', suffix: '/month', capacity: 'Custom scale' },
 ];
 
 const structuredData = {
@@ -152,7 +152,7 @@ export default function ReDreamPublicLanding() {
       <section className={styles.trySection} id="try-redream">
         <div className={styles.sectionIntro}>
           <p>EXPERIENCE THE PRODUCT</p>
-          <h2>Give ReDream one agency situation.</h2>
+          <h2>Tell ReDream one agency situation.</h2>
           <span>
             Use a real club or player name if appropriate. The on-page experience stays in your browser until you explicitly submit a demo request.
           </span>
@@ -163,7 +163,7 @@ export default function ReDreamPublicLanding() {
       <section className={styles.spineSection} aria-label="ReDream operating spine">
         <div className={styles.spineCopy}>
           <p>ONE OPERATING THREAD</p>
-          <h2>From demand to commission without losing ownership or context.</h2>
+          <h2>From club demand to commission. One thread, full context.</h2>
         </div>
         <div className={styles.spineRail}>
           {operatingSpine.map((item, index) => (
@@ -178,9 +178,9 @@ export default function ReDreamPublicLanding() {
       <section className={styles.productSection} id="product">
         <div className={styles.sectionIntro}>
           <p>ONE SYSTEM, FOUR OPERATING QUESTIONS</p>
-          <h2>The interface changes with the decision the agency needs to make.</h2>
+          <h2>One system. Four decisions that move the agency forward.</h2>
           <span>
-            Tell ReDream feeds one connected operating model. Player Service, Access Intelligence, Deal Control and Closeout & Collection surface through Needs You, Market Pursuit, Player 360 and Deal War Room instead of becoming separate products.
+            Needs You, Market Pursuit, Player 360 and Deal War Room change the view around the work in front of the agent while Player Service, Access Intelligence, Deal Control and Closeout & Collection stay connected underneath.
           </span>
         </div>
         <ReDreamProductStory />
@@ -238,9 +238,9 @@ export default function ReDreamPublicLanding() {
       <section className={styles.commercialSection} id="pricing">
         <div className={styles.sectionIntro}>
           <p>COMMERCIAL</p>
-          <h2>Start small. Keep the same operating architecture as you scale.</h2>
+          <h2>Start with the agency you are today. Scale without changing systems.</h2>
           <span>
-            Plans start at €149/month. ReDream uses the same tenant-aware architecture from boutique agencies through complex international operations.
+            Plans start at €149/month. ReDream grows with your players, staff and operation, from boutique agencies to complex international teams.
           </span>
         </div>
 
@@ -248,6 +248,7 @@ export default function ReDreamPublicLanding() {
           {plans.map((plan) => (
             <article key={plan.name}>
               <span>{plan.name}</span>
+              <small>{plan.audience}</small>
               <div><strong>{plan.price}</strong><small>{plan.suffix}</small></div>
               <p>{plan.capacity}</p>
             </article>
@@ -263,9 +264,9 @@ export default function ReDreamPublicLanding() {
       <section className={styles.finalCta}>
         <div>
           <p>BRING ONE REAL SITUATION</p>
-          <h2>Imagine this running across your entire agency.</h2>
+          <h2>Bring one real situation. See how ReDream would run it.</h2>
           <span>
-            A player. A club need. A live deal. A relationship problem. Start with something real and we will show you how ReDream would operate it.
+            A player, club need, live deal or relationship problem. Start there. We will show you what happens next across the rest of your agency.
           </span>
         </div>
         <ReDreamDemoRequestButton className={styles.lightButton} label="Run ReDream on my agency" />

@@ -5,7 +5,6 @@ import {
   Bot,
   BriefcaseBusiness,
   Check,
-  CircleDollarSign,
   Network,
   ShieldCheck,
   Sparkles,
@@ -72,29 +71,7 @@ const scenarios: Scenario[] = [
   },
 ];
 
-const stages = [
-  { label: 'Capture', copy: 'Signal received' },
-  { label: 'Understand', copy: 'Agency context structured' },
-  { label: 'Connect', copy: 'Memory and routes linked' },
-  { label: 'Prepare', copy: 'Next action prepared' },
-  { label: 'Needs You', copy: 'Human decision ready' },
-];
-
-const constraintWords = [
-  'under',
-  'over',
-  'loan',
-  'permanent',
-  'contract',
-  'salary',
-  'bonus',
-  'sell-on',
-  'tomorrow',
-  'today',
-  'week',
-  'warm',
-  'sporting director',
-];
+const stages = ['Capture', 'Understand', 'Connect', 'Prepare', 'Needs You'];
 
 function capitalisedEntities(value: string) {
   const candidates = value.match(/\b[A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){0,2}\b/g) || [];
@@ -105,32 +82,73 @@ function capitalisedEntities(value: string) {
 
 function evidenceFromText(value: string, scenario: ScenarioKey) {
   const lower = value.toLowerCase();
-  const evidence = constraintWords
-    .filter((word) => lower.includes(word))
-    .slice(0, 3)
-    .map((word) => {
-      if (word === 'warm') return 'Warm relationship route stated';
-      if (word === 'tomorrow' || word === 'today' || word === 'week') return 'Time-sensitive commitment stated';
-      if (word === 'salary' || word === 'bonus' || word === 'sell-on') return 'Commercial term stated';
-      if (word === 'contract') return 'Contract context stated';
-      if (word === 'loan' || word === 'permanent') return 'Transfer structure stated';
-      if (word === 'sporting director') return 'Decision-maker context stated';
-      return `Constraint stated: ${word}`;
-    });
+  const evidence: string[] = [];
+  const add = (item: string | null) => {
+    if (item && !evidence.includes(item)) evidence.push(item);
+  };
+
+  if (scenario === 'club') {
+    const foot = lower.includes('left-footed')
+      ? 'left-footed'
+      : lower.includes('right-footed')
+        ? 'right-footed'
+        : null;
+    const role = lower.match(/\b(winger|striker|forward|midfielder|centre-back|center-back|full-back|goalkeeper)\b/)?.[1] || null;
+    if (role) add(`Role requirement: ${foot ? `${foot} ` : ''}${role}`);
+
+    const age = lower.match(/\b(?:u|under)\s*[- ]?(\d{2})\b/)?.[1] || null;
+    if (age) add(`Age requirement: under ${age}`);
+
+    const permanent = lower.includes('permanent');
+    const loan = lower.includes('loan');
+    if (permanent && loan) add('Transfer options: permanent or loan');
+    else if (permanent) add('Transfer option: permanent');
+    else if (loan) add('Transfer option: loan');
+
+    if (lower.includes('warm')) add('Warm relationship route stated');
+    if (lower.includes('sporting director')) add('Decision-maker context stated');
+  }
+
+  if (scenario === 'player') {
+    if (lower.includes('summer options')) add('Summer market options requested');
+    const months = lower.match(/\b(\d{1,2})\s+months?\b/)?.[1] || null;
+    if (months) add(`Contract runway: ${months} months`);
+    if (lower.includes('promised') && lower.includes('update')) {
+      add(lower.includes('this week') ? 'Service commitment due this week' : 'Service commitment recorded');
+    }
+    if (lower.includes('clarity')) add('Player clarity request stated');
+  }
+
+  if (scenario === 'deal') {
+    const amount = value.match(/\b(?:€|£|\$)?\s*(\d+(?:[.,]\d+)?)\s*(k|m)\b/i);
+    if (amount) add(`Offer amount stated: ${amount[1]}${amount[2].toLowerCase()}`);
+    if (lower.includes('bonus')) add('Bonuses included in offer');
+    if (lower.includes('salary')) add('Salary improvement requested');
+    if (lower.includes('sell-on')) add('Sell-on requested');
+    if (lower.includes('tomorrow')) add('Response deadline: tomorrow');
+  }
+
+  if (scenario === 'relationship') {
+    const through = value.match(/\bthrough\s+([A-Z][A-Za-z'-]+)/)?.[1] || null;
+    if (through) add(`Relationship route through ${through}`);
+    if (lower.includes('sporting director')) add('Decision-maker relationship stated');
+    if (lower.includes('earlier this month')) add('Recent contact timing stated');
+    if (lower.includes('relevant player')) add('Relevant player route stated');
+  }
 
   if (!evidence.length) {
-    evidence.push(
+    add(
       scenario === 'club'
-        ? 'Recruitment demand stated'
+        ? 'Recruitment demand captured'
         : scenario === 'player'
-          ? 'Player service situation stated'
+          ? 'Player service situation captured'
           : scenario === 'deal'
-            ? 'Live commercial situation stated'
-            : 'Relationship context stated',
+            ? 'Live commercial situation captured'
+            : 'Relationship context captured',
     );
   }
 
-  return evidence;
+  return evidence.slice(0, 4);
 }
 
 export default function ReDreamInteractiveExperience() {
@@ -174,7 +192,7 @@ export default function ReDreamInteractiveExperience() {
         if (intervalRef.current) clearInterval(intervalRef.current);
         setIsRunning(false);
       }
-    }, 520);
+    }, 420);
   };
 
   const demoContext = `Homepage scenario: ${scenario.label}. ${note.trim()}`;
@@ -203,7 +221,7 @@ export default function ReDreamInteractiveExperience() {
               className={active ? styles.activeTab : undefined}
               onClick={() => chooseScenario(item.key)}
             >
-              <Icon size={14} />
+              <Icon size={15} />
               {item.label}
             </button>
           );
@@ -213,7 +231,7 @@ export default function ReDreamInteractiveExperience() {
       <div className={styles.capturePanel}>
         <div className={styles.captureLabel}>
           <span>
-            <Bot size={14} />
+            <Bot size={15} />
             Tell ReDream
           </span>
           <small>{scenario.short}</small>
@@ -222,7 +240,7 @@ export default function ReDreamInteractiveExperience() {
         <textarea
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          rows={4}
+          rows={3}
           maxLength={700}
           aria-label="Agency situation"
         />
@@ -239,92 +257,85 @@ export default function ReDreamInteractiveExperience() {
       </div>
 
       <div className={styles.operatingCanvas} aria-live="polite">
-        <div className={styles.stageRail}>
+        <div className={styles.processLine} aria-label="Capture, Understand, Connect, Prepare, Needs You">
           {stages.map((item, index) => {
             const complete = index <= stage;
             const current = index === stage;
-
             return (
               <div
-                key={item.label}
-                className={`${styles.stage} ${complete ? styles.stageComplete : ''} ${current ? styles.stageCurrent : ''}`}
+                key={item}
+                className={`${styles.processStep} ${complete ? styles.processComplete : ''} ${current ? styles.processCurrent : ''}`}
               >
-                <span>{complete ? <Check size={11} /> : index + 1}</span>
-                <div>
-                  <strong>{item.label}</strong>
-                  <small>{item.copy}</small>
-                </div>
+                <span>{complete ? <Check size={10} /> : index + 1}</span>
+                <strong>{item}</strong>
               </div>
             );
           })}
         </div>
 
-        <div className={styles.memoryCanvas}>
-          <div className={styles.canvasLabel}>
-            <span>AGENCY MEMORY</span>
-            <small>Context becomes connected work</small>
+        <div className={styles.resultGrid}>
+          <div className={styles.memoryCanvas}>
+            <div className={styles.canvasLabel}>
+              <span>AGENCY MEMORY</span>
+              <small>Signal becomes connected work</small>
+            </div>
+
+            <div className={styles.memoryGraph}>
+              <div className={`${styles.node} ${styles.nodePrimary}`}>
+                <span>{scenario.label}</span>
+                <strong>{entities[0] || 'Agency signal'}</strong>
+              </div>
+
+              <span className={`${styles.route} ${stage >= 1 ? styles.routeLive : ''}`} />
+
+              <div className={`${styles.node} ${stage >= 1 ? styles.nodeLive : ''}`}>
+                <span>Context</span>
+                <strong>{scenario.route.split(' -> ')[1]}</strong>
+              </div>
+
+              <span className={`${styles.route} ${stage >= 2 ? styles.routeLive : ''}`} />
+
+              <div className={`${styles.node} ${stage >= 2 ? styles.nodeLive : ''}`}>
+                <span>Route</span>
+                <strong>{scenario.route.split(' -> ')[2]}</strong>
+              </div>
+
+              <span className={`${styles.route} ${stage >= 3 ? styles.routeLive : ''}`} />
+
+              <div className={`${styles.node} ${stage >= 3 ? styles.nodeLive : ''}`}>
+                <span>Next work</span>
+                <strong>{scenario.route.split(' -> ')[3]}</strong>
+              </div>
+            </div>
           </div>
 
-          <div className={styles.memoryGraph}>
-            <div className={`${styles.node} ${styles.nodePrimary}`}>
-              <span>{scenario.label}</span>
-              <strong>{entities[0] || 'Agency signal'}</strong>
+          <div className={`${styles.decisionPanel} ${stage >= 4 ? styles.decisionReady : ''}`}>
+            <div className={styles.decisionTop}>
+              <div className={styles.decisionIcon}>
+                <Sparkles size={18} />
+              </div>
+              <div className={styles.decisionCopy}>
+                <span>NEEDS YOU</span>
+                <strong>{scenario.decision}</strong>
+                <small>ReDream prepares the move. The agent owns the decision.</small>
+              </div>
             </div>
 
-            <span className={`${styles.route} ${stage >= 1 ? styles.routeLive : ''}`} />
-
-            <div className={`${styles.node} ${stage >= 1 ? styles.nodeLive : ''}`}>
-              <span>Context</span>
-              <strong>{scenario.route.split(' -> ')[1]}</strong>
-            </div>
-
-            <span className={`${styles.route} ${stage >= 2 ? styles.routeLive : ''}`} />
-
-            <div className={`${styles.node} ${stage >= 2 ? styles.nodeLive : ''}`}>
-              <span>Route</span>
-              <strong>{scenario.route.split(' -> ')[2]}</strong>
-            </div>
-
-            <span className={`${styles.route} ${stage >= 3 ? styles.routeLive : ''}`} />
-
-            <div className={`${styles.node} ${stage >= 3 ? styles.nodeLive : ''}`}>
-              <span>Next work</span>
-              <strong>{scenario.route.split(' -> ')[3]}</strong>
-            </div>
-          </div>
-
-          <div className={styles.evidenceGrid}>
-            <div>
-              <span>FROM YOUR NOTE</span>
-              {entities.length ? (
-                entities.map((entity) => <strong key={entity}>{entity}</strong>)
-              ) : (
-                <strong>Situation captured</strong>
-              )}
-            </div>
-
-            <div>
+            <div className={styles.evidenceList}>
               <span>EVIDENCE USED</span>
               {evidence.map((item) => (
-                <strong key={item}>{item}</strong>
+                <div key={item}>
+                  <Check size={11} />
+                  <strong>{item}</strong>
+                </div>
               ))}
             </div>
-          </div>
-        </div>
 
-        <div className={`${styles.decisionPanel} ${stage >= 4 ? styles.decisionReady : ''}`}>
-          <div className={styles.decisionIcon}>
-            <Sparkles size={17} />
+            <span className={styles.humanChip}>
+              <ShieldCheck size={12} />
+              Human decision
+            </span>
           </div>
-          <div className={styles.decisionCopy}>
-            <span>NEEDS YOU</span>
-            <strong>{scenario.decision}</strong>
-            <small>Evidence ready. ReDream prepares the move. The agent owns the decision.</small>
-          </div>
-          <span className={styles.humanChip}>
-            <ShieldCheck size={12} />
-            Human decision
-          </span>
         </div>
       </div>
 

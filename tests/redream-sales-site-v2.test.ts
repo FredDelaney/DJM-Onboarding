@@ -7,6 +7,7 @@ const css = fs.readFileSync('components/ReDreamPublicLanding.module.css', 'utf8'
 const experience = fs.readFileSync('components/ReDreamInteractiveExperience.tsx', 'utf8');
 const experienceCss = fs.readFileSync('components/ReDreamInteractiveExperience.module.css', 'utf8');
 const story = fs.readFileSync('components/ReDreamProductStory.tsx', 'utf8');
+const storyCss = fs.readFileSync('components/ReDreamProductStory.module.css', 'utf8');
 const demo = fs.readFileSync('components/ReDreamDemoRequestButton.tsx', 'utf8');
 
 test('V4 owns the category but sells the next-action thesis', () => {
@@ -37,13 +38,26 @@ test('real-world names can come from the visitor without fabricated live footbal
   assert.doesNotMatch(site, /Chelsea need/i);
 });
 
-test('Agency Memory visibly connects the signal to controlled next work', () => {
+test('V4.1 evidence is specific deduplicated and never exposes parser fragments', () => {
+  assert.match(experience, /Role requirement:/);
+  assert.match(experience, /Age requirement: under/);
+  assert.match(experience, /Transfer options: permanent or loan/);
+  assert.match(experience, /Warm relationship route stated/);
+  assert.match(experience, /Offer amount stated:/);
+  assert.match(experience, /Contract runway:/);
+  assert.doesNotMatch(experience, /Constraint stated:/);
+  assert.match(experience, /!evidence\.includes\(item\)/);
+});
+
+test('Agency Memory visibly connects the signal to controlled next work without a dense card wall', () => {
   for (const term of ['Capture', 'Understand', 'Connect', 'Prepare', 'Needs You']) {
     assert.match(experience, new RegExp(term));
   }
   assert.match(experience, /AGENCY MEMORY/);
   assert.match(experience, /EVIDENCE USED/);
+  assert.match(experienceCss, /resultGrid/);
   assert.match(experienceCss, /routeFill/);
+  assert.doesNotMatch(experienceCss, /\.evidenceGrid/);
 });
 
 test('one immersive workspace switches across the four core operating questions', () => {
@@ -59,6 +73,8 @@ test('one immersive workspace switches across the four core operating questions'
   ]) {
     assert.match(story, new RegExp(term));
   }
+  assert.match(storyCss, /1\.45fr/);
+  assert.match(storyCss, /min-height: 430px/);
 });
 
 test('the complete commercial operating spine stays visible', () => {
@@ -104,7 +120,7 @@ test('conversion starts with value and preserves scenario context', () => {
   assert.match(site, /Run ReDream on my agency/);
 });
 
-test('canonical pricing remains compact and unchanged', () => {
+test('canonical pricing remains unchanged while plan language is buyer-facing', () => {
   assert.match(site, /€149/);
   assert.match(site, /€399/);
   assert.match(site, /€799/);
@@ -113,10 +129,23 @@ test('canonical pricing remains compact and unchanged', () => {
   assert.match(site, /15 staff · 100 players/);
   assert.match(site, /30 staff · 250 players/);
   assert.match(site, /Plans start at €149\/month/);
+  assert.match(site, /Boutique agency/);
+  assert.match(site, /Growing team/);
+  assert.match(site, /Multi-market agency/);
+  assert.match(site, /Large organisation/);
+  assert.doesNotMatch(site, /tenant-aware architecture/i);
 });
 
-test('V4 avoids fake social proof generic feature walls and inaccessible motion', () => {
-  assert.match(css, /ReDream Sales Site 4\.0/);
+test('V4.1 keeps the hero while tightening the middle and close', () => {
+  assert.match(css, /ReDream Sales Site 4\.1/);
+  assert.match(site, /From club demand to commission\. One thread, full context\./);
+  assert.match(site, /Bring one real situation\. See how ReDream would run it\./);
+  assert.match(css, /padding-top: 84px/);
+  assert.match(css, /margin: 88px auto 0/);
+  assert.match(css, /width: 148px/);
+});
+
+test('V4.1 avoids fake social proof generic feature walls and inaccessible motion', () => {
   assert.match(css, /prefers-reduced-motion/);
   assert.match(experienceCss, /prefers-reduced-motion/);
   assert.doesNotMatch(site, /trusted by/i);

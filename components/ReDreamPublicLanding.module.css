@@ -1,4 +1,4 @@
-/* ReDream Sales Site 4.0 */
+/* ReDream Sales Site 4.1 */
 
 .page {
   --navy: #0A1B3D;
@@ -329,13 +329,13 @@
 }
 
 .trySection {
-  padding-top: 108px;
+  padding-top: 84px;
 }
 
 .sectionIntro,
 .spineCopy {
-  max-width: 760px;
-  margin-bottom: 38px;
+  max-width: 720px;
+  margin-bottom: 30px;
 }
 
 .sectionIntro > p,
@@ -360,18 +360,18 @@
 .finalCta > div > span {
   display: block;
   max-width: 690px;
-  margin-top: 18px;
+  margin-top: 15px;
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.72;
+  line-height: 1.65;
 }
 
 .spineSection {
-  padding: 110px 0 20px;
+  padding: 78px 0 0;
 }
 
 .spineCopy {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .spineRail {
@@ -384,12 +384,12 @@
 }
 
 .spineRail > div {
-  min-height: 88px;
-  padding: 13px 10px;
+  min-height: 72px;
+  padding: 11px 9px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 12px;
+  gap: 9px;
   border-right: 1px solid var(--line);
 }
 
@@ -399,33 +399,33 @@
 
 .spineRail span {
   color: #a9b5c5;
-  font-size: 7px;
+  font-size: 7.5px;
   font-weight: 820;
 }
 
 .spineRail strong {
   color: #334157;
-  font-size: 8px;
+  font-size: 8.5px;
   line-height: 1.3;
 }
 
 .productSection,
 .commercialSection {
-  padding-top: 112px;
+  padding-top: 88px;
 }
 
 .productSection > :last-child {
-  margin-top: 26px;
+  margin-top: 18px;
 }
 
 .autopilotSection {
   width: min(1220px, calc(100% - 48px));
-  margin: 112px auto 0;
-  padding: 62px;
+  margin: 88px auto 0;
+  padding: 54px;
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(450px, 1.1fr);
   align-items: center;
-  gap: 64px;
+  gap: 56px;
   border-radius: 29px;
   background:
     radial-gradient(circle at 92% 3%, rgba(8, 107, 255, 0.2), transparent 27rem),
@@ -641,11 +641,11 @@
 }
 
 .planRail article {
-  min-height: 145px;
-  padding: 18px;
+  min-height: 134px;
+  padding: 17px;
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 8px;
   border-right: 1px solid var(--line);
 }
 
@@ -728,8 +728,8 @@
 
 .finalCta {
   width: min(1220px, calc(100% - 48px));
-  margin: 112px auto 0;
-  padding: 56px 60px;
+  margin: 88px auto 0;
+  padding: 50px 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -757,7 +757,7 @@
 }
 
 .footer {
-  min-height: 124px;
+  min-height: 100px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -765,7 +765,7 @@
 }
 
 .footerBrandLogo {
-  width: 180px;
+  width: 148px;
   height: auto;
   display: block;
 }
@@ -775,7 +775,7 @@
   align-items: center;
   gap: 20px;
   color: #8a96a8;
-  font-size: 8px;
+  font-size: 8.5px;
 }
 
 .footerMeta a {
