@@ -51,6 +51,9 @@ import AgencyMemoryDrawer from '@/components/AgencyMemoryDrawer';
 import AgencyDealCloseoutDrawer, {
   type AgencyDealCloseoutRequest,
 } from '@/components/AgencyDealCloseoutDrawer';
+import AgencyClubAccountDrawer, {
+  type AgencyClubAccountRequest,
+} from '@/components/AgencyClubAccountDrawer';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -223,6 +226,8 @@ export default function AgencyOperatingWorkspace() {
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [dealCloseoutRequest, setDealCloseoutRequest] =
     useState<AgencyDealCloseoutRequest | null>(null);
+  const [clubAccountRequest, setClubAccountRequest] =
+    useState<AgencyClubAccountRequest | null>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -878,6 +883,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
+                onOpenClubAccount={setClubAccountRequest}
               />
             ) : null}
           </>
@@ -946,6 +952,37 @@ export default function AgencyOperatingWorkspace() {
           }}
           onApplied={async () => {
             await loadView();
+          }}
+        />
+      ) : null}
+
+      {clubAccountRequest ? (
+        <AgencyClubAccountDrawer
+          key={clubAccountRequest.key}
+          request={clubAccountRequest}
+          invoke={(action, body) => invoke<any>(action, body)}
+          onClose={() => setClubAccountRequest(null)}
+          onOpenAction={(request) => {
+            setClubAccountRequest(null);
+            setActionRequest(request);
+          }}
+          onOpenDeal={(dealRoomId, title, context) => {
+            setClubAccountRequest(null);
+            setIntelligenceRequest({
+              key: `deal-war-room:${dealRoomId}`,
+              kind: 'deal',
+              entityId: dealRoomId,
+              title,
+              context,
+            });
+          }}
+          onOpenMarket={() => {
+            setClubAccountRequest(null);
+            window.history.pushState(
+              window.history.state,
+              '',
+              `${basePath}?view=market`,
+            );
           }}
         />
       ) : null}
@@ -1854,6 +1891,7 @@ function Relationships({
   rpc,
   onRefresh,
   onOpenAction,
+  onOpenClubAccount,
 }: {
   data: any;
   rpc: <T,>(
@@ -1863,6 +1901,9 @@ function Relationships({
   onRefresh: () => Promise<void>;
   onOpenAction: (
     request: AgencyActionRequest,
+  ) => void;
+  onOpenClubAccount: (
+    request: AgencyClubAccountRequest,
   ) => void;
 }) {
   const [relationshipView, setRelationshipView] =
@@ -2463,6 +2504,27 @@ function Relationships({
                     {topPlay.recommended_action}
                   </div>
                 ) : null}
+
+                <div className={styles.cardActions}>
+                  <button
+                    type="button"
+                    className={styles.compactButton}
+                    onClick={() =>
+                      onOpenClubAccount({
+                        key: `club-account:${item.organisation_id}`,
+                        organisationId: String(item.organisation_id),
+                        title: clubName,
+                        context:
+                          [item.city, item.country, item.league_name]
+                            .filter(Boolean)
+                            .join(' · ') || null,
+                      })
+                    }
+                  >
+                    <Network size={14} />
+                    Club account
+                  </button>
+                </div>
 
                 {topPlay.play_id ? (
                   <div
