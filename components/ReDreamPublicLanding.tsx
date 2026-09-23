@@ -18,14 +18,12 @@ import {
   Workflow,
 } from 'lucide-react';
 
+import ReDreamDemoRequestButton from '@/components/ReDreamDemoRequestButton';
 import styles from './ReDreamPublicLanding.module.css';
 
 const DEMO_EMAIL =
   process.env.NEXT_PUBLIC_REDREAM_CONTACT_EMAIL?.trim() ||
   'team@redreamsystems.com';
-
-const demoHref =
-  `mailto:${DEMO_EMAIL}?subject=${encodeURIComponent('ReDream demo request')}`;
 
 const plans = [
   {
@@ -174,13 +172,10 @@ export default function ReDreamPublicLanding() {
             <a href="#pricing">Pricing</a>
           </nav>
 
-          <a
+          <ReDreamDemoRequestButton
             className={styles.navCta}
-            href={demoHref}
-          >
-            Request a demo
-            <ArrowRight size={15} />
-          </a>
+            label="Request a demo"
+          />
         </div>
       </header>
 
@@ -206,13 +201,10 @@ export default function ReDreamPublicLanding() {
             </p>
 
             <div className={styles.heroActions}>
-              <a
+              <ReDreamDemoRequestButton
                 className={styles.primaryCta}
-                href={demoHref}
-              >
-                Request a demo
-                <ArrowRight size={16} />
-              </a>
+                label="Request a demo"
+              />
 
               <a
                 className={styles.secondaryCta}
@@ -611,17 +603,15 @@ export default function ReDreamPublicLanding() {
                 ))}
               </div>
 
-              <a
-                href={demoHref}
+              <ReDreamDemoRequestButton
                 className={
                   plan.featured
                     ? styles.primaryCta
                     : styles.planCta
                 }
-              >
-                Talk to ReDream
-                <ArrowRight size={14} />
-              </a>
+                label="Talk to ReDream"
+                requestedPlan={plan.name.toLowerCase()}
+              />
             </article>
           ))}
         </div>
@@ -636,13 +626,10 @@ export default function ReDreamPublicLanding() {
           </h2>
         </div>
 
-        <a
-          href={demoHref}
+        <ReDreamDemoRequestButton
           className={styles.finalButton}
-        >
-          Request a ReDream demo
-          <ArrowRight size={16} />
-        </a>
+          label="Request a ReDream demo"
+        />
       </section>
 
       <footer className={styles.footer}>

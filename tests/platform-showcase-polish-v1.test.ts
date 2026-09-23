@@ -19,7 +19,9 @@ test('showcase hero keeps new agency creation on the existing guarded path', () 
   const heroEnd = page.indexOf('</section>', heroStart);
   const hero = page.slice(heroStart, heroEnd);
 
-  assert.match(hero, /onClick=\{\(\) => setCreateOpen\(true\)\}/);
+  assert.match(hero, /setPendingDemoRequestId\(null\)/);
+  assert.match(hero, /setAgency\(\{ \.\.\.EMPTY_AGENCY \}\)/);
+  assert.match(hero, /setCreateOpen\(true\)/);
   assert.match(hero, /New agency/);
   assert.doesNotMatch(hero, /create_customer/);
 

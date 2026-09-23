@@ -49,6 +49,9 @@ import AgencyInterventionCard, {
 import AgencyDomainCard, {
   type DomainControl,
 } from './AgencyDomainCard';
+import DemoRequestsPanel, {
+  type DemoRequest,
+} from './DemoRequestsPanel';
 
 import styles from './platform.module.css';
 
@@ -348,6 +351,9 @@ export default function PlatformPage() {
   const [creating, setCreating] = useState(false);
   const [agency, setAgency] = useState<NewAgencyState>({ ...EMPTY_AGENCY });
   const [latestInvite, setLatestInvite] = useState<OwnerInviteLink | null>(null);
+  const [demoRequests, setDemoRequests] = useState<DemoRequest[]>([]);
+  const [demoBusyId, setDemoBusyId] = useState('');
+  const [pendingDemoRequestId, setPendingDemoRequestId] = useState<string | null>(null);
 
   const load = useCallback(async (quiet = false) => {
     if (quiet) setRefreshing(true);
@@ -365,13 +371,15 @@ export default function PlatformPage() {
         return;
       }
 
-      const [portfolioResult, plansResult] = await Promise.all([
+      const [portfolioResult, plansResult, demoResult] = await Promise.all([
         platformInvoke<any>('platform-ops', { action: 'portfolio' }),
         platformInvoke<any>('platform-ops', { action: 'plans' }),
+        platformInvoke<any>('platform-ops', { action: 'demo_requests', limit: 50 }),
       ]);
 
       setPortfolio(portfolioResult?.portfolio || null);
       setPlans(plansResult?.plans || []);
+      setDemoRequests(demoResult?.demo_requests || []);
     } catch (loadError) {
       const message = friendlyError(loadError);
       if (message.toLowerCase().includes('platform operator access required')) {
@@ -768,6 +776,48 @@ export default function PlatformPage() {
     };
   }, [selectedCustomer]);
 
+  const updateDemoRequestStatus = async (
+    requestId: string,
+    status: 'contacted' | 'qualified' | 'closed',
+  ) => {
+    if (demoBusyId) return;
+    setDemoBusyId(requestId);
+    setError('');
+
+    try {
+      await platformInvoke('platform-ops', {
+        action: 'demo_request_update',
+        request_id: requestId,
+        status,
+      });
+      await load(true);
+    } catch (demoError) {
+      setError(friendlyError(demoError));
+    } finally {
+      setDemoBusyId('');
+    }
+  };
+
+  const startAgencyFromDemo = (request: DemoRequest) => {
+    const requestedPlan =
+      plans.some((plan) => plan.plan_key === request.requested_plan)
+        ? String(request.requested_plan)
+        : 'pro';
+
+    setPendingDemoRequestId(request.id);
+    setAgency({
+      ...EMPTY_AGENCY,
+      displayName: request.agency_name,
+      slug: slugify(request.agency_name),
+      legalName: request.agency_name,
+      ownerEmail: request.email,
+      planKey: requestedPlan,
+      websiteUrl: request.website_url || '',
+      supportEmail: request.email,
+    });
+    setCreateOpen(true);
+  };
+
   const createAgency = async (event: FormEvent) => {
     event.preventDefault();
     if (
@@ -839,6 +889,21 @@ export default function PlatformPage() {
           url: `${window.location.origin}${invitePath}`,
         });
       }
+
+      if (tenantId && pendingDemoRequestId) {
+        try {
+          await platformInvoke('platform-ops', {
+            action: 'demo_request_update',
+            request_id: pendingDemoRequestId,
+            status: 'converted',
+            converted_tenant_id: tenantId,
+          });
+        } catch (leadLinkError) {
+          console.error('Unable to link converted demo request', leadLinkError);
+        }
+      }
+
+      setPendingDemoRequestId(null);
       setNotice(
         invitePath
           ? `${agency.displayName} is provisioned. The secure owner invitation is ready to share.`
@@ -1161,7 +1226,15 @@ export default function PlatformPage() {
               <span>Portfolio live</span>
               <small>{environmentLabel}</small>
             </div>
-            <button type="button" className={styles.heroPrimaryButton} onClick={() => setCreateOpen(true)}>
+            <button
+              type="button"
+              className={styles.heroPrimaryButton}
+              onClick={() => {
+                setPendingDemoRequestId(null);
+                setAgency({ ...EMPTY_AGENCY });
+                setCreateOpen(true);
+              }}
+            >
               <Plus size={16} />
               New agency
             </button>
@@ -1228,6 +1301,13 @@ export default function PlatformPage() {
             }
           />
         </section>
+
+        <DemoRequestsPanel
+          requests={demoRequests}
+          busyId={demoBusyId}
+          onStatus={(id, status) => void updateDemoRequestStatus(id, status)}
+          onCreateAgency={startAgencyFromDemo}
+        />
 
         <section className={styles.operatingGrid}>
           <article className={styles.agendaPanel}>
@@ -1425,7 +1505,12 @@ export default function PlatformPage() {
       </div>
 
       {createOpen ? (
-        <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => !creating && setCreateOpen(false)}>
+        <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => {
+      if (!creating) {
+        setCreateOpen(false);
+        setPendingDemoRequestId(null);
+      }
+    }}>
           <section
             className={styles.modal}
             role="dialog"
@@ -1443,7 +1528,12 @@ export default function PlatformPage() {
                 type="button"
                 className={styles.iconButton}
                 aria-label="Close"
-                onClick={() => !creating && setCreateOpen(false)}
+                onClick={() => {
+      if (!creating) {
+        setCreateOpen(false);
+        setPendingDemoRequestId(null);
+      }
+    }}
               >
                 <X size={17} />
               </button>
