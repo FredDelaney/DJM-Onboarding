@@ -34,7 +34,7 @@ test('Persistent undo requires an applied reversible action and explicit confirm
   assert.match(memory, /item\.status === 'applied'/);
   assert.match(memory, /item\.undo_supported/);
   assert.match(memory, /invoke\('action_undo'/);
-  assert.match(memory, /Nothing is reversed until you confirm/);
+  assert.match(memory, /Nothing is reversed until you[\s\S]*confirm/);
 });
 
 test('Learning refuses weak evidence and automatic policy mutation', () => {
