@@ -39,12 +39,15 @@ export default function ReDreamDemoRequestButton({
   className,
   label,
   requestedPlan = null,
+  initialPriority = '',
 }: {
   className?: string;
   label: string;
   requestedPlan?: string | null;
+  initialPriority?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
   const [submitting, setSubmitting] = useState(false);
   const [requestId, setRequestId] = useState('');
@@ -72,17 +75,31 @@ export default function ReDreamDemoRequestButton({
   const openForm = () => {
     setError('');
     setSubmittedEmail('');
+    setStep(1);
     setRequestId(
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : '',
     );
+    setForm((current) => ({
+      ...current,
+      priority: current.priority || initialPriority.trim(),
+    }));
     setOpen(true);
   };
 
   const close = () => {
     if (submitting) return;
     setOpen(false);
+  };
+
+  const continueToContext = () => {
+    if (!form.fullName.trim() || !form.email.trim() || !form.agencyName.trim()) {
+      setError('Add your name, work email and agency to continue.');
+      return;
+    }
+    setError('');
+    setStep(2);
   };
 
   const submit = async (event: FormEvent) => {
@@ -155,14 +172,14 @@ export default function ReDreamDemoRequestButton({
             className={styles.modal}
             role="dialog"
             aria-modal="true"
-            aria-label="Request a ReDream demo"
+            aria-label="Run ReDream on your agency"
           >
             <div className={styles.header}>
               <div>
-                <p>REQUEST A DEMO</p>
-                <h2>Tell us about your agency.</h2>
+                <p>RUN REDREAM ON YOUR AGENCY</p>
+                <h2>Start with one real situation.</h2>
                 <span>
-                  Give us enough context to make the conversation useful from the first call.
+                  We use your context to make the first conversation useful, not to auto-provision or start a subscription.
                 </span>
               </div>
 
@@ -179,11 +196,11 @@ export default function ReDreamDemoRequestButton({
 
             {submittedEmail ? (
               <div className={styles.success}>
-                <CheckCircle2 size={26} />
+                <CheckCircle2 size={28} />
                 <p>REQUEST RECEIVED</p>
-                <h3>We have your details.</h3>
+                <h3>We have your situation.</h3>
                 <span>
-                  ReDream can now follow up at {submittedEmail}. Nothing has been provisioned or purchased.
+                  ReDream can follow up at {submittedEmail}. Nothing has been provisioned or purchased.
                 </span>
                 <button type="button" onClick={close}>
                   Done
@@ -191,181 +208,172 @@ export default function ReDreamDemoRequestButton({
               </div>
             ) : (
               <form className={styles.form} onSubmit={submit}>
-                <div className={styles.grid}>
-                  <label>
-                    <span>Your name</span>
-                    <input
-                      required
-                      minLength={2}
-                      maxLength={120}
-                      autoComplete="name"
-                      value={form.fullName}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          fullName: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label>
-                    <span>Work email</span>
-                    <input
-                      required
-                      type="email"
-                      maxLength={320}
-                      autoComplete="email"
-                      value={form.email}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          email: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label>
-                    <span>Agency name</span>
-                    <input
-                      required
-                      minLength={2}
-                      maxLength={160}
-                      autoComplete="organization"
-                      value={form.agencyName}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          agencyName: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label>
-                    <span>Agency website</span>
-                    <input
-                      type="url"
-                      maxLength={500}
-                      placeholder="https://"
-                      value={form.websiteUrl}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          websiteUrl: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label>
-                    <span>Team size</span>
-                    <select
-                      required
-                      value={form.staffSize}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          staffSize: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">Select</option>
-                      <option value="1-5">1-5 staff</option>
-                      <option value="6-15">6-15 staff</option>
-                      <option value="16-30">16-30 staff</option>
-                      <option value="31+">31+ staff</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    <span>Represented players</span>
-                    <select
-                      required
-                      value={form.playerCount}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          playerCount: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">Select</option>
-                      <option value="1-40">1-40 players</option>
-                      <option value="41-100">41-100 players</option>
-                      <option value="101-250">101-250 players</option>
-                      <option value="251+">251+ players</option>
-                    </select>
-                  </label>
-
-                  <label className={styles.full}>
-                    <span>What would you most like ReDream to improve?</span>
-                    <textarea
-                      maxLength={2000}
-                      rows={4}
-                      value={form.priority}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          priority: event.target.value,
-                        }))
-                      }
-                      placeholder="For example: follow-up, player service, club relationships, deal control..."
-                    />
-                  </label>
+                <div className={styles.progress} aria-label={`Step ${step} of 2`}>
+                  <span className={styles.progressActive} />
+                  <span className={step === 2 ? styles.progressActive : undefined} />
+                  <small>{step === 1 ? 'Your agency' : 'Useful context'}</small>
                 </div>
 
-                <label className={styles.consent}>
-                  <input
-                    required
-                    type="checkbox"
-                    checked={form.consent}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        consent: event.target.checked,
-                      }))
-                    }
-                  />
-                  <span>
-                    I agree that ReDream Systems may use these details to respond to this demo enquiry.
-                  </span>
-                </label>
+                {step === 1 ? (
+                  <div className={styles.grid}>
+                    <label>
+                      <span>Your name</span>
+                      <input
+                        required
+                        minLength={2}
+                        maxLength={120}
+                        autoComplete="name"
+                        value={form.fullName}
+                        onChange={(event) =>
+                          setForm((current) => ({ ...current, fullName: event.target.value }))
+                        }
+                      />
+                    </label>
 
-                <label className={styles.honeypot} aria-hidden="true">
-                  Company website
-                  <input
-                    tabIndex={-1}
-                    autoComplete="off"
-                    value={form.companyWebsite}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        companyWebsite: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
+                    <label>
+                      <span>Work email</span>
+                      <input
+                        required
+                        type="email"
+                        maxLength={320}
+                        autoComplete="email"
+                        value={form.email}
+                        onChange={(event) =>
+                          setForm((current) => ({ ...current, email: event.target.value }))
+                        }
+                      />
+                    </label>
 
-                {error ? <div className={styles.error}>{error}</div> : null}
+                    <label className={styles.full}>
+                      <span>Agency name</span>
+                      <input
+                        required
+                        minLength={2}
+                        maxLength={160}
+                        autoComplete="organization"
+                        value={form.agencyName}
+                        onChange={(event) =>
+                          setForm((current) => ({ ...current, agencyName: event.target.value }))
+                        }
+                      />
+                    </label>
 
-                <button
-                  className={styles.submit}
-                  type="submit"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <LoaderCircle size={15} className={styles.spin} />
-                  ) : (
-                    <ArrowRight size={15} />
-                  )}
-                  Send demo request
-                </button>
+                    {error ? <div className={`${styles.error} ${styles.full}`}>{error}</div> : null}
 
-                <small className={styles.truth}>
-                  Sending a request does not create an account, start a trial or commit your agency to a plan.
-                </small>
+                    <button className={`${styles.submit} ${styles.full}`} type="button" onClick={continueToContext}>
+                      Continue
+                      <ArrowRight size={15} />
+                    </button>
+
+                    <small className={`${styles.truth} ${styles.full}`}>
+                      Three details first. Context comes next.
+                    </small>
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.grid}>
+                      <label>
+                        <span>Team size</span>
+                        <select
+                          value={form.staffSize}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, staffSize: event.target.value }))
+                          }
+                        >
+                          <option value="">Optional</option>
+                          <option value="1-5">1-5 staff</option>
+                          <option value="6-15">6-15 staff</option>
+                          <option value="16-30">16-30 staff</option>
+                          <option value="31+">31+ staff</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Represented players</span>
+                        <select
+                          value={form.playerCount}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, playerCount: event.target.value }))
+                          }
+                        >
+                          <option value="">Optional</option>
+                          <option value="1-40">1-40 players</option>
+                          <option value="41-100">41-100 players</option>
+                          <option value="101-250">101-250 players</option>
+                          <option value="251+">251+ players</option>
+                        </select>
+                      </label>
+
+                      <label className={styles.full}>
+                        <span>Agency website</span>
+                        <input
+                          type="url"
+                          maxLength={500}
+                          placeholder="https://"
+                          value={form.websiteUrl}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, websiteUrl: event.target.value }))
+                          }
+                        />
+                      </label>
+
+                      <label className={styles.full}>
+                        <span>What should we run through ReDream?</span>
+                        <textarea
+                          maxLength={2000}
+                          rows={5}
+                          value={form.priority}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, priority: event.target.value }))
+                          }
+                          placeholder="A player situation, club need, live deal or relationship problem..."
+                        />
+                      </label>
+                    </div>
+
+                    <label className={styles.consent}>
+                      <input
+                        required
+                        type="checkbox"
+                        checked={form.consent}
+                        onChange={(event) =>
+                          setForm((current) => ({ ...current, consent: event.target.checked }))
+                        }
+                      />
+                      <span>
+                        I agree that ReDream Systems may use these details to respond to this enquiry.
+                      </span>
+                    </label>
+
+                    <label className={styles.honeypot} aria-hidden="true">
+                      Company website
+                      <input
+                        tabIndex={-1}
+                        autoComplete="off"
+                        value={form.companyWebsite}
+                        onChange={(event) =>
+                          setForm((current) => ({ ...current, companyWebsite: event.target.value }))
+                        }
+                      />
+                    </label>
+
+                    {error ? <div className={styles.error}>{error}</div> : null}
+
+                    <div className={styles.actions}>
+                      <button type="button" className={styles.back} onClick={() => setStep(1)} disabled={submitting}>
+                        Back
+                      </button>
+                      <button className={styles.submit} type="submit" disabled={submitting}>
+                        {submitting ? <LoaderCircle size={15} className={styles.spin} /> : <ArrowRight size={15} />}
+                        Send my situation
+                      </button>
+                    </div>
+
+                    <small className={styles.truth}>
+                      Sending this does not create an account, start a trial or commit your agency to a plan.
+                    </small>
+                  </>
+                )}
               </form>
             )}
           </section>
