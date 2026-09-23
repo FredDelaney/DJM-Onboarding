@@ -89,3 +89,46 @@ test('every major public sales action contributes to one connected funnel', () =
   assert.match(demo, /demo_step_2/);
   assert.match(experience, /trackingKey="interactive_result"/);
 });
+
+const publicPrivacyPage = fs.readFileSync('app/privacy/page.tsx', 'utf8');
+const publicPrivacyNotice = fs.readFileSync(
+  'app/privacy/ReDreamPublicPrivacy.tsx',
+  'utf8',
+);
+const retentionMigration = fs.readFileSync(
+  'supabase/migrations/20260923204000_redream_public_funnel_retention_v1.sql',
+  'utf8',
+);
+
+test('canonical ReDream privacy explains first-party measurement without weakening agency privacy', () => {
+  assert.match(publicPrivacyPage, /shouldRenderReDreamPublicSite/);
+  assert.match(publicPrivacyPage, /ReDreamPublicPrivacy/);
+  assert.match(publicPrivacyPage, /runtime\.slug !== 'djm-sports-management'/);
+  assert.match(publicPrivacyNotice, /90 days/);
+  assert.match(publicPrivacyNotice, /does not set its own cookie/);
+  assert.match(publicPrivacyNotice, /not stored in the anonymous funnel\s+events table/);
+  assert.match(publicPrivacyNotice, /Vercel/);
+  assert.match(publicPrivacyNotice, /Supabase/);
+  assert.match(publicPrivacyNotice, /team@redreamsystems\.com/);
+});
+
+test('anonymous funnel events have an automatic bounded retention policy', () => {
+  assert.match(
+    retentionMigration,
+    /platform_server_cleanup_public_funnel_events/,
+  );
+  assert.match(retentionMigration, /default 90/);
+  assert.match(
+    retentionMigration,
+    /redream-public-funnel-retention-v1/,
+  );
+  assert.match(retentionMigration, /cron\.schedule/);
+  assert.match(
+    retentionMigration,
+    /revoke all on function[\s\S]*from public, anon, authenticated/,
+  );
+  assert.match(
+    retentionMigration,
+    /grant execute on function[\s\S]*to service_role/,
+  );
+});

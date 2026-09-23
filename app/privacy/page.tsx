@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { resolveTenantRuntime } from '@/lib/tenant-runtime';
+import { shouldRenderReDreamPublicSite } from '@/lib/redream-public-host';
 import { ArrowLeft } from 'lucide-react';
 
 import Brand from '@/components/Brand';
 import styles from './privacy.module.css';
+import ReDreamPublicPrivacy from './ReDreamPublicPrivacy';
 
 export const metadata = {
   title: 'Privacy | ReDream',
@@ -13,7 +15,19 @@ export const metadata = {
 
 export default async function PrivacyPage() {
   const requestHeaders = await headers();
-  const runtime = await resolveTenantRuntime(requestHeaders.get('x-forwarded-host') || requestHeaders.get('host'));
+  const requestHost =
+    requestHeaders.get('x-forwarded-host') || requestHeaders.get('host');
+
+  if (
+    shouldRenderReDreamPublicSite(
+      requestHost,
+      process.env.NODE_ENV === 'development' ? '1' : null,
+    )
+  ) {
+    return <ReDreamPublicPrivacy />;
+  }
+
+  const runtime = await resolveTenantRuntime(requestHost);
   // This existing notice describes the DJM legal controller only. Do not relabel it for another agency.
   if (!runtime.resolved || runtime.slug !== 'djm-sports-management') {
     return <main className={styles.page}><div className={styles.shell}>
