@@ -2,15 +2,10 @@ import Link from 'next/link';
 import {
   ArrowRight,
   Bot,
-  BrainCircuit,
   BriefcaseBusiness,
   Check,
   CircleDollarSign,
   Clock3,
-  DatabaseZap,
-  Fingerprint,
-  Layers3,
-  MessageSquareText,
   Network,
   ShieldCheck,
   Sparkles,
@@ -22,198 +17,7 @@ import {
 import ReDreamDemoRequestButton from '@/components/ReDreamDemoRequestButton';
 import styles from './ReDreamPublicLanding.module.css';
 
-const DEMO_EMAIL =
-  process.env.NEXT_PUBLIC_REDREAM_CONTACT_EMAIL?.trim() ||
-  'team@redreamsystems.com';
-
-const plans = [
-  {
-    name: 'Agency',
-    price: '€149',
-    suffix: '/month',
-    capacity: '5 staff · 40 players',
-    promise: 'Control the core operating work',
-    outcome:
-      'For boutique agencies that want player service, follow-up and agency memory out of people’s heads.',
-    features: [
-      'Five-area agency operating workspace',
-      'Player service and career control',
-      'Branded player experience',
-      'Tasks, follow-up and agency memory',
-    ],
-  },
-  {
-    name: 'Pro',
-    price: '€399',
-    suffix: '/month',
-    capacity: '15 staff · 100 players',
-    promise: 'Add Agency Autopilot and market intelligence',
-    outcome:
-      'For growing agencies that need conversations, club demand and relationships turned into coordinated work.',
-    features: [
-      'Everything in Agency',
-      'Tell ReDream intelligent capture',
-      'Market, pursuit and relationship intelligence',
-      'Custom agency domain',
-    ],
-    featured: true,
-  },
-  {
-    name: 'Elite',
-    price: '€799',
-    suffix: '/month',
-    capacity: '30 staff · 250 players',
-    promise: 'Add owner-level revenue and negotiation control',
-    outcome:
-      'For established agencies that need service standards, deal control and commercial visibility across the business.',
-    features: [
-      'Everything in Pro',
-      'Owner Command Centre',
-      'Negotiation and commission control',
-      'Business intelligence and API access',
-    ],
-  },
-  {
-    name: 'Enterprise',
-    price: 'From €1,500',
-    suffix: '/month',
-    capacity: 'Custom scale',
-    promise: 'Add scale, infrastructure and advanced control',
-    outcome:
-      'For complex agencies that need dedicated infrastructure, advanced access control and tailored rollout.',
-    features: [
-      'Everything in Elite',
-      'Dedicated infrastructure',
-      'SSO and advanced access control',
-      'Tailored integrations and rollout',
-    ],
-  },
-];
-
-const painToOperation = [
-  {
-    icon: MessageSquareText,
-    before: 'Conversation',
-    after: 'Structured agency work',
-    copy:
-      'Turn a voice note, call recap or meeting into linked work without rebuilding the same information in multiple places.',
-  },
-  {
-    icon: Target,
-    before: 'Club need',
-    after: 'Controlled pursuit',
-    copy:
-      'Connect the brief to the right player, the right relationship route and the next commercial move.',
-  },
-  {
-    icon: Network,
-    before: 'Relationship',
-    after: 'Access route',
-    copy:
-      'Know who has the direct route, where a warm introduction is stronger and who owns the next step.',
-  },
-  {
-    icon: BriefcaseBusiness,
-    before: 'Opportunity',
-    after: 'Deal momentum',
-    copy:
-      'Keep blockers, ownership, follow-up, decision-makers and negotiation preparation attached to the same live deal.',
-  },
-  {
-    icon: UsersRound,
-    before: 'Player work',
-    after: 'Service proof',
-    copy:
-      'Turn everyday agency work into a visible record of service, commitments, career decisions and market activity.',
-  },
-  {
-    icon: CircleDollarSign,
-    before: 'Closed football work',
-    after: 'Commission closeout',
-    copy:
-      'Separate expected value from confirmed terms, receivables, payments and actual commercial completion.',
-  },
-];
-
-const operatingOutcomes = [
-  {
-    icon: Clock3,
-    title: 'Miss less follow-up',
-    copy:
-      'Keep commitments and next actions attached to the underlying player, club, relationship or deal instead of scattered across memory and messages.',
-  },
-  {
-    icon: Network,
-    title: 'Use access deliberately',
-    copy:
-      'Make relationship ownership and warm introduction routes visible before the agency defaults to cold outreach.',
-  },
-  {
-    icon: UsersRound,
-    title: 'Make player service visible',
-    copy:
-      'Give the agency a defensible record of what has been done, what is overdue and what the player should experience next.',
-  },
-  {
-    icon: BriefcaseBusiness,
-    title: 'Protect deal momentum',
-    copy:
-      'Keep commercial blockers, decision points and the next move visible while the deal is still alive.',
-  },
-  {
-    icon: CircleDollarSign,
-    title: 'Close the revenue loop',
-    copy:
-      'Carry the work beyond agreement into closeout, commission receivables and payment tracking.',
-  },
-  {
-    icon: Layers3,
-    title: 'Give owners operating visibility',
-    copy:
-      'See where the agency needs judgement, where revenue is exposed and where service or ownership is falling behind.',
-  },
-];
-
-const proofAreas = [
-  {
-    eyebrow: 'HOME',
-    title: 'Needs You',
-    copy:
-      'An evidence-ranked decision queue that brings the most important unresolved agency work to the top.',
-  },
-  {
-    eyebrow: 'CAPTURE',
-    title: 'Tell ReDream',
-    copy:
-      'A universal capture layer that turns agency conversations into structured work while preserving human approval.',
-  },
-  {
-    eyebrow: 'RELATIONSHIPS',
-    title: 'Club Account Room',
-    copy:
-      'Direct access, warm introduction routes, live demand, key people and commercial context in one place.',
-  },
-  {
-    eyebrow: 'PLAYERS',
-    title: 'Player 360',
-    copy:
-      'Service, career timing, representation, market activity, commitments and value proof around one player picture.',
-  },
-  {
-    eyebrow: 'DEALS',
-    title: 'Deal War Room',
-    copy:
-      'Momentum, blockers, next move, negotiation guardrails, closeout and commission around the same commercial thread.',
-  },
-  {
-    eyebrow: 'OWNERS',
-    title: 'Owner Command Centre',
-    copy:
-      'Commercial exposure, receivables, team ownership and player-service control without turning the product into a dashboard factory.',
-  },
-];
-
-const workflow = [
+const operatingSpine = [
   'Club need',
   'Player match',
   'Relationship route',
@@ -226,63 +30,74 @@ const workflow = [
   'Commission',
 ];
 
-const audiences = [
+const productMoments = [
   {
-    label: 'BOUTIQUE',
-    title: 'When the founder still carries the operating memory',
+    icon: Sparkles,
+    eyebrow: 'HOME',
+    title: 'Needs You',
     copy:
-      'Move follow-up, player commitments and opportunity context out of one person’s head without adding unnecessary process.',
+      'The agency opens on the work that actually needs judgement. ReDream ranks live commitments, exceptions and decisions by evidence and urgency.',
+    visual: 'queue',
   },
   {
-    label: 'GROWING',
-    title: 'When multiple agents need to move as one agency',
+    icon: Target,
+    eyebrow: 'MARKET',
+    title: 'Market Pursuit',
     copy:
-      'Create shared ownership of players, relationships, club demand and deal follow-up while keeping judgement with the right person.',
+      'Turn a club need into a controlled pursuit with player fit, Access Intelligence, relationship routes, ownership and the next commercial move.',
+    visual: 'market',
   },
   {
-    label: 'ESTABLISHED',
-    title: 'When service and revenue need operating standards',
+    icon: UsersRound,
+    eyebrow: 'PLAYERS',
+    title: 'Player 360',
     copy:
-      'See where player service is slipping, where commercial work is exposed and where the next owner-level intervention matters.',
+      'Keep Player Service, career timing, representation, commitments and market work around one trusted player picture.',
+    visual: 'player',
   },
   {
-    label: 'ENTERPRISE',
-    title: 'When scale needs permissions and infrastructure',
+    icon: BriefcaseBusiness,
+    eyebrow: 'DEALS',
+    title: 'Deal War Room',
     copy:
-      'Use tenant-aware controls, white-label workspaces, custom domains and advanced access without a separate product architecture.',
+      'Run Deal Control from live momentum through negotiation, Closeout & Collection and commission without losing the thread.',
+    visual: 'deal',
   },
 ];
 
-const faqs = [
+const trustSteps = [
+  'Evidence',
+  'Prepare',
+  'Approve',
+  'Act',
+  'Record',
+  'Undo where permitted',
+];
+
+const plans = [
   {
-    question: 'What makes ReDream different?',
-    answer:
-      'ReDream is the operating system for football agencies. It connects players, clubs, relationships and deals into prioritised work, decisions, follow-up, player service and commercial execution.',
+    name: 'Agency',
+    price: '€149',
+    suffix: '/month',
+    capacity: '5 staff · 40 players',
   },
   {
-    question: 'Do we have to stop using the tools we already use?',
-    answer:
-      'No. ReDream is designed around the operating work of the agency. Specialist data sources, messaging, email and existing records can continue to exist while ReDream becomes the place where agency work is prioritised and followed through.',
+    name: 'Pro',
+    price: '€399',
+    suffix: '/month',
+    capacity: '15 staff · 100 players',
   },
   {
-    question: 'Will AI contact clubs or make decisions automatically?',
-    answer:
-      'High-impact actions stay human-controlled. ReDream can capture, structure, prepare and recommend, but important external actions and judgement remain reviewable and explicitly confirmed.',
+    name: 'Elite',
+    price: '€799',
+    suffix: '/month',
+    capacity: '30 staff · 250 players',
   },
   {
-    question: 'Can players see our internal commercial information?',
-    answer:
-      'The player experience is deliberately separated from internal fees, relationship routes, negotiation intelligence and private agency notes.',
-  },
-  {
-    question: 'How do we move an existing roster into ReDream?',
-    answer:
-      'Agencies can start with one player for immediate value or use the roster migration workflow with duplicate review and controlled onboarding.',
-  },
-  {
-    question: 'Can the platform use our agency brand?',
-    answer:
-      'Yes. ReDream is multi-agency by design, with tenant-aware branding, agency workspaces and support for custom domains.',
+    name: 'Enterprise',
+    price: 'From €1,500',
+    suffix: '/month',
+    capacity: 'Custom scale',
   },
 ];
 
@@ -304,6 +119,149 @@ const structuredData = {
   },
 };
 
+function ProductVisual({
+  visual,
+}: {
+  visual: string;
+}) {
+  if (visual === 'queue') {
+    return (
+      <div className={styles.momentVisual}>
+        <div className={styles.visualHead}>
+          <span>NEEDS JUDGEMENT</span>
+          <strong>4</strong>
+        </div>
+
+        <div className={styles.miniRow}>
+          <span className={styles.priorityDot} />
+          <div>
+            <strong>Leo Martin</strong>
+            <small>Player commitment overdue</small>
+          </div>
+          <span>Now</span>
+        </div>
+
+        <div className={styles.miniRow}>
+          <span className={styles.priorityDot} />
+          <div>
+            <strong>Westhaven FC</strong>
+            <small>Warm route ready to review</small>
+          </div>
+          <span>Today</span>
+        </div>
+
+        <div className={styles.miniRow}>
+          <span className={styles.softDot} />
+          <div>
+            <strong>Riverton United</strong>
+            <small>Deal next move missing</small>
+          </div>
+          <span>2h</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (visual === 'market') {
+    return (
+      <div className={styles.momentVisual}>
+        <div className={styles.marketNeed}>
+          <span>LIVE CLUB NEED</span>
+          <strong>Left winger · Belgium</strong>
+          <small>U23 · direct running · permanent or loan</small>
+        </div>
+
+        <div className={styles.routeLine}>
+          <div>
+            <span>01</span>
+            <strong>3 matches</strong>
+          </div>
+          <ArrowRight size={14} />
+          <div>
+            <span>02</span>
+            <strong>2 warm routes</strong>
+          </div>
+          <ArrowRight size={14} />
+          <div>
+            <span>03</span>
+            <strong>1 pursuit owner</strong>
+          </div>
+        </div>
+
+        <small className={styles.visualNote}>
+          Access Intelligence chooses the strongest route before outreach.
+        </small>
+      </div>
+    );
+  }
+
+  if (visual === 'player') {
+    return (
+      <div className={styles.momentVisual}>
+        <div className={styles.playerHead}>
+          <div className={styles.avatar}>LM</div>
+          <div>
+            <strong>Leo Martin</strong>
+            <small>RW · represented</small>
+          </div>
+          <span>Active</span>
+        </div>
+
+        <div className={styles.playerGrid}>
+          <div>
+            <span>Service</span>
+            <strong>On track</strong>
+          </div>
+          <div>
+            <span>Market</span>
+            <strong>3 live routes</strong>
+          </div>
+          <div>
+            <span>Contract</span>
+            <strong>14 months</strong>
+          </div>
+          <div>
+            <span>Next review</span>
+            <strong>8 Oct</strong>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.momentVisual}>
+      <div className={styles.dealHead}>
+        <div>
+          <span>LIVE DEAL</span>
+          <strong>Riverton United · Leo Martin</strong>
+        </div>
+        <span className={styles.dealChip}>Negotiation</span>
+      </div>
+
+      <div className={styles.dealMetric}>
+        <div>
+          <span>Momentum</span>
+          <strong>Active</strong>
+        </div>
+        <div>
+          <span>Owner</span>
+          <strong>James</strong>
+        </div>
+        <div>
+          <span>Next move</span>
+          <strong>Counter terms</strong>
+        </div>
+      </div>
+
+      <div className={styles.dealFooter}>
+        <CircleDollarSign size={14} />
+        Closeout & Collection stays attached after agreement.
+      </div>
+    </div>
+  );
+}
+
 export default function ReDreamPublicLanding() {
   return (
     <main className={styles.page}>
@@ -313,6 +271,7 @@ export default function ReDreamPublicLanding() {
           __html: JSON.stringify(structuredData).replace(/</g, '\\u003c'),
         }}
       />
+
       <header className={styles.navWrap}>
         <div className={styles.nav}>
           <Link
@@ -328,9 +287,8 @@ export default function ReDreamPublicLanding() {
           </Link>
 
           <nav className={styles.navLinks} aria-label="Primary">
-            <a href="#why">Why ReDream</a>
-            <a href="#platform">Platform</a>
-            <a href="#workflow">How it works</a>
+            <a href="#product">Product</a>
+            <a href="#autopilot">Agency Autopilot</a>
             <a href="#pricing">Pricing</a>
           </nav>
 
@@ -346,21 +304,19 @@ export default function ReDreamPublicLanding() {
 
         <div className={styles.heroInner}>
           <div className={styles.heroCopy}>
-            <div className={styles.badge}>
-              <Sparkles size={14} />
-              The operating system for football agencies.
-            </div>
+            <p className={styles.eyebrow}>
+              THE OPERATING SYSTEM FOR FOOTBALL AGENCIES
+            </p>
 
             <h1>
-              Run the agency.
-              <span> Not the admin.</span>
+              Run the agency from
+              <span> what happens next.</span>
             </h1>
 
-            <p>
-              ReDream is the operating system for football agencies. It
-              connects player service, club demand, relationships, market
-              work, deals, negotiation and commission into one operating
-              layer built around agent judgement.
+            <p className={styles.heroLead}>
+              ReDream turns conversations, club demand, relationship
+              intelligence, player service and live deals into the next
+              action your agency needs to take.
             </p>
 
             <div className={styles.heroActions}>
@@ -369,38 +325,33 @@ export default function ReDreamPublicLanding() {
                 label="Request a demo"
               />
 
-              <a
-                className={styles.secondaryCta}
-                href="#why"
-              >
-                Why ReDream exists
+              <a className={styles.secondaryCta} href="#product">
+                See how it works
+                <ArrowRight size={15} />
               </a>
             </div>
 
-            <div className={styles.heroProof}>
-              <span>
-                <Check size={13} />
-                Operating system, not contact database
-              </span>
+            <div className={styles.heroTrust}>
               <span>
                 <Check size={13} />
                 White-label agency workspace
               </span>
               <span>
                 <Check size={13} />
-                Human-controlled Agency Autopilot
+                Human-controlled automation
+              </span>
+              <span>
+                <Check size={13} />
+                Built around agency judgement
               </span>
             </div>
           </div>
 
-          <div className={styles.productFrame}>
-            <div className={styles.frameTop}>
+          <div className={styles.storyFrame} aria-label="Illustrative ReDream agency workflow">
+            <div className={styles.storyTop}>
               <div>
-                <span className={styles.frameMark}>R</span>
-                <div>
-                  <strong>Northstar Football</strong>
-                  <small>AGENCY WORKSPACE</small>
-                </div>
+                <span>ILLUSTRATIVE AGENCY WORKSPACE</span>
+                <strong>Tell ReDream</strong>
               </div>
 
               <span className={styles.liveChip}>
@@ -409,557 +360,270 @@ export default function ReDreamPublicLanding() {
               </span>
             </div>
 
-            <div className={styles.frameTabs}>
-              <span className={styles.activeTab}>Home</span>
-              <span>Players</span>
-              <span>Market</span>
-              <span>Deals</span>
-              <span>Relationships</span>
+            <div className={styles.capture}>
+              <div className={styles.captureIcon}>
+                <Bot size={18} />
+              </div>
+
+              <div>
+                <span>CAPTURED FROM A CONVERSATION</span>
+                <p>
+                  “Westhaven need a left-footed winger under 23. We have a
+                  warm route through their sporting director.”
+                </p>
+              </div>
             </div>
 
-            <div className={styles.frameBody}>
-              <div className={styles.frameHeading}>
+            <div className={styles.storyFlow}>
+              <div className={styles.storyStep}>
+                <span>01</span>
                 <div>
-                  <small>DAILY OPERATING PICTURE</small>
-                  <h2>Today</h2>
-                </div>
-
-                <div className={styles.captureChip}>
-                  <Bot size={14} />
-                  Tell ReDream
+                  <small>UNDERSTAND</small>
+                  <strong>Club need structured</strong>
                 </div>
               </div>
 
-              <article className={styles.focusCard}>
+              <div className={styles.storyStep}>
+                <span>02</span>
                 <div>
-                  <small>DO THIS FIRST</small>
-                  <strong>
-                    Resolve Leo Martin&apos;s overdue player action
-                  </strong>
-                  <p>
-                    One player-service commitment is overdue and blocks the
-                    current service standard.
-                  </p>
-                </div>
-
-                <button type="button" tabIndex={-1}>
-                  Open action
-                  <ArrowRight size={14} />
-                </button>
-              </article>
-
-              <div className={styles.metricGrid}>
-                <div>
-                  <span>Needs you</span>
-                  <strong>4</strong>
-                </div>
-                <div>
-                  <span>Autopilot ready</span>
-                  <strong>7</strong>
-                </div>
-                <div>
-                  <span>Live deals</span>
-                  <strong>6</strong>
-                </div>
-                <div>
-                  <span>Overdue</span>
-                  <strong>2</strong>
+                  <small>MATCH</small>
+                  <strong>3 players fit the brief</strong>
                 </div>
               </div>
 
-              <div className={styles.queue}>
-                <div className={styles.queueHead}>
-                  <strong>Needs judgement</strong>
-                  <span>Evidence-ranked</span>
-                </div>
-
-                <div className={styles.queueRow}>
-                  <span className={styles.queueIcon}>
-                    <BriefcaseBusiness size={14} />
-                  </span>
-                  <div>
-                    <strong>Riverton United · Leo Martin</strong>
-                    <small>Deal control · next decision missing</small>
-                  </div>
-                  <ArrowRight size={14} />
-                </div>
-
-                <div className={styles.queueRow}>
-                  <span className={styles.queueIcon}>
-                    <Network size={14} />
-                  </span>
-                  <div>
-                    <strong>Westhaven FC</strong>
-                    <small>Warm route stronger than direct access</small>
-                  </div>
-                  <ArrowRight size={14} />
-                </div>
-
-                <div className={styles.queueRow}>
-                  <span className={styles.queueIcon}>
-                    <Target size={14} />
-                  </span>
-                  <div>
-                    <strong>Belgium · left winger need</strong>
-                    <small>3 recorded player routes ready for review</small>
-                  </div>
-                  <ArrowRight size={14} />
+              <div className={styles.storyStep}>
+                <span>03</span>
+                <div>
+                  <small>ROUTE</small>
+                  <strong>Warm relationship identified</strong>
                 </div>
               </div>
+
+              <div className={styles.storyStep}>
+                <span>04</span>
+                <div>
+                  <small>OPERATE</small>
+                  <strong>Follow-up prepared for approval</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.needsYou}>
+              <div>
+                <Sparkles size={15} />
+                <span>
+                  <small>NEEDS YOU</small>
+                  <strong>Approve the Westhaven pursuit</strong>
+                </span>
+              </div>
+
+              <button type="button" tabIndex={-1}>
+                Review
+                <ArrowRight size={13} />
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      <section
-        className={`${styles.section} ${styles.problemSection}`}
-        id="why"
-      >
-        <div className={styles.sectionIntro}>
-          <p>WHY REDREAM EXISTS</p>
+      <section className={styles.spineSection} aria-label="ReDream operating spine">
+        <div className={styles.spineIntro}>
+          <span>ONE OPERATING THREAD</span>
+          <strong>
+            From demand to commission, without losing ownership or context.
+          </strong>
+        </div>
+
+        <div className={styles.spineRail}>
+          {operatingSpine.map((item, index) => (
+            <div key={item}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <strong>{item}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.productSection} id="product">
+        <div className={styles.sectionHeading}>
+          <p>THE PRODUCT</p>
           <h2>
-            Football agencies do not need another place to store information.
+            The agency should open ReDream and immediately know what matters.
           </h2>
           <span>
-            The information already exists across conversations,
-            spreadsheets, inboxes, databases and people. The operating
-            problem is turning that information into coordinated work before
-            opportunities, service commitments or revenue slip.
+            The product is organised around operating decisions, not around
+            making staff maintain another system.
           </span>
         </div>
 
-        <div className={styles.problemStrip}>
-          <span>WhatsApp</span>
-          <ArrowRight size={14} />
-          <span>Spreadsheets</span>
-          <ArrowRight size={14} />
-          <span>Inbox</span>
-          <ArrowRight size={14} />
-          <span>Agent memory</span>
-          <ArrowRight size={14} />
-          <strong>ReDream operating layer</strong>
-        </div>
-
-        <div className={styles.transformationGrid}>
-          {painToOperation.map((item) => {
-            const Icon = item.icon;
+        <div className={styles.momentsGrid}>
+          {productMoments.map((moment) => {
+            const Icon = moment.icon;
 
             return (
-              <article className={styles.transformationCard} key={item.after}>
-                <div className={styles.productIcon}>
-                  <Icon size={18} />
+              <article className={styles.moment} key={moment.title}>
+                <div className={styles.momentCopy}>
+                  <div className={styles.momentLabel}>
+                    <span className={styles.momentIcon}>
+                      <Icon size={16} />
+                    </span>
+                    <small>{moment.eyebrow}</small>
+                  </div>
+
+                  <h3>{moment.title}</h3>
+                  <p>{moment.copy}</p>
                 </div>
 
-                <div className={styles.transformLabel}>
-                  <span>{item.before}</span>
+                <ProductVisual visual={moment.visual} />
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className={styles.autopilotSection} id="autopilot">
+        <div className={styles.autopilotCopy}>
+          <p>AGENCY AUTOPILOT</p>
+          <h2>
+            Automation that works inside the agency&apos;s guardrails.
+          </h2>
+          <span>
+            ReDream can capture, structure, prepare and recommend. High-impact
+            actions stay reviewable, evidence-led and owned by the right
+            person.
+          </span>
+
+          <div className={styles.trustPoints}>
+            <div>
+              <ShieldCheck size={16} />
+              <span>
+                <strong>Human judgement where it matters</strong>
+                <small>
+                  Human decision remains explicit for money, disclosure,
+                  negotiation and important external communication.
+                </small>
+              </span>
+            </div>
+
+            <div>
+              <Workflow size={16} />
+              <span>
+                <strong>Evidence before action</strong>
+                <small>
+                  ReDream does not invent facts to make a workflow look
+                  complete.
+                </small>
+              </span>
+            </div>
+
+            <div>
+              <UsersRound size={16} />
+              <span>
+                <strong>Player-safe by design</strong>
+                <small>
+                  Internal commercial intelligence stays separate from the
+                  player experience unless deliberately disclosed.
+                </small>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.trustFrame}>
+          <div className={styles.trustTop}>
+            <div className={styles.trustOrb}>
+              <Bot size={18} />
+            </div>
+
+            <div>
+              <small>CONTROL MODEL</small>
+              <strong>Agency Autopilot</strong>
+            </div>
+          </div>
+
+          <div className={styles.trustRail}>
+            {trustSteps.map((step, index) => (
+              <div key={step}>
+                <span>{index + 1}</span>
+                <strong>{step}</strong>
+                {index < trustSteps.length - 1 ? (
                   <ArrowRight size={13} />
-                  <strong>{item.after}</strong>
-                </div>
-
-                <p>{item.copy}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className={styles.categoryBand}>
-        <div className={styles.categoryCopy}>
-          <p>CATEGORY</p>
-          <h2>
-            Not another system of record.
-            <span> A system of operation.</span>
-          </h2>
-          <p className={styles.categoryLead}>
-            Players, clubs, contacts and deals are records. ReDream connects
-            those records into the decisions and actions that actually move
-            the agency.
-          </p>
-        </div>
-
-        <div className={styles.categoryColumns}>
-          <div>
-            <small>RECORDS TELL YOU WHAT EXISTS</small>
-            <ul>
-              <li>Players and representation</li>
-              <li>Clubs and contacts</li>
-              <li>Opportunities and deals</li>
-              <li>Tasks and commitments</li>
-              <li>Commercial terms</li>
-            </ul>
+                ) : null}
+              </div>
+            ))}
           </div>
 
-          <div className={styles.operationColumn}>
-            <small>REDREAM RUNS WHAT HAPPENS NEXT</small>
-            <ul>
-              <li>Prioritise the exceptions that need judgement</li>
-              <li>Route work to the strongest relationship path</li>
-              <li>Prepare the next commercial action</li>
-              <li>Keep follow-up and ownership live</li>
-              <li>Carry value through closeout and commission</li>
-            </ul>
+          <div className={styles.approvalCard}>
+            <div>
+              <ShieldCheck size={15} />
+              <span>
+                <small>APPROVAL REQUIRED</small>
+                <strong>Send prepared club follow-up</strong>
+              </span>
+            </div>
+
+            <span className={styles.approvalStatus}>
+              Human decision
+            </span>
           </div>
         </div>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.sectionIntro}>
-          <p>COMMERCIAL VALUE</p>
-          <h2>
-            Protect the revenue already inside the agency.
-          </h2>
+      <section className={styles.commercialSection} id="pricing">
+        <div className={styles.sectionHeading}>
+          <p>PRICING</p>
+          <h2>Start with the agency you are. Scale without changing systems.</h2>
           <span>
-            ReDream is designed to reduce operating leakage without
-            pretending that software can replace relationships, judgement or
-            negotiation.
+            Plans start at €149/month. The same operating architecture scales
+            from boutique agencies to complex international operations.
           </span>
         </div>
 
-        <div className={styles.outcomeGrid}>
-          {operatingOutcomes.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <article className={styles.outcomeCard} key={item.title}>
-                <Icon size={18} />
-                <h3>{item.title}</h3>
-                <p>{item.copy}</p>
-              </article>
-            );
-          })}
+        <div className={styles.planRail}>
+          {plans.map((plan) => (
+            <article key={plan.name}>
+              <span>{plan.name}</span>
+              <div>
+                <strong>{plan.price}</strong>
+                <small>{plan.suffix}</small>
+              </div>
+              <p>{plan.capacity}</p>
+            </article>
+          ))}
         </div>
 
-        <div className={styles.inlineCta}>
+        <div className={styles.commercialNote}>
           <div>
-            <strong>See where ReDream would remove operating friction in your agency.</strong>
-            <span>No generic software tour. Start from the way your agency actually works.</span>
+            <Clock3 size={17} />
+            <span>
+              <strong>Built for first value, not a long implementation.</strong>
+              <small>
+                Start with one player, one relationship and one live agency
+                need, then expand from real operating value.
+              </small>
+            </span>
           </div>
 
           <ReDreamDemoRequestButton
-            className={styles.primaryCta}
+            className={styles.darkCta}
             label="Request a demo"
           />
         </div>
       </section>
 
-      <section
-        className={`${styles.section} ${styles.platformSection}`}
-        id="platform"
-      >
-        <div className={styles.sectionIntro}>
-          <p>THE OPERATING PLATFORM</p>
-          <h2>
-            The product is the proof.
-          </h2>
-          <span>
-            ReDream is built around real agency operating surfaces, not a
-            generic database with football labels. Player Service, Access Intelligence,
-            Deal Control and Closeout & Collection all connect back into one operating model.
-          </span>
-        </div>
-
-        <div className={styles.proofGrid}>
-          {proofAreas.map((item) => (
-            <article className={styles.proofCard} key={item.title}>
-              <small>{item.eyebrow}</small>
-              <h3>{item.title}</h3>
-              <p>{item.copy}</p>
-              <span>
-                Open operating surface
-                <ArrowRight size={13} />
-              </span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section
-        className={`${styles.section} ${styles.workflowSection}`}
-        id="workflow"
-      >
-        <div className={styles.workflowCopy}>
-          <p>THE REVENUE SPINE</p>
-          <h2>
-            From a club need to money collected.
-          </h2>
-          <span>
-            ReDream keeps the commercial thread connected instead of
-            scattering it across messages, spreadsheets, inboxes and
-            individual memory.
-          </span>
-
-          <div className={styles.workflowNotes}>
-            <div>
-              <Clock3 size={16} />
-              <span>
-                Follow-up and commitments stay attached to the underlying
-                player, club and deal.
-              </span>
-            </div>
-
-            <div>
-              <DatabaseZap size={16} />
-              <span>
-                Agency Memory preserves what changed, who approved it and
-                what can still be undone.
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.workflowRail}>
-          {workflow.map((item, index) => (
-            <div
-              className={styles.workflowStep}
-              key={item}
-            >
-              <span>{String(index + 1).padStart(2, '0')}</span>
-              <strong>{item}</strong>
-              {index < workflow.length - 1 ? (
-                <ArrowRight size={14} />
-              ) : (
-                <Check size={14} />
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className={`${styles.section} ${styles.principlesSection}`}>
-        <div className={styles.principlesVisual}>
-          <div className={styles.brainRing}>
-            <BrainCircuit size={30} />
-          </div>
-
-          <p>AGENCY AUTOPILOT</p>
-          <h3>
-            AI where it removes operational work.
-            <span> Human judgement where it matters.</span>
-          </h3>
-
-          <div className={styles.controlStack}>
-            <div>
-              <MessageSquareText size={16} />
-              <span>Capture</span>
-            </div>
-            <ArrowRight size={14} />
-            <div>
-              <BrainCircuit size={16} />
-              <span>Structure</span>
-            </div>
-            <ArrowRight size={14} />
-            <div>
-              <Workflow size={16} />
-              <span>Prepare</span>
-            </div>
-            <ArrowRight size={14} />
-            <div className={styles.humanControl}>
-              <Fingerprint size={16} />
-              <span>Human decision</span>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.principlesCopy}>
-          <div>
-            <ShieldCheck size={18} />
-            <section>
-              <strong>Evidence before confidence</strong>
-              <span>
-                Missing evidence stays missing. ReDream does not invent
-                relationships, player intent, negotiation limits or signing
-                outcomes.
-              </span>
-            </section>
-          </div>
-
-          <div>
-            <Fingerprint size={18} />
-            <section>
-              <strong>Bounded actions</strong>
-              <span>
-                Important actions stay prepared, reviewable and explicitly
-                confirmed rather than silently executed.
-              </span>
-            </section>
-          </div>
-
-          <div>
-            <DatabaseZap size={18} />
-            <section>
-              <strong>Memory with provenance</strong>
-              <span>
-                The platform records what changed, who acted, the supporting
-                evidence and whether a reversible action can still be undone.
-              </span>
-            </section>
-          </div>
-
-          <div>
-            <UsersRound size={18} />
-            <section>
-              <strong>Player-safe by design</strong>
-              <span>
-                Player transparency stays separate from fees, internal notes,
-                relationship routes and private negotiation intelligence.
-              </span>
-            </section>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.securityBand}>
-        <div>
-          <p>BUILT FOR MULTI-AGENCY SaaS</p>
-          <h2>
-            Your agency. Your brand. Your operating data.
-          </h2>
-        </div>
-
-        <div className={styles.securityItems}>
-          <span>
-            <ShieldCheck size={15} />
-            Tenant-aware permissions
-          </span>
-          <span>
-            <Network size={15} />
-            Custom domains
-          </span>
-          <span>
-            <Sparkles size={15} />
-            White-label experience
-          </span>
-          <span>
-            <DatabaseZap size={15} />
-            Audited operating history
-          </span>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionIntro}>
-          <p>WHO IT IS FOR</p>
-          <h2>
-            One operating system across different stages of agency growth.
-          </h2>
-          <span>
-            ReDream changes the amount of control and automation available,
-            not the underlying operating model.
-          </span>
-        </div>
-
-        <div className={styles.audienceGrid}>
-          {audiences.map((item) => (
-            <article className={styles.audienceCard} key={item.label}>
-              <small>{item.label}</small>
-              <h3>{item.title}</h3>
-              <p>{item.copy}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section
-        className={styles.section}
-        id="pricing"
-      >
-        <div className={styles.sectionIntro}>
-          <p>PRICING</p>
-          <h2>
-            Buy more operating leverage as the agency grows.
-          </h2>
-          <span>
-            The plans increase the depth of automation, commercial control
-            and scale. The underlying agency operating system stays the same.
-          </span>
-        </div>
-
-        <div className={styles.pricingGrid}>
-          {plans.map((plan) => (
-            <article
-              className={`${styles.planCard} ${
-                plan.featured ? styles.featuredPlan : ''
-              }`}
-              key={plan.name}
-            >
-              {plan.featured ? (
-                <div className={styles.planBadge}>
-                  FOR GROWING AGENCIES
-                </div>
-              ) : null}
-
-              <p>{plan.name.toUpperCase()}</p>
-              <h3>
-                {plan.price}
-                <span>{plan.suffix}</span>
-              </h3>
-              <small>{plan.capacity}</small>
-
-              <strong>{plan.promise}</strong>
-              <p className={styles.planOutcome}>
-                {plan.outcome}
-              </p>
-
-              <div className={styles.planFeatures}>
-                {plan.features.map((feature) => (
-                  <span key={feature}>
-                    <Check size={13} />
-                    {feature}
-                  </span>
-                ))}
-              </div>
-
-              <ReDreamDemoRequestButton
-                className={
-                  plan.featured
-                    ? styles.primaryCta
-                    : styles.planCta
-                }
-                label="Talk to ReDream"
-                requestedPlan={plan.name.toLowerCase()}
-              />
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className={`${styles.section} ${styles.faqSection}`}>
-        <div className={styles.sectionIntro}>
-          <p>COMMON QUESTIONS</p>
-          <h2>
-            Understand the category before you compare the features.
-          </h2>
-          <span>
-            ReDream is designed to become the operating layer of the agency,
-            not another place for agents to duplicate records.
-          </span>
-        </div>
-
-        <div className={styles.faqGrid}>
-          {faqs.map((item) => (
-            <details className={styles.faqItem} key={item.question}>
-              <summary>
-                {item.question}
-                <span>+</span>
-              </summary>
-              <p>{item.answer}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
       <section className={styles.finalCta}>
         <div>
-          <p>SEE REDREAM ON YOUR AGENCY</p>
-          <h2>
-            See how ReDream would run your agency.
-            <span> Start from your real operating work.</span>
-          </h2>
+          <p>SEE IT ON YOUR AGENCY</p>
+          <h2>See how ReDream would run the work you already do.</h2>
+          <span>
+            Bring one real player, club need or live opportunity. We will show
+            you what the operating system does with it.
+          </span>
         </div>
 
         <ReDreamDemoRequestButton
-          className={styles.finalButton}
-          label="Request a ReDream demo"
+          className={styles.lightCta}
+          label="Request a demo"
         />
       </section>
 
@@ -976,9 +640,9 @@ export default function ReDreamPublicLanding() {
           />
         </Link>
 
-        <div>
+        <div className={styles.footerMeta}>
           <span>The operating system for football agencies.</span>
-          <a href={`mailto:${DEMO_EMAIL}`}>{DEMO_EMAIL}</a>
+          <Link href="/privacy">Privacy</Link>
         </div>
       </footer>
     </main>
