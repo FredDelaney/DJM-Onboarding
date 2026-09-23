@@ -47,6 +47,7 @@ import AgencyPursuitRoom, {
   type AgencyPursuitRequest,
 } from '@/components/AgencyPursuitRoom';
 import AgencyOwnerCommandCentre from '@/components/AgencyOwnerCommandCentre';
+import AgencyMemoryDrawer from '@/components/AgencyMemoryDrawer';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -216,6 +217,7 @@ export default function AgencyOperatingWorkspace() {
   const [pursuitRequest, setPursuitRequest] =
     useState<AgencyPursuitRequest | null>(null);
   const [ownerCommandOpen, setOwnerCommandOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -833,6 +835,7 @@ export default function AgencyOperatingWorkspace() {
                 onPrepare={prepareCommand}
                 onOpenAction={openCommandAction}
                 onOpenOwner={() => setOwnerCommandOpen(true)}
+                onOpenMemory={() => setMemoryOpen(true)}
               />
             ) : null}
             {view === 'players' ? (
@@ -927,6 +930,16 @@ export default function AgencyOperatingWorkspace() {
               context,
             });
           }}
+          onApplied={async () => {
+            await loadView();
+          }}
+        />
+      ) : null}
+
+      {memoryOpen ? (
+        <AgencyMemoryDrawer
+          invoke={(action, body) => invoke<any>(action, body)}
+          onClose={() => setMemoryOpen(false)}
           onApplied={async () => {
             await loadView();
           }}
@@ -1107,12 +1120,14 @@ function Home({
   onPrepare,
   onOpenAction,
   onOpenOwner,
+  onOpenMemory,
 }: {
   data: any;
   actionBusy: string;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
   onOpenOwner: () => void;
+  onOpenMemory: () => void;
 }) {
   const home = data?.home || {};
   const operations = data?.operations || {};
@@ -1244,6 +1259,38 @@ function Home({
           value={String(activeDelegated)}
           detail={`${completedDelegated} completed`}
         />
+      </section>
+
+      <section className={styles.sectionCard}>
+        <div className={styles.sectionHead}>
+          <div>
+            <p className={styles.eyebrow}>AGENCY MEMORY</p>
+            <h2>Movement, decisions and learning</h2>
+          </div>
+
+          <button
+            type="button"
+            className={styles.compactButton}
+            onClick={onOpenMemory}
+          >
+            <Network size={14} />
+            Open Agency Memory
+          </button>
+        </div>
+
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateIcon}>
+            <Network size={18} />
+          </div>
+
+          <strong>
+            See what changed, what was prepared or applied, and what the agency has enough evidence to learn from.
+          </strong>
+
+          <span>
+            Provenance and reversibility stay visible while weak evidence stays explicitly inconclusive.
+          </span>
+        </div>
       </section>
 
       {data?.owner_business ? (
