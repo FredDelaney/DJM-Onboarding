@@ -54,6 +54,9 @@ import AgencyDealCloseoutDrawer, {
 import AgencyClubAccountDrawer, {
   type AgencyClubAccountRequest,
 } from '@/components/AgencyClubAccountDrawer';
+import AgencyNegotiationCommandRoom, {
+  type AgencyNegotiationRequest,
+} from '@/components/AgencyNegotiationCommandRoom';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -228,6 +231,8 @@ export default function AgencyOperatingWorkspace() {
     useState<AgencyDealCloseoutRequest | null>(null);
   const [clubAccountRequest, setClubAccountRequest] =
     useState<AgencyClubAccountRequest | null>(null);
+  const [negotiationRequest, setNegotiationRequest] =
+    useState<AgencyNegotiationRequest | null>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -923,6 +928,15 @@ export default function AgencyOperatingWorkspace() {
               context,
             });
           }}
+          onOpenNegotiation={(dealRoomId, title, context) => {
+            setIntelligenceRequest(null);
+            setNegotiationRequest({
+              key: `negotiation-room:${dealRoomId}`,
+              dealRoomId,
+              title,
+              context,
+            });
+          }}
         />
       ) : null}
 
@@ -949,6 +963,23 @@ export default function AgencyOperatingWorkspace() {
               title,
               context,
             });
+          }}
+          onApplied={async () => {
+            await loadView();
+          }}
+        />
+      ) : null}
+
+      {negotiationRequest ? (
+        <AgencyNegotiationCommandRoom
+          key={negotiationRequest.key}
+          request={negotiationRequest}
+          role={String(workspace?.role || '')}
+          invoke={(action, body) => invoke<any>(action, body)}
+          onClose={() => setNegotiationRequest(null)}
+          onOpenAction={(request) => {
+            setNegotiationRequest(null);
+            setActionRequest(request);
           }}
           onApplied={async () => {
             await loadView();

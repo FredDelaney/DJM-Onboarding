@@ -88,12 +88,18 @@ export default function AgencyEntityIntelligenceDrawer({
   onClose,
   onOpenAction,
   onOpenCloseout,
+  onOpenNegotiation,
 }: {
   request: AgencyIntelligenceRequest;
   invoke: Invoke;
   onClose: () => void;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenCloseout: (
+    dealRoomId: string,
+    title: string,
+    context?: string | null,
+  ) => void;
+  onOpenNegotiation: (
     dealRoomId: string,
     title: string,
     context?: string | null,
@@ -523,6 +529,20 @@ export default function AgencyEntityIntelligenceDrawer({
                   Prepare next move
                 </button>
               ) : null}
+
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenNegotiation(
+                    request.entityId,
+                    request.title,
+                    request.context,
+                  )
+                }
+              >
+                <ShieldCheck size={15} />
+                Negotiation room
+              </button>
 
               <button
                 type="button"
