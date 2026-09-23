@@ -87,11 +87,17 @@ export default function AgencyEntityIntelligenceDrawer({
   invoke,
   onClose,
   onOpenAction,
+  onOpenCloseout,
 }: {
   request: AgencyIntelligenceRequest;
   invoke: Invoke;
   onClose: () => void;
   onOpenAction: (request: AgencyActionRequest) => void;
+  onOpenCloseout: (
+    dealRoomId: string,
+    title: string,
+    context?: string | null,
+  ) => void;
 }) {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
@@ -517,6 +523,20 @@ export default function AgencyEntityIntelligenceDrawer({
                   Prepare next move
                 </button>
               ) : null}
+
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenCloseout(
+                    request.entityId,
+                    request.title,
+                    request.context,
+                  )
+                }
+              >
+                <BriefcaseBusiness size={15} />
+                Closeout & commission
+              </button>
 
               {negotiation.next_step?.instruction ? (
                 <button

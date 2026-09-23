@@ -48,6 +48,9 @@ import AgencyPursuitRoom, {
 } from '@/components/AgencyPursuitRoom';
 import AgencyOwnerCommandCentre from '@/components/AgencyOwnerCommandCentre';
 import AgencyMemoryDrawer from '@/components/AgencyMemoryDrawer';
+import AgencyDealCloseoutDrawer, {
+  type AgencyDealCloseoutRequest,
+} from '@/components/AgencyDealCloseoutDrawer';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -218,6 +221,8 @@ export default function AgencyOperatingWorkspace() {
     useState<AgencyPursuitRequest | null>(null);
   const [ownerCommandOpen, setOwnerCommandOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [dealCloseoutRequest, setDealCloseoutRequest] =
+    useState<AgencyDealCloseoutRequest | null>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -903,6 +908,15 @@ export default function AgencyOperatingWorkspace() {
             setIntelligenceRequest(null);
             setActionRequest(request);
           }}
+          onOpenCloseout={(dealRoomId, title, context) => {
+            setIntelligenceRequest(null);
+            setDealCloseoutRequest({
+              key: `deal-closeout:${dealRoomId}`,
+              dealRoomId,
+              title,
+              context,
+            });
+          }}
         />
       ) : null}
 
@@ -930,6 +944,19 @@ export default function AgencyOperatingWorkspace() {
               context,
             });
           }}
+          onApplied={async () => {
+            await loadView();
+          }}
+        />
+      ) : null}
+
+      {dealCloseoutRequest ? (
+        <AgencyDealCloseoutDrawer
+          key={dealCloseoutRequest.key}
+          request={dealCloseoutRequest}
+          role={String(workspace?.role || '')}
+          invoke={(action, body) => invoke<any>(action, body)}
+          onClose={() => setDealCloseoutRequest(null)}
           onApplied={async () => {
             await loadView();
           }}
