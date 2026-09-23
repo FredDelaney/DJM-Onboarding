@@ -285,3 +285,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.emailDeliveryState {
+  margin-top: 12px;
+  padding: 10px 11px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 10px;
+  background: #f6f7f9;
+  color: #747982;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.emailDeliveryState svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #6557cf;
+}
+
+.inviteActions .emailButton {
+  border-color: color-mix(in srgb, #7c6cf2 28%, rgba(10,10,12,.08));
+  background: color-mix(in srgb, #7c6cf2 6%, #fff);
+  color: #5f53c8;
+}

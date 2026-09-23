@@ -7,6 +7,29 @@ const clamp=(v:unknown,min:number,max:number,fallback:number)=>Math.max(min,Math
 const text=(v:unknown)=>typeof v==="string"?v.trim():"";
 const obj=(v:unknown)=>v&&typeof v==="object"&&!Array.isArray(v)?v as Record<string,unknown>:{};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const escapeHtml=(value:unknown)=>String(value??"")
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;")
+  .replace(/'/g,"&#039;");
+const safeColour=(value:unknown,fallback:string)=>{
+  const candidate=text(value);
+  return /^#[0-9a-f]{6}$/i.test(candidate)?candidate.toUpperCase():fallback;
+};
+const safeBaseUrl=(value:unknown)=>{
+  try{
+    const parsed=new URL(text(value));
+    if(parsed.protocol!=="https:"&&!(parsed.protocol==="http:"&&["localhost","127.0.0.1"].includes(parsed.hostname))) return null;
+    parsed.pathname="";
+    parsed.search="";
+    parsed.hash="";
+    return parsed.toString().replace(/\/$/,"");
+  }catch{
+    return null;
+  }
+};
 
 type Rpc=(name:string,args?:Record<string,unknown>)=>Promise<any>;
 
@@ -700,6 +723,166 @@ export default {fetch:async(req:Request)=>{
       const existing=await rpc("platform_server_find_auth_user_by_email",{p_email:email});
       if(!existing) return json({error:"No account exists for this email yet",owner_invite_required:true,email},409);
       return json({ok:true,platform_role:adminRecord.role,owner:await rpc("platform_server_operator_attach_owner",{p_tenant_id:tenantId,p_user_id:String(existing),p_actor_user_id:userId})});
+    }
+
+    if(action==="owner_invite_email_status"){
+      const config=obj(await rpc("platform_server_email_delivery_config"));
+      const baseUrl=safeBaseUrl(config.app_base_url);
+      const configured=Boolean(
+        config.enabled===true&&
+        text(config.provider).toLowerCase()==="resend"&&
+        text(config.api_key)&&
+        text(config.from_address)&&
+        baseUrl
+      );
+      return json({
+        ok:true,
+        platform_role:adminRecord.role,
+        email_delivery:{
+          configured,
+          enabled:config.enabled===true,
+          provider:text(config.provider).toLowerCase()||null,
+          from_address:text(config.from_address)||null,
+          reply_to:text(config.reply_to)||null,
+          app_base_url:baseUrl,
+        },
+      });
+    }
+
+    if(action==="send_owner_invite_email"){
+      const tenantId=text(body?.tenant_id);
+      const ownerEmail=text(body?.email).toLowerCase();
+      if(!uuid.test(tenantId)||!emailPattern.test(ownerEmail)){
+        return json({error:"Valid tenant_id and owner email are required"},400);
+      }
+
+      const config=obj(await rpc("platform_server_email_delivery_config"));
+      const baseUrl=safeBaseUrl(config.app_base_url);
+      const provider=text(config.provider).toLowerCase();
+      const apiKey=text(config.api_key);
+      const fromAddress=text(config.from_address);
+      const replyTo=text(config.reply_to);
+
+      if(
+        config.enabled!==true||
+        provider!=="resend"||
+        !apiKey||
+        !fromAddress||
+        !baseUrl
+      ){
+        return json({
+          error:"Owner invitation email delivery is not configured yet. Use the secure-link fallback.",
+          code:"owner_invite_email_not_configured",
+        },503);
+      }
+
+      const invite=await rpc("platform_server_operator_create_owner_invite",{
+        p_tenant_id:tenantId,
+        p_email:ownerEmail,
+        p_actor_user_id:userId,
+        p_expires_hours:clamp(body?.expires_hours,1,720,168),
+      });
+
+      const inviteId=String(invite?.invite_id||"");
+      const token=text(invite?.token);
+      const invitePath=text(invite?.invite_path);
+
+      if(!uuid.test(inviteId)||!token||!invitePath){
+        throw new Error("Secure owner invitation could not be created");
+      }
+
+      const preflight=obj(
+        await rpc(
+          "platform_server_public_owner_invite_preflight",
+          {p_token:token},
+        ),
+      );
+      const branding=obj(preflight.branding);
+      const agencyName=
+        text(branding.display_name)||
+        text(invite?.agency_name)||
+        "your agency";
+      const portalName=
+        text(branding.portal_name)||
+        text(branding.short_name)||
+        agencyName;
+      const primary=safeColour(branding.primary_color,"#17131F");
+      const secondary=safeColour(branding.secondary_color,"#FFFFFF");
+      const accent=safeColour(branding.accent_color,"#7C6CF2");
+      const inviteUrl=`${baseUrl}${invitePath}`;
+      const expiresAt=text(invite?.expires_at);
+      const expiresLabel=expiresAt
+        ? new Intl.DateTimeFormat("en-GB",{
+            day:"numeric",
+            month:"short",
+            year:"numeric",
+            hour:"2-digit",
+            minute:"2-digit",
+            timeZone:"UTC",
+          }).format(new Date(expiresAt))
+        : "in seven days";
+      const subject=`Activate your ${agencyName} owner workspace`;
+      const intro=`${agencyName} has been set up on ReDream. Use this secure invitation to create or connect your owner account and continue the agency setup.`;
+      const html=`<!doctype html><html><body style="margin:0;background:#f5f6f8;font-family:Arial,sans-serif;color:#17131f"><div style="max-width:600px;margin:0 auto;padding:36px 18px"><div style="background:${escapeHtml(primary)};border-radius:20px;padding:30px;color:${escapeHtml(secondary)}"><div style="font-size:11px;letter-spacing:.12em;font-weight:700;color:${escapeHtml(accent)}">${escapeHtml(portalName.toUpperCase())}</div><h1 style="font-size:26px;line-height:1.2;margin:14px 0 10px">Your owner workspace is ready</h1><p style="font-size:15px;line-height:1.65;opacity:.86;margin:0 0 24px">${escapeHtml(intro)}</p><a href="${escapeHtml(inviteUrl)}" style="display:inline-block;background:${escapeHtml(accent)};color:${escapeHtml(primary)};text-decoration:none;font-weight:700;border-radius:10px;padding:13px 18px">Activate owner workspace</a><p style="font-size:12px;line-height:1.55;opacity:.62;margin:24px 0 0">This secure link expires ${escapeHtml(expiresLabel)} UTC. If you were not expecting this invitation, you can ignore this email.</p></div><p style="font-size:12px;line-height:1.6;color:#75707b;margin:18px 8px">ReDream Systems powers the agency operating workspace. This email does not create an account until the invitation is accepted.</p></div></body></html>`;
+
+      const payload:Record<string,unknown>={
+        from:fromAddress,
+        to:[ownerEmail],
+        subject,
+        text:`${intro}\n\nActivate owner workspace: ${inviteUrl}\n\nThis secure link expires ${expiresLabel} UTC. If you were not expecting this invitation, ignore this email.`,
+        html,
+      };
+      if(emailPattern.test(replyTo)) payload.reply_to=replyTo;
+
+      const response=await fetch("https://api.resend.com/emails",{
+        method:"POST",
+        headers:{
+          Authorization:`Bearer ${apiKey}`,
+          "Content-Type":"application/json",
+        },
+        body:JSON.stringify(payload),
+      });
+
+      const responseBody=await response.json().catch(()=>({}));
+      if(!response.ok){
+        try{
+          await rpc("platform_server_operator_revoke_owner_invite",{
+            p_invite_id:inviteId,
+            p_actor_user_id:userId,
+          });
+        }catch(revokeError){
+          console.error("owner invite delivery cleanup failed",revokeError);
+        }
+        console.error("owner invite email provider",response.status,responseBody);
+        return json({
+          error:"Owner invitation email could not be sent. No invitation was left active.",
+          code:"owner_invite_email_delivery_failed",
+        },502);
+      }
+
+      const sent=await rpc("platform_server_operator_mark_owner_invite_sent",{
+        p_invite_id:inviteId,
+        p_actor_user_id:userId,
+        p_channel:"email",
+      });
+
+      return json({
+        ok:true,
+        platform_role:adminRecord.role,
+        invite:{
+          invite_id:inviteId,
+          tenant_id:tenantId,
+          email:ownerEmail,
+          expires_at:invite?.expires_at||null,
+          invite_path:invitePath,
+        },
+        delivery:{
+          provider:"resend",
+          status:"accepted",
+          provider_message_id:text(responseBody?.id)||null,
+          sent,
+        },
+      });
     }
 
     if(action==="create_owner_invite"){

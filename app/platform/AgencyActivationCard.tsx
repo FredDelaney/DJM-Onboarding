@@ -6,6 +6,7 @@ import {
   Clock3,
   ExternalLink,
   LoaderCircle,
+  Mail,
   RefreshCw,
   ShieldCheck,
   X,
@@ -110,6 +111,7 @@ export default function AgencyActivationCard({
   onError: (value: string) => void;
 }) {
   const [busy, setBusy] = useState('');
+  const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null);
   const [liveInvite, setLiveInvite] = useState<OwnerInviteLink | null>(
     initialInvite || null,
   );
@@ -119,6 +121,35 @@ export default function AgencyActivationCard({
       setLiveInvite(initialInvite);
     }
   }, [initialInvite, tenantId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (ownerActive) {
+      setEmailConfigured(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    platformInvoke<any>('platform-ops', {
+      action: 'owner_invite_email_status',
+    })
+      .then((result) => {
+        if (active) {
+          setEmailConfigured(
+            result?.email_delivery?.configured === true,
+          );
+        }
+      })
+      .catch(() => {
+        if (active) setEmailConfigured(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [ownerActive, tenantId]);
 
   const pendingInvite = useMemo(
     () => invites.find((invite) => invite.status === 'pending') || null,
@@ -132,6 +163,54 @@ export default function AgencyActivationCard({
   const nextStep =
     STEP_LABELS[String(journey?.next_step || '')] ||
     String(journey?.next_step || 'Continue activation').replaceAll('_', ' ');
+
+  const sendInviteEmail = async () => {
+    if (
+      !ownerEmail.trim() ||
+      busy ||
+      ownerActive ||
+      emailConfigured !== true
+    ) {
+      return;
+    }
+
+    setBusy('email');
+    onError('');
+
+    try {
+      const result = await platformInvoke<any>('platform-ops', {
+        action: 'send_owner_invite_email',
+        tenant_id: tenantId,
+        email: ownerEmail.trim().toLowerCase(),
+        expires_hours: 168,
+      });
+
+      const inviteId = String(result?.invite?.invite_id || '');
+      const invitePath = String(result?.invite?.invite_path || '');
+
+      if (!inviteId || !invitePath) {
+        throw new Error(
+          'Email was accepted but the secure invitation response was incomplete.',
+        );
+      }
+
+      setLiveInvite({
+        tenantId,
+        inviteId,
+        url: `${window.location.origin}${invitePath}`,
+      });
+
+      onNotice(
+        `Owner invitation email sent to ${ownerEmail.trim().toLowerCase()}.`,
+      );
+
+      await onRefresh();
+    } catch (error) {
+      onError(friendlyError(error));
+    } finally {
+      setBusy('');
+    }
+  };
 
   const createInvite = async () => {
     if (!ownerEmail.trim() || busy || ownerActive) return;
@@ -328,7 +407,48 @@ export default function AgencyActivationCard({
             </div>
           </div>
 
+          <div className={styles.emailDeliveryState}>
+            {emailConfigured === true ? (
+              <>
+                <Mail size={14} />
+                <span>
+                  ReDream email delivery is ready. Emailing creates a fresh
+                  secure link and invalidates any older pending link.
+                </span>
+              </>
+            ) : emailConfigured === false ? (
+              <>
+                <ExternalLink size={14} />
+                <span>
+                  Email delivery is not configured yet. Use the secure-link
+                  fallback.
+                </span>
+              </>
+            ) : (
+              <>
+                <LoaderCircle size={14} className={styles.spin} />
+                <span>Checking email delivery...</span>
+              </>
+            )}
+          </div>
+
           <div className={styles.inviteActions}>
+            {emailConfigured === true ? (
+              <button
+                type="button"
+                className={styles.emailButton}
+                onClick={() => void sendInviteEmail()}
+                disabled={Boolean(busy) || !ownerEmail.trim()}
+              >
+                {busy === 'email' ? (
+                  <LoaderCircle size={14} className={styles.spin} />
+                ) : (
+                  <Mail size={14} />
+                )}
+                Send by email
+              </button>
+            ) : null}
+
             {liveInvite?.tenantId === tenantId ? (
               <button
                 type="button"
