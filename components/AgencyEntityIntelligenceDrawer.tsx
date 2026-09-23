@@ -89,6 +89,7 @@ export default function AgencyEntityIntelligenceDrawer({
   onOpenAction,
   onOpenCloseout,
   onOpenNegotiation,
+  onOpenPlayerReview,
 }: {
   request: AgencyIntelligenceRequest;
   invoke: Invoke;
@@ -101,6 +102,11 @@ export default function AgencyEntityIntelligenceDrawer({
   ) => void;
   onOpenNegotiation: (
     dealRoomId: string,
+    title: string,
+    context?: string | null,
+  ) => void;
+  onOpenPlayerReview: (
+    playerId: string,
     title: string,
     context?: string | null,
   ) => void;
@@ -314,6 +320,20 @@ export default function AgencyEntityIntelligenceDrawer({
             </section>
 
             <div className={styles.actions}>
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenPlayerReview(
+                    request.entityId,
+                    request.title,
+                    request.context,
+                  )
+                }
+              >
+                <ShieldCheck size={15} />
+                Service review
+              </button>
+
               {service.next_control_fix?.instruction ? (
                 <button
                   type="button"

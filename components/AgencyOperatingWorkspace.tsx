@@ -57,6 +57,9 @@ import AgencyClubAccountDrawer, {
 import AgencyNegotiationCommandRoom, {
   type AgencyNegotiationRequest,
 } from '@/components/AgencyNegotiationCommandRoom';
+import AgencyPlayerServiceReviewDrawer, {
+  type AgencyPlayerServiceReviewRequest,
+} from '@/components/AgencyPlayerServiceReviewDrawer';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -233,6 +236,8 @@ export default function AgencyOperatingWorkspace() {
     useState<AgencyClubAccountRequest | null>(null);
   const [negotiationRequest, setNegotiationRequest] =
     useState<AgencyNegotiationRequest | null>(null);
+  const [playerServiceReviewRequest, setPlayerServiceReviewRequest] =
+    useState<AgencyPlayerServiceReviewRequest | null>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -937,6 +942,15 @@ export default function AgencyOperatingWorkspace() {
               context,
             });
           }}
+          onOpenPlayerReview={(playerId, title, context) => {
+            setIntelligenceRequest(null);
+            setPlayerServiceReviewRequest({
+              key: `player-service-review:${playerId}`,
+              playerId,
+              title,
+              context,
+            });
+          }}
         />
       ) : null}
 
@@ -963,6 +977,22 @@ export default function AgencyOperatingWorkspace() {
               title,
               context,
             });
+          }}
+          onApplied={async () => {
+            await loadView();
+          }}
+        />
+      ) : null}
+
+      {playerServiceReviewRequest ? (
+        <AgencyPlayerServiceReviewDrawer
+          key={playerServiceReviewRequest.key}
+          request={playerServiceReviewRequest}
+          invoke={(action, body) => invoke<any>(action, body)}
+          onClose={() => setPlayerServiceReviewRequest(null)}
+          onOpenAction={(request) => {
+            setPlayerServiceReviewRequest(null);
+            setActionRequest(request);
           }}
           onApplied={async () => {
             await loadView();
