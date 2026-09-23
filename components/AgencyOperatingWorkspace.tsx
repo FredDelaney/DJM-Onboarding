@@ -9,6 +9,7 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   CircleAlert,
+  Coins,
   LoaderCircle,
   LogOut,
   Network,
@@ -45,6 +46,7 @@ import AgencyEntityIntelligenceDrawer, {
 import AgencyPursuitRoom, {
   type AgencyPursuitRequest,
 } from '@/components/AgencyPursuitRoom';
+import AgencyOwnerCommandCentre from '@/components/AgencyOwnerCommandCentre';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -213,6 +215,7 @@ export default function AgencyOperatingWorkspace() {
     useState<AgencyIntelligenceRequest | null>(null);
   const [pursuitRequest, setPursuitRequest] =
     useState<AgencyPursuitRequest | null>(null);
+  const [ownerCommandOpen, setOwnerCommandOpen] = useState(false);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
@@ -349,7 +352,49 @@ export default function AgencyOperatingWorkspace() {
           }),
         ]);
 
-        setData({ home, operations });
+        let ownerBusiness: any = null;
+
+        if (
+          ['owner', 'admin'].includes(
+            String(workspace?.role || ''),
+          )
+        ) {
+          const results = await Promise.allSettled([
+            invoke<any>('agency_control_centre'),
+            invoke<any>('agency_roi_proof', {
+              window_days: 30,
+            }),
+            invoke<any>('receivables_command', {
+              horizon_days: 90,
+              limit: 100,
+            }),
+          ]);
+
+          const value = (
+            index: number,
+            key: string,
+          ) =>
+            results[index]?.status ===
+            'fulfilled'
+              ? (results[index] as PromiseFulfilledResult<any>)
+                  .value?.[key] || null
+              : null;
+
+          ownerBusiness = {
+            control: value(0, 'control_centre'),
+            roi: value(1, 'roi'),
+            receivables: value(
+              2,
+              'receivables',
+            ),
+          };
+        }
+
+        setData({
+          home,
+          operations,
+          owner_business: ownerBusiness,
+        });
       } else if (view === 'players') {
         setData(
           await rpc<any>('redream_autopilot_players', {
@@ -787,6 +832,7 @@ export default function AgencyOperatingWorkspace() {
                 actionBusy={actionBusy}
                 onPrepare={prepareCommand}
                 onOpenAction={openCommandAction}
+                onOpenOwner={() => setOwnerCommandOpen(true)}
               />
             ) : null}
             {view === 'players' ? (
@@ -883,6 +929,27 @@ export default function AgencyOperatingWorkspace() {
           }}
           onApplied={async () => {
             await loadView();
+          }}
+        />
+      ) : null}
+
+      {ownerCommandOpen && data?.owner_business ? (
+        <AgencyOwnerCommandCentre
+          data={data.owner_business}
+          onClose={() => setOwnerCommandOpen(false)}
+          onOpenDeal={(dealRoomId, title, context) => {
+            setOwnerCommandOpen(false);
+            setIntelligenceRequest({
+              key: `deal-war-room:${dealRoomId}`,
+              kind: 'deal',
+              entityId: dealRoomId,
+              title,
+              context,
+            });
+          }}
+          onOpenAction={(request) => {
+            setOwnerCommandOpen(false);
+            setActionRequest(request);
           }}
         />
       ) : null}
@@ -1039,11 +1106,13 @@ function Home({
   actionBusy,
   onPrepare,
   onOpenAction,
+  onOpenOwner,
 }: {
   data: any;
   actionBusy: string;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
+  onOpenOwner: () => void;
 }) {
   const home = data?.home || {};
   const operations = data?.operations || {};
@@ -1176,6 +1245,40 @@ function Home({
           detail={`${completedDelegated} completed`}
         />
       </section>
+
+      {data?.owner_business ? (
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>OWNER CONTROL</p>
+              <h2>Business position</h2>
+            </div>
+
+            <button
+              type="button"
+              className={styles.compactButton}
+              onClick={onOpenOwner}
+            >
+              <BriefcaseBusiness size={14} />
+              Open Owner Command Centre
+            </button>
+          </div>
+
+          <div className={styles.emptyState}>
+            <div className={styles.emptyStateIcon}>
+              <Coins size={18} />
+            </div>
+
+            <strong>
+              Revenue, service, ownership and collection in one evidence-led owner view.
+            </strong>
+
+            <span>
+              Commercial exposure stays separate from guaranteed revenue, and team load stays factual rather than becoming a made-up utilisation score.
+            </span>
+          </div>
+        </section>
+      ) : null}
 
       <section className={styles.sectionCard}>
         <div className={styles.sectionHead}>
