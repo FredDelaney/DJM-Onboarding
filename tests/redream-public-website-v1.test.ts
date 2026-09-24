@@ -4,18 +4,13 @@ import fs from 'node:fs';
 
 const page = fs.readFileSync('app/page.tsx', 'utf8');
 const layout = fs.readFileSync('app/layout.tsx', 'utf8');
-const gate = fs.readFileSync(
-  'components/TenantRouteGate.tsx',
-  'utf8',
-);
-const marketing = fs.readFileSync(
-  'components/ReDreamPublicLanding.tsx',
-  'utf8',
-);
-const player = fs.readFileSync(
-  'components/TenantPlayerLanding.tsx',
-  'utf8',
-);
+const gate = fs.readFileSync('components/TenantRouteGate.tsx', 'utf8');
+const marketing = fs.readFileSync('components/ReDreamPublicLanding.tsx', 'utf8');
+const live = fs.readFileSync('components/ReDreamLiveOperatingDemo.tsx', 'utf8');
+const decision = fs.readFileSync('components/ReDreamDecisionLayer.tsx', 'utf8');
+const journey = fs.readFileSync('components/ReDreamCommercialJourney.tsx', 'utf8');
+const player = fs.readFileSync('components/TenantPlayerLanding.tsx', 'utf8');
+const publicLayout = fs.readFileSync('app/(redream-public)/layout.tsx', 'utf8');
 
 test('ReDream public root is host-safe while resolved agency domains keep the tenant player landing', () => {
   assert.match(page, /shouldRenderReDreamPublicSite/);
@@ -28,45 +23,62 @@ test('ReDream public root is host-safe while resolved agency domains keep the te
   assert.match(player, /Your career, in one place/);
 });
 
-test('public ReDream root is allowed by unresolved tenant gate instead of redirecting into operator control plane', () => {
-  assert.match(gate, /isReDreamPublicRoot/);
-  assert.match(gate, /pathname === '\/'/);
+test('public ReDream research routes are host-gated instead of opening white-label tenant domains', () => {
+  assert.match(gate, /REDREAM_PUBLIC_ROUTES/);
+  assert.match(gate, /isReDreamPublicRoute/);
+  assert.match(publicLayout, /shouldRenderReDreamPublicSite/);
+  assert.match(publicLayout, /notFound\(\)/);
   assert.doesNotMatch(gate, /router\.replace\('\/platform'\)/);
-  assert.doesNotMatch(gate, /shouldRedirectReDreamRoot/);
 });
 
-test('resolved tenant metadata wins before public ReDream metadata and unresolved unknown domains remain private', () => {
+test('resolved tenant metadata still wins before public ReDream metadata', () => {
   const runtimeCheck = layout.indexOf('if (runtime.resolved)');
   const publicCheck = layout.indexOf('if (isReDreamPublicSite)');
-
   assert.ok(runtimeCheck >= 0);
   assert.ok(publicCheck > runtimeCheck);
   assert.match(layout, /Private career app by/);
-  assert.match(layout, /Operating system for football agencies/);
-  assert.match(layout, /index:\s*true/);
-  assert.match(layout, /follow:\s*true/);
   assert.match(layout, /Workspace unavailable/);
   assert.match(layout, /index:\s*false/);
   assert.match(layout, /follow:\s*false/);
 });
 
-test('website presents the agency operating spine as a distinct operating category', () => {
-  assert.match(marketing, /The operating system/);
-  assert.match(marketing, /football agencies/);
-  assert.match(marketing, /How ReDream Works/);
+test('homepage defines ReDream around Agency Autopilot and the Agency Decision Layer', () => {
+  assert.match(marketing, /THE DECISION LAYER FOR FOOTBALL AGENCIES/);
+  assert.match(marketing, /Know what matters next/);
+  assert.match(marketing, /Move the agency forward/);
+  assert.match(marketing, /Ask the agency, not the dashboard/);
   assert.match(marketing, /Agency Memory/);
-  assert.match(marketing, /players who need an update/);
-  assert.match(marketing, /club requests worth pursuing/);
-  assert.match(marketing, /deals waiting on a decision/);
-  assert.match(marketing, /Club need/);
-  assert.match(marketing, /Commission/);
+  assert.match(marketing, /Automate the admin\. Protect the judgement\./);
 });
 
-test('website keeps human control and evidence boundaries explicit', () => {
-  assert.match(marketing, /Human judgement where it matters/);
-  assert.match(marketing, /does not invent/);
+test('signature decision layer reasons across priority revenue access and career control', () => {
+  assert.match(marketing, /ReDreamDecisionLayer/);
+  assert.match(decision, /What needs me first\?/);
+  assert.match(decision, /Where is revenue exposed\?/);
+  assert.match(decision, /Which relationship route is stronger\?/);
+  assert.match(decision, /What is blocked by player strategy\?/);
+  assert.match(decision, /Autopilot can do/);
+  assert.match(decision, /Confirm with me/);
+  assert.match(decision, /Agent judgement/);
+});
+
+test('commercial thread is visual and keeps the full operating journey without a numbered ten-box rail', () => {
+  assert.match(marketing, /ReDreamCommercialJourney/);
+  for (const term of ['Club demand','Player fit','Relationship route','Opportunity','Pitch','Follow-up','Deal','Negotiation','Closeout','Commission']) {
+    assert.match(journey, new RegExp(term));
+  }
+  assert.doesNotMatch(marketing, /operatingSpine/);
+  assert.doesNotMatch(marketing, /String\(index \+ 1\)\.padStart/);
+});
+
+test('website keeps human control evidence and synthetic-demo boundaries explicit', () => {
+  assert.match(marketing, /Evidence before action/);
   assert.match(marketing, /Human decision/);
-  assert.match(marketing, /Player-safe by design/);
+  assert.match(marketing, /player strategy/i);
+  assert.match(live, /No customer data/);
+  assert.match(live, /Synthetic data/);
+  assert.match(live, /not transfer-outcome probabilities/);
+  assert.match(decision, /Not chatbot theatre/);
 });
 
 test('website uses the current commercial plan structure', () => {
@@ -81,6 +93,6 @@ test('website uses the current commercial plan structure', () => {
 
 test('public product site is ReDream-specific while tenant player surface remains white-label', () => {
   assert.doesNotMatch(marketing, /\bDJM\b/);
+  assert.doesNotMatch(decision, /\bDJM\b/);
   assert.doesNotMatch(player, /\bReDream\b/);
 });
-

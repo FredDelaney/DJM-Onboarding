@@ -1,33 +1,21 @@
 import Link from 'next/link';
 import {
   ArrowRight,
-  Check,
   CircleDollarSign,
+  DatabaseZap,
   Network,
   ShieldCheck,
-  Sparkles,
+  Undo2,
   UsersRound,
   Workflow,
 } from 'lucide-react';
 
+import ReDreamCommercialJourney from '@/components/ReDreamCommercialJourney';
+import ReDreamDecisionLayer from '@/components/ReDreamDecisionLayer';
 import ReDreamDemoRequestButton from '@/components/ReDreamDemoRequestButton';
 import ReDreamFunnelTracker from '@/components/ReDreamFunnelTracker';
-import ReDreamInteractiveExperience from '@/components/ReDreamInteractiveExperience';
-import ReDreamProductStory from '@/components/ReDreamProductStory';
+import ReDreamLiveOperatingDemo from '@/components/ReDreamLiveOperatingDemo';
 import styles from './ReDreamPublicLanding.module.css';
-
-const operatingSpine = [
-  'Club need',
-  'Player match',
-  'Relationship route',
-  'Opportunity',
-  'Pitch',
-  'Follow-up',
-  'Deal',
-  'Negotiation',
-  'Closeout',
-  'Commission',
-];
 
 const plans = [
   { name: 'Agency', audience: 'Boutique agency', price: '€149', suffix: '/month', capacity: '5 staff · 40 players' },
@@ -44,7 +32,7 @@ const structuredData = {
   operatingSystem: 'Web',
   url: 'https://redreamsystems.com/',
   description:
-    'ReDream is the operating system for football agencies, turning player service, club demand, relationships, market work, deals and commercial commitments into controlled next actions.',
+    'ReDream is Agency Autopilot and the decision layer for football agencies, connecting players, club demand, relationships, career strategy, deals, revenue and controlled next actions in one Agency Memory.',
   offers: {
     '@type': 'AggregateOffer',
     lowPrice: '149',
@@ -76,8 +64,9 @@ export default function ReDreamPublicLanding() {
           </Link>
 
           <nav className={styles.navLinks} aria-label="Primary">
-            <a href="#how-it-works">How it works</a>
-            <a href="#autopilot">Agency Autopilot</a>
+            <Link href="/product">Product</Link>
+            <Link href="/security">Security</Link>
+            <Link href="/switch">Switch</Link>
             <a href="#pricing">Pricing</a>
             <Link href="/platform/sign-in">Sign in</Link>
           </nav>
@@ -96,147 +85,106 @@ export default function ReDreamPublicLanding() {
 
         <div className={styles.heroInner}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>SOFTWARE BUILT FOR FOOTBALL AGENTS</p>
+            <p className={styles.eyebrow}>THE DECISION LAYER FOR FOOTBALL AGENCIES</p>
             <h1>
-              Your players. Your deals.
-              <span> Your next move.</span>
+              Know what matters next.
+              <span> Move the agency forward.</span>
             </h1>
             <p className={styles.heroLead}>
-              Manage your players, deals and follow-ups in one place.
-              ReDream connects your notes, club requests and contacts, then helps you decide what to do next.
+              ReDream connects every player, club need, relationship, commitment and deal into one Agency Memory, then routes the next move between Autopilot, confirmation and agent judgement.
             </p>
 
             <div className={styles.heroActions}>
-              <a href="#try-redream" className={styles.primaryLink} data-funnel-cta="hero_try">
-                Try an example
-                <ArrowRight size={15} />
+              <a href="#decision-layer" className={styles.primaryLink} data-funnel-cta="hero_decision_layer">
+                Ask the live agency
+                <ArrowRight size={16} />
               </a>
               <ReDreamDemoRequestButton
                 className={styles.secondaryButton}
-                label="Book a personal demo"
+                label="Run ReDream on my agency"
                 trackingKey="hero_demo"
               />
             </div>
 
             <div className={styles.heroTrust}>
-              <span><Check size={13} /> Your agency, organised</span>
-              <span><Check size={13} /> You approve important actions</span>
-              <span><Check size={13} /> No sign-up to try the example</span>
+              <span><DatabaseZap size={14} /> Connected agency context</span>
+              <span><ShieldCheck size={14} /> Autonomy routed by risk</span>
+              <span><Undo2 size={14} /> Traceable internal actions</span>
             </div>
           </div>
 
-          <aside className={styles.heroThesis} aria-label="An example of ReDream at work">
-            <span className={styles.thesisLabel}>ONE CONVERSATION. A CLEAR NEXT STEP.</span>
-            <div className={styles.exampleNote}>
-              <span>You hear from a club</span>
-              <p>“We need a left-footed winger under 23. A loan could work.”</p>
-            </div>
-            <div className={styles.exampleConnector}><ArrowRight size={20} /> ReDream helps you move it forward</div>
-            <div className={styles.exampleNext}>
-              <span>SUGGESTED NEXT MOVE</span>
-              <h2>Check your players. Prepare the introduction.</h2>
-              <p>Keep the club request, suitable players and the contact you know together.</p>
-              <strong><ShieldCheck size={17} /> You review before anything is shared.</strong>
-            </div>
-            <p>Illustrative example. No live club request or player match is claimed.</p>
-          </aside>
+          <ReDreamLiveOperatingDemo variant="hero" />
         </div>
       </section>
 
-      <section className={styles.howSection} id="how-it-works" aria-labelledby="how-title">
+      <section className={styles.decisionSection} id="decision-layer">
         <div className={styles.sectionIntro}>
-          <p>FROM CONVERSATION TO ACTION</p>
-          <h2 id="how-title">How ReDream Works</h2>
-        </div>
-        <ol className={styles.howSteps}>
-          <li><span>01</span><h3>Tell it what happened</h3><p>Add a note from a call, a club request or a player update.</p></li>
-          <li><span>02</span><h3>Connect the details</h3><p>Keep the relevant players, contacts, commitments and deals together. This is your Agency Memory.</p></li>
-          <li><span>03</span><h3>Make your next move</h3><p>Review the suggested follow-up, introduction or decision. You stay in control.</p></li>
-        </ol>
-      </section>
-
-      <section className={styles.trySection} id="try-redream">
-        <div className={styles.sectionIntro}>
-          <p>EXPERIENCE THE PRODUCT</p>
-          <h2>Try it with a situation you recognise.</h2>
+          <p>THE AGENCY DECISION LAYER</p>
+          <h2>Ask the agency, not the dashboard.</h2>
           <span>
-            Pick a situation, run ReDream, then see a suggested next move. Use the example or edit it in your own words.
+            Ask what needs you first, where revenue is exposed, which relationship route is stronger or what player strategy is blocking. ReDream answers across the connected agency state, not one screen at a time.
           </span>
         </div>
-        <ReDreamInteractiveExperience />
+        <ReDreamDecisionLayer />
       </section>
 
-      <section className={styles.spineSection} id="operating-spine" aria-label="From club request to commission">
-        <div className={styles.spineCopy}>
-          <p>KEEP THE WHOLE DEAL TOGETHER</p>
-          <h2>From club demand to commission. One thread, full context.</h2>
-        </div>
-        <div className={styles.spineRail}>
-          {operatingSpine.map((item, index) => (
-            <div key={item}>
-              <span>{String(index + 1).padStart(2, '0')}</span>
-              <strong>{item}</strong>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.productSection} id="product">
+      <section className={styles.liveSection} id="operating-loop">
         <div className={styles.sectionIntro}>
-          <p>YOUR DAILY WORK, IN ONE PLACE</p>
-          <h2>What needs your attention today?</h2>
+          <p>THE PRODUCT IS THE DEMO</p>
+          <h2>Watch one situation become the next controlled move.</h2>
           <span>
-            See the follow-ups that are due, players who need an update, club requests worth pursuing and deals waiting on a decision.
+            Real ReDream operating models. Isolated synthetic agency. No customer data and no fake football claim.
           </span>
         </div>
-        <ReDreamProductStory />
+        <ReDreamLiveOperatingDemo />
+      </section>
+
+      <section className={styles.journeySection} id="commercial-thread">
+        <div className={styles.sectionIntro}>
+          <p>ONE COMMERCIAL THREAD</p>
+          <h2>The context should travel all the way to commission.</h2>
+          <span>
+            ReDream keeps the player, club, access route, control state and commercial value attached as an opportunity moves through the agency.
+          </span>
+        </div>
+        <ReDreamCommercialJourney />
       </section>
 
       <section className={styles.autopilotSection} id="autopilot">
         <div className={styles.autopilotCopy}>
           <p>AGENCY AUTOPILOT</p>
-          <h2>Less admin. You keep the final say.</h2>
+          <h2>Automate the admin. Protect the judgement.</h2>
           <span>
-            Agency Autopilot helps organise updates and prepare next actions. You review important messages, negotiations and decisions before they go ahead.
+            ReDream separates work that can safely move forward from work that needs confirmation, context or human commercial judgement.
           </span>
 
           <div className={styles.guardrails}>
-            <div><ShieldCheck size={17} /><span><strong>Human judgement where it matters</strong><small>Money, disclosure, negotiation and important external communication stay controlled.</small></span></div>
-            <div><Workflow size={17} /><span><strong>Evidence before action</strong><small>ReDream does not invent facts to make a workflow look complete.</small></span></div>
-            <div><UsersRound size={17} /><span><strong>Player-safe by design</strong><small>Private agency notes stay separate from information you choose to share with players.</small></span></div>
+            <div><ShieldCheck size={18} /><span><strong>Bounded autonomy</strong><small>Low-risk internal work can move under explicit rules. External side effects stay controlled.</small></span></div>
+            <div><Workflow size={18} /><span><strong>Evidence before action</strong><small>Every recommendation stays tied to recorded context, evidence health and why it matters now.</small></span></div>
+            <div><UsersRound size={18} /><span><strong>Player strategy stays human-owned</strong><small>A strong market fit never overrides player direction or agent judgement.</small></span></div>
           </div>
         </div>
 
         <div className={styles.autopilotFrame}>
           <div className={styles.frameTop}>
-            <div className={styles.autopilotOrb}><Sparkles size={18} /></div>
-            <div><span>HOW APPROVAL WORKS</span><strong>Agency Autopilot</strong></div>
+            <div className={styles.autopilotOrb}><Workflow size={19} /></div>
+            <div><span>CONTROLLED OPERATING LOOP</span><strong>Agency Autopilot</strong></div>
           </div>
 
           <div className={styles.controlRail}>
-            {['Evidence', 'Prepare', 'Approve', 'Act', 'Record', 'Undo where permitted'].map((step, index) => (
+            {['Evidence', 'Connect', 'Prepare', 'Confirm when needed', 'Act', 'Record + learn'].map((step, index) => (
               <div key={step}>
                 <span>{index + 1}</span>
                 <strong>{step}</strong>
-                {index < 5 ? <ArrowRight size={13} /> : null}
+                {index < 5 ? <ArrowRight size={14} /> : null}
               </div>
             ))}
           </div>
 
-          <div className={styles.evidenceCard}>
-            <div className={styles.evidenceHead}>
-              <Network size={15} />
-              <span><small>ILLUSTRATIVE PREPARED ACTION</small><strong>Prepare an introduction through a contact you know</strong></span>
-            </div>
-            <div className={styles.evidenceRows}>
-              <span><Check size={12} /> Existing relationship recorded</span>
-              <span><Check size={12} /> Club need captured today</span>
-              <span><Check size={12} /> Player constraints pass</span>
-            </div>
-            <div className={styles.approvalLine}>
-              <span><ShieldCheck size={13} /> Human decision</span>
-              <strong>Ready for approval</strong>
-            </div>
+          <div className={styles.approvalExample}>
+            <div><Network size={17} /><span><small>RELATIONSHIP ROUTE</small><strong>Direct access is developing. A stronger warm introduction exists.</strong></span></div>
+            <div className={styles.approvalRoute}><span>Direct route</span><strong>58</strong><ArrowRight size={15} /><span>Warm introduction</span><strong>88</strong></div>
+            <div className={styles.approvalLine}><span><ShieldCheck size={14} /> Human decision</span><strong>Prepare the introduction, do not send</strong></div>
           </div>
         </div>
       </section>
@@ -244,9 +192,9 @@ export default function ReDreamPublicLanding() {
       <section className={styles.commercialSection} id="pricing">
         <div className={styles.sectionIntro}>
           <p>PLANS FOR YOUR AGENCY</p>
-          <h2>Choose a plan that fits your agency.</h2>
+          <h2>Start with one live situation. Expand when ReDream proves value.</h2>
           <span>
-            Plans start at €149/month. ReDream grows with your players, staff and operation, from boutique agencies to complex international teams.
+            Plans start at €149/month and scale with your staff and represented-player operation. The first goal is useful operating context from day one, not a long implementation.
           </span>
         </div>
 
@@ -262,17 +210,17 @@ export default function ReDreamPublicLanding() {
         </div>
 
         <div className={styles.valueStrip}>
-          <div><CircleDollarSign size={17} /><span><strong>First value before full rollout.</strong><small>Start with one player, one relationship and one live agency situation.</small></span></div>
+          <div><CircleDollarSign size={18} /><span><strong>First value before full rollout.</strong><small>Bring one player, one relationship and one live agency situation. ReDream should earn the right to expand.</small></span></div>
           <ReDreamDemoRequestButton className={styles.darkButton} label="Run ReDream on my agency" trackingKey="pricing_demo" />
         </div>
       </section>
 
       <section className={styles.finalCta} id="final-cta">
         <div>
-          <p>BRING ONE REAL SITUATION</p>
-          <h2>Bring one real situation. See how ReDream would run it.</h2>
+          <p>BRING THE MESSY REAL THING</p>
+          <h2>A player. A club request. A live deal. A relationship problem.</h2>
           <span>
-            A player, club need, live deal or relationship problem. Start there. We will show you what happens next across the rest of your agency.
+            Give ReDream one situation your agency is dealing with now. See how the context connects across the rest of the operation without pretending software should make the judgement for you.
           </span>
         </div>
         <ReDreamDemoRequestButton className={styles.lightButton} label="Run ReDream on my agency" trackingKey="final_demo" />
@@ -287,7 +235,10 @@ export default function ReDreamPublicLanding() {
           />
         </Link>
         <div className={styles.footerMeta}>
-          <span>The operating system for football agencies.</span>
+          <span>Agency Autopilot for football agencies.</span>
+          <Link href="/product">Product</Link>
+          <Link href="/security">Security</Link>
+          <Link href="/switch">Switch</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/platform/sign-in">Sign in</Link>
         </div>
@@ -295,4 +246,3 @@ export default function ReDreamPublicLanding() {
     </main>
   );
 }
-

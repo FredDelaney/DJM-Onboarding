@@ -133,3 +133,6 @@ verify_jwt = true
 
 [functions.redream-ai-process]
 verify_jwt = false
+
+[functions.redream-public-sandbox]
+verify_jwt = false

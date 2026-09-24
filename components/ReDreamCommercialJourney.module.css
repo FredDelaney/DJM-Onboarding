@@ -1,0 +1,261 @@
+.journey {
+  overflow: hidden;
+  border: 1px solid rgba(10, 27, 61, 0.11);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(8, 107, 255, 0.1), transparent 27rem),
+    #fff;
+  box-shadow: 0 28px 80px rgba(20, 39, 72, 0.09);
+}
+
+.journeyTop {
+  min-height: 76px;
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid rgba(10, 27, 61, 0.08);
+}
+
+.journeyTop > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.journeyTop span,
+.phaseHead small,
+.contextBar small {
+  color: #708096;
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0.09em;
+}
+
+.journeyTop strong {
+  color: #0a1b3d;
+  font-size: 18px;
+  letter-spacing: -0.025em;
+}
+
+.liveState {
+  min-height: 38px;
+  padding: 8px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(8, 107, 255, 0.12);
+  border-radius: 999px;
+  background: #f2f7ff;
+  color: #0759d2;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.phaseRail {
+  position: relative;
+  padding: 28px 22px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 34px;
+}
+
+.flowLine {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  right: 7%;
+  left: 7%;
+  height: 2px;
+  overflow: hidden;
+  background: linear-gradient(90deg, rgba(8, 107, 255, 0.08), rgba(8, 107, 255, 0.38), rgba(8, 107, 255, 0.08));
+}
+
+.flowLine i {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #086bff;
+  box-shadow: 0 0 0 6px rgba(8, 107, 255, 0.09), 0 0 22px rgba(8, 107, 255, 0.55);
+  animation: journey-pulse 5.2s ease-in-out infinite;
+}
+
+.phaseWrap {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.phase {
+  min-height: 230px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid rgba(10, 27, 61, 0.09);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 42px rgba(17, 37, 70, 0.07);
+}
+
+.phaseWrap:nth-child(4) .phase {
+  border-color: rgba(8, 107, 255, 0.19);
+  background:
+    radial-gradient(circle at 92% 4%, rgba(8, 107, 255, 0.11), transparent 16rem),
+    #0a1b3d;
+}
+
+.phaseWrap:nth-child(4) .phaseHead strong,
+.phaseWrap:nth-child(4) .itemRail span {
+  color: #fff;
+}
+
+.phaseWrap:nth-child(4) .phaseHead small {
+  color: #87baff;
+}
+
+.phaseWrap:nth-child(4) .itemRail span {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.phaseHead {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.phaseIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #edf5ff;
+  color: #086bff;
+}
+
+.phaseHead > span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.phaseHead strong {
+  color: #182a46;
+  font-size: 16px;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+}
+
+.itemRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.itemRail span {
+  min-height: 36px;
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(10, 27, 61, 0.08);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #41516a;
+  font-size: 13px;
+  font-weight: 740;
+}
+
+.phaseArrow {
+  position: absolute;
+  top: 50%;
+  right: -26px;
+  transform: translateY(-50%);
+  color: #6c9bd9;
+}
+
+.contextBar {
+  min-height: 92px;
+  padding: 16px 22px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(10, 27, 61, 0.08);
+  background: #f7faff;
+}
+
+.contextBar > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.contextBar strong {
+  overflow-wrap: anywhere;
+  color: #20314d;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.contextBar > svg {
+  color: #086bff;
+}
+
+@keyframes journey-pulse {
+  0%, 8% { left: 0; opacity: 0; }
+  15% { opacity: 1; }
+  84% { opacity: 1; }
+  92%, 100% { left: calc(100% - 8px); opacity: 0; }
+}
+
+@media (max-width: 900px) {
+  .phaseRail {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .flowLine,
+  .phaseArrow {
+    display: none;
+  }
+  .phase {
+    min-height: auto;
+  }
+  .contextBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .contextBar > svg {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .journeyTop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .phaseRail {
+    padding: 16px;
+  }
+  .phase {
+    padding: 18px;
+  }
+  .contextBar {
+    padding: 16px;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flowLine i {
+    animation: none;
+    left: 52%;
+    opacity: 1;
+  }
+}

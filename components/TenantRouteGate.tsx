@@ -3,6 +3,13 @@
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+const REDREAM_PUBLIC_ROUTES = new Set([
+  '/',
+  '/product',
+  '/security',
+  '/switch',
+]);
+
 export function TenantRouteGate({
   children,
   fallback,
@@ -26,16 +33,16 @@ export function TenantRouteGate({
     pathname === '/workspace' ||
     pathname.startsWith('/workspace/');
 
-  const isReDreamPublicRoot =
+  const isReDreamPublicRoute =
     allowReDreamPublicRoot &&
-    pathname === '/';
+    REDREAM_PUBLIC_ROUTES.has(pathname);
 
   return (
     <>
       {isPlatformControlPlane ||
       isAgencyActivationRoute ||
       isAgencyWorkspaceRoute ||
-      isReDreamPublicRoot ||
+      isReDreamPublicRoute ||
       pathname === '/tell' ||
       pathname === '/sign-in' ||
       pathname === '/privacy'

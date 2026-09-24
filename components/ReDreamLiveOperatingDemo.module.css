@@ -1,0 +1,821 @@
+.shell,
+.heroFrame {
+  --ink: #08152f;
+  --blue: #086bff;
+  --blue-soft: #8abaff;
+  --line: rgba(148, 163, 184, 0.19);
+  --muted: #7f8fa8;
+  color-scheme: dark;
+}
+
+.heroFrame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 92% 6%, rgba(8, 107, 255, 0.19), transparent 22rem),
+    linear-gradient(155deg, rgba(10, 27, 61, 0.94), rgba(4, 13, 31, 0.98));
+  box-shadow: 0 34px 100px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.frameChrome,
+.shellTop {
+  min-height: 52px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.frameChrome strong,
+.shellTop strong {
+  color: #dce8f8;
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+}
+
+.frameChrome small {
+  margin-left: auto;
+  color: #9eacc0;
+  font-size: 13px;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 5px rgba(52, 211, 153, 0.1);
+}
+
+.liveDot[data-mode='loading'] {
+  background: #8abaff;
+  box-shadow: 0 0 0 5px rgba(138, 186, 255, 0.1);
+}
+
+.liveDot[data-mode='cached'] {
+  background: #fbbf24;
+  box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.1);
+}
+
+.heroCommand {
+  padding: 26px 24px 22px;
+}
+
+.commandEyebrow,
+.situationPanel > span,
+.decisionPanel > span,
+.demoClose > div > span,
+.scenarioRail > span,
+.canvasHead > div > span {
+  color: #8abaff;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.heroCommand h2 {
+  margin: 10px 0 8px;
+  color: #fff;
+  font-size: clamp(25px, 3vw, 36px);
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+
+.heroCommand > p {
+  margin: 0;
+  color: #b7c4d7;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.heroDecision {
+  margin-top: 20px;
+  padding: 17px;
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(92, 155, 255, 0.38);
+  border-radius: 15px;
+  background: rgba(8, 107, 255, 0.12);
+}
+
+.heroDecision span {
+  color: #8abaff;
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+}
+
+.heroDecision strong {
+  color: #fff;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.heroSignals {
+  padding: 0 24px 22px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.heroSignals > div {
+  min-width: 0;
+  padding: 13px;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: start;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.heroSignals svg {
+  margin-top: 2px;
+  color: #8abaff;
+}
+
+.heroSignals span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.heroSignals small {
+  color: #8d9db3;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.heroSignals strong {
+  overflow-wrap: anywhere;
+  color: #eef4fc;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.controlBoundary {
+  margin: 0 24px 22px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.controlBoundary > div:first-child {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.controlBoundary svg {
+  color: #8abaff;
+}
+
+.controlBoundary span {
+  display: grid;
+  gap: 3px;
+}
+
+.controlBoundary small {
+  color: #8d9db3;
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.controlBoundary strong {
+  color: #fff;
+  font-size: 15px;
+}
+
+.controlPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.controlPills span {
+  min-height: 30px;
+  padding: 5px 9px;
+  display: inline-flex;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: #c7d5e8;
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.syntheticNote {
+  margin: -5px 24px 23px;
+  color: #8292a9;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.shell {
+  overflow: hidden;
+  border: 1px solid rgba(10, 27, 61, 0.12);
+  border-radius: 25px;
+  background: #07162f;
+  box-shadow: 0 34px 90px rgba(19, 37, 70, 0.12);
+}
+
+.shellTop {
+  justify-content: space-between;
+  background: #06142b;
+}
+
+.shellTop > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.shellTop > span {
+  color: #9aa9bc;
+  font-size: 13px;
+}
+
+.workspace {
+  min-height: 630px;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.32fr) minmax(0, 1fr);
+}
+
+.scenarioRail {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #081831;
+}
+
+.scenarioRail > span {
+  margin: 4px 3px 8px;
+  color: #7589a7;
+}
+
+.scenarioRail button {
+  width: 100%;
+  min-height: 66px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 24px 1fr 18px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: transparent;
+  color: #94a7c0;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.scenarioRail button:hover,
+.scenarioRail .activeScenario {
+  border-color: rgba(95, 157, 255, 0.24);
+  background: rgba(8, 107, 255, 0.11);
+  color: #fff;
+}
+
+.scenarioRail button:hover {
+  transform: translateX(2px);
+}
+
+.scenarioRail button > svg:first-child {
+  color: #78adfa;
+}
+
+.scenarioRail button > svg:last-child {
+  justify-self: end;
+  opacity: 0.55;
+}
+
+.scenarioRail button > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.scenarioRail button strong {
+  color: inherit;
+  font-size: 15px;
+}
+
+.scenarioRail button small {
+  color: #8293aa;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.sandboxTruth {
+  margin-top: auto;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sandboxTruth svg {
+  color: #7eb4ff;
+}
+
+.sandboxTruth span {
+  display: grid;
+  gap: 4px;
+}
+
+.sandboxTruth strong {
+  color: #dce7f5;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.sandboxTruth small {
+  color: #8293aa;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.operatingCanvas {
+  min-width: 0;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 86% 5%, rgba(8, 107, 255, 0.13), transparent 28rem),
+    linear-gradient(150deg, #07162f, #091c3a);
+}
+
+.canvasHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.canvasHead > div:first-child {
+  min-width: 0;
+}
+
+.canvasHead h3 {
+  margin: 9px 0 5px;
+  color: #fff;
+  font-size: clamp(27px, 3.1vw, 41px);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+
+.canvasHead p {
+  margin: 0;
+  color: #91a4be;
+  font-size: 14px;
+}
+
+.priorityScore {
+  min-width: 92px;
+  padding: 12px 14px;
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  border: 1px solid rgba(126, 180, 255, 0.22);
+  border-radius: 13px;
+  background: rgba(8, 107, 255, 0.08);
+}
+
+.priorityScore small {
+  color: #8abaff;
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.priorityScore strong {
+  color: #fff;
+  font-size: 25px;
+}
+
+.stepRail {
+  margin-top: 26px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.stepRail > div {
+  min-width: 0;
+  padding: 10px 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  color: #6f829e;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.stepRail > div[data-state='active'] {
+  border-color: rgba(80, 148, 255, 0.42);
+  color: #fff;
+  background: rgba(8, 107, 255, 0.12);
+}
+
+.stepRail > div[data-state='done'] {
+  color: #c6d5e8;
+}
+
+.stepRail > div > span {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+  font-weight: 830;
+}
+
+.stepRail > div[data-state='active'] > span {
+  background: #086bff;
+  color: #fff;
+}
+
+.stepRail strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.stageBody {
+  min-height: 285px;
+  margin-top: 16px;
+  display: grid;
+  align-items: stretch;
+}
+
+.situationPanel,
+.memoryPanel,
+.decisionPanel,
+.recordPanel,
+.stageBody > .controlBoundary {
+  margin: 0;
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.situationPanel,
+.decisionPanel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.situationPanel h4,
+.decisionPanel h4 {
+  max-width: 790px;
+  margin: 12px 0 9px;
+  color: #fff;
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+
+.situationPanel p,
+.decisionPanel p,
+.recordPanel p {
+  max-width: 720px;
+  margin: 0;
+  color: #9fb0c7;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.panelLabel,
+.recordPanel > div,
+.decisionPanel > div {
+  display: grid;
+  grid-template-columns: 25px 1fr;
+  align-items: start;
+  gap: 9px;
+}
+
+.panelLabel svg,
+.recordPanel svg,
+.decisionPanel svg {
+  margin-top: 2px;
+  color: #7eb4ff;
+}
+
+.panelLabel span,
+.recordPanel span {
+  display: grid;
+  gap: 4px;
+}
+
+.panelLabel small,
+.recordPanel small {
+  color: #8293aa;
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+}
+
+.panelLabel strong,
+.recordPanel strong {
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.evidenceGrid {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.evidenceGrid > div {
+  min-width: 0;
+  padding: 15px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.evidenceGrid span {
+  color: #8092ab;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.evidenceGrid strong {
+  overflow-wrap: anywhere;
+  color: #e3edf9;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.decisionPanel > div {
+  max-width: 720px;
+  margin-top: 18px;
+}
+
+.recordPanel {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.canvasFooter {
+  margin-top: auto;
+  padding-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.canvasFooter > div {
+  max-width: 590px;
+  display: grid;
+  gap: 4px;
+}
+
+.canvasFooter > div > span {
+  color: #d3dfef;
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.canvasFooter small {
+  color: #7f91aa;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.canvasFooter button,
+.demoButton {
+  min-height: 48px;
+  padding: 11px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 11px;
+  background: #fff;
+  color: #08152f;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 820;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.canvasFooter button:hover,
+.demoButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+.canvasFooter button:disabled {
+  cursor: progress;
+  transform: none;
+  box-shadow: none;
+}
+
+.demoClose {
+  padding: 19px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #06142b;
+}
+
+.demoClose > div {
+  max-width: 760px;
+  display: grid;
+  gap: 5px;
+}
+
+.demoClose > div > strong {
+  color: #dbe6f4;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.demoButton {
+  flex: 0 0 auto;
+  background: #086bff;
+  color: #fff;
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+.shell button:focus-visible,
+.heroFrame button:focus-visible {
+  outline: 3px solid #78adfa;
+  outline-offset: 3px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 920px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .scenarioRail {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .scenarioRail > span,
+  .sandboxTruth {
+    display: none;
+  }
+
+  .scenarioRail {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .scenarioRail button {
+    min-height: 82px;
+    grid-template-columns: 1fr;
+    align-content: center;
+  }
+
+  .scenarioRail button > svg:last-child,
+  .scenarioRail button small {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .heroSignals {
+    grid-template-columns: 1fr;
+  }
+
+  .frameChrome {
+    flex-wrap: wrap;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .frameChrome small {
+    flex-basis: 100%;
+    margin-left: 17px;
+  }
+
+  .shellTop {
+    min-height: 64px;
+    padding: 12px 14px;
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .scenarioRail {
+    padding: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .scenarioRail button {
+    min-height: 58px;
+    padding: 10px;
+  }
+
+  .scenarioRail button > span {
+    display: block;
+  }
+
+  .operatingCanvas {
+    padding: 20px 14px;
+  }
+
+  .canvasHead {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .priorityScore {
+    width: fit-content;
+    justify-items: start;
+  }
+
+  .stepRail {
+    grid-template-columns: 1fr;
+  }
+
+  .stepRail > div {
+    min-height: 43px;
+  }
+
+  .stageBody {
+    min-height: 360px;
+  }
+
+  .situationPanel,
+  .memoryPanel,
+  .decisionPanel,
+  .recordPanel,
+  .stageBody > .controlBoundary {
+    padding: 20px;
+  }
+
+  .evidenceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .canvasFooter,
+  .demoClose {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .canvasFooter button,
+  .demoButton {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+
+  .scenarioRail button,
+  .canvasFooter button,
+  .demoButton {
+    transition: none;
+  }
+}
