@@ -10,12 +10,14 @@ const story = fs.readFileSync('components/ReDreamProductStory.tsx', 'utf8');
 const storyCss = fs.readFileSync('components/ReDreamProductStory.module.css', 'utf8');
 const demo = fs.readFileSync('components/ReDreamDemoRequestButton.tsx', 'utf8');
 
-test('V4 owns the category but sells the next-action thesis', () => {
-  assert.match(site, /THE OPERATING SYSTEM FOR FOOTBALL AGENCIES/);
-  assert.match(site, /Know what/);
-  assert.match(site, /happens next/);
-  assert.match(site, /what your agency knows into what your agency should do next/);
-  assert.match(site, /Agency Memory/);
+test('V5 explains the product before introducing its vocabulary', () => {
+  assert.match(site, /SOFTWARE BUILT FOR FOOTBALL AGENTS/);
+  assert.match(site, /Manage your players, deals and follow-ups in one place/);
+  assert.match(site, /How ReDream Works/);
+  assert.match(site, /Tell it what happened/);
+  assert.match(site, /Connect the details/);
+  assert.match(site, /Make your next move/);
+  assert.ok(site.indexOf('Manage your players') < site.indexOf('Agency Memory'));
 });
 
 test('homepage includes a browser-only interactive agency situation engine', () => {
@@ -136,13 +138,17 @@ test('canonical pricing remains unchanged while plan language is buyer-facing', 
   assert.doesNotMatch(site, /tenant-aware architecture/i);
 });
 
-test('V4.1 keeps the hero while tightening the middle and close', () => {
-  assert.match(css, /ReDream Sales Site 4\.1/);
+test('V5 keeps the commercial journey and readable homepage typography', () => {
+  assert.match(css, /ReDream Sales Site 5/);
   assert.match(site, /From club demand to commission\. One thread, full context\./);
   assert.match(site, /Bring one real situation\. See how ReDream would run it\./);
-  assert.match(css, /padding-top: 84px/);
-  assert.match(css, /margin: 88px auto 0/);
-  assert.match(css, /width: 148px/);
+  for (const source of [css, experienceCss, storyCss, fs.readFileSync('components/ReDreamDemoRequestButton.module.css', 'utf8')]) {
+    const sizes = [...source.matchAll(/font-size:\s*([\d.]+)px/g)].map((match) => Number(match[1]));
+    assert.ok(sizes.every((size) => size >= 13), 'Public text must stay readable');
+  }
+  assert.match(experience, /Pick a situation/);
+  assert.match(experience, /See the next move/);
+  assert.match(demo, /createPortal/);
 });
 
 test('V4.1 avoids fake social proof generic feature walls and inaccessible motion', () => {
@@ -153,3 +159,4 @@ test('V4.1 avoids fake social proof generic feature walls and inaccessible motio
   assert.doesNotMatch(site, /\d+%/);
   assert.doesNotMatch(site, /\bDJM\b/);
 });
+

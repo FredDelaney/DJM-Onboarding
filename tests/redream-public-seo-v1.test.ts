@@ -45,9 +45,16 @@ test('public sales root exposes SoftwareApplication structured data with the cor
   assert.match(landing, /operating system for football agencies/);
 });
 
-test('legacy website contract remains represented inside the operating-system positioning', () => {
-  assert.match(landing, /Player Service/);
-  assert.match(landing, /Access\s+Intelligence/);
-  assert.match(landing, /Deal Control/);
-  assert.match(landing, /Closeout & Collection/);
+test('homepage product demonstration preserves the product areas', () => {
+  assert.match(landing, /ReDreamProductStory/);
+
+  const story = fs.readFileSync(
+    'components/ReDreamProductStory.tsx',
+    'utf8',
+  );
+
+  assert.match(story, /Player Service/);
+  assert.match(story, /Access\s+Intelligence/);
+  assert.match(story, /Deal Control/);
+  assert.match(story, /Closeout & Collection/);
 });

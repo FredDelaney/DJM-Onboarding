@@ -33,17 +33,17 @@ const scenarios: Scenario[] = [
   {
     key: 'club',
     label: 'Club need',
-    short: 'Turn demand into a controlled pursuit',
+    short: 'A club asks you for a player',
     example:
       'Meridian FC need a left-footed winger under 23. Permanent or loan. We have a warm route through their sporting director.',
-    decision: 'Approve pursuit and relationship route',
+    decision: 'Check suitable players and review an introduction',
     route: 'Need -> Match -> Relationship -> Pursuit',
     icon: Target,
   },
   {
     key: 'player',
     label: 'Player situation',
-    short: 'Turn a player update into service and market work',
+    short: 'A player is waiting for your advice',
     example:
       'Leo Martin wants clarity on his summer options. His contract has 14 months left and we promised him an update this week.',
     decision: 'Approve player service plan',
@@ -53,7 +53,7 @@ const scenarios: Scenario[] = [
   {
     key: 'deal',
     label: 'Live deal',
-    short: 'Turn negotiation detail into the next commercial move',
+    short: 'An offer needs a response',
     example:
       'Riverton came back at 420k plus bonuses. The player side wants improved base salary and a sell-on. We need to respond tomorrow.',
     decision: 'Review prepared counter position',
@@ -63,7 +63,7 @@ const scenarios: Scenario[] = [
   {
     key: 'relationship',
     label: 'Relationship',
-    short: 'Turn access into the strongest route',
+    short: 'You know someone who could open a door',
     example:
       'We know the sporting director at Northstar through James. Last meaningful contact was earlier this month and we have a relevant player to discuss.',
     decision: 'Approve warm introduction route',
@@ -156,7 +156,9 @@ export default function ReDreamInteractiveExperience() {
   const [scenarioKey, setScenarioKey] = useState<ScenarioKey>('club');
   const scenario = scenarios.find((item) => item.key === scenarioKey) || scenarios[0];
   const [note, setNote] = useState(scenario.example);
-  const [stage, setStage] = useState(4);
+  const [stage, setStage] = useState(-1);
+  const [hasRun, setHasRun] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -166,6 +168,10 @@ export default function ReDreamInteractiveExperience() {
     };
   }, []);
 
+  useEffect(() => {
+    if (hasRun) resultRef.current?.focus({ preventScroll: false });
+  }, [hasRun]);
+
   const entities = useMemo(() => capitalisedEntities(note), [note]);
   const evidence = useMemo(() => evidenceFromText(note, scenarioKey), [note, scenarioKey]);
 
@@ -174,7 +180,8 @@ export default function ReDreamInteractiveExperience() {
     trackFunnel('scenario_select', { scenario_kind: key });
     setScenarioKey(key);
     setNote(next.example);
-    setStage(4);
+    setStage(-1);
+    setHasRun(false);
     setIsRunning(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
@@ -184,6 +191,7 @@ export default function ReDreamInteractiveExperience() {
 
     if (intervalRef.current) clearInterval(intervalRef.current);
     trackFunnel('scenario_run', { scenario_kind: scenarioKey });
+    setHasRun(false);
     setStage(0);
     setIsRunning(true);
 
@@ -195,6 +203,7 @@ export default function ReDreamInteractiveExperience() {
         if (intervalRef.current) clearInterval(intervalRef.current);
         trackFunnel('scenario_complete', { scenario_kind: scenarioKey });
         setIsRunning(false);
+        setHasRun(true);
       }
     }, 420);
   };
@@ -202,7 +211,7 @@ export default function ReDreamInteractiveExperience() {
   const demoContext = `Homepage scenario: ${scenario.label}. ${note.trim()}`;
 
   return (
-    <section className={styles.shell} aria-label="Try the ReDream operating flow">
+    <section className={styles.shell} aria-label="Try ReDream with an example">
       <div className={styles.topline}>
         <div>
           <span className={styles.statusDot} />
@@ -211,7 +220,12 @@ export default function ReDreamInteractiveExperience() {
         <span>Browser-only until you submit a demo request</span>
       </div>
 
-      <div className={styles.scenarioTabs} role="tablist" aria-label="Agency situation">
+      <ol className={styles.demoSteps} aria-label="Demo instructions">
+        <li aria-current={!isRunning && !hasRun ? 'step' : undefined}><b>1</b> Pick a situation</li>
+        <li aria-current={isRunning ? 'step' : undefined}><b>2</b> Run ReDream</li>
+        <li aria-current={hasRun ? 'step' : undefined}><b>3</b> See the next move</li>
+      </ol>
+      <div className={styles.scenarioTabs} role="group" aria-label="Pick a situation">
         {scenarios.map((item) => {
           const Icon = item.icon;
           const active = item.key === scenarioKey;
@@ -220,8 +234,7 @@ export default function ReDreamInteractiveExperience() {
             <button
               key={item.key}
               type="button"
-              role="tab"
-              aria-selected={active}
+              aria-pressed={active}
               className={active ? styles.activeTab : undefined}
               onClick={() => chooseScenario(item.key)}
             >
@@ -243,7 +256,12 @@ export default function ReDreamInteractiveExperience() {
 
         <textarea
           value={note}
-          onChange={(event) => setNote(event.target.value)}
+          disabled={isRunning}
+          onChange={(event) => {
+            setNote(event.target.value);
+            setHasRun(false);
+            setStage(-1);
+          }}
           rows={3}
           maxLength={700}
           aria-label="Agency situation"
@@ -254,13 +272,17 @@ export default function ReDreamInteractiveExperience() {
             Use real names if appropriate. This demo does not query or verify live football data.
           </span>
           <button type="button" onClick={runScenario} disabled={isRunning || !note.trim()}>
-            {isRunning ? 'Operating...' : 'Run ReDream'}
+            {isRunning ? 'Preparing your next move...' : 'Run ReDream'}
             <ArrowRight size={14} />
           </button>
         </div>
       </div>
 
-      <div className={styles.operatingCanvas} aria-live="polite">
+      <p className={styles.runStatus} role="status">
+        {isRunning ? `${stages[stage]}: preparing this example...` : hasRun ? 'Your suggested next move is ready.' : 'Ready when you are. Choose an example above, then press Run ReDream.'}
+      </p>
+      {hasRun ? <div className={styles.operatingCanvas} ref={resultRef} tabIndex={-1} aria-label="Your suggested next move">
+        <h3 className={styles.resultTitle}>3. Here is your next move</h3>
         <div className={styles.processLine} aria-label="Capture, Understand, Connect, Prepare, Needs You">
           {stages.map((item, index) => {
             const complete = index <= stage;
@@ -281,13 +303,13 @@ export default function ReDreamInteractiveExperience() {
           <div className={styles.memoryCanvas}>
             <div className={styles.canvasLabel}>
               <span>AGENCY MEMORY</span>
-              <small>Signal becomes connected work</small>
+              <small>Your note, connected to a next step</small>
             </div>
 
             <div className={styles.memoryGraph}>
               <div className={`${styles.node} ${styles.nodePrimary}`}>
                 <span>{scenario.label}</span>
-                <strong>{entities[0] || 'Agency signal'}</strong>
+                <strong>{entities[0] || 'Your situation'}</strong>
               </div>
 
               <span className={`${styles.route} ${stage >= 1 ? styles.routeLive : ''}`} />
@@ -319,7 +341,7 @@ export default function ReDreamInteractiveExperience() {
                 <Sparkles size={18} />
               </div>
               <div className={styles.decisionCopy}>
-                <span>NEEDS YOU</span>
+                <span>NEEDS YOU: REVIEW THIS SUGGESTION</span>
                 <strong>{scenario.decision}</strong>
                 <small>ReDream prepares the move. The agent owns the decision.</small>
               </div>
@@ -341,9 +363,9 @@ export default function ReDreamInteractiveExperience() {
             </span>
           </div>
         </div>
-      </div>
+      </div> : null}
 
-      <div className={styles.conversionBar}>
+      {hasRun ? <div className={styles.conversionBar}>
         <div>
           <span>Imagine this running across your entire agency.</span>
           <strong>Bring one real situation. ReDream starts from there.</strong>
@@ -354,11 +376,12 @@ export default function ReDreamInteractiveExperience() {
           initialPriority={demoContext}
           trackingKey="interactive_result"
         />
-      </div>
+      </div> : null}
 
       <p className={styles.truthNote}>
-        This on-page demonstration is illustrative. It does not represent a live requirement, endorsement or relationship involving any club or player unless you enter that information yourself.
+        This is an illustrative, browser-only example using simple rules, not a live search of your agency. Suggestions are starting points for review. This on-page demonstration is illustrative. It does not represent a live requirement, endorsement or relationship involving any club or player unless you enter that information yourself.
       </p>
     </section>
   );
 }
+
