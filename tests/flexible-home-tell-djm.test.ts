@@ -3,6 +3,10 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const home = readFileSync('app/(djm-os)/djm/page.tsx', 'utf8');
+const agencyWorkspace = readFileSync(
+  'components/AgencyOperatingWorkspace.tsx',
+  'utf8',
+);
 const tellCapture = readFileSync('components/AiCapture.tsx', 'utf8');
 const tellProcess = readFileSync('supabase/functions/_shared/ai-process.ts', 'utf8');
 const aiRouter = readFileSync('supabase/functions/_shared/ai-router.ts', 'utf8');
@@ -13,13 +17,18 @@ const homeMigration = readFileSync(
   'utf8',
 );
 
-test('DJM Home supports dismiss and snooze without deleting source records', () => {
-  assert.match(home, /djm_home_item_controls/);
-  assert.match(home, /djm_home_set_item_control/);
-  assert.match(home, /Remove from Home/);
-  assert.match(home, /Snooze until tomorrow/);
-  assert.match(home, /worth your attention/);
-  assert.doesNotMatch(home, /What should DJM do next\?/);
+test('shared Agency Home replaces legacy dismiss and snooze controls with an evidence-led action queue', () => {
+  assert.match(home, /AgencyOperatingWorkspace/);
+  assert.match(agencyWorkspace, /redream_autopilot_home/);
+  assert.match(agencyWorkspace, /const needsYou = \[\.\.\.judgement, \.\.\.confirm\]/);
+  assert.match(agencyWorkspace, /onOpenAction\(command\)/);
+  assert.match(agencyWorkspace, /Nothing needs your decision/);
+
+  assert.doesNotMatch(home, /djm_home_item_controls/);
+  assert.doesNotMatch(home, /djm_home_set_item_control/);
+
+  // Historical migration remains source-controlled for old deployments,
+  // but it is no longer the current Home interaction contract.
   assert.match(homeMigration, /home_item_controls/);
   assert.match(homeMigration, /state in \('dismissed','snoozed'\)/i);
 });

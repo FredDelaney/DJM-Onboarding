@@ -10,6 +10,10 @@ const home = readFileSync(
   new URL('../app/(djm-os)/djm/page.tsx', import.meta.url),
   'utf8',
 );
+const agencyWorkspace = readFileSync(
+  new URL('../components/AgencyOperatingWorkspace.tsx', import.meta.url),
+  'utf8',
+);
 const adminPlayer = readFileSync(
   new URL('../app/admin/players/[id]/page.tsx', import.meta.url),
   'utf8',
@@ -37,12 +41,15 @@ test('Opportunities can delete an individual need without targeting the club', (
   assert.match(opportunities, /Delete need/);
 });
 
-test('Home supports explicit completion of real task and player request rows', () => {
-  assert.match(home, /djm_network_set_task_status/);
-  assert.match(home, /djm_complete_player_request/);
-  assert.match(home, /can_complete/);
-  assert.match(home, /Done/);
-  assert.match(commandCentre, /recordId/);
+test('Home routes real work through the shared guarded agency action system', () => {
+  assert.match(home, /AgencyOperatingWorkspace/);
+  assert.match(agencyWorkspace, /redream_autopilot_home/);
+  assert.match(agencyWorkspace, /actionability\?\.mode === 'one_tap'/);
+  assert.match(agencyWorkspace, /action_prepare/);
+  assert.match(agencyWorkspace, /action_execute/);
+  assert.match(agencyWorkspace, /Nothing changes until you confirm/);
+  assert.doesNotMatch(home, /djm_complete_player_request/);
+  assert.doesNotMatch(home, /djm_home_item_controls/);
 });
 
 test('player messages are direction-aware and reply through the atomic DJM reply RPC', () => {

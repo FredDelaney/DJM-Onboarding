@@ -210,10 +210,17 @@ test('global intelligence protects the V9 evidence and audit contract', () => {
   assert.doesNotMatch(source, /manual_potential_score/);
 });
 
-test('simplification preserves player-service operations and moves admin utilities to settings', () => {
+test('simplification preserves player-service operations in the shared workspace and moves admin utilities to settings', () => {
   const home = read('app/(djm-os)/djm/page.tsx');
-  assert.match(home, /buildAdminPortfolio/);
-  assert.match(home, /portfolio\.issues/);
+  const workspace = read('components/AgencyOperatingWorkspace.tsx');
+
+  assert.match(home, /AgencyOperatingWorkspace/);
+  assert.match(workspace, /redream_autopilot_players/);
+  assert.match(workspace, /player_service_move_prepare/);
+  assert.match(workspace, /player_control_fix_prepare/);
+  assert.match(workspace, /AgencyOwnerCommandCentre/);
+  assert.doesNotMatch(home, /buildAdminPortfolio/);
+
   assert.match(read('app/(djm-os)/settings/team/page.tsx'), /staff_player_access/);
   assert.match(read('app/(djm-os)/settings/player-experience/page.tsx'), /AdminResourceStudio/);
   assert.match(read('app/(djm-os)/settings/player-experience/page.tsx'), /announcements/);

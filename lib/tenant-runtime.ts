@@ -4,6 +4,7 @@ export type TenantFeatureRuntime = {
 
 export type TenantRuntime = {
   resolved: boolean;
+  tenant_id: string | null;
   slug: string;
   tenant_type: string;
   runtime_version: number;
@@ -42,6 +43,7 @@ export type TenantRuntime = {
 
 export const UNRESOLVED_TENANT_RUNTIME: TenantRuntime = {
   resolved: false,
+  tenant_id: null,
   slug: 'unresolved',
   tenant_type: 'unknown',
   runtime_version: 0,
@@ -219,6 +221,8 @@ function coerceRuntime(
 
   return {
     resolved: true,
+    tenant_id:
+      cleanString(source.tenant_id),
     slug,
     tenant_type:
       cleanString(source.tenant_type) ||
