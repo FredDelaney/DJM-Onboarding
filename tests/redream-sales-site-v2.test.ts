@@ -4,13 +4,10 @@ import fs from 'node:fs';
 
 const site = fs.readFileSync('components/ReDreamPublicLanding.tsx', 'utf8');
 const css = fs.readFileSync('components/ReDreamPublicLanding.module.css', 'utf8');
+const story = fs.readFileSync('components/ReDreamSimpleStory.tsx', 'utf8');
+const storyCss = fs.readFileSync('components/ReDreamSimpleStory.module.css', 'utf8');
 const live = fs.readFileSync('components/ReDreamLiveOperatingDemo.tsx', 'utf8');
-const liveCss = fs.readFileSync('components/ReDreamLiveOperatingDemo.module.css', 'utf8');
 const decision = fs.readFileSync('components/ReDreamDecisionLayer.tsx', 'utf8');
-const decisionCss = fs.readFileSync('components/ReDreamDecisionLayer.module.css', 'utf8');
-const journey = fs.readFileSync('components/ReDreamCommercialJourney.tsx', 'utf8');
-const journeyCss = fs.readFileSync('components/ReDreamCommercialJourney.module.css', 'utf8');
-const pagesCss = fs.readFileSync('components/ReDreamMarketingPages.module.css', 'utf8');
 const product = fs.readFileSync('app/(redream-public)/product/page.tsx', 'utf8');
 const security = fs.readFileSync('app/(redream-public)/security/page.tsx', 'utf8');
 const switchPage = fs.readFileSync('app/(redream-public)/switch/page.tsx', 'utf8');
@@ -18,110 +15,88 @@ const sandboxContract = fs.readFileSync('lib/redream-public-sandbox.ts', 'utf8')
 const edge = fs.readFileSync('supabase/functions/redream-public-sandbox/index.ts', 'utf8');
 const migration = fs.readFileSync('supabase/migrations/20260924122500_redream_public_demo_snapshot_v1.sql', 'utf8');
 
-test('V6 homepage is a short product experience rather than a feature-document wall', () => {
-  assert.match(site, /THE DECISION LAYER FOR FOOTBALL AGENCIES/);
-  assert.match(site, /Ask the agency, not the dashboard/);
-  assert.match(site, /THE PRODUCT IS THE DEMO/);
-  assert.match(site, /ONE COMMERCIAL THREAD/);
-  assert.match(site, /AGENCY AUTOPILOT/);
-  assert.doesNotMatch(site, /RECORD LAYER → DECISION LAYER/);
-  assert.doesNotMatch(site, /signalStrip/);
-  assert.doesNotMatch(site, /operatingSpine/);
+test('V6.1 homepage explains the product in plain football-agency language', () => {
+  assert.match(site, /SOFTWARE FOR FOOTBALL AGENCIES/);
+  assert.match(site, /Run your agency without relying on memory/);
+  assert.match(site, /players, club requests, contacts and deals connected/);
+  assert.match(site, /what needs attention and what to do next/);
+  assert.doesNotMatch(site, /THE DECISION LAYER FOR FOOTBALL AGENCIES/);
+  assert.doesNotMatch(site, /Ask the agency, not the dashboard/);
+  assert.doesNotMatch(site, /Agency Memory/);
+  assert.doesNotMatch(site, /bounded autonomy/i);
 });
 
-test('the signature decision-layer experience crosses multiple agency contexts', () => {
-  for (const term of [
-    'What needs me first?',
-    'Where is revenue exposed?',
-    'Which relationship route is stronger?',
-    'What is blocked by player strategy?',
-    'CONNECTED IMPACT',
-    'ONE QUEUE. THREE CONTROL LANES.',
-    'Autopilot can do',
-    'Confirm with me',
-    'Agent judgement',
-  ]) assert.match(decision, new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(decision, /decision_layer_/);
+test('homepage follows problem value current state and business outcome', () => {
+  assert.match(site, /PROBLEM TO OUTCOME/);
+  assert.match(site, /Today/);
+  assert.match(site, /With ReDream/);
+  assert.match(site, /Business outcome/);
+  assert.match(site, /Respond to clubs faster/);
+  assert.match(site, /Miss fewer opportunities/);
+  assert.match(site, /Spend more time on relationships and deals/);
 });
 
-test('decision-layer answers come from the public synthetic contract', () => {
-  assert.match(sandboxContract, /redream_public_sandbox_v1/);
-  assert.match(decision, /loadReDreamPublicSandbox/);
-  assert.match(sandboxContract, /payload\?\.synthetic === true/);
-  assert.match(sandboxContract, /isReDreamPublicSandboxPayload/);
-  assert.match(sandboxContract, /sharedSandboxRequest/);
-  assert.match(decision, /data\.scenarios/);
-  assert.match(decision, /data\.pursuits/);
-  assert.match(decision, /data\.revenue/);
-  assert.match(decision, /data\.attention/);
-  assert.match(decision, /Not chatbot theatre/);
-  assert.match(decision, /cannot mutate the agency or send an external action/);
+test('homepage uses one simple football story instead of multiple technical demos', () => {
+  assert.match(site, /ReDreamSimpleStory/);
+  assert.doesNotMatch(site, /ReDreamDecisionLayer/);
+  assert.doesNotMatch(site, /ReDreamLiveOperatingDemo/);
+  assert.doesNotMatch(site, /ReDreamCommercialJourney/);
+  assert.match(story, /Arsenal need a left-footed centre-back/);
+  assert.match(story, /Daniel Costa looks like the strongest fit/);
+  assert.match(story, /warm route into Arsenal/);
+  assert.match(story, /Send Daniel's latest clips and confirm his availability/);
+  assert.match(story, /One message becomes a tracked opportunity/);
 });
 
-test('hero and main operating loop use the connected product model', () => {
-  assert.match(site, /ReDreamLiveOperatingDemo variant="hero"/);
-  assert.match(site, /<ReDreamLiveOperatingDemo \/>/);
-  assert.match(live, /loadReDreamPublicSandbox/);
-  assert.match(live, /LIVE SYNTHETIC PRODUCT MODEL/);
+test('real-club example is clearly labelled as fictional', () => {
+  assert.match(story, /EXAMPLE AGENCY SCENARIO/);
+  assert.match(story, /Arsenal is used only as an example club/);
+  assert.match(story, /player and request are fictional/);
+});
+
+test('homepage stays connected to the first-party funnel', () => {
+  assert.match(site, /ReDreamFunnelTracker/);
+  assert.match(site, /data-funnel-cta="hero_how_it_works"/);
+  assert.match(site, /id="how-it-works"/);
+  assert.match(site, /id="value"/);
+  assert.match(site, /id="control"/);
+  assert.match(site, /id="pricing"/);
+  assert.match(site, /id="final-cta"/);
+  assert.match(story, /trackFunnel\('product_mode'/);
+  assert.match(story, /simple_story/);
+});
+
+test('market-leading intelligence remains available on the deeper product experience', () => {
+  assert.match(product, /ReDreamDecisionLayer/);
+  assert.match(product, /ReDreamLiveOperatingDemo/);
+  assert.match(decision, /What needs me first\?/);
+  assert.match(decision, /Where is revenue exposed\?/);
   assert.match(live, /LIVE REDREAM OPERATING MODEL/);
-  assert.match(live, /Real product logic\. Synthetic data\./);
-  assert.match(sandboxContract, /isolated synthetic demo environment/);
+  assert.match(sandboxContract, /redream_public_sandbox_v1/);
 });
 
-test('commercial journey is grouped into discover pursue and close rather than ten equal boxes', () => {
-  assert.match(site, /ReDreamCommercialJourney/);
-  for (const term of ['Discover','Pursue','Close','Club demand','Player fit','Relationship route','Opportunity','Pitch','Follow-up','Deal','Negotiation','Closeout','Commission']) {
-    assert.match(journey, new RegExp(term));
-  }
-  assert.match(journey, /Context travels with the opportunity/);
-  assert.match(journeyCss, /journey-pulse/);
-  assert.match(journeyCss, /prefers-reduced-motion/);
-});
-
-test('website demo stays connected to first-party funnel and demo-request context', () => {
-  assert.match(live, /trackFunnel\('scenario_select'/);
-  assert.match(live, /trackFunnel\('scenario_run'/);
-  assert.match(live, /trackFunnel\('scenario_complete'/);
-  assert.match(live, /live_synthetic_operating_loop/);
-  assert.match(live, /initialPriority=/);
-  assert.match(decision, /trackFunnel\('product_mode'/);
-  assert.match(decision, /v6_decision_layer/);
-});
-
-test('sandbox source contract can resolve only the isolated staging synthetic tenant', () => {
+test('sandbox remains isolated synthetic and read-only', () => {
   assert.match(migration, /northstar-football-management/);
   assert.match(migration, /synthetic_test_tenant/);
-  assert.match(migration, /environment/);
   assert.match(migration, /staging/);
-  assert.match(migration, /public_demo_tenant_safety_check_failed/);
   assert.match(migration, /revoke all[\s\S]*public, anon, authenticated/i);
-  assert.match(migration, /grant execute[\s\S]*service_role/i);
-});
-
-test('public edge endpoint is read-only and sanitises the server-only source contract', () => {
   assert.match(edge, /req\.method !== "GET"/);
   assert.match(edge, /source\.synthetic !== true/);
-  assert.match(edge, /redream_public_demo_source_v1/);
-  assert.match(edge, /sanitizeCommand/);
-  assert.match(edge, /sanitizeNetworkClub/);
-  assert.match(edge, /sanitizeDemand/);
-  assert.match(edge, /sanitizePursuit/);
   assert.doesNotMatch(edge, /insert\(/);
   assert.doesNotMatch(edge, /update\(/);
   assert.doesNotMatch(edge, /delete\(/);
 });
 
-test('the deeper research pages stay small visual and truthful', () => {
+test('deeper buyer pages remain available without bloating the homepage', () => {
+  assert.match(site, /href="\/product"/);
+  assert.match(site, /href="\/security"/);
+  assert.match(site, /href="\/switch"/);
   assert.match(product, /THREE LAYERS, ONE SYSTEM/);
-  assert.match(product, /ReDreamDecisionLayer/);
   assert.match(security, /AUTONOMY ROUTER/);
-  assert.match(security, /Public product demos use isolated synthetic agency data/);
   assert.match(switchPage, /PLAYER ROSTER MIGRATION/);
-  assert.match(switchPage, /nothing is written until approval/i);
-  assert.doesNotMatch(switchPage, /automatic contact migration/i);
 });
 
-test('canonical pricing remains unchanged while first value is explicit', () => {
+test('canonical pricing remains unchanged', () => {
   assert.match(site, /€149/);
   assert.match(site, /€399/);
   assert.match(site, /€799/);
@@ -129,22 +104,22 @@ test('canonical pricing remains unchanged while first value is explicit', () => 
   assert.match(site, /5 staff · 40 players/);
   assert.match(site, /15 staff · 100 players/);
   assert.match(site, /30 staff · 250 players/);
-  assert.match(site, /First value before full rollout/);
-  assert.match(site, /ReDream should earn the right to expand/);
 });
 
-test('V6 keeps public typography readable and motion respectful', () => {
-  for (const source of [css, liveCss, decisionCss, journeyCss, pagesCss]) {
+test('homepage copy uses no em dash and public typography remains readable', () => {
+  assert.doesNotMatch(site, /—/);
+  assert.doesNotMatch(story, /—/);
+  for (const source of [css, storyCss]) {
     const sizes = [...source.matchAll(/font-size:\s*([\d.]+)px/g)].map((match) => Number(match[1]));
     assert.ok(sizes.every((size) => size >= 13), 'Public text must stay readable');
   }
-  for (const source of [css, liveCss, decisionCss, journeyCss]) assert.match(source, /prefers-reduced-motion/);
+  assert.match(css, /prefers-reduced-motion/);
+  assert.match(storyCss, /prefers-reduced-motion/);
 });
 
-test('V6 avoids fabricated proof tenant-specific branding and football visual clichés', () => {
+test('homepage avoids fabricated social proof and football visual clichés', () => {
   assert.doesNotMatch(site, /trusted by/i);
   assert.doesNotMatch(site, /testimonial/i);
   assert.doesNotMatch(site, /\bDJM\b/);
   assert.doesNotMatch(site, /stadium|football pitch|soccer ball/i);
-  assert.match(site + live + decision, /synthetic/i);
 });

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const tracker = fs.readFileSync('lib/redream-funnel.ts', 'utf8');
 const trackerView = fs.readFileSync('components/ReDreamFunnelTracker.tsx', 'utf8');
 const landing = fs.readFileSync('components/ReDreamPublicLanding.tsx', 'utf8');
+const story = fs.readFileSync('components/ReDreamSimpleStory.tsx', 'utf8');
 const live = fs.readFileSync('components/ReDreamLiveOperatingDemo.tsx', 'utf8');
 const decision = fs.readFileSync('components/ReDreamDecisionLayer.tsx', 'utf8');
 const demo = fs.readFileSync('components/ReDreamDemoRequestButton.tsx', 'utf8');
@@ -27,11 +28,13 @@ test('conversion analytics are first party ephemeral and do not persist a browse
   assert.match(trackerView, /section_view/);
 });
 
-test('live product tracking records scenario behaviour without sending raw agency situation text', () => {
+test('deep product tracking remains available without forcing technical UI onto the homepage', () => {
   assert.match(live, /scenario_select/);
   assert.match(live, /scenario_run/);
   assert.match(live, /scenario_complete/);
   assert.match(decision, /product_mode/);
+  assert.match(story, /product_mode/);
+  assert.match(story, /simple_story/);
   assert.doesNotMatch(tracker, /\bnote\b/);
   assert.doesNotMatch(eventEdge, /priority/);
   assert.match(migration, /No raw scenario text is stored here/);
@@ -69,14 +72,13 @@ test('operator gets transparent funnel metrics and deterministic lead intelligen
 
 test('every major public sales action contributes to one connected funnel', () => {
   assert.match(landing, /ReDreamFunnelTracker/);
-  assert.match(landing, /data-funnel-cta="hero_decision_layer"/);
-  assert.match(landing, /id="decision-layer"/);
-  assert.match(landing, /id="operating-loop"/);
-  assert.match(landing, /id="commercial-thread"/);
+  assert.match(landing, /data-funnel-cta="hero_how_it_works"/);
+  assert.match(landing, /id="how-it-works"/);
+  assert.match(landing, /id="value"/);
+  assert.match(landing, /id="control"/);
+  assert.match(landing, /id="pricing"/);
   assert.match(landing, /id="final-cta"/);
-  assert.match(live, /scenario_select/);
-  assert.match(live, /scenario_run/);
-  assert.match(decision, /product_mode/);
+  assert.match(story, /product_mode/);
   assert.match(demo, /demo_open/);
   assert.match(demo, /demo_step_2/);
 });

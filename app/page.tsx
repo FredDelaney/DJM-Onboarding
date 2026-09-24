@@ -24,9 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const { isReDreamPublicSite } = await publicRequestState();
   if (!isReDreamPublicSite) return {};
 
-  const title = 'ReDream | Agency Autopilot for football agencies';
+  const title = 'ReDream | Software for football agencies';
   const description =
-    'ReDream connects players, club demand, relationships, career strategy, deals and revenue in one Agency Memory, then routes the next move between Autopilot, confirmation and agent judgement.';
+    'ReDream keeps players, club requests, relationships, follow-ups and deals connected so your agency knows what needs attention and what to do next.';
 
   return {
     title,
@@ -43,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: '/brand/redream-og.jpg',
           width: 1200,
           height: 630,
-          alt: 'ReDream Systems | Agency Autopilot',
+          alt: 'ReDream Systems',
         },
       ],
     },
