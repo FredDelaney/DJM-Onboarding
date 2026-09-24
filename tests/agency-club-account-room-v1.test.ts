@@ -11,9 +11,9 @@ const room = fs.readFileSync(
   'utf8',
 );
 
-test('Relationships opens a tenant-native Club Account Room without adding another daily workspace', () => {
+test('Network opens a tenant-native Club Account Room without adding another daily workspace', () => {
   assert.match(workspace, /AgencyClubAccountDrawer/);
-  assert.match(workspace, /Club account/);
+  assert.match(workspace, /Open club/);
   assert.doesNotMatch(workspace, /key: 'club-account'/);
 });
 

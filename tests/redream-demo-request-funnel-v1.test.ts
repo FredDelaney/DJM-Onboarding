@@ -119,5 +119,5 @@ test('demo conversion pre-fills the guarded customer provisioning path instead o
   assert.match(platformPage, /pendingDemoRequestId/);
   assert.match(platformPage, /action: 'create_customer'/);
   assert.match(platformPage, /status: 'converted'/);
-  assert.match(operator, /Website enquiries stay separate from customers/);
+  assert.match(operator, /Customer lifecycle owns this stage/);
 });

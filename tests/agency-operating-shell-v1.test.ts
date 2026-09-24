@@ -16,12 +16,12 @@ test('agency workspace authorises with tenant memberships rather than legacy glo
 
 test('agency workspace exposes five focused daily operating areas', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
-  assert.match(app, /label: 'Home'/);
+  assert.match(app, /label: 'Today'/);
   assert.match(app, /label: 'Players'/);
   assert.match(app, /label: 'Market'/);
   assert.match(app, /label: 'Deals'/);
-  assert.match(app, /label: 'Relationships'/);
-  assert.doesNotMatch(app, /label: 'Network'/);
+  assert.match(app, /label: 'Network'/);
+  assert.doesNotMatch(app, /label: 'Relationships'/);
   assert.doesNotMatch(app, /label: 'Opportunities'/);
   assert.doesNotMatch(app, /label: 'Brain'/);
   assert.match(app, /rawRequestedView === 'opportunities'/);

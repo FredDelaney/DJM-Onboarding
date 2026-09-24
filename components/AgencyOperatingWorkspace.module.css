@@ -1745,3 +1745,68 @@
     border-top: 1px solid #e8eaed;
   }
 }
+
+
+/* Agency product simplification v1 */
+
+.agencyTools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agencyToolButton {
+  min-width: 0;
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e7e9ec;
+  border-radius: 14px;
+  background: #fff;
+  color: #292f36;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.agencyToolButton:hover {
+  border-color: #dfe3e7;
+  background: #fafbfc;
+}
+
+.agencyToolButton > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.agencyToolButton strong {
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.agencyToolButton small {
+  color: #7c838c;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.agencyToolIcon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #f3f5f7;
+  color: var(--agency-primary);
+}
+
+@media (max-width: 680px) {
+  .agencyTools {
+    grid-template-columns: 1fr;
+  }
+}

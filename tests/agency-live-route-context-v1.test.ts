@@ -31,11 +31,11 @@ test('club demand shows real recorded candidate names in the operating workspace
   assert.match(workspace, /No recorded candidate yet/);
 });
 
-test('candidate context exposes career control without adding false precision', () => {
+test('candidate context exposes the player decision gate without adding false precision', () => {
   assert.match(workspace, /careerGateLabel/);
   assert.match(workspace, /Open to progress/);
   assert.match(workspace, /Review needed/);
-  assert.match(workspace, /Held by career control/);
+  assert.match(workspace, /Player decision needed/);
   assert.doesNotMatch(workspace, /candidate\.overall_score/);
   assert.doesNotMatch(workspace, /candidate\.readiness_score/);
 });

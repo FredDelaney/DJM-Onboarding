@@ -83,11 +83,11 @@ const NAV: Array<{
   label: string;
   icon: typeof Target;
 }> = [
-  { key: 'home', label: 'Home', icon: Target },
+  { key: 'home', label: 'Today', icon: Target },
   { key: 'players', label: 'Players', icon: Users },
   { key: 'market', label: 'Market', icon: Target },
   { key: 'deals', label: 'Deals', icon: BriefcaseBusiness },
-  { key: 'relationships', label: 'Relationships', icon: Network },
+  { key: 'relationships', label: 'Network', icon: Network },
 ];
 
 const VIEW_PRESENTATION: Record<
@@ -95,34 +95,34 @@ const VIEW_PRESENTATION: Record<
   { eyebrow: string; title: string; description: string }
 > = {
   home: {
-    eyebrow: 'DAILY OPERATING PICTURE',
+    eyebrow: 'TODAY',
     title: 'Today',
     description:
-      'The clearest next actions across players, relationships and live business.',
+      'What needs your attention and what is ready to move.',
   },
   players: {
-    eyebrow: 'PLAYER AUTOPILOT',
+    eyebrow: 'PLAYERS',
     title: 'Players',
     description:
-      'Protect player service, career timing and active market coverage.',
+      'See what every player needs next.',
   },
   market: {
-    eyebrow: 'MARKET AUTOPILOT',
+    eyebrow: 'MARKET',
     title: 'Market',
     description:
-      'Work real club demand, player routes and career-controlled market opportunities.',
+      'See what clubs need, which players fit and the best way in.',
   },
   deals: {
-    eyebrow: 'DEAL CONTROL',
+    eyebrow: 'DEALS',
     title: 'Deals',
     description:
-      'Protect momentum, commercial control and the next decision across live deals.',
+      'Keep every live deal moving and know the next action.',
   },
   relationships: {
-    eyebrow: 'RELATIONSHIP AUTOPILOT',
-    title: 'Relationships',
+    eyebrow: 'NETWORK',
+    title: 'Network',
     description:
-      'Know where real access exists, who can open the door and which club relationships matter now.',
+      'Keep your clubs, contacts and relationship routes in one place.',
   },
 };
 
@@ -178,7 +178,7 @@ const careerGateLabel = (value: unknown) => {
   if (!state) return 'Recorded';
   if (state.startsWith('open_')) return 'Open to progress';
   if (state.startsWith('review_')) return 'Review needed';
-  if (state.startsWith('hold_')) return 'Held by career control';
+  if (state.startsWith('hold_')) return 'Player decision needed';
   return human(state);
 };
 
@@ -786,7 +786,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
           <div className={styles.headActions}>
             <AiLauncher />
-            {view === 'home' &&
+            {view === 'players' &&
             ['owner', 'admin', 'operations'].includes(
               workspace.role,
             ) ? (
@@ -795,7 +795,7 @@ export default function AgencyOperatingWorkspace() {
                 className={styles.refresh}
                 onClick={() => setRosterImportOpen(true)}
               >
-                Import roster
+                Add / import players
               </button>
             ) : null}
             <button
@@ -822,9 +822,9 @@ export default function AgencyOperatingWorkspace() {
               <p className={styles.eyebrow}>FIRST WORKING VALUE REACHED</p>
               <h2>Your agency is operating now.</h2>
               <p>
-                The player, club relationship and live route you just created
-                are now part of the real workspace. Keep the opportunity
-                current here, then use Today for the next evidence-backed action.
+                Your player, club contact and live opportunity are now connected.
+                Keep the opportunity current here, then use Today to see what
+                matters next.
               </p>
             </div>
             <button
@@ -1303,13 +1303,13 @@ function Home({
 
           <h2>
             {top?.title ||
-              'Nothing currently needs your judgement.'}
+              'Nothing needs you right now.'}
           </h2>
 
           <p>
             {top?.recommended_action ||
               top?.why_now ||
-              'Autopilot will bring work back when a decision, confirmation or exception genuinely needs a person.'}
+              'The next important action will appear here when it needs your decision.'}
           </p>
         </div>
 
@@ -1364,23 +1364,23 @@ function Home({
         <Metric
           label="Needs you"
           value={String(needsYou.length)}
-          detail="Judgement or confirmation"
+          detail="Your decision or confirmation"
         />
 
         <Metric
-          label="Autopilot can handle"
+          label="Ready to move"
           value={String(delegable.length)}
-          detail="Safe reversible work"
+          detail="Work already prepared"
         />
 
         <Metric
-          label="Overdue deadlines"
+          label="Overdue"
           value={String(overdueDeadlines)}
-          detail="Recorded operating dates"
+          detail="Actions past their due date"
         />
 
         <Metric
-          label="Delegated work"
+          label="In progress"
           value={String(activeDelegated)}
           detail={`${completedDelegated} completed`}
         />
@@ -1389,74 +1389,8 @@ function Home({
       <section className={styles.sectionCard}>
         <div className={styles.sectionHead}>
           <div>
-            <p className={styles.eyebrow}>AGENCY MEMORY</p>
-            <h2>Movement, decisions and learning</h2>
-          </div>
-
-          <button
-            type="button"
-            className={styles.compactButton}
-            onClick={onOpenMemory}
-          >
-            <Network size={14} />
-            Open Agency Memory
-          </button>
-        </div>
-
-        <div className={styles.emptyState}>
-          <div className={styles.emptyStateIcon}>
-            <Network size={18} />
-          </div>
-
-          <strong>
-            See what changed, what was prepared or applied, and what the agency has enough evidence to learn from.
-          </strong>
-
-          <span>
-            Provenance and reversibility stay visible while weak evidence stays explicitly inconclusive.
-          </span>
-        </div>
-      </section>
-
-      {data?.owner_business ? (
-        <section className={styles.sectionCard}>
-          <div className={styles.sectionHead}>
-            <div>
-              <p className={styles.eyebrow}>OWNER CONTROL</p>
-              <h2>Business position</h2>
-            </div>
-
-            <button
-              type="button"
-              className={styles.compactButton}
-              onClick={onOpenOwner}
-            >
-              <BriefcaseBusiness size={14} />
-              Open Owner Command Centre
-            </button>
-          </div>
-
-          <div className={styles.emptyState}>
-            <div className={styles.emptyStateIcon}>
-              <Coins size={18} />
-            </div>
-
-            <strong>
-              Revenue, service, ownership and collection in one evidence-led owner view.
-            </strong>
-
-            <span>
-              Commercial exposure stays separate from guaranteed revenue, and team load stays factual rather than becoming a made-up utilisation score.
-            </span>
-          </div>
-        </section>
-      ) : null}
-
-      <section className={styles.sectionCard}>
-        <div className={styles.sectionHead}>
-          <div>
             <p className={styles.eyebrow}>NEEDS YOU</p>
-            <h2>Decisions and confirmations</h2>
+            <h2>Your decisions</h2>
           </div>
 
           <span className={styles.sectionCount}>
@@ -1505,8 +1439,8 @@ function Home({
           {!needsYou.length ? (
             <EmptyState
               icon={CheckCircle2}
-              title="Operating queue is clear"
-              copy="Autopilot will surface the next decision or exception when one genuinely requires a person."
+              title="Nothing needs your decision"
+              copy="You are clear for now. New decisions will appear here when they need you."
             />
           ) : null}
         </div>
@@ -1515,8 +1449,8 @@ function Home({
       <section className={styles.sectionCard}>
         <div className={styles.sectionHead}>
           <div>
-            <p className={styles.eyebrow}>AUTOPILOT</p>
-            <h2>Work Autopilot can prepare</h2>
+            <p className={styles.eyebrow}>READY TO MOVE</p>
+            <h2>Work already prepared</h2>
           </div>
 
           <span className={styles.sectionCount}>
@@ -1589,11 +1523,45 @@ function Home({
           {!delegable.length ? (
             <EmptyState
               icon={CheckCircle2}
-              title="No delegated work waiting"
-              copy="Routine work will appear here only when Autopilot has enough evidence to prepare it safely."
+              title="Nothing waiting"
+              copy="Prepared work will appear here when there is something useful to move."
             />
           ) : null}
         </div>
+      </section>
+
+      <section className={styles.agencyTools} aria-label="Agency tools">
+        <button
+          type="button"
+          className={styles.agencyToolButton}
+          onClick={onOpenMemory}
+        >
+          <span className={styles.agencyToolIcon}>
+            <Network size={17} />
+          </span>
+          <span>
+            <strong>Agency history</strong>
+            <small>See what changed, what was decided and what can be undone.</small>
+          </span>
+          <ArrowRight size={15} />
+        </button>
+
+        {data?.owner_business ? (
+          <button
+            type="button"
+            className={styles.agencyToolButton}
+            onClick={onOpenOwner}
+          >
+            <span className={styles.agencyToolIcon}>
+              <Coins size={17} />
+            </span>
+            <span>
+              <strong>Owner view</strong>
+              <small>Revenue, collections, workload and business position.</small>
+            </span>
+            <ArrowRight size={15} />
+          </button>
+        ) : null}
       </section>
     </div>
   );
@@ -1622,34 +1590,34 @@ function Players({
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
-        eyebrow="PLAYER AUTOPILOT"
-        title="Protect value. Move careers."
-        copy="Player service, career timing, market coverage and preparation gaps ordered by recorded evidence."
+        eyebrow="PLAYERS"
+        title="Know what every player needs next."
+        copy="Contracts, opportunities and next actions in one place."
         icon={Users}
         badge={`${summary.active_players ?? items.length} players`}
       />
 
       <section className={styles.metrics}>
         <Metric
-          label="Service risk"
+          label="Needs attention"
           value={String(summary.service_risk || 0)}
           detail={`${summary.urgent_service_queue || 0} urgent`}
         />
 
         <Metric
-          label="Contract critical"
+          label="Contract windows"
           value={String(summary.contract_critical_window || 0)}
-          detail="Recorded contract windows"
+          detail="Players nearing a key contract date"
         />
 
         <Metric
-          label="Market gaps"
+          label="Without market activity"
           value={String(summary.market_coverage_gaps || 0)}
-          detail="No recorded active coverage"
+          detail="No active route or deal recorded"
         />
 
         <Metric
-          label="Representation review"
+          label="Representation records"
           value={String(
             representation.records_needing_review || 0,
           )}
@@ -1702,11 +1670,11 @@ function Players({
 
           const playerFacts = [
             {
-              label: 'Service control',
+              label: 'Player status',
               value: human(serviceState),
               detail: serviceGaps.length
                 ? `${serviceGaps.length} recorded gap${serviceGaps.length === 1 ? '' : 's'}`
-                : 'No service-control gap recorded',
+                : 'No player-service gap recorded',
             },
             {
               label: 'Next move',
@@ -1719,7 +1687,7 @@ function Players({
                   : 'No due date recorded',
             },
             {
-              label: 'Career timing',
+              label: 'Contract timing',
               value: human(
                 item.career_timing?.market_trigger ||
                   item.player?.contract_status ||
@@ -1728,7 +1696,7 @@ function Players({
               detail: contractDetail,
             },
             {
-              label: 'Market coverage',
+              label: 'Market activity',
               value: human(marketState),
               detail: activeDeals
                 ? `${activeDeals} active recorded deal${activeDeals === 1 ? '' : 's'}`
@@ -1746,7 +1714,7 @@ function Players({
                   item.next_control_fix?.fix_type ===
                   'assign_primary_staff'
                     ? 'Assign owner'
-                    : 'Fix control',
+                    : 'Fix this',
                 action: 'player_control_fix_prepare',
                 payload: {
                   player_id: item.player_id,
@@ -1765,7 +1733,7 @@ function Players({
                   item.next_control_fix?.fix_type ===
                   'assign_primary_staff'
                     ? 'Assign primary owner'
-                    : 'Apply control fix',
+                    : 'Apply fix',
               }
             : item.next_service_move?.instruction
               ? {
@@ -1803,7 +1771,7 @@ function Players({
 
                 <div className={styles.entityIdentity}>
                   <p className={styles.eyebrow}>
-                    PLAYER SERVICE
+                    PLAYER
                   </p>
 
                   <h2>{playerName}</h2>
@@ -1823,7 +1791,7 @@ function Players({
 
               <div className={styles.facts}>
                 <div>
-                  <span>Next move</span>
+                  <span>Next action</span>
                   <strong>{nextMove}</strong>
                   <small>
                     {relativeDate(item.player?.next_action_due)}
@@ -1831,7 +1799,7 @@ function Players({
                 </div>
 
                 <div>
-                  <span>Market coverage</span>
+                  <span>Market activity</span>
                   <strong>{human(marketState)}</strong>
                   <small>
                     {activeDeals
@@ -1841,7 +1809,7 @@ function Players({
                 </div>
 
                 <div>
-                  <span>Career timing</span>
+                  <span>Contract</span>
                   <strong>
                     {human(
                       item.career_timing?.market_trigger ||
@@ -1880,7 +1848,7 @@ function Players({
                   }
                 >
                   <Search size={14} />
-                  Player 360
+                  Open player
                 </button>
 
                 {playerAction ? (
@@ -1916,9 +1884,9 @@ function Players({
           <div className={styles.sectionHead}>
             <div>
               <p className={styles.eyebrow}>
-                PLAYER RELATIONSHIPS
+                NEEDS ATTENTION
               </p>
-              <h2>Service interventions</h2>
+              <h2>Players needing attention</h2>
             </div>
 
             <span className={styles.sectionCount}>
@@ -1936,9 +1904,8 @@ function Players({
             </strong>
 
             <span>
-              These are operational service exceptions based on recorded
-              ownership, actions, requests and coverage. They are not a
-              measure of player satisfaction or agent quality.
+              These players have a real follow-up, ownership or coverage issue
+              recorded. Open the player above to see the next action.
             </span>
           </div>
         </section>
@@ -2074,50 +2041,50 @@ function Relationships({
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
-        eyebrow="RELATIONSHIP AUTOPILOT"
-        title="Know who can move the conversation."
-        copy="Clubs and the people behind them, connected to recorded access, live demand, commercial activity and agency relationship memory."
+        eyebrow="NETWORK"
+        title="Your football network."
+        copy="See the clubs and people you know, what is happening there and the best route in."
         icon={Network}
         badge={`${clubSummary.relevant_clubs ?? clubs.length} relevant clubs`}
       />
 
       <section className={styles.metrics}>
         <Metric
-          label="Relevant clubs"
+          label="Clubs"
           value={String(
             clubSummary.relevant_clubs ??
               clubs.length,
           )}
-          detail="Accounts with current relevance"
+          detail="Clubs connected to current work"
         />
 
         <Metric
-          label="Club contacts"
+          label="Contacts"
           value={String(
             contactSummary.club_contacts ??
               contacts.length,
           )}
-          detail="Current recorded club people"
+          detail="People recorded at clubs"
         />
 
         <Metric
-          label="Strong direct routes"
+          label="Strong relationships"
           value={String(
             contactSummary
               .strong_recorded_direct_relationships ||
               0,
           )}
-          detail="Strong recorded agency access"
+          detail="Direct access already recorded"
         />
 
         <Metric
-          label="Open follow-up"
+          label="Follow-ups"
           value={String(
             contactSummary
               .contacts_with_open_follow_up ||
               0,
           )}
-          detail="Contacts with recorded work"
+          detail="Contacts with something due"
         />
       </section>
 
@@ -2401,7 +2368,7 @@ function Relationships({
 
                 <div className={styles.facts}>
                   <div>
-                    <span>Best route</span>
+                    <span>Best contact</span>
                     <strong>
                       {routeName}
                     </strong>
@@ -2411,7 +2378,7 @@ function Relationships({
                   </div>
 
                   <div>
-                    <span>Current demand</span>
+                    <span>Club needs</span>
                     <strong>
                       {demand.active_needs || 0}{' '}
                       active
@@ -2424,7 +2391,7 @@ function Relationships({
                   </div>
 
                   <div>
-                    <span>Live business</span>
+                    <span>Live deals</span>
                     <strong>
                       {commercial.active_deals ||
                         0}{' '}
@@ -2583,7 +2550,7 @@ function Relationships({
                     }
                   >
                     <Network size={14} />
-                    Club account
+                    Open club
                   </button>
                 </div>
 
@@ -2696,7 +2663,7 @@ function Relationships({
               copy={
                 relationshipSearch
                   ? 'Try another club, country or league.'
-                  : 'Recorded contacts, access routes, club demand and commercial activity will build this view.'
+                  : 'Add club contacts and keep your relationships current to build this view.'
               }
             />
           ) : null}
@@ -3033,40 +3000,40 @@ function Market({
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
-        eyebrow="MARKET AUTOPILOT"
-        title="Find the route worth moving."
-        copy="Recorded club demand and player-club routes, with career control and relationship access made explicit."
+        eyebrow="MARKET"
+        title="Club needs. Player fits. Best route in."
+        copy="See what clubs need, which players could fit and who can open the door."
         icon={Target}
         badge={`${demandSummary.active_needs ?? needs.length} active needs`}
       />
 
       <section className={styles.metrics}>
         <Metric
-          label="Active needs"
+          label="Club needs"
           value={String(
             demandSummary.active_needs ?? needs.length,
           )}
-          detail="Recorded club demand"
+          detail="Live requirements from clubs"
         />
 
         <Metric
-          label="Roster gaps"
+          label="Needs without a player"
           value={String(demandSummary.roster_gaps || 0)}
-          detail="Needs without a recorded roster route"
+          detail="No player route recorded yet"
         />
 
         <Metric
-          label="Live pursuits"
+          label="Player routes"
           value={String(
             pursuitSummary.pursuit_count ?? pursuits.length,
           )}
-          detail="Recorded player-club routes"
+          detail="Player to club opportunities"
         />
 
         <Metric
-          label="Career holds"
+          label="Player decisions"
           value={String(pitchSummary.career_holds || 0)}
-          detail="Human-owned strategy required"
+          detail="A player or agent decision is needed"
         />
       </section>
 
@@ -3076,8 +3043,8 @@ function Market({
         >
           <div className={styles.sectionHead}>
             <div>
-              <p className={styles.eyebrow}>CLUB DEMAND</p>
-              <h2>Needs worth acting on</h2>
+              <p className={styles.eyebrow}>CLUB NEEDS</p>
+              <h2>What clubs are looking for</h2>
             </div>
 
             <span className={styles.sectionCount}>
@@ -3167,7 +3134,7 @@ function Market({
                                     candidate.career_gate_reason ||
                                     'Review the player-owned career strategy before external activity.',
                                   label:
-                                    'Review career strategy',
+                                    'Review player plan',
                                   action:
                                     'career_strategy_action_prepare',
                                   payload: {
@@ -3199,7 +3166,7 @@ function Market({
                                     },
                                     {
                                       label:
-                                        'Career control',
+                                        'Player plan',
                                       value:
                                         careerGateLabel(
                                           candidate.career_gate_state ||
@@ -3270,7 +3237,7 @@ function Market({
                           onOpenAction({
                             key:
                               `scouting:${item.club_need_id}`,
-                            eyebrow: 'CLUB DEMAND',
+                            eyebrow: 'CLUB NEED',
                             title:
                               `${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`,
                             instruction:
@@ -3361,7 +3328,7 @@ function Market({
               <EmptyState
                 icon={Target}
                 title="No active club demand"
-                copy="Recorded club needs will appear here with route coverage and candidate context."
+                copy="Club needs will appear here with possible players and the next action."
               />
             ) : null}
           </div>
@@ -3375,7 +3342,7 @@ function Market({
               <p className={styles.eyebrow}>
                 PLAYER-CLUB ROUTES
               </p>
-              <h2>Pursuits needing judgement</h2>
+              <h2>Routes to move</h2>
             </div>
 
             <span className={styles.sectionCount}>
@@ -3430,7 +3397,7 @@ function Market({
                             'review',
                         )}
                       </strong>
-                      <small>operating state</small>
+                      <small>status</small>
                     </div>
 
                     <button
@@ -3477,7 +3444,7 @@ function Market({
                       }
                     >
                       <BriefcaseBusiness size={14} />
-                      Open pursuit
+                      Open route
                     </button>
 
                     {item.player?.player_id ? (
@@ -3494,7 +3461,7 @@ function Market({
                               `${item.player?.name || 'Player'} → ${item.club?.name || 'Club'}`,
                             instruction:
                               nextAction,
-                            label: 'Review strategy',
+                            label: 'Review player plan',
                             action:
                               'career_strategy_action_prepare',
                             payload: {
@@ -3518,7 +3485,7 @@ function Market({
                               },
                               {
                                 label:
-                                  'Career control',
+                                  'Player plan',
                                 value:
                                   careerGateLabel(
                                     item
@@ -3547,7 +3514,7 @@ function Market({
                               },
                               {
                                 label:
-                                  'Operating readiness',
+                                  'Ready to work',
                                 value: human(
                                   item.readiness_state ||
                                     'review',
@@ -3619,9 +3586,9 @@ function Deals({
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
-        eyebrow="DEAL CONTROL"
-        title="Move the deal, not the admin."
-        copy="Live commercial work ordered around ownership, momentum, evidence and the next recorded decision."
+        eyebrow="DEALS"
+        title="Keep every live deal moving."
+        copy="See the stage, value, blocker and next action for every deal."
         icon={BriefcaseBusiness}
         badge={`${summary.active_deals ?? deals.length} active deals`}
       />
@@ -3632,17 +3599,17 @@ function Deals({
           value={String(
             summary.active_deals ?? deals.length,
           )}
-          detail="Recorded live deal rooms"
+          detail="Deals currently in play"
         />
 
         <Metric
-          label="Stage reviews"
+          label="Needs review"
           value={String(summary.stage_reviews_due || 0)}
-          detail="Recorded reviews due"
+          detail="Deals with a review due"
         />
 
         <Metric
-          label="Recovery"
+          label="Losing momentum"
           value={String(
             (summary.momentum_recovery_deals || 0) +
               (summary.commercial_rescue_deals || 0),
@@ -3651,11 +3618,11 @@ function Deals({
         />
 
         <Metric
-          label="Negotiation prep"
+          label="Negotiation work"
           value={String(
             summary.negotiation_preparation_required_count || 0,
           )}
-          detail="Recorded preparation gaps"
+          detail="Deals needing preparation"
         />
       </section>
 
@@ -3663,7 +3630,7 @@ function Deals({
         <div className={styles.sectionHead}>
           <div>
             <p className={styles.eyebrow}>LIVE DEALS</p>
-            <h2>Commercial pipeline</h2>
+            <h2>Live deals</h2>
           </div>
 
           <span className={styles.sectionCount}>
@@ -3773,14 +3740,14 @@ function Deals({
                 ? {
                     key:
                       `deal-control:${deal.deal_room_id}`,
-                    eyebrow: 'DEAL CONTROL',
+                    eyebrow: 'DEAL ACTION',
                     title:
                       deal.title || 'Live deal',
                     instruction:
                       controlInstruction,
                     label: needsOwner
                       ? 'Assign owner'
-                      : 'Fix control',
+                      : 'Fix this',
                     action:
                       'deal_control_fix_prepare',
                     payload: {
@@ -3800,7 +3767,7 @@ function Deals({
                     confirmationLabel:
                       needsOwner
                         ? 'Assign deal owner'
-                        : 'Apply control fix',
+                        : 'Apply fix',
                   }
                 : {
                     key:
@@ -3887,7 +3854,7 @@ function Deals({
                     }
                   >
                     <BriefcaseBusiness size={14} />
-                    War room
+                    Open deal
                   </button>
 
                   <button
@@ -3925,9 +3892,9 @@ function Deals({
           <div className={styles.sectionHead}>
             <div>
               <p className={styles.eyebrow}>
-                COMMERCIAL CONTROL
+                NEEDS ATTENTION
               </p>
-              <h2>Deals needing recovery</h2>
+              <h2>Deals losing momentum</h2>
             </div>
 
             <span className={styles.sectionCount}>
@@ -3951,9 +3918,8 @@ function Deals({
             </strong>
 
             <span>
-              Recovery states use recorded evidence, control,
-              momentum and access. They do not change recorded deal
-              probability or forecast a result.
+              Open the deal above to see the blocker and the next action.
+              These signals organise work. They do not predict the outcome.
             </span>
           </div>
         </section>

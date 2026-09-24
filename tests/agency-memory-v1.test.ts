@@ -11,9 +11,9 @@ const memory = fs.readFileSync(
   'utf8',
 );
 
-test('Agency Memory opens from Home without adding a sixth daily workspace', () => {
+test('Agency history opens from Today without adding a sixth daily workspace', () => {
   assert.match(workspace, /AgencyMemoryDrawer/);
-  assert.match(workspace, /Open Agency Memory/);
+  assert.match(workspace, /Agency history/);
   assert.doesNotMatch(workspace, /key: 'memory'/);
 });
 

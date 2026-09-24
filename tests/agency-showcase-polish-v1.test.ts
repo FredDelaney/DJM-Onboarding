@@ -12,12 +12,12 @@ const css = readFileSync(
 );
 
 test('showcase polish presents the five-area agency operating model', () => {
-  assert.match(workspace, /label: 'Home'/);
+  assert.match(workspace, /label: 'Today'/);
   assert.match(workspace, /label: 'Players'/);
   assert.match(workspace, /label: 'Market'/);
   assert.match(workspace, /label: 'Deals'/);
-  assert.match(workspace, /label: 'Relationships'/);
-  assert.doesNotMatch(workspace, /label: 'Network'/);
+  assert.match(workspace, /label: 'Network'/);
+  assert.doesNotMatch(workspace, /label: 'Relationships'/);
   assert.match(workspace, /VIEW_PRESENTATION/);
   assert.doesNotMatch(workspace, /label: 'Brain'/);
 });
@@ -42,8 +42,8 @@ test('showcase polish does not bypass guarded agency action execution', () => {
 });
 
 test('players and relationships use tenant-neutral premium entity presentation', () => {
-  assert.match(workspace, /Protect value\. Move careers\./);
-  assert.match(workspace, /Know who can move the conversation\./);
+  assert.match(workspace, /Know what every player needs next\./);
+  assert.match(workspace, /Your football network\./);
   assert.match(workspace, /className=\{styles\.entityMark\}/);
   assert.match(workspace, /initials\(playerName\)/);
   assert.match(workspace, /initials\(clubName\)/);
@@ -62,20 +62,20 @@ test('players and relationships use tenant-neutral premium entity presentation',
 });
 
 test('Market and Deals separate demand creation from commercial execution without inventing probability', () => {
-  assert.match(workspace, /Find the route worth moving\./);
+  assert.match(workspace, /Club needs\. Player fits\. Best route in\./);
   assert.match(
     workspace,
-    /career-controlled market opportunities/,
+    /which players could fit and who can open the door/,
   );
   assert.doesNotMatch(
     workspace,
     /career-approved market opportunities/,
   );
-  assert.match(workspace, /Move the deal, not the admin\./);
+  assert.match(workspace, /Keep every live deal moving\./);
   assert.match(workspace, /className=\{styles\.opportunityColumns\}/);
-  assert.match(workspace, /Needs worth acting on/);
-  assert.match(workspace, /Pursuits needing judgement/);
-  assert.match(workspace, /Commercial pipeline/);
+  assert.match(workspace, /What clubs are looking for/);
+  assert.match(workspace, /Routes to move/);
+  assert.match(workspace, /Live deals/);
   assert.match(workspace, /candidate_coverage\?\.candidates/);
   assert.match(workspace, /redream_autopilot_market/);
   assert.match(workspace, /redream_autopilot_deals/);
@@ -84,7 +84,7 @@ test('Market and Deals separate demand creation from commercial execution withou
 });
 
 test('every primary operating area has an intentional empty state', () => {
-  assert.match(workspace, /Operating queue is clear/);
+  assert.match(workspace, /Nothing needs your decision/);
   assert.match(workspace, /No players recorded yet/);
   assert.match(workspace, /No relevant club relationships yet/);
   assert.match(workspace, /No live deals recorded/);
