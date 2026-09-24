@@ -321,6 +321,8 @@ Deno.serve(async (request) => {
 
   return json({
     resolved: true,
+    tenant_id:
+      safeText(data.tenant_id),
     slug,
     tenant_type:
       safeText(

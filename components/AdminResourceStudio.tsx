@@ -74,12 +74,14 @@ export default function AdminResourceStudio({
   resources,
   canManage,
   userId,
+  tenantId,
   onRefresh,
   onFlash,
 }: {
   resources: Resource[];
   canManage: boolean;
   userId: string;
+  tenantId: string;
   onRefresh: () => Promise<void>;
   onFlash: (message: string) => void;
 }) {
@@ -118,7 +120,7 @@ export default function AdminResourceStudio({
   };
 
   const save = async () => {
-    if (!canManage || !draft.title.trim()) return;
+    if (!canManage || !tenantId || !draft.title.trim()) return;
     if (!safeDestination(draft.url)) {
       onFlash('Add a safe https:// link or an app path beginning with /.');
       return;
@@ -137,9 +139,14 @@ export default function AdminResourceStudio({
     };
 
     const result = editingId
-      ? await supabase.from('resources').update(payload).eq('id', editingId)
+      ? await supabase
+          .from('resources')
+          .update(payload)
+          .eq('id', editingId)
+          .eq('tenant_id', tenantId)
       : await supabase.from('resources').insert({
           ...payload,
+          tenant_id: tenantId,
           created_by: userId,
           sort_order: resources.length,
         });
@@ -161,7 +168,8 @@ export default function AdminResourceStudio({
     const { error } = await supabase
       .from('resources')
       .update({ published: nextPublished })
-      .eq('id', resource.id);
+      .eq('id', resource.id)
+      .eq('tenant_id', tenantId);
 
     if (error) {
       onFlash(error.message || 'Could not update publication');
