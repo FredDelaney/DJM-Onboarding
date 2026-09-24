@@ -1,6 +1,9 @@
 'use client';
 
 import AiLauncher from '@/components/AiLauncher';
+import AgencyCreateDrawer, {
+  type AgencyCreateKind,
+} from '@/components/AgencyCreateDrawer';
 
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -13,6 +16,7 @@ import {
   LoaderCircle,
   LogOut,
   Network,
+  Plus,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -239,6 +243,8 @@ export default function AgencyOperatingWorkspace() {
   const [playerServiceReviewRequest, setPlayerServiceReviewRequest] =
     useState<AgencyPlayerServiceReviewRequest | null>(null);
   const [rosterImportOpen, setRosterImportOpen] = useState(false);
+  const [createKind, setCreateKind] =
+    useState<AgencyCreateKind | null>(null);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
   );
@@ -248,6 +254,19 @@ export default function AgencyOperatingWorkspace() {
     runtime.branding.display_name ||
     'Agency workspace';
   const viewPresentation = VIEW_PRESENTATION[view];
+
+  const createAction:
+    | { kind: AgencyCreateKind; label: string }
+    | null =
+    view === 'players'
+      ? { kind: 'player', label: 'Add player' }
+      : view === 'market'
+        ? { kind: 'club_need', label: 'Add club need' }
+        : view === 'deals'
+          ? { kind: 'deal', label: 'Add deal' }
+          : view === 'relationships'
+            ? { kind: 'contact', label: 'Add contact' }
+            : null;
 
   const theme = {
     '--agency-primary':
@@ -786,6 +805,16 @@ export default function AgencyOperatingWorkspace() {
           </div>
           <div className={styles.headActions}>
             <AiLauncher />
+            {createAction ? (
+              <button
+                type="button"
+                className={styles.createButton}
+                onClick={() => setCreateKind(createAction.kind)}
+              >
+                <Plus size={15} />
+                {createAction.label}
+              </button>
+            ) : null}
             {view === 'players' &&
             ['owner', 'admin', 'operations'].includes(
               workspace.role,
@@ -795,7 +824,7 @@ export default function AgencyOperatingWorkspace() {
                 className={styles.refresh}
                 onClick={() => setRosterImportOpen(true)}
               >
-                Add / import players
+                Import players
               </button>
             ) : null}
             <button
@@ -899,6 +928,18 @@ export default function AgencyOperatingWorkspace() {
           </>
         ) : null}
       </main>
+
+      {createKind ? (
+        <AgencyCreateDrawer
+          key={`create:${createKind}`}
+          kind={createKind}
+          invoke={(action, body) => invoke<any>(action, body)}
+          onClose={() => setCreateKind(null)}
+          onCreated={async () => {
+            await loadView();
+          }}
+        />
+      ) : null}
 
       {actionRequest ? (
         <AgencyActionDrawer

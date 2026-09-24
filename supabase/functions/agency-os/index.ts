@@ -38,6 +38,65 @@ export default {fetch:async(req:Request)=>{
     const result=async(key:string,fn:string,args:Record<string,unknown>)=>json({ok:true,tenant:workspace,[key]:await rpc(fn,args)});
     const dealId=()=>id(body?.deal_room_id),playerId=()=>id(body?.player_id),matchId=()=>id(body?.player_match_id);
 
+    if(action==="create_options"){
+      if(!operator()) return deny("Agency operator access required");
+      return result("options","platform_server_agency_create_options",{p_tenant_id:tenantId,p_actor_user_id:userId});
+    }
+    if(action==="create_player"){
+      if(!operator()) return deny("Agency operator access required");
+      return result("created","platform_server_agency_create_player",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_first_name:id(body?.first_name),
+        p_last_name:id(body?.last_name)||null,
+        p_primary_position:id(body?.primary_position)||null,
+        p_current_club:id(body?.current_club)||null,
+        p_current_country:id(body?.current_country)||null,
+        p_contract_expiry:id(body?.contract_expiry)||null,
+        p_transfermarkt_url:id(body?.transfermarkt_url)||null
+      });
+    }
+    if(action==="create_club_need"){
+      if(!operator()) return deny("Agency operator access required");
+      return result("created","platform_server_agency_create_club_need",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_club_name:id(body?.club_name),
+        p_country:id(body?.country)||null,
+        p_position:id(body?.position),
+        p_title:id(body?.title)||null,
+        p_notes:id(body?.notes)||null,
+        p_expires_on:id(body?.expires_on)||null
+      });
+    }
+    if(action==="create_contact"){
+      if(!operator()) return deny("Agency operator access required");
+      return result("created","platform_server_agency_create_contact",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_contact_name:id(body?.contact_name),
+        p_club_name:id(body?.club_name),
+        p_contact_role:id(body?.contact_role)||null,
+        p_country:id(body?.country)||null,
+        p_notes:id(body?.notes)||null
+      });
+    }
+    if(action==="create_deal"){
+      if(!operator()) return deny("Agency operator access required");
+      return result("created","platform_server_agency_create_deal",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_player_id:id(body?.player_id)||null,
+        p_club_name:id(body?.club_name),
+        p_country:id(body?.country)||null,
+        p_stage:id(body?.stage)||"qualifying",
+        p_expected_commission:body?.expected_commission??null,
+        p_currency:id(body?.currency)||"EUR",
+        p_next_action:id(body?.next_action)||null,
+        p_next_action_at:id(body?.next_action_at)||null
+      });
+    }
+
     if(action==="home"){
       const limit=clamp(body?.command_limit,1,12,5);
       const [home,autonomy,pulse,judgement,commitments,autonomyReadiness,revenue,playerService,career,roster,capacity,assurance]=await Promise.all([

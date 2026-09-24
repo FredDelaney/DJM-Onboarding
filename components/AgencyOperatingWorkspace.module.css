@@ -1810,3 +1810,37 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Everyday agency creation v1 */
+
+.createButton {
+  appearance: none;
+  min-height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--agency-primary);
+  border-radius: 10px;
+  background: var(--agency-primary);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  box-shadow: 0 9px 22px rgba(20, 27, 39, 0.1);
+}
+
+.createButton:hover {
+  filter: brightness(1.04);
+}
+
+@media (max-width: 680px) {
+  .createButton {
+    min-height: 34px;
+    padding: 0 9px;
+    font-size: 9px;
+  }
+}
