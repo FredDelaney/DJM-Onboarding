@@ -6,7 +6,8 @@ import {
   LoaderCircle,
   X,
 } from 'lucide-react';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { platformInvoke } from '@/lib/platform-client';
 import { getFunnelContext, trackFunnel } from '@/lib/redream-funnel';
@@ -50,6 +51,7 @@ export default function ReDreamDemoRequestButton({
   trackingKey?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const modalRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
   const [submitting, setSubmitting] = useState(false);
@@ -74,6 +76,39 @@ export default function ReDreamDemoRequestButton({
       window.removeEventListener('keydown', keydown);
     };
   }, [open, submitting]);
+
+  useEffect(() => {
+    if (!open) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modalRef.current?.focus();
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(modalRef.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled):not([tabindex="-1"]), select:not(:disabled), textarea:not(:disabled), a[href]',
+      ) || []).filter((element) => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!first || !last) {
+        event.preventDefault();
+        modalRef.current?.focus();
+      } else if (event.shiftKey && (document.activeElement === first || document.activeElement === modalRef.current)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === modalRef.current)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', trapFocus);
+    return () => {
+      window.removeEventListener('keydown', trapFocus);
+      trigger?.focus();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) modalRef.current?.focus();
+  }, [open, step, submittedEmail]);
 
   const openForm = () => {
     trackFunnel('cta_click', { cta_key: trackingKey });
@@ -175,7 +210,7 @@ export default function ReDreamDemoRequestButton({
         <ArrowRight size={15} />
       </button>
 
-      {open ? (
+      {open ? createPortal(
         <div
           className={styles.backdrop}
           role="presentation"
@@ -184,6 +219,8 @@ export default function ReDreamDemoRequestButton({
           }}
         >
           <section
+            ref={modalRef}
+            tabIndex={-1}
             className={styles.modal}
             role="dialog"
             aria-modal="true"
@@ -194,7 +231,7 @@ export default function ReDreamDemoRequestButton({
                 <p>RUN REDREAM ON YOUR AGENCY</p>
                 <h2>Start with one real situation.</h2>
                 <span>
-                  We use your context to make the first conversation useful, not to auto-provision or start a subscription.
+                  Tell us about your agency. We will show you how ReDream could help with a real situation. No subscription starts here.
                 </span>
               </div>
 
@@ -392,8 +429,10 @@ export default function ReDreamDemoRequestButton({
               </form>
             )}
           </section>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );
 }
+

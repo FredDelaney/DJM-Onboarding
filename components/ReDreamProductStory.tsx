@@ -19,38 +19,38 @@ type ModeKey = 'needs' | 'market' | 'player' | 'deal';
 const modes = [
   {
     key: 'needs' as ModeKey,
-    label: 'Needs You',
+    label: 'What needs me?',
     eyebrow: 'HOME',
     title: 'Know where human judgement is needed now.',
     copy:
-      'ReDream collapses commitments, exceptions, market signals and deal blockers into one evidence-ranked decision queue.',
+      'Needs You brings overdue promises, follow-ups and decisions together, with the reason each needs your attention.',
     icon: Sparkles,
   },
   {
     key: 'market' as ModeKey,
-    label: 'Market Pursuit',
+    label: 'Find a player for a club',
     eyebrow: 'MARKET',
     title: 'Turn club demand into a route, owner and next move.',
     copy:
-      'A need becomes structured constraints, player matches, Access Intelligence and a controlled pursuit without losing the original evidence.',
+      'Market Pursuit keeps a club request with suitable players and people you know. Access Intelligence helps you understand who could make the introduction.',
     icon: Target,
   },
   {
     key: 'player' as ModeKey,
-    label: 'Player 360',
+    label: 'Look after my players',
     eyebrow: 'PLAYERS',
     title: 'See whether the agency is actually servicing the player.',
     copy:
-      'Player Service, commitments, career timing, representation and market activity sit around one trusted player picture.',
+      'Player 360 keeps contracts, promised updates and club conversations together. Player Service helps you follow through on what you promised.',
     icon: UsersRound,
   },
   {
     key: 'deal' as ModeKey,
-    label: 'Deal War Room',
+    label: 'Move a deal forward',
     eyebrow: 'DEALS',
     title: 'Keep commercial momentum through negotiation and collection.',
     copy:
-      'Deal Control keeps ownership, terms, guardrails, next actions, Closeout & Collection and commission on one commercial thread.',
+      'Deal War Room keeps offers, terms and the next response together. Deal Control covers the negotiation; Closeout & Collection keeps commission in view after agreement.',
     icon: BriefcaseBusiness,
   },
 ];
@@ -61,9 +61,9 @@ function Workspace({ mode }: { mode: ModeKey }) {
       <div className={styles.workspaceBody}>
         <div className={styles.workspaceHeader}>
           <div>
-            <span>LIVE CLUB NEED</span>
+            <span>EXAMPLE CLUB REQUEST</span>
             <strong>Left winger · Belgium</strong>
-            <small>U23 · left-footed · permanent or loan</small>
+            <small>Under 23 · left-footed · permanent or loan</small>
           </div>
           <span className={styles.liveState}>Pursuit open</span>
         </div>
@@ -90,7 +90,7 @@ function Workspace({ mode }: { mode: ModeKey }) {
       <div className={styles.workspaceBody}>
         <div className={styles.playerHero}>
           <div className={styles.avatar}>LM</div>
-          <div><span>REPRESENTED PLAYER</span><strong>Leo Martin</strong><small>RW · contract 14 months</small></div>
+          <div><span>REPRESENTED PLAYER</span><strong>Leo Martin</strong><small>Right winger · contract 14 months</small></div>
           <span className={styles.liveState}>Service on track</span>
         </div>
         <div className={styles.metricGrid}>
@@ -107,7 +107,7 @@ function Workspace({ mode }: { mode: ModeKey }) {
     return (
       <div className={styles.workspaceBody}>
         <div className={styles.workspaceHeader}>
-          <div><span>LIVE DEAL</span><strong>Riverton United · Leo Martin</strong><small>Negotiation in progress</small></div>
+          <div><span>EXAMPLE DEAL</span><strong>Riverton United · Leo Martin</strong><small>Negotiation in progress</small></div>
           <span className={styles.liveState}>Active</span>
         </div>
         <div className={styles.dealTimeline}>
@@ -123,13 +123,13 @@ function Workspace({ mode }: { mode: ModeKey }) {
   return (
     <div className={styles.workspaceBody}>
       <div className={styles.needsHeader}>
-        <div><span>DAILY OPERATING PICTURE</span><strong>Needs You</strong><small>Evidence-ranked decisions, not another task list</small></div>
-        <b>4</b>
+        <div><span>DAILY OPERATING PICTURE</span><strong>Needs You</strong><small>Follow-ups and decisions that need your attention</small></div>
+        <b>3</b>
       </div>
       <div className={styles.queue}>
-        <div className={styles.queueRow}><i /><div><strong>Approve Meridian FC pursuit</strong><small>Player fit and warm route ready</small></div><span>Now</span></div>
-        <div className={styles.queueRow}><i /><div><strong>Resolve Leo Martin service commitment</strong><small>Promised update due today</small></div><span>Today</span></div>
-        <div className={styles.queueRow}><i className={styles.soft} /><div><strong>Review Riverton counter position</strong><small>Commercial guardrails prepared</small></div><span>2h</span></div>
+        <div className={styles.queueRow}><i /><div><strong>Review Meridian FC introduction</strong><small>Player fit and warm route ready</small></div><span>Now</span></div>
+        <div className={styles.queueRow}><i /><div><strong>Send Leo Martin his promised update</strong><small>Promised update due today</small></div><span>Today</span></div>
+        <div className={styles.queueRow}><i className={styles.soft} /><div><strong>Review Riverton counter position</strong><small>Salary and sell-on priorities recorded</small></div><span>2h</span></div>
       </div>
     </div>
   );
@@ -146,15 +146,15 @@ export default function ReDreamProductStory() {
         <h3>{active.title}</h3>
         <p>{active.copy}</p>
 
-        <div className={styles.modeNav} role="tablist" aria-label="ReDream product areas">
+        <div className={styles.modeNav} role="group" aria-label="ReDream product areas">
           {modes.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.key}
                 type="button"
-                role="tab"
-                aria-selected={mode === item.key}
+                aria-controls="redream-workspace-example"
+                aria-pressed={mode === item.key}
                 className={mode === item.key ? styles.activeMode : undefined}
                 onClick={() => {
                   setMode(item.key);
@@ -170,14 +170,15 @@ export default function ReDreamProductStory() {
         </div>
       </div>
 
-      <div className={styles.workspace}>
+      <div className={styles.workspace} id="redream-workspace-example" aria-live="polite">
         <div className={styles.workspaceTop}>
           <div className={styles.windowDots}><i /><i /><i /></div>
           <span>ILLUSTRATIVE REDREAM WORKSPACE</span>
-          <span className={styles.systemState}>Agency live</span>
+          <span className={styles.systemState}>Example only</span>
         </div>
         <Workspace mode={mode} />
       </div>
     </div>
   );
 }
+

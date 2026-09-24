@@ -53,11 +53,11 @@ test('resolved tenant metadata wins before public ReDream metadata and unresolve
 test('website presents the agency operating spine as a distinct operating category', () => {
   assert.match(marketing, /The operating system/);
   assert.match(marketing, /football agencies/);
-  assert.match(marketing, /Tell ReDream/);
-  assert.match(marketing, /Player Service/);
-  assert.match(marketing, /Access Intelligence/);
-  assert.match(marketing, /Deal Control/);
-  assert.match(marketing, /Closeout & Collection/);
+  assert.match(marketing, /How ReDream Works/);
+  assert.match(marketing, /Agency Memory/);
+  assert.match(marketing, /players who need an update/);
+  assert.match(marketing, /club requests worth pursuing/);
+  assert.match(marketing, /deals waiting on a decision/);
   assert.match(marketing, /Club need/);
   assert.match(marketing, /Commission/);
 });
@@ -83,3 +83,4 @@ test('public product site is ReDream-specific while tenant player surface remain
   assert.doesNotMatch(marketing, /\bDJM\b/);
   assert.doesNotMatch(player, /\bReDream\b/);
 });
+
