@@ -11,9 +11,9 @@ const drawer = fs.readFileSync(
   'utf8',
 );
 
-test('Player 360 and Deal War Room are directly available', () => {
-  assert.match(workspace, /Player 360/);
-  assert.match(workspace, /War room/);
+test('Open player and Open deal are directly available', () => {
+  assert.match(workspace, /Open player/);
+  assert.match(workspace, /Open deal/);
   assert.match(workspace, /AgencyEntityIntelligenceDrawer/);
 });
 

@@ -27,7 +27,7 @@ test('public ReDream site uses the approved identity instead of a lettermark', (
   assert.match(css, /#0A1B3D/i);
   assert.match(css, /#086BFF/i);
   assert.match(css, /#111827/i);
-  assert.match(css, /#94A3B8/i);
+  assert.match(css, /#526176/i);
   assert.match(css, /#F8FAFC/i);
 });
 

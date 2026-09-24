@@ -81,7 +81,7 @@ test('roster import is an owner admin operations setup utility, not a fifth dail
     'components/AgencyOperatingWorkspace.tsx',
   );
 
-  assert.match(workspace, /Import roster/);
+  assert.match(workspace, /Add \/ import players/);
   assert.match(workspace, /AgencyRosterMigrationPanel/);
   assert.match(
     workspace,

@@ -18,12 +18,12 @@ const migration = read(
 );
 const opportunitiesPath = 'app/(djm-os)/opportunities/page.tsx';
 
-test('Tell DJM is globally available without removing the existing Add workflow', () => {
+test('Tell ReDream is globally available without removing the existing Add workflow', () => {
   assert.match(header, /AiLauncher/);
   assert.match(header, /<AiLauncher \/>/);
   assert.match(header, /<QuickCapture \/>/);
-  assert.match(launcher, /Capture/);
-  assert.match(launcher, /Say what happened\. We’ll handle the admin\./);
+  assert.match(launcher, /Tell ReDream/);
+  assert.match(launcher, /Tell ReDream what happened\. We’ll handle the admin\./);
 });
 
 test('voice capture uses browser recording with runtime MIME detection', () => {

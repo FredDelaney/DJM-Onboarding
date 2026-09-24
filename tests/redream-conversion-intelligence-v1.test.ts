@@ -66,7 +66,7 @@ test('operator gets transparent funnel metrics and deterministic lead intelligen
   assert.match(migration, /fit_score/);
   assert.match(platformOps, /action==="funnel_summary"/);
   assert.match(platformPage, /funnelSummary/);
-  assert.match(operator, /Priority is a transparent engagement and fit signal/);
+  assert.match(operator, /Observed behaviour and submitted context/);
   assert.doesNotMatch(operator, /win probability/i);
 });
 

@@ -20,8 +20,9 @@ test(
       gate,
       /allowReDreamPublicRoot/,
     );
-    assert.match(gate, /isReDreamPublicRoot/);
-    assert.match(gate, /pathname === '\/'/);
+    assert.match(gate, /isReDreamPublicRoute/);
+    assert.match(gate, /REDREAM_PUBLIC_ROUTES\.has\(pathname\)/);
+    assert.match(gate, /'\/'/);
     assert.doesNotMatch(
       gate,
       /router\.replace\('\/platform'\)/,

@@ -11,12 +11,12 @@ const migration = fs.readFileSync(
 );
 
 test('revenue command centre has one prospect workbench and an explicit action queue', () => {
-  assert.match(panel, /Revenue command centre/);
-  assert.match(panel, /NEEDS ATTENTION TODAY/);
+  assert.match(panel, /Growth command centre/);
+  assert.match(panel, /NEEDS YOU TODAY/);
   assert.match(panel, /PROSPECT WORKBENCH/);
   assert.match(panel, /Save sales context/);
   assert.match(panel, /WEBSITE JOURNEY/);
-  assert.match(panel, /Website enquiries stay separate from customers/);
+  assert.match(panel, /Customer lifecycle owns this stage/);
 });
 
 test('sales pipeline is descriptive and keeps trial and customer stages lifecycle-derived', () => {

@@ -61,7 +61,7 @@ test('Player service actions can be completed where the exception is shown', () 
     workspace,
     /player_service_move_prepare/,
   );
-  assert.match(workspace, /Fix control/);
+  assert.match(workspace, /Fix this/);
   assert.match(workspace, /Prepare next move/);
 });
 
@@ -75,7 +75,7 @@ test('Market routes expose scouting and career prerequisites directly', () => {
     /career_strategy_action_prepare/,
   );
   assert.match(workspace, /Start search/);
-  assert.match(workspace, /Review strategy/);
+  assert.match(workspace, /Review player plan/);
 
   assert.match(drawer, /career_strategy_save/);
   assert.match(drawer, /career_strategy_confirm/);
@@ -92,7 +92,7 @@ test('Deal actions use the guarded next-move and control-fix boundaries', () => 
     workspace,
     /deal_control_fix_prepare/,
   );
-  assert.match(workspace, /Fix control/);
+  assert.match(workspace, /Fix this/);
   assert.match(workspace, /Prepare next move/);
 });
 
@@ -202,7 +202,7 @@ test('Player Action Workspace explains why the action matters before asking for 
   );
   assert.match(
     workspace,
-    /label: 'Service control'/,
+    /label: 'Player status'/,
   );
   assert.match(
     workspace,
@@ -210,11 +210,11 @@ test('Player Action Workspace explains why the action matters before asking for 
   );
   assert.match(
     workspace,
-    /label: 'Career timing'/,
+    /label: 'Contract timing'/,
   );
   assert.match(
     workspace,
-    /label: 'Market coverage'/,
+    /label: 'Market activity'/,
   );
   assert.match(
     workspace,
@@ -259,7 +259,7 @@ test('Market search actions expose the recorded club brief before creating work'
 test('Market career actions expose career control without presenting readiness as probability', () => {
   assert.match(
     workspace,
-    /label:\s*'Career control'/,
+    /label:\s*'Player plan'/,
   );
   assert.match(
     workspace,

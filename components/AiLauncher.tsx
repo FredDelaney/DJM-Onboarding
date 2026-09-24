@@ -131,12 +131,12 @@ export default function AiLauncher() {
               aria-labelledby="ai-capture-dialog-title"
             >
               <div className={styles.head}>
-                <span id="ai-capture-dialog-title">Say what happened. We’ll handle the admin.</span>
+                <span id="ai-capture-dialog-title">Tell ReDream what happened. We’ll handle the admin.</span>
                 <button
                   type="button"
                   className={styles.close}
                   onClick={() => setOpen(false)}
-                  aria-label={unsafeToClose ? 'Finish saving before closing Capture' : 'Close Capture'}
+                  aria-label={unsafeToClose ? 'Finish saving before closing Tell ReDream' : 'Close Tell ReDream'}
                   disabled={unsafeToClose}
                 >
                   <X size={15} />
@@ -177,11 +177,11 @@ export default function AiLauncher() {
         type="button"
         className={styles.trigger}
         onClick={() => setOpen(true)}
-        aria-label="Capture"
-        title="Capture"
+        aria-label="Tell ReDream"
+        title="Tell ReDream"
       >
         <Mic size={15} />
-        <span>Capture</span>
+        <span>Tell ReDream</span>
       </button>
       {dialog}
     </>

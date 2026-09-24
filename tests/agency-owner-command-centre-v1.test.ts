@@ -11,9 +11,9 @@ const owner = fs.readFileSync(
   'utf8',
 );
 
-test('Owner Command Centre is part of Home rather than a sixth daily navigation area', () => {
+test('Owner view is part of Today rather than a sixth daily navigation area', () => {
   assert.match(workspace, /AgencyOwnerCommandCentre/);
-  assert.match(workspace, /Open Owner Command Centre/);
+  assert.match(workspace, /Owner view/);
   assert.doesNotMatch(
     workspace,
     /key: 'business'/,
