@@ -50,7 +50,7 @@ test('Tell ReDream is the universal capture entry point', () => {
 
 test('player import lives with Players rather than cluttering Today', () => {
   assert.match(workspace, /view === 'players'/);
-  assert.match(workspace, /Add \/ import players/);
+  assert.match(workspace, /Import players/);
   assert.doesNotMatch(
     workspace,
     /view === 'home'[\s\S]{0,280}Import roster/,
