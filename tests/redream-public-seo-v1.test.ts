@@ -11,13 +11,13 @@ const product = fs.readFileSync('app/(redream-public)/product/page.tsx', 'utf8')
 const security = fs.readFileSync('app/(redream-public)/security/page.tsx', 'utf8');
 const migration = fs.readFileSync('app/(redream-public)/switch/page.tsx', 'utf8');
 
-test('ReDream public root retains canonical production metadata for indexing', () => {
+test('ReDream public root retains clear canonical production metadata for indexing', () => {
   assert.match(layout, /metadataBase: new URL\('https:\/\/redreamsystems\.com'\)/);
   assert.match(layout, /canonical: '\/'/);
   assert.match(layout, /index:\s*true/);
   assert.match(layout, /follow:\s*true/);
-  assert.match(page, /Agency Autopilot for football agencies/);
-  assert.match(page, /routes the next move between Autopilot, confirmation and agent judgement/);
+  assert.match(page, /Software for football agencies/);
+  assert.match(page, /what needs attention and what to do next/);
 });
 
 test('public sitemap exposes only intentional ReDream research routes', () => {
@@ -43,8 +43,8 @@ test('robots advertises the sitemap while keeping private application routes out
   }
 });
 
-test('public sales root exposes SoftwareApplication structured data', () => {
+test('public sales root exposes SoftwareApplication structured data in plain language', () => {
   assert.match(landing, /'@type': 'SoftwareApplication'/);
   assert.match(landing, /applicationCategory: 'BusinessApplication'/);
-  assert.match(landing, /Agency Autopilot/);
+  assert.match(landing, /football agencies/);
 });
