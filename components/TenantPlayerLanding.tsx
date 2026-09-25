@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {
   Activity,
   ArrowRight,
+  BriefcaseBusiness,
   FolderLock,
   MessageCircle,
   ShieldCheck,
@@ -24,31 +25,24 @@ export default function TenantPlayerLanding() {
       <div className="container topbar">
         <Brand light />
 
-        <Link
-          className="btn btn-white btn-sm"
-          href="/sign-in"
-        >
-          Player access
+        <Link className="btn btn-white btn-sm" href="/sign-in">
+          Sign in
           <ArrowRight size={15} />
         </Link>
       </div>
 
       <div className="container landing-main">
         <section>
-          <div
-            className="caps"
-            style={{ color: 'var(--yellow)' }}
-          >
-            PLAYER WORKSPACE
+          <div className="caps" style={{ color: 'var(--yellow)' }}>
+            PRIVATE REDREAM WORKSPACE
           </div>
 
-          <h1>Your career, in one place.</h1>
+          <h1>One secure sign-in. The right workspace for you.</h1>
 
           <p>
-            A private career space for represented players. Keep your
-            football information current, check in with your agent, share
-            what your agency needs and stay ready when opportunities move
-            quickly.
+            Represented players get a simple private career space. Agency staff
+            get the full ReDream Agency Workspace for players, market work,
+            relationships and deals.
           </p>
 
           <div
@@ -58,11 +52,8 @@ export default function TenantPlayerLanding() {
               flexWrap: 'wrap',
             }}
           >
-            <Link
-              className="btn btn-yellow"
-              href="/sign-in"
-            >
-              Open Player Workspace
+            <Link className="btn btn-yellow" href="/sign-in">
+              Open workspace
               <ArrowRight size={17} />
             </Link>
 
@@ -75,77 +66,68 @@ export default function TenantPlayerLanding() {
                 }}
                 href={`mailto:${supportEmail}`}
               >
-                Contact your agency
+                Contact the agency
               </a>
             ) : null}
           </div>
         </section>
 
         <aside className="landing-panel">
-          <div
-            className="caps"
-            style={{ color: 'rgba(255,255,255,.45)' }}
-          >
-            YOUR PRIVATE CAREER APP
+          <div className="caps" style={{ color: 'rgba(255,255,255,.45)' }}>
+            ROLE-AWARE ACCESS
           </div>
 
           <div className="landing-list">
             <div className="landing-item">
-              <ShieldCheck
-                size={21}
-                color="#f5e900"
-              />
-
+              <BriefcaseBusiness size={21} color="#f5e900" />
               <div>
-                <b>Your live player profile</b>
+                <b>Agency staff</b>
                 <span>
-                  Football data, preferences, documents and verified
-                  club-facing information.
+                  ReDream opens the agency operating workspace automatically
+                  from your tenant membership.
                 </span>
               </div>
             </div>
 
             <div className="landing-item">
-              <MessageCircle
-                size={21}
-                color="#f5e900"
-              />
-
+              <ShieldCheck size={21} color="#f5e900" />
               <div>
-                <b>Direct agency inbox</b>
+                <b>Represented players</b>
                 <span>
-                  Requests, questions and anything your agent needs from
-                  you.
+                  Players see only their private career workspace and the
+                  information their agency needs from them.
                 </span>
               </div>
             </div>
 
             <div className="landing-item">
-              <Activity
-                size={21}
-                color="#f5e900"
-              />
-
+              <MessageCircle size={21} color="#f5e900" />
               <div>
-                <b>60-second weekly check-in</b>
+                <b>One secure account</b>
                 <span>
-                  Availability, fitness and anything that changed this
-                  week.
+                  No separate legacy admin login and no global role switcher.
                 </span>
               </div>
             </div>
 
             <div className="landing-item">
-              <FolderLock
-                size={21}
-                color="#f5e900"
-              />
+              <Activity size={21} color="#f5e900" />
+              <div>
+                <b>Tenant-native from sign-in onward</b>
+                <span>
+                  Access follows the agency membership, permissions and player
+                  relationship recorded in ReDream.
+                </span>
+              </div>
+            </div>
 
+            <div className="landing-item">
+              <FolderLock size={21} color="#f5e900" />
               <div>
                 <b>Private by default</b>
                 <span>
-                  You and your agency control what stays private and what
-                  clubs can see.
+                  The agency and player experiences stay separate without
+                  splitting the product into separate systems.
                 </span>
               </div>
             </div>
