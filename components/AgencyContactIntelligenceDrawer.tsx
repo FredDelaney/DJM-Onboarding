@@ -27,6 +27,7 @@ import {
 } from '@/lib/platform-client';
 import { whatsappHref } from '@/lib/research-links';
 
+import AgencyRelationshipActions from '@/components/AgencyRelationshipActions';
 import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
 
@@ -614,7 +615,7 @@ export default function AgencyContactIntelligenceDrawer({
     >
       <aside
         className={styles.drawer}
-        aria-label={`Contact intelligence for ${name}`}
+        aria-label={`Person details for ${name}`}
       >
         <header
           className={
@@ -642,7 +643,7 @@ export default function AgencyContactIntelligenceDrawer({
                   styles.eyebrow
                 }
               >
-                CONTACT INTELLIGENCE
+                PERSON
               </p>
 
               <h2>{name}</h2>
@@ -661,7 +662,7 @@ export default function AgencyContactIntelligenceDrawer({
               styles.close
             }
             onClick={onClose}
-            aria-label="Close contact intelligence"
+            aria-label="Close person details"
           >
             <X size={17} />
           </button>
@@ -767,6 +768,15 @@ export default function AgencyContactIntelligenceDrawer({
                 </span>
               </div>
             </section>
+
+            <AgencyRelationshipActions
+              personId={clean(contact?.person_id)}
+              rpc={rpc}
+              onSaved={async (result) => {
+                setDetail(result);
+                await onRefresh();
+              }}
+            />
 
             <AgencyRelationshipMemory
               memory={detail?.relationship_memory}
