@@ -66,6 +66,7 @@ import AgencyNegotiationCommandRoom, {
 import AgencyPlayerServiceReviewDrawer, {
   type AgencyPlayerServiceReviewRequest,
 } from '@/components/AgencyPlayerServiceReviewDrawer';
+import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -487,11 +488,23 @@ export default function AgencyOperatingWorkspace() {
           owner_business: ownerBusiness,
         });
       } else if (view === 'players') {
-        setData(
-          await rpc<any>('redream_autopilot_players', {
-            p_limit: 100,
-          }),
-        );
+        const reads = await Promise.allSettled([
+          invoke<any>('players_workspace', { limit: 100 }),
+          invoke<any>('recruitment_board', { limit: 250 }),
+        ]);
+
+        if (reads[0].status === 'rejected') throw reads[0].reason;
+
+        setData({
+          directory:
+            reads[0].status === 'fulfilled'
+              ? reads[0].value?.players || {}
+              : {},
+          recruitment:
+            reads[1].status === 'fulfilled'
+              ? reads[1].value?.recruitment || {}
+              : {},
+        });
       } else if (view === 'opportunities') {
         const [market, deals] = await Promise.all([
           rpc<any>('redream_autopilot_market', {
@@ -974,12 +987,11 @@ export default function AgencyOperatingWorkspace() {
               />
             ) : null}
             {view === 'players' ? (
-              <Players
+              <AgencyPlayersWorkspace
                 data={data}
-                onOpenAction={(request) =>
-                  setActionRequest(request)
-                }
-                onOpenIntelligence={setIntelligenceRequest}
+                invoke={(action, body) => invoke<any>(action, body)}
+                onRefresh={loadView}
+                onOpenAction={(request) => setActionRequest(request)}
               />
             ) : null}
             {view === 'opportunities' ? (

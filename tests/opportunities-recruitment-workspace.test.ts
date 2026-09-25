@@ -30,7 +30,7 @@ test('legacy Opportunities and Recruitment URLs now enter the shared ReDream mar
 
   assert.match(
     recruitment,
-    /redirect\('\/agency\?view=market'\)/,
+    /redirect\('\/agency\?view=players&tab=recruitment'\)/,
   );
 });
 
