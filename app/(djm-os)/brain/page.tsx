@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function BrainRedirectPage() {
+export default function LegacyRouteRedirect() {
   redirect('/settings');
 }

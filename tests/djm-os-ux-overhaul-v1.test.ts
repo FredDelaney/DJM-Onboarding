@@ -46,14 +46,15 @@ const userFacingSourceFiles = () =>
     return fs.existsSync(absolute) ? allSourceFiles(absolute) : [];
   });
 
-test('staff navigation exposes four operational workspaces only', () => {
+test('staff navigation uses the five shared ReDream operating views', () => {
   const source = read('components/WorkspaceHeader.tsx');
-  for (const label of ['Home', 'Players', 'Opportunities', 'Network']) {
+
+  for (const label of ['Today', 'Players', 'Market', 'Deals', 'Network']) {
     assert.match(source, new RegExp(`label: '${label}'`));
   }
-  for (const oldLabel of ["label: 'Brain'", "label: 'Market'", "label: 'Club Contacts'", "label: 'Command'"]) {
-    assert.doesNotMatch(source, new RegExp(oldLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
+
+  assert.doesNotMatch(source, /href: '\/djm'/);
+  assert.doesNotMatch(source, /label: 'Brain'|label: 'Command'/);
 });
 
 test('mobile staff navigation and full-bleed heroes stay inside the viewport', () => {
@@ -66,7 +67,7 @@ test('mobile staff navigation and full-bleed heroes stay inside the viewport', (
   assert.match(overhaul, /\.ux-settings-hero \{ margin-left: -10px; margin-right: -10px;/);
 });
 
-test('player navigation is Home, DJM and Me while legacy destinations stay contextual', () => {
+test('player navigation is Home, agency and Me while legacy destinations stay contextual', () => {
   const source = read('components/PlayerShell.tsx');
   assert.match(source, /label: 'Home'/);
   assert.match(source, /label: 'Your agency'/);
@@ -85,16 +86,17 @@ test('player Home has one dominant action and no second career navigation system
   assert.match(source, /MY PROFILE/);
 });
 
-test('routine player maintenance is one-click and not a CSV or JSON upload workflow', () => {
+test('routine player maintenance is automated while legacy admin hands off to the shared workspace', () => {
   const admin = read('app/admin/page.tsx');
-  assert.match(admin, /Update all/);
-  assert.match(admin, /refresh-player-stats-free/);
-assert.doesNotMatch(admin, /refresh-player-data-universal/);
-assert.doesNotMatch(admin, /refresh-player-peer-data/);
-  assert.match(admin, /if \(!isAdmin \|\| batchBusy\) return/);
-  assert.doesNotMatch(admin, /type="file"/);
-  assert.doesNotMatch(admin, /accept=.*csv/i);
-  assert.doesNotMatch(admin, /JSON\.parse/);
+  const weekly = read('supabase/functions/weekly-player-refresh/index.ts');
+
+  assert.match(admin, /redirect\('\/agency\?view=players'\)/);
+  assert.match(weekly, /daily_rotating_stale_first_weekly_coverage/);
+  assert.match(weekly, /syncTheSportsDbWeekly/);
+
+  assert.doesNotMatch(admin, /djm_recruitment_targets|djm_active_team_members/);
+  assert.doesNotMatch(admin, /Update all|refresh-player-data-universal|refresh-player-peer-data/);
+  assert.doesNotMatch(admin, /type="file"|JSON\.parse/);
 });
 
 test('comparison room keeps four distinct evidence questions', () => {
@@ -192,11 +194,12 @@ test('other-league discovery can bootstrap from the live provider catalogue with
   assert.match(sql, /'competitions'/);
 });
 
-test('legacy top-level products redirect into the simplified information architecture', () => {
-  assert.match(read('app/(djm-os)/market/page.tsx'), /redirect\('\/opportunities'\)/);
-  assert.match(read('app/(djm-os)/deals/page.tsx'), /redirect\('\/opportunities'\)/);
-  assert.match(read('app/(djm-os)/recruitment/page.tsx'), /redirect\('\/admin'\)/);
+test('legacy top-level products redirect into the shared ReDream information architecture', () => {
+  assert.match(read('app/(djm-os)/market/page.tsx'), /redirect\('\/agency\?view=market'\)/);
+  assert.match(read('app/(djm-os)/deals/page.tsx'), /redirect\('\/agency\?view=deals'\)/);
+  assert.match(read('app/(djm-os)/recruitment/page.tsx'), /redirect\('\/agency\?view=market'\)/);
   assert.match(read('app/(djm-os)/brain/page.tsx'), /redirect\('\/settings'\)/);
+  assert.match(read('app/(djm-os)/network/page.tsx'), /redirect\('\/agency\?view=relationships'\)/);
 });
 
 test('global intelligence protects the V9 evidence and audit contract', () => {
@@ -210,33 +213,57 @@ test('global intelligence protects the V9 evidence and audit contract', () => {
   assert.doesNotMatch(source, /manual_potential_score/);
 });
 
-test('simplification preserves player-service operations and moves admin utilities to settings', () => {
+test('simplification preserves player-service operations in the shared workspace and moves admin utilities to tenant settings', () => {
   const home = read('app/(djm-os)/djm/page.tsx');
-  assert.match(home, /buildAdminPortfolio/);
-  assert.match(home, /portfolio\.issues/);
-  assert.match(read('app/(djm-os)/settings/team/page.tsx'), /staff_player_access/);
+  const workspace = read('components/AgencyOperatingWorkspace.tsx');
+
+  assert.match(home, /redirect\('\/agency'\)/);
+  assert.match(workspace, /redream_autopilot_players/);
+  assert.match(workspace, /player_service_move_prepare/);
+  assert.match(workspace, /player_control_fix_prepare/);
+  assert.match(workspace, /AgencyOwnerCommandCentre/);
+
+  const team = read('app/(djm-os)/settings/team/page.tsx');
+  assert.match(team, /staff_invite_create/);
+  assert.match(team, /tenant_id/);
+  assert.doesNotMatch(team, /admin_allowlist/);
+
   assert.match(read('app/(djm-os)/settings/player-experience/page.tsx'), /AdminResourceStudio/);
   assert.match(read('app/(djm-os)/settings/player-experience/page.tsx'), /announcements/);
 });
 
-test('opportunity matching consumes the current candidate RPC shape without restoring player scoring', () => {
-  const source = read('app/(djm-os)/opportunities/page.tsx');
+test('shared market consumes tenant-native demand and candidate evidence without restoring player scoring', () => {
+  const workspace = read('components/AgencyOperatingWorkspace.tsx');
 
-  assert.match(source, /djm_market_candidates_v2/);
-  assert.match(source, /row\.player_position \|\| row\.primary_position/);
-  assert.match(source, /djm_opportunity_upsert/);
-  assert.match(source, /This is a scouting shortlist, not a player score/);
+  assert.match(workspace, /redream_autopilot_market/);
+  assert.match(workspace, /career_gate_state/);
+  assert.match(workspace, /candidate_coverage/);
 
-  assert.doesNotMatch(source, /overall_score \?\? row\.match_score/);
-  assert.doesNotMatch(source, /\/compare/);
+  assert.doesNotMatch(read('app/(djm-os)/opportunities/page.tsx'), /djm_market_candidates_v2|djm_opportunity_upsert/);
 });
 
 test('release source contains no hard reload, synthetic randomness or em dash', () => {
   const files = userFacingSourceFiles();
+
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
-    assert.doesNotMatch(source, /window\.location\.reload\s*\(/, path.relative(root, file));
-    assert.doesNotMatch(source, /Math\.random\s*\(/, path.relative(root, file));
-    assert.equal(source.includes('\u2014'), false, `em dash in ${path.relative(root, file)}`);
+
+    assert.doesNotMatch(
+      source,
+      /window\.location\.reload\s*\(/,
+      path.relative(root, file),
+    );
+
+    assert.doesNotMatch(
+      source,
+      /Math\.random\s*\(/,
+      path.relative(root, file),
+    );
+
+    assert.equal(
+      source.includes('\u2014'),
+      false,
+      `em dash in ${path.relative(root, file)}`,
+    );
   }
 });

@@ -2,18 +2,27 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = (path: string) =>
+  readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('Opportunity workspace consolidates Needs, Matches and Pipeline while preserving the current deal editor', () => {
+test('shared ReDream workspace owns Market and Deals while legacy Opportunity URLs only redirect', () => {
   const opportunities = read('app/(djm-os)/opportunities/page.tsx');
-  assert.match(opportunities, /type View = 'needs' \| 'matches' \| 'pipeline'/);
-  assert.match(opportunities, /djm_market_needs_v3/);
-  assert.match(opportunities, /djm_market_candidates_v2/);
-  assert.match(opportunities, /djm_opportunities/);
-  assert.match(opportunities, /djm_opportunity_upsert/);
-  assert.match(read('app/(djm-os)/opportunities/[id]/page.tsx'), /from '\.\.\/\.\.\/market\/deals\/\[id\]\/page'/);
-  assert.match(read('components/WorkspaceHeader.tsx'), /href: '\/opportunities'/);
-  assert.match(read('components/WorkspaceSearch.tsx'), /`\/opportunities\/\$\{item\.entity_id\}`/);
+  const detail = read('app/(djm-os)/opportunities/[id]/page.tsx');
+  const workspace = read('components/AgencyOperatingWorkspace.tsx');
+  const header = read('components/WorkspaceHeader.tsx');
+
+  assert.match(opportunities, /redirect\('\/agency\?view=market'\)/);
+  assert.match(detail, /redirect\('\/agency\?view=deals'\)/);
+  assert.match(workspace, /type View = 'home' \| 'players' \| 'market' \| 'deals' \| 'relationships'/);
+  assert.match(workspace, /redream_autopilot_market/);
+  assert.match(workspace, /redream_autopilot_deals/);
+  assert.match(header, /href: '\/agency\?view=market'/);
+  assert.match(header, /href: '\/agency\?view=deals'/);
+
+  assert.doesNotMatch(
+    opportunities,
+    /djm_market_needs_v3|djm_market_candidates_v2|djm_opportunities|djm_opportunity_upsert/,
+  );
 });
 
 test('Secure club shares render their approved club-specific pitch context', () => {

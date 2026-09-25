@@ -14,7 +14,7 @@ const refreshPlayerData = readFileSync(
   'utf8',
 );
 const weekly = readFileSync('supabase/functions/weekly-player-refresh/index.ts', 'utf8');
-const playerDirectory = readFileSync('app/admin/page.tsx', 'utf8');
+const legacyPlayerDirectory = readFileSync('app/admin/page.tsx', 'utf8');
 const connectionHub = readFileSync('components/PlayerConnectionHub.tsx', 'utf8');
 
 test('admin player surface is stats-first and hides unfinished intelligence', () => {
@@ -63,11 +63,10 @@ test('background free refresh remains rotating and stale-first', () => {
   assert.match(weekly, /syncTheSportsDbWeekly/);
 });
 
-
-test('visible player maintenance never triggers the intelligence or peer pipeline', () => {
-  assert.match(playerDirectory, /refresh-player-stats-free/);
-  assert.doesNotMatch(playerDirectory, /refresh-player-data-universal/);
-  assert.doesNotMatch(playerDirectory, /refresh-player-peer-data/);
+test('legacy player directory no longer owns visible maintenance', () => {
+  assert.match(legacyPlayerDirectory, /redirect\('\/agency\?view=players'\)/);
+  assert.doesNotMatch(legacyPlayerDirectory, /refresh-player-data-universal/);
+  assert.doesNotMatch(legacyPlayerDirectory, /refresh-player-peer-data/);
 
   assert.match(connectionHub, /refresh-player-stats-free/);
   assert.doesNotMatch(connectionHub, /refresh-player-data-universal/);

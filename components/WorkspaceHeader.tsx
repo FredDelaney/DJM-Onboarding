@@ -3,9 +3,11 @@
 import {
   BriefcaseBusiness,
   ContactRound,
+  Handshake,
   LayoutDashboard,
   LogOut,
   Settings,
+  Target,
   UserRound,
   UsersRound,
 } from 'lucide-react';
@@ -15,27 +17,40 @@ import Brand from '@/components/Brand';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import QuickCapture from '@/components/QuickCapture';
 import AiLauncher from '@/components/AiLauncher';
-import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
+import WorkspaceTabs, {
+  type WorkspaceTab,
+} from '@/components/WorkspaceTabs';
 
 const items: WorkspaceTab[] = [
-  { href: '/djm', label: 'Home', icon: LayoutDashboard },
   {
-    href: '/admin',
+    href: '/agency',
+    label: 'Today',
+    icon: LayoutDashboard,
+    activeView: null,
+  },
+  {
+    href: '/agency?view=players',
     label: 'Players',
     icon: UsersRound,
-    activePrefixes: ['/admin', '/recruitment'],
+    activeView: 'players',
   },
   {
-    href: '/opportunities',
-    label: 'Opportunities',
+    href: '/agency?view=market',
+    label: 'Market',
+    icon: Target,
+    activeView: 'market',
+  },
+  {
+    href: '/agency?view=deals',
+    label: 'Deals',
     icon: BriefcaseBusiness,
-    activePrefixes: ['/opportunities', '/market', '/deals'],
+    activeView: 'deals',
   },
   {
-    href: '/network',
+    href: '/agency?view=relationships',
     label: 'Network',
     icon: ContactRound,
-    activePrefixes: ['/network'],
+    activeView: 'relationships',
   },
 ];
 
@@ -58,7 +73,7 @@ export default function WorkspaceHeader({
 
           <WorkspaceTabs
             items={items}
-            ariaLabel="Agency workspaces"
+            ariaLabel="Agency workspace"
             className="djm-desktop-workspace-nav"
           />
 
@@ -66,6 +81,7 @@ export default function WorkspaceHeader({
             <AiLauncher />
             <QuickCapture />
             <WorkspaceSearch />
+
             <Link
               href="/settings"
               className="djm-os-icon-button"
@@ -74,6 +90,7 @@ export default function WorkspaceHeader({
             >
               <Settings size={17} />
             </Link>
+
             <button
               type="button"
               className="djm-os-icon-button"
@@ -88,7 +105,7 @@ export default function WorkspaceHeader({
 
       <WorkspaceTabs
         items={items}
-        ariaLabel="Agency mobile workspaces"
+        ariaLabel="Agency mobile workspace"
         className="djm-mobile-workspace-nav"
       />
     </>

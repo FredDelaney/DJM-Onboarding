@@ -8,10 +8,13 @@ import AdminResourceStudio from '@/components/AdminResourceStudio';
 import AgencyShell from '@/components/AgencyShell';
 import { useAdmin } from '@/components/AdminShell';
 import { friendlyError } from '@/lib/platform-client';
+import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
 import { supabase } from '@/lib/supabase';
 
 export default function PlayerExperienceSettingsPage() {
   const auth = useAdmin();
+  const runtime = useTenantRuntime();
+  const tenantId = runtime.tenant_id;
   const isAdmin = auth.profile?.role === 'admin';
   const userId = String(auth.user?.id || '');
   const [resources, setResources] = useState<any[]>([]);
@@ -26,9 +29,22 @@ export default function PlayerExperienceSettingsPage() {
     setBusy(true);
     setError('');
     try {
+      if (!tenantId) {
+        throw new Error('Agency workspace is not resolved.');
+      }
+
       const [resourceResult, announcementResult] = await Promise.all([
-        supabase.from('resources').select('id,title,description,category,resource_type,url,audience,featured,published,sort_order,created_by,created_at,updated_at').order('sort_order'),
-        supabase.from('announcements').select('id,title,body,target_player_id,published,starts_at,ends_at,created_by,created_at').order('created_at', { ascending: false }).limit(12),
+        supabase
+          .from('resources')
+          .select('id,tenant_id,title,description,category,resource_type,url,audience,featured,published,sort_order,created_by,created_at,updated_at')
+          .eq('tenant_id', tenantId)
+          .order('sort_order'),
+        supabase
+          .from('announcements')
+          .select('id,tenant_id,title,body,target_player_id,published,starts_at,ends_at,created_by,created_at')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false })
+          .limit(12),
       ]);
       if (resourceResult.error) throw resourceResult.error;
       if (announcementResult.error) throw announcementResult.error;
@@ -39,7 +55,7 @@ export default function PlayerExperienceSettingsPage() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     if (!auth.loading && auth.user) void load();
@@ -52,7 +68,10 @@ export default function PlayerExperienceSettingsPage() {
     setError('');
     setMessage('');
     try {
+      if (!tenantId) throw new Error('Agency workspace is not resolved.');
+
       const { error: publishError } = await supabase.from('announcements').insert({
+        tenant_id: tenantId,
         title: 'From the agency',
         body: announcement.trim(),
         published: true,
@@ -96,6 +115,7 @@ export default function PlayerExperienceSettingsPage() {
           resources={resources}
           canManage={isAdmin}
           userId={userId}
+          tenantId={tenantId || ''}
           onRefresh={load}
           onFlash={(text) => setMessage(text)}
         />

@@ -136,3 +136,9 @@ verify_jwt = false
 
 [functions.redream-public-sandbox]
 verify_jwt = false
+
+[functions.agency-staff-invite]
+verify_jwt = true
+
+[functions.agency-staff-invite-public]
+verify_jwt = false

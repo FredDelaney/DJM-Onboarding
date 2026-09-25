@@ -118,6 +118,7 @@ export default function CareerPage() {
           .select(
             'id,title,description,category,resource_type,url,featured,sort_order',
           )
+          .eq('tenant_id', ctx.player.tenant_id)
           .eq('published', true)
           .order('featured', { ascending: false })
           .order('sort_order', { ascending: true }),

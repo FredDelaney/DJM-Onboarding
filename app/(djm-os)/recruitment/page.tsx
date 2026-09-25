@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function RecruitmentRedirectPage() {
-  redirect('/admin');
+export default function LegacyRouteRedirect() {
+  redirect('/agency?view=market');
 }

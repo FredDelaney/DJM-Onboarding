@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function ScoutRedirectPage() {
-  redirect('/recruitment');
+export default function LegacyRouteRedirect() {
+  redirect('/agency?view=market');
 }

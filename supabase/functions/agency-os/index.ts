@@ -38,6 +38,79 @@ export default {fetch:async(req:Request)=>{
     const result=async(key:string,fn:string,args:Record<string,unknown>)=>json({ok:true,tenant:workspace,[key]:await rpc(fn,args)});
     const dealId=()=>id(body?.deal_room_id),playerId=()=>id(body?.player_id),matchId=()=>id(body?.player_match_id);
 
+        if(action==="team"){
+      if(!ownerAdmin()) return deny("Owner or admin access required");
+      return result("team","platform_server_agency_team",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId
+      });
+    }
+
+    if(action==="staff_invite_create"){
+      if(!ownerAdmin()) return deny("Owner or admin access required");
+
+      const email=id(body?.email).toLowerCase();
+      const staffRole=id(body?.role).toLowerCase();
+
+      if(!email) return json({error:"email is required"},400);
+      if(!["admin","agent","operations","scout"].includes(staffRole)){
+        return json({error:"Invalid staff role"},400);
+      }
+
+      return result("invite","platform_server_create_staff_invite",{
+        p_tenant_id:tenantId,
+        p_email:email,
+        p_role:staffRole,
+        p_actor_user_id:userId,
+        p_expires_hours:clamp(body?.expires_hours,1,720,168)
+      });
+    }
+
+    if(action==="staff_invite_revoke"){
+      if(!ownerAdmin()) return deny("Owner or admin access required");
+
+      const inviteId=id(body?.invite_id);
+      if(!inviteId) return json({error:"invite_id is required"},400);
+
+      return result("invite","platform_server_revoke_staff_invite",{
+        p_tenant_id:tenantId,
+        p_invite_id:inviteId,
+        p_actor_user_id:userId
+      });
+    }
+
+    if(action==="staff_member_update"){
+      if(!ownerAdmin()) return deny("Owner or admin access required");
+
+      const targetUserId=id(body?.target_user_id);
+      const staffRole=id(body?.role).toLowerCase();
+
+      if(!targetUserId) return json({error:"target_user_id is required"},400);
+      if(!["admin","agent","operations","scout"].includes(staffRole)){
+        return json({error:"Invalid staff role"},400);
+      }
+
+      return result("member","platform_server_update_staff_member",{
+        p_tenant_id:tenantId,
+        p_target_user_id:targetUserId,
+        p_role:staffRole,
+        p_actor_user_id:userId
+      });
+    }
+
+    if(action==="staff_member_remove"){
+      if(!ownerAdmin()) return deny("Owner or admin access required");
+
+      const targetUserId=id(body?.target_user_id);
+      if(!targetUserId) return json({error:"target_user_id is required"},400);
+
+      return result("member","platform_server_remove_staff_member",{
+        p_tenant_id:tenantId,
+        p_target_user_id:targetUserId,
+        p_actor_user_id:userId
+      });
+    }
+
     if(action==="create_options"){
       if(!operator()) return deny("Agency operator access required");
       return result("options","platform_server_agency_create_options",{p_tenant_id:tenantId,p_actor_user_id:userId});

@@ -7,7 +7,9 @@ import { Home, LogOut, MessageCircle, Settings2, UserRound } from 'lucide-react'
 
 import Brand from './Brand';
 import PlayerVoiceLauncher from '@/components/PlayerVoiceLauncher';
+import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
 import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
+import { resolveAgencyWorkspaceEntry } from '@/lib/auth-routing';
 import { supabase } from '@/lib/supabase';
 
 type PlayerState = {
@@ -34,45 +36,68 @@ const EMPTY_STATE: PlayerState = {
 
 let playerCache: PlayerState | null = null;
 let playerCacheAt = 0;
+let playerCacheTenantId: string | null = null;
 let playerLoad:
   | Promise<{ state: PlayerState | null; redirect: string | null }>
   | null = null;
 const playerListeners = new Set<(state: PlayerState) => void>();
 
-const publishPlayerState = (state: PlayerState) => {
+const publishPlayerState = (state: PlayerState, tenantId: string | null) => {
   playerCache = state;
   playerCacheAt = Date.now();
+  playerCacheTenantId = tenantId;
   playerListeners.forEach((listener) => listener(state));
 };
 
 const clearPlayerState = () => {
   playerCache = null;
   playerCacheAt = 0;
+  playerCacheTenantId = null;
 };
 
-const fetchPlayerState = async () => {
+const fetchPlayerState = async ({
+  runtimeTenantId,
+  runtimeTenantSlug,
+}: {
+  runtimeTenantId: string | null;
+  runtimeTenantSlug: string | null;
+}) => {
   const {
     data: { session },
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  if (sessionError || !session?.user) return { state: null, redirect: '/sign-in' };
-  const user = session.user;
+  if (sessionError || !session?.user) {
+    return { state: null, redirect: '/sign-in' };
+  }
 
-  const [{ data: profile }, { data: players }] = await Promise.all([
+  const user = session.user;
+  const agencyEntry = await resolveAgencyWorkspaceEntry({
+    runtimeTenantId,
+    runtimeTenantSlug,
+  });
+
+  if (agencyEntry) {
+    return { state: null, redirect: agencyEntry.href };
+  }
+
+  let playerQuery = supabase
+    .from('players')
+    .select(
+      'id,tenant_id,user_id,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,instagram_url,profile_photo_path,onboarding_status,verification_status,current_season_label,current_season_start,updated_at',
+    )
+    .eq('user_id', user.id);
+
+  if (runtimeTenantId) {
+    playerQuery = playerQuery.eq('tenant_id', runtimeTenantId);
+  }
+
+  const [{ data: profile }, { data: players, error: playerError }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-    supabase
-      .from('players')
-      .select(
-        'id,user_id,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,instagram_url,profile_photo_path,onboarding_status,verification_status,current_season_label,current_season_start,updated_at',
-      )
-      .eq('user_id', user.id)
-      .limit(1),
+    playerQuery.limit(1),
   ]);
 
-  if (profile?.role === 'admin' || profile?.role === 'scout') {
-    return { state: null, redirect: '/admin' };
-  }
+  if (playerError) throw playerError;
 
   const player = players?.[0] || null;
   if (!player) {
@@ -127,21 +152,45 @@ const fetchPlayerState = async () => {
   };
 };
 
-const loadPlayerState = async (force = false) => {
-  const freshEnough = playerCache && Date.now() - playerCacheAt < 30_000;
-  if (!force && freshEnough) return { state: playerCache, redirect: null };
+const loadPlayerState = async (
+  force: boolean,
+  runtimeTenantId: string | null,
+  runtimeTenantSlug: string | null,
+) => {
+  const sameTenant = playerCacheTenantId === runtimeTenantId;
+  const freshEnough =
+    sameTenant && playerCache && Date.now() - playerCacheAt < 30_000;
+
+  if (!force && freshEnough) {
+    return { state: playerCache, redirect: null };
+  }
+
   if (playerLoad) return playerLoad;
 
-  playerLoad = fetchPlayerState()
-    .catch(() => ({ state: playerCache || { ...EMPTY_STATE, loading: false }, redirect: null }))
+  playerLoad = fetchPlayerState({
+    runtimeTenantId,
+    runtimeTenantSlug,
+  })
+    .catch(() => ({
+      state: sameTenant
+        ? playerCache || { ...EMPTY_STATE, loading: false }
+        : { ...EMPTY_STATE, loading: false },
+      redirect: null,
+    }))
     .finally(() => {
       playerLoad = null;
     });
+
   return playerLoad;
 };
 
 export function usePlayerContext(): PlayerCtx {
-  const [state, setState] = useState<PlayerState>(() => playerCache || { ...EMPTY_STATE });
+  const runtime = useTenantRuntime();
+  const [state, setState] = useState<PlayerState>(() =>
+    playerCacheTenantId === runtime.tenant_id && playerCache
+      ? playerCache
+      : { ...EMPTY_STATE },
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -149,31 +198,41 @@ export function usePlayerContext(): PlayerCtx {
     const listener = (next: PlayerState) => active && setState(next);
     playerListeners.add(listener);
 
-    void loadPlayerState(Boolean(playerCache)).then((result) => {
+    void loadPlayerState(
+      false,
+      runtime.tenant_id,
+      runtime.resolved ? runtime.slug : null,
+    ).then((result) => {
       if (!active) return;
       if (result.redirect) {
         clearPlayerState();
         router.replace(result.redirect);
         return;
       }
-      if (result.state) publishPlayerState(result.state);
+      if (result.state) publishPlayerState(result.state, runtime.tenant_id);
     });
 
     return () => {
       active = false;
       playerListeners.delete(listener);
     };
-  }, [router]);
+  }, [router, runtime.tenant_id, runtime.resolved, runtime.slug]);
 
   const refresh = useCallback(async () => {
-    const result = await loadPlayerState(true);
+    const result = await loadPlayerState(
+      true,
+      runtime.tenant_id,
+      runtime.resolved ? runtime.slug : null,
+    );
+
     if (result.redirect) {
       clearPlayerState();
       router.replace(result.redirect);
       return;
     }
-    if (result.state) publishPlayerState(result.state);
-  }, [router]);
+
+    if (result.state) publishPlayerState(result.state, runtime.tenant_id);
+  }, [router, runtime.tenant_id, runtime.resolved, runtime.slug]);
 
   return { ...state, refresh };
 }
@@ -271,7 +330,10 @@ export function PlayerShell({
 
       {children}
 
-      <nav className="bottom-nav no-print player-premium-nav ux-player-mobile-nav" aria-label="Player mobile navigation">
+      <nav
+        className="bottom-nav no-print player-premium-nav ux-player-mobile-nav"
+        aria-label="Player mobile navigation"
+      >
         {mobile.map(([href, label, Icon]) => {
           const active = mobileActive(href);
           const hasBadge = href === '/inbox' && resolvedInboxCount > 0;

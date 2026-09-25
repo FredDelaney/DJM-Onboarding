@@ -15,14 +15,18 @@ test("external player activation fails closed until tenant privacy is ready", ()
   assert.match(migration, /privacy_notice_version_mismatch/);
 });
 
-test("internal DJM player invitations retain the existing privacy route during migration", () => {
-  const migration = read(
+test("legacy internal privacy compatibility is retired by tenant parity", () => {
+  const legacy = read(
     "supabase/migrations/20260915102724_tenant_aware_player_privacy_acceptance_v1.sql",
   );
+  const parity = read(
+    "supabase/migrations/20260924213000_tenant_parity_privacy_and_invites_v1.sql",
+  );
 
-  assert.match(migration, /'mode','legacy_internal'/);
-  assert.match(migration, /'noticeUrl','\/privacy'/);
-  assert.match(migration, /'noticeVersion','2026-09-02'/);
+  assert.match(legacy, /'mode','legacy_internal'/);
+  assert.doesNotMatch(parity, /legacy_internal/);
+  assert.doesNotMatch(parity, /internal_tenant/);
+  assert.match(parity, /'privacy_notice_mode','tenant'/);
 });
 
 test("privacy notice versions are immutable evidence rather than a mutable label", () => {

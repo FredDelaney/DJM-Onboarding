@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import {
+  usePathname,
+  useSearchParams,
+} from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 
 export type WorkspaceTab = {
@@ -9,17 +12,36 @@ export type WorkspaceTab = {
   label: string;
   icon: LucideIcon;
   activePrefixes?: string[];
+  activeView?: string | null;
   badge?: number;
 };
 
-const isActiveTab = (pathname: string, item: WorkspaceTab) => {
+const isActiveTab = (
+  pathname: string,
+  view: string | null,
+  item: WorkspaceTab,
+) => {
+  if (
+    typeof item.activeView !== 'undefined' &&
+    pathname === '/agency'
+  ) {
+    return item.activeView === view;
+  }
+
+  const hrefPath =
+    item.href.split('?')[0].split('#')[0];
+
   const prefixes = item.activePrefixes?.length
     ? item.activePrefixes
-    : [item.href.split('#')[0]];
+    : [hrefPath];
 
   return prefixes.some((prefix) => {
     if (!prefix) return false;
-    return pathname === prefix || pathname.startsWith(`${prefix}/`);
+
+    return (
+      pathname === prefix ||
+      pathname.startsWith(`${prefix}/`)
+    );
   });
 };
 
@@ -33,6 +55,8 @@ export default function WorkspaceTabs({
   className?: string;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view');
 
   return (
     <nav
@@ -41,22 +65,40 @@ export default function WorkspaceTabs({
     >
       {items.map((item) => {
         const Icon = item.icon;
-        const active = isActiveTab(pathname, item);
-        const badge = Number(item.badge || 0);
+
+        const active = isActiveTab(
+          pathname,
+          view,
+          item,
+        );
+
+        const badge = Number(
+          item.badge || 0,
+        );
 
         return (
           <Link
             key={item.href}
             href={item.href}
             prefetch
-            aria-current={active ? 'page' : undefined}
-            className={`djm-os-product-link ${active ? 'is-active' : ''}`}
+            aria-current={
+              active ? 'page' : undefined
+            }
+            className={`djm-os-product-link ${
+              active ? 'is-active' : ''
+            }`}
           >
             <Icon size={16} />
             <span>{item.label}</span>
+
             {badge > 0 ? (
-              <span className="workspace-tab-badge" aria-label={`${badge} open`}>
-                {badge > 99 ? '99+' : badge}
+              <span
+                className="workspace-tab-badge"
+                aria-label={`${badge} open`}
+              >
+                {badge > 99
+                  ? '99+'
+                  : badge}
               </span>
             ) : null}
           </Link>
