@@ -68,6 +68,7 @@ import AgencyPlayerServiceReviewDrawer, {
 } from '@/components/AgencyPlayerServiceReviewDrawer';
 import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
 import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
+import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -1032,7 +1033,7 @@ export default function AgencyOperatingWorkspace() {
               />
             ) : null}
             {view === 'network' ? (
-              <Relationships
+              <AgencyNetworkWorkspace
                 data={data}
                 rpc={rpc}
                 onRefresh={loadView}
