@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import {
   ArrowRight,
-  BrainCircuit,
   CalendarClock,
   ShieldCheck,
   SlidersHorizontal,
@@ -26,9 +25,10 @@ export default function SettingsPage() {
     auth.workspace?.portal_name ||
     'this agency';
 
-  const canManageTeam = ['owner', 'admin'].includes(
-    tenantRole,
-  );
+  const canManageTeam = [
+    'owner',
+    'admin',
+  ].includes(tenantRole);
 
   return (
     <AgencyShell
@@ -40,10 +40,13 @@ export default function SettingsPage() {
           <p className="ux-eyebrow">
             CURRENT WORKSPACE
           </p>
+
           <h2>{workspaceName}</h2>
+
           <p>
-            Your permissions, player data, resources and
-            operating tools are scoped to this agency.
+            Permissions, player data,
+            resources and operating tools
+            are scoped to this agency.
           </p>
         </div>
 
@@ -54,7 +57,11 @@ export default function SettingsPage() {
 
       <section className="ux-settings-grid">
         <SettingsCard
-          icon={<UsersRound size={20} />}
+          icon={
+            <UsersRound
+              size={20}
+            />
+          }
           title="Team & permissions"
           text="Invite staff, manage agency roles and control scout player assignments."
           meta={
@@ -67,7 +74,11 @@ export default function SettingsPage() {
         />
 
         <SettingsCard
-          icon={<ShieldCheck size={20} />}
+          icon={
+            <ShieldCheck
+              size={20}
+            />
+          }
           title="Player experience"
           text="Manage player resources and meaningful agency announcements for this workspace."
           meta="Tenant-owned player content"
@@ -76,7 +87,11 @@ export default function SettingsPage() {
         />
 
         <SettingsCard
-          icon={<CalendarClock size={20} />}
+          icon={
+            <CalendarClock
+              size={20}
+            />
+          }
           title="Connections"
           text="Manage calendar, notifications, account security and connected services."
           meta="Workspace connections"
@@ -85,21 +100,16 @@ export default function SettingsPage() {
         />
 
         <SettingsCard
-          icon={<SlidersHorizontal size={20} />}
+          icon={
+            <SlidersHorizontal
+              size={20}
+            />
+          }
           title="Agency workspace"
           text="Return to the shared ReDream operating workspace used by every agency."
           meta="One product, tenant-specific data"
           href="/agency"
           action="Open workspace"
-        />
-
-        <SettingsCard
-          icon={<BrainCircuit size={20} />}
-          title="Advanced evidence"
-          text="Technical evidence and benchmark tools remain available outside the normal operating flow."
-          meta="Advanced tools"
-          href="/brain/data"
-          action="Open advanced tools"
         />
       </section>
 
@@ -108,13 +118,19 @@ export default function SettingsPage() {
           <p className="ux-eyebrow">
             ACCESS RULE
           </p>
-          <h2>Agency access comes from agency membership.</h2>
+
+          <h2>
+            Agency access comes from
+            agency membership.
+          </h2>
         </div>
 
         <p>
-          ReDream does not use a global staff role to decide
-          who can operate a customer workspace. Your role in
-          one agency does not grant access to another.
+          ReDream does not use a global
+          staff role to decide who can
+          operate a customer workspace.
+          Your role in one agency does
+          not grant access to another.
         </p>
       </section>
     </AgencyShell>
@@ -137,8 +153,13 @@ function SettingsCard({
   action: string;
 }) {
   return (
-    <Link className="ux-settings-card" href={href}>
-      <div className="ux-settings-icon">{icon}</div>
+    <Link
+      className="ux-settings-card"
+      href={href}
+    >
+      <div className="ux-settings-icon">
+        {icon}
+      </div>
 
       <div>
         <strong>{title}</strong>
@@ -155,10 +176,25 @@ function SettingsCard({
 }
 
 function humanRole(value: string) {
-  if (value === 'operations') return 'Operations';
-  if (value === 'admin') return 'Admin';
-  if (value === 'agent') return 'Agent';
-  if (value === 'scout') return 'Scout';
-  if (value === 'owner') return 'Owner';
+  if (value === 'operations') {
+    return 'Operations';
+  }
+
+  if (value === 'admin') {
+    return 'Admin';
+  }
+
+  if (value === 'agent') {
+    return 'Agent';
+  }
+
+  if (value === 'scout') {
+    return 'Scout';
+  }
+
+  if (value === 'owner') {
+    return 'Owner';
+  }
+
   return 'Agency member';
 }

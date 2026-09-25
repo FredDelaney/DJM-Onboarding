@@ -1,5 +1,5 @@
-import AgencyOperatingWorkspace from '@/components/AgencyOperatingWorkspace';
+import { redirect } from 'next/navigation';
 
-export default function Page() {
-  return <AgencyOperatingWorkspace />;
+export default function LegacyRouteRedirect() {
+  redirect('/agency');
 }
