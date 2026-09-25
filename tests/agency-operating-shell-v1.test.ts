@@ -14,18 +14,22 @@ test('agency workspace authorises with tenant memberships rather than legacy glo
   assert.doesNotMatch(app, /\.from\('profiles'\)/);
 });
 
-test('agency workspace exposes five focused daily operating areas', () => {
+test('agency workspace exposes the V2 operating areas with management-only Business', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
-  assert.match(app, /label: 'Today'/);
+  assert.match(app, /label: 'Home'/);
   assert.match(app, /label: 'Players'/);
-  assert.match(app, /label: 'Market'/);
-  assert.match(app, /label: 'Deals'/);
+  assert.match(app, /label: 'Opportunities'/);
   assert.match(app, /label: 'Network'/);
+  assert.match(app, /label: 'Calendar'/);
+  assert.match(app, /label: 'Business'/);
   assert.doesNotMatch(app, /label: 'Relationships'/);
-  assert.doesNotMatch(app, /label: 'Opportunities'/);
+  assert.doesNotMatch(app, /label: 'Market'/);
+  assert.doesNotMatch(app, /label: 'Deals'/);
   assert.doesNotMatch(app, /label: 'Brain'/);
-  assert.match(app, /rawRequestedView === 'opportunities'/);
-  assert.match(app, /rawRequestedView === 'network'/);
+  assert.match(app, /rawRequestedView === 'market'/);
+  assert.match(app, /rawRequestedView === 'deals'/);
+  assert.match(app, /rawRequestedView === 'relationships'/);
+  assert.match(app, /item\.key !== 'business' \|\| canSeeBusiness/);
 });
 
 test('agency workspace uses tenant-native Autopilot reads while preserving the relationship surface', () => {

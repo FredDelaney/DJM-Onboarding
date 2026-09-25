@@ -10,10 +10,12 @@ import { useParams, useSearchParams } from 'next/navigation';
 import {
   ArrowRight,
   BriefcaseBusiness,
+  CalendarDays,
   CheckCircle2,
   CircleAlert,
   Coins,
   LoaderCircle,
+  Home as HomeIcon,
   LogOut,
   Network,
   Plus,
@@ -67,7 +69,7 @@ import AgencyPlayerServiceReviewDrawer, {
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
-type View = 'home' | 'players' | 'market' | 'deals' | 'relationships';
+type View = 'home' | 'players' | 'opportunities' | 'network' | 'calendar' | 'business';
 
 type Workspace = {
   tenant_id: string;
@@ -87,11 +89,12 @@ const NAV: Array<{
   label: string;
   icon: typeof Target;
 }> = [
-  { key: 'home', label: 'Today', icon: Target },
+  { key: 'home', label: 'Home', icon: HomeIcon },
   { key: 'players', label: 'Players', icon: Users },
-  { key: 'market', label: 'Market', icon: Target },
-  { key: 'deals', label: 'Deals', icon: BriefcaseBusiness },
-  { key: 'relationships', label: 'Network', icon: Network },
+  { key: 'opportunities', label: 'Opportunities', icon: Target },
+  { key: 'network', label: 'Network', icon: Network },
+  { key: 'calendar', label: 'Calendar', icon: CalendarDays },
+  { key: 'business', label: 'Business', icon: Coins },
 ];
 
 const VIEW_PRESENTATION: Record<
@@ -99,34 +102,40 @@ const VIEW_PRESENTATION: Record<
   { eyebrow: string; title: string; description: string }
 > = {
   home: {
-    eyebrow: 'TODAY',
-    title: 'Today',
+    eyebrow: 'HOME',
+    title: 'Home',
     description:
-      'What needs your attention and what is ready to move.',
+      'What needs your attention.',
   },
   players: {
     eyebrow: 'PLAYERS',
     title: 'Players',
     description:
-      'See what every player needs next.',
+      'Your players, recruitment and the next decisions around them.',
   },
-  market: {
-    eyebrow: 'MARKET',
-    title: 'Market',
+  opportunities: {
+    eyebrow: 'OPPORTUNITIES',
+    title: 'Opportunities',
     description:
-      'See what clubs need, which players fit and the best way in.',
+      'Club need, player fit, relationship and next action.',
   },
-  deals: {
-    eyebrow: 'DEALS',
-    title: 'Deals',
-    description:
-      'Keep every live deal moving and know the next action.',
-  },
-  relationships: {
+  network: {
     eyebrow: 'NETWORK',
     title: 'Network',
     description:
-      'Keep your clubs, contacts and relationship routes in one place.',
+      'The clubs and people that move opportunities.',
+  },
+  calendar: {
+    eyebrow: 'CALENDAR',
+    title: 'Calendar',
+    description:
+      'Meetings, follow-ups and deadlines in one place.',
+  },
+  business: {
+    eyebrow: 'BUSINESS',
+    title: 'Business',
+    description:
+      'Money, live business and the agency position.',
   },
 };
 
@@ -135,8 +144,14 @@ const ALLOWED_ROLES = ['owner', 'admin', 'agent', 'operations'];
 const commandWorkingView = (command: any): View => {
   const source = String(command?.source_type || '');
 
-  if (source === 'deal_room') return 'deals';
-  if (source === 'club_need') return 'market';
+  if (
+    source === 'deal_room' ||
+    source === 'club_need' ||
+    source === 'player_match'
+  ) {
+    return 'opportunities';
+  }
+
   if (source === 'player') return 'players';
 
   if (
@@ -144,7 +159,7 @@ const commandWorkingView = (command: any): View => {
     source === 'person' ||
     source === 'relationship'
   ) {
-    return 'relationships';
+    return 'network';
   }
 
   return 'home';
@@ -193,10 +208,11 @@ export default function AgencyOperatingWorkspace() {
 
   const rawRequestedView = String(search.get('view') || 'home');
   const requestedView =
-    rawRequestedView === 'opportunities'
-      ? 'market'
-      : rawRequestedView === 'network'
-        ? 'relationships'
+    rawRequestedView === 'market' ||
+    rawRequestedView === 'deals'
+      ? 'opportunities'
+      : rawRequestedView === 'relationships'
+        ? 'network'
         : rawRequestedView;
 
   const view: View = NAV.some((item) => item.key === requestedView)
@@ -254,19 +270,23 @@ export default function AgencyOperatingWorkspace() {
     runtime.branding.display_name ||
     'Agency workspace';
   const viewPresentation = VIEW_PRESENTATION[view];
+  const canSeeBusiness = ['owner', 'admin'].includes(
+    String(workspace?.role || ''),
+  );
+  const navigation = NAV.filter(
+    (item) => item.key !== 'business' || canSeeBusiness,
+  );
 
   const createAction:
     | { kind: AgencyCreateKind; label: string }
     | null =
     view === 'players'
       ? { kind: 'player', label: 'Add player' }
-      : view === 'market'
-        ? { kind: 'club_need', label: 'Add club need' }
-        : view === 'deals'
-          ? { kind: 'deal', label: 'Add deal' }
-          : view === 'relationships'
-            ? { kind: 'contact', label: 'Add contact' }
-            : null;
+      : view === 'opportunities'
+        ? { kind: 'club_need', label: 'Add opportunity' }
+        : view === 'network'
+          ? { kind: 'contact', label: 'Add contact' }
+          : null;
 
   const theme = {
     '--agency-primary':
@@ -442,25 +462,70 @@ export default function AgencyOperatingWorkspace() {
             p_limit: 100,
           }),
         );
-      } else if (view === 'market') {
-        setData(
-          await rpc<any>('redream_autopilot_market', {
+      } else if (view === 'opportunities') {
+        const [market, deals] = await Promise.all([
+          rpc<any>('redream_autopilot_market', {
             p_limit: 100,
           }),
-        );
-      } else if (view === 'deals') {
-        setData(
-          await rpc<any>('redream_autopilot_deals', {
+          rpc<any>('redream_autopilot_deals', {
             p_limit: 100,
           }),
-        );
-      } else if (view === 'relationships') {
+        ]);
+
+        setData({ market, deals });
+      } else if (view === 'network') {
         setData(
           await rpc<any>('redream_autopilot_relationships', {
             p_limit: 100,
             p_contact_limit: 250,
           }),
         );
+      } else if (view === 'calendar') {
+        setData(
+          await rpc<any>('redream_autopilot_operations', {
+            p_horizon_days: 90,
+            p_limit: 100,
+          }),
+        );
+      } else if (view === 'business') {
+        if (
+          !['owner', 'admin'].includes(
+            String(workspace?.role || ''),
+          )
+        ) {
+          setData(null);
+          setError(
+            'Business is available to agency owners and administrators.',
+          );
+        } else {
+          const results = await Promise.allSettled([
+            invoke<any>('agency_control_centre'),
+            invoke<any>('agency_roi_proof', {
+              window_days: 30,
+            }),
+            invoke<any>('receivables_command', {
+              horizon_days: 90,
+              limit: 100,
+            }),
+          ]);
+
+          const value = (
+            index: number,
+            key: string,
+          ) =>
+            results[index]?.status === 'fulfilled'
+              ? (results[index] as PromiseFulfilledResult<any>)
+                  .value?.[key] || null
+              : null;
+
+          setData({
+            owner_business: {
+              control: value(0, 'control_centre'),
+              roi: value(1, 'roi'),
+              receivables: value(2, 'receivables'),
+            },
+          });
+        }
       }
     } catch (loadError) {
       setError(friendlyError(loadError));
@@ -752,7 +817,7 @@ export default function AgencyOperatingWorkspace() {
         </div>
 
         <nav className={styles.nav} aria-label="Agency workspace">
-          {NAV.map((item) => {
+          {navigation.map((item) => {
             const Icon = item.icon;
             const href =
               item.key === 'home'
@@ -789,15 +854,8 @@ export default function AgencyOperatingWorkspace() {
           <div className={styles.pageHeadCopy}>
             <div className={styles.pageHeadTitleLine}>
               <div>
-                <p className={styles.eyebrow}>
-                  {viewPresentation.eyebrow}
-                </p>
                 <h1>{viewPresentation.title}</h1>
               </div>
-              <span className={styles.workspaceLive}>
-                <i />
-                Live workspace
-              </span>
             </div>
             <p className={styles.pageDescription}>
               {viewPresentation.description}
@@ -842,7 +900,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
         </header>
 
-        {showFirstValueHandoff && view === 'market' ? (
+        {showFirstValueHandoff && view === 'opportunities' ? (
           <section className={styles.firstValueHandoff}>
             <div className={styles.firstValueHandoffIcon}>
               <CheckCircle2 size={20} />
@@ -883,8 +941,6 @@ export default function AgencyOperatingWorkspace() {
                 actionBusy={actionBusy}
                 onPrepare={prepareCommand}
                 onOpenAction={openCommandAction}
-                onOpenOwner={() => setOwnerCommandOpen(true)}
-                onOpenMemory={() => setMemoryOpen(true)}
               />
             ) : null}
             {view === 'players' ? (
@@ -896,25 +952,17 @@ export default function AgencyOperatingWorkspace() {
                 onOpenIntelligence={setIntelligenceRequest}
               />
             ) : null}
-            {view === 'market' ? (
-              <Market
+            {view === 'opportunities' ? (
+              <Opportunities
                 data={data}
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
                 onOpenPursuit={setPursuitRequest}
-              />
-            ) : null}
-            {view === 'deals' ? (
-              <Deals
-                data={data}
-                onOpenAction={(request) =>
-                  setActionRequest(request)
-                }
                 onOpenIntelligence={setIntelligenceRequest}
               />
             ) : null}
-            {view === 'relationships' ? (
+            {view === 'network' ? (
               <Relationships
                 data={data}
                 rpc={rpc}
@@ -923,6 +971,15 @@ export default function AgencyOperatingWorkspace() {
                   setActionRequest(request)
                 }
                 onOpenClubAccount={setClubAccountRequest}
+              />
+            ) : null}
+            {view === 'calendar' ? (
+              <AgencyCalendar data={data} />
+            ) : null}
+            {view === 'business' && canSeeBusiness ? (
+              <Business
+                data={data}
+                onOpenOwner={() => setOwnerCommandOpen(true)}
               />
             ) : null}
           </>
@@ -1083,7 +1140,7 @@ export default function AgencyOperatingWorkspace() {
             window.history.pushState(
               window.history.state,
               '',
-              `${basePath}?view=market`,
+              `${basePath}?view=opportunities`,
             );
           }}
         />
@@ -1285,15 +1342,11 @@ function Home({
   actionBusy,
   onPrepare,
   onOpenAction,
-  onOpenOwner,
-  onOpenMemory,
 }: {
   data: any;
   actionBusy: string;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
-  onOpenOwner: () => void;
-  onOpenMemory: () => void;
 }) {
   const home = data?.home || {};
   const operations = data?.operations || {};
@@ -1310,178 +1363,120 @@ function Home({
     ? home.attention.delegable
     : [];
 
-  const needsYou = [...judgement, ...confirm].sort(
-    (a: any, b: any) =>
-      Number(b?.priority_score || 0) -
-      Number(a?.priority_score || 0),
-  );
+  const priority = [...judgement, ...confirm, ...delegable]
+    .filter(
+      (command: any, index: number, source: any[]) =>
+        source.findIndex(
+          (candidate: any) =>
+            String(candidate?.command_id || '') ===
+            String(command?.command_id || ''),
+        ) === index,
+    )
+    .sort(
+      (a: any, b: any) =>
+        Number(b?.priority_score || 0) -
+        Number(a?.priority_score || 0),
+    )
+    .slice(0, 5);
 
-  const top = needsYou[0] || delegable[0] || null;
+  const deadlines = Array.isArray(
+    operations?.deadlines?.items,
+  )
+    ? operations.deadlines.items
+    : Array.isArray(operations?.items)
+      ? operations.items
+      : [];
 
-  const topOneTap =
-    top?.actionability?.mode === 'one_tap' &&
-    top?.actionability?.evidence_gate === 'ready';
+  const opportunityMoves = priority
+    .filter((command: any) =>
+      ['club_need', 'deal_room', 'player_match'].includes(
+        String(command?.source_type || ''),
+      ),
+    )
+    .slice(0, 3);
 
-  const overdueDeadlines = Number(
-    operations?.deadlines?.summary?.overdue || 0,
-  );
+  const playerAttention = priority
+    .filter(
+      (command: any) =>
+        String(command?.source_type || '') === 'player',
+    )
+    .slice(0, 3);
 
-  const completedDelegated = Number(
-    home?.delegated_work?.completed_count || 0,
-  );
+  const actionFor = (command: any) => {
+    const oneTap =
+      command?.actionability?.mode === 'one_tap' &&
+      command?.actionability?.evidence_gate === 'ready';
 
-  const activeDelegated = Number(
-    home?.delegated_work?.active_count || 0,
-  );
+    if (oneTap) {
+      return (
+        <button
+          type="button"
+          className={styles.compactButton}
+          onClick={() => onPrepare(command)}
+          disabled={Boolean(actionBusy)}
+        >
+          {actionBusy === command.command_id ? (
+            <LoaderCircle size={14} className={styles.spin} />
+          ) : (
+            <ArrowRight size={14} />
+          )}
+          {command.actionability?.cta || 'Continue'}
+        </button>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        className={styles.compactButton}
+        onClick={() => onOpenAction(command)}
+      >
+        <ArrowRight size={14} />
+        {command.actionability?.cta || 'Open'}
+      </button>
+    );
+  };
 
   return (
     <div className={styles.stack}>
-      <section className={styles.heroCard}>
-        <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>
-            {top ? 'DO THIS FIRST' : 'OPERATING PICTURE CLEAR'}
-          </p>
-
-          <h2>
-            {top?.title ||
-              'Nothing needs you right now.'}
-          </h2>
-
-          <p>
-            {top?.recommended_action ||
-              top?.why_now ||
-              'The next important action will appear here when it needs your decision.'}
-          </p>
-        </div>
-
-        <div className={styles.heroRight}>
-          {top ? (
-            <div className={styles.heroMeta}>
-              <span>
-                {human(top.priority_band || 'review')}
-              </span>
-              <small>{relativeDate(top.due_at)}</small>
-            </div>
-          ) : (
-            <div className={styles.heroClear}>
-              <CheckCircle2 size={18} />
-              <span>Under control</span>
-            </div>
-          )}
-
-          {top ? (
-            topOneTap ? (
-              <button
-                type="button"
-                className={styles.heroPrimaryAction}
-                onClick={() => onPrepare(top)}
-                disabled={Boolean(actionBusy)}
-              >
-                {actionBusy === top.command_id ? (
-                  <LoaderCircle
-                    size={15}
-                    className={styles.spin}
-                  />
-                ) : (
-                  <ArrowRight size={15} />
-                )}
-                {top.actionability?.cta || 'Prepare action'}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className={styles.heroPrimaryAction}
-                onClick={() => onOpenAction(top)}
-              >
-                <ArrowRight size={15} />
-                {top.actionability?.cta || 'Open action'}
-              </button>
-            )
-          ) : null}
-        </div>
-      </section>
-
-      <section className={styles.metrics}>
-        <Metric
-          label="Needs you"
-          value={String(needsYou.length)}
-          detail="Your decision or confirmation"
-        />
-
-        <Metric
-          label="Ready to move"
-          value={String(delegable.length)}
-          detail="Work already prepared"
-        />
-
-        <Metric
-          label="Overdue"
-          value={String(overdueDeadlines)}
-          detail="Actions past their due date"
-        />
-
-        <Metric
-          label="In progress"
-          value={String(activeDelegated)}
-          detail={`${completedDelegated} completed`}
-        />
+      <section className={styles.homeWelcome}>
+        <p>Good morning.</p>
+        <h2>
+          {priority.length
+            ? `${priority.length} ${priority.length === 1 ? 'thing needs' : 'things need'} you today`
+            : 'Nothing needs you right now'}
+        </h2>
       </section>
 
       <section className={styles.sectionCard}>
-        <div className={styles.sectionHead}>
-          <div>
-            <p className={styles.eyebrow}>NEEDS YOU</p>
-            <h2>Your decisions</h2>
-          </div>
-
-          <span className={styles.sectionCount}>
-            {needsYou.length} current
-          </span>
-        </div>
-
         <div className={styles.list}>
-          {needsYou.slice(0, 8).map((command: any) => (
+          {priority.map((command: any) => (
             <article
-              className={styles.listRow}
+              className={styles.attentionCard}
               key={command.command_id}
             >
-              <div className={styles.rank}>
-                {command.rank || '•'}
-              </div>
-
-              <div className={styles.listCopy}>
+              <div className={styles.attentionCopy}>
                 <strong>{command.title}</strong>
-
                 <span>
                   {command.recommended_action ||
                     command.why_now ||
-                    'Review the current evidence.'}
+                    'Review the current situation.'}
                 </span>
-
                 <small>
-                  {human(command.command_type)} ·{' '}
-                  {relativeDate(command.due_at)}
+                  {command.due_at
+                    ? relativeDate(command.due_at)
+                    : human(command.command_type || 'Action')}
                 </small>
               </div>
-
-              <button
-                type="button"
-                className={styles.compactButton}
-                onClick={() => onOpenAction(command)}
-              >
-                <ArrowRight size={14} />
-                {command.actionability?.requires_input
-                  ? 'Continue'
-                  : 'Review'}
-              </button>
+              {actionFor(command)}
             </article>
           ))}
 
-          {!needsYou.length ? (
+          {!priority.length ? (
             <EmptyState
               icon={CheckCircle2}
-              title="Nothing needs your decision"
-              copy="You are clear for now. New decisions will appear here when they need you."
+              title="You are clear for now"
+              copy="The next decision will appear here when it matters."
             />
           ) : null}
         </div>
@@ -1490,120 +1485,112 @@ function Home({
       <section className={styles.sectionCard}>
         <div className={styles.sectionHead}>
           <div>
-            <p className={styles.eyebrow}>READY TO MOVE</p>
-            <h2>Work already prepared</h2>
+            <p className={styles.eyebrow}>TODAY</p>
+            <h2>Your day</h2>
           </div>
-
-          <span className={styles.sectionCount}>
-            {delegable.length} ready
-          </span>
         </div>
-
         <div className={styles.list}>
-          {delegable.slice(0, 8).map((command: any) => {
-            const oneTap =
-              command?.actionability?.mode === 'one_tap' &&
-              command?.actionability?.evidence_gate === 'ready';
+          {deadlines.slice(0, 6).map((item: any, index: number) => {
+            const due =
+              item?.due_at ||
+              item?.starts_at ||
+              item?.due_on ||
+              null;
 
             return (
               <article
-                className={styles.listRow}
-                key={command.command_id}
+                className={styles.simpleTimelineRow}
+                key={
+                  item?.id ||
+                  item?.item_id ||
+                  item?.task_id ||
+                  `${item?.title || 'item'}-${index}`
+                }
               >
-                <div className={styles.rank}>
-                  {command.rank || '•'}
-                </div>
-
-                <div className={styles.listCopy}>
-                  <strong>{command.title}</strong>
-
+                <CalendarDays size={16} />
+                <div>
+                  <strong>
+                    {item?.title ||
+                      item?.label ||
+                      human(item?.kind || 'Agency action')}
+                  </strong>
                   <span>
-                    {command.recommended_action ||
-                      command.why_now ||
-                      'Safe internal work is ready.'}
+                    {due
+                      ? relativeDate(due)
+                      : 'No time recorded'}
                   </span>
-
-                  <small>
-                    {human(command.command_type)} ·{' '}
-                    {relativeDate(command.due_at)}
-                  </small>
                 </div>
-
-                {oneTap ? (
-                  <button
-                    type="button"
-                    className={styles.compactButton}
-                    onClick={() => onPrepare(command)}
-                    disabled={Boolean(actionBusy)}
-                  >
-                    {actionBusy === command.command_id ? (
-                      <LoaderCircle
-                        size={14}
-                        className={styles.spin}
-                      />
-                    ) : (
-                      <ArrowRight size={14} />
-                    )}
-
-                    {command.actionability?.cta || 'Prepare'}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.compactButton}
-                    onClick={() => onOpenAction(command)}
-                  >
-                    <ArrowRight size={14} />
-                    Review
-                  </button>
-                )}
               </article>
             );
           })}
 
-          {!delegable.length ? (
+          {!deadlines.length ? (
             <EmptyState
-              icon={CheckCircle2}
-              title="Nothing waiting"
-              copy="Prepared work will appear here when there is something useful to move."
+              icon={CalendarDays}
+              title="Nothing dated for today"
+              copy="Meetings, follow-ups and deadlines will appear here as they become known."
             />
           ) : null}
         </div>
       </section>
 
-      <section className={styles.agencyTools} aria-label="Agency tools">
-        <button
-          type="button"
-          className={styles.agencyToolButton}
-          onClick={onOpenMemory}
-        >
-          <span className={styles.agencyToolIcon}>
-            <Network size={17} />
-          </span>
-          <span>
-            <strong>Agency history</strong>
-            <small>See what changed, what was decided and what can be undone.</small>
-          </span>
-          <ArrowRight size={15} />
-        </button>
+      {opportunityMoves.length ? (
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>OPPORTUNITIES MOVING</p>
+              <h2>Commercial situations to keep moving</h2>
+            </div>
+          </div>
+          <div className={styles.list}>
+            {opportunityMoves.map((command: any) => (
+              <article
+                className={styles.attentionCard}
+                key={`opportunity:${command.command_id}`}
+              >
+                <div className={styles.attentionCopy}>
+                  <strong>{command.title}</strong>
+                  <span>
+                    {command.recommended_action ||
+                      command.why_now ||
+                      'Review the current opportunity.'}
+                  </span>
+                </div>
+                {actionFor(command)}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-        {data?.owner_business ? (
-          <button
-            type="button"
-            className={styles.agencyToolButton}
-            onClick={onOpenOwner}
-          >
-            <span className={styles.agencyToolIcon}>
-              <Coins size={17} />
-            </span>
-            <span>
-              <strong>Owner view</strong>
-              <small>Revenue, collections, workload and business position.</small>
-            </span>
-            <ArrowRight size={15} />
-          </button>
-        ) : null}
-      </section>
+      {playerAttention.length ? (
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>PLAYERS NEEDING ATTENTION</p>
+              <h2>Player care</h2>
+            </div>
+          </div>
+          <div className={styles.list}>
+            {playerAttention.map((command: any) => (
+              <article
+                className={styles.attentionCard}
+                key={`player:${command.command_id}`}
+              >
+                <div className={styles.attentionCopy}>
+                  <strong>{command.title}</strong>
+                  <span>
+                    {command.recommended_action ||
+                      command.why_now ||
+                      'Review the player situation.'}
+                  </span>
+                </div>
+                {actionFor(command)}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -2643,20 +2630,20 @@ function Relationships({
                                   '',
                               ),
                             )
-                              ? '?view=deals'
+                              ? '?view=opportunities'
                               : String(
                                     topPlay.play_type ||
                                       '',
                                   ) ===
                                   'source_for_confirmed_need'
-                                ? '?view=market'
+                                ? '?view=opportunities'
                                 : String(
                                       topPlay.play_type ||
                                         '',
                                     ) ===
                                     'pitch_now'
-                                  ? '?view=market'
-                                  : '?view=relationships',
+                                  ? '?view=opportunities'
+                                  : '?view=network',
                           fallbackLabel:
                             [
                               'protect_live_deal',
@@ -2667,20 +2654,20 @@ function Relationships({
                                   '',
                               ),
                             )
-                              ? 'Open Deals'
+                              ? 'Open Opportunities'
                               : String(
                                     topPlay.play_type ||
                                       '',
                                   ) ===
                                   'pitch_now'
-                                ? 'Open Market'
+                                ? 'Open Opportunities'
                                 : String(
                                       topPlay.play_type ||
                                         '',
                                     ) ===
                                     'source_for_confirmed_need'
-                                  ? 'Open Market'
-                                  : 'Return to Relationships',
+                                  ? 'Open Opportunities'
+                                  : 'Return to Network',
                         })
                       }
                     >
@@ -3013,6 +3000,168 @@ function Relationships({
   );
 }
 
+function Opportunities({
+  data,
+  onOpenAction,
+  onOpenPursuit,
+  onOpenIntelligence,
+}: {
+  data: any;
+  onOpenAction: (
+    request: AgencyActionRequest,
+  ) => void;
+  onOpenPursuit: (
+    request: AgencyPursuitRequest,
+  ) => void;
+  onOpenIntelligence: (
+    request: AgencyIntelligenceRequest,
+  ) => void;
+}) {
+  const activeDeals = Number(
+    data?.deals?.portfolio?.summary?.active_deals ||
+      data?.deals?.portfolio?.deals?.length ||
+      0,
+  );
+
+  return (
+    <div className={styles.stack}>
+      <Market
+        data={data?.market}
+        onOpenAction={onOpenAction}
+        onOpenPursuit={onOpenPursuit}
+      />
+
+      {activeDeals > 0 ? (
+        <Deals
+          data={data?.deals}
+          onOpenAction={onOpenAction}
+          onOpenIntelligence={onOpenIntelligence}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AgencyCalendar({
+  data,
+}: {
+  data: any;
+}) {
+  const deadlines = Array.isArray(
+    data?.deadlines?.items,
+  )
+    ? data.deadlines.items
+    : Array.isArray(data?.items)
+      ? data.items
+      : [];
+
+  return (
+    <div className={styles.stack}>
+      <WorkspaceIntro
+        eyebrow="CALENDAR"
+        title="Your agency calendar."
+        copy="Known agency dates, without creating another reminder system."
+        icon={CalendarDays}
+        badge={`${deadlines.length} dated items`}
+      />
+
+      <section className={styles.sectionCard}>
+        <div className={styles.sectionHead}>
+          <div>
+            <p className={styles.eyebrow}>NEXT</p>
+            <h2>Upcoming</h2>
+          </div>
+        </div>
+
+        <div className={styles.list}>
+          {deadlines.slice(0, 30).map((item: any, index: number) => {
+            const due =
+              item?.due_at ||
+              item?.starts_at ||
+              item?.due_on ||
+              null;
+
+            return (
+              <article
+                className={styles.simpleTimelineRow}
+                key={
+                  item?.id ||
+                  item?.item_id ||
+                  item?.task_id ||
+                  `${item?.title || 'item'}-${index}`
+                }
+              >
+                <CalendarDays size={16} />
+                <div>
+                  <strong>
+                    {item?.title ||
+                      item?.label ||
+                      human(item?.kind || 'Agency action')}
+                  </strong>
+                  <span>
+                    {due
+                      ? relativeDate(due)
+                      : 'Date not recorded'}
+                  </span>
+                </div>
+              </article>
+            );
+          })}
+
+          {!deadlines.length ? (
+            <EmptyState
+              icon={CalendarDays}
+              title="No upcoming dated work recorded"
+              copy="Meetings, calls, birthdays, contract dates and follow-ups will build this view as they are connected."
+            />
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Business({
+  data,
+  onOpenOwner,
+}: {
+  data: any;
+  onOpenOwner: () => void;
+}) {
+  return (
+    <div className={styles.stack}>
+      <WorkspaceIntro
+        eyebrow="BUSINESS"
+        title="The agency as a business."
+        copy="Revenue, collections and live commercial work for authorised management."
+        icon={Coins}
+        badge="Management only"
+      />
+
+      <section className={styles.businessEntry}>
+        <div>
+          <p className={styles.eyebrow}>BUSINESS</p>
+          <h2>See what needs a management decision.</h2>
+          <p>
+            Owner control, revenue and receivables are already connected
+            underneath. Open the detail when you need it.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className={styles.primaryButton}
+          onClick={onOpenOwner}
+          disabled={!data?.owner_business}
+        >
+          <Coins size={15} />
+          Open business view
+        </button>
+      </section>
+    </div>
+  );
+}
+
 function Market({
   data,
   onOpenAction,
@@ -3041,7 +3190,7 @@ function Market({
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
-        eyebrow="MARKET"
+        eyebrow="OPPORTUNITIES"
         title="Club needs. Player fits. Best route in."
         copy="See what clubs need, which players could fit and who can open the door."
         icon={Target}

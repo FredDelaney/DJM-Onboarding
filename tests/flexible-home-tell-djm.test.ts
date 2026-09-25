@@ -57,7 +57,7 @@ test('shared Agency Home replaces the DJM alias and legacy dismiss controls with
 
   assert.match(
     agencyWorkspace,
-    /const needsYou = \[\.\.\.judgement, \.\.\.confirm\]/,
+    /const priority = \[\.\.\.judgement, \.\.\.confirm, \.\.\.delegable\]/,
   );
 
   assert.match(
@@ -67,7 +67,7 @@ test('shared Agency Home replaces the DJM alias and legacy dismiss controls with
 
   assert.match(
     agencyWorkspace,
-    /Nothing needs your decision/,
+    /You are clear for now/,
   );
 
   assert.doesNotMatch(

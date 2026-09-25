@@ -43,14 +43,14 @@ test('operating workspace treats the handoff as transient presentation only', ()
   assert.doesNotMatch(workspace, /sessionStorage/);
 });
 
-test('handoff resolves legacy opportunities into Market and can disappear immediately', () => {
+test('handoff resolves into Opportunities and can disappear immediately', () => {
   assert.match(
     workspace,
-    /showFirstValueHandoff && view === 'market'/,
+    /showFirstValueHandoff && view === 'opportunities'/,
   );
   assert.match(
     workspace,
-    /rawRequestedView === 'opportunities'/,
+    /rawRequestedView === 'market'/,
   );
   assert.match(workspace, /FIRST WORKING VALUE REACHED/);
   assert.match(workspace, /Continue working/);

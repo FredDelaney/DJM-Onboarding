@@ -26,7 +26,7 @@ test('Universal Actionability has one tenant-native action drawer', () => {
 
 test('Home never surfaces Needs You work as a passive label', () => {
   assert.match(workspace, /onOpenAction\(command\)/);
-  assert.match(workspace, /onOpenAction\(top\)/);
+  assert.match(workspace, /actionFor\(command\)/);
   assert.doesNotMatch(
     workspace,
     /<span className=\{styles\.needsInput\}>\s*\{command\.actionability/,

@@ -1307,7 +1307,7 @@
   }
 
   .nav {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
     gap: 3px;
   }
 
@@ -1842,5 +1842,156 @@
     min-height: 34px;
     padding: 0 9px;
     font-size: 9px;
+  }
+}
+
+
+/* Agency Workspace V2 shell */
+
+.homeWelcome {
+  padding: 8px 2px 2px;
+}
+
+.homeWelcome p {
+  margin: 0 0 7px;
+  color: #7d848d;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.homeWelcome h2 {
+  margin: 0;
+  color: #20252b;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+}
+
+.attentionCard {
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 20px;
+  border-top: 1px solid #eef0f2;
+  background: #fff;
+}
+
+.attentionCard:first-child {
+  border-top: 0;
+}
+
+.attentionCopy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.attentionCopy strong {
+  color: #272d34;
+  font-size: 14px;
+  font-weight: 740;
+  letter-spacing: -0.012em;
+}
+
+.attentionCopy span {
+  color: #606872;
+  font-size: 12px;
+  line-height: 1.48;
+}
+
+.attentionCopy small {
+  color: #969ca4;
+  font-size: 10px;
+}
+
+.simpleTimelineRow {
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #eef0f2;
+  color: var(--agency-primary);
+}
+
+.simpleTimelineRow:first-child {
+  border-top: 0;
+}
+
+.simpleTimelineRow > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.simpleTimelineRow strong {
+  overflow: hidden;
+  color: #2b3138;
+  font-size: 12px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simpleTimelineRow span {
+  color: #858c95;
+  font-size: 10px;
+}
+
+.businessEntry {
+  min-height: 210px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 28px;
+  border: 1px solid #e7e9ec;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.businessEntry > div {
+  max-width: 680px;
+}
+
+.businessEntry h2 {
+  margin: 7px 0 9px;
+  color: #252b32;
+  font-size: clamp(25px, 3vw, 34px);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.businessEntry p:last-child {
+  margin: 0;
+  color: #707781;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 680px) {
+  .attentionCard {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .attentionCard .compactButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .businessEntry {
+    min-height: 0;
+    align-items: stretch;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .businessEntry .primaryButton {
+    width: 100%;
   }
 }

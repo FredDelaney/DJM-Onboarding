@@ -11,26 +11,30 @@ const css = readFileSync(
   'utf8',
 );
 
-test('showcase polish presents the five-area agency operating model', () => {
-  assert.match(workspace, /label: 'Today'/);
+test('showcase polish presents the V2 agency operating model', () => {
+  assert.match(workspace, /label: 'Home'/);
   assert.match(workspace, /label: 'Players'/);
-  assert.match(workspace, /label: 'Market'/);
-  assert.match(workspace, /label: 'Deals'/);
+  assert.match(workspace, /label: 'Opportunities'/);
   assert.match(workspace, /label: 'Network'/);
+  assert.match(workspace, /label: 'Calendar'/);
+  assert.match(workspace, /label: 'Business'/);
   assert.doesNotMatch(workspace, /label: 'Relationships'/);
+  assert.doesNotMatch(workspace, /label: 'Market'/);
+  assert.doesNotMatch(workspace, /label: 'Deals'/);
   assert.match(workspace, /VIEW_PRESENTATION/);
   assert.doesNotMatch(workspace, /label: 'Brain'/);
 });
 
-test('Today has one visually dominant evidence-backed next action', () => {
-  assert.match(workspace, /DO THIS FIRST/);
-  assert.match(workspace, /topOneTap/);
-  assert.match(workspace, /onClick=\{\(\) => onPrepare\(top\)\}/);
+test('Home keeps attention bounded and every visible item actionable', () => {
+  assert.match(workspace, /\.slice\(0, 5\)/);
+  assert.match(workspace, /Good morning\./);
+  assert.match(workspace, /const actionFor = \(command: any\)/);
+  assert.match(workspace, /onClick=\{\(\) => onPrepare\(command\)\}/);
   assert.match(
     workspace,
-    /top\?\.actionability\?\.evidence_gate === 'ready'/,
+    /command\?\.actionability\?\.evidence_gate === 'ready'/,
   );
-  assert.match(css, /\.heroPrimaryAction\s*\{/);
+  assert.match(css, /\.attentionCard\s*\{/);
 });
 
 test('showcase polish does not bypass guarded agency action execution', () => {
@@ -84,7 +88,7 @@ test('Market and Deals separate demand creation from commercial execution withou
 });
 
 test('every primary operating area has an intentional empty state', () => {
-  assert.match(workspace, /Nothing needs your decision/);
+  assert.match(workspace, /You are clear for now/);
   assert.match(workspace, /No players recorded yet/);
   assert.match(workspace, /No relevant club relationships yet/);
   assert.match(workspace, /No live deals recorded/);
