@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
@@ -31,6 +32,7 @@ type Invoke = <T,>(
 
 type Props = {
   data: any;
+  basePath: string;
   invoke: Invoke;
   onRefresh: () => Promise<void>;
   onOpenAction: (request: AgencyActionRequest) => void;
@@ -134,11 +136,13 @@ function Empty({
 
 function PlayerDrawer({
   playerId,
+  basePath,
   invoke,
   onClose,
   onOpenAction,
 }: {
   playerId: string;
+  basePath: string;
   invoke: Invoke;
   onClose: () => void;
   onOpenAction: (request: AgencyActionRequest) => void;
@@ -242,13 +246,16 @@ function PlayerDrawer({
                 </span>
               </div>
               <div className={styles.heroActions}>
-                {profile.published && profile.public_slug ? (
-                  <a className={styles.secondaryButton}
-                    href={`/p/${encodeURIComponent(String(profile.public_slug))}`}
-                    target="_blank" rel="noreferrer">
-                    <UserRound size={14} /> Player Profile
-                  </a>
-                ) : <span className={styles.profileStatus}>Player Profile not published</span>}
+                <Link
+                  className={styles.secondaryButton}
+                  href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}`}
+                >
+                  <UserRound size={14} />
+                  Player Profile
+                </Link>
+                <span className={styles.profileStatus}>
+                  {profile.published ? 'Live' : 'Not published'}
+                </span>
                 {(service?.next_control_fix?.instruction || service?.next_service_move?.instruction) ? (
                   <button type="button" className={styles.primaryButton} onClick={openAction}>
                     <ArrowRight size={14} /> Next action
@@ -399,6 +406,7 @@ function PlayerDrawer({
 
 export default function AgencyPlayersWorkspace({
   data,
+  basePath,
   invoke,
   onRefresh,
   onOpenAction,
@@ -624,7 +632,7 @@ export default function AgencyPlayersWorkspace({
         </div>
       )}
 
-      {playerId?<PlayerDrawer playerId={playerId} invoke={invoke} onClose={()=>setPlayerId(null)} onOpenAction={onOpenAction}/>:null}
+      {playerId?<PlayerDrawer playerId={playerId} basePath={basePath} invoke={invoke} onClose={()=>setPlayerId(null)} onOpenAction={onOpenAction}/>:null}
 
       {targetId?(
         <div className={styles.backdrop} onClick={(e)=>{if(e.target===e.currentTarget)setTargetId(null);}}>

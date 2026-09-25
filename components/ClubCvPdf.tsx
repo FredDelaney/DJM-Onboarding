@@ -1028,9 +1028,9 @@ export function ClubCvPdfDocument({
 
   return (
     <Document
-      title={`${name} - ${agencyName} Player Dossier`}
+      title={`${name} - ${agencyName} Player Profile`}
       author={agencyName}
-      subject="Professional player dossier"
+      subject="Professional Player Profile"
       creator={agencyPortalName}
     >
       <Page
@@ -1086,7 +1086,7 @@ export function ClubCvPdfDocument({
             >
               {verified
                 ? `${agencyShortName.toUpperCase()} REVIEWED · ${verified.toUpperCase()}`
-                : 'PLAYER DOSSIER'}
+                : 'PLAYER PROFILE'}
             </Text>
           </View>
 
@@ -1109,7 +1109,7 @@ export function ClubCvPdfDocument({
                   styles.kickerDark
                 }
               >
-                PLAYER DOSSIER
+                PLAYER PROFILE
               </Text>
 
               <Text
@@ -1611,7 +1611,7 @@ export function ClubCvPdfDocument({
                   styles.heroVerified
                 }
               >
-                PLAYER DOSSIER
+                PLAYER PROFILE
               </Text>
             </View>
           </View>
@@ -2002,7 +2002,7 @@ export function ClubCvPdfDocument({
             >
               {verified
                 ? `REVIEWED ${verified.toUpperCase()}`
-                : 'PROFESSIONAL PLAYER DOSSIER'}
+                : 'PROFESSIONAL PLAYER PROFILE'}
             </Text>
           </View>
         </Page>
@@ -2049,7 +2049,7 @@ const blob =
 
   link.download =
     filename ||
-    `${profile?.display_name || 'Player'}-${agency?.short_name || agency?.display_name || 'Agency'}-Player-Dossier.pdf`;
+    `${profile?.display_name || 'Player'}-${agency?.short_name || agency?.display_name || 'Agency'}-Player-Profile.pdf`;
 
   document.body.appendChild(
     link,

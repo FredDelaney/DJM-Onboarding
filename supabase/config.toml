@@ -107,6 +107,9 @@ verify_jwt = false
 [functions.club-share-public]
 verify_jwt = false
 
+[functions.player-profile-public]
+verify_jwt = false
+
 [functions.player-invite-public]
 verify_jwt = false
 
