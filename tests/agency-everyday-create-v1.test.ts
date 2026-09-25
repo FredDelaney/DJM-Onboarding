@@ -38,8 +38,8 @@ const migration = readFileSync(
 
 test('every daily data area has one obvious real create action', () => {
   assert.match(workspace, /label: 'Add player'/);
-  assert.match(workspace, /label: 'Add club need'/);
-  assert.match(workspace, /label: 'Add deal'/);
+  assert.match(workspace, /kind: 'club_need', label: 'Add opportunity'/);
+  assert.doesNotMatch(workspace, /label: 'Add deal'/);
   assert.match(workspace, /label: 'Add contact'/);
   assert.match(workspace, /AgencyCreateDrawer/);
   assert.match(workspace, /Import players/);

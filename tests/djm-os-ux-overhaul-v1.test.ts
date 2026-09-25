@@ -46,13 +46,14 @@ const userFacingSourceFiles = () =>
     return fs.existsSync(absolute) ? allSourceFiles(absolute) : [];
   });
 
-test('staff navigation uses the five shared ReDream operating views', () => {
+test('staff navigation uses the shared V2 operating views', () => {
   const source = read('components/WorkspaceHeader.tsx');
 
-  for (const label of ['Today', 'Players', 'Market', 'Deals', 'Network']) {
+  for (const label of ['Home', 'Players', 'Opportunities', 'Network', 'Calendar']) {
     assert.match(source, new RegExp(`label: '${label}'`));
   }
 
+  assert.doesNotMatch(source, /label: 'Market'|label: 'Deals'/);
   assert.doesNotMatch(source, /href: '\/djm'/);
   assert.doesNotMatch(source, /label: 'Brain'|label: 'Command'/);
 });

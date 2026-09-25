@@ -5,7 +5,7 @@ import test from 'node:test';
 const read = (path: string) =>
   readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('shared ReDream workspace owns Market and Deals while legacy Opportunity URLs only redirect', () => {
+test('shared workspace composes Market and Deals underneath Opportunities while legacy URLs remain compatible', () => {
   const opportunities = read('app/(djm-os)/opportunities/page.tsx');
   const detail = read('app/(djm-os)/opportunities/[id]/page.tsx');
   const workspace = read('components/AgencyOperatingWorkspace.tsx');
@@ -13,11 +13,17 @@ test('shared ReDream workspace owns Market and Deals while legacy Opportunity UR
 
   assert.match(opportunities, /redirect\('\/agency\?view=market'\)/);
   assert.match(detail, /redirect\('\/agency\?view=deals'\)/);
-  assert.match(workspace, /type View = 'home' \| 'players' \| 'market' \| 'deals' \| 'relationships'/);
+  assert.match(
+    workspace,
+    /type View = 'home' \| 'players' \| 'opportunities' \| 'network' \| 'calendar' \| 'business'/,
+  );
+  assert.match(workspace, /rawRequestedView === 'market'/);
+  assert.match(workspace, /rawRequestedView === 'deals'/);
   assert.match(workspace, /redream_autopilot_market/);
   assert.match(workspace, /redream_autopilot_deals/);
-  assert.match(header, /href: '\/agency\?view=market'/);
-  assert.match(header, /href: '\/agency\?view=deals'/);
+  assert.match(workspace, /function Opportunities/);
+  assert.match(header, /href: '\/agency\?view=opportunities'/);
+  assert.doesNotMatch(header, /href: '\/agency\?view=deals'/);
 
   assert.doesNotMatch(
     opportunities,

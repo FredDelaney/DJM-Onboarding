@@ -1,10 +1,9 @@
 'use client';
 
 import {
-  BriefcaseBusiness,
+  CalendarDays,
   ContactRound,
-  Handshake,
-  LayoutDashboard,
+  Home,
   LogOut,
   Settings,
   Target,
@@ -24,8 +23,8 @@ import WorkspaceTabs, {
 const items: WorkspaceTab[] = [
   {
     href: '/agency',
-    label: 'Today',
-    icon: LayoutDashboard,
+    label: 'Home',
+    icon: Home,
     activeView: null,
   },
   {
@@ -35,22 +34,22 @@ const items: WorkspaceTab[] = [
     activeView: 'players',
   },
   {
-    href: '/agency?view=market',
-    label: 'Market',
+    href: '/agency?view=opportunities',
+    label: 'Opportunities',
     icon: Target,
-    activeView: 'market',
+    activeView: 'opportunities',
   },
   {
-    href: '/agency?view=deals',
-    label: 'Deals',
-    icon: BriefcaseBusiness,
-    activeView: 'deals',
-  },
-  {
-    href: '/agency?view=relationships',
+    href: '/agency?view=network',
     label: 'Network',
     icon: ContactRound,
-    activeView: 'relationships',
+    activeView: 'network',
+  },
+  {
+    href: '/agency?view=calendar',
+    label: 'Calendar',
+    icon: CalendarDays,
+    activeView: 'calendar',
   },
 ];
 

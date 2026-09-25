@@ -11,12 +11,13 @@ const owner = fs.readFileSync(
   'utf8',
 );
 
-test('Owner view is part of Today rather than a sixth daily navigation area', () => {
+test('Business is a management-only entry point to the existing owner command centre', () => {
   assert.match(workspace, /AgencyOwnerCommandCentre/);
-  assert.match(workspace, /Owner view/);
-  assert.doesNotMatch(
+  assert.match(workspace, /key: 'business'/);
+  assert.match(workspace, /const canSeeBusiness = \['owner', 'admin'\]/);
+  assert.match(
     workspace,
-    /key: 'business'/,
+    /item\.key !== 'business' \|\| canSeeBusiness/,
   );
 });
 

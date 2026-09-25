@@ -11,10 +11,10 @@ const memory = fs.readFileSync(
   'utf8',
 );
 
-test('Agency history opens from Today without adding a sixth daily workspace', () => {
+test('Agency Memory remains underneath the workspace without becoming primary navigation', () => {
   assert.match(workspace, /AgencyMemoryDrawer/);
-  assert.match(workspace, /Agency history/);
   assert.doesNotMatch(workspace, /key: 'memory'/);
+  assert.doesNotMatch(workspace, />Agency history</);
 });
 
 test('Agency Memory loads on demand from existing Agency OS contracts', () => {

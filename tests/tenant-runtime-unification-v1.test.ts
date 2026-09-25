@@ -78,7 +78,7 @@ test('settings is tenant-native and no longer links to legacy DJM administration
   );
 });
 
-test('workspace navigation points to the shared agency product', () => {
+test('workspace navigation points to the shared V2 agency product', () => {
   const header = read(
     'components/WorkspaceHeader.tsx',
   );
@@ -90,17 +90,22 @@ test('workspace navigation points to the shared agency product', () => {
 
   assert.match(
     header,
-    /\/agency\?view=market/,
+    /\/agency\?view=opportunities/,
   );
 
   assert.match(
+    header,
+    /\/agency\?view=network/,
+  );
+
+  assert.match(
+    header,
+    /\/agency\?view=calendar/,
+  );
+
+  assert.doesNotMatch(
     header,
     /\/agency\?view=deals/,
-  );
-
-  assert.match(
-    header,
-    /\/agency\?view=relationships/,
   );
 
   assert.doesNotMatch(
