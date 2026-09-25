@@ -19,6 +19,11 @@ begin
         or p.proname like 'djm_scout_%'
         or p.proname like 'djm_intelligence_%'
         or p.proname like 'djm_deal_room%'
+        or p.proname = 'platform_server_agency_create_options'
+        or p.proname = 'platform_server_agency_create_player'
+        or p.proname = 'platform_server_agency_create_club_need'
+        or p.proname = 'platform_server_agency_create_contact'
+        or p.proname = 'platform_server_agency_create_deal'
       )
   loop
     execute format(
