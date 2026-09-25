@@ -403,7 +403,7 @@ export default function AgencyOperatingWorkspace() {
 
     try {
       if (view === 'home') {
-        const [home, operations] = await Promise.all([
+        const reads = await Promise.allSettled([
           rpc<any>('redream_autopilot_home', {
             p_limit: 8,
           }),
@@ -411,7 +411,34 @@ export default function AgencyOperatingWorkspace() {
             p_horizon_days: 90,
             p_limit: 20,
           }),
+          rpc<any>('redream_autopilot_players', {
+            p_limit: 12,
+          }),
+          rpc<any>('redream_autopilot_market', {
+            p_limit: 12,
+          }),
+          rpc<any>('redream_autopilot_deals', {
+            p_limit: 12,
+          }),
         ]);
+
+        if (reads[0].status === 'rejected') {
+          throw reads[0].reason;
+        }
+
+        const readValue = (
+          index: number,
+          fallback: any = {},
+        ) =>
+          reads[index]?.status === 'fulfilled'
+            ? (reads[index] as PromiseFulfilledResult<any>).value
+            : fallback;
+
+        const home = readValue(0);
+        const operations = readValue(1);
+        const players = readValue(2);
+        const market = readValue(3);
+        const deals = readValue(4);
 
         let ownerBusiness: any = null;
 
@@ -454,6 +481,9 @@ export default function AgencyOperatingWorkspace() {
         setData({
           home,
           operations,
+          players,
+          market,
+          deals,
           owner_business: ownerBusiness,
         });
       } else if (view === 'players') {
@@ -532,7 +562,7 @@ export default function AgencyOperatingWorkspace() {
     } finally {
       setBusy(false);
     }
-  }, [invoke, rpc, view, workspace?.tenant_id]);
+  }, [invoke, rpc, view, workspace?.role, workspace?.tenant_id]);
 
   useEffect(() => {
     let active = true;
@@ -1348,8 +1378,26 @@ function Home({
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
 }) {
+  const [greeting, setGreeting] = useState('Good to see you.');
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+
+    setGreeting(
+      hour < 12
+        ? 'Good morning.'
+        : hour < 18
+          ? 'Good afternoon.'
+          : 'Good evening.',
+    );
+  }, []);
+
   const home = data?.home || {};
   const operations = data?.operations || {};
+  const playerService = data?.players?.service || {};
+  const market = data?.market || {};
+  const dealData = data?.deals || {};
+  const ownerBusiness = data?.owner_business || null;
 
   const confirm = Array.isArray(home?.attention?.confirm)
     ? home.attention.confirm
@@ -1383,24 +1431,130 @@ function Home({
     operations?.deadlines?.items,
   )
     ? operations.deadlines.items
-    : Array.isArray(operations?.items)
-      ? operations.items
-      : [];
+    : [];
 
-  const opportunityMoves = priority
-    .filter((command: any) =>
-      ['club_need', 'deal_room', 'player_match'].includes(
-        String(command?.source_type || ''),
-      ),
-    )
+  const players = Array.isArray(playerService?.players)
+    ? playerService.players
+    : [];
+
+  const marketNeeds = Array.isArray(market?.demand?.items)
+    ? market.demand.items
+    : [];
+
+  const pursuits = Array.isArray(market?.pursuits?.items)
+    ? market.pursuits.items
+    : [];
+
+  const liveDeals = Array.isArray(
+    dealData?.portfolio?.deals,
+  )
+    ? dealData.portfolio.deals
+    : [];
+
+  const opportunityMoves = [
+    ...liveDeals.map((deal: any) => ({
+      key: `deal:${deal.deal_room_id}`,
+      type: 'Live deal',
+      title: deal.title || 'Live deal',
+      detail:
+        deal.next_control_fix?.instruction ||
+        deal.next_best_move?.instruction ||
+        deal.next_decision ||
+        'Review the live deal.',
+      meta:
+        [deal.organisation, human(deal.stage)]
+          .filter(Boolean)
+          .join(' · ') || 'Commercial work',
+    })),
+    ...pursuits.map((item: any) => ({
+      key: `pursuit:${item.player_match_id}`,
+      type: 'Player route',
+      title:
+        `${item.player?.name || 'Player'} → ${item.club?.name || 'Club'}`,
+      detail:
+        item.career_strategy_gate?.next_action?.instruction ||
+        item.best_access_route?.why_this_route ||
+        'Review the recorded player-club route.',
+      meta:
+        item.best_access_route?.person_name ||
+        human(item.readiness_state || 'Recorded route'),
+    })),
+    ...marketNeeds.map((item: any) => ({
+      key: `need:${item.club_need_id}`,
+      type: 'Club need',
+      title:
+        `${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`,
+      detail:
+        item.next_action?.instruction ||
+        'Review the recorded club need.',
+      meta:
+        [
+          item.need?.position,
+          human(item.coverage_state),
+        ]
+          .filter(Boolean)
+          .join(' · ') || 'Active need',
+    })),
+  ].slice(0, 3);
+
+  const playerAttention = [...players]
+    .filter((item: any) => {
+      const contractDays = Number(
+        item?.career_timing?.contract_days_remaining,
+      );
+      const marketState = String(
+        item?.market_coverage?.state || '',
+      );
+
+      return Boolean(
+        item?.next_control_fix?.instruction ||
+          item?.next_service_move?.instruction ||
+          (Number.isFinite(contractDays) &&
+            contractDays <= 180) ||
+          /(gap|missing|no_market|no_active)/i.test(
+            marketState,
+          ),
+      );
+    })
+    .sort((a: any, b: any) => {
+      const priorityFor = (item: any) => {
+        if (item?.next_control_fix?.instruction) return 0;
+        if (item?.next_service_move?.instruction) return 1;
+
+        const contractDays = Number(
+          item?.career_timing?.contract_days_remaining,
+        );
+
+        if (
+          Number.isFinite(contractDays) &&
+          contractDays <= 90
+        ) {
+          return 2;
+        }
+
+        return 3;
+      };
+
+      return priorityFor(a) - priorityFor(b);
+    })
     .slice(0, 3);
 
-  const playerAttention = priority
-    .filter(
-      (command: any) =>
-        String(command?.source_type || '') === 'player',
-    )
-    .slice(0, 3);
+  const executive =
+    ownerBusiness?.control?.executive_summary || {};
+
+  const serviceSummary =
+    ownerBusiness?.control?.service_control?.summary ||
+    ownerBusiness?.control?.service_assurance?.summary ||
+    {};
+
+  const receivableSummary =
+    ownerBusiness?.receivables?.summary || {};
+
+  const hasBusinessSnapshot = Boolean(
+    ownerBusiness?.control ||
+      ownerBusiness?.roi ||
+      ownerBusiness?.receivables,
+  );
 
   const actionFor = (command: any) => {
     const oneTap =
@@ -1438,158 +1592,308 @@ function Home({
   };
 
   return (
-    <div className={styles.stack}>
+    <div className={styles.homeStack}>
       <section className={styles.homeWelcome}>
-        <p>Good morning.</p>
+        <p>{greeting}</p>
         <h2>
           {priority.length
-            ? `${priority.length} ${priority.length === 1 ? 'thing needs' : 'things need'} you today`
-            : 'Nothing needs you right now'}
+            ? `${priority.length} ${priority.length === 1 ? 'thing needs' : 'things need'} you`
+            : 'Everything important is under control'}
         </h2>
       </section>
 
-      <section className={styles.sectionCard}>
-        <div className={styles.list}>
-          {priority.map((command: any) => (
-            <article
-              className={styles.attentionCard}
-              key={command.command_id}
-            >
-              <div className={styles.attentionCopy}>
-                <strong>{command.title}</strong>
-                <span>
-                  {command.recommended_action ||
-                    command.why_now ||
-                    'Review the current situation.'}
-                </span>
-                <small>
-                  {command.due_at
-                    ? relativeDate(command.due_at)
-                    : human(command.command_type || 'Action')}
-                </small>
-              </div>
-              {actionFor(command)}
-            </article>
-          ))}
-
-          {!priority.length ? (
-            <EmptyState
-              icon={CheckCircle2}
-              title="You are clear for now"
-              copy="The next decision will appear here when it matters."
-            />
-          ) : null}
-        </div>
-      </section>
-
-      <section className={styles.sectionCard}>
-        <div className={styles.sectionHead}>
-          <div>
-            <p className={styles.eyebrow}>TODAY</p>
-            <h2>Your day</h2>
-          </div>
-        </div>
-        <div className={styles.list}>
-          {deadlines.slice(0, 6).map((item: any, index: number) => {
-            const due =
-              item?.due_at ||
-              item?.starts_at ||
-              item?.due_on ||
-              null;
-
-            return (
-              <article
-                className={styles.simpleTimelineRow}
-                key={
-                  item?.id ||
-                  item?.item_id ||
-                  item?.task_id ||
-                  `${item?.title || 'item'}-${index}`
-                }
-              >
-                <CalendarDays size={16} />
-                <div>
-                  <strong>
-                    {item?.title ||
-                      item?.label ||
-                      human(item?.kind || 'Agency action')}
-                  </strong>
-                  <span>
-                    {due
-                      ? relativeDate(due)
-                      : 'No time recorded'}
-                  </span>
-                </div>
-              </article>
-            );
-          })}
-
-          {!deadlines.length ? (
-            <EmptyState
-              icon={CalendarDays}
-              title="Nothing dated for today"
-              copy="Meetings, follow-ups and deadlines will appear here as they become known."
-            />
-          ) : null}
-        </div>
-      </section>
-
-      {opportunityMoves.length ? (
-        <section className={styles.sectionCard}>
+      <div className={styles.homeOverviewGrid}>
+        <section
+          className={`${styles.sectionCard} ${styles.homeAttentionPanel}`}
+        >
           <div className={styles.sectionHead}>
             <div>
-              <p className={styles.eyebrow}>OPPORTUNITIES MOVING</p>
-              <h2>Commercial situations to keep moving</h2>
+              <p className={styles.eyebrow}>NEEDS YOU</p>
+              <h2>What needs your attention</h2>
             </div>
+            {priority.length ? (
+              <span className={styles.sectionCount}>
+                {priority.length}
+              </span>
+            ) : null}
           </div>
+
           <div className={styles.list}>
-            {opportunityMoves.map((command: any) => (
+            {priority.map((command: any, index: number) => (
               <article
-                className={styles.attentionCard}
-                key={`opportunity:${command.command_id}`}
+                className={`${styles.attentionCard} ${
+                  index === 0
+                    ? styles.attentionCardPrimary
+                    : ''
+                }`}
+                key={command.command_id}
               >
                 <div className={styles.attentionCopy}>
+                  <div className={styles.attentionMeta}>
+                    <span>
+                      {index === 0
+                        ? 'NEXT'
+                        : human(
+                            command.source_type ||
+                              command.command_type ||
+                              'Action',
+                          )}
+                    </span>
+                    <small>
+                      {command.due_at
+                        ? relativeDate(command.due_at)
+                        : human(
+                            command.command_type ||
+                              'Agency action',
+                          )}
+                    </small>
+                  </div>
+
                   <strong>{command.title}</strong>
                   <span>
                     {command.recommended_action ||
                       command.why_now ||
-                      'Review the current opportunity.'}
+                      'Review the current situation.'}
                   </span>
                 </div>
+
                 {actionFor(command)}
               </article>
             ))}
+
+            {!priority.length ? (
+              <EmptyState
+                icon={CheckCircle2}
+                title="You are clear for now"
+                copy="The next decision will appear here when it matters."
+              />
+            ) : null}
           </div>
         </section>
-      ) : null}
 
-      {playerAttention.length ? (
+        <section
+          className={`${styles.sectionCard} ${styles.homeDayPanel}`}
+        >
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>TODAY</p>
+              <h2>Your day</h2>
+            </div>
+
+            <a
+              className={styles.homeTextLink}
+              href="?view=calendar"
+            >
+              Calendar
+              <ArrowRight size={13} />
+            </a>
+          </div>
+
+          <div className={styles.list}>
+            {deadlines
+              .slice(0, 5)
+              .map((item: any, index: number) => (
+                <article
+                  className={styles.simpleTimelineRow}
+                  key={
+                    item?.entity_id ||
+                    `${item?.title || 'item'}-${index}`
+                  }
+                >
+                  <CalendarDays size={16} />
+                  <div>
+                    <strong>
+                      {item?.title || 'Agency date'}
+                    </strong>
+                    <span>
+                      {item?.deadline_at
+                        ? `${relativeDate(
+                            item.deadline_at,
+                          )} · ${human(
+                            item.deadline_state ||
+                              'Recorded',
+                          )}`
+                        : 'Date not recorded'}
+                    </span>
+                  </div>
+                </article>
+              ))}
+
+            {!deadlines.length ? (
+              <EmptyState
+                icon={CalendarDays}
+                title="Nothing dated for today"
+                copy="Meetings, follow-ups and deadlines will appear here as they become known."
+              />
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      <div className={styles.homeSupportGrid}>
         <section className={styles.sectionCard}>
           <div className={styles.sectionHead}>
             <div>
-              <p className={styles.eyebrow}>PLAYERS NEEDING ATTENTION</p>
+              <p className={styles.eyebrow}>
+                OPPORTUNITIES MOVING
+              </p>
+              <h2>Keep momentum</h2>
+            </div>
+
+            <a
+              className={styles.homeTextLink}
+              href="?view=opportunities"
+            >
+              Open
+              <ArrowRight size={13} />
+            </a>
+          </div>
+
+          <div className={styles.list}>
+            {opportunityMoves.map((item: any) => (
+              <a
+                className={styles.homeSupportRow}
+                href="?view=opportunities"
+                key={item.key}
+              >
+                <div className={styles.homeSupportIcon}>
+                  <BriefcaseBusiness size={15} />
+                </div>
+
+                <div className={styles.homeSupportCopy}>
+                  <small>{item.type}</small>
+                  <strong>{item.title}</strong>
+                  <span>{item.detail}</span>
+                  <em>{item.meta}</em>
+                </div>
+
+                <ArrowRight size={14} />
+              </a>
+            ))}
+
+            {!opportunityMoves.length ? (
+              <EmptyState
+                icon={BriefcaseBusiness}
+                title="No live movement yet"
+                copy="Active club needs, player routes and deals will appear here."
+              />
+            ) : null}
+          </div>
+        </section>
+
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.eyebrow}>
+                PLAYERS NEEDING ATTENTION
+              </p>
               <h2>Player care</h2>
             </div>
+
+            <a
+              className={styles.homeTextLink}
+              href="?view=players"
+            >
+              Open
+              <ArrowRight size={13} />
+            </a>
           </div>
+
           <div className={styles.list}>
-            {playerAttention.map((command: any) => (
-              <article
-                className={styles.attentionCard}
-                key={`player:${command.command_id}`}
-              >
-                <div className={styles.attentionCopy}>
-                  <strong>{command.title}</strong>
-                  <span>
-                    {command.recommended_action ||
-                      command.why_now ||
-                      'Review the player situation.'}
-                  </span>
-                </div>
-                {actionFor(command)}
-              </article>
-            ))}
+            {playerAttention.map((item: any) => {
+              const playerName =
+                item?.player?.name || 'Player';
+
+              const contractDays = Number(
+                item?.career_timing?.contract_days_remaining,
+              );
+
+              const detail =
+                item?.next_control_fix?.instruction ||
+                item?.next_service_move?.instruction ||
+                (Number.isFinite(contractDays)
+                  ? `Contract timing: ${contractDays} days recorded`
+                  : 'Review the current player position.');
+
+              return (
+                <a
+                  className={styles.homeSupportRow}
+                  href="?view=players"
+                  key={item.player_id}
+                >
+                  <div className={styles.homeSupportAvatar}>
+                    {initials(playerName) || 'P'}
+                  </div>
+
+                  <div className={styles.homeSupportCopy}>
+                    <small>PLAYER</small>
+                    <strong>{playerName}</strong>
+                    <span>{detail}</span>
+                    <em>
+                      {human(
+                        item?.market_coverage?.state ||
+                          item?.player?.football_status ||
+                          'Recorded',
+                      )}
+                    </em>
+                  </div>
+
+                  <ArrowRight size={14} />
+                </a>
+              );
+            })}
+
+            {!playerAttention.length ? (
+              <EmptyState
+                icon={Users}
+                title="No player action is pressing"
+                copy="Player service, contract timing and market coverage will surface here when needed."
+              />
+            ) : null}
           </div>
         </section>
+      </div>
+
+      {hasBusinessSnapshot ? (
+        <a
+          className={styles.homeBusinessStrip}
+          href="?view=business"
+        >
+          <div className={styles.homeBusinessIntro}>
+            <Coins size={16} />
+            <div>
+              <small>BUSINESS</small>
+              <strong>Agency position</strong>
+            </div>
+          </div>
+
+          <div className={styles.homeBusinessFacts}>
+            <span>
+              <b>{Number(executive.active_deals ?? 0)}</b>
+              active deals
+            </span>
+            <span>
+              <b>
+                {Number(
+                  serviceSummary.total_breaches ??
+                    executive.service_standard_breaches ??
+                    0,
+                )}
+              </b>
+              service issues
+            </span>
+            <span>
+              <b>
+                {Number(
+                  receivableSummary.open_receivables ?? 0,
+                )}
+              </b>
+              open receivables
+            </span>
+          </div>
+
+          <ArrowRight size={15} />
+        </a>
       ) : null}
     </div>
   );
