@@ -325,13 +325,14 @@ test('full-screen Tell DJM preserves route and active workspace context', () => 
   assert.match(fullPage, /context=\{context\}/);
 });
 
-test('Opportunities publishes the selected need to Tell DJM in the full repository', () => {
+test('shared ReDream AI context remains global while legacy Opportunities redirects', () => {
   if (!existsSync(opportunitiesPath)) return;
   const opportunities = read(opportunitiesPath);
-  assert.match(opportunities, /new CustomEvent\('redream:ai-context'/);
-  assert.match(opportunities, /club_need_id: selectedNeed\.id \|\| null/);
-  assert.match(opportunities, /organisation_id: selectedNeed\.organisation_id \|\| null/);
-  assert.match(opportunities, /\}, \[selectedNeed\]\);/);
+
+  assert.match(opportunities, /redirect\('\/agency\?view=market'\)/);
+  assert.match(launcher, /window\.addEventListener\('redream:ai-context'/);
+  assert.match(contextLib, /club_need_id/);
+  assert.match(contextLib, /contextFromSearchParams/);
 });
 
 test('pending local notes retry while the app remains open and connected', () => {
