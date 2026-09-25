@@ -391,6 +391,7 @@ select jsonb_build_object(
       'occurred_at',i.last_interaction_at
     ) end
   ) order by i.follow_up_overdue desc,i.next_action_at nulls last,i.recruitment_priority desc,i.updated_at desc),'[]'::jsonb)
+)
 from items i;
 $function$;
 

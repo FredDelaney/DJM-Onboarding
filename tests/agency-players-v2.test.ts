@@ -7,6 +7,8 @@ const players=readFileSync('components/AgencyPlayersWorkspace.tsx','utf8');
 const edge=readFileSync('supabase/functions/agency-os/index.ts','utf8');
 const migration=readFileSync('supabase/migrations/20260925204500_redream_players_recruitment_workspace_v2.sql','utf8');
 const recruitment=readFileSync('app/(djm-os)/recruitment/page.tsx','utf8');
+const hardening=readFileSync('supabase/migrations/20260925211000_redream_players_recruitment_workspace_v2_hardening.sql','utf8');
+const promotion=readFileSync('supabase/migrations/20260925211500_redream_players_recruitment_workspace_v2_promotion_merge.sql','utf8');
 
 test('Players contains Our Players and Recruitment',()=>{
   assert.match(workspace,/AgencyPlayersWorkspace/);
@@ -69,4 +71,18 @@ test('promotion does not invent a representation agreement',()=>{
   assert.match(migration,/insert into public\.players/);
   assert.match(migration,/representation_agreement_recorded',false/);
   assert.doesNotMatch(migration,/insert into public\.player_agreements/);
+});
+
+
+test('recruitment writers do not create legacy team members',()=>{
+  assert.doesNotMatch(hardening,/platform_server_ensure_team_member/);
+  assert.match(hardening,/platform\.tenant_memberships/);
+  assert.match(hardening,/platform_actor_user_id/);
+});
+
+test('recruitment promotion preserves the existing intelligence subject',()=>{
+  assert.match(promotion,/delete from djm_os\.football_intelligence_subjects created/);
+  assert.match(promotion,/existing\.prospect_id=p_prospect_id/);
+  assert.match(promotion,/tenant_id=p_tenant_id/);
+  assert.match(promotion,/representation_agreement_recorded',false/);
 });
