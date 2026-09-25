@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function DealsRedirectPage() {
-  redirect('/opportunities');
+export default function LegacyRouteRedirect() {
+  redirect('/agency?view=deals');
 }

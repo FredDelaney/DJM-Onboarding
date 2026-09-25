@@ -1,137 +1,200 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
 import {
-  AlertCircle,
   ArrowRight,
   CalendarClock,
-  CheckCircle2,
-  RefreshCw,
-  Settings,
   ShieldCheck,
+  SlidersHorizontal,
   UsersRound,
 } from 'lucide-react';
 
 import AgencyShell from '@/components/AgencyShell';
 import { useAdmin } from '@/components/AdminShell';
-import { platformInvoke, platformRpc, friendlyError } from '@/lib/platform-client';
 
 export default function SettingsPage() {
   const auth = useAdmin();
-  const [command, setCommand] = useState<any>(null);
-  const [providerStatus, setProviderStatus] = useState<any>(null);
-  const [busy, setBusy] = useState(true);
-  const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
-    setBusy(true);
-    setError('');
-    try {
-      const [commandResult, providerResult] = await Promise.all([
-        platformRpc<any>('djm_command_center'),
-        platformInvoke<any>('refresh-player-data', { mode: 'status' }).catch(() => null),
-      ]);
-      setCommand(commandResult || null);
-      setProviderStatus(providerResult || null);
-    } catch (loadError) {
-      setError(friendlyError(loadError));
-    } finally {
-      setBusy(false);
-    }
-  }, []);
+  const tenantRole = String(
+    auth.profile?.tenant_role || '',
+  );
 
-  useEffect(() => {
-    if (!auth.loading && auth.user) void load();
-  }, [auth.loading, auth.user, load]);
+  const workspaceName =
+    auth.workspace?.display_name ||
+    auth.workspace?.short_name ||
+    auth.workspace?.portal_name ||
+    'this agency';
 
-  const quality = command?.quality || {};
-  const automation = command?.automation || {};
-  const attention =
-    Number(quality.open_reviews || 0) +
-    Number(quality.stale_needs || 0) +
-    Number(command?.summary?.overdue_tasks || 0);
+  const canManageTeam = [
+    'owner',
+    'admin',
+  ].includes(tenantRole);
 
   return (
-    <AgencyShell eyebrow="Administration that stays out of the way" title="Settings">
-      {error ? <div className="ux-alert ux-alert-error"><AlertCircle size={17} />{error}</div> : null}
-
+    <AgencyShell
+      eyebrow="Agency administration"
+      title="Settings"
+    >
       <section className="ux-settings-hero">
         <div>
-          <p className="ux-eyebrow">DATA HEALTH</p>
-          <h2>{attention ? `${attention} things need attention.` : 'System looks healthy.'}</h2>
-          <p>Normal successful automation remains quiet. This page only surfaces exceptions, permissions and advanced administration.</p>
+          <p className="ux-eyebrow">
+            CURRENT WORKSPACE
+          </p>
+
+          <h2>{workspaceName}</h2>
+
+          <p>
+            Permissions, player data,
+            resources and operating tools
+            are scoped to this agency.
+          </p>
         </div>
-        <button type="button" className="ux-secondary-action" onClick={() => void load()} disabled={busy}>
-          <RefreshCw size={15} className={busy ? 'spin' : ''} /> Recheck
-        </button>
+
+        <div className="djm-os-chip">
+          {humanRole(tenantRole)}
+        </div>
       </section>
 
       <section className="ux-settings-grid">
         <SettingsCard
-          icon={<CheckCircle2 size={20} />}
-          title="Data health"
-          text={providerStatus?.pitchapi_configured ? 'Automatic player provider is connected.' : 'Provider status needs review.'}
-          meta={`${Number(quality.open_reviews || 0)} reviews · ${Number(quality.stale_needs || 0)} stale needs`}
-          href="/admin"
-          action="Open players"
-        />
-        <SettingsCard
-          icon={<UsersRound size={20} />}
+          icon={
+            <UsersRound
+              size={20}
+            />
+          }
           title="Team & permissions"
-          text="Manage staff roles and exactly which players scouts can see or edit."
-          meta={auth.profile?.role === 'admin' ? 'Admin controlled' : 'Admin access required'}
+          text="Invite staff, manage agency roles and control scout player assignments."
+          meta={
+            canManageTeam
+              ? 'Owner and admin controlled'
+              : 'Owner or admin access required'
+          }
           href="/settings/team"
-          action="Manage access"
+          action="Manage team"
         />
+
         <SettingsCard
-          icon={<ShieldCheck size={20} />}
+          icon={
+            <ShieldCheck
+              size={20}
+            />
+          }
           title="Player experience"
-          text="Publish player resources and meaningful agency announcements without adding another primary workspace."
-          meta="Player-facing content"
+          text="Manage player resources and meaningful agency announcements for this workspace."
+          meta="Tenant-owned player content"
           href="/settings/player-experience"
           action="Manage player experience"
         />
+
         <SettingsCard
-          icon={<CalendarClock size={20} />}
-          title="Connections & reminders"
-          text="Calendar sync, device notifications, account security and reminder preferences in one place."
-          meta="Calendar · notifications · security"
+          icon={
+            <CalendarClock
+              size={20}
+            />
+          }
+          title="Connections"
+          text="Manage calendar, notifications, account security and connected services."
+          meta="Workspace connections"
           href="/settings/connections"
           action="Manage connections"
         />
+
         <SettingsCard
-          icon={<Settings size={20} />}
-          title="Advanced evidence"
-          text="Benchmarks, provider diagnostics and technical evidence tools remain available without living in normal navigation."
-          meta={`Automation ${normaliseAutomation(automation)}`}
-          href="/brain/data"
-          action="Open advanced tools"
+          icon={
+            <SlidersHorizontal
+              size={20}
+            />
+          }
+          title="Agency workspace"
+          text="Return to the shared ReDream operating workspace used by every agency."
+          meta="One product, tenant-specific data"
+          href="/agency"
+          action="Open workspace"
         />
       </section>
 
       <section className="ux-surface ux-settings-principle">
-        <div><p className="ux-eyebrow">OPERATING RULE</p><h2>No routine CSV or JSON.</h2></div>
-        <p>Player information should arrive automatically or through one-click updates. Technical imports remain a developer fallback, not an everyday workflow for agents.</p>
+        <div>
+          <p className="ux-eyebrow">
+            ACCESS RULE
+          </p>
+
+          <h2>
+            Agency access comes from
+            agency membership.
+          </h2>
+        </div>
+
+        <p>
+          ReDream does not use a global
+          staff role to decide who can
+          operate a customer workspace.
+          Your role in one agency does
+          not grant access to another.
+        </p>
       </section>
     </AgencyShell>
   );
 }
 
-function SettingsCard({ icon, title, text, meta, href, action }: { icon: React.ReactNode; title: string; text: string; meta: string; href: string; action: string }) {
+function SettingsCard({
+  icon,
+  title,
+  text,
+  meta,
+  href,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+  meta: string;
+  href: string;
+  action: string;
+}) {
   return (
-    <Link className="ux-settings-card" href={href}>
-      <div className="ux-settings-icon">{icon}</div>
-      <div><strong>{title}</strong><p>{text}</p><small>{meta}</small></div>
-      <span>{action}<ArrowRight size={15} /></span>
+    <Link
+      className="ux-settings-card"
+      href={href}
+    >
+      <div className="ux-settings-icon">
+        {icon}
+      </div>
+
+      <div>
+        <strong>{title}</strong>
+        <p>{text}</p>
+        <small>{meta}</small>
+      </div>
+
+      <span>
+        {action}
+        <ArrowRight size={15} />
+      </span>
     </Link>
   );
 }
 
-function normaliseAutomation(value: any) {
-  if (!value) return 'status unavailable';
-  if (typeof value === 'string') return value;
-  if (value.ok === true || value.healthy === true) return 'healthy';
-  if (value.status) return String(value.status).replaceAll('_', ' ');
-  return 'connected';
+function humanRole(value: string) {
+  if (value === 'operations') {
+    return 'Operations';
+  }
+
+  if (value === 'admin') {
+    return 'Admin';
+  }
+
+  if (value === 'agent') {
+    return 'Agent';
+  }
+
+  if (value === 'scout') {
+    return 'Scout';
+  }
+
+  if (value === 'owner') {
+    return 'Owner';
+  }
+
+  return 'Agency member';
 }

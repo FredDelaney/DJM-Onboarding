@@ -1,1 +1,5 @@
-export { default } from '../../market/deals/[id]/page';
+import { redirect } from 'next/navigation';
+
+export default function LegacyRouteRedirect() {
+  redirect('/agency?view=deals');
+}
