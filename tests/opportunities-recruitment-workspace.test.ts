@@ -37,7 +37,7 @@ test('legacy Opportunities and Recruitment URLs now enter the shared ReDream mar
 test('shared Market keeps demand control and scouting capabilities tenant-native', () => {
   assert.match(
     workspace,
-    /demand_control_fast/,
+    /redream_autopilot_market/,
   );
 
   assert.match(

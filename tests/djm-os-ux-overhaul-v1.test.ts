@@ -234,7 +234,7 @@ test('simplification preserves player-service operations in the shared workspace
 test('shared market consumes tenant-native demand and candidate evidence without restoring player scoring', () => {
   const workspace = read('components/AgencyOperatingWorkspace.tsx');
 
-  assert.match(workspace, /demand_control_fast/);
+  assert.match(workspace, /redream_autopilot_market/);
   assert.match(workspace, /career_gate_state/);
   assert.match(workspace, /scouting_mandates/);
 
