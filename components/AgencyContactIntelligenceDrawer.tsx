@@ -27,6 +27,7 @@ import {
 } from '@/lib/platform-client';
 import { whatsappHref } from '@/lib/research-links';
 
+import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
 
 type Rpc = <T = any>(
@@ -169,7 +170,7 @@ export default function AgencyContactIntelligenceDrawer({
 
     try {
       const result = await rpc<any>(
-        'redream_relationship_contact',
+        'redream_relationship_person',
         {
           p_person_id: personId,
         },
@@ -766,6 +767,10 @@ export default function AgencyContactIntelligenceDrawer({
                 </span>
               </div>
             </section>
+
+            <AgencyRelationshipMemory
+              memory={detail?.relationship_memory}
+            />
 
             <section
               className={
