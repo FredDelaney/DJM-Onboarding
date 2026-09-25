@@ -86,16 +86,17 @@ test('player Home has one dominant action and no second career navigation system
   assert.match(source, /MY PROFILE/);
 });
 
-test('routine player maintenance is one-click and not a CSV or JSON upload workflow', () => {
+test('routine player maintenance is automated while legacy admin hands off to the shared workspace', () => {
   const admin = read('app/admin/page.tsx');
-  assert.match(admin, /Update all/);
-  assert.match(admin, /refresh-player-stats-free/);
-  assert.doesNotMatch(admin, /refresh-player-data-universal/);
-  assert.doesNotMatch(admin, /refresh-player-peer-data/);
-  assert.match(admin, /if \(!isAdmin \|\| batchBusy\) return/);
-  assert.doesNotMatch(admin, /type="file"/);
-  assert.doesNotMatch(admin, /accept=.*csv/i);
-  assert.doesNotMatch(admin, /JSON\.parse/);
+  const weekly = read('supabase/functions/weekly-player-refresh/index.ts');
+
+  assert.match(admin, /redirect\('\/agency\?view=players'\)/);
+  assert.match(weekly, /daily_rotating_stale_first_weekly_coverage/);
+  assert.match(weekly, /syncTheSportsDbWeekly/);
+
+  assert.doesNotMatch(admin, /djm_recruitment_targets|djm_active_team_members/);
+  assert.doesNotMatch(admin, /Update all|refresh-player-data-universal|refresh-player-peer-data/);
+  assert.doesNotMatch(admin, /type="file"|JSON\.parse/);
 });
 
 test('comparison room keeps four distinct evidence questions', () => {

@@ -34,15 +34,15 @@ export default function TenantPlayerLanding() {
       <div className="container landing-main">
         <section>
           <div className="caps" style={{ color: 'var(--yellow)' }}>
-            PRIVATE REDREAM WORKSPACE
+            PRIVATE WORKSPACE
           </div>
 
-          <h1>One secure sign-in. The right workspace for you.</h1>
+          <h1>Your career, in one place.</h1>
 
           <p>
             Represented players get a simple private career space. Agency staff
-            get the full ReDream Agency Workspace for players, market work,
-            relationships and deals.
+            use the same secure sign-in to open the full agency workspace for
+            players, market work, relationships and deals.
           </p>
 
           <div
@@ -83,8 +83,8 @@ export default function TenantPlayerLanding() {
               <div>
                 <b>Agency staff</b>
                 <span>
-                  ReDream opens the agency operating workspace automatically
-                  from your tenant membership.
+                  Your agency workspace opens automatically from your tenant
+                  membership.
                 </span>
               </div>
             </div>
@@ -116,7 +116,7 @@ export default function TenantPlayerLanding() {
                 <b>Tenant-native from sign-in onward</b>
                 <span>
                   Access follows the agency membership, permissions and player
-                  relationship recorded in ReDream.
+                  relationship recorded for this workspace.
                 </span>
               </div>
             </div>
@@ -126,8 +126,8 @@ export default function TenantPlayerLanding() {
               <div>
                 <b>Private by default</b>
                 <span>
-                  The agency and player experiences stay separate without
-                  splitting the product into separate systems.
+                  Agency and player experiences stay separate without splitting
+                  the workspace into separate systems.
                 </span>
               </div>
             </div>
