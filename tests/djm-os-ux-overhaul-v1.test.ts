@@ -236,7 +236,7 @@ test('shared market consumes tenant-native demand and candidate evidence without
 
   assert.match(workspace, /redream_autopilot_market/);
   assert.match(workspace, /career_gate_state/);
-  assert.match(workspace, /scouting_mandates/);
+  assert.match(workspace, /candidate_coverage/);
 
   assert.doesNotMatch(read('app/(djm-os)/opportunities/page.tsx'), /djm_market_candidates_v2|djm_opportunity_upsert/);
 });

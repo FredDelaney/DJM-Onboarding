@@ -42,7 +42,7 @@ test('shared Market keeps demand control and scouting capabilities tenant-native
 
   assert.match(
     workspace,
-    /scouting_mandates/,
+    /candidate_coverage/,
   );
 
   assert.match(
