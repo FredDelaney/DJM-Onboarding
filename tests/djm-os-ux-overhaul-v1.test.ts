@@ -198,7 +198,7 @@ test('other-league discovery can bootstrap from the live provider catalogue with
 test('legacy top-level products redirect into the shared ReDream information architecture', () => {
   assert.match(read('app/(djm-os)/market/page.tsx'), /redirect\('\/agency\?view=market'\)/);
   assert.match(read('app/(djm-os)/deals/page.tsx'), /redirect\('\/agency\?view=deals'\)/);
-  assert.match(read('app/(djm-os)/recruitment/page.tsx'), /redirect\('\/agency\?view=market'\)/);
+  assert.match(read('app/(djm-os)/recruitment/page.tsx'), /redirect\('\/agency\?view=players&tab=recruitment'\)/);
   assert.match(read('app/(djm-os)/brain/page.tsx'), /redirect\('\/settings'\)/);
   assert.match(read('app/(djm-os)/network/page.tsx'), /redirect\('\/agency\?view=relationships'\)/);
 });

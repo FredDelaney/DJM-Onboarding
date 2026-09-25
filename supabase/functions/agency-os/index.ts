@@ -111,6 +111,39 @@ export default {fetch:async(req:Request)=>{
       });
     }
 
+    if(action==="recruitment_create"){
+      if(!operator()) return deny("Agency operator access required");
+      return result("result","platform_server_recruitment_create_target",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,p_full_name:id(body?.full_name),
+        p_current_club:id(body?.current_club)||null,p_current_country:id(body?.current_country)||null,
+        p_primary_position:id(body?.primary_position)||null,p_contract_expiry:id(body?.contract_expiry)||null,
+        p_transfermarkt_url:id(body?.transfermarkt_url)||null,p_recruitment_priority:clamp(body?.recruitment_priority,1,5,3)
+      });
+    }
+    if(action==="recruitment_set_stage"){
+      if(!operator()) return deny("Agency operator access required");
+      const prospectId=id(body?.prospect_id),stage=id(body?.stage).toLowerCase();
+      if(!prospectId||!stage) return json({error:"prospect_id and stage are required"},400);
+      return result("result","platform_server_recruitment_set_stage",{p_tenant_id:tenantId,p_actor_user_id:userId,p_prospect_id:prospectId,p_stage:stage});
+    }
+    if(action==="recruitment_set_next_action"){
+      if(!operator()) return deny("Agency operator access required");
+      const prospectId=id(body?.prospect_id),nextAction=id(body?.next_action_at);
+      if(!prospectId||!nextAction) return json({error:"prospect_id and next_action_at are required"},400);
+      return result("result","platform_server_recruitment_set_next_action",{p_tenant_id:tenantId,p_actor_user_id:userId,p_prospect_id:prospectId,p_next_action_at:nextAction});
+    }
+    if(action==="recruitment_log_interaction"){
+      if(!operator()) return deny("Agency operator access required");
+      const prospectId=id(body?.prospect_id),channel=id(body?.channel).toLowerCase(),direction=id(body?.direction).toLowerCase(),summary=id(body?.summary);
+      if(!prospectId||!channel||!direction||!summary) return json({error:"prospect_id, channel, direction and summary are required"},400);
+      return result("result","platform_server_recruitment_log_interaction",{p_tenant_id:tenantId,p_actor_user_id:userId,p_prospect_id:prospectId,p_channel:channel,p_direction:direction,p_summary:summary});
+    }
+    if(action==="recruitment_promote"){
+      if(!["owner","admin","agent"].includes(role)) return deny("Owner, admin or agent access required");
+      const prospectId=id(body?.prospect_id);if(!prospectId)return json({error:"prospect_id is required"},400);
+      return result("result","platform_server_recruitment_promote_player",{p_tenant_id:tenantId,p_actor_user_id:userId,p_prospect_id:prospectId});
+    }
+
     if(action==="create_options"){
       if(!operator()) return deny("Agency operator access required");
       return result("options","platform_server_agency_create_options",{p_tenant_id:tenantId,p_actor_user_id:userId});
@@ -201,6 +234,10 @@ export default {fetch:async(req:Request)=>{
       player_value_proof_portfolio:{key:"value_proof",fn:"platform_server_player_value_proof_portfolio",args:()=>({p_tenant_id:tenantId,p_window_days:clamp(body?.window_days,1,366,30),p_limit:clamp(body?.limit,1,500,100)})},
       agency_roi_proof:{key:"roi",fn:"platform_server_agency_roi_proof",args:()=>({p_tenant_id:tenantId,p_window_days:clamp(body?.window_days,1,366,30)}),guard:ownerAdmin,deny:"Owner or admin access required"},
       revenue_command:{key:"revenue",fn:"platform_server_revenue_command",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,50,12)})},
+      players_workspace:{key:"players",fn:"platform_server_players_workspace",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,200,100)})},
+      player_workspace:{key:"player",fn:"platform_server_player_workspace",args:()=>({p_tenant_id:tenantId,p_player_id:playerId()})},
+      recruitment_board:{key:"recruitment",fn:"platform_server_recruitment_board",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,500,250)})},
+      recruitment_target:{key:"recruitment",fn:"platform_server_recruitment_target",args:()=>({p_tenant_id:tenantId,p_prospect_id:id(body?.prospect_id)})},
       player_service_command:{key:"player_service",fn:"platform_server_player_service_command",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,200,50)})},
       career_strategy_command:{key:"career_strategy",fn:"platform_server_career_strategy_command",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,200,50)})},
       roster_command:{key:"roster",fn:"platform_server_roster_command",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,200,50)})},
