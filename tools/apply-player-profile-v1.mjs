@@ -74,10 +74,10 @@ replaceAllExact('components/PublicProfile.tsx', [
   ["Professional player dossier prepared by ${agencyName}", "Professional Player Profile prepared by ${agencyName}", "public profile footer"],
 ]);
 replaceAllExact('components/ClubCvPdf.tsx', [
-  ["Player Dossier", "Player Profile", "pdf metadata title"],
-  ["Professional player dossier", "Professional Player Profile", "pdf metadata subject"],
-  ["PLAYER DOSSIER", "PLAYER PROFILE", "pdf profile label"],
   ["PROFESSIONAL PLAYER DOSSIER", "PROFESSIONAL PLAYER PROFILE", "pdf footer"],
+  ["PLAYER DOSSIER", "PLAYER PROFILE", "pdf profile label"],
+  ["Professional player dossier", "Professional Player Profile", "pdf metadata subject"],
+  ["Player Dossier", "Player Profile", "pdf metadata title"],
   ["-Player-Dossier.pdf", "-Player-Profile.pdf", "pdf filename"],
 ]);
 replaceExact('app/admin/players/[id]/page.tsx',
