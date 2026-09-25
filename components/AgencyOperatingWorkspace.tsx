@@ -67,6 +67,7 @@ import AgencyPlayerServiceReviewDrawer, {
   type AgencyPlayerServiceReviewRequest,
 } from '@/components/AgencyPlayerServiceReviewDrawer';
 import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
+import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -233,6 +234,11 @@ export default function AgencyOperatingWorkspace() {
     ? `/workspace/${encodeURIComponent(explicitSlug)}`
     : '/agency';
 
+  const selectedPlayerId =
+    view === 'players'
+      ? String(search.get('player') || '').trim()
+      : '';
+
   const [sessionReady, setSessionReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -281,7 +287,7 @@ export default function AgencyOperatingWorkspace() {
   const createAction:
     | { kind: AgencyCreateKind; label: string }
     | null =
-    view === 'players'
+    view === 'players' && !selectedPlayerId
       ? { kind: 'player', label: 'Add player' }
       : view === 'opportunities'
         ? { kind: 'club_need', label: 'Add opportunity' }
@@ -987,12 +993,33 @@ export default function AgencyOperatingWorkspace() {
               />
             ) : null}
             {view === 'players' ? (
-              <AgencyPlayersWorkspace
-                data={data}
-                invoke={(action, body) => invoke<any>(action, body)}
-                onRefresh={loadView}
-                onOpenAction={(request) => setActionRequest(request)}
-              />
+              selectedPlayerId ? (
+                <AgencyPlayerProfile
+                  key={`player-profile:${selectedPlayerId}`}
+                  playerId={selectedPlayerId}
+                  backHref={`${basePath}?view=players`}
+                  role={String(workspace?.role || '')}
+                  fallbackAgency={runtime.branding}
+                  invoke={(action, body) => invoke<any>(action, body)}
+                  onOpenIntelligence={(playerId, title, context) =>
+                    setIntelligenceRequest({
+                      key: `player-360:${playerId}`,
+                      kind: 'player',
+                      entityId: playerId,
+                      title,
+                      context,
+                    })
+                  }
+                />
+              ) : (
+                <AgencyPlayersWorkspace
+                  data={data}
+                  basePath={basePath}
+                  invoke={(action, body) => invoke<any>(action, body)}
+                  onRefresh={loadView}
+                  onOpenAction={(request) => setActionRequest(request)}
+                />
+              )
             ) : null}
             {view === 'opportunities' ? (
               <Opportunities

@@ -85,7 +85,7 @@ export default function CV() {
       >
         <main className="narrow player-shell player-dossier-empty">
           <div className="section-kicker">
-            MY CLUB DOSSIER
+            MY PLAYER PROFILE
           </div>
 
           <h1 className="page-title">
@@ -94,8 +94,7 @@ export default function CV() {
           </h1>
 
           <p className="page-intro">
-            Your club-facing
-            dossier appears here
+            Your Player Profile appears here
             once your agency has prepared
             the verified
             presentation.
@@ -119,7 +118,7 @@ export default function CV() {
                 check-ins and private
                 documents are not
                 automatically included
-                in your club dossier.
+                in your Player Profile.
               </span>
             </div>
           </div>
@@ -146,8 +145,7 @@ export default function CV() {
 
             <div>
               <strong>
-                Your club-facing
-                dossier
+                Your Player Profile
               </strong>
 
               <span>

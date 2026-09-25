@@ -84,6 +84,7 @@ export default function PublicProfile({
   const agencyEmail =
     String(
       agency?.support_email ||
+        profile?.contact_email ||
         '',
     ).trim();
 
@@ -277,14 +278,14 @@ export default function PublicProfile({
                 ).toString()
               : null,
           filename:
-            `${profile.display_name || 'Player'}-${agencyShortName}-Player-Dossier.pdf`,
+            `${profile.display_name || 'Player'}-${agencyShortName}-Player-Profile.pdf`,
         });
       } catch (
         error: any
       ) {
         setNotice(
           error?.message ||
-            'The player dossier PDF could not be created.',
+            'The Player Profile PDF could not be created.',
         );
       } finally {
         setPdfBusy(false);
@@ -390,7 +391,7 @@ export default function PublicProfile({
               <div className="dossier-accent" />
 
               <div className="dossier-eyebrow">
-                PLAYER DOSSIER
+                PLAYER PROFILE
               </div>
 
               <h1 className="dossier-name">
@@ -496,7 +497,7 @@ export default function PublicProfile({
                   <Download
                     size={16}
                   />
-                  Download player dossier
+                  Download Player Profile
                 </button>
 
                 <a
@@ -1221,7 +1222,7 @@ export default function PublicProfile({
           <span>
             {verified
               ? `Player information reviewed ${verified}`
-              : `Professional player dossier prepared by ${agencyName}`}
+              : `Professional Player Profile prepared by ${agencyName}`}
           </span>
         </div>
       </footer>
