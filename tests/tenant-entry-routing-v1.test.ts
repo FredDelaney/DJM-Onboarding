@@ -38,13 +38,14 @@ test('legacy admin list cannot execute retired DJM runtime APIs', () => {
   );
 });
 
-test('tenant landing presents one role-aware ReDream entry point', () => {
+test('tenant landing presents one role-aware entry point', () => {
   const landing = read('components/TenantPlayerLanding.tsx');
 
   assert.match(landing, /Agency staff/);
   assert.match(landing, /Represented players/);
   assert.match(landing, /Sign in/);
-  assert.match(landing, /tenant membership/i);
+  assert.match(landing, /membership/i);
+  assert.doesNotMatch(landing, /\bReDream\b/);
 });
 
 test('auth routing falls back to the player workspace only for linked players', () => {
