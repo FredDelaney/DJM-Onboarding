@@ -119,4 +119,9 @@ test('write boundary resolves tenant and restricts server functions', async () =
     migration,
     /to postgres, service_role/,
   );
+
+  assert.match(
+    migration,
+    /revoke all on function public\.platform_server_relationship_person\(uuid, uuid\)/,
+  );
 });

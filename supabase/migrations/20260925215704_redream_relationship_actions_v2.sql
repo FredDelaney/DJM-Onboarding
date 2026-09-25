@@ -864,3 +864,10 @@ begin
   );
 end;
 $function$;
+
+
+revoke all on function public.platform_server_relationship_person(uuid, uuid)
+from public, anon, authenticated;
+
+grant execute on function public.platform_server_relationship_person(uuid, uuid)
+to postgres, service_role;
