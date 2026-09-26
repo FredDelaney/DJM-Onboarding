@@ -70,6 +70,7 @@ import AgencyPlayerServiceReviewDrawer, {
 import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
 import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
 import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
+import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -1024,7 +1025,7 @@ export default function AgencyOperatingWorkspace() {
               )
             ) : null}
             {view === 'opportunities' ? (
-              <Opportunities
+              <AgencyOpportunitiesWorkspace
                 data={data}
                 onOpenAction={(request) =>
                   setActionRequest(request)
