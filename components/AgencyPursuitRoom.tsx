@@ -3,6 +3,7 @@
 import {
   ArrowRight,
   BriefcaseBusiness,
+  CalendarClock,
   CheckCircle2,
   CircleAlert,
   Clipboard,
@@ -13,6 +14,7 @@ import {
   Send,
   ShieldCheck,
   Target,
+  UserRound,
   X,
 } from 'lucide-react';
 import {
@@ -304,6 +306,30 @@ export default function AgencyPursuitRoom({
           'not_prepared',
   );
 
+  const dealOwnerUserId =
+    pitch?.deal_owner_user_id || null;
+
+  const dealOwnerName =
+    pitch?.deal_owner_name || null;
+
+  const recordedNextActionAt =
+    pitch?.next_action_at || null;
+
+  const recordedNextActionText =
+    pitch?.next_action_text || null;
+
+  const followUpMissing =
+    Boolean(pitchDetail?.sent_at) &&
+    Boolean(dealRoomId) &&
+    !recordedNextActionAt &&
+    !response;
+
+  const followUpNeedsOwner =
+    Boolean(pitchDetail?.sent_at) &&
+    Boolean(dealRoomId) &&
+    !response &&
+    !dealOwnerUserId;
+
   const accessLabel =
     request.accessLabel ||
     pursuit?.best_access_route?.person_name ||
@@ -480,6 +506,101 @@ export default function AgencyPursuitRoom({
       );
     }
   };
+
+  const openFollowUpAction = () => {
+    if (
+      !dealRoomId ||
+      (!followUpMissing &&
+        !followUpNeedsOwner)
+    ) {
+      return;
+    }
+
+    if (followUpNeedsOwner) {
+      onOpenAction({
+        key:
+          `pitch-owner:${shareId || dealRoomId}`,
+        eyebrow: 'PITCH FOLLOW-UP',
+        title:
+          `${request.playerName} → ${request.clubName}`,
+        instruction:
+          'Assign one accountable agency user before setting this pitch follow-up.',
+        label: 'Assign owner',
+        action:
+          'deal_control_fix_prepare',
+        payload: {
+          deal_room_id: dealRoomId,
+        },
+        context:
+          'Sent pitch · no owner',
+        facts: [
+          {
+            label: 'Pitch',
+            value: 'Sent',
+            detail:
+              pitchDetail?.sent_at
+                ? `Confirmed ${relativeDate(pitchDetail.sent_at)}`
+                : 'Human-confirmed sent',
+          },
+          {
+            label: 'Follow-up owner',
+            value: 'Not assigned',
+            detail:
+              'Every task and reminder must belong to one agency user.',
+          },
+        ],
+        successCondition:
+          'One active agency user owns the linked deal before a follow-up is recorded.',
+        confirmationLabel:
+          'Assign deal owner',
+      });
+
+      return;
+    }
+
+    onOpenAction({
+      key:
+        `pitch-follow-up:${shareId || dealRoomId}`,
+      eyebrow: 'PITCH FOLLOW-UP',
+      title:
+        `${request.playerName} → ${request.clubName}`,
+      instruction:
+        'Choose the next concrete follow-up and when you will do it. ReDream will not invent the action or date.',
+      label: 'Set follow-up',
+      action: 'deal_step_prepare',
+      payload: {
+        deal_room_id: dealRoomId,
+        step_type: 'set_next_action',
+      },
+      context:
+        dealOwnerName
+          ? `Owned by ${dealOwnerName}`
+          : 'Owned deal',
+      facts: [
+        {
+          label: 'Owner',
+          value:
+            dealOwnerName ||
+            'Assigned agency user',
+          detail:
+            'This user owns the follow-up reminder.',
+        },
+        {
+          label: 'Pitch',
+          value: 'Sent',
+          detail:
+            pitchDetail?.sent_at
+              ? `Confirmed ${relativeDate(pitchDetail.sent_at)}`
+              : 'Human-confirmed sent',
+        },
+      ],
+      successCondition:
+        'The linked deal has one concrete future follow-up action and time owned by its assigned agency user.',
+      confirmationLabel:
+        'Set follow-up',
+    });
+  };
+
 
   const openCareerAction = () => {
     if (!playerId) return;
@@ -995,7 +1116,13 @@ export default function AgencyPursuitRoom({
                               ? 'Complete human delivery'
                               : response
                                 ? 'Review the response'
-                                : 'Protect the follow-up'}
+                                : followUpNeedsOwner
+                                  ? 'Assign follow-up owner'
+                                  : followUpMissing
+                                    ? 'Set the follow-up'
+                                    : recordedNextActionAt
+                                      ? 'Follow-up is controlled'
+                                      : 'Protect the follow-up'}
                 </h3>
                 <span>
                   {!careerIsOpen
@@ -1318,11 +1445,115 @@ export default function AgencyPursuitRoom({
                       ) : null}
                     </div>
 
+
                     <p className={styles.truth}>
-                      ReDream never marks a pitch sent because a link was created or published. Sent is recorded only from your explicit confirmation.
+                      ReDream never marks a pitch sent because a link was created or published. Sent is recorded only from your explicit confirmation. Follow-up dates are recorded by a person, never invented automatically.
                     </p>
                   </>
                 )}
+              </section>
+            ) : null}
+
+            {pitchDetail?.sent_at &&
+            !response ? (
+              <section className={styles.panel}>
+                <div className={styles.panelHead}>
+                  <CalendarClock size={17} />
+                  <div>
+                    <p>FOLLOW-UP CONTROL</p>
+                    <h3>
+                      {!dealRoomId
+                        ? 'Create deal control before setting a reminder.'
+                        : followUpNeedsOwner
+                          ? 'Assign one owner before setting the follow-up.'
+                          : followUpMissing
+                            ? `Set the next follow-up for ${dealOwnerName || 'the deal owner'}.`
+                            : 'The follow-up is owned and scheduled.'}
+                    </h3>
+                  </div>
+                </div>
+
+                {dealRoomId ? (
+                  <>
+                    <div className={styles.grid}>
+                      <Fact
+                        label="Owner"
+                        value={
+                          dealOwnerName ||
+                          (dealOwnerUserId
+                            ? 'Assigned agency user'
+                            : 'Not assigned')
+                        }
+                        detail={
+                          dealOwnerUserId
+                            ? 'This user owns the reminder.'
+                            : 'Tasks and reminders must belong to one agency user.'
+                        }
+                      />
+                      <Fact
+                        label="Next follow-up"
+                        value={
+                          recordedNextActionAt
+                            ? relativeDate(
+                                recordedNextActionAt,
+                              )
+                            : 'Not scheduled'
+                        }
+                        detail={
+                          recordedNextActionText ||
+                          'No follow-up action is recorded.'
+                        }
+                      />
+                    </div>
+
+                    {followUpNeedsOwner ||
+                    followUpMissing ? (
+                      <button
+                        type="button"
+                        className={styles.primary}
+                        onClick={
+                          openFollowUpAction
+                        }
+                      >
+                        {followUpNeedsOwner ? (
+                          <UserRound size={15} />
+                        ) : (
+                          <CalendarClock
+                            size={15}
+                          />
+                        )}
+                        {followUpNeedsOwner
+                          ? 'Assign owner first'
+                          : 'Set follow-up'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.secondary}
+                        onClick={() =>
+                          onOpenDeal(
+                            dealRoomId,
+                            `${request.playerName} → ${request.clubName}`,
+                            request.needTitle,
+                          )
+                        }
+                      >
+                        <BriefcaseBusiness
+                          size={15}
+                        />
+                        Open Deal War Room
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <p className={styles.copy}>
+                    A pitch can be sent before a Deal Room exists, but ReDream will not create an unowned reminder. Create the deal below when the pursuit needs accountable follow-up.
+                  </p>
+                )}
+
+                <p className={styles.truth}>
+                  ReDream never invents a follow-up date. Every task and reminder belongs to one accountable agency user.
+                </p>
               </section>
             ) : null}
 

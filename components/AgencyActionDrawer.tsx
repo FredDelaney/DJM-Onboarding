@@ -223,7 +223,7 @@ export default function AgencyActionDrawer({
     Record<string, string>
   >({});
 
-  const requiredInputs = list(
+  const rawRequiredInputs = list(
     result?.required_inputs,
   );
 
@@ -290,6 +290,26 @@ export default function AgencyActionDrawer({
     proposal?.action_type ||
     result?.action_type ||
     '';
+
+  const reminderOwnerName = String(
+    result?.reminder_owner_name || '',
+  ).trim();
+
+  const requiredInputs =
+    rawRequiredInputs.length
+      ? rawRequiredInputs
+      : actionType ===
+            'set_deal_next_action' &&
+          result?.status === 'needs_input'
+        ? [
+            'next_action_text',
+            'next_action_at',
+          ]
+        : actionType ===
+              'assign_deal_owner' &&
+            result?.status === 'needs_input'
+          ? ['owner_user_id']
+          : [];
 
   const proposalPayload =
     proposal?.payload ||
@@ -810,6 +830,18 @@ export default function AgencyActionDrawer({
               </div>
             </div>
 
+            {actionType ===
+                'set_deal_next_action' &&
+            reminderOwnerName ? (
+              <p
+                className={
+                  styles.panelExplanation
+                }
+              >
+                This follow-up reminder will belong to {reminderOwnerName}.
+              </p>
+            ) : null}
+
             <div
               className={styles.inputs}
             >
@@ -1309,13 +1341,27 @@ export default function AgencyActionDrawer({
                 </strong>
               </div>
 
-              {proposalPayload?.due_at ? (
+              {proposalPayload?.due_at ||
+              proposalPayload?.next_action_at ? (
                 <div>
                   <span>Due</span>
                   <strong>
                     {formatWhen(
-                      proposalPayload.due_at,
+                      proposalPayload?.due_at ||
+                        proposalPayload
+                          ?.next_action_at,
                     )}
+                  </strong>
+                </div>
+              ) : null}
+
+              {actionType ===
+                  'set_deal_next_action' &&
+              reminderOwnerName ? (
+                <div>
+                  <span>Responsible</span>
+                  <strong>
+                    {reminderOwnerName}
                   </strong>
                 </div>
               ) : null}
