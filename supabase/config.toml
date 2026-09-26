@@ -145,3 +145,6 @@ verify_jwt = true
 
 [functions.agency-staff-invite-public]
 verify_jwt = false
+
+[functions.redream-provider-oauth]
+verify_jwt = false

@@ -20,6 +20,7 @@ import {
   LogOut,
   Network,
   Plus,
+  PlugZap,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -72,6 +73,7 @@ import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
 import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
 import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
+import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -274,6 +276,9 @@ export default function AgencyOperatingWorkspace() {
     useState<AgencyCreateKind | null>(null);
   const [showFirstValueHandoff, setShowFirstValueHandoff] = useState(
     () => search.get('handoff') === 'first-value',
+  );
+  const [connectionsOpen, setConnectionsOpen] = useState(
+    () => search.get('connections') === '1',
   );
 
   const workspaceName =
@@ -633,6 +638,12 @@ export default function AgencyOperatingWorkspace() {
   }, [view, workspace, workspaceName]);
 
   useEffect(() => {
+    if (search.get('connections') === '1') {
+      setConnectionsOpen(true);
+    }
+  }, [search]);
+
+  useEffect(() => {
     if (search.get('handoff') !== 'first-value') return;
 
     const next = new URLSearchParams(search.toString());
@@ -916,6 +927,15 @@ export default function AgencyOperatingWorkspace() {
           </div>
           <div className={styles.headActions}>
             <AiLauncher />
+            <button
+              type="button"
+              className={styles.refresh}
+              onClick={() => setConnectionsOpen(true)}
+              title="Connections"
+            >
+              <PlugZap size={15} />
+              Connections
+            </button>
             {createAction ? (
               <button
                 type="button"
@@ -1061,6 +1081,14 @@ export default function AgencyOperatingWorkspace() {
           </>
         ) : null}
       </main>
+
+      {connectionsOpen ? (
+        <AgencyConnectionsDrawer
+          key={`connections:${workspace.slug}`}
+          workspaceSlug={workspace.slug}
+          onClose={() => setConnectionsOpen(false)}
+        />
+      ) : null}
 
       {createKind ? (
         <AgencyCreateDrawer
