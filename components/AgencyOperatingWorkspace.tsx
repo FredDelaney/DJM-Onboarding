@@ -3423,27 +3423,674 @@ function Opportunities({
     request: AgencyIntelligenceRequest,
   ) => void;
 }) {
-  const activeDeals = Number(
-    data?.deals?.portfolio?.summary?.active_deals ||
-      data?.deals?.portfolio?.deals?.length ||
-      0,
+  const market = data?.market || {};
+  const dealsData = data?.deals || {};
+
+  const needs = Array.isArray(
+    market?.demand?.items,
+  )
+    ? market.demand.items
+    : [];
+
+  const pursuits = Array.isArray(
+    market?.pursuits?.items,
+  )
+    ? market.pursuits.items
+    : [];
+
+  const pitches = Array.isArray(
+    market?.pitch_execution?.items,
+  )
+    ? market.pitch_execution.items
+    : [];
+
+  const deals = Array.isArray(
+    dealsData?.portfolio?.deals,
+  )
+    ? dealsData.portfolio.deals
+    : [];
+
+  const activeNeeds = Number(
+    market?.demand?.summary?.active_needs ??
+      needs.length,
   );
+
+  const flowStages = [
+    'Need',
+    'Player',
+    'Route',
+    'Pitch',
+    'Follow-up',
+    'Deal',
+  ];
+
+  const pitchForPursuit = (
+    pursuit: any,
+  ) =>
+    pitches.find(
+      (pitch: any) =>
+        String(pitch?.player_id || '') ===
+          String(
+            pursuit?.player?.player_id || '',
+          ) &&
+        String(
+          pitch?.organisation_id || '',
+        ) ===
+          String(
+            pursuit?.club?.organisation_id ||
+              '',
+          ),
+    );
+
+  const dealById = new Map<string, any>(
+    deals.map((deal: any) => [
+      String(deal?.deal_room_id || ''),
+      deal,
+    ]),
+  );
+
+  const representedNeedIds = new Set(
+    pursuits
+      .map((item: any) =>
+        String(item?.club_need_id || ''),
+      )
+      .filter(Boolean),
+  );
+
+  const opportunityRows = pursuits.map(
+    (pursuit: any) => {
+      const pitch = pitchForPursuit(pursuit);
+
+      const dealRoomId = String(
+        pitch?.deal_room_id || '',
+      );
+
+      const deal = dealRoomId
+        ? dealById.get(dealRoomId)
+        : null;
+
+      const hasPitch = Boolean(
+        pitch?.share_id,
+      );
+
+      const hasSentPitch = Boolean(
+        pitch?.sent_at,
+      );
+
+      const hasFollowUp = Boolean(
+        pitch?.next_action_at,
+      );
+
+      const hasDeal = Boolean(
+        dealRoomId,
+      );
+
+      const careerState = String(
+        pursuit?.career_strategy_gate
+          ?.state || '',
+      );
+
+      const careerHold =
+        careerState.startsWith('hold_');
+
+      const accessMode =
+        pursuit?.access_strategy
+          ?.recommended_mode ||
+        pursuit?.best_access_route
+          ?.route_state ||
+        'recorded_route';
+
+      const currentStage = hasDeal
+        ? 'Deal'
+        : hasSentPitch
+          ? 'Follow-up'
+          : hasPitch
+            ? 'Pitch'
+            : 'Route';
+
+      const recordedStages = new Set([
+        'Need',
+        'Player',
+        'Route',
+        ...(hasPitch ? ['Pitch'] : []),
+        ...(hasSentPitch
+          ? ['Follow-up']
+          : []),
+        ...(hasDeal ? ['Deal'] : []),
+      ]);
+
+      const nextMove = deal
+        ? deal?.next_control_fix
+            ?.instruction ||
+          deal?.next_best_move
+            ?.instruction ||
+          deal?.next_decision ||
+          'Review the live deal.'
+        : pitch?.recommended_review
+            ?.instruction ||
+          pursuit?.career_strategy_gate
+            ?.next_action?.instruction ||
+          pursuit?.best_access_route
+            ?.why_this_route ||
+          'Review this player-club route.';
+
+      const actionLabel = hasDeal
+        ? 'Open deal'
+        : hasSentPitch
+          ? hasFollowUp
+            ? 'Review follow-up'
+            : 'Set follow-up'
+          : hasPitch
+            ? 'Finish pitch'
+            : careerHold
+              ? 'Review player'
+              : 'Open pursuit';
+
+      const stateLabel = hasDeal
+        ? human(
+            deal?.stage ||
+              pitch?.deal_stage ||
+              'Live deal',
+          )
+        : hasSentPitch
+          ? hasFollowUp
+            ? 'Follow-up set'
+            : 'Follow-up needed'
+          : hasPitch
+            ? human(
+                pitch?.execution_state ||
+                  pitch?.pitch_status ||
+                  'Pitch',
+              )
+            : careerHold
+              ? 'Player decision'
+              : human(
+                  pursuit?.pursuit_operating_mode ||
+                    'Route ready',
+                );
+
+      const routeLabel =
+        pursuit?.best_access_route
+          ?.person_name ||
+        human(accessMode);
+
+      return {
+        key: `pursuit:${pursuit.player_match_id}`,
+        kind: 'pursuit',
+        stage: currentStage,
+        recordedStages,
+        playerName:
+          pursuit?.player?.name || 'Player',
+        clubName:
+          pursuit?.club?.name || 'Club',
+        needTitle:
+          pursuit?.need?.title ||
+          'Recorded club need',
+        detail: nextMove,
+        routeLabel,
+        stateLabel,
+        actionLabel,
+        dealRoomId,
+        pursuit,
+      };
+    },
+  );
+
+  const linkedDealIds = new Set(
+    opportunityRows
+      .map((row: any) => row.dealRoomId)
+      .filter(Boolean),
+  );
+
+  const dealOnlyRows = deals
+    .filter(
+      (deal: any) =>
+        !linkedDealIds.has(
+          String(deal?.deal_room_id || ''),
+        ),
+    )
+    .map((deal: any) => ({
+      key: `deal:${deal.deal_room_id}`,
+      kind: 'deal',
+      stage: 'Deal',
+      recordedStages: new Set([
+        ...(deal?.player ? ['Player'] : []),
+        'Deal',
+      ]),
+      playerName:
+        deal?.player || 'Player not recorded',
+      clubName:
+        deal?.organisation || 'Club',
+      needTitle: deal?.title || 'Live deal',
+      detail:
+        deal?.next_control_fix?.instruction ||
+        deal?.next_best_move?.instruction ||
+        deal?.next_decision ||
+        'Review the live deal.',
+      routeLabel:
+        'Commercial deal control',
+      stateLabel: human(
+        deal?.stage || 'Live deal',
+      ),
+      actionLabel: 'Open deal',
+      dealRoomId: String(
+        deal?.deal_room_id || '',
+      ),
+      deal,
+    }));
+
+  const needOnlyRows = needs
+    .filter(
+      (item: any) =>
+        !representedNeedIds.has(
+          String(item?.club_need_id || ''),
+        ),
+    )
+    .map((item: any) => ({
+      key: `need:${item.club_need_id}`,
+      kind: 'need',
+      stage: 'Need',
+      recordedStages: new Set(['Need']),
+      playerName: 'No player route yet',
+      clubName:
+        item?.club?.name || 'Club',
+      needTitle:
+        item?.need?.title ||
+        'Recorded player need',
+      detail:
+        item?.next_action?.instruction ||
+        'Find the right player for this club need.',
+      routeLabel: human(
+        item?.coverage_state ||
+          'No player route',
+      ),
+      stateLabel: human(
+        item?.need?.need_type ||
+          'Recorded need',
+      ),
+      actionLabel: 'Start search',
+      clubNeed: item,
+    }));
+
+  const stagePriority: Record<
+    string,
+    number
+  > = {
+    Deal: 0,
+    'Follow-up': 1,
+    Pitch: 2,
+    Route: 3,
+    Player: 4,
+    Need: 5,
+  };
+
+  const rows = [
+    ...opportunityRows,
+    ...dealOnlyRows,
+    ...needOnlyRows,
+  ].sort(
+    (a: any, b: any) =>
+      (stagePriority[a.stage] ?? 9) -
+      (stagePriority[b.stage] ?? 9),
+  );
+
+  const pitchesInMotion = pitches.filter(
+    (pitch: any) =>
+      Boolean(pitch?.share_id) &&
+      pitch?.execution_state !== 'revoked' &&
+      pitch?.execution_state !== 'expired',
+  ).length;
+
+  const openPursuit = (row: any) => {
+    const item = row.pursuit;
+    const accessMode =
+      item?.access_strategy
+        ?.recommended_mode ||
+      item?.best_access_route
+        ?.route_state ||
+      'recorded_route';
+
+    onOpenPursuit({
+      key: row.key,
+      playerMatchId: String(
+        item?.player_match_id || '',
+      ),
+      playerId:
+        item?.player?.player_id
+          ? String(item.player.player_id)
+          : null,
+      playerName:
+        item?.player?.name || 'Player',
+      clubId:
+        item?.club?.organisation_id
+          ? String(
+              item.club.organisation_id,
+            )
+          : null,
+      clubName:
+        item?.club?.name || 'Club',
+      needTitle:
+        item?.need?.title || null,
+      careerGateState:
+        item?.career_strategy_gate
+          ?.state || null,
+      careerGateReason:
+        item?.career_strategy_gate
+          ?.reason || null,
+      accessLabel:
+        item?.best_access_route
+          ?.person_name ||
+        human(accessMode),
+      accessDetail:
+        item?.best_access_route
+          ?.why_this_route || null,
+    });
+  };
+
+  const openNeedSearch = (row: any) => {
+    const item = row.clubNeed;
+
+    onOpenAction({
+      key:
+        `scouting:${item.club_need_id}`,
+      eyebrow: 'CLUB NEED',
+      title:
+        `${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`,
+      instruction:
+        item.next_action?.instruction ||
+        'Create controlled scouting work against the recorded club need.',
+      label: 'Prepare search',
+      action: 'scouting_mandate_prepare',
+      payload: {
+        club_need_id: item.club_need_id,
+      },
+      context:
+        item.need?.position ||
+        'Recorded club need',
+      facts: [
+        {
+          label: 'Need',
+          value:
+            item.need?.title ||
+            'Recorded player need',
+          detail:
+            `${human(item.need?.need_type || 'recorded')} · ${item.club?.name || 'Club recorded'}`,
+        },
+        {
+          label: 'Profile',
+          value:
+            [
+              item.need?.position,
+              item.need?.preferred_foot
+                ? `${item.need.preferred_foot} foot`
+                : null,
+              item.need?.min_height_cm
+                ? `${item.need.min_height_cm}cm+`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' · ') ||
+            'Profile not fully recorded',
+          detail: item.need?.transfer_type
+            ? human(
+                item.need.transfer_type,
+              )
+            : 'Transfer type not recorded',
+        },
+        {
+          label: 'Coverage',
+          value: 'No player route recorded',
+          detail: human(
+            item.coverage_state ||
+              'coverage not recorded',
+          ),
+        },
+        {
+          label: 'Timing',
+          value: item.need?.expires_at
+            ? relativeDate(
+                item.need.expires_at,
+              )
+            : 'No expiry recorded',
+          detail:
+            'Recorded club-demand timing',
+        },
+      ],
+      successCondition:
+        'At least one credible candidate route is recorded against this club need.',
+      confirmationLabel:
+        'Create search task',
+    });
+  };
+
+  const actOnRow = (row: any) => {
+    if (
+      row.kind === 'deal' ||
+      row.dealRoomId
+    ) {
+      const deal =
+        row.deal ||
+        dealById.get(row.dealRoomId);
+
+      onOpenIntelligence({
+        key:
+          `deal-war-room:${row.dealRoomId}`,
+        kind: 'deal',
+        entityId: String(
+          row.dealRoomId,
+        ),
+        title:
+          deal?.title ||
+          `${row.playerName} → ${row.clubName}`,
+        context:
+          deal?.organisation ||
+          row.needTitle,
+      });
+
+      return;
+    }
+
+    if (row.kind === 'pursuit') {
+      openPursuit(row);
+      return;
+    }
+
+    openNeedSearch(row);
+  };
 
   return (
     <div className={styles.stack}>
-      <Market
-        data={data?.market}
-        onOpenAction={onOpenAction}
-        onOpenPursuit={onOpenPursuit}
+      <WorkspaceIntro
+        eyebrow="OPPORTUNITIES"
+        title="Every opportunity, from club need to deal."
+        copy="See where each opportunity is, what is recorded and the one next move that keeps it moving."
+        icon={Target}
+        badge={`${rows.length} active opportunities`}
       />
 
-      {activeDeals > 0 ? (
-        <Deals
-          data={data?.deals}
-          onOpenAction={onOpenAction}
-          onOpenIntelligence={onOpenIntelligence}
+      <section className={styles.metrics}>
+        <Metric
+          label="Club needs"
+          value={String(activeNeeds)}
+          detail="Live requirements from clubs"
         />
-      ) : null}
+
+        <Metric
+          label="Player routes"
+          value={String(pursuits.length)}
+          detail="Recorded player to club routes"
+        />
+
+        <Metric
+          label="Pitches in motion"
+          value={String(pitchesInMotion)}
+          detail="Private pitch records currently active"
+        />
+
+        <Metric
+          label="Live deals"
+          value={String(deals.length)}
+          detail="Commercial deal rooms currently active"
+        />
+      </section>
+
+      <section
+        className={
+          styles.opportunityJourney
+        }
+      >
+        <div className={styles.sectionHead}>
+          <div>
+            <p className={styles.eyebrow}>
+              NEXT MOVES
+            </p>
+            <h2>
+              One opportunity. One clear next move.
+            </h2>
+          </div>
+
+          <span className={styles.sectionCount}>
+            {rows.length} active
+          </span>
+        </div>
+
+        <div
+          className={
+            styles.opportunityJourneyList
+          }
+        >
+          {rows.map((row: any) => (
+            <article
+              className={
+                styles.opportunityJourneyRow
+              }
+              key={row.key}
+            >
+              <div
+                className={
+                  styles.opportunityJourneyMain
+                }
+              >
+                <div
+                  className={
+                    styles.opportunityJourneyIdentity
+                  }
+                >
+                  <div>
+                    <span>
+                      {row.stage}
+                    </span>
+                    <strong>
+                      {row.kind === 'need'
+                        ? `${row.clubName} · ${row.needTitle}`
+                        : `${row.playerName} → ${row.clubName}`}
+                    </strong>
+                    <small>
+                      {row.kind === 'need'
+                        ? row.playerName
+                        : row.needTitle}
+                    </small>
+                  </div>
+
+                  <span
+                    className={styles.pill}
+                  >
+                    {row.stateLabel}
+                  </span>
+                </div>
+
+                <div
+                  className={
+                    styles.opportunityFlow
+                  }
+                  aria-label="Opportunity progress"
+                >
+                  {flowStages.map(
+                    (stage) => {
+                      const recorded =
+                        row.recordedStages.has(
+                          stage,
+                        );
+
+                      const current =
+                        row.stage === stage;
+
+                      return (
+                        <div
+                          key={stage}
+                          className={
+                            current
+                              ? styles.opportunityFlowCurrent
+                              : recorded
+                                ? styles.opportunityFlowDone
+                                : styles.opportunityFlowFuture
+                          }
+                        >
+                          <i>
+                            {recorded ? (
+                              <CheckCircle2
+                                size={11}
+                              />
+                            ) : (
+                              <span />
+                            )}
+                          </i>
+                          <span>{stage}</span>
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+
+                <div
+                  className={
+                    styles.opportunityJourneyNext
+                  }
+                >
+                  <div>
+                    <span>NEXT MOVE</span>
+                    <strong>
+                      {row.detail}
+                    </strong>
+                    <small>
+                      {row.routeLabel}
+                    </small>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={
+                      styles.opportunityJourneyAction
+                    }
+                    onClick={() =>
+                      actOnRow(row)
+                    }
+                  >
+                    <ArrowRight size={14} />
+                    {row.actionLabel}
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+
+          {!rows.length ? (
+            <EmptyState
+              icon={Target}
+              title="No active opportunities yet"
+              copy="Add a real club need to start the path from demand to player route, pitch, follow-up and deal."
+            />
+          ) : null}
+        </div>
+
+        <p
+          className={
+            styles.opportunityJourneyTruth
+          }
+        >
+          The stages show recorded evidence only. A pitch open, relationship route or deal stage is not a prediction of success.
+        </p>
+      </section>
     </div>
   );
 }

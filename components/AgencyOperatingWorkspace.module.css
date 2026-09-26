@@ -2401,3 +2401,246 @@
     justify-self: start;
   }
 }
+
+.opportunityJourney {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e2e5e8;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.opportunityJourneyList {
+  display: grid;
+  gap: 10px;
+}
+
+.opportunityJourneyRow {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e6e9ec;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.opportunityJourneyMain {
+  min-width: 0;
+  display: grid;
+}
+
+.opportunityJourneyIdentity {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 14px 11px;
+}
+
+.opportunityJourneyIdentity > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.opportunityJourneyIdentity > div > span {
+  color: var(--agency-primary);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.opportunityJourneyIdentity strong {
+  overflow: hidden;
+  color: #303740;
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opportunityJourneyIdentity small {
+  overflow: hidden;
+  color: #848b94;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opportunityFlow {
+  display: grid;
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr));
+  gap: 0;
+  padding: 0 14px 12px;
+}
+
+.opportunityFlow > div {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  color: #a0a6ad;
+  font-size: 7px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.opportunityFlow > div::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 50%;
+  left: -50%;
+  height: 1px;
+  background: #e5e8eb;
+}
+
+.opportunityFlow > div:first-child::before {
+  display: none;
+}
+
+.opportunityFlow i {
+  position: relative;
+  z-index: 1;
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dde1e5;
+  border-radius: 50%;
+  background: #fff;
+  font-style: normal;
+}
+
+.opportunityFlow i > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #c8cdd2;
+}
+
+.opportunityFlowDone {
+  color: #66707a !important;
+}
+
+.opportunityFlowDone i {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--agency-primary) 20%,
+      #d9dee3
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-primary) 6%,
+      #fff
+    );
+  color: var(--agency-primary);
+}
+
+.opportunityFlowCurrent {
+  color: var(--agency-primary) !important;
+  font-weight: 850 !important;
+}
+
+.opportunityFlowCurrent i {
+  border-color: var(--agency-primary);
+  background: var(--agency-primary);
+  color: #fff;
+}
+
+.opportunityFlowFuture {
+  color: #a5abb2;
+}
+
+.opportunityJourneyNext {
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 14px 13px;
+  border-top: 1px solid #eef0f2;
+  background: #fafbfb;
+}
+
+.opportunityJourneyNext > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.opportunityJourneyNext > div > span {
+  color: #8a9199;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.opportunityJourneyNext strong {
+  color: #454d56;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.opportunityJourneyNext small {
+  color: #89919a;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.opportunityJourneyAction {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--agency-primary);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 850;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.opportunityJourneyTruth {
+  margin: 0 2px;
+  color: #90969e;
+  font-size: 7px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .opportunityJourney {
+    padding: 13px;
+  }
+
+  .opportunityJourneyIdentity {
+    padding: 12px;
+  }
+
+  .opportunityFlow {
+    overflow-x: auto;
+    grid-template-columns:
+      repeat(6, minmax(68px, 1fr));
+    padding: 0 12px 12px;
+  }
+
+  .opportunityJourneyNext {
+    grid-template-columns: 1fr;
+    padding: 11px 12px 12px;
+  }
+
+  .opportunityJourneyAction {
+    width: 100%;
+  }
+}
