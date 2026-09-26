@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import AiCapture from '@/components/AiCapture';
 import AiRecentCaptures from '@/components/AiRecentCaptures';
 import { platformRpc } from '@/lib/platform-client';
+import { readReDreamShare } from '@/lib/redream-share';
 import {
   contextFromRoute,
   contextFromSearchParams,
@@ -27,6 +28,13 @@ type AiAccess = {
 export default function AiFullPage() {
   const workspaceSlug = useAiWorkspace();
   const search = useSearchParams().toString();
+  const shared = useMemo(
+    () =>
+      readReDreamShare(
+        new URLSearchParams(search),
+      ),
+    [search],
+  );
   const [sourceRoute, setSourceRoute] = useState('');
   const routeFallback = useMemo(
     () => (sourceRoute.startsWith('/') ? contextFromRoute(sourceRoute) : {}),
@@ -35,8 +43,29 @@ export default function AiFullPage() {
   const [routeContext, setRouteContext] = useState<EntityContext>(routeFallback);
   const [queryContext, setQueryContext] = useState<EntityContext>({});
   const context = useMemo(
-    () => mergeEntityContext(routeContext, queryContext),
-    [queryContext, routeContext],
+    () => ({
+      ...mergeEntityContext(
+        routeContext,
+        queryContext,
+      ),
+      ...(shared.hasContent
+        ? {
+            capture_origin:
+              'share_target',
+            shared_title:
+              shared.title || null,
+            shared_url:
+              shared.url || null,
+          }
+        : {}),
+    }),
+    [
+      queryContext,
+      routeContext,
+      shared.hasContent,
+      shared.title,
+      shared.url,
+    ],
   );
   const [selectedCaptureId, setSelectedCaptureId] = useState<string | null>(null);
   const [recentRefreshKey, setRecentRefreshKey] = useState(0);
@@ -119,6 +148,11 @@ export default function AiFullPage() {
         resumeCaptureId={selectedCaptureId}
         maxAudioSeconds={Number(access.max_audio_seconds || 240)}
         resolvedWorkspaceSlug={access.workspace_slug}
+        initialText={
+          shared.hasContent
+            ? shared.content
+            : ''
+        }
         onCompleted={handleCaptureCompleted}
       />
       <AiRecentCaptures

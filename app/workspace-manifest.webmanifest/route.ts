@@ -81,6 +81,15 @@ export async function GET() {
         'sports',
         'business',
       ],
+      share_target: {
+        action: '/share-to-redream',
+        method: 'GET',
+        params: {
+          title: 'share_title',
+          text: 'share_text',
+          url: 'share_url',
+        },
+      },
     };
 
   const iconAsset =
