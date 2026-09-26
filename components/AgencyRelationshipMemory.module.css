@@ -55,7 +55,7 @@
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -231,4 +231,37 @@
   .columns {
     grid-template-columns: 1fr;
   }
+}
+
+.routes {
+  display: grid;
+  gap: 8px;
+}
+
+.routeChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.routeChips > div {
+  min-width: 150px;
+  flex: 1 1 150px;
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid #eceef1;
+  border-radius: 10px;
+  background: #fafbfb;
+}
+
+.routeChips strong {
+  color: #454d57;
+  font-size: 9px;
+}
+
+.routeChips span {
+  color: #8a919a;
+  font-size: 7px;
+  line-height: 1.35;
 }

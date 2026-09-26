@@ -1,11 +1,11 @@
 'use client';
 
 import {
-  ArrowRight,
   CalendarClock,
   Clock3,
   MessageCircleMore,
   Route,
+  ShieldCheck,
   Users,
 } from 'lucide-react';
 
@@ -53,8 +53,12 @@ export default function AgencyRelationshipMemory({
 }) {
   const routes = list(memory?.routes);
   const interactions = list(memory?.recent_interactions);
-  const tasks = list(memory?.open_tasks);
-  const commitments = list(memory?.commitments);
+  const followups = list(
+    memory?.followups ?? memory?.open_tasks,
+  );
+  const promises = list(
+    memory?.promises ?? memory?.commitments,
+  );
   const best = memory?.best_route || {};
   const state = stateCopy(clean(memory?.state));
 
@@ -91,16 +95,16 @@ export default function AgencyRelationshipMemory({
         <div>
           <Users size={15} />
           <span>
-            <small>AGENCY ROUTES</small>
+            <small>WHO KNOWS THEM</small>
             <strong>
               {routes.length} recorded
             </strong>
             <em>
               {routes.length > 1
-                ? 'More than one agency relationship is available'
+                ? 'Multiple agency relationships are available'
                 : routes.length === 1
-                  ? 'One direct agency relationship is recorded'
-                  : 'No direct agency relationship recorded'}
+                  ? 'One agency relationship is recorded'
+                  : 'No agency relationship recorded'}
             </em>
           </span>
         </div>
@@ -108,16 +112,25 @@ export default function AgencyRelationshipMemory({
         <div>
           <CalendarClock size={15} />
           <span>
-            <small>OPEN FOLLOW-UP</small>
-            <strong>
-              {tasks.length + commitments.length}
-            </strong>
+            <small>NEXT FOLLOW-UP</small>
+            <strong>{followups.length}</strong>
             <em>
-              {tasks[0]?.due_at
-                ? `Next ${relativeDate(tasks[0].due_at)}`
-                : commitments[0]?.due_at
-                  ? `Next ${relativeDate(commitments[0].due_at)}`
-                  : 'Nothing currently due'}
+              {followups[0]?.due_at
+                ? `Next ${relativeDate(followups[0].due_at)}`
+                : 'Nothing currently due'}
+            </em>
+          </span>
+        </div>
+
+        <div>
+          <ShieldCheck size={15} />
+          <span>
+            <small>PROMISES TO KEEP</small>
+            <strong>{promises.length}</strong>
+            <em>
+              {promises[0]?.due_at
+                ? `Next ${relativeDate(promises[0].due_at)}`
+                : 'No open promise recorded'}
             </em>
           </span>
         </div>
@@ -130,90 +143,164 @@ export default function AgencyRelationshipMemory({
         </div>
       ) : null}
 
+      <div className={styles.routes}>
+        <div className={styles.blockHead}>
+          <div>
+            <Users size={14} />
+            <strong>Agency routes</strong>
+          </div>
+          <span>{routes.length}</span>
+        </div>
+
+        {routes.length ? (
+          <div className={styles.routeChips}>
+            {routes.slice(0, 6).map((route: any) => (
+              <div key={clean(route?.owner_user_id) || clean(route?.owner_name)}>
+                <strong>
+                  {clean(route?.owner_name) || 'Agency relationship'}
+                </strong>
+                <span>
+                  {route?.last_meaningful_at
+                    ? `Last meaningful ${relativeDate(route.last_meaningful_at)}`
+                    : 'No meaningful date recorded'}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.empty}>
+            No agency relationship is recorded yet.
+          </p>
+        )}
+      </div>
+
       <div className={styles.columns}>
-        <div className={styles.block}>
-          <div className={styles.blockHead}>
-            <div>
-              <MessageCircleMore size={14} />
-              <strong>Recent conversations</strong>
-            </div>
-            <span>{interactions.length}</span>
-          </div>
+        <MemoryBlock
+          title="Recent conversations"
+          count={interactions.length}
+          icon="conversation"
+          empty="No conversations are recorded yet."
+          items={interactions.slice(0, 6).map((item: any) => ({
+            id: item?.interaction_id,
+            title: clean(item?.summary) || 'Interaction recorded',
+            meta: [
+              item?.occurred_at
+                ? relativeDate(item.occurred_at)
+                : null,
+              clean(item?.channel),
+              clean(item?.team_member_name),
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          }))}
+        />
 
-          {interactions.length ? (
-            <div className={styles.list}>
-              {interactions.slice(0, 6).map((item: any) => (
-                <div
-                  className={styles.row}
-                  key={item?.interaction_id}
-                >
-                  <Clock3 size={13} />
-                  <span>
-                    <strong>
-                      {clean(item?.summary) || 'Interaction recorded'}
-                    </strong>
-                    <small>
-                      {[
-                        item?.occurred_at
-                          ? relativeDate(item.occurred_at)
-                          : null,
-                        clean(item?.channel),
-                        clean(item?.team_member_name),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </small>
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className={styles.empty}>
-              No conversations are recorded yet.
-            </p>
-          )}
-        </div>
+        <MemoryBlock
+          title="Open follow-up"
+          count={followups.length}
+          icon="followup"
+          empty="Nothing is currently due with this person."
+          items={followups.slice(0, 6).map((item: any) => ({
+            id: item?.task_id,
+            title: clean(item?.title) || 'Follow up',
+            meta: [
+              item?.due_at
+                ? relativeDate(item.due_at)
+                : 'No date',
+              clean(item?.owner_name),
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          }))}
+        />
 
-        <div className={styles.block}>
-          <div className={styles.blockHead}>
-            <div>
-              <ArrowRight size={14} />
-              <strong>Open follow-up</strong>
-            </div>
-            <span>{tasks.length}</span>
-          </div>
-
-          {tasks.length ? (
-            <div className={styles.list}>
-              {tasks.slice(0, 6).map((item: any) => (
-                <div
-                  className={styles.row}
-                  key={item?.task_id}
-                >
-                  <CalendarClock size={13} />
-                  <span>
-                    <strong>{clean(item?.title) || 'Follow up'}</strong>
-                    <small>
-                      {[
-                        item?.due_at
-                          ? relativeDate(item.due_at)
-                          : 'No date',
-                        clean(item?.owner_name),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </small>
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className={styles.empty}>
-              Nothing is currently due with this person.
-            </p>
-          )}
-        </div>
+        <MemoryBlock
+          title="Promises"
+          count={promises.length}
+          icon="promise"
+          empty="No open promise is recorded."
+          items={promises.slice(0, 6).map((item: any) => ({
+            id:
+              item?.commitment_id ||
+              item?.task_id,
+            title:
+              clean(item?.title) ||
+              clean(item?.task_title) ||
+              'Promise',
+            meta: [
+              item?.due_at
+                ? relativeDate(item.due_at)
+                : 'No date',
+              clean(item?.owner_name),
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          }))}
+        />
       </div>
     </section>
+  );
+}
+
+function MemoryBlock({
+  title,
+  count,
+  empty,
+  items,
+  icon,
+}: {
+  title: string;
+  count: number;
+  empty: string;
+  items: Array<{
+    id: string;
+    title: string;
+    meta: string;
+  }>;
+  icon: 'conversation' | 'followup' | 'promise';
+}) {
+  const HeaderIcon =
+    icon === 'conversation'
+      ? MessageCircleMore
+      : icon === 'promise'
+        ? ShieldCheck
+        : CalendarClock;
+
+  const RowIcon =
+    icon === 'conversation'
+      ? Clock3
+      : icon === 'promise'
+        ? ShieldCheck
+        : CalendarClock;
+
+  return (
+    <div className={styles.block}>
+      <div className={styles.blockHead}>
+        <div>
+          <HeaderIcon size={14} />
+          <strong>{title}</strong>
+        </div>
+        <span>{count}</span>
+      </div>
+
+      {items.length ? (
+        <div className={styles.list}>
+          {items.map((item) => (
+            <div
+              className={styles.row}
+              key={item.id}
+            >
+              <RowIcon size={13} />
+              <span>
+                <strong>{item.title}</strong>
+                <small>{item.meta}</small>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className={styles.empty}>{empty}</p>
+      )}
+    </div>
   );
 }
