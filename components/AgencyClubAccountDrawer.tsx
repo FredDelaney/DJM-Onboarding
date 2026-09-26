@@ -3,18 +3,30 @@
 import {
   ArrowRight,
   BriefcaseBusiness,
+  CalendarClock,
   CheckCircle2,
   CircleAlert,
+  Clock3,
   LoaderCircle,
-  Network,
+  MessageCircleMore,
+  Route,
   Target,
   Users,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
-import { friendlyError, relativeDate } from '@/lib/platform-client';
+import {
+  friendlyError,
+  relativeDate,
+} from '@/lib/platform-client';
+
 import styles from './AgencyClubAccountDrawer.module.css';
 
 export type AgencyClubAccountRequest = {
@@ -29,19 +41,24 @@ type Invoke = (
   body?: Record<string, unknown>,
 ) => Promise<any>;
 
-const human = (value: unknown) =>
-  String(value || '')
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-
 const list = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
 
-const number = (value: unknown, fallback = '0') => {
+const clean = (value: unknown) =>
+  String(value || '').trim();
+
+const human = (value: unknown) =>
+  clean(value)
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) =>
+      letter.toUpperCase(),
+    );
+
+const number = (value: unknown) => {
   const parsed = Number(value);
   return Number.isFinite(parsed)
-    ? String(Math.round(parsed))
-    : fallback;
+    ? Math.round(parsed)
+    : 0;
 };
 
 const money = (
@@ -61,27 +78,43 @@ const money = (
       maximumFractionDigits: 0,
     }).format(amount);
   } catch {
-    return `${currency} ${Math.round(amount).toLocaleString('en-GB')}`;
+    return `${currency} ${Math.round(
+      amount,
+    ).toLocaleString('en-GB')}`;
   }
 };
 
-function Fact({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail?: string | null;
-}) {
-  return (
-    <div className={styles.fact}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      {detail ? <small>{detail}</small> : null}
-    </div>
-  );
-}
+const stateCopy = (value: unknown) => {
+  const state = clean(value);
+
+  if (
+    state.includes('commercially_active') ||
+    state.includes('live_demand_connected')
+  ) {
+    return 'Active relationship';
+  }
+
+  if (
+    state.includes('warm_introduction')
+  ) {
+    return 'Warm route available';
+  }
+
+  if (
+    state.includes('access_gap') ||
+    state.includes('underconnected')
+  ) {
+    return 'Access needs work';
+  }
+
+  if (
+    state.includes('relationship_strong')
+  ) {
+    return 'Strong relationship';
+  }
+
+  return 'Relationship developing';
+};
 
 export default function AgencyClubAccountDrawer({
   request,
@@ -104,39 +137,47 @@ export default function AgencyClubAccountDrawer({
   ) => void;
   onOpenMarket: () => void;
 }) {
-  const [busy, setBusy] = useState(true);
-  const [error, setError] = useState('');
-  const [account, setAccount] = useState<any>(null);
+  const [busy, setBusy] =
+    useState(true);
 
-  const load = useCallback(async () => {
-    setBusy(true);
-    setError('');
+  const [error, setError] =
+    useState('');
 
-    try {
-      const response = await invoke(
-        'club_account',
-        {
-          organisation_id:
-            request.organisationId,
-        },
-      );
+  const [account, setAccount] =
+    useState<any>(null);
 
-      setAccount(
-        response?.club ||
-          response?.result ||
-          null,
-      );
-    } catch (loadError) {
-      setError(
-        friendlyError(loadError),
-      );
-    } finally {
-      setBusy(false);
-    }
-  }, [
-    invoke,
-    request.organisationId,
-  ]);
+  const load = useCallback(
+    async () => {
+      setBusy(true);
+      setError('');
+
+      try {
+        const response = await invoke(
+          'club_account',
+          {
+            organisation_id:
+              request.organisationId,
+          },
+        );
+
+        setAccount(
+          response?.club ||
+            response?.result ||
+            null,
+        );
+      } catch (loadError) {
+        setError(
+          friendlyError(loadError),
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [
+      invoke,
+      request.organisationId,
+    ],
+  );
 
   useEffect(() => {
     void load();
@@ -165,6 +206,7 @@ export default function AgencyClubAccountDrawer({
     return () => {
       document.body.style.overflow =
         previous;
+
       window.removeEventListener(
         'keydown',
         keydown,
@@ -172,78 +214,260 @@ export default function AgencyClubAccountDrawer({
     };
   }, [onClose]);
 
-  const club = account?.club || {};
-  const coverage =
-    account?.network_coverage || {};
+  const club =
+    account?.club || {};
+
   const access =
     account?.access || {};
+
   const direct =
     access?.direct || {};
-  const directRoute =
-    direct?.best_route || {};
+
+  const directRoutes =
+    list(direct?.routes);
+
   const introductions =
     access?.introductions || {};
-  const introRoute =
-    introductions?.best_route || {};
+
+  const introRoutes =
+    list(introductions?.routes);
+
+  const network =
+    access?.network_coverage || {};
+
   const demand =
     account?.demand || {};
-  const pursuits =
-    list(account?.pursuits);
-  const commercial =
-    account?.commercial || {};
-  const deals =
-    list(commercial?.deals);
-  const currencies =
-    list(commercial?.by_currency);
+
+  const needs =
+    list(demand?.items);
+
+  const activity =
+    account?.relationship_activity ||
+    {};
+
+  const interactions =
+    list(activity?.recent);
+
   const work =
     account?.open_work || {};
+
   const tasks =
     list(work?.tasks);
+
   const commitments =
     list(work?.commitments);
+
+  const commercial =
+    account?.commercial || {};
+
+  const deals =
+    list(commercial?.deals);
+
+  const pursuits =
+    list(account?.pursuits);
+
   const plays =
     list(account?.strategic_plays);
-  const evidenceRisk =
-    list(account?.evidence_risk);
 
-  const bestAction =
-    coverage?.recommended_network_action ||
-    introRoute?.recommended_action ||
-    plays[0]?.recommended_action ||
-    'Review the strongest recorded route before the next external move.';
+  const topPlay =
+    account?.top_strategic_play ||
+    plays[0] ||
+    null;
 
-  const preparePlay = (
-    play: any,
-  ) => {
-    if (!play?.play_id) return;
+  const promiseTaskIds =
+    useMemo(
+      () =>
+        new Set(
+          commitments
+            .map((item: any) =>
+              clean(item?.task_id),
+            )
+            .filter(Boolean),
+        ),
+      [commitments],
+    );
+
+  const taskById =
+    useMemo(
+      () =>
+        new Map(
+          tasks
+            .filter((item: any) =>
+              clean(item?.task_id),
+            )
+            .map((item: any) => [
+              clean(item.task_id),
+              item,
+            ]),
+        ),
+      [tasks],
+    );
+
+  const promiseRows =
+    useMemo(() => {
+      const linked =
+        commitments.map(
+          (item: any) => {
+            const task =
+              taskById.get(
+                clean(item?.task_id),
+              ) || {};
+
+            return {
+              id:
+                clean(
+                  item?.commitment_id,
+                ) ||
+                clean(item?.task_id),
+
+              title:
+                clean(task?.title) ||
+                clean(
+                  item?.metadata
+                    ?.title,
+                ) ||
+                'Agency promise',
+
+              due_at:
+                item?.due_at ||
+                task?.due_at,
+
+              owner_name:
+                clean(
+                  task?.owner_name,
+                ),
+            };
+          },
+        );
+
+      const taskOnly =
+        tasks
+          .filter(
+            (item: any) =>
+              item?.task_type ===
+                'commitment' &&
+              !promiseTaskIds.has(
+                clean(
+                  item?.task_id,
+                ),
+              ),
+          )
+          .map((item: any) => ({
+            id: clean(item?.task_id),
+            title:
+              clean(item?.title) ||
+              'Agency promise',
+            due_at: item?.due_at,
+            owner_name: clean(
+              item?.owner_name,
+            ),
+          }));
+
+      return [...linked, ...taskOnly];
+    }, [
+      commitments,
+      promiseTaskIds,
+      taskById,
+      tasks,
+    ]);
+
+  const followUps =
+    useMemo(
+      () =>
+        tasks.filter(
+          (item: any) =>
+            item?.task_type !==
+              'commitment' &&
+            !promiseTaskIds.has(
+              clean(
+                item?.task_id,
+              ),
+            ),
+        ),
+      [promiseTaskIds, tasks],
+    );
+
+  const bestRoute =
+    direct?.best_route || {};
+
+  const bestIntro =
+    introductions?.best_route || {};
+
+  const nextMove =
+    clean(
+      topPlay?.recommended_action,
+    ) ||
+    clean(
+      network
+        ?.recommended_network_action,
+    ) ||
+    clean(
+      bestIntro?.recommended_action,
+    ) ||
+    'Review the strongest recorded relationship before the next external move.';
+
+  const nextMoveLabel =
+    String(
+      topPlay
+        ?.access_route_mode || '',
+    ).includes('warm')
+      ? 'Prepare introduction'
+      : topPlay?.play_type ===
+          'source_for_confirmed_need'
+        ? 'Work club need'
+        : topPlay?.play_type ===
+            'pitch_now'
+          ? 'Review pitch route'
+          : [
+                'protect_live_deal',
+                'remove_deal_blocker',
+              ].includes(
+                topPlay?.play_type,
+              )
+            ? 'Protect opportunity'
+            : 'Prepare next move';
+
+  const prepareNextMove = () => {
+    if (!topPlay?.play_id) {
+      onOpenMarket();
+      return;
+    }
 
     onOpenAction({
       key:
-        `club-account-play:${play.play_id}`,
-      eyebrow:
-        'CLUB RELATIONSHIP PLAY',
+        `club-next-move:${topPlay.play_id}`,
+
+      eyebrow: 'NEXT MOVE',
+
       title:
-        play.title ||
+        topPlay.title ||
+        club.name ||
         request.title,
+
       instruction:
-        play.recommended_action ||
-        'Prepare the strongest recorded relationship play.',
+        nextMove,
+
       label:
-        String(
-          play.access_route_mode || '',
-        ).includes('warm')
-          ? 'Prepare introduction'
-          : 'Prepare relationship play',
-      action: 'play_prepare',
+        nextMoveLabel,
+
+      action:
+        'play_prepare',
+
       payload: {
-        play_id: play.play_id,
+        play_id:
+          topPlay.play_id,
       },
+
       context:
+        club.name ||
         request.title,
+
       facts: [
         {
           label: 'Club',
-          value: request.title,
+          value:
+            club.name ||
+            request.title,
           detail:
             [
               club.city,
@@ -255,49 +479,44 @@ export default function AgencyClubAccountDrawer({
             null,
         },
         {
-          label: 'Play',
-          value: human(
-            play.play_type ||
-              'relationship play',
-          ),
-          detail:
-            play.rationale || null,
-        },
-        {
           label:
-            'Direct route',
+            'Best recorded route',
           value:
-            directRoute.person_name ||
+            bestRoute
+              ?.person_name ||
             'Not recorded',
           detail:
-            directRoute.role_title ||
-            null,
-        },
-        {
-          label:
-            'Introduction route',
-          value:
-            introRoute.intermediary
-              ?.name ||
-            'Not recorded',
-          detail:
-            introRoute.target_contact
-              ?.name
-              ? `To ${introRoute.target_contact.name}`
+            bestRoute
+              ?.team_member_name
+              ? `Known by ${bestRoute.team_member_name}`
               : null,
         },
+        {
+          label:
+            'Club needs',
+          value:
+            `${number(
+              demand?.active_needs,
+            )} active`,
+          detail:
+            `${number(
+              demand?.confirmed_needs,
+            )} confirmed`,
+        },
       ],
+
       successCondition:
-        'A controlled internal relationship task is prepared from recorded agency evidence. No external message is sent automatically.',
+        'The agency prepares the next internal relationship action from recorded evidence. Nothing is sent externally without a person confirming it.',
+
       confirmationLabel:
-        'Create relationship task',
+        nextMoveLabel,
     });
   };
 
   return (
     <div
       className={styles.backdrop}
-      onClick={(event) => {
+      onMouseDown={(event) => {
         if (
           event.target ===
           event.currentTarget
@@ -310,60 +529,86 @@ export default function AgencyClubAccountDrawer({
         className={styles.drawer}
         role="dialog"
         aria-modal="true"
-        aria-label="Club Account Room"
+        aria-label={`Club details for ${
+          club.name ||
+          request.title
+        }`}
       >
-        <header className={styles.header}>
-          <div className={styles.topline}>
-            <span className={styles.live}>
-              <i />
-              Recorded club intelligence
-            </span>
+        <header
+          className={
+            styles.header
+          }
+        >
+          <div
+            className={
+              styles.headerTop
+            }
+          >
+            <div>
+              <p
+                className={
+                  styles.eyebrow
+                }
+              >
+                CLUB
+              </p>
+
+              <h2>
+                {club.name ||
+                  request.title}
+              </h2>
+
+              <p
+                className={
+                  styles.location
+                }
+              >
+                {[
+                  club.city,
+                  club.country,
+                  club.league_name,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') ||
+                  request.context ||
+                  'Club relationship'}
+              </p>
+            </div>
 
             <button
               type="button"
-              className={styles.close}
-              onClick={onClose}
-              aria-label="Close Club Account Room"
+              className={
+                styles.close
+              }
+              onClick={
+                onClose
+              }
+              aria-label="Close club"
             >
               <X size={18} />
             </button>
           </div>
-
-          <p className={styles.eyebrow}>
-            CLUB ACCOUNT ROOM
-          </p>
-
-          <h2>
-            {club.name ||
-              request.title}
-          </h2>
-
-          <p className={styles.subhead}>
-            {request.context ||
-              [
-                club.city,
-                club.country,
-                club.league_name,
-              ]
-                .filter(Boolean)
-                .join(' · ') ||
-              'Relationship, market and commercial context for this club.'}
-          </p>
         </header>
 
         {busy ? (
-          <div className={styles.notice}>
+          <div
+            className={
+              styles.notice
+            }
+          >
             <LoaderCircle
               size={18}
-              className={styles.spin}
+              className={
+                styles.spin
+              }
             />
 
             <div>
               <strong>
-                Building the club operating picture
+                Loading club
               </strong>
               <span>
-                Loading recorded access, demand, pursuits, live business and relationship work.
+                Pulling together the relationship, current needs and live work.
               </span>
             </div>
           </div>
@@ -373,11 +618,13 @@ export default function AgencyClubAccountDrawer({
           <div
             className={`${styles.notice} ${styles.error}`}
           >
-            <CircleAlert size={18} />
+            <CircleAlert
+              size={18}
+            />
 
             <div>
               <strong>
-                Club account unavailable
+                Club unavailable
               </strong>
               <span>{error}</span>
             </div>
@@ -385,556 +632,828 @@ export default function AgencyClubAccountDrawer({
         ) : null}
 
         {!busy && !error ? (
-          <div className={styles.content}>
-            <section className={styles.hero}>
+          <div
+            className={
+              styles.content
+            }
+          >
+            <section
+              className={
+                styles.nextMove
+              }
+            >
               <div>
-                <p>ACCOUNT POSITION</p>
-
-                <h3>
-                  {human(
-                    account?.account_state ||
-                      coverage?.coverage_state ||
-                      'recorded',
-                  )}
-                </h3>
-
                 <span>
-                  {bestAction}
+                  NEXT MOVE
                 </span>
-              </div>
-
-              <div className={styles.heroSide}>
-                <Network size={18} />
 
                 <strong>
-                  {coverage.single_threaded
-                    ? 'Single-threaded'
-                    : human(
-                        coverage.coverage_state ||
-                          'recorded',
-                      )}
+                  {nextMove}
                 </strong>
 
-                <span>
-                  network coverage
-                </span>
+                <small>
+                  {stateCopy(
+                    account?.account_state,
+                  )}
+                </small>
               </div>
+
+              <button
+                type="button"
+                onClick={
+                  prepareNextMove
+                }
+              >
+                {topPlay?.play_id
+                  ? nextMoveLabel
+                  : 'Open Opportunities'}
+
+                <ArrowRight
+                  size={15}
+                />
+              </button>
             </section>
 
-            <div className={styles.grid}>
+            <section
+              className={
+                styles.quickFacts
+              }
+            >
               <Fact
-                label="Active needs"
-                value={number(
-                  demand.active_needs,
+                label="People we know"
+                value={String(
+                  directRoutes.length,
+                )}
+                detail={
+                  bestRoute
+                    ?.person_name ||
+                  'No direct route recorded'
+                }
+              />
+
+              <Fact
+                label="What they need"
+                value={String(
+                  number(
+                    demand?.active_needs,
+                  ),
                 )}
                 detail={`${number(
-                  demand.confirmed_needs,
+                  demand
+                    ?.confirmed_needs,
                 )} confirmed`}
               />
 
               <Fact
-                label="Active deals"
-                value={number(
-                  commercial.active_deals,
+                label="Live opportunities"
+                value={String(
+                  deals.length +
+                    pursuits.length,
                 )}
-                detail="Recorded live commercial processes"
+                detail={`${deals.length} deal${
+                  deals.length === 1
+                    ? ''
+                    : 's'
+                } · ${pursuits.length} player route${
+                  pursuits.length === 1
+                    ? ''
+                    : 's'
+                }`}
               />
 
               <Fact
-                label="Direct routes"
-                value={number(
-                  direct.route_count,
+                label="Follow-up"
+                value={String(
+                  followUps.length +
+                    promiseRows.length,
                 )}
-                detail={human(
-                  directRoute.route_state ||
-                    'not recorded',
-                )}
+                detail={`${promiseRows.length} promise${
+                  promiseRows.length === 1
+                    ? ''
+                    : 's'
+                } to keep`}
               />
-
-              <Fact
-                label="Warm routes"
-                value={number(
-                  introductions.route_count,
-                )}
-                detail={human(
-                  introRoute.introduction_state ||
-                    'not recorded',
-                )}
-              />
-            </div>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Users size={17} />
-
-                <div>
-                  <p>ACCESS MAP</p>
-                  <h3>
-                    Direct access versus the strongest introduction path
-                  </h3>
-                </div>
-              </div>
-
-              <div className={styles.routeGrid}>
-                <article className={styles.route}>
-                  <span>DIRECT ROUTE</span>
-
-                  <strong>
-                    {directRoute.person_name ||
-                      'No direct route recorded'}
-                  </strong>
-
-                  <p>
-                    {directRoute.role_title ||
-                      'Decision-maker role not recorded'}
-                  </p>
-
-                  {directRoute.route_score !==
-                  undefined ? (
-                    <small>
-                      {number(
-                        directRoute.route_score,
-                      )}
-                      /100 deterministic route ranking
-                    </small>
-                  ) : null}
-
-                  {directRoute.why_this_route ? (
-                    <em>
-                      {
-                        directRoute.why_this_route
-                      }
-                    </em>
-                  ) : null}
-
-                  {directRoute.team_member_name ? (
-                    <em>
-                      Relationship owner:{' '}
-                      {
-                        directRoute.team_member_name
-                      }
-                    </em>
-                  ) : null}
-                </article>
-
-                <article className={styles.route}>
-                  <span>WARM INTRODUCTION</span>
-
-                  <strong>
-                    {introRoute.intermediary
-                      ?.name ||
-                      'No introduction route recorded'}
-                  </strong>
-
-                  <p>
-                    {introRoute.target_contact
-                      ?.name
-                      ? `To ${introRoute.target_contact.name}${
-                          introRoute.target_contact
-                            ?.role_title
-                            ? ` · ${introRoute.target_contact.role_title}`
-                            : ''
-                        }`
-                      : 'Target contact not recorded'}
-                  </p>
-
-                  {introRoute.introduction_score !==
-                  undefined ? (
-                    <small>
-                      {number(
-                        introRoute.introduction_score,
-                      )}
-                      /100 deterministic introduction ranking
-                    </small>
-                  ) : null}
-
-                  {introRoute.why_this_path ? (
-                    <em>
-                      {
-                        introRoute.why_this_path
-                      }
-                    </em>
-                  ) : null}
-
-                  {introRoute.intermediary
-                    ?.relationship_owner_name ? (
-                    <em>
-                      Relationship owner:{' '}
-                      {
-                        introRoute.intermediary
-                          .relationship_owner_name
-                      }
-                    </em>
-                  ) : null}
-                </article>
-              </div>
-
-              <p className={styles.truth}>
-                Route rankings compare recorded relationship evidence. They are not probabilities that a person will reply, make an introduction or complete a deal.
-              </p>
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Target size={17} />
+            <section
+              className={
+                styles.section
+              }
+            >
+              <SectionHead
+                icon={Users}
+                label="PEOPLE WE KNOW"
+                title="Who gives us a route into this club"
+              />
 
-                <div>
-                  <p>MARKET POSITION</p>
-                  <h3>
-                    Current demand and player routes into this club
-                  </h3>
-                </div>
-              </div>
-
-              <div className={styles.rows}>
-                {pursuits
-                  .slice(0, 6)
-                  .map((item: any) => (
-                    <article
-                      className={styles.row}
-                      key={
-                        item.player_match_id
-                      }
-                    >
-                      <div>
-                        <strong>
-                          {item.player
-                            ?.name ||
-                            'Player'}
-                          {' '}→{' '}
-                          {club.name ||
-                            request.title}
-                        </strong>
-
-                        <span>
-                          {item.need?.title ||
-                            'Recorded club demand'}
-                          {' '}·{' '}
-                          {human(
-                            item.readiness_state ||
-                              'recorded',
-                          )}
-                        </span>
-
-                        <small>
-                          {item.match_reasoning
-                            ?.summary ||
-                            item.interpretation ||
-                            'Recorded pursuit evidence'}
-                        </small>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={onOpenMarket}
-                      >
-                        <ArrowRight
-                          size={14}
-                        />
-                        Open Market
-                      </button>
-                    </article>
-                  ))}
-
-                {!pursuits.length ? (
-                  <div className={styles.empty}>
-                    <Target size={17} />
-
-                    <div>
-                      <strong>
-                        No active player route is recorded for this club.
-                      </strong>
-
-                      <span>
-                        New club needs and player matches will appear here when they are recorded.
-                      </span>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <BriefcaseBusiness
-                  size={17}
-                />
-
-                <div>
-                  <p>LIVE BUSINESS</p>
-                  <h3>
-                    Commercial exposure attached to this relationship
-                  </h3>
-                </div>
-              </div>
-
-              {currencies.length ? (
+              {directRoutes.length ? (
                 <div
                   className={
-                    styles.currencyGrid
+                    styles.people
                   }
                 >
-                  {currencies.map(
-                    (item: any) => (
-                      <Fact
-                        key={
-                          item.currency
-                        }
-                        label={`${item.currency} pipeline`}
-                        value={money(
-                          item.expected_commission,
-                          item.currency,
-                        )}
-                        detail={`${money(
-                          item.weighted_commission,
-                          item.currency,
-                        )} weighted · ${number(
-                          item.active_deals,
-                        )} active`}
-                      />
-                    ),
-                  )}
+                  {directRoutes
+                    .slice(0, 8)
+                    .map(
+                      (
+                        route: any,
+                      ) => (
+                        <article
+                          key={
+                            clean(
+                              route?.person_id,
+                            ) ||
+                            clean(
+                              route?.person_name,
+                            )
+                          }
+                          className={
+                            styles.person
+                          }
+                        >
+                          <div
+                            className={
+                              styles.personIcon
+                            }
+                          >
+                            <Route
+                              size={15}
+                            />
+                          </div>
+
+                          <div>
+                            <strong>
+                              {clean(
+                                route
+                                  ?.person_name,
+                              ) ||
+                                'Club contact'}
+                            </strong>
+
+                            <span>
+                              {clean(
+                                route
+                                  ?.role_title,
+                              ) ||
+                                'Role not recorded'}
+                            </span>
+
+                            <small>
+                              {[
+                                route
+                                  ?.team_member_name
+                                  ? `Known by ${route.team_member_name}`
+                                  : null,
+
+                                route
+                                  ?.last_meaningful_at
+                                  ? `Last meaningful ${relativeDate(
+                                      route.last_meaningful_at,
+                                    )}`
+                                  : 'No meaningful date recorded',
+                              ]
+                                .filter(
+                                  Boolean,
+                                )
+                                .join(
+                                  ' · ',
+                                )}
+                            </small>
+                          </div>
+
+                          <em>
+                            {human(
+                              route
+                                ?.route_state ||
+                                'recorded',
+                            )}
+                          </em>
+                        </article>
+                      ),
+                    )}
+                </div>
+              ) : (
+                <Empty
+                  title="No direct relationship recorded"
+                  copy={
+                    bestIntro
+                      ?.intermediary
+                      ?.name
+                      ? `A warm introduction route is recorded through ${bestIntro.intermediary.name}.`
+                      : 'ReDream will show the strongest recorded route when the agency connects a person to this club.'
+                  }
+                />
+              )}
+
+              {introRoutes.length ? (
+                <div
+                  className={
+                    styles.warmRoute
+                  }
+                >
+                  <Route
+                    size={15}
+                  />
+
+                  <div>
+                    <span>
+                      WARM ROUTE
+                    </span>
+
+                    <strong>
+                      {bestIntro
+                        ?.intermediary
+                        ?.name ||
+                        'Introduction route recorded'}
+                    </strong>
+
+                    <small>
+                      {bestIntro
+                        ?.target_contact
+                        ?.name
+                        ? `Can introduce us to ${bestIntro.target_contact.name}`
+                        : 'Target person recorded in Network'}
+                    </small>
+                  </div>
                 </div>
               ) : null}
-
-              <div className={styles.rows}>
-                {deals
-                  .slice(0, 6)
-                  .map((item: any) => (
-                    <article
-                      className={styles.row}
-                      key={
-                        item.deal_room_id
-                      }
-                    >
-                      <div>
-                        <strong>
-                          {item.title ||
-                            'Live deal'}
-                        </strong>
-
-                        <span>
-                          {human(
-                            item.stage ||
-                              'recorded',
-                          )}
-                          {' '}·{' '}
-                          {money(
-                            item.expected_commission,
-                            item.currency ||
-                              'EUR',
-                          )}{' '}
-                          forecast commission
-                        </span>
-
-                        <small>
-                          {item.primary_blocker ||
-                            item.next_action_text ||
-                            'No blocker recorded'}
-                        </small>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onOpenDeal(
-                            String(
-                              item.deal_room_id,
-                            ),
-                            item.title ||
-                              'Live deal',
-                            club.name ||
-                              request.title,
-                          )
-                        }
-                      >
-                        <ArrowRight
-                          size={14}
-                        />
-                        War room
-                      </button>
-                    </article>
-                  ))}
-
-                {!deals.length ? (
-                  <div className={styles.empty}>
-                    <BriefcaseBusiness
-                      size={17}
-                    />
-
-                    <div>
-                      <strong>
-                        No live deal is recorded against this club.
-                      </strong>
-
-                      <span>
-                        Commercial exposure stays empty until a real deal record exists.
-                      </span>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              {currencies.length > 1 ? (
-                <p className={styles.truth}>
-                  Currency totals remain separate. The platform does not invent an FX conversion.
-                </p>
-              ) : null}
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Network size={17} />
+            <section
+              className={
+                styles.section
+              }
+            >
+              <SectionHead
+                icon={Target}
+                label="WHAT THEY NEED"
+                title="Current club requirements"
+              />
 
-                <div>
-                  <p>STRATEGIC PLAYS</p>
-                  <h3>
-                    The highest-value relationship moves supported by current evidence
-                  </h3>
+              {needs.length ? (
+                <div
+                  className={
+                    styles.rows
+                  }
+                >
+                  {needs
+                    .slice(0, 8)
+                    .map(
+                      (
+                        need: any,
+                      ) => (
+                        <article
+                          className={
+                            styles.row
+                          }
+                          key={
+                            need
+                              ?.club_need_id
+                          }
+                        >
+                          <div>
+                            <strong>
+                              {clean(
+                                need
+                                  ?.title,
+                              ) ||
+                                clean(
+                                  need
+                                    ?.position,
+                                ) ||
+                                'Club need'}
+                            </strong>
+
+                            <span>
+                              {[
+                                clean(
+                                  need
+                                    ?.position,
+                                ),
+                                human(
+                                  need
+                                    ?.need_type ||
+                                    'recorded',
+                                ),
+                                clean(
+                                  need
+                                    ?.transfer_type,
+                                ),
+                              ]
+                                .filter(
+                                  Boolean,
+                                )
+                                .join(
+                                  ' · ',
+                                )}
+                            </span>
+
+                            <small>
+                              {need
+                                ?.salary_budget
+                                ? `${money(
+                                    need.salary_budget,
+                                    need.currency ||
+                                      'EUR',
+                                  )} salary budget`
+                                : need
+                                      ?.transfer_budget
+                                  ? `${money(
+                                      need.transfer_budget,
+                                      need.currency ||
+                                        'EUR',
+                                    )} transfer budget`
+                                  : clean(
+                                      need
+                                        ?.profile_notes,
+                                    ) ||
+                                    'No further brief recorded'}
+                            </small>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={
+                              onOpenMarket
+                            }
+                          >
+                            Work need
+                            <ArrowRight
+                              size={14}
+                            />
+                          </button>
+                        </article>
+                      ),
+                    )}
                 </div>
-              </div>
-
-              <div className={styles.rows}>
-                {plays
-                  .slice(0, 5)
-                  .map((play: any) => (
-                    <article
-                      className={styles.row}
-                      key={play.play_id}
-                    >
-                      <div>
-                        <strong>
-                          {play.title ||
-                            request.title}
-                        </strong>
-
-                        <span>
-                          {human(
-                            play.play_type ||
-                              'relationship play',
-                          )}
-                          {' '}·{' '}
-                          evidence{' '}
-                          {human(
-                            play.evidence_gate ||
-                              'recorded',
-                          )}
-                        </span>
-
-                        <small>
-                          {play.recommended_action ||
-                            play.rationale ||
-                            'Recorded relationship play'}
-                        </small>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          preparePlay(play)
-                        }
-                      >
-                        <ArrowRight
-                          size={14}
-                        />
-                        Prepare
-                      </button>
-                    </article>
-                  ))}
-
-                {!plays.length ? (
-                  <div className={styles.empty}>
-                    <CheckCircle2
-                      size={17}
-                    />
-
-                    <div>
-                      <strong>
-                        No strategic relationship play is currently recorded.
-                      </strong>
-
-                      <span>
-                        The room will stay quiet rather than inventing an action.
-                      </span>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+              ) : (
+                <Empty
+                  title="No active club need recorded"
+                  copy="When the agency records what this club is looking for, it will appear here."
+                />
+              )}
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <CheckCircle2 size={17} />
+            <section
+              className={
+                styles.section
+              }
+            >
+              <SectionHead
+                icon={
+                  MessageCircleMore
+                }
+                label="RECENT CONVERSATIONS"
+                title="What has actually been said"
+              />
 
-                <div>
-                  <p>OPEN WORK</p>
-                  <h3>
-                    Existing tasks, commitments and evidence risks around this club
-                  </h3>
+              {interactions.length ? (
+                <div
+                  className={
+                    styles.timeline
+                  }
+                >
+                  {interactions
+                    .slice(0, 8)
+                    .map(
+                      (
+                        item: any,
+                      ) => (
+                        <article
+                          key={
+                            item
+                              ?.interaction_id
+                          }
+                          className={
+                            styles.timelineRow
+                          }
+                        >
+                          <Clock3
+                            size={14}
+                          />
+
+                          <div>
+                            <strong>
+                              {clean(
+                                item
+                                  ?.summary,
+                              ) ||
+                                'Conversation recorded'}
+                            </strong>
+
+                            <span>
+                              {[
+                                clean(
+                                  item
+                                    ?.person_name,
+                                ),
+                                item
+                                  ?.occurred_at
+                                  ? relativeDate(
+                                      item.occurred_at,
+                                    )
+                                  : null,
+                                human(
+                                  item
+                                    ?.channel,
+                                ),
+                              ]
+                                .filter(
+                                  Boolean,
+                                )
+                                .join(
+                                  ' · ',
+                                )}
+                            </span>
+
+                            {clean(
+                              item
+                                ?.team_member_name,
+                            ) ? (
+                              <small>
+                                Recorded by{' '}
+                                {
+                                  item.team_member_name
+                                }
+                              </small>
+                            ) : null}
+                          </div>
+                        </article>
+                      ),
+                    )}
                 </div>
-              </div>
+              ) : (
+                <Empty
+                  title="No conversation recorded yet"
+                  copy="Calls, meetings and connected conversations will build the club history here."
+                />
+              )}
+            </section>
 
-              <div className={styles.grid}>
-                <Fact
-                  label="Open tasks"
-                  value={number(
-                    tasks.length,
-                  )}
-                  detail={
-                    tasks[0]?.title ||
-                    'No task recorded'
-                  }
+            <section
+              className={
+                styles.section
+              }
+            >
+              <SectionHead
+                icon={
+                  CheckCircle2
+                }
+                label="FOLLOW THROUGH"
+                title="Promises and follow-up"
+              />
+
+              <div
+                className={
+                  styles.workColumns
+                }
+              >
+                <WorkBlock
+                  title="Promises"
+                  items={promiseRows}
+                  empty="No open promise is recorded."
                 />
 
-                <Fact
-                  label="Commitments"
-                  value={number(
-                    commitments.length,
+                <WorkBlock
+                  title="Follow-up"
+                  items={followUps.map(
+                    (
+                      item: any,
+                    ) => ({
+                      id:
+                        clean(
+                          item?.task_id,
+                        ),
+                      title:
+                        clean(
+                          item?.title,
+                        ) ||
+                        'Follow up',
+                      due_at:
+                        item?.due_at,
+                      owner_name:
+                        clean(
+                          item?.owner_name,
+                        ),
+                    }),
                   )}
-                  detail={
-                    commitments[0]
-                      ?.title ||
-                    commitments[0]
-                      ?.summary ||
-                    'No commitment recorded'
-                  }
-                />
-
-                <Fact
-                  label="Evidence risks"
-                  value={number(
-                    evidenceRisk.length,
-                  )}
-                  detail={
-                    evidenceRisk[0]
-                      ?.title ||
-                    'No evidence risk recorded'
-                  }
-                />
-
-                <Fact
-                  label="Last direct touch"
-                  value={
-                    directRoute.last_meaningful_at
-                      ? relativeDate(
-                          directRoute.last_meaningful_at,
-                        )
-                      : 'Not recorded'
-                  }
-                  detail={
-                    directRoute.person_name ||
-                    null
-                  }
+                  empty="Nothing is currently due."
                 />
               </div>
             </section>
 
-            <p className={styles.truth}>
-              Club Account Room combines recorded relationship, market and commercial evidence. It does not infer private relationships, club intent, transfer outcomes or whether an introduction will happen.
+            <section
+              className={
+                styles.section
+              }
+            >
+              <SectionHead
+                icon={
+                  BriefcaseBusiness
+                }
+                label="LIVE OPPORTUNITIES"
+                title="Players and deals currently moving with this club"
+              />
+
+              {deals.length ||
+              pursuits.length ? (
+                <div
+                  className={
+                    styles.rows
+                  }
+                >
+                  {deals
+                    .slice(0, 5)
+                    .map(
+                      (
+                        deal: any,
+                      ) => (
+                        <article
+                          className={
+                            styles.row
+                          }
+                          key={
+                            deal
+                              ?.deal_room_id
+                          }
+                        >
+                          <div>
+                            <strong>
+                              {clean(
+                                deal
+                                  ?.title,
+                              ) ||
+                                'Live deal'}
+                            </strong>
+
+                            <span>
+                              {human(
+                                deal
+                                  ?.stage ||
+                                  'active',
+                              )}
+                            </span>
+
+                            <small>
+                              {clean(
+                                deal
+                                  ?.primary_blocker,
+                              ) ||
+                                clean(
+                                  deal
+                                    ?.next_action_text,
+                                ) ||
+                                'No blocker recorded'}
+                            </small>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onOpenDeal(
+                                String(
+                                  deal
+                                    ?.deal_room_id,
+                                ),
+                                clean(
+                                  deal
+                                    ?.title,
+                                ) ||
+                                  'Live deal',
+                                club.name ||
+                                  request.title,
+                              )
+                            }
+                          >
+                            Open deal
+                            <ArrowRight
+                              size={14}
+                            />
+                          </button>
+                        </article>
+                      ),
+                    )}
+
+                  {pursuits
+                    .slice(0, 5)
+                    .map(
+                      (
+                        pursuit: any,
+                      ) => (
+                        <article
+                          className={
+                            styles.row
+                          }
+                          key={
+                            pursuit
+                              ?.player_match_id
+                          }
+                        >
+                          <div>
+                            <strong>
+                              {pursuit
+                                ?.player
+                                ?.name ||
+                                'Player route'}
+                            </strong>
+
+                            <span>
+                              {pursuit
+                                ?.need
+                                ?.title ||
+                                'Recorded club demand'}
+                            </span>
+
+                            <small>
+                              {pursuit
+                                ?.match_reasoning
+                                ?.summary ||
+                                pursuit
+                                  ?.interpretation ||
+                                'Player route recorded'}
+                            </small>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={
+                              onOpenMarket
+                            }
+                          >
+                            Open opportunity
+                            <ArrowRight
+                              size={14}
+                            />
+                          </button>
+                        </article>
+                      ),
+                    )}
+                </div>
+              ) : (
+                <Empty
+                  title="No live opportunity recorded"
+                  copy="Player routes and deals will appear here when they are connected to this club."
+                />
+              )}
+            </section>
+
+            <p
+              className={
+                styles.truth
+              }
+            >
+              ReDream shows recorded agency relationships, conversations, needs and work. It does not guess private club intent or whether a transfer will happen.
             </p>
           </div>
         ) : null}
       </aside>
+    </div>
+  );
+}
+
+function Fact({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div
+      className={
+        styles.fact
+      }
+    >
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </div>
+  );
+}
+
+function SectionHead({
+  icon: Icon,
+  label,
+  title,
+}: {
+  icon: typeof Users;
+  label: string;
+  title: string;
+}) {
+  return (
+    <div
+      className={
+        styles.sectionHead
+      }
+    >
+      <Icon size={16} />
+
+      <div>
+        <span>{label}</span>
+        <h3>{title}</h3>
+      </div>
+    </div>
+  );
+}
+
+function WorkBlock({
+  title,
+  items,
+  empty,
+}: {
+  title: string;
+  items: Array<{
+    id: string;
+    title: string;
+    due_at?: string | null;
+    owner_name?: string | null;
+  }>;
+  empty: string;
+}) {
+  return (
+    <div
+      className={
+        styles.workBlock
+      }
+    >
+      <div
+        className={
+          styles.workTitle
+        }
+      >
+        <CalendarClock
+          size={14}
+        />
+        <strong>{title}</strong>
+        <span>{items.length}</span>
+      </div>
+
+      {items.length ? (
+        <div
+          className={
+            styles.workList
+          }
+        >
+          {items
+            .slice(0, 6)
+            .map((item) => (
+              <div
+                key={item.id}
+                className={
+                  styles.workRow
+                }
+              >
+                <strong>
+                  {item.title}
+                </strong>
+
+                <small>
+                  {[
+                    item.due_at
+                      ? relativeDate(
+                          item.due_at,
+                        )
+                      : 'No date',
+                    item.owner_name,
+                  ]
+                    .filter(
+                      Boolean,
+                    )
+                    .join(' · ')}
+                </small>
+              </div>
+            ))}
+        </div>
+      ) : (
+        <p
+          className={
+            styles.emptyText
+          }
+        >
+          {empty}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Empty({
+  title,
+  copy,
+}: {
+  title: string;
+  copy: string;
+}) {
+  return (
+    <div
+      className={
+        styles.empty
+      }
+    >
+      <strong>{title}</strong>
+      <span>{copy}</span>
     </div>
   );
 }
