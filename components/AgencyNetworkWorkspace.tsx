@@ -3,9 +3,13 @@
 import {
   ArrowRight,
   BriefcaseBusiness,
+  CircleAlert,
   Clock3,
+  GitBranch,
   Network,
+  Route,
   Search,
+  TimerReset,
   Users,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -18,6 +22,13 @@ import { relativeDate } from '@/lib/platform-client';
 import styles from './AgencyNetworkWorkspace.module.css';
 
 type NetworkView = 'clubs' | 'people';
+
+type NetworkFocus =
+  | 'all'
+  | 'attention'
+  | 'warm'
+  | 'strong'
+  | 'cooling';
 
 type Rpc = <T,>(
   name: string,
@@ -43,6 +54,127 @@ const initials = (value: string) =>
 const number = (value: unknown) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const daysSince = (value: unknown) => {
+  if (!value) return null;
+
+  const time = Date.parse(String(value));
+  if (!Number.isFinite(time)) return null;
+
+  return Math.max(
+    0,
+    Math.floor(
+      (Date.now() - time) /
+        (24 * 60 * 60 * 1000),
+    ),
+  );
+};
+
+const clubNeedsAttention = (club: any) => {
+  const access = club?.access || {};
+  const commercial = club?.commercial || {};
+  const demand = club?.demand || {};
+
+  const direct = number(access?.direct_score);
+  const introduction = number(
+    access?.introduction_score,
+  );
+
+  const liveContext =
+    number(commercial?.active_deals) > 0 ||
+    number(demand?.confirmed_needs) > 0;
+
+  return (
+    number(commercial?.deals_needing_action) > 0 ||
+    (liveContext &&
+      direct < 60 &&
+      introduction < 65)
+  );
+};
+
+const clubHasWarmRoute = (club: any) => {
+  const access = club?.access || {};
+  const direct = number(access?.direct_score);
+  const introduction = number(
+    access?.introduction_score,
+  );
+
+  return (
+    introduction >= 65 &&
+    introduction > direct
+  );
+};
+
+const clubHasStrongRoute = (club: any) =>
+  number(club?.access?.direct_score) >= 75;
+
+const clubIsCooling = (club: any) => {
+  const lastAt =
+    club?.activity?.last_interaction_at;
+
+  const age = daysSince(lastAt);
+
+  if (age === null || age <= 45) {
+    return false;
+  }
+
+  const commercial =
+    club?.commercial || {};
+  const demand =
+    club?.demand || {};
+
+  return (
+    number(commercial?.active_deals) > 0 ||
+    number(demand?.confirmed_needs) > 0 ||
+    number(club?.access?.direct_score) >= 60
+  );
+};
+
+const personNeedsAttention = (item: any) => {
+  const work = item?.work || {};
+  const clubContext =
+    item?.club_context || {};
+
+  return (
+    number(work?.overdue_tasks) > 0 ||
+    number(
+      clubContext?.deals_needing_action,
+    ) > 0 ||
+    (number(
+      clubContext?.confirmed_needs,
+    ) > 0 &&
+      number(
+        item?.relationship?.route_score,
+      ) < 60)
+  );
+};
+
+const personHasStrongRoute = (item: any) =>
+  number(
+    item?.relationship?.route_score,
+  ) >= 75;
+
+const personIsCooling = (item: any) => {
+  const relationship =
+    item?.relationship || {};
+
+  const activity =
+    item?.activity || {};
+
+  const lastAt =
+    activity?.last_interaction_at ||
+    relationship?.last_meaningful_at;
+
+  const age = daysSince(lastAt);
+
+  return (
+    age !== null &&
+    age > 45 &&
+    number(
+      relationship?.route_score,
+    ) > 0
+  );
 };
 
 function Empty({
@@ -75,6 +207,8 @@ export default function AgencyNetworkWorkspace({
   onOpenClubAccount: (request: AgencyClubAccountRequest) => void;
 }) {
   const [view, setView] = useState<NetworkView>('clubs');
+  const [focus, setFocus] =
+    useState<NetworkFocus>('all');
   const [search, setSearch] = useState('');
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
@@ -114,47 +248,87 @@ export default function AgencyNetworkWorkspace({
   }, [people]);
 
   const filteredClubs = useMemo(() => {
-    if (!searchValue) return clubs;
+    return clubs.filter((club: any) => {
+      const matchesSearch =
+        !searchValue ||
+        [
+          club?.name,
+          club?.city,
+          club?.country,
+          club?.league_name,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(searchValue);
 
-    return clubs.filter((club: any) =>
-      [
-        club?.name,
-        club?.city,
-        club?.country,
-        club?.league_name,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(searchValue),
-    );
-  }, [clubs, searchValue]);
+      if (!matchesSearch) {
+        return false;
+      }
+
+      if (focus === 'attention') {
+        return clubNeedsAttention(club);
+      }
+
+      if (focus === 'warm') {
+        return clubHasWarmRoute(club);
+      }
+
+      if (focus === 'strong') {
+        return clubHasStrongRoute(club);
+      }
+
+      if (focus === 'cooling') {
+        return clubIsCooling(club);
+      }
+
+      return true;
+    });
+  }, [clubs, focus, searchValue]);
 
   const filteredPeople = useMemo(() => {
-    if (!searchValue) return people;
-
     return people.filter((item: any) => {
       const person = item?.person || {};
       const employment = item?.employment || {};
 
-      return [
-        person?.full_name,
-        person?.preferred_name,
-        person?.country,
-        person?.city,
-        employment?.role_title,
-        employment?.department,
-        employment?.organisation_name,
-        employment?.organisation_country,
-        employment?.organisation_city,
-        employment?.league_name,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(searchValue);
+      const matchesSearch =
+        !searchValue ||
+        [
+          person?.full_name,
+          person?.preferred_name,
+          person?.country,
+          person?.city,
+          employment?.role_title,
+          employment?.department,
+          employment?.organisation_name,
+          employment?.organisation_country,
+          employment?.organisation_city,
+          employment?.league_name,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(searchValue);
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      if (focus === 'attention') {
+        return personNeedsAttention(item);
+      }
+
+      if (focus === 'strong') {
+        return personHasStrongRoute(item);
+      }
+
+      if (focus === 'cooling') {
+        return personIsCooling(item);
+      }
+
+      return focus !== 'warm';
     });
-  }, [people, searchValue]);
+  }, [focus, people, searchValue]);
 
   const strongestRoutes = people.filter(
     (item: any) => number(item?.relationship?.route_score) > 0,
@@ -163,6 +337,53 @@ export default function AgencyNetworkWorkspace({
   const followUps = number(
     peopleSummary?.contacts_with_open_follow_up,
   );
+
+  const attentionClubs =
+    clubs.filter(
+      clubNeedsAttention,
+    ).length;
+
+  const warmRouteClubs =
+    clubs.filter(
+      clubHasWarmRoute,
+    ).length;
+
+  const strongPeople =
+    people.filter(
+      personHasStrongRoute,
+    ).length;
+
+  const coolingPeople =
+    people.filter(
+      personIsCooling,
+    ).length;
+
+  const selectFocus = (
+    next: NetworkFocus,
+  ) => {
+    if (focus === next) {
+      setFocus('all');
+      return;
+    }
+
+    setFocus(next);
+    setSearch('');
+
+    if (
+      next === 'warm' ||
+      next === 'attention'
+    ) {
+      setView('clubs');
+      return;
+    }
+
+    if (
+      next === 'strong' ||
+      next === 'cooling'
+    ) {
+      setView('people');
+    }
+  };
 
   const openClubFromPerson = (clubName: string) => {
     setSelectedContact(null);
@@ -202,12 +423,123 @@ export default function AgencyNetworkWorkspace({
         </div>
       </section>
 
+      <section
+        className={styles.intelligence}
+        aria-label="Network focus"
+      >
+        <div className={styles.intelligenceHead}>
+          <div>
+            <p className={styles.eyebrow}>
+              WHERE TO FOCUS
+            </p>
+            <strong>
+              Use recorded relationship evidence to decide the next move.
+            </strong>
+          </div>
+
+          {focus !== 'all' ? (
+            <button
+              type="button"
+              className={styles.clearFocus}
+              onClick={() => setFocus('all')}
+            >
+              Show all network
+            </button>
+          ) : null}
+        </div>
+
+        <div className={styles.intelligenceGrid}>
+          <button
+            type="button"
+            className={
+              focus === 'attention'
+                ? styles.intelligenceActive
+                : styles.intelligenceCard
+            }
+            onClick={() =>
+              selectFocus('attention')
+            }
+          >
+            <CircleAlert size={17} />
+            <span>NEEDS ATTENTION</span>
+            <strong>{attentionClubs}</strong>
+            <small>
+              Live clubs with a due deal action or weak recorded access.
+            </small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              focus === 'warm'
+                ? styles.intelligenceActive
+                : styles.intelligenceCard
+            }
+            onClick={() =>
+              selectFocus('warm')
+            }
+          >
+            <GitBranch size={17} />
+            <span>WARM ROUTES</span>
+            <strong>{warmRouteClubs}</strong>
+            <small>
+              Clubs where a recorded introduction route is stronger than direct access.
+            </small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              focus === 'strong'
+                ? styles.intelligenceActive
+                : styles.intelligenceCard
+            }
+            onClick={() =>
+              selectFocus('strong')
+            }
+          >
+            <Route size={17} />
+            <span>STRONG ROUTES</span>
+            <strong>{strongPeople}</strong>
+            <small>
+              People with a strong recorded direct agency route.
+            </small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              focus === 'cooling'
+                ? styles.intelligenceActive
+                : styles.intelligenceCard
+            }
+            onClick={() =>
+              selectFocus('cooling')
+            }
+          >
+            <TimerReset size={17} />
+            <span>GOING QUIET</span>
+            <strong>{coolingPeople}</strong>
+            <small>
+              Recorded relationships with no captured activity for more than 45 days.
+            </small>
+          </button>
+        </div>
+
+        <p className={styles.intelligenceTruth}>
+          These signals use recorded activity, follow-up, direct relationship evidence and current club work. They are not predictions of influence, response or deal success.
+        </p>
+      </section>
+
       <section className={styles.toolbar}>
         <div className={styles.tabs}>
           <button
             type="button"
             className={view === 'clubs' ? styles.tabActive : styles.tab}
-            onClick={() => setView('clubs')}
+            onClick={() => {
+              setView('clubs');
+              setFocus('all');
+            }}
           >
             <BriefcaseBusiness size={15} />
             Clubs
@@ -217,7 +549,10 @@ export default function AgencyNetworkWorkspace({
           <button
             type="button"
             className={view === 'people' ? styles.tabActive : styles.tab}
-            onClick={() => setView('people')}
+            onClick={() => {
+              setView('people');
+              setFocus('all');
+            }}
           >
             <Users size={15} />
             People
@@ -291,6 +626,36 @@ export default function AgencyNetworkWorkspace({
               : access?.best_direct_role ||
                 human(access?.direct_state || 'route not recorded');
 
+            const directPerson =
+              clubPeople.find(
+                (item: any) =>
+                  item?.person?.full_name ===
+                  access?.best_direct_contact,
+              );
+
+            const routeOwner =
+              directPerson?.relationship
+                ?.owner_name;
+
+            const routeDisplay =
+              !useWarmRoute && routeOwner
+                ? `${routeOwner} → ${routeName}`
+                : routeName;
+
+            const clubSignal =
+              clubNeedsAttention(club)
+                ? 'Needs attention'
+                : clubHasWarmRoute(club)
+                  ? 'Warm route available'
+                  : clubHasStrongRoute(club)
+                    ? 'Strong route'
+                    : clubIsCooling(club)
+                      ? 'Going quiet'
+                      : human(
+                          club?.account_state ||
+                            'relationship recorded',
+                        );
+
             const playType = String(topPlay?.play_type || '');
             const playLabel = String(
               topPlay?.recommended_action || '',
@@ -322,7 +687,7 @@ export default function AgencyNetworkWorkspace({
 
                   <div className={styles.identity}>
                     <p className={styles.eyebrow}>
-                      {human(club?.account_state || 'relationship recorded')}
+                      {clubSignal}
                     </p>
                     <h3>{clubName}</h3>
                     <p>
@@ -335,7 +700,7 @@ export default function AgencyNetworkWorkspace({
 
                 <div className={styles.primaryFact}>
                   <span>BEST ROUTE</span>
-                  <strong>{routeName}</strong>
+                  <strong>{routeDisplay}</strong>
                   <small>{routeDetail}</small>
                 </div>
 
@@ -549,6 +914,18 @@ export default function AgencyNetworkWorkspace({
                 ? `${number(work?.open_tasks)} open`
                 : 'Nothing due';
 
+            const personSignal =
+              personNeedsAttention(item)
+                ? 'Needs attention'
+                : personIsCooling(item)
+                  ? 'Going quiet'
+                  : personHasStrongRoute(item)
+                    ? 'Strong route'
+                    : human(
+                        item?.operating_state ||
+                          'relationship recorded',
+                      );
+
             return (
               <article
                 className={styles.personCard}
@@ -561,7 +938,7 @@ export default function AgencyNetworkWorkspace({
 
                   <div className={styles.identity}>
                     <p className={styles.eyebrow}>
-                      {human(item?.operating_state || 'relationship recorded')}
+                      {personSignal}
                     </p>
                     <h3>{fullName}</h3>
                     <p>
