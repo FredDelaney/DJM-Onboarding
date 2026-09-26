@@ -11,6 +11,7 @@ import {
   MessageCircleMore,
   Route,
   Target,
+  UserRound,
   Users,
   X,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ import {
 } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
+import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import {
   friendlyError,
   relativeDate,
@@ -123,6 +125,8 @@ export default function AgencyClubAccountDrawer({
   onOpenAction,
   onOpenDeal,
   onOpenMarket,
+  onOpenPursuit,
+  onOpenPlayer,
 }: {
   request: AgencyClubAccountRequest;
   invoke: Invoke;
@@ -136,6 +140,12 @@ export default function AgencyClubAccountDrawer({
     context?: string | null,
   ) => void;
   onOpenMarket: () => void;
+  onOpenPursuit: (
+    request: AgencyPursuitRequest,
+  ) => void;
+  onOpenPlayer: (
+    playerId: string,
+  ) => void;
 }) {
   const [busy, setBusy] =
     useState(true);
@@ -1239,54 +1249,162 @@ export default function AgencyClubAccountDrawer({
                     .map(
                       (
                         pursuit: any,
-                      ) => (
-                        <article
-                          className={
-                            styles.row
-                          }
-                          key={
+                      ) => {
+                        const accessMode =
+                          pursuit
+                            ?.access_strategy
+                            ?.recommended_mode ||
+                          pursuit
+                            ?.best_access_route
+                            ?.route_state ||
+                          'recorded_route';
+
+                        const playerId =
+                          clean(
                             pursuit
-                              ?.player_match_id
-                          }
-                        >
-                          <div>
-                            <strong>
-                              {pursuit
-                                ?.player
-                                ?.name ||
-                                'Player route'}
-                            </strong>
+                              ?.player
+                              ?.player_id,
+                          );
 
-                            <span>
-                              {pursuit
-                                ?.need
-                                ?.title ||
-                                'Recorded club demand'}
-                            </span>
+                        const playerName =
+                          pursuit
+                            ?.player
+                            ?.name ||
+                          'Player';
 
-                            <small>
-                              {pursuit
-                                ?.match_reasoning
-                                ?.summary ||
-                                pursuit
-                                  ?.interpretation ||
-                                'Player route recorded'}
-                            </small>
-                          </div>
+                        const clubName =
+                          pursuit
+                            ?.club
+                            ?.name ||
+                          club.name ||
+                          request.title;
 
-                          <button
-                            type="button"
-                            onClick={
-                              onOpenMarket
+                        return (
+                          <article
+                            className={
+                              styles.row
+                            }
+                            key={
+                              pursuit
+                                ?.player_match_id
                             }
                           >
-                            Open opportunity
-                            <ArrowRight
-                              size={14}
-                            />
-                          </button>
-                        </article>
-                      ),
+                            <div>
+                              <strong>
+                                {playerName}
+                              </strong>
+
+                              <span>
+                                {pursuit
+                                  ?.need
+                                  ?.title ||
+                                  'Recorded club demand'}
+                              </span>
+
+                              <small>
+                                {pursuit
+                                  ?.match_reasoning
+                                  ?.summary ||
+                                  pursuit
+                                    ?.interpretation ||
+                                  'Player route recorded'}
+                                {pursuit
+                                  ?.best_access_route
+                                  ?.person_name
+                                  ? ` · Route: ${pursuit.best_access_route.person_name}`
+                                  : ''}
+                              </small>
+                            </div>
+
+                            <div
+                              className={
+                                styles.rowActions
+                              }
+                            >
+                              {playerId ? (
+                                <button
+                                  type="button"
+                                  className={
+                                    styles.rowSecondary
+                                  }
+                                  onClick={() =>
+                                    onOpenPlayer(
+                                      playerId,
+                                    )
+                                  }
+                                >
+                                  <UserRound
+                                    size={14}
+                                  />
+                                  Player Profile
+                                </button>
+                              ) : null}
+
+                              <button
+                                type="button"
+                                className={
+                                  styles.rowPrimary
+                                }
+                                onClick={() =>
+                                  onOpenPursuit({
+                                    key:
+                                      `pursuit:${pursuit.player_match_id}`,
+                                    playerMatchId:
+                                      String(
+                                        pursuit.player_match_id,
+                                      ),
+                                    playerId:
+                                      playerId ||
+                                      null,
+                                    playerName,
+                                    clubId:
+                                      pursuit
+                                        ?.club
+                                        ?.organisation_id
+                                        ? String(
+                                            pursuit.club.organisation_id,
+                                          )
+                                        : request.organisationId,
+                                    clubName,
+                                    needTitle:
+                                      pursuit
+                                        ?.need
+                                        ?.title ||
+                                      null,
+                                    careerGateState:
+                                      pursuit
+                                        ?.career_strategy_gate
+                                        ?.state ||
+                                      null,
+                                    careerGateReason:
+                                      pursuit
+                                        ?.career_strategy_gate
+                                        ?.reason ||
+                                      null,
+                                    accessLabel:
+                                      pursuit
+                                        ?.best_access_route
+                                        ?.person_name ||
+                                      human(
+                                        accessMode,
+                                      ),
+                                    accessDetail:
+                                      pursuit
+                                        ?.best_access_route
+                                        ?.why_this_route ||
+                                      null,
+                                  })
+                                }
+                              >
+                                Open pursuit
+                                <ArrowRight
+                                  size={14}
+                                />
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      },
                     )}
                 </div>
               ) : (

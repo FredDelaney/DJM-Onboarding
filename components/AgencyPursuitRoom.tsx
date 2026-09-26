@@ -171,6 +171,12 @@ export default function AgencyPursuitRoom({
     useState('');
   const [dossierControl, setDossierControl] =
     useState<any>(null);
+  const [readinessControl, setReadinessControl] =
+    useState<any>(null);
+  const [executionControl, setExecutionControl] =
+    useState<any>(null);
+  const [responseControl, setResponseControl] =
+    useState<any>(null);
   const [pitchDetail, setPitchDetail] =
     useState<any>(null);
   const [createdDealId, setCreatedDealId] =
@@ -192,7 +198,8 @@ export default function AgencyPursuitRoom({
     useState('');
 
   const readiness = safeArray(
-    marketData?.pitch_readiness?.items,
+    readinessControl?.items ??
+      marketData?.pitch_readiness?.items,
   ).find(
     (item: any) =>
       String(item?.player_match_id || '') ===
@@ -231,7 +238,8 @@ export default function AgencyPursuitRoom({
   );
 
   const pitch = safeArray(
-    marketData?.pitch_execution?.items,
+    executionControl?.items ??
+      marketData?.pitch_execution?.items,
   ).find(
     (item: any) =>
       String(item?.player_id || '') ===
@@ -249,7 +257,8 @@ export default function AgencyPursuitRoom({
   );
 
   const response = safeArray(
-    marketData?.club_responses?.items,
+    responseControl?.items ??
+      marketData?.club_responses?.items,
   ).find(
     (item: any) =>
       shareId &&
@@ -329,22 +338,71 @@ export default function AgencyPursuitRoom({
     setError('');
 
     try {
-      const dossierResponse =
-        await invoke(
+      const [
+        dossierResponse,
+        readinessResponse,
+        executionResponse,
+        responsesResponse,
+      ] = await Promise.all([
+        invoke(
           'external_dossiers',
           { limit: 250 },
-        );
+        ),
+        invoke(
+          'pitch_readiness',
+          { limit: 100 },
+        ),
+        invoke(
+          'pitch_execution',
+          { limit: 500 },
+        ),
+        invoke(
+          'pitch_responses',
+          { limit: 500 },
+        ),
+      ]);
 
-      setDossierControl(
+      const nextDossiers =
         dossierResponse?.dossiers ||
-          dossierResponse?.result ||
-          null,
+        dossierResponse?.result ||
+        null;
+
+      const nextReadiness =
+        readinessResponse?.readiness ||
+        readinessResponse?.result ||
+        null;
+
+      const nextExecution =
+        executionResponse?.execution ||
+        executionResponse?.result ||
+        null;
+
+      const nextResponses =
+        responsesResponse?.responses ||
+        responsesResponse?.result ||
+        null;
+
+      setDossierControl(nextDossiers);
+      setReadinessControl(nextReadiness);
+      setExecutionControl(nextExecution);
+      setResponseControl(nextResponses);
+
+      const currentPitch = safeArray(
+        nextExecution?.items,
+      ).find(
+        (item: any) =>
+          String(item?.player_id || '') ===
+            playerId &&
+          (!clubId ||
+            String(
+              item?.organisation_id || '',
+            ) === clubId),
       );
 
-      if (pitch?.share_id) {
+      if (currentPitch?.share_id) {
         const pitchResponse =
           await invoke('pitch_detail', {
-            share_id: pitch.share_id,
+            share_id: currentPitch.share_id,
           });
 
         setPitchDetail(
@@ -361,8 +419,8 @@ export default function AgencyPursuitRoom({
       setBusy(false);
     }
   }, [
+    clubId,
     invoke,
-    pitch?.share_id,
     playerId,
   ]);
 

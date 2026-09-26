@@ -1217,6 +1217,20 @@ export default function AgencyOperatingWorkspace() {
               `${basePath}?view=opportunities`,
             );
           }}
+          onOpenPursuit={(request) => {
+            setClubAccountRequest(null);
+            setPursuitRequest(request);
+          }}
+          onOpenPlayer={(playerId) => {
+            setClubAccountRequest(null);
+            window.history.pushState(
+              window.history.state,
+              '',
+              `${basePath}?view=players&player=${encodeURIComponent(
+                playerId,
+              )}`,
+            );
+          }}
         />
       ) : null}
 
