@@ -2240,3 +2240,164 @@
     gap: 12px 18px;
   }
 }
+
+.calendarSummary {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.calendarSummary > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  border: 1px solid #e3e6ea;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.calendarSummary span {
+  color: #858c95;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.calendarSummary strong {
+  color: #2d343d;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.calendarSummary small {
+  color: #858c95;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.calendarList {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #e7e9ec;
+  border-radius: 13px;
+}
+
+.calendarRow {
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    36px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 12px 13px;
+  border-top: 1px solid #edf0f2;
+  background: #fff;
+}
+
+.calendarRow:first-child {
+  border-top: 0;
+}
+
+.calendarIcon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-accent) 8%,
+      #f5f6f7
+    );
+  color: var(--agency-accent);
+}
+
+.calendarCopy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.calendarMeta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.calendarMeta span {
+  color: var(--agency-primary);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.calendarMeta small {
+  color: #8a919a;
+  font-size: 7px;
+}
+
+.calendarCopy > strong {
+  color: #363e47;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.calendarCopy > span {
+  color: #727a84;
+  font-size: 8px;
+}
+
+.calendarCopy > small {
+  color: #8b929a;
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.calendarAction {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid #dde1e5;
+  border-radius: 9px;
+  background: #fff;
+  color: #4f5761;
+  font-size: 8px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.calendarTruth {
+  margin: 11px 2px 0;
+  color: #91979f;
+  font-size: 7px;
+  line-height: 1.5;
+}
+
+@media (max-width: 800px) {
+  .calendarSummary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .calendarSummary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .calendarRow {
+    grid-template-columns:
+      34px minmax(0, 1fr);
+  }
+
+  .calendarAction {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

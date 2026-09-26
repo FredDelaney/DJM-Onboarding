@@ -10,6 +10,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import {
   ArrowRight,
   BriefcaseBusiness,
+  CakeSlice,
   CalendarDays,
   CheckCircle2,
   CircleAlert,
@@ -1044,7 +1045,10 @@ export default function AgencyOperatingWorkspace() {
               />
             ) : null}
             {view === 'calendar' ? (
-              <AgencyCalendar data={data} />
+              <AgencyCalendar
+                data={data}
+                basePath={basePath}
+              />
             ) : null}
             {view === 'business' && canSeeBusiness ? (
               <Business
@@ -1473,6 +1477,41 @@ function Home({
     ? operations.deadlines.items
     : [];
 
+  const birthdays = Array.isArray(
+    operations?.important_dates?.birthdays?.items,
+  )
+    ? operations.important_dates.birthdays.items
+    : [];
+
+  const dayItems = [
+    ...deadlines.map((item: any) => ({
+      ...item,
+      calendar_kind: 'deadline',
+    })),
+    ...birthdays.map((item: any) => ({
+      ...item,
+      calendar_kind: 'birthday',
+      deadline_at: item?.date_at,
+      deadline_state: item?.date_state,
+      context: {
+        player_id: item?.player_id,
+        player_name: item?.player_name,
+        turns_age: item?.turns_age,
+      },
+    })),
+  ].sort((a: any, b: any) => {
+    const aTime = Date.parse(
+      String(a?.deadline_at || ''),
+    );
+    const bTime = Date.parse(
+      String(b?.deadline_at || ''),
+    );
+
+    if (!Number.isFinite(aTime)) return 1;
+    if (!Number.isFinite(bTime)) return -1;
+    return aTime - bTime;
+  });
+
   const players = Array.isArray(playerService?.players)
     ? playerService.players
     : [];
@@ -1730,17 +1769,22 @@ function Home({
           </div>
 
           <div className={styles.list}>
-            {deadlines
+            {dayItems
               .slice(0, 5)
               .map((item: any, index: number) => (
                 <article
                   className={styles.simpleTimelineRow}
                   key={
+                    item?.item_id ||
                     item?.entity_id ||
                     `${item?.title || 'item'}-${index}`
                   }
                 >
-                  <CalendarDays size={16} />
+                  {item?.calendar_kind === 'birthday' ? (
+                    <CakeSlice size={16} />
+                  ) : (
+                    <CalendarDays size={16} />
+                  )}
                   <div>
                     <strong>
                       {item?.title || 'Agency date'}
@@ -1754,12 +1798,16 @@ function Home({
                               'Recorded',
                           )}`
                         : 'Date not recorded'}
+                      {item?.calendar_kind === 'birthday' &&
+                      item?.context?.turns_age
+                        ? ` · Turns ${item.context.turns_age}`
+                        : ''}
                     </span>
                   </div>
                 </article>
               ))}
 
-            {!deadlines.length ? (
+            {!dayItems.length ? (
               <EmptyState
                 icon={CalendarDays}
                 title="Nothing dated for today"
@@ -3388,8 +3436,10 @@ function Opportunities({
 
 function AgencyCalendar({
   data,
+  basePath,
 }: {
   data: any;
+  basePath: string;
 }) {
   const deadlines = Array.isArray(
     data?.deadlines?.items,
@@ -3399,67 +3449,396 @@ function AgencyCalendar({
       ? data.items
       : [];
 
+  const birthdayPack =
+    data?.important_dates?.birthdays ||
+    {};
+
+  const birthdays = Array.isArray(
+    birthdayPack?.items,
+  )
+    ? birthdayPack.items
+    : [];
+
+  const birthdaySummary =
+    birthdayPack?.summary || {};
+
+  const items = [
+    ...deadlines.map((item: any) => ({
+      ...item,
+      calendar_kind: 'deadline',
+      date_at: item?.deadline_at,
+      date_state: item?.deadline_state,
+    })),
+    ...birthdays.map((item: any) => ({
+      ...item,
+      calendar_kind: 'birthday',
+      entity_type: 'player',
+      entity_id: item?.player_id,
+      context: {
+        player_id: item?.player_id,
+        player_name: item?.player_name,
+        turns_age: item?.turns_age,
+      },
+    })),
+  ].sort((a: any, b: any) => {
+    const aTime = Date.parse(
+      String(a?.date_at || ''),
+    );
+    const bTime = Date.parse(
+      String(b?.date_at || ''),
+    );
+
+    if (!Number.isFinite(aTime)) return 1;
+    if (!Number.isFinite(bTime)) return -1;
+    return aTime - bTime;
+  });
+
+  const needsAttention = deadlines.filter(
+    (item: any) =>
+      [
+        'overdue',
+        'today',
+        'next_48_hours',
+      ].includes(
+        String(
+          item?.deadline_state || '',
+        ),
+      ),
+  ).length;
+
+  const contractDates = deadlines.filter(
+    (item: any) =>
+      item?.deadline_type ===
+      'contract_expiry',
+  ).length;
+
+  const representationDates =
+    deadlines.filter(
+      (item: any) =>
+        item?.deadline_type ===
+        'representation_record_end',
+    ).length;
+
+  const birthdaysNext30 = Number(
+    birthdaySummary?.next_30_days || 0,
+  );
+
+  const exactDate = (value: unknown) => {
+    const raw = String(value || '').trim();
+    if (!raw) return 'Date not recorded';
+
+    const date = new Date(
+      /^\d{4}-\d{2}-\d{2}$/.test(raw)
+        ? `${raw}T12:00:00`
+        : raw,
+    );
+
+    if (Number.isNaN(date.getTime())) {
+      return raw;
+    }
+
+    return new Intl.DateTimeFormat(
+      'en-GB',
+      {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      },
+    ).format(date);
+  };
+
+  const categoryFor = (item: any) => {
+    if (
+      item?.calendar_kind ===
+      'birthday'
+    ) {
+      return 'Birthday';
+    }
+
+    switch (
+      String(
+        item?.deadline_type || '',
+      )
+    ) {
+      case 'contract_expiry':
+        return 'Playing contract';
+      case 'representation_record_end':
+        return 'Agency agreement';
+      case 'document_expiry':
+        return 'Player document';
+      case 'player_next_action':
+        return 'Player action';
+      case 'deal_next_action':
+        return 'Deal';
+      case 'club_need_expiry':
+        return 'Club need';
+      case 'player_request_due':
+        return 'Player request';
+      case 'career_strategy_review':
+        return 'Career review';
+      case 'target_window_end':
+        return 'Move window';
+      default:
+        return 'Agency date';
+    }
+  };
+
+  const iconFor = (item: any) => {
+    if (
+      item?.calendar_kind ===
+      'birthday'
+    ) {
+      return <CakeSlice size={16} />;
+    }
+
+    if (
+      item?.deadline_type ===
+      'contract_expiry'
+    ) {
+      return (
+        <BriefcaseBusiness size={16} />
+      );
+    }
+
+    if (
+      item?.deadline_type ===
+      'representation_record_end'
+    ) {
+      return <ShieldCheck size={16} />;
+    }
+
+    return <CalendarDays size={16} />;
+  };
+
   return (
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="CALENDAR"
-        title="Your agency calendar."
-        copy="Known agency dates, without creating another reminder system."
+        title="The dates your agency cannot forget."
+        copy="Birthdays, contracts, representation records and dated work from information already recorded by the agency."
         icon={CalendarDays}
-        badge={`${deadlines.length} dated items`}
+        badge={`${items.length} upcoming dates`}
       />
 
-      <section className={styles.sectionCard}>
+      <section
+        className={
+          styles.calendarSummary
+        }
+      >
+        <div>
+          <span>NEEDS ATTENTION</span>
+          <strong>
+            {needsAttention}
+          </strong>
+          <small>
+            Overdue, today or within 48 hours
+          </small>
+        </div>
+
+        <div>
+          <span>BIRTHDAYS</span>
+          <strong>
+            {birthdaysNext30}
+          </strong>
+          <small>
+            In the next 30 days
+          </small>
+        </div>
+
+        <div>
+          <span>PLAYER CONTRACTS</span>
+          <strong>
+            {contractDates}
+          </strong>
+          <small>
+            Recorded in this horizon
+          </small>
+        </div>
+
+        <div>
+          <span>AGENCY AGREEMENTS</span>
+          <strong>
+            {representationDates}
+          </strong>
+          <small>
+            Recorded end dates
+          </small>
+        </div>
+      </section>
+
+      <section
+        className={styles.sectionCard}
+      >
         <div className={styles.sectionHead}>
           <div>
-            <p className={styles.eyebrow}>NEXT</p>
-            <h2>Upcoming</h2>
+            <p className={styles.eyebrow}>
+              NEXT
+            </p>
+            <h2>Coming up</h2>
           </div>
         </div>
 
-        <div className={styles.list}>
-          {deadlines.slice(0, 30).map((item: any, index: number) => {
-            const due =
-              item?.due_at ||
-              item?.starts_at ||
-              item?.due_on ||
-              null;
+        <div
+          className={
+            styles.calendarList
+          }
+        >
+          {items
+            .slice(0, 50)
+            .map(
+              (
+                item: any,
+                index: number,
+              ) => {
+                const playerId =
+                  item?.context
+                    ?.player_id ||
+                  item?.player_id ||
+                  '';
 
-            return (
-              <article
-                className={styles.simpleTimelineRow}
-                key={
-                  item?.id ||
-                  item?.item_id ||
-                  item?.task_id ||
-                  `${item?.title || 'item'}-${index}`
-                }
-              >
-                <CalendarDays size={16} />
-                <div>
-                  <strong>
-                    {item?.title ||
-                      item?.label ||
-                      human(item?.kind || 'Agency action')}
-                  </strong>
-                  <span>
-                    {due
-                      ? relativeDate(due)
-                      : 'Date not recorded'}
-                  </span>
-                </div>
-              </article>
-            );
-          })}
+                const playerHref =
+                  playerId
+                    ? `${basePath}?view=players&player=${encodeURIComponent(
+                        String(playerId),
+                      )}`
+                    : '';
 
-          {!deadlines.length ? (
+                const opportunityHref =
+                  [
+                    'deal',
+                    'club_need',
+                  ].includes(
+                    String(
+                      item?.entity_type ||
+                        '',
+                    ),
+                  )
+                    ? `${basePath}?view=opportunities`
+                    : '';
+
+                const destination =
+                  playerHref ||
+                  opportunityHref;
+
+                const actionLabel =
+                  playerHref
+                    ? 'Open player'
+                    : opportunityHref
+                      ? 'Open Opportunities'
+                      : '';
+
+                const detail =
+                  item?.calendar_kind ===
+                  'birthday'
+                    ? item?.turns_age
+                      ? `Turns ${item.turns_age}`
+                      : 'Player birthday'
+                    : item?.next_action
+                        ?.instruction ||
+                      human(
+                        item?.deadline_type ||
+                          'Recorded date',
+                      );
+
+                return (
+                  <article
+                    className={
+                      styles.calendarRow
+                    }
+                    key={
+                      item?.item_id ||
+                      item?.entity_id ||
+                      `${item?.title || 'item'}-${index}`
+                    }
+                  >
+                    <div
+                      className={
+                        styles.calendarIcon
+                      }
+                    >
+                      {iconFor(item)}
+                    </div>
+
+                    <div
+                      className={
+                        styles.calendarCopy
+                      }
+                    >
+                      <div
+                        className={
+                          styles.calendarMeta
+                        }
+                      >
+                        <span>
+                          {categoryFor(
+                            item,
+                          )}
+                        </span>
+
+                        <small>
+                          {human(
+                            item?.date_state ||
+                              item?.deadline_state ||
+                              'Recorded',
+                          )}
+                        </small>
+                      </div>
+
+                      <strong>
+                        {item?.title ||
+                          item?.label ||
+                          'Agency date'}
+                      </strong>
+
+                      <span>
+                        {item?.date_at
+                          ? `${exactDate(
+                              item.date_at,
+                            )} · ${relativeDate(
+                              item.date_at,
+                            )}`
+                          : 'Date not recorded'}
+                      </span>
+
+                      <small>
+                        {detail}
+                      </small>
+                    </div>
+
+                    {destination ? (
+                      <Link
+                        className={
+                          styles.calendarAction
+                        }
+                        href={destination}
+                      >
+                        {actionLabel}
+                        <ArrowRight
+                          size={13}
+                        />
+                      </Link>
+                    ) : null}
+                  </article>
+                );
+              },
+            )}
+
+          {!items.length ? (
             <EmptyState
               icon={CalendarDays}
-              title="No upcoming dated work recorded"
-              copy="Meetings, calls, birthdays, contract dates and follow-ups will build this view as they are connected."
+              title="No upcoming dates recorded"
+              copy="Birthdays, contracts, representation dates, meetings and follow-ups will appear here as they are recorded."
             />
           ) : null}
         </div>
+
+        <p
+          className={
+            styles.calendarTruth
+          }
+        >
+          The calendar shows recorded dates and recurring player birthdays. A date can prompt attention, but it does not determine legal, regulatory or commercial consequence.
+        </p>
       </section>
     </div>
   );
