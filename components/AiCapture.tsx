@@ -125,6 +125,7 @@ export default function AiCapture({
   resumeCaptureId,
   maxAudioSeconds = DEFAULT_MAX_SECONDS,
   resolvedWorkspaceSlug,
+  initialText = '',
 }: {
   context?: Context;
   compact?: boolean;
@@ -133,6 +134,7 @@ export default function AiCapture({
   resumeCaptureId?: string | null;
   maxAudioSeconds?: number;
   resolvedWorkspaceSlug?: string | null;
+  initialText?: string;
 }) {
   const [mode, setMode] = useState<'voice' | 'text'>('voice');
   const requestedWorkspace = useAiWorkspaceContext();
@@ -161,6 +163,33 @@ export default function AiCapture({
   const activeWorkspaceRef = useRef(workspaceSlug);
   activeWorkspaceRef.current = workspaceSlug;
   const displayCaptureRef = useRef<string | null>(null);
+  const appliedInitialTextRef = useRef('');
+
+  useEffect(() => {
+    const sharedText = initialText.trim();
+
+    if (
+      !sharedText ||
+      appliedInitialTextRef.current === sharedText ||
+      recording ||
+      busy ||
+      unsavedDraft
+    ) {
+      return;
+    }
+
+    appliedInitialTextRef.current = sharedText;
+    setMode('text');
+    setText(sharedText);
+    setReceipt(null);
+    setStatus('');
+    setError('');
+  }, [
+    busy,
+    initialText,
+    recording,
+    unsavedDraft,
+  ]);
 
   useEffect(() => {
     onUnsafeToCloseChange?.(recording || busy || Boolean(unsavedDraft));
