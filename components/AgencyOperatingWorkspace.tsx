@@ -71,6 +71,7 @@ import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
 import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
 import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
+import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -534,7 +535,7 @@ export default function AgencyOperatingWorkspace() {
         );
       } else if (view === 'calendar') {
         setData(
-          await rpc<any>('redream_autopilot_operations', {
+          await rpc<any>('redream_autopilot_calendar', {
             p_horizon_days: 90,
             p_limit: 100,
           }),
@@ -1046,7 +1047,7 @@ export default function AgencyOperatingWorkspace() {
               />
             ) : null}
             {view === 'calendar' ? (
-              <AgencyCalendar
+              <AgencyCalendarWorkspace
                 data={data}
                 basePath={basePath}
               />
