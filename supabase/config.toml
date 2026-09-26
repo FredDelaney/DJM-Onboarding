@@ -148,3 +148,6 @@ verify_jwt = false
 
 [functions.redream-provider-oauth]
 verify_jwt = false
+
+[functions.redream-provider-sync]
+verify_jwt = false

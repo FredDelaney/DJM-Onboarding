@@ -295,6 +295,82 @@ export default function AgencyConnectionsDrawer({
       }
     };
 
+  const syncProvider =
+    async (
+      provider: Provider,
+    ) => {
+      if (busy) return;
+
+      setBusy(
+        `sync:${provider}`,
+      );
+      setError('');
+      setMessage('');
+
+      try {
+        const result =
+          await platformInvoke<{
+            ok?: boolean;
+            meetings_seen?: number;
+            meetings_cancelled?: number;
+            contacts_seen?: number;
+            contacts_linked?: number;
+            error?: string;
+          }>(
+            'redream-provider-sync',
+            {
+              provider,
+              workspace_slug:
+                workspaceSlug,
+            },
+          );
+
+        if (
+          !result?.ok
+        ) {
+          throw new Error(
+            result?.error ||
+            'Sync did not complete.',
+          );
+        }
+
+        const meetingCount =
+          Number(
+            result
+              .meetings_seen ||
+              0,
+          );
+
+        const contactCount =
+          Number(
+            result
+              .contacts_seen ||
+              0,
+          );
+
+        const linkedCount =
+          Number(
+            result
+              .contacts_linked ||
+              0,
+          );
+
+        setMessage(
+          `${provider === 'microsoft' ? 'Microsoft' : 'Google'} synced. ${meetingCount} meetings and ${contactCount} contacts checked${linkedCount > 0 ? `, ${linkedCount} matched to Network` : ''}.`,
+        );
+
+        await load();
+      } catch (syncError) {
+        setError(
+          friendlyError(
+            syncError,
+          ),
+        );
+      } finally {
+        setBusy('');
+      }
+    };
+
   const disconnect =
     async (
       provider: Provider,
@@ -606,51 +682,91 @@ export default function AgencyConnectionsDrawer({
                         styles.actions
                       }
                     >
-                      <button
-                        type="button"
-                        className={
-                          styles.primary
-                        }
-                        onClick={() =>
-                          void connect(
-                            provider.key,
-                          )
-                        }
-                        disabled={
-                          Boolean(
-                            busy,
-                          )
-                        }
-                      >
-                        {working ? (
-                          <LoaderCircle
-                            size={14}
-                            className={
-                              styles.spin
-                            }
-                          />
-                        ) : connected ? (
-                          <RefreshCw
-                            size={14}
-                          />
-                        ) : (
-                          <Link2
-                            size={14}
-                          />
-                        )}
-                        {connected
-                          ? 'Reconnect'
-                          : `Connect ${provider.name}`}
-                      </button>
-
                       {connected ? (
+                        <>
+                          <button
+                            type="button"
+                            className={
+                              styles.primary
+                            }
+                            onClick={() =>
+                              void syncProvider(
+                                provider.key,
+                              )
+                            }
+                            disabled={
+                              Boolean(
+                                busy,
+                              )
+                            }
+                          >
+                            {working ? (
+                              <LoaderCircle
+                                size={14}
+                                className={
+                                  styles.spin
+                                }
+                              />
+                            ) : (
+                              <RefreshCw
+                                size={14}
+                              />
+                            )}
+                            Sync now
+                          </button>
+
+                          <button
+                            type="button"
+                            className={
+                              styles.secondary
+                            }
+                            onClick={() =>
+                              void connect(
+                                provider.key,
+                              )
+                            }
+                            disabled={
+                              Boolean(
+                                busy,
+                              )
+                            }
+                          >
+                            <Link2
+                              size={14}
+                            />
+                            Reconnect
+                          </button>
+
+                          <button
+                            type="button"
+                            className={
+                              styles.secondary
+                            }
+                            onClick={() =>
+                              void disconnect(
+                                provider.key,
+                              )
+                            }
+                            disabled={
+                              Boolean(
+                                busy,
+                              )
+                            }
+                          >
+                            <Unplug
+                              size={14}
+                            />
+                            Disconnect
+                          </button>
+                        </>
+                      ) : (
                         <button
                           type="button"
                           className={
-                            styles.secondary
+                            styles.primary
                           }
                           onClick={() =>
-                            void disconnect(
+                            void connect(
                               provider.key,
                             )
                           }
@@ -660,12 +776,21 @@ export default function AgencyConnectionsDrawer({
                             )
                           }
                         >
-                          <Unplug
-                            size={14}
-                          />
-                          Disconnect
+                          {working ? (
+                            <LoaderCircle
+                              size={14}
+                              className={
+                                styles.spin
+                              }
+                            />
+                          ) : (
+                            <Link2
+                              size={14}
+                            />
+                          )}
+                          Connect {provider.name}
                         </button>
-                      ) : null}
+                      )}
                     </div>
                   </article>
                 );
