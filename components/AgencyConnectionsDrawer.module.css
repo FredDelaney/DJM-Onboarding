@@ -287,6 +287,137 @@
   color: #75858f;
 }
 
+.messagingSection {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.sectionIntro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.sectionIntro > div {
+  display: grid;
+  gap: 4px;
+}
+
+.sectionIntro > div > span {
+  color: var(--agency-accent);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.sectionIntro h3 {
+  margin: 0;
+  color: #17384f;
+  font-size: 16px;
+  letter-spacing: -.025em;
+}
+
+.sectionIntro > svg {
+  color: #5f7c8c;
+}
+
+.sectionCopy {
+  max-width: 470px;
+  margin: 0;
+  color: #7c8a93;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.messagingProviders {
+  display: grid;
+  gap: 10px;
+}
+
+.messagingProvider {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #e2e7ea;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.messagingTop {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 11px;
+  align-items: center;
+}
+
+.messagingLoading {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #e6eaec;
+  border-radius: 13px;
+  background: #fff;
+  color: #7d8c95;
+  font-size: 9px;
+}
+
+.threadList {
+  display: grid;
+  gap: 7px;
+}
+
+.threadRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 11px;
+  border: 1px solid #e7ebed;
+  border-radius: 10px;
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.threadRow > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.threadRow strong {
+  overflow: hidden;
+  color: #355469;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threadRow small {
+  color: #87949c;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.threadRow input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--agency-primary);
+}
+
+.noThreads {
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: #f7f9fa;
+  color: #839099;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
 .spin {
   animation: spin .8s linear infinite;
 }

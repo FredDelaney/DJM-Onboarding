@@ -151,3 +151,9 @@ verify_jwt = false
 
 [functions.redream-provider-sync]
 verify_jwt = false
+
+[functions.redream-meta-connect]
+verify_jwt = false
+
+[functions.redream-meta-webhook]
+verify_jwt = false
