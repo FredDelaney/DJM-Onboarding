@@ -260,6 +260,20 @@ const tokenExchange = async (
     !response.ok ||
     !payload?.access_token
   ) {
+    console.error(
+      JSON.stringify({
+        operation:
+          "redream_provider_token_exchange",
+        provider,
+        status:
+          response.status,
+        provider_error:
+          String(payload?.error || ""),
+        provider_error_description:
+          String(payload?.error_description || ""),
+      }),
+    );
+
     throw new Error(
       "Provider token exchange failed",
     );
@@ -473,7 +487,7 @@ Deno.serve(
 
       try {
         const redirectUri =
-          `${functionBase(url)}/${callbackProvider}/callback`;
+          `${supabaseUrl.replace(/\/$/, "")}/functions/v1/redream-provider-oauth/${callbackProvider}/callback`;
 
         const requestedScopes =
           scopesFor(
@@ -780,7 +794,7 @@ Deno.serve(
     }
 
     const redirectUri =
-      `${functionBase(url)}/${provider}/callback`;
+      `${supabaseUrl.replace(/\/$/, "")}/functions/v1/redream-provider-oauth/${provider}/callback`;
 
     const scopes =
       scopesFor(

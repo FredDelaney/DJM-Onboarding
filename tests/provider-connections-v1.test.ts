@@ -220,6 +220,32 @@ test(
 );
 
 test(
+  'OAuth callbacks use the canonical Supabase HTTPS function route and log provider exchange errors safely',
+  () => {
+    assert.match(
+      edge,
+      /\$\{supabaseUrl\.replace\(\/\\\/\$\/, ""\)\}\/functions\/v1\/redream-provider-oauth\/\$\{callbackProvider\}\/callback/,
+    );
+    assert.match(
+      edge,
+      /\$\{supabaseUrl\.replace\(\/\\\/\$\/, ""\)\}\/functions\/v1\/redream-provider-oauth\/\$\{provider\}\/callback/,
+    );
+    assert.doesNotMatch(
+      edge,
+      /\$\{functionBase\(url\)\}\/\$\{(?:callbackProvider|provider)\}\/callback/,
+    );
+    assert.match(
+      edge,
+      /redream_provider_token_exchange/,
+    );
+    assert.match(
+      edge,
+      /provider_error_description/,
+    );
+  },
+);
+
+test(
   'connected work stays outside primary navigation and uses a compact drawer',
   () => {
     assert.match(
