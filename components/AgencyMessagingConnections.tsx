@@ -30,8 +30,10 @@ type MessagingConnection = {
   provider: MessagingProvider;
   display_label?: string | null;
   status?: string;
+  health?: 'connected' | 'attention' | 'reconnect_required';
   last_event_at?: string | null;
   last_error?: string | null;
+  token_expires_at?: string | null;
 };
 
 type MessagingThread = {
@@ -822,6 +824,21 @@ export default function AgencyMessagingConnections({
                 busy.endsWith(
                   provider.key,
                 );
+              const health =
+                connection?.health ||
+                (connection
+                  ? 'connected'
+                  : null);
+              const statusLabel =
+                !connection
+                  ? 'Not connected'
+                  : health ===
+                      'reconnect_required'
+                    ? 'Reconnect'
+                    : health ===
+                        'attention'
+                      ? 'Needs attention'
+                      : 'Connected';
 
               return (
                 <article
@@ -871,14 +888,17 @@ export default function AgencyMessagingConnections({
                         </strong>
                         <span
                           className={
-                            connection
+                            connection &&
+                            health ===
+                              'connected'
                               ? styles.connected
-                              : styles.notConnected
+                              : health ===
+                                  'attention'
+                                ? styles.attention
+                                : styles.notConnected
                           }
                         >
-                          {connection
-                            ? 'Connected'
-                            : 'Not connected'}
+                          {statusLabel}
                         </span>
                       </div>
 
@@ -892,6 +912,20 @@ export default function AgencyMessagingConnections({
 
                   {connection ? (
                     <>
+                      {health !==
+                      'connected' ? (
+                        <div
+                          className={
+                            styles.connectionWarning
+                          }
+                        >
+                          {health ===
+                          'reconnect_required'
+                            ? 'This connection needs to be reconnected before new messages can reach ReDream.'
+                            : 'This connection will need attention soon. ReDream will try to refresh it automatically.'}
+                        </div>
+                      ) : null}
+
                       <div
                         className={
                           styles.threadList
@@ -973,34 +1007,76 @@ export default function AgencyMessagingConnections({
                         )}
                       </div>
 
-                      <button
-                        type="button"
+                      <div
                         className={
-                          styles.secondary
-                        }
-                        onClick={() =>
-                          void disconnect(
-                            provider.key,
-                          )
-                        }
-                        disabled={
-                          Boolean(busy)
+                          styles.messagingActions
                         }
                       >
-                        {working ? (
-                          <LoaderCircle
-                            size={14}
+                        {ready[
+                          provider.key
+                        ] ? (
+                          <button
+                            type="button"
                             className={
-                              styles.spin
+                              health ===
+                              'reconnect_required'
+                                ? styles.primary
+                                : styles.secondary
                             }
-                          />
-                        ) : (
-                          <Unplug
-                            size={14}
-                          />
-                        )}
-                        Disconnect
-                      </button>
+                            onClick={() =>
+                              void connect(
+                                provider.key,
+                              )
+                            }
+                            disabled={
+                              Boolean(busy)
+                            }
+                          >
+                            {working ? (
+                              <LoaderCircle
+                                size={14}
+                                className={
+                                  styles.spin
+                                }
+                              />
+                            ) : (
+                              <MessageCircle
+                                size={14}
+                              />
+                            )}
+                            Reconnect
+                          </button>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          className={
+                            styles.secondary
+                          }
+                          onClick={() =>
+                            void disconnect(
+                              provider.key,
+                            )
+                          }
+                          disabled={
+                            Boolean(busy)
+                          }
+                        >
+                          {working ? (
+                            <LoaderCircle
+                              size={14}
+                              className={
+                                styles.spin
+                              }
+                            />
+                          ) : (
+                            <Unplug
+                              size={14}
+                            />
+                          )}
+                          Disconnect
+                        </button>
+                      </div>
                     </>
                   ) : ready[
                     provider.key

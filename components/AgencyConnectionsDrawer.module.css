@@ -113,6 +113,7 @@
 }
 
 .connected,
+.attention,
 .notConnected {
   padding: 4px 7px;
   border-radius: 999px;
@@ -125,6 +126,11 @@
 .connected {
   background: #eef7f0;
   color: #3d7250;
+}
+
+.attention {
+  background: #fff7e8;
+  color: #8d6a25;
 }
 
 .notConnected {
@@ -416,6 +422,22 @@
   color: #839099;
   font-size: 8px;
   line-height: 1.45;
+}
+
+.connectionWarning {
+  padding: 10px 11px;
+  border: 1px solid #f1dfb7;
+  border-radius: 10px;
+  background: #fff9ed;
+  color: #7d652f;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.messagingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .spin {
