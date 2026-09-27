@@ -24,6 +24,7 @@ import {
   platformRpc,
 } from '@/lib/platform-client';
 
+import AgencyMessagingConnections from './AgencyMessagingConnections';
 import styles from './AgencyConnectionsDrawer.module.css';
 
 type Provider =
@@ -177,17 +178,26 @@ export default function AgencyConnectionsDrawer({
         'connection_provider',
       );
 
+    const providerLabel =
+      provider === 'microsoft'
+        ? 'Microsoft'
+        : provider === 'instagram'
+          ? 'Instagram'
+          : provider === 'whatsapp'
+            ? 'WhatsApp'
+            : 'Google';
+
     if (
       status === 'connected'
     ) {
       setMessage(
-        `${provider === 'microsoft' ? 'Microsoft' : 'Google'} connected.`,
+        `${providerLabel} connected.`,
       );
     } else if (
       status === 'error'
     ) {
       setError(
-        `${provider === 'microsoft' ? 'Microsoft' : 'Google'} connection did not complete. Nothing was changed.`,
+        `${providerLabel} connection did not complete. Nothing was changed.`,
       );
     }
 
@@ -798,6 +808,19 @@ export default function AgencyConnectionsDrawer({
             )}
           </div>
         )}
+
+        <AgencyMessagingConnections
+          workspaceSlug={workspaceSlug}
+          onStatus={(kind, nextMessage) => {
+            if (kind === 'success') {
+              setError('');
+              setMessage(nextMessage);
+            } else {
+              setMessage('');
+              setError(nextMessage);
+            }
+          }}
+        />
 
         <footer
           className={
