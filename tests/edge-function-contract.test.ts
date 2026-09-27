@@ -51,6 +51,7 @@ test("every deployed Edge Function has source and explicit JWT configuration", (
     "redream-ai-process",
     "redream-demo-request",
     "redream-funnel-event",
+    "redream-messaging-maintenance",
     "redream-meta-connect",
     "redream-meta-webhook",
     "redream-provider-oauth",

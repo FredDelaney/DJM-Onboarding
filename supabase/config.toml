@@ -157,3 +157,6 @@ verify_jwt = false
 
 [functions.redream-meta-webhook]
 verify_jwt = false
+
+[functions.redream-messaging-maintenance]
+verify_jwt = false
