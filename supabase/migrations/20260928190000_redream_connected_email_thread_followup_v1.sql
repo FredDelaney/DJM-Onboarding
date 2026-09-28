@@ -705,7 +705,10 @@ begin
   )
   select
     count(*)::integer,
-    min(id)
+    (array_agg(
+      id
+      order by id
+    ))[1]
   into
     v_candidate_count,
     v_task_id

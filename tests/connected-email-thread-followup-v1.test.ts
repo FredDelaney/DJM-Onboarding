@@ -101,6 +101,16 @@ test(
       /if v_candidate_count <> 1/,
     );
 
+    assert.doesNotMatch(
+      migration,
+      /min\(id\)/,
+    );
+
+    assert.match(
+      migration,
+      /array_agg\([\s\S]*id[\s\S]*order by id/,
+    );
+
     assert.match(
       migration,
       /status =[\s\S]*'completed'/,
