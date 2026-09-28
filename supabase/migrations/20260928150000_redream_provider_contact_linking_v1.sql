@@ -869,6 +869,26 @@ begin
         ''
       ) is not null
   ),
+  resolved as (
+    select
+      email,
+      (array_agg(
+        person_id
+        order by person_id
+      ))[1] as person_id,
+      (array_agg(
+        person_name
+        order by person_name
+      ))[1] as person_name
+    from
+      known
+    group by
+      email
+    having
+      count(
+        distinct person_id
+      ) = 1
+  ),
   enriched as (
     select
       k.email,
@@ -877,7 +897,7 @@ begin
       ce.organisation_id,
       o.name as organisation_name
     from
-      known k
+      resolved k
 
     left join lateral (
       select

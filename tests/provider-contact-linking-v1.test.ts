@@ -71,6 +71,11 @@ test(
       migration,
       /platform_server_provider_email_commit/,
     );
+
+    assert.match(
+      migration,
+      /having[\s\S]*count\([\s\S]*distinct person_id[\s\S]*\) = 1/i,
+    );
   },
 );
 
