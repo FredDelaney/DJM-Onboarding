@@ -122,15 +122,27 @@ test(
 );
 
 test(
-  'identity resolution opens the existing Connections surface',
+  'identity resolution opens the focused Connected Work resolver',
   () => {
     assert.match(
       workspace,
-      /onOpenConnections=\{\(\) => setConnectionsOpen\(true\)\}/,
+      /onResolveConnectedIdentity/,
+    );
+    assert.match(
+      workspace,
+      /setConnectedIdentityResolverOpen\(true\)/,
+    );
+    assert.match(
+      workspace,
+      /AgencyConnectedIdentityResolverDrawer/,
     );
     assert.match(
       workspace,
       /Link chats/,
+    );
+    assert.match(
+      workspace,
+      /setConnectionsOpen\(true\)/,
     );
   },
 );

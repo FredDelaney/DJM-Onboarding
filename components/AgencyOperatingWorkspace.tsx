@@ -76,6 +76,7 @@ import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
 import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
 import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
+import AgencyConnectedIdentityResolverDrawer from '@/components/AgencyConnectedIdentityResolverDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 
 import styles from './AgencyOperatingWorkspace.module.css';
@@ -283,6 +284,8 @@ export default function AgencyOperatingWorkspace() {
   const [connectionsOpen, setConnectionsOpen] = useState(
     () => search.get('connections') === '1',
   );
+  const [connectedIdentityResolverOpen, setConnectedIdentityResolverOpen] =
+    useState(false);
 
   const workspaceName =
     workspace?.display_name ||
@@ -1032,7 +1035,9 @@ export default function AgencyOperatingWorkspace() {
                 actionBusy={actionBusy}
                 onPrepare={prepareCommand}
                 onOpenAction={openCommandAction}
-                onOpenConnections={() => setConnectionsOpen(true)}
+                onResolveConnectedIdentity={() =>
+                  setConnectedIdentityResolverOpen(true)
+                }
               />
             ) : null}
             {view === 'players' ? (
@@ -1107,6 +1112,18 @@ export default function AgencyOperatingWorkspace() {
           key={`connections:${workspace.slug}`}
           workspaceSlug={workspace.slug}
           onClose={() => setConnectionsOpen(false)}
+        />
+      ) : null}
+
+      {connectedIdentityResolverOpen ? (
+        <AgencyConnectedIdentityResolverDrawer
+          key={`connected-identity:${workspace.slug}`}
+          workspaceSlug={workspace.slug}
+          networkHref={`${basePath}?view=network`}
+          onClose={() => setConnectedIdentityResolverOpen(false)}
+          onResolved={async () => {
+            await loadView();
+          }}
         />
       ) : null}
 
@@ -1480,13 +1497,13 @@ function Home({
   actionBusy,
   onPrepare,
   onOpenAction,
-  onOpenConnections,
+  onResolveConnectedIdentity,
 }: {
   data: any;
   actionBusy: string;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
-  onOpenConnections: () => void;
+  onResolveConnectedIdentity: () => void;
 }) {
   const [greeting, setGreeting] = useState('Good to see you.');
 
@@ -2002,7 +2019,7 @@ function Home({
               <button
                 type="button"
                 className={styles.connectedWorkAction}
-                onClick={onOpenConnections}
+                onClick={onResolveConnectedIdentity}
               >
                 Link chats
                 <ArrowRight size={13} />
