@@ -43,6 +43,23 @@ type MessagingThread = {
   participant_label?: string | null;
   is_selected: boolean;
   last_activity_at?: string | null;
+  bound_person_id?: string | null;
+  bound_person_name?: string | null;
+  bound_organisation_id?: string | null;
+  bound_organisation_name?: string | null;
+};
+
+type NetworkContact = {
+  person_id: string;
+  person?: {
+    full_name?: string | null;
+    preferred_name?: string | null;
+  };
+  employment?: {
+    organisation_id?: string | null;
+    organisation_name?: string | null;
+    role_title?: string | null;
+  };
 };
 
 type FacebookSdk = {
@@ -342,6 +359,8 @@ export default function AgencyMessagingConnections({
       whatsapp: [],
       instagram: [],
     });
+        const [contacts, setContacts] =
+    useState<NetworkContact[]>([]);
   const [loading, setLoading] =
     useState(true);
   const [busy, setBusy] =
@@ -428,7 +447,36 @@ export default function AgencyMessagingConnections({
             : [];
 
         setConnections(next);
+        try {
+          const relationships =
+            await platformRpc<{
+              contacts?: {
+                items?: NetworkContact[];
+              };
+            }>(
+              'redream_autopilot_relationships',
+              {
+                p_limit: 1,
+                p_contact_limit: 500,
+              },
+              workspaceSlug,
+            );
 
+          setContacts(
+            Array.isArray(
+              relationships
+                ?.contacts
+                ?.items,
+            )
+              ? relationships
+                  .contacts
+                  .items
+              : [],
+          );
+        } catch {
+          setContacts([]);
+        }
+      
         try {
           const config =
             await platformInvoke<{
@@ -852,12 +900,14 @@ export default function AgencyMessagingConnections({
           styles.sectionCopy
         }
       >
-        Connecting an account
+                Connecting an account
         does not give ReDream
         every conversation.
         Turn on only the chats
-        you want saved to Agency
-        Memory.
+        you want saved. Link a
+        chat to a Network contact
+        so ReDream knows who is
+        speaking and their club.
       </p>
 
       {loading ? (
@@ -911,6 +961,101 @@ export default function AgencyMessagingConnections({
                       ? 'Needs attention'
                       : 'Connected';
 
+                const bindContact =
+    async (
+      provider:
+        MessagingProvider,
+      thread:
+        MessagingThread,
+      personId: string,
+    ) => {
+      if (busy) return;
+
+      setBusy(
+        'bind:' +
+          provider +
+          ':' +
+          thread.external_thread_id,
+      );
+
+      try {
+        const result =
+          await platformRpc<{
+            bound?: boolean;
+            bound_person_id?:
+              string | null;
+            bound_person_name?:
+              string | null;
+            bound_organisation_id?:
+              string | null;
+            bound_organisation_name?:
+              string | null;
+          }>(
+            'redream_messaging_thread_bind_contact',
+            {
+              p_provider:
+                provider,
+              p_external_thread_id:
+                thread
+                  .external_thread_id,
+              p_person_id:
+                personId || null,
+            },
+            workspaceSlug,
+          );
+
+        setThreads(
+          (current) => ({
+            ...current,
+            [provider]:
+              current[
+                provider
+              ].map(
+                (item) =>
+                  item.external_thread_id ===
+                  thread.external_thread_id
+                    ? {
+                        ...item,
+                        bound_person_id:
+                          result
+                            ?.bound_person_id ||
+                          null,
+                        bound_person_name:
+                          result
+                            ?.bound_person_name ||
+                          null,
+                        bound_organisation_id:
+                          result
+                            ?.bound_organisation_id ||
+                          null,
+                        bound_organisation_name:
+                          result
+                            ?.bound_organisation_name ||
+                          null,
+                      }
+                    : item,
+              ),
+          }),
+        );
+
+        onStatus?.(
+          'success',
+          result?.bound
+            ? 'Chat linked to ' +
+                (result.bound_person_name ||
+                  'Network contact') +
+                '.'
+            : 'Chat link removed.',
+        );
+      } catch (error) {
+        onStatus?.(
+          'error',
+          friendlyError(error),
+        );
+      } finally {
+        setBusy('');
+      }
+    };
               return (
                 <article
                   key={
@@ -1008,7 +1153,7 @@ export default function AgencyMessagingConnections({
                             (
                               thread,
                             ) => (
-                              <label
+                                                            <div
                                 key={
                                   thread.external_thread_id
                                 }
@@ -1021,42 +1166,129 @@ export default function AgencyMessagingConnections({
                                     {thread.participant_label ||
                                       'Conversation'}
                                   </strong>
+
                                   <small>
-                                    {thread.is_selected
-                                      ? 'ReDream is learning from new messages.'
-                                      : 'Private until you switch it on.'}
+                                    {thread.bound_person_name
+                                      ? 'Linked to ' +
+                                        thread.bound_person_name +
+                                        (thread.bound_organisation_name
+                                          ? ' · ' +
+                                            thread.bound_organisation_name
+                                          : '')
+                                      : thread.is_selected
+                                        ? 'ReDream is learning from new messages. Link this chat to the right Network contact.'
+                                        : 'Private until you switch it on.'}
                                   </small>
                                 </span>
 
-                                <input
-                                  type="checkbox"
-                                  checked={
-                                    thread.is_selected
+                                <div
+                                  className={
+                                    styles.threadControls
                                   }
-                                  onChange={(
-                                    event,
-                                  ) =>
-                                    void setSelected(
-                                      provider.key,
-                                      thread,
-                                      event
-                                        .target
-                                        .checked,
-                                    )
-                                  }
-                                  disabled={
-                                    Boolean(
-                                      busy,
-                                    )
-                                  }
-                                  aria-label={
-                                    'Use ' +
-                                    (thread.participant_label ||
-                                      'conversation') +
-                                    ' in ReDream'
-                                  }
-                                />
-                              </label>
+                                >
+                                  {thread.is_selected ? (
+                                    <select
+                                      className={
+                                        styles.threadContactSelect
+                                      }
+                                      value={
+                                        thread.bound_person_id ||
+                                        ''
+                                      }
+                                      onChange={(
+                                        event,
+                                      ) =>
+                                        void bindContact(
+                                          provider.key,
+                                          thread,
+                                          event
+                                            .target
+                                            .value,
+                                        )
+                                      }
+                                      disabled={
+                                        Boolean(
+                                          busy,
+                                        )
+                                      }
+                                      aria-label={
+                                        'Network contact for ' +
+                                        (thread.participant_label ||
+                                          'conversation')
+                                      }
+                                    >
+                                      <option value="">
+                                        Link to Network contact
+                                      </option>
+
+                                      {contacts.map(
+                                        (
+                                          contact,
+                                        ) => (
+                                          <option
+                                            key={
+                                              contact.person_id
+                                            }
+                                            value={
+                                              contact.person_id
+                                            }
+                                          >
+                                            {contact
+                                              .person
+                                              ?.full_name ||
+                                              'Contact'}
+                                            {contact
+                                              .employment
+                                              ?.organisation_name
+                                              ? ' · ' +
+                                                contact
+                                                  .employment
+                                                  .organisation_name
+                                              : ''}
+                                            {contact
+                                              .employment
+                                              ?.role_title
+                                              ? ' · ' +
+                                                contact
+                                                  .employment
+                                                  .role_title
+                                              : ''}
+                                          </option>
+                                        ),
+                                      )}
+                                    </select>
+                                  ) : null}
+
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      thread.is_selected
+                                    }
+                                    onChange={(
+                                      event,
+                                    ) =>
+                                      void setSelected(
+                                        provider.key,
+                                        thread,
+                                        event
+                                          .target
+                                          .checked,
+                                      )
+                                    }
+                                    disabled={
+                                      Boolean(
+                                        busy,
+                                      )
+                                    }
+                                    aria-label={
+                                      'Use ' +
+                                      (thread.participant_label ||
+                                        'conversation') +
+                                      ' in ReDream'
+                                    }
+                                  />
+                                </div>
+                              </div>
                             ),
                           )
                         ) : (
