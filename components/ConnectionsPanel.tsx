@@ -431,8 +431,8 @@ export default function ConnectionsPanel({
           {mode === 'staff' ? (
             <SettingToggle
               icon={<CalendarDays size={18} />}
-              title="Meeting preparation"
-              text="Remind me before linked meetings when ReDream has relationship and club context ready."
+              title="Meeting reminders"
+              text="Remind me before linked meetings and ask for the outcome afterwards if it is still unresolved."
               checked={preferences.meeting_reminders}
               onChange={(checked) => setPreferences((current) => ({ ...current, meeting_reminders: checked }))}
             />
