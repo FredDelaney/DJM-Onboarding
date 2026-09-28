@@ -160,3 +160,6 @@ verify_jwt = false
 
 [functions.redream-messaging-maintenance]
 verify_jwt = false
+
+[functions.redream-connected-reply-draft]
+verify_jwt = true
