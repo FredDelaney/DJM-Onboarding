@@ -135,3 +135,72 @@ test(
     );
   },
 );
+
+
+test(
+  'confirmed provider email becomes canonical Network reach',
+  () => {
+    const reachMigration =
+      readFileSync(
+        'supabase/migrations/20260928180000_redream_provider_identity_canonical_reach_v1.sql',
+        'utf8',
+      );
+
+    assert.match(
+      reachMigration,
+      /insert into[\s\S]*djm_os\.contact_methods/,
+    );
+
+    assert.match(
+      reachMigration,
+      /is_verified,[\s\S]*last_verified_at/,
+    );
+
+    assert.match(
+      reachMigration,
+      /canonical_contact_method_id/,
+    );
+
+    assert.match(
+      reachMigration,
+      /provider_contact_email_already_linked/,
+    );
+  },
+);
+
+test(
+  'contact email uniqueness is tenant scoped',
+  () => {
+    const reachMigration =
+      readFileSync(
+        'supabase/migrations/20260928180000_redream_provider_identity_canonical_reach_v1.sql',
+        'utf8',
+      );
+
+    assert.match(
+      reachMigration,
+      /contact_methods\([\s\S]*tenant_id,[\s\S]*channel,[\s\S]*normalised_value/,
+    );
+  },
+);
+
+test(
+  'unlinking provider identity does not delete canonical reach',
+  () => {
+    const reachMigration =
+      readFileSync(
+        'supabase/migrations/20260928180000_redream_provider_identity_canonical_reach_v1.sql',
+        'utf8',
+      );
+
+    assert.doesNotMatch(
+      reachMigration,
+      /delete\s+from\s+djm_os\.contact_methods/i,
+    );
+
+    assert.match(
+      reachMigration,
+      /canonical_email_retained/,
+    );
+  },
+);
