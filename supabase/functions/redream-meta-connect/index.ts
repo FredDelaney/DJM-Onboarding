@@ -200,7 +200,7 @@ async function instagramCallback(req: Request) {
     const profileUrl = new URL(
       `https://graph.instagram.com/${graphVersion()}/me`,
     );
-    profileUrl.searchParams.set("fields", "id,username,name,account_type");
+    profileUrl.searchParams.set("fields", "id,user_id,username,name,account_type");
     profileUrl.searchParams.set("access_token", accessToken);
     const profileResponse = await fetch(profileUrl);
     const profile = await profileResponse.json().catch(() => ({}));
@@ -208,8 +208,12 @@ async function instagramCallback(req: Request) {
       throw new Error("instagram_profile_lookup_failed");
     }
 
+    const professionalUserId = String(
+      profile.user_id || profile.id,
+    );
+
     const subscribeUrl = new URL(
-      `https://graph.instagram.com/${graphVersion()}/${encodeURIComponent(profile.id)}/subscribed_apps`,
+      `https://graph.instagram.com/${graphVersion()}/${encodeURIComponent(professionalUserId)}/subscribed_apps`,
     );
     subscribeUrl.searchParams.set(
       "subscribed_fields",
@@ -236,7 +240,7 @@ async function instagramCallback(req: Request) {
         p_tenant_id: stateData.tenant_id,
         p_user_id: stateData.user_id,
         p_provider: "instagram",
-        p_external_account_id: String(profile.id),
+        p_external_account_id: professionalUserId,
         p_external_business_id: null,
         p_display_label: String(profile.username || profile.name || "Instagram"),
         p_access_token: accessToken,
@@ -247,6 +251,8 @@ async function instagramCallback(req: Request) {
         p_token_expires_at: expiresAt,
         p_metadata: {
           account_type: profile.account_type || null,
+          professional_user_id: professionalUserId,
+          login_account_id: String(profile.id),
           webhook_fields: ["messages", "messaging_postbacks"],
         },
       },
@@ -271,6 +277,259 @@ async function instagramCallback(req: Request) {
     }
     return json({ error: "Instagram connection did not complete" }, 400);
   }
+}
+
+async function syncInstagramThreadCatalog(
+  admin: any,
+  context: any,
+) {
+  const { data: connection, error: connectionError } =
+    await admin.rpc(
+      "platform_server_messaging_secret",
+      {
+        p_tenant_id: context.tenant_id,
+        p_user_id: context.user_id,
+        p_provider: "instagram",
+      },
+    );
+
+  if (
+    connectionError ||
+    !connection?.access_token ||
+    !connection?.external_account_id
+  ) {
+    throw new Error("instagram_connection_unavailable");
+  }
+
+  const token = String(connection.access_token);
+  const externalAccountId =
+    String(connection.external_account_id);
+  const professionalUserId =
+    String(
+      connection?.metadata?.professional_user_id ||
+        externalAccountId,
+    );
+
+  const selfIds = new Set(
+    [
+      externalAccountId,
+      professionalUserId,
+      String(
+        connection?.metadata?.login_account_id ||
+          "",
+      ),
+    ].filter(Boolean),
+  );
+
+  let after = "";
+  let seen = 0;
+
+  for (
+    let page = 0;
+    page < 4;
+    page += 1
+  ) {
+    const conversationsUrl =
+      new URL(
+        `https://graph.instagram.com/${graphVersion()}/${encodeURIComponent(professionalUserId)}/conversations`,
+      );
+
+    conversationsUrl.searchParams.set(
+      "fields",
+      "id,updated_time,participants",
+    );
+    conversationsUrl.searchParams.set(
+      "platform",
+      "instagram",
+    );
+    conversationsUrl.searchParams.set(
+      "limit",
+      "25",
+    );
+    conversationsUrl.searchParams.set(
+      "access_token",
+      token,
+    );
+
+    if (after) {
+      conversationsUrl.searchParams.set(
+        "after",
+        after,
+      );
+    }
+
+    const response =
+      await fetch(
+        conversationsUrl,
+      );
+
+    const payload =
+      await response
+        .json()
+        .catch(() => ({}));
+
+    if (!response.ok) {
+      console.error(
+        JSON.stringify({
+          operation:
+            "redream_instagram_thread_catalog",
+          status:
+            response.status,
+          provider_error_code:
+            String(
+              payload?.error
+                ?.code || "",
+            ),
+        }),
+      );
+      throw new Error(
+        "instagram_thread_catalog_failed",
+      );
+    }
+
+    const conversations =
+      Array.isArray(
+        payload?.data,
+      )
+        ? payload.data
+        : [];
+
+    for (
+      const conversation
+      of conversations
+    ) {
+      const threadId =
+        String(
+          conversation?.id ||
+            "",
+        ).trim();
+
+      if (!threadId) {
+        continue;
+      }
+
+      const participants =
+        Array.isArray(
+          conversation
+            ?.participants
+            ?.data,
+        )
+          ? conversation
+              .participants
+              .data
+          : [];
+
+      const participant =
+        participants.find(
+          (item: any) =>
+            item?.id &&
+            !selfIds.has(
+              String(
+                item.id,
+              ),
+            ),
+        ) ||
+        participants[0] ||
+        null;
+
+      const participantId =
+        participant?.id
+          ? String(
+              participant.id,
+            )
+          : null;
+
+      const participantLabel =
+        participant
+          ? String(
+              participant.username ||
+                participant.name ||
+                participant.id ||
+                "",
+            ).trim() ||
+            null
+          : null;
+
+      const lastActivity =
+        conversation
+          ?.updated_time
+          ? String(
+              conversation.updated_time,
+            )
+          : null;
+
+      const { error: upsertError } =
+        await admin.rpc(
+          "platform_server_messaging_thread_catalog_upsert",
+          {
+            p_tenant_id:
+              context.tenant_id,
+            p_user_id:
+              context.user_id,
+            p_provider:
+              "instagram",
+            p_external_thread_id:
+              threadId,
+            p_participant_external_id:
+              participantId,
+            p_participant_label:
+              participantLabel,
+            p_last_activity_at:
+              lastActivity,
+            p_metadata: {
+              catalog_source:
+                "instagram_conversations",
+            },
+          },
+        );
+
+      if (upsertError) {
+        throw upsertError;
+      }
+
+      seen += 1;
+    }
+
+    const nextAfter =
+      String(
+        payload?.paging
+          ?.cursors
+          ?.after || "",
+      ).trim();
+
+    if (
+      !nextAfter ||
+      conversations.length === 0
+    ) {
+      break;
+    }
+
+    after = nextAfter;
+  }
+
+  const { error: completeError } =
+    await admin.rpc(
+      "platform_server_messaging_catalog_complete",
+      {
+        p_tenant_id:
+          context.tenant_id,
+        p_user_id:
+          context.user_id,
+        p_provider:
+          "instagram",
+        p_threads_seen:
+          seen,
+      },
+    );
+
+  if (completeError) {
+    throw completeError;
+  }
+
+  return {
+    ok: true,
+    threads_seen: seen,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -381,6 +640,14 @@ Deno.serve(async (req) => {
       if (storeError) throw storeError;
 
       return json({ ok: true, provider: "whatsapp", status: "connected" });
+    }
+
+    if (action === "instagram_threads") {
+      const result = await syncInstagramThreadCatalog(
+        admin,
+        context,
+      );
+      return json(result);
     }
 
     if (action === "instagram_start") {

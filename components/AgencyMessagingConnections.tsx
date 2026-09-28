@@ -4,6 +4,7 @@ import {
   Instagram,
   LoaderCircle,
   MessageCircle,
+  RefreshCw,
   ShieldCheck,
   Unplug,
 } from 'lucide-react';
@@ -466,11 +467,30 @@ export default function AgencyMessagingConnections({
                 item.status ===
                 'connected',
             )
-            .map((item) =>
-              loadThreads(
+            .map(async (item) => {
+              if (
+                item.provider ===
+                'instagram'
+              ) {
+                try {
+                  await platformInvoke(
+                    'redream-meta-connect',
+                    {
+                      action:
+                        'instagram_threads',
+                      workspace_slug:
+                        workspaceSlug,
+                    },
+                  );
+                } catch {
+                  // Existing cached thread stubs remain usable if Meta is unavailable.
+                }
+              }
+
+              await loadThreads(
                 item.provider,
-              ),
-            ),
+              );
+            }),
         );
       } catch (error) {
         onStatus?.(
@@ -489,6 +509,57 @@ export default function AgencyMessagingConnections({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const refreshInstagramThreads =
+    async () => {
+      if (busy) return;
+
+      setBusy(
+        'sync:instagram',
+      );
+
+      try {
+        const result =
+          await platformInvoke<{
+            ok?: boolean;
+            threads_seen?: number;
+          }>(
+            'redream-meta-connect',
+            {
+              action:
+                'instagram_threads',
+              workspace_slug:
+                workspaceSlug,
+            },
+          );
+
+        if (!result?.ok) {
+          throw new Error(
+            'Instagram chats could not be refreshed.',
+          );
+        }
+
+        await loadThreads(
+          'instagram',
+        );
+
+        onStatus?.(
+          'success',
+          String(
+            result.threads_seen ||
+              0,
+          ) +
+            ' Instagram chats ready to choose.',
+        );
+      } catch (error) {
+        onStatus?.(
+          'error',
+          friendlyError(error),
+        );
+      } finally {
+        setBusy('');
+      }
+    };
 
   const connectInstagram =
     async () => {
@@ -1012,6 +1083,39 @@ export default function AgencyMessagingConnections({
                           styles.messagingActions
                         }
                       >
+                        {provider.key ===
+                          'instagram' &&
+                        health ===
+                          'connected' ? (
+                          <button
+                            type="button"
+                            className={
+                              styles.secondary
+                            }
+                            onClick={() =>
+                              void refreshInstagramThreads()
+                            }
+                            disabled={
+                              Boolean(busy)
+                            }
+                          >
+                            {busy ===
+                            'sync:instagram' ? (
+                              <LoaderCircle
+                                size={14}
+                                className={
+                                  styles.spin
+                                }
+                              />
+                            ) : (
+                              <RefreshCw
+                                size={14}
+                              />
+                            )}
+                            Refresh chats
+                          </button>
+                        ) : null}
+
                         {ready[
                           provider.key
                         ] ? (
