@@ -4,6 +4,7 @@ export type AiTask =
   | 'tell_djm' // Legacy caller compatibility.
   | 'home_priority'
   | 'meeting_brief'
+  | 'connected_reply'
   | 'player_intelligence'
   | 'recruitment_intelligence'
   | 'deal_intelligence'

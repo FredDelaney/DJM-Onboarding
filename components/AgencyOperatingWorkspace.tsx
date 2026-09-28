@@ -77,6 +77,7 @@ import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorksp
 import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
 import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
 import AgencyConnectedIdentityResolverDrawer from '@/components/AgencyConnectedIdentityResolverDrawer';
+import AgencyConnectedReplyDrawer from '@/components/AgencyConnectedReplyDrawer';
 import AgencyMeetingOutcomeDrawer from '@/components/AgencyMeetingOutcomeDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 
@@ -291,6 +292,8 @@ export default function AgencyOperatingWorkspace() {
   );
   const [connectedIdentityResolverOpen, setConnectedIdentityResolverOpen] =
     useState(false);
+  const [connectedReplyRequest, setConnectedReplyRequest] =
+    useState<any>(null);
   const [meetingOutcomeRequest, setMeetingOutcomeRequest] =
     useState<any>(null);
   const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
@@ -1093,6 +1096,9 @@ export default function AgencyOperatingWorkspace() {
                 onResolveConnectedIdentity={() =>
                   setConnectedIdentityResolverOpen(true)
                 }
+                onPrepareConnectedReply={(interaction) =>
+                  setConnectedReplyRequest(interaction)
+                }
                 onRecordMeetingOutcome={(meeting) =>
                   setMeetingOutcomeRequest(meeting)
                 }
@@ -1182,6 +1188,15 @@ export default function AgencyOperatingWorkspace() {
           onResolved={async () => {
             await loadView();
           }}
+        />
+      ) : null}
+
+      {connectedReplyRequest ? (
+        <AgencyConnectedReplyDrawer
+          key={`connected-reply:${connectedReplyRequest.interaction_id}`}
+          tenantId={workspace.tenant_id}
+          interaction={connectedReplyRequest}
+          onClose={() => setConnectedReplyRequest(null)}
         />
       ) : null}
 
@@ -1569,6 +1584,7 @@ function Home({
   onPrepare,
   onOpenAction,
   onResolveConnectedIdentity,
+  onPrepareConnectedReply,
   onRecordMeetingOutcome,
 }: {
   data: any;
@@ -1576,6 +1592,7 @@ function Home({
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
   onResolveConnectedIdentity: () => void;
+  onPrepareConnectedReply: (interaction: any) => void;
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const [greeting, setGreeting] = useState('Good to see you.');
@@ -2164,6 +2181,15 @@ function Home({
 
           {recentConnected.map((item: any) => {
             const channel = String(item?.channel || '');
+            const direction = String(
+              item?.direction || '',
+            ).toLowerCase();
+            const replyable =
+              Boolean(
+                item?.interaction_id &&
+                  item?.person_id,
+              ) &&
+              !['outbound', 'sent'].includes(direction);
             const ConnectedIcon =
               channel.includes('email')
                 ? Mail
@@ -2207,13 +2233,24 @@ function Home({
                   </div>
                 </div>
 
-                <a
-                  className={styles.connectedWorkAction}
-                  href="?view=network"
-                >
-                  Open Network
-                  <ArrowRight size={13} />
-                </a>
+                {replyable ? (
+                  <button
+                    type="button"
+                    className={styles.connectedWorkAction}
+                    onClick={() => onPrepareConnectedReply(item)}
+                  >
+                    Prepare reply
+                    <ArrowRight size={13} />
+                  </button>
+                ) : (
+                  <a
+                    className={styles.connectedWorkAction}
+                    href="?view=network"
+                  >
+                    Open Network
+                    <ArrowRight size={13} />
+                  </a>
+                )}
               </article>
             );
           })}

@@ -49,6 +49,7 @@ test("every deployed Edge Function has source and explicit JWT configuration", (
     "player-profile-public",
     "redream-ai-capture",
     "redream-ai-process",
+    "redream-connected-reply-draft",
     "redream-demo-request",
     "redream-funnel-event",
     "redream-messaging-maintenance",
