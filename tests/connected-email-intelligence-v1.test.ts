@@ -194,7 +194,7 @@ test(
 
     assert.ok(
       aiProcess.includes(
-        '.split("\\\\n")',
+        '.split("\\n")',
       ),
     );
 

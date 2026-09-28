@@ -364,7 +364,7 @@ function connectedEmailInteractionFallback(
   ) {
     const bodyLine =
       String(transcript || "")
-        .split("\\n")
+        .split("\n")
         .map((line) =>
           line.trim(),
         )
