@@ -77,6 +77,7 @@ import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorksp
 import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
 import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
 import AgencyConnectedIdentityResolverDrawer from '@/components/AgencyConnectedIdentityResolverDrawer';
+import AgencyMeetingOutcomeDrawer from '@/components/AgencyMeetingOutcomeDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 
 import styles from './AgencyOperatingWorkspace.module.css';
@@ -286,6 +287,8 @@ export default function AgencyOperatingWorkspace() {
   );
   const [connectedIdentityResolverOpen, setConnectedIdentityResolverOpen] =
     useState(false);
+  const [meetingOutcomeRequest, setMeetingOutcomeRequest] =
+    useState<any>(null);
 
   const workspaceName =
     workspace?.display_name ||
@@ -445,6 +448,9 @@ export default function AgencyOperatingWorkspace() {
           rpc<any>('redream_connected_work', {
             p_limit: 6,
           }),
+          rpc<any>('redream_meeting_aftercare', {
+            p_limit: 4,
+          }),
         ]);
 
         if (reads[0].status === 'rejected') {
@@ -465,6 +471,7 @@ export default function AgencyOperatingWorkspace() {
         const market = readValue(3);
         const deals = readValue(4);
         const connectedWork = readValue(5);
+        const meetingAftercare = readValue(6);
 
         let ownerBusiness: any = null;
 
@@ -516,6 +523,7 @@ export default function AgencyOperatingWorkspace() {
           market,
           deals,
           connected_work: connectedWork,
+          meeting_aftercare: meetingAftercare,
           owner_business: ownerBusiness,
         });
       } else if (view === 'players') {
@@ -1038,6 +1046,9 @@ export default function AgencyOperatingWorkspace() {
                 onResolveConnectedIdentity={() =>
                   setConnectedIdentityResolverOpen(true)
                 }
+                onRecordMeetingOutcome={(meeting) =>
+                  setMeetingOutcomeRequest(meeting)
+                }
               />
             ) : null}
             {view === 'players' ? (
@@ -1122,6 +1133,19 @@ export default function AgencyOperatingWorkspace() {
           networkHref={`${basePath}?view=network`}
           onClose={() => setConnectedIdentityResolverOpen(false)}
           onResolved={async () => {
+            await loadView();
+          }}
+        />
+      ) : null}
+
+      {meetingOutcomeRequest ? (
+        <AgencyMeetingOutcomeDrawer
+          key={`meeting-outcome:${meetingOutcomeRequest.meeting_id}`}
+          meeting={meetingOutcomeRequest}
+          rpc={rpc}
+          onClose={() => setMeetingOutcomeRequest(null)}
+          onSaved={async () => {
+            setMeetingOutcomeRequest(null);
             await loadView();
           }}
         />
@@ -1498,12 +1522,14 @@ function Home({
   onPrepare,
   onOpenAction,
   onResolveConnectedIdentity,
+  onRecordMeetingOutcome,
 }: {
   data: any;
   actionBusy: string;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
   onResolveConnectedIdentity: () => void;
+  onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const [greeting, setGreeting] = useState('Good to see you.');
 
@@ -1541,13 +1567,27 @@ function Home({
     : [];
   const connectedOwner =
     connectedWork?.owner || {};
+  const meetingAftercare =
+    data?.meeting_aftercare || {};
+  const meetingAftercareItems =
+    Array.isArray(
+      meetingAftercare?.items,
+    )
+      ? meetingAftercare.items
+      : [];
+  const meetingAftercareCount =
+    Number(
+      meetingAftercare?.count ||
+        meetingAftercareItems.length,
+    );
   const connectedCount =
     Number(identityResolution?.count || 0) +
     Number(
       connectedSummary?.connected_followups_open || 0,
     ) +
     recentConnected.length +
-    connectedMeetings.length;
+    connectedMeetings.length +
+    meetingAftercareCount;
   const connectedProviders = Array.isArray(
     identityResolution?.by_provider,
   )
@@ -1977,6 +2017,54 @@ function Home({
         ) : null}
 
         <div className={styles.connectedWorkList}>
+          {meetingAftercareItems.map((item: any) => (
+            <article
+              className={`${styles.connectedWorkRow} ${styles.connectedWorkRowAttention}`}
+              key={`meeting-aftercare:${item?.meeting_id}`}
+            >
+              <div className={styles.connectedWorkIcon}>
+                <CalendarDays size={16} />
+              </div>
+
+              <div className={styles.connectedWorkCopy}>
+                <small>
+                  MEETING FOLLOW-UP · {human(item?.provider || 'Calendar')}
+                </small>
+                <strong>
+                  Did this meeting happen?
+                </strong>
+                <span>
+                  {item?.person_name ||
+                    item?.organisation_name ||
+                    item?.title ||
+                    'Linked meeting'}
+                  {' · '}
+                  Confirm the outcome so the agency can remember what mattered and the next move.
+                </span>
+                <div className={styles.connectedWorkFoot}>
+                  <AgencyOwnershipChip
+                    label="Owner"
+                    name={item?.owner_name || null}
+                  />
+                  {item?.ends_at ? (
+                    <em>
+                      Ended {relativeDate(item.ends_at)}
+                    </em>
+                  ) : null}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className={styles.connectedWorkAction}
+                onClick={() => onRecordMeetingOutcome(item)}
+              >
+                Record outcome
+                <ArrowRight size={13} />
+              </button>
+            </article>
+          ))}
+
           {Number(identityResolution?.count || 0) > 0 ? (
             <article
               className={`${styles.connectedWorkRow} ${styles.connectedWorkRowAttention}`}
