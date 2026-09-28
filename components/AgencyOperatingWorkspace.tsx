@@ -18,6 +18,8 @@ import {
   LoaderCircle,
   Home as HomeIcon,
   LogOut,
+  Mail,
+  MessageCircleMore,
   Network,
   Plus,
   PlugZap,
@@ -437,6 +439,9 @@ export default function AgencyOperatingWorkspace() {
           rpc<any>('redream_autopilot_deals', {
             p_limit: 12,
           }),
+          rpc<any>('redream_connected_work', {
+            p_limit: 6,
+          }),
         ]);
 
         if (reads[0].status === 'rejected') {
@@ -456,6 +461,7 @@ export default function AgencyOperatingWorkspace() {
         const players = readValue(2);
         const market = readValue(3);
         const deals = readValue(4);
+        const connectedWork = readValue(5);
 
         let ownerBusiness: any = null;
 
@@ -506,6 +512,7 @@ export default function AgencyOperatingWorkspace() {
           players,
           market,
           deals,
+          connected_work: connectedWork,
           owner_business: ownerBusiness,
         });
       } else if (view === 'players') {
@@ -1022,6 +1029,7 @@ export default function AgencyOperatingWorkspace() {
                 actionBusy={actionBusy}
                 onPrepare={prepareCommand}
                 onOpenAction={openCommandAction}
+                onOpenConnections={() => setConnectionsOpen(true)}
               />
             ) : null}
             {view === 'players' ? (
@@ -1469,11 +1477,13 @@ function Home({
   actionBusy,
   onPrepare,
   onOpenAction,
+  onOpenConnections,
 }: {
   data: any;
   actionBusy: string;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
+  onOpenConnections: () => void;
 }) {
   const [greeting, setGreeting] = useState('Good to see you.');
 
@@ -1495,6 +1505,43 @@ function Home({
   const market = data?.market || {};
   const dealData = data?.deals || {};
   const ownerBusiness = data?.owner_business || null;
+  const connectedWork = data?.connected_work || {};
+  const connectedSummary = connectedWork?.summary || {};
+  const identityResolution =
+    connectedWork?.identity_resolution || {};
+  const recentConnected = Array.isArray(
+    connectedWork?.recent_conversations,
+  )
+    ? connectedWork.recent_conversations
+    : [];
+  const connectedMeetings = Array.isArray(
+    connectedWork?.upcoming_meetings,
+  )
+    ? connectedWork.upcoming_meetings
+    : [];
+  const connectedOwner =
+    connectedWork?.owner || {};
+  const connectedCount =
+    Number(identityResolution?.count || 0) +
+    Number(
+      connectedSummary?.connected_followups_open || 0,
+    ) +
+    recentConnected.length +
+    connectedMeetings.length;
+  const connectedProviders = Array.isArray(
+    identityResolution?.by_provider,
+  )
+    ? identityResolution.by_provider
+    : [];
+  const connectedProviderCopy =
+    connectedProviders
+      .map(
+        (item: any) =>
+          `${item?.count || 0} ${human(
+            item?.provider || 'chat',
+          )}`,
+      )
+      .join(' · ') || 'Selected chats';
 
   const confirm = Array.isArray(home?.attention?.confirm)
     ? home.attention.confirm
@@ -1870,6 +1917,206 @@ function Home({
           </div>
         </section>
       </div>
+
+      <section
+        className={`${styles.sectionCard} ${styles.connectedWorkPanel}`}
+      >
+        <div className={styles.sectionHead}>
+          <div>
+            <p className={styles.eyebrow}>
+              CONNECTED WORK
+            </p>
+            <h2>Messages, email and meetings</h2>
+          </div>
+
+          {connectedCount ? (
+            <span className={styles.sectionCount}>
+              {connectedCount}
+            </span>
+          ) : null}
+        </div>
+
+        {Number(
+          connectedSummary?.connected_followups_open || 0,
+        ) > 0 ? (
+          <div className={styles.connectedWorkNotice}>
+            <CheckCircle2 size={14} />
+            <span>
+              {Number(
+                connectedSummary.connected_followups_open,
+              )}{' '}
+              connected follow-up
+              {Number(
+                connectedSummary.connected_followups_open,
+              ) === 1
+                ? ''
+                : 's'}{' '}
+              already appear in Needs you.
+            </span>
+          </div>
+        ) : null}
+
+        <div className={styles.connectedWorkList}>
+          {Number(identityResolution?.count || 0) > 0 ? (
+            <article
+              className={`${styles.connectedWorkRow} ${styles.connectedWorkRowAttention}`}
+            >
+              <div className={styles.connectedWorkIcon}>
+                <MessageCircleMore size={16} />
+              </div>
+
+              <div className={styles.connectedWorkCopy}>
+                <small>
+                  IDENTITY · {connectedProviderCopy}
+                </small>
+                <strong>
+                  {Number(identityResolution.count)} selected chat
+                  {Number(identityResolution.count) === 1
+                    ? ''
+                    : 's'}{' '}
+                  need a Network contact
+                </strong>
+                <span>
+                  Link each chat once so future messages attach to
+                  the right person and current club.
+                </span>
+                <div className={styles.connectedWorkFoot}>
+                  <AgencyOwnershipChip
+                    label="Owner"
+                    name={connectedOwner?.name || null}
+                  />
+                  {identityResolution?.latest_activity_at ? (
+                    <em>
+                      Latest{' '}
+                      {relativeDate(
+                        identityResolution.latest_activity_at,
+                      )}
+                    </em>
+                  ) : null}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className={styles.connectedWorkAction}
+                onClick={onOpenConnections}
+              >
+                Link chats
+                <ArrowRight size={13} />
+              </button>
+            </article>
+          ) : null}
+
+          {recentConnected.map((item: any) => {
+            const channel = String(item?.channel || '');
+            const ConnectedIcon =
+              channel.includes('email')
+                ? Mail
+                : MessageCircleMore;
+            const person =
+              item?.person_name ||
+              item?.organisation_name ||
+              'Connected contact';
+
+            return (
+              <article
+                className={styles.connectedWorkRow}
+                key={item?.interaction_id}
+              >
+                <div className={styles.connectedWorkIcon}>
+                  <ConnectedIcon size={16} />
+                </div>
+
+                <div className={styles.connectedWorkCopy}>
+                  <small>
+                    {human(channel || 'Connected')}
+                    {item?.direction
+                      ? ` · ${human(item.direction)}`
+                      : ''}
+                  </small>
+                  <strong>{person}</strong>
+                  <span>
+                    {item?.summary ||
+                      'Connected conversation recorded.'}
+                  </span>
+                  <div className={styles.connectedWorkFoot}>
+                    <AgencyOwnershipChip
+                      label="Owner"
+                      name={item?.owner_name || null}
+                    />
+                    {item?.occurred_at ? (
+                      <em>
+                        {relativeDate(item.occurred_at)}
+                      </em>
+                    ) : null}
+                  </div>
+                </div>
+
+                <a
+                  className={styles.connectedWorkAction}
+                  href="?view=network"
+                >
+                  Open Network
+                  <ArrowRight size={13} />
+                </a>
+              </article>
+            );
+          })}
+
+          {connectedMeetings.map((item: any) => (
+            <article
+              className={styles.connectedWorkRow}
+              key={item?.meeting_id}
+            >
+              <div className={styles.connectedWorkIcon}>
+                <CalendarDays size={16} />
+              </div>
+
+              <div className={styles.connectedWorkCopy}>
+                <small>
+                  MEETING · {human(item?.provider || 'Calendar')}
+                </small>
+                <strong>
+                  {item?.person_name ||
+                    item?.organisation_name ||
+                    item?.title ||
+                    'Connected meeting'}
+                </strong>
+                <span>
+                  {item?.title || 'Meeting preparation available'}
+                </span>
+                <div className={styles.connectedWorkFoot}>
+                  <AgencyOwnershipChip
+                    label="Owner"
+                    name={item?.owner_name || null}
+                  />
+                  {item?.starts_at ? (
+                    <em>
+                      {relativeDate(item.starts_at)}
+                    </em>
+                  ) : null}
+                </div>
+              </div>
+
+              <a
+                className={styles.connectedWorkAction}
+                href="?view=calendar"
+              >
+                Prepare
+                <ArrowRight size={13} />
+              </a>
+            </article>
+          ))}
+
+          {!connectedCount ? (
+            <EmptyState
+              icon={PlugZap}
+              title="Connected work is quiet"
+              copy="Selected conversations, linked email and meeting preparation will appear here when they matter."
+            />
+          ) : null}
+        </div>
+      </section>
 
       <div className={styles.homeSupportGrid}>
         <section className={styles.sectionCard}>

@@ -2487,3 +2487,176 @@
     font-size: 8.25px;
   }
 }
+
+.connectedWorkPanel {
+  overflow: hidden;
+}
+
+.connectedWorkNotice {
+  min-height: 38px;
+  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #edf0f2;
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-accent) 5%,
+      #fff
+    );
+  color: #65737d;
+  font-size: 8.5px;
+}
+
+.connectedWorkNotice svg {
+  flex: 0 0 auto;
+  color: var(--agency-accent);
+}
+
+.connectedWorkList {
+  display: grid;
+}
+
+.connectedWorkRow {
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    38px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-top: 1px solid #edf0f2;
+  background: #fff;
+}
+
+.connectedWorkRow:first-child {
+  border-top: 0;
+}
+
+.connectedWorkRowAttention {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(
+        in srgb,
+        var(--agency-accent) 5%,
+        #fff
+      ),
+      #fff 46%
+    );
+  box-shadow:
+    inset 3px 0 0
+    color-mix(
+      in srgb,
+      var(--agency-accent) 72%,
+      #fff
+    );
+}
+
+.connectedWorkIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #f4f6f7;
+  color: var(--agency-primary);
+}
+
+.connectedWorkCopy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.connectedWorkCopy > small {
+  color: #89939b;
+  font-size: 7.5px;
+  font-weight: 850;
+  letter-spacing: .06em;
+}
+
+.connectedWorkCopy > strong {
+  color: #303940;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.connectedWorkCopy > span {
+  max-width: 760px;
+  color: #717d85;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.connectedWorkFoot {
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.connectedWorkFoot em {
+  color: #929aa1;
+  font-size: 7.5px;
+  font-style: normal;
+}
+
+.connectedWorkAction {
+  min-height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #dfe4e7;
+  border-radius: 9px;
+  background: #fff;
+  color: #46545e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.connectedWorkAction:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--agency-accent) 32%,
+      #dfe4e7
+    );
+  color: var(--agency-primary);
+}
+
+@media (max-width: 680px) {
+  .connectedWorkRow {
+    grid-template-columns:
+      36px minmax(0, 1fr);
+    gap: 10px;
+    padding: 13px 14px;
+  }
+
+  .connectedWorkIcon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .connectedWorkAction {
+    grid-column: 2;
+    justify-self: start;
+    min-height: 32px;
+  }
+
+  .connectedWorkCopy > strong {
+    font-size: 10.5px;
+  }
+
+  .connectedWorkCopy > span {
+    font-size: 8.5px;
+  }
+}
