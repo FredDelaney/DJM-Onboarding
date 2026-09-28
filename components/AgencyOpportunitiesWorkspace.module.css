@@ -348,3 +348,120 @@
     pointer-events: none;
   }
 }
+
+.connectedContext {
+  margin-top: 5px;
+  padding-top: 7px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  border-top: 1px solid #edf1f3;
+}
+
+.connectedContextIcon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background:
+    color-mix(
+      in srgb,
+      var(--agency-accent) 7%,
+      #f5f7f8
+    );
+  color: #6d8290;
+}
+
+.connectedContextCopy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.connectedContextCopy > small {
+  color: #98a1a8;
+  font-size: 6.5px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.connectedContextCopy > strong {
+  overflow: hidden;
+  color: #3b4d59;
+  font-size: 8.5px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connectedContextCopy > span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #74818a;
+  font-size: 7.5px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.connectedContextMeta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.connectedContextMeta em {
+  color: #8c969d;
+  font-size: 6.8px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.connectedFollowup {
+  margin-top: 2px;
+  padding-top: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  border-top: 1px dashed #edf0f2;
+}
+
+.connectedFollowup > span {
+  min-width: 0;
+  overflow: hidden;
+  color: #5f707b;
+  font-size: 7.3px;
+  font-weight: 750;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .connectedContext {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    padding-top: 7px;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .connectedContextIcon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .connectedContextMeta,
+  .connectedFollowup {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .connectedFollowup > span {
+    white-space: normal;
+  }
+}

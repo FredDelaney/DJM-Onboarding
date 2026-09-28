@@ -534,16 +534,19 @@ export default function AgencyOperatingWorkspace() {
               : {},
         });
       } else if (view === 'opportunities') {
-        const [market, deals] = await Promise.all([
+        const [market, deals, connected] = await Promise.all([
           rpc<any>('redream_autopilot_market', {
             p_limit: 100,
           }),
           rpc<any>('redream_autopilot_deals', {
             p_limit: 100,
           }),
+          rpc<any>('redream_opportunity_connected_context', {
+            p_limit: 100,
+          }),
         ]);
 
-        setData({ market, deals });
+        setData({ market, deals, connected });
       } else if (view === 'network') {
         setData(
           await rpc<any>('redream_autopilot_relationships', {
