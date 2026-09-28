@@ -299,7 +299,7 @@ function evidenceIsGrounded(transcript: string, evidence: unknown) {
 
 function shortEvidenceExcerpt(value: unknown) {
   return String(value || "")
-    .replace(/s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
     .split(" ")
     .filter(Boolean)
@@ -364,9 +364,7 @@ function connectedEmailInteractionFallback(
   ) {
     const bodyLine =
       String(transcript || "")
-        .split(/
-?
-/)
+        .split("\\n")
         .map((line) =>
           line.trim(),
         )

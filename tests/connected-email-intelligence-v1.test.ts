@@ -186,6 +186,18 @@ test(
       /shortEvidenceExcerpt/,
     );
 
+    assert.ok(
+      aiProcess.includes(
+        '.replace(/\\s+/g, " ")',
+      ),
+    );
+
+    assert.ok(
+      aiProcess.includes(
+        '.split("\\\\n")',
+      ),
+    );
+
     assert.match(
       aiProcess,
       /evidenceIsGrounded\([\s\S]*transcript/,
