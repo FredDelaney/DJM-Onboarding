@@ -131,3 +131,23 @@ test(
     );
   },
 );
+
+test(
+  'email AI instructions remain valid and preserve connected-message guardrails',
+  () => {
+    assert.match(
+      aiProcess,
+      /For connected-message tasks, write one short concrete next action/,
+    );
+
+    assert.match(
+      aiProcess,
+      /For inbound email request tasks, write one short concrete next action/,
+    );
+
+    assert.doesNotMatch(
+      aiProcess,
+      /one short concrete next action\. "For connected-message tasks/,
+    );
+  },
+);
