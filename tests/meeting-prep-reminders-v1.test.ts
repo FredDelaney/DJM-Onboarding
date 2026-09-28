@@ -40,11 +40,15 @@ test(
 );
 
 test(
-  'meeting reminders only consider active staff-owned linked scheduled meetings',
+  'meeting reminders only consider active staff-owned linked provider meetings',
   () => {
     assert.match(
       migration,
       /m\.status='scheduled'/,
+    );
+    assert.match(
+      migration,
+      /m\.provider in \('google','microsoft'\)/,
     );
     assert.match(
       migration,
@@ -130,15 +134,37 @@ test(
 );
 
 test(
-  'notification deep link carries the exact meeting id',
+  'notification deep link carries the exact tenant workspace and meeting id',
   () => {
     assert.match(
       migration,
-      /\/agency\?view=calendar&meeting=/,
+      /'\/workspace\/'\|\|[\s\S]*item\.tenant_slug[\s\S]*'\?view=calendar&meeting='/,
     );
     assert.match(
       migration,
       /'meeting_id',item\.id/,
+    );
+    assert.match(
+      migration,
+      /'tenant_id',item\.tenant_id/,
+    );
+  },
+);
+
+test(
+  'email reminder routing prefers the meeting tenant for multi-tenant users',
+  () => {
+    assert.match(
+      migration,
+      /create or replace function private\.email_outbox_tenant_id/,
+    );
+    assert.match(
+      migration,
+      /v_payload->>'tenant_id'/,
+    );
+    assert.match(
+      migration,
+      /private\.user_has_active_tenant_membership/,
     );
   },
 );

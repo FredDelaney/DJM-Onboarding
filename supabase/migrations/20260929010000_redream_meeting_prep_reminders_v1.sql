@@ -3,7 +3,6 @@ begin;
 alter table public.notification_preferences
   add column if not exists meeting_reminders boolean not null default true;
 
-
 create or replace function private.email_outbox_tenant_id(
   p_user_id uuid,
   p_payload jsonb default '{}'::jsonb
@@ -53,63 +52,11 @@ begin
     end if;
   end if;
 
-  v_candidate:=private.safe_uuid(
-    v_payload->>'request_id'
-  );
-
-  if v_candidate is not null then
-    select p.tenant_id
-    into v_tenant_id
-    from public.player_requests r
-    join public.players p
-      on p.id=r.player_id
-    where r.id=v_candidate
-    limit 1;
-
-    if v_tenant_id is not null
-      and private.user_has_active_tenant_membership(
-        v_tenant_id,
-        p_user_id
-      )
-    then
-      return v_tenant_id;
-    end if;
-  end if;
-
-  v_candidate:=private.safe_uuid(
-    v_payload->>'capture_id'
-  );
-
-  if v_candidate is not null then
-    select c.tenant_id
-    into v_tenant_id
-    from djm_os.captures c
-    where c.id=v_candidate
-    limit 1;
-
-    if v_tenant_id is not null
-      and private.user_has_active_tenant_membership(
-        v_tenant_id,
-        p_user_id
-      )
-    then
-      return v_tenant_id;
-    end if;
-  end if;
-
   return private.primary_active_tenant_id(
     p_user_id
   );
 end;
 $function$;
-
-revoke all on function
-  private.email_outbox_tenant_id(uuid,jsonb)
-from public,anon,authenticated;
-
-grant execute on function
-  private.email_outbox_tenant_id(uuid,jsonb)
-to postgres,service_role;
 
 create or replace function private.redream_queue_meeting_prep_reminders()
 returns jsonb
@@ -247,24 +194,20 @@ begin
   end loop;
 
   return jsonb_build_object(
-    'queued',
-    queued,
-    'checked_at',
-    now()
+    'queued',queued,
+    'checked_at',now()
   );
 end;
 $function$;
 
 revoke all on function
   private.redream_queue_meeting_prep_reminders()
-from
-  public,
-  anon,
-  authenticated;
+from public,anon,authenticated;
 
 grant execute on function
   private.redream_queue_meeting_prep_reminders()
 to service_role;
+
 do $$
 declare
   v_jobid bigint;
@@ -290,6 +233,6 @@ select cron.schedule(
 comment on function
   private.redream_queue_meeting_prep_reminders()
 is
-  'Queues deduplicated 24-hour and 2-hour meeting preparation reminders for active staff-owned linked meetings. Delivery uses existing user push/email preferences.';
+  'Queues deduplicated 24-hour and 2-hour preparation reminders for active staff-owned linked Google/Microsoft meetings. Delivery uses existing user push/email preferences and preserves the meeting tenant.';
 
 commit;
