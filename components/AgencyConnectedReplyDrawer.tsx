@@ -12,6 +12,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -74,6 +75,7 @@ export default function AgencyConnectedReplyDrawer({
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const generatingRef = useRef(false);
 
   const call = useCallback(
     async (
@@ -110,8 +112,9 @@ export default function AgencyConnectedReplyDrawer({
   }, []);
 
   const generate = useCallback(async () => {
-    if (!interactionId || generating) return;
+    if (!interactionId || generatingRef.current) return;
 
+    generatingRef.current = true;
     setGenerating(true);
     setError('');
     setCopied(false);
@@ -122,9 +125,10 @@ export default function AgencyConnectedReplyDrawer({
     } catch (generateError) {
       setError(friendlyError(generateError));
     } finally {
+      generatingRef.current = false;
       setGenerating(false);
     }
-  }, [apply, call, generating, interactionId]);
+  }, [apply, call, interactionId]);
 
   useEffect(() => {
     let active = true;

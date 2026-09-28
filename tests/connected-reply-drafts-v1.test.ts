@@ -114,6 +114,20 @@ test(
 );
 
 test(
+  'connected email requires explicit inbound or received direction',
+  () => {
+    assert.match(
+      migration,
+      /v_interaction\.channel in \([\s\S]*'google_email'[\s\S]*'microsoft_email'[\s\S]*not in \([\s\S]*'inbound'[\s\S]*'received'/,
+    );
+    assert.match(
+      workspace,
+      /emailChannel[\s\S]*\['inbound', 'received'\]\.includes\(direction\)/,
+    );
+  },
+);
+
+test(
   'reply context exposes summaries but never raw connected message bodies',
   () => {
     assert.match(

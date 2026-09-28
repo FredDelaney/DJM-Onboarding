@@ -113,15 +113,37 @@ begin
     raise exception 'connected_interaction_not_available';
   end if;
 
-  if lower(
-    coalesce(
-      v_interaction.direction,
-      ''
+  if (
+    v_interaction.channel in (
+      'google_email',
+      'microsoft_email'
     )
-  ) in (
-    'outbound',
-    'sent'
-  ) then
+    and lower(
+      coalesce(
+        v_interaction.direction,
+        ''
+      )
+    ) not in (
+      'inbound',
+      'received'
+    )
+  )
+  or (
+    v_interaction.channel in (
+      'instagram_selected_chat',
+      'whatsapp_selected_chat'
+    )
+    and lower(
+      coalesce(
+        v_interaction.direction,
+        ''
+      )
+    ) in (
+      'outbound',
+      'sent'
+    )
+  )
+  then
     raise exception 'reply_draft_requires_inbound_interaction';
   end if;
 
@@ -358,15 +380,37 @@ begin
     raise exception 'connected_interaction_not_available';
   end if;
 
-  if lower(
-    coalesce(
-      v_interaction.direction,
-      ''
+  if (
+    v_interaction.channel in (
+      'google_email',
+      'microsoft_email'
     )
-  ) in (
-    'outbound',
-    'sent'
-  ) then
+    and lower(
+      coalesce(
+        v_interaction.direction,
+        ''
+      )
+    ) not in (
+      'inbound',
+      'received'
+    )
+  )
+  or (
+    v_interaction.channel in (
+      'instagram_selected_chat',
+      'whatsapp_selected_chat'
+    )
+    and lower(
+      coalesce(
+        v_interaction.direction,
+        ''
+      )
+    ) in (
+      'outbound',
+      'sent'
+    )
+  )
+  then
     raise exception 'reply_draft_requires_inbound_interaction';
   end if;
 

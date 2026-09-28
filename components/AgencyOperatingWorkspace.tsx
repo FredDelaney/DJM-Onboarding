@@ -2184,12 +2184,16 @@ function Home({
             const direction = String(
               item?.direction || '',
             ).toLowerCase();
+            const emailChannel =
+              channel.includes('email');
             const replyable =
               Boolean(
                 item?.interaction_id &&
                   item?.person_id,
               ) &&
-              !['outbound', 'sent'].includes(direction);
+              (emailChannel
+                ? ['inbound', 'received'].includes(direction)
+                : !['outbound', 'sent'].includes(direction));
             const ConnectedIcon =
               channel.includes('email')
                 ? Mail
