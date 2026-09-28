@@ -60,6 +60,10 @@ const planSchema = {
             contact_name: nullableString,
             player_name: nullableString,
           }),
+          actionBranch("complete_email_thread_task", {
+            task_id: nullableString,
+            task_title: nullableString,
+          }),
           actionBranch("add_claim", {
             claim_type: nullableString,
             claim_key: nullableString,
@@ -582,6 +586,9 @@ async function interpret(
         "For add_claim, claim_key must be short lowercase ASCII snake_case, for example preferred_side, salary_expectation or transfer_preference. Never use spaces, punctuation or non-ASCII characters.",
                 "Use create_task only when an internal speaker states a follow-up, commitment or reminder, or when an inbound connected message contains an explicit request or question that clearly requires agency action or a reply.",
 "For email, create a task when an outbound agency email states a clear follow-up, commitment or reminder, or when an inbound email contains an explicit request or question that clearly requires agency action or a reply.",
+"For an outbound email, complete_email_thread_task may be used only when current_context.email_thread_task_candidate_count is exactly 1, current_context contains that exact candidate task id/title, and the current email explicitly proves the work is already completed. Evidence must quote the completion statement from the current email.",
+"Never use complete_email_thread_task for future tense, promises, plans, delays, partial progress, acknowledgements, or language such as I will, I can, I should, I need to, tomorrow, later, soon, working on it, or will send. The email must state or clearly contain the completed deliverable itself.",
+"Never invent or choose a task id. For complete_email_thread_task, copy task_id exactly from current_context.email_thread_task_candidate_id and task_title exactly from current_context.email_thread_task_candidate_title.",
         "For connected-message tasks, write one short concrete next action. Do not create a generic reply task for greetings, thanks, reactions, acknowledgements, vague interest or messages that do not clearly require action.",
 "For inbound email request tasks, write one short concrete next action. Do not create a generic reply task for greetings, thanks, reactions, acknowledgements, vague interest, signatures or messages that do not clearly require action.",
         "If an inbound connected message explicitly states a club recruitment requirement, use upsert_club_need only when the club and position can be resolved from the transcript or verified context.",
@@ -1052,6 +1059,7 @@ async function getPlan(
 function actionPriority(type: string) {
   if (type === "upsert_club_need") return 0;
   if (type === "suggest_player" || type === "exclude_player") return 2;
+  if (type === "complete_email_thread_task") return 3;
   return 1;
 }
 
@@ -1244,6 +1252,75 @@ async function processOne(
           index,
           "The AI evidence excerpt could not be found verbatim in the source transcript.",
         );
+        continue;
+      }
+
+      if (action.type === "complete_email_thread_task") {
+        const context = capture?.context_json || {};
+        const candidateCount = Number(
+          context.email_thread_task_candidate_count || 0,
+        );
+        const candidateId = String(
+          context.email_thread_task_candidate_id || "",
+        ).trim();
+
+        if (
+          candidateCount !== 1 ||
+          !candidateId ||
+          String(action.task_id || "").trim() !== candidateId
+        ) {
+          await forceReviewAction(
+            admin,
+            capture,
+            action,
+            actionKey,
+            index,
+            "The email completion action did not match the one task proven by the provider conversation.",
+          );
+          continue;
+        }
+
+        const actionHash = await sha256({
+          capture_id: capture.capture_id,
+          key: actionKey,
+          type: action.type,
+        });
+
+        const {
+          data: completionResult,
+          error: completionError,
+        } = await admin.rpc(
+          "redream_ai_complete_email_thread_task",
+          {
+            p_capture_id: capture.capture_id,
+            p_action_hash: actionHash,
+            p_action_index: index,
+            p_confidence: action.confidence,
+            p_evidence: action.evidence,
+            p_payload: action,
+          },
+        );
+
+        if (completionError) {
+          throw completionError;
+        }
+
+        if (
+          completionResult?.status === "failed"
+        ) {
+          console.warn(
+            JSON.stringify({
+              operation:
+                "redream_ai_complete_email_thread_task",
+              capture_id:
+                capture.capture_id,
+              error:
+                completionResult?.error ||
+                "Email task completion failed",
+            }),
+          );
+        }
+
         continue;
       }
 
