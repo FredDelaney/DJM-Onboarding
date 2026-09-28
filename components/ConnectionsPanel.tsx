@@ -35,6 +35,7 @@ const deviceTimezone = () => {
 
 type PreferenceState = {
   task_reminders: boolean;
+  meeting_reminders: boolean;
   email_reminders: boolean;
   morning_brief: boolean;
   reminder_intensity: ReminderIntensity;
@@ -44,6 +45,7 @@ type PreferenceState = {
 
 const defaultPreferences = (email: string): PreferenceState => ({
   task_reminders: true,
+  meeting_reminders: true,
   email_reminders: false,
   morning_brief: false,
   reminder_intensity: 'normal',
@@ -92,7 +94,7 @@ export default function ConnectionsPanel({
       const [preferenceResult, calendarResult, emailResult, authCapabilities, readiness] = await Promise.all([
         supabase
           .from('notification_preferences')
-          .select('task_reminders,email_reminders,morning_brief,reminder_intensity,timezone,email_address')
+          .select('task_reminders,meeting_reminders,email_reminders,morning_brief,reminder_intensity,timezone,email_address')
           .eq('user_id', userId)
           .maybeSingle(),
         supabase.rpc('djm_get_calendar_subscription'),
@@ -109,6 +111,7 @@ export default function ConnectionsPanel({
       if (saved) {
         setPreferences({
           task_reminders: saved.task_reminders !== false,
+          meeting_reminders: saved.meeting_reminders !== false,
           email_reminders: Boolean(saved.email_reminders),
           morning_brief: Boolean(saved.morning_brief),
           reminder_intensity: (saved.reminder_intensity || 'normal') as ReminderIntensity,
@@ -425,6 +428,15 @@ export default function ConnectionsPanel({
             checked={preferences.task_reminders}
             onChange={(checked) => setPreferences((current) => ({ ...current, task_reminders: checked }))}
           />
+          {mode === 'staff' ? (
+            <SettingToggle
+              icon={<CalendarDays size={18} />}
+              title="Meeting preparation"
+              text="Remind me before linked meetings when ReDream has relationship and club context ready."
+              checked={preferences.meeting_reminders}
+              onChange={(checked) => setPreferences((current) => ({ ...current, meeting_reminders: checked }))}
+            />
+          ) : null}
           <SettingToggle
             icon={<SunMedium size={18} />}
             title="Morning ReDream brief"
