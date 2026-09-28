@@ -1107,6 +1107,905 @@ const fetchMicrosoftContacts =
     };
   };
 
+const normaliseEmail = (
+  value: unknown,
+) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const emailAddressesFrom = (
+  value: unknown,
+) =>
+  Array.from(
+    new Set(
+      (
+        String(value || "")
+          .match(
+            /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,
+          ) || []
+      ).map(
+        (email) =>
+          normaliseEmail(
+            email,
+          ),
+      ),
+    ),
+  );
+
+const knownEmailSet = (
+  contacts: any[],
+) =>
+  new Set(
+    contacts
+      .map(
+        (contact) =>
+          normaliseEmail(
+            contact?.email,
+          ),
+      )
+      .filter(Boolean),
+  );
+
+const singleKnownEmail = (
+  candidates: string[],
+  known: Set<string>,
+  ownEmail: string,
+) => {
+  const own =
+    normaliseEmail(
+      ownEmail,
+    );
+
+  const matches =
+    Array.from(
+      new Set(
+        candidates
+          .map(normaliseEmail)
+          .filter(
+            (email) =>
+              email &&
+              email !== own &&
+              known.has(
+                email,
+              ),
+          ),
+      ),
+    );
+
+  return matches.length === 1
+    ? matches[0]
+    : null;
+};
+
+const decodeBase64Url = (
+  value: unknown,
+) => {
+  const input =
+    String(
+      value || "",
+    ).trim();
+
+  if (!input) return "";
+
+  try {
+    const normalised =
+      input
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const padded =
+      normalised.padEnd(
+        Math.ceil(
+          normalised.length /
+            4,
+        ) * 4,
+        "=",
+      );
+
+    const binary =
+      atob(padded);
+
+    const bytes =
+      Uint8Array.from(
+        binary,
+        (character) =>
+          character.charCodeAt(
+            0,
+          ),
+      );
+
+    return new TextDecoder()
+      .decode(bytes);
+  } catch {
+    return "";
+  }
+};
+
+const stripHtml = (
+  value: unknown,
+) =>
+  String(value || "")
+    .replace(
+      /<script[\s\S]*?<\/script>/gi,
+      " ",
+    )
+    .replace(
+      /<style[\s\S]*?<\/style>/gi,
+      " ",
+    )
+    .replace(
+      /<br\s*\/?>/gi,
+      "\n",
+    )
+    .replace(
+      /<\/p>/gi,
+      "\n",
+    )
+    .replace(
+      /<[^>]+>/g,
+      " ",
+    )
+    .replace(
+      /&nbsp;/gi,
+      " ",
+    )
+    .replace(
+      /&amp;/gi,
+      "&",
+    )
+    .replace(
+      /&lt;/gi,
+      "<",
+    )
+    .replace(
+      /&gt;/gi,
+      ">",
+    )
+    .replace(
+      /&quot;/gi,
+      '"',
+    )
+    .replace(
+      /&#39;/gi,
+      "'",
+    );
+
+const freshEmailBody = (
+  value: unknown,
+) => {
+  let text =
+    String(
+      value || "",
+    )
+      .replace(
+        /\r\n/g,
+        "\n",
+      )
+      .trim();
+
+  if (!text) return "";
+
+  const cutPatterns = [
+    /\nOn .{1,300}wrote:\s*\n/i,
+    /\n-{2,}\s*Original Message\s*-{2,}/i,
+    /\nFrom:\s*.+\nSent:\s*.+/i,
+  ];
+
+  let cutAt =
+    text.length;
+
+  for (
+    const pattern of
+      cutPatterns
+  ) {
+    const match =
+      pattern.exec(
+        text,
+      );
+
+    if (
+      match &&
+      typeof match.index ===
+        "number"
+    ) {
+      cutAt =
+        Math.min(
+          cutAt,
+          match.index,
+        );
+    }
+  }
+
+  text =
+    text.slice(
+      0,
+      cutAt,
+    );
+
+  text =
+    text
+      .split("\n")
+      .filter(
+        (line) =>
+          !line
+            .trim()
+            .startsWith(
+              ">",
+            ),
+      )
+      .join("\n")
+      .replace(
+        /\n{3,}/g,
+        "\n\n",
+      )
+      .trim();
+
+  return text.slice(
+    0,
+    12000,
+  );
+};
+
+const gmailHeader = (
+  message: any,
+  name: string,
+) => {
+  const headers =
+    Array.isArray(
+      message?.payload
+        ?.headers,
+    )
+      ? message
+          .payload
+          .headers
+      : [];
+
+  return String(
+    headers.find(
+      (header: any) =>
+        String(
+          header?.name ||
+            "",
+        ).toLowerCase() ===
+        name.toLowerCase(),
+    )?.value || "",
+  );
+};
+
+const gmailBody = (
+  message: any,
+) => {
+  const plain: string[] =
+    [];
+
+  const html: string[] =
+    [];
+
+  const visit = (
+    part: any,
+  ) => {
+    const mimeType =
+      String(
+        part?.mimeType ||
+          "",
+      ).toLowerCase();
+
+    const data =
+      part?.body?.data;
+
+    if (data) {
+      const decoded =
+        decodeBase64Url(
+          data,
+        );
+
+      if (
+        mimeType ===
+        "text/plain"
+      ) {
+        plain.push(
+          decoded,
+        );
+      } else if (
+        mimeType ===
+        "text/html"
+      ) {
+        html.push(
+          decoded,
+        );
+      }
+    }
+
+    for (
+      const child of
+        Array.isArray(
+          part?.parts,
+        )
+          ? part.parts
+          : []
+    ) {
+      visit(child);
+    }
+  };
+
+  visit(
+    message?.payload,
+  );
+
+  const text =
+    plain.length
+      ? plain.join(
+          "\n\n",
+        )
+      : stripHtml(
+          html.join(
+            "\n\n",
+          ),
+        );
+
+  return freshEmailBody(
+    text,
+  );
+};
+
+const fetchGoogleEmails =
+  async (
+    accessToken: string,
+    ownEmail: string,
+    contacts: any[],
+  ) => {
+    const output: any[] =
+      [];
+
+    const known =
+      knownEmailSet(
+        contacts,
+      );
+
+    const sources = [
+      {
+        label:
+          "INBOX",
+        direction:
+          "inbound",
+      },
+      {
+        label:
+          "SENT",
+        direction:
+          "outbound",
+      },
+    ];
+
+    for (
+      const source of
+        sources
+    ) {
+      const url =
+        new URL(
+          "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+        );
+
+      url.searchParams.set(
+        "labelIds",
+        source.label,
+      );
+
+      url.searchParams.set(
+        "q",
+        "newer_than:7d -in:drafts",
+      );
+
+      url.searchParams.set(
+        "maxResults",
+        "100",
+      );
+
+      const listing =
+        await fetchJson(
+          url.toString(),
+          accessToken,
+        );
+
+      const stubs =
+        Array.isArray(
+          listing?.messages,
+        )
+          ? listing
+              .messages
+              .slice(
+                0,
+                100,
+              )
+          : [];
+
+            const messages =
+        await inBatches(
+          stubs,
+          10,
+          async (
+            stub: any,
+          ) => {
+            const messageUrl =
+              new URL(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(String(stub?.id || ""))}`,
+              );
+
+            messageUrl.searchParams.set(
+              "format",
+              "metadata",
+            );
+
+            for (
+              const header of [
+                "From",
+                "To",
+                "Cc",
+                "Bcc",
+                "Subject",
+              ]
+            ) {
+              messageUrl.searchParams.append(
+                "metadataHeaders",
+                header,
+              );
+            }
+
+            return await fetchJson(
+              messageUrl.toString(),
+              accessToken,
+            );
+          },
+        );
+
+      for (
+        const message of
+          messages
+      ) {
+        const externalId =
+          String(
+            message?.id ||
+              "",
+          ).trim();
+
+        if (!externalId) {
+          continue;
+        }
+
+        const candidateEmails =
+          source.direction ===
+          "inbound"
+            ? emailAddressesFrom(
+                gmailHeader(
+                  message,
+                  "From",
+                ),
+              )
+            : [
+                ...emailAddressesFrom(
+                  gmailHeader(
+                    message,
+                    "To",
+                  ),
+                ),
+                ...emailAddressesFrom(
+                  gmailHeader(
+                    message,
+                    "Cc",
+                  ),
+                ),
+                ...emailAddressesFrom(
+                  gmailHeader(
+                    message,
+                    "Bcc",
+                  ),
+                ),
+              ];
+
+        const contactEmail =
+          singleKnownEmail(
+            candidateEmails,
+            known,
+            ownEmail,
+          );
+
+        if (
+          !contactEmail
+        ) {
+          continue;
+        }
+
+                const fullMessage =
+          await fetchJson(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(externalId)}?format=full`,
+            accessToken,
+          );
+
+        const body =
+          gmailBody(
+            fullMessage,
+          );
+
+        if (!body) {
+          continue;
+        }
+
+        const internalDate =
+          Number(
+            message
+              ?.internalDate ||
+              0,
+          );
+
+        const occurredAt =
+          internalDate > 0
+            ? new Date(
+                internalDate,
+              ).toISOString()
+            : new Date()
+                .toISOString();
+
+        output.push({
+          external_message_id:
+            externalId,
+
+          contact_email:
+            contactEmail,
+
+          direction:
+            source.direction,
+
+          subject:
+            gmailHeader(
+              message,
+              "Subject",
+            ) || null,
+
+          body,
+
+          occurred_at:
+            occurredAt,
+        });
+      }
+    }
+
+    return Array.from(
+      new Map(
+        output.map(
+          (email) => [
+            email.external_message_id,
+            email,
+          ],
+        ),
+      ).values(),
+    );
+  };
+
+const microsoftRecipients =
+  (values: any) =>
+    (
+      Array.isArray(
+        values,
+      )
+        ? values
+        : []
+    ).flatMap(
+      (recipient: any) =>
+        emailAddressesFrom(
+          recipient
+            ?.emailAddress
+            ?.address,
+        ),
+    );
+
+const fetchMicrosoftEmails =
+  async (
+    accessToken: string,
+    ownEmail: string,
+    contacts: any[],
+  ) => {
+    const output: any[] =
+      [];
+
+    const known =
+      knownEmailSet(
+        contacts,
+      );
+
+    const cutoff =
+      Date.now() -
+      7 *
+        24 *
+        60 *
+        60 *
+        1000;
+
+    const sources = [
+      {
+        folder:
+          "inbox",
+        direction:
+          "inbound",
+        dateField:
+          "receivedDateTime",
+      },
+      {
+        folder:
+          "sentitems",
+        direction:
+          "outbound",
+        dateField:
+          "sentDateTime",
+      },
+    ];
+
+    for (
+      const source of
+        sources
+    ) {
+      const url =
+        new URL(
+          `https://graph.microsoft.com/v1.0/me/mailFolders/${source.folder}/messages`,
+        );
+
+      url.searchParams.set(
+        "$top",
+        "100",
+      );
+
+      url.searchParams.set(
+        "$select",
+        [
+          "id",
+          "subject",
+          "from",
+          "toRecipients",
+          "ccRecipients",
+          "bccRecipients",
+          "receivedDateTime",
+          "sentDateTime",
+          "isDraft",
+        ].join(","),
+      );
+
+      url.searchParams.set(
+        "$orderby",
+        `${source.dateField} desc`,
+      );
+
+      const payload =
+        await fetchJson(
+          url.toString(),
+          accessToken,
+          {
+            Prefer:
+              'outlook.body-content-type="text"',
+          },
+        );
+
+      for (
+        const message of
+          Array.isArray(
+            payload?.value,
+          )
+            ? payload.value
+            : []
+      ) {
+        if (
+          message?.isDraft
+        ) {
+          continue;
+        }
+
+        const externalId =
+          String(
+            message?.id ||
+              "",
+          ).trim();
+
+        if (!externalId) {
+          continue;
+        }
+
+        const rawOccurredAt =
+          String(
+            message?.[
+              source
+                .dateField
+            ] ||
+              message
+                ?.receivedDateTime ||
+              message
+                ?.sentDateTime ||
+              "",
+          );
+
+        const occurredMs =
+          Date.parse(
+            rawOccurredAt,
+          );
+
+        if (
+          !Number.isFinite(
+            occurredMs,
+          ) ||
+          occurredMs <
+            cutoff
+        ) {
+          continue;
+        }
+
+        const candidateEmails =
+          source.direction ===
+          "inbound"
+            ? emailAddressesFrom(
+                message?.from
+                  ?.emailAddress
+                  ?.address,
+              )
+            : [
+                ...microsoftRecipients(
+                  message
+                    ?.toRecipients,
+                ),
+                ...microsoftRecipients(
+                  message
+                    ?.ccRecipients,
+                ),
+                ...microsoftRecipients(
+                  message
+                    ?.bccRecipients,
+                ),
+              ];
+
+        const contactEmail =
+          singleKnownEmail(
+            candidateEmails,
+            known,
+            ownEmail,
+          );
+
+        if (
+          !contactEmail
+        ) {
+          continue;
+        }
+
+                const fullMessage =
+          await fetchJson(
+            `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(externalId)}?$select=body`,
+            accessToken,
+            {
+              Prefer:
+                'outlook.body-content-type="text"',
+            },
+          );
+
+        const body =
+          freshEmailBody(
+            fullMessage?.body
+              ?.content,
+          );
+
+        if (!body) {
+          continue;
+        }
+
+        output.push({
+          external_message_id:
+            externalId,
+
+          contact_email:
+            contactEmail,
+
+          direction:
+            source.direction,
+
+          subject:
+            String(
+              message
+                ?.subject ||
+                "",
+            ).trim() ||
+            null,
+
+          body,
+
+          occurred_at:
+            new Date(
+              occurredMs,
+            ).toISOString(),
+        });
+      }
+    }
+
+    return Array.from(
+      new Map(
+        output.map(
+          (email) => [
+            email.external_message_id,
+            email,
+          ],
+        ),
+      ).values(),
+    );
+  };
+
+const kickCaptures =
+  async (
+    admin: any,
+    supabaseUrl: string,
+    captureIds: string[],
+  ) => {
+    if (
+      !captureIds.length
+    ) {
+      return;
+    }
+
+    const {
+      data: secret,
+      error,
+    } =
+      await admin.rpc(
+        "get_push_scheduler_secret",
+      );
+
+    if (
+      error ||
+      !secret
+    ) {
+      console.error(
+        JSON.stringify({
+          operation:
+            "redream_provider_email_worker_secret",
+          status:
+            "unavailable",
+        }),
+      );
+
+      return;
+    }
+
+    await Promise.allSettled(
+      captureIds.map(
+        (
+          captureId,
+        ) =>
+          fetch(
+            `${supabaseUrl.replace(/\/$/, "")}/functions/v1/redream-ai-process`,
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                "x-djm-cron":
+                  String(
+                    secret,
+                  ),
+
+                "x-region":
+                  "eu-west-1",
+              },
+
+              body:
+                JSON.stringify({
+                  capture_id:
+                    captureId,
+
+                  mode:
+                    "process",
+                }),
+            },
+          ),
+      ),
+    );
+  };
+
 Deno.serve(
   async (request: Request) => {
     if (
@@ -1363,6 +2262,81 @@ Deno.serve(
             }
           }
 
+          let emails: any[] =
+            [];
+
+          if (
+            capabilities.includes(
+              "email",
+            )
+          ) {
+            const {
+              data:
+                emailContext,
+              error:
+                emailContextError,
+            } =
+              await admin.rpc(
+                "platform_server_provider_email_contacts",
+                {
+                  p_tenant_id:
+                    target.tenant_id,
+
+                  p_user_id:
+                    target.user_id,
+
+                  p_provider:
+                    provider,
+                },
+              );
+
+            if (
+              emailContextError ||
+              !emailContext
+            ) {
+              throw (
+                emailContextError ||
+                new Error(
+                  "Email context is unavailable",
+                )
+              );
+            }
+
+            const emailContacts =
+              Array.isArray(
+                emailContext
+                  ?.contacts,
+              )
+                ? emailContext
+                    .contacts
+                : [];
+
+            const ownEmail =
+              String(
+                emailContext
+                  ?.own_email ||
+                  connection
+                    ?.email ||
+                  "",
+              );
+
+            emails =
+              provider ===
+              "google"
+                ? await fetchGoogleEmails(
+                    refreshed
+                      .accessToken,
+                    ownEmail,
+                    emailContacts,
+                  )
+                : await fetchMicrosoftEmails(
+                    refreshed
+                      .accessToken,
+                    ownEmail,
+                    emailContacts,
+                  );
+          }
+          
           const hasCalendar =
             capabilities.includes(
               "calendar",
@@ -1407,13 +2381,83 @@ Deno.serve(
               },
             );
 
-          if (commitError) {
+                  if (commitError) {
             throw commitError;
+          }
+
+          let emailResult:
+            any = {};
+
+          if (
+            capabilities.includes(
+              "email",
+            )
+          ) {
+            const {
+              data:
+                committedEmail,
+              error:
+                emailCommitError,
+            } =
+              await admin.rpc(
+                "platform_server_provider_email_commit",
+                {
+                  p_tenant_id:
+                    target.tenant_id,
+
+                  p_user_id:
+                    target.user_id,
+
+                  p_provider:
+                    provider,
+
+                  p_sync_started_at:
+                    startedAt
+                      .toISOString(),
+
+                  p_emails:
+                    emails,
+                },
+              );
+
+            if (
+              emailCommitError
+            ) {
+              throw emailCommitError;
+            }
+
+            emailResult =
+              committedEmail ||
+              {};
+
+            const captureIds =
+              Array.isArray(
+                emailResult
+                  ?.capture_ids,
+              )
+                ? emailResult
+                    .capture_ids
+                    .map(String)
+                    .filter(Boolean)
+                : [];
+
+            if (
+              captureIds.length
+            ) {
+              EdgeRuntime.waitUntil(
+                kickCaptures(
+                  admin,
+                  supabaseUrl,
+                  captureIds,
+                ),
+              );
+            }
           }
 
           return {
             ok: true,
             ...result,
+            ...emailResult,
           };
         } catch (error) {
           const message =

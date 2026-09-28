@@ -324,7 +324,9 @@ export default function AgencyConnectionsDrawer({
             meetings_seen?: number;
             meetings_cancelled?: number;
             contacts_seen?: number;
-            contacts_linked?: number;
+                        contacts_linked?: number;
+            emails_seen?: number;
+            emails_captured?: number;
             error?: string;
           }>(
             'redream-provider-sync',
@@ -365,8 +367,15 @@ export default function AgencyConnectionsDrawer({
               0,
           );
 
-        setMessage(
-          `${provider === 'microsoft' ? 'Microsoft' : 'Google'} synced. ${meetingCount} meetings and ${contactCount} contacts checked${linkedCount > 0 ? `, ${linkedCount} matched to Network` : ''}.`,
+        const emailCount =
+          Number(
+            result
+              .emails_captured ||
+              0,
+          );
+        
+                setMessage(
+          `${provider === 'microsoft' ? 'Microsoft' : 'Google'} synced. ${meetingCount} meetings and ${contactCount} contacts checked${linkedCount > 0 ? `, ${linkedCount} matched to Network` : ''}${emailAccess[provider] ? `, ${emailCount} relevant ${emailCount === 1 ? 'email' : 'emails'} added to Agency Memory` : ''}.`,
         );
 
         await load();
@@ -644,13 +653,12 @@ export default function AgencyConnectionsDrawer({
                             Email
                           </strong>
                           <small>
-                            Optional.
-                            Read-only
-                            access for
-                            selected
-                            agency
-                            intelligence
-                            workflows.
+                           Optional.
+ReDream keeps
+only recent
+emails involving
+people already
+in Network.
                           </small>
                         </span>
                       </div>
