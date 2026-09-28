@@ -25,6 +25,7 @@ import {
 } from '@/lib/platform-client';
 
 import AgencyMessagingConnections from './AgencyMessagingConnections';
+import AgencyProviderContactLinks from './AgencyProviderContactLinks';
 import styles from './AgencyConnectionsDrawer.module.css';
 
 type Provider =
@@ -816,6 +817,19 @@ in Network.
             )}
           </div>
         )}
+
+        <AgencyProviderContactLinks
+          workspaceSlug={workspaceSlug}
+          onStatus={(kind, nextMessage) => {
+            if (kind === 'success') {
+              setError('');
+              setMessage(nextMessage);
+            } else {
+              setMessage('');
+              setError(nextMessage);
+            }
+          }}
+        />
 
         <AgencyMessagingConnections
           workspaceSlug={workspaceSlug}
