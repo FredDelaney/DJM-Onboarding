@@ -6,11 +6,16 @@ import {
   CakeSlice,
   CalendarDays,
   Clock3,
+  ExternalLink,
   FileText,
+  LoaderCircle,
+  MessageCircleMore,
+  Target,
   Users,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 
 import styles from './AgencyCalendarWorkspace.module.css';
 
@@ -31,6 +36,7 @@ type AgendaItem = {
   entityId?: string;
   personId?: string;
   organisationId?: string;
+  meetingId?: string;
   meetingUrl?: string;
   source?: string;
   deadlineType?: string;
@@ -82,14 +88,24 @@ const categoryForDeadline = (value: unknown) => {
   }
 };
 
+type Rpc = <T = any>(
+  name: string,
+  args?: Record<string, unknown>,
+) => Promise<T>;
+
 export default function AgencyCalendarWorkspace({
   data,
   basePath,
+  rpc,
 }: {
   data: any;
   basePath: string;
+  rpc: Rpc;
 }) {
   const [horizon, setHorizon] = useState<Horizon>(30);
+  const [meetingBrief, setMeetingBrief] = useState<any>(null);
+  const [meetingBriefBusy, setMeetingBriefBusy] = useState(false);
+  const [meetingBriefError, setMeetingBriefError] = useState('');
 
   const agenda = useMemo(() => {
     const deadlines = list(data?.operations?.deadlines?.items).map(
@@ -149,6 +165,9 @@ export default function AgencyCalendarWorkspace({
             .filter(Boolean)
             .join(' · ') || 'Agency meeting',
         category: 'Meeting',
+        meetingId: item?.meeting_id
+          ? String(item.meeting_id)
+          : undefined,
         personId: item?.person_id
           ? String(item.person_id)
           : undefined,
@@ -325,7 +344,49 @@ export default function AgencyCalendarWorkspace({
     return <CalendarDays size={15} />;
   };
 
+  const openMeetingBrief = async (item: AgendaItem) => {
+    if (!item.meetingId) return;
+
+    setMeetingBriefBusy(true);
+    setMeetingBriefError('');
+    setMeetingBrief({
+      meeting: {
+        meeting_id: item.meetingId,
+        title: item.title,
+        starts_at: item.dateAt,
+        meeting_url: item.meetingUrl || null,
+      },
+    });
+
+    try {
+      const result = await rpc<any>(
+        'redream_meeting_brief',
+        { p_meeting_id: item.meetingId },
+      );
+      setMeetingBrief(result);
+    } catch (error) {
+      setMeetingBriefError(
+        error instanceof Error
+          ? error.message
+          : 'Could not load meeting preparation.',
+      );
+    } finally {
+      setMeetingBriefBusy(false);
+    }
+  };
+
   const actionFor = (item: AgendaItem) => {
+    if (
+      item.kind === 'meeting' &&
+      item.meetingId &&
+      (item.personId || item.organisationId)
+    ) {
+      return {
+        label: 'Prepare',
+        prepareMeeting: true,
+      };
+    }
+
     if (item.kind === 'meeting' && item.meetingUrl) {
       return {
         label: 'Meeting link',
@@ -438,7 +499,17 @@ export default function AgencyCalendarWorkspace({
                       <small>{item.detail}</small>
                     </div>
 
-                    {action.external ? (
+                    {'prepareMeeting' in action &&
+                    action.prepareMeeting ? (
+                      <button
+                        type="button"
+                        className={styles.action}
+                        onClick={() => void openMeetingBrief(item)}
+                      >
+                        {action.label}
+                        <ArrowRight size={13} />
+                      </button>
+                    ) : 'external' in action && action.external ? (
                       <a
                         className={styles.action}
                         href={action.href}
@@ -451,7 +522,11 @@ export default function AgencyCalendarWorkspace({
                     ) : (
                       <Link
                         className={styles.action}
-                        href={action.href}
+                        href={
+                          'href' in action && action.href
+                            ? action.href
+                            : `${basePath}?view=home`
+                        }
                       >
                         {action.label}
                         <ArrowRight size={13} />
@@ -474,6 +549,255 @@ export default function AgencyCalendarWorkspace({
           </div>
         ) : null}
       </section>
+
+      {meetingBrief ? (
+        <MeetingBriefDrawer
+          brief={meetingBrief}
+          busy={meetingBriefBusy}
+          error={meetingBriefError}
+          onClose={() => {
+            setMeetingBrief(null);
+            setMeetingBriefError('');
+          }}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function MeetingBriefDrawer({
+  brief,
+  busy,
+  error,
+  onClose,
+}: {
+  brief: any;
+  busy: boolean;
+  error: string;
+  onClose: () => void;
+}) {
+  const meeting = brief?.meeting || {};
+  const memory = brief?.relationship_memory || {};
+  const recent = list(memory?.recent_interactions).slice(0, 3);
+  const followUps = list(memory?.open_tasks).slice(0, 3);
+  const needs = list(brief?.demand?.items).slice(0, 3);
+  const deals = list(brief?.commercial?.deals).slice(0, 3);
+  const pursuits = list(brief?.pursuits).slice(0, 3);
+
+  const startsAt = parseDate(meeting?.starts_at);
+  const when = startsAt
+    ? new Intl.DateTimeFormat('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(startsAt)
+    : 'Time not recorded';
+
+  return (
+    <div
+      className={styles.briefBackdrop}
+      role="presentation"
+      onMouseDown={onClose}
+    >
+      <aside
+        className={styles.briefDrawer}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Meeting preparation"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className={styles.briefHead}>
+          <div>
+            <span>MEETING PREPARATION</span>
+            <h2>{meeting?.title || 'Meeting'}</h2>
+            <p>
+              {[meeting?.person_name, meeting?.organisation_name, when]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close meeting preparation"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {busy ? (
+          <div className={styles.briefLoading}>
+            <LoaderCircle size={16} />
+            Loading what matters for this meeting
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className={styles.briefError}>{error}</div>
+        ) : null}
+
+        {!busy ? (
+          <div className={styles.briefBody}>
+            {meeting?.meeting_url ? (
+              <a
+                className={styles.joinButton}
+                href={meeting.meeting_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Join meeting
+                <ExternalLink size={14} />
+              </a>
+            ) : null}
+
+            <BriefSection
+              icon={<MessageCircleMore size={14} />}
+              eyebrow="RECENT CONVERSATIONS"
+              empty="No recorded conversation with this contact yet."
+              items={recent.map((item: any) => ({
+                key: item?.interaction_id,
+                title: item?.summary || 'Interaction recorded',
+                meta: [
+                  item?.occurred_at
+                    ? new Intl.DateTimeFormat('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                      }).format(new Date(item.occurred_at))
+                    : null,
+                  item?.channel ? human(item.channel) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · '),
+              }))}
+            />
+
+            <BriefSection
+              icon={<Clock3 size={14} />}
+              eyebrow="OPEN FOLLOW-UPS"
+              empty="No open follow-up with this contact."
+              items={followUps.map((item: any) => ({
+                key: item?.task_id,
+                title: item?.title || 'Follow up',
+                meta: item?.due_at
+                  ? 'Due ' +
+                    new Intl.DateTimeFormat('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                    }).format(new Date(item.due_at))
+                  : 'No due date',
+              }))}
+            />
+            <BriefSection
+              icon={<Target size={14} />}
+              eyebrow="CLUB NEEDS"
+              empty="No active club need is recorded."
+              items={needs.map((item: any) => ({
+                key: item?.club_need_id,
+                title: item?.title || item?.position || 'Club need',
+                meta: [
+                  item?.position,
+                  item?.need_type ? human(item.need_type) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · '),
+              }))}
+            />
+
+            <BriefSection
+              icon={<BriefcaseBusiness size={14} />}
+              eyebrow="LIVE BUSINESS"
+              empty={
+                pursuits.length
+                  ? 'No active deal room yet. Live pursuits are shown below.'
+                  : 'No active deal or pursuit is recorded with this club.'
+              }
+              items={deals.map((item: any) => ({
+                key: item?.deal_room_id,
+                title: item?.title || 'Active deal',
+                meta: [
+                  item?.stage ? human(item.stage) : null,
+                  item?.next_action_text || null,
+                ]
+                  .filter(Boolean)
+                  .join(' · '),
+              }))}
+            />
+
+            {pursuits.length ? (
+              <BriefSection
+                icon={<Target size={14} />}
+                eyebrow="PURSUITS"
+                empty=""
+                items={pursuits.map((item: any) => ({
+                  key:
+                    item?.player_match_id ||
+                    item?.match_id ||
+                    item?.rank,
+                  title:
+                    item?.player?.name ||
+                    item?.player_name ||
+                    item?.title ||
+                    'Player pursuit',
+                  meta:
+                    item?.next_action?.instruction ||
+                    item?.next_action ||
+                    item?.state ||
+                    'Recorded pursuit',
+                }))}
+              />
+            ) : null}
+
+            <p className={styles.briefTruth}>
+              This is recorded agency context, not a prediction of meeting or deal outcome.
+            </p>
+          </div>
+        ) : null}
+      </aside>
+    </div>
+  );
+}
+
+function BriefSection({
+  icon,
+  eyebrow,
+  empty,
+  items,
+}: {
+  icon: ReactNode;
+  eyebrow: string;
+  empty: string;
+  items: Array<{
+    key?: string;
+    title: string;
+    meta: string;
+  }>;
+}) {
+  return (
+    <section className={styles.briefSection}>
+      <div className={styles.briefSectionHead}>
+        <span>{icon}</span>
+        <strong>{eyebrow}</strong>
+      </div>
+
+      {items.length ? (
+        <div className={styles.briefItems}>
+          {items.map((item, index) => (
+            <div
+              key={item.key || eyebrow + ':' + index}
+              className={styles.briefItem}
+            >
+              <strong>{item.title}</strong>
+              {item.meta ? <span>{item.meta}</span> : null}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className={styles.briefEmpty}>{empty}</p>
+      )}
+    </section>
   );
 }

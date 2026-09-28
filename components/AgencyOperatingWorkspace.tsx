@@ -1070,6 +1070,7 @@ export default function AgencyOperatingWorkspace() {
               <AgencyCalendarWorkspace
                 data={data}
                 basePath={basePath}
+                rpc={rpc}
               />
             ) : null}
             {view === 'business' && canSeeBusiness ? (
