@@ -15,7 +15,8 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { ReactNode, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 
 import styles from './AgencyCalendarWorkspace.module.css';
 
@@ -102,8 +103,11 @@ export default function AgencyCalendarWorkspace({
   basePath: string;
   rpc: Rpc;
 }) {
+  const search = useSearchParams();
+  const requestedMeetingId = String(search.get('meeting') || '').trim();
   const [horizon, setHorizon] = useState<Horizon>(30);
   const [meetingBrief, setMeetingBrief] = useState<any>(null);
+  const [openedMeetingId, setOpenedMeetingId] = useState('');
   const [meetingBriefBusy, setMeetingBriefBusy] = useState(false);
   const [meetingBriefError, setMeetingBriefError] = useState('');
 
@@ -374,6 +378,31 @@ export default function AgencyCalendarWorkspace({
       setMeetingBriefBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (
+      !requestedMeetingId ||
+      openedMeetingId === requestedMeetingId
+    ) {
+      return;
+    }
+
+    const item = agenda.find(
+      (entry) =>
+        entry.kind === 'meeting' &&
+        entry.meetingId === requestedMeetingId &&
+        Boolean(entry.personId || entry.organisationId),
+    );
+
+    if (!item) return;
+
+    setOpenedMeetingId(requestedMeetingId);
+    void openMeetingBrief(item);
+  }, [
+    agenda,
+    openedMeetingId,
+    requestedMeetingId,
+  ]);
 
   const actionFor = (item: AgendaItem) => {
     if (
