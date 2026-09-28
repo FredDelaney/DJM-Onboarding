@@ -3,6 +3,7 @@
 import {
   ArrowRight,
   BriefcaseBusiness,
+  MessageCircleMore,
   Search,
   Target,
   Users,
@@ -12,6 +13,7 @@ import { useMemo, useState } from 'react';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
+import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import { relativeDate } from '@/lib/platform-client';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
@@ -50,6 +52,103 @@ const careerGateLabel = (value: unknown) => {
   return human(state);
 };
 
+function ConnectedOpportunityContext({
+  context,
+}: {
+  context: any;
+}) {
+  if (!context) return null;
+
+  const latest = context?.latest_contact || null;
+  const followup = context?.open_followup || null;
+  const sourceName =
+    context?.source_person_name || 'Recorded source';
+  const label =
+    context?.scope === 'deal_source_contact'
+      ? 'DEAL CONTACT'
+      : 'NEED SOURCE';
+
+  return (
+    <div className={styles.connectedContext}>
+      <div className={styles.connectedContextIcon}>
+        <MessageCircleMore size={13} />
+      </div>
+
+      <div className={styles.connectedContextCopy}>
+        <small>{label}</small>
+
+        {latest ? (
+          <>
+            <strong>
+              {latest?.person_name || sourceName}
+            </strong>
+            <span>
+              {latest?.summary ||
+                'Connected contact recorded.'}
+            </span>
+            <div className={styles.connectedContextMeta}>
+              <em>
+                {human(latest?.channel || 'Connected')}
+                {latest?.direction
+                  ? ` · ${human(latest.direction)}`
+                  : ''}
+                {latest?.occurred_at
+                  ? ` · ${relativeDate(
+                      latest.occurred_at,
+                    )}`
+                  : ''}
+              </em>
+              <AgencyOwnershipChip
+                label="Contact owner"
+                name={latest?.owner_name || null}
+                emptyText={
+                  latest?.owner_user_id
+                    ? 'Needs reassignment'
+                    : 'Unassigned'
+                }
+                attention={
+                  latest?.owner_state !== 'active_staff'
+                }
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <strong>{sourceName}</strong>
+            <span>
+              No connected email or selected chat is recorded with
+              this source contact yet.
+            </span>
+          </>
+        )}
+
+        {followup ? (
+          <div className={styles.connectedFollowup}>
+            <span>
+              Open follow-up: {followup?.title || 'Follow up'}
+              {followup?.due_at
+                ? ` · ${relativeDate(followup.due_at)}`
+                : ''}
+            </span>
+            <AgencyOwnershipChip
+              label="Follow-up owner"
+              name={followup?.owner_name || null}
+              emptyText={
+                followup?.owner_user_id
+                  ? 'Needs reassignment'
+                  : 'Unassigned'
+              }
+              attention={
+                followup?.owner_state !== 'active_staff'
+              }
+            />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function AgencyOpportunitiesWorkspace({
   data,
   onOpenAction,
@@ -67,6 +166,42 @@ export default function AgencyOpportunitiesWorkspace({
   const needs = list(data?.market?.demand?.items);
   const routes = list(data?.market?.pursuits?.items);
   const deals = list(data?.deals?.portfolio?.deals);
+  const connectedNeeds = list(data?.connected?.needs);
+  const connectedRoutes = list(data?.connected?.routes);
+  const connectedDeals = list(data?.connected?.deals);
+
+  const needConnected = useMemo(
+    () =>
+      new Map(
+        connectedNeeds.map((item: any) => [
+          String(item?.club_need_id || ''),
+          item,
+        ]),
+      ),
+    [connectedNeeds],
+  );
+
+  const routeConnected = useMemo(
+    () =>
+      new Map(
+        connectedRoutes.map((item: any) => [
+          String(item?.player_match_id || ''),
+          item,
+        ]),
+      ),
+    [connectedRoutes],
+  );
+
+  const dealConnected = useMemo(
+    () =>
+      new Map(
+        connectedDeals.map((item: any) => [
+          String(item?.deal_room_id || ''),
+          item,
+        ]),
+      ),
+    [connectedDeals],
+  );
 
   const searchValue = search.trim().toLowerCase();
 
@@ -472,6 +607,12 @@ export default function AgencyOpportunitiesWorkspace({
                         ? ` · Best route: ${topCandidate.player_name}`
                         : ''}
                     </small>
+
+                    <ConnectedOpportunityContext
+                      context={needConnected.get(
+                        String(item.club_need_id),
+                      )}
+                    />
                   </div>
 
                   <button
@@ -527,6 +668,12 @@ export default function AgencyOpportunitiesWorkspace({
                       {item.best_access_route?.person_name ||
                         human(accessMode)}
                     </small>
+
+                    <ConnectedOpportunityContext
+                      context={routeConnected.get(
+                        String(item.player_match_id),
+                      )}
+                    />
                   </div>
 
                   <button
@@ -590,6 +737,12 @@ export default function AgencyOpportunitiesWorkspace({
                       {' · '}
                       {commissionValue}
                     </small>
+
+                    <ConnectedOpportunityContext
+                      context={dealConnected.get(
+                        String(deal.deal_room_id),
+                      )}
+                    />
                   </div>
 
                   <button
