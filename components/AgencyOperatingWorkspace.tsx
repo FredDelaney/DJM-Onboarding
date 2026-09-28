@@ -74,6 +74,7 @@ import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
 import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
 import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
+import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -4785,6 +4786,20 @@ function Deals({
                     {deal.organisation || 'Club'} ·{' '}
                     {commissionValue}
                   </small>
+
+                  <AgencyOwnershipChip
+                    label="Deal owner"
+                    name={deal.owner_name || null}
+                    emptyText={
+                      deal.owner_user_id
+                        ? 'Needs reassignment'
+                        : 'Unassigned'
+                    }
+                    attention={
+                      deal.owner_state !==
+                      'active_staff'
+                    }
+                  />
                 </div>
 
                 <div className={styles.rowActions}>

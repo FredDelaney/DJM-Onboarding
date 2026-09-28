@@ -15,6 +15,7 @@ import {
 import { useMemo, useState } from 'react';
 
 import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
+import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
@@ -951,9 +952,12 @@ export default function AgencyNetworkWorkspace({
 
                 <div className={styles.primaryFact}>
                   <span>OUR ROUTE</span>
-                  <strong>
-                    {relationship?.owner_name || 'No owner recorded'}
-                  </strong>
+                  <AgencyOwnershipChip
+                    label="Relationship owner"
+                    name={relationship?.owner_name || null}
+                    emptyText="Unassigned"
+                    attention={!relationship?.owner_name}
+                  />
                   <small>
                     {human(
                       relationship?.route_state || 'route not recorded',
