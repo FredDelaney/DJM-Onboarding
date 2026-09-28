@@ -1650,6 +1650,14 @@ const fetchGoogleEmails =
           external_message_id:
             externalId,
 
+          external_thread_id:
+            String(
+              message?.threadId ||
+                fullMessage?.threadId ||
+                "",
+            ).trim() ||
+            null,
+
           contact_email:
             contactEmail,
 
@@ -1758,6 +1766,7 @@ const fetchMicrosoftEmails =
         "$select",
         [
           "id",
+          "conversationId",
           "subject",
           "from",
           "toRecipients",
@@ -1895,6 +1904,14 @@ const fetchMicrosoftEmails =
         output.push({
           external_message_id:
             externalId,
+
+          external_thread_id:
+            String(
+              message
+                ?.conversationId ||
+                "",
+            ).trim() ||
+            null,
 
           contact_email:
             contactEmail,
