@@ -170,6 +170,35 @@ test(
 );
 
 test(
+  'email reminder routing checks explicit tenant before primary fallback',
+  () => {
+    const explicitTenant = migration.indexOf(
+      "v_payload->>'tenant_id'",
+    );
+    const primaryFallback = migration.indexOf(
+      'private.primary_active_tenant_id',
+    );
+
+    assert.ok(explicitTenant >= 0);
+    assert.ok(primaryFallback > explicitTenant);
+  },
+);
+
+test(
+  'meeting reminder copy stays preparation-only and evidence-led',
+  () => {
+    assert.match(
+      migration,
+      /recorded relationship, follow-up and club\/work context available/,
+    );
+    assert.doesNotMatch(
+      migration,
+      /attended|attendance|meeting happened|outcome achieved/i,
+    );
+  },
+);
+
+test(
   'Calendar opens the exact linked meeting brief from a reminder deep link',
   () => {
     assert.match(
