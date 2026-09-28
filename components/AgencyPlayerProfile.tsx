@@ -12,6 +12,8 @@ import {
   FileText,
   Link2,
   LoaderCircle,
+  Mail,
+  MessageCircleMore,
   Pencil,
   Play,
   RefreshCw,
@@ -28,6 +30,7 @@ import {
 } from 'react';
 
 import PublicProfile from '@/components/PublicProfile';
+import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import {
   friendlyError,
   relativeDate,
@@ -318,6 +321,20 @@ export default function AgencyPlayerProfile({
     : [];
   const documents = Array.isArray(bundle?.documents)
     ? bundle.documents
+    : [];
+  const communication =
+    bundle?.communication || {};
+  const communicationSummary =
+    communication?.summary || {};
+  const communicationItems = Array.isArray(
+    communication?.items,
+  )
+    ? communication.items
+    : [];
+  const communicationFollowups = Array.isArray(
+    communication?.open_followups,
+  )
+    ? communication.open_followups
     : [];
   const name =
     [player.first_name, player.last_name]
@@ -954,6 +971,119 @@ export default function AgencyPlayerProfile({
           </div>
         </section>
       </div>
+
+      <section className={styles.card}>
+        <div className={styles.cardHead}>
+          <div>
+            <span className={styles.eyebrow}>RECENT COMMUNICATION</span>
+            <h3>What has been recorded around this player.</h3>
+          </div>
+
+          {Number(communicationSummary?.connected_items || 0) ? (
+            <span className={styles.communicationCount}>
+              {Number(communicationSummary.connected_items)}
+            </span>
+          ) : null}
+        </div>
+
+        {communicationItems.length ? (
+          <div className={styles.communicationList}>
+            {communicationItems.slice(0, 6).map((item: any) => {
+              const channel = String(item?.channel || '');
+              const CommunicationIcon =
+                channel.includes('email')
+                  ? Mail
+                  : MessageCircleMore;
+
+              return (
+                <article
+                  className={styles.communicationRow}
+                  key={item?.capture_id}
+                >
+                  <div className={styles.communicationIcon}>
+                    <CommunicationIcon size={15} />
+                  </div>
+
+                  <div className={styles.communicationCopy}>
+                    <small>
+                      {human(channel || 'Connected')}
+                      {item?.direction
+                        ? ` · ${human(item.direction)}`
+                        : ''}
+                    </small>
+
+                    <strong>
+                      {item?.person_name ||
+                        item?.organisation_name ||
+                        'Connected activity'}
+                    </strong>
+
+                    <span>
+                      {item?.summary ||
+                        'Connected activity recorded.'}
+                    </span>
+
+                    <div className={styles.communicationFoot}>
+                      <AgencyOwnershipChip
+                        label="Owner"
+                        name={item?.owner_name || null}
+                      />
+                      {item?.occurred_at ? (
+                        <em>
+                          {relativeDate(item.occurred_at)}
+                        </em>
+                      ) : null}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={styles.empty}>
+            <MessageCircleMore size={19} />
+            <strong>No player-linked communication yet.</strong>
+            <span>
+              Email and selected chats appear here only when there is
+              explicit evidence that they relate to this player.
+            </span>
+          </div>
+        )}
+
+        {communicationFollowups.length ? (
+          <div className={styles.communicationFollowups}>
+            <div className={styles.communicationFollowupHead}>
+              <span>OPEN FOLLOW-UP</span>
+              <strong>
+                {communicationFollowups.length}
+              </strong>
+            </div>
+
+            {communicationFollowups.slice(0, 3).map((task: any) => (
+              <div
+                className={styles.communicationFollowupRow}
+                key={task?.task_id}
+              >
+                <div>
+                  <strong>
+                    {task?.title || 'Follow up'}
+                  </strong>
+                  <span>
+                    {task?.due_at
+                      ? relativeDate(task.due_at)
+                      : 'No due date recorded'}
+                  </span>
+                </div>
+
+                <AgencyOwnershipChip
+                  label="Owner"
+                  name={task?.owner_name || null}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
 
       <section className={styles.card}>
         <div className={styles.cardHead}>

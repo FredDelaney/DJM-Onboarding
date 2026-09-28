@@ -59,7 +59,7 @@ export default {fetch:async(req:Request)=>{
     const profileBundle=async(pid:string)=>{
       const player=await profilePlayer(pid);
       if(!player)return null;
-      const [settingsResult,publishedResult,careerResult,videosResult,documentsResult,sharesResult,dealsResult,clubsResult,branding]=await Promise.all([
+      const [settingsResult,publishedResult,careerResult,videosResult,documentsResult,sharesResult,dealsResult,clubsResult,branding,communication]=await Promise.all([
         ctx.supabaseAdmin.from("player_cv_settings").select("*").eq("player_id",pid).maybeSingle(),
         ctx.supabaseAdmin.from("player_public_profiles").select("*").eq("player_id",pid).maybeSingle(),
         ctx.supabaseAdmin.from("career_entries").select("id,player_id,club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,notes,is_international,sort_order,source_name,source_url,source_reviewed_at,source_provider,source_synced_at").eq("player_id",pid).order("sort_order").order("start_date",{ascending:false}),
@@ -68,7 +68,8 @@ export default {fetch:async(req:Request)=>{
         ctx.supabaseAdmin.from("club_share_links").select("id,token,player_id,label,active,expires_at,view_count,last_viewed_at,created_at,opportunity_id,organisation_id,source_person_id,pitch_message,pitch_status,sent_at,revoked_at").eq("player_id",pid).order("created_at",{ascending:false}).limit(50),
         ctx.supabaseAdmin.schema("djm_os").from("deal_rooms").select("id,title,organisation_id,source_person_id,stage,status,pitch_status,updated_at").eq("tenant_id",tenantId).eq("player_id",pid).order("updated_at",{ascending:false}).limit(30),
         ctx.supabaseAdmin.schema("djm_os").from("organisations").select("id,name,country,organisation_type").eq("tenant_id",tenantId).order("name").limit(250),
-        profileBranding()
+        profileBranding(),
+        rpc("platform_server_player_connected_activity",{p_tenant_id:tenantId,p_player_id:pid,p_limit:8})
       ]);
       for(const resultItem of [settingsResult,publishedResult,careerResult,videosResult,documentsResult,sharesResult,dealsResult,clubsResult]){if(resultItem.error)throw resultItem.error}
       const clubs=clubsResult.data||[];
@@ -77,7 +78,7 @@ export default {fetch:async(req:Request)=>{
       const dealMap=new Map(deals.map((deal:any)=>[String(deal.id),deal]));
       const shares=(sharesResult.data||[]).map((share:any)=>({...share,club_name:clubMap.get(String(share.organisation_id||""))||share.label||null,deal_title:dealMap.get(String(share.opportunity_id||""))?.title||null}));
       const career=careerResult.data||[];
-      return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:documentsResult.data||[],shares,deals,clubs,branding,auto_key_stats:profileAutoStats(career,player.current_season_label)};
+      return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:documentsResult.data||[],shares,deals,clubs,branding,communication,auto_key_stats:profileAutoStats(career,player.current_season_label)};
     };
 
 
