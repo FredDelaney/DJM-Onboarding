@@ -30,7 +30,11 @@ test(
     );
     assert.match(
       connections,
-      /title="Meeting preparation"/,
+      /title="Meeting reminders"/,
+    );
+    assert.match(
+      connections,
+      /before linked meetings and ask for the outcome afterwards/,
     );
     assert.match(
       connections,

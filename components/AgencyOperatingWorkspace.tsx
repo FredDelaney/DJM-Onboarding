@@ -249,6 +249,10 @@ export default function AgencyOperatingWorkspace() {
     view === 'players'
       ? String(search.get('player') || '').trim()
       : '';
+  const requestedMeetingOutcomeId =
+    view === 'home'
+      ? String(search.get('meetingOutcome') || '').trim()
+      : '';
 
   const [sessionReady, setSessionReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
@@ -289,6 +293,8 @@ export default function AgencyOperatingWorkspace() {
     useState(false);
   const [meetingOutcomeRequest, setMeetingOutcomeRequest] =
     useState<any>(null);
+  const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
+    useState('');
 
   const workspaceName =
     workspace?.display_name ||
@@ -449,7 +455,7 @@ export default function AgencyOperatingWorkspace() {
             p_limit: 6,
           }),
           rpc<any>('redream_meeting_aftercare', {
-            p_limit: 4,
+            p_limit: 12,
           }),
         ]);
 
@@ -659,6 +665,47 @@ export default function AgencyOperatingWorkspace() {
   useEffect(() => {
     if (workspace?.tenant_id) void loadView();
   }, [loadView, workspace?.tenant_id]);
+
+  useEffect(() => {
+    if (
+      view !== 'home' ||
+      !requestedMeetingOutcomeId ||
+      openedMeetingOutcomeId === requestedMeetingOutcomeId
+    ) {
+      return;
+    }
+
+    const items = Array.isArray(data?.meeting_aftercare?.items)
+      ? data.meeting_aftercare.items
+      : [];
+    const meeting = items.find(
+      (item: any) =>
+        String(item?.meeting_id || '') ===
+        requestedMeetingOutcomeId,
+    );
+
+    if (!meeting) return;
+
+    setOpenedMeetingOutcomeId(requestedMeetingOutcomeId);
+    setMeetingOutcomeRequest(meeting);
+
+    const next = new URLSearchParams(search.toString());
+    next.delete('meetingOutcome');
+    const query = next.toString();
+
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${basePath}${query ? `?${query}` : ''}`,
+    );
+  }, [
+    basePath,
+    data,
+    openedMeetingOutcomeId,
+    requestedMeetingOutcomeId,
+    search,
+    view,
+  ]);
 
   useEffect(() => {
     if (workspace) {
@@ -1573,7 +1620,7 @@ function Home({
     Array.isArray(
       meetingAftercare?.items,
     )
-      ? meetingAftercare.items
+      ? meetingAftercare.items.slice(0, 4)
       : [];
   const meetingAftercareCount =
     Number(
