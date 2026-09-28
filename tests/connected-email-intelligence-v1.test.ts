@@ -151,3 +151,87 @@ test(
     );
   },
 );
+
+
+test(
+  'actionable email relationship history is deterministic',
+  () => {
+    assert.match(
+      aiProcess,
+      /connectedEmailInteractionFallback/,
+    );
+
+    assert.match(
+      aiProcess,
+      /email_relationship_interaction/,
+    );
+
+    assert.match(
+      aiProcess,
+      /redream_ai_apply_email_interaction/,
+    );
+
+    assert.match(
+      aiProcess,
+      /actions\.some\([\s\S]*log_interaction/,
+    );
+  },
+);
+
+test(
+  'deterministic email interaction stays grounded in source evidence',
+  () => {
+    assert.match(
+      aiProcess,
+      /shortEvidenceExcerpt/,
+    );
+
+    assert.ok(
+      aiProcess.includes(
+        '.replace(/\\s+/g, " ")',
+      ),
+    );
+
+    assert.ok(
+      aiProcess.includes(
+        '.split("\\n")',
+      ),
+    );
+
+    assert.match(
+      aiProcess,
+      /evidenceIsGrounded\([\s\S]*transcript/,
+    );
+
+    assert.match(
+      aiProcess,
+      /Subject:/,
+    );
+  },
+);
+
+test(
+  'email relationship history preserves real message direction',
+  () => {
+    const relationshipMigration =
+      readFileSync(
+        'supabase/migrations/20260928171000_redream_email_relationship_memory_v1.sql',
+        'utf8',
+      );
+
+    assert.match(
+      relationshipMigration,
+      /redream_email_interaction_direction/,
+    );
+
+    assert.match(
+      relationshipMigration,
+      /email_direction/,
+    );
+
+    assert.match(
+      relationshipMigration,
+      /'inbound',[\s\S]*'outbound'/,
+    );
+  },
+);

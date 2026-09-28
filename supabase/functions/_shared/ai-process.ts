@@ -297,6 +297,151 @@ function evidenceIsGrounded(transcript: string, evidence: unknown) {
   return Boolean(excerpt && source.includes(excerpt));
 }
 
+function shortEvidenceExcerpt(value: unknown) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 24)
+    .join(" ");
+}
+
+function connectedEmailInteractionFallback(
+  capture: any,
+  transcript: string,
+  plan: any,
+) {
+  const context = capture?.context_json || {};
+  if (context.capture_origin !== "email") return null;
+
+  const actions = Array.isArray(plan?.actions)
+    ? plan.actions
+    : [];
+
+  if (!actions.length) return null;
+  if (
+    actions.some(
+      (action: any) =>
+        action?.type ===
+        "log_interaction",
+    )
+  ) {
+    return null;
+  }
+
+  const substantiveActions =
+    actions.filter(
+      (action: any) =>
+        action?.type &&
+        action.type !==
+          "log_interaction",
+    );
+
+  if (!substantiveActions.length) {
+    return null;
+  }
+
+  const subject =
+    String(
+      context.email_subject ||
+        "",
+    ).trim();
+
+  let evidence =
+    subject
+      ? shortEvidenceExcerpt(
+          `Subject: ${subject}`,
+        )
+      : "";
+
+  if (
+    !evidence ||
+    !evidenceIsGrounded(
+      transcript,
+      evidence,
+    )
+  ) {
+    const bodyLine =
+      String(transcript || "")
+        .split("\n")
+        .map((line) =>
+          line.trim(),
+        )
+        .find(
+          (line) =>
+            line &&
+            !/^subject:/i.test(
+              line,
+            ),
+        ) || "";
+
+    evidence =
+      shortEvidenceExcerpt(
+        bodyLine,
+      );
+  }
+
+  if (
+    !evidence ||
+    !evidenceIsGrounded(
+      transcript,
+      evidence,
+    )
+  ) {
+    return null;
+  }
+
+  const direction =
+    context.email_direction ===
+    "inbound"
+      ? "Received email"
+      : context.email_direction ===
+          "outbound"
+        ? "Sent email"
+        : "Email";
+
+  const personName =
+    String(
+      context.person_name ||
+        "",
+    ).trim();
+
+  const summary =
+    subject
+      ? `${direction}: ${subject}`
+      : personName
+        ? `${direction} with ${personName}`
+        : direction;
+
+  return {
+    key:
+      "email_relationship_interaction",
+    type:
+      "log_interaction",
+    confidence:
+      1,
+    evidence,
+    summary,
+    club_name:
+      context.organisation_name ||
+      null,
+    contact_name:
+      context.person_name ||
+      null,
+    player_name:
+      null,
+    organisation_id:
+      context.organisation_id ||
+      null,
+    person_id:
+      context.person_id ||
+      null,
+    player_id:
+      null,
+  };
+}
+
 async function sha256(value: unknown) {
   const bytes = new TextEncoder().encode(JSON.stringify(value));
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -996,6 +1141,74 @@ async function processOne(
       capture,
     );
     const actionStarted = performance.now();
+
+    const emailInteraction =
+      connectedEmailInteractionFallback(
+        capture,
+        transcript,
+        plan,
+      );
+
+    if (emailInteraction) {
+      const interactionHash =
+        await sha256({
+          capture_id:
+            capture.capture_id,
+          key:
+            emailInteraction.key,
+          type:
+            emailInteraction.type,
+        });
+
+      const {
+        data:
+          interactionApplied,
+        error:
+          interactionError,
+      } =
+        await admin.rpc(
+          "redream_ai_apply_action",
+          {
+            p_capture_id:
+              capture.capture_id,
+            p_action_hash:
+              interactionHash,
+            p_action_index:
+              -1,
+            p_action_type:
+              "log_interaction",
+            p_confidence:
+              emailInteraction
+                .confidence,
+            p_evidence:
+              emailInteraction
+                .evidence,
+            p_payload:
+              emailInteraction,
+          },
+        );
+
+      if (interactionError) {
+        throw interactionError;
+      }
+
+      if (
+        interactionApplied?.status ===
+        "failed"
+      ) {
+        console.warn(
+          JSON.stringify({
+            operation:
+              "redream_ai_apply_email_interaction",
+            capture_id:
+              capture.capture_id,
+            error:
+              interactionApplied?.error ||
+              "Email interaction failed",
+          }),
+        );
+      }
+    }
 
     const actionKeys = new Set<string>();
     const needActions = plan.actions.filter((item: any) => item?.type === "upsert_club_need");
