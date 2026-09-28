@@ -385,7 +385,7 @@
   border: 1px solid #e7ebed;
   border-radius: 10px;
   background: #f9fafb;
-  cursor: pointer;
+  cursor: default;
 }
 
 .threadRow > span {
@@ -413,6 +413,36 @@
   height: 18px;
   flex: 0 0 auto;
   accent-color: var(--agency-primary);
+}
+
+.threadControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.threadContactSelect {
+  width: min(230px, 34vw);
+  min-width: 150px;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid #dfe5e8;
+  border-radius: 8px;
+  background: #fff;
+  color: #496273;
+  font: inherit;
+  font-size: 9px;
+  outline: none;
+}
+
+.threadContactSelect:focus {
+  border-color: var(--agency-primary);
+}
+
+.threadContactSelect:disabled {
+  opacity: .6;
 }
 
 .noThreads {
@@ -472,5 +502,22 @@
   .primary,
   .secondary {
     min-height: 40px;
+  }
+
+    .threadRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .threadControls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .threadContactSelect {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    min-height: 36px;
   }
 }
