@@ -1,0 +1,55 @@
+.chip,
+.attention {
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid #e4e8eb;
+  border-radius: 999px;
+  background: #fff;
+  color: #586773;
+  line-height: 1;
+}
+
+.chip svg,
+.attention svg {
+  flex: 0 0 auto;
+}
+
+.chip small,
+.attention small {
+  color: #8b959d;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.chip strong,
+.attention strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #35444e;
+  font-size: 8px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attention {
+  border-color: #eadfdc;
+  background: #fff8f6;
+  color: #8d5b4f;
+}
+
+.attention strong {
+  color: #8d5b4f;
+}
+
+@media (max-width: 680px) {
+  .chip,
+  .attention {
+    max-width: 100%;
+  }
+}
