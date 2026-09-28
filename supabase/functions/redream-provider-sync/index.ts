@@ -1520,17 +1520,43 @@ const fetchGoogleEmails =
               )
           : [];
 
-      const messages =
+            const messages =
         await inBatches(
           stubs,
           10,
           async (
             stub: any,
-          ) =>
-            await fetchJson(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(String(stub?.id || ""))}?format=full`,
+          ) => {
+            const messageUrl =
+              new URL(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(String(stub?.id || ""))}`,
+              );
+
+            messageUrl.searchParams.set(
+              "format",
+              "metadata",
+            );
+
+            for (
+              const header of [
+                "From",
+                "To",
+                "Cc",
+                "Bcc",
+                "Subject",
+              ]
+            ) {
+              messageUrl.searchParams.append(
+                "metadataHeaders",
+                header,
+              );
+            }
+
+            return await fetchJson(
+              messageUrl.toString(),
               accessToken,
-            ),
+            );
+          },
         );
 
       for (
@@ -1590,9 +1616,15 @@ const fetchGoogleEmails =
           continue;
         }
 
+                const fullMessage =
+          await fetchJson(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(externalId)}?format=full`,
+            accessToken,
+          );
+
         const body =
           gmailBody(
-            message,
+            fullMessage,
           );
 
         if (!body) {
@@ -1727,7 +1759,6 @@ const fetchMicrosoftEmails =
         [
           "id",
           "subject",
-          "body",
           "from",
           "toRecipients",
           "ccRecipients",
@@ -1841,9 +1872,19 @@ const fetchMicrosoftEmails =
           continue;
         }
 
+                const fullMessage =
+          await fetchJson(
+            `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(externalId)}?$select=body`,
+            accessToken,
+            {
+              Prefer:
+                'outlook.body-content-type="text"',
+            },
+          );
+
         const body =
           freshEmailBody(
-            message?.body
+            fullMessage?.body
               ?.content,
           );
 
