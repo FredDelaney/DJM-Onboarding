@@ -118,3 +118,20 @@ test(
     );
   },
 );
+
+
+test(
+  'confirmed provider contact links survive provider refresh',
+  () => {
+    const persistenceMigration =
+      readFileSync(
+        'supabase/migrations/20260928163500_preserve_provider_contact_identity_binding_v1.sql',
+        'utf8',
+      );
+
+    assert.match(
+      persistenceMigration,
+      /person_id = coalesce\(djm_os\.provider_contact_sources\.person_id, excluded\.person_id\)/,
+    );
+  },
+);
