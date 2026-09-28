@@ -57,6 +57,32 @@ const money = (
 const safeArray = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
 
+const initials = (value: unknown) => {
+  const parts = String(value || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  return (
+    parts
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase() || 'A'
+  );
+};
+
+const teamStateLabel = (value: unknown) => {
+  switch (String(value || '')) {
+    case 'overdue_work_present':
+      return 'Needs attention';
+    case 'active_load':
+      return 'Active work';
+    default:
+      return 'No recorded load';
+  }
+};
+
 function Fact({
   label,
   value,
@@ -116,12 +142,20 @@ export default function AgencyOwnerCommandCentre({
   const executive =
     control?.executive_summary || {};
 
+  const teamCapacity =
+    data?.team_capacity ||
+    control?.team_capacity ||
+    {};
+
   const capacity =
+    teamCapacity?.summary ||
     control?.governance
       ?.team_capacity_summary ||
-    control?.team_capacity
-      ?.summary ||
     {};
+
+  const teamMembers = safeArray(
+    teamCapacity?.members,
+  );
 
   const serviceSummary =
     control?.service_control?.summary ||
@@ -486,8 +520,204 @@ export default function AgencyOwnerCommandCentre({
               />
             </div>
 
+            {teamMembers.length ? (
+              <div
+                className={styles.teamMembers}
+                aria-label="Agency team workload"
+              >
+                {teamMembers.map((member: any) => {
+                  const load =
+                    member?.load_facts || {};
+                  const network =
+                    member?.network_facts || {};
+                  const commercial =
+                    safeArray(
+                      member?.commercial_by_currency,
+                    );
+                  const overdue =
+                    Number(
+                      load.overdue_tasks || 0,
+                    ) +
+                    Number(
+                      load.overdue_commitments || 0,
+                    );
+                  const state =
+                    String(
+                      member?.attention_state || '',
+                    );
+
+                  return (
+                    <article
+                      className={styles.teamMember}
+                      key={
+                        member?.user_id ||
+                        member?.name
+                      }
+                    >
+                      <div
+                        className={
+                          styles.teamMemberHead
+                        }
+                      >
+                        <div
+                          className={
+                            styles.teamAvatar
+                          }
+                          aria-hidden="true"
+                        >
+                          {initials(
+                            member?.name,
+                          )}
+                        </div>
+
+                        <div
+                          className={
+                            styles.teamIdentity
+                          }
+                        >
+                          <strong>
+                            {member?.name ||
+                              'Agency member'}
+                          </strong>
+                          <span>
+                            {member?.role_title ||
+                              human(
+                                member?.tenant_role ||
+                                  'agent',
+                              )}
+                          </span>
+                        </div>
+
+                        <span
+                          className={
+                            state ===
+                            'overdue_work_present'
+                              ? styles.teamStateAttention
+                              : state ===
+                                  'active_load'
+                                ? styles.teamState
+                                : styles.teamStateQuiet
+                          }
+                        >
+                          {teamStateLabel(
+                            state,
+                          )}
+                        </span>
+                      </div>
+
+                      <div
+                        className={
+                          styles.teamMemberFacts
+                        }
+                      >
+                        <div>
+                          <strong>
+                            {count(
+                              load.assigned_players,
+                            )}
+                          </strong>
+                          <span>players</span>
+                        </div>
+                        <div>
+                          <strong>
+                            {count(
+                              load.owned_active_deals,
+                            )}
+                          </strong>
+                          <span>live deals</span>
+                        </div>
+                        <div>
+                          <strong>
+                            {count(
+                              load.open_tasks,
+                            )}
+                          </strong>
+                          <span>open work</span>
+                        </div>
+                        <div>
+                          <strong>
+                            {String(overdue)}
+                          </strong>
+                          <span>overdue</span>
+                        </div>
+                      </div>
+
+                      <div
+                        className={
+                          styles.teamMemberMeta
+                        }
+                      >
+                        <span>
+                          {count(
+                            load.active_commitments,
+                          )}{' '}
+                          active commitment
+                          {Number(
+                            load.active_commitments ||
+                              0,
+                          ) === 1
+                            ? ''
+                            : 's'}
+                        </span>
+                        <span>
+                          {count(
+                            network.recorded_relationships,
+                          )}{' '}
+                          recorded relationship
+                          {Number(
+                            network.recorded_relationships ||
+                              0,
+                          ) === 1
+                            ? ''
+                            : 's'}
+                        </span>
+                      </div>
+
+                      {commercial.length ? (
+                        <div
+                          className={
+                            styles.teamCommercial
+                          }
+                        >
+                          {commercial.map(
+                            (item: any) => (
+                              <span
+                                key={
+                                  item.currency ||
+                                  'currency'
+                                }
+                              >
+                                {money(
+                                  item.expected_commission,
+                                  item.currency ||
+                                    'EUR',
+                                )}{' '}
+                                expected
+                              </span>
+                            ),
+                          )}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.teamEmpty}>
+                <Users size={16} />
+                <div>
+                  <strong>
+                    No active team members are recorded.
+                  </strong>
+                  <span>
+                    Team ownership will appear here as agents join the workspace.
+                  </span>
+                </div>
+              </div>
+            )}
+
             <p className={styles.truth}>
-              ReDream does not calculate a fake utilisation percentage because actual working hours and effort per task are not recorded.
+              Work counts show recorded ownership, not effort or performance. ReDream does not calculate a fake utilisation percentage because actual working hours and effort per task are not recorded.
             </p>
           </section>
 

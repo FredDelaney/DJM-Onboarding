@@ -472,6 +472,7 @@ export default function AgencyOperatingWorkspace() {
               horizon_days: 90,
               limit: 100,
             }),
+            invoke<any>('team_capacity'),
           ]);
 
           const value = (
@@ -490,6 +491,10 @@ export default function AgencyOperatingWorkspace() {
             receivables: value(
               2,
               'receivables',
+            ),
+            team_capacity: value(
+              3,
+              'capacity',
             ),
           };
         }
@@ -565,6 +570,7 @@ export default function AgencyOperatingWorkspace() {
               horizon_days: 90,
               limit: 100,
             }),
+            invoke<any>('team_capacity'),
           ]);
 
           const value = (
@@ -581,6 +587,7 @@ export default function AgencyOperatingWorkspace() {
               control: value(0, 'control_centre'),
               roi: value(1, 'roi'),
               receivables: value(2, 'receivables'),
+              team_capacity: value(3, 'capacity'),
             },
           });
         }
