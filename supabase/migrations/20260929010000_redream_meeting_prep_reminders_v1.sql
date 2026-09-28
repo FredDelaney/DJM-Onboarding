@@ -141,6 +141,9 @@ begin
       m.organisation_id,
       o.name as organisation_name
     from djm_os.meetings m
+    join platform.tenants tenant
+      on tenant.id=m.tenant_id
+     and tenant.status='active'
     join platform.tenant_memberships membership
       on membership.tenant_id=m.tenant_id
      and membership.user_id=m.owner_user_id
@@ -159,6 +162,7 @@ begin
       on o.id=m.organisation_id
      and o.tenant_id=m.tenant_id
     where m.status='scheduled'
+      and m.provider in ('google','microsoft')
       and m.owner_user_id is not null
       and m.starts_at>now()
       and m.starts_at<=now()+interval '24 hours'
@@ -211,12 +215,14 @@ begin
     body_text:=
       case
         when stage='2h'
-          then 'ReDream has the latest relationship, club, follow-up and live-work context ready for this meeting.'
-        else 'Your ReDream meeting brief is ready. Review the latest relationship, club and open-work context before the meeting.'
+          then 'Open Calendar to review the recorded relationship, follow-up and club/work context available before the meeting.'
+        else 'Your linked meeting is tomorrow. Open Calendar to review the recorded context and prepare.'
       end;
 
     target_url:=
-      '/agency?view=calendar&meeting='||
+      '/workspace/'||
+      item.tenant_slug||
+      '?view=calendar&meeting='||
       item.id::text;
 
     if private.djm_queue_delivery(
