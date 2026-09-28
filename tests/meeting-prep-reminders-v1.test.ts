@@ -152,6 +152,20 @@ test(
 );
 
 test(
+  'internal email tenant resolver is not browser callable',
+  () => {
+    assert.match(
+      migration,
+      /revoke all on function[\s\S]*email_outbox_tenant_id\(uuid,jsonb\)[\s\S]*authenticated/,
+    );
+    assert.match(
+      migration,
+      /grant execute on function[\s\S]*email_outbox_tenant_id\(uuid,jsonb\)[\s\S]*service_role/,
+    );
+  },
+);
+
+test(
   'email reminder routing prefers the meeting tenant for multi-tenant users',
   () => {
     assert.match(
