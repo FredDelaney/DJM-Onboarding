@@ -59,6 +59,18 @@ export default function AgencyRelationshipMemory({
   const promises = list(
     memory?.promises ?? memory?.commitments,
   );
+  const upcomingMeetings = list(memory?.upcoming_meetings);
+  const recentCalendarEvents = list(memory?.recent_calendar_events);
+  const calendarItems = [
+    ...upcomingMeetings.map((item: any) => ({
+      ...item,
+      calendar_state: 'upcoming',
+    })),
+    ...recentCalendarEvents.map((item: any) => ({
+      ...item,
+      calendar_state: 'history',
+    })),
+  ].slice(0, 6);
   const best = memory?.best_route || {};
   const state = stateCopy(clean(memory?.state));
 
@@ -237,6 +249,29 @@ export default function AgencyRelationshipMemory({
               .join(' · '),
           }))}
         />
+
+        <MemoryBlock
+          title="Calendar"
+          count={calendarItems.length}
+          icon="calendar"
+          empty="No linked calendar events are recorded."
+          items={calendarItems.map((item: any) => ({
+            id: item?.meeting_id,
+            title: clean(item?.title) || 'Calendar event',
+            meta: [
+              item?.calendar_state === 'upcoming'
+                ? 'Upcoming'
+                : 'Calendar history',
+              item?.starts_at
+                ? relativeDate(item.starts_at)
+                : null,
+              clean(item?.provider),
+              clean(item?.owner_name),
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          }))}
+        />
       </div>
     </section>
   );
@@ -257,7 +292,7 @@ function MemoryBlock({
     title: string;
     meta: string;
   }>;
-  icon: 'conversation' | 'followup' | 'promise';
+  icon: 'conversation' | 'followup' | 'promise' | 'calendar';
 }) {
   const HeaderIcon =
     icon === 'conversation'
