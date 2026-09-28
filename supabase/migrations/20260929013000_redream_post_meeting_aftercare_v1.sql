@@ -175,7 +175,7 @@ begin
     'items',v_items,
     'truth_contract',jsonb_build_object(
       'attendance',
-        'A passed calendar event does not prove that the meeting happened. ReDream asks the owner to confirm the outcome.',
+        'A passed calendar event does not prove that the meeting happened. The owning agent must confirm the outcome.',
       'personal_scope',
         'Only the signed-in agent''s own linked provider meetings are shown.',
       'resolution',
