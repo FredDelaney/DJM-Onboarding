@@ -653,6 +653,9 @@ begin
 
     limit 1;
 
+    v_receipt_id :=
+      null;
+
     insert into
       djm_os.provider_email_receipts (
         tenant_id,
