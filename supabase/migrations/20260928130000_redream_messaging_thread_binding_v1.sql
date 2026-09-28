@@ -77,8 +77,8 @@ begin
         'bound_person_name',
         p.full_name,
 
-        'bound_organisation_id',
-        t.bound_organisation_id,
+                'bound_organisation_id',
+        ce.organisation_id,
 
         'bound_organisation_name',
         o.name
@@ -96,8 +96,21 @@ begin
     on p.id = t.bound_person_id
    and p.tenant_id = v_tenant
 
+    left join lateral (
+    select
+      e.organisation_id
+    from djm_os.employments e
+    where e.tenant_id = v_tenant
+      and e.person_id = t.bound_person_id
+      and e.is_current = true
+    order by
+      e.started_on desc nulls last,
+      e.updated_at desc
+    limit 1
+  ) ce on true
+
   left join djm_os.organisations o
-    on o.id = t.bound_organisation_id
+    on o.id = ce.organisation_id
    and o.tenant_id = v_tenant
 
   where t.tenant_id = v_tenant
@@ -402,10 +415,10 @@ begin
     return new;
   end if;
 
-  select
+    select
     t.bound_person_id,
     p.full_name,
-    t.bound_organisation_id,
+    ce.organisation_id,
     o.name
 
   into
@@ -422,9 +435,25 @@ begin
    and p.tenant_id =
       t.tenant_id
 
+    left join lateral (
+    select
+      e.organisation_id
+    from djm_os.employments e
+    where e.tenant_id =
+        t.tenant_id
+      and e.person_id =
+        t.bound_person_id
+      and e.is_current =
+        true
+    order by
+      e.started_on desc nulls last,
+      e.updated_at desc
+    limit 1
+  ) ce on true
+
   left join djm_os.organisations o
     on o.id =
-      t.bound_organisation_id
+      ce.organisation_id
    and o.tenant_id =
       t.tenant_id
 
