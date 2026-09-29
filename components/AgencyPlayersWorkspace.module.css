@@ -712,3 +712,61 @@
     font-size: 11px;
   }
 }
+
+/* Premium interaction system v1 */
+@media (max-width: 680px) {
+  .sectionTab,
+  .sectionTabActive,
+  .playerCard[role='button'],
+  .recruitmentRow,
+  .playerTab,
+  .playerTabActive {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .sectionTab,
+  .sectionTabActive,
+  .playerCard[role='button'],
+  .recruitmentRow,
+  .playerTab,
+  .playerTabActive {
+    transition:
+      transform 120ms ease,
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .sectionTab:active,
+  .sectionTabActive:active,
+  .playerTab:active,
+  .playerTabActive:active {
+    transform: scale(.985);
+  }
+
+  .playerCard[role='button']:active,
+  .recruitmentRow:active {
+    transform: scale(.992);
+    background: #fafbfc;
+  }
+
+  .sectionTab:focus-visible,
+  .sectionTabActive:focus-visible,
+  .recruitmentRow:focus-visible,
+  .playerTab:focus-visible,
+  .playerTabActive:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--agency-accent) 28%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sectionTab,
+  .sectionTabActive,
+  .playerCard[role='button'],
+  .recruitmentRow,
+  .playerTab,
+  .playerTabActive {
+    transition: none;
+  }
+}
