@@ -247,3 +247,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 620px) {
+  .header {
+    padding-top: calc(20px + env(safe-area-inset-top));
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .primary,
+  .secondary {
+    min-height: 44px;
+  }
+}

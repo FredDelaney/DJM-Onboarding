@@ -545,3 +545,25 @@
     border-top: 1px solid #e9ebed;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 680px) {
+  .header {
+    padding-top: calc(15px + env(safe-area-inset-top));
+  }
+
+  .body {
+    padding-bottom: calc(26px + env(safe-area-inset-bottom));
+  }
+
+  .form input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .primary,
+  .verifyButton,
+  .clubButton {
+    min-height: 44px;
+  }
+}

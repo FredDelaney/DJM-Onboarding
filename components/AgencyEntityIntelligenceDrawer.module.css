@@ -314,3 +314,18 @@
     justify-content: center;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 680px) {
+  .header {
+    padding-top: calc(18px + env(safe-area-inset-top));
+  }
+
+  .content {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .actions button {
+    min-height: 44px;
+  }
+}

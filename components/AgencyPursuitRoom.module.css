@@ -606,3 +606,27 @@
     flex-direction: column;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 760px) {
+  .header {
+    padding-top: calc(17px + env(safe-area-inset-top));
+  }
+
+  .textarea textarea,
+  .formGrid input,
+  .formGrid select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .confirmBar {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .actions button,
+  .panel > button,
+  .confirmActions button {
+    min-height: 44px;
+  }
+}

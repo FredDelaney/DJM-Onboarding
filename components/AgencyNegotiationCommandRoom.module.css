@@ -576,3 +576,25 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 760px) {
+  .header {
+    padding-top: calc(17px + env(safe-area-inset-top));
+  }
+
+  .formGrid input,
+  .formGrid textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .confirmBar {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .actions button,
+  .confirmActions button {
+    min-height: 44px;
+  }
+}

@@ -2626,3 +2626,19 @@
     gap: 14px;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 680px) {
+  .authCard input,
+  .relationshipSearch input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .compactButton,
+  .primaryButton,
+  .secondaryButton,
+  .refresh {
+    min-height: 44px;
+  }
+}

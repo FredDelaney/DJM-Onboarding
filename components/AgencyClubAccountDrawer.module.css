@@ -555,3 +555,15 @@
     width: 100%;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 680px) {
+  .content {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .row button,
+  .nextMove button {
+    min-height: 44px;
+  }
+}
