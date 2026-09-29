@@ -76,7 +76,8 @@ test('raw privileged share RPCs are service-role only', () => {
 test('normal public Player Profile pages receive agency branding through a public edge boundary', () => {
   assert.match(playerPage, /player-profile-public/);
   assert.match(playerPage, /agency=\{data\.agency\}/);
-  assert.match(publicEdge, /tenant_branding/);
+  assert.match(publicEdge, /platform_server_player_profile_context/);
+  assert.doesNotMatch(publicEdge, /\.schema\('platform'\)|\.schema\("platform"\)/);
   assert.match(publicEdge, /verification_status/);
   assert.match(publicEdge, /published/);
 });
@@ -98,4 +99,21 @@ test('visible product language says Player Profile rather than dossier', () => {
     playerCv,
     /MY CLUB DOSSIER|Your club-facing\s+dossier|in your club dossier/i,
   );
+});
+
+
+test('current stats stay live without same-season double counting', () => {
+  assert.match(agencyOs, /eligible\.sort/);
+  assert.match(agencyOs, /auto_stats_meta/);
+  assert.doesNotMatch(agencyOs, /known\.reduce/);
+  assert.match(manager, /Checked today/);
+  assert.match(manager, /Cross-checked/);
+});
+
+test('published Player Profile reads current trusted stats instead of freezing publish-time numbers', () => {
+  assert.match(publicEdge, /career_entries/);
+  assert.match(publicEdge, /player_cv_settings/);
+  assert.match(publicEdge, /currentStats/);
+  assert.match(publicEdge, /customStats\?profileResult\.data\.key_stats:auto\.stats/);
+  assert.match(publicEdge, /stats_meta/);
 });

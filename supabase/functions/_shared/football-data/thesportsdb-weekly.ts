@@ -13,6 +13,14 @@ const whole = (value) => {
   return Number.isFinite(number) ? Math.max(0, Math.round(number)) : null;
 };
 
+const monotonic = (oldValue, newValue) => {
+  const oldNumber = whole(oldValue);
+  const newNumber = whole(newValue);
+  if (newNumber == null) return oldNumber;
+  if (oldNumber == null) return newNumber;
+  return Math.max(oldNumber, newNumber);
+};
+
 const normalise = (value) =>
   String(value || "")
     .trim()
@@ -209,7 +217,7 @@ export async function syncTheSportsDbWeekly(admin, player) {
   const existing = await admin
     .from("career_entries")
     .select(
-      "id,season_label,club_name,league,source_reviewed_at,source_provider,source_name",
+      "id,season_label,club_name,league,appearances,starts,minutes,goals,assists,source_reviewed_at,source_provider,source_name",
     )
     .eq("player_id", player.id);
   if (existing.error) throw existing.error;
@@ -233,11 +241,11 @@ export async function syncTheSportsDbWeekly(admin, player) {
       club_name: current.club_name || "Unknown club",
       league: current.league || "Unknown competition",
       country: current.country,
-      appearances: current.appearances,
-      starts: current.starts,
-      minutes: current.minutes,
-      goals: current.goals,
-      assists: current.assists,
+      appearances: providerOwned ? monotonic(exact?.appearances, current.appearances) : current.appearances,
+      starts: providerOwned ? monotonic(exact?.starts, current.starts) : current.starts,
+      minutes: providerOwned ? monotonic(exact?.minutes, current.minutes) : current.minutes,
+      goals: providerOwned ? monotonic(exact?.goals, current.goals) : current.goals,
+      assists: providerOwned ? monotonic(exact?.assists, current.assists) : current.assists,
       source_name: "TheSportsDB",
       source_url: "https://www.thesportsdb.com/",
       source_reviewed_at: now,
@@ -273,5 +281,5 @@ export async function syncTheSportsDbWeekly(admin, player) {
   );
   if (snapshotError) throw snapshotError;
 
-  return { ok: true, conflict, providerPlayerId };
+  return { ok: true, conflict, providerPlayerId, current };
 }

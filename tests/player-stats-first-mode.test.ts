@@ -56,11 +56,13 @@ test('manual free refresh uses free sources and never requests a score rebuild',
   assert.match(refreshPlayerData, /keys\.pitchKey\s*&&\s*!statsOnly/);
 });
 
-test('background free refresh remains rotating and stale-first', () => {
-  assert.match(weekly, /daily_rotating_stale_first_weekly_coverage/);
-  assert.match(weekly, /djm_weekly_refresh_snapshot_status/);
-  assert.match(weekly, /slice\(rotationPage \* 10, rotationPage \* 10 \+ 10\)/);
+test('background free refresh is daily, stale-first and freshness-aware', () => {
+  assert.match(weekly, /daily_stale_first_provider_then_cross_checked_web/);
+  assert.match(weekly, /FRESHNESS_MS\s*=\s*20\s*\*\s*60\s*\*\s*60\s*\*\s*1000/);
+  assert.match(weekly, /latestCheck\.get\(left\.id\)/);
+  assert.match(weekly, /latestCheck\.get\(right\.id\)/);
   assert.match(weekly, /syncTheSportsDbWeekly/);
+  assert.match(weekly, /refresh-player-stats-ai-worker/);
 });
 
 test('legacy player directory no longer owns visible maintenance', () => {
