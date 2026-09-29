@@ -138,7 +138,7 @@ test(
     );
     assert.match(
       workspace,
-      /Link chats/,
+      /Resolve identities/,
     );
     assert.match(
       workspace,

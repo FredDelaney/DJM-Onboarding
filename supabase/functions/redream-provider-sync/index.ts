@@ -2412,6 +2412,32 @@ Deno.serve(
           ) {
             const {
               data:
+                recoveredEmail,
+              error:
+                emailRecoveryError,
+            } =
+              await admin.rpc(
+                "platform_server_provider_email_reopen_unresolved",
+                {
+                  p_tenant_id:
+                    target.tenant_id,
+                  p_user_id:
+                    target.user_id,
+                  p_provider:
+                    provider,
+                  p_emails:
+                    emails,
+                },
+              );
+
+            if (
+              emailRecoveryError
+            ) {
+              throw emailRecoveryError;
+            }
+
+            const {
+              data:
                 committedEmail,
               error:
                 emailCommitError,
@@ -2443,9 +2469,16 @@ Deno.serve(
               throw emailCommitError;
             }
 
-            emailResult =
-              committedEmail ||
-              {};
+            emailResult = {
+              ...(committedEmail ||
+                {}),
+              emails_reopened:
+                Number(
+                  recoveredEmail
+                    ?.emails_reopened ||
+                    0,
+                ),
+            };
 
             const captureIds =
               Array.isArray(

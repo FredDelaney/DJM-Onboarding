@@ -3,8 +3,10 @@
 import {
   ArrowLeft,
   CheckCircle2,
+  ContactRound,
   Instagram,
   LoaderCircle,
+  Mail,
   MessageCircle,
   Search,
   UserRound,
@@ -19,6 +21,7 @@ import {
 
 import {
   friendlyError,
+  platformInvoke,
   platformRpc,
   relativeDate,
 } from '@/lib/platform-client';
@@ -26,6 +29,21 @@ import {
 import styles from './AgencyConnectedIdentityResolverDrawer.module.css';
 
 type Provider = 'instagram' | 'whatsapp';
+type ContactProvider = 'google' | 'microsoft';
+
+type ProviderSuggestion = {
+  provider: ContactProvider;
+  external_contact_id: string;
+  display_name?: string | null;
+  email?: string | null;
+  provider_organisation_name?: string | null;
+  provider_role_title?: string | null;
+  suggested_person_id: string;
+  suggested_person_name?: string | null;
+  suggested_organisation_name?: string | null;
+  suggested_role_title?: string | null;
+  match_basis?: 'exact_email' | 'exact_name' | null;
+};
 
 type Thread = {
   provider: Provider;
@@ -70,6 +88,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
   onResolved?: () => Promise<void> | void;
 }) {
   const [threads, setThreads] = useState<Thread[]>([]);
+  const [providerSuggestions, setProviderSuggestions] =
+    useState<ProviderSuggestion[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
   const [search, setSearch] = useState('');
@@ -82,8 +102,12 @@ export default function AgencyConnectedIdentityResolverDrawer({
     setError('');
 
     try {
-      const [instagram, whatsapp, relationships] =
-        await Promise.all([
+      const [
+        instagram,
+        whatsapp,
+        relationships,
+        providerIdentity,
+      ] = await Promise.all([
           platformRpc<{ threads?: Thread[] }>(
             'redream_messaging_threads',
             { p_provider: 'instagram' },
@@ -102,6 +126,13 @@ export default function AgencyConnectedIdentityResolverDrawer({
               p_limit: 1,
               p_contact_limit: 500,
             },
+            workspaceSlug,
+          ),
+          platformRpc<{
+            items?: ProviderSuggestion[];
+          }>(
+            'redream_provider_contact_suggestions',
+            { p_limit: 24 },
             workspaceSlug,
           ),
         ]);
@@ -133,6 +164,11 @@ export default function AgencyConnectedIdentityResolverDrawer({
         });
 
       setThreads(nextThreads);
+      setProviderSuggestions(
+        Array.isArray(providerIdentity?.items)
+          ? providerIdentity.items
+          : [],
+      );
       setContacts(
         Array.isArray(relationships?.contacts?.items)
           ? relationships.contacts.items
@@ -240,7 +276,108 @@ export default function AgencyConnectedIdentityResolverDrawer({
     }
   };
 
-  const remaining = threads.length;
+  const bindProviderSuggestion = async (
+    suggestion: ProviderSuggestion,
+  ) => {
+    if (busy) return;
+
+    const busyKey =
+      suggestion.provider +
+      ':' +
+      suggestion.external_contact_id;
+
+    setBusy(busyKey);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await platformRpc<{
+        bound?: boolean;
+        person_id?: string | null;
+        person_name?: string | null;
+        organisation_name?: string | null;
+      }>(
+        'redream_provider_contact_bind',
+        {
+          p_provider: suggestion.provider,
+          p_external_contact_id:
+            suggestion.external_contact_id,
+          p_person_id:
+            suggestion.suggested_person_id,
+        },
+        workspaceSlug,
+      );
+
+      if (!result?.bound) {
+        throw new Error(
+          'The provider contact could not be linked.',
+        );
+      }
+
+      setProviderSuggestions((current) =>
+        current.filter(
+          (item) =>
+            !(
+              item.provider === suggestion.provider &&
+              item.suggested_person_id ===
+                suggestion.suggested_person_id
+            ),
+        ),
+      );
+
+      const linkedName =
+        result.person_name ||
+        suggestion.suggested_person_name ||
+        suggestion.display_name ||
+        'Network contact';
+
+      let syncWarning = '';
+
+      try {
+        const syncResult = await platformInvoke<{
+          ok?: boolean;
+          emails_reopened?: number;
+          emails_captured?: number;
+          error?: string;
+        }>(
+          'redream-provider-sync',
+          {
+            provider: suggestion.provider,
+            workspace_slug: workspaceSlug,
+          },
+        );
+
+        if (!syncResult?.ok) {
+          throw new Error(
+            syncResult?.error ||
+              'Provider sync did not complete.',
+          );
+        }
+      } catch {
+        syncWarning =
+          ' The identity is saved, but the provider refresh did not complete. You can sync it later in Connections.';
+      }
+
+      setSuccess(
+        (suggestion.display_name ||
+          suggestion.email ||
+          'Provider contact') +
+          ' linked to ' +
+          linkedName +
+          '.' +
+          syncWarning,
+      );
+
+      await onResolved?.();
+    } catch (bindError) {
+      setError(friendlyError(bindError));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const remaining =
+    threads.length + providerSuggestions.length;
   const ProviderIcon =
     activeThread?.provider === 'instagram'
       ? Instagram
@@ -256,7 +393,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
         className={styles.drawer}
         role="dialog"
         aria-modal="true"
-        aria-label="Link selected chats"
+        aria-label="Resolve connected identities"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className={styles.header}>
@@ -265,17 +402,17 @@ export default function AgencyConnectedIdentityResolverDrawer({
             <h2>
               {activeThread
                 ? 'Choose the right contact'
-                : 'Link selected chats'}
+                : 'Resolve connected identities'}
             </h2>
             <p>
               {activeThread
                 ? 'Use the agency Network as the identity source. ReDream will use the person and their current club for future selected messages.'
                 : remaining
                   ? remaining +
-                    ' selected ' +
-                    (remaining === 1 ? 'chat needs' : 'chats need') +
-                    ' a Network identity.'
-                  : 'Every selected chat currently has a Network identity.'}
+                    ' connected ' +
+                    (remaining === 1 ? 'identity needs' : 'identities need') +
+                    ' confirmation.'
+                  : 'Connected identities are up to date.'}
             </p>
           </div>
 
@@ -283,7 +420,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
             type="button"
             className={styles.close}
             onClick={onClose}
-            aria-label="Close chat linking"
+            aria-label="Close identity resolution"
           >
             <X size={17} />
           </button>
@@ -302,7 +439,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
         {loading ? (
           <div className={styles.loading}>
             <LoaderCircle size={16} />
-            Loading selected chats and Network contacts
+            Loading identity matches and selected chats
           </div>
         ) : activeThread ? (
           <div className={styles.contactMode}>
@@ -404,6 +541,116 @@ export default function AgencyConnectedIdentityResolverDrawer({
           </div>
         ) : (
           <div className={styles.threadMode}>
+            {providerSuggestions.length ? (
+              <section className={styles.providerSection}>
+                <div className={styles.providerSectionHead}>
+                  <div>
+                    <small>GOOGLE / MICROSOFT</small>
+                    <strong>Suggested Network matches</strong>
+                  </div>
+                  <span>
+                    Exact matches only. You confirm every link.
+                  </span>
+                </div>
+
+                <div className={styles.providerSuggestionList}>
+                  {providerSuggestions.map((suggestion) => {
+                    const busyKey =
+                      suggestion.provider +
+                      ':' +
+                      suggestion.external_contact_id;
+                    const ProviderContactIcon =
+                      suggestion.provider === 'google'
+                        ? Mail
+                        : ContactRound;
+
+                    return (
+                      <article
+                        className={styles.providerSuggestion}
+                        key={busyKey}
+                      >
+                        <span className={styles.providerSuggestionIcon}>
+                          <ProviderContactIcon size={15} />
+                        </span>
+
+                        <div className={styles.providerSuggestionCopy}>
+                          <small>
+                            {suggestion.provider === 'google'
+                              ? 'GOOGLE CONTACT'
+                              : 'MICROSOFT CONTACT'}
+                            {' · '}
+                            {suggestion.match_basis === 'exact_email'
+                              ? 'EXACT EMAIL'
+                              : 'EXACT NAME'}
+                          </small>
+                          <strong>
+                            {suggestion.display_name ||
+                              suggestion.email ||
+                              'Provider contact'}
+                          </strong>
+                          <span>
+                            {[
+                              suggestion.email,
+                              suggestion.provider_role_title,
+                              suggestion.provider_organisation_name,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ') ||
+                              'Provider contact'}
+                          </span>
+                        </div>
+
+                        <div className={styles.providerRoute}>
+                          <span>Network</span>
+                          <strong>
+                            {suggestion.suggested_person_name ||
+                              'Network contact'}
+                          </strong>
+                          <small>
+                            {[
+                              suggestion.suggested_role_title,
+                              suggestion.suggested_organisation_name,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ') ||
+                              'Canonical Network identity'}
+                          </small>
+                        </div>
+
+                        <button
+                          type="button"
+                          className={styles.confirmProvider}
+                          onClick={() =>
+                            void bindProviderSuggestion(suggestion)
+                          }
+                          disabled={Boolean(busy)}
+                        >
+                          {busy === busyKey ? (
+                            <LoaderCircle
+                              size={13}
+                              className={styles.spin}
+                            />
+                          ) : (
+                            <CheckCircle2 size={13} />
+                          )}
+                          Confirm
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            {threads.length ? (
+              <div className={styles.threadSectionHead}>
+                <div>
+                  <small>SELECTED CHATS</small>
+                  <strong>Choose the right Network person</strong>
+                </div>
+              </div>
+            ) : null}
+
             {threads.map((thread) => {
               const Icon =
                 thread.provider === 'instagram'
@@ -451,13 +698,14 @@ export default function AgencyConnectedIdentityResolverDrawer({
               );
             })}
 
-            {!threads.length ? (
+            {!threads.length && !providerSuggestions.length ? (
               <div className={styles.complete}>
                 <CheckCircle2 size={22} />
-                <strong>Selected chats are linked</strong>
+                <strong>Connected identities are resolved</strong>
                 <span>
-                  Future selected messages can now use the canonical
-                  Network identity and current club.
+                  Future selected messages and eligible connected
+                  email can now use the canonical Network identity
+                  and current club.
                 </span>
               </div>
             ) : null}
@@ -466,8 +714,9 @@ export default function AgencyConnectedIdentityResolverDrawer({
 
         <footer className={styles.footer}>
           <span>
-            Only selected chats are shown here. Linking does not send
-            a message or create a person automatically.
+            ReDream never applies a provider contact suggestion
+            automatically. Confirming identity does not send a
+            message or create a person.
           </span>
           <button type="button" onClick={onClose}>
             Done
