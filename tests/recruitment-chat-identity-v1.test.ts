@@ -51,6 +51,13 @@ test('recruitment candidates are tenant-scoped active targets and handle match s
   );
 });
 
+test('create target and bind calls the canonical Recruitment function with resolved SQL types', () => {
+  assert.match(
+    migration,
+    /platform_server_recruitment_create_target\([\s\S]*null::date,null::text,3::smallint/,
+  );
+});
+
 test('agent can explicitly bind an existing target or create one from a selected player chat', () => {
   assert.match(
     resolver,
