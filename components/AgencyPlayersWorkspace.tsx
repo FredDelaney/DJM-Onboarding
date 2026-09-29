@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   ArrowRight,
   CalendarDays,
   CheckCircle2,
@@ -209,13 +210,11 @@ function PlayerDrawer({
   };
 
   return (
-    <div className={styles.backdrop} onClick={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <aside className={styles.drawer} role="dialog" aria-modal="true">
+    <div className={styles.playerPage}>
+      <aside className={`${styles.drawer} ${styles.playerPagePanel}`} role="region" aria-label={`${playerName} player workspace`}>
         <div className={styles.drawerTop}>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close">
-            <X size={18} />
+          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Back to Players">
+            <ArrowLeft size={18} />
           </button>
         </div>
 
@@ -461,7 +460,7 @@ export default function AgencyPlayersWorkspace({
       ? null
       : String(searchParams.get('player') || '').trim() || null,
   );
-  const [targetId, setTargetId] = useState<string|null>(null);
+  const [targetId, setTargetId] = useState<string|null>(() => String(searchParams.get('target') || '').trim() || null);
   const [targetDetail, setTargetDetail] = useState<any>(null);
   const [targetBusy, setTargetBusy] = useState(false);
   const [targetError, setTargetError] = useState('');
@@ -480,10 +479,11 @@ export default function AgencyPlayersWorkspace({
   });
 
   useEffect(() => {
-    if (searchParams.get('tab') === 'recruitment') setSection('recruitment');
+    if (searchParams.get('tab') === 'recruitment' || searchParams.get('target')) setSection('recruitment');
     if (searchParams.get('profile') !== '1') {
       setPlayerId(String(searchParams.get('player') || '').trim() || null);
     }
+    setTargetId(String(searchParams.get('target') || '').trim() || null);
   }, [searchParams]);
 
   const openPlayer = (id: string) => {
@@ -503,6 +503,26 @@ export default function AgencyPlayersWorkspace({
     params.delete('profile');
     const query = params.toString();
     window.history.replaceState(window.history.state, '', `${basePath}${query ? `?${query}` : ''}`);
+  };
+
+  const openTarget = (id: string) => {
+    setTargetId(id);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'players');
+    params.set('tab', 'recruitment');
+    params.set('target', id);
+    params.delete('player');
+    params.delete('profile');
+    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+  };
+
+  const closeTarget = () => {
+    setTargetId(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'players');
+    params.set('tab', 'recruitment');
+    params.delete('target');
+    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -571,7 +591,7 @@ export default function AgencyPlayersWorkspace({
   const promote=async()=>{
     if (!targetId) return;
     await invoke('recruitment_promote',{prospect_id:targetId});
-    setTargetId(null);
+    closeTarget();
     await onRefresh();
   };
 
@@ -595,6 +615,60 @@ export default function AgencyPlayersWorkspace({
     }catch(error){setCreateError(friendlyError(error));}
     finally{setCreateBusy(false);}
   };
+
+  if (targetId) {
+    return (
+      <div className={styles.playerPage}>
+        <aside className={`${styles.drawer} ${styles.playerPagePanel}`} role="region" aria-label="Recruitment target workspace">
+          <div className={styles.drawerTop}>
+            <button type="button" className={styles.closeButton} onClick={closeTarget} aria-label="Back to Recruitment">
+              <ArrowLeft size={18} />
+            </button>
+          </div>
+          {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the recorded relationship.</span></div></div>:null}
+          {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span></div></div>:null}
+          {!targetBusy&&targetDetail?(
+            <div className={styles.drawerBody}>
+              <header className={styles.recruitHero}><div className={styles.recruitmentMark}>{initials(targetDetail.target?.full_name||'')||'P'}</div>
+                <div><p>RECRUITMENT</p><h2>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span></div></header>
+              <section className={styles.detailSection}><p>CURRENT STAGE</p><h3>{PIPELINE.find(([key])=>key===targetDetail.target?.ui_stage)?.[1]||human(targetDetail.target?.ui_stage)}</h3>
+                <span className={styles.sectionCopy}>{targetDetail.target?.next_action_at?`Next follow-up ${relativeDate(targetDetail.target.next_action_at)}`:'No next follow-up recorded'}</span>
+                <div className={styles.actionRow}>
+                  {nextMajorStage(targetDetail.target?.raw_stage)?(<button type="button" className={styles.primaryButton} onClick={()=>void changeStage()}><ArrowRight size={14}/> Move to {nextMajorStage(targetDetail.target?.raw_stage)?.[1]}</button>):null}
+                  {targetDetail.target?.raw_stage==='signed'?(<button type="button" className={styles.primaryButton} onClick={()=>void promote()}><Users size={14}/> Add to Our Players</button>):null}
+                </div>
+              </section>
+              <section className={styles.detailSection}><p>CONTACT</p><h3>Log what happened</h3>
+                <div className={styles.interactionForm}>
+                  <select value={interactionChannel} onChange={(e)=>setInteractionChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="email">Email</option><option value="phone">Phone</option><option value="meeting">Meeting</option><option value="other">Other</option></select>
+                  <textarea rows={3} value={interaction} onChange={(e)=>setInteraction(e.target.value)} placeholder="Short factual note"/>
+                  <button type="button" className={styles.primaryButton} disabled={!interaction.trim()} onClick={()=>void logInteraction()}><CheckCircle2 size={14}/> Save interaction</button>
+                </div>
+              </section>
+              <section className={styles.detailSection}><p>HISTORY</p><h3>Recruitment interactions</h3>
+                <div className={styles.rows}>
+                  {(targetDetail.interactions||[]).map((item:any)=>(<article className={styles.row} key={item.id}><div><strong>{human(item.channel)} · {human(item.direction)}</strong><span>{item.summary}</span><small>{relativeDate(item.occurred_at)}</small></div></article>))}
+                  {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction recorded" copy="Log the first real conversation here. Contact timestamps are never invented."/>:null}
+                </div>
+              </section>
+            </div>
+          ):null}
+        </aside>
+      </div>
+    );
+  }
+
+  if (playerId) {
+    return (
+      <PlayerDrawer
+        playerId={playerId}
+        basePath={basePath}
+        invoke={invoke}
+        onClose={closePlayer}
+        onOpenAction={onOpenAction}
+      />
+    );
+  }
 
   return (
     <div className={styles.workspace}>
@@ -697,7 +771,7 @@ export default function AgencyPlayersWorkspace({
           </section>
           <section className={styles.recruitmentList}>
             {filteredTargets.map((item:any)=>(
-              <button type="button" className={styles.recruitmentRow} key={item.id} onClick={()=>setTargetId(String(item.id))}>
+              <button type="button" className={styles.recruitmentRow} key={item.id} onClick={()=>openTarget(String(item.id))}>
                 <div className={styles.recruitmentMark}>{initials(item.full_name||'')||'P'}</div>
                 <div className={styles.recruitmentCopy}><div className={styles.recruitmentTitle}><strong>{item.full_name}</strong>{item.follow_up_overdue?<span className={styles.overduePill}>Follow-up overdue</span>:null}</div>
                   <span>{[item.primary_position,item.current_club,item.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span>
@@ -710,53 +784,7 @@ export default function AgencyPlayersWorkspace({
         </div>
       )}
 
-      {playerId?<PlayerDrawer playerId={playerId} basePath={basePath} invoke={invoke} onClose={closePlayer} onOpenAction={onOpenAction}/>:null}
 
-      {targetId?(
-        <div className={styles.backdrop} onClick={(e)=>{if(e.target===e.currentTarget)setTargetId(null);}}>
-          <aside className={styles.drawer} role="dialog" aria-modal="true">
-            <div className={styles.drawerTop}><button type="button" className={styles.closeButton} onClick={()=>setTargetId(null)}><X size={18}/></button></div>
-            {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the recorded relationship.</span></div></div>:null}
-            {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span></div></div>:null}
-            {!targetBusy&&targetDetail?(
-              <div className={styles.drawerBody}>
-                <header className={styles.recruitHero}><div className={styles.recruitmentMark}>{initials(targetDetail.target?.full_name||'')||'P'}</div>
-                  <div><p>RECRUITMENT</p><h2>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span></div></header>
-                <section className={styles.detailSection}><p>CURRENT STAGE</p><h3>{PIPELINE.find(([key])=>key===targetDetail.target?.ui_stage)?.[1]||human(targetDetail.target?.ui_stage)}</h3>
-                  <span className={styles.sectionCopy}>{targetDetail.target?.next_action_at?`Next follow-up ${relativeDate(targetDetail.target.next_action_at)}`:'No next follow-up recorded'}</span>
-                  <div className={styles.actionRow}>
-                    {nextMajorStage(targetDetail.target?.raw_stage)?(
-                      <button type="button" className={styles.primaryButton} onClick={()=>void changeStage()}>
-                        <ArrowRight size={14}/> Move to {nextMajorStage(targetDetail.target?.raw_stage)?.[1]}
-                      </button>
-                    ):null}
-                    {targetDetail.target?.raw_stage==='signed'?(
-                      <button type="button" className={styles.primaryButton} onClick={()=>void promote()}><Users size={14}/> Add to Our Players</button>
-                    ):null}
-                  </div>
-                </section>
-                <section className={styles.detailSection}><p>CONTACT</p><h3>Log what happened</h3>
-                  <div className={styles.interactionForm}>
-                    <select value={interactionChannel} onChange={(e)=>setInteractionChannel(e.target.value)}>
-                      <option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="email">Email</option><option value="phone">Phone</option><option value="meeting">Meeting</option><option value="other">Other</option>
-                    </select>
-                    <textarea rows={3} value={interaction} onChange={(e)=>setInteraction(e.target.value)} placeholder="Short factual note"/>
-                    <button type="button" className={styles.primaryButton} disabled={!interaction.trim()} onClick={()=>void logInteraction()}><CheckCircle2 size={14}/> Save interaction</button>
-                  </div>
-                </section>
-                <section className={styles.detailSection}><p>HISTORY</p><h3>Recruitment interactions</h3>
-                  <div className={styles.rows}>
-                    {(targetDetail.interactions||[]).map((item:any)=>(
-                      <article className={styles.row} key={item.id}><div><strong>{human(item.channel)} · {human(item.direction)}</strong><span>{item.summary}</span><small>{relativeDate(item.occurred_at)}</small></div></article>
-                    ))}
-                    {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction recorded" copy="Log the first real conversation here. Contact timestamps are never invented."/>:null}
-                  </div>
-                </section>
-              </div>
-            ):null}
-          </aside>
-        </div>
-      ):null}
 
       {createOpen?(
         <div className={styles.modalBackdrop} onClick={(e)=>{if(e.target===e.currentTarget)setCreateOpen(false);}}>

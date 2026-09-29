@@ -254,6 +254,13 @@ export default function AgencyOperatingWorkspace() {
       : '';
   const showPlayerProfile =
     Boolean(selectedPlayerId) && search.get('profile') === '1';
+  const selectedNetworkPersonId =
+    view === 'network' ? String(search.get('person') || '').trim() : '';
+  const selectedRecruitmentTargetId =
+    view === 'players' ? String(search.get('target') || '').trim() : '';
+  const inlineEntityWorkspaceOpen = Boolean(
+    selectedPlayerId || selectedNetworkPersonId || selectedRecruitmentTargetId,
+  );
   const requestedMeetingOutcomeId =
     view === 'home'
       ? String(search.get('meetingOutcome') || '').trim()
@@ -1004,7 +1011,7 @@ export default function AgencyOperatingWorkspace() {
       </aside>
 
       <main className={styles.main}>
-        <header className={styles.pageHead}>
+        <header className={`${styles.pageHead} ${inlineEntityWorkspaceOpen ? styles.pageHeadHidden : ''}`}>
           <div className={styles.pageHeadCopy}>
             <div className={styles.pageHeadTitleLine}>
               <div>
@@ -1073,7 +1080,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
         </header>
 
-        {createAction ? (
+        {createAction && !inlineEntityWorkspaceOpen ? (
           <div className={styles.mobileContextAction}>
             <button
               type="button"
@@ -1180,6 +1187,7 @@ export default function AgencyOperatingWorkspace() {
             {view === 'network' ? (
               <AgencyNetworkWorkspace
                 data={data}
+                basePath={basePath}
                 rpc={rpc}
                 onRefresh={loadView}
                 onOpenAction={(request) =>
@@ -1281,14 +1289,13 @@ export default function AgencyOperatingWorkspace() {
         <AgencyEntityIntelligenceDrawer
           key={intelligenceRequest.key}
           request={intelligenceRequest}
+          presentation="page"
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setIntelligenceRequest(null)}
           onOpenAction={(request) => {
-            setIntelligenceRequest(null);
             setActionRequest(request);
           }}
           onOpenCloseout={(dealRoomId, title, context) => {
-            setIntelligenceRequest(null);
             setDealCloseoutRequest({
               key: `deal-closeout:${dealRoomId}`,
               dealRoomId,
@@ -1306,7 +1313,6 @@ export default function AgencyOperatingWorkspace() {
             });
           }}
           onOpenPlayerReview={(playerId, title, context) => {
-            setIntelligenceRequest(null);
             setPlayerServiceReviewRequest({
               key: `player-service-review:${playerId}`,
               playerId,
@@ -1321,6 +1327,7 @@ export default function AgencyOperatingWorkspace() {
         <AgencyPursuitRoom
           key={pursuitRequest.key}
           request={pursuitRequest}
+          presentation="page"
           role={String(workspace?.role || '')}
           marketData={data}
           invoke={(action, body) =>
@@ -1328,7 +1335,6 @@ export default function AgencyOperatingWorkspace() {
           }
           onClose={() => setPursuitRequest(null)}
           onOpenAction={(request) => {
-            setPursuitRequest(null);
             setActionRequest(request);
           }}
           onOpenDeal={(dealRoomId, title, context) => {
@@ -1367,11 +1373,11 @@ export default function AgencyOperatingWorkspace() {
         <AgencyNegotiationCommandRoom
           key={negotiationRequest.key}
           request={negotiationRequest}
+          presentation="page"
           role={String(workspace?.role || '')}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setNegotiationRequest(null)}
           onOpenAction={(request) => {
-            setNegotiationRequest(null);
             setActionRequest(request);
           }}
           onApplied={async () => {
@@ -1384,10 +1390,10 @@ export default function AgencyOperatingWorkspace() {
         <AgencyClubAccountDrawer
           key={clubAccountRequest.key}
           request={clubAccountRequest}
+          presentation="page"
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setClubAccountRequest(null)}
           onOpenAction={(request) => {
-            setClubAccountRequest(null);
             setActionRequest(request);
           }}
           onOpenDeal={(dealRoomId, title, context) => {
@@ -1451,6 +1457,7 @@ export default function AgencyOperatingWorkspace() {
       {ownerCommandOpen && data?.owner_business ? (
         <AgencyOwnerCommandCentre
           data={data.owner_business}
+          presentation="page"
           onClose={() => setOwnerCommandOpen(false)}
           onOpenDeal={(dealRoomId, title, context) => {
             setOwnerCommandOpen(false);
@@ -1463,11 +1470,9 @@ export default function AgencyOperatingWorkspace() {
             });
           }}
           onOpenAction={(request) => {
-            setOwnerCommandOpen(false);
             setActionRequest(request);
           }}
           onOpenHandoff={(member) => {
-            setOwnerCommandOpen(false);
             setTeamHandoffMember(member);
           }}
         />
@@ -1480,7 +1485,6 @@ export default function AgencyOperatingWorkspace() {
           member={teamHandoffMember}
           onClose={() => {
             setTeamHandoffMember(null);
-            setOwnerCommandOpen(true);
           }}
           onApplied={async () => {
             await loadView();

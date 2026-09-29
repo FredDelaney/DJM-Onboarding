@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   Building2,
   CheckCircle2,
   ExternalLink,
@@ -42,6 +43,7 @@ type Props = {
   onClose: () => void;
   onRefresh: () => Promise<void>;
   onOpenClub: (clubName: string) => void;
+  presentation?: 'drawer' | 'page';
 };
 
 const clean = (value: unknown) =>
@@ -92,6 +94,7 @@ export default function AgencyContactIntelligenceDrawer({
   onClose,
   onRefresh,
   onOpenClub,
+  presentation = 'drawer',
 }: Props) {
   const [detail, setDetail] =
     useState<any>(null);
@@ -600,21 +603,18 @@ export default function AgencyContactIntelligenceDrawer({
       ],
     );
 
+  const pageMode = presentation === 'page';
+
   return (
     <div
-      className={styles.backdrop}
+      className={pageMode ? styles.pageShell : styles.backdrop}
       role="presentation"
-      onMouseDown={(event) => {
-        if (
-          event.target ===
-          event.currentTarget
-        ) {
-          onClose();
-        }
+      onMouseDown={pageMode ? undefined : (event) => {
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <aside
-        className={styles.drawer}
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
         aria-label={`Person details for ${name}`}
       >
         <header
@@ -662,9 +662,9 @@ export default function AgencyContactIntelligenceDrawer({
               styles.close
             }
             onClick={onClose}
-            aria-label="Close person details"
+            aria-label={pageMode ? 'Back to Network' : 'Close person details'}
           >
-            <X size={17} />
+            {pageMode ? <ArrowLeft size={17} /> : <X size={17} />}
           </button>
         </header>
 

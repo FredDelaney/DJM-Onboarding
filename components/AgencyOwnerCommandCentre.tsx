@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   ArrowRight,
   ArrowRightLeft,
   BriefcaseBusiness,
@@ -108,6 +109,7 @@ export default function AgencyOwnerCommandCentre({
   onOpenDeal,
   onOpenAction,
   onOpenHandoff,
+  presentation = 'drawer',
 }: {
   data: any;
   onClose: () => void;
@@ -120,6 +122,7 @@ export default function AgencyOwnerCommandCentre({
     request: AgencyActionRequest,
   ) => void;
   onOpenHandoff: (member: any) => void;
+  presentation?: 'drawer' | 'page';
 }) {
   const control = data?.control || {};
   const roi = data?.roi || {};
@@ -283,22 +286,19 @@ export default function AgencyOwnerCommandCentre({
     });
   };
 
+  const pageMode = presentation === 'page';
+
   return (
     <div
-      className={styles.backdrop}
-      onClick={(event) => {
-        if (
-          event.target ===
-          event.currentTarget
-        ) {
-          onClose();
-        }
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onClick={pageMode ? undefined : (event) => {
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <aside
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
         aria-label="Owner Command Centre"
       >
         <header className={styles.header}>
@@ -312,9 +312,9 @@ export default function AgencyOwnerCommandCentre({
               type="button"
               className={styles.close}
               onClick={onClose}
-              aria-label="Close Owner Command Centre"
+              aria-label={pageMode ? 'Back to Business' : 'Close Owner Command Centre'}
             >
-              <X size={18} />
+              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
           </div>
 

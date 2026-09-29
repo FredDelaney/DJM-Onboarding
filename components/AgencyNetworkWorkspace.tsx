@@ -12,7 +12,8 @@ import {
   TimerReset,
   Users,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
@@ -196,12 +197,14 @@ function Empty({
 
 export default function AgencyNetworkWorkspace({
   data,
+  basePath,
   rpc,
   onRefresh,
   onOpenAction,
   onOpenClubAccount,
 }: {
   data: any;
+  basePath: string;
   rpc: Rpc;
   onRefresh: () => Promise<void>;
   onOpenAction: (request: AgencyActionRequest) => void;
@@ -212,6 +215,8 @@ export default function AgencyNetworkWorkspace({
     useState<NetworkFocus>('all');
   const [search, setSearch] = useState('');
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const searchParams = useSearchParams();
+  const requestedPersonId = String(searchParams.get('person') || '').trim();
 
   const accounts = data?.accounts || {};
   const clubs = list(accounts?.clubs);
@@ -359,6 +364,35 @@ export default function AgencyNetworkWorkspace({
       personIsCooling,
     ).length;
 
+  const personId = (item: any) => String(item?.person_id || item?.id || '').trim();
+
+  useEffect(() => {
+    if (!requestedPersonId) {
+      setSelectedContact(null);
+      return;
+    }
+    const match = people.find((item: any) => personId(item) === requestedPersonId);
+    if (match) setSelectedContact(match);
+  }, [people, requestedPersonId]);
+
+  const openPerson = (item: any) => {
+    const id = personId(item);
+    if (!id) return;
+    setSelectedContact(item);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'network');
+    params.set('person', id);
+    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+  };
+
+  const closePerson = () => {
+    setSelectedContact(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'network');
+    params.delete('person');
+    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+  };
+
   const selectFocus = (
     next: NetworkFocus,
   ) => {
@@ -387,10 +421,23 @@ export default function AgencyNetworkWorkspace({
   };
 
   const openClubFromPerson = (clubName: string) => {
-    setSelectedContact(null);
+    closePerson();
     setView('clubs');
     setSearch(clubName);
   };
+
+  if (selectedContact) {
+    return (
+      <AgencyContactIntelligenceDrawer
+        contact={selectedContact}
+        rpc={rpc}
+        presentation="page"
+        onClose={closePerson}
+        onRefresh={onRefresh}
+        onOpenClub={(clubName) => openClubFromPerson(clubName)}
+      />
+    );
+  }
 
   return (
     <div className={styles.workspace}>
@@ -749,7 +796,7 @@ export default function AgencyNetworkWorkspace({
                             type="button"
                             className={styles.personRow}
                             key={item?.person_id}
-                            onClick={() => setSelectedContact(item)}
+                            onClick={() => openPerson(item)}
                           >
                             <span className={styles.personAvatar}>
                               {initials(
@@ -1008,7 +1055,7 @@ export default function AgencyNetworkWorkspace({
                   <button
                     type="button"
                     className={styles.primaryAction}
-                    onClick={() => setSelectedContact(item)}
+                    onClick={() => openPerson(item)}
                   >
                     Open person
                     <ArrowRight size={14} />
@@ -1045,15 +1092,6 @@ export default function AgencyNetworkWorkspace({
         </section>
       )}
 
-      {selectedContact ? (
-        <AgencyContactIntelligenceDrawer
-          contact={selectedContact}
-          rpc={rpc}
-          onClose={() => setSelectedContact(null)}
-          onRefresh={onRefresh}
-          onOpenClub={(clubName) => openClubFromPerson(clubName)}
-        />
-      ) : null}
     </div>
   );
 }

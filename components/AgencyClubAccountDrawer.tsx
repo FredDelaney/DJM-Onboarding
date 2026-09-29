@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
   CalendarClock,
@@ -127,6 +128,7 @@ export default function AgencyClubAccountDrawer({
   onOpenMarket,
   onOpenPursuit,
   onOpenPlayer,
+  presentation = 'drawer',
 }: {
   request: AgencyClubAccountRequest;
   invoke: Invoke;
@@ -146,6 +148,7 @@ export default function AgencyClubAccountDrawer({
   onOpenPlayer: (
     playerId: string,
   ) => void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] =
     useState(true);
@@ -523,22 +526,19 @@ export default function AgencyClubAccountDrawer({
     });
   };
 
+  const pageMode = presentation === 'page';
+
   return (
     <div
-      className={styles.backdrop}
-      onMouseDown={(event) => {
-        if (
-          event.target ===
-          event.currentTarget
-        ) {
-          onClose();
-        }
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onMouseDown={pageMode ? undefined : (event) => {
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <aside
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
         aria-label={`Club details for ${
           club.name ||
           request.title
@@ -593,9 +593,9 @@ export default function AgencyClubAccountDrawer({
               onClick={
                 onClose
               }
-              aria-label="Close club"
+              aria-label={pageMode ? 'Back to Network' : 'Close club'}
             >
-              <X size={18} />
+              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
           </div>
         </header>

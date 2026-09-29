@@ -2904,3 +2904,7 @@
 .navManagement {
   display: none !important;
 }
+
+.pageHeadHidden {
+  display: none !important;
+}

@@ -567,3 +567,45 @@
     min-height: 44px;
   }
 }
+
+/* Primary entity workspace presentation */
+.pageShell {
+  width: 100%;
+  min-width: 0;
+}
+
+.pagePanel {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  border-left: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pagePanel .header {
+  position: relative;
+  top: auto;
+  margin-bottom: 14px;
+  border: 1px solid #e5e8eb;
+  border-radius: 18px;
+  background: #fff;
+  backdrop-filter: none;
+}
+
+.pagePanel .body {
+  padding: 0;
+}
+
+@media (max-width: 680px) {
+  .pagePanel .header {
+    min-height: 72px;
+    padding: 13px 14px;
+    border-radius: 15px;
+  }
+
+  .pagePanel .body {
+    gap: 9px;
+  }
+}
