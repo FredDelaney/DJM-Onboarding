@@ -401,3 +401,41 @@
     font-size:6.5px;
   }
 }
+
+/* Primary player workspace */
+.playerPage {
+  width: 100%;
+  min-width: 0;
+}
+
+.playerPagePanel {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.playerPagePanel .drawerTop {
+  position: relative;
+  top: auto;
+  justify-content: flex-start;
+  padding: 0 0 10px;
+  background: transparent;
+}
+
+.playerPagePanel .drawerBody {
+  padding: 0 0 30px;
+}
+
+@media (max-width: 680px) {
+  .playerPagePanel .playerHero,
+  .playerPagePanel .playerTabs {
+    margin-inline: 0;
+  }
+  .playerPagePanel .drawerBody {
+    padding-inline: 0;
+  }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
   CheckCircle2,
@@ -90,6 +91,7 @@ export default function AgencyEntityIntelligenceDrawer({
   onOpenCloseout,
   onOpenNegotiation,
   onOpenPlayerReview,
+  presentation = 'drawer',
 }: {
   request: AgencyIntelligenceRequest;
   invoke: Invoke;
@@ -110,6 +112,7 @@ export default function AgencyEntityIntelligenceDrawer({
     title: string,
     context?: string | null,
   ) => void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
@@ -197,19 +200,21 @@ export default function AgencyEntityIntelligenceDrawer({
   const nextMove = warRoom.next_best_move || {};
   const controlFix = warRoom.next_control_fix || {};
 
+  const pageMode = presentation === 'page';
+
   return (
     <div
-      className={styles.backdrop}
-      onClick={(event) => {
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onClick={pageMode ? undefined : (event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <aside className={styles.drawer} role="dialog" aria-modal="true">
+      <aside className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`} role={pageMode ? 'region' : 'dialog'} aria-modal={pageMode ? undefined : true}>
         <header className={styles.header}>
           <div className={styles.topline}>
             <span className={styles.live}><i />Live agency evidence</span>
-            <button type="button" onClick={onClose} aria-label="Close">
-              <X size={18} />
+            <button type="button" onClick={onClose} aria-label={pageMode ? 'Back' : 'Close'}>
+              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
           </div>
 

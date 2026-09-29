@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   CircleAlert,
@@ -102,6 +103,7 @@ export default function AgencyNegotiationCommandRoom({
   onClose,
   onOpenAction,
   onApplied,
+  presentation = 'drawer',
 }: {
   request: AgencyNegotiationRequest;
   role: string;
@@ -111,6 +113,7 @@ export default function AgencyNegotiationCommandRoom({
     request: AgencyActionRequest,
   ) => void;
   onApplied: () => Promise<void> | void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] = useState('');
@@ -604,23 +607,19 @@ export default function AgencyNegotiationCommandRoom({
     });
   };
 
+  const pageMode = presentation === 'page';
+
   return (
     <div
-      className={styles.backdrop}
-      onClick={(event) => {
-        if (
-          event.target ===
-            event.currentTarget &&
-          !actionBusy
-        ) {
-          onClose();
-        }
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onClick={pageMode ? undefined : (event) => {
+        if (event.target === event.currentTarget && !actionBusy) onClose();
       }}
     >
       <aside
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
         aria-label="Negotiation Command Room"
       >
         <header className={styles.header}>
@@ -637,9 +636,9 @@ export default function AgencyNegotiationCommandRoom({
               disabled={Boolean(
                 actionBusy,
               )}
-              aria-label="Close Negotiation Command Room"
+              aria-label={pageMode ? 'Back to deal' : 'Close Negotiation Command Room'}
             >
-              <X size={18} />
+              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
           </div>
 

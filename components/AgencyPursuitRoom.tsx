@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
   CalendarClock,
@@ -149,6 +150,7 @@ export default function AgencyPursuitRoom({
   onOpenAction,
   onOpenDeal,
   onApplied,
+  presentation = 'drawer',
 }: {
   request: AgencyPursuitRequest;
   role: string;
@@ -164,6 +166,7 @@ export default function AgencyPursuitRoom({
     context?: string | null,
   ) => void;
   onApplied: () => Promise<void> | void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] =
@@ -945,23 +948,19 @@ export default function AgencyPursuitRoom({
   const dossierIsSafe =
     dossierState === 'share_safe';
 
+  const pageMode = presentation === 'page';
+
   return (
     <div
-      className={styles.backdrop}
-      onClick={(event) => {
-        if (
-          event.target ===
-            event.currentTarget &&
-          !actionBusy
-        ) {
-          onClose();
-        }
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onClick={pageMode ? undefined : (event) => {
+        if (event.target === event.currentTarget && !actionBusy) onClose();
       }}
     >
       <aside
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
         aria-label={`${request.playerName} to ${request.clubName} Pursuit Room`}
       >
         <header className={styles.header}>
@@ -978,9 +977,9 @@ export default function AgencyPursuitRoom({
               disabled={Boolean(
                 actionBusy,
               )}
-              aria-label="Close Pursuit Room"
+              aria-label={pageMode ? 'Back to Opportunities' : 'Close Pursuit Room'}
             >
-              <X size={18} />
+              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
           </div>
 
