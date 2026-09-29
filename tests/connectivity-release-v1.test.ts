@@ -21,10 +21,12 @@ test('password recovery and passkey sign-in are wired into authentication', () =
   assert.match(client, /experimental:\s*\{\s*passkey:\s*true/);
 });
 
-test('connections UI exposes calendar, push, reminder and email controls', () => {
+test('account settings separate provider connections from calendar notification and security controls', () => {
   const panel = read('components/ConnectionsPanel.tsx');
   const player = read('app/connections/page.tsx');
   const staff = read('app/(djm-os)/settings/connections/page.tsx');
+  const preferences = read('app/(djm-os)/settings/preferences/page.tsx');
+  const security = read('app/(djm-os)/settings/security/page.tsx');
   const settings = read('app/(djm-os)/settings/page.tsx');
   const shell = read('components/PlayerShell.tsx');
 
@@ -38,7 +40,12 @@ test('connections UI exposes calendar, push, reminder and email controls', () =>
   assert.match(panel, /Google Calendar/);
   assert.match(panel, /registerPasskey/);
   assert.match(player, /ConnectionsPanel/);
-  assert.match(staff, /ConnectionsPanel/);
+  assert.match(staff, /AgencyConnectionsDrawer/);
+  assert.match(staff, /AgencyConnectedIdentityResolverDrawer/);
+  assert.match(preferences, /ConnectionsPanel/);
+  assert.match(preferences, /sections="preferences"/);
+  assert.match(security, /ConnectionsPanel/);
+  assert.match(security, /sections="security"/);
   assert.match(settings, /\/settings\/connections/);
   assert.match(shell, /\/connections/);
 });

@@ -1,9 +1,6 @@
 'use client';
 
-import Link from 'next/link';
 import {
-  ArrowLeft,
-  Building2,
   CheckCircle2,
   LockKeyhole,
   Save,
@@ -15,7 +12,7 @@ import {
   useState,
 } from 'react';
 
-import AgencyShell from '@/components/AgencyShell';
+import SettingsWorkspace from '@/components/SettingsWorkspace';
 import { useAdmin } from '@/components/AdminShell';
 import styles from '@/components/AccountSettings.module.css';
 import {
@@ -114,26 +111,11 @@ export default function AgencySettingsPage() {
   };
 
   return (
-    <AgencyShell eyebrow="Agency" title="Agency settings">
+    <SettingsWorkspace
+      title="Agency settings"
+      description="Agency details and branding used across ReDream."
+    >
       <div className={styles.stack}>
-        <Link href="/settings" className="ux-back-link">
-          <ArrowLeft size={15} />
-          Settings
-        </Link>
-
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <span className={styles.badge}>
-              <Building2 size={14} />
-              Agency identity
-            </span>
-            <h2>One identity across the whole workspace.</h2>
-            <p>
-              These details feed the workspace, player profiles and external
-              agency touchpoints so the agency stays consistent everywhere.
-            </p>
-          </div>
-        </section>
 
         {!canEdit ? (
           <div className={styles.notice}>
@@ -246,6 +228,6 @@ export default function AgencySettingsPage() {
           ) : null}
         </form>
       </div>
-    </AgencyShell>
+    </SettingsWorkspace>
   );
 }

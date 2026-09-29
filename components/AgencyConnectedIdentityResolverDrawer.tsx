@@ -92,11 +92,13 @@ export default function AgencyConnectedIdentityResolverDrawer({
   networkHref,
   onClose,
   onResolved,
+  presentation = 'drawer',
 }: {
   workspaceSlug: string;
   networkHref: string;
   onClose: () => void;
   onResolved?: () => Promise<void> | void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [providerSuggestions, setProviderSuggestions] =
@@ -679,18 +681,20 @@ export default function AgencyConnectedIdentityResolverDrawer({
       ? Instagram
       : MessageCircle;
 
+  const pageMode = presentation === 'page';
+
   return (
     <div
-      className={styles.backdrop}
+      className={pageMode ? styles.pageShell : styles.backdrop}
       role="presentation"
-      onMouseDown={onClose}
+      onMouseDown={pageMode ? undefined : onClose}
     >
       <aside
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
         aria-label="Resolve connected identities"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={pageMode ? undefined : (event) => event.stopPropagation()}
       >
         <header className={styles.header}>
           <div>
@@ -718,9 +722,9 @@ export default function AgencyConnectedIdentityResolverDrawer({
             type="button"
             className={styles.close}
             onClick={onClose}
-            aria-label="Close identity resolution"
+            aria-label={pageMode ? 'Back to Connections' : 'Close identity resolution'}
           >
-            <X size={17} />
+            {pageMode ? <ArrowLeft size={17} /> : <X size={17} />}
           </button>
         </header>
         {error ? (

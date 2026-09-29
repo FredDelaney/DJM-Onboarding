@@ -1,11 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { AlertCircle, ArrowLeft, Bell, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Bell, ShieldCheck } from 'lucide-react';
 
 import AdminResourceStudio from '@/components/AdminResourceStudio';
-import AgencyShell from '@/components/AgencyShell';
+import SettingsWorkspace from '@/components/SettingsWorkspace';
 import { useAdmin } from '@/components/AdminShell';
 import { friendlyError } from '@/lib/platform-client';
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
@@ -90,8 +89,10 @@ export default function PlayerExperienceSettingsPage() {
   };
 
   return (
-    <AgencyShell eyebrow="Settings · player service" title="Player experience">
-      <Link href="/settings" className="ux-back-link"><ArrowLeft size={15} />Settings</Link>
+    <SettingsWorkspace
+      title="Player experience"
+      description="Agency resources and updates shown to players."
+    >
       {error ? <div className="ux-alert ux-alert-error"><AlertCircle size={17} />{error}</div> : null}
       {message ? <div className="ux-alert ux-alert-success">{message}</div> : null}
 
@@ -120,6 +121,6 @@ export default function PlayerExperienceSettingsPage() {
           onFlash={(text) => setMessage(text)}
         />
       </section>
-    </AgencyShell>
+    </SettingsWorkspace>
   );
 }

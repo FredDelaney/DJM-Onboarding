@@ -1,18 +1,16 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft,
   CheckCircle2,
   KeyRound,
   LogOut,
   Mail,
-  ShieldCheck,
 } from 'lucide-react';
 import { useState } from 'react';
 
-import AgencyShell from '@/components/AgencyShell';
+import ConnectionsPanel from '@/components/ConnectionsPanel';
+import SettingsWorkspace from '@/components/SettingsWorkspace';
 import { useAdmin } from '@/components/AdminShell';
 import styles from '@/components/AccountSettings.module.css';
 import { friendlyError } from '@/lib/platform-client';
@@ -52,26 +50,11 @@ export default function SecuritySettingsPage() {
   };
 
   return (
-    <AgencyShell eyebrow="Your account" title="Security">
+    <SettingsWorkspace
+      title="Security"
+      description="Password and sign-in controls for your account."
+    >
       <div className={styles.stack}>
-        <Link href="/settings" className="ux-back-link">
-          <ArrowLeft size={15} />
-          Settings
-        </Link>
-
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <span className={styles.badge}>
-              <ShieldCheck size={14} />
-              Account security
-            </span>
-            <h2>Keep access to your agency account secure.</h2>
-            <p>
-              Password changes and account sessions stay tied to your own login.
-              Agency roles and permissions are managed separately by authorised owners.
-            </p>
-          </div>
-        </section>
 
         {error ? <div className={styles.error}>{error}</div> : null}
         {message ? (
@@ -117,6 +100,13 @@ export default function SecuritySettingsPage() {
           </section>
         </div>
 
+        <ConnectionsPanel
+          userId={String(auth.user?.id || '')}
+          email={email}
+          mode="staff"
+          sections="security"
+        />
+
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <div>
@@ -138,6 +128,6 @@ export default function SecuritySettingsPage() {
           </div>
         </section>
       </div>
-    </AgencyShell>
+    </SettingsWorkspace>
   );
 }

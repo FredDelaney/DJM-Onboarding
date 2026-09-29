@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Bell,
   CreditCard,
   LogOut,
   PlugZap,
@@ -186,6 +187,7 @@ export default function AccountMenu({
 
           <div className={styles.section}>
             <MenuLink href="/settings/profile" icon={<UserRound size={17} />} label="My profile" detail="Photo and personal details" />
+            <MenuLink href="/settings/preferences" icon={<Bell size={17} />} label="Preferences" detail="Notifications and calendar" />
             <MenuLink href="/settings/connections" icon={<PlugZap size={17} />} label="Connections" detail="Email, calendar and messaging" />
             <MenuLink href="/settings/security" icon={<ShieldCheck size={17} />} label="Security" detail="Password and account access" />
           </div>

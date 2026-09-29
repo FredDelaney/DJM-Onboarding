@@ -7,10 +7,8 @@ import {
   useMemo,
   useState,
 } from 'react';
-import Link from 'next/link';
 import {
   AlertCircle,
-  ArrowLeft,
   Check,
   CheckCircle2,
   Copy,
@@ -19,7 +17,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 
-import AgencyShell from '@/components/AgencyShell';
+import SettingsWorkspace from '@/components/SettingsWorkspace';
 import { useAdmin } from '@/components/AdminShell';
 import {
   friendlyError,
@@ -360,14 +358,10 @@ export default function TeamSettingsPage() {
     : STAFF_ROLES.filter(([value]) => value !== 'admin');
 
   return (
-    <AgencyShell
-      eyebrow="Settings · tenant access"
-      title="Team & permissions"
+    <SettingsWorkspace
+      title="Team & access"
+      description="Invite people, set roles and control agency access."
     >
-      <Link href="/settings" className="ux-back-link">
-        <ArrowLeft size={15} />
-        Settings
-      </Link>
 
       {!canManage && !auth.loading ? (
         <div className="ux-evidence-empty">
@@ -762,7 +756,7 @@ export default function TeamSettingsPage() {
           </section>
         </div>
       ) : null}
-    </AgencyShell>
+    </SettingsWorkspace>
   );
 }
 

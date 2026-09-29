@@ -1,13 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import {
-  ArrowLeft,
   Camera,
   CheckCircle2,
   LoaderCircle,
   Trash2,
-  UserRound,
 } from 'lucide-react';
 import {
   ChangeEvent,
@@ -18,7 +15,7 @@ import {
   useState,
 } from 'react';
 
-import AgencyShell from '@/components/AgencyShell';
+import SettingsWorkspace from '@/components/SettingsWorkspace';
 import { useAdmin } from '@/components/AdminShell';
 import styles from '@/components/AccountSettings.module.css';
 import {
@@ -216,26 +213,11 @@ export default function ProfileSettingsPage() {
   };
 
   return (
-    <AgencyShell eyebrow="Your account" title="My profile">
+    <SettingsWorkspace
+      title="My profile"
+      description="Your photo, name and preferences."
+    >
       <div className={styles.stack}>
-        <Link href="/settings" className="ux-back-link">
-          <ArrowLeft size={15} />
-          Settings
-        </Link>
-
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <span className={styles.badge}>
-              <UserRound size={14} />
-              Personal profile
-            </span>
-            <h2>This is how your agency sees you.</h2>
-            <p>
-              Keep your identity clear so ownership, handoffs and collaboration
-              make sense across ReDream.
-            </p>
-          </div>
-        </section>
 
         {error ? <div className={styles.error}>{error}</div> : null}
         {message ? (
@@ -359,6 +341,6 @@ export default function ProfileSettingsPage() {
           </div>
         </form>
       </div>
-    </AgencyShell>
+    </SettingsWorkspace>
   );
 }

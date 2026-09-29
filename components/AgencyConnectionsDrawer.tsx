@@ -66,10 +66,12 @@ export default function AgencyConnectionsDrawer({
   workspaceSlug,
   onClose,
   onResolveIdentities,
+  presentation = 'drawer',
 }: {
   workspaceSlug: string;
   onClose: () => void;
   onResolveIdentities?: () => void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [connections, setConnections] =
     useState<Connection[]>([]);
@@ -431,28 +433,23 @@ export default function AgencyConnectionsDrawer({
       }
     };
 
+  const pageMode = presentation === 'page';
+
   return (
     <div
-      className={
-        styles.backdrop
-      }
-      onClick={(event) => {
-        if (
-          event.target ===
-            event.currentTarget &&
-          !busy
-        ) {
-          onClose();
-        }
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onClick={pageMode ? undefined : (event) => {
+        if (event.target === event.currentTarget && !busy) onClose();
       }}
     >
       <section
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="agency-connections-title"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
+        aria-label={pageMode ? 'Agency connections' : undefined}
+        aria-labelledby={pageMode ? undefined : 'agency-connections-title'}
       >
-        <header
+        {!pageMode ? <header
           className={
             styles.header
           }
@@ -476,7 +473,7 @@ export default function AgencyConnectionsDrawer({
           >
             <X size={17} />
           </button>
-        </header>
+        </header> : null}
 
         {error ? (
           <div
@@ -839,7 +836,7 @@ export default function AgencyConnectionsDrawer({
               type="button"
               className={styles.secondary}
               onClick={() => {
-                onClose();
+                if (!pageMode) onClose();
                 onResolveIdentities();
               }}
             >

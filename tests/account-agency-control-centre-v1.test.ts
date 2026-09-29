@@ -34,9 +34,14 @@ const settings = readFileSync(
   'app/(djm-os)/settings/page.tsx',
   'utf8',
 );
+const settingsWorkspace = readFileSync(
+  'components/SettingsWorkspace.tsx',
+  'utf8',
+);
 
 test('avatar menu is the account and agency control centre', () => {
   assert.match(menu, /My profile/);
+  assert.match(menu, /Preferences/);
   assert.match(menu, /Connections/);
   assert.match(menu, /Security/);
   assert.match(menu, /Team & access/);
@@ -104,12 +109,15 @@ test('agency and billing changes require the agency owner', () => {
   assert.match(agency, /Agency identity is owner-controlled/);
 });
 
-test('settings landing separates personal, agency and ReDream account controls', () => {
-  assert.match(settings, />YOU</);
-  assert.match(settings, />YOUR AGENCY</);
-  assert.match(settings, />YOUR REDREAM ACCOUNT</);
+test('settings workspace separates personal agency and ReDream controls without a text-heavy landing page', () => {
+  assert.match(settingsWorkspace, /SettingsGroup label="You"/);
+  assert.match(settingsWorkspace, /SettingsGroup label="Agency"/);
+  assert.match(settingsWorkspace, /SettingsGroup label="ReDream"/);
+  assert.match(settingsWorkspace, /canManageAgency/);
+  assert.match(settingsWorkspace, /canManageBilling/);
   assert.match(settings, /canManageAgency/);
   assert.match(settings, /canManageBilling/);
+  assert.doesNotMatch(settings, />YOUR REDREAM ACCOUNT</);
 });
 
 test('account menu and settings remain mobile friendly', () => {
