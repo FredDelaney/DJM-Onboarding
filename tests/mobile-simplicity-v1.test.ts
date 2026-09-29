@@ -41,7 +41,7 @@ test('Home shows only three decisions until the agent asks for more', () => {
 
 test('player list is scan-first and player detail exposes four primary tabs', () => {
   assert.match(players, /role="button"/);
-  assert.match(players, /\['overview','career','activity','more'\]/);
+  assert.match(players, /\['overview','opportunities','career','more'\]/);
   assert.match(players, /More player detail/);
   assert.match(playersCss, /\.playerFacts > div:nth-child\(1\)/);
   assert.match(playersCss, /\.playerFacts > div:nth-child\(3\)/);

@@ -658,9 +658,15 @@ export default function AgencyPlayerProfile({
   if (!bundle) {
     return (
       <section className={styles.errorCard}>
-        <strong>Player Profile unavailable</strong>
-        <p>{error || 'This player could not be loaded.'}</p>
-        <Link href={backHref}>Back to Players</Link>
+        <strong>Player Profile could not load</strong>
+        <p>Nothing has been changed. Try again, or return to the player workspace.</p>
+        <div className={styles.errorActions}>
+          <button type="button" onClick={() => void load()} disabled={loading}>
+            <RefreshCw size={14} />
+            {loading ? 'Trying again...' : 'Try again'}
+          </button>
+          <Link href={backHref}>Back to player</Link>
+        </div>
       </section>
     );
   }

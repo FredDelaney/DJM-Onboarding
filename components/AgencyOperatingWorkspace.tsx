@@ -252,6 +252,8 @@ export default function AgencyOperatingWorkspace() {
     view === 'players'
       ? String(search.get('player') || '').trim()
       : '';
+  const showPlayerProfile =
+    Boolean(selectedPlayerId) && search.get('profile') === '1';
   const requestedMeetingOutcomeId =
     view === 'home'
       ? String(search.get('meetingOutcome') || '').trim()
@@ -1137,11 +1139,11 @@ export default function AgencyOperatingWorkspace() {
               />
             ) : null}
             {view === 'players' ? (
-              selectedPlayerId ? (
+              showPlayerProfile ? (
                 <AgencyPlayerProfile
                   key={`player-profile:${selectedPlayerId}`}
                   playerId={selectedPlayerId}
-                  backHref={`${basePath}?view=players`}
+                  backHref={`${basePath}?view=players&player=${encodeURIComponent(selectedPlayerId)}`}
                   role={String(workspace?.role || '')}
                   fallbackAgency={runtime.branding}
                   invoke={(action, body) => invoke<any>(action, body)}

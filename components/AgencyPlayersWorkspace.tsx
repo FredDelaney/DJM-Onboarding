@@ -248,7 +248,7 @@ function PlayerDrawer({
               <div className={styles.heroActions}>
                 <Link
                   className={styles.secondaryButton}
-                  href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}`}
+                  href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}&profile=1`}
                 >
                   <UserRound size={14} />
                   Player Profile
@@ -265,10 +265,10 @@ function PlayerDrawer({
             </header>
 
             <nav className={styles.playerTabs}>
-              {['overview','career','activity','more'].map((key) => {
+              {['overview','opportunities','career','more'].map((key) => {
                 const moreActive =
                   key === 'more' &&
-                  ['more','opportunities','contracts','files'].includes(tab);
+                  ['more','activity','contracts','files'].includes(tab);
                 return (
                   <button type="button" key={key}
                     className={tab === key || moreActive ? styles.playerTabActive : styles.playerTab}
@@ -283,7 +283,7 @@ function PlayerDrawer({
               {tab === 'overview' ? (
                 <div className={styles.detailStack}>
                   <section className={styles.detailHero}>
-                    <p>NEXT CAREER DECISION</p>
+                    <p>NEXT MOVE</p>
                     <h3>{service?.next_service_move?.instruction || identity.next_action || 'No next action recorded'}</h3>
                     <span>{identity.next_action_due ? relativeDate(identity.next_action_due) : 'No due date recorded'}</span>
                   </section>
@@ -293,6 +293,17 @@ function PlayerDrawer({
                     <div><span>Agency agreement</span><strong>{representation?.end_date ? relativeDate(representation.end_date) : representation ? 'No end date recorded' : 'Not recorded'}</strong><small>{representation ? human(representation.agreement_type) : 'Representation agreement not recorded'}</small></div>
                     <div><span>Opportunities</span><strong>{opportunities.filter((item: any) => !['won','lost','paused'].includes(String(item?.stage || ''))).length + deals.filter((deal: any) => deal?.status === 'active').length}</strong><small>Active recorded routes</small></div>
                   </div>
+                  <section className={styles.recentActivity}>
+                    <span>Latest activity</span>
+                    {activity[0] ? (
+                      <div>
+                        <strong>{human(activity[0]?.event_type || 'Agency activity')}</strong>
+                        <small>{activity[0]?.occurred_at ? relativeDate(activity[0].occurred_at) : 'Date not recorded'}</small>
+                      </div>
+                    ) : (
+                      <strong>No recent activity recorded</strong>
+                    )}
+                  </section>
                 </div>
               ) : null}
 
@@ -300,9 +311,9 @@ function PlayerDrawer({
                 <section className={styles.detailSection}>
                   <h3>More player detail</h3>
                   <div className={styles.moreMenu}>
-                    <button type="button" onClick={() => setTab('opportunities')}>
-                      <Target size={16} />
-                      <span><strong>Opportunities</strong><small>Club routes and live deals</small></span>
+                    <button type="button" onClick={() => setTab('activity')}>
+                      <CalendarDays size={16} />
+                      <span><strong>Activity</strong><small>Recent agency events</small></span>
                       <ChevronRight size={16} />
                     </button>
                     <button type="button" onClick={() => setTab('contracts')}>
@@ -445,7 +456,11 @@ export default function AgencyPlayersWorkspace({
   );
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
-  const [playerId, setPlayerId] = useState<string|null>(null);
+  const [playerId, setPlayerId] = useState<string|null>(() =>
+    searchParams.get('profile') === '1'
+      ? null
+      : String(searchParams.get('player') || '').trim() || null,
+  );
   const [targetId, setTargetId] = useState<string|null>(null);
   const [targetDetail, setTargetDetail] = useState<any>(null);
   const [targetBusy, setTargetBusy] = useState(false);
@@ -466,7 +481,29 @@ export default function AgencyPlayersWorkspace({
 
   useEffect(() => {
     if (searchParams.get('tab') === 'recruitment') setSection('recruitment');
+    if (searchParams.get('profile') !== '1') {
+      setPlayerId(String(searchParams.get('player') || '').trim() || null);
+    }
   }, [searchParams]);
+
+  const openPlayer = (id: string) => {
+    setPlayerId(id);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'players');
+    params.set('player', id);
+    params.delete('profile');
+    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+  };
+
+  const closePlayer = () => {
+    setPlayerId(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'players');
+    params.delete('player');
+    params.delete('profile');
+    const query = params.toString();
+    window.history.replaceState(window.history.state, '', `${basePath}${query ? `?${query}` : ''}`);
+  };
 
   useEffect(() => {
     if (!targetId) {
@@ -596,11 +633,11 @@ export default function AgencyPlayersWorkspace({
                 key={item.player_id}
                 role="button"
                 tabIndex={0}
-                onClick={() => setPlayerId(String(item.player_id))}
+                onClick={() => openPlayer(String(item.player_id))}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    setPlayerId(String(item.player_id));
+                    openPlayer(String(item.player_id));
                   }
                 }}
               >
@@ -618,7 +655,7 @@ export default function AgencyPlayersWorkspace({
                   <div><span>Agency agreement</span><strong>{item?.representation?.recorded?(item.representation.end_date?relativeDate(item.representation.end_date):'No end date'):'Not recorded'}</strong><small>{item?.representation?.recorded?human(item.representation.agreement_type):'Representation agreement not recorded'}</small></div>
                 </div>
                 <div className={styles.playerCardActions}>
-                  <button type="button" className={styles.secondaryButton} onClick={(event)=>{event.stopPropagation();setPlayerId(String(item.player_id));}}><UserRound size={14}/> Open</button>
+                  <button type="button" className={styles.secondaryButton} onClick={(event)=>{event.stopPropagation();openPlayer(String(item.player_id));}}><UserRound size={14}/> Open</button>
                   {attention?(
                     <button type="button" className={styles.primaryButton} onClick={(event)=>{
                       event.stopPropagation();
@@ -673,7 +710,7 @@ export default function AgencyPlayersWorkspace({
         </div>
       )}
 
-      {playerId?<PlayerDrawer playerId={playerId} basePath={basePath} invoke={invoke} onClose={()=>setPlayerId(null)} onOpenAction={onOpenAction}/>:null}
+      {playerId?<PlayerDrawer playerId={playerId} basePath={basePath} invoke={invoke} onClose={closePlayer} onOpenAction={onOpenAction}/>:null}
 
       {targetId?(
         <div className={styles.backdrop} onClick={(e)=>{if(e.target===e.currentTarget)setTargetId(null);}}>

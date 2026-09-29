@@ -350,3 +350,54 @@
     padding: 16px;
   }
 }
+
+.recentActivity{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  border:1px solid #eceff1;
+  border-radius:11px;
+  background:#fafbfb;
+}
+.recentActivity>span{
+  color:#8a9199;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.recentActivity>div{
+  min-width:0;
+  display:flex;
+  align-items:baseline;
+  justify-content:flex-end;
+  gap:7px;
+}
+.recentActivity strong{
+  overflow:hidden;
+  color:#454d56;
+  font-size:9px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.recentActivity small{
+  flex:0 0 auto;
+  color:#8b929a;
+  font-size:7px;
+}
+@media(max-width:680px){
+  .recentActivity{
+    padding:9px 10px;
+  }
+  .recentActivity>span{
+    font-size:6px;
+  }
+  .recentActivity strong{
+    font-size:8px;
+  }
+  .recentActivity small{
+    font-size:6.5px;
+  }
+}

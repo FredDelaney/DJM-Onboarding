@@ -1117,3 +1117,52 @@
     font-size: 16px;
   }
 }
+
+.errorActions{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-top:2px;
+}
+.errorActions button,
+.errorActions a{
+  min-height:40px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:0 12px;
+  border-radius:10px;
+  font:inherit;
+  font-size:9px;
+  font-weight:800;
+  text-decoration:none;
+}
+.errorActions button{
+  border:0;
+  background:var(--profile-primary);
+  color:#fff;
+  cursor:pointer;
+}
+.errorActions a{
+  border:1px solid #dfe4e8;
+  background:#fff;
+  color:#59636d;
+}
+@media(max-width:720px){
+  .errorCard{
+    min-height:220px;
+    padding:22px 18px;
+    text-align:center;
+  }
+  .errorCard p{
+    max-width:300px;
+    line-height:1.45;
+  }
+  .errorActions{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+}
