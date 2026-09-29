@@ -94,7 +94,7 @@ test(
   () => {
     assert.match(
       workspace,
-      /already appear in Needs you/,
+      /were already moved into Needs you/,
     );
     assert.doesNotMatch(
       workspace,
@@ -116,7 +116,7 @@ test(
     );
     assert.match(
       workspace,
-      /CONNECTED WORK/,
+      /REDREAM HANDLED/,
     );
   },
 );

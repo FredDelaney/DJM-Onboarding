@@ -1664,29 +1664,20 @@ function Home({
   )
     ? connectedWork.upcoming_meetings
     : [];
-  const connectedOwner =
-    connectedWork?.owner || {};
   const meetingAftercare =
     data?.meeting_aftercare || {};
   const meetingAftercareItems =
     Array.isArray(
       meetingAftercare?.items,
     )
-      ? meetingAftercare.items.slice(0, 4)
+      ? meetingAftercare.items.slice(0, 2)
       : [];
-  const meetingAftercareCount =
-    Number(
-      meetingAftercare?.count ||
-        meetingAftercareItems.length,
-    );
-  const connectedCount =
-    identityResolutionCount +
+  const handledConnectedCount =
     Number(
       connectedSummary?.connected_followups_open || 0,
     ) +
     recentConnected.length +
-    connectedMeetings.length +
-    meetingAftercareCount;
+    connectedMeetings.length;
   const connectedProviders = Array.isArray(
     identityResolution?.by_provider,
   )
@@ -1740,7 +1731,12 @@ function Home({
         Number(b?.priority_score || 0) -
         Number(a?.priority_score || 0),
     )
-    .slice(0, 5);
+    .slice(0, 4);
+
+  const needsYouCount =
+    priority.length +
+    meetingAftercareItems.length +
+    (identityResolutionCount > 0 ? 1 : 0);
 
   const deadlines = Array.isArray(
     operations?.deadlines?.items,
@@ -1946,8 +1942,8 @@ function Home({
       <section className={styles.homeWelcome}>
         <p>{greeting}</p>
         <h2>
-          {priority.length
-            ? `${priority.length} ${priority.length === 1 ? 'thing needs' : 'things need'} you`
+          {needsYouCount
+            ? `${needsYouCount} ${needsYouCount === 1 ? 'thing needs' : 'things need'} you`
             : 'Everything important is under control'}
         </h2>
       </section>
@@ -1961,9 +1957,9 @@ function Home({
               <p className={styles.eyebrow}>NEEDS YOU</p>
               <h2>What needs your attention</h2>
             </div>
-            {priority.length ? (
+            {needsYouCount ? (
               <span className={styles.sectionCount}>
-                {priority.length}
+                {needsYouCount}
               </span>
             ) : null}
           </div>
@@ -2011,7 +2007,72 @@ function Home({
               </article>
             ))}
 
-            {!priority.length ? (
+            {meetingAftercareItems.map((item: any) => (
+              <article
+                className={styles.attentionCard}
+                key={`home-meeting-aftercare:${item?.meeting_id}`}
+              >
+                <div className={styles.attentionCopy}>
+                  <div className={styles.attentionMeta}>
+                    <span>MEETING FOLLOW-UP</span>
+                    <small>
+                      {item?.ends_at
+                        ? `Ended ${relativeDate(item.ends_at)}`
+                        : human(item?.provider || 'Calendar')}
+                    </small>
+                  </div>
+
+                  <strong>Did this meeting happen?</strong>
+                  <span>
+                    {item?.person_name ||
+                      item?.organisation_name ||
+                      item?.title ||
+                      'Linked meeting'}
+                    {' · '}
+                    Record the outcome so the agency remembers what mattered and the next move.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.compactButton}
+                  onClick={() => onRecordMeetingOutcome(item)}
+                >
+                  <ArrowRight size={14} />
+                  Record outcome
+                </button>
+              </article>
+            ))}
+
+            {identityResolutionCount > 0 ? (
+              <article className={styles.attentionCard}>
+                <div className={styles.attentionCopy}>
+                  <div className={styles.attentionMeta}>
+                    <span>IDENTITY</span>
+                    <small>{connectedProviderCopy}</small>
+                  </div>
+
+                  <strong>
+                    {identityResolutionCount} connected identit
+                    {identityResolutionCount === 1 ? 'y' : 'ies'} need confirmation
+                  </strong>
+                  <span>
+                    Confirm whether each selected chat belongs to one of your players or a Network person.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.compactButton}
+                  onClick={onResolveConnectedIdentity}
+                >
+                  <ArrowRight size={14} />
+                  Resolve identities
+                </button>
+              </article>
+            ) : null}
+
+            {!needsYouCount ? (
               <EmptyState
                 icon={CheckCircle2}
                 title="You are clear for now"
@@ -2041,7 +2102,7 @@ function Home({
 
           <div className={styles.list}>
             {dayItems
-              .slice(0, 5)
+              .slice(0, 3)
               .map((item: any, index: number) => (
                 <article
                   className={styles.simpleTimelineRow}
@@ -2095,14 +2156,14 @@ function Home({
         <div className={styles.sectionHead}>
           <div>
             <p className={styles.eyebrow}>
-              CONNECTED WORK
+              REDREAM HANDLED
             </p>
-            <h2>Messages, email and meetings</h2>
+            <h2>What changed around you</h2>
           </div>
 
-          {connectedCount ? (
+          {handledConnectedCount ? (
             <span className={styles.sectionCount}>
-              {connectedCount}
+              {handledConnectedCount}
             </span>
           ) : null}
         </div>
@@ -2122,110 +2183,13 @@ function Home({
               ) === 1
                 ? ''
                 : 's'}{' '}
-              already appear in Needs you.
+              were already moved into Needs you.
             </span>
           </div>
         ) : null}
 
         <div className={styles.connectedWorkList}>
-          {meetingAftercareItems.map((item: any) => (
-            <article
-              className={`${styles.connectedWorkRow} ${styles.connectedWorkRowAttention}`}
-              key={`meeting-aftercare:${item?.meeting_id}`}
-            >
-              <div className={styles.connectedWorkIcon}>
-                <CalendarDays size={16} />
-              </div>
-
-              <div className={styles.connectedWorkCopy}>
-                <small>
-                  MEETING FOLLOW-UP · {human(item?.provider || 'Calendar')}
-                </small>
-                <strong>
-                  Did this meeting happen?
-                </strong>
-                <span>
-                  {item?.person_name ||
-                    item?.organisation_name ||
-                    item?.title ||
-                    'Linked meeting'}
-                  {' · '}
-                  Confirm the outcome so the agency can remember what mattered and the next move.
-                </span>
-                <div className={styles.connectedWorkFoot}>
-                  <AgencyOwnershipChip
-                    label="Owner"
-                    name={item?.owner_name || null}
-                  />
-                  {item?.ends_at ? (
-                    <em>
-                      Ended {relativeDate(item.ends_at)}
-                    </em>
-                  ) : null}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className={styles.connectedWorkAction}
-                onClick={() => onRecordMeetingOutcome(item)}
-              >
-                Record outcome
-                <ArrowRight size={13} />
-              </button>
-            </article>
-          ))}
-
-          {identityResolutionCount > 0 ? (
-            <article
-              className={`${styles.connectedWorkRow} ${styles.connectedWorkRowAttention}`}
-            >
-              <div className={styles.connectedWorkIcon}>
-                <MessageCircleMore size={16} />
-              </div>
-
-              <div className={styles.connectedWorkCopy}>
-                <small>
-                  IDENTITY · {connectedProviderCopy}
-                </small>
-                <strong>
-                  {identityResolutionCount} connected identit
-                  {identityResolutionCount === 1 ? 'y' : 'ies'}{' '}
-                  need confirmation
-                </strong>
-                <span>
-                  Confirm whether each selected chat belongs to one of
-                  your players or a Network person. Connected email
-                  keeps using canonical Network identity.
-                </span>
-                <div className={styles.connectedWorkFoot}>
-                  <AgencyOwnershipChip
-                    label="Owner"
-                    name={connectedOwner?.name || null}
-                  />
-                  {identityResolution?.latest_activity_at ? (
-                    <em>
-                      Latest chat{' '}
-                      {relativeDate(
-                        identityResolution.latest_activity_at,
-                      )}
-                    </em>
-                  ) : null}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className={styles.connectedWorkAction}
-                onClick={onResolveConnectedIdentity}
-              >
-                Resolve identities
-                <ArrowRight size={13} />
-              </button>
-            </article>
-          ) : null}
-
-          {recentConnected.map((item: any) => {
+          {recentConnected.slice(0, 3).map((item: any) => {
             const channel = String(item?.channel || '');
             const direction = String(
               item?.direction || '',
@@ -2306,7 +2270,7 @@ function Home({
             );
           })}
 
-          {connectedMeetings.map((item: any) => (
+          {connectedMeetings.slice(0, 2).map((item: any) => (
             <article
               className={styles.connectedWorkRow}
               key={item?.meeting_id}
@@ -2351,181 +2315,96 @@ function Home({
             </article>
           ))}
 
-          {!connectedCount ? (
+          {!handledConnectedCount ? (
             <EmptyState
               icon={PlugZap}
-              title="Connected work is quiet"
-              copy="Selected conversations, linked email and meeting preparation will appear here when they matter."
+              title="ReDream handled is quiet"
+              copy="Connected conversations and meeting context will appear here when ReDream has something useful to show you."
             />
           ) : null}
         </div>
       </section>
 
-      <div className={styles.homeSupportGrid}>
-        <section className={styles.sectionCard}>
-          <div className={styles.sectionHead}>
-            <div>
-              <p className={styles.eyebrow}>
-                OPPORTUNITIES MOVING
-              </p>
-              <h2>Keep momentum</h2>
-            </div>
+      <section className={styles.homePulse}>
+        <div className={styles.homePulseHead}>
+          <p className={styles.eyebrow}>AGENCY PULSE</p>
+          <span>Players, opportunities and business at a glance.</span>
+        </div>
 
+        <div className={styles.homePulseGrid}>
+          <a
+            className={styles.homePulseCard}
+            href="?view=players"
+          >
+            <div className={styles.homePulseIcon}>
+              <Users size={16} />
+            </div>
+            <div className={styles.homePulseCopy}>
+              <small>PLAYERS</small>
+              <strong>
+                {playerAttention.length
+                  ? `${playerAttention.length} need attention`
+                  : 'Player care is clear'}
+              </strong>
+              <span>
+                {playerAttention[0]?.player?.name ||
+                  `${players.length} signed player${players.length === 1 ? '' : 's'}`}
+              </span>
+            </div>
+            <ArrowRight size={14} />
+          </a>
+
+          <a
+            className={styles.homePulseCard}
+            href="?view=opportunities"
+          >
+            <div className={styles.homePulseIcon}>
+              <BriefcaseBusiness size={16} />
+            </div>
+            <div className={styles.homePulseCopy}>
+              <small>OPPORTUNITIES</small>
+              <strong>
+                {opportunityMoves.length
+                  ? `${opportunityMoves.length} moving`
+                  : 'No live movement'}
+              </strong>
+              <span>
+                {opportunityMoves[0]?.title ||
+                  'Club needs, player routes and deals'}
+              </span>
+            </div>
+            <ArrowRight size={14} />
+          </a>
+
+          {hasBusinessSnapshot ? (
             <a
-              className={styles.homeTextLink}
-              href="?view=opportunities"
+              className={styles.homePulseCard}
+              href="?view=business"
             >
-              Open
-              <ArrowRight size={13} />
+              <div className={styles.homePulseIcon}>
+                <Coins size={16} />
+              </div>
+              <div className={styles.homePulseCopy}>
+                <small>BUSINESS</small>
+                <strong>
+                  {Number(executive.active_deals ?? 0)} active deals
+                </strong>
+                <span>
+                  {Number(
+                    serviceSummary.total_breaches ??
+                      executive.service_standard_breaches ??
+                      0,
+                  )} service issues ·{' '}
+                  {Number(
+                    receivableSummary.open_receivables ?? 0,
+                  )} open receivables
+                </span>
+              </div>
+              <ArrowRight size={14} />
             </a>
-          </div>
-
-          <div className={styles.list}>
-            {opportunityMoves.map((item: any) => (
-              <a
-                className={styles.homeSupportRow}
-                href="?view=opportunities"
-                key={item.key}
-              >
-                <div className={styles.homeSupportIcon}>
-                  <BriefcaseBusiness size={15} />
-                </div>
-
-                <div className={styles.homeSupportCopy}>
-                  <small>{item.type}</small>
-                  <strong>{item.title}</strong>
-                  <span>{item.detail}</span>
-                  <em>{item.meta}</em>
-                </div>
-
-                <ArrowRight size={14} />
-              </a>
-            ))}
-
-            {!opportunityMoves.length ? (
-              <EmptyState
-                icon={BriefcaseBusiness}
-                title="No live movement yet"
-                copy="Active club needs, player routes and deals will appear here."
-              />
-            ) : null}
-          </div>
-        </section>
-
-        <section className={styles.sectionCard}>
-          <div className={styles.sectionHead}>
-            <div>
-              <p className={styles.eyebrow}>
-                PLAYERS NEEDING ATTENTION
-              </p>
-              <h2>Player care</h2>
-            </div>
-
-            <a
-              className={styles.homeTextLink}
-              href="?view=players"
-            >
-              Open
-              <ArrowRight size={13} />
-            </a>
-          </div>
-
-          <div className={styles.list}>
-            {playerAttention.map((item: any) => {
-              const playerName =
-                item?.player?.name || 'Player';
-
-              const contractDays = Number(
-                item?.career_timing?.contract_days_remaining,
-              );
-
-              const detail =
-                item?.next_control_fix?.instruction ||
-                item?.next_service_move?.instruction ||
-                (Number.isFinite(contractDays)
-                  ? `Contract timing: ${contractDays} days recorded`
-                  : 'Review the current player position.');
-
-              return (
-                <a
-                  className={styles.homeSupportRow}
-                  href="?view=players"
-                  key={item.player_id}
-                >
-                  <div className={styles.homeSupportAvatar}>
-                    {initials(playerName) || 'P'}
-                  </div>
-
-                  <div className={styles.homeSupportCopy}>
-                    <small>PLAYER</small>
-                    <strong>{playerName}</strong>
-                    <span>{detail}</span>
-                    <em>
-                      {human(
-                        item?.market_coverage?.state ||
-                          item?.player?.football_status ||
-                          'Recorded',
-                      )}
-                    </em>
-                  </div>
-
-                  <ArrowRight size={14} />
-                </a>
-              );
-            })}
-
-            {!playerAttention.length ? (
-              <EmptyState
-                icon={Users}
-                title="No player action is pressing"
-                copy="Player service, contract timing and market coverage will surface here when needed."
-              />
-            ) : null}
-          </div>
-        </section>
-      </div>
-
-      {hasBusinessSnapshot ? (
-        <a
-          className={styles.homeBusinessStrip}
-          href="?view=business"
-        >
-          <div className={styles.homeBusinessIntro}>
-            <Coins size={16} />
-            <div>
-              <small>BUSINESS</small>
-              <strong>Agency position</strong>
-            </div>
-          </div>
-
-          <div className={styles.homeBusinessFacts}>
-            <span>
-              <b>{Number(executive.active_deals ?? 0)}</b>
-              active deals
-            </span>
-            <span>
-              <b>
-                {Number(
-                  serviceSummary.total_breaches ??
-                    executive.service_standard_breaches ??
-                    0,
-                )}
-              </b>
-              service issues
-            </span>
-            <span>
-              <b>
-                {Number(
-                  receivableSummary.open_receivables ?? 0,
-                )}
-              </b>
-              open receivables
-            </span>
-          </div>
-
-          <ArrowRight size={15} />
-        </a>
-      ) : null}
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }

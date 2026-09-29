@@ -202,7 +202,7 @@ test(
 );
 
 test(
-  'Home loads enough outcomes for deep-link routing but renders only four',
+  'Home loads enough outcomes for deep-link routing but renders only two',
   () => {
     assert.match(
       workspace,
@@ -210,7 +210,7 @@ test(
     );
     assert.match(
       workspace,
-      /meetingAftercare\.items\.slice\(0, 4\)/,
+      /meetingAftercare\.items\.slice\(0, 2\)/,
     );
   },
 );

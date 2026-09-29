@@ -47,12 +47,14 @@ test('legacy market, deals and relationships URLs resolve into V2 areas', () => 
   assert.match(workspace, /tenant_id: workspace\.tenant_id/);
 });
 
-test('Home shows only the few things that need attention', () => {
-  assert.match(workspace, /\.slice\(0, 5\)/);
+test('Home stays focused on action, handled work and a compact agency pulse', () => {
+  assert.match(workspace, /\.slice\(0, 4\)/);
   assert.match(workspace, /Good morning\./);
   assert.match(workspace, /things need/);
-  assert.match(workspace, /OPPORTUNITIES MOVING/);
-  assert.match(workspace, /PLAYERS NEEDING ATTENTION/);
+  assert.match(workspace, /REDREAM HANDLED/);
+  assert.match(workspace, /AGENCY PULSE/);
+  assert.doesNotMatch(workspace, /OPPORTUNITIES MOVING/);
+  assert.doesNotMatch(workspace, /PLAYERS NEEDING ATTENTION/);
   assert.doesNotMatch(workspace, />Agency history</);
   assert.doesNotMatch(workspace, />Owner view</);
 });
