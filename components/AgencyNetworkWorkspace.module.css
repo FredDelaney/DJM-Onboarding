@@ -1103,3 +1103,102 @@
     border-radius: 12px;
   }
 }
+
+/* Premium mobile product v1 */
+@media (max-width: 680px) {
+  .workspace {
+    gap: 12px;
+  }
+
+  .tabs {
+    padding: 3px;
+    border-radius: 14px;
+  }
+
+  .tab,
+  .tabActive {
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 760;
+  }
+
+  .search {
+    min-height: 46px;
+    border-radius: 15px;
+  }
+
+  .grid {
+    gap: 10px;
+  }
+
+  .clubCard,
+  .personCard {
+    gap: 12px;
+    padding: 15px;
+    border-radius: 18px;
+    border-color: #e8edf1;
+  }
+
+  .clubMark,
+  .personMark {
+    width: 48px;
+    height: 48px;
+  }
+
+  .identity .eyebrow {
+    font-size: 9px;
+    letter-spacing: .06em;
+  }
+
+  .identity h3 {
+    font-size: 17px;
+    line-height: 1.2;
+  }
+
+  .identity > p:last-child {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .primaryFact {
+    gap: 4px;
+    padding: 11px 12px;
+    border-radius: 13px;
+  }
+
+  .primaryFact strong {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .nextMove {
+    padding: 11px 12px;
+    border-radius: 13px;
+  }
+
+  .nextMove strong {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .primaryAction {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 13px;
+    font-size: 12px;
+  }
+
+  .empty {
+    min-height: 130px;
+    border-radius: 18px;
+  }
+
+  .empty strong {
+    font-size: 14px;
+  }
+
+  .empty span {
+    font-size: 11px;
+  }
+}

@@ -567,3 +567,118 @@
     display: none;
   }
 }
+
+/* Premium mobile product v1 */
+@media (max-width: 680px) {
+  .workspace {
+    gap: 12px;
+  }
+
+  .controls {
+    padding: 3px;
+    border-radius: 14px;
+  }
+
+  .rangeButton,
+  .rangeActive {
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 760;
+  }
+
+  .dayGroup {
+    gap: 7px;
+  }
+
+  .dayLabel,
+  .dayLabelAttention {
+    padding: 3px 2px;
+    font-size: 11px;
+  }
+
+  .rows {
+    border-radius: 18px;
+  }
+
+  .row,
+  .rowAttention {
+    position: relative;
+    min-height: 74px;
+    grid-template-columns: 52px minmax(0, 1fr) 44px;
+    gap: 11px;
+    padding: 13px 14px;
+  }
+
+  .when {
+    grid-column: 1;
+  }
+
+  .when span {
+    font-size: 11px;
+  }
+
+  .icon {
+    display: none;
+  }
+
+  .copy {
+    grid-column: 2;
+    gap: 4px;
+  }
+
+  .meta span,
+  .meta small {
+    font-size: 9px;
+  }
+
+  .copy strong {
+    font-size: 14px;
+    line-height: 1.3;
+    white-space: normal;
+  }
+
+  .copy > small {
+    display: -webkit-box;
+    font-size: 11px;
+    line-height: 1.35;
+    -webkit-line-clamp: 1;
+  }
+
+  .action {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
+  .action::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .action svg {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .empty {
+    min-height: 150px;
+    border-radius: 18px;
+  }
+
+  .empty strong {
+    font-size: 14px;
+  }
+
+  .empty span {
+    font-size: 11px;
+  }
+}

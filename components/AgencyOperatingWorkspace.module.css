@@ -2935,3 +2935,135 @@
     display: block;
   }
 }
+
+/* Premium mobile product v1 */
+@media (max-width: 680px) {
+  .main {
+    padding:
+      calc(8px + env(safe-area-inset-top))
+      16px
+      32px;
+  }
+
+  .pageHead {
+    min-height: 44px;
+    margin-bottom: 10px;
+  }
+
+  .pageHeadCopy {
+    min-height: 44px;
+  }
+
+  .pageHead h1 {
+    font-size: 20px;
+    font-weight: 780;
+    letter-spacing: -.025em;
+  }
+
+  .mobileTenantBrand {
+    top: 2px;
+  }
+
+  .mobileContextAction {
+    margin: 0 0 12px;
+  }
+
+  .homeStack {
+    gap: 14px;
+  }
+
+  .homeWelcome {
+    padding: 4px 1px 2px;
+  }
+
+  .homeWelcome p {
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: #87919a;
+  }
+
+  .homeWelcome h2 {
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: -.04em;
+  }
+
+  .sectionCard {
+    border-radius: 18px;
+    border-color: #e8edf1;
+  }
+
+  .sectionHead {
+    padding: 15px 16px 11px;
+  }
+
+  .sectionHead h2 {
+    font-size: 16px;
+  }
+
+  .attentionCard {
+    position: relative;
+    min-height: 76px;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 12px;
+    padding: 14px 15px;
+  }
+
+  .attentionMeta > span {
+    font-size: 9px;
+    letter-spacing: .07em;
+  }
+
+  .attentionMeta > small {
+    font-size: 10px;
+  }
+
+  .attentionCopy strong {
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  .attentionCopy > span {
+    display: -webkit-box;
+    font-size: 11.5px;
+    line-height: 1.4;
+    -webkit-line-clamp: 1;
+  }
+
+  .attentionCard .compactButton {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .attentionCard .compactButton::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .attentionCard .compactButton svg {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .homeDayPanel .simpleTimelineRow {
+    min-height: 62px;
+    padding: 12px 15px;
+  }
+
+  .simpleTimelineRow strong {
+    font-size: 13px;
+  }
+
+  .simpleTimelineRow span {
+    font-size: 11px;
+  }
+
+  .handledStrip {
+    border-radius: 15px;
+  }
+}
