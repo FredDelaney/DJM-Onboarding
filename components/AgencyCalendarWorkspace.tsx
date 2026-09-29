@@ -452,11 +452,21 @@ export default function AgencyCalendarWorkspace({
       };
     }
 
-    if (
-      item.kind === 'meeting' ||
-      item.personId ||
-      item.organisationId
-    ) {
+    if (item.personId) {
+      return {
+        label: 'Open person',
+        href: `${basePath}?view=network&person=${encodeURIComponent(item.personId)}`,
+      };
+    }
+
+    if (item.organisationId) {
+      return {
+        label: 'Open club',
+        href: `${basePath}?view=network&club=${encodeURIComponent(item.organisationId)}`,
+      };
+    }
+
+    if (item.kind === 'meeting') {
       return {
         label: 'Open Network',
         href: `${basePath}?view=network`,

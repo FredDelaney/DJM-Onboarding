@@ -688,6 +688,21 @@ export default function AgencyOperatingWorkspace() {
     );
   }, [basePath, search]);
 
+  const closeClubAccount = () => {
+    setClubAccountRequest(null);
+
+    if (view !== 'network' || !search.get('club')) return;
+
+    const next = new URLSearchParams(search.toString());
+    next.delete('club');
+    const query = next.toString();
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${basePath}${query ? `?${query}` : ''}`,
+    );
+  };
+
   const openCommandAction = (command: any) => {
     const destination = commandWorkingView(command);
 
@@ -1329,12 +1344,12 @@ export default function AgencyOperatingWorkspace() {
           request={clubAccountRequest}
           presentation="page"
           invoke={(action, body) => invoke<any>(action, body)}
-          onClose={() => setClubAccountRequest(null)}
+          onClose={closeClubAccount}
           onOpenAction={(request) => {
             setActionRequest(request);
           }}
           onOpenDeal={(dealRoomId, title, context) => {
-            setClubAccountRequest(null);
+            closeClubAccount();
             setIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
@@ -1352,7 +1367,7 @@ export default function AgencyOperatingWorkspace() {
             );
           }}
           onOpenPursuit={(request) => {
-            setClubAccountRequest(null);
+            closeClubAccount();
             setPursuitRequest(request);
           }}
           onOpenPlayer={(playerId) => {
@@ -1768,8 +1783,18 @@ function Home({
       return `${basePath}?view=opportunities&tab=needs`;
     }
 
-    if (item?.person_id || item?.organisation_id) {
-      return `${basePath}?view=network`;
+    const personId = String(
+      item?.context?.person_id || item?.person_id || '',
+    ).trim();
+    if (personId) {
+      return `${basePath}?view=network&person=${encodeURIComponent(personId)}`;
+    }
+
+    const organisationId = String(
+      item?.context?.organisation_id || item?.organisation_id || '',
+    ).trim();
+    if (organisationId) {
+      return `${basePath}?view=network&club=${encodeURIComponent(organisationId)}`;
     }
 
     return `${basePath}?view=calendar`;
