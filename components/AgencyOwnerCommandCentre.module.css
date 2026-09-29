@@ -552,3 +552,31 @@
     justify-self: start;
   }
 }
+
+.teamHandoffButton {
+  width: fit-content;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid #e1e7ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #587181;
+  font: inherit;
+  font-size: 7.5px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.teamHandoffButton:hover {
+  border-color: #d2dce1;
+  background: #fafbfc;
+}
+
+@media (max-width: 760px) {
+  .teamHandoffButton {
+    min-height: 32px;
+  }
+}
