@@ -1694,12 +1694,17 @@ function Home({
     ? providerIdentitySuggestions.by_provider
     : [];
   const connectedProviderCopy = [
-    ...connectedProviders.map(
-      (item: any) =>
-        `${item?.count || 0} ${human(
-          item?.provider || 'chat',
-        )} chat`,
-    ),
+    ...connectedProviders.map((item: any) => {
+      const count = Number(item?.count || 0);
+      const provider = String(item?.provider || '');
+      const label =
+        provider === 'instagram'
+          ? 'Instagram DM'
+          : provider === 'whatsapp'
+            ? 'WhatsApp chat'
+            : `${human(provider || 'connected')} conversation`;
+      return `${count} ${label}${count === 1 ? '' : 's'}`;
+    }),
     ...providerSuggestionProviders.map(
       (item: any) =>
         `${item?.count || 0} ${human(
@@ -2062,7 +2067,7 @@ function Home({
                     {identityResolutionCount === 1 ? 'y' : 'ies'} need confirmation
                   </strong>
                   <span>
-                    Confirm whether each selected chat belongs to one of your players or a Network person.
+                    Instagram usually belongs to a signed player. WhatsApp and connected email usually belong to a Network person. Confirm the exceptions explicitly.
                   </span>
                 </div>
 

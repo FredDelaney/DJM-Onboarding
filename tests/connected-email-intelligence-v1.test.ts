@@ -117,7 +117,7 @@ test(
   () => {
     assert.match(
       connections,
-      /only recent/,
+      /keeps only[\s\S]*recent emails/,
     );
 
     assert.match(

@@ -359,15 +359,19 @@ test(
 );
 
 test(
-  'Connections picker imports history only for a selected bound Instagram chat',
+  'Connections picker leaves identity binding and history bootstrap to the dedicated resolver',
   () => {
-    assert.match(
+    assert.doesNotMatch(
       connections,
-      /result\?\.bound &&[\s\S]*provider === 'instagram' &&[\s\S]*thread\.is_selected/,
+      /redream_messaging_thread_bind_contact/,
     );
-    assert.match(
+    assert.doesNotMatch(
       connections,
       /bootstrapSelectedInstagramHistory/,
+    );
+    assert.match(
+      resolver,
+      /const history = await bootstrapHistory\(linkedThread\)/,
     );
   },
 );

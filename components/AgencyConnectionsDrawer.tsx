@@ -52,13 +52,13 @@ const PROVIDERS: Array<{
     key: 'google',
     name: 'Google',
     description:
-      'Google Calendar and Google Contacts.',
+      'Google Calendar, contacts and Gmail when this is an agency mailbox.',
   },
   {
     key: 'microsoft',
     name: 'Microsoft',
     description:
-      'Outlook Calendar and Microsoft contacts.',
+      'Outlook Calendar, contacts and email for your agency work.',
   },
 ];
 
@@ -468,10 +468,9 @@ export default function AgencyConnectionsDrawer({
               you already use.
             </h2>
             <p>
-              ReDream will use
-              only the access you
-              choose for this
-              agency account.
+              Connect the tools you use for agency work. Calendar and contacts
+              can come from one account while club email can come from another.
+              ReDream uses only the access you explicitly enable.
             </p>
           </div>
 
@@ -651,15 +650,12 @@ export default function AgencyConnectionsDrawer({
                         />
                         <span>
                           <strong>
-                            Email
+                            Agency email
                           </strong>
                           <small>
-                           Optional.
-ReDream keeps
-only recent
-emails involving
-people already
-in Network.
+                            Optional. Turn this on only for a mailbox you use
+                            with clubs and football contacts. ReDream keeps only
+                            recent emails involving people already in Network.
                           </small>
                         </span>
                       </div>

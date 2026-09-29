@@ -38,6 +38,7 @@ import {
 } from '@/lib/supabase';
 
 import {platformRpc} from '@/lib/platform-client';
+import {useTenantRuntime} from '@/components/TenantRuntimeProvider';
 
 import {
   getClubReadyState
@@ -84,6 +85,7 @@ export default function AdminPlayer(){
   const {id}=useParams<{id:string}>();
   const router=useRouter();
   const auth=useAdmin();
+  const runtime=useTenantRuntime();
 
   const [tab,setTab]=useState('overview');
 
@@ -1878,7 +1880,8 @@ sort_order:
         ||null,
 
       contact_email:
-        'jesse.edge@djmsports.com',
+        runtime.branding.support_email
+        ||null,
 
       career_timeline:
         timeline,
