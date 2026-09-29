@@ -362,7 +362,11 @@ test(
     );
     assert.match(
       resolver,
-      /Choose an existing signed player or Network person/,
+      /Instagram is normally player communication/,
+    );
+    assert.match(
+      resolver,
+      /WhatsApp is normally club and football contact communication/,
     );
   },
 );

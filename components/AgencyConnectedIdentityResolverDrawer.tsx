@@ -702,7 +702,9 @@ export default function AgencyConnectedIdentityResolverDrawer({
             </h2>
             <p>
               {activeThread
-                ? 'Choose an existing signed player or Network person. ReDream will never decide the identity automatically.'
+                ? activeThread.provider === 'instagram'
+                  ? 'Instagram is normally player communication. Start with a signed player, or use Network when this DM is actually a club or football contact.'
+                  : 'WhatsApp is normally club and football contact communication. Start with Network, or use a signed player when the chat is actually with the player.'
                 : remaining
                   ? remaining +
                     ' connected ' +
@@ -735,7 +737,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
         {loading ? (
           <div className={styles.loading}>
             <LoaderCircle size={16} />
-            Loading identity matches and selected chats
+            Loading connected identities
           </div>
         ) : activeThread ? (
           <div className={styles.contactMode}>
@@ -766,7 +768,9 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 </small>
                 <strong>
                   {activeThread.participant_label ||
-                    'Selected chat'}
+                    (activeThread.provider === 'instagram'
+                      ? 'Instagram DM'
+                      : 'WhatsApp chat')}
                 </strong>
                 {activeThread.last_activity_at ? (
                   <span>
@@ -786,16 +790,23 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 onChange={(event) =>
                   setSearch(event.target.value)
                 }
-                placeholder="Search players or Network people"
+                placeholder={
+                  activeThread.provider === 'instagram'
+                    ? 'Search signed players or Network people'
+                    : 'Search Network people or signed players'
+                }
                 autoFocus
               />
             </label>
 
             <div className={styles.identityGroups}>
-              <section className={styles.identityGroup}>
+              <section
+                className={styles.identityGroup}
+                style={{ order: activeThread.provider === 'instagram' ? 1 : 2 }}
+              >
                 <div className={styles.identityGroupHead}>
                   <div>
-                    <small>OUR PLAYERS</small>
+                    <small>{activeThread.provider === 'instagram' ? 'START HERE · OUR PLAYERS' : 'OUR PLAYERS'}</small>
                     <strong>Signed players</strong>
                   </div>
                   <span>{filteredPlayers.length}</span>
@@ -868,10 +879,13 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 </div>
               </section>
 
-              <section className={styles.identityGroup}>
+              <section
+                className={styles.identityGroup}
+                style={{ order: activeThread.provider === 'whatsapp' ? 1 : 2 }}
+              >
                 <div className={styles.identityGroupHead}>
                   <div>
-                    <small>NETWORK</small>
+                    <small>{activeThread.provider === 'whatsapp' ? 'START HERE · NETWORK' : 'NETWORK'}</small>
                     <strong>Club and football contacts</strong>
                   </div>
                   <span>{filteredContacts.length}</span>
@@ -1032,7 +1046,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
 
                       <p>
                         ReDream will create this person in Network,
-                        preserve the selected chat identity and link the
+                        preserve the conversation identity and link the
                         chat. Nothing is sent externally.
                       </p>
 
@@ -1187,8 +1201,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
             {threads.length ? (
               <div className={styles.threadSectionHead}>
                 <div>
-                  <small>SELECTED CHATS</small>
-                  <strong>Choose a player or Network person</strong>
+                  <small>IDENTITY CONFIRMATION</small>
+                  <strong>Confirm who each conversation belongs to</strong>
                 </div>
               </div>
             ) : null}
@@ -1231,7 +1245,9 @@ export default function AgencyConnectedIdentityResolverDrawer({
                     </small>
                     <strong>
                       {thread.participant_label ||
-                        'Selected chat'}
+                        (thread.provider === 'instagram'
+                          ? 'Instagram DM'
+                          : 'WhatsApp chat')}
                     </strong>
                     <span>
                       {thread.last_activity_at
@@ -1254,9 +1270,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 <CheckCircle2 size={22} />
                 <strong>Connected identities are resolved</strong>
                 <span>
-                  Future selected messages can now use the confirmed
-                  player or Network identity. Eligible connected email
-                  keeps using canonical Network identity.
+                  Future Instagram messages can follow the confirmed player or Network identity. WhatsApp and connected email keep their confirmed Network context unless you explicitly link a WhatsApp chat to a player.
                 </span>
               </div>
             ) : null}

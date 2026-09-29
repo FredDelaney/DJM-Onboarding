@@ -12,6 +12,11 @@ const messagingUi = readFileSync(
   'utf8',
 );
 
+const identityResolver = readFileSync(
+  'components/AgencyConnectedIdentityResolverDrawer.tsx',
+  'utf8',
+);
+
 const aiProcess = readFileSync(
   'supabase/functions/_shared/ai-process.ts',
   'utf8',
@@ -68,20 +73,25 @@ test(
 );
 
 test(
-  'messaging UI lets an enabled chat choose a Network contact',
+  'identity resolver lets an enabled conversation choose a Network contact without forcing that path in Connections',
   () => {
-    assert.match(
+    assert.doesNotMatch(
       messagingUi,
       /redream_messaging_thread_bind_contact/,
     );
 
     assert.match(
-      messagingUi,
-      /Link to Network contact/,
+      identityResolver,
+      /redream_messaging_thread_bind_contact/,
     );
 
     assert.match(
-      messagingUi,
+      identityResolver,
+      /Club and football contacts/,
+    );
+
+    assert.match(
+      identityResolver,
       /bound_person_id/,
     );
   },

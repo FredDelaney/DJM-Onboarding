@@ -310,7 +310,7 @@ test(
     );
     assert.match(
       messagingUi,
-      /Choose the chats[\s\S]*ReDream can learn[\s\S]*from/,
+      /Choose what ReDream[\s\S]*should remember/,
     );
     assert.match(
       messagingUi,
