@@ -26,7 +26,7 @@ test('showcase polish presents the V2 agency operating model', () => {
 });
 
 test('Home keeps attention bounded and every visible item actionable', () => {
-  assert.match(workspace, /\.slice\(0, 4\)/);
+  assert.match(workspace, /priority\.slice\(0, 3\)/);
   assert.match(workspace, /Good morning\./);
   assert.match(workspace, /const actionFor = \(command: any\)/);
   assert.match(workspace, /onClick=\{\(\) => onPrepare\(command\)\}/);

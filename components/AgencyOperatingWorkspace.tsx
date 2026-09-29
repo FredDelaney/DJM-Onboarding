@@ -18,7 +18,6 @@ import {
   LoaderCircle,
   Home as HomeIcon,
   LogOut,
-  Mail,
   MessageCircleMore,
   Network,
   Plus,
@@ -457,22 +456,10 @@ export default function AgencyOperatingWorkspace() {
             p_horizon_days: 90,
             p_limit: 20,
           }),
-          rpc<any>('redream_autopilot_players', {
-            p_limit: 12,
-          }),
-          rpc<any>('redream_autopilot_market', {
-            p_limit: 12,
-          }),
-          rpc<any>('redream_autopilot_deals', {
-            p_limit: 12,
-          }),
           rpc<any>('redream_connected_work', {
             p_limit: 6,
           }),
           rpc<any>('redream_meeting_aftercare', {
-            p_limit: 12,
-          }),
-          rpc<any>('redream_provider_contact_suggestions', {
             p_limit: 12,
           }),
         ]);
@@ -491,67 +478,14 @@ export default function AgencyOperatingWorkspace() {
 
         const home = readValue(0);
         const operations = readValue(1);
-        const players = readValue(2);
-        const market = readValue(3);
-        const deals = readValue(4);
-        const connectedWork = readValue(5);
-        const meetingAftercare = readValue(6);
-        const providerIdentitySuggestions = readValue(7);
-
-        let ownerBusiness: any = null;
-
-        if (
-          ['owner', 'admin'].includes(
-            String(workspace?.role || ''),
-          )
-        ) {
-          const results = await Promise.allSettled([
-            invoke<any>('agency_control_centre'),
-            invoke<any>('agency_roi_proof', {
-              window_days: 30,
-            }),
-            invoke<any>('receivables_command', {
-              horizon_days: 90,
-              limit: 100,
-            }),
-            invoke<any>('team_capacity'),
-          ]);
-
-          const value = (
-            index: number,
-            key: string,
-          ) =>
-            results[index]?.status ===
-            'fulfilled'
-              ? (results[index] as PromiseFulfilledResult<any>)
-                  .value?.[key] || null
-              : null;
-
-          ownerBusiness = {
-            control: value(0, 'control_centre'),
-            roi: value(1, 'roi'),
-            receivables: value(
-              2,
-              'receivables',
-            ),
-            team_capacity: value(
-              3,
-              'capacity',
-            ),
-          };
-        }
+        const connectedWork = readValue(2);
+        const meetingAftercare = readValue(3);
 
         setData({
           home,
           operations,
-          players,
-          market,
-          deals,
           connected_work: connectedWork,
           meeting_aftercare: meetingAftercare,
-          provider_identity_suggestions:
-            providerIdentitySuggestions,
-          owner_business: ownerBusiness,
         });
       } else if (view === 'players') {
         const reads = await Promise.allSettled([
@@ -1134,9 +1068,6 @@ export default function AgencyOperatingWorkspace() {
                 actionBusy={actionBusy}
                 onPrepare={prepareCommand}
                 onOpenAction={openCommandAction}
-                onResolveConnectedIdentity={() =>
-                  setConnectedIdentityResolverOpen(true)
-                }
                 onPrepareConnectedReply={(interaction) =>
                   setConnectedReplyRequest(interaction)
                 }
@@ -1222,6 +1153,9 @@ export default function AgencyOperatingWorkspace() {
           key={`connections:${workspace.slug}`}
           workspaceSlug={workspace.slug}
           onClose={() => setConnectionsOpen(false)}
+          onResolveIdentities={() =>
+            setConnectedIdentityResolverOpen(true)
+          }
         />
       ) : null}
 
@@ -1644,7 +1578,6 @@ function Home({
   actionBusy,
   onPrepare,
   onOpenAction,
-  onResolveConnectedIdentity,
   onPrepareConnectedReply,
   onRecordMeetingOutcome,
 }: {
@@ -1652,7 +1585,6 @@ function Home({
   actionBusy: string;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
-  onResolveConnectedIdentity: () => void;
   onPrepareConnectedReply: (interaction: any) => void;
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
@@ -1673,22 +1605,8 @@ function Home({
 
   const home = data?.home || {};
   const operations = data?.operations || {};
-  const playerService = data?.players?.service || {};
-  const market = data?.market || {};
-  const dealData = data?.deals || {};
-  const ownerBusiness = data?.owner_business || null;
   const connectedWork = data?.connected_work || {};
   const connectedSummary = connectedWork?.summary || {};
-  const identityResolution =
-    connectedWork?.identity_resolution || {};
-  const providerIdentitySuggestions =
-    data?.provider_identity_suggestions || {};
-  const providerIdentityCount =
-    Number(providerIdentitySuggestions?.count || 0);
-  const chatIdentityCount =
-    Number(identityResolution?.count || 0);
-  const identityResolutionCount =
-    chatIdentityCount + providerIdentityCount;
   const recentConnected = Array.isArray(
     connectedWork?.recent_conversations,
   )
@@ -1702,48 +1620,14 @@ function Home({
   const meetingAftercare =
     data?.meeting_aftercare || {};
   const meetingAftercareItems =
-    Array.isArray(
-      meetingAftercare?.items,
-    )
-      ? meetingAftercare.items.slice(0, 2)
+    Array.isArray(meetingAftercare?.items)
+      ? meetingAftercare.items.slice(0, 4)
       : [];
+  const movedFollowups = Number(
+    connectedSummary?.connected_followups_open || 0,
+  );
   const handledConnectedCount =
-    Number(
-      connectedSummary?.connected_followups_open || 0,
-    ) +
-    recentConnected.length +
-    connectedMeetings.length;
-  const connectedProviders = Array.isArray(
-    identityResolution?.by_provider,
-  )
-    ? identityResolution.by_provider
-    : [];
-  const providerSuggestionProviders = Array.isArray(
-    providerIdentitySuggestions?.by_provider,
-  )
-    ? providerIdentitySuggestions.by_provider
-    : [];
-  const connectedProviderCopy = [
-    ...connectedProviders.map((item: any) => {
-      const count = Number(item?.count || 0);
-      const provider = String(item?.provider || '');
-      const label =
-        provider === 'instagram'
-          ? 'Instagram DM'
-          : provider === 'whatsapp'
-            ? 'WhatsApp chat'
-            : `${human(provider || 'connected')} conversation`;
-      return `${count} ${label}${count === 1 ? '' : 's'}`;
-    }),
-    ...providerSuggestionProviders.map(
-      (item: any) =>
-        `${item?.count || 0} ${human(
-          item?.provider || 'provider',
-        )} contact`,
-    ),
-  ]
-    .filter(Boolean)
-    .join(' · ') || 'Connected identity';
+    recentConnected.length + movedFollowups;
 
   const confirm = Array.isArray(home?.attention?.confirm)
     ? home.attention.confirm
@@ -1771,12 +1655,10 @@ function Home({
         Number(b?.priority_score || 0) -
         Number(a?.priority_score || 0),
     )
-    .slice(0, 4);
+    .slice(0, 8);
 
   const needsYouCount =
-    priority.length +
-    meetingAftercareItems.length +
-    (identityResolutionCount > 0 ? 1 : 0);
+    priority.length + meetingAftercareItems.length;
 
   const visiblePriority = showAllNeeds
     ? priority
@@ -1788,27 +1670,40 @@ function Home({
   const visibleMeetingAftercare = showAllNeeds
     ? meetingAftercareItems
     : meetingAftercareItems.slice(0, remainingAttentionSlots);
-  const remainingAfterMeetings = Math.max(
-    0,
-    remainingAttentionSlots - visibleMeetingAftercare.length,
-  );
-  const showIdentityResolution =
-    identityResolutionCount > 0 &&
-    (showAllNeeds || remainingAfterMeetings > 0);
-
   const deadlines = Array.isArray(
     operations?.deadlines?.items,
   )
     ? operations.deadlines.items
     : [];
-
   const birthdays = Array.isArray(
     operations?.important_dates?.birthdays?.items,
   )
     ? operations.important_dates.birthdays.items
     : [];
-
+  const localDayKey = (value: unknown) => {
+    const date = value instanceof Date
+      ? value
+      : new Date(String(value || ''));
+    if (!Number.isFinite(date.getTime())) return '';
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+  };
+  const todayKey = localDayKey(new Date());
   const dayItems = [
+    ...connectedMeetings.map((item: any) => ({
+      ...item,
+      calendar_kind: 'meeting',
+      deadline_at: item?.starts_at,
+      deadline_state: 'today',
+      title:
+        item?.title ||
+        item?.person_name ||
+        item?.organisation_name ||
+        'Meeting',
+    })),
     ...deadlines.map((item: any) => ({
       ...item,
       calendar_kind: 'deadline',
@@ -1824,143 +1719,40 @@ function Home({
         turns_age: item?.turns_age,
       },
     })),
-  ].sort((a: any, b: any) => {
-    const aTime = Date.parse(
-      String(a?.deadline_at || ''),
-    );
-    const bTime = Date.parse(
-      String(b?.deadline_at || ''),
-    );
-
-    if (!Number.isFinite(aTime)) return 1;
-    if (!Number.isFinite(bTime)) return -1;
-    return aTime - bTime;
-  });
-
-  const players = Array.isArray(playerService?.players)
-    ? playerService.players
-    : [];
-
-  const marketNeeds = Array.isArray(market?.demand?.items)
-    ? market.demand.items
-    : [];
-
-  const pursuits = Array.isArray(market?.pursuits?.items)
-    ? market.pursuits.items
-    : [];
-
-  const liveDeals = Array.isArray(
-    dealData?.portfolio?.deals,
-  )
-    ? dealData.portfolio.deals
-    : [];
-
-  const opportunityMoves = [
-    ...liveDeals.map((deal: any) => ({
-      key: `deal:${deal.deal_room_id}`,
-      type: 'Live deal',
-      title: deal.title || 'Live deal',
-      detail:
-        deal.next_control_fix?.instruction ||
-        deal.next_best_move?.instruction ||
-        deal.next_decision ||
-        'Review the live deal.',
-      meta:
-        [deal.organisation, human(deal.stage)]
-          .filter(Boolean)
-          .join(' · ') || 'Commercial work',
-    })),
-    ...pursuits.map((item: any) => ({
-      key: `pursuit:${item.player_match_id}`,
-      type: 'Player route',
-      title:
-        `${item.player?.name || 'Player'} → ${item.club?.name || 'Club'}`,
-      detail:
-        item.career_strategy_gate?.next_action?.instruction ||
-        item.best_access_route?.why_this_route ||
-        'Review the recorded player-club route.',
-      meta:
-        item.best_access_route?.person_name ||
-        human(item.readiness_state || 'Recorded route'),
-    })),
-    ...marketNeeds.map((item: any) => ({
-      key: `need:${item.club_need_id}`,
-      type: 'Club need',
-      title:
-        `${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`,
-      detail:
-        item.next_action?.instruction ||
-        'Review the recorded club need.',
-      meta:
-        [
-          item.need?.position,
-          human(item.coverage_state),
-        ]
-          .filter(Boolean)
-          .join(' · ') || 'Active need',
-    })),
-  ].slice(0, 3);
-
-  const playerAttention = [...players]
-    .filter((item: any) => {
-      const contractDays = Number(
-        item?.career_timing?.contract_days_remaining,
-      );
-      const marketState = String(
-        item?.market_coverage?.state || '',
-      );
-
-      return Boolean(
-        item?.next_control_fix?.instruction ||
-          item?.next_service_move?.instruction ||
-          (Number.isFinite(contractDays) &&
-            contractDays <= 180) ||
-          /(gap|missing|no_market|no_active)/i.test(
-            marketState,
-          ),
-      );
-    })
+  ]
+    .filter((item: any) => localDayKey(item?.deadline_at) === todayKey)
     .sort((a: any, b: any) => {
-      const priorityFor = (item: any) => {
-        if (item?.next_control_fix?.instruction) return 0;
-        if (item?.next_service_move?.instruction) return 1;
-
-        const contractDays = Number(
-          item?.career_timing?.contract_days_remaining,
-        );
-
-        if (
-          Number.isFinite(contractDays) &&
-          contractDays <= 90
-        ) {
-          return 2;
-        }
-
-        return 3;
-      };
-
-      return priorityFor(a) - priorityFor(b);
-    })
-    .slice(0, 3);
-
-  const executive =
-    ownerBusiness?.control?.executive_summary || {};
-
-  const serviceSummary =
-    ownerBusiness?.control?.service_control?.summary ||
-    ownerBusiness?.control?.service_assurance?.summary ||
-    {};
-
-  const receivableSummary =
-    ownerBusiness?.receivables?.summary || {};
-
-  const hasBusinessSnapshot = Boolean(
-    ownerBusiness?.control ||
-      ownerBusiness?.roi ||
-      ownerBusiness?.receivables,
-  );
+      const aTime = Date.parse(String(a?.deadline_at || ''));
+      const bTime = Date.parse(String(b?.deadline_at || ''));
+      if (!Number.isFinite(aTime)) return 1;
+      if (!Number.isFinite(bTime)) return -1;
+      return aTime - bTime;
+    });
 
   const actionFor = (command: any) => {
+    const replyInteractionId =
+      command?.source_type === 'task' &&
+      Number(command?.evidence?.task_count || 0) === 1
+        ? String(command?.reply_interaction_id || '').trim()
+        : '';
+
+    if (replyInteractionId) {
+      return (
+        <button
+          type="button"
+          className={styles.compactButton}
+          onClick={() =>
+            onPrepareConnectedReply({
+              interaction_id: replyInteractionId,
+            })
+          }
+        >
+          <MessageCircleMore size={14} />
+          Prepare reply
+        </button>
+      );
+    }
+
     const oneTap =
       command?.actionability?.mode === 'one_tap' &&
       command?.actionability?.evidence_gate === 'ready';
@@ -2102,34 +1894,6 @@ function Home({
               </article>
             ))}
 
-            {showIdentityResolution ? (
-              <article className={styles.attentionCard}>
-                <div className={styles.attentionCopy}>
-                  <div className={styles.attentionMeta}>
-                    <span>IDENTITY</span>
-                    <small>{connectedProviderCopy}</small>
-                  </div>
-
-                  <strong>
-                    {identityResolutionCount} connected identit
-                    {identityResolutionCount === 1 ? 'y' : 'ies'} need confirmation
-                  </strong>
-                  <span>
-                    Instagram usually belongs to a signed player. WhatsApp and connected email usually belong to a Network person. Confirm the exceptions explicitly.
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  className={styles.compactButton}
-                  onClick={onResolveConnectedIdentity}
-                >
-                  <ArrowRight size={14} />
-                  Resolve identities
-                </button>
-              </article>
-            ) : null}
-
             {needsYouCount > 3 ? (
               <button
                 type="button"
@@ -2194,12 +1958,9 @@ function Home({
                     </strong>
                     <span>
                       {item?.deadline_at
-                        ? `${relativeDate(
-                            item.deadline_at,
-                          )} · ${human(
-                            item.deadline_state ||
-                              'Recorded',
-                          )}`
+                        ? item?.calendar_kind === 'meeting'
+                          ? new Date(item.deadline_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : relativeDate(item.deadline_at)
                         : 'Date not recorded'}
                       {item?.calendar_kind === 'birthday' &&
                       item?.context?.turns_age
@@ -2213,269 +1974,35 @@ function Home({
             {!dayItems.length ? (
               <EmptyState
                 icon={CalendarDays}
-                title="Nothing dated for today"
-                copy="Meetings, follow-ups and deadlines will appear here as they become known."
+                title="Nothing else today"
+                copy="Your next dated item stays in Calendar until it is relevant."
               />
             ) : null}
           </div>
         </section>
       </div>
 
-      <section
-        className={`${styles.sectionCard} ${styles.connectedWorkPanel}`}
-      >
-        <div className={styles.sectionHead}>
-          <div>
-            <p className={styles.eyebrow}>
-              REDREAM HANDLED
-            </p>
-            <h2>What changed around you</h2>
+      {handledConnectedCount ? (
+        <section className={styles.handledStrip}>
+          <div className={styles.handledStripIcon}>
+            <CheckCircle2 size={15} />
           </div>
-
-          {handledConnectedCount ? (
-            <span className={styles.sectionCount}>
-              {handledConnectedCount}
-            </span>
-          ) : null}
-        </div>
-
-        {Number(
-          connectedSummary?.connected_followups_open || 0,
-        ) > 0 ? (
-          <div className={styles.connectedWorkNotice}>
-            <CheckCircle2 size={14} />
-            <span>
-              {Number(
-                connectedSummary.connected_followups_open,
-              )}{' '}
-              connected follow-up
-              {Number(
-                connectedSummary.connected_followups_open,
-              ) === 1
-                ? ''
-                : 's'}{' '}
-              were already moved into Needs you.
-            </span>
+          <div className={styles.handledStripCopy}>
+            <small>REDREAM HANDLED</small>
+            <strong>
+              {[
+                recentConnected.length
+                  ? `${recentConnected.length} connected update${recentConnected.length === 1 ? '' : 's'} captured`
+                  : '',
+                movedFollowups
+                  ? `${movedFollowups} follow-up${movedFollowups === 1 ? '' : 's'} moved into Needs you`
+                  : '',
+              ].filter(Boolean).join(' · ')}
+            </strong>
           </div>
-        ) : null}
-
-        <div className={styles.connectedWorkList}>
-          {recentConnected.slice(0, 3).map((item: any) => {
-            const channel = String(item?.channel || '');
-            const direction = String(
-              item?.direction || '',
-            ).toLowerCase();
-            const emailChannel =
-              channel.includes('email');
-            const replyable =
-              Boolean(
-                item?.interaction_id &&
-                  (item?.person_id || item?.player_id),
-              ) &&
-              (emailChannel
-                ? ['inbound', 'received'].includes(direction)
-                : !['outbound', 'sent'].includes(direction));
-            const ConnectedIcon =
-              channel.includes('email')
-                ? Mail
-                : MessageCircleMore;
-            const person =
-              item?.player_name ||
-              item?.person_name ||
-              item?.organisation_name ||
-              'Connected contact';
-
-            return (
-              <article
-                className={styles.connectedWorkRow}
-                key={item?.interaction_id}
-              >
-                <div className={styles.connectedWorkIcon}>
-                  <ConnectedIcon size={16} />
-                </div>
-
-                <div className={styles.connectedWorkCopy}>
-                  <small>
-                    {human(channel || 'Connected')}
-                    {item?.direction
-                      ? ` · ${human(item.direction)}`
-                      : ''}
-                  </small>
-                  <strong>{person}</strong>
-                  <span>
-                    {item?.summary ||
-                      'Connected conversation recorded.'}
-                  </span>
-                  <div className={styles.connectedWorkFoot}>
-                    <AgencyOwnershipChip
-                      label="Owner"
-                      name={item?.owner_name || null}
-                    />
-                    {item?.occurred_at ? (
-                      <em>
-                        {relativeDate(item.occurred_at)}
-                      </em>
-                    ) : null}
-                  </div>
-                </div>
-
-                {replyable ? (
-                  <button
-                    type="button"
-                    className={styles.connectedWorkAction}
-                    onClick={() => onPrepareConnectedReply(item)}
-                  >
-                    Prepare reply
-                    <ArrowRight size={13} />
-                  </button>
-                ) : (
-                  <a
-                    className={styles.connectedWorkAction}
-                    href={item?.player_id ? '?view=players' : '?view=network'}
-                  >
-                    {item?.player_id ? 'Open Players' : 'Open Network'}
-                    <ArrowRight size={13} />
-                  </a>
-                )}
-              </article>
-            );
-          })}
-
-          {connectedMeetings.slice(0, 2).map((item: any) => (
-            <article
-              className={styles.connectedWorkRow}
-              key={item?.meeting_id}
-            >
-              <div className={styles.connectedWorkIcon}>
-                <CalendarDays size={16} />
-              </div>
-
-              <div className={styles.connectedWorkCopy}>
-                <small>
-                  MEETING · {human(item?.provider || 'Calendar')}
-                </small>
-                <strong>
-                  {item?.person_name ||
-                    item?.organisation_name ||
-                    item?.title ||
-                    'Connected meeting'}
-                </strong>
-                <span>
-                  {item?.title || 'Meeting preparation available'}
-                </span>
-                <div className={styles.connectedWorkFoot}>
-                  <AgencyOwnershipChip
-                    label="Owner"
-                    name={item?.owner_name || null}
-                  />
-                  {item?.starts_at ? (
-                    <em>
-                      {relativeDate(item.starts_at)}
-                    </em>
-                  ) : null}
-                </div>
-              </div>
-
-              <a
-                className={styles.connectedWorkAction}
-                href="?view=calendar"
-              >
-                Prepare
-                <ArrowRight size={13} />
-              </a>
-            </article>
-          ))}
-
-          {!handledConnectedCount ? (
-            <EmptyState
-              icon={PlugZap}
-              title="ReDream handled is quiet"
-              copy="Connected conversations and meeting context will appear here when ReDream has something useful to show you."
-            />
-          ) : null}
-        </div>
-      </section>
-
-      <section className={styles.homePulse}>
-        <div className={styles.homePulseHead}>
-          <p className={styles.eyebrow}>AGENCY PULSE</p>
-          <span>Players, opportunities and business at a glance.</span>
-        </div>
-
-        <div className={styles.homePulseGrid}>
-          <a
-            className={styles.homePulseCard}
-            href="?view=players"
-          >
-            <div className={styles.homePulseIcon}>
-              <Users size={16} />
-            </div>
-            <div className={styles.homePulseCopy}>
-              <small>PLAYERS</small>
-              <strong>
-                {playerAttention.length
-                  ? `${playerAttention.length} need attention`
-                  : 'Player care is clear'}
-              </strong>
-              <span>
-                {playerAttention[0]?.player?.name ||
-                  `${players.length} signed player${players.length === 1 ? '' : 's'}`}
-              </span>
-            </div>
-            <ArrowRight size={14} />
-          </a>
-
-          <a
-            className={styles.homePulseCard}
-            href="?view=opportunities"
-          >
-            <div className={styles.homePulseIcon}>
-              <BriefcaseBusiness size={16} />
-            </div>
-            <div className={styles.homePulseCopy}>
-              <small>OPPORTUNITIES</small>
-              <strong>
-                {opportunityMoves.length
-                  ? `${opportunityMoves.length} moving`
-                  : 'No live movement'}
-              </strong>
-              <span>
-                {opportunityMoves[0]?.title ||
-                  'Club needs, player routes and deals'}
-              </span>
-            </div>
-            <ArrowRight size={14} />
-          </a>
-
-          {hasBusinessSnapshot ? (
-            <a
-              className={styles.homePulseCard}
-              href="?view=business"
-            >
-              <div className={styles.homePulseIcon}>
-                <Coins size={16} />
-              </div>
-              <div className={styles.homePulseCopy}>
-                <small>BUSINESS</small>
-                <strong>
-                  {Number(executive.active_deals ?? 0)} active deals
-                </strong>
-                <span>
-                  {Number(
-                    serviceSummary.total_breaches ??
-                      executive.service_standard_breaches ??
-                      0,
-                  )} service issues ·{' '}
-                  {Number(
-                    receivableSummary.open_receivables ?? 0,
-                  )} open receivables
-                </span>
-              </div>
-              <ArrowRight size={14} />
-            </a>
-          ) : null}
-        </div>
-      </section>
+          <span>Up to date</span>
+        </section>
+      ) : null}
     </div>
   );
 }

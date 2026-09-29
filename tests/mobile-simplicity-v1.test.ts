@@ -36,7 +36,9 @@ test('Home shows only three decisions until the agent asks for more', () => {
   assert.match(shell, /priority\.slice\(0, 3\)/);
   assert.match(shell, /remainingAttentionSlots/);
   assert.match(shell, /Show less/);
-  assert.match(shellCss, /\.homePulse,[\s\S]*\.connectedWorkPanel[\s\S]*display:\s*none/);
+  assert.match(shellCss, /\.handledStrip\s*\{/);
+  assert.doesNotMatch(shellCss, /\.homePulseGrid\s*\{/);
+  assert.doesNotMatch(shellCss, /\.connectedWorkRow\s*\{/);
 });
 
 test('player list is scan-first and player detail exposes four primary tabs', () => {

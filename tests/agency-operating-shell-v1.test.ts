@@ -36,7 +36,7 @@ test('agency workspace uses tenant-native Autopilot reads while preserving the r
   const app = read('components/AgencyOperatingWorkspace.tsx');
   assert.match(app, /redream_autopilot_home/);
   assert.match(app, /redream_autopilot_operations/);
-  assert.match(app, /redream_autopilot_players/);
+  assert.match(app, /invoke<any>\('players_workspace'/);
   assert.match(app, /redream_autopilot_market/);
   assert.match(app, /redream_autopilot_deals/);
   assert.match(app, /redream_autopilot_relationships/);

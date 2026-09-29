@@ -7,6 +7,11 @@ const migration = readFileSync(
   'utf8',
 );
 
+const homeReplyMigration = readFileSync(
+  'supabase/migrations/20260929151626_redream_home_connected_reply_context.sql',
+  'utf8',
+);
+
 const edge = readFileSync(
   'supabase/functions/redream-connected-reply-draft/index.ts',
   'utf8',
@@ -121,8 +126,12 @@ test(
       /v_interaction\.channel in \([\s\S]*'google_email'[\s\S]*'microsoft_email'[\s\S]*not in \([\s\S]*'inbound'[\s\S]*'received'/,
     );
     assert.match(
-      workspace,
-      /emailChannel[\s\S]*\['inbound', 'received'\]\.includes\(direction\)/,
+      homeReplyMigration,
+      /'google_email','microsoft_email'/,
+    );
+    assert.match(
+      homeReplyMigration,
+      /'inbound','received'/,
     );
   },
 );
@@ -345,28 +354,19 @@ test(
 );
 
 test(
-  'Connected Work uses Prepare reply only for replyable interactions',
+  'owned connected-message tasks expose Prepare reply only through guarded interaction context',
   () => {
-    assert.match(
-      workspace,
-      /const replyable =/,
-    );
-    assert.match(
-      workspace,
-      /!\['outbound', 'sent'\]\.includes\(direction\)/,
-    );
-    assert.match(
-      workspace,
-      /onPrepareConnectedReply\(item\)/,
-    );
-    assert.match(
-      workspace,
-      /Prepare reply/,
-    );
-    assert.match(
-      workspace,
-      /Open Network/,
-    );
+    assert.match(homeReplyMigration, /i\.team_member_id=p_user_id/);
+    assert.match(homeReplyMigration, /num_nonnulls\(i\.person_id,i\.player_id\)=1/);
+    assert.match(homeReplyMigration, /google_email','microsoft_email/);
+    assert.match(homeReplyMigration, /inbound','received/);
+    assert.match(homeReplyMigration, /instagram_selected_chat','whatsapp_selected_chat/);
+    assert.match(homeReplyMigration, /not in \('outbound','sent'\)/);
+    assert.match(homeReplyMigration, /'reply_interaction_id',tg\.reply_interaction_id/);
+    assert.match(workspace, /command\?\.source_type === 'task'/);
+    assert.match(workspace, /Number\(command\?\.evidence\?\.task_count \|\| 0\) === 1/);
+    assert.match(workspace, /onPrepareConnectedReply/);
+    assert.match(workspace, /Prepare reply/);
   },
 );
 

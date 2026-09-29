@@ -219,7 +219,7 @@ test('simplification preserves player-service operations in the shared workspace
   const workspace = read('components/AgencyOperatingWorkspace.tsx');
 
   assert.match(home, /redirect\('\/agency'\)/);
-  assert.match(workspace, /redream_autopilot_players/);
+  assert.match(workspace, /invoke<any>\('players_workspace'/);
   assert.match(workspace, /player_service_move_prepare/);
   assert.match(workspace, /player_control_fix_prepare/);
   assert.match(workspace, /AgencyOwnerCommandCentre/);

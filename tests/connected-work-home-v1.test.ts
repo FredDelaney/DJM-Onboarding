@@ -17,6 +17,11 @@ const styles = readFileSync(
   'utf8',
 );
 
+const connections = readFileSync(
+  'components/AgencyConnectionsDrawer.tsx',
+  'utf8',
+);
+
 test(
   'Connected Work is personal to the signed-in agent',
   () => {
@@ -94,7 +99,7 @@ test(
   () => {
     assert.match(
       workspace,
-      /were already moved into Needs you/,
+      /moved into Needs you/,
     );
     assert.doesNotMatch(
       workspace,
@@ -122,46 +127,32 @@ test(
 );
 
 test(
-  'identity resolution opens the focused Connected Work resolver',
+  'identity resolution lives in Connections rather than the daily Home queue',
   () => {
+    assert.match(connections, /onResolveIdentities/);
+    assert.match(connections, /Review identities/);
     assert.match(
       workspace,
-      /onResolveConnectedIdentity/,
-    );
-    assert.match(
-      workspace,
-      /setConnectedIdentityResolverOpen\(true\)/,
+      /onResolveIdentities=\{\(\) =>[\s\S]*setConnectedIdentityResolverOpen\(true\)/,
     );
     assert.match(
       workspace,
       /AgencyConnectedIdentityResolverDrawer/,
     );
-    assert.match(
-      workspace,
-      /Resolve identities/,
-    );
-    assert.match(
-      workspace,
-      /setConnectionsOpen\(true\)/,
-    );
+    const homeStart = workspace.indexOf('function Home(');
+    const homeEnd = workspace.indexOf('function Players(', homeStart);
+    const home = workspace.slice(homeStart, homeEnd);
+    assert.doesNotMatch(home, /Resolve identities/);
   },
 );
 
 test(
-  'connected conversations and meetings preserve visible ownership',
+  'connected work keeps ownership in the data contract without rendering a second Home feed',
   () => {
-    assert.match(
-      workspace,
-      /label="Owner"/,
-    );
-    assert.match(
-      workspace,
-      /item\?\.owner_name/,
-    );
-    assert.match(
-      migration,
-      /'owner_user_id',p_user_id/,
-    );
+    assert.match(migration, /'owner_user_id',p_user_id/);
+    assert.match(migration, /i\.team_member_id=p_user_id/);
+    assert.doesNotMatch(workspace, /className=\{styles\.connectedWorkRow\}/);
+    assert.match(workspace, /styles\.handledStrip/);
   },
 );
 
@@ -176,19 +167,13 @@ test(
 );
 
 test(
-  'Connected Work stays compact on mobile',
+  'Connected Work proof stays compact on mobile',
   () => {
+    assert.match(styles, /\.handledStrip\s*\{/);
     assert.match(
       styles,
-      /\.connectedWorkRow/,
+      /@media \(max-width: 680px\)[\s\S]*\.handledStrip/,
     );
-    assert.match(
-      styles,
-      /@media \(max-width: 680px\)[\s\S]*\.connectedWorkRow[\s\S]*grid-template-columns/,
-    );
-    assert.match(
-      styles,
-      /\.connectedWorkAction/,
-    );
+    assert.doesNotMatch(styles, /\.connectedWorkRow\s*\{/);
   },
 );

@@ -13,131 +13,79 @@ const styles = readFileSync(
 );
 
 const homeStart = workspace.indexOf('function Home(');
-const homeEnd = workspace.indexOf(
-  'function Players(',
-  homeStart,
-);
+const homeEnd = workspace.indexOf('function Players(', homeStart);
 const home = workspace.slice(homeStart, homeEnd);
 
-test(
-  'Home headline counts the unified human decision queue',
-  () => {
-    const countIndex = home.indexOf('const needsYouCount =');
-    const priorityIndex = home.indexOf('priority.length', countIndex);
-    const meetingIndex = home.indexOf(
-      'meetingAftercareItems.length',
-      countIndex,
-    );
-    const identityIndex = home.indexOf(
-      'identityResolutionCount > 0',
-      countIndex,
-    );
+test('Home headline counts only real daily agent decisions', () => {
+  const countIndex = home.indexOf('const needsYouCount =');
+  const countBlock = home.slice(countIndex, countIndex + 180);
 
-    assert.ok(countIndex >= 0);
-    assert.ok(priorityIndex > countIndex);
-    assert.ok(meetingIndex > priorityIndex);
-    assert.ok(identityIndex > meetingIndex);
-    assert.ok(home.includes('{needsYouCount'));
-    assert.ok(home.includes('things need'));
-  },
-);
+  assert.ok(countIndex >= 0);
+  assert.ok(countBlock.includes('priority.length'));
+  assert.ok(countBlock.includes('meetingAftercareItems.length'));
+  assert.equal(countBlock.includes('identityResolution'), false);
+  assert.ok(home.includes('{needsYouCount'));
+  assert.ok(home.includes('things need'));
+});
 
-test(
-  'meeting outcomes and connected identity confirmation live in Needs you',
-  () => {
-    const needsIndex = home.indexOf('What needs your attention');
-    const meetingIndex = home.indexOf('MEETING FOLLOW-UP');
-    const identityIndex = home.indexOf('<span>IDENTITY</span>');
-    const handledIndex = home.indexOf('REDREAM HANDLED');
+test('Needs you shows only three actions until the agent asks for more', () => {
+  assert.match(home, /priority\.slice\(0, 3\)/);
+  assert.match(home, /3 - visiblePriority\.length/);
+  assert.match(home, /meetingAftercareItems\.slice\(0, remainingAttentionSlots\)/);
+  assert.match(home, /needsYouCount > 3/);
+  assert.match(home, /What needs your attention/);
+  assert.match(home, /actionFor\(command\)/);
+  assert.match(home, /Record outcome/);
+  assert.doesNotMatch(home, /Resolve identities/);
+});
 
-    assert.ok(needsIndex >= 0);
-    assert.ok(meetingIndex > needsIndex);
-    assert.ok(identityIndex > needsIndex);
-    assert.ok(handledIndex > meetingIndex);
-    assert.ok(handledIndex > identityIndex);
-    assert.ok(home.includes('Record outcome'));
-    assert.ok(home.includes('Resolve identities'));
-  },
-);
+test('Today means today, not the next ninety days', () => {
+  assert.match(home, /const todayKey = localDayKey\(new Date\(\)\)/);
+  assert.match(
+    home,
+    /\.filter\(\(item: any\) => localDayKey\(item\?\.deadline_at\) === todayKey\)/,
+  );
+  assert.match(home, /calendar_kind: 'meeting'/);
+  assert.match(home, /calendar_kind: 'deadline'/);
+  assert.match(home, /calendar_kind: 'birthday'/);
+  assert.match(home, /dayItems[\s\S]*\.slice\(0, 3\)/);
+  assert.match(home, /href="\?view=calendar"/);
+  assert.match(home, /Nothing else today/);
+});
 
-test(
-  'ReDream handled is activity context rather than a second urgent queue',
-  () => {
-    const start = home.indexOf('REDREAM HANDLED');
-    const end = home.indexOf('AGENCY PULSE', start);
-    const handled = home.slice(start, end);
+test('ReDream handled is a quiet proof strip rather than another work feed', () => {
+  assert.match(home, /REDREAM HANDLED/);
+  assert.match(home, /styles\.handledStrip/);
+  assert.match(home, /connected update/);
+  assert.match(home, /moved into Needs you/);
+  assert.doesNotMatch(home, /recentConnected\.slice\(0, 3\)\.map/);
+  assert.doesNotMatch(home, /connectedMeetings\.slice\(0, 2\)\.map/);
+  assert.match(home, /replyInteractionId/);
+  assert.match(home, /Prepare reply/);
+  assert.doesNotMatch(home, /What changed around you/);
+});
 
-    assert.ok(start >= 0);
-    assert.ok(end > start);
-    assert.ok(handled.includes('What changed around you'));
-    assert.ok(
-      handled.includes('recentConnected.slice(0, 3).map'),
-    );
-    assert.ok(
-      handled.includes('connectedMeetings.slice(0, 2).map'),
-    );
-    assert.equal(handled.includes('MEETING FOLLOW-UP'), false);
-    assert.equal(handled.includes('Resolve identities'), false);
-  },
-);
+test('Home does not duplicate Players Opportunities or Business dashboards', () => {
+  assert.doesNotMatch(home, /AGENCY PULSE/);
+  assert.doesNotMatch(home, /homePulse/);
+  assert.doesNotMatch(home, /playerService/);
+  assert.doesNotMatch(home, /opportunityMoves/);
+  assert.doesNotMatch(home, /ownerBusiness/);
+  assert.doesNotMatch(home, /href="\?view=players"/);
+  assert.doesNotMatch(home, /href="\?view=opportunities"/);
+  assert.doesNotMatch(home, /href="\?view=business"/);
+});
 
-test(
-  'Today stays intentionally small',
-  () => {
-    const todayIndex = home.indexOf('<p className={styles.eyebrow}>TODAY</p>');
-    const handledIndex = home.indexOf('REDREAM HANDLED', todayIndex);
-    const today = home.slice(todayIndex, handledIndex);
-
-    assert.ok(todayIndex >= 0);
-    assert.ok(today.includes('.slice(0, 3)'));
-    assert.ok(today.includes('href="?view=calendar"'));
-  },
-);
-
-test(
-  'Players Opportunities and Business collapse into one compact agency pulse',
-  () => {
-    assert.ok(home.includes('AGENCY PULSE'));
-    assert.ok(home.includes('homePulseGrid'));
-    assert.ok(home.includes('href="?view=players"'));
-    assert.ok(home.includes('href="?view=opportunities"'));
-    assert.ok(home.includes('href="?view=business"'));
-    assert.equal(home.includes('OPPORTUNITIES MOVING'), false);
-    assert.equal(home.includes('PLAYERS NEEDING ATTENTION'), false);
-    assert.equal(home.includes('homeSupportGrid'), false);
-    assert.equal(home.includes('homeBusinessStrip'), false);
-  },
-);
-
-test(
-  'Home pulse is compact and one-column on phones',
-  () => {
-    const pulseGrid = styles.indexOf('.homePulseGrid {');
-    const pulseCard = styles.indexOf('.homePulseCard {');
-    const mobilePulse = styles.lastIndexOf('.homePulseGrid {');
-    const mobile = styles.lastIndexOf(
-      '@media (max-width: 680px)',
-      mobilePulse,
-    );
-
-    assert.ok(pulseGrid >= 0);
-    assert.ok(
-      styles
-        .slice(pulseGrid, pulseGrid + 220)
-        .includes('repeat(auto-fit, minmax(220px, 1fr))'),
-    );
-    assert.ok(pulseCard >= 0);
-    assert.ok(
-      styles
-        .slice(pulseCard, pulseCard + 240)
-        .includes('min-height: 72px'),
-    );
-    assert.ok(mobile >= 0);
-    assert.ok(mobilePulse > mobile);
-    assert.ok(
-      styles
-        .slice(mobilePulse, mobilePulse + 140)
-        .includes('grid-template-columns: 1fr'),
-    );
-  },
-);
+test('Home stays clean and phone-safe', () => {
+  assert.match(styles, /\.homeOverviewGrid\s*\{/);
+  assert.match(
+    styles,
+    /@media \(max-width: 980px\)[\s\S]*\.homeOverviewGrid[\s\S]*grid-template-columns: 1fr/,
+  );
+  assert.match(styles, /\.handledStrip\s*\{/);
+  assert.match(
+    styles,
+    /@media \(max-width: 680px\)[\s\S]*\.handledStrip[\s\S]*grid-template-columns: 30px minmax\(0, 1fr\)/,
+  );
+  assert.doesNotMatch(styles, /\.homePulseGrid\s*\{/);
+});
