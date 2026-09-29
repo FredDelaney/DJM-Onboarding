@@ -1657,7 +1657,7 @@
     font-size: 11px;
   }
 
-  .dossier-hero-btn:first-child:last-child {
+  .dossier-hero-btn:last-child:nth-child(odd) {
     grid-column:
       1 / -1;
   }

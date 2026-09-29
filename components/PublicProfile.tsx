@@ -188,6 +188,12 @@ export default function PublicProfile({
       profile.nationalities,
     );
 
+  const currentStatus =
+    String(profile.current_status || '')
+      .trim()
+      .replaceAll('_', ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
   const facts = [
     {
       label: 'Age',
@@ -241,6 +247,19 @@ export default function PublicProfile({
         ),
       url:
         profile.stats_url,
+    },
+
+    profile.market_value_source_url &&
+      !sameResearchUrl(
+        profile.market_value_source_url,
+        profile.transfermarkt_url,
+      ) &&
+      !sameResearchUrl(
+        profile.market_value_source_url,
+        profile.stats_url,
+      ) && {
+      label: 'Market value source',
+      url: profile.market_value_source_url,
     },
   ].filter(Boolean) as {
     label: string;
@@ -430,16 +449,14 @@ export default function PublicProfile({
                   </span>
                 )}
 
-                {profile.current_status && (
+                {currentStatus && (
                   <span>
-                    {
-                      profile.current_status
-                    }
+                    {currentStatus}
                   </span>
                 )}
 
                 {profile.market_value_display &&
-                  profile.transfermarkt_url &&
+                  (profile.market_value_source_url || profile.transfermarkt_url) &&
                   !profile.hide_market_value && (
                     <span>
                       Market reference{' '}
@@ -484,22 +501,6 @@ export default function PublicProfile({
   </a>
 )}
                 
-                <button
-                  type="button"
-                  className="dossier-hero-btn dossier-hero-btn-secondary"
-                  onClick={
-                    downloadPdf
-                  }
-                  disabled={
-                    pdfBusy
-                  }
-                >
-                  <Download
-                    size={16}
-                  />
-                  Download Player Profile
-                </button>
-
                 <a
                   className="dossier-hero-btn dossier-hero-btn-secondary"
                   href={
