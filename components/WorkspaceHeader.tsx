@@ -4,13 +4,10 @@ import {
   CalendarDays,
   ContactRound,
   Home,
-  LogOut,
-  Settings,
   Target,
   UserRound,
   UsersRound,
 } from 'lucide-react';
-import Link from 'next/link';
 
 import Brand from '@/components/Brand';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
@@ -19,6 +16,7 @@ import AiLauncher from '@/components/AiLauncher';
 import WorkspaceTabs, {
   type WorkspaceTab,
 } from '@/components/WorkspaceTabs';
+import AccountMenu from '@/components/AccountMenu';
 
 const items: WorkspaceTab[] = [
   {
@@ -55,8 +53,16 @@ const items: WorkspaceTab[] = [
 
 export default function WorkspaceHeader({
   onSignOut,
+  workspace,
 }: {
   onSignOut: () => void | Promise<void>;
+  workspace?: {
+    tenant_id?: string | null;
+    role?: string | null;
+    display_name?: string | null;
+    short_name?: string | null;
+    portal_name?: string | null;
+  } | null;
 }) {
   return (
     <>
@@ -81,23 +87,10 @@ export default function WorkspaceHeader({
             <QuickCapture />
             <WorkspaceSearch />
 
-            <Link
-              href="/settings"
-              className="djm-os-icon-button"
-              aria-label="Settings"
-              title="Settings"
-            >
-              <Settings size={17} />
-            </Link>
-
-            <button
-              type="button"
-              className="djm-os-icon-button"
-              onClick={() => void onSignOut()}
-              aria-label="Sign out"
-            >
-              <LogOut size={17} />
-            </button>
+            <AccountMenu
+              workspace={workspace}
+              onSignOut={onSignOut}
+            />
           </div>
         </div>
       </header>

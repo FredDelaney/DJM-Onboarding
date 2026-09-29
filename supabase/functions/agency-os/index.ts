@@ -82,6 +82,118 @@ export default {fetch:async(req:Request)=>{
     };
 
 
+    if(action==="account_overview"){
+      const [profileResult,brandingResult,planResult,plansResult,playersResult,membersResult]=await Promise.all([
+        ctx.supabaseAdmin.from("profiles").select("id,email,display_name,avatar_path,job_title,phone,locale,timezone,updated_at").eq("id",userId).maybeSingle(),
+        ctx.supabaseAdmin.schema("platform").from("tenant_branding").select("display_name,short_name,portal_name,logo_asset,compact_logo_asset,primary_color,accent_color,support_email,website_url,phone").eq("tenant_id",tenantId).maybeSingle(),
+        ctx.supabaseAdmin.schema("platform").from("tenant_plan_assignments").select("id,plan_key,status,billing_mode,effective_from,effective_until,configuration").eq("tenant_id",tenantId).in("status",["trialing","active"]).order("effective_from",{ascending:false}).limit(1).maybeSingle(),
+        ctx.supabaseAdmin.schema("platform").from("plan_catalog").select("plan_key,display_name,rank,status,customer_segment,limits,metadata,monthly_price_cents,price_currency,price_is_from").eq("status","active").order("rank"),
+        ctx.supabaseAdmin.from("players").select("id",{count:"exact",head:true}).eq("tenant_id",tenantId),
+        ctx.supabaseAdmin.schema("platform").from("tenant_memberships").select("user_id",{count:"exact",head:true}).eq("tenant_id",tenantId).eq("status","active")
+      ]);
+      for(const item of [profileResult,brandingResult,planResult,plansResult,playersResult,membersResult]) if(item.error) throw item.error;
+      let billing:any=null,pendingPlanChange:any=null;
+      if(role==="owner"){
+        const [billingResult,pendingResult]=await Promise.all([
+          ctx.supabaseAdmin.schema("platform").from("billing_accounts").select("status,billing_email,invoice_currency,tax_country,external_customer_reference,payment_provider,metadata,updated_at").eq("tenant_id",tenantId).maybeSingle(),
+          ctx.supabaseAdmin.schema("platform").from("tenant_plan_change_requests").select("id,from_plan_key,requested_plan_key,status,requested_at,resolved_at").eq("tenant_id",tenantId).eq("status","pending").order("requested_at",{ascending:false}).limit(1).maybeSingle()
+        ]);
+        if(billingResult.error) throw billingResult.error;
+        if(pendingResult.error) throw pendingResult.error;
+        billing=billingResult.data||null;
+        pendingPlanChange=pendingResult.data||null;
+      }
+      return json({ok:true,tenant:workspace,account:{profile:profileResult.data||null,branding:brandingResult.data||null,plan:planResult.data||null,plans:plansResult.data||[],usage:{players:playersResult.count||0,staff:membersResult.count||0},billing,pending_plan_change:pendingPlanChange}});
+    }
+
+    if(action==="account_profile_save"){
+      const displayName=id(body?.display_name).slice(0,120);
+      if(!displayName) return json({error:"Display name is required"},400);
+      const jobTitle=id(body?.job_title).slice(0,120)||null;
+      const phone=id(body?.phone).slice(0,50)||null;
+      const locale=id(body?.locale).slice(0,20)||"en-GB";
+      const timezone=id(body?.timezone).slice(0,80)||"UTC";
+      const avatarPath=id(body?.avatar_path).slice(0,500)||null;
+      if(avatarPath && !avatarPath.startsWith(userId+"/")) return json({error:"Invalid profile image path"},400);
+      const {data,error}=await ctx.supabaseAdmin.from("profiles").update({display_name:displayName,job_title:jobTitle,phone,locale,timezone,avatar_path:avatarPath}).eq("id",userId).select("id,email,display_name,avatar_path,job_title,phone,locale,timezone,updated_at").single();
+      if(error) throw error;
+      return json({ok:true,profile:data});
+    }
+
+    if(action==="account_agency_save"){
+      if(role!=="owner") return deny("Agency owner access required");
+      const branding=await rpc("platform_server_owner_update_branding",{
+        p_tenant_id:tenantId,
+        p_user_id:userId,
+        p_display_name:id(body?.display_name),
+        p_portal_name:id(body?.portal_name),
+        p_primary_color:id(body?.primary_color),
+        p_accent_color:id(body?.accent_color),
+        p_support_email:id(body?.support_email).toLowerCase(),
+        p_website_url:id(body?.website_url)||null,
+        p_phone:id(body?.phone)||null
+      });
+      return json({ok:true,branding});
+    }
+
+    if(action==="account_billing_save"){
+      if(role!=="owner") return deny("Agency owner access required");
+      const billingEmail=id(body?.billing_email).toLowerCase();
+      if(!billingEmail) return json({error:"Billing email is required"},400);
+      const metadata={
+        company_name:id(body?.company_name).slice(0,160)||null,
+        tax_id:id(body?.tax_id).slice(0,80)||null,
+        billing_address:id(body?.billing_address).slice(0,500)||null
+      };
+      return result("billing","platform_server_account_billing_update",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_billing_email:billingEmail,
+        p_invoice_currency:id(body?.invoice_currency).toUpperCase()||"EUR",
+        p_tax_country:id(body?.tax_country).toUpperCase()||null,
+        p_metadata:metadata
+      });
+    }
+
+    if(action==="account_plan_request"){
+      if(role!=="owner") return deny("Agency owner access required");
+      const requestedPlan=id(body?.requested_plan_key).toLowerCase();
+      if(!requestedPlan) return json({error:"requested_plan_key is required"},400);
+      return result("request","platform_server_account_plan_request",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,p_requested_plan_key:requestedPlan
+      });
+    }
+
+    if(action==="account_plan_request_cancel"){
+      if(role!=="owner") return deny("Agency owner access required");
+      const requestId=id(body?.request_id);
+      if(!requestId) return json({error:"request_id is required"},400);
+      return result("request","platform_server_account_plan_request_cancel",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,p_request_id:requestId
+      });
+    }
+
+    if(action==="account_payment_portal"){
+      if(role!=="owner") return deny("Agency owner access required");
+      const {data:billing,error:billingError}=await ctx.supabaseAdmin.schema("platform").from("billing_accounts").select("status,payment_provider,external_customer_reference,metadata").eq("tenant_id",tenantId).maybeSingle();
+      if(billingError) throw billingError;
+      if(!billing) return json({error:"Billing account is not configured"},409);
+      if(billing.status==="internal" || Boolean((billing.metadata as any)?.billing_exempt)) return json({error:"This agency has an internal ReDream account and does not require a payment method.",code:"internal_billing"},409);
+      if(String(billing.payment_provider||"").toLowerCase()!=="stripe" || !billing.external_customer_reference) return json({error:"Online payment management is not configured for this agency yet.",code:"payment_portal_unavailable"},409);
+      const stripeKey=Deno.env.get("STRIPE_SECRET_KEY");
+      if(!stripeKey) return json({error:"Payment management is temporarily unavailable.",code:"payment_portal_unavailable"},503);
+      const origin=id(req.headers.get("origin"));
+      const returnUrl=id(body?.return_url);
+      if(!origin || !returnUrl.startsWith(origin+"/")) return json({error:"Invalid billing return URL"},400);
+      const stripeResponse=await fetch("https://api.stripe.com/v1/billing_portal/sessions",{
+        method:"POST",headers:{Authorization:`Bearer ${stripeKey}`,"Content-Type":"application/x-www-form-urlencoded"},
+        body:new URLSearchParams({customer:String(billing.external_customer_reference),return_url:returnUrl}).toString()
+      });
+      const stripePayload=await stripeResponse.json().catch(()=>({}));
+      if(!stripeResponse.ok || !stripePayload?.url) return json({error:"Payment management could not be opened.",code:"payment_portal_error"},502);
+      return json({ok:true,url:String(stripePayload.url)});
+    }
+
         if(action==="team"){
       if(!ownerAdmin()) return deny("Owner or admin access required");
       return result("team","platform_server_agency_team",{

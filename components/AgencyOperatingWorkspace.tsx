@@ -81,6 +81,7 @@ import AgencyConnectedReplyDrawer from '@/components/AgencyConnectedReplyDrawer'
 import AgencyMeetingOutcomeDrawer from '@/components/AgencyMeetingOutcomeDrawer';
 import AgencyTeamHandoffDrawer from '@/components/AgencyTeamHandoffDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
+import AccountMenu from '@/components/AccountMenu';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -1057,6 +1058,10 @@ export default function AgencyOperatingWorkspace() {
               />
               Refresh
             </button>
+            <AccountMenu
+              workspace={workspace}
+              onSignOut={signOut}
+            />
           </div>
         </header>
 

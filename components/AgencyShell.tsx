@@ -41,18 +41,16 @@ export default function AgencyShell({
 
   return (
     <div className="djm-os-root" data-djm-page={pageKey}>
-      <WorkspaceHeader onSignOut={signOut} />
+      <WorkspaceHeader
+        workspace={auth.workspace}
+        onSignOut={signOut}
+      />
 
       <main className="djm-os-main">
         <div className="djm-os-page-head">
           <div>
             <p className="djm-os-eyebrow">{eyebrow}</p>
             <h1>{title}</h1>
-          </div>
-
-          <div className="djm-os-user">
-            <span>{auth.profile?.display_name || auth.user?.email || 'ReDream'}</span>
-            <small>{auth.profile?.role || 'team'}</small>
           </div>
         </div>
 
