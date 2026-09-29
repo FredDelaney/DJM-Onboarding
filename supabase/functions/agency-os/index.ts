@@ -47,11 +47,15 @@ export default {fetch:async(req:Request)=>{
       if(error)throw error;
       return data;
     };
-    const profileBranding=async()=>{
-      const fallback={display_name:workspace.display_name||"Agency",short_name:workspace.short_name||null,portal_name:workspace.portal_name||null,logo_asset:workspace.logo_asset||null,compact_logo_asset:workspace.compact_logo_asset||null,primary_color:workspace.primary_color||"#111827",accent_color:workspace.accent_color||"#64748B",support_email:null,website_url:null,phone:null};
-      const {data,error}=await ctx.supabaseAdmin.schema("platform").from("tenant_branding").select("display_name,short_name,portal_name,logo_asset,compact_logo_asset,primary_color,accent_color,support_email,website_url,phone").eq("tenant_id",tenantId).maybeSingle();
-      if(error){console.warn("player-profile branding unavailable",{code:error.code,message:error.message});return fallback;}
-      return data?{...fallback,...data}:fallback;
+    const profileContext=async(pid:string)=>{
+      const fallbackBranding={display_name:workspace.display_name||"Agency",short_name:workspace.short_name||null,portal_name:workspace.portal_name||null,logo_asset:workspace.logo_asset||null,compact_logo_asset:workspace.compact_logo_asset||null,primary_color:workspace.primary_color||"#111827",accent_color:workspace.accent_color||"#64748B",support_email:null,website_url:null,phone:null};
+      try{
+        const value=obj(await rpc("platform_server_player_profile_context",{p_tenant_id:tenantId,p_player_id:pid}));
+        return{branding:{...fallbackBranding,...obj(value.branding)},deals:Array.isArray(value.deals)?value.deals:[],clubs:Array.isArray(value.clubs)?value.clubs:[]};
+      }catch(error){
+        console.warn("player-profile server context unavailable",error);
+        return{branding:fallbackBranding,deals:[],clubs:[]};
+      }
     };
     const profileCommunication=async(pid:string)=>{
       try{return await rpc("platform_server_player_connected_activity",{p_tenant_id:tenantId,p_player_id:pid,p_limit:8});}
@@ -65,51 +69,39 @@ export default {fetch:async(req:Request)=>{
     const profileBundle=async(pid:string)=>{
       const player=await profilePlayer(pid);
       if(!player)return null;
-      const [settingsResult,publishedResult,careerResult,videosResult,documentsResult,sharesResult,dealsResult,clubsResult,branding,communication]=await Promise.all([
+      const [settingsResult,publishedResult,careerResult,videosResult,documentsResult,sharesResult,serverContext,communication]=await Promise.all([
         ctx.supabaseAdmin.from("player_cv_settings").select("*").eq("player_id",pid).maybeSingle(),
         ctx.supabaseAdmin.from("player_public_profiles").select("*").eq("player_id",pid).maybeSingle(),
         ctx.supabaseAdmin.from("career_entries").select("id,player_id,club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,notes,is_international,sort_order,source_name,source_url,source_reviewed_at,source_provider,source_synced_at").eq("player_id",pid).order("sort_order").order("start_date",{ascending:false}),
         ctx.supabaseAdmin.from("player_videos").select("id,player_id,title,url,video_type,featured,sort_order,created_at,updated_at").eq("player_id",pid).order("featured",{ascending:false}).order("sort_order"),
         ctx.supabaseAdmin.from("player_documents").select("id,title,document_type,club_shareable,created_at,country,expires_at").eq("player_id",pid).eq("club_shareable",true).order("created_at",{ascending:false}),
         ctx.supabaseAdmin.from("club_share_links").select("id,token,player_id,label,active,expires_at,view_count,last_viewed_at,created_at,opportunity_id,organisation_id,source_person_id,pitch_message,pitch_status,sent_at,revoked_at").eq("player_id",pid).order("created_at",{ascending:false}).limit(50),
-        ctx.supabaseAdmin.schema("djm_os").from("deal_rooms").select("id,title,organisation_id,source_person_id,stage,status,pitch_status,updated_at").eq("tenant_id",tenantId).eq("player_id",pid).order("updated_at",{ascending:false}).limit(30),
-        ctx.supabaseAdmin.schema("djm_os").from("organisations").select("id,name,country,organisation_type").eq("tenant_id",tenantId).order("name").limit(250),
-        profileBranding(),
+        profileContext(pid),
         profileCommunication(pid)
       ]);
-      for(const resultItem of [settingsResult,publishedResult,careerResult,videosResult,documentsResult,sharesResult,dealsResult,clubsResult]){if(resultItem.error)throw resultItem.error}
-      const clubs=clubsResult.data||[];
+      for(const resultItem of [settingsResult,publishedResult,careerResult,videosResult,documentsResult,sharesResult]){if(resultItem.error)throw resultItem.error}
+      const clubs=serverContext.clubs||[];
       const clubMap=new Map(clubs.map((club:any)=>[String(club.id),club.name]));
-      const deals=(dealsResult.data||[]).map((deal:any)=>({...deal,club_name:clubMap.get(String(deal.organisation_id||""))||null}));
+      const deals=(serverContext.deals||[]).map((deal:any)=>({...deal,club_name:clubMap.get(String(deal.organisation_id||""))||null}));
       const dealMap=new Map(deals.map((deal:any)=>[String(deal.id),deal]));
       const shares=(sharesResult.data||[]).map((share:any)=>({...share,club_name:clubMap.get(String(share.organisation_id||""))||share.label||null,deal_title:dealMap.get(String(share.opportunity_id||""))?.title||null}));
       const career=careerResult.data||[];
-      return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:documentsResult.data||[],shares,deals,clubs,branding,communication,auto_key_stats:profileAutoStats(career,player.current_season_label)};
+      return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:documentsResult.data||[],shares,deals,clubs,branding:serverContext.branding,communication,auto_key_stats:profileAutoStats(career,player.current_season_label)};
     };
 
 
     if(action==="account_overview"){
-      const [profileResult,brandingResult,planResult,plansResult,playersResult,membersResult]=await Promise.all([
+      const [profileResult,playersResult,accountContextRaw]=await Promise.all([
         ctx.supabaseAdmin.from("profiles").select("id,email,display_name,avatar_path,job_title,phone,locale,timezone,updated_at").eq("id",userId).maybeSingle(),
-        ctx.supabaseAdmin.schema("platform").from("tenant_branding").select("display_name,short_name,portal_name,logo_asset,compact_logo_asset,primary_color,accent_color,support_email,website_url,phone").eq("tenant_id",tenantId).maybeSingle(),
-        ctx.supabaseAdmin.schema("platform").from("tenant_plan_assignments").select("id,plan_key,status,billing_mode,effective_from,effective_until,configuration").eq("tenant_id",tenantId).in("status",["trialing","active"]).order("effective_from",{ascending:false}).limit(1).maybeSingle(),
-        ctx.supabaseAdmin.schema("platform").from("plan_catalog").select("plan_key,display_name,rank,status,customer_segment,limits,metadata,monthly_price_cents,price_currency,price_is_from").eq("status","active").order("rank"),
         ctx.supabaseAdmin.from("players").select("id",{count:"exact",head:true}).eq("tenant_id",tenantId),
-        ctx.supabaseAdmin.schema("platform").from("tenant_memberships").select("user_id",{count:"exact",head:true}).eq("tenant_id",tenantId).eq("status","active")
+        rpc("platform_server_account_context",{p_tenant_id:tenantId})
       ]);
-      for(const item of [profileResult,brandingResult,planResult,plansResult,playersResult,membersResult]) if(item.error) throw item.error;
-      let billing:any=null,pendingPlanChange:any=null;
-      if(role==="owner"){
-        const [billingResult,pendingResult]=await Promise.all([
-          ctx.supabaseAdmin.schema("platform").from("billing_accounts").select("status,billing_email,invoice_currency,tax_country,external_customer_reference,payment_provider,metadata,updated_at").eq("tenant_id",tenantId).maybeSingle(),
-          ctx.supabaseAdmin.schema("platform").from("tenant_plan_change_requests").select("id,from_plan_key,requested_plan_key,status,requested_at,resolved_at").eq("tenant_id",tenantId).eq("status","pending").order("requested_at",{ascending:false}).limit(1).maybeSingle()
-        ]);
-        if(billingResult.error) throw billingResult.error;
-        if(pendingResult.error) throw pendingResult.error;
-        billing=billingResult.data||null;
-        pendingPlanChange=pendingResult.data||null;
-      }
-      return json({ok:true,tenant:workspace,account:{profile:profileResult.data||null,branding:brandingResult.data||null,plan:planResult.data||null,plans:plansResult.data||[],usage:{players:playersResult.count||0,staff:membersResult.count||0},billing,pending_plan_change:pendingPlanChange}});
+      if(profileResult.error) throw profileResult.error;
+      if(playersResult.error) throw playersResult.error;
+      const accountContext=obj(accountContextRaw);
+      const billing=role==="owner"&&Object.keys(obj(accountContext.billing)).length?accountContext.billing:null;
+      const pendingPlanChange=role==="owner"&&Object.keys(obj(accountContext.pending_plan_change)).length?accountContext.pending_plan_change:null;
+      return json({ok:true,tenant:workspace,account:{profile:profileResult.data||null,branding:obj(accountContext.branding),plan:obj(accountContext.plan),plans:Array.isArray(accountContext.plans)?accountContext.plans:[],usage:{players:playersResult.count||0,staff:Number(accountContext.staff_count||0)},billing,pending_plan_change:pendingPlanChange}});
     }
 
     if(action==="account_profile_save"){
@@ -181,9 +173,9 @@ export default {fetch:async(req:Request)=>{
 
     if(action==="account_payment_portal"){
       if(role!=="owner") return deny("Agency owner access required");
-      const {data:billing,error:billingError}=await ctx.supabaseAdmin.schema("platform").from("billing_accounts").select("status,payment_provider,external_customer_reference,metadata").eq("tenant_id",tenantId).maybeSingle();
-      if(billingError) throw billingError;
-      if(!billing) return json({error:"Billing account is not configured"},409);
+      const accountContext=obj(await rpc("platform_server_account_context",{p_tenant_id:tenantId}));
+      const billing=obj(accountContext.billing);
+      if(!Object.keys(billing).length) return json({error:"Billing account is not configured"},409);
       if(billing.status==="internal" || Boolean((billing.metadata as any)?.billing_exempt)) return json({error:"This agency has an internal ReDream account and does not require a payment method.",code:"internal_billing"},409);
       if(String(billing.payment_provider||"").toLowerCase()!=="stripe" || !billing.external_customer_reference) return json({error:"Online payment management is not configured for this agency yet.",code:"payment_portal_unavailable"},409);
       const stripeKey=Deno.env.get("STRIPE_SECRET_KEY");
@@ -450,20 +442,21 @@ export default {fetch:async(req:Request)=>{
       const published=await ctx.supabaseAdmin.from("player_public_profiles").select("player_id,published").eq("player_id",pid).maybeSingle();if(published.error)throw published.error;if(!published.data?.published)return json({error:"Publish the Player Profile before sharing it"},409);
       const dealRoomId=id(body?.deal_room_id)||null;
       let organisationId=id(body?.organisation_id)||null;
-      let sourcePersonId:null|string=null;
-      let deal:any=null;
-      if(dealRoomId){
-        const dealResult=await ctx.supabaseAdmin.schema("djm_os").from("deal_rooms").select("id,title,organisation_id,source_person_id,player_id,tenant_id").eq("id",dealRoomId).eq("tenant_id",tenantId).eq("player_id",pid).maybeSingle();if(dealResult.error)throw dealResult.error;if(!dealResult.data)return json({error:"Deal not found for this player"},404);deal=dealResult.data;organisationId=deal.organisation_id||organisationId;sourcePersonId=deal.source_person_id||null;
-      }
+      const target=obj(await rpc("platform_server_player_profile_share_target",{p_tenant_id:tenantId,p_player_id:pid,p_deal_room_id:dealRoomId,p_organisation_id:organisationId}));
+      const deal=obj(target.deal);
+      const organisation=obj(target.organisation);
+      if(dealRoomId&&!Object.keys(deal).length)return json({error:"Deal not found for this player"},404);
+      organisationId=id(deal.organisation_id)||organisationId;
+      const sourcePersonId=id(deal.source_person_id)||null;
       if(!organisationId)return json({error:"Choose the club this profile is being shared with"},400);
-      const organisation=await ctx.supabaseAdmin.schema("djm_os").from("organisations").select("id,name,country").eq("id",organisationId).eq("tenant_id",tenantId).maybeSingle();if(organisation.error)throw organisation.error;if(!organisation.data)return json({error:"Club not found in this agency workspace"},404);
+      if(!Object.keys(organisation).length)return json({error:"Club not found in this agency workspace"},404);
       const expiresDays=clamp(body?.expires_days,1,180,30);
       const now=new Date();
       const expiresAt=new Date(now.getTime()+expiresDays*86400000).toISOString();
-      const {data,error}=await ctx.supabaseAdmin.from("club_share_links").insert({player_id:pid,label:organisation.data.name,active:true,expires_at:expiresAt,created_by:userId,opportunity_id:dealRoomId,organisation_id:organisationId,source_person_id:sourcePersonId,pitch_message:id(body?.pitch_message).slice(0,1500)||null,pitch_status:"ready",selected_sections:Array.isArray(body?.selected_sections)?body.selected_sections:[],sent_at:null}).select("*").single();if(error)throw error;
-      if(dealRoomId){const update=await ctx.supabaseAdmin.schema("djm_os").from("deal_rooms").update({pitch_status:"ready",updated_at:now.toISOString()}).eq("id",dealRoomId).eq("tenant_id",tenantId).eq("player_id",pid);if(update.error)throw update.error}
-      await profileAudit("player_profile.share_link_created",pid,{},data,{organisation_id:organisationId,club_name:organisation.data.name,deal_room_id:dealRoomId});
-      return json({ok:true,share:{...data,club_name:organisation.data.name,deal_title:deal?.title||null}});
+      const {data,error}=await ctx.supabaseAdmin.from("club_share_links").insert({player_id:pid,label:id(organisation.name),active:true,expires_at:expiresAt,created_by:userId,opportunity_id:dealRoomId,organisation_id:organisationId,source_person_id:sourcePersonId,pitch_message:id(body?.pitch_message).slice(0,1500)||null,pitch_status:"ready",selected_sections:Array.isArray(body?.selected_sections)?body.selected_sections:[],sent_at:null}).select("*").single();if(error)throw error;
+      if(dealRoomId) await rpc("platform_server_player_profile_mark_pitch_ready",{p_tenant_id:tenantId,p_player_id:pid,p_deal_room_id:dealRoomId});
+      await profileAudit("player_profile.share_link_created",pid,{},data,{organisation_id:organisationId,club_name:id(organisation.name),deal_room_id:dealRoomId});
+      return json({ok:true,share:{...data,club_name:id(organisation.name),deal_title:id(deal.title)||null}});
     }
 
     if(action==="player_profile_share_revoke"){

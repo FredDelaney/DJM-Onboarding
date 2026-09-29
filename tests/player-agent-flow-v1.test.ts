@@ -33,9 +33,9 @@ test('player deep links stay recoverable when the drawer closes', () => {
 
 test('Player Profile branding cannot depend on a missing helper RPC', () => {
   assert.doesNotMatch(agencyOs, /platform_server_tenant_branding/);
-  assert.match(agencyOs, /schema\("platform"\)\.from\("tenant_branding"\)/);
-  assert.match(agencyOs, /player-profile branding unavailable/);
-  assert.match(agencyOs, /return fallback/);
+  assert.match(agencyOs, /platform_server_player_profile_context/);
+  assert.match(agencyOs, /player-profile server context unavailable/);
+  assert.match(agencyOs, /branding:fallbackBranding/);
 });
 
 test('connected communication is enrichment and cannot take down a Player Profile', () => {
@@ -50,4 +50,12 @@ test('a Player Profile load failure gives the agent recovery instead of a dead e
   assert.match(profile, /Try again/);
   assert.match(profile, /Back to player/);
   assert.match(profile, /onClick=\{\(\) => void load\(\)\}/);
+});
+
+
+test('agency-os never reads private schemas through PostgREST', () => {
+  assert.doesNotMatch(agencyOs, /\.schema\(\"platform\"\)/);
+  assert.doesNotMatch(agencyOs, /\.schema\(\"djm_os\"\)/);
+  assert.match(agencyOs, /platform_server_account_context/);
+  assert.match(agencyOs, /platform_server_player_profile_share_target/);
 });
