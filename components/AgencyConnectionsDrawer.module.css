@@ -521,3 +521,20 @@
     min-height: 36px;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 620px) {
+  .drawer {
+    padding-top: calc(20px + env(safe-area-inset-top));
+  }
+
+  .threadContactSelect {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .primary,
+  .secondary {
+    min-height: 44px;
+  }
+}

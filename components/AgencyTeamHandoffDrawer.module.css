@@ -812,3 +812,10 @@
       max(18px, env(safe-area-inset-left));
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 680px) {
+  .note textarea {
+    font-size: 16px;
+  }
+}

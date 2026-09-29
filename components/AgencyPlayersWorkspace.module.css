@@ -22,3 +22,26 @@
 .spin{animation:spin 900ms linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:960px){.playerGrid{grid-template-columns:1fr}.intro{align-items:start;flex-direction:column}.sectionTabs{width:100%}.sectionTab,.sectionTabActive{flex:1}}
 @media(max-width:680px){.toolbar{align-items:stretch;flex-direction:column}.search{width:100%}.playerCardTop{grid-template-columns:auto minmax(0,1fr)}.attentionPill,.calmPill{grid-column:1/-1;justify-self:start}.playerFacts,.factGrid,.formGrid{grid-template-columns:1fr}.formWide{grid-column:auto}.recruitmentRow{grid-template-columns:36px minmax(0,1fr)}.recruitmentStage{grid-column:2;justify-content:flex-start}.playerHero,.recruitHero{grid-template-columns:auto minmax(0,1fr);margin-inline:10px}.heroActions{grid-column:1/-1;justify-items:start}.playerTabs{margin-inline:10px}.drawerBody{padding-inline:10px}}
+
+/* Mobile product polish v2 */
+@media (max-width: 680px) {
+  .search input,
+  .interactionForm select,
+  .interactionForm textarea,
+  .formGrid input {
+    font-size: 16px;
+  }
+
+  .search,
+  .interactionForm select,
+  .formGrid input {
+    min-height: 44px;
+  }
+
+  .sectionTab,
+  .sectionTabActive,
+  .playerTab,
+  .playerTabActive {
+    min-height: 44px;
+  }
+}

@@ -518,3 +518,19 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 760px) {
+  .header {
+    padding-top: calc(17px + env(safe-area-inset-top));
+  }
+
+  .confirmBar {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .primary,
+  .secondary {
+    min-height: 44px;
+  }
+}

@@ -216,3 +216,18 @@
     padding: 14px;
   }
 }
+
+/* Mobile product polish v2 */
+@media (max-width: 640px) {
+  .textPanel textarea {
+    font-size: 16px;
+  }
+
+  .secondary,
+  .primary,
+  .answer,
+  .smallButton,
+  .retryButton {
+    min-height: 44px;
+  }
+}
