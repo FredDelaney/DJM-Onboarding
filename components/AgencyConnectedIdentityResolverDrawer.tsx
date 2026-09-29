@@ -25,6 +25,7 @@ import {
   platformRpc,
   relativeDate,
 } from '@/lib/platform-client';
+import { bootstrapSelectedInstagramHistory } from '@/lib/connected-messaging';
 
 import styles from './AgencyConnectedIdentityResolverDrawer.module.css';
 
@@ -300,6 +301,58 @@ export default function AgencyConnectedIdentityResolverDrawer({
       .slice(0, 50);
   }, [activeThread, players, search]);
 
+  const bootstrapHistory = async (thread: Thread) => {
+    if (thread.provider !== 'instagram') {
+      return {
+        attempted: false,
+        ok: true,
+        imported: 0,
+      };
+    }
+
+    try {
+      const result = await bootstrapSelectedInstagramHistory(
+        workspaceSlug,
+        thread.external_thread_id,
+      );
+
+      return {
+        attempted: true,
+        ok: Boolean(result?.ok),
+        imported: Number(result?.messages_imported || 0),
+      };
+    } catch {
+      return {
+        attempted: true,
+        ok: false,
+        imported: 0,
+      };
+    }
+  };
+
+  const historySuffix = (
+    result: {
+      attempted: boolean;
+      ok: boolean;
+      imported: number;
+    },
+  ) => {
+    if (!result.attempted) return '';
+    if (!result.ok) {
+      return ' Identity saved. Recent Instagram history could not be imported yet.';
+    }
+    if (result.imported > 0) {
+      return (
+        ' ' +
+        result.imported +
+        ' recent Instagram ' +
+        (result.imported === 1 ? 'message' : 'messages') +
+        ' added to Agency Memory.'
+      );
+    }
+    return ' Recent Instagram history checked.';
+  };
+
   const bind = async (contact: Contact) => {
     if (!activeThread || busy) return;
 
@@ -331,6 +384,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
       const linkedThread = activeThread;
       const linkedName =
         result.bound_person_name || contactName(contact);
+      const history = await bootstrapHistory(linkedThread);
 
       setThreads((current) =>
         current.filter(
@@ -348,7 +402,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
         (linkedThread.participant_label || 'Chat') +
           ' linked to ' +
           linkedName +
-          '.',
+          '.' +
+          historySuffix(history),
       );
 
       await onResolved?.();
@@ -393,6 +448,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
         result.bound_player_name ||
         player.player_name ||
         'Player';
+      const history = await bootstrapHistory(linkedThread);
 
       setThreads((current) =>
         current.filter(
@@ -410,7 +466,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
         (linkedThread.participant_label || 'Chat') +
           ' linked to player ' +
           linkedName +
-          '.',
+          '.' +
+          historySuffix(history),
       );
 
       await onResolved?.();
@@ -478,6 +535,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
 
       const linkedThread = activeThread;
       const linkedName = result.person_name || fullName;
+      const history = await bootstrapHistory(linkedThread);
 
       setThreads((current) =>
         current.filter(
@@ -502,7 +560,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
         linkedName +
           ' added to Network and linked to ' +
           (linkedThread.participant_label || 'the selected chat') +
-          '.',
+          '.' +
+          historySuffix(history),
       );
 
       await onResolved?.();

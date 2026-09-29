@@ -532,6 +532,291 @@ async function syncInstagramThreadCatalog(
   };
 }
 
+async function bootstrapInstagramThreadHistory(
+  admin: any,
+  context: any,
+  externalThreadId: string,
+) {
+  const requestedThreadId = String(externalThreadId || "").trim();
+  if (!requestedThreadId) {
+    throw new Error("thread_required");
+  }
+
+  const [
+    secretResult,
+    threadResult,
+  ] = await Promise.all([
+    admin.rpc(
+      "platform_server_messaging_secret",
+      {
+        p_tenant_id: context.tenant_id,
+        p_user_id: context.user_id,
+        p_provider: "instagram",
+      },
+    ),
+    admin.rpc(
+      "platform_server_messaging_history_context",
+      {
+        p_tenant_id: context.tenant_id,
+        p_user_id: context.user_id,
+        p_provider: "instagram",
+        p_external_thread_id: requestedThreadId,
+      },
+    ),
+  ]);
+
+  if (
+    secretResult.error ||
+    !secretResult.data?.access_token ||
+    !secretResult.data?.external_account_id
+  ) {
+    throw secretResult.error ||
+      new Error("instagram_connection_unavailable");
+  }
+
+  if (
+    threadResult.error ||
+    !threadResult.data?.catalog_conversation_id
+  ) {
+    throw threadResult.error ||
+      new Error("instagram_history_context_unavailable");
+  }
+
+  const connection = secretResult.data;
+  const thread = threadResult.data;
+  const token = String(connection.access_token);
+  const externalAccountId = String(
+    connection.external_account_id,
+  );
+  const professionalUserId = String(
+    connection?.metadata?.professional_user_id ||
+      externalAccountId,
+  );
+
+  const selfIds = new Set(
+    [
+      externalAccountId,
+      professionalUserId,
+      String(
+        connection?.metadata?.login_account_id ||
+          "",
+      ),
+    ].filter(Boolean),
+  );
+
+  const conversationId = String(
+    thread.catalog_conversation_id,
+  ).trim();
+
+  const fields =
+    "messages.limit(20){id,from,to,message,created_time}";
+
+  const conversationUrl = new URL(
+    "https://graph.instagram.com/" +
+      graphVersion() +
+      "/" +
+      encodeURIComponent(conversationId),
+  );
+  conversationUrl.searchParams.set("fields", fields);
+  conversationUrl.searchParams.set(
+    "access_token",
+    token,
+  );
+
+  let response = await fetch(conversationUrl);
+  let payload = await response
+    .json()
+    .catch(() => ({}));
+
+  let messages = Array.isArray(
+    payload?.messages?.data,
+  )
+    ? payload.messages.data
+    : [];
+
+  if (!response.ok || !Array.isArray(payload?.messages?.data)) {
+    const messagesUrl = new URL(
+      "https://graph.instagram.com/" +
+        graphVersion() +
+        "/" +
+        encodeURIComponent(conversationId) +
+        "/messages",
+    );
+    messagesUrl.searchParams.set(
+      "fields",
+      "id,from,to,message,created_time",
+    );
+    messagesUrl.searchParams.set("limit", "20");
+    messagesUrl.searchParams.set(
+      "access_token",
+      token,
+    );
+
+    response = await fetch(messagesUrl);
+    payload = await response
+      .json()
+      .catch(() => ({}));
+
+    if (!response.ok) {
+      console.error(
+        JSON.stringify({
+          operation:
+            "redream_instagram_selected_history",
+          status: response.status,
+          provider_error_code: String(
+            payload?.error?.code || "",
+          ),
+        }),
+      );
+      throw new Error(
+        "instagram_thread_history_failed",
+      );
+    }
+
+    messages = Array.isArray(payload?.data)
+      ? payload.data
+      : [];
+  }
+
+  const now = Date.now();
+  const cutoff =
+    now - 30 * 24 * 60 * 60 * 1000;
+
+  const bounded = messages
+    .slice(0, 20)
+    .map((message: any) => {
+      const occurredAt = String(
+        message?.created_time || "",
+      ).trim();
+      const occurredMs = Date.parse(
+        occurredAt,
+      );
+
+      return {
+        message,
+        occurredAt,
+        occurredMs,
+      };
+    })
+    .filter(
+      (item: any) =>
+        Number.isFinite(item.occurredMs) &&
+        item.occurredMs >= cutoff &&
+        item.occurredMs <= now + 5 * 60 * 1000,
+    )
+    .sort(
+      (a: any, b: any) =>
+        a.occurredMs - b.occurredMs,
+    );
+
+  let imported = 0;
+  let duplicates = 0;
+  let unsupported = 0;
+  let identityRefreshed = 0;
+  let seen = 0;
+  let oldestAt: string | null = null;
+  let newestAt: string | null = null;
+
+  for (const item of bounded) {
+    const message = item.message || {};
+    const messageId = String(
+      message?.id || "",
+    ).trim();
+    const senderId = String(
+      message?.from?.id || "",
+    ).trim();
+
+    if (!messageId || !senderId) {
+      unsupported += 1;
+      continue;
+    }
+
+    const direction = selfIds.has(senderId)
+      ? "outbound"
+      : "inbound";
+    const messageText =
+      String(message?.message || "").trim() ||
+      null;
+
+    const { data: ingested, error } =
+      await admin.rpc(
+        "platform_server_messaging_history_ingest",
+        {
+          p_tenant_id: context.tenant_id,
+          p_user_id: context.user_id,
+          p_provider: "instagram",
+          p_external_thread_id: requestedThreadId,
+          p_external_message_id: messageId,
+          p_direction: direction,
+          p_message_text: messageText,
+          p_occurred_at: item.occurredAt,
+          p_metadata: {
+            source:
+              "instagram_selected_history",
+            catalog_conversation_id:
+              conversationId,
+            sender_id: senderId,
+          },
+        },
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    seen += 1;
+    oldestAt =
+      oldestAt || item.occurredAt;
+    newestAt = item.occurredAt;
+
+    if (ingested?.duplicate) {
+      duplicates += 1;
+      if (ingested?.identity_refreshed) {
+        identityRefreshed += 1;
+      }
+    } else if (
+      ingested?.unsupported_content
+    ) {
+      unsupported += 1;
+    } else if (
+      ingested?.interaction_id
+    ) {
+      imported += 1;
+    }
+  }
+
+  const { error: completeError } =
+    await admin.rpc(
+      "platform_server_messaging_history_complete",
+      {
+        p_tenant_id: context.tenant_id,
+        p_user_id: context.user_id,
+        p_provider: "instagram",
+        p_external_thread_id: requestedThreadId,
+        p_messages_seen: seen,
+        p_messages_imported: imported,
+        p_duplicates: duplicates,
+        p_unsupported: unsupported,
+        p_identity_refreshed: identityRefreshed,
+        p_oldest_at: oldestAt,
+        p_newest_at: newestAt,
+      },
+    );
+
+  if (completeError) {
+    throw completeError;
+  }
+
+  return {
+    ok: true,
+    messages_seen: seen,
+    messages_imported: imported,
+    duplicates,
+    unsupported,
+    identity_refreshed: identityRefreshed,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
@@ -646,6 +931,15 @@ Deno.serve(async (req) => {
       const result = await syncInstagramThreadCatalog(
         admin,
         context,
+      );
+      return json(result);
+    }
+
+    if (action === "instagram_thread_history") {
+      const result = await bootstrapInstagramThreadHistory(
+        admin,
+        context,
+        String(body?.external_thread_id || ""),
       );
       return json(result);
     }

@@ -49,7 +49,7 @@ test(
   () => {
     const syncFunction =
       connect.match(
-        /async function syncInstagramThreadCatalog[\s\S]*?\n}\n\nDeno\.serve/,
+        /async function syncInstagramThreadCatalog[\s\S]*?\n}\n\nasync function bootstrapInstagramThreadHistory/,
       )?.[0] || '';
 
     assert.match(
