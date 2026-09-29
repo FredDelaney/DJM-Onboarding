@@ -26,7 +26,7 @@ test('showcase polish presents the V2 agency operating model', () => {
 });
 
 test('Home keeps attention bounded and every visible item actionable', () => {
-  assert.match(workspace, /\.slice\(0, 5\)/);
+  assert.match(workspace, /\.slice\(0, 4\)/);
   assert.match(workspace, /Good morning\./);
   assert.match(workspace, /const actionFor = \(command: any\)/);
   assert.match(workspace, /onClick=\{\(\) => onPrepare\(command\)\}/);
@@ -62,7 +62,7 @@ test('players and relationships use tenant-neutral premium entity presentation',
     /active_players \?\? items\.length\} represented/,
   );
   assert.doesNotMatch(workspace, /DJM Sports Management/);
-  assert.doesNotMatch(workspace, /ReDream/);
+  assert.match(workspace, /REDREAM HANDLED/);
 });
 
 test('Market and Deals separate demand creation from commercial execution without inventing probability', () => {

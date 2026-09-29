@@ -65,11 +65,13 @@ test('Home keeps ranked attention as the required core and loads support feeds s
 });
 
 test('Home shows a bounded decision queue with one direct action per item', () => {
-  assert.match(home, /\.slice\(0, 5\)/);
+  assert.match(home, /\.slice\(0, 4\)/);
   assert.match(home, /What needs your attention/);
   assert.match(home, /actionFor\(command\)/);
   assert.match(home, /onPrepare\(command\)/);
   assert.match(home, /onOpenAction\(command\)/);
+  assert.match(home, /Record outcome/);
+  assert.match(home, /Resolve identities/);
   assert.doesNotMatch(home, /priority_score\}/);
 });
 
@@ -83,7 +85,7 @@ test('Home uses the real deadline contract for the day view', () => {
   assert.match(home, /href="\?view=calendar"/);
 });
 
-test('Home support sections use real market deal and player models rather than recycling attention cards', () => {
+test('Home collapses market deal and player context into one agency pulse', () => {
   assert.match(
     home,
     /dealData\?\.portfolio\?\.deals/,
@@ -100,8 +102,8 @@ test('Home support sections use real market deal and player models rather than r
     home,
     /playerService\?\.players/,
   );
-  assert.match(home, /OPPORTUNITIES MOVING/);
-  assert.match(home, /PLAYERS NEEDING ATTENTION/);
+  assert.match(home, /AGENCY PULSE/);
+  assert.match(home, /className=\{styles\.homePulseCard\}/);
   assert.match(
     home,
     /opportunityMoves[\s\S]*\.slice\(0, 3\)/,
@@ -110,9 +112,11 @@ test('Home support sections use real market deal and player models rather than r
     home,
     /playerAttention[\s\S]*\.slice\(0, 3\)/,
   );
+  assert.doesNotMatch(home, /OPPORTUNITIES MOVING/);
+  assert.doesNotMatch(home, /PLAYERS NEEDING ATTENTION/);
 });
 
-test('owner and admin Home gets a quiet business strip from recorded business evidence', () => {
+test('owner and admin Home keeps business evidence inside the compact agency pulse', () => {
   assert.match(
     home,
     /ownerBusiness\?\.control\?\.executive_summary/,
@@ -129,15 +133,19 @@ test('owner and admin Home gets a quiet business strip from recorded business ev
     home,
     /href="\?view=business"/,
   );
-  assert.match(css, /\.homeBusinessStrip\s*\{/);
+  assert.match(css, /\.homePulseCard\s*\{/);
 });
 
 test('Home remains responsive and avoids dashboard sprawl', () => {
   assert.match(css, /\.homeOverviewGrid\s*\{/);
-  assert.match(css, /\.homeSupportGrid\s*\{/);
+  assert.match(css, /\.homePulseGrid\s*\{/);
   assert.match(
     css,
     /@media \(max-width: 980px\)[\s\S]*\.homeOverviewGrid/,
+  );
+  assert.match(
+    css,
+    /@media \(max-width: 680px\)[\s\S]*\.homePulseGrid/,
   );
   assert.doesNotMatch(home, /Metric\s*\(/);
 });
