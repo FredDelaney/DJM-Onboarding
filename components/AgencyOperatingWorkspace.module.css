@@ -1909,12 +1909,22 @@
 .simpleTimelineRow {
   min-height: 64px;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
   border-top: 1px solid #eef0f2;
   color: var(--agency-primary);
+  text-decoration: none;
+  transition: background .15s ease;
+}
+
+.simpleTimelineRow:hover {
+  background: #fafbfc;
+}
+
+.simpleTimelineArrow {
+  color: #a0a7ae;
 }
 
 .simpleTimelineRow:first-child {
