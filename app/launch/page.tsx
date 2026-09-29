@@ -8,7 +8,6 @@ import {
   LockKeyhole,
   LogOut,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import {
   CSSProperties,
@@ -89,33 +88,33 @@ const STEP_COPY: Record<
 > = {
   branding: {
     eyebrow: 'YOUR IDENTITY',
-    title: 'Make the workspace unmistakably yours.',
-    copy: 'Confirm the agency name, player portal name and support details your players should see.',
+    title: 'Set up your agency.',
+    copy: 'Add the identity and support details your players should see.',
   },
   privacy: {
     eyebrow: 'PLAYER PRIVACY',
-    title: 'Connect your approved privacy notice.',
-    copy: 'Provide the controller identity and current published notice used by your agency. The platform records what you provide; it does not draft or approve legal wording.',
+    title: 'Add your privacy notice.',
+    copy: 'Use the privacy notice your agency already publishes.',
   },
   first_player: {
     eyebrow: 'FIRST PLAYER',
-    title: 'Start with one real player.',
-    copy: 'Use a real represented player so the workspace proves value on genuine agency work from the start.',
+    title: 'Add your first player.',
+    copy: 'Start with one represented player your agency actively works with.',
   },
   first_relationship: {
     eyebrow: 'FIRST RELATIONSHIP',
-    title: 'Add one club contact you actually know.',
-    copy: 'A real relationship makes the next opportunity and follow-up workflow useful immediately.',
+    title: 'Add a club contact.',
+    copy: 'Choose someone your agency actually knows.',
   },
   first_opportunity: {
     eyebrow: 'FIRST LIVE OPPORTUNITY',
-    title: 'Capture something commercially real.',
-    copy: 'Use a club requirement or live route you are already working on. This is the moment the workspace becomes operational.',
+    title: 'Add something live.',
+    copy: 'Capture a real club need or player route you are already working on.',
   },
   owner_setup_complete: {
     eyebrow: 'OWNER SETUP COMPLETE',
-    title: 'Your workspace has real working value.',
-    copy: 'Your identity, privacy foundation and first operating loop are in place. Progress remains evidence-led as your agency starts using the workspace.',
+    title: "You're ready to use ReDream.",
+    copy: 'Your first player, relationship and live opportunity are in place.',
   },
 };
 
@@ -737,10 +736,7 @@ export default function AgencyLaunchPage() {
         <CheckCircle2 size={28} />
         <div>
           <strong>Owner setup complete</strong>
-          <p>
-            Your workspace now contains the minimum real operating loop: agency
-            identity, privacy foundation, player, club relationship and live opportunity.
-          </p>
+          <p>Your first operating loop is ready.</p>
         </div>
       </div>
     );
@@ -872,17 +868,6 @@ export default function AgencyLaunchPage() {
             ))}
           </div>
 
-          <div className={styles.platformState}>
-            <Sparkles size={15} />
-            <div>
-              <strong>Workspace address</strong>
-              <span>
-                {launch.platform_managed?.workspace_address_ready
-                  ? launch.platform_managed.workspace_hostname
-                  : 'Being connected by the platform team'}
-              </span>
-            </div>
-          </div>
         </aside>
 
         <section className={styles.main}>
@@ -907,25 +892,6 @@ export default function AgencyLaunchPage() {
               Open operating workspace
             </button>
           ) : null}
-
-          <div className={styles.valueStrip}>
-            <div>
-              <span>Working value</span>
-              <strong>
-                {launch.activation?.first_value_ready ? 'Reached' : 'Building'}
-              </strong>
-            </div>
-            <div>
-              <span>Launch readiness</span>
-              <strong>
-                {launch.platform_managed?.launch_ready ? 'Ready' : 'In progress'}
-              </strong>
-            </div>
-            <div>
-              <span>Plan</span>
-              <strong>{String(launch.plan_key || 'Agency').toUpperCase()}</strong>
-            </div>
-          </div>
         </section>
       </div>
     </main>
