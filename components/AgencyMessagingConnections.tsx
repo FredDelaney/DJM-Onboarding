@@ -327,12 +327,17 @@ async function whatsappSignup(
 export default function AgencyMessagingConnections({
   workspaceSlug,
   onStatus,
+  onIdentityState,
 }: {
   workspaceSlug: string;
   onStatus?: (
     kind: 'success' | 'error',
     message: string,
   ) => void;
+  onIdentityState?: (state: {
+    selected: number;
+    unresolved: number;
+  }) => void;
 }) {
   const [
     connections,
@@ -517,6 +522,26 @@ export default function AgencyMessagingConnections({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const allThreads = [
+      ...threads.instagram,
+      ...threads.whatsapp,
+    ];
+    const selected = allThreads.filter(
+      (thread) => thread.is_selected,
+    );
+    const unresolved = selected.filter(
+      (thread) =>
+        !thread.bound_person_id &&
+        !thread.bound_player_id,
+    );
+
+    onIdentityState?.({
+      selected: selected.length,
+      unresolved: unresolved.length,
+    });
+  }, [onIdentityState, threads]);
 
   const refreshInstagramThreads =
     async () => {
@@ -816,8 +841,8 @@ export default function AgencyMessagingConnections({
           'success',
           selected
             ? provider === 'instagram'
-              ? 'This Instagram conversation can now feed ReDream. Confirm the player or contact identity from Home.'
-              : 'This business conversation can now feed ReDream. Confirm the Network identity from Home.'
+              ? 'This Instagram conversation can now feed ReDream. Confirm who it belongs to under Review identities.'
+              : 'This business conversation can now feed ReDream. Confirm who it belongs to under Review identities.'
             : 'ReDream will stop learning from this chat.',
         );
       } catch (error) {

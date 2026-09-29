@@ -58,7 +58,8 @@ test('email is an explicit agency-mailbox capability for club and Network work',
 test('channel expectations stay with Connections and identity review rather than daily Home', () => {
   assert.match(resolver, /Instagram is normally player communication/);
   assert.match(resolver, /WhatsApp is normally club and football contact communication/);
-  assert.match(connections, /Connected identities/);
+  assert.match(connections, /messagingIdentity\.unresolved/);
+  assert.match(connections, /selected .*chat needs.* identity/);
   assert.match(connections, /Review identities/);
   assert.doesNotMatch(home, /Confirm the exceptions explicitly/);
 });
