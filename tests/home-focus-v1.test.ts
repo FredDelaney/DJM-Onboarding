@@ -33,7 +33,7 @@ test('Needs you shows only three actions until the agent asks for more', () => {
   assert.match(home, /3 - visiblePriority\.length/);
   assert.match(home, /meetingAftercareItems\.slice\(0, remainingAttentionSlots\)/);
   assert.match(home, /needsYouCount > 3/);
-  assert.match(home, /What needs your attention/);
+  assert.match(home, /<h2>Needs you<\/h2>/);
   assert.match(home, /actionFor\(command\)/);
   assert.match(home, /Record outcome/);
   assert.doesNotMatch(home, /Resolve identities/);

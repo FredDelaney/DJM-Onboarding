@@ -1065,6 +1065,7 @@ export default function AgencyOperatingWorkspace() {
             {view === 'home' ? (
               <Home
                 data={data}
+                basePath={basePath}
                 actionBusy={actionBusy}
                 onPrepare={prepareCommand}
                 onOpenAction={openCommandAction}
@@ -1578,6 +1579,7 @@ function EmptyState({
 
 function Home({
   data,
+  basePath,
   actionBusy,
   onPrepare,
   onOpenAction,
@@ -1585,6 +1587,7 @@ function Home({
   onRecordMeetingOutcome,
 }: {
   data: any;
+  basePath: string;
   actionBusy: string;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
@@ -1732,6 +1735,38 @@ function Home({
       return aTime - bTime;
     });
 
+  const dayHrefFor = (item: any) => {
+    const meetingId = String(item?.meeting_id || '').trim();
+    if (item?.calendar_kind === 'meeting') {
+      return meetingId
+        ? `${basePath}?view=calendar&meeting=${encodeURIComponent(meetingId)}`
+        : `${basePath}?view=calendar`;
+    }
+
+    const playerId = String(
+      item?.context?.player_id || item?.player_id || '',
+    ).trim();
+    if (playerId) {
+      return `${basePath}?view=players&player=${encodeURIComponent(playerId)}`;
+    }
+
+    const clubNeedId = String(
+      item?.context?.club_need_id || item?.club_need_id || '',
+    ).trim();
+    if (
+      clubNeedId ||
+      ['deal', 'club_need'].includes(String(item?.entity_type || ''))
+    ) {
+      return `${basePath}?view=opportunities`;
+    }
+
+    if (item?.person_id || item?.organisation_id) {
+      return `${basePath}?view=network`;
+    }
+
+    return `${basePath}?view=calendar`;
+  };
+
   const actionFor = (command: any) => {
     const replyInteractionId =
       command?.source_type === 'task' &&
@@ -1807,8 +1842,7 @@ function Home({
         >
           <div className={styles.sectionHead}>
             <div>
-              <p className={styles.eyebrow}>NEEDS YOU</p>
-              <h2>What needs your attention</h2>
+              <h2>Needs you</h2>
             </div>
             {needsYouCount ? (
               <span className={styles.sectionCount}>
@@ -1882,7 +1916,7 @@ function Home({
                       item?.title ||
                       'Linked meeting'}
                     {' · '}
-                    Record the outcome so the agency remembers what mattered and the next move.
+                    Capture the outcome and next move.
                   </span>
                 </div>
 
@@ -1913,8 +1947,8 @@ function Home({
             {!needsYouCount ? (
               <EmptyState
                 icon={CheckCircle2}
-                title="You are clear for now"
-                copy="The next decision will appear here when it matters."
+                title="Nothing needs you right now"
+                copy="You are clear."
               />
             ) : null}
           </div>
@@ -1925,8 +1959,7 @@ function Home({
         >
           <div className={styles.sectionHead}>
             <div>
-              <p className={styles.eyebrow}>TODAY</p>
-              <h2>Your day</h2>
+              <h2>Today</h2>
             </div>
 
             <a
@@ -1942,13 +1975,15 @@ function Home({
             {dayItems
               .slice(0, 3)
               .map((item: any, index: number) => (
-                <article
+                <Link
                   className={styles.simpleTimelineRow}
                   key={
                     item?.item_id ||
                     item?.entity_id ||
                     `${item?.title || 'item'}-${index}`
                   }
+                  href={dayHrefFor(item)}
+                  aria-label={`Open ${item?.title || 'today item'}`}
                 >
                   {item?.calendar_kind === 'birthday' ? (
                     <CakeSlice size={16} />
@@ -1971,14 +2006,15 @@ function Home({
                         : ''}
                     </span>
                   </div>
-                </article>
+                  <ArrowRight className={styles.simpleTimelineArrow} size={14} />
+                </Link>
               ))}
 
             {!dayItems.length ? (
               <EmptyState
                 icon={CalendarDays}
                 title="Nothing else today"
-                copy="Your next dated item stays in Calendar until it is relevant."
+                copy="No meetings or dated work recorded for today."
               />
             ) : null}
           </div>

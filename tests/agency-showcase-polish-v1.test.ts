@@ -88,7 +88,7 @@ test('Market and Deals separate demand creation from commercial execution withou
 });
 
 test('every primary operating area has an intentional empty state', () => {
-  assert.match(workspace, /You are clear for now/);
+  assert.match(workspace, /Nothing needs you right now/);
   assert.match(workspace, /No players recorded yet/);
   assert.match(workspace, /No relevant club relationships yet/);
   assert.match(workspace, /No live deals recorded/);

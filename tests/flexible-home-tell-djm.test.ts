@@ -67,7 +67,7 @@ test('shared Agency Home replaces the DJM alias and legacy dismiss controls with
 
   assert.match(
     agencyWorkspace,
-    /You are clear for now/,
+    /Nothing needs you right now/,
   );
 
   assert.doesNotMatch(

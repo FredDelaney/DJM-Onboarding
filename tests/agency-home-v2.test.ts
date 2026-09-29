@@ -46,7 +46,7 @@ test('Home uses the existing personal ownership spine rather than inventing anot
 
 test('Home shows a bounded decision queue with one direct action per item', () => {
   assert.match(home, /priority\.slice\(0, 3\)/);
-  assert.match(home, /What needs your attention/);
+  assert.match(home, /<h2>Needs you<\/h2>/);
   assert.match(home, /actionFor\(command\)/);
   assert.match(home, /onPrepare\(command\)/);
   assert.match(home, /onOpenAction\(command\)/);
