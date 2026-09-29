@@ -17,11 +17,12 @@ test('mobile shell is content-first with compact page heading', () => {
   assert.match(shell, /\.root[\s\S]*background: #fff/);
 });
 
-test('mobile navigation floats separately from Tell ReDream', () => {
-  assert.match(shell, /\.sidebar[\s\S]*inset:[\s\S]*auto 86px/);
-  assert.match(shell, /border-radius: 24px/);
+test('mobile navigation floats separately from Tell ReDream without overpowering content', () => {
+  assert.match(shell, /\.sidebar[\s\S]*inset:[\s\S]*auto 80px/);
+  assert.match(shell, /border-radius: 22px/);
   assert.match(shell, /backdrop-filter: blur\(18px\)/);
-  assert.match(shell, /\.mobileTell button[\s\S]*width: 58px/);
+  assert.match(shell, /\.nav a[\s\S]*font-size: 10px/);
+  assert.match(shell, /\.mobileTell button[\s\S]*width: 54px/);
 });
 
 test('player list is a scan surface rather than a mini detail page', () => {
@@ -38,9 +39,12 @@ test('network removes dashboard-style analysis blocks from mobile', () => {
 test('opportunities and calendar use quiet segmented controls', () => {
   assert.match(opportunities, /\.tabActive[\s\S]*background: #fff/);
   assert.match(opportunities, /\.controls[\s\S]*background: transparent/);
+  assert.match(opportunities, /\.tab,[\s\S]*\.tabActive[\s\S]*min-height: 44px[\s\S]*font-size: 13px/);
   assert.match(opportunities, /\.row[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto/);
   assert.match(opportunities, /\.copy[\s\S]*grid-column: 1/);
-  assert.match(opportunities, /\.action,[\s\S]*grid-column: 2[\s\S]*grid-row: 1/);
+  assert.match(opportunities, /\.copy strong[\s\S]*font-size: 14px/);
+  assert.match(opportunities, /\.action,[\s\S]*grid-column: 2[\s\S]*width: 44px[\s\S]*min-height: 44px/);
+  assert.match(opportunities, /\.action::before,[\s\S]*inset: 0/);
   assert.doesNotMatch(opportunities, /grid-template-columns: 32px minmax\(0, 1fr\) auto/);
   assert.match(calendar, /\.rangeActive[\s\S]*background: #fff/);
   assert.match(calendar, /\.controls[\s\S]*background: #f3f5f7/);

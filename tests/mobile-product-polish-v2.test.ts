@@ -80,6 +80,21 @@ test(
       css['components/AgencyPlayersWorkspace.module.css'],
       /sectionTab,[\s\S]*playerTabActive[\s\S]*min-height: 44px/,
     );
+
+    assert.match(
+      css['components/AgencyOpportunitiesWorkspace.module.css'],
+      /\.tab,[\s\S]*\.tabActive[\s\S]*min-height: 44px/,
+    );
+
+    assert.match(
+      css['components/AgencyOpportunitiesWorkspace.module.css'],
+      /\.action,[\s\S]*width: 44px[\s\S]*min-height: 44px/,
+    );
+
+    assert.match(
+      css['components/AgencyOperatingWorkspace.module.css'],
+      /mobileContextAction \.createButton[\s\S]*min-height: 44px/,
+    );
   },
 );
 
