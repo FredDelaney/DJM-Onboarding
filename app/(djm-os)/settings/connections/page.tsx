@@ -1,23 +1,43 @@
 'use client';
 
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 
-import ConnectionsPanel from '@/components/ConnectionsPanel';
-import AgencyShell from '@/components/AgencyShell';
 import { useAdmin } from '@/components/AdminShell';
+import AgencyConnectedIdentityResolverDrawer from '@/components/AgencyConnectedIdentityResolverDrawer';
+import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
+import SettingsWorkspace from '@/components/SettingsWorkspace';
 
 export default function StaffConnectionsPage() {
   const auth = useAdmin();
+  const [reviewingIdentities, setReviewingIdentities] = useState(false);
+  const workspaceSlug = String(auth.workspace?.slug || '');
 
   return (
-    <AgencyShell eyebrow="Settings · your account" title="Connections">
-      <Link href="/settings" className="ux-back-link"><ArrowLeft size={15} />Settings</Link>
-      <ConnectionsPanel
-        userId={String(auth.user?.id || '')}
-        email={String(auth.user?.email || '')}
-        mode="staff"
-      />
-    </AgencyShell>
+    <SettingsWorkspace
+      title="Connections"
+      description={
+        reviewingIdentities
+          ? 'Confirm who selected conversations belong to.'
+          : 'Connect the services ReDream can use for your agency work.'
+      }
+    >
+      {!workspaceSlug ? (
+        <div className="ux-mini-empty">Agency workspace is not available.</div>
+      ) : reviewingIdentities ? (
+        <AgencyConnectedIdentityResolverDrawer
+          presentation="page"
+          workspaceSlug={workspaceSlug}
+          networkHref="/agency?view=network"
+          onClose={() => setReviewingIdentities(false)}
+        />
+      ) : (
+        <AgencyConnectionsDrawer
+          presentation="page"
+          workspaceSlug={workspaceSlug}
+          onClose={() => undefined}
+          onResolveIdentities={() => setReviewingIdentities(true)}
+        />
+      )}
+    </SettingsWorkspace>
   );
 }

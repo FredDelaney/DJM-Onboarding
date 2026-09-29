@@ -69,10 +69,12 @@ export default function ConnectionsPanel({
   userId,
   email,
   mode,
+  sections = 'all',
 }: {
   userId: string;
   email: string;
   mode: 'staff' | 'player';
+  sections?: 'all' | 'preferences' | 'security';
 }) {
   const [preferences, setPreferences] = useState<PreferenceState>(() => defaultPreferences(email));
   const [calendarToken, setCalendarToken] = useState('');
@@ -86,6 +88,8 @@ export default function ConnectionsPanel({
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const showSecurity = sections === 'all' || sections === 'security';
+  const showPreferences = sections === 'all' || sections === 'preferences';
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -312,25 +316,28 @@ export default function ConnectionsPanel({
       {error ? <div className={styles.error} role="alert">{error}</div> : null}
       {message ? <div className={styles.success} role="status"><Check size={16} />{message}</div> : null}
 
+      {showSecurity ? (
       <section className={`${styles.card} ${styles.securityCard}`}>
         <div className={styles.cardHead}>
           <div className={styles.icon}><ShieldCheck size={20} /></div>
           <div>
             <span>SECURITY</span>
-            <h2>Secure access, simple recovery.</h2>
-            <p>Recover access through your confirmed ReDream email. Your password always works. Set up Face ID or a passkey once for faster sign-in without typing your email or password.</p>
+            <h2>{sections === 'security' ? 'Quick sign-in on the devices you trust.' : 'Secure access, simple recovery.'}</h2>
+            <p>{sections === 'security' ? 'Add Face ID, Touch ID, Windows Hello or a password-manager passkey. Your password remains available.' : 'Recover access through your confirmed ReDream email. Your password always works. Set up Face ID or a passkey once for faster sign-in without typing your email or password.'}</p>
           </div>
         </div>
 
         <div className={styles.rows}>
-          <div className={styles.row}>
-            <div className={styles.rowIcon}><KeyRound size={18} /></div>
-            <div className={styles.rowCopy}>
-              <strong>Password recovery</strong>
-              <span>{email || 'Your confirmed ReDream account email'}</span>
+          {sections === 'all' ? (
+            <div className={styles.row}>
+              <div className={styles.rowIcon}><KeyRound size={18} /></div>
+              <div className={styles.rowCopy}>
+                <strong>Password recovery</strong>
+                <span>{email || 'Your confirmed ReDream account email'}</span>
+              </div>
+              <a className={styles.secondaryButton} href="/forgot-password">Reset password</a>
             </div>
-            <a className={styles.secondaryButton} href="/forgot-password">Reset password</a>
-          </div>
+          ) : null}
 
           {passkeysEnabled ? (
             <div className={styles.row}>
@@ -363,7 +370,10 @@ export default function ConnectionsPanel({
           ))}
         </div>
       </section>
+      ) : null}
 
+      {showPreferences ? (
+      <>
       <section className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.icon}><CalendarDays size={20} /></div>
@@ -486,6 +496,8 @@ export default function ConnectionsPanel({
           </button>
         </div>
       </section>
+      </>
+      ) : null}
     </div>
   );
 }

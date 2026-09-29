@@ -1,8 +1,6 @@
 'use client';
 
-import Link from 'next/link';
 import {
-  ArrowLeft,
   CheckCircle2,
   CreditCard,
   ExternalLink,
@@ -18,7 +16,7 @@ import {
   useState,
 } from 'react';
 
-import AgencyShell from '@/components/AgencyShell';
+import SettingsWorkspace from '@/components/SettingsWorkspace';
 import { useAdmin } from '@/components/AdminShell';
 import styles from '@/components/AccountSettings.module.css';
 import {
@@ -204,28 +202,26 @@ export default function BillingSettingsPage() {
 
   if (!auth.loading && !isOwner) {
     return (
-      <AgencyShell eyebrow="Account" title="Plan & billing">
+      <SettingsWorkspace
+        title="Plan & billing"
+        description="Plan, usage, invoices and payment for the agency."
+      >
         <div className={styles.stack}>
-          <Link href="/settings" className="ux-back-link">
-            <ArrowLeft size={15} /> Settings
-          </Link>
           <div className={styles.notice}>
             <CreditCard size={16} />
             Plan and billing controls are available to the agency owner.
           </div>
         </div>
-      </AgencyShell>
+      </SettingsWorkspace>
     );
   }
 
   return (
-    <AgencyShell eyebrow="Account" title="Plan & billing">
+    <SettingsWorkspace
+      title="Plan & billing"
+      description="Plan, usage, invoices and payment for the agency."
+    >
       <div className={styles.stack}>
-        <Link href="/settings" className="ux-back-link">
-          <ArrowLeft size={15} />
-          Settings
-        </Link>
-
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
             <span className={styles.badge}>
@@ -440,6 +436,6 @@ export default function BillingSettingsPage() {
           </section>
         </div>
       </div>
-    </AgencyShell>
+    </SettingsWorkspace>
   );
 }

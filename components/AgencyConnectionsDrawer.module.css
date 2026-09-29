@@ -717,3 +717,29 @@
     justify-content: center;
   }
 }
+
+/* Settings page presentation */
+.pageShell {
+  width: 100%;
+  min-width: 0;
+}
+
+.pagePanel {
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pagePanel .providers {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .pagePanel .providers {
+    grid-template-columns: 1fr;
+  }
+}
