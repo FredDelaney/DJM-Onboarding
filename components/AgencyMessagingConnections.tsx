@@ -48,9 +48,13 @@ type MessagingThread = {
   bound_organisation_id?: string | null;
   bound_organisation_name?: string | null;
   bound_player_id?: string | null;
+  bound_prospect_id?: string | null;
+  bound_prospect_name?: string | null;
+  bound_prospect_current_club?: string | null;
+  bound_prospect_stage?: string | null;
   bound_player_name?: string | null;
   bound_player_current_club?: string | null;
-  identity_kind?: 'player' | 'network_person' | null;
+  identity_kind?: 'player' | 'network_person' | 'recruitment_target' | null;
 };
 
 type FacebookSdk = {
@@ -534,7 +538,8 @@ export default function AgencyMessagingConnections({
     const unresolved = selected.filter(
       (thread) =>
         !thread.bound_person_id &&
-        !thread.bound_player_id,
+        !thread.bound_player_id &&
+        !thread.bound_prospect_id,
     );
 
     onIdentityState?.({
