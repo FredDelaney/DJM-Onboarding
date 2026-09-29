@@ -38,6 +38,10 @@ test('network removes dashboard-style analysis blocks from mobile', () => {
 test('opportunities and calendar use quiet segmented controls', () => {
   assert.match(opportunities, /\.tabActive[\s\S]*background: #fff/);
   assert.match(opportunities, /\.controls[\s\S]*background: transparent/);
+  assert.match(opportunities, /\.row[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto/);
+  assert.match(opportunities, /\.copy[\s\S]*grid-column: 1/);
+  assert.match(opportunities, /\.action,[\s\S]*grid-column: 2[\s\S]*grid-row: 1/);
+  assert.doesNotMatch(opportunities, /grid-template-columns: 32px minmax\(0, 1fr\) auto/);
   assert.match(calendar, /\.rangeActive[\s\S]*background: #fff/);
   assert.match(calendar, /\.controls[\s\S]*background: #f3f5f7/);
 });
