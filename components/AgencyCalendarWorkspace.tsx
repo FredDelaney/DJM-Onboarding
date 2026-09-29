@@ -431,14 +431,24 @@ export default function AgencyCalendarWorkspace({
       };
     }
 
-    if (
-      item.clubNeedId ||
-      item.entityType === 'deal' ||
-      item.entityType === 'club_need'
-    ) {
+    if (item.entityType === 'deal') {
       return {
-        label: 'Open Opportunities',
-        href: `${basePath}?view=opportunities`,
+        label: 'Open deal',
+        href: `${basePath}?view=opportunities&tab=deals`,
+      };
+    }
+
+    if (item.entityType === 'player_match') {
+      return {
+        label: 'Open route',
+        href: `${basePath}?view=opportunities&tab=routes`,
+      };
+    }
+
+    if (item.clubNeedId || item.entityType === 'club_need') {
+      return {
+        label: 'Open need',
+        href: `${basePath}?view=opportunities&tab=needs`,
       };
     }
 

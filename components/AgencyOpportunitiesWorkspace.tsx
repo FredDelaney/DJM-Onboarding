@@ -8,7 +8,8 @@ import {
   Target,
   Users,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
@@ -19,6 +20,9 @@ import { relativeDate } from '@/lib/platform-client';
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
 type OpportunityView = 'needs' | 'routes' | 'deals';
+
+const opportunityViewFrom = (value: unknown): OpportunityView =>
+  value === 'routes' || value === 'deals' ? value : 'needs';
 
 const list = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
@@ -150,17 +154,35 @@ function ConnectedOpportunityContext({
 
 export default function AgencyOpportunitiesWorkspace({
   data,
+  basePath,
   onOpenAction,
   onOpenPursuit,
   onOpenIntelligence,
 }: {
   data: any;
+  basePath: string;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenPursuit: (request: AgencyPursuitRequest) => void;
   onOpenIntelligence: (request: AgencyIntelligenceRequest) => void;
 }) {
-  const [view, setView] = useState<OpportunityView>('needs');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedView = opportunityViewFrom(searchParams.get('tab'));
+  const [view, setView] = useState<OpportunityView>(requestedView);
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    setView(requestedView);
+  }, [requestedView]);
+
+  const selectView = (nextView: OpportunityView) => {
+    setView(nextView);
+    setSearch('');
+    router.replace(
+      `${basePath}?view=opportunities&tab=${nextView}`,
+      { scroll: false },
+    );
+  };
 
   const needs = list(data?.market?.demand?.items);
   const routes = list(data?.market?.pursuits?.items);
@@ -497,10 +519,7 @@ export default function AgencyOpportunitiesWorkspace({
           <button
             type="button"
             className={view === 'needs' ? styles.tabActive : styles.tab}
-            onClick={() => {
-              setView('needs');
-              setSearch('');
-            }}
+            onClick={() => selectView('needs')}
           >
             <Target size={15} />
             Needs
@@ -510,10 +529,7 @@ export default function AgencyOpportunitiesWorkspace({
           <button
             type="button"
             className={view === 'routes' ? styles.tabActive : styles.tab}
-            onClick={() => {
-              setView('routes');
-              setSearch('');
-            }}
+            onClick={() => selectView('routes')}
           >
             <Users size={15} />
             Player routes
@@ -523,10 +539,7 @@ export default function AgencyOpportunitiesWorkspace({
           <button
             type="button"
             className={view === 'deals' ? styles.tabActive : styles.tab}
-            onClick={() => {
-              setView('deals');
-              setSearch('');
-            }}
+            onClick={() => selectView('deals')}
           >
             <BriefcaseBusiness size={15} />
             Live deals
