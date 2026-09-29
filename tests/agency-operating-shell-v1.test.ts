@@ -58,18 +58,18 @@ test('Capture stays out of the workspace grid and mobile navigation fits all fiv
 
   assert.match(
     app,
-    /<div className=\{styles\.headActions\}>\s*<AiLauncher \/>/,
+    /className=\{styles\.desktopHeadActions\}[\s\S]*<AiLauncher \/>/,
+  );
+  assert.match(
+    app,
+    /className=\{styles\.mobileTell\}[\s\S]*<AiLauncher \/>/,
   );
 
   assert.match(
     css,
-    /\.nav\{grid-template-columns:repeat\(5,1fr\);gap:3px\}/,
+    /grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/,
   );
-
-  assert.doesNotMatch(
-    css,
-    /\.nav\{grid-template-columns:repeat\(4,1fr\);gap:3px\}/,
-  );
+  assert.match(css, /\.navManagement[\s\S]*display:\s*none/);
 });
 
 test('one-tap actions still require prepare and explicit confirmation', () => {

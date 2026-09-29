@@ -456,22 +456,9 @@ export default function AgencyConnectionsDrawer({
           }
         >
           <div>
-            <p
-              className={
-                styles.eyebrow
-              }
-            >
-              CONNECTED WORK
-            </p>
-            <h2 id="agency-connections-title">
-              Connect the tools
-              you already use.
-            </h2>
-            <p>
-              Connect the tools you use for agency work. Calendar and contacts
-              can come from one account while club email can come from another.
-              ReDream uses only the access you explicitly enable.
-            </p>
+            <p className={styles.eyebrow}>CONNECTED WORK</p>
+            <h2 id="agency-connections-title">Connections</h2>
+            <p>Choose what ReDream can use for your agency work.</p>
           </div>
 
           <button

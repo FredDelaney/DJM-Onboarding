@@ -538,3 +538,140 @@
     min-height: 44px;
   }
 }
+
+/* Mobile simplicity v1 */
+@media (max-width: 620px) {
+  .drawer {
+    gap: 12px;
+    padding: calc(12px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .header {
+    gap: 10px;
+  }
+
+  .eyebrow {
+    display: none;
+  }
+
+  .header h2 {
+    font-size: 25px;
+  }
+
+  .header p:last-child {
+    margin-top: 4px;
+    font-size: 9px;
+    line-height: 1.35;
+  }
+
+  .providers {
+    gap: 8px;
+  }
+
+  .provider {
+    gap: 10px;
+    padding: 13px;
+    border-radius: 14px;
+    box-shadow: none;
+  }
+
+  .providerTop {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .providerIcon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .providerTitle strong {
+    font-size: 11px;
+  }
+
+  .providerCopy > span {
+    font-size: 8px;
+  }
+
+  .capabilities {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .capabilities > div {
+    min-height: 40px;
+    grid-template-columns: 18px minmax(0, 1fr);
+    align-items: center;
+    padding: 8px;
+  }
+
+  .capabilities small {
+    display: none;
+  }
+
+  .capabilities span {
+    font-size: 8px;
+  }
+
+  .emailOption {
+    padding: 9px 10px;
+  }
+
+  .emailOption small {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 7.5px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .actions .primary:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .primary,
+  .secondary {
+    min-height: 40px;
+    padding-inline: 8px;
+    font-size: 8px;
+  }
+
+  .messagingSection {
+    gap: 8px;
+    padding-top: 2px;
+  }
+
+  .sectionIntro h3 {
+    font-size: 14px;
+  }
+
+  .sectionIntro > div > span,
+  .sectionCopy {
+    display: none;
+  }
+
+  .messagingProvider {
+    gap: 9px;
+    padding: 12px;
+    border-radius: 13px;
+  }
+
+  .threadRow {
+    gap: 7px;
+    padding: 9px 10px;
+  }
+
+  .threadRow small {
+    font-size: 7px;
+  }
+
+  .security {
+    padding: 9px 10px;
+    font-size: 8px;
+  }
+}

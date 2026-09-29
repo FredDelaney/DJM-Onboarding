@@ -630,3 +630,131 @@
     min-height: 44px;
   }
 }
+
+/* Mobile simplicity v1 */
+@media (max-width: 760px) {
+  .drawer {
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .header {
+    padding: calc(12px + env(safe-area-inset-top)) 16px 13px;
+  }
+
+  .topline {
+    margin-bottom: 10px;
+  }
+
+  .header > .eyebrow {
+    display: none;
+  }
+
+  .header h2 {
+    font-size: 28px;
+    line-height: 1.05;
+  }
+
+  .subhead {
+    margin-top: 4px;
+    font-size: 10px;
+  }
+
+  .content {
+    gap: 10px;
+    padding: 12px 14px calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .journey {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(72px, 1fr));
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .journey::-webkit-scrollbar {
+    display: none;
+  }
+
+  .step {
+    min-height: 54px;
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .step i {
+    width: 20px;
+    height: 20px;
+  }
+
+  .step > div > span {
+    font-size: 6px;
+  }
+
+  .step strong {
+    font-size: 7px;
+    line-height: 1.2;
+  }
+
+  .hero {
+    display: block;
+    padding: 15px;
+    border-radius: 14px;
+  }
+
+  .hero p {
+    margin-bottom: 4px;
+    font-size: 6.5px;
+  }
+
+  .hero h3 {
+    font-size: 20px;
+  }
+
+  .hero > div:first-child > span {
+    display: -webkit-box;
+    overflow: hidden;
+    margin-top: 5px;
+    font-size: 9px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .heroScore,
+  .grid {
+    display: none;
+  }
+
+  .panel {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .panelHead p {
+    font-size: 6.5px;
+  }
+
+  .panelHead h3 {
+    font-size: 14px;
+  }
+
+  .copy {
+    margin: 8px 0 0;
+    font-size: 9px;
+    line-height: 1.4;
+  }
+
+  .panel > button,
+  .actions button {
+    min-height: 42px;
+    margin-top: 10px;
+    font-size: 9px;
+  }
+
+  .truth {
+    display: none;
+  }
+}

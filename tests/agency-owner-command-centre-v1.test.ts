@@ -41,11 +41,11 @@ test('Owner business evidence loads only for owner and admin roles', () => {
 });
 
 test('Owner Command Centre keeps revenue service ownership and collection separate', () => {
-  assert.match(owner, /PROTECT REVENUE/);
-  assert.match(owner, /TEAM OWNERSHIP/);
-  assert.match(owner, /SERVICE CONTROL/);
+  assert.match(owner, /DEALS/);
+  assert.match(owner, /TEAM/);
+  assert.match(owner, /PLAYER SERVICE/);
   assert.match(owner, /Open receivables/);
-  assert.match(owner, /RECORDED VALUE/);
+  assert.match(owner, /LAST 30 DAYS/);
 });
 
 test('Commercial exposure remains evidence-led and multi-currency safe', () => {

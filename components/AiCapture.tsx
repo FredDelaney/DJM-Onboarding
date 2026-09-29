@@ -698,7 +698,7 @@ export default function AiCapture({
     ].includes(terminalStatus) && !hasAppliedActions;
 
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ${compact ? styles.compact : ''}`}>
       <section className={styles.hero}>
         {context?.label ? (
           <div className={styles.context}>

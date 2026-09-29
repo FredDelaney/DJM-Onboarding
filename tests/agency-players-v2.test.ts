@@ -25,8 +25,9 @@ test('player cards use real football identity and recorded dates',()=>{
   assert.doesNotMatch(players,/last meaningful player contact/i);
 });
 
-test('player workspace exposes simple operating sections and Player Profile',()=>{
-  for(const label of ['Overview','Opportunities','Career','Contracts','Activity','Files']){
+test('player workspace uses progressive disclosure and keeps Player Profile access',()=>{
+  assert.match(players,/\['overview','opportunities','career','more'\]/);
+  for(const label of ['Opportunities','Contracts','Files']){
     assert.match(players,new RegExp(label,'i'));
   }
   assert.match(players,/Player Profile/);

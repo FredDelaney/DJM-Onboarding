@@ -116,8 +116,7 @@ function ConnectedOpportunityContext({
           <>
             <strong>{sourceName}</strong>
             <span>
-              No connected email or selected chat is recorded with
-              this source contact yet.
+              No connected conversation yet.
             </span>
           </>
         )}

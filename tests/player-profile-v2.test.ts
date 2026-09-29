@@ -25,6 +25,7 @@ test('Player Profile is part of the current Players workspace', () => {
   assert.match(shell, /AgencyPlayerProfile/);
   assert.match(shell, /selectedPlayerId/);
   assert.match(players, /view=players&player=/);
+  assert.match(players, /profile=1/);
   assert.match(players, />\s*Player Profile\s*</);
 });
 

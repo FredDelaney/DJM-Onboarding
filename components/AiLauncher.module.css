@@ -235,3 +235,30 @@
     transform: none;
   }
 }
+
+/* Mobile simplicity v1 */
+@media (max-width: 760px) {
+  .modal {
+    max-height: min(560px, calc(100dvh - max(54px, env(safe-area-inset-top))));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .head {
+    min-height: 42px;
+    padding: 10px 14px 0;
+  }
+
+  .head span {
+    font-size: 10px;
+  }
+
+  .body {
+    padding: 7px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .full,
+  .fullDisabled {
+    margin-top: 8px;
+    font-size: 8px;
+  }
+}

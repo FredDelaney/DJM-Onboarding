@@ -23,7 +23,7 @@ test('Market opens one tenant-native Pursuit Room from a live player-club route'
 
 test('Pursuit Room carries career dossier pitch response and deal control together', () => {
   assert.match(room, /PURSUIT ROOM/);
-  assert.match(room, /CAREER PERMISSION/);
+  assert.match(room, /BEFORE YOU CONTACT THE CLUB/);
   assert.match(room, /CLUB DOSSIER/);
   assert.match(room, /PITCH CONTROL/);
   assert.match(room, /CLUB RESPONSE/);

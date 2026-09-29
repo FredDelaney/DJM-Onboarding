@@ -305,7 +305,7 @@ export default function AgencyOwnerCommandCentre({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Recorded agency evidence
+              Agency overview
             </span>
 
             <button
@@ -319,20 +319,20 @@ export default function AgencyOwnerCommandCentre({
           </div>
 
           <p className={styles.eyebrow}>
-            OWNER COMMAND CENTRE
+            AGENCY BUSINESS
           </p>
           <h2>
-            Run the business without losing the football.
+            Run the agency.
           </h2>
           <p className={styles.subhead}>
-            Commercial exposure, service control, ownership and collection from recorded agency evidence.
+            Deals, money owed, player service and who owns what.
           </p>
         </header>
 
         <div className={styles.content}>
           <section className={styles.hero}>
             <div>
-              <p>COMMERCIAL POSITION</p>
+              <p>PIPELINE</p>
               <h3>{weightedLabel}</h3>
               <span>
                 Weighted commission is recorded expected commission multiplied by the agency-entered deal probability. It is not guaranteed revenue.
@@ -396,9 +396,9 @@ export default function AgencyOwnerCommandCentre({
                 size={17}
               />
               <div>
-                <p>PROTECT REVENUE</p>
+                <p>DEALS</p>
                 <h3>
-                  Live deals with recorded operating exposure
+                  Deals that need attention
                 </h3>
               </div>
             </div>
@@ -489,9 +489,9 @@ export default function AgencyOwnerCommandCentre({
             <div className={styles.panelHead}>
               <Users size={17} />
               <div>
-                <p>TEAM OWNERSHIP</p>
+                <p>TEAM</p>
                 <h3>
-                  Accountability before workload guesswork
+                  Who owns what
                 </h3>
               </div>
             </div>
@@ -741,7 +741,7 @@ export default function AgencyOwnerCommandCentre({
             <div className={styles.panelHead}>
               <ShieldCheck size={17} />
               <div>
-                <p>SERVICE CONTROL</p>
+                <p>PLAYER SERVICE</p>
                 <h3>
                   Fix the operating gaps with a real next action
                 </h3>
@@ -834,9 +834,9 @@ export default function AgencyOwnerCommandCentre({
             <div className={styles.panelHead}>
               <Network size={17} />
               <div>
-                <p>RECORDED VALUE</p>
+                <p>LAST 30 DAYS</p>
                 <h3>
-                  What the agency actually captured in the last 30 days
+                  What ReDream recorded
                 </h3>
               </div>
             </div>

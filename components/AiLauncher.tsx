@@ -131,7 +131,7 @@ export default function AiLauncher() {
               aria-labelledby="ai-capture-dialog-title"
             >
               <div className={styles.head}>
-                <span id="ai-capture-dialog-title">Tell ReDream what happened. We’ll handle the admin.</span>
+                <span id="ai-capture-dialog-title">Tell ReDream</span>
                 <button
                   type="button"
                   className={styles.close}

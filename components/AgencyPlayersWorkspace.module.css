@@ -45,3 +45,359 @@
     min-height: 44px;
   }
 }
+
+/* Mobile simplicity v1 */
+.moreMenu {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.moreMenu button {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e8ebed;
+  border-radius: 12px;
+  background: #fff;
+  color: #37414a;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.moreMenu button > span {
+  display: grid;
+  gap: 2px;
+}
+
+.moreMenu strong {
+  font-size: 10px;
+}
+
+.moreMenu small {
+  color: #8e969d;
+  font-size: 8px;
+}
+
+.playerCard[role='button'] {
+  cursor: pointer;
+}
+
+.playerCard[role='button']:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--agency-accent) 24%, transparent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 680px) {
+  .workspace {
+    gap: 12px;
+  }
+
+  .intro {
+    gap: 10px;
+  }
+
+  .intro > div:first-child {
+    display: none;
+  }
+
+  .sectionTabs {
+    width: 100%;
+    padding: 3px;
+    border-radius: 12px;
+  }
+
+  .sectionTab,
+  .sectionTabActive {
+    min-height: 42px;
+    font-size: 9px;
+  }
+
+  .toolbar {
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .search {
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  .playerGrid {
+    gap: 8px;
+  }
+
+  .playerCard {
+    gap: 9px;
+    padding: 13px;
+    border-radius: 15px;
+    box-shadow: none;
+  }
+
+  .playerCardTop {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+  }
+
+  .playerIdentity h3 {
+    font-size: 14px;
+  }
+
+  .playerIdentity span {
+    margin-top: 2px;
+    font-size: 9px;
+  }
+
+  .playerIdentity small {
+    display: none;
+  }
+
+  .attentionPill,
+  .calmPill {
+    grid-column: auto;
+    justify-self: end;
+    padding: 4px 7px;
+    font-size: 7px;
+  }
+
+  .calmPill {
+    display: none;
+  }
+
+  .playerFacts {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .playerFacts > div {
+    display: none;
+    padding: 0;
+    background: transparent;
+  }
+
+  .playerFacts > div:nth-child(1),
+  .playerFacts > div:nth-child(3) {
+    display: grid;
+    gap: 2px;
+  }
+
+  .playerFacts > div:nth-child(3) {
+    min-width: 88px;
+    justify-items: end;
+    text-align: right;
+  }
+
+  .playerFacts span {
+    font-size: 6.5px;
+  }
+
+  .playerFacts strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 9px;
+    line-height: 1.3;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .playerFacts small {
+    font-size: 7px;
+  }
+
+  .playerCardActions {
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 2px;
+  }
+
+  .playerCardActions .secondaryButton {
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #7b858d;
+    font-size: 8px;
+  }
+
+  .playerCardActions .primaryButton {
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 10px;
+    font-size: 8px;
+  }
+
+  .drawer {
+    width: 100%;
+    max-width: none;
+  }
+
+  .drawerTop {
+    min-height: 50px;
+    padding: calc(8px + env(safe-area-inset-top)) 14px 0;
+  }
+
+  .playerHero,
+  .recruitHero {
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 12px;
+    margin: 0 12px 10px;
+    padding: 14px;
+    border-radius: 15px;
+  }
+
+  .avatarLarge {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+  }
+
+  .playerHeroCopy p,
+  .recruitHero p {
+    display: none;
+  }
+
+  .playerHeroCopy h2,
+  .recruitHero h2 {
+    font-size: 22px;
+  }
+
+  .playerHeroCopy > span,
+  .recruitHero > div:nth-child(2) > span {
+    font-size: 9px;
+  }
+
+  .heroActions {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .heroActions .secondaryButton,
+  .heroActions .primaryButton {
+    min-height: 38px;
+  }
+
+  .profileStatus {
+    display: none;
+  }
+
+  .playerTabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    overflow: hidden;
+    margin: 0 12px;
+    padding: 3px;
+  }
+
+  .playerTab,
+  .playerTabActive {
+    min-width: 0;
+    min-height: 42px;
+    padding: 0 5px;
+    font-size: 8px;
+  }
+
+  .drawerBody {
+    gap: 10px;
+    padding: 10px 12px calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .detailHero,
+  .detailSection {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .detailHero p,
+  .detailSection > p {
+    display: none;
+  }
+
+  .detailHero h3,
+  .detailSection h3 {
+    font-size: 13px;
+  }
+
+  .factGrid {
+    grid-template-columns: 1fr 1fr;
+    border-radius: 10px;
+  }
+
+  .factGrid > div {
+    padding: 10px;
+  }
+
+  .empty {
+    min-height: 90px;
+    padding: 16px;
+  }
+}
+
+.recentActivity{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  border:1px solid #eceff1;
+  border-radius:11px;
+  background:#fafbfb;
+}
+.recentActivity>span{
+  color:#8a9199;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.recentActivity>div{
+  min-width:0;
+  display:flex;
+  align-items:baseline;
+  justify-content:flex-end;
+  gap:7px;
+}
+.recentActivity strong{
+  overflow:hidden;
+  color:#454d56;
+  font-size:9px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.recentActivity small{
+  flex:0 0 auto;
+  color:#8b929a;
+  font-size:7px;
+}
+@media(max-width:680px){
+  .recentActivity{
+    padding:9px 10px;
+  }
+  .recentActivity>span{
+    font-size:6px;
+  }
+  .recentActivity strong{
+    font-size:8px;
+  }
+  .recentActivity small{
+    font-size:6.5px;
+  }
+}

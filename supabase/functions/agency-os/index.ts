@@ -48,8 +48,14 @@ export default {fetch:async(req:Request)=>{
       return data;
     };
     const profileBranding=async()=>{
-      const branding=await rpc("platform_server_tenant_branding",{p_tenant_id:tenantId});
-      return branding||{display_name:workspace.display_name||"Agency",short_name:workspace.short_name||null,logo_asset:workspace.logo_asset||null,primary_color:workspace.primary_color||"#111827",accent_color:workspace.accent_color||"#64748B",support_email:null};
+      const fallback={display_name:workspace.display_name||"Agency",short_name:workspace.short_name||null,portal_name:workspace.portal_name||null,logo_asset:workspace.logo_asset||null,compact_logo_asset:workspace.compact_logo_asset||null,primary_color:workspace.primary_color||"#111827",accent_color:workspace.accent_color||"#64748B",support_email:null,website_url:null,phone:null};
+      const {data,error}=await ctx.supabaseAdmin.schema("platform").from("tenant_branding").select("display_name,short_name,portal_name,logo_asset,compact_logo_asset,primary_color,accent_color,support_email,website_url,phone").eq("tenant_id",tenantId).maybeSingle();
+      if(error){console.warn("player-profile branding unavailable",{code:error.code,message:error.message});return fallback;}
+      return data?{...fallback,...data}:fallback;
+    };
+    const profileCommunication=async(pid:string)=>{
+      try{return await rpc("platform_server_player_connected_activity",{p_tenant_id:tenantId,p_player_id:pid,p_limit:8});}
+      catch(error){console.warn("player-profile connected activity unavailable",error);return{summary:{},items:[],open_followups:[]};}
     };
     const profileAudit=async(actionName:string,entityId:string,beforeState:unknown,afterState:unknown,metadata:Record<string,unknown>={})=>{
       try{
@@ -69,7 +75,7 @@ export default {fetch:async(req:Request)=>{
         ctx.supabaseAdmin.schema("djm_os").from("deal_rooms").select("id,title,organisation_id,source_person_id,stage,status,pitch_status,updated_at").eq("tenant_id",tenantId).eq("player_id",pid).order("updated_at",{ascending:false}).limit(30),
         ctx.supabaseAdmin.schema("djm_os").from("organisations").select("id,name,country,organisation_type").eq("tenant_id",tenantId).order("name").limit(250),
         profileBranding(),
-        rpc("platform_server_player_connected_activity",{p_tenant_id:tenantId,p_player_id:pid,p_limit:8})
+        profileCommunication(pid)
       ]);
       for(const resultItem of [settingsResult,publishedResult,careerResult,videosResult,documentsResult,sharesResult,dealsResult,clubsResult]){if(resultItem.error)throw resultItem.error}
       const clubs=clubsResult.data||[];

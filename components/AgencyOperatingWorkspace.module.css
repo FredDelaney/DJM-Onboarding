@@ -2642,3 +2642,265 @@
     min-height: 44px;
   }
 }
+
+/* Mobile simplicity v1 */
+.desktopHeadActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobileHeadActions,
+.mobileContextAction,
+.mobileTell {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .root {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom));
+  }
+
+  .main {
+    padding-top: calc(12px + env(safe-area-inset-top));
+    padding-inline: 16px;
+  }
+
+  .pageHead {
+    min-height: 52px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+  }
+
+  .pageHeadCopy {
+    gap: 3px;
+  }
+
+  .pageHead h1 {
+    margin: 0;
+    font-size: 29px;
+    line-height: 1.02;
+    letter-spacing: -.045em;
+  }
+
+  .pageDescription {
+    max-width: 300px;
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .desktopHeadActions {
+    display: none;
+  }
+
+  .mobileHeadActions {
+    display: block;
+    align-self: start;
+  }
+
+  .mobileContextAction {
+    min-height: 0;
+    display: flex;
+    justify-content: flex-end;
+    margin: -3px 0 12px;
+  }
+
+  .mobileContextAction .createButton {
+    min-height: 40px;
+    padding-inline: 14px;
+    border-radius: 12px;
+    font-size: 9px;
+    box-shadow: none;
+  }
+
+  .nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .navManagement {
+    display: none !important;
+  }
+
+  .nav a {
+    min-height: 48px;
+    font-size: 8.5px;
+  }
+
+  .nav a.navActive {
+    background: rgba(255, 255, 255, .09);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+  }
+
+  .mobileTell {
+    position: fixed;
+    z-index: 39;
+    right: 16px;
+    bottom: calc(66px + env(safe-area-inset-bottom));
+    display: block;
+  }
+
+  .mobileTell button {
+    width: auto;
+    min-width: 126px;
+    min-height: 44px;
+    padding: 0 15px;
+    border-radius: 999px;
+    box-shadow: 0 12px 30px rgba(11, 36, 55, .24);
+  }
+
+  .mobileTell button span {
+    display: inline !important;
+    font-size: 9px;
+  }
+
+  .homePulse,
+  .connectedWorkPanel {
+    display: none;
+  }
+
+  .homeStack {
+    gap: 12px;
+  }
+
+  .homeWelcome {
+    padding: 4px 2px 0;
+  }
+
+  .homeWelcome p {
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+
+  .homeWelcome h2 {
+    font-size: 28px;
+  }
+
+  .homeOverviewGrid {
+    gap: 12px;
+  }
+
+  .sectionCard {
+    border-radius: 16px;
+    box-shadow: none;
+  }
+
+  .sectionHead {
+    padding: 14px 16px 10px;
+  }
+
+  .sectionHead .eyebrow {
+    display: none;
+  }
+
+  .sectionHead h2 {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .attentionCard {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 13px 15px;
+  }
+
+  .attentionCardPrimary {
+    border-left-width: 2px;
+    background: #fff;
+  }
+
+  .attentionCopy {
+    gap: 3px;
+  }
+
+  .attentionMeta {
+    gap: 6px;
+  }
+
+  .attentionMeta > span {
+    font-size: 7px;
+    letter-spacing: .08em;
+  }
+
+  .attentionMeta > small {
+    font-size: 8px;
+  }
+
+  .attentionCopy strong {
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .attentionCopy > span {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 9px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .attentionCard .compactButton {
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 10px;
+    font-size: 0;
+    align-self: center;
+  }
+
+  .attentionCard .compactButton svg {
+    margin: 0;
+  }
+
+  .homeDayPanel .simpleTimelineRow {
+    min-height: 54px;
+    padding: 11px 15px;
+  }
+
+  .simpleTimelineRow strong {
+    font-size: 11px;
+  }
+
+  .simpleTimelineRow span {
+    font-size: 8.5px;
+  }
+}
+
+.attentionMore {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-top: 1px solid #edf0f2;
+  background: #fff;
+  color: #68747d;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  .attentionMore {
+    min-height: 34px;
+    font-size: 8px;
+  }
+}
+
+/* Business lives under account/agency administration, not primary navigation. */
+.navManagement {
+  display: none !important;
+}

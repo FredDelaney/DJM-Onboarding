@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   CreditCard,
   LogOut,
@@ -10,6 +11,7 @@ import {
   UserRound,
   UsersRound,
   Building2,
+  Coins,
 } from 'lucide-react';
 import {
   useEffect,
@@ -57,6 +59,7 @@ export default function AccountMenu({
   onSignOut: () => void | Promise<void>;
 }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname() || '/agency';
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileIdentity>({});
 
@@ -141,6 +144,9 @@ export default function AccountMenu({
     [profile.avatar_path],
   );
   const canManageAgency = ['owner', 'admin'].includes(role);
+  const workspaceBase = pathname.startsWith('/workspace/')
+    ? pathname.split('/').slice(0, 3).join('/')
+    : '/agency';
   const canManageBilling = role === 'owner';
 
   return (
@@ -189,6 +195,7 @@ export default function AccountMenu({
               <p>Agency</p>
               <MenuLink href="/settings/team" icon={<UsersRound size={17} />} label="Team & access" detail="Invite and manage staff" />
               <MenuLink href="/settings/agency" icon={<Building2 size={17} />} label="Agency settings" detail="Identity, brand and workspace" />
+              <MenuLink href={`${workspaceBase}?view=business`} icon={<Coins size={17} />} label="Business" detail="Revenue, deals and agency control" />
               {canManageBilling ? (
                 <MenuLink href="/settings/billing" icon={<CreditCard size={17} />} label="Plan & billing" detail="Plan, seats, invoices and payment" />
               ) : null}
