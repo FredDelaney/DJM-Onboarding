@@ -54,6 +54,7 @@ type Thread = {
   last_activity_at?: string | null;
   bound_person_id?: string | null;
   bound_player_id?: string | null;
+  bound_prospect_id?: string | null;
 };
 
 type PlayerIdentity = {
@@ -61,6 +62,16 @@ type PlayerIdentity = {
   player_name?: string | null;
   primary_position?: string | null;
   current_club?: string | null;
+  instagram_url?: string | null;
+  instagram_handle?: string | null;
+};
+
+type ProspectIdentity = {
+  prospect_id: string;
+  prospect_name?: string | null;
+  primary_position?: string | null;
+  current_club?: string | null;
+  recruitment_stage?: string | null;
   instagram_url?: string | null;
   instagram_handle?: string | null;
 };
@@ -105,6 +116,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
     useState<ProviderSuggestion[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [players, setPlayers] = useState<PlayerIdentity[]>([]);
+  const [prospects, setProspects] = useState<ProspectIdentity[]>([]);
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -112,11 +124,17 @@ export default function AgencyConnectedIdentityResolverDrawer({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [createContactOpen, setCreateContactOpen] = useState(false);
+  const [createProspectOpen, setCreateProspectOpen] = useState(false);
   const [newContact, setNewContact] = useState({
     full_name: '',
     club_name: '',
     role_title: '',
     country: '',
+  });
+  const [newProspect, setNewProspect] = useState({
+    full_name: '',
+    current_club: '',
+    primary_position: '',
   });
   const load = useCallback(async () => {
     setLoading(true);
@@ -129,6 +147,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
         relationships,
         providerIdentity,
         playerIdentity,
+        prospectIdentity,
       ] = await Promise.all([
           platformRpc<{ threads?: Thread[] }>(
             'redream_messaging_threads',
@@ -164,6 +183,13 @@ export default function AgencyConnectedIdentityResolverDrawer({
             {},
             workspaceSlug,
           ),
+          platformRpc<{
+            prospects?: ProspectIdentity[];
+          }>(
+            'redream_messaging_prospect_candidates',
+            {},
+            workspaceSlug,
+          ),
         ]);
 
       const nextThreads = [
@@ -178,7 +204,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
           (thread) =>
             thread.is_selected &&
             !thread.bound_person_id &&
-            !thread.bound_player_id,
+            !thread.bound_player_id &&
+            !thread.bound_prospect_id,
         )
         .sort((a, b) => {
           const aTime = Date.parse(
@@ -209,6 +236,11 @@ export default function AgencyConnectedIdentityResolverDrawer({
           ? playerIdentity.players
           : [],
       );
+      setProspects(
+        Array.isArray(prospectIdentity?.prospects)
+          ? prospectIdentity.prospects
+          : [],
+      );
 
       if (
         activeThread &&
@@ -221,6 +253,12 @@ export default function AgencyConnectedIdentityResolverDrawer({
       ) {
         setActiveThread(null);
         setCreateContactOpen(false);
+        setCreateProspectOpen(false);
+        setNewProspect({
+          full_name: '',
+          current_club: '',
+          primary_position: '',
+        });
         setNewContact({
           full_name: '',
           club_name: '',
@@ -302,6 +340,52 @@ export default function AgencyConnectedIdentityResolverDrawer({
       })
       .slice(0, 50);
   }, [activeThread, players, search]);
+
+  const filteredProspects = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const threadHandle =
+      activeThread?.provider === 'instagram'
+        ? String(activeThread?.participant_label || '')
+            .trim()
+            .replace(/^@+/, '')
+            .toLowerCase()
+        : '';
+
+    return prospects
+      .filter((prospect) => {
+        if (!query) return true;
+
+        return [
+          prospect.prospect_name,
+          prospect.primary_position,
+          prospect.current_club,
+          prospect.instagram_handle,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      })
+      .sort((a, b) => {
+        const aExact =
+          Boolean(threadHandle) &&
+          String(a.instagram_handle || '')
+            .replace(/^@+/, '')
+            .toLowerCase() === threadHandle;
+        const bExact =
+          Boolean(threadHandle) &&
+          String(b.instagram_handle || '')
+            .replace(/^@+/, '')
+            .toLowerCase() === threadHandle;
+
+        if (aExact !== bExact) return aExact ? -1 : 1;
+
+        return String(a.prospect_name || '').localeCompare(
+          String(b.prospect_name || ''),
+        );
+      })
+      .slice(0, 50);
+  }, [activeThread, prospects, search]);
 
   const bootstrapHistory = async (thread: Thread) => {
     if (thread.provider !== 'instagram') {
@@ -475,6 +559,142 @@ export default function AgencyConnectedIdentityResolverDrawer({
       await onResolved?.();
     } catch (bindError) {
       setError(friendlyError(bindError));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const bindProspect = async (prospect: ProspectIdentity) => {
+    if (!activeThread || busy) return;
+
+    const busyKey = `prospect:${prospect.prospect_id}`;
+    setBusy(busyKey);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await platformRpc<{
+        bound?: boolean;
+        bound_prospect_name?: string | null;
+      }>(
+        'redream_messaging_thread_bind_prospect',
+        {
+          p_provider: activeThread.provider,
+          p_external_thread_id: activeThread.external_thread_id,
+          p_prospect_id: prospect.prospect_id,
+        },
+        workspaceSlug,
+      );
+
+      if (!result?.bound) {
+        throw new Error(
+          'The chat could not be linked to that recruitment target.',
+        );
+      }
+
+      const linkedThread = activeThread;
+      const linkedName =
+        result.bound_prospect_name ||
+        prospect.prospect_name ||
+        'Recruitment target';
+      const history = await bootstrapHistory(linkedThread);
+
+      setThreads((current) =>
+        current.filter(
+          (thread) =>
+            !(
+              thread.provider === linkedThread.provider &&
+              thread.external_thread_id === linkedThread.external_thread_id
+            ),
+        ),
+      );
+      setActiveThread(null);
+      setSearch('');
+      setSuccess(
+        (linkedThread.participant_label || 'Chat') +
+          ' linked to recruitment target ' +
+          linkedName +
+          '.' +
+          historySuffix(history),
+      );
+
+      await onResolved?.();
+    } catch (bindError) {
+      setError(friendlyError(bindError));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const createAndBindProspect = async () => {
+    if (!activeThread || busy) return;
+
+    const fullName = newProspect.full_name.trim();
+
+    if (fullName.length < 2) {
+      setError('Enter the player’s full name before creating the recruitment target.');
+      return;
+    }
+
+    setBusy('create-prospect');
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await platformRpc<{
+        created?: boolean;
+        bound?: boolean;
+        prospect_id?: string | null;
+        prospect_name?: string | null;
+      }>(
+        'redream_messaging_thread_create_prospect_and_bind',
+        {
+          p_provider: activeThread.provider,
+          p_external_thread_id: activeThread.external_thread_id,
+          p_full_name: fullName,
+          p_current_club: newProspect.current_club.trim() || null,
+          p_primary_position: newProspect.primary_position.trim() || null,
+          p_current_country: null,
+        },
+        workspaceSlug,
+      );
+
+      if (!result?.created || !result?.bound) {
+        throw new Error(
+          'The recruitment target could not be created and linked.',
+        );
+      }
+
+      const linkedThread = activeThread;
+      const linkedName = result.prospect_name || fullName;
+      const history = await bootstrapHistory(linkedThread);
+
+      setThreads((current) =>
+        current.filter(
+          (thread) =>
+            !(
+              thread.provider === linkedThread.provider &&
+              thread.external_thread_id === linkedThread.external_thread_id
+            ),
+        ),
+      );
+      setActiveThread(null);
+      setSearch('');
+      setCreateProspectOpen(false);
+      setNewProspect({
+        full_name: '',
+        current_club: '',
+        primary_position: '',
+      });
+      setSuccess(
+        linkedName +
+          ' added to Recruitment and linked to this chat.' +
+          historySuffix(history),
+      );
+
+      await onResolved?.();
+    } catch (createError) {
+      setError(friendlyError(createError));
     } finally {
       setBusy('');
     }
@@ -796,8 +1016,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 }
                 placeholder={
                   activeThread.provider === 'instagram'
-                    ? 'Search signed players or Network people'
-                    : 'Search Network people or signed players'
+                    ? 'Search signed players, targets or Network people'
+                    : 'Search Network people, players or targets'
                 }
                 autoFocus
               />
@@ -885,7 +1105,208 @@ export default function AgencyConnectedIdentityResolverDrawer({
 
               <section
                 className={styles.identityGroup}
-                style={{ order: activeThread.provider === 'whatsapp' ? 1 : 2 }}
+                style={{ order: activeThread.provider === 'instagram' ? 2 : 3 }}
+              >
+                <div className={styles.identityGroupHead}>
+                  <div>
+                    <small>RECRUITMENT</small>
+                    <strong>Targets not signed yet</strong>
+                  </div>
+                  <span>{filteredProspects.length}</span>
+                </div>
+
+                <div className={styles.contactList}>
+                  {filteredProspects.map((prospect) => {
+                    const threadHandle = String(
+                      activeThread.participant_label || '',
+                    )
+                      .trim()
+                      .replace(/^@+/, '')
+                      .toLowerCase();
+                    const exactHandle =
+                      activeThread.provider === 'instagram' &&
+                      Boolean(threadHandle) &&
+                      String(prospect.instagram_handle || '')
+                        .replace(/^@+/, '')
+                        .toLowerCase() === threadHandle;
+                    const busyKey = `prospect:${prospect.prospect_id}`;
+
+                    return (
+                      <button
+                        type="button"
+                        className={
+                          exactHandle ? styles.playerExact : styles.contact
+                        }
+                        key={prospect.prospect_id}
+                        onClick={() => void bindProspect(prospect)}
+                        disabled={Boolean(busy)}
+                      >
+                        <span className={styles.contactIcon}>
+                          <UserRound size={15} />
+                        </span>
+                        <span className={styles.contactCopy}>
+                          <strong>
+                            {prospect.prospect_name || 'Recruitment target'}
+                          </strong>
+                          <small>
+                            {[
+                              prospect.primary_position,
+                              prospect.current_club,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ') || 'Recruitment target'}
+                          </small>
+                          {exactHandle ? (
+                            <em className={styles.exactHandle}>
+                              Exact Instagram handle
+                            </em>
+                          ) : null}
+                        </span>
+                        {busy === busyKey ? (
+                          <LoaderCircle
+                            size={14}
+                            className={styles.spin}
+                          />
+                        ) : (
+                          <span className={styles.linkLabel}>
+                            {exactHandle ? 'Confirm' : 'Link'}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {!filteredProspects.length ? (
+                    <div className={styles.groupEmpty}>
+                      No recruitment target matches this search.
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className={styles.createContactArea}>
+                  {!createProspectOpen ? (
+                    <button
+                      type="button"
+                      className={styles.createContactStart}
+                      onClick={() => {
+                        setError('');
+                        setCreateProspectOpen(true);
+                      }}
+                      disabled={Boolean(busy)}
+                    >
+                      <UserRound size={15} />
+                      <span>
+                        <strong>Not in Recruitment?</strong>
+                        <small>Create target and link this chat</small>
+                      </span>
+                    </button>
+                  ) : (
+                    <form
+                      className={styles.createContactForm}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void createAndBindProspect();
+                      }}
+                    >
+                      <div className={styles.createContactHead}>
+                        <div>
+                          <small>NEW RECRUITMENT TARGET</small>
+                          <strong>Create from this player chat</strong>
+                        </div>
+                        <span>
+                          {activeThread.provider === 'instagram'
+                            ? '@' +
+                              String(activeThread.participant_label || '')
+                                .replace(/^@+/, '')
+                            : activeThread.participant_label || 'Player chat'}
+                        </span>
+                      </div>
+
+                      <label>
+                        <span>Player name *</span>
+                        <input
+                          required
+                          value={newProspect.full_name}
+                          onChange={(event) =>
+                            setNewProspect((current) => ({
+                              ...current,
+                              full_name: event.target.value,
+                            }))
+                          }
+                          placeholder="Full name"
+                          autoComplete="off"
+                        />
+                      </label>
+
+                      <div className={styles.createContactPair}>
+                        <label>
+                          <span>Club</span>
+                          <input
+                            value={newProspect.current_club}
+                            onChange={(event) =>
+                              setNewProspect((current) => ({
+                                ...current,
+                                current_club: event.target.value,
+                              }))
+                            }
+                            placeholder="Optional"
+                            autoComplete="off"
+                          />
+                        </label>
+                        <label>
+                          <span>Position</span>
+                          <input
+                            value={newProspect.primary_position}
+                            onChange={(event) =>
+                              setNewProspect((current) => ({
+                                ...current,
+                                primary_position: event.target.value,
+                              }))
+                            }
+                            placeholder="Optional"
+                            autoComplete="off"
+                          />
+                        </label>
+                      </div>
+
+                      <div className={styles.createContactActions}>
+                        <button
+                          type="button"
+                          className={styles.createContactCancel}
+                          onClick={() => {
+                            setCreateProspectOpen(false);
+                            setNewProspect({
+                              full_name: '',
+                              current_club: '',
+                              primary_position: '',
+                            });
+                          }}
+                          disabled={Boolean(busy)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className={styles.createContactSubmit}
+                          disabled={Boolean(busy)}
+                        >
+                          {busy === 'create-prospect' ? (
+                            <LoaderCircle
+                              size={14}
+                              className={styles.spin}
+                            />
+                          ) : null}
+                          Create & link
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </section>
+
+              <section
+                className={styles.identityGroup}
+                style={{ order: activeThread.provider === 'whatsapp' ? 1 : 3 }}
               >
                 <div className={styles.identityGroupHead}>
                   <div>

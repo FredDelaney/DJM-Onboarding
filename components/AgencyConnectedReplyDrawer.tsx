@@ -36,10 +36,13 @@ type ReplyResponse = {
   ok?: boolean;
   draft?: DraftPayload | null;
   context?: {
-    identity_kind?: 'network_person' | 'player' | null;
+    identity_kind?: 'network_person' | 'player' | 'recruitment_target' | null;
     identity_name?: string | null;
     person_name?: string | null;
     player_name?: string | null;
+    prospect_name?: string | null;
+    prospect_current_club?: string | null;
+    recruitment_stage?: string | null;
     player_current_club?: string | null;
     current_organisation_name?: string | null;
     current_role?: string | null;
@@ -219,15 +222,19 @@ export default function AgencyConnectedReplyDrawer({
   const personName =
     context?.identity_name ||
     context?.player_name ||
+    context?.prospect_name ||
     context?.person_name ||
     interaction?.player_name ||
+    interaction?.prospect_name ||
     interaction?.person_name ||
     'Connected identity';
 
   const organisation =
     context?.player_current_club ||
+    context?.prospect_current_club ||
     context?.current_organisation_name ||
     interaction?.player_current_club ||
+    interaction?.prospect_current_club ||
     interaction?.organisation_name ||
     null;
 

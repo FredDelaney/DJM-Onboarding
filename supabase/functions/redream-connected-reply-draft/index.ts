@@ -165,6 +165,7 @@ export default {
       const identity = asObject(context.identity);
       const person = asObject(context.person);
       const player = asObject(context.player);
+      const prospect = asObject(context.prospect);
       const recent = Array.isArray(context.recent_context)
         ? context.recent_context.slice(0, 4)
         : [];
@@ -172,11 +173,20 @@ export default {
       const contextPayload = {
         identity_kind:
           identity.kind ||
-          (player.player_id ? "player" : "network_person"),
+          (player.player_id ? "player" : prospect.prospect_id ? "recruitment_target" : "network_person"),
         identity_name:
-          identity.name || player.name || person.name || null,
+          identity.name || player.name || prospect.name || person.name || null,
         person_name: person.name || null,
         player_name: player.name || null,
+        prospect_name: prospect.name || null,
+        prospect_current_club:
+          identity.prospect_current_club ||
+          prospect.current_club ||
+          null,
+        recruitment_stage:
+          identity.recruitment_stage ||
+          prospect.recruitment_stage ||
+          null,
         player_current_club:
           identity.player_current_club ||
           player.current_club ||
@@ -255,10 +265,11 @@ export default {
         connected_identity: {
           kind:
             clean(identity.kind) ||
-            (player.player_id ? "player" : "network_person"),
+            (player.player_id ? "player" : prospect.prospect_id ? "recruitment_target" : "network_person"),
           name:
             clean(identity.name) ||
             clean(player.name) ||
+            clean(prospect.name) ||
             clean(person.name) ||
             null,
           current_organisation:
@@ -276,6 +287,14 @@ export default {
           player_current_club:
             clean(identity.player_current_club) ||
             clean(player.current_club) ||
+            null,
+          prospect_current_club:
+            clean(identity.prospect_current_club) ||
+            clean(prospect.current_club) ||
+            null,
+          recruitment_stage:
+            clean(identity.recruitment_stage) ||
+            clean(prospect.recruitment_stage) ||
             null,
         },
         recent_same_contact_context: recent.map((item: any) => ({
@@ -339,9 +358,10 @@ export default {
           max_output_tokens: 520,
           instructions: [
             "You draft one concise reply for a professional football agent.",
-            "The source interaction is an inbound connected email, Instagram message or WhatsApp message already linked to a confirmed Network person or signed player.",
+            "The source interaction is an inbound connected email, Instagram message or WhatsApp message already linked to a confirmed Network person, signed player or recruitment target.",
             "Use only the supplied source interaction and supplied recent same-identity context.",
-            "If connected_identity.kind is player, write naturally to that player. connected_identity.player_current_club is display context only and must not be treated as the club speaking, a club request or club authority unless the supplied interaction itself explicitly establishes that.",
+            "If connected_identity.kind is player, write naturally to that signed player. connected_identity.player_current_club is display context only and must not be treated as the club speaking, a club request or club authority unless the supplied interaction itself explicitly establishes that.",
+            "If connected_identity.kind is recruitment_target, write naturally to a player the agency is recruiting. Do not imply that the player is signed, represented or under contract with the agency unless the supplied evidence explicitly says so. The target current club is display context only and is not club authority.",
             "Do not invent player availability, prices, salaries, fees, dates, deadlines, travel, medical information, deal terms, promises, approvals or commitments.",
             "If the sender asks for information that is not supported by the supplied evidence, acknowledge the request without inventing the answer.",
             "Do not imply that something has been sent, agreed, approved or completed unless the supplied evidence states that clearly.",
