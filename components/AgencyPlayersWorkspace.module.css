@@ -450,3 +450,108 @@
     padding-inline: 0;
   }
 }
+
+/* ReDream visual reset v1 */
+.playerCard {
+  box-shadow: none;
+  border-color: #e9edf0;
+}
+
+@media (max-width: 680px) {
+  .workspace {
+    gap: 10px;
+  }
+
+  .toolbar {
+    gap: 10px;
+  }
+
+  .sectionTabs {
+    order: 2;
+    border: 0;
+    background: #f3f5f7;
+    border-radius: 14px;
+  }
+
+  .sectionTab,
+  .sectionTabActive {
+    min-height: 38px;
+    border-radius: 12px;
+    font-size: 9px;
+  }
+
+  .sectionTabActive {
+    box-shadow: none;
+  }
+
+  .search {
+    order: 1;
+    min-height: 46px;
+    border-radius: 15px;
+    background: #f8f9fb;
+    border-color: #e8ebef;
+  }
+
+  .playerGrid {
+    gap: 9px;
+  }
+
+  .playerCard {
+    min-height: 76px;
+    padding: 13px 14px;
+    display: block;
+    border-radius: 16px;
+    background: #fff;
+  }
+
+  .playerCardTop {
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+  }
+
+  .playerIdentity h3 {
+    font-size: 14px;
+    font-weight: 760;
+  }
+
+  .playerIdentity span {
+    font-size: 9px;
+    color: #77808a;
+  }
+
+  .playerFacts,
+  .playerCardActions {
+    display: none;
+  }
+
+  .attentionPill {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #f3b44f;
+    color: transparent;
+    font-size: 0;
+  }
+
+  .calmPill {
+    display: none;
+  }
+
+  .recruitmentList {
+    gap: 8px;
+  }
+
+  .recruitmentRow {
+    min-height: 70px;
+    border-radius: 15px;
+    box-shadow: none;
+  }
+}

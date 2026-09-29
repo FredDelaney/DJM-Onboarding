@@ -1192,3 +1192,247 @@
     grid-template-columns:1fr 1fr;
   }
 }
+
+/* ReDream visual reset v1 */
+.hero,
+.card,
+.checkDone,
+.checkPending {
+  box-shadow: none;
+}
+
+.card {
+  border-color: #e9edf0;
+}
+
+@media (max-width: 720px) {
+  .root {
+    gap: 12px;
+  }
+
+  .topbar {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .back {
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid #e9edf0;
+    border-radius: 50%;
+    background: #fff;
+    color: #58636f;
+    font-size: 0;
+  }
+
+  .quietButton {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'identity'
+      'readiness'
+      'actions';
+    justify-items: center;
+    gap: 14px;
+    padding: 28px 18px 22px;
+    border: 1px solid #edf0f2;
+    border-radius: 20px;
+    background:
+      radial-gradient(circle at 50% -30px, color-mix(in srgb, var(--profile-accent) 12%, transparent), transparent 150px),
+      #fff;
+    color: #1c252e;
+  }
+
+  .hero::after {
+    display: none;
+  }
+
+  .heroIdentity {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .photo {
+    flex-basis: 104px;
+    width: 104px;
+    height: 104px;
+    border: 4px solid #fff;
+    border-radius: 50%;
+    background: #f2f5f7;
+    color: var(--profile-primary);
+    box-shadow: 0 8px 24px rgba(26, 38, 51, .08);
+  }
+
+  .hero .eyebrow {
+    display: none;
+  }
+
+  .heroCopy h2 {
+    margin: 0 0 6px;
+    color: #111820;
+    font-size: 27px;
+    line-height: 1.05;
+    letter-spacing: -.04em;
+  }
+
+  .heroCopy p {
+    color: #77818c;
+    font-size: 10px;
+  }
+
+  .statusRow {
+    justify-content: center;
+    margin-top: 10px;
+  }
+
+  .statusRow span,
+  .statusRow .liveStatus,
+  .statusRow .draftStatus {
+    min-height: 24px;
+    background: #f3f5f7;
+    color: #6a7580;
+    font-size: 8px;
+  }
+
+  .statusRow .liveStatus {
+    background: #eaf7f0;
+    color: #3f7658;
+  }
+
+  .readiness {
+    min-height: 0;
+    width: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: center;
+  }
+
+  .readinessTop {
+    justify-content: center;
+  }
+
+  .readinessTop span {
+    display: none;
+  }
+
+  .readinessTop strong {
+    color: #77818c;
+    font-size: 9px;
+    font-weight: 720;
+    letter-spacing: 0;
+  }
+
+  .readiness p {
+    display: none;
+  }
+
+  .heroActions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .heroActions .primaryAction {
+    grid-column: auto;
+    min-height: 40px;
+    padding-inline: 14px;
+    border-radius: 20px;
+    background: var(--profile-primary);
+    color: #fff;
+  }
+
+  .hero .secondaryAction {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    overflow: hidden;
+    border-color: #e7eaed;
+    border-radius: 50%;
+    background: #fff;
+    color: #68737f;
+    font-size: 0;
+  }
+
+  .readinessGrid {
+    display: none;
+  }
+
+  .columns {
+    gap: 10px;
+  }
+
+  .card {
+    border-radius: 16px;
+  }
+
+  .cardHead {
+    min-height: 54px;
+    padding: 13px 15px 10px;
+  }
+
+  .cardHead .eyebrow {
+    display: none;
+  }
+
+  .cardHead h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 760;
+  }
+
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .facts > div {
+    padding: 12px 14px;
+  }
+
+  .story {
+    padding: 14px;
+  }
+
+  .story > span {
+    font-size: 7px;
+  }
+
+  .story strong {
+    font-size: 11px;
+  }
+
+  .story p {
+    font-size: 9px;
+  }
+
+  .proofStats > div {
+    padding: 13px 10px;
+  }
+
+  .proofStats strong {
+    font-size: 20px;
+  }
+
+  .keyStats {
+    padding: 13px;
+  }
+
+  .communicationRow {
+    padding: 11px 13px;
+  }
+}

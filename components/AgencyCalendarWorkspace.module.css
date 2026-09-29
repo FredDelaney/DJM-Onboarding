@@ -515,3 +515,55 @@
     font-size: 18px;
   }
 }
+
+/* ReDream visual reset v1 */
+.controls,
+.rows,
+.row,
+.rowAttention {
+  box-shadow: none;
+}
+
+@media (max-width: 680px) {
+  .workspace {
+    gap: 10px;
+  }
+
+  .controls {
+    padding: 3px;
+    border: 0;
+    border-radius: 14px;
+    background: #f3f5f7;
+  }
+
+  .rangeButton,
+  .rangeActive {
+    min-height: 38px;
+    border-radius: 12px;
+  }
+
+  .rangeActive {
+    background: #fff;
+    color: var(--agency-primary);
+    box-shadow: 0 1px 3px rgba(18,31,45,.05);
+  }
+
+  .rows {
+    border-radius: 15px;
+    border-color: #e9edf0;
+  }
+
+  .row,
+  .rowAttention {
+    min-height: 64px;
+    padding: 12px 13px;
+  }
+
+  .copy strong {
+    font-size: 10.5px;
+  }
+
+  .copy > small {
+    display: none;
+  }
+}
