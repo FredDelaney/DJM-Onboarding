@@ -3067,3 +3067,59 @@
     border-radius: 15px;
   }
 }
+
+/* Premium interaction system v1 */
+@media (max-width: 680px) {
+  .nav a,
+  .mobileContextAction .createButton,
+  .mobileTell button,
+  .attentionCard .compactButton,
+  .simpleTimelineRow {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .nav a,
+  .mobileContextAction .createButton,
+  .mobileTell button,
+  .simpleTimelineRow {
+    transition:
+      transform 120ms ease,
+      background-color 120ms ease,
+      border-color 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  .nav a:active,
+  .mobileContextAction .createButton:active,
+  .mobileTell button:active {
+    transform: scale(.97);
+  }
+
+  .simpleTimelineRow:active {
+    background: #f7f9fa;
+    transform: scale(.995);
+  }
+
+  .attentionCard:has(.compactButton:active) {
+    background: #f9fafb;
+  }
+
+  .nav a:focus-visible,
+  .mobileContextAction .createButton:focus-visible,
+  .mobileTell button:focus-visible,
+  .attentionCard .compactButton:focus-visible,
+  .simpleTimelineRow:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--agency-accent) 28%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav a,
+  .mobileContextAction .createButton,
+  .mobileTell button,
+  .simpleTimelineRow {
+    transition: none;
+  }
+}

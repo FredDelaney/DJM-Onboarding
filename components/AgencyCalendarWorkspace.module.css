@@ -682,3 +682,50 @@
     font-size: 11px;
   }
 }
+
+/* Premium interaction system v1 */
+@media (max-width: 680px) {
+  .rangeButton,
+  .rangeActive,
+  .action {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .rangeButton,
+  .rangeActive,
+  .row,
+  .rowAttention {
+    transition:
+      transform 120ms ease,
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .rangeButton:active,
+  .rangeActive:active {
+    transform: scale(.985);
+  }
+
+  .row:has(.action:active),
+  .rowAttention:has(.action:active) {
+    background: #fafbfc;
+    transform: scale(.994);
+  }
+
+  .rangeButton:focus-visible,
+  .rangeActive:focus-visible,
+  .action:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--agency-accent) 28%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rangeButton,
+  .rangeActive,
+  .row,
+  .rowAttention {
+    transition: none;
+  }
+}

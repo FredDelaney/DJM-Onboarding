@@ -1202,3 +1202,51 @@
     font-size: 11px;
   }
 }
+
+/* Premium interaction system v1 */
+@media (max-width: 680px) {
+  .tab,
+  .tabActive,
+  .primaryAction {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .tab,
+  .tabActive,
+  .primaryAction,
+  .clubCard,
+  .personCard {
+    transition:
+      transform 120ms ease,
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .tab:active,
+  .tabActive:active,
+  .primaryAction:active {
+    transform: scale(.985);
+  }
+
+  .primaryAction:active {
+    filter: brightness(.97);
+  }
+
+  .tab:focus-visible,
+  .tabActive:focus-visible,
+  .primaryAction:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--agency-accent) 28%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tabActive,
+  .primaryAction,
+  .clubCard,
+  .personCard {
+    transition: none;
+  }
+}

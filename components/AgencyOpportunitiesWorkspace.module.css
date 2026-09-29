@@ -720,3 +720,50 @@
     pointer-events: none;
   }
 }
+
+/* Premium interaction system v1 */
+@media (max-width: 680px) {
+  .tab,
+  .tabActive,
+  .action,
+  .actionAttention {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .tab,
+  .tabActive,
+  .row {
+    transition:
+      transform 120ms ease,
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .tab:active,
+  .tabActive:active {
+    transform: scale(.985);
+  }
+
+  .row:has(.action:active),
+  .row:has(.actionAttention:active) {
+    background: #fafbfc;
+    transform: scale(.994);
+  }
+
+  .tab:focus-visible,
+  .tabActive:focus-visible,
+  .action:focus-visible,
+  .actionAttention:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--agency-accent) 28%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tabActive,
+  .row {
+    transition: none;
+  }
+}
