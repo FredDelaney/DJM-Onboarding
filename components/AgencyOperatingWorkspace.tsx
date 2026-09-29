@@ -462,6 +462,9 @@ export default function AgencyOperatingWorkspace() {
           rpc<any>('redream_meeting_aftercare', {
             p_limit: 12,
           }),
+          rpc<any>('redream_provider_contact_suggestions', {
+            p_limit: 12,
+          }),
         ]);
 
         if (reads[0].status === 'rejected') {
@@ -483,6 +486,7 @@ export default function AgencyOperatingWorkspace() {
         const deals = readValue(4);
         const connectedWork = readValue(5);
         const meetingAftercare = readValue(6);
+        const providerIdentitySuggestions = readValue(7);
 
         let ownerBusiness: any = null;
 
@@ -535,6 +539,8 @@ export default function AgencyOperatingWorkspace() {
           deals,
           connected_work: connectedWork,
           meeting_aftercare: meetingAftercare,
+          provider_identity_suggestions:
+            providerIdentitySuggestions,
           owner_business: ownerBusiness,
         });
       } else if (view === 'players') {
@@ -1640,6 +1646,14 @@ function Home({
   const connectedSummary = connectedWork?.summary || {};
   const identityResolution =
     connectedWork?.identity_resolution || {};
+  const providerIdentitySuggestions =
+    data?.provider_identity_suggestions || {};
+  const providerIdentityCount =
+    Number(providerIdentitySuggestions?.count || 0);
+  const chatIdentityCount =
+    Number(identityResolution?.count || 0);
+  const identityResolutionCount =
+    chatIdentityCount + providerIdentityCount;
   const recentConnected = Array.isArray(
     connectedWork?.recent_conversations,
   )
@@ -1666,7 +1680,7 @@ function Home({
         meetingAftercareItems.length,
     );
   const connectedCount =
-    Number(identityResolution?.count || 0) +
+    identityResolutionCount +
     Number(
       connectedSummary?.connected_followups_open || 0,
     ) +
@@ -1678,15 +1692,27 @@ function Home({
   )
     ? identityResolution.by_provider
     : [];
-  const connectedProviderCopy =
-    connectedProviders
-      .map(
-        (item: any) =>
-          `${item?.count || 0} ${human(
-            item?.provider || 'chat',
-          )}`,
-      )
-      .join(' · ') || 'Selected chats';
+  const providerSuggestionProviders = Array.isArray(
+    providerIdentitySuggestions?.by_provider,
+  )
+    ? providerIdentitySuggestions.by_provider
+    : [];
+  const connectedProviderCopy = [
+    ...connectedProviders.map(
+      (item: any) =>
+        `${item?.count || 0} ${human(
+          item?.provider || 'chat',
+        )} chat`,
+    ),
+    ...providerSuggestionProviders.map(
+      (item: any) =>
+        `${item?.count || 0} ${human(
+          item?.provider || 'provider',
+        )} contact`,
+    ),
+  ]
+    .filter(Boolean)
+    .join(' · ') || 'Connected identity';
 
   const confirm = Array.isArray(home?.attention?.confirm)
     ? home.attention.confirm
@@ -2150,7 +2176,7 @@ function Home({
             </article>
           ))}
 
-          {Number(identityResolution?.count || 0) > 0 ? (
+          {identityResolutionCount > 0 ? (
             <article
               className={`${styles.connectedWorkRow} ${styles.connectedWorkRowAttention}`}
             >
@@ -2163,15 +2189,14 @@ function Home({
                   IDENTITY · {connectedProviderCopy}
                 </small>
                 <strong>
-                  {Number(identityResolution.count)} selected chat
-                  {Number(identityResolution.count) === 1
-                    ? ''
-                    : 's'}{' '}
-                  need a Network contact
+                  {identityResolutionCount} connected identit
+                  {identityResolutionCount === 1 ? 'y' : 'ies'}{' '}
+                  need confirmation
                 </strong>
                 <span>
-                  Link each chat once so future messages attach to
-                  the right person and current club.
+                  Confirm the right Network person once so future
+                  email and selected messages attach to the correct
+                  contact and current club.
                 </span>
                 <div className={styles.connectedWorkFoot}>
                   <AgencyOwnershipChip
@@ -2180,7 +2205,7 @@ function Home({
                   />
                   {identityResolution?.latest_activity_at ? (
                     <em>
-                      Latest{' '}
+                      Latest chat{' '}
                       {relativeDate(
                         identityResolution.latest_activity_at,
                       )}
@@ -2194,7 +2219,7 @@ function Home({
                 className={styles.connectedWorkAction}
                 onClick={onResolveConnectedIdentity}
               >
-                Link chats
+                Resolve identities
                 <ArrowRight size={13} />
               </button>
             </article>

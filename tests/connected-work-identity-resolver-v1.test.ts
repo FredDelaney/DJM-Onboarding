@@ -117,7 +117,7 @@ test(
 
     assert.match(
       resolver,
-      /Linking does not send[\s\S]*create a person automatically/,
+      /never applies a provider contact suggestion[\s\S]*automatically[\s\S]*does not send a[\s\S]*message or create a person/,
     );
   },
 );
