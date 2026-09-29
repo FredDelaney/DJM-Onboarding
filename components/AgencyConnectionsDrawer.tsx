@@ -88,6 +88,8 @@ export default function AgencyConnectionsDrawer({
     useState('');
   const [message, setMessage] =
     useState('');
+  const [messagingIdentity, setMessagingIdentity] =
+    useState({ selected: 0, unresolved: 0 });
 
   const byProvider =
     useMemo(
@@ -528,6 +530,13 @@ export default function AgencyConnectionsDrawer({
                   busy.endsWith(
                     provider.key,
                   );
+                const persistedEmailAccess =
+                  Boolean(
+                    connected?.capabilities?.includes('email'),
+                  );
+                const emailAccessChanged =
+                  Boolean(connected) &&
+                  emailAccess[provider.key] !== persistedEmailAccess;
 
                 return (
                   <article
@@ -637,11 +646,20 @@ export default function AgencyConnectionsDrawer({
                         <span>
                           <strong>
                             Agency email
+                            <em
+                              className={
+                                emailAccess[provider.key]
+                                  ? styles.emailOn
+                                  : styles.emailOff
+                              }
+                            >
+                              {emailAccess[provider.key] ? 'On' : 'Off'}
+                            </em>
                           </strong>
                           <small>
-                            Optional. Turn this on only for a mailbox you use
-                            with clubs and football contacts. ReDream keeps only
-                            recent emails involving people already in Network.
+                            {emailAccessChanged
+                              ? 'Choose Update access to apply this change.'
+                              : 'Optional. Use this only for an agency mailbox you use with clubs and football contacts. ReDream keeps only recent emails involving people already in Network.'}
                           </small>
                         </span>
                       </div>
@@ -691,52 +709,40 @@ export default function AgencyConnectionsDrawer({
                               styles.primary
                             }
                             onClick={() =>
-                              void syncProvider(
-                                provider.key,
-                              )
+                              emailAccessChanged
+                                ? void connect(provider.key)
+                                : void syncProvider(provider.key)
                             }
                             disabled={
-                              Boolean(
-                                busy,
-                              )
+                              Boolean(busy)
                             }
                           >
                             {working ? (
                               <LoaderCircle
                                 size={14}
-                                className={
-                                  styles.spin
-                                }
+                                className={styles.spin}
                               />
+                            ) : emailAccessChanged ? (
+                              <Link2 size={14} />
                             ) : (
-                              <RefreshCw
-                                size={14}
-                              />
+                              <RefreshCw size={14} />
                             )}
-                            Sync now
+                            {emailAccessChanged ? 'Update access' : 'Sync now'}
                           </button>
 
-                          <button
-                            type="button"
-                            className={
-                              styles.secondary
-                            }
-                            onClick={() =>
-                              void connect(
-                                provider.key,
-                              )
-                            }
-                            disabled={
-                              Boolean(
-                                busy,
-                              )
-                            }
-                          >
-                            <Link2
-                              size={14}
-                            />
-                            Reconnect
-                          </button>
+                          {!emailAccessChanged ? (
+                            <button
+                              type="button"
+                              className={styles.secondary}
+                              onClick={() =>
+                                void connect(provider.key)
+                              }
+                              disabled={Boolean(busy)}
+                            >
+                              <Link2 size={14} />
+                              Reconnect
+                            </button>
+                          ) : null}
 
                           <button
                             type="button"
@@ -815,6 +821,7 @@ export default function AgencyConnectionsDrawer({
 
         <AgencyMessagingConnections
           workspaceSlug={workspaceSlug}
+          onIdentityState={setMessagingIdentity}
           onStatus={(kind, nextMessage) => {
             if (kind === 'success') {
               setError('');
@@ -826,23 +833,39 @@ export default function AgencyConnectionsDrawer({
           }}
         />
 
-        {onResolveIdentities ? (
-          <div className={styles.identityReview}>
+        {onResolveIdentities && messagingIdentity.selected > 0 ? (
+          <div
+            className={`${styles.identityReview} ${
+              messagingIdentity.unresolved > 0 ? styles.identityAttention : ''
+            }`}
+          >
             <div>
-              <strong>Connected identities</strong>
-              <span>Confirm which player or Network person a selected conversation belongs to.</span>
+              <strong>
+                {messagingIdentity.unresolved > 0
+                  ? `${messagingIdentity.unresolved} selected ${messagingIdentity.unresolved === 1 ? 'chat needs' : 'chats need'} identity`
+                  : `${messagingIdentity.selected} selected ${messagingIdentity.selected === 1 ? 'chat is' : 'chats are'} linked`}
+              </strong>
+              <span>
+                {messagingIdentity.unresolved > 0
+                  ? 'Confirm the signed player or Network person before ReDream uses that conversation context.'
+                  : 'ReDream knows who each selected conversation belongs to.'}
+              </span>
             </div>
-            <button
-              type="button"
-              className={styles.secondary}
-              onClick={() => {
-                if (!pageMode) onClose();
-                onResolveIdentities();
-              }}
-            >
-              <ContactRound size={14} />
-              Review identities
-            </button>
+            {messagingIdentity.unresolved > 0 ? (
+              <button
+                type="button"
+                className={styles.primary}
+                onClick={() => {
+                  if (!pageMode) onClose();
+                  onResolveIdentities();
+                }}
+              >
+                <ContactRound size={14} />
+                Review identities
+              </button>
+            ) : (
+              <span className={styles.identityReady}>Ready</span>
+            )}
           </div>
         ) : null}
 

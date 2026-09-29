@@ -246,7 +246,7 @@ test(
 );
 
 test(
-  'connected work stays outside primary navigation and uses a compact drawer',
+  'connected work stays outside primary navigation and uses the dedicated Connections surface',
   () => {
     assert.match(
       shell,

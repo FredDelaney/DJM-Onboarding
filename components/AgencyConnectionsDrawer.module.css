@@ -743,3 +743,41 @@
     grid-template-columns: 1fr;
   }
 }
+
+.emailOption strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.emailOn,
+.emailOff {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.emailOn {
+  background: #eaf5ee;
+  color: #31704a;
+}
+
+.emailOff {
+  background: #f1f3f4;
+  color: #7b858d;
+}
+
+.identityAttention {
+  border-color: #d9e5eb;
+  background: #f7fafb;
+}
+
+.identityReady {
+  color: #4e735d;
+  font-size: 9px;
+  font-weight: 800;
+}
