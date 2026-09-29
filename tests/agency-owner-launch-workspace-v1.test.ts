@@ -56,10 +56,10 @@ test('owner launch is white-label and drives real setup rather than manual check
   assert.match(page, /useTenantRuntime/);
   assert.match(page, /agency-launch/);
   assert.match(page, /agency-privacy/);
-  assert.match(page, /Start with one real player/);
+  assert.match(page, /Add your first player/);
   assert.match(page, /create_first_player/);
-  assert.match(page, /Add one club contact you actually know/);
-  assert.match(page, /Capture something commercially real/);
+  assert.match(page, /Add a club contact/);
+  assert.match(page, /Add something live/);
   assert.doesNotMatch(page, />ReDream</);
   assert.doesNotMatch(page, />DJM</);
   assert.doesNotMatch(page, /mark.*complete/i);

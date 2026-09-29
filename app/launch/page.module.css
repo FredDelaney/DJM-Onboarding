@@ -552,3 +552,204 @@
     padding: 18px;
   }
 }
+
+/* ReDream launch flow visual reset v1 */
+.workCard,
+.rail,
+.authCard {
+  box-shadow: none;
+  border-color: #e9edf0;
+}
+
+.workCard {
+  border-radius: 16px;
+}
+
+.hero h1 {
+  font-size: clamp(26px, 3.4vw, 36px);
+}
+
+.hero > p:last-child {
+  max-width: 560px;
+}
+
+@media (max-width: 620px) {
+  .page,
+  .authPage,
+  .loading {
+    background: #fff;
+  }
+
+  .header {
+    height: 56px;
+    padding: 0 16px;
+    background: rgba(255,255,255,.96);
+  }
+
+  .mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .identity span {
+    display: none;
+  }
+
+  .signOut {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
+  .shell {
+    width: min(100% - 32px, 620px);
+    padding: 16px 0 calc(40px + env(safe-area-inset-bottom));
+    gap: 12px;
+  }
+
+  .rail {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .progressHeader {
+    align-items: center;
+  }
+
+  .progressHeader .eyebrow {
+    display: none;
+  }
+
+  .progressHeader strong {
+    color: #818a94;
+    font-size: 9px;
+    font-weight: 720;
+  }
+
+  .progressTrack {
+    height: 4px;
+    margin-top: 7px;
+    background: #eef1f3;
+  }
+
+  .steps {
+    display: none;
+  }
+
+  .hero {
+    padding: 14px 0 10px;
+  }
+
+  .hero .eyebrow {
+    margin-bottom: 6px;
+    font-size: 7px;
+    letter-spacing: .08em;
+  }
+
+  .hero h1 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    line-height: 1.05;
+  }
+
+  .hero > p:last-child {
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .workCard {
+    padding: 6px 0 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .form {
+    gap: 14px;
+  }
+
+  .grid {
+    gap: 11px;
+  }
+
+  .field {
+    gap: 6px;
+  }
+
+  .field > span {
+    color: #65707b;
+    font-size: 9px;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    min-height: 48px;
+    padding: 0 13px;
+    border-color: #e5e9ed;
+    border-radius: 14px;
+    background: #fafbfc;
+    font-size: 16px;
+  }
+
+  .field textarea {
+    padding: 12px 13px;
+    line-height: 1.45;
+  }
+
+  .colourInput {
+    min-height: 48px !important;
+  }
+
+  .boundary {
+    padding: 10px 12px;
+    border-radius: 13px;
+    font-size: 9px;
+  }
+
+  .primaryButton {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 14px;
+    font-size: 10px;
+  }
+
+  .notice,
+  .error {
+    margin-bottom: 8px;
+    border-radius: 12px;
+    font-size: 9px;
+  }
+
+  .completePanel {
+    min-height: 140px;
+    justify-content: center;
+    text-align: center;
+    flex-direction: column;
+  }
+
+  .completePanel strong {
+    font-size: 18px;
+  }
+
+  .authPage {
+    padding: 18px;
+  }
+
+  .authCard {
+    padding: 22px;
+    border-radius: 18px;
+  }
+
+  .authCard h1 {
+    font-size: 24px;
+  }
+}
