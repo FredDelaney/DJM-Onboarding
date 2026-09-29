@@ -1109,6 +1109,7 @@ export default function AgencyOperatingWorkspace() {
             {view === 'opportunities' ? (
               <AgencyOpportunitiesWorkspace
                 data={data}
+                basePath={basePath}
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
@@ -1753,11 +1754,18 @@ function Home({
     const clubNeedId = String(
       item?.context?.club_need_id || item?.club_need_id || '',
     ).trim();
-    if (
-      clubNeedId ||
-      ['deal', 'club_need'].includes(String(item?.entity_type || ''))
-    ) {
-      return `${basePath}?view=opportunities`;
+    const entityType = String(item?.entity_type || '');
+
+    if (entityType === 'deal') {
+      return `${basePath}?view=opportunities&tab=deals`;
+    }
+
+    if (entityType === 'player_match') {
+      return `${basePath}?view=opportunities&tab=routes`;
+    }
+
+    if (clubNeedId || entityType === 'club_need') {
+      return `${basePath}?view=opportunities&tab=needs`;
     }
 
     if (item?.person_id || item?.organisation_id) {

@@ -28,8 +28,12 @@ test('Today opens meeting preparation directly through Calendar', () => {
 test('Today routes player and opportunity dates to the real work surface', () => {
   assert.match(home, /item\?\.context\?\.player_id \|\| item\?\.player_id/);
   assert.match(home, /\?view=players&player=\$\{encodeURIComponent\(playerId\)\}/);
-  assert.match(home, /\['deal', 'club_need'\]\.includes/);
-  assert.match(home, /\?view=opportunities/);
+  assert.match(home, /entityType === 'deal'/);
+  assert.match(home, /\?view=opportunities&tab=deals/);
+  assert.match(home, /entityType === 'player_match'/);
+  assert.match(home, /\?view=opportunities&tab=routes/);
+  assert.match(home, /entityType === 'club_need'/);
+  assert.match(home, /\?view=opportunities&tab=needs/);
   assert.match(home, /\?view=network/);
 });
 

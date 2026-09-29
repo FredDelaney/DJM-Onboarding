@@ -31,7 +31,9 @@ test('Calendar V2 keeps one direct destination per agenda row', async () => {
 
   assert.match(source, /Meeting link/);
   assert.match(source, /Open player/);
-  assert.match(source, /Open Opportunities/);
+  assert.match(source, /Open deal/);
+  assert.match(source, /Open route/);
+  assert.match(source, /Open need/);
   assert.match(source, /Open Network/);
   assert.match(source, /Open Home/);
 });
