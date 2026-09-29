@@ -81,6 +81,8 @@ import AgencyMeetingOutcomeDrawer from '@/components/AgencyMeetingOutcomeDrawer'
 import AgencyTeamHandoffDrawer from '@/components/AgencyTeamHandoffDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AccountMenu from '@/components/AccountMenu';
+import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
+import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -333,16 +335,15 @@ export default function AgencyOperatingWorkspace() {
           ? { kind: 'contact', label: 'Add contact' }
           : null;
 
-  const theme = {
-    '--agency-primary':
+  const theme = tenantBrandCssVariables({
+    primary:
       workspace?.primary_color ||
-      runtime.branding.primary_color ||
-      '#111827',
-    '--agency-accent':
+      runtime.branding.primary_color,
+    secondary: runtime.branding.secondary_color,
+    accent:
       workspace?.accent_color ||
-      runtime.branding.accent_color ||
-      '#64748B',
-  } as React.CSSProperties;
+      runtime.branding.accent_color,
+  });
 
   const invoke = useCallback(
     async <T,>(
@@ -913,17 +914,10 @@ export default function AgencyOperatingWorkspace() {
     <div className={styles.root} style={theme}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <div className={styles.mark}>
-            {initials(workspaceName) || 'A'}
-          </div>
-          <div>
-            <strong>{workspaceName}</strong>
-            <span>
-              {workspace.portal_name ||
-                workspace.short_name ||
-                'Agency workspace'}
-            </span>
-          </div>
+          <TenantWorkspaceBrand
+            href={basePath}
+            darkSurface
+          />
         </div>
 
         <nav className={styles.nav} aria-label="Agency workspace">
@@ -961,6 +955,9 @@ export default function AgencyOperatingWorkspace() {
 
       <main className={styles.main}>
         <header className={`${styles.pageHead} ${inlineEntityWorkspaceOpen ? styles.pageHeadHidden : ''}`}>
+          <div className={styles.mobileTenantBrand}>
+            <TenantWorkspaceBrand href={basePath} compact />
+          </div>
           <div className={styles.pageHeadCopy}>
             <div className={styles.pageHeadTitleLine}>
               <div>

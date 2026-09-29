@@ -36,6 +36,7 @@ import {
   relativeDate,
 } from '@/lib/platform-client';
 import { publicFile } from '@/lib/supabase';
+import { tenantBrandTokens } from '@/lib/tenant-brand-style';
 
 import styles from './AgencyPlayerProfile.module.css';
 
@@ -684,11 +685,18 @@ export default function AgencyPlayerProfile({
     );
   }
 
+  const brand = tenantBrandTokens({
+    primary: agency.primary_color,
+    secondary: agency.secondary_color,
+    accent: agency.accent_color,
+  });
   const theme = {
-    '--profile-primary':
-      agency.primary_color || '#111827',
-    '--profile-accent':
-      agency.accent_color || '#64748B',
+    '--profile-primary': brand.primary,
+    '--profile-accent': brand.accent,
+    '--profile-primary-raw': brand.primaryRaw,
+    '--profile-accent-raw': brand.accentRaw,
+    '--profile-on-primary': brand.onPrimary,
+    '--profile-on-accent': brand.onAccent,
   } as React.CSSProperties;
 
   return (

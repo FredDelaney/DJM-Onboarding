@@ -1,0 +1,109 @@
+.root {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.logoBox {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #e7ebef;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(15, 27, 40, .08);
+}
+
+.logoBox img {
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  box-sizing: border-box;
+  object-fit: contain;
+}
+
+
+.lightLogoBox {
+  background: var(--agency-primary, var(--tenant-primary, #111827));
+  border-color: color-mix(in srgb, var(--agency-primary, #111827) 72%, #fff);
+}
+
+.lightLogoBox img {
+  padding: 7px;
+}
+
+.fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--agency-primary);
+  color: var(--agency-on-primary, #fff);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: -.04em;
+}
+
+.copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.copy strong,
+.copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.copy small {
+  color: #7f8994;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.dark .logoBox {
+  border-color: rgba(255,255,255,.16);
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 10px 24px rgba(0,0,0,.16);
+}
+
+.dark .copy strong {
+  color: #fff;
+}
+
+.dark .copy small {
+  color: rgba(255,255,255,.6);
+}
+
+.compact .logoBox {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  border-radius: 13px;
+}
+
+.compact .logoBox img {
+  padding: 5px;
+}
+
+@media (max-width: 680px) {
+  .compact .logoBox {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    border-radius: 50%;
+  }
+}

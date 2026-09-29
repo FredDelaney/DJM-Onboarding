@@ -2123,7 +2123,7 @@
 }
 
 .player-toolkit-spotlight > div:last-child > strong {
-  color: var(--yellow);
+  color: var(--yellow-ink);
   font-size: 10px;
 }
 
@@ -2691,7 +2691,7 @@
 }
 
 .career-agreement-strip > svg {
-  color: var(--yellow);
+  color: var(--yellow-ink);
 }
 
 .career-agreement-strip span,
@@ -2719,7 +2719,7 @@
 }
 
 .career-agreement-strip > a {
-  color: var(--yellow);
+  color: var(--yellow-ink);
 }
 
 /* Player professional toolkit */
@@ -3002,7 +3002,7 @@
 }
 
 .djm-resource-grid span {
-  color: var(--yellow);
+  color: var(--yellow-ink);
   font-size: 8px;
   font-weight: 820;
   text-transform: uppercase;
@@ -3442,7 +3442,7 @@
 .player-career-lanes > a:hover,
 .player-career-lanes > a.is-active {
   background: var(--navy);
-  color: var(--yellow);
+  color: var(--yellow-ink);
 }
 
 .player-career-lanes > a > span {
