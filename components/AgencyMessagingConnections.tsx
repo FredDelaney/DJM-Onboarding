@@ -41,6 +41,9 @@ type MessagingThread = {
   provider: MessagingProvider;
   external_thread_id: string;
   participant_label?: string | null;
+  participant_username?: string | null;
+  participant_name?: string | null;
+  participant_identity_source?: string | null;
   is_selected: boolean;
   last_activity_at?: string | null;
   bound_person_id?: string | null;
@@ -1055,7 +1058,8 @@ export default function AgencyMessagingConnections({
                               >
                                 <span>
                                   <strong>
-                                    {thread.participant_label ||
+                                    {thread.participant_username ||
+                                      thread.participant_label ||
                                       'Conversation'}
                                   </strong>
 
@@ -1073,9 +1077,18 @@ export default function AgencyMessagingConnections({
                                             ? ' · ' + thread.bound_organisation_name
                                             : '')
                                         : thread.is_selected
-                                          ? provider.key === 'instagram'
-                                            ? 'Identity needed. Usually link this Instagram DM to a signed player.'
-                                            : 'Identity needed. Usually link this WhatsApp chat to a Network contact.'
+                                          ? thread.participant_name &&
+                                            thread.participant_name.toLowerCase() !==
+                                              String(
+                                                thread.participant_username ||
+                                                  thread.participant_label ||
+                                                  '',
+                                              ).toLowerCase()
+                                            ? thread.participant_name +
+                                              ' · Identity needed'
+                                            : provider.key === 'instagram'
+                                              ? 'Identity needed. Usually link this Instagram DM to a signed player.'
+                                              : 'Identity needed. Usually link this WhatsApp chat to a Network contact.'
                                           : 'Private until you switch it on.'}
                                   </small>
                                 </span>

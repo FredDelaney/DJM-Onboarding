@@ -479,6 +479,16 @@ async function syncInstagramThreadCatalog(
             p_metadata: {
               catalog_source:
                 "instagram_conversations",
+              participant_username:
+                participant?.username
+                  ? String(participant.username).trim()
+                  : null,
+              participant_name:
+                participant?.name
+                  ? String(participant.name).trim()
+                  : null,
+              participant_identity_source:
+                "instagram_conversation_participant",
             },
           },
         );
