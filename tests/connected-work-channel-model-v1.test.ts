@@ -50,8 +50,9 @@ test('email is an explicit agency-mailbox capability for club and Network work',
   assert.match(connections, /Agency email/);
   assert.match(connections, /mailbox you use/);
   assert.match(connections, /clubs and football contacts/);
-  assert.match(connections, /Calendar and contacts/);
-  assert.match(connections, /club email can come from another/);
+  assert.match(connections, /'calendar'/);
+  assert.match(connections, /'contacts'/);
+  assert.match(connections, /emailAccess/);
 });
 
 test('Home explains channel expectations instead of treating all identities the same', () => {

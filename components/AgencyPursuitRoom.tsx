@@ -615,7 +615,7 @@ export default function AgencyPursuitRoom({
         careerGate?.reason ||
         request.careerGateReason ||
         'Review the player-owned career strategy before external activity.',
-      label: 'Review career control',
+      label: 'Review career plan',
       action:
         'career_strategy_action_prepare',
       payload: {
@@ -968,7 +968,7 @@ export default function AgencyPursuitRoom({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Live pursuit control
+              Live route
             </span>
 
             <button
@@ -1099,10 +1099,10 @@ export default function AgencyPursuitRoom({
 
             <section className={styles.hero}>
               <div>
-                <p>NEXT LEGITIMATE MOVE</p>
+                <p>NEXT</p>
                 <h3>
                   {!careerIsOpen
-                    ? 'Resolve career control'
+                    ? 'Confirm player direction'
                     : dossierState ===
                         'dossier_missing'
                       ? 'Create the dossier'
@@ -1128,7 +1128,7 @@ export default function AgencyPursuitRoom({
                   {!careerIsOpen
                     ? careerGate?.reason ||
                       request.careerGateReason ||
-                      'Player-owned career direction must be current first.'
+                      'Confirm what the player wants next.'
                     : readiness?.next_action
                         ?.instruction ||
                       pitch?.recommended_review
@@ -1156,7 +1156,7 @@ export default function AgencyPursuitRoom({
 
             <div className={styles.grid}>
               <Fact
-                label="Career control"
+                label="Player direction"
                 value={human(careerState)}
                 detail={
                   careerGate?.reason ||
@@ -1183,13 +1183,13 @@ export default function AgencyPursuitRoom({
                 }
               />
               <Fact
-                label="External readiness"
+                label="Pitch readiness"
                 value={human(
                   readiness
                     ?.pitch_readiness_state ||
                     dossierState,
                 )}
-                detail="Readiness is an operating control, not transfer probability"
+                detail="Recorded preparation state"
               />
             </div>
 
@@ -1198,15 +1198,15 @@ export default function AgencyPursuitRoom({
                 <div className={styles.panelHead}>
                   <ShieldCheck size={17} />
                   <div>
-                    <p>CAREER PERMISSION</p>
+                    <p>BEFORE YOU CONTACT THE CLUB</p>
                     <h3>
-                      Player direction comes first.
+                      Confirm the player's direction.
                     </h3>
                   </div>
                 </div>
 
                 <p className={styles.copy}>
-                  This route stays internal until the player-owned career controls are current.
+                  Keep this route private until the player's next move is clear.
                 </p>
 
                 <button
@@ -1215,7 +1215,7 @@ export default function AgencyPursuitRoom({
                   onClick={openCareerAction}
                 >
                   <ShieldCheck size={15} />
-                  Review career control
+                  Review career plan
                 </button>
               </section>
             ) : null}

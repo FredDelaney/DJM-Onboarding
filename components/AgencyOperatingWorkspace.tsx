@@ -980,7 +980,7 @@ export default function AgencyOperatingWorkspace() {
               <Link
                 key={item.key}
                 href={href}
-                className={view === item.key ? styles.navActive : ''}
+                className={`${view === item.key ? styles.navActive : ''} ${item.key === 'business' ? styles.navManagement : ''}`}
               >
                 <Icon size={17} />
                 <span>{item.label}</span>
@@ -1013,7 +1013,7 @@ export default function AgencyOperatingWorkspace() {
               {viewPresentation.description}
             </p>
           </div>
-          <div className={styles.headActions}>
+          <div className={styles.desktopHeadActions}>
             <AiLauncher />
             <button
               type="button"
@@ -1063,7 +1063,26 @@ export default function AgencyOperatingWorkspace() {
               onSignOut={signOut}
             />
           </div>
+          <div className={styles.mobileHeadActions}>
+            <AccountMenu
+              workspace={workspace}
+              onSignOut={signOut}
+            />
+          </div>
         </header>
+
+        {createAction ? (
+          <div className={styles.mobileContextAction}>
+            <button
+              type="button"
+              className={styles.createButton}
+              onClick={() => setCreateKind(createAction.kind)}
+            >
+              <Plus size={15} />
+              {createAction.label}
+            </button>
+          </div>
+        ) : null}
 
         {showFirstValueHandoff && view === 'opportunities' ? (
           <section className={styles.firstValueHandoff}>
@@ -1183,6 +1202,10 @@ export default function AgencyOperatingWorkspace() {
           </>
         ) : null}
       </main>
+
+      <div className={styles.mobileTell}>
+        <AiLauncher />
+      </div>
 
       {connectionsOpen ? (
         <AgencyConnectionsDrawer
@@ -1628,6 +1651,7 @@ function Home({
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const [greeting, setGreeting] = useState('Good to see you.');
+  const [showAllNeeds, setShowAllNeeds] = useState(false);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -1747,6 +1771,24 @@ function Home({
     priority.length +
     meetingAftercareItems.length +
     (identityResolutionCount > 0 ? 1 : 0);
+
+  const visiblePriority = showAllNeeds
+    ? priority
+    : priority.slice(0, 3);
+  const remainingAttentionSlots = Math.max(
+    0,
+    3 - visiblePriority.length,
+  );
+  const visibleMeetingAftercare = showAllNeeds
+    ? meetingAftercareItems
+    : meetingAftercareItems.slice(0, remainingAttentionSlots);
+  const remainingAfterMeetings = Math.max(
+    0,
+    remainingAttentionSlots - visibleMeetingAftercare.length,
+  );
+  const showIdentityResolution =
+    identityResolutionCount > 0 &&
+    (showAllNeeds || remainingAfterMeetings > 0);
 
   const deadlines = Array.isArray(
     operations?.deadlines?.items,
@@ -1975,7 +2017,7 @@ function Home({
           </div>
 
           <div className={styles.list}>
-            {priority.map((command: any, index: number) => (
+            {visiblePriority.map((command: any, index: number) => (
               <article
                 className={`${styles.attentionCard} ${
                   index === 0
@@ -2017,7 +2059,7 @@ function Home({
               </article>
             ))}
 
-            {meetingAftercareItems.map((item: any) => (
+            {visibleMeetingAftercare.map((item: any) => (
               <article
                 className={styles.attentionCard}
                 key={`home-meeting-aftercare:${item?.meeting_id}`}
@@ -2054,7 +2096,7 @@ function Home({
               </article>
             ))}
 
-            {identityResolutionCount > 0 ? (
+            {showIdentityResolution ? (
               <article className={styles.attentionCard}>
                 <div className={styles.attentionCopy}>
                   <div className={styles.attentionMeta}>
@@ -2080,6 +2122,19 @@ function Home({
                   Resolve identities
                 </button>
               </article>
+            ) : null}
+
+            {needsYouCount > 3 ? (
+              <button
+                type="button"
+                className={styles.attentionMore}
+                onClick={() => setShowAllNeeds((current) => !current)}
+              >
+                {showAllNeeds
+                  ? 'Show less'
+                  : `${needsYouCount - 3} more`}
+                <ArrowRight size={12} />
+              </button>
             ) : null}
 
             {!needsYouCount ? (
@@ -4287,20 +4342,16 @@ function Business({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="BUSINESS"
-        title="The agency as a business."
-        copy="Revenue, collections and live commercial work for authorised management."
+        title="Agency business"
+        copy="Deals, money owed and team ownership."
         icon={Coins}
         badge="Management only"
       />
 
       <section className={styles.businessEntry}>
         <div>
-          <p className={styles.eyebrow}>BUSINESS</p>
-          <h2>See what needs a management decision.</h2>
-          <p>
-            Owner control, revenue and receivables are already connected
-            underneath. Open the detail when you need it.
-          </p>
+          <h2>See the agency position.</h2>
+          <p>Deals, receivables and team ownership in one place.</p>
         </div>
 
         <button

@@ -14,6 +14,10 @@ const header = readFileSync(
   'components/WorkspaceHeader.tsx',
   'utf8',
 );
+const accountMenu = readFileSync(
+  'components/AccountMenu.tsx',
+  'utf8',
+);
 
 test('agency tenants receive the simple ReDream V2 product shell', () => {
   assert.match(workspace, /label: 'Home'/);
@@ -29,12 +33,14 @@ test('agency tenants receive the simple ReDream V2 product shell', () => {
   assert.doesNotMatch(workspace, /DJM Sports Management/);
 });
 
-test('business is management-only in primary navigation', () => {
+test('business is management-only and lives outside primary navigation', () => {
   assert.match(workspace, /const canSeeBusiness = \['owner', 'admin'\]/);
   assert.match(
     workspace,
     /item\.key !== 'business' \|\| canSeeBusiness/,
   );
+  assert.match(workspace, /styles\.navManagement/);
+  assert.match(accountMenu, /view=business/);
 });
 
 test('legacy market, deals and relationships URLs resolve into V2 areas', () => {
@@ -79,7 +85,7 @@ test('Tell ReDream remains the universal capture entry point', () => {
   assert.match(launcher, />Tell ReDream</);
   assert.match(
     launcher,
-    /Tell ReDream what happened\. We’ll handle the admin\./,
+    />Tell ReDream</,
   );
   assert.match(launcher, /redream_ai_current_access/);
 });

@@ -23,7 +23,7 @@ test('Tell ReDream is globally available without removing the existing Add workf
   assert.match(header, /<AiLauncher \/>/);
   assert.match(header, /<QuickCapture \/>/);
   assert.match(launcher, /Tell ReDream/);
-  assert.match(launcher, /Tell ReDream what happened\. We’ll handle the admin\./);
+  assert.match(launcher, /id="ai-capture-dialog-title">Tell ReDream/);
 });
 
 test('voice capture uses browser recording with runtime MIME detection', () => {

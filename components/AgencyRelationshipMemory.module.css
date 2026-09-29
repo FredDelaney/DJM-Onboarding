@@ -265,3 +265,93 @@
   font-size: 7px;
   line-height: 1.35;
 }
+
+/* Mobile simplicity v1 */
+@media (max-width: 680px) {
+  .section {
+    gap: 10px;
+    padding: 13px;
+    border-radius: 14px;
+  }
+
+  .head {
+    display: flex;
+    align-items: baseline;
+  }
+
+  .head > div:first-child > span,
+  .state small {
+    display: none;
+  }
+
+  .head h3 {
+    font-size: 14px;
+  }
+
+  .state {
+    justify-items: end;
+    text-align: right;
+  }
+
+  .state strong {
+    font-size: 8px;
+  }
+
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .summary > div {
+    min-height: 52px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    padding: 8px 9px;
+  }
+
+  .summary svg,
+  .summary em {
+    display: none;
+  }
+
+  .summary small {
+    font-size: 5.8px;
+  }
+
+  .summary strong {
+    font-size: 9px;
+  }
+
+  .routes {
+    display: none;
+  }
+
+  .columns {
+    gap: 8px;
+  }
+
+  .blockHead strong {
+    font-size: 8px;
+  }
+
+  .row {
+    padding: 8px;
+  }
+
+  .row strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 8.5px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .row small {
+    font-size: 6.8px;
+  }
+
+  .list .row:nth-child(n+4) {
+    display: none;
+  }
+}
