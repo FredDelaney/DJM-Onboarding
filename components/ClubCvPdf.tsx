@@ -927,6 +927,12 @@ export function ClubCvPdfDocument({
       profile?.nationalities,
     );
 
+  const currentStatus =
+    String(profile?.current_status || '')
+      .trim()
+      .replaceAll('_', ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
   const stats =
     dossierHeadlineStats(
       profile,
@@ -987,6 +993,20 @@ export function ClubCvPdfDocument({
       ),
       url:
         profile.stats_url,
+    },
+
+    profile?.market_value_source_url &&
+      !sameResearchUrl(
+        profile.market_value_source_url,
+        profile.transfermarkt_url,
+      ) &&
+      !sameResearchUrl(
+        profile.market_value_source_url,
+        profile.stats_url,
+      ) && {
+      label: 'Market value source',
+      url:
+        profile.market_value_source_url,
     },
   ].filter(Boolean) as {
     label: string;
@@ -1155,7 +1175,7 @@ export function ClubCvPdfDocument({
                   styles.statusRow
                 }
               >
-                {profile?.current_status && (
+                {currentStatus && (
                   <View
                     style={
                       styles.statusPill
@@ -1167,7 +1187,7 @@ export function ClubCvPdfDocument({
                       }
                     >
                       {clip(
-                        profile.current_status,
+                        currentStatus,
                         34,
                       )}
                     </Text>
@@ -1175,7 +1195,7 @@ export function ClubCvPdfDocument({
                 )}
 
                 {profile?.market_value_display &&
-                  profile?.transfermarkt_url &&
+                  (profile?.market_value_source_url || profile?.transfermarkt_url) &&
                   !profile?.hide_market_value && (
                     <View
                       style={
@@ -1296,7 +1316,7 @@ export function ClubCvPdfDocument({
                         ? `Also: ${dossierList(profile.secondary_positions).join(' · ')}`
                         : null,
                       profile?.preferred_foot ? `${profile.preferred_foot} foot` : null,
-                      profile?.current_status,
+                      currentStatus,
                     ]
                       .filter(Boolean)
                       .join('  ·  '),

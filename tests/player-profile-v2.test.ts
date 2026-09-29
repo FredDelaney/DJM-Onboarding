@@ -29,11 +29,11 @@ test('Player Profile is part of the current Players workspace', () => {
   assert.match(players, />\s*Player Profile\s*</);
 });
 
-test('Player Profile manager uses simple human states instead of scores', () => {
+test('Player Profile manager uses simple required states instead of scores', () => {
   assert.match(manager, /Ready to publish/);
-  assert.match(manager, /missingCount/);
-  assert.match(manager, /to finish/);
-  assert.match(manager, /missingCount === 1 \? 'thing' : 'things'/);
+  assert.match(manager, /missingRequiredCount/);
+  assert.match(manager, /required .* missing/);
+  assert.match(manager, /Optional profile detail/);
   assert.doesNotMatch(manager, /Profile readiness/);
   assert.doesNotMatch(manager, /readiness\}%/);
   assert.doesNotMatch(manager, /ReDream/);

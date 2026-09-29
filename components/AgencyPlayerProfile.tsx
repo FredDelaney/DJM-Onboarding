@@ -405,10 +405,11 @@ export default function AgencyPlayerProfile({
     },
   ];
 
-  const missingCount = checks.filter((item) => !item.ok).length;
-  const canPublish = checks
-    .filter((item) => item.important)
-    .every((item) => item.ok);
+  const requiredChecks = checks.filter((item) => item.important);
+  const optionalChecks = checks.filter((item) => !item.important);
+  const missingRequiredCount = requiredChecks.filter((item) => !item.ok).length;
+  const optionalReadyCount = optionalChecks.filter((item) => item.ok).length;
+  const canPublish = missingRequiredCount === 0;
   const canEdit = ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
@@ -660,6 +661,16 @@ export default function AgencyPlayerProfile({
     );
   };
 
+  const openEditor = () => {
+    setForm(formFromProfile(bundle));
+    setEditOpen(true);
+  };
+
+  const closeEditor = () => {
+    setForm(formFromProfile(bundle));
+    setEditOpen(false);
+  };
+
   if (loading && !bundle) {
     return (
       <section className={styles.loading}>
@@ -799,7 +810,7 @@ export default function AgencyPlayerProfile({
                   ? 'Live'
                   : canPublish
                     ? 'Ready to publish'
-                    : `${missingCount} ${missingCount === 1 ? 'thing' : 'things'} to finish`}
+                    : `${missingRequiredCount} required ${missingRequiredCount === 1 ? 'item' : 'items'} missing`}
               </strong>
             </div>
           </div>
@@ -863,7 +874,7 @@ export default function AgencyPlayerProfile({
             <button
               type="button"
               className={styles.secondaryAction}
-              onClick={() => setEditOpen(true)}
+              onClick={openEditor}
             >
               <Pencil size={15} />
               Edit
@@ -873,7 +884,7 @@ export default function AgencyPlayerProfile({
       </section>
 
       <section className={styles.readinessGrid}>
-        {checks.map((item) => (
+        {requiredChecks.map((item) => (
           <div
             key={item.label}
             className={
@@ -886,15 +897,33 @@ export default function AgencyPlayerProfile({
             <div>
               <strong>{item.label}</strong>
               <small>
-                {item.ok
-                  ? 'Ready'
-                  : item.important
-                    ? 'Needed before publishing'
-                    : 'Recommended'}
+                {item.ok ? 'Ready' : 'Needed before publishing'}
               </small>
             </div>
           </div>
         ))}
+
+        <div
+          className={
+            optionalReadyCount === optionalChecks.length
+              ? styles.checkDone
+              : styles.checkPending
+          }
+        >
+          <span>
+            {optionalReadyCount === optionalChecks.length ? (
+              <Check size={13} />
+            ) : (
+              <FileText size={13} />
+            )}
+          </span>
+          <div>
+            <strong>Optional profile detail</strong>
+            <small>
+              {optionalReadyCount} of {optionalChecks.length} added
+            </small>
+          </div>
+        </div>
       </section>
 
       <div className={styles.columns}>
@@ -1230,8 +1259,18 @@ export default function AgencyPlayerProfile({
       ) : null}
 
       {editOpen ? (
-        <div className={styles.modalBackdrop}>
-          <section className={styles.modal}>
+        <div
+          className={styles.modalBackdrop}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeEditor();
+          }}
+        >
+          <section
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit Player Profile"
+          >
             <header>
               <div>
                 <span className={styles.eyebrow}>EDIT PLAYER PROFILE</span>
@@ -1244,7 +1283,7 @@ export default function AgencyPlayerProfile({
               <button
                 type="button"
                 className={styles.iconButton}
-                onClick={() => setEditOpen(false)}
+                onClick={closeEditor}
                 aria-label="Close"
               >
                 <X size={17} />
@@ -1460,7 +1499,7 @@ export default function AgencyPlayerProfile({
               <button
                 type="button"
                 className={styles.secondaryAction}
-                onClick={() => setEditOpen(false)}
+                onClick={closeEditor}
               >
                 Cancel
               </button>
@@ -1490,8 +1529,18 @@ export default function AgencyPlayerProfile({
       ) : null}
 
       {shareOpen ? (
-        <div className={styles.modalBackdrop}>
-          <section className={`${styles.modal} ${styles.shareModal}`}>
+        <div
+          className={styles.modalBackdrop}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShareOpen(false);
+          }}
+        >
+          <section
+            className={`${styles.modal} ${styles.shareModal}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Share Player Profile"
+          >
             <header>
               <div>
                 <span className={styles.eyebrow}>SHARE PLAYER PROFILE</span>
