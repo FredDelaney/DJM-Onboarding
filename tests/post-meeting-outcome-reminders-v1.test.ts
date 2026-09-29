@@ -202,7 +202,7 @@ test(
 );
 
 test(
-  'Home loads enough outcomes for deep-link routing but renders only two',
+  'Home loads enough outcomes for routing and lets aftercare fill the three-item Needs You queue',
   () => {
     assert.match(
       workspace,
@@ -210,7 +210,11 @@ test(
     );
     assert.match(
       workspace,
-      /meetingAftercare\.items\.slice\(0, 2\)/,
+      /meetingAftercare\.items\.slice\(0, 4\)/,
+    );
+    assert.match(
+      workspace,
+      /meetingAftercareItems\.slice\(0, remainingAttentionSlots\)/,
     );
   },
 );

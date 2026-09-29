@@ -65,9 +65,11 @@ const PROVIDERS: Array<{
 export default function AgencyConnectionsDrawer({
   workspaceSlug,
   onClose,
+  onResolveIdentities,
 }: {
   workspaceSlug: string;
   onClose: () => void;
+  onResolveIdentities?: () => void;
 }) {
   const [connections, setConnections] =
     useState<Connection[]>([]);
@@ -826,6 +828,26 @@ export default function AgencyConnectionsDrawer({
             }
           }}
         />
+
+        {onResolveIdentities ? (
+          <div className={styles.identityReview}>
+            <div>
+              <strong>Connected identities</strong>
+              <span>Confirm which player or Network person a selected conversation belongs to.</span>
+            </div>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => {
+                onClose();
+                onResolveIdentities();
+              }}
+            >
+              <ContactRound size={14} />
+              Review identities
+            </button>
+          </div>
+        ) : null}
 
         <footer
           className={

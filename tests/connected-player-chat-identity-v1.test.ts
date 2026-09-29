@@ -200,28 +200,13 @@ test(
 );
 
 test(
-  'Home connected work includes player conversations without treating them as Network people',
+  'connected work preserves player identity without requiring a Home conversation feed',
   () => {
-    assert.match(
-      migration,
-      /'player_id',i\.player_id/,
-    );
-    assert.match(
-      migration,
-      /'player_name',case/,
-    );
-    assert.match(
-      migration,
-      /when i\.player_id is not null then 'player'/,
-    );
-    assert.match(
-      workspace,
-      /item\?\.player_name \|\|[\s\S]*item\?\.person_name/,
-    );
-    assert.match(
-      workspace,
-      /item\?\.person_id \|\| item\?\.player_id/,
-    );
+    assert.match(migration, /'player_id',i\.player_id/);
+    assert.match(migration, /'player_name',case/);
+    assert.match(migration, /when i\.player_id is not null then 'player'/);
+    assert.match(workspace, /AgencyConnectedReplyDrawer/);
+    assert.doesNotMatch(workspace, /item\?\.player_name \|\|[\s\S]*item\?\.person_name/);
   },
 );
 

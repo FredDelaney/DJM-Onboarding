@@ -22,6 +22,11 @@ const resolver = readFileSync(
   'utf8',
 );
 
+const connections = readFileSync(
+  'components/AgencyConnectionsDrawer.tsx',
+  'utf8',
+);
+
 const resolverStyles = readFileSync(
   'components/AgencyConnectedIdentityResolverDrawer.module.css',
   'utf8',
@@ -176,24 +181,15 @@ test(
 );
 
 test(
-  'Home loads provider identity suggestions beside Connected Work',
+  'connected identity review is launched from Connections instead of Home',
   () => {
+    assert.match(connections, /onResolveIdentities/);
+    assert.match(connections, /Review identities/);
     assert.match(
       workspace,
-      /redream_provider_contact_suggestions/,
+      /onResolveIdentities=\{\(\) =>[\s\S]*setConnectedIdentityResolverOpen\(true\)/,
     );
-    assert.match(
-      workspace,
-      /provider_identity_suggestions/,
-    );
-    assert.match(
-      workspace,
-      /identityResolutionCount/,
-    );
-    assert.match(
-      workspace,
-      /Resolve identities/,
-    );
+    assert.doesNotMatch(workspace, /provider_identity_suggestions/);
   },
 );
 

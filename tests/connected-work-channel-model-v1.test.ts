@@ -55,10 +55,12 @@ test('email is an explicit agency-mailbox capability for club and Network work',
   assert.match(connections, /emailAccess/);
 });
 
-test('Home explains channel expectations instead of treating all identities the same', () => {
-  assert.match(home, /Instagram usually belongs to a signed player/);
-  assert.match(home, /WhatsApp and connected email usually belong to a Network person/);
-  assert.match(home, /Confirm the exceptions explicitly/);
+test('channel expectations stay with Connections and identity review rather than daily Home', () => {
+  assert.match(resolver, /Instagram is normally player communication/);
+  assert.match(resolver, /WhatsApp is normally club and football contact communication/);
+  assert.match(connections, /Connected identities/);
+  assert.match(connections, /Review identities/);
+  assert.doesNotMatch(home, /Confirm the exceptions explicitly/);
 });
 
 test('tenant-specific mailbox addresses are not hard-coded into shared product code', () => {

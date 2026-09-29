@@ -17,27 +17,21 @@ const workspace = readFileSync(
   'utf8',
 );
 
+const connections = readFileSync(
+  'components/AgencyConnectionsDrawer.tsx',
+  'utf8',
+);
+
 test(
-  'Home opens a focused connected identity resolver instead of account settings',
+  'Connections opens the focused connected identity resolver without adding Home admin noise',
   () => {
+    assert.match(workspace, /connectedIdentityResolverOpen/);
+    assert.match(workspace, /AgencyConnectedIdentityResolverDrawer/);
+    assert.match(connections, /onResolveIdentities/);
+    assert.match(connections, /Review identities/);
     assert.match(
       workspace,
-      /connectedIdentityResolverOpen/,
-    );
-
-    assert.match(
-      workspace,
-      /onResolveConnectedIdentity/,
-    );
-
-    assert.match(
-      workspace,
-      /AgencyConnectedIdentityResolverDrawer/,
-    );
-
-    assert.match(
-      workspace,
-      /setConnectionsOpen\(true\)/,
+      /onResolveIdentities=\{\(\) =>[\s\S]*setConnectedIdentityResolverOpen\(true\)/,
     );
   },
 );
