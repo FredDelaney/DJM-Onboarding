@@ -672,9 +672,7 @@ export default function AgencyPlayersWorkspace({
 
   return (
     <div className={styles.workspace}>
-      <section className={styles.intro}>
-        <div><p>PLAYERS</p><h2>Your players</h2>
-          <span>Who needs you next.</span></div>
+      <section className={styles.toolbar}>
         <div className={styles.sectionTabs}>
           <button type="button" className={section==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>setSection('players')}>
             Our Players <b>{players.length}</b>
@@ -683,9 +681,6 @@ export default function AgencyPlayersWorkspace({
             Recruitment <b>{targets.length}</b>
           </button>
         </div>
-      </section>
-
-      <section className={styles.toolbar}>
         <label className={styles.search}><Search size={15}/><input value={search} onChange={(e)=>setSearch(e.target.value)}
           placeholder={section==='players'?'Search players':'Search recruitment'} /></label>
         {section==='recruitment'?(
@@ -706,6 +701,7 @@ export default function AgencyPlayersWorkspace({
                 className={styles.playerCard}
                 key={item.player_id}
                 role="button"
+                aria-label={`Open ${name}`}
                 tabIndex={0}
                 onClick={() => openPlayer(String(item.player_id))}
                 onKeyDown={(event) => {
@@ -728,9 +724,8 @@ export default function AgencyPlayersWorkspace({
                   <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not recorded'}</strong><small>{human(identity.contract_status||'Status not recorded')}</small></div>
                   <div><span>Agency agreement</span><strong>{item?.representation?.recorded?(item.representation.end_date?relativeDate(item.representation.end_date):'No end date'):'Not recorded'}</strong><small>{item?.representation?.recorded?human(item.representation.agreement_type):'Representation agreement not recorded'}</small></div>
                 </div>
-                <div className={styles.playerCardActions}>
-                  <button type="button" className={styles.secondaryButton} onClick={(event)=>{event.stopPropagation();openPlayer(String(item.player_id));}}><UserRound size={14}/> Open</button>
-                  {attention?(
+                {attention?(
+                  <div className={styles.playerCardActions}>
                     <button type="button" className={styles.primaryButton} onClick={(event)=>{
                       event.stopPropagation();
                       const control=service?.next_control_fix;
@@ -752,8 +747,8 @@ export default function AgencyPlayersWorkspace({
                         successCondition:'The recorded player action is completed and the next step is current.',
                       });
                     }}><ArrowRight size={14}/>{service?.next_control_fix?.instruction?'Fix this':'Prepare next move'}</button>
-                  ):null}
-                </div>
+                  </div>
+                ):null}
               </article>
             );
           })}
