@@ -2194,9 +2194,9 @@ function Home({
                   need confirmation
                 </strong>
                 <span>
-                  Confirm the right Network person once so future
-                  email and selected messages attach to the correct
-                  contact and current club.
+                  Confirm whether each selected chat belongs to one of
+                  your players or a Network person. Connected email
+                  keeps using canonical Network identity.
                 </span>
                 <div className={styles.connectedWorkFoot}>
                   <AgencyOwnershipChip
@@ -2235,7 +2235,7 @@ function Home({
             const replyable =
               Boolean(
                 item?.interaction_id &&
-                  item?.person_id,
+                  (item?.person_id || item?.player_id),
               ) &&
               (emailChannel
                 ? ['inbound', 'received'].includes(direction)
@@ -2245,6 +2245,7 @@ function Home({
                 ? Mail
                 : MessageCircleMore;
             const person =
+              item?.player_name ||
               item?.person_name ||
               item?.organisation_name ||
               'Connected contact';
@@ -2295,9 +2296,9 @@ function Home({
                 ) : (
                   <a
                     className={styles.connectedWorkAction}
-                    href="?view=network"
+                    href={item?.player_id ? '?view=players' : '?view=network'}
                   >
-                    Open Network
+                    {item?.player_id ? 'Open Players' : 'Open Network'}
                     <ArrowRight size={13} />
                   </a>
                 )}

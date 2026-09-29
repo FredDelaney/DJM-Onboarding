@@ -52,6 +52,16 @@ type Thread = {
   is_selected: boolean;
   last_activity_at?: string | null;
   bound_person_id?: string | null;
+  bound_player_id?: string | null;
+};
+
+type PlayerIdentity = {
+  player_id: string;
+  player_name?: string | null;
+  primary_position?: string | null;
+  current_club?: string | null;
+  instagram_url?: string | null;
+  instagram_handle?: string | null;
 };
 
 type Contact = {
@@ -91,6 +101,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
   const [providerSuggestions, setProviderSuggestions] =
     useState<ProviderSuggestion[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [players, setPlayers] = useState<PlayerIdentity[]>([]);
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -107,6 +118,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
         whatsapp,
         relationships,
         providerIdentity,
+        playerIdentity,
       ] = await Promise.all([
           platformRpc<{ threads?: Thread[] }>(
             'redream_messaging_threads',
@@ -135,6 +147,13 @@ export default function AgencyConnectedIdentityResolverDrawer({
             { p_limit: 24 },
             workspaceSlug,
           ),
+          platformRpc<{
+            players?: PlayerIdentity[];
+          }>(
+            'redream_messaging_player_candidates',
+            {},
+            workspaceSlug,
+          ),
         ]);
 
       const nextThreads = [
@@ -148,7 +167,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
         .filter(
           (thread) =>
             thread.is_selected &&
-            !thread.bound_person_id,
+            !thread.bound_person_id &&
+            !thread.bound_player_id,
         )
         .sort((a, b) => {
           const aTime = Date.parse(
@@ -172,6 +192,11 @@ export default function AgencyConnectedIdentityResolverDrawer({
       setContacts(
         Array.isArray(relationships?.contacts?.items)
           ? relationships.contacts.items
+          : [],
+      );
+      setPlayers(
+        Array.isArray(playerIdentity?.players)
+          ? playerIdentity.players
           : [],
       );
 
@@ -217,6 +242,50 @@ export default function AgencyConnectedIdentityResolverDrawer({
       })
       .slice(0, 80);
   }, [contacts, search]);
+
+  const filteredPlayers = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const threadHandle =
+      activeThread?.provider === 'instagram'
+        ? String(activeThread?.participant_label || '')
+            .trim()
+            .toLowerCase()
+        : '';
+
+    return players
+      .filter((player) => {
+        if (!query) return true;
+
+        return [
+          player.player_name,
+          player.primary_position,
+          player.current_club,
+          player.instagram_handle,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      })
+      .sort((a, b) => {
+        const aExact =
+          Boolean(threadHandle) &&
+          String(a.instagram_handle || '').toLowerCase() ===
+            threadHandle;
+        const bExact =
+          Boolean(threadHandle) &&
+          String(b.instagram_handle || '').toLowerCase() ===
+            threadHandle;
+
+        if (aExact !== bExact) return aExact ? -1 : 1;
+
+        return String(a.player_name || '').localeCompare(
+          String(b.player_name || ''),
+        );
+      })
+      .slice(0, 50);
+  }, [activeThread, players, search]);
+
   const bind = async (contact: Contact) => {
     if (!activeThread || busy) return;
 
@@ -264,6 +333,68 @@ export default function AgencyConnectedIdentityResolverDrawer({
       setSuccess(
         (linkedThread.participant_label || 'Chat') +
           ' linked to ' +
+          linkedName +
+          '.',
+      );
+
+      await onResolved?.();
+    } catch (bindError) {
+      setError(friendlyError(bindError));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const bindPlayer = async (player: PlayerIdentity) => {
+    if (!activeThread || busy) return;
+
+    const busyKey = `player:${player.player_id}`;
+    setBusy(busyKey);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await platformRpc<{
+        bound?: boolean;
+        bound_player_name?: string | null;
+      }>(
+        'redream_messaging_thread_bind_player',
+        {
+          p_provider: activeThread.provider,
+          p_external_thread_id:
+            activeThread.external_thread_id,
+          p_player_id: player.player_id,
+        },
+        workspaceSlug,
+      );
+
+      if (!result?.bound) {
+        throw new Error(
+          'The chat could not be linked to that player.',
+        );
+      }
+
+      const linkedThread = activeThread;
+      const linkedName =
+        result.bound_player_name ||
+        player.player_name ||
+        'Player';
+
+      setThreads((current) =>
+        current.filter(
+          (thread) =>
+            !(
+              thread.provider === linkedThread.provider &&
+              thread.external_thread_id ===
+                linkedThread.external_thread_id
+            ),
+        ),
+      );
+      setActiveThread(null);
+      setSearch('');
+      setSuccess(
+        (linkedThread.participant_label || 'Chat') +
+          ' linked to player ' +
           linkedName +
           '.',
       );
@@ -401,12 +532,12 @@ export default function AgencyConnectedIdentityResolverDrawer({
             <small>CONNECTED WORK</small>
             <h2>
               {activeThread
-                ? 'Choose the right contact'
+                ? 'Choose the right identity'
                 : 'Resolve connected identities'}
             </h2>
             <p>
               {activeThread
-                ? 'Use the agency Network as the identity source. ReDream will use the person and their current club for future selected messages.'
+                ? 'Choose an existing signed player or Network person. ReDream will never decide the identity automatically.'
                 : remaining
                   ? remaining +
                     ' connected ' +
@@ -483,60 +614,148 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 onChange={(event) =>
                   setSearch(event.target.value)
                 }
-                placeholder="Search Network contacts"
+                placeholder="Search players or Network people"
                 autoFocus
               />
             </label>
 
-            <div className={styles.contactList}>
-              {filteredContacts.map((contact) => (
-                <button
-                  type="button"
-                  className={styles.contact}
-                  key={contact.person_id}
-                  onClick={() => void bind(contact)}
-                  disabled={Boolean(busy)}
-                >
-                  <span className={styles.contactIcon}>
-                    <UserRound size={15} />
-                  </span>
-                  <span className={styles.contactCopy}>
-                    <strong>{contactName(contact)}</strong>
-                    <small>
-                      {[
-                        contact?.employment?.role_title,
-                        contact?.employment?.organisation_name,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ') || 'Network contact'}
-                    </small>
-                  </span>
-                  {busy === contact.person_id ? (
-                    <LoaderCircle
-                      size={14}
-                      className={styles.spin}
-                    />
-                  ) : (
-                    <span className={styles.linkLabel}>
-                      Link
-                    </span>
-                  )}
-                </button>
-              ))}
-
-              {!filteredContacts.length ? (
-                <div className={styles.emptyContacts}>
-                  <UserRound size={18} />
-                  <strong>No matching Network contact</strong>
-                  <span>
-                    Add the person to Network first, then come back
-                    and link the selected chat.
-                  </span>
-                  <a href={networkHref} onClick={onClose}>
-                    Open Network
-                  </a>
+            <div className={styles.identityGroups}>
+              <section className={styles.identityGroup}>
+                <div className={styles.identityGroupHead}>
+                  <div>
+                    <small>OUR PLAYERS</small>
+                    <strong>Signed players</strong>
+                  </div>
+                  <span>{filteredPlayers.length}</span>
                 </div>
-              ) : null}
+
+                <div className={styles.contactList}>
+                  {filteredPlayers.map((player) => {
+                    const exactHandle =
+                      activeThread.provider === 'instagram' &&
+                      Boolean(activeThread.participant_label) &&
+                      String(player.instagram_handle || '')
+                        .toLowerCase() ===
+                        String(activeThread.participant_label || '')
+                          .trim()
+                          .toLowerCase();
+                    const busyKey = `player:${player.player_id}`;
+
+                    return (
+                      <button
+                        type="button"
+                        className={
+                          exactHandle
+                            ? styles.playerExact
+                            : styles.contact
+                        }
+                        key={player.player_id}
+                        onClick={() => void bindPlayer(player)}
+                        disabled={Boolean(busy)}
+                      >
+                        <span className={styles.contactIcon}>
+                          <UserRound size={15} />
+                        </span>
+                        <span className={styles.contactCopy}>
+                          <strong>
+                            {player.player_name || 'Player'}
+                          </strong>
+                          <small>
+                            {[
+                              player.primary_position,
+                              player.current_club,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ') || 'Signed player'}
+                          </small>
+                          {exactHandle ? (
+                            <em className={styles.exactHandle}>
+                              Exact Instagram handle
+                            </em>
+                          ) : null}
+                        </span>
+                        {busy === busyKey ? (
+                          <LoaderCircle
+                            size={14}
+                            className={styles.spin}
+                          />
+                        ) : (
+                          <span className={styles.linkLabel}>
+                            {exactHandle ? 'Confirm' : 'Link'}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {!filteredPlayers.length ? (
+                    <div className={styles.groupEmpty}>
+                      No signed player matches this search.
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className={styles.identityGroup}>
+                <div className={styles.identityGroupHead}>
+                  <div>
+                    <small>NETWORK</small>
+                    <strong>Club and football contacts</strong>
+                  </div>
+                  <span>{filteredContacts.length}</span>
+                </div>
+
+                <div className={styles.contactList}>
+                  {filteredContacts.map((contact) => (
+                    <button
+                      type="button"
+                      className={styles.contact}
+                      key={contact.person_id}
+                      onClick={() => void bind(contact)}
+                      disabled={Boolean(busy)}
+                    >
+                      <span className={styles.contactIcon}>
+                        <UserRound size={15} />
+                      </span>
+                      <span className={styles.contactCopy}>
+                        <strong>{contactName(contact)}</strong>
+                        <small>
+                          {[
+                            contact?.employment?.role_title,
+                            contact?.employment?.organisation_name,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ') || 'Network contact'}
+                        </small>
+                      </span>
+                      {busy === contact.person_id ? (
+                        <LoaderCircle
+                          size={14}
+                          className={styles.spin}
+                        />
+                      ) : (
+                        <span className={styles.linkLabel}>
+                          Link
+                        </span>
+                      )}
+                    </button>
+                  ))}
+
+                  {!filteredContacts.length ? (
+                    <div className={styles.emptyContacts}>
+                      <UserRound size={18} />
+                      <strong>No matching Network contact</strong>
+                      <span>
+                        Add the person to Network first, then come back
+                        and link the selected chat.
+                      </span>
+                      <a href={networkHref} onClick={onClose}>
+                        Open Network
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              </section>
             </div>
           </div>
         ) : (
@@ -646,7 +865,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
               <div className={styles.threadSectionHead}>
                 <div>
                   <small>SELECTED CHATS</small>
-                  <strong>Choose the right Network person</strong>
+                  <strong>Choose a player or Network person</strong>
                 </div>
               </div>
             ) : null}
@@ -692,7 +911,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
                     </span>
                   </span>
                   <span className={styles.chooseLabel}>
-                    Choose contact
+                    Choose identity
                   </span>
                 </button>
               );
@@ -703,9 +922,9 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 <CheckCircle2 size={22} />
                 <strong>Connected identities are resolved</strong>
                 <span>
-                  Future selected messages and eligible connected
-                  email can now use the canonical Network identity
-                  and current club.
+                  Future selected messages can now use the confirmed
+                  player or Network identity. Eligible connected email
+                  keeps using canonical Network identity.
                 </span>
               </div>
             ) : null}
@@ -714,9 +933,9 @@ export default function AgencyConnectedIdentityResolverDrawer({
 
         <footer className={styles.footer}>
           <span>
-            ReDream never applies a provider contact suggestion
-            automatically. Confirming identity does not send a
-            message or create a person.
+            ReDream never applies an identity suggestion
+            automatically. Confirming a player or Network person does
+            not send a message or create a new identity.
           </span>
           <button type="button" onClick={onClose}>
             Done

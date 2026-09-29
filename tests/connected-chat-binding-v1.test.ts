@@ -92,7 +92,7 @@ test(
   () => {
     assert.match(
       aiProcess,
-      /agency explicitly linked this chat to that Network contact/,
+      /agency explicitly linked this chat to that Network person/,
     );
 
     assert.match(

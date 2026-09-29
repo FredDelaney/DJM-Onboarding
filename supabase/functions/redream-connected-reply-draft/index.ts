@@ -162,16 +162,33 @@ export default {
       );
 
       const interaction = asObject(context.interaction);
+      const identity = asObject(context.identity);
       const person = asObject(context.person);
+      const player = asObject(context.player);
       const recent = Array.isArray(context.recent_context)
         ? context.recent_context.slice(0, 4)
         : [];
 
       const contextPayload = {
+        identity_kind:
+          identity.kind ||
+          (player.player_id ? "player" : "network_person"),
+        identity_name:
+          identity.name || player.name || person.name || null,
         person_name: person.name || null,
+        player_name: player.name || null,
+        player_current_club:
+          identity.player_current_club ||
+          player.current_club ||
+          null,
         current_organisation_name:
-          person.current_organisation_name || null,
-        current_role: person.current_role || null,
+          identity.current_organisation_name ||
+          person.current_organisation_name ||
+          null,
+        current_role:
+          identity.current_role ||
+          person.current_role ||
+          null,
         channel: interaction.channel || null,
         direction: interaction.direction || null,
         occurred_at: interaction.occurred_at || null,
@@ -235,13 +252,31 @@ export default {
           summary: clean(interaction.summary).slice(0, 1800),
           occurred_at: interaction.occurred_at || null,
         },
-        network_person: {
-          name: clean(person.name) || null,
+        connected_identity: {
+          kind:
+            clean(identity.kind) ||
+            (player.player_id ? "player" : "network_person"),
+          name:
+            clean(identity.name) ||
+            clean(player.name) ||
+            clean(person.name) ||
+            null,
           current_organisation:
-            clean(person.current_organisation_name) || null,
-          current_role: clean(person.current_role) || null,
+            clean(identity.current_organisation_name) ||
+            clean(person.current_organisation_name) ||
+            null,
+          current_role:
+            clean(identity.current_role) ||
+            clean(person.current_role) ||
+            null,
           source_organisation:
-            clean(person.source_organisation_name) || null,
+            clean(identity.source_organisation_name) ||
+            clean(person.source_organisation_name) ||
+            null,
+          player_current_club:
+            clean(identity.player_current_club) ||
+            clean(player.current_club) ||
+            null,
         },
         recent_same_contact_context: recent.map((item: any) => ({
           channel: clean(item?.channel),
@@ -304,8 +339,9 @@ export default {
           max_output_tokens: 520,
           instructions: [
             "You draft one concise reply for a professional football agent.",
-            "The source interaction is an inbound connected email, Instagram message or WhatsApp message already linked to a known Network person.",
-            "Use only the supplied source interaction and supplied recent same-contact context.",
+            "The source interaction is an inbound connected email, Instagram message or WhatsApp message already linked to a confirmed Network person or signed player.",
+            "Use only the supplied source interaction and supplied recent same-identity context.",
+            "If connected_identity.kind is player, write naturally to that player. connected_identity.player_current_club is display context only and must not be treated as the club speaking, a club request or club authority unless the supplied interaction itself explicitly establishes that.",
             "Do not invent player availability, prices, salaries, fees, dates, deadlines, travel, medical information, deal terms, promises, approvals or commitments.",
             "If the sender asks for information that is not supported by the supplied evidence, acknowledge the request without inventing the answer.",
             "Do not imply that something has been sent, agreed, approved or completed unless the supplied evidence states that clearly.",

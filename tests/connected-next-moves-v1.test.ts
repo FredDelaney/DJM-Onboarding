@@ -12,11 +12,11 @@ test(
   () => {
     assert.match(
       aiProcess,
-      /capture_origin is instagram or whatsapp[\s\S]*inbound message written by an external contact/,
+      /capture_origin is instagram or whatsapp[\s\S]*inbound message from the explicitly resolved connected identity/,
     );
     assert.match(
       aiProcess,
-      /participant_label is sender context[\s\S]*copy participant_label exactly into contact_name/,
+      /Only when neither verified identity exists may participant_label be copied exactly into contact_name/,
     );
     assert.match(
       aiProcess,
