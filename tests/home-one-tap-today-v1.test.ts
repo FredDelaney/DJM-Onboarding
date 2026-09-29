@@ -34,7 +34,8 @@ test('Today routes player and opportunity dates to the real work surface', () =>
   assert.match(home, /\?view=opportunities&tab=routes/);
   assert.match(home, /entityType === 'club_need'/);
   assert.match(home, /\?view=opportunities&tab=needs/);
-  assert.match(home, /\?view=network/);
+  assert.match(home, /\?view=network&person=\$\{encodeURIComponent\(personId\)\}/);
+  assert.match(home, /\?view=network&club=\$\{encodeURIComponent\(organisationId\)\}/);
 });
 
 test('Today rows themselves are the action without another button column', () => {

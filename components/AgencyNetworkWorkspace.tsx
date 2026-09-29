@@ -217,6 +217,7 @@ export default function AgencyNetworkWorkspace({
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const searchParams = useSearchParams();
   const requestedPersonId = String(searchParams.get('person') || '').trim();
+  const requestedClubId = String(searchParams.get('club') || '').trim();
 
   const accounts = data?.accounts || {};
   const clubs = list(accounts?.clubs);
@@ -366,6 +367,16 @@ export default function AgencyNetworkWorkspace({
 
   const personId = (item: any) => String(item?.person_id || item?.id || '').trim();
 
+  const clubRequestFor = (club: any): AgencyClubAccountRequest => ({
+    key: `club-account:${club?.organisation_id}`,
+    organisationId: String(club?.organisation_id || ''),
+    title: club?.name || 'Club',
+    context:
+      [club?.city, club?.country, club?.league_name]
+        .filter(Boolean)
+        .join(' · ') || null,
+  });
+
   useEffect(() => {
     if (!requestedPersonId) {
       setSelectedContact(null);
@@ -375,6 +386,15 @@ export default function AgencyNetworkWorkspace({
     if (match) setSelectedContact(match);
   }, [people, requestedPersonId]);
 
+  useEffect(() => {
+    if (!requestedClubId || requestedPersonId) return;
+    const match = clubs.find(
+      (club: any) =>
+        String(club?.organisation_id || '') === requestedClubId,
+    );
+    if (match) onOpenClubAccount(clubRequestFor(match));
+  }, [clubs, requestedClubId, requestedPersonId]);
+
   const openPerson = (item: any) => {
     const id = personId(item);
     if (!id) return;
@@ -382,6 +402,7 @@ export default function AgencyNetworkWorkspace({
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'network');
     params.set('person', id);
+    params.delete('club');
     window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
   };
 
@@ -391,6 +412,22 @@ export default function AgencyNetworkWorkspace({
     params.set('view', 'network');
     params.delete('person');
     window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+  };
+
+  const openClub = (club: any) => {
+    const id = String(club?.organisation_id || '').trim();
+    if (!id) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'network');
+    params.set('club', id);
+    params.delete('person');
+    window.history.pushState(
+      window.history.state,
+      '',
+      `${basePath}?${params.toString()}`,
+    );
+    onOpenClubAccount(clubRequestFor(club));
   };
 
   const selectFocus = (
@@ -836,17 +873,7 @@ export default function AgencyNetworkWorkspace({
                   <button
                     type="button"
                     className={styles.secondaryAction}
-                    onClick={() =>
-                      onOpenClubAccount({
-                        key: `club-account:${club?.organisation_id}`,
-                        organisationId: String(club?.organisation_id || ''),
-                        title: clubName,
-                        context:
-                          [club?.city, club?.country, club?.league_name]
-                            .filter(Boolean)
-                            .join(' · ') || null,
-                      })
-                    }
+                    onClick={() => openClub(club)}
                   >
                     <BriefcaseBusiness size={14} />
                     Open club
