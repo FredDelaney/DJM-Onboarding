@@ -289,11 +289,15 @@ test(
 );
 
 test(
-  'identity resolver never creates a person or sends externally',
+  'provider identity suggestions never auto-create a person or send externally',
   () => {
-    assert.doesNotMatch(
+    assert.match(
       resolver,
-      /create_person|create_contact|insert.*people/i,
+      /never applies an identity suggestion automatically/,
+    );
+    assert.match(
+      resolver,
+      /new Network[\s\S]*created only when you choose Create and link/,
     );
     assert.doesNotMatch(
       resolver,
@@ -301,7 +305,7 @@ test(
     );
     assert.match(
       resolver,
-      /does[\s\S]*not send a message or create a new identity/,
+      /Nothing here sends an external message/,
     );
   },
 );

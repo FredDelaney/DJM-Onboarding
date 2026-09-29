@@ -103,11 +103,16 @@ test(
 );
 
 test(
-  'resolver never creates people or sends an external message',
+  'resolver never auto-creates identity or sends an external message',
   () => {
-    assert.doesNotMatch(
+    assert.match(
       resolver,
-      /create_contact|create_person|insert.*people/i,
+      /never applies an identity suggestion automatically/,
+    );
+
+    assert.match(
+      resolver,
+      /new Network[\s\S]*created only when you choose Create and link/,
     );
 
     assert.doesNotMatch(
@@ -117,7 +122,7 @@ test(
 
     assert.match(
       resolver,
-      /never applies an identity suggestion[\s\S]*automatically[\s\S]*does[\s\S]*not send a message or create a new identity/,
+      /Nothing here sends an external message/,
     );
   },
 );
@@ -133,16 +138,21 @@ test(
 );
 
 test(
-  'resolver provides a Network fallback when no existing contact matches',
+  'resolver provides inline creation and a full Network fallback when no contact matches',
   () => {
     assert.match(
       resolver,
-      /No matching Network contact/,
+      /No existing Network person matches this search/,
     );
 
     assert.match(
       resolver,
-      /Open Network/,
+      /Create person and link this chat/,
+    );
+
+    assert.match(
+      resolver,
+      /Open full Network/,
     );
 
     assert.match(

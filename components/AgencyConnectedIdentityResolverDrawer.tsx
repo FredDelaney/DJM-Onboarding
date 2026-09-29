@@ -108,6 +108,13 @@ export default function AgencyConnectedIdentityResolverDrawer({
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [createContactOpen, setCreateContactOpen] = useState(false);
+  const [newContact, setNewContact] = useState({
+    full_name: '',
+    club_name: '',
+    role_title: '',
+    country: '',
+  });
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -210,6 +217,13 @@ export default function AgencyConnectedIdentityResolverDrawer({
         )
       ) {
         setActiveThread(null);
+        setCreateContactOpen(false);
+        setNewContact({
+          full_name: '',
+          club_name: '',
+          role_title: '',
+          country: '',
+        });
       }
     } catch (loadError) {
       setError(friendlyError(loadError));
@@ -407,6 +421,98 @@ export default function AgencyConnectedIdentityResolverDrawer({
     }
   };
 
+  const createAndBindContact = async () => {
+    if (!activeThread || busy) return;
+
+    const fullName = newContact.full_name.trim();
+
+    if (fullName.length < 2) {
+      setError('Enter the person’s full name before creating the Network contact.');
+      return;
+    }
+
+    setBusy('create-contact');
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await platformRpc<{
+        created?: boolean;
+        bound?: boolean;
+        reason?: string | null;
+        person_id?: string | null;
+        person_name?: string | null;
+        existing_person_id?: string | null;
+        existing_person_name?: string | null;
+      }>(
+        'redream_messaging_thread_create_contact_and_bind',
+        {
+          p_provider: activeThread.provider,
+          p_external_thread_id: activeThread.external_thread_id,
+          p_full_name: fullName,
+          p_club_name: newContact.club_name.trim() || null,
+          p_role_title: newContact.role_title.trim() || null,
+          p_country: newContact.country.trim() || null,
+        },
+        workspaceSlug,
+      );
+
+      if (result?.reason === 'network_person_already_exists') {
+        const existingName =
+          result.existing_person_name || fullName;
+
+        setCreateContactOpen(false);
+        setSearch(existingName);
+        setError(
+          existingName +
+            ' already exists in Network. Choose that existing person instead of creating a duplicate.',
+        );
+        return;
+      }
+
+      if (!result?.created || !result?.bound) {
+        throw new Error(
+          'The Network person could not be created and linked to this chat.',
+        );
+      }
+
+      const linkedThread = activeThread;
+      const linkedName = result.person_name || fullName;
+
+      setThreads((current) =>
+        current.filter(
+          (thread) =>
+            !(
+              thread.provider === linkedThread.provider &&
+              thread.external_thread_id ===
+                linkedThread.external_thread_id
+            ),
+        ),
+      );
+      setActiveThread(null);
+      setSearch('');
+      setCreateContactOpen(false);
+      setNewContact({
+        full_name: '',
+        club_name: '',
+        role_title: '',
+        country: '',
+      });
+      setSuccess(
+        linkedName +
+          ' added to Network and linked to ' +
+          (linkedThread.participant_label || 'the selected chat') +
+          '.',
+      );
+
+      await onResolved?.();
+    } catch (createError) {
+      setError(friendlyError(createError));
+    } finally {
+      setBusy('');
+    }
+  };
+
   const bindProviderSuggestion = async (
     suggestion: ProviderSuggestion,
   ) => {
@@ -580,6 +686,13 @@ export default function AgencyConnectedIdentityResolverDrawer({
               onClick={() => {
                 setActiveThread(null);
                 setSearch('');
+                setCreateContactOpen(false);
+                setNewContact({
+                  full_name: '',
+                  club_name: '',
+                  role_title: '',
+                  country: '',
+                });
               }}
             >
               <ArrowLeft size={14} />
@@ -742,18 +855,169 @@ export default function AgencyConnectedIdentityResolverDrawer({
                   ))}
 
                   {!filteredContacts.length ? (
-                    <div className={styles.emptyContacts}>
-                      <UserRound size={18} />
-                      <strong>No matching Network contact</strong>
-                      <span>
-                        Add the person to Network first, then come back
-                        and link the selected chat.
-                      </span>
-                      <a href={networkHref} onClick={onClose}>
-                        Open Network
-                      </a>
+                    <div className={styles.groupEmpty}>
+                      No existing Network person matches this search.
                     </div>
                   ) : null}
+                </div>
+
+                <div className={styles.createContactArea}>
+                  {!createContactOpen ? (
+                    <button
+                      type="button"
+                      className={styles.createContactStart}
+                      onClick={() => {
+                        setError('');
+                        setCreateContactOpen(true);
+                      }}
+                      disabled={Boolean(busy)}
+                    >
+                      <ContactRound size={15} />
+                      <span>
+                        <strong>Not in Network?</strong>
+                        <small>Create person and link this chat</small>
+                      </span>
+                    </button>
+                  ) : (
+                    <form
+                      className={styles.createContactForm}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void createAndBindContact();
+                      }}
+                    >
+                      <div className={styles.createContactHead}>
+                        <div>
+                          <small>NEW NETWORK PERSON</small>
+                          <strong>Create from this selected chat</strong>
+                        </div>
+                        <span>
+                          {activeThread.provider === 'instagram'
+                            ? '@' +
+                              String(
+                                activeThread.participant_label || '',
+                              ).replace(/^@+/, '')
+                            : activeThread.participant_label ||
+                              providerLabel(activeThread.provider)}
+                        </span>
+                      </div>
+
+                      <label>
+                        <span>Full name *</span>
+                        <input
+                          required
+                          value={newContact.full_name}
+                          onChange={(event) =>
+                            setNewContact((current) => ({
+                              ...current,
+                              full_name: event.target.value,
+                            }))
+                          }
+                          placeholder="e.g. Aaron Lewis"
+                          autoComplete="off"
+                        />
+                      </label>
+
+                      <div className={styles.createContactPair}>
+                        <label>
+                          <span>Club</span>
+                          <input
+                            value={newContact.club_name}
+                            onChange={(event) => {
+                              const clubName = event.target.value;
+                              setNewContact((current) => ({
+                                ...current,
+                                club_name: clubName,
+                                role_title: clubName.trim()
+                                  ? current.role_title
+                                  : '',
+                              }));
+                            }}
+                            placeholder="Optional"
+                            autoComplete="off"
+                          />
+                        </label>
+
+                        {newContact.club_name.trim() ? (
+                          <label>
+                            <span>Role</span>
+                            <input
+                              value={newContact.role_title}
+                              onChange={(event) =>
+                                setNewContact((current) => ({
+                                  ...current,
+                                  role_title: event.target.value,
+                                }))
+                              }
+                              placeholder="Optional"
+                              autoComplete="off"
+                            />
+                          </label>
+                        ) : null}
+                      </div>
+
+                      <label>
+                        <span>Country</span>
+                        <input
+                          value={newContact.country}
+                          onChange={(event) =>
+                            setNewContact((current) => ({
+                              ...current,
+                              country: event.target.value,
+                            }))
+                          }
+                          placeholder="Optional"
+                          autoComplete="off"
+                        />
+                      </label>
+
+                      <p>
+                        ReDream will create this person in Network,
+                        preserve the selected chat identity and link the
+                        chat. Nothing is sent externally.
+                      </p>
+
+                      <div className={styles.createContactActions}>
+                        <button
+                          type="button"
+                          className={styles.createContactCancel}
+                          onClick={() => {
+                            setCreateContactOpen(false);
+                            setError('');
+                          }}
+                          disabled={Boolean(busy)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className={styles.createContactConfirm}
+                          disabled={
+                            Boolean(busy) ||
+                            newContact.full_name.trim().length < 2
+                          }
+                        >
+                          {busy === 'create-contact' ? (
+                            <LoaderCircle
+                              size={14}
+                              className={styles.spin}
+                            />
+                          ) : (
+                            <ContactRound size={14} />
+                          )}
+                          Create and link
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  <a
+                    className={styles.openNetworkLink}
+                    href={networkHref}
+                    onClick={onClose}
+                  >
+                    Open full Network
+                  </a>
                 </div>
               </section>
             </div>
@@ -887,6 +1151,15 @@ export default function AgencyConnectedIdentityResolverDrawer({
                   }
                   onClick={() => {
                     setSuccess('');
+                    setError('');
+                    setSearch('');
+                    setCreateContactOpen(false);
+                    setNewContact({
+                      full_name: '',
+                      club_name: '',
+                      role_title: '',
+                      country: '',
+                    });
                     setActiveThread(thread);
                   }}
                 >
@@ -933,9 +1206,10 @@ export default function AgencyConnectedIdentityResolverDrawer({
 
         <footer className={styles.footer}>
           <span>
-            ReDream never applies an identity suggestion
-            automatically. Confirming a player or Network person does
-            not send a message or create a new identity.
+            ReDream never applies an identity suggestion automatically.
+            Existing matches are confirmed explicitly. A new Network
+            person is created only when you choose Create and link.
+            Nothing here sends an external message.
           </span>
           <button type="button" onClick={onClose}>
             Done

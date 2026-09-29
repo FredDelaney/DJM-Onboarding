@@ -398,7 +398,7 @@ test(
     );
     assert.match(
       resolver,
-      /does\s+not send a\s+message/,
+      /Nothing here sends an external message/,
     );
   },
 );
