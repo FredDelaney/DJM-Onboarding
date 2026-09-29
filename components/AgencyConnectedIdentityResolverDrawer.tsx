@@ -50,6 +50,9 @@ type Thread = {
   provider: Provider;
   external_thread_id: string;
   participant_label?: string | null;
+  participant_username?: string | null;
+  participant_name?: string | null;
+  participant_identity_source?: string | null;
   is_selected: boolean;
   last_activity_at?: string | null;
   bound_person_id?: string | null;
@@ -90,6 +93,23 @@ type Contact = {
 
 const providerLabel = (provider: Provider) =>
   provider === 'instagram' ? 'Instagram' : 'WhatsApp';
+
+const providerNameForPrefill = (thread: Thread | null) => {
+  if (!thread) return '';
+  const name = String(thread.participant_name || '').trim();
+  const handle = String(
+    thread.participant_username ||
+      thread.participant_label ||
+      '',
+  )
+    .trim()
+    .replace(/^@+/, '');
+
+  if (name.length < 2 || name.length > 100) return '';
+  if (name.toLowerCase() === handle.toLowerCase()) return '';
+  if (!/[a-z]/i.test(name)) return '';
+  return name;
+};
 
 const contactName = (contact: Contact) =>
   String(
@@ -927,7 +947,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
             <p>
               {activeThread
                 ? activeThread.provider === 'instagram'
-                  ? 'Instagram is normally player communication. Start with a signed player, or use Network when this DM is actually a club or football contact.'
+                  ? 'Instagram is normally player communication. Start with a signed player or Recruitment target, and use Network when this DM is actually a club or football contact.'
                   : 'WhatsApp is normally club and football contact communication. Start with Network, or use a signed player when the chat is actually with the player.'
                 : remaining
                   ? remaining +
@@ -972,6 +992,12 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 setActiveThread(null);
                 setSearch('');
                 setCreateContactOpen(false);
+                setCreateProspectOpen(false);
+                setNewProspect({
+                  full_name: '',
+                  current_club: '',
+                  primary_position: '',
+                });
                 setNewContact({
                   full_name: '',
                   club_name: '',
@@ -991,11 +1017,17 @@ export default function AgencyConnectedIdentityResolverDrawer({
                   {providerLabel(activeThread.provider)}
                 </small>
                 <strong>
-                  {activeThread.participant_label ||
+                  {activeThread.participant_username ||
+                    activeThread.participant_label ||
                     (activeThread.provider === 'instagram'
                       ? 'Instagram DM'
                       : 'WhatsApp chat')}
                 </strong>
+                {providerNameForPrefill(activeThread) ? (
+                  <span>
+                    {providerNameForPrefill(activeThread)} · {providerLabel(activeThread.provider)} profile
+                  </span>
+                ) : null}
                 {activeThread.last_activity_at ? (
                   <span>
                     Active{' '}
@@ -1190,6 +1222,12 @@ export default function AgencyConnectedIdentityResolverDrawer({
                       className={styles.createContactStart}
                       onClick={() => {
                         setError('');
+                        setNewProspect((current) => ({
+                          ...current,
+                          full_name:
+                            current.full_name ||
+                            providerNameForPrefill(activeThread),
+                        }));
                         setCreateProspectOpen(true);
                       }}
                       disabled={Boolean(busy)}
@@ -1366,6 +1404,12 @@ export default function AgencyConnectedIdentityResolverDrawer({
                       className={styles.createContactStart}
                       onClick={() => {
                         setError('');
+                        setNewContact((current) => ({
+                          ...current,
+                          full_name:
+                            current.full_name ||
+                            providerNameForPrefill(activeThread),
+                        }));
                         setCreateContactOpen(true);
                       }}
                       disabled={Boolean(busy)}
@@ -1652,6 +1696,12 @@ export default function AgencyConnectedIdentityResolverDrawer({
                     setError('');
                     setSearch('');
                     setCreateContactOpen(false);
+                    setCreateProspectOpen(false);
+                    setNewProspect({
+                      full_name: '',
+                      current_club: '',
+                      primary_position: '',
+                    });
                     setNewContact({
                       full_name: '',
                       club_name: '',
@@ -1669,18 +1719,21 @@ export default function AgencyConnectedIdentityResolverDrawer({
                       {providerLabel(thread.provider)}
                     </small>
                     <strong>
-                      {thread.participant_label ||
+                      {thread.participant_username ||
+                        thread.participant_label ||
                         (thread.provider === 'instagram'
                           ? 'Instagram DM'
                           : 'WhatsApp chat')}
                     </strong>
                     <span>
-                      {thread.last_activity_at
-                        ? 'Active ' +
-                          relativeDate(
-                            thread.last_activity_at,
-                          )
-                        : 'Selected for ReDream'}
+                      {providerNameForPrefill(thread)
+                        ? providerNameForPrefill(thread) + ' · ' +
+                          (thread.last_activity_at
+                            ? 'Active ' + relativeDate(thread.last_activity_at)
+                            : 'Selected for ReDream')
+                        : thread.last_activity_at
+                          ? 'Active ' + relativeDate(thread.last_activity_at)
+                          : 'Selected for ReDream'}
                     </span>
                   </span>
                   <span className={styles.chooseLabel}>
@@ -1695,7 +1748,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
                 <CheckCircle2 size={22} />
                 <strong>Connected identities are resolved</strong>
                 <span>
-                  Future Instagram messages can follow the confirmed player or Network identity. WhatsApp and connected email keep their confirmed Network context unless you explicitly link a WhatsApp chat to a player.
+                  Future messages follow the identity you confirmed: signed player, Recruitment target, or Network person. Personal selected chats remain private to the agent who connected them.
                 </span>
               </div>
             ) : null}
