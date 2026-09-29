@@ -255,7 +255,7 @@ begin
   v_created:=public.platform_server_recruitment_create_target(
     v_tenant,v_user,v_name,nullif(trim(coalesce(p_current_club,'')),''),
     nullif(trim(coalesce(p_current_country,'')),''),nullif(trim(coalesce(p_primary_position,'')),''),
-    null,null,3
+    null::date,null::text,3::smallint
   );
   v_prospect_id:=nullif(v_created->>'prospect_id','')::uuid;
   if v_prospect_id is null then raise exception 'recruitment_target_create_failed'; end if;
