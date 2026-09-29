@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   ArrowRight,
   CalendarClock,
   CheckCircle2,
@@ -92,12 +93,14 @@ export default function AgencyPlayerServiceReviewDrawer({
   onClose,
   onOpenAction,
   onApplied,
+  presentation = 'drawer',
 }: {
   request: AgencyPlayerServiceReviewRequest;
   invoke: Invoke;
   onClose: () => void;
   onOpenAction: (request: AgencyActionRequest) => void;
   onApplied: () => Promise<void> | void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] = useState(true);
   const [captureBusy, setCaptureBusy] = useState(false);
@@ -108,6 +111,7 @@ export default function AgencyPlayerServiceReviewDrawer({
   const [statement, setStatement] = useState<any>(null);
   const [history, setHistory] = useState<any>(null);
   const [delta, setDelta] = useState<any>(null);
+  const pageMode = presentation === 'page';
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -153,6 +157,8 @@ export default function AgencyPlayerServiceReviewDrawer({
   }, [load]);
 
   useEffect(() => {
+    if (pageMode) return;
+
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -166,7 +172,7 @@ export default function AgencyPlayerServiceReviewDrawer({
       document.body.style.overflow = previous;
       window.removeEventListener('keydown', keydown);
     };
-  }, [captureBusy, onClose]);
+  }, [captureBusy, onClose, pageMode]);
 
   const proof = reviewPack?.value_proof || {};
   const meeting = reviewPack?.meeting_focus || {};
@@ -325,17 +331,17 @@ export default function AgencyPlayerServiceReviewDrawer({
 
   return (
     <div
-      className={styles.backdrop}
-      onClick={(event) => {
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onClick={pageMode ? undefined : (event) => {
         if (event.target === event.currentTarget && !captureBusy) {
           onClose();
         }
       }}
     >
       <aside
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
         aria-label="Player Service Review"
       >
         <header className={styles.header}>
@@ -350,9 +356,9 @@ export default function AgencyPlayerServiceReviewDrawer({
               className={styles.close}
               onClick={onClose}
               disabled={captureBusy}
-              aria-label="Close Player Service Review"
+              aria-label={pageMode ? 'Back to player' : 'Close Player Service Review'}
             >
-              <X size={18} />
+              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
           </div>
 

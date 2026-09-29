@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   CheckCircle2,
   CircleAlert,
   LoaderCircle,
@@ -62,10 +63,12 @@ export default function AgencyMemoryDrawer({
   invoke,
   onClose,
   onApplied,
+  presentation = 'drawer',
 }: {
   invoke: Invoke;
   onClose: () => void;
   onApplied: () => Promise<void> | void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] = useState(true);
   const [undoBusy, setUndoBusy] = useState(false);
@@ -75,6 +78,7 @@ export default function AgencyMemoryDrawer({
   const [history, setHistory] = useState<any[]>([]);
   const [learning, setLearning] = useState<any>(null);
   const [undoTarget, setUndoTarget] = useState<any>(null);
+  const pageMode = presentation === 'page';
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -106,6 +110,8 @@ export default function AgencyMemoryDrawer({
   }, [load]);
 
   useEffect(() => {
+    if (pageMode) return;
+
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -121,7 +127,7 @@ export default function AgencyMemoryDrawer({
       document.body.style.overflow = previous;
       window.removeEventListener('keydown', keydown);
     };
-  }, [onClose, undoBusy, undoTarget]);
+  }, [onClose, pageMode, undoBusy, undoTarget]);
 
   const movement = list(brief?.movement?.events);
   const autonomy = brief?.autonomy || {};
@@ -176,17 +182,17 @@ export default function AgencyMemoryDrawer({
 
   return (
     <div
-      className={styles.backdrop}
-      onClick={(event) => {
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onClick={pageMode ? undefined : (event) => {
         if (event.target === event.currentTarget && !undoBusy) {
           onClose();
         }
       }}
     >
       <aside
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
         aria-label="Agency Memory"
       >
         <header className={styles.header}>
@@ -201,9 +207,9 @@ export default function AgencyMemoryDrawer({
               className={styles.close}
               onClick={onClose}
               disabled={undoBusy}
-              aria-label="Close Agency Memory"
+              aria-label={pageMode ? 'Back to workspace' : 'Close Agency Memory'}
             >
-              <X size={18} />
+              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
           </div>
 

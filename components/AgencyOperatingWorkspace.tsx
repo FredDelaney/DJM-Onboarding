@@ -1291,6 +1291,7 @@ export default function AgencyOperatingWorkspace() {
         <AgencyPlayerServiceReviewDrawer
           key={playerServiceReviewRequest.key}
           request={playerServiceReviewRequest}
+          presentation="page"
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setPlayerServiceReviewRequest(null)}
           onOpenAction={(request) => {
@@ -1369,6 +1370,7 @@ export default function AgencyOperatingWorkspace() {
         <AgencyDealCloseoutDrawer
           key={dealCloseoutRequest.key}
           request={dealCloseoutRequest}
+          presentation="page"
           role={String(workspace?.role || '')}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setDealCloseoutRequest(null)}
@@ -1380,6 +1382,7 @@ export default function AgencyOperatingWorkspace() {
 
       {memoryOpen ? (
         <AgencyMemoryDrawer
+          presentation="page"
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setMemoryOpen(false)}
           onApplied={async () => {
