@@ -7,6 +7,11 @@ const migration = readFileSync(
   'utf8',
 );
 
+const emailGuardMigration = readFileSync(
+  'supabase/migrations/20260929052000_redream_provider_contact_suggestion_email_guard_v1.sql',
+  'utf8',
+);
+
 const providerSync = readFileSync(
   'supabase/functions/redream-provider-sync/index.ts',
   'utf8',
@@ -41,6 +46,20 @@ test(
     assert.doesNotMatch(
       migration,
       /similarity\(|levenshtein|fuzzy/i,
+    );
+  },
+);
+
+test(
+  'provider suggestions only surface contacts with an email identity',
+  () => {
+    assert.match(
+      emailGuardMigration,
+      /lower\(trim\(coalesce\(s\.email,''\)\)\)[\s\S]*is not null/,
+    );
+    assert.match(
+      emailGuardMigration,
+      /create or replace function private\.redream_provider_contact_suggestion_rows/,
     );
   },
 );
@@ -192,6 +211,24 @@ test(
     assert.match(
       resolver,
       /providerSuggestions/,
+    );
+  },
+);
+
+test(
+  'selected chat usernames remain explicit human identity decisions',
+  () => {
+    assert.match(
+      resolver,
+      /Choose the right contact/,
+    );
+    assert.match(
+      resolver,
+      /redream_messaging_thread_bind_contact/,
+    );
+    assert.doesNotMatch(
+      resolver,
+      /participant_label[\s\S]{0,220}redream_messaging_thread_bind_contact/,
     );
   },
 );
