@@ -393,3 +393,23 @@
     min-height: 42px;
   }
 }
+
+/* Quick action dialog v1: meeting capture is a contained decision dialog. */
+@media (min-width: 681px) {
+  .backdrop {
+    place-items: center;
+    padding: 24px;
+  }
+
+  .drawer {
+    width: min(560px, calc(100vw - 48px));
+    height: min(86dvh, 790px);
+    border: 1px solid rgba(255,255,255,.72);
+    border-radius: 20px;
+    box-shadow: 0 28px 90px rgba(10,25,36,.22);
+  }
+
+  .header {
+    border-radius: 20px 20px 0 0;
+  }
+}

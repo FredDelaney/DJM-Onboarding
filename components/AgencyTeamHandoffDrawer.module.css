@@ -819,3 +819,23 @@
     font-size: 16px;
   }
 }
+
+/* Quick action dialog v1: handoff stays temporary but no longer slides in as a side workspace. */
+@media (min-width: 681px) {
+  .backdrop {
+    place-items: center;
+    padding: 24px;
+  }
+
+  .drawer {
+    width: min(680px, calc(100vw - 48px));
+    height: min(88dvh, 860px);
+    border: 1px solid rgba(255,255,255,.72);
+    border-radius: 20px;
+    box-shadow: 0 28px 90px rgba(10,25,36,.24);
+  }
+
+  .header {
+    border-radius: 20px 20px 0 0;
+  }
+}
