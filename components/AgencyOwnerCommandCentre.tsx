@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  ArrowRightLeft,
   BriefcaseBusiness,
   CheckCircle2,
   CircleAlert,
@@ -106,6 +107,7 @@ export default function AgencyOwnerCommandCentre({
   onClose,
   onOpenDeal,
   onOpenAction,
+  onOpenHandoff,
 }: {
   data: any;
   onClose: () => void;
@@ -117,6 +119,7 @@ export default function AgencyOwnerCommandCentre({
   onOpenAction: (
     request: AgencyActionRequest,
   ) => void;
+  onOpenHandoff: (member: any) => void;
 }) {
   const control = data?.control || {};
   const roi = data?.roi || {};
@@ -698,6 +701,19 @@ export default function AgencyOwnerCommandCentre({
                           )}
                         </div>
                       ) : null}
+
+                      <button
+                        type="button"
+                        className={
+                          styles.teamHandoffButton
+                        }
+                        onClick={() =>
+                          onOpenHandoff(member)
+                        }
+                      >
+                        <ArrowRightLeft size={13} />
+                        Handoff work
+                      </button>
                     </article>
                   );
                 })}

@@ -79,6 +79,7 @@ import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
 import AgencyConnectedIdentityResolverDrawer from '@/components/AgencyConnectedIdentityResolverDrawer';
 import AgencyConnectedReplyDrawer from '@/components/AgencyConnectedReplyDrawer';
 import AgencyMeetingOutcomeDrawer from '@/components/AgencyMeetingOutcomeDrawer';
+import AgencyTeamHandoffDrawer from '@/components/AgencyTeamHandoffDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 
 import styles from './AgencyOperatingWorkspace.module.css';
@@ -272,6 +273,7 @@ export default function AgencyOperatingWorkspace() {
   const [pursuitRequest, setPursuitRequest] =
     useState<AgencyPursuitRequest | null>(null);
   const [ownerCommandOpen, setOwnerCommandOpen] = useState(false);
+  const [teamHandoffMember, setTeamHandoffMember] = useState<any>(null);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [dealCloseoutRequest, setDealCloseoutRequest] =
     useState<AgencyDealCloseoutRequest | null>(null);
@@ -1427,6 +1429,25 @@ export default function AgencyOperatingWorkspace() {
           onOpenAction={(request) => {
             setOwnerCommandOpen(false);
             setActionRequest(request);
+          }}
+          onOpenHandoff={(member) => {
+            setOwnerCommandOpen(false);
+            setTeamHandoffMember(member);
+          }}
+        />
+      ) : null}
+
+      {teamHandoffMember ? (
+        <AgencyTeamHandoffDrawer
+          key={`team-handoff:${teamHandoffMember.user_id}`}
+          workspaceSlug={workspace.slug}
+          member={teamHandoffMember}
+          onClose={() => {
+            setTeamHandoffMember(null);
+            setOwnerCommandOpen(true);
+          }}
+          onApplied={async () => {
+            await loadView();
           }}
         />
       ) : null}
