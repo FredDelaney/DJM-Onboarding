@@ -173,15 +173,22 @@ export default function AccountMenu({
       </button>
 
       {open ? (
-        <div className={styles.menu} role="menu">
+        <>
+          <button
+            type="button"
+            className={styles.backdrop}
+            aria-label="Close account menu"
+            onClick={() => setOpen(false)}
+          />
+          <div className={styles.menu} role="menu">
           <div className={styles.identity}>
             <span className={styles.heroAvatar}>
               {avatarUrl ? <img src={avatarUrl} alt="" /> : initials(name)}
             </span>
             <div>
               <strong>{name}</strong>
-              <span>{profile.job_title || human(role)}</span>
-              <small>{agencyName}</small>
+              <span>{profile.email || profile.job_title || human(role)}</span>
+              <small>{agencyName} · {human(role)}</small>
             </div>
           </div>
 
@@ -218,6 +225,7 @@ export default function AccountMenu({
             </button>
           </div>
         </div>
+        </>
       ) : null}
     </div>
   );
