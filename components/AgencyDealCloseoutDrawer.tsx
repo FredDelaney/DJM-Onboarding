@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   CheckCircle2,
   CircleAlert,
   Coins,
@@ -76,12 +77,14 @@ export default function AgencyDealCloseoutDrawer({
   invoke,
   onClose,
   onApplied,
+  presentation = 'drawer',
 }: {
   request: AgencyDealCloseoutRequest;
   role: string;
   invoke: Invoke;
   onClose: () => void;
   onApplied: () => Promise<void> | void;
+  presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] = useState('');
@@ -111,6 +114,7 @@ export default function AgencyDealCloseoutDrawer({
   const [paymentTarget, setPaymentTarget] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
+  const pageMode = presentation === 'page';
 
   const canCollect = ['owner', 'admin', 'operations'].includes(role);
 
@@ -186,6 +190,8 @@ export default function AgencyDealCloseoutDrawer({
   }, [load]);
 
   useEffect(() => {
+    if (pageMode) return;
+
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -202,7 +208,7 @@ export default function AgencyDealCloseoutDrawer({
       document.body.style.overflow = previous;
       window.removeEventListener('keydown', keydown);
     };
-  }, [actionBusy, onClose, paymentTarget]);
+  }, [actionBusy, onClose, pageMode, paymentTarget]);
 
   const deal = closeout?.deal || {};
   const checks = list(closeout?.checks);
@@ -405,17 +411,17 @@ export default function AgencyDealCloseoutDrawer({
 
   return (
     <div
-      className={styles.backdrop}
-      onClick={(event) => {
+      className={pageMode ? styles.pageShell : styles.backdrop}
+      onClick={pageMode ? undefined : (event) => {
         if (event.target === event.currentTarget && !actionBusy) {
           onClose();
         }
       }}
     >
       <aside
-        className={styles.drawer}
-        role="dialog"
-        aria-modal="true"
+        className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
+        role={pageMode ? 'region' : 'dialog'}
+        aria-modal={pageMode ? undefined : true}
         aria-label="Deal closeout and commission collection"
       >
         <header className={styles.header}>
@@ -430,9 +436,9 @@ export default function AgencyDealCloseoutDrawer({
               className={styles.close}
               onClick={onClose}
               disabled={Boolean(actionBusy)}
-              aria-label="Close deal closeout"
+              aria-label={pageMode ? 'Back to deal' : 'Close deal closeout'}
             >
-              <X size={18} />
+              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
           </div>
 
