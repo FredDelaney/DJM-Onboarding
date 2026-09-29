@@ -102,6 +102,19 @@ const age = (value: unknown) => {
   );
 };
 
+const statsFreshnessLabel = (value: unknown) => {
+  const raw = text(value);
+  if (!raw) return '';
+  const checked = new Date(raw);
+  if (Number.isNaN(checked.getTime())) return '';
+  const hours = Math.max(0, Math.floor((Date.now() - checked.getTime()) / 3600000));
+  if (hours < 24) return 'Checked today';
+  if (hours < 48) return 'Checked yesterday';
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `Checked ${days}d ago`;
+  return `Checked ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(checked)}`;
+};
+
 const parseKeyStats = (value: string) =>
   value
     .split('\n')
@@ -970,11 +983,30 @@ export default function AgencyPlayerProfile({
 
             {!draftProfile.key_stats?.length ? (
               <p>
-                Verified current-season numbers will appear automatically
-                when reviewed stats are available.
+                Current-season numbers will appear automatically when trusted evidence is available.
               </p>
             ) : null}
           </div>
+
+          {!parseKeyStats(form.key_stats_text).length &&
+          bundle?.auto_stats_meta?.checked_at &&
+          draftProfile.key_stats?.length ? (
+            <div className={styles.statsFreshness}>
+              <ShieldCheck size={13} />
+              <span>
+                {statsFreshnessLabel(bundle.auto_stats_meta.checked_at)} · Cross-checked
+              </span>
+              {bundle.auto_stats_meta.source_url ? (
+                <a
+                  href={bundle.auto_stats_meta.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Source <ExternalLink size={11} />
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </section>
       </div>
 

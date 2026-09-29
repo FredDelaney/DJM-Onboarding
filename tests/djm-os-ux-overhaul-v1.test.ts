@@ -92,7 +92,7 @@ test('routine player maintenance is automated while legacy admin hands off to th
   const weekly = read('supabase/functions/weekly-player-refresh/index.ts');
 
   assert.match(admin, /redirect\('\/agency\?view=players'\)/);
-  assert.match(weekly, /daily_rotating_stale_first_weekly_coverage/);
+  assert.match(weekly, /daily_stale_first_provider_then_cross_checked_web/);
   assert.match(weekly, /syncTheSportsDbWeekly/);
 
   assert.doesNotMatch(admin, /djm_recruitment_targets|djm_active_team_members/);
