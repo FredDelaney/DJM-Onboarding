@@ -555,3 +555,160 @@
     box-shadow: none;
   }
 }
+
+/* Premium mobile product v1 */
+@media (max-width: 680px) {
+  .workspace {
+    gap: 12px;
+  }
+
+  .sectionTabs {
+    padding: 3px;
+    border-radius: 14px;
+  }
+
+  .sectionTab,
+  .sectionTabActive {
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 760;
+  }
+
+  .search {
+    min-height: 46px;
+    border-radius: 15px;
+  }
+
+  .playerGrid {
+    gap: 10px;
+  }
+
+  .playerCard {
+    min-height: 82px;
+    padding: 14px 15px;
+    border-radius: 18px;
+    border-color: #e8edf1;
+  }
+
+  .playerCardTop {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 52px;
+    height: 52px;
+  }
+
+  .playerIdentity h3 {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  .playerIdentity span {
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .attentionPill {
+    width: 9px;
+    height: 9px;
+  }
+
+  .recruitmentList {
+    display: grid;
+    gap: 9px;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .recruitmentRow {
+    min-height: 76px;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 11px;
+    padding: 13px 14px;
+    border: 1px solid #e8edf1;
+    border-radius: 16px;
+  }
+
+  .recruitmentRow:first-child {
+    border-top: 1px solid #e8edf1;
+  }
+
+  .recruitmentMark {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+  }
+
+  .recruitmentTitle strong {
+    font-size: 14px;
+  }
+
+  .recruitmentCopy > span {
+    font-size: 11px;
+  }
+
+  .recruitmentCopy > small {
+    font-size: 10px;
+  }
+
+  .recruitmentStage {
+    grid-column: 3;
+    justify-content: flex-end;
+  }
+
+  .recruitmentStage span {
+    font-size: 10px;
+  }
+
+  .playerHero,
+  .recruitHero {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 13px;
+    padding: 15px;
+    border-radius: 18px;
+  }
+
+  .avatarLarge {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+  }
+
+  .playerHeroCopy h2,
+  .recruitHero h2 {
+    font-size: 24px;
+  }
+
+  .playerHeroCopy > span,
+  .recruitHero > div:nth-child(2) > span {
+    font-size: 11px;
+  }
+
+  .playerTabs {
+    border-radius: 14px;
+  }
+
+  .playerTab,
+  .playerTabActive {
+    min-height: 44px;
+    font-size: 11px;
+  }
+
+  .detailHero h3,
+  .detailSection h3 {
+    font-size: 15px;
+  }
+
+  .row strong {
+    font-size: 12px;
+  }
+
+  .row span {
+    font-size: 11px;
+  }
+}
