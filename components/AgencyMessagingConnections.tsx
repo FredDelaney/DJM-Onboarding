@@ -20,6 +20,7 @@ import {
   platformInvoke,
   platformRpc,
 } from '@/lib/platform-client';
+import { bootstrapSelectedInstagramHistory } from '@/lib/connected-messaging';
 
 import styles from './AgencyConnectionsDrawer.module.css';
 
@@ -1004,6 +1005,40 @@ export default function AgencyMessagingConnections({
             workspaceSlug,
           );
 
+
+        let historyNote = '';
+
+        if (
+          result?.bound &&
+          provider === 'instagram' &&
+          thread.is_selected
+        ) {
+          try {
+            const history =
+              await bootstrapSelectedInstagramHistory(
+                workspaceSlug,
+                thread.external_thread_id,
+              );
+            const imported = Number(
+              history?.messages_imported || 0,
+            );
+
+            historyNote =
+              imported > 0
+                ? ' ' +
+                  imported +
+                  ' recent Instagram ' +
+                  (imported === 1
+                    ? 'message'
+                    : 'messages') +
+                  ' added to Agency Memory.'
+                : ' Recent Instagram history checked.';
+          } catch {
+            historyNote =
+              ' Identity saved. Recent Instagram history could not be imported yet.';
+          }
+        }
+
         setThreads(
           (current) => ({
             ...current,
@@ -1044,7 +1079,8 @@ export default function AgencyMessagingConnections({
             ? 'Chat linked to ' +
                 (result.bound_person_name ||
                   'Network contact') +
-                '.'
+                '.' +
+                historyNote
             : 'Chat link removed.',
         );
       } catch (error) {
