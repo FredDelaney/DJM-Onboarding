@@ -220,7 +220,7 @@ test(
   () => {
     assert.match(
       resolver,
-      /Choose the right contact/,
+      /Choose the right identity/,
     );
     assert.match(
       resolver,
@@ -228,7 +228,7 @@ test(
     );
     assert.doesNotMatch(
       resolver,
-      /participant_label[\s\S]{0,220}redream_messaging_thread_bind_contact/,
+      /useEffect[\s\S]{0,400}redream_messaging_thread_bind_(?:contact|player)/,
     );
   },
 );
@@ -250,7 +250,7 @@ test(
     );
     assert.match(
       resolver,
-      /never applies a provider contact suggestion[\s\S]*automatically/,
+      /never applies an identity suggestion[\s\S]*automatically/,
     );
   },
 );
@@ -301,7 +301,7 @@ test(
     );
     assert.match(
       resolver,
-      /does not send a[\s\S]*message or create a person/,
+      /does[\s\S]*not send a message or create a new identity/,
     );
   },
 );

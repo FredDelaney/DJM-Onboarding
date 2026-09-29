@@ -117,7 +117,7 @@ test(
 
     assert.match(
       resolver,
-      /never applies a provider contact suggestion[\s\S]*automatically[\s\S]*does not send a[\s\S]*message or create a person/,
+      /never applies an identity suggestion[\s\S]*automatically[\s\S]*does[\s\S]*not send a message or create a new identity/,
     );
   },
 );
