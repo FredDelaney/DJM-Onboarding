@@ -2917,3 +2917,18 @@
     transform: translateX(-50%);
   }
 }
+
+/* Tenant logo placement stays consistent across the live Agency Workspace. */
+.mobileTenantBrand {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .mobileTenantBrand {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    z-index: 2;
+    display: block;
+  }
+}

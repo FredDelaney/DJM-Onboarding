@@ -21,6 +21,7 @@ import { useParams } from 'next/navigation';
 
 import { platformInvoke, friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
+import { tenantBrandTokens } from '@/lib/tenant-brand-style';
 
 import styles from './page.module.css';
 
@@ -319,9 +320,17 @@ export default function AgencyOwnerJoinPage() {
     );
   }
 
+  const inviteBrand = tenantBrandTokens({
+    primary,
+    secondary: '#FFFFFF',
+    accent,
+  });
   const theme = {
-    '--agency-primary': primary,
-    '--agency-accent': accent,
+    '--agency-primary': inviteBrand.primary,
+    '--agency-accent': inviteBrand.accent,
+    '--agency-accent-raw': inviteBrand.accentRaw,
+    '--agency-on-primary': inviteBrand.onPrimary,
+    '--agency-on-accent': inviteBrand.onAccent,
   } as CSSProperties;
 
   if (workspace) {

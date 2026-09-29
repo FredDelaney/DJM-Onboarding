@@ -1,7 +1,15 @@
 :root {
   --tenant-primary: #061f3a;
   --tenant-secondary: #ffffff;
-  --tenant-accent: #f5e900;
+  --tenant-accent: #6f6900;
+  --tenant-primary-raw: #061f3a;
+  --tenant-secondary-raw: #ffffff;
+  --tenant-accent-raw: #f5e900;
+  --tenant-on-primary: #ffffff;
+  --tenant-on-accent: #ffffff;
+  --tenant-on-accent-raw: #111827;
+  --tenant-primary-soft: #f2f4f6;
+  --tenant-accent-soft: #fdfbdc;
 }
 
 /*
@@ -11,8 +19,12 @@
  * configured primary and accent identity.
  */
 html[data-tenant] {
+  /* Legacy tokens receive contrast-safe UI colours. Raw brand values stay
+     available through --tenant-*-raw for decorative backgrounds and assets. */
   --navy: var(--tenant-primary);
-  --yellow: var(--tenant-accent);
+  --yellow: var(--tenant-accent-raw);
+  --yellow-raw: var(--tenant-accent-raw);
+  --yellow-ink: var(--tenant-accent);
 }
 
 .tenant-lettermark {
@@ -24,7 +36,7 @@ html[data-tenant] {
   border-radius: inherit;
 
   background: var(--tenant-primary);
-  color: var(--tenant-secondary);
+  color: var(--tenant-on-primary);
 
   font-size: 12px;
   font-weight: 850;

@@ -112,7 +112,7 @@ test(
 
     assert.match(
       layout,
-      /--tenant-primary/,
+      /tenantBrandCssVariables/,
     );
 
     assert.match(
@@ -122,7 +122,7 @@ test(
 
     assert.match(
       theme,
-      /--yellow: var\(--tenant-accent\)/,
+      /--yellow: var\(--tenant-accent-raw\)/,
     );
 
     assert.doesNotMatch(

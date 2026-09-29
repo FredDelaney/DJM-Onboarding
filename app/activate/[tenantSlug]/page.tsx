@@ -27,6 +27,7 @@ import { useParams } from 'next/navigation';
 
 import { platformInvoke, friendlyError } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
+import { tenantBrandTokens } from '@/lib/tenant-brand-style';
 import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel';
 
 import styles from './page.module.css';
@@ -288,11 +289,19 @@ export default function AgencyLaunchPage() {
   const total = Number(launch?.owner_setup?.total_count || 5);
   const progress = Math.max(0, Math.min(100, (completed / Math.max(total, 1)) * 100));
 
-  const theme = {
-    '--launch-primary':
+  const launchBrand = tenantBrandTokens({
+    primary:
       launch?.branding?.primary_color || runtime.branding.primary_color,
-    '--launch-accent':
+    secondary: launch?.branding?.secondary_color || '#FFFFFF',
+    accent:
       launch?.branding?.accent_color || runtime.branding.accent_color,
+  });
+  const theme = {
+    '--launch-primary': launchBrand.primary,
+    '--launch-accent': launchBrand.accent,
+    '--launch-accent-raw': launchBrand.accentRaw,
+    '--launch-on-primary': launchBrand.onPrimary,
+    '--launch-on-accent': launchBrand.onAccent,
   } as CSSProperties;
 
   const workspaceName =

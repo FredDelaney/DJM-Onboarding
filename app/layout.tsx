@@ -24,10 +24,7 @@ import type {
 import { Inter } from 'next/font/google';
 import { headers } from 'next/headers';
 
-import {
-  cache,
-  type CSSProperties,
-} from 'react';
+import { cache } from 'react';
 
 import {
   TenantRuntimeProvider,
@@ -45,6 +42,7 @@ import {
 import {
   resolveTenantRuntime,
 } from '../lib/tenant-runtime';
+import { tenantBrandCssVariables } from '../lib/tenant-brand-style';
 
 const redreamInter = Inter({
   subsets: ['latin'],
@@ -261,14 +259,11 @@ export default async function RootLayout({
       process.env.NEXT_PUBLIC_REDREAM_ENVIRONMENT,
     );
 
-  const tenantStyle = {
-    '--tenant-primary':
-      runtime.branding.primary_color,
-    '--tenant-secondary':
-      runtime.branding.secondary_color,
-    '--tenant-accent':
-      runtime.branding.accent_color,
-  } as CSSProperties;
+  const tenantStyle = tenantBrandCssVariables({
+    primary: runtime.branding.primary_color,
+    secondary: runtime.branding.secondary_color,
+    accent: runtime.branding.accent_color,
+  });
 
   return (
     <html

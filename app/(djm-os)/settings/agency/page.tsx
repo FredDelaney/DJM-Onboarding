@@ -19,6 +19,7 @@ import {
   friendlyError,
   platformInvoke,
 } from '@/lib/platform-client';
+import { tenantBrandTokens } from '@/lib/tenant-brand-style';
 
 type AgencyForm = {
   display_name: string;
@@ -50,6 +51,11 @@ export default function AgencySettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const brandPreview = tenantBrandTokens({
+    primary: form.primary_color,
+    secondary: '#FFFFFF',
+    accent: form.accent_color,
+  });
 
   const load = useCallback(async () => {
     if (!tenantId) return;
@@ -212,6 +218,33 @@ export default function AgencySettingsPage() {
                 disabled={!canEdit || busy}
               />
             </label>
+          </div>
+
+          <div className={styles.brandGuardrail}>
+            <div className={styles.brandGuardrailPreview}>
+              <span
+                style={{
+                  background: brandPreview.primaryRaw,
+                  color: brandPreview.onPrimaryRaw,
+                }}
+              >
+                Primary
+              </span>
+              <span
+                style={{
+                  background: brandPreview.accentRaw,
+                  color: brandPreview.onAccentRaw,
+                }}
+              >
+                Accent highlight
+              </span>
+              <strong style={{ color: brandPreview.accent }}>Readable accent text</strong>
+            </div>
+            <p>
+              ReDream protects contrast automatically. Your original brand colours
+              stay available for logos and highlights, while text and controls use
+              a readable version when needed.
+            </p>
           </div>
 
           {canEdit ? (
