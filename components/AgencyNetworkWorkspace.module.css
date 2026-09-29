@@ -970,3 +970,136 @@
     padding: 18px;
   }
 }
+
+/* ReDream visual reset v1 */
+.hero,
+.clubCard,
+.personCard,
+.intelligence,
+.signalBar {
+  box-shadow: none;
+}
+
+@media (max-width: 680px) {
+  .workspace {
+    gap: 10px;
+  }
+
+  .hero,
+  .intelligence,
+  .signalBar {
+    display: none;
+  }
+
+  .toolbar {
+    display: grid;
+    gap: 10px;
+  }
+
+  .tabs {
+    width: 100%;
+    padding: 3px;
+    border: 0;
+    border-radius: 14px;
+    background: #f3f5f7;
+  }
+
+  .tab,
+  .tabActive {
+    flex: 1;
+    min-height: 38px;
+    justify-content: center;
+    border-radius: 12px;
+  }
+
+  .tabActive {
+    background: #fff;
+    color: var(--agency-primary);
+    box-shadow: 0 1px 3px rgba(18,31,45,.05);
+  }
+
+  .search {
+    width: 100%;
+    min-height: 46px;
+    border-radius: 15px;
+    background: #f8f9fb;
+    border-color: #e8ebef;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .clubCard,
+  .personCard {
+    gap: 11px;
+    padding: 14px;
+    border-radius: 16px;
+    border-color: #e9edf0;
+  }
+
+  .clubMark,
+  .personMark {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+  }
+
+  .identity h3 {
+    font-size: 16px;
+  }
+
+  .identity > p:last-child {
+    font-size: 9px;
+  }
+
+  .primaryFact {
+    padding: 10px 11px;
+    border-radius: 12px;
+  }
+
+  .primaryFact span,
+  .sectionLabel,
+  .clubContext,
+  .peopleBlock,
+  .personFacts {
+    display: none;
+  }
+
+  .primaryFact strong {
+    font-size: 11px;
+  }
+
+  .primaryFact small {
+    display: none;
+  }
+
+  .nextMove {
+    padding: 10px 11px;
+    border-radius: 12px;
+  }
+
+  .nextMove span {
+    display: none;
+  }
+
+  .nextMove strong {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .actions {
+    gap: 8px;
+  }
+
+  .secondaryAction {
+    display: none;
+  }
+
+  .primaryAction {
+    min-height: 38px;
+    border-radius: 12px;
+  }
+}

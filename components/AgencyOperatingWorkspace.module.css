@@ -2684,3 +2684,236 @@
 .pageHeadHidden {
   display: none !important;
 }
+
+/* ReDream visual reset v1 */
+.root {
+  background: #f8f9fb;
+}
+
+.main {
+  width: min(1180px, 100%);
+}
+
+.sectionCard,
+.card,
+.metric,
+.heroCard,
+.businessEntry,
+.loadingCard {
+  box-shadow: none;
+  border-color: #e8ebef;
+}
+
+.sectionCard,
+.card {
+  border-radius: 16px;
+}
+
+.pageDescription {
+  color: #7b8490;
+}
+
+.createButton,
+.compactButton,
+.primaryButton {
+  box-shadow: none;
+}
+
+@media (max-width: 680px) {
+  .root {
+    background: #fff;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .main {
+    padding:
+      calc(10px + env(safe-area-inset-top))
+      18px
+      34px;
+  }
+
+  .pageHead {
+    position: relative;
+    min-height: 48px;
+    margin-bottom: 18px;
+    display: block;
+  }
+
+  .pageHeadCopy {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .pageHead h1 {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 760;
+    letter-spacing: -.02em;
+  }
+
+  .pageDescription,
+  .pageHeadTitleLine + .pageDescription {
+    display: none;
+  }
+
+  .mobileHeadActions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: block;
+  }
+
+  .mobileContextAction {
+    margin: -5px 0 12px;
+  }
+
+  .mobileContextAction .createButton {
+    min-height: 38px;
+    padding: 0 13px;
+    border-radius: 19px;
+    background: #eef4fb;
+    border-color: transparent;
+    color: var(--agency-primary);
+    font-size: 9px;
+  }
+
+  .sidebar {
+    inset:
+      auto 86px
+      calc(12px + env(safe-area-inset-bottom))
+      16px;
+    padding: 5px;
+    border: 1px solid rgba(18, 31, 45, .08);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, .94);
+    color: #687382;
+    box-shadow: 0 14px 40px rgba(23, 37, 52, .14);
+    backdrop-filter: blur(18px);
+  }
+
+  .nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .nav a {
+    min-height: 50px;
+    padding: 5px 2px 4px;
+    color: #7a8491;
+    border-radius: 18px;
+    font-size: 7.5px;
+    font-weight: 720;
+  }
+
+  .nav a svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .nav a.navActive {
+    color: var(--agency-primary);
+    background: #edf3f9;
+    box-shadow: none;
+  }
+
+  .nav a.navActive::after {
+    content: '';
+    width: 4px;
+    height: 4px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: var(--agency-accent);
+  }
+
+  .mobileTell {
+    right: 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .mobileTell button {
+    width: 58px;
+    min-width: 58px;
+    height: 58px;
+    min-height: 58px;
+    padding: 0;
+    border-radius: 50%;
+    box-shadow: 0 14px 34px rgba(17, 39, 59, .2);
+  }
+
+  .mobileTell button span {
+    display: none !important;
+  }
+
+  .homeStack {
+    gap: 12px;
+  }
+
+  .homeWelcome {
+    padding: 2px 0 4px;
+  }
+
+  .homeWelcome p {
+    margin-bottom: 3px;
+    font-size: 9px;
+    color: #949ca5;
+  }
+
+  .homeWelcome h2 {
+    font-size: 25px;
+    line-height: 1.08;
+    letter-spacing: -.035em;
+  }
+
+  .sectionCard {
+    border-radius: 15px;
+    border-color: #edf0f2;
+  }
+
+  .sectionHead {
+    padding: 13px 15px 9px;
+  }
+
+  .sectionHead h2 {
+    font-size: 14px;
+    font-weight: 760;
+  }
+
+  .attentionCard {
+    padding: 12px 14px;
+  }
+
+  .attentionCopy strong {
+    font-size: 11.5px;
+  }
+
+  .attentionCopy > span {
+    display: none;
+  }
+
+  .attentionCardPrimary {
+    border-left: 0;
+  }
+
+  .simpleTimelineRow {
+    min-height: 50px;
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 680px) {
+  .nav a {
+    position: relative;
+  }
+
+  .nav a.navActive::after {
+    position: absolute;
+    left: 50%;
+    bottom: 4px;
+    margin: 0;
+    transform: translateX(-50%);
+  }
+}

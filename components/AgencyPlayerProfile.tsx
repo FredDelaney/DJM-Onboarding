@@ -894,7 +894,7 @@ export default function AgencyPlayerProfile({
           <div className={styles.cardHead}>
             <div>
               <span className={styles.eyebrow}>WHAT CLUBS SEE</span>
-              <h3>Built automatically from the player record.</h3>
+              <h3>Player overview</h3>
             </div>
             <button
               type="button"
@@ -951,7 +951,7 @@ export default function AgencyPlayerProfile({
           <div className={styles.cardHead}>
             <div>
               <span className={styles.eyebrow}>PROOF</span>
-              <h3>Current evidence, not manual admin.</h3>
+              <h3>Evidence</h3>
             </div>
             <RefreshCw size={17} />
           </div>
@@ -1014,7 +1014,7 @@ export default function AgencyPlayerProfile({
         <div className={styles.cardHead}>
           <div>
             <span className={styles.eyebrow}>RECENT COMMUNICATION</span>
-            <h3>What has been recorded around this player.</h3>
+            <h3>Recent activity</h3>
           </div>
 
           {Number(communicationSummary?.connected_items || 0) ? (
