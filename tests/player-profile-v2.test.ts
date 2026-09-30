@@ -33,8 +33,8 @@ test('Player Profile manager uses simple required states instead of scores', () 
   assert.match(manager, /Ready to publish/);
   assert.match(manager, /missingRequiredCount/);
   assert.match(manager, /required .* missing/);
-  assert.match(manager, /recommended[\s\S]*missing/);
-  assert.match(manager, /Exactly what is missing/);
+  assert.match(manager, /OPTIONAL IMPROVEMENTS/);
+  assert.match(manager, /Improve before you send it/);
   assert.doesNotMatch(manager, /Profile readiness/);
   assert.doesNotMatch(manager, /readiness\}%/);
   assert.doesNotMatch(manager, /ReDream/);

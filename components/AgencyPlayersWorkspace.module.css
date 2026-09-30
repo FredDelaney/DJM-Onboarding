@@ -857,3 +857,49 @@
     font-size: 10px;
   }
 }
+
+/* Fast player-profile shortcut v1 */
+.playerCardEnd {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.profileShortcut {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: 1px solid #dfe4e8;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--agency-primary);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.profileShortcut:hover {
+  border-color: #ccd6dd;
+  background: #f8fafb;
+}
+
+@media (max-width: 680px) {
+  .playerCardTop {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .playerCardEnd {
+    align-self: start;
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .profileShortcut {
+    min-height: 34px;
+    padding: 0 9px;
+    font-size: 9px;
+  }
+}

@@ -259,6 +259,10 @@ export default function AgencyOperatingWorkspace() {
     view === 'network' ? String(search.get('person') || '').trim() : '';
   const selectedRecruitmentTargetId =
     view === 'players' ? String(search.get('target') || '').trim() : '';
+  const playersSection =
+    view === 'players' && search.get('tab') === 'recruitment'
+      ? 'recruitment'
+      : 'players';
   const inlineEntityWorkspaceOpen = Boolean(
     selectedPlayerId || selectedNetworkPersonId || selectedRecruitmentTargetId,
   );
@@ -493,23 +497,35 @@ export default function AgencyOperatingWorkspace() {
           meeting_aftercare: meetingAftercare,
         });
       } else if (view === 'players') {
-        const reads = await Promise.allSettled([
-          invoke<any>('players_workspace', { limit: 100 }),
-          invoke<any>('recruitment_board', { limit: 250 }),
-        ]);
+        if (inlineEntityWorkspaceOpen) {
+          setData((current: any) =>
+            current || {
+              directory: {},
+              recruitment: {},
+            },
+          );
+          return;
+        }
 
-        if (reads[0].status === 'rejected') throw reads[0].reason;
+        if (playersSection === 'recruitment') {
+          const recruitment = await invoke<any>('recruitment_board', {
+            limit: 250,
+          });
 
-        setData({
-          directory:
-            reads[0].status === 'fulfilled'
-              ? reads[0].value?.players || {}
-              : {},
-          recruitment:
-            reads[1].status === 'fulfilled'
-              ? reads[1].value?.recruitment || {}
-              : {},
-        });
+          setData((current: any) => ({
+            ...(current || {}),
+            recruitment: recruitment?.recruitment || {},
+          }));
+        } else {
+          const directory = await invoke<any>('players_workspace', {
+            limit: 100,
+          });
+
+          setData((current: any) => ({
+            ...(current || {}),
+            directory: directory?.players || {},
+          }));
+        }
       } else if (view === 'opportunities') {
         const [market, deals, connected] = await Promise.all([
           rpc<any>('redream_autopilot_market', {
@@ -585,7 +601,15 @@ export default function AgencyOperatingWorkspace() {
     } finally {
       setBusy(false);
     }
-  }, [invoke, rpc, view, workspace?.role, workspace?.tenant_id]);
+  }, [
+    inlineEntityWorkspaceOpen,
+    invoke,
+    playersSection,
+    rpc,
+    view,
+    workspace?.role,
+    workspace?.tenant_id,
+  ]);
 
   useEffect(() => {
     let active = true;

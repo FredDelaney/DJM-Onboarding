@@ -35,6 +35,11 @@ import {
   friendlyError,
   relativeDate,
 } from '@/lib/platform-client';
+import {
+  getCachedPlayerProfile,
+  prefetchPlayerProfile,
+  setCachedPlayerProfile,
+} from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
 import { tenantBrandTokens } from '@/lib/tenant-brand-style';
 
@@ -331,9 +336,12 @@ export default function AgencyPlayerProfile({
   invoke,
   onOpenIntelligence,
 }: Props) {
-  const [bundle, setBundle] = useState<any>(null);
-  const [form, setForm] = useState<ProfileForm>(emptyForm);
-  const [loading, setLoading] = useState(true);
+  const initialProfile = getCachedPlayerProfile(playerId);
+  const [bundle, setBundle] = useState<any>(() => initialProfile);
+  const [form, setForm] = useState<ProfileForm>(() =>
+    initialProfile ? formFromProfile(initialProfile) : emptyForm,
+  );
+  const [loading, setLoading] = useState(!initialProfile);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -355,17 +363,19 @@ export default function AgencyPlayerProfile({
   const [shareExpiry, setShareExpiry] = useState('30');
   const [shareResultUrl, setShareResultUrl] = useState('');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (fresh = false) => {
     setLoading(true);
     setError('');
     try {
-      const response = await invoke<any>('player_profile', {
-        player_id: playerId,
-      });
-      const profile = response?.profile || null;
+      const profile = fresh
+        ? (await invoke<any>('player_profile', {
+            player_id: playerId,
+          }))?.profile || null
+        : await prefetchPlayerProfile(playerId, invoke);
       if (!profile) {
         throw new Error('Player Profile could not be loaded.');
       }
+      setCachedPlayerProfile(playerId, profile);
       setBundle(profile);
       setForm(formFromProfile(profile));
     } catch (loadError) {
@@ -376,7 +386,7 @@ export default function AgencyPlayerProfile({
   }, [invoke, playerId]);
 
   useEffect(() => {
-    void load();
+    void load(false);
   }, [load]);
 
   const player = bundle?.player || {};
@@ -516,7 +526,11 @@ export default function AgencyPlayerProfile({
     {
       key: 'positioning',
       label: 'Agency positioning',
-      ok: Boolean(form.why_review || form.intro_line),
+      ok: Boolean(
+        form.why_review ||
+          form.intro_line ||
+          draftProfile.headline,
+      ),
       important: false,
       missingTitle: 'Add the agency view',
       missingDetail:
@@ -533,8 +547,12 @@ export default function AgencyPlayerProfile({
   const missingRequiredChecks = requiredChecks.filter((item) => !item.ok);
   const missingOptionalChecks = optionalChecks.filter((item) => !item.ok);
   const missingRequiredCount = missingRequiredChecks.length;
-  const optionalReadyCount = optionalChecks.filter((item) => item.ok).length;
   const canPublish = missingRequiredCount === 0;
+  const verificationOnly =
+    missingRequiredCount === 1 &&
+    missingRequiredChecks[0]?.key === 'verification';
+  const canPublishFromHero = canPublish || verificationOnly;
+  const guidedRequiredChecks = verificationOnly ? [] : missingRequiredChecks;
   const canEdit = ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
@@ -580,15 +598,21 @@ export default function AgencyPlayerProfile({
     }
   };
 
-  const publishProfile = async () => {
+  const publishProfile = async (
+    options: {
+      saveFirst?: boolean;
+      confirmCurrentData?: boolean;
+    } = {},
+  ) => {
     if (!canEdit || actionBusy) return;
-    if (!(await saveSettings(false))) return;
+    if (options.saveFirst !== false && !(await saveSettings(false))) return;
     setActionBusy('publish');
     setError('');
     setNotice('');
     try {
       await invoke('player_profile_publish', {
         player_id: playerId,
+        confirm_current_data: options.confirmCurrentData === true,
       });
       setNotice(
         published?.published
@@ -596,7 +620,7 @@ export default function AgencyPlayerProfile({
           : 'Player Profile is live and ready to share.',
       );
       setEditOpen(false);
-      await load();
+      await load(true);
     } catch (publishError) {
       setError(friendlyError(publishError));
     } finally {
@@ -613,7 +637,7 @@ export default function AgencyPlayerProfile({
         player_id: playerId,
       });
       setNotice('Player Profile unpublished.');
-      await load();
+      await load(true);
     } catch (publishError) {
       setError(friendlyError(publishError));
     } finally {
@@ -692,7 +716,7 @@ export default function AgencyPlayerProfile({
       } catch {
         setNotice('Private Player Profile link created.');
       }
-      await load();
+      await load(true);
     } catch (shareError) {
       setError(friendlyError(shareError));
     } finally {
@@ -710,7 +734,7 @@ export default function AgencyPlayerProfile({
         share_id: shareId,
       });
       setNotice('Profile link revoked.');
-      await load();
+      await load(true);
     } catch (shareError) {
       setError(friendlyError(shareError));
     } finally {
@@ -742,7 +766,7 @@ export default function AgencyPlayerProfile({
       setVideoTitle('');
       setVideoUrl('');
       setNotice('Video added to the player record.');
-      await load();
+      await load(true);
     } catch (videoError) {
       setError(friendlyError(videoError));
     } finally {
@@ -760,7 +784,7 @@ export default function AgencyPlayerProfile({
         video_id: videoId,
       });
       setNotice('Video removed.');
-      await load();
+      await load(true);
     } catch (videoError) {
       setError(friendlyError(videoError));
     } finally {
@@ -851,7 +875,7 @@ export default function AgencyPlayerProfile({
 
       setVerifyOpen(false);
       setNotice('Current player data verified.');
-      await load();
+      await load(true);
     } catch (verifyPlayerError) {
       setVerifyError(friendlyError(verifyPlayerError));
     } finally {
@@ -1001,11 +1025,13 @@ export default function AgencyPlayerProfile({
               <strong>
                 {published?.published
                   ? 'Live'
-                  : canPublish
+                  : verificationOnly
                     ? 'Ready to publish'
-                    : missingRequiredCount === 1
-                      ? missingRequiredChecks[0].missingTitle
-                      : `${missingRequiredCount} required items missing`}
+                    : canPublish
+                      ? 'Ready to publish'
+                      : missingRequiredCount === 1
+                        ? missingRequiredChecks[0].missingTitle
+                        : `${missingRequiredCount} required items missing`}
               </strong>
             </div>
           </div>
@@ -1013,13 +1039,21 @@ export default function AgencyPlayerProfile({
           <p>
             {published?.published
               ? 'Ready to share with clubs.'
-              : canPublish
-                ? 'The required player information is ready.'
-                : missingRequiredCount === 1
-                  ? missingRequiredChecks[0].where
-                  : `Missing: ${missingRequiredChecks
-                      .map((item) => item.missingTitle)
-                      .join(' · ')}`}
+              : verificationOnly
+                ? `Confirm this current record once: ${[
+                    player.primary_position,
+                    player.current_club,
+                    player.current_country,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}.`
+                : canPublish
+                  ? 'The required player information is ready.'
+                  : missingRequiredCount === 1
+                    ? missingRequiredChecks[0].where
+                    : `Missing: ${missingRequiredChecks
+                        .map((item) => item.missingTitle)
+                        .join(' · ')}`}
           </p>
         </div>
 
@@ -1038,17 +1072,35 @@ export default function AgencyPlayerProfile({
             <button
               type="button"
               className={styles.primaryAction}
-              onClick={publishProfile}
-              disabled={!canEdit || !canPublish || Boolean(actionBusy)}
+              onClick={() =>
+                void publishProfile({
+                  saveFirst: false,
+                  confirmCurrentData: verificationOnly,
+                })
+              }
+              disabled={!canEdit || !canPublishFromHero || Boolean(actionBusy)}
             >
               {actionBusy === 'publish' ? (
                 <LoaderCircle className={styles.spin} size={16} />
               ) : (
                 <ShieldCheck size={16} />
               )}
-              Publish Player Profile
+              {verificationOnly
+                ? 'Verify & publish'
+                : 'Publish Player Profile'}
             </button>
           )}
+
+          {verificationOnly && canEdit ? (
+            <button
+              type="button"
+              className={styles.secondaryAction}
+              onClick={() => openVerify('verification')}
+            >
+              <Eye size={15} />
+              Check data
+            </button>
+          ) : null}
 
           <button
             type="button"
@@ -1082,83 +1134,30 @@ export default function AgencyPlayerProfile({
         </div>
       </section>
 
-      <section className={styles.readinessGrid}>
-        {requiredChecks.map((item) => (
-          <div
-            key={item.label}
-            className={
-              item.ok ? styles.checkDone : styles.checkPending
-            }
-          >
-            <span>
-              {item.ok ? <Check size={13} /> : <i />}
-            </span>
-            <div>
-              <strong>{item.label}</strong>
-              <small>
-                {item.ok ? 'Ready' : `Missing · ${item.missingTitle}`}
-              </small>
-            </div>
-          </div>
-        ))}
-
-        <div
-          className={
-            optionalReadyCount === optionalChecks.length
-              ? styles.checkDone
-              : styles.checkPending
-          }
-        >
-          <span>
-            {optionalReadyCount === optionalChecks.length ? (
-              <Check size={13} />
-            ) : (
-              <FileText size={13} />
-            )}
-          </span>
-          <div>
-            <strong>
-              {missingOptionalChecks.length
-                ? `${missingOptionalChecks.length} recommended ${
-                    missingOptionalChecks.length === 1 ? 'item' : 'items'
-                  } missing`
-                : 'Recommended profile detail complete'}
-            </strong>
-            <small>
-              {missingOptionalChecks.length
-                ? `Missing: ${missingOptionalChecks
-                    .map((item) => item.label)
-                    .join(' · ')}`
-                : `${optionalReadyCount} of ${optionalChecks.length} added`}
-            </small>
-          </div>
-        </div>
-      </section>
-
-      {missingRequiredChecks.length || missingOptionalChecks.length ? (
+      {guidedRequiredChecks.length || missingOptionalChecks.length ? (
         <section className={styles.fixGuide}>
           <div className={styles.fixGuideHead}>
             <div>
               <span className={styles.eyebrow}>
-                {missingRequiredChecks.length
+                {guidedRequiredChecks.length
                   ? 'REQUIRED BEFORE PUBLISHING'
-                  : 'RECOMMENDED IMPROVEMENTS'}
+                  : 'OPTIONAL IMPROVEMENTS'}
               </span>
               <h3>
-                {missingRequiredChecks.length
-                  ? 'Exactly what is missing'
-                  : 'Make the club profile stronger'}
+                {guidedRequiredChecks.length
+                  ? 'Finish these essentials'
+                  : 'Improve before you send it'}
               </h3>
             </div>
             <small>
-              {missingRequiredChecks.length
-                ? 'Complete every required item below to publish.'
-                : 'These do not block publishing, but they improve the profile clubs receive.'}
+              {guidedRequiredChecks.length
+                ? 'Complete the remaining required item below.'
+                : 'Optional. Add only what makes the club decision easier.'}
             </small>
           </div>
 
           <div className={styles.fixGuideList}>
-            {[...missingRequiredChecks, ...missingOptionalChecks].map(
+            {[...guidedRequiredChecks, ...missingOptionalChecks].map(
               (item) => (
                 <article
                   key={item.key}
@@ -2031,7 +2030,7 @@ export default function AgencyPlayerProfile({
               <button
                 type="button"
                 className={styles.primaryAction}
-                onClick={publishProfile}
+                onClick={() => void publishProfile()}
                 disabled={!canPublish || Boolean(actionBusy)}
               >
                 {published?.published

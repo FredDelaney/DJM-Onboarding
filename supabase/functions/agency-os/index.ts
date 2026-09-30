@@ -458,6 +458,14 @@ export default {fetch:async(req:Request)=>{
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
       const bundle=await profileBundle(pid);if(!bundle)return json({error:"Player not found in this agency"},404);
       const player=bundle.player,settings=bundle.settings||{},branding=bundle.branding||{};
+      if((player.verification_status!=="verified"||!player.verified_at)&&body?.confirm_current_data===true){
+        const verifiedAt=new Date().toISOString();
+        const {error:verifyError}=await ctx.supabaseAdmin.from("players").update({verification_status:"verified",verified_at:verifiedAt,review_required_at:null,review_reason:null}).eq("id",pid).eq("tenant_id",tenantId);
+        if(verifyError)throw verifyError;
+        player.verification_status="verified";
+        player.verified_at=verifiedAt;
+        await profileAudit("player_profile.player_data_verified",pid,{},player,{verification_method:"publish_confirmation"});
+      }
       if(player.verification_status!=="verified"||!player.verified_at)return json({error:"Verify current player data before publishing"},409);
       if(!player.primary_position)return json({error:"Record the player's primary position before publishing"},409);
       const contactEmail=id(branding.support_email)||id((claims as any)?.email);
