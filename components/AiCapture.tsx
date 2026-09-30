@@ -708,10 +708,10 @@ export default function AiCapture({
         ) : null}
 
         <div className={styles.prompt}>
-          <strong>Capture</strong>
+          <strong>Tell ReDream</strong>
           <span>
-            Say what happened naturally. ReDream will put it in the right places and
-            only ask when something genuinely needs you.
+            Say what happened. ReDream will update the right places and only ask
+            when your judgement is needed.
           </span>
         </div>
 
@@ -874,7 +874,7 @@ export default function AiCapture({
                 <Trash2 size={12} />
                 {deletingCapture ? 'Deleting...' : 'Delete this update'}
               </button>
-              <span>Discard this unresolved Capture capture.</span>
+              <span>Discard this unresolved update.</span>
             </div>
           ) : null}
 
