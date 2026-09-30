@@ -102,12 +102,14 @@ test('manual agency positioning is not requested when an automatic headline alre
   );
 });
 
-test('main workspaces use a short-lived stale-while-refresh cache', () => {
+test('main workspaces keep recent screens visible while refreshing in the background', () => {
   assert.match(shell, /viewDataCache/);
-  assert.match(shell, /VIEW_CACHE_TTL_MS = 60_000/);
+  assert.match(shell, /VIEW_CACHE_TTL_MS = 10 \* 60_000/);
   assert.match(shell, /readViewCache\(cacheKey\)/);
   assert.match(shell, /writeViewCache\(cacheKey, nextData\)/);
   assert.match(shell, /loadSequenceRef/);
+  assert.match(shell, /const warmView = useCallback/);
+  assert.match(shell, /await warmView\(targetView\)/);
 });
 
 test('Home paints from a small focus read before secondary context', () => {

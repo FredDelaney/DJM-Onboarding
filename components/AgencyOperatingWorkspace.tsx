@@ -95,7 +95,7 @@ type ViewCacheEntry = {
 };
 
 const viewDataCache = new Map<string, ViewCacheEntry>();
-const VIEW_CACHE_TTL_MS = 60_000;
+const VIEW_CACHE_TTL_MS = 10 * 60_000;
 
 const readViewCache = (key: string) => {
   const cached = viewDataCache.get(key);
@@ -440,6 +440,101 @@ export default function AgencyOperatingWorkspace() {
     [workspace?.slug],
   );
 
+  const warmView = useCallback(
+    async (targetView: View) => {
+      if (
+        !workspace?.tenant_id ||
+        !workspace?.slug ||
+        targetView === 'business'
+      ) {
+        return;
+      }
+
+      const cacheKey = [
+        workspace.tenant_id,
+        targetView,
+        targetView === 'players' ? 'players' : 'main',
+      ].join(':');
+
+      if (readViewCache(cacheKey)) return;
+
+      try {
+        if (targetView === 'home') {
+          let home: any = null;
+
+          try {
+            const focus = await invoke<any>('home_focus', {
+              limit: 8,
+            });
+            home = focus?.home || {};
+          } catch {
+            home = await rpc<any>('redream_autopilot_home', {
+              p_limit: 8,
+            });
+          }
+
+          writeViewCache(cacheKey, { home });
+          return;
+        }
+
+        if (targetView === 'players') {
+          const directory = await invoke<any>(
+            'players_workspace',
+            { limit: 100 },
+          );
+
+          writeViewCache(cacheKey, {
+            directory: directory?.players || {},
+          });
+          return;
+        }
+
+        if (targetView === 'opportunities') {
+          const market = await rpc<any>(
+            'redream_autopilot_market',
+            { p_limit: 100 },
+          );
+
+          writeViewCache(cacheKey, {
+            market,
+            deals: {},
+            connected: {},
+          });
+          return;
+        }
+
+        if (targetView === 'network') {
+          writeViewCache(
+            cacheKey,
+            await rpc<any>('redream_autopilot_relationships', {
+              p_limit: 100,
+              p_contact_limit: 250,
+            }),
+          );
+          return;
+        }
+
+        if (targetView === 'calendar') {
+          writeViewCache(
+            cacheKey,
+            await rpc<any>('redream_autopilot_calendar', {
+              p_horizon_days: 90,
+              p_limit: 100,
+            }),
+          );
+        }
+      } catch {
+        // Warming is opportunistic. The visible view keeps its normal load path.
+      }
+    },
+    [
+      invoke,
+      rpc,
+      workspace?.slug,
+      workspace?.tenant_id,
+    ],
+  );
+
   const resolveWorkspace = useCallback(async () => {
     if (!targetSlug) {
       setError('This agency workspace could not be resolved.');
@@ -779,6 +874,48 @@ export default function AgencyOperatingWorkspace() {
 
   useEffect(() => {
     if (
+      !workspace?.tenant_id ||
+      busy ||
+      inlineEntityWorkspaceOpen
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const targets: View[] = [
+      'home',
+      'players',
+      'opportunities',
+      'network',
+      'calendar',
+    ].filter((targetView) => targetView !== view) as View[];
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        for (const targetView of targets) {
+          if (cancelled) return;
+          await warmView(targetView);
+          await new Promise((resolve) =>
+            window.setTimeout(resolve, 120),
+          );
+        }
+      })();
+    }, 900);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    busy,
+    inlineEntityWorkspaceOpen,
+    view,
+    warmView,
+    workspace?.tenant_id,
+  ]);
+
+  useEffect(() => {
+    if (
       view !== 'home' ||
       !requestedMeetingOutcomeId ||
       openedMeetingOutcomeId === requestedMeetingOutcomeId
@@ -1088,6 +1225,8 @@ export default function AgencyOperatingWorkspace() {
                 key={item.key}
                 href={href}
                 className={`${view === item.key ? styles.navActive : ''} ${item.key === 'business' ? styles.navManagement : ''}`}
+                onPointerEnter={() => void warmView(item.key)}
+                onFocus={() => void warmView(item.key)}
               >
                 <Icon size={17} />
                 <span>{item.label}</span>
