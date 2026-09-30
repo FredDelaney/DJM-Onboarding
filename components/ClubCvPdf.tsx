@@ -960,15 +960,41 @@ export function ClubCvPdfDocument({
       profile?.notable_experience,
     ).slice(0, 4);
 
-  const videos =
+  const selectedVideos =
     dossierList(
       profile?.selected_videos,
     )
       .filter(
         (item: any) =>
           item?.url,
-      )
-      .slice(0, 3);
+      );
+
+  const primaryVideo =
+    profile?.primary_video_url ||
+    selectedVideos?.[0]?.url ||
+    null;
+
+  const primaryVideoTitle =
+    selectedVideos.find(
+      (item: any) =>
+        String(item?.url || '').trim() ===
+        String(primaryVideo || '').trim(),
+    )?.title ||
+    'Player highlights';
+
+  const videos = [
+    ...(primaryVideo
+      ? [{
+          url: primaryVideo,
+          title: primaryVideoTitle,
+        }]
+      : []),
+    ...selectedVideos.filter(
+      (item: any) =>
+        String(item?.url || '').trim() !==
+        String(primaryVideo || '').trim(),
+    ),
+  ].slice(0, 3);
 
   const sources = [
     profile?.transfermarkt_url && {
@@ -1215,6 +1241,15 @@ export function ClubCvPdfDocument({
                     </View>
                   )}
               </View>
+
+              {primaryVideo && (
+                <Link
+                  src={primaryVideo}
+                  style={[styles.heroSourceLink, brandStyles.accentText]}
+                >
+                  WATCH FOOTAGE ↗
+                </Link>
+              )}
 
               {profile?.transfermarkt_url && (
                 <Link
