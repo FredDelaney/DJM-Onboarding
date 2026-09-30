@@ -76,3 +76,17 @@ test('linked Player Profile shares hand into the existing owned deal follow-up f
   assert.match(css, /Player Profile follow-up handoff v1/);
   assert.match(css, /\.shareSuccess \.shareFollowUpButton/);
 });
+
+
+test('Player Profile sharing can target any existing club in the tenant network', () => {
+  assert.match(profile, /const \[shareNetworkClubs, setShareNetworkClubs\]/);
+  assert.match(profile, /const shareClubOptions = useMemo/);
+  assert.match(profile, /\.\.\.clubs, \.\.\.shareNetworkClubs/);
+  assert.match(profile, /invoke<any>\('create_options'\)/);
+  assert.match(profile, /response\?\.options\?\.clubs/);
+  assert.match(profile, /shareClubOptions\.map/);
+  assert.match(
+    profile,
+    /Choose any club already recorded in your agency network\./,
+  );
+});

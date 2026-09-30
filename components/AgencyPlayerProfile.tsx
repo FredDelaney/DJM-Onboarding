@@ -362,6 +362,8 @@ export default function AgencyPlayerProfile({
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [shareClub, setShareClub] = useState('');
+  const [shareNetworkClubs, setShareNetworkClubs] = useState<any[]>([]);
+  const [shareClubsBusy, setShareClubsBusy] = useState(false);
   const [shareDeal, setShareDeal] = useState('');
   const [shareMessage, setShareMessage] = useState('');
   const [shareExpiry, setShareExpiry] = useState('30');
@@ -453,6 +455,26 @@ export default function AgencyPlayerProfile({
   const deals = Array.isArray(bundle?.deals)
     ? bundle.deals
     : [];
+  const shareClubOptions = useMemo(() => {
+    const merged = new Map<string, any>();
+
+    for (const club of [...clubs, ...shareNetworkClubs]) {
+      const id = String(
+        club?.id || club?.organisation_id || '',
+      ).trim();
+      if (!id) continue;
+
+      merged.set(id, {
+        id,
+        name: club?.name || 'Club',
+        country: club?.country || null,
+      });
+    }
+
+    return [...merged.values()].sort((a, b) =>
+      String(a.name).localeCompare(String(b.name)),
+    );
+  }, [clubs, shareNetworkClubs]);
   const documents = Array.isArray(bundle?.documents)
     ? bundle.documents
     : [];
@@ -941,6 +963,8 @@ export default function AgencyPlayerProfile({
   };
 
   const openShareComposer = () => {
+    if (!canEdit) return;
+
     setShareResultUrl('');
     setShareResultMessage('');
     setShareMessage('');
@@ -948,6 +972,18 @@ export default function AgencyPlayerProfile({
     setShareDeal('');
     setShareClub('');
     setShareOpen(true);
+    setShareClubsBusy(true);
+
+    void invoke<any>('create_options')
+      .then((response) => {
+        const options = Array.isArray(response?.options?.clubs)
+          ? response.options.clubs
+          : [];
+
+        setShareNetworkClubs(options);
+      })
+      .catch(() => undefined)
+      .finally(() => setShareClubsBusy(false));
   };
 
   const toggleSection = (key: string) => {
@@ -2368,14 +2404,23 @@ export default function AgencyPlayerProfile({
                       setShareDeal('');
                     }}
                   >
-                    <option value="">Choose club</option>
-                    {clubs.map((club: any) => (
+                    <option value="">
+                      {shareClubsBusy && !shareClubOptions.length
+                        ? 'Loading clubs...'
+                        : 'Choose club'}
+                    </option>
+                    {shareClubOptions.map((club: any) => (
                       <option key={club.id} value={club.id}>
                         {club.name}
                         {club.country ? ` · ${club.country}` : ''}
                       </option>
                     ))}
                   </select>
+                  <small>
+                    {shareClubsBusy
+                      ? 'Loading your agency club network...'
+                      : 'Choose any club already recorded in your agency network.'}
+                  </small>
                 </label>
 
                 <label>
