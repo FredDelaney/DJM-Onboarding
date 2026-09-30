@@ -3195,3 +3195,29 @@
     min-height: 52px;
   }
 }
+
+/* Premium home density v1 */
+@media (max-width: 680px) {
+  .homeDayPanel .emptyState {
+    min-height: 132px;
+    padding: 18px 16px;
+  }
+
+  .homeDayPanel .emptyStateIcon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .homeDayPanel .emptyState strong {
+    font-size: 12px;
+  }
+
+  .homeDayPanel .emptyState span {
+    font-size: 10px;
+  }
+
+  .attentionMore {
+    min-height: 38px;
+    font-size: 10px;
+  }
+}

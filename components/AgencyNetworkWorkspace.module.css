@@ -1250,3 +1250,81 @@
     transition: none;
   }
 }
+
+/* Premium relationship scan v1 */
+@media (max-width: 680px) {
+  .toolbar {
+    width: 100%;
+    min-width: 0;
+    justify-content: stretch;
+  }
+
+  .tabs,
+  .search {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .clubCard,
+  .personCard {
+    gap: 10px;
+    padding: 14px 15px;
+  }
+
+  .primaryFact {
+    gap: 3px;
+    padding: 0 0 10px;
+    border-radius: 0;
+    border-bottom: 1px solid #edf0f2;
+    background: transparent;
+  }
+
+  .primaryFact span {
+    display: block;
+    color: #8a939c;
+    font-size: 9px;
+    letter-spacing: .07em;
+  }
+
+  .primaryFact strong {
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+
+  .nextMove {
+    gap: 3px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .nextMove span {
+    display: block;
+    color: #8a939c;
+    font-size: 9px;
+    letter-spacing: .07em;
+  }
+
+  .nextMove strong {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #555e68;
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .actions {
+    margin-top: 2px;
+  }
+
+  .primaryAction {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 11px;
+  }
+}
