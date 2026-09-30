@@ -2,6 +2,8 @@
 
 import {
   BriefcaseBusiness,
+  ChevronDown,
+  ChevronUp,
   LoaderCircle,
   Plus,
   Target,
@@ -114,6 +116,7 @@ export default function AgencyCreateDrawer({
   const [loadingOptions, setLoadingOptions] = useState(kind === 'deal');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -123,6 +126,10 @@ export default function AgencyCreateDrawer({
       document.body.style.overflow = previous;
     };
   }, []);
+
+  useEffect(() => {
+    setShowDetails(false);
+  }, [kind]);
 
   useEffect(() => {
     if (kind !== 'deal') return;
@@ -336,51 +343,52 @@ export default function AgencyCreateDrawer({
                 onChange={(value) => setValue('primary_position', value)}
               />
 
-              <div className={styles.pair}>
-                <Field
-                  label="Current club"
-                  value={values.current_club}
-                  onChange={(value) => setValue('current_club', value)}
-                />
-                <Field
-                  label="Country"
-                  value={values.current_country}
-                  onChange={(value) => setValue('current_country', value)}
-                />
-              </div>
+              <Field
+                label="Current club"
+                value={values.current_club}
+                onChange={(value) => setValue('current_club', value)}
+              />
 
-              <div className={styles.pair}>
-                <Field
-                  label="Contract expiry"
-                  type="date"
-                  value={values.contract_expiry}
-                  onChange={(value) => setValue('contract_expiry', value)}
-                />
-                <Field
-                  label="Transfermarkt URL"
-                  type="url"
-                  value={values.transfermarkt_url}
-                  onChange={(value) => setValue('transfermarkt_url', value)}
-                />
-              </div>
+              <DetailsToggle
+                open={showDetails}
+                onToggle={() => setShowDetails((current) => !current)}
+              />
+
+              {showDetails ? (
+                <div className={styles.optionalDetails}>
+                  <div className={styles.pair}>
+                    <Field
+                      label="Country"
+                      value={values.current_country}
+                      onChange={(value) => setValue('current_country', value)}
+                    />
+                    <Field
+                      label="Contract expiry"
+                      type="date"
+                      value={values.contract_expiry}
+                      onChange={(value) => setValue('contract_expiry', value)}
+                    />
+                  </div>
+
+                  <Field
+                    label="Transfermarkt URL"
+                    type="url"
+                    value={values.transfermarkt_url}
+                    onChange={(value) => setValue('transfermarkt_url', value)}
+                  />
+                </div>
+              ) : null}
             </>
           ) : null}
 
           {kind === 'club_need' ? (
             <>
-              <div className={styles.pair}>
-                <Field
-                  label="Club"
-                  required
-                  value={values.club_name}
-                  onChange={(value) => setValue('club_name', value)}
-                />
-                <Field
-                  label="Country"
-                  value={values.country}
-                  onChange={(value) => setValue('country', value)}
-                />
-              </div>
+              <Field
+                label="Club"
+                required
+                value={values.club_name}
+                onChange={(value) => setValue('club_name', value)}
+              />
 
               <Field
                 label="Position"
@@ -390,13 +398,6 @@ export default function AgencyCreateDrawer({
                 onChange={(value) => setValue('position', value)}
               />
 
-              <Field
-                label="Short title"
-                placeholder="Optional"
-                value={values.title}
-                onChange={(value) => setValue('title', value)}
-              />
-
               <TextArea
                 label="What does the club need?"
                 placeholder="Add the useful detail you already know."
@@ -404,12 +405,34 @@ export default function AgencyCreateDrawer({
                 onChange={(value) => setValue('notes', value)}
               />
 
-              <Field
-                label="Need valid until"
-                type="date"
-                value={values.expires_on}
-                onChange={(value) => setValue('expires_on', value)}
+              <DetailsToggle
+                open={showDetails}
+                onToggle={() => setShowDetails((current) => !current)}
               />
+
+              {showDetails ? (
+                <div className={styles.optionalDetails}>
+                  <Field
+                    label="Country"
+                    value={values.country}
+                    onChange={(value) => setValue('country', value)}
+                  />
+
+                  <Field
+                    label="Short title"
+                    placeholder="Optional"
+                    value={values.title}
+                    onChange={(value) => setValue('title', value)}
+                  />
+
+                  <Field
+                    label="Need valid until"
+                    type="date"
+                    value={values.expires_on}
+                    onChange={(value) => setValue('expires_on', value)}
+                  />
+                </div>
+              ) : null}
             </>
           ) : null}
 
@@ -437,18 +460,27 @@ export default function AgencyCreateDrawer({
                 />
               </div>
 
-              <Field
-                label="Country"
-                value={values.country}
-                onChange={(value) => setValue('country', value)}
+              <DetailsToggle
+                open={showDetails}
+                onToggle={() => setShowDetails((current) => !current)}
               />
 
-              <TextArea
-                label="Relationship note"
-                placeholder="Optional context about how you know them."
-                value={values.notes}
-                onChange={(value) => setValue('notes', value)}
-              />
+              {showDetails ? (
+                <div className={styles.optionalDetails}>
+                  <Field
+                    label="Country"
+                    value={values.country}
+                    onChange={(value) => setValue('country', value)}
+                  />
+
+                  <TextArea
+                    label="Relationship note"
+                    placeholder="Optional context about how you know them."
+                    value={values.notes}
+                    onChange={(value) => setValue('notes', value)}
+                  />
+                </div>
+              ) : null}
             </>
           ) : null}
 
@@ -492,56 +524,12 @@ export default function AgencyCreateDrawer({
                 </select>
               </label>
 
-              <div className={styles.pair}>
-                <Field
-                  label="Club"
-                  required
-                  value={values.club_name}
-                  onChange={(value) => setValue('club_name', value)}
-                />
-                <Field
-                  label="Country"
-                  value={values.country}
-                  onChange={(value) => setValue('country', value)}
-                />
-              </div>
-
-              <label className={styles.field}>
-                <span>Stage</span>
-                <select
-                  value={values.stage}
-                  onChange={(event) =>
-                    setValue('stage', event.target.value)
-                  }
-                >
-                  <option value="qualifying">Qualifying</option>
-                  <option value="contacted">Contacted</option>
-                  <option value="interest">Interest</option>
-                  <option value="negotiating">Negotiating</option>
-                  <option value="offer">Offer</option>
-                  <option value="contracting">Contracting</option>
-                </select>
-              </label>
-
-              <div className={styles.pair}>
-                <Field
-                  label="Expected commission"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Optional"
-                  value={values.expected_commission}
-                  onChange={(value) =>
-                    setValue('expected_commission', value)
-                  }
-                />
-                <Field
-                  label="Currency"
-                  maxLength={3}
-                  value={values.currency}
-                  onChange={(value) => setValue('currency', value)}
-                />
-              </div>
+              <Field
+                label="Club"
+                required
+                value={values.club_name}
+                onChange={(value) => setValue('club_name', value)}
+              />
 
               <Field
                 label="Next action"
@@ -550,16 +538,70 @@ export default function AgencyCreateDrawer({
                 onChange={(value) => setValue('next_action', value)}
               />
 
-              <Field
-                label="Next action date"
-                type="datetime-local"
-                value={values.next_action_at}
-                onChange={(value) => setValue('next_action_at', value)}
+              <DetailsToggle
+                open={showDetails}
+                onToggle={() => setShowDetails((current) => !current)}
               />
 
-              <div className={styles.truth}>
-                The system does not invent a success probability when you create a deal. It records what you know and helps you control the next action.
-              </div>
+              {showDetails ? (
+                <div className={styles.optionalDetails}>
+                  <div className={styles.pair}>
+                    <Field
+                      label="Country"
+                      value={values.country}
+                      onChange={(value) => setValue('country', value)}
+                    />
+
+                    <label className={styles.field}>
+                      <span>Stage</span>
+                      <select
+                        value={values.stage}
+                        onChange={(event) =>
+                          setValue('stage', event.target.value)
+                        }
+                      >
+                        <option value="qualifying">Qualifying</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="interest">Interest</option>
+                        <option value="negotiating">Negotiating</option>
+                        <option value="offer">Offer</option>
+                        <option value="contracting">Contracting</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className={styles.pair}>
+                    <Field
+                      label="Expected commission"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Optional"
+                      value={values.expected_commission}
+                      onChange={(value) =>
+                        setValue('expected_commission', value)
+                      }
+                    />
+                    <Field
+                      label="Currency"
+                      maxLength={3}
+                      value={values.currency}
+                      onChange={(value) => setValue('currency', value)}
+                    />
+                  </div>
+
+                  <Field
+                    label="Next action date"
+                    type="datetime-local"
+                    value={values.next_action_at}
+                    onChange={(value) => setValue('next_action_at', value)}
+                  />
+
+                  <div className={styles.truth}>
+                    The system does not invent a success probability when you create a deal. It records what you know and helps you control the next action.
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : null}
 
@@ -654,5 +696,25 @@ function TextArea({
         onChange={(event) => onChange(event.target.value)}
       />
     </label>
+  );
+}
+
+function DetailsToggle({
+  open,
+  onToggle,
+}: {
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={styles.detailsToggle}
+      aria-expanded={open}
+      onClick={onToggle}
+    >
+      <span>{open ? 'Hide details' : 'More details'}</span>
+      {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+    </button>
   );
 }
