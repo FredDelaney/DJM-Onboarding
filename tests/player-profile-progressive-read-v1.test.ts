@@ -45,3 +45,28 @@ test('full profile endpoint remains as a compatibility fallback', () => {
   assert.match(profile, /invoke<any>\('player_profile'/);
   assert.match(agencyOs, /action==="player_profile"/);
 });
+
+test('core profile read excludes secondary club and communication context', () => {
+  const coreStart = agencyOs.indexOf('const profileCore=async');
+  const coreEnd = agencyOs.indexOf(
+    'const profileSecondary=async',
+    coreStart,
+  );
+  const core = agencyOs.slice(coreStart, coreEnd);
+
+  assert.doesNotMatch(core, /profileContext\(pid\)/);
+  assert.doesNotMatch(core, /profileCommunication\(pid\)/);
+  assert.doesNotMatch(core, /player_documents/);
+  assert.doesNotMatch(core, /club_share_links/);
+  assert.match(core, /secondary_ready:false/);
+});
+
+test('secondary profile context streams in after first paint', () => {
+  assert.match(profile, /player_profile_detail/);
+  assert.match(profile, /profile\.secondary_ready === false/);
+  assert.match(profile, /setCachedPlayerProfile\(playerId, next\)/);
+  assert.match(agencyOs, /action==="player_profile_detail"/);
+  assert.match(agencyOs, /const profileSecondary=async/);
+  assert.match(agencyOs, /profileCommunication\(pid\)/);
+  assert.match(agencyOs, /secondary_ready:true/);
+});

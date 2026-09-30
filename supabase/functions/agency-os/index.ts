@@ -73,21 +73,17 @@ export default {fetch:async(req:Request)=>{
     const profileCore=async(pid:string)=>{
       const player=await profilePlayer(pid);
       if(!player)return null;
-      const [settingsResult,publishedResult,careerResult,videosResult,serverContext,refreshResult]=await Promise.all([
+      const [settingsResult,publishedResult,careerResult,videosResult,refreshResult]=await Promise.all([
         ctx.supabaseAdmin.from("player_cv_settings").select("*").eq("player_id",pid).maybeSingle(),
         ctx.supabaseAdmin.from("player_public_profiles").select("*").eq("player_id",pid).maybeSingle(),
         ctx.supabaseAdmin.from("career_entries").select("id,player_id,club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,notes,is_international,sort_order,source_name,source_url,source_reviewed_at,source_provider,source_synced_at").eq("player_id",pid).order("sort_order").order("start_date",{ascending:false}),
         ctx.supabaseAdmin.from("player_videos").select("id,player_id,title,url,video_type,featured,sort_order,created_at,updated_at").eq("player_id",pid).order("featured",{ascending:false}).order("sort_order"),
-        profileContext(pid),
         ctx.supabaseAdmin.from("player_source_refreshes").select("provider,status,fresh_at,source_url,summary").eq("player_id",pid).eq("provider","openai_web_stats").eq("status","applied").order("fresh_at",{ascending:false}).limit(1).maybeSingle()
       ]);
       for(const resultItem of [settingsResult,publishedResult,careerResult,videosResult]){if(resultItem.error)throw resultItem.error}
       if(refreshResult.error)console.warn("player-profile stat freshness unavailable",refreshResult.error);
-      const clubs=serverContext.clubs||[];
-      const clubMap=new Map(clubs.map((club:any)=>[String(club.id),club.name]));
-      const deals=(serverContext.deals||[]).map((deal:any)=>({...deal,club_name:clubMap.get(String(deal.organisation_id||""))||null}));
       const career=careerResult.data||[],autoStats=profileAutoStats(career,player,refreshResult.data||null);
-      return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:[],shares:[],deals,clubs,branding:serverContext.branding,communication:{summary:{},items:[],open_followups:[]},auto_key_stats:autoStats.stats,auto_stats_meta:autoStats.meta,secondary_ready:false};
+      return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:[],shares:[],deals:[],clubs:[],branding:{},communication:{summary:{},items:[],open_followups:[]},auto_key_stats:autoStats.stats,auto_stats_meta:autoStats.meta,secondary_ready:false};
     };
     const profileSecondary=async(pid:string)=>{
       const [documentsResult,sharesResult,serverContext,communication]=await Promise.all([
