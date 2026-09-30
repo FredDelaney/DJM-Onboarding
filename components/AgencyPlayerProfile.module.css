@@ -1524,3 +1524,183 @@
     height: 44px;
   }
 }
+
+/* Player Profile missing-item guidance v1 */
+.fixGuide{
+  display:grid;
+  gap:12px;
+  padding:16px;
+  border:1px solid #e6e9ec;
+  border-radius:16px;
+  background:#fff;
+}
+.fixGuideHead{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+}
+.fixGuideHead>div{
+  min-width:0;
+}
+.fixGuideHead h3{
+  margin:4px 0 0;
+  color:#222a32;
+  font-size:16px;
+  letter-spacing:-.025em;
+}
+.fixGuideHead>small{
+  max-width:360px;
+  color:#818a94;
+  font-size:9px;
+  line-height:1.45;
+  text-align:right;
+}
+.fixGuideList{
+  display:grid;
+  gap:8px;
+}
+.fixRequired,
+.fixRecommended{
+  min-width:0;
+  display:grid;
+  grid-template-columns:92px minmax(0,1fr) auto;
+  align-items:center;
+  gap:14px;
+  padding:13px 14px;
+  border:1px solid #e7e9ec;
+  border-radius:13px;
+}
+.fixRequired{
+  border-color:#ead7d2;
+  background:#fff9f7;
+}
+.fixRecommended{
+  background:#f8fafb;
+}
+.fixState{
+  min-height:26px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 9px;
+  border-radius:999px;
+  background:#fff;
+  color:#7f8891;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.fixRequired .fixState{
+  background:#f8e9e5;
+  color:#9d4c3f;
+}
+.fixCopy{
+  min-width:0;
+}
+.fixCopy strong,
+.fixCopy p,
+.fixCopy small{
+  display:block;
+}
+.fixCopy strong{
+  color:#2c343c;
+  font-size:11px;
+}
+.fixCopy p{
+  margin:4px 0 0;
+  color:#606a74;
+  font-size:10px;
+  line-height:1.45;
+}
+.fixCopy small{
+  margin-top:5px;
+  color:#8a929a;
+  font-size:8.5px;
+  line-height:1.4;
+}
+.fixAction{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+}
+.fixAction a,
+.fixAction button{
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:0 11px;
+  border:1px solid #dde2e6;
+  border-radius:9px;
+  background:#fff;
+  color:#3e4a55;
+  font-size:9px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.fixRequired .fixAction a,
+.fixRequired .fixAction button{
+  border-color:#d8e0e7;
+  background:var(--profile-primary);
+  color:#fff;
+}
+.fixAction>span{
+  color:#8b9299;
+  font-size:8.5px;
+  font-weight:750;
+}
+#player-profile-positioning,
+#player-profile-video{
+  scroll-margin-top:20px;
+}
+
+@media(max-width:720px){
+  .fixGuide{
+    gap:10px;
+    padding:14px;
+    border-radius:15px;
+  }
+  .fixGuideHead{
+    align-items:flex-start;
+  }
+  .fixGuideHead>small{
+    display:none;
+  }
+  .fixGuideHead h3{
+    font-size:14px;
+  }
+  .fixGuideList{
+    gap:9px;
+  }
+  .fixRequired,
+  .fixRecommended{
+    grid-template-columns:1fr;
+    gap:8px;
+    padding:13px;
+  }
+  .fixState{
+    justify-self:start;
+    min-height:24px;
+  }
+  .fixCopy strong{
+    font-size:12px;
+  }
+  .fixCopy p{
+    font-size:10px;
+  }
+  .fixCopy small{
+    font-size:9px;
+  }
+  .fixAction{
+    justify-content:stretch;
+  }
+  .fixAction a,
+  .fixAction button{
+    width:100%;
+    min-height:44px;
+    font-size:10px;
+  }
+}

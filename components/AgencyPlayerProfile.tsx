@@ -70,6 +70,24 @@ type ProfileForm = {
   hidden_sections: string[];
 };
 
+type ProfileCheckAction =
+  | 'admin-player'
+  | 'agency-settings'
+  | 'profile-positioning'
+  | 'profile-video';
+
+type ProfileCheck = {
+  key: string;
+  label: string;
+  ok: boolean;
+  important: boolean;
+  missingTitle: string;
+  missingDetail: string;
+  where: string;
+  action: ProfileCheckAction;
+  actionLabel: string;
+};
+
 const emptyForm: ProfileForm = {
   intro_line: '',
   why_review: '',
@@ -365,49 +383,107 @@ export default function AgencyPlayerProfile({
     [bundle, form],
   );
 
-  const checks = [
+  const checks: ProfileCheck[] = [
     {
+      key: 'verification',
       label: 'Player data verified',
       ok:
         player.verification_status === 'verified' &&
         Boolean(player.verified_at),
       important: true,
+      missingTitle: 'Verify current player data',
+      missingDetail:
+        'Review the player record, save any corrections, then mark the current data verified.',
+      where:
+        `Admin → Players → ${name} → Verification → Mark current data verified`,
+      action: 'admin-player',
+      actionLabel: 'Review & verify',
     },
     {
+      key: 'position',
       label: 'Position recorded',
       ok: Boolean(player.primary_position),
       important: true,
+      missingTitle: 'Add the primary position',
+      missingDetail:
+        'The club profile cannot publish without the player’s primary position.',
+      where:
+        `Admin → Players → ${name} → Automated player record → Primary position`,
+      action: 'admin-player',
+      actionLabel: 'Add position',
     },
     {
+      key: 'agency-contact',
       label: 'Agency contact ready',
       ok: Boolean(agency.support_email),
       important: true,
+      missingTitle: 'Add the agency support email',
+      missingDetail:
+        'Clubs need a clear reply address on the Player Profile.',
+      where:
+        'Settings → Agency settings → Workspace identity → Support email',
+      action: 'agency-settings',
+      actionLabel: 'Add support email',
     },
     {
+      key: 'photo',
       label: 'Profile photo',
       ok: Boolean(player.profile_photo_path),
       important: false,
+      missingTitle: 'Add a player profile photo',
+      missingDetail:
+        'A strong player photo makes the club-facing profile feel complete and credible.',
+      where:
+        `Admin → Players → ${name} → Player profile → Profile photo`,
+      action: 'admin-player',
+      actionLabel: 'Add photo',
     },
     {
+      key: 'career',
       label: 'Career history',
       ok: career.length > 0,
       important: false,
+      missingTitle: 'Add career history',
+      missingDetail:
+        'Record at least one career entry so clubs can see the player’s pathway.',
+      where:
+        `Admin → Players → ${name} → Career`,
+      action: 'admin-player',
+      actionLabel: 'Add career',
     },
     {
+      key: 'video',
       label: 'Current video',
       ok: videos.length > 0,
       important: false,
+      missingTitle: 'Add current player footage',
+      missingDetail:
+        'Paste a YouTube, Vimeo or Wyscout video so clubs can watch the player immediately.',
+      where:
+        'Edit Player Profile → Current player footage → Video URL',
+      action: 'profile-video',
+      actionLabel: 'Add video',
     },
     {
+      key: 'positioning',
       label: 'Agency positioning',
       ok: Boolean(form.why_review || form.intro_line),
       important: false,
+      missingTitle: 'Add the agency view',
+      missingDetail:
+        'Write a short profile headline or “Why this player?” note to explain the player quickly.',
+      where:
+        'Edit Player Profile → Profile headline / Why this player?',
+      action: 'profile-positioning',
+      actionLabel: 'Add positioning',
     },
   ];
 
   const requiredChecks = checks.filter((item) => item.important);
   const optionalChecks = checks.filter((item) => !item.important);
-  const missingRequiredCount = requiredChecks.filter((item) => !item.ok).length;
+  const missingRequiredChecks = requiredChecks.filter((item) => !item.ok);
+  const missingOptionalChecks = optionalChecks.filter((item) => !item.ok);
+  const missingRequiredCount = missingRequiredChecks.length;
   const optionalReadyCount = optionalChecks.filter((item) => item.ok).length;
   const canPublish = missingRequiredCount === 0;
   const canEdit = ['owner', 'admin', 'agent', 'operations'].includes(
@@ -666,6 +742,19 @@ export default function AgencyPlayerProfile({
     setEditOpen(true);
   };
 
+  const openEditorAt = (target: 'positioning' | 'video') => {
+    setForm(formFromProfile(bundle));
+    setEditOpen(true);
+    window.setTimeout(() => {
+      document
+        .getElementById(`player-profile-${target}`)
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+    }, 80);
+  };
+
   const closeEditor = () => {
     setForm(formFromProfile(bundle));
     setEditOpen(false);
@@ -810,7 +899,9 @@ export default function AgencyPlayerProfile({
                   ? 'Live'
                   : canPublish
                     ? 'Ready to publish'
-                    : `${missingRequiredCount} required ${missingRequiredCount === 1 ? 'item' : 'items'} missing`}
+                    : missingRequiredCount === 1
+                      ? missingRequiredChecks[0].missingTitle
+                      : `${missingRequiredCount} required items missing`}
               </strong>
             </div>
           </div>
@@ -820,7 +911,11 @@ export default function AgencyPlayerProfile({
               ? 'Ready to share with clubs.'
               : canPublish
                 ? 'The required player information is ready.'
-                : 'Finish the important items before publishing.'}
+                : missingRequiredCount === 1
+                  ? missingRequiredChecks[0].where
+                  : `Missing: ${missingRequiredChecks
+                      .map((item) => item.missingTitle)
+                      .join(' · ')}`}
           </p>
         </div>
 
@@ -897,7 +992,7 @@ export default function AgencyPlayerProfile({
             <div>
               <strong>{item.label}</strong>
               <small>
-                {item.ok ? 'Ready' : 'Needed before publishing'}
+                {item.ok ? 'Ready' : `Missing · ${item.missingTitle}`}
               </small>
             </div>
           </div>
@@ -918,13 +1013,108 @@ export default function AgencyPlayerProfile({
             )}
           </span>
           <div>
-            <strong>Optional profile detail</strong>
+            <strong>
+              {missingOptionalChecks.length
+                ? `${missingOptionalChecks.length} recommended ${
+                    missingOptionalChecks.length === 1 ? 'item' : 'items'
+                  } missing`
+                : 'Recommended profile detail complete'}
+            </strong>
             <small>
-              {optionalReadyCount} of {optionalChecks.length} added
+              {missingOptionalChecks.length
+                ? `Missing: ${missingOptionalChecks
+                    .map((item) => item.label)
+                    .join(' · ')}`
+                : `${optionalReadyCount} of ${optionalChecks.length} added`}
             </small>
           </div>
         </div>
       </section>
+
+      {missingRequiredChecks.length || missingOptionalChecks.length ? (
+        <section className={styles.fixGuide}>
+          <div className={styles.fixGuideHead}>
+            <div>
+              <span className={styles.eyebrow}>
+                {missingRequiredChecks.length
+                  ? 'REQUIRED BEFORE PUBLISHING'
+                  : 'RECOMMENDED IMPROVEMENTS'}
+              </span>
+              <h3>
+                {missingRequiredChecks.length
+                  ? 'Exactly what is missing'
+                  : 'Make the club profile stronger'}
+              </h3>
+            </div>
+            <small>
+              {missingRequiredChecks.length
+                ? 'Complete every required item below to publish.'
+                : 'These do not block publishing, but they improve the profile clubs receive.'}
+            </small>
+          </div>
+
+          <div className={styles.fixGuideList}>
+            {[...missingRequiredChecks, ...missingOptionalChecks].map(
+              (item) => (
+                <article
+                  key={item.key}
+                  className={
+                    item.important
+                      ? styles.fixRequired
+                      : styles.fixRecommended
+                  }
+                >
+                  <div className={styles.fixState}>
+                    {item.important ? 'Required' : 'Recommended'}
+                  </div>
+
+                  <div className={styles.fixCopy}>
+                    <strong>{item.missingTitle}</strong>
+                    <p>{item.missingDetail}</p>
+                    <small>{item.where}</small>
+                  </div>
+
+                  <div className={styles.fixAction}>
+                    {item.action === 'admin-player' ? (
+                      ['owner', 'admin'].includes(role) ? (
+                        <Link href={`/admin/players/${playerId}`}>
+                          {item.actionLabel}
+                          <ExternalLink size={13} />
+                        </Link>
+                      ) : (
+                        <span>Owner/admin required</span>
+                      )
+                    ) : item.action === 'agency-settings' ? (
+                      ['owner', 'admin'].includes(role) ? (
+                        <Link href="/settings/agency">
+                          {item.actionLabel}
+                          <ExternalLink size={13} />
+                        </Link>
+                      ) : (
+                        <span>Owner/admin required</span>
+                      )
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openEditorAt(
+                            item.action === 'profile-video'
+                              ? 'video'
+                              : 'positioning',
+                          )
+                        }
+                      >
+                        {item.actionLabel}
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                  </div>
+                </article>
+              ),
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <div className={styles.columns}>
         <section className={styles.card}>
@@ -1291,7 +1481,7 @@ export default function AgencyPlayerProfile({
             </header>
 
             <div className={styles.form}>
-              <label>
+              <label id="player-profile-positioning">
                 <span>Profile headline</span>
                 <input
                   value={form.intro_line}
@@ -1433,7 +1623,10 @@ export default function AgencyPlayerProfile({
                 ) : null}
               </div>
 
-              <div className={styles.mediaEditor}>
+              <div
+                className={styles.mediaEditor}
+                id="player-profile-video"
+              >
                 <div>
                   <span className={styles.eyebrow}>VIDEO</span>
                   <h3>Current player footage</h3>
