@@ -112,3 +112,17 @@ retry in 24 hours. No new deployment is live. The target was redream-systems-sta
 project prj_uMBOnfwXjmglJXpJblkGqNrDWAmK, preview environment. No production or
 database changes were made. Resume deployment after the limit resets, then perform
 authenticated five-screen acceptance.
+
+## Recruitment and Network navigation checkpoint
+
+Recruitment detail responses are bound to the selected target and request. Leaving
+a target invalidates its pending reads and post-save screen updates. Switching
+targets clears the previous contact draft; retrying the same target does not.
+Failed or unavailable target reads offer retry. Network no longer keeps a previous
+contact displayed when a different requested contact is absent from the directory.
+
+Browser regression: start Alpha read, switch to Bravo, complete Bravo, then complete
+Alpha. Bravo remains displayed and its URL remains selected. The temporary fixture
+used deferred promises and synthetic records, and was removed afterward.
+PR #174 remains open. Staging deployment and authenticated acceptance remain pending
+the previously reported Vercel deployment limit.

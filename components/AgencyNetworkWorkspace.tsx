@@ -383,7 +383,7 @@ export default function AgencyNetworkWorkspace({
       return;
     }
     const match = people.find((item: any) => personId(item) === requestedPersonId);
-    if (match) setSelectedContact(match);
+    setSelectedContact(match || null);
   }, [people, requestedPersonId]);
 
   useEffect(() => {
@@ -463,7 +463,7 @@ export default function AgencyNetworkWorkspace({
     setSearch(clubName);
   };
 
-  if (selectedContact) {
+  if (selectedContact && personId(selectedContact) === requestedPersonId) {
     return (
       <AgencyContactIntelligenceDrawer
         contact={selectedContact}
