@@ -17,11 +17,11 @@ test('Player Profile names each missing publish blocker precisely', () => {
   assert.match(profile, /Add the agency support email/);
   assert.match(
     profile,
-    /Verification → Mark current data verified/,
+    /Player Profile → Review current data → Confirm & verify/,
   );
   assert.match(
     profile,
-    /Automated player record → Primary position/,
+    /Player Profile → Review current data → Primary position/,
   );
   assert.match(
     profile,
@@ -41,15 +41,15 @@ test('recommended profile gaps say exactly what is missing', () => {
   );
 });
 
-test('missing items have direct fix actions', () => {
-  assert.match(
-    profile,
-    /href={\x60\/admin\/players\/\$\{playerId\}\x60}/,
-  );
+test('missing items have direct fix actions without legacy admin routing', () => {
+  assert.match(profile, /const openVerify =/);
+  assert.match(profile, /player_profile_verify/);
+  assert.match(profile, /href={backHref}/);
   assert.match(profile, /href="\/settings\/agency"/);
   assert.match(profile, /const openEditorAt =/);
   assert.match(profile, /player-profile-video/);
   assert.match(profile, /player-profile-positioning/);
+  assert.doesNotMatch(profile, /href={\x60\/admin\/players/);
 });
 
 test('status headline uses the actual missing item instead of only a count', () => {

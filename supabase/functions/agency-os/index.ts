@@ -387,6 +387,50 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,settings:data});
     }
 
+    if(action==="player_profile_verify"){
+      if(!operator())return deny("Agency operator access required");
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const before=await profilePlayer(pid);if(!before)return json({error:"Player not found in this agency"},404);
+      const clean=(value:unknown,max:number)=>id(value).slice(0,max)||null;
+      const validDate=(value:unknown,label:string)=>{
+        const raw=id(value);
+        if(!raw)return null;
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(raw)||Number.isNaN(Date.parse(raw+"T00:00:00Z")))throw new Error(`${label} must be a valid date`);
+        return raw;
+      };
+      const heightRaw=id(body?.height_cm);
+      const height=heightRaw?Number(heightRaw):null;
+      if(heightRaw&&(!Number.isFinite(height)||height<100||height>230))return json({error:"Height must be between 100 and 230 cm"},400);
+      const primaryPosition=clean(body?.primary_position,120);
+      if(!primaryPosition)return json({error:"Primary position is required before player data can be verified"},400);
+      const nationalities=Array.isArray(body?.nationalities)
+        ? body.nationalities.map((item:any)=>id(item).slice(0,80)).filter(Boolean).slice(0,4)
+        : Array.isArray(before.nationalities)?before.nationalities:[];
+      const playerPatch={
+        date_of_birth:validDate(body?.date_of_birth,"Date of birth"),
+        nationalities,
+        height_cm:height,
+        preferred_foot:clean(body?.preferred_foot,40),
+        primary_position:primaryPosition,
+        current_club:clean(body?.current_club,160),
+        current_country:clean(body?.current_country,100),
+        contract_status:clean(body?.contract_status,80),
+        contract_expiry:validDate(body?.contract_expiry,"Contract expiry")
+      };
+      const saveResult=await ctx.supabaseAdmin.from("players").update(playerPatch).eq("id",pid).eq("tenant_id",tenantId).select("id").maybeSingle();
+      if(saveResult.error)throw saveResult.error;
+      const verifiedAt=new Date().toISOString();
+      const {data,error}=await ctx.supabaseAdmin.from("players").update({
+        verification_status:"verified",
+        verified_at:verifiedAt,
+        review_required_at:null,
+        review_reason:null
+      }).eq("id",pid).eq("tenant_id",tenantId).select("id,tenant_id,user_id,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,profile_photo_path,verification_status,verified_at,current_season_label,agency_priority,next_action,next_action_due").single();
+      if(error)throw error;
+      await profileAudit("player_profile.player_data_verified",pid,before,data,{verification_method:"operator_confirmation"});
+      return json({ok:true,player:data});
+    }
+
     if(action==="player_profile_video_add"){
       if(!operator())return deny("Agency operator access required");
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
