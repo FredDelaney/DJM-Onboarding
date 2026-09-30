@@ -756,6 +756,21 @@ export default function AgencyPlayersWorkspace({
         </section>
       ):(
         <div className={styles.recruitmentLayout}>
+          <label className={styles.mobileStageSelect}>
+            <span>Stage</span>
+            <select
+              value={stageFilter}
+              onChange={(event) => setStageFilter(event.target.value)}
+            >
+              <option value="all">All ({targets.length})</option>
+              {PIPELINE.map(([key, label]) => (
+                <option value={key} key={key}>
+                  {label} ({stageCounts[key] || 0})
+                </option>
+              ))}
+            </select>
+          </label>
+
           <section className={styles.stageFilters}>
             <button type="button" className={stageFilter==='all'?styles.stageFilterActive:styles.stageFilter} onClick={()=>setStageFilter('all')}>All <span>{targets.length}</span></button>
             {PIPELINE.map(([key,label])=>(
