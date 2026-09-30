@@ -1476,3 +1476,51 @@
     padding: 11px 13px;
   }
 }
+
+/* Final mobile Player Profile touch polish v1 */
+@media (max-width: 720px) {
+  .back,
+  .quietButton {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .heroActions .primaryAction,
+  .hero .secondaryAction {
+    min-height: 44px;
+  }
+
+  .modal > header .iconButton {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .modal > footer .primaryAction,
+  .modal > footer .secondaryAction {
+    min-height: 44px;
+  }
+
+  .sectionOn,
+  .sectionOff {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .addVideo button {
+    min-height: 44px;
+  }
+
+  .videoList > div {
+    grid-template-columns: 22px minmax(0, 1fr) 44px 44px;
+  }
+
+  .videoList a,
+  .videoList button {
+    width: 44px;
+    height: 44px;
+  }
+}

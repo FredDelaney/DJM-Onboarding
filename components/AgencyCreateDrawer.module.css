@@ -305,3 +305,12 @@
     border-radius: 19px 19px 0 0;
   }
 }
+
+/* Final mobile touch polish v1 */
+@media (max-width: 680px) {
+  .close {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+}
