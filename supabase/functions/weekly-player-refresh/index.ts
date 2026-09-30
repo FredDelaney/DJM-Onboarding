@@ -24,6 +24,10 @@ const norm = (value) =>
     .trim();
 
 const stamp = (value) => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
   const milliseconds = value ? Date.parse(String(value)) : 0;
   return Number.isFinite(milliseconds) ? milliseconds : 0;
 };
@@ -154,31 +158,14 @@ Deno.serve(async (request) => {
     const latestCheck = new Map();
 
     if (playerIds.length) {
-      const [careerEvidence, refreshEvidence] = await Promise.all([
-        admin
-          .from("career_entries")
-          .select("player_id,source_synced_at,source_reviewed_at")
-          .in("player_id", playerIds),
-        admin
-          .from("player_source_refreshes")
-          .select("player_id,fresh_at,status")
-          .in("player_id", playerIds)
-          .eq("status", "applied")
-          .order("fresh_at", { ascending: false }),
-      ]);
+      const { data: freshnessRows, error: freshnessError } = await admin.rpc(
+        "platform_server_player_stats_freshness_rows",
+        { p_player_ids: playerIds },
+      );
+      if (freshnessError) throw freshnessError;
 
-      if (careerEvidence.error) throw careerEvidence.error;
-      if (refreshEvidence.error) throw refreshEvidence.error;
-
-      for (const row of careerEvidence.data || []) {
-        const checkedAt = freshest(row.source_synced_at, row.source_reviewed_at);
-        if (checkedAt > (latestCheck.get(row.player_id) || 0)) {
-          latestCheck.set(row.player_id, checkedAt);
-        }
-      }
-
-      for (const row of refreshEvidence.data || []) {
-        const checkedAt = stamp(row.fresh_at);
+      for (const row of freshnessRows || []) {
+        const checkedAt = stamp(row?.checked_at);
         if (checkedAt > (latestCheck.get(row.player_id) || 0)) {
           latestCheck.set(row.player_id, checkedAt);
         }
