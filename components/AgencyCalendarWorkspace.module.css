@@ -758,3 +758,38 @@
   .empty strong{font-size:15px}
   .empty span{max-width:270px;font-size:10px;line-height:1.45}
 }
+
+/* Complete meeting lifecycle v1 */
+.briefActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.outcomeButton {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid #dbe3e7;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--agency-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+@media (max-width: 680px) {
+  .briefActions {
+    grid-template-columns: 1fr;
+  }
+
+  .joinButton,
+  .outcomeButton {
+    min-height: 44px;
+  }
+}

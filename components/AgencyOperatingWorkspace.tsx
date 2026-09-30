@@ -1399,6 +1399,7 @@ export default function AgencyOperatingWorkspace() {
                   role={String(workspace?.role || '')}
                   fallbackAgency={runtime.branding}
                   invoke={(action, body) => invoke<any>(action, body)}
+                  onOpenAction={(request) => setActionRequest(request)}
                   onOpenIntelligence={(playerId, title, context) =>
                     setIntelligenceRequest({
                       key: `player-360:${playerId}`,
@@ -1448,6 +1449,9 @@ export default function AgencyOperatingWorkspace() {
                 data={data}
                 basePath={basePath}
                 rpc={rpc}
+                onRecordMeetingOutcome={(meeting) =>
+                  setMeetingOutcomeRequest(meeting)
+                }
               />
             ) : null}
             {view === 'business' && canSeeBusiness ? (

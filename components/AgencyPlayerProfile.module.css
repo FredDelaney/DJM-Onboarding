@@ -1854,3 +1854,23 @@
     grid-column: 1 / -1;
   }
 }
+
+
+/* Player Profile follow-up handoff v1 */
+.shareSuccess .shareFollowUpButton {
+  width: 100%;
+  min-height: 40px;
+  justify-content: center;
+  margin-top: 4px;
+  border: 1px solid
+    color-mix(in srgb, var(--profile-primary) 18%, #dfe4e8);
+  background:
+    color-mix(in srgb, var(--profile-primary) 5%, #fff);
+  color: var(--profile-primary);
+}
+
+@media (max-width: 680px) {
+  .shareSuccess .shareFollowUpButton {
+    min-height: 44px;
+  }
+}

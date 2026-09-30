@@ -5,6 +5,7 @@ import {
   BriefcaseBusiness,
   CakeSlice,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   ExternalLink,
   FileText,
@@ -98,10 +99,12 @@ export default function AgencyCalendarWorkspace({
   data,
   basePath,
   rpc,
+  onRecordMeetingOutcome,
 }: {
   data: any;
   basePath: string;
   rpc: Rpc;
+  onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const search = useSearchParams();
   const requestedMeetingId = String(search.get('meeting') || '').trim();
@@ -608,6 +611,11 @@ export default function AgencyCalendarWorkspace({
             setMeetingBrief(null);
             setMeetingBriefError('');
           }}
+          onRecordOutcome={(meeting) => {
+            setMeetingBrief(null);
+            setMeetingBriefError('');
+            onRecordMeetingOutcome(meeting);
+          }}
         />
       ) : null}
     </div>
@@ -619,11 +627,13 @@ function MeetingBriefDrawer({
   busy,
   error,
   onClose,
+  onRecordOutcome,
 }: {
   brief: any;
   busy: boolean;
   error: string;
   onClose: () => void;
+  onRecordOutcome: (meeting: any) => void;
 }) {
   const meeting = brief?.meeting || {};
   const memory = brief?.relationship_memory || {};
@@ -643,6 +653,11 @@ function MeetingBriefDrawer({
         minute: '2-digit',
       }).format(startsAt)
     : 'Time not recorded';
+  const meetingStarted = Boolean(
+    startsAt &&
+      startsAt.getTime() <= Date.now() &&
+      meeting?.meeting_id,
+  );
 
   return (
     <div
@@ -691,16 +706,31 @@ function MeetingBriefDrawer({
 
         {!busy ? (
           <div className={styles.briefBody}>
-            {meeting?.meeting_url ? (
-              <a
-                className={styles.joinButton}
-                href={meeting.meeting_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Join meeting
-                <ExternalLink size={14} />
-              </a>
+            {(meeting?.meeting_url || meetingStarted) ? (
+              <div className={styles.briefActions}>
+                {meeting?.meeting_url ? (
+                  <a
+                    className={styles.joinButton}
+                    href={meeting.meeting_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Join meeting
+                    <ExternalLink size={14} />
+                  </a>
+                ) : null}
+
+                {meetingStarted ? (
+                  <button
+                    type="button"
+                    className={styles.outcomeButton}
+                    onClick={() => onRecordOutcome(meeting)}
+                  >
+                    <CheckCircle2 size={14} />
+                    Record outcome
+                  </button>
+                ) : null}
+              </div>
             ) : null}
 
             <BriefSection
