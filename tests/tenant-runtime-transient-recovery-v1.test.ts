@@ -27,3 +27,10 @@ test('temporary outage recovery retries without relaxing tenant isolation', () =
   assert.match(recovery, /Your workspace and access[\s\S]*have not been changed/);
   assert.doesNotMatch(recovery, /djmsports|DJM/i);
 });
+
+test('tenant resolver never contains a DJM-specific outage bypass', () => {
+  assert.doesNotMatch(
+    runtime,
+    /TRUSTED_DJM_HOSTNAMES|trustedDjmOutageRuntime|app\.djmsports\.com|DJM Sports Management/,
+  );
+});
