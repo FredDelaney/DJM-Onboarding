@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   BarChart3,
   Check,
+  Clock3,
   Copy,
   Download,
   Eye,
@@ -31,6 +32,7 @@ import {
 
 import PublicProfile from '@/components/PublicProfile';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
+import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
   friendlyError,
   relativeDate,
@@ -56,6 +58,7 @@ type Props = {
   role: string;
   fallbackAgency: Record<string, any>;
   invoke: AgencyInvoke;
+  onOpenAction: (request: AgencyActionRequest) => void;
   onOpenIntelligence: (
     playerId: string,
     title: string,
@@ -334,6 +337,7 @@ export default function AgencyPlayerProfile({
   role,
   fallbackAgency,
   invoke,
+  onOpenAction,
   onOpenIntelligence,
 }: Props) {
   const initialProfile = getCachedPlayerProfile(playerId);
@@ -847,6 +851,54 @@ export default function AgencyPlayerProfile({
     }
 
     await copyPreparedShare();
+  };
+
+  const openShareFollowUp = () => {
+    if (!shareDeal) return;
+
+    const deal = deals.find(
+      (item: any) => String(item?.id || '') === shareDeal,
+    );
+    if (!deal?.id) return;
+
+    const clubName =
+      deal.club_name ||
+      clubs.find(
+        (club: any) =>
+          String(club?.id || '') === String(deal.organisation_id || ''),
+      )?.name ||
+      'Linked club';
+    const shareKey =
+      shareResultUrl.split('/').pop() || shareDeal;
+
+    setShareOpen(false);
+    onOpenAction({
+      key: `player-profile-follow-up:${shareKey}`,
+      eyebrow: 'PLAYER PROFILE FOLLOW-UP',
+      title: `${name} → ${clubName}`,
+      instruction:
+        'If you sent this Player Profile, choose the next concrete follow-up and when you will do it. The system will not invent the action or date.',
+      label: 'Set follow-up',
+      action: 'deal_step_prepare',
+      payload: {
+        deal_room_id: String(deal.id),
+        step_type: 'set_next_action',
+      },
+      context: 'Private Player Profile link created',
+      facts: [
+        { label: 'Player', value: name },
+        { label: 'Club', value: clubName },
+        {
+          label: 'External send',
+          value: 'Not assumed',
+          detail:
+            'Only the private link creation is recorded. Confirm follow-up after the profile has actually been sent.',
+        },
+      ],
+      successCondition:
+        'The linked deal has one concrete future follow-up action and time owned by an active agency user.',
+      confirmationLabel: 'Set follow-up',
+    });
   };
 
   const addVideo = async () => {
@@ -2280,6 +2332,16 @@ export default function AgencyPlayerProfile({
                         Copy link
                       </button>
                     </div>
+                    {shareDeal ? (
+                      <button
+                        type="button"
+                        className={styles.shareFollowUpButton}
+                        onClick={openShareFollowUp}
+                      >
+                        <Clock3 size={15} />
+                        Set follow-up
+                      </button>
+                    ) : null}
                   </>
                 ) : (
                   <>

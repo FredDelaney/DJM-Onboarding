@@ -10,6 +10,10 @@ const css = readFileSync(
   'components/AgencyPlayerProfile.module.css',
   'utf8',
 );
+const workspace = readFileSync(
+  'components/AgencyOperatingWorkspace.tsx',
+  'utf8',
+);
 
 test('Player Profile share creates a club-ready message around the tracked private link', () => {
   assert.match(profile, /const buildShareMessage =/);
@@ -54,4 +58,21 @@ test('mobile share handoff has one dominant action and touch-safe copy fallbacks
     css,
     /\.shareSuccessActions button[\s\S]*min-height: 44px/,
   );
+});
+
+
+test('linked Player Profile shares hand into the existing owned deal follow-up flow', () => {
+  assert.match(profile, /const openShareFollowUp =/);
+  assert.match(profile, /action: 'deal_step_prepare'/);
+  assert.match(profile, /step_type: 'set_next_action'/);
+  assert.match(
+    profile,
+    /If you sent this Player Profile, choose the next concrete follow-up and when you will do it\./,
+  );
+  assert.match(profile, /External send/);
+  assert.match(profile, /value: 'Not assumed'/);
+  assert.match(profile, />\s*Set follow-up\s*</);
+  assert.match(workspace, /onOpenAction=\{\(request\) => setActionRequest\(request\)\}/);
+  assert.match(css, /Player Profile follow-up handoff v1/);
+  assert.match(css, /\.shareSuccess \.shareFollowUpButton/);
 });

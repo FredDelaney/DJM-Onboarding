@@ -1392,6 +1392,7 @@ export default function AgencyOperatingWorkspace() {
                   role={String(workspace?.role || '')}
                   fallbackAgency={runtime.branding}
                   invoke={(action, body) => invoke<any>(action, body)}
+                  onOpenAction={(request) => setActionRequest(request)}
                   onOpenIntelligence={(playerId, title, context) =>
                     setIntelligenceRequest({
                       key: `player-360:${playerId}`,
