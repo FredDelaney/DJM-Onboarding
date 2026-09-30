@@ -133,29 +133,9 @@ test(
       /"#64748B"/,
     );
 
-    assert.match(
-      source,
-      /hostname === "app\.djmsports\.com"/,
-    );
-
-    assert.match(
-      source,
-      /hostname === "djm-player\.vercel\.app"/,
-    );
-
-    assert.match(
-      source,
-      /if \(trustedDjmHost\)/,
-    );
-
-    assert.ok(
-      source.indexOf('if (trustedDjmHost)') <
-        source.indexOf('const supabaseUrl'),
-    );
-
     assert.doesNotMatch(
       source,
-      /endsWith\([^)]*djmsports|includes\([^)]*djmsports/i,
+      /trustedDjmHost|app\.djmsports\.com|DJM Sports Management|degraded_mode/,
     );
   },
 );

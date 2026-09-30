@@ -208,56 +208,6 @@ Deno.serve(async (request) => {
     );
   }
 
-  const trustedDjmHost =
-    hostname === "app.djmsports.com" ||
-    hostname === "djm-player.vercel.app" ||
-    hostname === "djm-player-jesseedge10-8415s-projects.vercel.app";
-
-  if (trustedDjmHost) {
-    return json({
-      resolved: true,
-      tenant_id: null,
-      slug: "djm-sports-management",
-      tenant_type: "sports_management",
-      runtime_version: 0,
-      branding: {
-        display_name: "DJM Sports Management",
-        short_name: "DJM",
-        portal_name: "DJM Player",
-        logo_asset: null,
-        compact_logo_asset: null,
-        light_logo_asset: null,
-        favicon_asset: null,
-        primary_color: "#061F3A",
-        secondary_color: "#FFFFFF",
-        accent_color: "#F5E900",
-        support_email: null,
-        website_url: "https://www.djmsports.com",
-        phone: null,
-      },
-      domain: {
-        hostname,
-        domain_type:
-          hostname === "app.djmsports.com"
-            ? "custom"
-            : "platform_subdomain",
-      },
-      plan: {
-        key: null,
-        name: null,
-        rank: 0,
-        limits: {},
-      },
-      settings: {
-        locale: "en-GB",
-        timezone: "Europe/Rome",
-        default_currency: "EUR",
-      },
-      features: {},
-      degraded_mode: true,
-    });
-  }
-
   const supabaseUrl =
     Deno.env.get(
       "SUPABASE_URL",
