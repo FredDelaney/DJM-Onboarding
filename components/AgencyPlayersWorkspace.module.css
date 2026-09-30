@@ -825,3 +825,24 @@
     font-size: 12px;
   }
 }
+
+/* Player workspace touch polish v1 */
+@media (max-width: 680px) {
+  .closeButton {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .drawerTop {
+    min-height: 58px;
+  }
+
+  .heroActions .secondaryButton,
+  .heroActions .primaryButton {
+    min-height: 44px;
+    padding: 0 13px;
+    border-radius: 12px;
+    font-size: 10px;
+  }
+}
