@@ -28,7 +28,8 @@ test('player deep links stay recoverable when the drawer closes', () => {
   assert.match(players, /params\.set\('player', id\)/);
   assert.match(players, /const closePlayer =/);
   assert.match(players, /params\.delete\('player'\)/);
-  assert.match(players, /history\.replaceState/);
+  assert.match(players, /router\.replace/);
+  assert.doesNotMatch(players, /history\.replaceState/);
 });
 
 test('Player Profile branding cannot depend on a missing helper RPC', () => {

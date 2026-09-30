@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
@@ -449,6 +449,7 @@ export default function AgencyPlayersWorkspace({
   onRefresh,
   onOpenAction,
 }: Props) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [section, setSection] = useState<'players'|'recruitment'>(
     searchParams.get('tab') === 'recruitment' ? 'recruitment' : 'players',
@@ -479,20 +480,46 @@ export default function AgencyPlayersWorkspace({
   });
 
   useEffect(() => {
-    if (searchParams.get('tab') === 'recruitment' || searchParams.get('target')) setSection('recruitment');
+    setSection(
+      searchParams.get('tab') === 'recruitment' || searchParams.get('target')
+        ? 'recruitment'
+        : 'players',
+    );
     if (searchParams.get('profile') !== '1') {
       setPlayerId(String(searchParams.get('player') || '').trim() || null);
     }
     setTargetId(String(searchParams.get('target') || '').trim() || null);
   }, [searchParams]);
 
+  const changeSection = (nextSection: 'players' | 'recruitment') => {
+    setSection(nextSection);
+    setPlayerId(null);
+    setTargetId(null);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'players');
+    params.delete('player');
+    params.delete('profile');
+    params.delete('target');
+
+    if (nextSection === 'recruitment') {
+      params.set('tab', 'recruitment');
+    } else {
+      params.delete('tab');
+    }
+
+    router.replace(`${basePath}?${params.toString()}`);
+  };
+
   const openPlayer = (id: string) => {
     setPlayerId(id);
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
     params.set('player', id);
+    params.delete('tab');
+    params.delete('target');
     params.delete('profile');
-    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   const closePlayer = () => {
@@ -502,7 +529,7 @@ export default function AgencyPlayersWorkspace({
     params.delete('player');
     params.delete('profile');
     const query = params.toString();
-    window.history.replaceState(window.history.state, '', `${basePath}${query ? `?${query}` : ''}`);
+    router.replace(`${basePath}${query ? `?${query}` : ''}`);
   };
 
   const openTarget = (id: string) => {
@@ -513,7 +540,7 @@ export default function AgencyPlayersWorkspace({
     params.set('target', id);
     params.delete('player');
     params.delete('profile');
-    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   const closeTarget = () => {
@@ -522,7 +549,7 @@ export default function AgencyPlayersWorkspace({
     params.set('view', 'players');
     params.set('tab', 'recruitment');
     params.delete('target');
-    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+    router.replace(`${basePath}?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -674,10 +701,10 @@ export default function AgencyPlayersWorkspace({
     <div className={styles.workspace}>
       <section className={styles.toolbar}>
         <div className={styles.sectionTabs}>
-          <button type="button" className={section==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>setSection('players')}>
+          <button type="button" className={section==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('players')}>
             Our Players <b>{players.length}</b>
           </button>
-          <button type="button" className={section==='recruitment'?styles.sectionTabActive:styles.sectionTab} onClick={()=>setSection('recruitment')}>
+          <button type="button" className={section==='recruitment'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('recruitment')}>
             Recruitment <b>{targets.length}</b>
           </button>
         </div>
