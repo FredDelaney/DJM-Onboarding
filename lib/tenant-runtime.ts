@@ -4,6 +4,7 @@ export type TenantFeatureRuntime = {
 
 export type TenantRuntime = {
   resolved: boolean;
+  resolution_status?: 'resolved' | 'unresolved' | 'unavailable';
   tenant_id: string | null;
   slug: string;
   tenant_type: string;
@@ -43,6 +44,7 @@ export type TenantRuntime = {
 
 export const UNRESOLVED_TENANT_RUNTIME: TenantRuntime = {
   resolved: false,
+  resolution_status: 'unresolved',
   tenant_id: null,
   slug: 'unresolved',
   tenant_type: 'unknown',
@@ -166,9 +168,11 @@ export function normaliseTenantHostname(
 
 function fallbackRuntime(
   hostname: string | null,
+  resolutionStatus: 'unresolved' | 'unavailable' = 'unresolved',
 ): TenantRuntime {
   return {
     ...UNRESOLVED_TENANT_RUNTIME,
+    resolution_status: resolutionStatus,
     branding: {
       ...UNRESOLVED_TENANT_RUNTIME.branding,
     },
@@ -221,6 +225,7 @@ function coerceRuntime(
 
   return {
     resolved: true,
+    resolution_status: 'resolved',
     tenant_id:
       cleanString(source.tenant_id),
     slug,
@@ -317,7 +322,7 @@ export async function resolveTenantRuntime(
       .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl) {
-    return fallbackRuntime(hostname);
+    return fallbackRuntime(hostname, 'unavailable');
   }
 
   const endpoint = new URL(
@@ -345,7 +350,12 @@ export async function resolveTenantRuntime(
     });
 
     if (!response.ok) {
-      return fallbackRuntime(hostname);
+      return fallbackRuntime(
+        hostname,
+        response.status === 404
+          ? 'unresolved'
+          : 'unavailable',
+      );
     }
 
     const payload = await response.json();
@@ -355,6 +365,6 @@ export async function resolveTenantRuntime(
       hostname,
     );
   } catch {
-    return fallbackRuntime(hostname);
+    return fallbackRuntime(hostname, 'unavailable');
   }
 }

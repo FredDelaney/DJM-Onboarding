@@ -106,3 +106,77 @@ html[data-tenant] {
   color: #64748b;
   font-size: 14px;
 }
+
+.tenant-unavailable-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.tenant-unavailable-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, #111827 0%, #64748b 55%, #cbd5e1 100%);
+  content: '';
+}
+
+.tenant-unavailable-retry {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 24px;
+  padding: 0 17px;
+  border: 1px solid #cbd5e1;
+  border-radius: 13px;
+  background: #111827;
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tenant-unavailable-retry:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.tenant-unavailable-retry:focus-visible {
+  outline: 3px solid rgba(100, 116, 139, 0.28);
+  outline-offset: 3px;
+}
+
+.tenant-unavailable-retry:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.tenant-unavailable-retry .is-spinning {
+  animation: tenant-retry-spin 0.8s linear infinite;
+}
+
+@keyframes tenant-retry-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 520px) {
+  .tenant-unresolved-shell {
+    padding:
+      max(18px, env(safe-area-inset-top))
+      18px
+      max(18px, env(safe-area-inset-bottom));
+  }
+
+  .tenant-unresolved-card {
+    padding: 28px 24px;
+    border-radius: 20px;
+  }
+
+  .tenant-unavailable-retry {
+    width: 100%;
+  }
+}
