@@ -220,3 +220,46 @@
     font-size: 8px;
   }
 }
+
+/* Premium mobile relationship actions v1 */
+@media (max-width: 680px) {
+  .section {
+    gap: 11px;
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .head h3 {
+    font-size: 15px;
+  }
+
+  .actions {
+    gap: 8px;
+  }
+
+  .actions button {
+    min-height: 44px;
+    gap: 8px;
+    padding: 9px 11px;
+    border-radius: 11px;
+    font-size: 10.5px;
+    line-height: 1.2;
+  }
+
+  .actions svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+  }
+
+  .formHead button {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+  }
+
+  .save {
+    min-height: 44px;
+    font-size: 11px;
+  }
+}

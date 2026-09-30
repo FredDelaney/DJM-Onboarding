@@ -296,3 +296,19 @@
     font-size: 9px;
   }
 }
+
+/* Premium compact Capture readability v1 */
+@media (max-width: 640px) {
+  .compact .prompt span {
+    max-width: 310px;
+    font-size: 11px;
+    line-height: 1.45;
+    -webkit-line-clamp: 3;
+  }
+
+  .compact .secondary {
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 10.5px;
+  }
+}
