@@ -70,6 +70,37 @@ export default {fetch:async(req:Request)=>{
         await rpc("platform_server_record_audit",{p_tenant_id:tenantId,p_actor_user_id:userId,p_actor_kind:"user",p_action:actionName,p_entity_type:"player_profile",p_entity_id:entityId,p_request_id:null,p_correlation_id:null,p_before_state:beforeState??{},p_after_state:afterState??{},p_metadata:metadata});
       }catch(auditError){console.error("player-profile audit",auditError)}
     };
+    const profileCore=async(pid:string)=>{
+      const player=await profilePlayer(pid);
+      if(!player)return null;
+      const [settingsResult,publishedResult,careerResult,videosResult,refreshResult]=await Promise.all([
+        ctx.supabaseAdmin.from("player_cv_settings").select("*").eq("player_id",pid).maybeSingle(),
+        ctx.supabaseAdmin.from("player_public_profiles").select("*").eq("player_id",pid).maybeSingle(),
+        ctx.supabaseAdmin.from("career_entries").select("id,player_id,club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,notes,is_international,sort_order,source_name,source_url,source_reviewed_at,source_provider,source_synced_at").eq("player_id",pid).order("sort_order").order("start_date",{ascending:false}),
+        ctx.supabaseAdmin.from("player_videos").select("id,player_id,title,url,video_type,featured,sort_order,created_at,updated_at").eq("player_id",pid).order("featured",{ascending:false}).order("sort_order"),
+        ctx.supabaseAdmin.from("player_source_refreshes").select("provider,status,fresh_at,source_url,summary").eq("player_id",pid).eq("provider","openai_web_stats").eq("status","applied").order("fresh_at",{ascending:false}).limit(1).maybeSingle()
+      ]);
+      for(const resultItem of [settingsResult,publishedResult,careerResult,videosResult]){if(resultItem.error)throw resultItem.error}
+      if(refreshResult.error)console.warn("player-profile stat freshness unavailable",refreshResult.error);
+      const career=careerResult.data||[],autoStats=profileAutoStats(career,player,refreshResult.data||null);
+      return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:[],shares:[],deals:[],clubs:[],branding:{},communication:{summary:{},items:[],open_followups:[]},auto_key_stats:autoStats.stats,auto_stats_meta:autoStats.meta,secondary_ready:false};
+    };
+    const profileSecondary=async(pid:string)=>{
+      const [documentsResult,sharesResult,serverContext,communication]=await Promise.all([
+        ctx.supabaseAdmin.from("player_documents").select("id,title,document_type,club_shareable,created_at,country,expires_at").eq("player_id",pid).eq("club_shareable",true).order("created_at",{ascending:false}),
+        ctx.supabaseAdmin.from("club_share_links").select("id,token,player_id,label,active,expires_at,view_count,last_viewed_at,created_at,opportunity_id,organisation_id,source_person_id,pitch_message,pitch_status,sent_at,revoked_at").eq("player_id",pid).order("created_at",{ascending:false}).limit(50),
+        profileContext(pid),
+        profileCommunication(pid)
+      ]);
+      for(const resultItem of [documentsResult,sharesResult]){if(resultItem.error)throw resultItem.error}
+      const clubs=serverContext.clubs||[];
+      const clubMap=new Map(clubs.map((club:any)=>[String(club.id),club.name]));
+      const deals=(serverContext.deals||[]).map((deal:any)=>({...deal,club_name:clubMap.get(String(deal.organisation_id||""))||null}));
+      const dealMap=new Map(deals.map((deal:any)=>[String(deal.id),deal]));
+      const shares=(sharesResult.data||[]).map((share:any)=>({...share,club_name:clubMap.get(String(share.organisation_id||""))||share.label||null,deal_title:dealMap.get(String(share.opportunity_id||""))?.title||null}));
+      return{documents:documentsResult.data||[],shares,deals,clubs,branding:serverContext.branding,communication,secondary_ready:true};
+    };
+
     const profileBundle=async(pid:string)=>{
       const player=await profilePlayer(pid);
       if(!player)return null;
@@ -377,6 +408,18 @@ export default {fetch:async(req:Request)=>{
       });
     }
 
+
+    if(action==="player_profile_core"){
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const profile=await profileCore(pid);if(!profile)return json({error:"Player not found in this agency"},404);
+      return json({ok:true,tenant:workspace,profile});
+    }
+
+    if(action==="player_profile_detail"){
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const player=await profilePlayer(pid);if(!player)return json({error:"Player not found in this agency"},404);
+      return json({ok:true,tenant:workspace,detail:await profileSecondary(pid)});
+    }
 
     if(action==="player_profile"){
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);

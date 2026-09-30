@@ -364,23 +364,61 @@ export default function AgencyPlayerProfile({
   const [shareResultUrl, setShareResultUrl] = useState('');
 
   const load = useCallback(async (fresh = false) => {
-    setLoading(true);
+    const cached = getCachedPlayerProfile(playerId);
+    if (!cached) setLoading(true);
     setError('');
+
     try {
-      const profile = fresh
-        ? (await invoke<any>('player_profile', {
+      let profile: any = null;
+
+      try {
+        profile = fresh
+          ? (await invoke<any>('player_profile_core', {
+              player_id: playerId,
+            }))?.profile || null
+          : await prefetchPlayerProfile(playerId, invoke);
+      } catch {
+        profile =
+          (await invoke<any>('player_profile', {
             player_id: playerId,
-          }))?.profile || null
-        : await prefetchPlayerProfile(playerId, invoke);
+          }))?.profile || null;
+      }
+
       if (!profile) {
         throw new Error('Player Profile could not be loaded.');
       }
+
       setCachedPlayerProfile(playerId, profile);
       setBundle(profile);
       setForm(formFromProfile(profile));
+      setLoading(false);
+
+      if (profile.secondary_ready === false) {
+        void invoke<any>('player_profile_detail', {
+          player_id: playerId,
+        })
+          .then((response) => {
+            const detail = response?.detail || null;
+            if (!detail) return;
+
+            setBundle((current: any) => {
+              if (!current) return current;
+              const next = {
+                ...current,
+                ...detail,
+                branding: {
+                  ...(current.branding || {}),
+                  ...(detail.branding || {}),
+                },
+              };
+              setCachedPlayerProfile(playerId, next);
+              return next;
+            });
+          })
+          .catch(() => undefined);
+      }
     } catch (loadError) {
       setError(friendlyError(loadError));
-    } finally {
       setLoading(false);
     }
   }, [invoke, playerId]);
@@ -427,6 +465,7 @@ export default function AgencyPlayerProfile({
   )
     ? communication.open_followups
     : [];
+  const secondaryReady = bundle?.secondary_ready !== false;
   const name =
     [player.first_name, player.last_name]
       .filter(Boolean)
@@ -1309,7 +1348,7 @@ export default function AgencyPlayerProfile({
               <span>videos</span>
             </div>
             <div>
-              <strong>{documents.length}</strong>
+              <strong>{secondaryReady ? documents.length : '…'}</strong>
               <span>shareable docs</span>
             </div>
           </div>
@@ -1367,7 +1406,7 @@ export default function AgencyPlayerProfile({
           ) : null}
         </div>
 
-        {communicationItems.length ? (
+        {secondaryReady && communicationItems.length ? (
           <div className={styles.communicationList}>
             {communicationItems.slice(0, 6).map((item: any) => {
               const channel = String(item?.channel || '');
@@ -1420,13 +1459,22 @@ export default function AgencyPlayerProfile({
               );
             })}
           </div>
-        ) : (
+        ) : secondaryReady ? (
           <div className={styles.empty}>
             <MessageCircleMore size={19} />
             <strong>No player-linked communication yet.</strong>
             <span>
               Email and selected chats appear here only when there is
               explicit evidence that they relate to this player.
+            </span>
+          </div>
+        ) : (
+          <div className={styles.empty}>
+            <LoaderCircle size={19} className={styles.spin} />
+            <strong>Loading recent activity...</strong>
+            <span>
+              The Player Profile is ready while connected communication
+              finishes loading.
             </span>
           </div>
         )}
@@ -1538,7 +1586,15 @@ export default function AgencyPlayerProfile({
             </div>
           ))}
 
-          {!shares.length ? (
+          {!secondaryReady ? (
+            <div className={styles.empty}>
+              <LoaderCircle size={19} className={styles.spin} />
+              <strong>Loading profile activity...</strong>
+              <span>
+                Share history is loading without delaying the Player Profile.
+              </span>
+            </div>
+          ) : !shares.length ? (
             <div className={styles.empty}>
               <Link2 size={19} />
               <strong>No profile links sent yet.</strong>
