@@ -290,6 +290,12 @@ export default function AgencyOperatingWorkspace() {
     view === 'players' && search.get('tab') === 'recruitment'
       ? 'recruitment'
       : 'players';
+  const opportunitiesSection =
+    view === 'opportunities' && search.get('tab') === 'deals'
+      ? 'deals'
+      : view === 'opportunities' && search.get('tab') === 'routes'
+        ? 'routes'
+        : 'needs';
   const inlineEntityWorkspaceOpen = Boolean(
     selectedPlayerId || selectedNetworkPersonId || selectedRecruitmentTargetId,
   );
@@ -495,6 +501,11 @@ export default function AgencyOperatingWorkspace() {
       view === 'players' ? playersSection : 'main',
     ].join(':');
     const cached = readViewCache(cacheKey);
+    const cachedSupportsVisibleView =
+      view !== 'opportunities' ||
+      (opportunitiesSection === 'deals'
+        ? Boolean(cached?.deals)
+        : Boolean(cached?.market));
     let latestData = cached;
 
     const commit = (nextData: any) => {
@@ -510,7 +521,7 @@ export default function AgencyOperatingWorkspace() {
     setError('');
     setProposal(null);
 
-    if (cached) {
+    if (cached && cachedSupportsVisibleView) {
       setData(cached);
       setBusy(false);
     } else {
@@ -576,31 +587,73 @@ export default function AgencyOperatingWorkspace() {
           });
         }
       } else if (view === 'opportunities') {
-        const [market, deals] = await Promise.all([
-          rpc<any>('redream_autopilot_market', {
+        if (opportunitiesSection === 'deals') {
+          const deals = await rpc<any>('redream_autopilot_deals', {
             p_limit: 100,
-          }),
-          rpc<any>('redream_autopilot_deals', {
+          });
+
+          commit({
+            ...(latestData || {}),
+            market: latestData?.market || {},
+            deals,
+            connected: latestData?.connected || {},
+          });
+          if (isCurrent()) setBusy(false);
+
+          void Promise.allSettled([
+            rpc<any>('redream_autopilot_market', {
+              p_limit: 100,
+            }),
+            rpc<any>('redream_opportunity_connected_context', {
+              p_limit: 100,
+            }),
+          ]).then((reads) => {
+            if (!isCurrent()) return;
+            merge({
+              market:
+                reads[0]?.status === 'fulfilled'
+                  ? reads[0].value
+                  : latestData?.market || {},
+              connected:
+                reads[1]?.status === 'fulfilled'
+                  ? reads[1].value
+                  : latestData?.connected || {},
+            });
+          });
+        } else {
+          const market = await rpc<any>('redream_autopilot_market', {
             p_limit: 100,
-          }),
-        ]);
+          });
 
-        commit({
-          ...(latestData || {}),
-          market,
-          deals,
-          connected: latestData?.connected || {},
-        });
-        if (isCurrent()) setBusy(false);
+          commit({
+            ...(latestData || {}),
+            market,
+            deals: latestData?.deals || {},
+            connected: latestData?.connected || {},
+          });
+          if (isCurrent()) setBusy(false);
 
-        void rpc<any>(
-          'redream_opportunity_connected_context',
-          { p_limit: 100 },
-        )
-          .then((connected) => {
-            if (isCurrent()) merge({ connected });
-          })
-          .catch(() => undefined);
+          void Promise.allSettled([
+            rpc<any>('redream_autopilot_deals', {
+              p_limit: 100,
+            }),
+            rpc<any>('redream_opportunity_connected_context', {
+              p_limit: 100,
+            }),
+          ]).then((reads) => {
+            if (!isCurrent()) return;
+            merge({
+              deals:
+                reads[0]?.status === 'fulfilled'
+                  ? reads[0].value
+                  : latestData?.deals || {},
+              connected:
+                reads[1]?.status === 'fulfilled'
+                  ? reads[1].value
+                  : latestData?.connected || {},
+            });
+          });
+        }
       } else if (view === 'network') {
         commit(
           await rpc<any>('redream_autopilot_relationships', {
@@ -677,6 +730,7 @@ export default function AgencyOperatingWorkspace() {
   }, [
     inlineEntityWorkspaceOpen,
     invoke,
+    opportunitiesSection,
     playersSection,
     rpc,
     view,
