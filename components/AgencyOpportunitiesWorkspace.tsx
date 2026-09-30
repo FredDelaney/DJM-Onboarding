@@ -782,6 +782,15 @@ export default function AgencyOpportunitiesWorkspace({
 
         {!activeItems.length ? (
           <div className={styles.empty}>
+            <div className={styles.emptyIcon}>
+              {view === 'needs' ? (
+                <Target size={22} />
+              ) : view === 'routes' ? (
+                <Users size={22} />
+              ) : (
+                <BriefcaseBusiness size={22} />
+              )}
+            </div>
             <strong>
               {search
                 ? 'No matches'
@@ -794,7 +803,11 @@ export default function AgencyOpportunitiesWorkspace({
             <span>
               {search
                 ? 'Try a different search.'
-                : 'New opportunity work will appear here when it is recorded.'}
+                : view === 'needs'
+                  ? 'Add a real club need and ReDream can organise the player routes around it.'
+                  : view === 'routes'
+                    ? 'Routes appear when a player is linked to a recorded club need.'
+                    : 'Commercial work appears here once a player-club route becomes a live deal.'}
             </span>
           </div>
         ) : null}

@@ -1328,3 +1328,31 @@
     font-size: 11px;
   }
 }
+/* World-class relationship network pass v2 */
+@media(max-width:680px){
+  .workspace{gap:13px}
+  .toolbar{gap:10px}
+  .tabs{padding:4px;border:0;border-radius:16px;background:#f1f4f6}
+  .tab,.tabActive{min-height:46px;border-radius:13px;font-size:12px}
+  .tabActive{background:#fff;color:var(--agency-primary);box-shadow:0 2px 6px rgba(16,35,52,.055)}
+  .search{min-height:48px;border-radius:16px;border-color:#e6eaee;background:#fbfcfd}
+  .grid{gap:10px}
+  .clubCard,.personCard{position:relative;overflow:hidden;gap:12px;padding:16px;border-radius:19px;border-color:#e5e9ed;background:linear-gradient(180deg,#fff,#fcfdfe)}
+  .clubCard::before,.personCard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:color-mix(in srgb,var(--agency-accent) 68%,#dfe5ea)}
+  .clubMark,.personMark{width:50px;height:50px;border-radius:15px;background:color-mix(in srgb,var(--agency-accent) 9%,#f2f5f7)}
+  .personMark{border-radius:50%}
+  .identity h3{font-size:17px;letter-spacing:-.025em}
+  .identity>p:last-child{font-size:11px;line-height:1.4}
+}@media(max-width:680px){
+  .primaryFact{gap:4px;padding:11px 12px;border:1px solid #edf0f2;border-radius:13px;background:#f8fafb}
+  .primaryFact span{display:block;color:#9099a2;font-size:8px;letter-spacing:.08em}
+  .primaryFact strong{font-size:13px;line-height:1.35}
+  .primaryFact small{display:block;font-size:9px;line-height:1.35}
+  .nextMove{gap:4px;padding:11px 12px;border:0;border-left:3px solid color-mix(in srgb,var(--agency-accent) 74%,#d9dfe4);border-radius:0 12px 12px 0;background:color-mix(in srgb,var(--agency-primary) 3%,#f7f9fb)}
+  .nextMove span{display:block;color:#8f98a1;font-size:8px;letter-spacing:.08em}
+  .nextMove strong{font-size:12px;line-height:1.45}
+  .actions{margin-top:1px}
+  .primaryAction{width:100%;min-height:46px;border-radius:13px;font-size:11px}
+  .secondaryAction{min-height:46px;border-radius:13px}
+  .empty{min-height:220px;border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(245,233,0,.07),transparent 160px),#fbfcfd}
+}

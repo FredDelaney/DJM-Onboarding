@@ -1770,3 +1770,35 @@
     align-items:flex-start;
   }
 }
+/* World-class player profile pass v2 */
+.heroFacts{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.heroFacts span{min-height:24px;display:inline-flex;align-items:center;padding:0 8px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.78);font-size:9px;font-weight:750}
+.profileLinks{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px}
+.profileLinks a{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.085);color:#fff;font-size:9px;font-weight:820;text-decoration:none;transition:background 140ms ease,transform 140ms ease}
+.profileLinks a:first-child{background:#fff;color:var(--profile-primary)}
+@media(hover:hover){
+  .profileLinks a:hover{transform:translateY(-1px);background:rgba(255,255,255,.14)}
+  .profileLinks a:first-child:hover{background:#f5f7f8}
+}@media(max-width:720px){
+  .hero{justify-items:stretch;gap:16px;padding:20px 18px 18px;border:0;background:radial-gradient(circle at 82% -12%,color-mix(in srgb,var(--profile-accent) 24%,transparent),transparent 240px),linear-gradient(145deg,color-mix(in srgb,var(--profile-primary) 94%,#000),var(--profile-primary));color:#fff}
+  .heroIdentity{flex-direction:row;align-items:flex-start;gap:15px;text-align:left}
+  .photo{flex:0 0 88px;width:88px;height:106px;border:1px solid rgba(255,255,255,.15);border-radius:16px;background:rgba(255,255,255,.08);color:#fff;box-shadow:none}
+  .heroCopy{padding-top:2px}
+  .heroCopy h2{margin:0 0 6px;color:#fff;font-size:28px}
+  .heroCopy p{color:rgba(255,255,255,.68);font-size:11px;line-height:1.35}
+  .heroFacts{margin-top:9px;gap:5px}
+  .heroFacts span{min-height:22px;padding:0 7px;border-color:rgba(255,255,255,.11);background:rgba(255,255,255,.07);color:rgba(255,255,255,.78);font-size:8px}
+}@media(max-width:720px){
+  .statusRow{justify-content:flex-start;margin-top:9px}
+  .statusRow span,.statusRow .liveStatus,.statusRow .draftStatus{min-height:22px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);font-size:8px}
+  .statusRow .liveStatus{background:rgba(82,196,135,.18);color:#ddffeb}
+  .profileLinks{margin-top:10px;gap:6px}
+  .profileLinks a{min-height:30px;padding:0 9px;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.08);font-size:8.5px}
+  .profileLinks a:first-child{background:#fff;color:var(--profile-primary)}
+  .readiness{width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.06);text-align:left}
+  .readinessTop{justify-content:flex-start}
+  .readinessTop strong{color:rgba(255,255,255,.76);font-size:9px}
+  .heroActions{justify-content:flex-start}
+  .heroActions .primaryAction{background:#fff;color:var(--profile-primary)}
+  .hero .secondaryAction{border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.08);color:#fff}
+}

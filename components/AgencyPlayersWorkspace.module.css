@@ -903,3 +903,37 @@
     font-size: 9px;
   }
 }
+/* World-class roster and player workspace pass v2 */
+@media(max-width:680px){
+  .playerCard{display:grid;gap:11px;min-height:0;padding:15px;border-radius:19px;border-color:#e5e9ed;background:linear-gradient(180deg,#fff 0%,#fcfdfe 100%)}
+  .playerCardTop{grid-template-columns:56px minmax(0,1fr) auto;gap:12px}
+  .avatar{width:56px;height:56px;border-radius:16px;border:1px solid #edf0f2;background:#f4f6f8}
+  .playerIdentity h3{font-size:16px;letter-spacing:-.02em}
+  .playerIdentity span{margin-top:4px;color:#6d7782;font-size:11px}
+  .playerFacts{display:grid;grid-template-columns:minmax(0,1fr) minmax(98px,.6fr);gap:8px;padding-top:10px;border-top:1px solid #edf0f2}
+  .playerFacts>div{display:none}
+  .playerFacts>div:nth-child(1),.playerFacts>div:nth-child(3){display:grid;gap:3px;min-width:0}
+  .playerFacts>div:nth-child(3){justify-items:end;text-align:right}
+  .playerFacts span{color:#9aa2aa;font-size:8px;letter-spacing:.07em}
+}@media(max-width:680px){
+  .playerFacts strong{display:-webkit-box;overflow:hidden;color:#39424b;font-size:11px;line-height:1.35;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .playerFacts small{color:#9aa2aa;font-size:8px}
+  .profileShortcut{min-height:34px;padding:0 10px;border-color:#e4e8ec;background:#f8fafb;font-size:9px}
+  .playerPagePanel .playerHero{position:relative;overflow:hidden;grid-template-columns:64px minmax(0,1fr);gap:14px;padding:17px;border:0;border-radius:19px;background:radial-gradient(circle at 90% -10%,rgba(245,233,0,.16),transparent 170px),linear-gradient(145deg,#061f3a,#0a2b4b);color:#fff}
+  .playerPagePanel .playerHero::after{content:"";position:absolute;width:130px;height:130px;right:-54px;bottom:-70px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none}
+  .playerPagePanel .avatarLarge{width:64px;height:64px;border:1px solid rgba(255,255,255,.13);border-radius:17px;background:rgba(255,255,255,.08);color:#fff}
+  .playerPagePanel .playerHeroCopy p{color:#f5e900;font-size:8px}
+  .playerPagePanel .playerHeroCopy h2{color:#fff;font-size:25px}
+  .playerPagePanel .playerHeroCopy>span{color:rgba(255,255,255,.66);font-size:10px;line-height:1.4}
+}@media(max-width:680px){
+  .playerPagePanel .heroActions{position:relative;z-index:1;grid-column:1/-1;display:flex;justify-items:initial;gap:7px}
+  .playerPagePanel .heroActions .secondaryButton{border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.08);color:#fff}
+  .playerPagePanel .heroActions .primaryButton{border-color:#fff;background:#fff;color:#061f3a}
+  .playerPagePanel .profileStatus{display:none}
+  .playerPagePanel .playerTabs{padding:3px;border-color:#e7ebef;border-radius:14px;background:#f3f5f7}
+  .playerPagePanel .playerTab,.playerPagePanel .playerTabActive{min-height:42px;border-radius:11px;font-size:11px}
+  .playerPagePanel .playerTabActive{background:#fff;box-shadow:0 1px 3px rgba(20,32,45,.05)}
+  .detailHero,.detailSection{border-color:#e8ecf0;border-radius:17px}
+  .detailHero{background:linear-gradient(180deg,#fff,#fbfcfd)}
+  .detailHero h3{font-size:15px;line-height:1.4}
+}
