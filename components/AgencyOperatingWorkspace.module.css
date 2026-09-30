@@ -3346,3 +3346,25 @@
     height:17px;
   }
 }
+
+.homeReadNotice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 20px;
+  color: #606974;
+  font-size: 13px;
+}
+
+.homeChangeRow strong,
+.homeChangeRow span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.homeChangeRow small {
+  color: #606974;
+  font-size: 11px;
+}

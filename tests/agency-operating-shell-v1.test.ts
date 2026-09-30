@@ -92,7 +92,7 @@ test('temporary same-origin workspace stays membership-bound before custom domai
 test('operating surface stays tenant-neutral without DJM agency branding', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
   const layout = read('app/workspace/[tenantSlug]/layout.tsx');
-  assert.match(app, /REDREAM HANDLED/);
+  assert.match(app, /Recently handled by ReDream/);
   assert.doesNotMatch(app, /DJM Sports Management/);
   assert.doesNotMatch(layout, /DJM Sports Management/);
 });

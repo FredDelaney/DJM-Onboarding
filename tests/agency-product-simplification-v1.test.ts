@@ -57,7 +57,7 @@ test('Home stays focused on agent decisions today and quiet automation proof', (
   assert.match(workspace, /priority\.slice\(0, 3\)/);
   assert.match(workspace, /Good morning\./);
   assert.match(workspace, /things need/);
-  assert.match(workspace, /REDREAM HANDLED/);
+  assert.match(workspace, /Recently handled by ReDream/);
   assert.match(workspace, /Nothing else today/);
   assert.doesNotMatch(workspace, /AGENCY PULSE/);
   assert.doesNotMatch(workspace, /OPPORTUNITIES MOVING/);

@@ -116,7 +116,7 @@ test('Home paints from a small focus read before secondary context', () => {
   assert.match(shell, /invoke<any>\('home_focus'/);
   assert.match(
     shell,
-    /commit\(\{ \.\.\.\(latestData \|\| \{\}\), home \}\)[\s\S]*void Promise\.allSettled\(\[[\s\S]*redream_autopilot_operations/,
+    /commit\(\{ \.\.\.\(latestData \|\| \{\}\), home, home_reads:[^\n]+\}\)[\s\S]*void Promise\.allSettled\(\[[\s\S]*redream_autopilot_operations/,
   );
   assert.match(agencyOs, /action==="home_focus"/);
   assert.match(
