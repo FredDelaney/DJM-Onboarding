@@ -499,7 +499,6 @@ export default function AgencyOperatingWorkspace() {
 
           writeViewCache(cacheKey, {
             market,
-            deals: {},
             connected: {},
           });
           return;
@@ -682,8 +681,9 @@ export default function AgencyOperatingWorkspace() {
 
           commit({
             ...(latestData || {}),
-            market: latestData?.market || {},
+            market: latestData?.market,
             deals,
+            opportunity_errors: {},
             connected: latestData?.connected || {},
           });
           if (isCurrent()) setBusy(false);
@@ -698,10 +698,11 @@ export default function AgencyOperatingWorkspace() {
           ]).then((reads) => {
             if (!isCurrent()) return;
             merge({
+              opportunity_errors: { market: reads[0]?.status === 'rejected' },
               market:
                 reads[0]?.status === 'fulfilled'
                   ? reads[0].value
-                  : latestData?.market || {},
+                  : latestData?.market,
               connected:
                 reads[1]?.status === 'fulfilled'
                   ? reads[1].value
@@ -716,7 +717,8 @@ export default function AgencyOperatingWorkspace() {
           commit({
             ...(latestData || {}),
             market,
-            deals: latestData?.deals || {},
+            opportunity_errors: {},
+            deals: latestData?.deals,
             connected: latestData?.connected || {},
           });
           if (isCurrent()) setBusy(false);
@@ -731,10 +733,11 @@ export default function AgencyOperatingWorkspace() {
           ]).then((reads) => {
             if (!isCurrent()) return;
             merge({
+              opportunity_errors: { deals: reads[0]?.status === 'rejected' },
               deals:
                 reads[0]?.status === 'fulfilled'
                   ? reads[0].value
-                  : latestData?.deals || {},
+                  : latestData?.deals,
               connected:
                 reads[1]?.status === 'fulfilled'
                   ? reads[1].value
@@ -1351,7 +1354,16 @@ export default function AgencyOperatingWorkspace() {
           </section>
         ) : null}
 
-        {error ? <ErrorBox text={error} /> : null}
+        {error ? (
+          <div role="alert">
+            <ErrorBox text={error} />
+            <button type="button" className={styles.secondaryButton}
+              disabled={busy} onClick={() => void loadView()}>
+              <RefreshCw size={15} />
+              {busy ? 'Trying again...' : 'Try again'}
+            </button>
+          </div>
+        ) : null}
 
         {busy && !data ? (
           <section className={styles.loadingCard}>
@@ -1409,6 +1421,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'opportunities' ? (
               <AgencyOpportunitiesWorkspace
+                onRetry={() => void loadView()}
                 data={data}
                 basePath={basePath}
                 onOpenAction={(request) =>

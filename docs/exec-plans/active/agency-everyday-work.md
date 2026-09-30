@@ -81,3 +81,16 @@ Do not start new import, signing, marketplace or automation features before this
   or framework error overlay. The preview route was removed after verification.
 - This does not certify live authentication, end-to-end navigation or provider
   connections. No database, production deployment or external message changed.
+
+## Opportunities follow-up
+
+Unread Opportunities tabs no longer receive fabricated empty payloads or zero
+counts. A failed background read retains cached work, records the failure, and
+offers retry. Main-screen load failures now offer a visible retry on mobile as
+well as desktop. Opportunity filters expose their selected state.
+
+Validation: all 1,311 tests, TypeScript and production build pass. A temporary
+390px synthetic Opportunities preview verified unread, failure, retry and
+confirmed-empty states without horizontal overflow, console errors or an error
+overlay. The preview was removed. Authenticated five-screen acceptance remains
+open; these checks do not certify live data or complete Phase 1.
