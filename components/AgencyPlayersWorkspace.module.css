@@ -936,4 +936,126 @@
   .detailHero,.detailSection{border-color:#e8ecf0;border-radius:17px}
   .detailHero{background:linear-gradient(180deg,#fff,#fbfcfd)}
   .detailHero h3{font-size:15px;line-height:1.4}
+}/* World-class recruitment and player detail pass v3 */
+@media(max-width:680px){
+  .recruitmentLayout{gap:10px}
+  .mobileStageSelect{
+    min-height:52px;
+    padding:0 14px;
+    border-color:#e5e9ed;
+    border-radius:16px;
+    background:linear-gradient(180deg,#fbfcfd,#f7f9fb);
+  }
+  .mobileStageSelect>span{
+    color:#8e98a1;
+    font-size:8px;
+    letter-spacing:.09em;
+  }
+  .recruitmentList{gap:10px}
+  .recruitmentRow{
+    position:relative;
+    overflow:hidden;
+    min-height:88px;
+    grid-template-columns:48px minmax(0,1fr) auto;
+    gap:12px;
+    padding:14px 15px;
+    border-color:#e5e9ed;
+    border-radius:18px;
+    background:linear-gradient(180deg,#fff,#fcfdfe);
+  }
+  .recruitmentRow:has(.overduePill){
+    border-color:#eadfd5;
+    background:linear-gradient(180deg,#fffdfb,#fffaf6);
+  }
+  .recruitmentRow:has(.overduePill)::before{
+    content:"";
+    position:absolute;
+    left:-1px;
+    top:14px;
+    bottom:14px;
+    width:3px;
+    border-radius:0 3px 3px 0;
+    background:#d69663;
+  }
+  .recruitmentMark{
+    width:48px;
+    height:48px;
+    border:1px solid #e9edf0;
+    border-radius:14px;
+    background:linear-gradient(145deg,#f5f7f9,#edf1f4);
+    font-size:12px;
+  }
+  .recruitmentTitle{
+    min-width:0;
+    align-items:center;
+    gap:7px;
+  }
+  .recruitmentTitle strong{
+    overflow:hidden;
+    font-size:15px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .overduePill{
+    flex:0 0 auto;
+    padding:4px 6px;
+    font-size:7px;
+  }
+  .recruitmentCopy>span{
+    margin-top:4px;
+    color:#6f7983;
+    font-size:11px;
+  }
+  .recruitmentCopy>small{
+    margin-top:4px;
+    color:#929aa3;
+    font-size:9px;
+  }
+  .recruitmentStage{
+    align-self:start;
+    min-height:28px;
+    gap:3px;
+    padding:0 7px;
+    border:1px solid #e7ebee;
+    border-radius:999px;
+    background:#f7f9fa;
+  }
+  .recruitmentStage span{
+    color:#596671;
+    font-size:8px;
+    font-weight:780;
+  }
+  .recruitmentStage svg{
+    width:12px;
+  }
+  .playerPagePanel .detailHero{
+    position:relative;
+    overflow:hidden;
+    padding:16px;
+    border:0;
+    border-radius:17px;
+    background:
+      radial-gradient(circle at 95% 0%,color-mix(in srgb,var(--agency-accent) 12%,transparent),transparent 150px),
+      linear-gradient(180deg,#f8fafb,#f4f7f9);
+  }
+  .playerPagePanel .detailHero::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:14px;
+    bottom:14px;
+    width:3px;
+    border-radius:0 3px 3px 0;
+    background:var(--agency-accent);
+  }
+  .playerPagePanel .detailHero h3{
+    color:#25313a;
+    font-size:16px;
+    line-height:1.42;
+  }
+  .recentActivity{
+    border-color:#e8ecef;
+    border-radius:13px;
+    background:#fbfcfd;
+  }
 }

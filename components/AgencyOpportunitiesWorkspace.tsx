@@ -587,6 +587,20 @@ export default function AgencyOpportunitiesWorkspace({
                 <article
                   className={styles.row}
                   key={item.club_need_id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() =>
+                    hasRoute
+                      ? openNeedRoute(item, topCandidate)
+                      : prepareSearch(item)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    hasRoute
+                      ? openNeedRoute(item, topCandidate)
+                      : prepareSearch(item);
+                  }}
                 >
                   <div className={styles.icon}>
                     <Target size={16} />
@@ -630,11 +644,12 @@ export default function AgencyOpportunitiesWorkspace({
                   <button
                     type="button"
                     className={styles.action}
-                    onClick={() =>
+                    onClick={(event) => {
+                      event.stopPropagation();
                       hasRoute
                         ? openNeedRoute(item, topCandidate)
-                        : prepareSearch(item)
-                    }
+                        : prepareSearch(item);
+                    }}
                   >
                     {hasRoute ? 'Open route' : 'Start search'}
                     <ArrowRight size={14} />
@@ -661,6 +676,14 @@ export default function AgencyOpportunitiesWorkspace({
                 <article
                   className={styles.row}
                   key={item.player_match_id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openRoute(item)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    openRoute(item);
+                  }}
                 >
                   <div className={styles.icon}>
                     <Users size={16} />
@@ -691,7 +714,10 @@ export default function AgencyOpportunitiesWorkspace({
                   <button
                     type="button"
                     className={styles.action}
-                    onClick={() => openRoute(item)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openRoute(item);
+                    }}
                   >
                     Open pursuit
                     <ArrowRight size={14} />
@@ -732,6 +758,14 @@ export default function AgencyOpportunitiesWorkspace({
                 <article
                   className={styles.row}
                   key={deal.deal_room_id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleDeal(deal)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    handleDeal(deal);
+                  }}
                 >
                   <div className={styles.icon}>
                     <BriefcaseBusiness size={16} />
@@ -764,7 +798,10 @@ export default function AgencyOpportunitiesWorkspace({
                         ? styles.actionAttention
                         : styles.action
                     }
-                    onClick={() => handleDeal(deal)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDeal(deal);
+                    }}
                   >
                     {controlInstruction
                       ? /owner|ownership/i.test(
