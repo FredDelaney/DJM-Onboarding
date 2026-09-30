@@ -327,7 +327,9 @@ export default function AgencyOperatingWorkspace() {
   const createAction:
     | { kind: AgencyCreateKind; label: string }
     | null =
-    view === 'players' && !selectedPlayerId
+    view === 'players' &&
+    !selectedPlayerId &&
+    search.get('tab') !== 'recruitment'
       ? { kind: 'player', label: 'Add player' }
       : view === 'opportunities'
         ? { kind: 'club_need', label: 'Add opportunity' }
