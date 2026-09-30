@@ -118,3 +118,11 @@ test('published Player Profile reads current trusted stats instead of freezing p
   assert.match(publicEdge, /customStats\?profileResult\.data\.key_stats:auto\.stats/);
   assert.match(publicEdge, /stats_meta/);
 });
+
+test('agent-side Player Profile exposes club evaluation evidence without opening edit mode', () => {
+  assert.match(manager, /styles\.profileLinks/);
+  assert.match(manager, />\s*Watch video\s*</);
+  assert.match(manager, />\s*Transfermarkt\s*/);
+  assert.match(manager, />\s*Wyscout\s*/);
+  assert.match(manager, /draftProfile\.primary_video_url/);
+});
