@@ -227,7 +227,7 @@ export default function AgencyConnectionsDrawer({
         params.toString();
 
       window.history.replaceState(
-        window.history.state,
+        null,
         '',
         `${window.location.pathname}${query ? `?${query}` : ''}`,
       );

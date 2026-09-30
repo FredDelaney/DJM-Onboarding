@@ -938,7 +938,7 @@ export default function AgencyOperatingWorkspace() {
     const query = next.toString();
 
     window.history.replaceState(
-      window.history.state,
+      null,
       '',
       `${basePath}${query ? `?${query}` : ''}`,
     );
@@ -971,7 +971,7 @@ export default function AgencyOperatingWorkspace() {
     const query = next.toString();
 
     window.history.replaceState(
-      window.history.state,
+      null,
       '',
       `${basePath}${query ? `?${query}` : ''}`,
     );
@@ -986,7 +986,7 @@ export default function AgencyOperatingWorkspace() {
     next.delete('club');
     const query = next.toString();
     window.history.replaceState(
-      window.history.state,
+      null,
       '',
       `${basePath}${query ? `?${query}` : ''}`,
     );
@@ -1664,7 +1664,7 @@ export default function AgencyOperatingWorkspace() {
           onOpenMarket={() => {
             setClubAccountRequest(null);
             window.history.pushState(
-              window.history.state,
+              null,
               '',
               `${basePath}?view=opportunities`,
             );
@@ -1676,7 +1676,7 @@ export default function AgencyOperatingWorkspace() {
           onOpenPlayer={(playerId) => {
             setClubAccountRequest(null);
             window.history.pushState(
-              window.history.state,
+              null,
               '',
               `${basePath}?view=players&player=${encodeURIComponent(
                 playerId,

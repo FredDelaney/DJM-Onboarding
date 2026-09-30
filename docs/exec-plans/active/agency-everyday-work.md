@@ -126,3 +126,18 @@ Alpha. Bravo remains displayed and its URL remains selected. The temporary fixtu
 used deferred promises and synthetic records, and was removed afterward.
 PR #174 remains open. Staging deployment and authenticated acceptance remain pending
 the previously reported Vercel deployment limit.
+
+## Authenticated staging repair checkpoint
+
+The five main screens were exercised at 390px using the signed-in local app and
+staging backend. Missing Calendar, Home and contact-detail functions were repaired
+in staging. Contact navigation also required a native-history correction: copying
+Next's internal state changed the URL without updating the rendered screen.
+Open person and browser Back/Forward now work. Contact read failures no longer
+display fabricated empty relationship sections. All 1,314 tests, TypeScript and
+the production build pass.
+
+See [the exact migration and deployment manifest](../../operations/2026-09-30-agency-staging-repair.md).
+Hosted frontend deployment remains blocked by the reported Vercel quota. This
+checkpoint does not certify every detail flow, performance, or human usability;
+Phase 2 remains gated on the remaining Phase 1 acceptance work.

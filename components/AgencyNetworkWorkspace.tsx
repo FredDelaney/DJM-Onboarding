@@ -403,7 +403,7 @@ export default function AgencyNetworkWorkspace({
     params.set('view', 'network');
     params.set('person', id);
     params.delete('club');
-    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+    window.history.pushState(null, '', `${basePath}?${params.toString()}`);
   };
 
   const closePerson = () => {
@@ -411,7 +411,7 @@ export default function AgencyNetworkWorkspace({
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'network');
     params.delete('person');
-    window.history.pushState(window.history.state, '', `${basePath}?${params.toString()}`);
+    window.history.pushState(null, '', `${basePath}?${params.toString()}`);
   };
 
   const openClub = (club: any) => {
@@ -423,7 +423,7 @@ export default function AgencyNetworkWorkspace({
     params.set('club', id);
     params.delete('person');
     window.history.pushState(
-      window.history.state,
+      null,
       '',
       `${basePath}?${params.toString()}`,
     );
@@ -466,6 +466,7 @@ export default function AgencyNetworkWorkspace({
   if (selectedContact && personId(selectedContact) === requestedPersonId) {
     return (
       <AgencyContactIntelligenceDrawer
+        key={requestedPersonId}
         contact={selectedContact}
         rpc={rpc}
         presentation="page"
