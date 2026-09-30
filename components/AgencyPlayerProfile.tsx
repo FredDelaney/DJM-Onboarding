@@ -1036,6 +1036,21 @@ export default function AgencyPlayerProfile({
                 .join(' · ') || 'Player details'}
             </p>
 
+            <div className={styles.heroFacts}>
+              {draftProfile.age_display ? (
+                <span>{draftProfile.age_display}</span>
+              ) : null}
+              {player.preferred_foot ? (
+                <span>{human(player.preferred_foot)} foot</span>
+              ) : null}
+              {player.height_cm ? (
+                <span>{player.height_cm} cm</span>
+              ) : null}
+              {Array.isArray(player.nationalities) && player.nationalities[0] ? (
+                <span>{player.nationalities[0]}</span>
+              ) : null}
+            </div>
+
             <div className={styles.statusRow}>
               <span
                 className={
@@ -1054,6 +1069,38 @@ export default function AgencyPlayerProfile({
                   : 'Verification needed'}
               </span>
             </div>
+
+            {(draftProfile.primary_video_url ||
+              player.transfermarkt_url ||
+              player.wyscout_url ||
+              player.stats_url) ? (
+              <div className={styles.profileLinks}>
+                {draftProfile.primary_video_url ? (
+                  <a href={draftProfile.primary_video_url} target="_blank" rel="noreferrer">
+                    <Play size={13} />
+                    Watch video
+                  </a>
+                ) : null}
+                {player.transfermarkt_url ? (
+                  <a href={player.transfermarkt_url} target="_blank" rel="noreferrer">
+                    Transfermarkt
+                    <ExternalLink size={11} />
+                  </a>
+                ) : null}
+                {player.wyscout_url ? (
+                  <a href={player.wyscout_url} target="_blank" rel="noreferrer">
+                    Wyscout
+                    <ExternalLink size={11} />
+                  </a>
+                ) : null}
+                {!player.wyscout_url && player.stats_url ? (
+                  <a href={player.stats_url} target="_blank" rel="noreferrer">
+                    Stats
+                    <ExternalLink size={11} />
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
 
