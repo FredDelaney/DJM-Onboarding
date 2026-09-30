@@ -885,11 +885,19 @@ export default function AgencyNetworkWorkspace({
                   </div>
                 ) : null}
 
-                <div className={styles.actions}>
+                <div
+                  className={
+                    topPlay?.play_id
+                      ? styles.actions
+                      : `${styles.actions} ${styles.actionsSolo}`
+                  }
+                >
                   <button
                     type="button"
                     className={styles.secondaryAction}
                     onClick={() => openClub(club)}
+                    aria-label={`Open ${clubName}`}
+                    title="Open club"
                   >
                     <BriefcaseBusiness size={14} />
                     Open club

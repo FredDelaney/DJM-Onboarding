@@ -1354,7 +1354,7 @@
   .actions{margin-top:1px}
   .primaryAction{width:100%;min-height:46px;border-radius:13px;font-size:11px}
   .secondaryAction{min-height:46px;border-radius:13px}
-  .empty{min-height:220px;border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(245,233,0,.07),transparent 160px),#fbfcfd}
+  .empty{min-height:220px;border-radius:20px;background:radial-gradient(circle at 50% 0%,color-mix(in srgb,var(--agency-accent) 8%,transparent),transparent 160px),#fbfcfd}
 }
 
 /* Contextual Network creation v1 */
@@ -1396,5 +1396,49 @@
     min-height: 44px;
     padding-inline: 14px;
     font-size: 10px;
+  }
+}
+
+
+/* Mobile club account access v2 */
+@media (max-width: 680px) {
+  .clubCard .actions {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .clubCard .secondaryAction {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    padding: 0;
+    border: 1px solid #e3e8ec;
+    border-radius: 12px;
+    background: #fff;
+    color: #66727c;
+    font-size: 0;
+  }
+
+  .clubCard .secondaryAction svg {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+  }
+
+  .clubCard .primaryAction {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .clubCard .actionsSolo {
+    grid-template-columns: 1fr;
+  }
+
+  .clubCard .actionsSolo .secondaryAction {
+    width: 100%;
+    padding: 0 14px;
+    font-size: 11px;
   }
 }

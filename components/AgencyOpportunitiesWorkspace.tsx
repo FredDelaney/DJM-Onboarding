@@ -841,7 +841,7 @@ export default function AgencyOpportunitiesWorkspace({
               {search
                 ? 'Try a different search.'
                 : view === 'needs'
-                  ? 'Add a real club need and ReDream can organise the player routes around it.'
+                  ? 'Add a real club need and the player routes around it can be organised here.'
                   : view === 'routes'
                     ? 'Routes appear when a player is linked to a recorded club need.'
                     : 'Commercial work appears here once a player-club route becomes a live deal.'}
