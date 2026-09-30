@@ -4,6 +4,7 @@ export type TenantFeatureRuntime = {
 
 export type TenantRuntime = {
   resolved: boolean;
+  resolution_status?: 'resolved' | 'unresolved' | 'unavailable';
   tenant_id: string | null;
   slug: string;
   tenant_type: string;
@@ -43,6 +44,7 @@ export type TenantRuntime = {
 
 export const UNRESOLVED_TENANT_RUNTIME: TenantRuntime = {
   resolved: false,
+  resolution_status: 'unresolved',
   tenant_id: null,
   slug: 'unresolved',
   tenant_type: 'unknown',
@@ -166,9 +168,11 @@ export function normaliseTenantHostname(
 
 function fallbackRuntime(
   hostname: string | null,
+  resolutionStatus: 'unresolved' | 'unavailable' = 'unresolved',
 ): TenantRuntime {
   return {
     ...UNRESOLVED_TENANT_RUNTIME,
+    resolution_status: resolutionStatus,
     branding: {
       ...UNRESOLVED_TENANT_RUNTIME.branding,
     },
@@ -182,62 +186,6 @@ function fallbackRuntime(
     },
     settings: {
       ...UNRESOLVED_TENANT_RUNTIME.settings,
-    },
-    features: {},
-  };
-}
-
-const TRUSTED_DJM_HOSTNAMES = new Set([
-  'app.djmsports.com',
-  'djm-player.vercel.app',
-  'djm-player-jesseedge10-8415s-projects.vercel.app',
-]);
-
-function trustedDjmOutageRuntime(
-  hostname: string,
-): TenantRuntime | null {
-  if (!TRUSTED_DJM_HOSTNAMES.has(hostname)) {
-    return null;
-  }
-
-  return {
-    resolved: true,
-    tenant_id: null,
-    slug: 'djm-sports-management',
-    tenant_type: 'sports_management',
-    runtime_version: 0,
-    branding: {
-      display_name: 'DJM Sports Management',
-      short_name: 'DJM',
-      portal_name: 'DJM Player',
-      logo_asset: null,
-      compact_logo_asset: null,
-      light_logo_asset: null,
-      favicon_asset: null,
-      primary_color: '#061F3A',
-      secondary_color: '#FFFFFF',
-      accent_color: '#F5E900',
-      support_email: null,
-      website_url: 'https://www.djmsports.com',
-      phone: null,
-    },
-    domain: {
-      hostname,
-      domain_type:
-        hostname === 'app.djmsports.com'
-          ? 'custom'
-          : 'platform_subdomain',
-    },
-    plan: {
-      key: null,
-      name: null,
-      rank: 0,
-      limits: {},
-    },
-    settings: {
-      locale: 'en-GB',
-      timezone: 'Europe/Rome',
-      default_currency: 'EUR',
     },
     features: {},
   };
@@ -277,6 +225,7 @@ function coerceRuntime(
 
   return {
     resolved: true,
+    resolution_status: 'resolved',
     tenant_id:
       cleanString(source.tenant_id),
     slug,
@@ -373,7 +322,7 @@ export async function resolveTenantRuntime(
       .NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl) {
-    return fallbackRuntime(hostname);
+    return fallbackRuntime(hostname, 'unavailable');
   }
 
   const endpoint = new URL(
@@ -391,41 +340,31 @@ export async function resolveTenantRuntime(
     requestHeaders.apikey = publishableKey;
   }
 
-  const retryDelays = [0, 150, 500];
+  try {
+    const response = await fetch(endpoint, {
+      headers: requestHeaders,
+      next: {
+        revalidate: 60,
+      },
+      signal: AbortSignal.timeout(3500),
+    });
 
-  for (const delayMs of retryDelays) {
-    if (delayMs > 0) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, delayMs),
+    if (!response.ok) {
+      return fallbackRuntime(
+        hostname,
+        response.status === 404
+          ? 'unresolved'
+          : 'unavailable',
       );
     }
 
-    try {
-      const response = await fetch(endpoint, {
-        headers: requestHeaders,
-        cache: 'no-store',
-        signal: AbortSignal.timeout(2500),
-      });
+    const payload = await response.json();
 
-      if (response.ok) {
-        const payload = await response.json();
-
-        return coerceRuntime(
-          payload,
-          hostname,
-        );
-      }
-
-      if (response.status < 500) {
-        return fallbackRuntime(hostname);
-      }
-    } catch {
-      // Retry transient network and upstream failures.
-    }
+    return coerceRuntime(
+      payload,
+      hostname,
+    );
+  } catch {
+    return fallbackRuntime(hostname, 'unavailable');
   }
-
-  return (
-    trustedDjmOutageRuntime(hostname) ||
-    fallbackRuntime(hostname)
-  );
 }

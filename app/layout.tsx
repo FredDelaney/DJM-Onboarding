@@ -33,6 +33,7 @@ import {
 import {
   TenantRouteGate,
 } from '../components/TenantRouteGate';
+import TenantRuntimeUnavailable from '../components/TenantRuntimeUnavailable';
 
 import {
   isReDreamCanonicalHostname,
@@ -205,6 +206,18 @@ export async function generateMetadata():
     };
   }
 
+  if (runtime.resolution_status === 'unavailable') {
+    return {
+      title: 'Workspace temporarily unavailable',
+      description:
+        'The workspace service is temporarily unavailable. Please retry shortly.',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
   return {
     title: 'Workspace unavailable',
     description:
@@ -282,6 +295,10 @@ export default async function RootLayout({
           ? 'true'
           : 'false'
       }
+      data-tenant-resolution={
+        runtime.resolution_status ||
+        (runtime.resolved ? 'resolved' : 'unresolved')
+      }
       style={tenantStyle}
     >
       <body>
@@ -300,28 +317,32 @@ export default async function RootLayout({
                   className="tenant-unresolved-shell"
                   role="main"
                 >
-                  <section
-                    className="tenant-unresolved-card"
-                    aria-labelledby="tenant-unresolved-title"
-                  >
-                    <p className="tenant-unresolved-eyebrow">
-                      Private workspace
-                    </p>
+                  {runtime.resolution_status === 'unavailable' ? (
+                    <TenantRuntimeUnavailable />
+                  ) : (
+                    <section
+                      className="tenant-unresolved-card"
+                      aria-labelledby="tenant-unresolved-title"
+                    >
+                      <p className="tenant-unresolved-eyebrow">
+                        Private workspace
+                      </p>
 
-                    <h1 id="tenant-unresolved-title">
-                      Workspace unavailable
-                    </h1>
+                      <h1 id="tenant-unresolved-title">
+                        Workspace unavailable
+                      </h1>
 
-                    <p>
-                      This domain is not connected to an
-                      active workspace.
-                    </p>
+                      <p>
+                        This domain is not connected to an
+                        active workspace.
+                      </p>
 
-                    <p className="tenant-unresolved-help">
-                      Check the address or contact the
-                      organisation that sent you this link.
-                    </p>
-                  </section>
+                      <p className="tenant-unresolved-help">
+                        Check the address or contact the
+                        organisation that sent you this link.
+                      </p>
+                    </section>
+                  )}
                 </main>
               }
             >
