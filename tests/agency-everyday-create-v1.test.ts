@@ -46,7 +46,7 @@ test('every daily data area has one obvious real create action', () => {
   assert.doesNotMatch(workspace, /Add \/ import players/);
 });
 
-test('one reusable create drawer keeps the forms small and football specific', () => {
+test('one reusable create drawer stays minimum-first and football specific', () => {
   assert.match(drawer, /title: 'Add player'/);
   assert.match(drawer, /title: 'Add club need'/);
   assert.match(drawer, /title: 'Add deal'/);
@@ -56,6 +56,11 @@ test('one reusable create drawer keeps the forms small and football specific', (
   assert.match(drawer, /Relationship note/);
   assert.match(drawer, /Expected commission/);
   assert.match(drawer, /Next action/);
+  assert.match(drawer, /const \[showDetails, setShowDetails\]/);
+  assert.match(drawer, /More details/);
+  assert.match(drawer, /styles\.optionalDetails/);
+  assert.match(css, /\.detailsToggle/);
+  assert.match(css, /\.optionalDetails/);
   assert.match(
     drawer,
     /does not invent a success probability when you create a deal/,
