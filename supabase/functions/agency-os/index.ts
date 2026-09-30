@@ -367,6 +367,17 @@ export default {fetch:async(req:Request)=>{
         p_transfermarkt_url:id(body?.transfermarkt_url)||null
       });
     }
+    if(action==="create_club"){
+      if(!operator()) return deny("Agency operator access required");
+      const clubName=id(body?.club_name);
+      if(!clubName) return json({error:"club_name is required"},400);
+      return result("created","platform_server_agency_create_club",{
+        p_tenant_id:tenantId,
+        p_actor_user_id:userId,
+        p_club_name:clubName,
+        p_country:id(body?.country)||null
+      });
+    }
     if(action==="create_club_need"){
       if(!operator()) return deny("Agency operator access required");
       return result("created","platform_server_agency_create_club_need",{

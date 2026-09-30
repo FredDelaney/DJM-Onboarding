@@ -14,6 +14,14 @@ const css = readFileSync(
   'components/AgencyCreateDrawer.module.css',
   'utf8',
 );
+const network = readFileSync(
+  'components/AgencyNetworkWorkspace.tsx',
+  'utf8',
+);
+const networkCss = readFileSync(
+  'components/AgencyNetworkWorkspace.module.css',
+  'utf8',
+);
 const edge = readFileSync(
   'supabase/functions/agency-os/index.ts',
   'utf8',
@@ -36,11 +44,18 @@ const migration = readFileSync(
   'utf8',
 );
 
+const clubCreateMigration = readFileSync(
+  'supabase/migrations/20260930161000_add_agency_network_club_create_v1.sql',
+  'utf8',
+);
+
 test('every daily data area has one obvious real create action', () => {
   assert.match(workspace, /label: 'Add player'/);
   assert.match(workspace, /kind: 'club_need', label: 'Add opportunity'/);
   assert.doesNotMatch(workspace, /label: 'Add deal'/);
-  assert.match(workspace, /label: 'Add contact'/);
+  assert.match(network, /view === 'clubs' \? 'Add club' : 'Add contact'/);
+  assert.match(network, /onCreate\(view === 'clubs' \? 'club' : 'contact'\)/);
+  assert.match(workspace, /onCreate=\{\(kind\) => setCreateKind\(kind\)\}/);
   assert.match(workspace, /AgencyCreateDrawer/);
   assert.match(workspace, /Import players/);
   assert.doesNotMatch(workspace, /Add \/ import players/);
@@ -48,6 +63,7 @@ test('every daily data area has one obvious real create action', () => {
 
 test('one reusable create drawer stays minimum-first and football specific', () => {
   assert.match(drawer, /title: 'Add player'/);
+  assert.match(drawer, /title: 'Add club'/);
   assert.match(drawer, /title: 'Add club need'/);
   assert.match(drawer, /title: 'Add deal'/);
   assert.match(drawer, /title: 'Add contact'/);
@@ -71,6 +87,7 @@ test('one reusable create drawer stays minimum-first and football specific', () 
 test('drawer actions go through the tenant-bound agency operating bridge', () => {
   assert.match(drawer, /invoke\('create_options'\)/);
   assert.match(drawer, /action = 'create_player'/);
+  assert.match(drawer, /action = 'create_club'/);
   assert.match(drawer, /action = 'create_club_need'/);
   assert.match(drawer, /action = 'create_contact'/);
   assert.match(drawer, /action = 'create_deal'/);
@@ -81,6 +98,7 @@ test('drawer actions go through the tenant-bound agency operating bridge', () =>
 test('agency-os resolves the tenant before calling service-only create writers', () => {
   assert.match(edge, /const tenantId=String\(workspace\.tenant_id\)/);
   assert.match(edge, /if\(action==="create_player"\)/);
+  assert.match(edge, /if\(action==="create_club"\)/);
   assert.match(edge, /if\(action==="create_club_need"\)/);
   assert.match(edge, /if\(action==="create_contact"\)/);
   assert.match(edge, /if\(action==="create_deal"\)/);
@@ -88,6 +106,7 @@ test('agency-os resolves the tenant before calling service-only create writers',
   assert.match(edge, /p_tenant_id:tenantId/);
   assert.match(edge, /p_actor_user_id:userId/);
   assert.match(edge, /platform_server_agency_create_player/);
+  assert.match(edge, /platform_server_agency_create_club/);
   assert.match(edge, /platform_server_agency_create_club_need/);
   assert.match(edge, /platform_server_agency_create_contact/);
   assert.match(edge, /platform_server_agency_create_deal/);
@@ -167,4 +186,42 @@ test('create drawer is a real responsive workspace surface', () => {
   assert.match(css, /\.drawer\s*\{/);
   assert.match(css, /@media \(max-width: 620px\)/);
   assert.match(css, /min-height: 100dvh/);
+});
+
+
+test('Network adds clubs as first-class tenant records without fabricating a contact or need', () => {
+  assert.match(clubCreateMigration, /platform_server_agency_create_club/);
+  assert.match(
+    clubCreateMigration,
+    /private\.platform_server_assert_agency_operator/,
+  );
+  assert.match(
+    clubCreateMigration,
+    /private\.platform_server_agency_ensure_club/,
+  );
+  assert.match(
+    clubCreateMigration,
+    /o\.tenant_id = p_tenant_id[\s\S]*o\.organisation_type = 'club'/,
+  );
+  assert.match(clubCreateMigration, /'platform\.agency\.club_created'/);
+  assert.match(clubCreateMigration, /'platform\.agency\.club_reused'/);
+  assert.match(clubCreateMigration, /insert into platform\.audit_events/);
+  assert.match(clubCreateMigration, /to service_role/);
+  assert.doesNotMatch(
+    clubCreateMigration,
+    /grant execute[\s\S]{0,160}to authenticated/,
+  );
+  assert.doesNotMatch(clubCreateMigration, /insert into djm_os\.people/);
+  assert.doesNotMatch(clubCreateMigration, /insert into djm_os\.club_needs/);
+});
+
+test('Network creation stays contextual and mobile touch safe', () => {
+  assert.match(network, /styles\.toolbarTools/);
+  assert.match(network, /styles\.addEntityButton/);
+  assert.match(networkCss, /Contextual Network creation v1/);
+  assert.match(networkCss, /\.addEntityButton/);
+  assert.match(
+    networkCss,
+    /@media \(max-width: 680px\)[\s\S]*\.addEntityButton[\s\S]*min-height: 44px/,
+  );
 });

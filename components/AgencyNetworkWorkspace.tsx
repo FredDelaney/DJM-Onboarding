@@ -7,6 +7,7 @@ import {
   Clock3,
   GitBranch,
   Network,
+  Plus,
   Route,
   Search,
   TimerReset,
@@ -200,6 +201,7 @@ export default function AgencyNetworkWorkspace({
   basePath,
   rpc,
   onRefresh,
+  onCreate,
   onOpenAction,
   onOpenClubAccount,
 }: {
@@ -207,6 +209,7 @@ export default function AgencyNetworkWorkspace({
   basePath: string;
   rpc: Rpc;
   onRefresh: () => Promise<void>;
+  onCreate: (kind: 'club' | 'contact') => void;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenClubAccount: (request: AgencyClubAccountRequest) => void;
 }) {
@@ -645,24 +648,37 @@ export default function AgencyNetworkWorkspace({
           </button>
         </div>
 
-        <label className={styles.search}>
-          <Search size={15} />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={
-              view === 'clubs'
-                ? 'Search club, country or league'
-                : 'Search person, club, role or country'
-            }
-            aria-label="Search Network"
-          />
-          {search ? (
-            <button type="button" onClick={() => setSearch('')}>
-              Clear
+        <div className={styles.toolbarTools}>
+          <label className={styles.search}>
+            <Search size={15} />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={
+                view === 'clubs'
+                  ? 'Search club, country or league'
+                  : 'Search person, club, role or country'
+              }
+              aria-label="Search Network"
+            />
+            {search ? (
+              <button type="button" onClick={() => setSearch('')}>
+                Clear
+              </button>
+            ) : null}
+          </label>
+
+          {!requestedClubId ? (
+            <button
+              type="button"
+              className={styles.addEntityButton}
+              onClick={() => onCreate(view === 'clubs' ? 'club' : 'contact')}
+            >
+              <Plus size={14} />
+              {view === 'clubs' ? 'Add club' : 'Add contact'}
             </button>
           ) : null}
-        </label>
+        </div>
       </section>
 
       <section className={styles.signalBar}>
