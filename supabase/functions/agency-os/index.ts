@@ -94,6 +94,21 @@ export default {fetch:async(req:Request)=>{
       return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:documentsResult.data||[],shares,deals,clubs,branding:serverContext.branding,communication,auto_key_stats:autoStats.stats,auto_stats_meta:autoStats.meta};
     };
 
+    if(action==="home_focus"){
+      const limit=clamp(body?.limit,1,12,8);
+      const personal=obj(await rpc("platform_server_personal_home_commands",{p_tenant_id:tenantId,p_user_id:userId,p_limit:limit}));
+      const commands=Array.isArray(personal.commands)?personal.commands:[];
+      const delegable:any[]=[],confirm:any[]=[],judgement:any[]=[];
+      for(const command of commands){
+        const actionability=obj(command?.actionability);
+        const mode=id(actionability.mode);
+        const oneTap=mode==="one_tap"&&id(actionability.risk_level)==="low"&&actionability.undo_expected===true&&actionability.external_side_effect!==true;
+        if(oneTap)delegable.push(command);
+        else if(mode==="input_then_confirm")confirm.push(command);
+        else judgement.push(command);
+      }
+      return json({ok:true,home:{generated_at:personal.generated_at||new Date().toISOString(),workspace:{slug:workspace.slug||null,display_name:workspace.display_name||workspace.short_name||workspace.slug||"Agency"},attention:{status:personal.status||"normal",visible_signals:Number(personal.visible_signals||commands.length),critical_count:Number(personal.critical_count||0),high_count:Number(personal.high_count||0),suppressed_by_decision_memory:Number(personal.suppressed_by_user_decision||0),delegable,confirm,judgement}}});
+    }
 
     if(action==="account_overview"){
       const [profileResult,playersResult,accountContextRaw]=await Promise.all([

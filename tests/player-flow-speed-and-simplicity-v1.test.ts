@@ -33,7 +33,10 @@ const cache = readFileSync(
 
 test('Players loads only the visible list instead of both player and recruitment data', () => {
   assert.match(shell, /playersSection/);
-  assert.match(shell, /if \(inlineEntityWorkspaceOpen\)/);
+  assert.match(
+    shell,
+    /view === 'players' && inlineEntityWorkspaceOpen/,
+  );
   assert.match(shell, /playersSection === 'recruitment'/);
   assert.doesNotMatch(
     shell,
@@ -44,7 +47,7 @@ test('Players loads only the visible list instead of both player and recruitment
 test('inline player and profile routes skip expensive index loading', () => {
   assert.match(
     shell,
-    /if \(inlineEntityWorkspaceOpen\)[\s\S]*directory: \{\}[\s\S]*recruitment: \{\}/,
+    /view === 'players' && inlineEntityWorkspaceOpen[\s\S]*directory: \{\}[\s\S]*recruitment: \{\}/,
   );
 });
 
@@ -97,4 +100,46 @@ test('manual agency positioning is not requested when an automatic headline alre
     profile,
     /form\.why_review \|\|[\s\S]*form\.intro_line \|\|[\s\S]*draftProfile\.headline/,
   );
+});
+
+test('main workspaces use a short-lived stale-while-refresh cache', () => {
+  assert.match(shell, /viewDataCache/);
+  assert.match(shell, /VIEW_CACHE_TTL_MS = 60_000/);
+  assert.match(shell, /readViewCache\(cacheKey\)/);
+  assert.match(shell, /writeViewCache\(cacheKey, nextData\)/);
+  assert.match(shell, /loadSequenceRef/);
+});
+
+test('Home paints from a small focus read before secondary context', () => {
+  assert.match(shell, /invoke<any>\('home_focus'/);
+  assert.match(
+    shell,
+    /commit\(\{ \.\.\.\(latestData \|\| \{\}\), home \}\)[\s\S]*void Promise\.allSettled\(\[[\s\S]*redream_autopilot_operations/,
+  );
+  assert.match(agencyOs, /action==="home_focus"/);
+  assert.match(
+    agencyOs,
+    /platform_server_personal_home_commands/,
+  );
+});
+
+test('Opportunities does not block the core board on connected context', () => {
+  assert.match(
+    shell,
+    /const \[market, deals\] = await Promise\.all/,
+  );
+  assert.match(
+    shell,
+    /commit\([\s\S]*market,[\s\S]*deals,[\s\S]*setBusy\(false\)[\s\S]*redream_opportunity_connected_context/,
+  );
+  assert.match(
+    shell,
+    /\.then\(\(connected\) => \{[\s\S]*merge\(\{ connected \}\)/,
+  );
+});
+
+test('AI route context is lazy and does not compete with first paint', () => {
+  assert.match(ai, /if \(!open\) return/);
+  assert.match(ai, /window\.setTimeout/);
+  assert.match(ai, /750/);
 });
