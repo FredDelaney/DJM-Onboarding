@@ -1802,3 +1802,55 @@
   .heroActions .primaryAction{background:#fff;color:var(--profile-primary)}
   .hero .secondaryAction{border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.08);color:#fff}
 }
+
+/* Club-ready share handoff v1 */
+.sharePreparedMessage {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 15px;
+  border: 1px solid #e1e5e9;
+  border-radius: 13px;
+  background: #f8fafb;
+  color: #39434c;
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.shareSuccessActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.shareSuccess .shareUtilityButton {
+  border: 1px solid #dfe4e8;
+  background: #fff;
+  color: var(--profile-primary);
+}
+
+@media (max-width: 680px) {
+  .sharePreparedMessage {
+    padding: 13px;
+    font-size: 12px;
+  }
+
+  .shareSuccessActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .shareSuccessActions button {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .shareSuccessActions button:first-child {
+    grid-column: 1 / -1;
+  }
+}

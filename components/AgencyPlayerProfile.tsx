@@ -362,6 +362,7 @@ export default function AgencyPlayerProfile({
   const [shareMessage, setShareMessage] = useState('');
   const [shareExpiry, setShareExpiry] = useState('30');
   const [shareResultUrl, setShareResultUrl] = useState('');
+  const [shareResultMessage, setShareResultMessage] = useState('');
 
   const load = useCallback(async (fresh = false) => {
     const cached = getCachedPlayerProfile(playerId);
@@ -718,6 +719,26 @@ export default function AgencyPlayerProfile({
     }
   };
 
+  const buildShareMessage = (url: string) => {
+    const intro = `Hi, sharing ${name}'s Player Profile for your review.`;
+    const clubNote = shareMessage.trim();
+    const footballContext = [
+      draftProfile.primary_position,
+      draftProfile.current_club,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    return [
+      intro,
+      clubNote || null,
+      footballContext,
+      url,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+  };
+
   const createShare = async () => {
     if (!canEdit || actionBusy) return;
     const selectedDeal = deals.find(
@@ -748,12 +769,14 @@ export default function AgencyPlayerProfile({
         throw new Error('The profile link was not created.');
       }
       const url = `${window.location.origin}/s/${token}`;
+      const readyMessage = buildShareMessage(url);
       setShareResultUrl(url);
+      setShareResultMessage(readyMessage);
       try {
-        await navigator.clipboard.writeText(url);
-        setNotice('Private Player Profile link created and copied.');
+        await navigator.clipboard.writeText(readyMessage);
+        setNotice('Private Player Profile share created and message copied.');
       } catch {
-        setNotice('Private Player Profile link created.');
+        setNotice('Private Player Profile share created.');
       }
       await load(true);
     } catch (shareError) {
@@ -790,6 +813,40 @@ export default function AgencyPlayerProfile({
       setShareResultUrl(url);
       setShareOpen(true);
     }
+  };
+
+  const copyPreparedShare = async () => {
+    if (!shareResultMessage) return;
+
+    try {
+      await navigator.clipboard.writeText(shareResultMessage);
+      setNotice('Club-ready share message copied.');
+    } catch {
+      setNotice('Copy was blocked by the browser. You can still copy the message manually.');
+    }
+  };
+
+  const sharePreparedProfile = async () => {
+    if (!shareResultMessage) return;
+
+    if (typeof navigator.share === 'function') {
+      try {
+        const nativeText = shareResultUrl
+          ? shareResultMessage.replace(shareResultUrl, '').trim()
+          : shareResultMessage;
+
+        await navigator.share({
+          title: `${name} Player Profile`,
+          text: nativeText,
+          url: shareResultUrl || undefined,
+        });
+        return;
+      } catch (shareError: any) {
+        if (shareError?.name === 'AbortError') return;
+      }
+    }
+
+    await copyPreparedShare();
   };
 
   const addVideo = async () => {
@@ -833,6 +890,7 @@ export default function AgencyPlayerProfile({
 
   const openShareComposer = () => {
     setShareResultUrl('');
+    setShareResultMessage('');
     setShareMessage('');
     setShareExpiry('30');
     setShareDeal('');
@@ -2149,7 +2207,12 @@ export default function AgencyPlayerProfile({
         <div
           className={styles.modalBackdrop}
           onClick={(event) => {
-            if (event.target === event.currentTarget) setShareOpen(false);
+            if (
+              event.target === event.currentTarget &&
+              actionBusy !== 'share'
+            ) {
+              setShareOpen(false);
+            }
           }}
         >
           <section
@@ -2161,16 +2224,18 @@ export default function AgencyPlayerProfile({
             <header>
               <div>
                 <span className={styles.eyebrow}>SHARE PLAYER PROFILE</span>
-                <h2>Who is this profile for?</h2>
+                <h2>{shareResultUrl ? 'Ready to send.' : 'Who is this profile for?'}</h2>
                 <p>
-                  Create one private link for the club. Opens are tracked and the
-                  link stays attached to the player.
+                  {shareResultUrl
+                    ? 'The private link is live and the club message is prepared.'
+                    : 'Create one private link for the club. Opens are tracked and the link stays attached to the player.'}
                 </p>
               </div>
               <button
                 type="button"
                 className={styles.iconButton}
                 onClick={() => setShareOpen(false)}
+                disabled={actionBusy === 'share'}
                 aria-label="Close"
               >
                 <X size={17} />
@@ -2180,15 +2245,55 @@ export default function AgencyPlayerProfile({
             {shareResultUrl ? (
               <div className={styles.shareSuccess}>
                 <Check size={20} />
-                <strong>Profile link ready.</strong>
-                <p>{shareResultUrl}</p>
-                <button
-                  type="button"
-                  onClick={() => copyShare(shareResultUrl.split('/').pop() || '')}
-                >
-                  <Copy size={15} />
-                  Copy link
-                </button>
+                {shareResultMessage ? (
+                  <>
+                    <strong>Club share ready.</strong>
+                    <p>
+                      Your introduction, key player context and private tracked
+                      profile link are ready.
+                    </p>
+                    <div className={styles.sharePreparedMessage}>
+                      {shareResultMessage}
+                    </div>
+                    <div className={styles.shareSuccessActions}>
+                      <button
+                        type="button"
+                        onClick={() => void sharePreparedProfile()}
+                      >
+                        <Send size={15} />
+                        Share now
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.shareUtilityButton}
+                        onClick={() => void copyPreparedShare()}
+                      >
+                        <Copy size={15} />
+                        Copy message
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.shareUtilityButton}
+                        onClick={() => copyShare(shareResultUrl.split('/').pop() || '')}
+                      >
+                        <Link2 size={15} />
+                        Copy link
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <strong>Profile link ready.</strong>
+                    <p>{shareResultUrl}</p>
+                    <button
+                      type="button"
+                      onClick={() => copyShare(shareResultUrl.split('/').pop() || '')}
+                    >
+                      <Copy size={15} />
+                      Copy link
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <div className={styles.form}>
@@ -2240,15 +2345,19 @@ export default function AgencyPlayerProfile({
                 </label>
 
                 <label>
-                  <span>Short introduction</span>
+                  <span>Club-specific note</span>
                   <textarea
                     rows={3}
                     value={shareMessage}
                     onChange={(event) =>
                       setShareMessage(event.target.value)
                     }
-                    placeholder="Optional note for this club."
+                    placeholder="Optional context for this club."
                   />
+                  <small>
+                    This appears in the private profile and the prepared message.
+                    Leave it blank and the introduction stays concise.
+                  </small>
                 </label>
 
                 <label>
@@ -2272,6 +2381,7 @@ export default function AgencyPlayerProfile({
                 type="button"
                 className={styles.secondaryAction}
                 onClick={() => setShareOpen(false)}
+                disabled={actionBusy === 'share'}
               >
                 {shareResultUrl ? 'Done' : 'Cancel'}
               </button>
@@ -2286,8 +2396,8 @@ export default function AgencyPlayerProfile({
                     actionBusy === 'share'
                   }
                 >
-                  <Link2 size={15} />
-                  Create and copy link
+                  <Send size={15} />
+                  Create club share
                 </button>
               ) : null}
             </footer>

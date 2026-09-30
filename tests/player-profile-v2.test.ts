@@ -126,3 +126,25 @@ test('agent-side Player Profile exposes club evaluation evidence without opening
   assert.match(manager, />\s*Wyscout\s*/);
   assert.match(manager, /draftProfile\.primary_video_url/);
 });
+
+
+test('new Player Profile shares prepare a club-ready message without auto-sending it', () => {
+  const createShareBlock = manager.slice(
+    manager.indexOf('const createShare ='),
+    manager.indexOf('const revokeShare ='),
+  );
+  const explicitShareBlock = manager.slice(
+    manager.indexOf('const sharePreparedProfile ='),
+    manager.indexOf('const addVideo ='),
+  );
+
+  assert.match(manager, /const buildShareMessage =/);
+  assert.match(manager, /shareResultMessage/);
+  assert.match(manager, /Create club share/);
+  assert.match(manager, /Share now/);
+  assert.match(manager, /Copy message/);
+  assert.match(explicitShareBlock, /navigator\.share/);
+  assert.doesNotMatch(createShareBlock, /navigator\.share/);
+  assert.match(createShareBlock, /navigator\.clipboard\.writeText\(readyMessage\)/);
+  assert.match(createShareBlock, /pitch_message: shareMessage \|\| null/);
+});
