@@ -94,3 +94,21 @@ Validation: all 1,311 tests, TypeScript and production build pass. A temporary
 confirmed-empty states without horizontal overflow, console errors or an error
 overlay. The preview was removed. Authenticated five-screen acceptance remains
 open; these checks do not certify live data or complete Phase 1.
+
+## Calendar and deployment checkpoint
+
+Calendar meeting preparation ignores stale responses after close or unmount.
+The drawer receives focus, contains keyboard navigation, closes with Escape and
+restores the opening control. Calendar range buttons expose their selected state.
+A deferred synthetic request verified that closing, then completing the request,
+does not reopen the drawer. Keyboard focus and dismissal passed in the browser.
+All 1,313 tests, TypeScript and production build passed after merging main through
+73d796c. Temporary preview routes were removed.
+
+PR: https://github.com/FredDelaney/DJM-Onboarding/pull/174
+An explicit staging preview deployment was attempted with authenticated Vercel
+CLI 61.1.0. Vercel rejected it with api-deployments-free-per-day (100/day), advising
+retry in 24 hours. No new deployment is live. The target was redream-systems-staging,
+project prj_uMBOnfwXjmglJXpJblkGqNrDWAmK, preview environment. No production or
+database changes were made. Resume deployment after the limit resets, then perform
+authenticated five-screen acceptance.

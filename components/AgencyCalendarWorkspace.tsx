@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import styles from './AgencyCalendarWorkspace.module.css';
 
@@ -113,6 +113,14 @@ export default function AgencyCalendarWorkspace({
   const [openedMeetingId, setOpenedMeetingId] = useState('');
   const [meetingBriefBusy, setMeetingBriefBusy] = useState(false);
   const [meetingBriefError, setMeetingBriefError] = useState('');
+  const meetingRequest = useRef(0);
+  useEffect(() => () => { meetingRequest.current += 1; }, []);
+  const closeMeetingBrief = () => {
+    meetingRequest.current += 1;
+    setMeetingBrief(null);
+    setMeetingBriefError('');
+    setMeetingBriefBusy(false);
+  };
 
   const agenda = useMemo(() => {
     const deadlines = list(data?.operations?.deadlines?.items).map(
@@ -354,6 +362,7 @@ export default function AgencyCalendarWorkspace({
   const openMeetingBrief = async (item: AgendaItem) => {
     if (!item.meetingId) return;
 
+    const request = ++meetingRequest.current;
     setMeetingBriefBusy(true);
     setMeetingBriefError('');
     setMeetingBrief({
@@ -370,15 +379,16 @@ export default function AgencyCalendarWorkspace({
         'redream_meeting_brief',
         { p_meeting_id: item.meetingId },
       );
-      setMeetingBrief(result);
+      if (request === meetingRequest.current) setMeetingBrief(result);
     } catch (error) {
+      if (request !== meetingRequest.current) return;
       setMeetingBriefError(
         error instanceof Error
           ? error.message
           : 'Could not load meeting preparation.',
       );
     } finally {
-      setMeetingBriefBusy(false);
+      if (request === meetingRequest.current) setMeetingBriefBusy(false);
     }
   };
 
@@ -493,6 +503,7 @@ export default function AgencyCalendarWorkspace({
               className={
                 horizon === days ? styles.rangeActive : styles.rangeButton
               }
+              aria-pressed={horizon === days}
               onClick={() => setHorizon(days)}
             >
               {days} days
@@ -607,13 +618,9 @@ export default function AgencyCalendarWorkspace({
           brief={meetingBrief}
           busy={meetingBriefBusy}
           error={meetingBriefError}
-          onClose={() => {
-            setMeetingBrief(null);
-            setMeetingBriefError('');
-          }}
+          onClose={closeMeetingBrief}
           onRecordOutcome={(meeting) => {
-            setMeetingBrief(null);
-            setMeetingBriefError('');
+            closeMeetingBrief();
             onRecordMeetingOutcome(meeting);
           }}
         />
@@ -635,6 +642,38 @@ function MeetingBriefDrawer({
   onClose: () => void;
   onRecordOutcome: (meeting: any) => void;
 }) {
+  const drawerRef = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+  useEffect(() => { closeRef.current = onClose; }, [onClose]);
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const drawer = drawerRef.current;
+    drawer?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeRef.current();
+      }
+      if (event.key !== 'Tab' || !drawer) return;
+      const controls = [...drawer.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]',
+      )].filter((element) => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!first) { event.preventDefault(); drawer.focus(); return; }
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === drawer)) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === drawer)) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    drawer?.addEventListener('keydown', onKey);
+    return () => {
+      drawer?.removeEventListener('keydown', onKey);
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
   const meeting = brief?.meeting || {};
   const memory = brief?.relationship_memory || {};
   const recent = list(memory?.recent_interactions).slice(0, 3);
@@ -667,6 +706,8 @@ function MeetingBriefDrawer({
     >
       <aside
         className={styles.briefDrawer}
+        ref={drawerRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label="Meeting preparation"
