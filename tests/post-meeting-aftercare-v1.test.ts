@@ -203,7 +203,7 @@ test(
     );
     assert.match(
       workspace,
-      /meeting_aftercare: meetingAftercare/,
+      /meeting_aftercare: readValue\(2\)/,
     );
     assert.match(
       workspace,

@@ -89,20 +89,25 @@ export default function AiLauncher() {
     setAccess(null);
     setWorkspaceContext(null);
     let active = true;
-    void cachedAiAccess(workspaceSlug)
-      .then((result) => {
-        if (active) setAccess(result || { enabled: false });
-      })
-      .catch(() => {
-        if (active) setAccess({ enabled: false });
-      });
+    const timer = window.setTimeout(() => {
+      void cachedAiAccess(workspaceSlug)
+        .then((result) => {
+          if (active) setAccess(result || { enabled: false });
+        })
+        .catch(() => {
+          if (active) setAccess({ enabled: false });
+        });
+    }, 750);
+
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
   }, [workspaceSlug]);
 
   useEffect(() => {
     setRouteContext(routeFallback);
+    if (!open) return;
 
     let active = true;
     void cachedAiRouteContext(pathname, workspaceSlug)
@@ -117,7 +122,7 @@ export default function AiLauncher() {
     return () => {
       active = false;
     };
-  }, [pathname, routeFallback, workspaceSlug]);
+  }, [open, pathname, routeFallback, workspaceSlug]);
 
   useEffect(() => {
     const onWorkspaceContext = (event: Event) => {

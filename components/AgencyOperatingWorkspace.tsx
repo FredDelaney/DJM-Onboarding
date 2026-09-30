@@ -33,6 +33,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -87,6 +88,32 @@ import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 import styles from './AgencyOperatingWorkspace.module.css';
 
 type View = 'home' | 'players' | 'opportunities' | 'network' | 'calendar' | 'business';
+
+type ViewCacheEntry = {
+  data: any;
+  expiresAt: number;
+};
+
+const viewDataCache = new Map<string, ViewCacheEntry>();
+const VIEW_CACHE_TTL_MS = 60_000;
+
+const readViewCache = (key: string) => {
+  const cached = viewDataCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt < Date.now()) {
+    viewDataCache.delete(key);
+    return null;
+  }
+  return cached.data;
+};
+
+const writeViewCache = (key: string, data: any) => {
+  if (!key || !data) return;
+  viewDataCache.set(key, {
+    data,
+    expiresAt: Date.now() + VIEW_CACHE_TTL_MS,
+  });
+};
 
 type Workspace = {
   tenant_id: string;
@@ -276,6 +303,7 @@ export default function AgencyOperatingWorkspace() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(true);
+  const loadSequenceRef = useRef(0);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
@@ -451,16 +479,61 @@ export default function AgencyOperatingWorkspace() {
   const loadView = useCallback(async () => {
     if (!workspace?.tenant_id) return;
 
-    setBusy(true);
+    const requestId = ++loadSequenceRef.current;
+    const isCurrent = () => loadSequenceRef.current === requestId;
+
+    if (view === 'players' && inlineEntityWorkspaceOpen) {
+      setError('');
+      setData({ directory: {}, recruitment: {} });
+      setBusy(false);
+      return;
+    }
+
+    const cacheKey = [
+      workspace.tenant_id,
+      view,
+      view === 'players' ? playersSection : 'main',
+    ].join(':');
+    const cached = readViewCache(cacheKey);
+    let latestData = cached;
+
+    const commit = (nextData: any) => {
+      latestData = nextData;
+      writeViewCache(cacheKey, nextData);
+      if (isCurrent()) setData(nextData);
+    };
+
+    const merge = (patch: Record<string, unknown>) => {
+      commit({ ...(latestData || {}), ...patch });
+    };
+
     setError('');
     setProposal(null);
 
+    if (cached) {
+      setData(cached);
+      setBusy(false);
+    } else {
+      setData(null);
+      setBusy(true);
+    }
+
     try {
       if (view === 'home') {
-        const reads = await Promise.allSettled([
-          rpc<any>('redream_autopilot_home', {
+        let home: any = null;
+        try {
+          const focus = await invoke<any>('home_focus', { limit: 8 });
+          home = focus?.home || {};
+        } catch {
+          home = await rpc<any>('redream_autopilot_home', {
             p_limit: 8,
-          }),
+          });
+        }
+
+        commit({ ...(latestData || {}), home });
+        if (isCurrent()) setBusy(false);
+
+        void Promise.allSettled([
           rpc<any>('redream_autopilot_operations', {
             p_horizon_days: 90,
             p_limit: 20,
@@ -471,84 +544,72 @@ export default function AgencyOperatingWorkspace() {
           rpc<any>('redream_meeting_aftercare', {
             p_limit: 12,
           }),
-        ]);
+        ]).then((reads) => {
+          if (!isCurrent()) return;
+          const readValue = (index: number) =>
+            reads[index]?.status === 'fulfilled'
+              ? (reads[index] as PromiseFulfilledResult<any>).value
+              : {};
 
-        if (reads[0].status === 'rejected') {
-          throw reads[0].reason;
-        }
-
-        const readValue = (
-          index: number,
-          fallback: any = {},
-        ) =>
-          reads[index]?.status === 'fulfilled'
-            ? (reads[index] as PromiseFulfilledResult<any>).value
-            : fallback;
-
-        const home = readValue(0);
-        const operations = readValue(1);
-        const connectedWork = readValue(2);
-        const meetingAftercare = readValue(3);
-
-        setData({
-          home,
-          operations,
-          connected_work: connectedWork,
-          meeting_aftercare: meetingAftercare,
+          merge({
+            operations: readValue(0),
+            connected_work: readValue(1),
+            meeting_aftercare: readValue(2),
+          });
         });
       } else if (view === 'players') {
-        if (inlineEntityWorkspaceOpen) {
-          setData((current: any) =>
-            current || {
-              directory: {},
-              recruitment: {},
-            },
-          );
-          return;
-        }
-
         if (playersSection === 'recruitment') {
           const recruitment = await invoke<any>('recruitment_board', {
             limit: 250,
           });
 
-          setData((current: any) => ({
-            ...(current || {}),
+          merge({
             recruitment: recruitment?.recruitment || {},
-          }));
+          });
         } else {
           const directory = await invoke<any>('players_workspace', {
             limit: 100,
           });
 
-          setData((current: any) => ({
-            ...(current || {}),
+          merge({
             directory: directory?.players || {},
-          }));
+          });
         }
       } else if (view === 'opportunities') {
-        const [market, deals, connected] = await Promise.all([
+        const [market, deals] = await Promise.all([
           rpc<any>('redream_autopilot_market', {
             p_limit: 100,
           }),
           rpc<any>('redream_autopilot_deals', {
             p_limit: 100,
           }),
-          rpc<any>('redream_opportunity_connected_context', {
-            p_limit: 100,
-          }),
         ]);
 
-        setData({ market, deals, connected });
+        commit({
+          ...(latestData || {}),
+          market,
+          deals,
+          connected: latestData?.connected || {},
+        });
+        if (isCurrent()) setBusy(false);
+
+        void rpc<any>(
+          'redream_opportunity_connected_context',
+          { p_limit: 100 },
+        )
+          .then((connected) => {
+            if (isCurrent()) merge({ connected });
+          })
+          .catch(() => undefined);
       } else if (view === 'network') {
-        setData(
+        commit(
           await rpc<any>('redream_autopilot_relationships', {
             p_limit: 100,
             p_contact_limit: 250,
           }),
         );
       } else if (view === 'calendar') {
-        setData(
+        commit(
           await rpc<any>('redream_autopilot_calendar', {
             p_horizon_days: 90,
             p_limit: 100,
@@ -560,13 +621,27 @@ export default function AgencyOperatingWorkspace() {
             String(workspace?.role || ''),
           )
         ) {
-          setData(null);
-          setError(
-            'Business is available to agency owners and administrators.',
-          );
+          if (isCurrent()) {
+            setData(null);
+            setError(
+              'Business is available to agency owners and administrators.',
+            );
+          }
         } else {
-          const results = await Promise.allSettled([
-            invoke<any>('agency_control_centre'),
+          const control = await invoke<any>('agency_control_centre');
+          commit({
+            owner_business: {
+              control: control?.control_centre || null,
+              roi: latestData?.owner_business?.roi || null,
+              receivables:
+                latestData?.owner_business?.receivables || null,
+              team_capacity:
+                latestData?.owner_business?.team_capacity || null,
+            },
+          });
+          if (isCurrent()) setBusy(false);
+
+          void Promise.allSettled([
             invoke<any>('agency_roi_proof', {
               window_days: 30,
             }),
@@ -575,31 +650,29 @@ export default function AgencyOperatingWorkspace() {
               limit: 100,
             }),
             invoke<any>('team_capacity'),
-          ]);
+          ]).then((results) => {
+            if (!isCurrent()) return;
+            const value = (index: number, key: string) =>
+              results[index]?.status === 'fulfilled'
+                ? (results[index] as PromiseFulfilledResult<any>)
+                    .value?.[key] || null
+                : null;
 
-          const value = (
-            index: number,
-            key: string,
-          ) =>
-            results[index]?.status === 'fulfilled'
-              ? (results[index] as PromiseFulfilledResult<any>)
-                  .value?.[key] || null
-              : null;
-
-          setData({
-            owner_business: {
-              control: value(0, 'control_centre'),
-              roi: value(1, 'roi'),
-              receivables: value(2, 'receivables'),
-              team_capacity: value(3, 'capacity'),
-            },
+            merge({
+              owner_business: {
+                control: control?.control_centre || null,
+                roi: value(0, 'roi'),
+                receivables: value(1, 'receivables'),
+                team_capacity: value(2, 'capacity'),
+              },
+            });
           });
         }
       }
     } catch (loadError) {
-      setError(friendlyError(loadError));
+      if (isCurrent()) setError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (isCurrent()) setBusy(false);
     }
   }, [
     inlineEntityWorkspaceOpen,

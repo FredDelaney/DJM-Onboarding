@@ -117,7 +117,7 @@ test(
     );
     assert.match(
       workspace,
-      /connected_work: connectedWork/,
+      /connected_work: readValue\(1\)/,
     );
     assert.match(
       workspace,

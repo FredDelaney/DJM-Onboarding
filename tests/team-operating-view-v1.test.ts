@@ -35,7 +35,7 @@ test(
     );
     assert.match(
       workspace,
-      /team_capacity: value\(3, 'capacity'\)/,
+      /team_capacity: value\(2, 'capacity'\)/,
     );
   },
 );

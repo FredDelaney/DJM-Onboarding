@@ -23,6 +23,7 @@ const homeEnd = workspace.indexOf('function Players(', homeStart);
 const home = workspace.slice(homeStart, homeEnd);
 
 test('Home loads only the evidence needed for the daily operating screen', () => {
+  assert.match(homeLoader, /invoke<any>\('home_focus'/);
   assert.match(homeLoader, /Promise\.allSettled/);
   assert.match(homeLoader, /redream_autopilot_home/);
   assert.match(homeLoader, /redream_autopilot_operations/);
@@ -33,7 +34,8 @@ test('Home loads only the evidence needed for the daily operating screen', () =>
   assert.doesNotMatch(homeLoader, /redream_autopilot_deals/);
   assert.doesNotMatch(homeLoader, /redream_provider_contact_suggestions/);
   assert.doesNotMatch(homeLoader, /agency_control_centre/);
-  assert.match(homeLoader, /if \(reads\[0\]\.status === 'rejected'\)/);
+  assert.match(homeLoader, /commit\(\{ \.\.\.\(latestData \|\| \{\}\), home \}\)/);
+  assert.match(homeLoader, /void Promise\.allSettled\(\[/);
 });
 
 test('Home uses the existing personal ownership spine rather than inventing another task system', () => {
