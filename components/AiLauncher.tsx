@@ -25,6 +25,46 @@ type AiAccess = {
   max_audio_seconds?: number | null;
 };
 
+const aiAccessRequests = new Map<string, Promise<AiAccess>>();
+const aiRouteRequests = new Map<string, Promise<EntityContext>>();
+
+const cachedAiAccess = (workspaceSlug?: string | null) => {
+  const key = workspaceSlug || 'legacy';
+  let request = aiAccessRequests.get(key);
+  if (!request) {
+    request = platformRpc<AiAccess>(
+      'redream_ai_current_access',
+      {},
+      workspaceSlug,
+    ).catch((error) => {
+      aiAccessRequests.delete(key);
+      throw error;
+    });
+    aiAccessRequests.set(key, request);
+  }
+  return request;
+};
+
+const cachedAiRouteContext = (
+  pathname: string,
+  workspaceSlug?: string | null,
+) => {
+  const key = `${workspaceSlug || 'legacy'}:${pathname}`;
+  let request = aiRouteRequests.get(key);
+  if (!request) {
+    request = platformRpc<EntityContext>(
+      'redream_ai_context_for_route',
+      { p_route: pathname },
+      workspaceSlug,
+    ).catch((error) => {
+      aiRouteRequests.delete(key);
+      throw error;
+    });
+    aiRouteRequests.set(key, request);
+  }
+  return request;
+};
+
 export default function AiLauncher() {
   const [open, setOpen] = useState(false);
   const [unsafeToClose, setUnsafeToClose] = useState(false);
@@ -49,7 +89,7 @@ export default function AiLauncher() {
     setAccess(null);
     setWorkspaceContext(null);
     let active = true;
-    void platformRpc<AiAccess>('redream_ai_current_access', {}, workspaceSlug)
+    void cachedAiAccess(workspaceSlug)
       .then((result) => {
         if (active) setAccess(result || { enabled: false });
       })
@@ -65,9 +105,7 @@ export default function AiLauncher() {
     setRouteContext(routeFallback);
 
     let active = true;
-    void platformRpc<EntityContext>('redream_ai_context_for_route', {
-      p_route: pathname,
-    }, workspaceSlug)
+    void cachedAiRouteContext(pathname, workspaceSlug)
       .then((resolved) => {
         if (!active) return;
         setRouteContext({ ...routeFallback, ...(resolved || {}) });

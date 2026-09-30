@@ -23,6 +23,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
+import { prefetchPlayerProfile } from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
 import styles from './AgencyPlayersWorkspace.module.css';
 
@@ -137,24 +138,42 @@ function Empty({
 
 function PlayerDrawer({
   playerId,
+  summary,
   basePath,
   invoke,
   onClose,
   onOpenAction,
 }: {
   playerId: string;
+  summary?: any;
   basePath: string;
   invoke: Invoke;
   onClose: () => void;
   onOpenAction: (request: AgencyActionRequest) => void;
 }) {
+  const initialDetail = summary
+    ? {
+        identity: summary.identity || {},
+        service: summary.service || {},
+        career_alignment: {},
+        profile: summary.profile || {},
+        agreements: [],
+        documents: [],
+        opportunities: [],
+        deals: [],
+        activity: [],
+      }
+    : null;
   const [tab, setTab] = useState('overview');
-  const [busy, setBusy] = useState(true);
+  const [busy, setBusy] = useState(!initialDetail);
   const [error, setError] = useState('');
-  const [detail, setDetail] = useState<any>(null);
+  const [detail, setDetail] = useState<any>(initialDetail);
 
   useEffect(() => {
     let active = true;
+
+    void prefetchPlayerProfile(playerId, invoke).catch(() => undefined);
+
     void invoke<any>('player_workspace', { player_id: playerId })
       .then((response) => {
         if (active) setDetail(response?.player || null);
@@ -513,12 +532,24 @@ export default function AgencyPlayersWorkspace({
 
   const openPlayer = (id: string) => {
     setPlayerId(id);
+    void prefetchPlayerProfile(id, invoke).catch(() => undefined);
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
     params.set('player', id);
     params.delete('tab');
     params.delete('target');
     params.delete('profile');
+    router.push(`${basePath}?${params.toString()}`);
+  };
+
+  const openPlayerProfile = (id: string) => {
+    void prefetchPlayerProfile(id, invoke).catch(() => undefined);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', 'players');
+    params.set('player', id);
+    params.set('profile', '1');
+    params.delete('tab');
+    params.delete('target');
     router.push(`${basePath}?${params.toString()}`);
   };
 
@@ -689,6 +720,9 @@ export default function AgencyPlayersWorkspace({
     return (
       <PlayerDrawer
         playerId={playerId}
+        summary={players.find(
+          (item: any) => String(item?.player_id || '') === playerId,
+        )}
         basePath={basePath}
         invoke={invoke}
         onClose={closePlayer}
@@ -743,7 +777,21 @@ export default function AgencyPlayersWorkspace({
                   <div className={styles.playerIdentity}><h3>{name}</h3>
                     <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Football details not fully recorded'}</span>
                     <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not fully recorded'}</small></div>
-                  <span className={attention?styles.attentionPill:styles.calmPill}>{attention?'Needs action':'Current'}</span>
+                  <div className={styles.playerCardEnd}>
+                    <button
+                      type="button"
+                      className={styles.profileShortcut}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openPlayerProfile(String(item.player_id));
+                      }}
+                      aria-label={`Open ${name} Player Profile`}
+                    >
+                      <UserRound size={14} />
+                      Profile
+                    </button>
+                    <span className={attention?styles.attentionPill:styles.calmPill}>{attention?'Needs action':'Current'}</span>
+                  </div>
                 </div>
                 <div className={styles.playerFacts}>
                   <div><span>Next action</span><strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong><small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date recorded'}</small></div>

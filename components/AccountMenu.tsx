@@ -39,6 +39,48 @@ type ProfileIdentity = {
   email?: string | null;
 };
 
+let cachedProfileIdentity: ProfileIdentity | null = null;
+let profileIdentityRequest: Promise<ProfileIdentity> | null = null;
+
+const loadProfileIdentity = async (
+  force = false,
+): Promise<ProfileIdentity> => {
+  if (!force && cachedProfileIdentity) return cachedProfileIdentity;
+  if (!force && profileIdentityRequest) return profileIdentityRequest;
+
+  profileIdentityRequest = (async () => {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user) return {};
+
+    const { data: row } = await supabase
+      .from('profiles')
+      .select('display_name,avatar_path,job_title,email')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const resolved = {
+      display_name:
+        row?.display_name ||
+        user.user_metadata?.full_name ||
+        user.email?.split('@')[0] ||
+        'ReDream user',
+      avatar_path: row?.avatar_path || null,
+      job_title: row?.job_title || null,
+      email: row?.email || user.email || null,
+    };
+
+    cachedProfileIdentity = resolved;
+    return resolved;
+  })();
+
+  try {
+    return await profileIdentityRequest;
+  } finally {
+    profileIdentityRequest = null;
+  }
+};
+
 const human = (value: unknown) =>
   String(value || '')
     .replaceAll('_', ' ')
@@ -67,31 +109,14 @@ export default function AccountMenu({
   useEffect(() => {
     let active = true;
 
-    const loadProfile = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!active || !data.user) return;
-
-      const { data: row } = await supabase
-        .from('profiles')
-        .select('display_name,avatar_path,job_title,email')
-        .eq('id', data.user.id)
-        .maybeSingle();
-
-      if (!active) return;
-      setProfile({
-        display_name:
-          row?.display_name ||
-          data.user.user_metadata?.full_name ||
-          data.user.email?.split('@')[0] ||
-          'ReDream user',
-        avatar_path: row?.avatar_path || null,
-        job_title: row?.job_title || null,
-        email: row?.email || data.user.email || null,
-      });
+    const loadProfile = async (force = false) => {
+      const resolved = await loadProfileIdentity(force);
+      if (active) setProfile(resolved);
     };
 
     const refreshProfile = () => {
-      void loadProfile();
+      cachedProfileIdentity = null;
+      void loadProfile(true);
     };
 
     void loadProfile();
