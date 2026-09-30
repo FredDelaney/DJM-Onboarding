@@ -71,7 +71,8 @@ type ProfileForm = {
 };
 
 type ProfileCheckAction =
-  | 'admin-player'
+  | 'verify-player'
+  | 'player-workspace'
   | 'agency-settings'
   | 'profile-positioning'
   | 'profile-video';
@@ -87,6 +88,47 @@ type ProfileCheck = {
   action: ProfileCheckAction;
   actionLabel: string;
 };
+
+type VerifyPlayerForm = {
+  date_of_birth: string;
+  nationalities: string;
+  height_cm: string;
+  preferred_foot: string;
+  primary_position: string;
+  current_club: string;
+  current_country: string;
+  contract_status: string;
+  contract_expiry: string;
+};
+
+const emptyVerifyForm: VerifyPlayerForm = {
+  date_of_birth: '',
+  nationalities: '',
+  height_cm: '',
+  preferred_foot: '',
+  primary_position: '',
+  current_club: '',
+  current_country: '',
+  contract_status: '',
+  contract_expiry: '',
+};
+
+const verifyFormFromPlayer = (player: any): VerifyPlayerForm => ({
+  date_of_birth: text(player?.date_of_birth),
+  nationalities: Array.isArray(player?.nationalities)
+    ? player.nationalities.join(', ')
+    : text(player?.nationalities),
+  height_cm:
+    player?.height_cm === null || player?.height_cm === undefined
+      ? ''
+      : String(player.height_cm),
+  preferred_foot: text(player?.preferred_foot),
+  primary_position: text(player?.primary_position),
+  current_club: text(player?.current_club),
+  current_country: text(player?.current_country),
+  contract_status: text(player?.contract_status),
+  contract_expiry: text(player?.contract_expiry),
+});
 
 const emptyForm: ProfileForm = {
   intro_line: '',
@@ -296,6 +338,13 @@ export default function AgencyPlayerProfile({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [editOpen, setEditOpen] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyFocus, setVerifyFocus] = useState<'verification' | 'position'>(
+    'verification',
+  );
+  const [verifyForm, setVerifyForm] =
+    useState<VerifyPlayerForm>(emptyVerifyForm);
+  const [verifyError, setVerifyError] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [videoTitle, setVideoTitle] = useState('');
@@ -395,8 +444,8 @@ export default function AgencyPlayerProfile({
       missingDetail:
         'Review the player record, save any corrections, then mark the current data verified.',
       where:
-        `Admin → Players → ${name} → Verification → Mark current data verified`,
-      action: 'admin-player',
+        'Player Profile → Review current data → Confirm & verify',
+      action: 'verify-player',
       actionLabel: 'Review & verify',
     },
     {
@@ -408,8 +457,8 @@ export default function AgencyPlayerProfile({
       missingDetail:
         'The club profile cannot publish without the player’s primary position.',
       where:
-        `Admin → Players → ${name} → Automated player record → Primary position`,
-      action: 'admin-player',
+        'Player Profile → Review current data → Primary position',
+      action: 'verify-player',
       actionLabel: 'Add position',
     },
     {
@@ -434,9 +483,9 @@ export default function AgencyPlayerProfile({
       missingDetail:
         'A strong player photo makes the club-facing profile feel complete and credible.',
       where:
-        `Admin → Players → ${name} → Player profile → Profile photo`,
-      action: 'admin-player',
-      actionLabel: 'Add photo',
+        `Players → ${name} → player workspace`,
+      action: 'player-workspace',
+      actionLabel: 'Open player',
     },
     {
       key: 'career',
@@ -447,9 +496,9 @@ export default function AgencyPlayerProfile({
       missingDetail:
         'Record at least one career entry so clubs can see the player’s pathway.',
       where:
-        `Admin → Players → ${name} → Career`,
-      action: 'admin-player',
-      actionLabel: 'Add career',
+        `Players → ${name} → Career`,
+      action: 'player-workspace',
+      actionLabel: 'Open career',
     },
     {
       key: 'video',
@@ -753,6 +802,61 @@ export default function AgencyPlayerProfile({
           block: 'start',
         });
     }, 80);
+  };
+
+  const setVerifyField = <K extends keyof VerifyPlayerForm>(
+    key: K,
+    value: VerifyPlayerForm[K],
+  ) =>
+    setVerifyForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+
+  const openVerify = (focus: 'verification' | 'position' = 'verification') => {
+    setVerifyForm(verifyFormFromPlayer(player));
+    setVerifyFocus(focus);
+    setVerifyError('');
+    setVerifyOpen(true);
+  };
+
+  const verifyPlayerData = async () => {
+    if (!canEdit || actionBusy) return;
+    if (!verifyForm.primary_position.trim()) {
+      setVerifyError('Add the primary position before verifying this player.');
+      return;
+    }
+
+    setActionBusy('player-verify');
+    setVerifyError('');
+    setError('');
+    setNotice('');
+
+    try {
+      await invoke('player_profile_verify', {
+        player_id: playerId,
+        date_of_birth: verifyForm.date_of_birth || null,
+        nationalities: verifyForm.nationalities
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+        height_cm: verifyForm.height_cm || null,
+        preferred_foot: verifyForm.preferred_foot || null,
+        primary_position: verifyForm.primary_position,
+        current_club: verifyForm.current_club || null,
+        current_country: verifyForm.current_country || null,
+        contract_status: verifyForm.contract_status || null,
+        contract_expiry: verifyForm.contract_expiry || null,
+      });
+
+      setVerifyOpen(false);
+      setNotice('Current player data verified.');
+      await load();
+    } catch (verifyPlayerError) {
+      setVerifyError(friendlyError(verifyPlayerError));
+    } finally {
+      setActionBusy('');
+    }
   };
 
   const closeEditor = () => {
@@ -1075,15 +1179,28 @@ export default function AgencyPlayerProfile({
                   </div>
 
                   <div className={styles.fixAction}>
-                    {item.action === 'admin-player' ? (
-                      ['owner', 'admin'].includes(role) ? (
-                        <Link href={`/admin/players/${playerId}`}>
-                          {item.actionLabel}
-                          <ExternalLink size={13} />
-                        </Link>
-                      ) : (
-                        <span>Owner/admin required</span>
-                      )
+                    {item.action === 'verify-player' ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openVerify(
+                            item.key === 'position'
+                              ? 'position'
+                              : 'verification',
+                          )
+                        }
+                      >
+                        {item.actionLabel}
+                        <ShieldCheck size={13} />
+                      </button>
+                    ) : item.action === 'player-workspace' ? (
+                      <Link href={backHref}>
+                        {item.actionLabel}
+                        <ArrowLeft
+                          size={13}
+                          style={{ transform: 'rotate(180deg)' }}
+                        />
+                      </Link>
                     ) : item.action === 'agency-settings' ? (
                       ['owner', 'admin'].includes(role) ? (
                         <Link href="/settings/agency">
@@ -1445,6 +1562,211 @@ export default function AgencyPlayerProfile({
           >
             Unpublish Player Profile
           </button>
+        </div>
+      ) : null}
+
+      {verifyOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !actionBusy) {
+              setVerifyOpen(false);
+            }
+          }}
+        >
+          <section
+            className={`${styles.modal} ${styles.verifyModal}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Review current player data"
+          >
+            <header>
+              <div>
+                <span className={styles.eyebrow}>REVIEW PLAYER DATA</span>
+                <h2>
+                  {verifyFocus === 'position'
+                    ? 'Add the position, then verify.'
+                    : 'Check the current player record.'}
+                </h2>
+                <p>
+                  Only change anything that is wrong. Confirming below saves
+                  these values and marks the current record verified.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={() => setVerifyOpen(false)}
+                aria-label="Close"
+                disabled={Boolean(actionBusy)}
+              >
+                <X size={17} />
+              </button>
+            </header>
+
+            <div className={styles.form}>
+              {verifyError ? (
+                <div className={styles.error}>
+                  {verifyError}
+                </div>
+              ) : null}
+
+              <div className={styles.verifyIdentity}>
+                <strong>{name}</strong>
+                <span>
+                  {[player.current_club, player.current_country]
+                    .filter(Boolean)
+                    .join(' · ') || 'Current situation not fully recorded'}
+                </span>
+              </div>
+
+              <div className={styles.twoFields}>
+                <label>
+                  <span>Primary position</span>
+                  <input
+                    value={verifyForm.primary_position}
+                    onChange={(event) =>
+                      setVerifyField('primary_position', event.target.value)
+                    }
+                    placeholder="e.g. Centre back"
+                    autoFocus={verifyFocus === 'position'}
+                    required
+                  />
+                  <small>Required before the Player Profile can publish.</small>
+                </label>
+
+                <label>
+                  <span>Current club</span>
+                  <input
+                    value={verifyForm.current_club}
+                    onChange={(event) =>
+                      setVerifyField('current_club', event.target.value)
+                    }
+                    placeholder="Current club"
+                  />
+                </label>
+
+                <label>
+                  <span>Country</span>
+                  <input
+                    value={verifyForm.current_country}
+                    onChange={(event) =>
+                      setVerifyField('current_country', event.target.value)
+                    }
+                    placeholder="Current country"
+                  />
+                </label>
+
+                <label>
+                  <span>Date of birth</span>
+                  <input
+                    type="date"
+                    value={verifyForm.date_of_birth}
+                    onChange={(event) =>
+                      setVerifyField('date_of_birth', event.target.value)
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>Nationality</span>
+                  <input
+                    value={verifyForm.nationalities}
+                    onChange={(event) =>
+                      setVerifyField('nationalities', event.target.value)
+                    }
+                    placeholder="New Zealand, England"
+                  />
+                  <small>Separate multiple nationalities with commas.</small>
+                </label>
+
+                <label>
+                  <span>Preferred foot</span>
+                  <input
+                    value={verifyForm.preferred_foot}
+                    onChange={(event) =>
+                      setVerifyField('preferred_foot', event.target.value)
+                    }
+                    placeholder="Right / Left / Both"
+                  />
+                </label>
+
+                <label>
+                  <span>Height</span>
+                  <input
+                    inputMode="numeric"
+                    value={verifyForm.height_cm}
+                    onChange={(event) =>
+                      setVerifyField('height_cm', event.target.value)
+                    }
+                    placeholder="cm"
+                  />
+                </label>
+
+                <label>
+                  <span>Contract status</span>
+                  <input
+                    value={verifyForm.contract_status}
+                    onChange={(event) =>
+                      setVerifyField('contract_status', event.target.value)
+                    }
+                    placeholder="Under contract / Free agent"
+                  />
+                </label>
+
+                <label>
+                  <span>Contract expiry</span>
+                  <input
+                    type="date"
+                    value={verifyForm.contract_expiry}
+                    onChange={(event) =>
+                      setVerifyField('contract_expiry', event.target.value)
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className={styles.verifyConfirmNote}>
+                <ShieldCheck size={17} />
+                <div>
+                  <strong>Confirm this is current</strong>
+                  <span>
+                    This is a human verification step. If the player data
+                    changes later, you will be asked to verify it again.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <footer>
+              <button
+                type="button"
+                className={styles.secondaryAction}
+                onClick={() => setVerifyOpen(false)}
+                disabled={Boolean(actionBusy)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className={styles.primaryAction}
+                onClick={() => void verifyPlayerData()}
+                disabled={
+                  Boolean(actionBusy) ||
+                  !verifyForm.primary_position.trim()
+                }
+              >
+                {actionBusy === 'player-verify' ? (
+                  <LoaderCircle className={styles.spin} size={16} />
+                ) : (
+                  <ShieldCheck size={16} />
+                )}
+                Confirm & verify
+              </button>
+            </footer>
+          </section>
         </div>
       ) : null}
 
