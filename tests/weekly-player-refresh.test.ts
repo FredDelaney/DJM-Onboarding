@@ -15,6 +15,10 @@ const bridge = readFileSync(
   "supabase/migrations/20260831052000_djm_weekly_refresh_service_bridge_v1.sql",
   "utf8",
 );
+const freshnessBoundary = readFileSync(
+  "supabase/migrations/20260930170500_player_stats_freshness_boundary_v2.sql",
+  "utf8",
+);
 
 test("weekly player refresh reuses the established protected scheduler secret", () => {
   assert.match(fn, /get_push_scheduler_secret/);
@@ -30,6 +34,7 @@ test("daily stale-first refresh uses real verification freshness rather than com
   assert.match(fn, /latestCheck\.get\(left\.id\)/);
   assert.match(fn, /latestCheck\.get\(right\.id\)/);
   assert.match(fn, /freeApplied/);
+  assert.match(fn, /typeof value === "number"/);
   assert.match(fn, /daily_stale_first_provider_then_cross_checked_web/);
   assert.match(schedule, /'17 3 \* \* \*'/);
   assert.match(schedule, /djm-weekly-player-data-refresh/);
@@ -46,7 +51,9 @@ test("scheduled data sync is conservative and never scrapes Transfermarkt", () =
 test("weekly refresh keeps football data on the canonical public evidence boundary", () => {
   assert.doesNotMatch(fn, /\.schema\("djm_os"\)/);
   assert.doesNotMatch(sync, /\.schema\("djm_os"\)/);
-  assert.match(fn, /player_source_refreshes/);
+  assert.match(fn, /platform_server_player_stats_freshness_rows/);
+  assert.match(freshnessBoundary, /public\.player_source_refreshes/);
+  assert.match(freshnessBoundary, /public\.career_entries/);
   assert.match(fn, /career_entries/);
 });
 
@@ -66,4 +73,22 @@ test("AI fallback advances cumulative current-season figures without reducing tr
   assert.match(aiWorker, /source_synced_at:\s*now/);
   assert.match(aiWorker, /two independent supporting sources/);
   assert.match(aiWorker, /complete\(existing\)&&fresh\(existing\)&&!force/);
+});
+
+
+test("failed player refreshes never count as freshness evidence", () => {
+  assert.match(freshnessBoundary, /where s\.status = 'applied'/);
+  assert.doesNotMatch(freshnessBoundary, /'failed'/);
+  assert.match(fn, /if \(current && isFresh\(checkedAt\)\)/);
+});
+
+test("player stats freshness boundary is service-only", () => {
+  assert.match(
+    freshnessBoundary,
+    /revoke all on function public\.platform_server_player_stats_freshness_rows\(uuid\[\]\)[\s\S]*public, anon, authenticated/,
+  );
+  assert.match(
+    freshnessBoundary,
+    /grant execute on function public\.platform_server_player_stats_freshness_rows\(uuid\[\]\)[\s\S]*service_role/,
+  );
 });
