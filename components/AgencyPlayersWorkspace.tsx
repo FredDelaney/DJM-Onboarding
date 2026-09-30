@@ -5,7 +5,9 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   CircleAlert,
   FileText,
   LoaderCircle,
@@ -487,6 +489,7 @@ export default function AgencyPlayersWorkspace({
   const [interaction, setInteraction] = useState('');
   const [interactionChannel, setInteractionChannel] = useState('whatsapp');
   const [createOpen, setCreateOpen] = useState(false);
+  const [showRecruitDetails, setShowRecruitDetails] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState('');
   const [createForm, setCreateForm] = useState({
@@ -497,6 +500,17 @@ export default function AgencyPlayersWorkspace({
     contract_expiry:'',
     transfermarkt_url:'',
   });
+
+  const openRecruitmentCreate = () => {
+    setCreateError('');
+    setShowRecruitDetails(false);
+    setCreateOpen(true);
+  };
+
+  const closeRecruitmentCreate = () => {
+    setShowRecruitDetails(false);
+    setCreateOpen(false);
+  };
 
   useEffect(() => {
     setSection(
@@ -668,7 +682,7 @@ export default function AgencyPlayersWorkspace({
         recruitment_priority:3,
       });
       setCreateForm({full_name:'',current_club:'',current_country:'',primary_position:'',contract_expiry:'',transfermarkt_url:''});
-      setCreateOpen(false);
+      closeRecruitmentCreate();
       await onRefresh();
     }catch(error){setCreateError(friendlyError(error));}
     finally{setCreateBusy(false);}
@@ -745,7 +759,7 @@ export default function AgencyPlayersWorkspace({
         <label className={styles.search}><Search size={15}/><input value={search} onChange={(e)=>setSearch(e.target.value)}
           placeholder={section==='players'?'Search players':'Search recruitment'} /></label>
         {section==='recruitment'?(
-          <button type="button" className={styles.primaryButton} onClick={()=>setCreateOpen(true)}><Plus size={14}/> Add target</button>
+          <button type="button" className={styles.primaryButton} onClick={openRecruitmentCreate}><Plus size={14}/> Add target</button>
         ):null}
       </section>
 
@@ -872,20 +886,35 @@ export default function AgencyPlayersWorkspace({
 
 
       {createOpen?(
-        <div className={styles.modalBackdrop} onClick={(e)=>{if(e.target===e.currentTarget)setCreateOpen(false);}}>
+        <div className={styles.modalBackdrop} onClick={(e)=>{if(e.target===e.currentTarget&&!createBusy)closeRecruitmentCreate();}}>
           <section className={styles.createModal} role="dialog" aria-modal="true">
             <div className={styles.modalHead}><div><p>RECRUITMENT</p><h3>Add target</h3><span>Start with the facts you know. The record can improve later.</span></div>
-              <button type="button" className={styles.closeButton} onClick={()=>setCreateOpen(false)}><X size={17}/></button></div>
+              <button type="button" className={styles.closeButton} onClick={closeRecruitmentCreate} disabled={createBusy}><X size={17}/></button></div>
             {createError?<div className={styles.inlineError}><CircleAlert size={16}/><span>{createError}</span></div>:null}
             <div className={styles.formGrid}>
-              <label className={styles.formWide}><span>Player name</span><input value={createForm.full_name} onChange={(e)=>setCreateForm({...createForm,full_name:e.target.value})}/></label>
-              <label><span>Current club</span><input value={createForm.current_club} onChange={(e)=>setCreateForm({...createForm,current_club:e.target.value})}/></label>
+              <label className={styles.formWide}><span>Player name</span><input autoFocus value={createForm.full_name} onChange={(e)=>setCreateForm({...createForm,full_name:e.target.value})}/></label>
               <label><span>Position</span><input value={createForm.primary_position} onChange={(e)=>setCreateForm({...createForm,primary_position:e.target.value})}/></label>
-              <label><span>Country</span><input value={createForm.current_country} onChange={(e)=>setCreateForm({...createForm,current_country:e.target.value})}/></label>
-              <label><span>Contract expiry</span><input type="date" value={createForm.contract_expiry} onChange={(e)=>setCreateForm({...createForm,contract_expiry:e.target.value})}/></label>
-              <label className={styles.formWide}><span>Transfermarkt</span><input value={createForm.transfermarkt_url} onChange={(e)=>setCreateForm({...createForm,transfermarkt_url:e.target.value})}/></label>
+              <label><span>Current club</span><input value={createForm.current_club} onChange={(e)=>setCreateForm({...createForm,current_club:e.target.value})}/></label>
             </div>
-            <div className={styles.modalActions}><button type="button" className={styles.secondaryButton} onClick={()=>setCreateOpen(false)}>Cancel</button>
+
+            <button
+              type="button"
+              className={styles.createDetailsToggle}
+              aria-expanded={showRecruitDetails}
+              onClick={() => setShowRecruitDetails((current) => !current)}
+            >
+              <span>{showRecruitDetails ? 'Hide details' : 'More details'}</span>
+              {showRecruitDetails ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}
+            </button>
+
+            {showRecruitDetails ? (
+              <div className={`${styles.formGrid} ${styles.optionalCreateDetails}`}>
+                <label><span>Country</span><input value={createForm.current_country} onChange={(e)=>setCreateForm({...createForm,current_country:e.target.value})}/></label>
+                <label><span>Contract expiry</span><input type="date" value={createForm.contract_expiry} onChange={(e)=>setCreateForm({...createForm,contract_expiry:e.target.value})}/></label>
+                <label className={styles.formWide}><span>Transfermarkt</span><input value={createForm.transfermarkt_url} onChange={(e)=>setCreateForm({...createForm,transfermarkt_url:e.target.value})}/></label>
+              </div>
+            ) : null}
+            <div className={styles.modalActions}><button type="button" className={styles.secondaryButton} onClick={closeRecruitmentCreate} disabled={createBusy}>Cancel</button>
               <button type="button" className={styles.primaryButton} disabled={createBusy||!createForm.full_name.trim()} onClick={()=>void createTarget()}>
                 {createBusy?<LoaderCircle size={14} className={styles.spin}/>:<Plus size={14}/>} Add target
               </button></div>

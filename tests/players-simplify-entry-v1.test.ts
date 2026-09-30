@@ -52,3 +52,23 @@ test('clickable player cards have clear desktop hover and keyboard focus feedbac
   assert.match(styles, /transform: translateY\(-1px\)/);
   assert.match(styles, /\.playerCard\[role='button'\]:focus-visible/);
 });
+
+
+test('Recruitment target capture is minimum-first with optional detail collapsed', () => {
+  const create = players.slice(players.indexOf('{createOpen?('));
+  assert.match(create, /Player name/);
+  assert.match(create, /Position/);
+  assert.match(create, /Current club/);
+  assert.match(create, /showRecruitDetails/);
+  assert.match(create, /More details/);
+  assert.match(create, /styles\.optionalCreateDetails/);
+  assert.match(styles, /\.createDetailsToggle/);
+  assert.match(styles, /\.optionalCreateDetails/);
+
+  const toggleIndex = create.indexOf('className={styles.createDetailsToggle}');
+  const countryIndex = create.indexOf('<span>Country</span>');
+  const transfermarktIndex = create.indexOf('<span>Transfermarkt</span>');
+  assert.ok(toggleIndex >= 0);
+  assert.ok(countryIndex > toggleIndex);
+  assert.ok(transfermarktIndex > toggleIndex);
+});
