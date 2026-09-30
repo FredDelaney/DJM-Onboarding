@@ -2225,3 +2225,268 @@
     background: #fff;
   }
 }
+
+/* Club-facing conversion layer v1 */
+.dossier-evaluation {
+  margin-top: 26px;
+}
+
+.dossier-evaluation-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.dossier-evaluation-head span {
+  display: block;
+  color: #7c8087;
+  font-size: 9px;
+  font-weight: 820;
+  letter-spacing: .12em;
+}
+
+.dossier-evaluation-head strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--navy);
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: -.035em;
+}
+
+.dossier-evaluation-head small {
+  max-width: 280px;
+  color: #8a9096;
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.dossier-evaluation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.dossier-evaluation-card {
+  position: relative;
+  min-width: 0;
+  min-height: 128px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  overflow: hidden;
+  padding: 17px;
+  border: 1px solid #e2e7eb;
+  border-radius: 19px;
+  background: #f8fafb;
+  color: var(--navy);
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.dossier-evaluation-card:hover {
+  transform: translateY(-2px);
+  border-color: #ced7de;
+  box-shadow: 0 12px 28px rgba(6, 31, 58, .08);
+}
+
+.dossier-evaluation-card.is-video {
+  grid-column: span 2;
+  border-color: #0d3456;
+  background:
+    linear-gradient(
+      135deg,
+      #061f3a 0%,
+      #0a3157 100%
+    );
+  color: #fff;
+}
+
+.dossier-evaluation-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--navy);
+  box-shadow: 0 5px 14px rgba(6, 31, 58, .08);
+}
+
+.dossier-evaluation-card.is-video .dossier-evaluation-icon {
+  background: var(--yellow);
+  color: var(--navy);
+  box-shadow: none;
+}
+
+.dossier-evaluation-copy {
+  min-width: 0;
+}
+
+.dossier-evaluation-copy span,
+.dossier-evaluation-copy strong,
+.dossier-evaluation-copy small {
+  display: block;
+}
+
+.dossier-evaluation-copy span {
+  color: #89939c;
+  font-size: 8px;
+  font-weight: 820;
+  letter-spacing: .1em;
+}
+
+.dossier-evaluation-card.is-video .dossier-evaluation-copy span {
+  color: rgba(255, 255, 255, .48);
+}
+
+.dossier-evaluation-copy strong {
+  overflow: hidden;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dossier-evaluation-card.is-video .dossier-evaluation-copy strong {
+  font-size: 17px;
+}
+
+.dossier-evaluation-copy small {
+  overflow: hidden;
+  margin-top: 5px;
+  color: #78838d;
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dossier-evaluation-card.is-video .dossier-evaluation-copy small {
+  color: rgba(255, 255, 255, .62);
+}
+
+.dossier-evaluation-open {
+  color: #9aa3ab;
+}
+
+.dossier-evaluation-card.is-video .dossier-evaluation-open {
+  color: rgba(255, 255, 255, .64);
+}
+
+@media (max-width: 700px) {
+  .dossier-evaluation {
+    margin-top: 19px;
+  }
+
+  .dossier-evaluation-head {
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .dossier-evaluation-head strong {
+    font-size: 17px;
+  }
+
+  .dossier-evaluation-head small {
+    display: none;
+  }
+
+  .dossier-evaluation-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .dossier-evaluation-card {
+    min-height: 104px;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 9px;
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .dossier-evaluation-card.is-video {
+    grid-column: 1 / -1;
+    min-height: 112px;
+  }
+
+  .dossier-evaluation-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .dossier-evaluation-copy strong {
+    font-size: 12px;
+  }
+
+  .dossier-evaluation-card.is-video .dossier-evaluation-copy strong {
+    font-size: 16px;
+  }
+
+  .dossier-evaluation-copy small {
+    font-size: 9px;
+  }
+
+  .dossier-evaluation-open {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dossier-evaluation-card {
+    transition: none;
+  }
+}
+
+/* Club-facing mobile role hierarchy v1 */
+@media (max-width: 560px) {
+  .dossier-player-profile {
+    margin-top: 28px;
+    border-radius: 18px;
+  }
+
+  .dossier-player-profile-head {
+    padding: 19px 18px 16px;
+  }
+
+  .dossier-player-profile-head h2 {
+    font-size: 20px;
+  }
+
+  .dossier-player-profile-grid {
+    display: flex;
+    flex-direction: column-reverse;
+    padding-top: 0;
+  }
+
+  .dossier-role-card {
+    margin-top: 0;
+    padding: 22px 18px 20px;
+    border-top: 0;
+    border-bottom: 1px solid #dbe2e8;
+  }
+
+  .dossier-role-card h3 {
+    font-size: 28px;
+  }
+
+  .dossier-role-facts {
+    margin-top: 20px;
+  }
+
+  .dossier-pitch {
+    width: min(46%, 164px);
+    margin: 22px auto;
+  }
+
+  .dossier-position-key {
+    margin-top: 15px;
+  }
+}

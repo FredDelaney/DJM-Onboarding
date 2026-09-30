@@ -167,7 +167,7 @@ export default function PublicProfile({
       profile.notable_experience,
     );
 
-  const videos =
+  const selectedVideos =
     dossierList(
       profile.selected_videos,
     ).filter(
@@ -177,8 +177,36 @@ export default function PublicProfile({
 
   const primaryVideo =
     profile.primary_video_url ||
-    videos?.[0]?.url ||
+    selectedVideos?.[0]?.url ||
     null;
+
+  const primaryVideoTitle =
+    selectedVideos.find(
+      (video: any) =>
+        String(video?.url || '').trim() ===
+        String(primaryVideo || '').trim(),
+    )?.title ||
+    'Player highlights';
+
+  const videos = [
+    ...(primaryVideo
+      ? [{
+          url: primaryVideo,
+          title: primaryVideoTitle,
+          primary: true,
+        }]
+      : []),
+    ...selectedVideos
+      .filter(
+        (video: any) =>
+          String(video?.url || '').trim() !==
+          String(primaryVideo || '').trim(),
+      )
+      .map((video: any) => ({
+        ...video,
+        primary: false,
+      })),
+  ];
 
   const email =
     agencyEmail;
@@ -263,6 +291,77 @@ export default function PublicProfile({
     },
   ].filter(Boolean) as {
     label: string;
+    url: string;
+  }[];
+
+  const featuredLinks = [
+    primaryVideo &&
+      !hidden.has('videos') && {
+        kind: 'video',
+        kicker: 'VIDEO',
+        title: 'Watch footage',
+        detail: primaryVideoTitle,
+        url: primaryVideo,
+      },
+
+    profile.transfermarkt_url && {
+      kind: 'source',
+      kicker: 'PLAYER RECORD',
+      title: 'Transfermarkt',
+      detail: 'External career and market reference',
+      url: profile.transfermarkt_url,
+    },
+
+    profile.wyscout_url && {
+      kind: 'source',
+      kicker: 'SCOUTING',
+      title: 'Wyscout',
+      detail: 'Scouting and performance profile',
+      url: profile.wyscout_url,
+    },
+
+    profile.stats_url &&
+      !sameResearchUrl(
+        profile.stats_url,
+        profile.transfermarkt_url,
+      ) &&
+      !sameResearchUrl(
+        profile.stats_url,
+        profile.wyscout_url,
+      ) && {
+      kind: 'source',
+      kicker: 'PERFORMANCE DATA',
+      title: researchSourceLabel(
+        profile.stats_url,
+      ),
+      detail: 'Independent player data',
+      url: profile.stats_url,
+    },
+
+    profile.market_value_source_url &&
+      !sameResearchUrl(
+        profile.market_value_source_url,
+        profile.transfermarkt_url,
+      ) &&
+      !sameResearchUrl(
+        profile.market_value_source_url,
+        profile.wyscout_url,
+      ) &&
+      !sameResearchUrl(
+        profile.market_value_source_url,
+        profile.stats_url,
+      ) && {
+      kind: 'source',
+      kicker: 'MARKET REFERENCE',
+      title: 'Market value source',
+      detail: 'External valuation reference',
+      url: profile.market_value_source_url,
+    },
+  ].filter(Boolean).slice(0, 4) as {
+    kind: 'video' | 'source';
+    kicker: string;
+    title: string;
+    detail: string;
     url: string;
   }[];
 
@@ -468,7 +567,8 @@ export default function PublicProfile({
               </div>
 
               <div className="dossier-hero-actions no-print">
-                {primaryVideo && (
+                {primaryVideo &&
+                  !hidden.has('videos') && (
                   <a
                     className="dossier-hero-btn dossier-hero-btn-primary"
                     href={
@@ -480,7 +580,7 @@ export default function PublicProfile({
                     <Play
                       size={16}
                     />
-                    Watch player
+                    Watch footage
                   </a>
                 )}
 
@@ -569,6 +669,55 @@ export default function PublicProfile({
                 </div>
               ),
             )}
+          </section>
+        )}
+
+        {featuredLinks.length > 0 && (
+          <section className="dossier-evaluation no-print">
+            <div className="dossier-evaluation-head">
+              <div>
+                <span>CLUB EVALUATION</span>
+                <strong>Watch and verify.</strong>
+              </div>
+
+              <small>
+                Footage and trusted external profiles
+              </small>
+            </div>
+
+            <div className="dossier-evaluation-grid">
+              {featuredLinks.map((link) => (
+                <a
+                  key={link.kind + '-' + link.title}
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={
+                    'dossier-evaluation-card' +
+                    (link.kind === 'video' ? ' is-video' : '')
+                  }
+                >
+                  <div className="dossier-evaluation-icon">
+                    {link.kind === 'video' ? (
+                      <Play size={20} />
+                    ) : (
+                      <ExternalLink size={18} />
+                    )}
+                  </div>
+
+                  <div className="dossier-evaluation-copy">
+                    <span>{link.kicker}</span>
+                    <strong>{link.title}</strong>
+                    <small>{link.detail}</small>
+                  </div>
+
+                  <ExternalLink
+                    className="dossier-evaluation-open"
+                    size={15}
+                  />
+                </a>
+              ))}
+            </div>
           </section>
         )}
 
@@ -1016,23 +1165,23 @@ export default function PublicProfile({
             </section>
           )}
 
-        {videos.length > 0 &&
+        {videos.length > 1 &&
           !hidden.has(
             'videos',
           ) && (
             <section className="dossier-section no-print">
               <div className="dossier-kicker">
-                FOOTAGE
+                MORE FOOTAGE
               </div>
 
               <h2 className="dossier-video-title">
-                See the player.
+                More ways to watch.
               </h2>
 
               <div className="dossier-video-grid">
                 {videos
                   .slice(
-                    0,
+                    1,
                     4,
                   )
                   .map(
