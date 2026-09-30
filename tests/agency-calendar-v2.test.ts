@@ -51,3 +51,21 @@ test('Calendar V2 stays behind tenant-aware read models', async () => {
   assert.doesNotMatch(source, /\.from\(/);
   assert.doesNotMatch(source, /supabase\./);
 });
+
+
+test('past meetings hand directly into the existing outcome aftercare', async () => {
+  const [source, shell] = await Promise.all([
+    readFile(workspacePath, 'utf8'),
+    readFile(shellPath, 'utf8'),
+  ]);
+
+  assert.match(source, /const meetingStarted = Boolean/);
+  assert.match(source, /startsAt\.getTime\(\) <= Date\.now\(\)/);
+  assert.match(source, />\s*Record outcome\s*</);
+  assert.match(source, /onRecordOutcome\(meeting\)/);
+  assert.match(
+    shell,
+    /onRecordMeetingOutcome=\{\(meeting\) =>[\s\S]*setMeetingOutcomeRequest\(meeting\)/,
+  );
+  assert.match(shell, /AgencyMeetingOutcomeDrawer/);
+});
