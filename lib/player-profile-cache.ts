@@ -44,7 +44,7 @@ export const prefetchPlayerProfile = (
   const pending = profileRequests.get(playerId);
   if (pending) return pending;
 
-  const request = invoke<any>('player_profile', {
+  const request = invoke<any>('player_profile_core', {
     player_id: playerId,
   })
     .then((response) => {
