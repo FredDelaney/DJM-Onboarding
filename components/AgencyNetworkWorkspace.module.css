@@ -1328,3 +1328,46 @@
     font-size: 11px;
   }
 }
+
+/* Mobile club account access v1 */
+@media (max-width: 680px) {
+  .clubCard .actions {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .clubCard .secondaryAction {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    padding: 0;
+    border: 1px solid #e3e8ec;
+    border-radius: 12px;
+    background: #fff;
+    color: #66727c;
+    font-size: 0;
+  }
+
+  .clubCard .secondaryAction svg {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+  }
+
+  .clubCard .primaryAction {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .clubCard .actions:not(:has(.primaryAction)) {
+    grid-template-columns: 1fr;
+  }
+
+  .clubCard .actions:not(:has(.primaryAction)) .secondaryAction {
+    width: 100%;
+    padding: 0 14px;
+    font-size: 11px;
+  }
+}

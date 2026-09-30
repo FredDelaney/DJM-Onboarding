@@ -874,6 +874,8 @@ export default function AgencyNetworkWorkspace({
                     type="button"
                     className={styles.secondaryAction}
                     onClick={() => openClub(club)}
+                    aria-label={`Open ${clubName}`}
+                    title="Open club"
                   >
                     <BriefcaseBusiness size={14} />
                     Open club
