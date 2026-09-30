@@ -15,7 +15,9 @@ const css = readFileSync(
   'utf8',
 );
 
-test('club profile puts footage and external evidence near the top', () => {
+test('club profile puts current output, footage and external evidence near the top', () => {
+  assert.match(profile, /const quickStats =/);
+  assert.match(profile, /CURRENT OUTPUT/);
   assert.match(profile, /const featuredLinks =/);
   assert.match(profile, /CLUB EVALUATION/);
   assert.match(profile, /Watch and verify/);
@@ -24,6 +26,10 @@ test('club profile puts footage and external evidence near the top', () => {
   assert.match(profile, /SCOUTING/);
   assert.match(profile, /Wyscout/);
   assert.match(profile, /PERFORMANCE DATA/);
+  assert.match(pdf, /const quickStats =/);
+  assert.match(pdf, /PERFORMANCE DETAIL/);
+  assert.match(css, /Club decision snapshot v1/);
+  assert.match(css, /\.dossier-quick-stats-grid/);
 });
 
 test('primary video is never lost when selected_videos is empty', () => {

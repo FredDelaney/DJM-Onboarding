@@ -151,6 +151,9 @@ export default function PublicProfile({
       6,
     );
 
+  const quickStats =
+    headlineStats.slice(0, 4);
+
   const performance =
     dossierPerformance(
       profile,
@@ -671,6 +674,35 @@ export default function PublicProfile({
             )}
           </section>
         )}
+
+        {quickStats.length > 0 &&
+          !hidden.has('stats') && (
+            <section className="dossier-quick-stats">
+              <div className="dossier-quick-stats-head">
+                <div>
+                  <span>CURRENT OUTPUT</span>
+                  <strong>
+                    {latestCareerSeason
+                      ? latestCareerSeason
+                      : 'Latest recorded season'}
+                  </strong>
+                </div>
+                <small>Reviewed player data</small>
+              </div>
+
+              <div className="dossier-quick-stats-grid">
+                {quickStats.map((stat, index) => (
+                  <div
+                    className="dossier-quick-stat"
+                    key={`${stat.label}-${index}`}
+                  >
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
         {featuredLinks.length > 0 && (
           <section className="dossier-evaluation no-print">
