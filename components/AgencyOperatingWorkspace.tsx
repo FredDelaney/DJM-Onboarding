@@ -1441,6 +1441,9 @@ export default function AgencyOperatingWorkspace() {
                 data={data}
                 basePath={basePath}
                 rpc={rpc}
+                onRecordMeetingOutcome={(meeting) =>
+                  setMeetingOutcomeRequest(meeting)
+                }
               />
             ) : null}
             {view === 'business' && canSeeBusiness ? (
