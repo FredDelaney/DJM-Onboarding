@@ -23,6 +23,7 @@ import styles from './AgencyCreateDrawer.module.css';
 
 export type AgencyCreateKind =
   | 'player'
+  | 'club'
   | 'club_need'
   | 'deal'
   | 'contact';
@@ -53,6 +54,12 @@ const META: Record<
     title: 'Add player',
     copy: 'Add the minimum useful player record now. You can complete the detail later.',
     submit: 'Add player',
+  },
+  club: {
+    eyebrow: 'NETWORK',
+    title: 'Add club',
+    copy: 'Add the club now. Contacts, needs and opportunities can be connected when they exist.',
+    submit: 'Add club',
   },
   club_need: {
     eyebrow: 'MARKET',
@@ -199,6 +206,14 @@ export default function AgencyCreateDrawer({
         };
       }
 
+      if (kind === 'club') {
+        action = 'create_club';
+        body = {
+          club_name: values.club_name.trim(),
+          country: values.country.trim() || null,
+        };
+      }
+
       if (kind === 'club_need') {
         action = 'create_club_need';
         body = {
@@ -293,6 +308,7 @@ export default function AgencyCreateDrawer({
           <div className={styles.headerTop}>
             <div className={styles.icon}>
               {kind === 'player' ? <Users size={18} /> : null}
+              {kind === 'club' ? <BriefcaseBusiness size={18} /> : null}
               {kind === 'club_need' ? <Target size={18} /> : null}
               {kind === 'deal' ? <BriefcaseBusiness size={18} /> : null}
               {kind === 'contact' ? <UserRoundPlus size={18} /> : null}
@@ -378,6 +394,24 @@ export default function AgencyCreateDrawer({
                   />
                 </div>
               ) : null}
+            </>
+          ) : null}
+
+          {kind === 'club' ? (
+            <>
+              <Field
+                label="Club name"
+                required
+                value={values.club_name}
+                onChange={(value) => setValue('club_name', value)}
+              />
+
+              <Field
+                label="Country"
+                value={values.country}
+                onChange={(value) => setValue('country', value)}
+                placeholder="Optional"
+              />
             </>
           ) : null}
 

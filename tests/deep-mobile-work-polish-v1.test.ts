@@ -6,6 +6,10 @@ const shell = readFileSync(
   'components/AgencyOperatingWorkspace.tsx',
   'utf8',
 );
+const network = readFileSync(
+  'components/AgencyNetworkWorkspace.tsx',
+  'utf8',
+);
 const relationship = readFileSync(
   'components/AgencyRelationshipActions.module.css',
   'utf8',
@@ -19,10 +23,19 @@ const capture = readFileSync(
   'utf8',
 );
 
-test('Network create action disappears inside person and club detail', () => {
-  assert.match(
+test('Network create action stays on the list surface and disappears inside entity detail', () => {
+  assert.doesNotMatch(
     shell,
-    /view === 'network'[\s\S]*!selectedNetworkPersonId[\s\S]*!String\(search\.get\('club'\)/,
+    /view === 'network'[\s\S]{0,260}kind: 'contact'/,
+  );
+  assert.match(network, /if \(selectedContact\)[\s\S]*return \(/);
+  assert.match(
+    network,
+    /!requestedClubId \? \([\s\S]*styles\.addEntityButton/,
+  );
+  assert.match(
+    network,
+    /view === 'clubs' \? 'Add club' : 'Add contact'/,
   );
 });
 

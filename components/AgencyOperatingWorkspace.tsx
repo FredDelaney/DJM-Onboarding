@@ -371,11 +371,7 @@ export default function AgencyOperatingWorkspace() {
       ? { kind: 'player', label: 'Add player' }
       : view === 'opportunities'
         ? { kind: 'club_need', label: 'Add opportunity' }
-        : view === 'network' &&
-            !selectedNetworkPersonId &&
-            !String(search.get('club') || '').trim()
-          ? { kind: 'contact', label: 'Add contact' }
-          : null;
+        : null;
 
   const theme = tenantBrandCssVariables({
     primary:
@@ -1430,6 +1426,7 @@ export default function AgencyOperatingWorkspace() {
                 basePath={basePath}
                 rpc={rpc}
                 onRefresh={loadView}
+                onCreate={(kind) => setCreateKind(kind)}
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
