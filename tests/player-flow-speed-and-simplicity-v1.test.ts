@@ -123,19 +123,21 @@ test('Home paints from a small focus read before secondary context', () => {
   );
 });
 
-test('Opportunities does not block the core board on connected context', () => {
+test('Opportunities loads the visible tab before hidden opportunity data', () => {
+  assert.match(shell, /const opportunitiesSection =/);
   assert.match(
     shell,
-    /const \[market, deals\] = await Promise\.all/,
+    /opportunitiesSection === 'deals'[\s\S]*await rpc<any>\('redream_autopilot_deals'/,
   );
   assert.match(
     shell,
-    /commit\([\s\S]*market,[\s\S]*deals,[\s\S]*setBusy\(false\)[\s\S]*redream_opportunity_connected_context/,
+    /else \{[\s\S]*await rpc<any>\('redream_autopilot_market'/,
   );
   assert.match(
     shell,
-    /\.then\(\(connected\) => \{[\s\S]*merge\(\{ connected \}\)/,
+    /setBusy\(false\)[\s\S]*Promise\.allSettled\(\[/,
   );
+  assert.match(shell, /redream_opportunity_connected_context/);
 });
 
 test('AI route context is lazy and does not compete with first paint', () => {
