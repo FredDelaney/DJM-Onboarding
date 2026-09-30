@@ -939,6 +939,12 @@ export function ClubCvPdfDocument({
       6,
     );
 
+  const quickStats =
+    stats.slice(0, 4);
+
+  const detailStats =
+    stats.slice(4);
+
   const performance =
     dossierPerformance(
       profile,
@@ -1336,6 +1342,46 @@ export function ClubCvPdfDocument({
             </View>
           )}
 
+          {quickStats.length > 0 &&
+            !hidden(
+              profile,
+              'stats',
+            ) && (
+              <View
+                style={styles.section}
+                wrap={false}
+              >
+                <Text style={styles.kicker}>
+                  CURRENT OUTPUT
+                </Text>
+
+                <View style={styles.statBand}>
+                  {quickStats.map((item, index) => (
+                    <View
+                      key={index}
+                      style={
+                        index === 0
+                          ? styles.statFirst
+                          : index === quickStats.length - 1
+                            ? styles.statLast
+                            : styles.stat
+                      }
+                    >
+                      <Text
+                        style={[styles.statValue, brandStyles.primaryText]}
+                      >
+                        {clip(item.value, 12)}
+                      </Text>
+
+                      <Text style={styles.statLabel}>
+                        {clip(item.label, 22).toUpperCase()}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
           {(positionSpots.length > 0 ||
             !hidden(profile, 'why_review')) && (
             <View style={styles.playerProfile} wrap={false}>
@@ -1397,7 +1443,8 @@ export function ClubCvPdfDocument({
             </View>
           )}
 
-          {stats.length > 0 &&
+          {(detailStats.length > 0 ||
+            performance.rows.length > 0) &&
             !hidden(
               profile,
               'stats',
@@ -1413,57 +1460,59 @@ export function ClubCvPdfDocument({
                     styles.kicker
                   }
                 >
-                  PERFORMANCE
+                  PERFORMANCE DETAIL
                 </Text>
 
-                <View
-                  style={
-                    styles.statBand
-                  }
-                >
-                  {stats.map(
-                    (
-                      item,
-                      index,
-                    ) => (
-                      <View
-                        key={
-                          index
-                        }
-                        style={
-                          index ===
-                          0
-                            ? styles.statFirst
-                            : index ===
-                                stats.length -
-                                  1
-                              ? styles.statLast
-                              : styles.stat
-                        }
-                      >
-                        <Text
-                          style={[styles.statValue, brandStyles.primaryText]}
-                        >
-                          {clip(
-                            item.value,
-                            12,
-                          )}
-                        </Text>
-
-                        <Text
+                {detailStats.length > 0 ? (
+                  <View
+                    style={
+                      styles.statBand
+                    }
+                  >
+                    {detailStats.map(
+                      (
+                        item,
+                        index,
+                      ) => (
+                        <View
+                          key={
+                            index
+                          }
                           style={
-                            styles.statLabel
+                            index ===
+                            0
+                              ? styles.statFirst
+                              : index ===
+                                  detailStats.length -
+                                    1
+                                ? styles.statLast
+                                : styles.stat
                           }
                         >
-                          {clip(
-                            item.label,
-                            22,
-                          ).toUpperCase()}
-                        </Text>
-                      </View>
-                    ),
-                  )}
-                </View>
+                          <Text
+                            style={[styles.statValue, brandStyles.primaryText]}
+                          >
+                            {clip(
+                              item.value,
+                              12,
+                            )}
+                          </Text>
+
+                          <Text
+                            style={
+                              styles.statLabel
+                            }
+                          >
+                            {clip(
+                              item.label,
+                              22,
+                            ).toUpperCase()}
+                          </Text>
+                        </View>
+                      ),
+                    )}
+                  </View>
+                ) : null}
 
                 {performance.rows
                   .length > 0 && (
