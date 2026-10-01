@@ -24,7 +24,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { platformInvoke, friendlyError } from '@/lib/platform-client';
@@ -316,6 +316,28 @@ const planPrice = (plan: Plan) => {
   return `${plan.price_is_from ? 'From ' : ''}${amount}/mo`;
 };
 
+const withControlPlaneDeadline = async <T,>(
+  promise: Promise<T>,
+  milliseconds = 12_000,
+): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(
+        new Error(
+          'ReDream services are taking too long to respond. Retry in a moment.',
+        ),
+      );
+    }, milliseconds);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+};
+
 export default function PlatformPage() {
   const router = useRouter();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -325,6 +347,8 @@ export default function PlatformPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [error, setError] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
+  const loadInFlight = useRef<Promise<void> | null>(null);
   const [notice, setNotice] = useState('');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'attention' | 'launch' | 'trials' | 'risk' | 'expansion'>('all');
@@ -358,44 +382,64 @@ export default function PlatformPage() {
   const [demoBusyId, setDemoBusyId] = useState('');
   const [pendingDemoRequestId, setPendingDemoRequestId] = useState<string | null>(null);
 
-  const load = useCallback(async (quiet = false) => {
-    if (quiet) setRefreshing(true);
-    else setLoading(true);
-    setError('');
-    setAccessDenied(false);
+  const load = useCallback((quiet = false): Promise<void> => {
+    if (loadInFlight.current) return loadInFlight.current;
 
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    const request = (async () => {
+      if (quiet) setRefreshing(true);
+      else setLoading(true);
+      setError('');
+      setLoadFailed(false);
+      setAccessDenied(false);
 
-      if (!session?.user) {
-        router.replace('/platform/sign-in');
-        return;
+      try {
+        const {
+          data: { session },
+        } = await withControlPlaneDeadline(supabase.auth.getSession(), 8_000);
+
+        if (!session?.user) {
+          router.replace('/platform/sign-in');
+          return;
+        }
+
+        const [portfolioResult, plansResult, demoResult, funnelResult] =
+          await withControlPlaneDeadline(
+            Promise.all([
+              platformInvoke<any>('platform-ops', { action: 'portfolio' }),
+              platformInvoke<any>('platform-ops', { action: 'plans' }),
+              platformInvoke<any>('platform-ops', { action: 'demo_requests', limit: 50 }),
+              platformInvoke<any>('platform-ops', { action: 'funnel_summary', days: 30 }),
+            ]),
+            12_000,
+          );
+
+        setPortfolio(portfolioResult?.portfolio || null);
+        setPlans(plansResult?.plans || []);
+        setDemoRequests(demoResult?.demo_requests || []);
+        setFunnelSummary(funnelResult?.funnel_summary || null);
+      } catch (loadError) {
+        const message = friendlyError(loadError);
+        if (message.toLowerCase().includes('platform operator access required')) {
+          setAccessDenied(true);
+        } else {
+          setError(
+            message.includes('taking too long')
+              ? 'ReDream is taking longer than expected. Please try again.'
+              : 'ReDream could not load. Please try again.',
+          );
+          setLoadFailed(true);
+        }
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
+    })();
 
-      const [portfolioResult, plansResult, demoResult, funnelResult] = await Promise.all([
-        platformInvoke<any>('platform-ops', { action: 'portfolio' }),
-        platformInvoke<any>('platform-ops', { action: 'plans' }),
-        platformInvoke<any>('platform-ops', { action: 'demo_requests', limit: 50 }),
-        platformInvoke<any>('platform-ops', { action: 'funnel_summary', days: 30 }),
-      ]);
-
-      setPortfolio(portfolioResult?.portfolio || null);
-      setPlans(plansResult?.plans || []);
-      setDemoRequests(demoResult?.demo_requests || []);
-      setFunnelSummary(funnelResult?.funnel_summary || null);
-    } catch (loadError) {
-      const message = friendlyError(loadError);
-      if (message.toLowerCase().includes('platform operator access required')) {
-        setAccessDenied(true);
-      } else {
-        setError(message);
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    loadInFlight.current = request;
+    void request.then(() => {
+      if (loadInFlight.current === request) loadInFlight.current = null;
+    });
+    return request;
   }, [router]);
 
   useEffect(() => {
@@ -1203,6 +1247,21 @@ export default function PlatformPage() {
     );
   }
 
+  if (loadFailed && !portfolio) {
+    return (
+      <main className={styles.deniedPage}>
+        <div className={styles.deniedCard}>
+          <AlertTriangle size={26} />
+          <h1>ReDream could not open</h1>
+          <p>{error}</p>
+          <button type="button" onClick={() => void load()}>
+            Try again
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className={styles.page}>
       <header className={styles.topbar}>
@@ -1292,7 +1351,19 @@ export default function PlatformPage() {
           <div className={styles.alert}>
             <AlertTriangle size={17} />
             <span>{error}</span>
-            <button type="button" onClick={() => setError('')} aria-label="Dismiss error">
+            {loadFailed ? (
+              <button type="button" onClick={() => void load(true)} disabled={refreshing}>
+                Try again
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setError('');
+                setLoadFailed(false);
+              }}
+              aria-label="Dismiss error"
+            >
               <X size={15} />
             </button>
           </div>
