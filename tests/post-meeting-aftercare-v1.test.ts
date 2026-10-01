@@ -203,7 +203,7 @@ test(
     );
     assert.match(
       workspace,
-      /meeting_aftercare: readValue\(2\)/,
+      /merge\(settleHomeReads\(latestData \|\| \{\}, reads\)\)/,
     );
     assert.match(
       workspace,
