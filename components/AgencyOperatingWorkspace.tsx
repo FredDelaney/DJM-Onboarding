@@ -85,6 +85,8 @@ import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 
+import { homeReadState, settleHomeReads, homeConversationHref } from '@/lib/agency-home-state';
+
 import styles from './AgencyOperatingWorkspace.module.css';
 
 type View = 'home' | 'players' | 'opportunities' | 'network' | 'calendar' | 'business';
@@ -493,7 +495,6 @@ export default function AgencyOperatingWorkspace() {
 
           writeViewCache(cacheKey, {
             market,
-            deals: {},
             connected: {},
           });
           return;
@@ -632,7 +633,7 @@ export default function AgencyOperatingWorkspace() {
           });
         }
 
-        commit({ ...(latestData || {}), home });
+        commit({ ...(latestData || {}), home, home_reads: { operations: 'loading', connected_work: 'loading', meeting_aftercare: 'loading' } });
         if (isCurrent()) setBusy(false);
 
         void Promise.allSettled([
@@ -648,16 +649,7 @@ export default function AgencyOperatingWorkspace() {
           }),
         ]).then((reads) => {
           if (!isCurrent()) return;
-          const readValue = (index: number) =>
-            reads[index]?.status === 'fulfilled'
-              ? (reads[index] as PromiseFulfilledResult<any>).value
-              : {};
-
-          merge({
-            operations: readValue(0),
-            connected_work: readValue(1),
-            meeting_aftercare: readValue(2),
-          });
+          merge(settleHomeReads(latestData || {}, reads));
         });
       } else if (view === 'players') {
         if (playersSection === 'recruitment') {
@@ -685,8 +677,9 @@ export default function AgencyOperatingWorkspace() {
 
           commit({
             ...(latestData || {}),
-            market: latestData?.market || {},
+            market: latestData?.market,
             deals,
+            opportunity_errors: {},
             connected: latestData?.connected || {},
           });
           if (isCurrent()) setBusy(false);
@@ -701,10 +694,11 @@ export default function AgencyOperatingWorkspace() {
           ]).then((reads) => {
             if (!isCurrent()) return;
             merge({
+              opportunity_errors: { market: reads[0]?.status === 'rejected' },
               market:
                 reads[0]?.status === 'fulfilled'
                   ? reads[0].value
-                  : latestData?.market || {},
+                  : latestData?.market,
               connected:
                 reads[1]?.status === 'fulfilled'
                   ? reads[1].value
@@ -719,7 +713,8 @@ export default function AgencyOperatingWorkspace() {
           commit({
             ...(latestData || {}),
             market,
-            deals: latestData?.deals || {},
+            opportunity_errors: {},
+            deals: latestData?.deals,
             connected: latestData?.connected || {},
           });
           if (isCurrent()) setBusy(false);
@@ -734,10 +729,11 @@ export default function AgencyOperatingWorkspace() {
           ]).then((reads) => {
             if (!isCurrent()) return;
             merge({
+              opportunity_errors: { deals: reads[0]?.status === 'rejected' },
               deals:
                 reads[0]?.status === 'fulfilled'
                   ? reads[0].value
-                  : latestData?.deals || {},
+                  : latestData?.deals,
               connected:
                 reads[1]?.status === 'fulfilled'
                   ? reads[1].value
@@ -938,7 +934,7 @@ export default function AgencyOperatingWorkspace() {
     const query = next.toString();
 
     window.history.replaceState(
-      window.history.state,
+      null,
       '',
       `${basePath}${query ? `?${query}` : ''}`,
     );
@@ -971,7 +967,7 @@ export default function AgencyOperatingWorkspace() {
     const query = next.toString();
 
     window.history.replaceState(
-      window.history.state,
+      null,
       '',
       `${basePath}${query ? `?${query}` : ''}`,
     );
@@ -986,7 +982,7 @@ export default function AgencyOperatingWorkspace() {
     next.delete('club');
     const query = next.toString();
     window.history.replaceState(
-      window.history.state,
+      null,
       '',
       `${basePath}${query ? `?${query}` : ''}`,
     );
@@ -1220,6 +1216,7 @@ export default function AgencyOperatingWorkspace() {
               <Link
                 key={item.key}
                 href={href}
+                aria-current={view === item.key ? 'page' : undefined}
                 className={`${view === item.key ? styles.navActive : ''} ${item.key === 'business' ? styles.navManagement : ''}`}
                 onPointerEnter={() => void warmView(item.key)}
                 onFocus={() => void warmView(item.key)}
@@ -1353,7 +1350,16 @@ export default function AgencyOperatingWorkspace() {
           </section>
         ) : null}
 
-        {error ? <ErrorBox text={error} /> : null}
+        {error ? (
+          <div role="alert">
+            <ErrorBox text={error} />
+            <button type="button" className={styles.secondaryButton}
+              disabled={busy} onClick={() => void loadView()}>
+              <RefreshCw size={15} />
+              {busy ? 'Trying again...' : 'Try again'}
+            </button>
+          </div>
+        ) : null}
 
         {busy && !data ? (
           <section className={styles.loadingCard}>
@@ -1369,6 +1375,7 @@ export default function AgencyOperatingWorkspace() {
                 data={data}
                 basePath={basePath}
                 actionBusy={actionBusy}
+                onRetry={() => void loadView()}
                 onPrepare={prepareCommand}
                 onOpenAction={openCommandAction}
                 onPrepareConnectedReply={(interaction) =>
@@ -1411,6 +1418,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'opportunities' ? (
               <AgencyOpportunitiesWorkspace
+                onRetry={() => void loadView()}
                 data={data}
                 basePath={basePath}
                 onOpenAction={(request) =>
@@ -1653,7 +1661,7 @@ export default function AgencyOperatingWorkspace() {
           onOpenMarket={() => {
             setClubAccountRequest(null);
             window.history.pushState(
-              window.history.state,
+              null,
               '',
               `${basePath}?view=opportunities`,
             );
@@ -1665,7 +1673,7 @@ export default function AgencyOperatingWorkspace() {
           onOpenPlayer={(playerId) => {
             setClubAccountRequest(null);
             window.history.pushState(
-              window.history.state,
+              null,
               '',
               `${basePath}?view=players&player=${encodeURIComponent(
                 playerId,
@@ -1890,6 +1898,7 @@ function Home({
   basePath,
   actionBusy,
   onPrepare,
+  onRetry,
   onOpenAction,
   onPrepareConnectedReply,
   onRecordMeetingOutcome,
@@ -1897,6 +1906,7 @@ function Home({
   data: any;
   basePath: string;
   actionBusy: string;
+  onRetry: () => void;
   onPrepare: (command: any) => void;
   onOpenAction: (command: any) => void;
   onPrepareConnectedReply: (interaction: any) => void;
@@ -1917,10 +1927,19 @@ function Home({
     );
   }, []);
 
+  const attentionState = homeReadState(data?.home_reads, ['meeting_aftercare']);
+  const todayState = homeReadState(data?.home_reads, ['operations', 'connected_work']);
+  const connectedState = homeReadState(data?.home_reads, ['connected_work']);
+  const allState = homeReadState(data?.home_reads, ['operations', 'connected_work', 'meeting_aftercare']);
+  const readNotice = (state: string) => state === 'ready' ? null : (
+    <div className={styles.homeReadNotice} role="status">
+      <span>{state === 'loading' ? 'Checking for updates...' : 'Some updates could not be loaded.'}</span>
+      {state === 'error' ? <button type="button" className={styles.compactButton} onClick={onRetry}>Try again</button> : null}
+    </div>
+  );
   const home = data?.home || {};
   const operations = data?.operations || {};
   const connectedWork = data?.connected_work || {};
-  const connectedSummary = connectedWork?.summary || {};
   const recentConnected = Array.isArray(
     connectedWork?.recent_conversations,
   )
@@ -1937,11 +1956,7 @@ function Home({
     Array.isArray(meetingAftercare?.items)
       ? meetingAftercare.items.slice(0, 4)
       : [];
-  const movedFollowups = Number(
-    connectedSummary?.connected_followups_open || 0,
-  );
-  const handledConnectedCount =
-    recentConnected.length + movedFollowups;
+  const handledConnectedCount = recentConnected.length;
 
   const confirm = Array.isArray(home?.attention?.confirm)
     ? home.attention.confirm
@@ -2157,7 +2172,9 @@ function Home({
         <h2>
           {needsYouCount
             ? `${needsYouCount} ${needsYouCount === 1 ? 'thing needs' : 'things need'} you`
-            : 'Everything important is under control'}
+            : allState === 'ready'
+              ? 'Nothing needs your attention'
+              : 'Your day at a glance'}
         </h2>
       </section>
 
@@ -2167,7 +2184,7 @@ function Home({
         >
           <div className={styles.sectionHead}>
             <div>
-              <h2>Needs you</h2>
+              <h2>Needs attention</h2>
             </div>
             {needsYouCount ? (
               <span className={styles.sectionCount}>
@@ -2177,6 +2194,7 @@ function Home({
           </div>
 
           <div className={styles.list}>
+            {readNotice(attentionState)}
             {visiblePriority.map((command: any, index: number) => (
               <article
                 className={`${styles.attentionCard} ${
@@ -2260,6 +2278,7 @@ function Home({
               <button
                 type="button"
                 className={styles.attentionMore}
+                aria-expanded={showAllNeeds}
                 onClick={() => setShowAllNeeds((current) => !current)}
               >
                 {showAllNeeds
@@ -2269,7 +2288,7 @@ function Home({
               </button>
             ) : null}
 
-            {!needsYouCount ? (
+            {!needsYouCount && attentionState === 'ready' ? (
               <EmptyState
                 icon={CheckCircle2}
                 title="Nothing needs you right now"
@@ -2287,16 +2306,17 @@ function Home({
               <h2>Today</h2>
             </div>
 
-            <a
+            <Link
               className={styles.homeTextLink}
-              href="?view=calendar"
+              href={`${basePath}?view=calendar`}
             >
               Calendar
               <ArrowRight size={13} />
-            </a>
+            </Link>
           </div>
 
           <div className={styles.list}>
+            {readNotice(todayState)}
             {dayItems
               .slice(0, 3)
               .map((item: any, index: number) => (
@@ -2335,7 +2355,7 @@ function Home({
                 </Link>
               ))}
 
-            {!dayItems.length ? (
+            {!dayItems.length && todayState === 'ready' ? (
               <EmptyState
                 icon={CalendarDays}
                 title="Nothing else today"
@@ -2346,25 +2366,34 @@ function Home({
         </section>
       </div>
 
-      {handledConnectedCount ? (
+      {recentConnected.length ? (
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}><h2>What changed</h2></div>
+          {readNotice(connectedState)}
+          <div className={styles.list}>
+            {recentConnected.slice(0, 3).map((item: any) => (
+              <Link key={item.interaction_id} className={`${styles.simpleTimelineRow} ${styles.homeChangeRow}`}
+                href={homeConversationHref(basePath, item)}>
+                <MessageCircleMore size={16} />
+                <div>
+                  <strong>{item.player_name || item.prospect_name || item.person_name || item.organisation_name || 'Conversation captured'}</strong>
+                  <span>{item.summary || 'A new conversation was captured.'}</span>
+                  {item.occurred_at ? <small>{relativeDate(item.occurred_at)}</small> : null}
+                </div>
+                <ArrowRight className={styles.simpleTimelineArrow} size={14} />
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {handledConnectedCount && connectedState === 'ready' ? (
         <section className={styles.handledStrip}>
-          <div className={styles.handledStripIcon}>
-            <CheckCircle2 size={15} />
-          </div>
+          <div className={styles.handledStripIcon}><CheckCircle2 size={15} /></div>
           <div className={styles.handledStripCopy}>
-            <small>REDREAM HANDLED</small>
-            <strong>
-              {[
-                recentConnected.length
-                  ? `${recentConnected.length} connected update${recentConnected.length === 1 ? '' : 's'} captured`
-                  : '',
-                movedFollowups
-                  ? `${movedFollowups} follow-up${movedFollowups === 1 ? '' : 's'} moved into Needs you`
-                  : '',
-              ].filter(Boolean).join(' · ')}
-            </strong>
+            <small>Recently handled by ReDream</small>
+            <strong>{handledConnectedCount} recent conversation{handledConnectedCount === 1 ? '' : 's'} captured</strong>
           </div>
-          <span>Up to date</span>
         </section>
       ) : null}
     </div>

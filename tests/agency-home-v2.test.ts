@@ -34,7 +34,7 @@ test('Home loads only the evidence needed for the daily operating screen', () =>
   assert.doesNotMatch(homeLoader, /redream_autopilot_deals/);
   assert.doesNotMatch(homeLoader, /redream_provider_contact_suggestions/);
   assert.doesNotMatch(homeLoader, /agency_control_centre/);
-  assert.match(homeLoader, /commit\(\{ \.\.\.\(latestData \|\| \{\}\), home \}\)/);
+  assert.match(homeLoader, /commit\(\{ \.\.\.\(latestData \|\| \{\}\), home, home_reads:/);
   assert.match(homeLoader, /void Promise\.allSettled\(\[/);
 });
 
@@ -48,7 +48,7 @@ test('Home uses the existing personal ownership spine rather than inventing anot
 
 test('Home shows a bounded decision queue with one direct action per item', () => {
   assert.match(home, /priority\.slice\(0, 3\)/);
-  assert.match(home, /<h2>Needs you<\/h2>/);
+  assert.match(home, /<h2>Needs attention<\/h2>/);
   assert.match(home, /actionFor\(command\)/);
   assert.match(home, /onPrepare\(command\)/);
   assert.match(home, /onOpenAction\(command\)/);
@@ -62,7 +62,7 @@ test('Home uses real current-day evidence for the Today view', () => {
   assert.match(home, /important_dates\?\.birthdays\?\.items/);
   assert.match(home, /connectedWork\?\.upcoming_meetings/);
   assert.match(home, /localDayKey\(item\?\.deadline_at\) === todayKey/);
-  assert.match(home, /href="\?view=calendar"/);
+  assert.match(home, /href=\{`\$\{basePath\}\?view=calendar`\}/);
 });
 
 test('Home is not a duplicate agency dashboard', () => {
@@ -75,7 +75,7 @@ test('Home is not a duplicate agency dashboard', () => {
 });
 
 test('handled automation is compact and responsive', () => {
-  assert.match(home, /REDREAM HANDLED/);
+  assert.match(home, /Recently handled by ReDream/);
   assert.match(home, /styles\.handledStrip/);
   assert.match(css, /\.handledStrip\s*\{/);
   assert.match(

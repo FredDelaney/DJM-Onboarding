@@ -33,7 +33,7 @@ test('Needs you shows only three actions until the agent asks for more', () => {
   assert.match(home, /3 - visiblePriority\.length/);
   assert.match(home, /meetingAftercareItems\.slice\(0, remainingAttentionSlots\)/);
   assert.match(home, /needsYouCount > 3/);
-  assert.match(home, /<h2>Needs you<\/h2>/);
+  assert.match(home, /<h2>Needs attention<\/h2>/);
   assert.match(home, /actionFor\(command\)/);
   assert.match(home, /Record outcome/);
   assert.doesNotMatch(home, /Resolve identities/);
@@ -49,16 +49,17 @@ test('Today means today, not the next ninety days', () => {
   assert.match(home, /calendar_kind: 'deadline'/);
   assert.match(home, /calendar_kind: 'birthday'/);
   assert.match(home, /dayItems[\s\S]*\.slice\(0, 3\)/);
-  assert.match(home, /href="\?view=calendar"/);
+  assert.match(home, /href=\{`\$\{basePath\}\?view=calendar`\}/);
   assert.match(home, /Nothing else today/);
 });
 
 test('ReDream handled is a quiet proof strip rather than another work feed', () => {
-  assert.match(home, /REDREAM HANDLED/);
+  assert.match(home, /Recently handled by ReDream/);
   assert.match(home, /styles\.handledStrip/);
-  assert.match(home, /connected update/);
-  assert.match(home, /moved into Needs you/);
-  assert.doesNotMatch(home, /recentConnected\.slice\(0, 3\)\.map/);
+  assert.match(home, /recent conversation/);
+  assert.match(home, /replyInteractionId/);
+  assert.match(home, /recentConnected\.slice\(0, 3\)\.map/);
+  assert.match(home, /homeConversationHref\(basePath, item\)/);
   assert.doesNotMatch(home, /connectedMeetings\.slice\(0, 2\)\.map/);
   assert.match(home, /replyInteractionId/);
   assert.match(home, /Prepare reply/);

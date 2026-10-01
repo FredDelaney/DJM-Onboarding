@@ -47,7 +47,7 @@ test('Today rows themselves are the action without another button column', () =>
 });
 
 test('Home section labels are concise and do not repeat themselves', () => {
-  assert.match(home, /<h2>Needs you<\/h2>/);
+  assert.match(home, /<h2>Needs attention<\/h2>/);
   assert.match(home, /<h2>Today<\/h2>/);
   assert.doesNotMatch(home, /What needs your attention/);
   assert.doesNotMatch(home, /<p className=\{styles\.eyebrow\}>TODAY<\/p>/);

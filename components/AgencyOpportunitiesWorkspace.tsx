@@ -15,6 +15,7 @@ import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
+import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
@@ -155,12 +156,14 @@ function ConnectedOpportunityContext({
 export default function AgencyOpportunitiesWorkspace({
   data,
   basePath,
+  onRetry,
   onOpenAction,
   onOpenPursuit,
   onOpenIntelligence,
 }: {
   data: any;
   basePath: string;
+  onRetry?: () => void;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenPursuit: (request: AgencyPursuitRequest) => void;
   onOpenIntelligence: (request: AgencyIntelligenceRequest) => void;
@@ -170,6 +173,7 @@ export default function AgencyOpportunitiesWorkspace({
   const requestedView = opportunityViewFrom(searchParams.get('tab'));
   const [view, setView] = useState<OpportunityView>(requestedView);
   const [search, setSearch] = useState('');
+  const readState = opportunityReadState(data, view);
 
   useEffect(() => {
     setView(requestedView);
@@ -519,31 +523,34 @@ export default function AgencyOpportunitiesWorkspace({
           <button
             type="button"
             className={view === 'needs' ? styles.tabActive : styles.tab}
+            aria-pressed={view === 'needs'}
             onClick={() => selectView('needs')}
           >
             <Target size={15} />
             Needs
-            <span>{needs.length}</span>
+            {data?.market != null ? <span>{needs.length}</span> : null}
           </button>
 
           <button
             type="button"
             className={view === 'routes' ? styles.tabActive : styles.tab}
+            aria-pressed={view === 'routes'}
             onClick={() => selectView('routes')}
           >
             <Users size={15} />
             Player routes
-            <span>{routes.length}</span>
+            {data?.market != null ? <span>{routes.length}</span> : null}
           </button>
 
           <button
             type="button"
             className={view === 'deals' ? styles.tabActive : styles.tab}
+            aria-pressed={view === 'deals'}
             onClick={() => selectView('deals')}
           >
             <BriefcaseBusiness size={15} />
             Live deals
-            <span>{deals.length}</span>
+            {data?.deals != null ? <span>{deals.length}</span> : null}
           </button>
         </div>
 
@@ -817,7 +824,15 @@ export default function AgencyOpportunitiesWorkspace({
             })
           : null}
 
-        {!activeItems.length ? (
+        {readState !== 'ready' ? (
+          <div className={styles.empty} role="status">
+            <strong>{readState === 'error' ? 'This view could not be updated' : 'Loading opportunities...'}</strong>
+            <span>{readState === 'error' ? 'Your recorded work is safe. Try loading it again.' : 'Checking the latest recorded work.'}</span>
+            {readState === 'error' && onRetry ? <button type="button" className={styles.tab} onClick={onRetry}>Try again</button> : null}
+          </div>
+        ) : null}
+
+        {!activeItems.length && readState === 'ready' ? (
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>
               {view === 'needs' ? (

@@ -10,6 +10,13 @@ const network = readFileSync('components/AgencyNetworkWorkspace.tsx','utf8');
 const contact = readFileSync('components/AgencyContactIntelligenceDrawer.tsx','utf8');
 const contactCss = readFileSync('components/AgencyContactIntelligenceDrawer.module.css','utf8');
 
+test('native workspace navigation lets Next update its search parameter subscribers', () => {
+  // Passing Next's existing __NA history marker bypasses its router update.
+  for (const source of [shell, network, readFileSync('components/AgencyConnectionsDrawer.tsx', 'utf8')]) {
+    assert.doesNotMatch(source, /history\.(?:pushState|replaceState)\(\s*window\.history\.state/);
+  }
+});
+
 const heavy = [
   ['Club', 'components/AgencyClubAccountDrawer.tsx', 'components/AgencyClubAccountDrawer.module.css'],
   ['Pursuit', 'components/AgencyPursuitRoom.tsx', 'components/AgencyPursuitRoom.module.css'],

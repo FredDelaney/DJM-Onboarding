@@ -99,7 +99,7 @@ test(
   () => {
     assert.match(
       workspace,
-      /moved into Needs you/,
+      /replyInteractionId/,
     );
     assert.doesNotMatch(
       workspace,
@@ -117,11 +117,11 @@ test(
     );
     assert.match(
       workspace,
-      /connected_work: readValue\(1\)/,
+      /merge\(settleHomeReads\(latestData \|\| \{\}, reads\)\)/,
     );
     assert.match(
       workspace,
-      /REDREAM HANDLED/,
+      /Recently handled by ReDream/,
     );
   },
 );

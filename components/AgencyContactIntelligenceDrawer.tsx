@@ -214,9 +214,9 @@ export default function AgencyContactIntelligenceDrawer({
           result?.person?.linkedin_url,
         ),
       );
-    } catch (loadError) {
+    } catch {
       setError(
-        friendlyError(loadError),
+        'Could not load this person’s details. Try again.',
       );
     } finally {
       setBusy(false);
@@ -691,10 +691,13 @@ export default function AgencyContactIntelligenceDrawer({
             }
           >
             {error}
+            <button type="button" onClick={() => void load()} disabled={busy}>
+              Try again
+            </button>
           </div>
         ) : null}
 
-        {!busy ? (
+        {!busy && detail ? (
           <div
             className={
               styles.body

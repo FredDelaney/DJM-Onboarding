@@ -19,7 +19,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -483,7 +483,10 @@ export default function AgencyPlayersWorkspace({
       : String(searchParams.get('player') || '').trim() || null,
   );
   const [targetId, setTargetId] = useState<string|null>(() => String(searchParams.get('target') || '').trim() || null);
-  const [targetDetail, setTargetDetail] = useState<any>(null);
+  const [targetRecord, setTargetRecord] = useState<{ id: string; detail: any } | null>(null);
+  const targetDetail = targetRecord?.id === targetId ? targetRecord.detail : null;
+  const targetRequest = useRef(0);
+  const [targetReload, setTargetReload] = useState(0);
   const [targetBusy, setTargetBusy] = useState(false);
   const [targetError, setTargetError] = useState('');
   const [interaction, setInteraction] = useState('');
@@ -598,17 +601,30 @@ export default function AgencyPlayersWorkspace({
   };
 
   useEffect(() => {
-    if (!targetId) {
-      setTargetDetail(null);
-      return;
-    }
-    setTargetBusy(true);
+    setInteraction('');
+    setInteractionChannel('whatsapp');
+  }, [targetId]);
+
+  useEffect(() => {
+    const request = ++targetRequest.current;
+    setTargetRecord(null);
     setTargetError('');
-    void invoke<any>('recruitment_target',{prospect_id:targetId})
-      .then((response) => setTargetDetail(response?.recruitment || null))
-      .catch((error) => setTargetError(friendlyError(error)))
-      .finally(() => setTargetBusy(false));
-  }, [invoke,targetId]);
+    if (!targetId) { setTargetBusy(false); return; }
+    setTargetBusy(true);
+    void invoke<any>('recruitment_target', { prospect_id: targetId })
+      .then((response) => {
+        if (request !== targetRequest.current) return;
+        if (!response?.recruitment?.target) throw new Error('This recruitment target is unavailable.');
+        setTargetRecord({ id: targetId, detail: response.recruitment });
+      })
+      .catch((error) => {
+        if (request === targetRequest.current) setTargetError(friendlyError(error));
+      })
+      .finally(() => {
+        if (request === targetRequest.current) setTargetBusy(false);
+      });
+    return () => { targetRequest.current += 1; };
+  }, [invoke, targetId, targetReload]);
 
   const players = Array.isArray(data?.directory?.items) ? data.directory.items : [];
   const targets = Array.isArray(data?.recruitment?.items) ? data.recruitment.items : [];
@@ -636,33 +652,40 @@ export default function AgencyPlayersWorkspace({
 
   const refreshTarget=async()=>{
     if (!targetId) return;
+    const request = targetRequest.current;
     const response:any=await invoke('recruitment_target',{prospect_id:targetId});
-    setTargetDetail(response?.recruitment||null);
+    if (request === targetRequest.current) setTargetRecord({ id: targetId, detail: response?.recruitment || null });
   };
 
   const changeStage=async()=>{
     const target=targetDetail?.target||{};
     const next=nextMajorStage(target.raw_stage);
     if (!next || !targetId) return;
+    const request = targetRequest.current;
     await invoke('recruitment_set_stage',{prospect_id:targetId,stage:next[0]});
+    if (request !== targetRequest.current) return;
     await Promise.all([refreshTarget(),onRefresh()]);
   };
 
   const logInteraction=async()=>{
     if (!targetId || !interaction.trim()) return;
+    const request = targetRequest.current;
     await invoke('recruitment_log_interaction',{
       prospect_id:targetId,
       channel:interactionChannel,
       direction:'outbound',
       summary:interaction.trim(),
     });
+    if (request !== targetRequest.current) return;
     setInteraction('');
     await Promise.all([refreshTarget(),onRefresh()]);
   };
 
   const promote=async()=>{
     if (!targetId) return;
+    const request = targetRequest.current;
     await invoke('recruitment_promote',{prospect_id:targetId});
+    if (request !== targetRequest.current) return;
     closeTarget();
     await onRefresh();
   };
@@ -698,8 +721,8 @@ export default function AgencyPlayersWorkspace({
             </button>
           </div>
           {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the recorded relationship.</span></div></div>:null}
-          {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span></div></div>:null}
-          {!targetBusy&&targetDetail?(
+          {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span><button type="button" className={styles.secondaryButton} onClick={()=>setTargetReload(value=>value+1)}>Try again</button></div></div>:null}
+          {!targetBusy&&!targetError&&targetDetail?(
             <div className={styles.drawerBody}>
               <header className={styles.recruitHero}><div className={styles.recruitmentMark}>{initials(targetDetail.target?.full_name||'')||'P'}</div>
                 <div><p>RECRUITMENT</p><h2>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span></div></header>
