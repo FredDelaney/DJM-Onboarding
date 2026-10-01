@@ -171,6 +171,19 @@ const age = (value: unknown) => {
   );
 };
 
+const displayDate = (value: unknown) => {
+  const raw = text(value);
+  const date = new Date(`${raw}T12:00:00Z`);
+  return Number.isNaN(date.getTime())
+    ? raw
+    : new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(date);
+};
+
 const statsFreshnessLabel = (value: unknown) => {
   const raw = text(value);
   if (!raw) return '';
@@ -296,7 +309,7 @@ const makeDraftProfile = (
     why_review: form.why_review || null,
     career_summary: form.career_summary || null,
     profile_photo_path: player.profile_photo_path,
-    primary_video_url: selectedVideos[0]?.url || null,
+    primary_video_url: selectedVideos[0]?.url || published.primary_video_url || null,
     transfermarkt_url: player.transfermarkt_url,
     wyscout_url: player.wyscout_url,
     stats_url: player.stats_url,
@@ -351,7 +364,7 @@ export default function AgencyPlayerProfile({
   const [notice, setNotice] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
-  const [verifyFocus, setVerifyFocus] = useState<'verification' | 'position'>(
+  const [verifyFocus, setVerifyFocus] = useState<'verification' | 'position' | 'contract-status' | 'contract-expiry'>(
     'verification',
   );
   const [verifyForm, setVerifyForm] =
@@ -579,7 +592,7 @@ export default function AgencyPlayerProfile({
     {
       key: 'video',
       label: 'Current video',
-      ok: videos.length > 0,
+      ok: Boolean(draftProfile.primary_video_url),
       important: false,
       missingTitle: 'Add current player footage',
       missingDetail:
@@ -588,6 +601,37 @@ export default function AgencyPlayerProfile({
         'Edit Player Profile → Current player footage → Video URL',
       action: 'profile-video',
       actionLabel: 'Add video',
+    },
+    {
+      key: 'transfermarkt',
+      label: 'Transfermarkt link',
+      ok: Boolean(player.transfermarkt_url),
+      important: false,
+      missingTitle: 'Add Transfermarkt URL',
+      missingDetail:
+        'Link the player’s record so a club can verify the career context quickly.',
+      where: `Players → ${name} → Sources → Transfermarkt`,
+      action: 'player-workspace',
+      actionLabel: 'Open player',
+    },
+    {
+      key: 'contract',
+      label: 'Contract details',
+      ok: Boolean(player.contract_status) &&
+        (Boolean(player.contract_expiry) ||
+          !/under contract|contracted|on loan/i.test(text(player.contract_status))),
+      important: false,
+      missingTitle: player.contract_status
+        ? 'Add contract expiry'
+        : 'Add contract status',
+      missingDetail: player.contract_status
+        ? 'Record the expiry date for a player who is under contract.'
+        : 'Record the current contract status so clubs understand availability.',
+      where: player.contract_status
+        ? 'Player Profile → Review current data → Contract expiry'
+        : 'Player Profile → Review current data → Contract status',
+      action: 'verify-player',
+      actionLabel: player.contract_status ? 'Add expiry' : 'Add status',
     },
     {
       key: 'positioning',
@@ -612,6 +656,9 @@ export default function AgencyPlayerProfile({
   const optionalChecks = checks.filter((item) => !item.important);
   const missingRequiredChecks = requiredChecks.filter((item) => !item.ok);
   const missingOptionalChecks = optionalChecks.filter((item) => !item.ok);
+  const missingShareHighlights = missingOptionalChecks.filter((item) =>
+    ['video', 'transfermarkt', 'contract'].includes(item.key),
+  );
   const missingRequiredCount = missingRequiredChecks.length;
   const canPublish = missingRequiredCount === 0;
   const verificationOnly =
@@ -1022,7 +1069,7 @@ export default function AgencyPlayerProfile({
       [key]: value,
     }));
 
-  const openVerify = (focus: 'verification' | 'position' = 'verification') => {
+  const openVerify = (focus: 'verification' | 'position' | 'contract-status' | 'contract-expiry' = 'verification') => {
     setVerifyForm(verifyFormFromPlayer(player));
     setVerifyFocus(focus);
     setVerifyError('');
@@ -1184,16 +1231,16 @@ export default function AgencyPlayerProfile({
 
             <div className={styles.heroFacts}>
               {draftProfile.age_display ? (
-                <span>{draftProfile.age_display}</span>
-              ) : null}
-              {player.preferred_foot ? (
-                <span>{human(player.preferred_foot)} foot</span>
-              ) : null}
-              {player.height_cm ? (
-                <span>{player.height_cm} cm</span>
+                <span>Age {draftProfile.age_display}</span>
               ) : null}
               {Array.isArray(player.nationalities) && player.nationalities[0] ? (
                 <span>{player.nationalities[0]}</span>
+              ) : null}
+              {player.contract_status ? (
+                <span>{human(player.contract_status)}</span>
+              ) : null}
+              {player.contract_expiry ? (
+                <span>Contract to {displayDate(player.contract_expiry)}</span>
               ) : null}
             </div>
 
@@ -1270,7 +1317,14 @@ export default function AgencyPlayerProfile({
 
           <p>
             {published?.published
-              ? 'Ready to share with clubs.'
+              ? missingOptionalChecks.length
+                ? `Before sharing: ${(missingShareHighlights.length
+                    ? missingShareHighlights
+                    : missingOptionalChecks)
+                    .slice(0, 3)
+                    .map((item) => item.missingTitle)
+                    .join(' · ')}`
+                : 'Ready to share with clubs.'
               : verificationOnly
                 ? `Confirm this current record once: ${[
                     player.primary_position,
@@ -1417,6 +1471,10 @@ export default function AgencyPlayerProfile({
                           openVerify(
                             item.key === 'position'
                               ? 'position'
+                              : item.key === 'contract'
+                                ? player.contract_status
+                                  ? 'contract-expiry'
+                                  : 'contract-status'
                               : 'verification',
                           )
                         }
@@ -1959,6 +2017,7 @@ export default function AgencyPlayerProfile({
                     onChange={(event) =>
                       setVerifyField('contract_status', event.target.value)
                     }
+                    autoFocus={verifyFocus === 'contract-status'}
                     placeholder="Under contract / Free agent"
                   />
                 </label>
@@ -1971,6 +2030,7 @@ export default function AgencyPlayerProfile({
                     onChange={(event) =>
                       setVerifyField('contract_expiry', event.target.value)
                     }
+                    autoFocus={verifyFocus === 'contract-expiry'}
                   />
                 </label>
               </div>

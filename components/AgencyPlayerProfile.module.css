@@ -1803,6 +1803,13 @@
   .hero .secondaryAction{border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.08);color:#fff}
 }
 
+@media(max-width:720px){
+  .hero{grid-template-areas:"identity" "actions" "readiness"}
+  .heroActions .primaryAction{flex-basis:100%;width:100%;min-height:48px}
+  .hero .secondaryAction{width:auto;min-width:44px;min-height:44px;padding:0 12px;border-radius:10px;font-size:10px}
+  .profileLinks a{min-height:44px;padding:0 12px;font-size:11px}
+}
+
 /* Club-ready share handoff v1 */
 .sharePreparedMessage {
   width: 100%;

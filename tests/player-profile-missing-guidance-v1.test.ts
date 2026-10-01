@@ -33,12 +33,24 @@ test('recommended profile gaps say exactly what is missing', () => {
   assert.match(profile, /Add a player profile photo/);
   assert.match(profile, /Add career history/);
   assert.match(profile, /Add current player footage/);
+  assert.match(profile, /selectedVideos\[0\]\?\.url \|\| published\.primary_video_url \|\| null/);
+  assert.match(profile, /Add Transfermarkt URL/);
+  assert.match(profile, /Add contract status/);
+  assert.match(profile, /Add contract expiry/);
+  assert.match(profile, /under contract\|contracted\|on loan/);
   assert.match(profile, /Add the agency view/);
   assert.match(profile, /YouTube, Vimeo or Wyscout/);
   assert.match(
     profile,
     /Edit Player Profile → Current player footage → Video URL/,
   );
+});
+
+test('mobile profile keeps share and evidence ahead of status guidance', () => {
+  assert.match(profile, /Share Player Profile/);
+  assert.match(profile, /Before sharing: /);
+  assert.match(css, /grid-template-areas:"identity" "actions" "readiness"/);
+  assert.match(css, /\.profileLinks a\{min-height:44px/);
 });
 
 test('missing items have direct fix actions without legacy admin routing', () => {

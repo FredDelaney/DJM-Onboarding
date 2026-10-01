@@ -161,15 +161,19 @@
   grid-template-columns:
     minmax(0, 1.35fr)
     minmax(260px, .65fr);
+  grid-template-areas:
+    "copy photo"
+    "actions photo";
 
   align-items: end;
 
-  gap: 66px;
+  column-gap: 66px;
 
   margin-top: 62px;
 }
 
 .dossier-hero-copy {
+  grid-area: copy;
   min-width: 0;
 }
 
@@ -230,6 +234,16 @@
   line-height: 1.35;
 
   font-weight: 720;
+}
+
+.dossier-hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 11px;
+  color: rgba(255, 255, 255, .76);
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .dossier-headline {
@@ -305,6 +319,7 @@
 }
 
 .dossier-hero-actions {
+  grid-area: actions;
   display: flex;
   flex-wrap: wrap;
 
@@ -363,6 +378,7 @@
 }
 
 .dossier-photo {
+  grid-area: photo;
   width: 100%;
 
   aspect-ratio: .82;
@@ -1562,8 +1578,11 @@
     grid-template-columns:
       minmax(0, 1fr)
       124px;
+    grid-template-areas:
+      "copy photo"
+      "actions actions";
 
-    gap: 16px;
+    column-gap: 16px;
 
     margin-top: 37px;
   }
@@ -1599,6 +1618,12 @@
     font-size: 13px;
   }
 
+  .dossier-hero-facts {
+    gap: 4px 10px;
+    margin-top: 9px;
+    font-size: 10px;
+  }
+
   .dossier-headline {
     margin-top: 9px;
 
@@ -1632,9 +1657,6 @@
   }
 
   .dossier-hero-actions {
-    grid-column:
-      1 / -1;
-
     display: grid;
 
     grid-template-columns:

@@ -60,3 +60,15 @@ test('additional videos stay available without duplicating the primary footage c
   assert.match(profile, /More ways to watch/);
   assert.match(profile, /\.slice\([\s\S]*1,[\s\S]*4/);
 });
+
+test('club hero shows recorded identity and keeps evaluation actions usable on mobile', () => {
+  assert.match(profile, /profile\.primary_position,[\s\S]*profile\.current_club/);
+  assert.match(profile, /profile\.age_display && <span>Age \{profile\.age_display\}<\/span>/);
+  assert.match(profile, /nationality !== '-' && <span>\{nationality\}<\/span>/);
+  assert.match(profile, /primaryVideo && !hidden\.has\('videos'\)/);
+  assert.match(profile, /profile\.transfermarkt_url && \(/);
+  assert.match(profile, /email && \([\s\S]*href=\{mailto\}/);
+  assert.match(profile, /profile\.current_club \|\| 'Not recorded'/);
+  assert.match(css, /"copy photo"\s*"actions actions"/);
+  assert.match(css, /\.dossier-hero-btn \{[\s\S]*?min-height: 48px/);
+});

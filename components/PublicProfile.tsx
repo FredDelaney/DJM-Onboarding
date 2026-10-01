@@ -530,6 +530,13 @@ export default function PublicProfile({
                   .join(' · ')}
               </div>
 
+              {(profile.age_display || nationality !== '-') && (
+                <div className="dossier-hero-facts">
+                  {profile.age_display && <span>Age {profile.age_display}</span>}
+                  {nationality !== '-' && <span>{nationality}</span>}
+                </div>
+              )}
+
               {profile.headline && (
                 <p className="dossier-headline">
                   {
@@ -569,53 +576,6 @@ export default function PublicProfile({
                   )}
               </div>
 
-              <div className="dossier-hero-actions no-print">
-                {primaryVideo &&
-                  !hidden.has('videos') && (
-                  <a
-                    className="dossier-hero-btn dossier-hero-btn-primary"
-                    href={
-                      primaryVideo
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Play
-                      size={16}
-                    />
-                    Watch footage
-                  </a>
-                )}
-
-{profile.transfermarkt_url && (
-  <a
-    className="dossier-hero-btn dossier-hero-btn-secondary"
-    href={
-      profile.transfermarkt_url
-    }
-    target="_blank"
-    rel="noreferrer"
-  >
-    <ExternalLink
-      size={16}
-    />
-
-    Transfermarkt
-  </a>
-)}
-                
-                <a
-                  className="dossier-hero-btn dossier-hero-btn-secondary"
-                  href={
-                    mailto
-                  }
-                >
-                  <Mail
-                    size={16}
-                  />
-                  Speak to {agencyShortName}
-                </a>
-              </div>
             </div>
 
             <div className="dossier-photo">
@@ -635,6 +595,39 @@ export default function PublicProfile({
                     .charAt(0)
                     .toUpperCase()}
                 </span>
+              )}
+            </div>
+
+            <div className="dossier-hero-actions no-print">
+              {primaryVideo && !hidden.has('videos') && (
+                <a
+                  className="dossier-hero-btn dossier-hero-btn-primary"
+                  href={primaryVideo}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Play size={16} />
+                  Watch footage
+                </a>
+              )}
+
+              {profile.transfermarkt_url && (
+                <a
+                  className="dossier-hero-btn dossier-hero-btn-secondary"
+                  href={profile.transfermarkt_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink size={16} />
+                  Transfermarkt
+                </a>
+              )}
+
+              {email && (
+                <a className="dossier-hero-btn dossier-hero-btn-secondary" href={mailto}>
+                  <Mail size={16} />
+                  Speak to {agencyShortName}
+                </a>
               )}
             </div>
           </div>
@@ -796,7 +789,7 @@ export default function PublicProfile({
                 <p>{profile.headline || [profile.primary_position, profile.current_club].filter(Boolean).join(' · ')}</p>
 
                 <div className="dossier-role-facts">
-                  <div><span>Current club</span><strong>{profile.current_club || `Available through ${agencyShortName}`}</strong></div>
+                  <div><span>Current club</span><strong>{profile.current_club || 'Not recorded'}</strong></div>
                   <div><span>Additional positions</span><strong>{dossierList(profile.secondary_positions).join(' · ') || '-'}</strong></div>
                   <div><span>Preferred foot</span><strong>{profile.preferred_foot || '-'}</strong></div>
                   <div><span>Status</span><strong>{profile.current_status || `Contact ${agencyShortName}`}</strong></div>
@@ -842,14 +835,12 @@ export default function PublicProfile({
                 direct conversation.
               </p>
 
-              <a
-                href={mailto}
-              >
-                {email}
-                <ArrowRight
-                  size={14}
-                />
-              </a>
+              {email && (
+                <a href={mailto}>
+                  {email}
+                  <ArrowRight size={14} />
+                </a>
+              )}
             </aside>
           </section>
         )}
@@ -1357,43 +1348,30 @@ export default function PublicProfile({
         )}
       </div>
 
-      <section className="dossier-contact">
-        <div className="dossier-container dossier-contact-inner">
-          <div>
-            <div className="dossier-contact-kicker">
-              {agencyName.toUpperCase()}
+      {email && (
+        <section className="dossier-contact">
+          <div className="dossier-container dossier-contact-inner">
+            <div>
+              <div className="dossier-contact-kicker">
+                {agencyName.toUpperCase()}
+              </div>
+
+              <h2>Discuss {profile.display_name}.</h2>
+
+              <p>
+                For current availability, contractual information, financial
+                parameters, full-match footage or a direct player discussion,
+                speak with {agencyName}.
+              </p>
             </div>
 
-            <h2>
-              Discuss{' '}
-              {
-                profile.display_name
-              }
-              .
-            </h2>
-
-            <p>
-              For current availability,
-              contractual information,
-              financial parameters,
-              full-match footage or a
-              direct player discussion,
-              speak with {agencyName}.
-            </p>
+            <a className="dossier-contact-button" href={mailto}>
+              <Mail size={17} />
+              Contact {agencyShortName}
+            </a>
           </div>
-
-          <a
-            className="dossier-contact-button"
-            href={mailto}
-          >
-            <Mail
-              size={17}
-            />
-
-            Contact {agencyShortName}
-          </a>
-        </div>
-      </section>
+        </section>
+      )}
 
       <footer className="dossier-footer">
         <div className="dossier-container">
