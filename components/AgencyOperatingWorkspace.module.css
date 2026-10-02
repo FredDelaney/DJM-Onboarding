@@ -3492,3 +3492,503 @@
     -webkit-backdrop-filter: none !important;
   }
 }
+
+/* Home command centre v5: single authoritative mobile layer */
+.homeSectionTitle,
+.homeSectionLabel,
+.homeTimelineIcon,
+.homeChangedPanel {
+  box-sizing: border-box;
+}
+
+@media (max-width: 680px) {
+  .homeCommandCentre {
+    --home-ink: #1d252d;
+    --home-muted: #7f8a94;
+    --home-soft: #f7f9fa;
+    --home-line: #e6ebef;
+    gap: 18px;
+    padding-bottom: 10px;
+  }
+
+  .homeCommandCentre .homeWelcome {
+    padding: 8px 2px 1px;
+  }
+
+  .homeCommandCentre .homeWelcome p {
+    margin: 0 0 5px;
+    color: #8e98a1;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+  }
+
+  .homeCommandCentre .homeWelcome h2 {
+    max-width: 325px;
+    margin: 0;
+    color: #171d23;
+    font-size: 30px;
+    font-weight: 810;
+    line-height: 1.02;
+    letter-spacing: -.05em;
+  }
+
+  .homeCommandCentre .homeOverviewGrid {
+    gap: 18px;
+  }
+
+  .homeCommandCentre .homeAttentionPanel {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .homeCommandCentre .sectionHead {
+    min-height: 0;
+  }
+
+  .homeCommandCentre .homeAttentionPanel .sectionHead {
+    align-items: end;
+    padding: 0 2px 10px;
+    border: 0;
+    background: transparent;
+  }
+
+  .homeCommandCentre .homeSectionTitle {
+    min-width: 0;
+    display: grid;
+    gap: 5px;
+  }
+
+  .homeCommandCentre .homeSectionLabel {
+    color: #9ba5ae;
+    font-size: 7px;
+    font-weight: 860;
+    letter-spacing: .145em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .homeCommandCentre .sectionHead h2 {
+    margin: 0;
+    color: var(--home-ink);
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -.035em;
+  }
+
+  .homeCommandCentre .sectionCount {
+    min-width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    padding: 0 8px;
+    border: 1px solid var(--home-line);
+    border-radius: 999px;
+    background: #fff;
+    color: #6f7b85;
+    font-size: 8px;
+    font-weight: 820;
+    box-shadow: 0 2px 8px rgba(18, 32, 46, .025);
+  }
+
+  .homeCommandCentre .homeAttentionPanel .list {
+    gap: 10px;
+  }
+
+  .homeCommandCentre .attentionCard {
+    box-sizing: border-box;
+  }
+
+  .homeCommandCentre .attentionCardPrimary {
+    min-height: 166px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 50px;
+    align-items: end;
+    gap: 14px;
+    overflow: hidden;
+    padding: 19px;
+    border: 0;
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 90% 2%, rgba(216,174,50,.14), transparent 34%),
+      radial-gradient(circle at 78% 120%, rgba(28,101,122,.20), transparent 44%),
+      linear-gradient(145deg, #061f39 0%, #072944 58%, #0b354d 100%);
+    box-shadow: 0 18px 40px rgba(7, 31, 55, .105);
+  }
+
+  .homeCommandCentre .attentionCardPrimary::after {
+    right: -62px;
+    bottom: -98px;
+    width: 190px;
+    height: 190px;
+    border-color: rgba(255,255,255,.055);
+  }
+
+  .homeCommandCentre .attentionCardPrimary .attentionCopy {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .attentionMeta {
+    gap: 8px;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .attentionMeta > span {
+    color: #e3bd4b;
+    font-size: 7.5px;
+    font-weight: 880;
+    letter-spacing: .14em;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .attentionMeta > small {
+    overflow: hidden;
+    color: rgba(229,236,241,.54);
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .attentionCopy strong {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #fff;
+    font-size: 19px;
+    font-weight: 785;
+    line-height: 1.17;
+    letter-spacing: -.034em;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .attentionCopy > span {
+    display: -webkit-box;
+    overflow: hidden;
+    color: rgba(230,237,242,.70);
+    font-size: 10.5px;
+    line-height: 1.46;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .homeCommandCentre .attentionCard .compactButton {
+    box-sizing: border-box;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .compactButton {
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    min-height: 50px;
+    display: grid;
+    place-items: center;
+    align-self: end;
+    justify-self: end;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: #08253f;
+    box-shadow: 0 8px 20px rgba(0, 15, 29, .14);
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .compactButton svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    margin: 0;
+    transform: translateX(.7px);
+    stroke-width: 2.25;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) {
+    min-height: 78px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 13px 13px 15px;
+    border: 1px solid var(--home-line);
+    border-radius: 19px;
+    background: #fff;
+    box-shadow: 0 7px 22px rgba(20, 34, 48, .032);
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .attentionCopy {
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .attentionMeta {
+    gap: 6px;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .attentionMeta > span {
+    color: #15334f;
+    font-size: 7px;
+    font-weight: 850;
+    letter-spacing: .12em;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .attentionMeta > small {
+    color: #9aa3ab;
+    font-size: 8.5px;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .attentionCopy strong {
+    overflow: hidden;
+    color: #313a43;
+    font-size: 13px;
+    font-weight: 760;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .attentionCopy > span {
+    overflow: hidden;
+    display: block;
+    color: #818b94;
+    font-size: 9.5px;
+    line-height: 1.32;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    display: grid;
+    place-items: center;
+    align-self: center;
+    justify-self: end;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #082844;
+    color: #fff;
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    margin: 0;
+    transform: translateX(.6px);
+    stroke-width: 2.2;
+  }
+
+  .homeCommandCentre .attentionMore {
+    width: max-content;
+    min-height: 34px;
+    justify-self: center;
+    padding: 0 12px;
+    border: 1px solid var(--home-line);
+    border-radius: 999px;
+    background: #fff;
+    color: #78828b;
+    font-size: 8.5px;
+    font-weight: 780;
+    box-shadow: 0 3px 10px rgba(20,34,48,.025);
+  }
+
+  .homeCommandCentre .attentionMore svg {
+    width: 13px;
+    height: 13px;
+    transform: translateX(.4px);
+  }
+
+  .homeCommandCentre .homeDayPanel,
+  .homeCommandCentre .homeChangedPanel {
+    overflow: hidden;
+    border: 1px solid var(--home-line);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 9px 28px rgba(20, 34, 48, .036);
+  }
+
+  .homeCommandCentre .homeDayPanel .sectionHead,
+  .homeCommandCentre .homeChangedPanel .sectionHead {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 17px;
+    border-bottom: 1px solid #edf0f2;
+  }
+
+  .homeCommandCentre .homeTextLink {
+    gap: 6px;
+    color: #17324d;
+    font-size: 10px;
+    font-weight: 790;
+  }
+
+  .homeCommandCentre .homeTextLink svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+    transform: translateX(.45px);
+  }
+
+  .homeCommandCentre .homeDayPanel .emptyState {
+    min-height: 126px;
+    padding: 18px 16px 20px;
+    gap: 8px;
+  }
+
+  .homeCommandCentre .homeDayPanel .emptyStateIcon {
+    width: 40px;
+    height: 40px;
+    margin: 0 0 2px;
+    border: 1px solid #e2e7ea;
+    border-radius: 13px;
+    background: #f7f9fa;
+    color: #17324d;
+  }
+
+  .homeCommandCentre .homeDayPanel .emptyState strong {
+    color: #343d46;
+    font-size: 12px;
+    font-weight: 770;
+  }
+
+  .homeCommandCentre .homeDayPanel .emptyState span {
+    max-width: 280px;
+    color: #8d97a0;
+    font-size: 9.5px;
+    line-height: 1.42;
+  }
+
+  .homeCommandCentre .homeChangedPanel .list {
+    background: #fff;
+  }
+
+  .homeCommandCentre .homeChangeRow {
+    min-height: 72px;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 20px;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    border-top: 1px solid #edf0f2;
+  }
+
+  .homeCommandCentre .homeChangeRow:first-child {
+    border-top: 0;
+  }
+
+  .homeCommandCentre .homeTimelineIcon {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    align-self: center;
+    justify-self: center;
+    overflow: hidden;
+    border: 1px solid #e3e8eb;
+    border-radius: 11px;
+    background: #f7f9fa;
+    color: #17324d;
+  }
+
+  .homeCommandCentre .homeTimelineIcon svg {
+    width: 15px;
+    height: 15px;
+    display: block;
+    margin: 0;
+  }
+
+  .homeCommandCentre .homeChangeRow > div {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .homeCommandCentre .homeChangeRow strong {
+    overflow: hidden;
+    color: #313a43;
+    font-size: 12.5px;
+    font-weight: 760;
+    line-height: 1.22;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .homeCommandCentre .homeChangeRow span:not(.homeTimelineIcon) {
+    overflow: hidden;
+    display: block;
+    color: #808a94;
+    font-size: 10px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .homeCommandCentre .homeChangeRow small {
+    color: #a0a8af;
+    font-size: 8.5px;
+  }
+
+  .homeCommandCentre .homeChangeRow .simpleTimelineArrow {
+    width: 16px;
+    height: 16px;
+    display: block;
+    align-self: center;
+    justify-self: center;
+    margin: 0;
+    color: #a4acb3;
+    transform: translateX(.45px);
+  }
+
+  .homeCommandCentre .handledStrip {
+    min-height: 56px;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #e5eaed;
+    border-radius: 17px;
+    background: rgba(255,255,255,.82);
+    box-shadow: none;
+  }
+
+  .homeCommandCentre .handledStripIcon {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e4e8e6;
+    border-radius: 11px;
+    background: #f5f7f3;
+    color: #17324d;
+  }
+
+  .homeCommandCentre .handledStripCopy {
+    gap: 3px;
+  }
+
+  .homeCommandCentre .handledStripCopy small {
+    color: #9aa3ab;
+    font-size: 7px;
+    letter-spacing: .12em;
+  }
+
+  .homeCommandCentre .handledStripCopy strong {
+    color: #65707a;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .homeCommandCentre .handledStrip > span {
+    display: none;
+  }
+}

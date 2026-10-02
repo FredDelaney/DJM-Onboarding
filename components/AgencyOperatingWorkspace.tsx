@@ -2166,7 +2166,7 @@ function Home({
   };
 
   return (
-    <div className={styles.homeStack}>
+    <div className={`${styles.homeStack} ${styles.homeCommandCentre}`}>
       <section className={styles.homeWelcome}>
         <p>{greeting}</p>
         <h2>
@@ -2183,7 +2183,8 @@ function Home({
           className={`${styles.sectionCard} ${styles.homeAttentionPanel}`}
         >
           <div className={styles.sectionHead}>
-            <div>
+            <div className={styles.homeSectionTitle}>
+              <span className={styles.homeSectionLabel}>Priority</span>
               <h2>Needs attention</h2>
             </div>
             {needsYouCount ? (
@@ -2302,7 +2303,8 @@ function Home({
           className={`${styles.sectionCard} ${styles.homeDayPanel}`}
         >
           <div className={styles.sectionHead}>
-            <div>
+            <div className={styles.homeSectionTitle}>
+              <span className={styles.homeSectionLabel}>Your day</span>
               <h2>Today</h2>
             </div>
 
@@ -2367,14 +2369,21 @@ function Home({
       </div>
 
       {recentConnected.length ? (
-        <section className={styles.sectionCard}>
-          <div className={styles.sectionHead}><h2>What changed</h2></div>
+        <section className={`${styles.sectionCard} ${styles.homeChangedPanel}`}>
+          <div className={styles.sectionHead}>
+            <div className={styles.homeSectionTitle}>
+              <span className={styles.homeSectionLabel}>Recent activity</span>
+              <h2>What changed</h2>
+            </div>
+          </div>
           {readNotice(connectedState)}
           <div className={styles.list}>
             {recentConnected.slice(0, 3).map((item: any) => (
               <Link key={item.interaction_id} className={`${styles.simpleTimelineRow} ${styles.homeChangeRow}`}
                 href={homeConversationHref(basePath, item)}>
-                <MessageCircleMore size={16} />
+                <span className={styles.homeTimelineIcon}>
+                  <MessageCircleMore size={15} />
+                </span>
                 <div>
                   <strong>{item.player_name || item.prospect_name || item.person_name || item.organisation_name || 'Conversation captured'}</strong>
                   <span>{item.summary || 'A new conversation was captured.'}</span>
