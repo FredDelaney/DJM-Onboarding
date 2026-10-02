@@ -351,16 +351,6 @@ export default function AgencyOperatingWorkspace() {
     useState<any>(null);
   const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
     useState('');
-  const [mobileScrolled, setMobileScrolled] = useState(false);
-
-  useEffect(() => {
-    const updateScrollState = () => {
-      setMobileScrolled(window.scrollY > 64);
-    };
-    updateScrollState();
-    window.addEventListener('scroll', updateScrollState, { passive: true });
-    return () => window.removeEventListener('scroll', updateScrollState);
-  }, []);
 
   const workspaceName =
     workspace?.display_name ||
@@ -1206,12 +1196,6 @@ export default function AgencyOperatingWorkspace() {
 
   return (
     <div className={styles.root} style={theme}>
-      {mobileScrolled ? (
-        <div
-          aria-hidden="true"
-          className={styles.mobileTopVeil}
-        />
-      ) : null}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
