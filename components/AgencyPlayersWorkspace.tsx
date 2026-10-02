@@ -830,6 +830,27 @@ export default function AgencyPlayersWorkspace({
                     <span className={attention?styles.attentionPill:styles.calmPill}>{attention?'Needs action':'Current'}</span>
                   </div>
                 </div>
+                <div className={styles.mobilePlayerMeta}>
+                  <span>
+                    <CalendarDays size={12} />
+                    <b>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Contract not recorded'}</b>
+                  </span>
+                  <span>
+                    <Target size={12} />
+                    <b>{Number(item.active_opportunities||0)} active {Number(item.active_opportunities||0)===1?'opportunity':'opportunities'}</b>
+                  </span>
+                </div>
+                <div className={`${styles.mobileNextAction} ${attention?styles.mobileNextActionAttention:''}`}>
+                  <div className={styles.mobileNextActionHead}>
+                    <span className={attention?styles.mobileStatusDot:styles.mobileStatusDotCalm} />
+                    <span>Next action</span>
+                    <small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date'}</small>
+                  </div>
+                  <div className={styles.mobileNextActionBody}>
+                    <strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong>
+                    <ChevronRight size={15} />
+                  </div>
+                </div>
                 <div className={styles.playerFacts}>
                   <div><span>Next action</span><strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong><small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date recorded'}</small></div>
                   <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong><small>Active recorded routes</small></div>
