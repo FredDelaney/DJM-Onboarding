@@ -492,6 +492,27 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,player:verification.player||await profilePlayer(pid)});
     }
 
+    if(action==="player_profile_transfermarkt_save"){
+      if(!operator())return deny("Agency operator access required");
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const before=await profilePlayer(pid);if(!before)return json({error:"Player not found in this agency"},404);
+      const url=id(body?.url).trim();
+      if(url){
+        try{
+          const parsed=new URL(url);
+          const host=parsed.hostname.toLowerCase().replace(/^www\./,"");
+          if((host!=="transfermarkt.com"&&!host.endsWith(".transfermarkt.com"))||!/\/profil\/spieler\/\d+\/?$/i.test(parsed.pathname)){
+            return json({error:"Use the direct Transfermarkt player profile URL"},400);
+          }
+        }catch{return json({error:"Use a valid Transfermarkt player profile URL"},400)}
+      }
+      const {data,error}=await ctx.supabaseAdmin.from("players").update({transfermarkt_url:url||null}).eq("id",pid).eq("tenant_id",tenantId).select("id,transfermarkt_url").maybeSingle();
+      if(error)throw error;
+      if(!data)return json({error:"Player not found in this agency"},404);
+      await profileAudit("player_profile.transfermarkt_saved",pid,{transfermarkt_url:before.transfermarkt_url||null},data,{});
+      return json({ok:true,player:data});
+    }
+
     if(action==="player_profile_video_add"){
       if(!operator())return deny("Agency operator access required");
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
@@ -753,6 +774,16 @@ export default {fetch:async(req:Request)=>{
     if(action==="deal_step_prepare"){const d=dealId(),s=id(body?.step_type);if(!d||!s)return json({error:"deal_room_id and step_type are required"},400);return result("proposal","platform_server_prepare_deal_step",{p_tenant_id:tenantId,p_deal_room_id:d,p_step_type:s,p_actor_user_id:userId,p_input:obj(body?.input)});}
     if(action==="deal_next_move_prepare"){const d=dealId();if(!d)return json({error:"deal_room_id is required"},400);return result("proposal","platform_server_prepare_deal_next_move",{p_tenant_id:tenantId,p_deal_room_id:d,p_actor_user_id:userId,p_input:obj(body?.input)});}
     if(action==="deal_control_fix_prepare"){const d=dealId();if(!d)return json({error:"deal_room_id is required"},400);return result("proposal","platform_server_prepare_deal_control_fix",{p_tenant_id:tenantId,p_deal_room_id:d,p_actor_user_id:userId,p_input:obj(body?.input)});}
+
+    if(action==="player_intelligence"){
+      const p=playerId();if(!p)return json({error:"player_id is required"},400);
+      const [service,alignment,proof]=await Promise.all([
+        rpc("platform_server_player_service_card",{p_tenant_id:tenantId,p_player_id:p}),
+        rpc("platform_server_player_career_alignment",{p_tenant_id:tenantId,p_player_id:p}),
+        rpc("platform_server_player_value_proof",{p_tenant_id:tenantId,p_player_id:p,p_window_days:clamp(body?.window_days,1,366,30)})
+      ]);
+      return json({ok:true,tenant:workspace,intelligence:{service,alignment,proof}});
+    }
 
     if(["player_service_card","player_service_move_prepare","player_control_fix_prepare","player_owner_candidates","player_service_statement","player_value_proof","player_value_proof_history","player_value_proof_capture","player_value_proof_delta","player_review_pack","career_strategy","career_alignment","career_strategy_action_prepare","career_strategy_confirm","career_strategy_approve","career_strategy_archive"].includes(action)){
       const p=playerId();if(!p)return json({error:"player_id is required"},400);

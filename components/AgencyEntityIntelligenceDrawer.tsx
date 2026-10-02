@@ -128,19 +128,29 @@ export default function AgencyEntityIntelligenceDrawer({
       try {
         if (request.kind === 'player') {
           const payload = { player_id: request.entityId };
+          let intelligence: any = null;
 
-          const [service, alignment, proof] =
-            await Promise.all([
+          try {
+            const response = await invoke('player_intelligence', payload);
+            intelligence = response?.intelligence || null;
+          } catch {
+            const [service, alignment, proof] = await Promise.all([
               invoke('player_service_card', payload),
               invoke('career_alignment', payload),
               invoke('player_value_proof', payload),
             ]);
-
-          if (active) {
-            setData({
+            intelligence = {
               service: unwrap(service),
               alignment: unwrap(alignment),
               proof: unwrap(proof),
+            };
+          }
+
+          if (active) {
+            setData({
+              service: intelligence?.service || {},
+              alignment: intelligence?.alignment || {},
+              proof: intelligence?.proof || {},
             });
           }
         } else {
@@ -187,6 +197,42 @@ export default function AgencyEntityIntelligenceDrawer({
   const serviceControl = service.service_control || {};
   const alignment = data.alignment || {};
   const proof = data.proof || {};
+  const serviceGaps = Array.isArray(serviceControl.gaps)
+    ? serviceControl.gaps
+    : [];
+  const strategyMissing =
+    alignment.strategy_state === 'missing' || !alignment.strategy;
+  const serviceNeedsAction = Boolean(service.next_control_fix?.instruction);
+  const serviceHeadline = serviceNeedsAction
+    ? 'Needs action'
+    : strategyMissing
+      ? 'Career plan missing'
+      : human(serviceControl.state || 'current');
+  const serviceInstruction =
+    service.next_control_fix?.instruction ||
+    alignment.next_strategy_action?.instruction ||
+    service.next_service_move?.instruction ||
+    player.next_action ||
+    'No immediate player-service action is recorded.';
+  const marketDeals = Number(service.market_coverage?.active_deals || 0);
+  const marketOpportunities = Number(
+    service.market_coverage?.active_player_opportunities || 0,
+  );
+  const marketMatches = Number(
+    service.market_coverage?.recorded_market_matches || 0,
+  );
+  const marketActivity = marketDeals + marketOpportunities + marketMatches;
+  const serviceDelivery = proof.service_delivery || {};
+  const recordedServiceActions = [
+    serviceDelivery.agency_work_completed,
+    serviceDelivery.player_requests_resolved,
+    serviceDelivery.career_strategy_approvals,
+    serviceDelivery.career_strategy_confirmations,
+    serviceDelivery.career_strategy_versions_created,
+  ].reduce((total, value) => total + Number(value || 0), 0);
+  const recordedMarketProcesses = Number(
+    proof.market_work?.club_processes_opened || 0,
+  );
 
   const warRoom = data.warRoom || {};
   const deal = warRoom.deal || {};
@@ -225,7 +271,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 : <BriefcaseBusiness size={18} />}
             </div>
             <div>
-              <p>{request.kind === 'player' ? 'PLAYER 360' : 'DEAL WAR ROOM'}</p>
+              <p>{request.kind === 'player' ? 'PLAYER INTELLIGENCE' : 'DEAL WAR ROOM'}</p>
               <h2>{request.title}</h2>
               {request.context ? <span>{request.context}</span> : null}
             </div>
@@ -256,113 +302,138 @@ export default function AgencyEntityIntelligenceDrawer({
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
-                <p>SERVICE POSITION</p>
-                <h3>{human(serviceControl.state || 'recorded')}</h3>
-                <span>
-                  {service.next_service_move?.instruction ||
-                    player.next_action ||
-                    'No next service move recorded.'}
-                </span>
+                <p>NEXT PLAYER CONTROL</p>
+                <h3>{serviceHeadline}</h3>
+                <span>{serviceInstruction}</span>
               </div>
               <div className={styles.score}>
-                <strong>{numeric(serviceControl.score)}</strong>
-                <span>service control</span>
+                <strong>{serviceGaps.length}</strong>
+                <span>{serviceGaps.length === 1 ? 'control gap' : 'control gaps'}</span>
               </div>
             </section>
 
             <div className={styles.grid}>
               <Fact
-                label="Market coverage"
-                value={human(service.market_coverage?.state || 'not recorded')}
-                detail={`${numeric(service.market_coverage?.active_deals, '0')} active deal(s)`}
+                label="Market activity"
+                value={marketActivity ? `${marketActivity} active record${marketActivity === 1 ? '' : 's'}` : 'No active market process'}
+                detail={marketActivity
+                  ? `${marketDeals} deal${marketDeals === 1 ? '' : 's'} · ${marketOpportunities} opportunit${marketOpportunities === 1 ? 'y' : 'ies'} · ${marketMatches} match${marketMatches === 1 ? '' : 'es'}`
+                  : 'No recorded active deals, opportunities or market matches.'}
               />
               <Fact
-                label="Career control"
-                value={human(alignment.alignment_state || 'not recorded')}
-                detail={
-                  alignment.attention_score !== undefined
-                    ? `${numeric(alignment.attention_score)} attention score`
-                    : null
-                }
+                label="Career plan"
+                value={strategyMissing ? 'Not recorded' : human(alignment.alignment_state || 'current')}
+                detail={strategyMissing
+                  ? 'Objective, target markets and next checkpoint still need to be agreed.'
+                  : alignment.review_due_at
+                    ? `Review ${relativeDate(alignment.review_due_at)}`
+                    : 'Career strategy is recorded.'}
               />
               <Fact
                 label="Contract"
-                value={human(player.contract_status || 'not recorded')}
+                value={human(player.contract_status || 'Not recorded')}
                 detail={
                   player.contract_expiry
-                    ? relativeDate(player.contract_expiry)
+                    ? `Expires ${relativeDate(player.contract_expiry)}`
                     : 'No expiry recorded'
                 }
               />
               <Fact
-                label="Recorded value"
-                value={human(proof.proof_state || 'not recorded')}
-                detail={`${numeric(proof.market_work?.club_processes_opened, '0')} club process(es) opened`}
+                label="Recorded service"
+                value={recordedServiceActions
+                  ? `${recordedServiceActions} action${recordedServiceActions === 1 ? '' : 's'} recorded`
+                  : 'No service activity recorded'}
+                detail={recordedMarketProcesses
+                  ? `${recordedMarketProcesses} club process${recordedMarketProcesses === 1 ? '' : 'es'} opened in this window.`
+                  : 'No club process opened in the current proof window.'}
               />
             </div>
 
             <section className={styles.panel}>
               <p>CAREER PLAN</p>
-              <h3>{alignment.strategy?.objective || 'No recorded objective'}</h3>
-              <div className={styles.grid}>
-                <Fact
-                  label="Next checkpoint"
-                  value={alignment.strategy?.next_checkpoint || 'Not recorded'}
-                />
-                <Fact
-                  label="Target markets"
-                  value={compact(alignment.strategy?.target_markets)}
-                />
-                <Fact
-                  label="Alignment"
-                  value={human(alignment.alignment_state || 'not recorded')}
-                />
-                <Fact
-                  label="Market state"
-                  value={human(alignment.market_coverage?.state || 'not recorded')}
-                />
-              </div>
+              <h3>{alignment.strategy?.objective || 'Career plan not recorded'}</h3>
+              {alignment.strategy ? (
+                <div className={styles.grid}>
+                  <Fact
+                    label="Next checkpoint"
+                    value={alignment.strategy?.next_checkpoint || 'Not recorded'}
+                  />
+                  <Fact
+                    label="Target markets"
+                    value={compact(alignment.strategy?.target_markets)}
+                  />
+                  <Fact
+                    label="Alignment"
+                    value={human(alignment.alignment_state || 'not recorded')}
+                  />
+                  <Fact
+                    label="Market state"
+                    value={human(alignment.market_coverage?.state || 'not recorded')}
+                  />
+                </div>
+              ) : (
+                <div className={styles.planEmpty}>
+                  <strong>Define this with the player.</strong>
+                  <span>Record the objective, target markets and next checkpoint once they are agreed.</span>
+                </div>
+              )}
             </section>
 
             <div className={styles.actions}>
-              <button
-                type="button"
-                onClick={() =>
-                  onOpenPlayerReview(
-                    request.entityId,
-                    request.title,
-                    request.context,
-                  )
-                }
-              >
-                <ShieldCheck size={15} />
-                Service review
-              </button>
-
               {service.next_control_fix?.instruction ? (
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    const label = service.next_control_fix?.fix_type === 'set_player_next_action'
+                      ? 'Set next action'
+                      : 'Fix player control';
                     onOpenAction({
                       key: `player-360-control:${request.entityId}`,
                       eyebrow: 'PLAYER CONTROL',
                       title: request.title,
                       instruction: service.next_control_fix.instruction,
-                      label: 'Fix player control',
+                      label,
                       action: 'player_control_fix_prepare',
                       payload: { player_id: request.entityId },
                       context: human(serviceControl.state),
                       successCondition:
                         'The recorded player-control gap is resolved.',
-                    })
-                  }
+                    });
+                  }}
                 >
                   <CheckCircle2 size={15} />
-                  Fix player control
+                  {service.next_control_fix?.fix_type === 'set_player_next_action'
+                    ? 'Set next action'
+                    : 'Fix player control'}
                 </button>
               ) : null}
 
-              {service.next_service_move?.instruction ? (
+              {alignment.next_strategy_action?.instruction ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenAction({
+                      key: `player-360-career:${request.entityId}`,
+                      eyebrow: 'CAREER CONTROL',
+                      title: request.title,
+                      instruction: alignment.next_strategy_action.instruction,
+                      label: strategyMissing ? 'Build career plan' : 'Review career plan',
+                      action: 'career_strategy_action_prepare',
+                      payload: { player_id: request.entityId },
+                      context: human(alignment.alignment_state),
+                      successCondition:
+                        'The player-owned career plan is current and usable for market decisions.',
+                    })
+                  }
+                >
+                  <Target size={15} />
+                  {strategyMissing ? 'Build career plan' : 'Review career plan'}
+                </button>
+              ) : null}
+
+              {!service.next_control_fix?.instruction &&
+              !alignment.next_strategy_action?.instruction &&
+              service.next_service_move?.instruction ? (
                 <button
                   type="button"
                   onClick={() =>
@@ -386,32 +457,23 @@ export default function AgencyEntityIntelligenceDrawer({
                 </button>
               ) : null}
 
-              {alignment.next_strategy_action?.instruction ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onOpenAction({
-                      key: `player-360-career:${request.entityId}`,
-                      eyebrow: 'CAREER CONTROL',
-                      title: request.title,
-                      instruction: alignment.next_strategy_action.instruction,
-                      label: 'Review career plan',
-                      action: 'career_strategy_action_prepare',
-                      payload: { player_id: request.entityId },
-                      context: human(alignment.alignment_state),
-                      successCondition:
-                        'The player-owned career plan is current and usable for market decisions.',
-                    })
-                  }
-                >
-                  <Target size={15} />
-                  Review career plan
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenPlayerReview(
+                    request.entityId,
+                    request.title,
+                    request.context,
+                  )
+                }
+              >
+                <ShieldCheck size={15} />
+                Service review
+              </button>
             </div>
 
             <p className={styles.truth}>
-              Player 360 shows recorded agency evidence. It does not infer player intent, satisfaction or transfer outcomes.
+              Player Intelligence shows recorded agency evidence and the next control to resolve. It does not infer player intent, satisfaction or transfer outcomes.
             </p>
           </div>
         ) : null}

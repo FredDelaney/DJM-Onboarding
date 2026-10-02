@@ -83,7 +83,8 @@ type ProfileCheckAction =
   | 'player-workspace'
   | 'agency-settings'
   | 'profile-positioning'
-  | 'profile-video';
+  | 'profile-video'
+  | 'transfermarkt';
 
 type ProfileCheck = {
   key: string;
@@ -157,6 +158,19 @@ const human = (value: unknown) =>
   text(value)
     .replaceAll('_', ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const validTransfermarktPlayerUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+    return (
+      (host === 'transfermarkt.com' || host.endsWith('.transfermarkt.com')) &&
+      /\/profil\/spieler\/\d+\/?$/i.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+};
 
 const age = (value: unknown) => {
   const raw = text(value);
@@ -382,6 +396,9 @@ export default function AgencyPlayerProfile({
   const [shareExpiry, setShareExpiry] = useState('30');
   const [shareResultUrl, setShareResultUrl] = useState('');
   const [shareResultMessage, setShareResultMessage] = useState('');
+  const [transfermarktOpen, setTransfermarktOpen] = useState(false);
+  const [transfermarktUrl, setTransfermarktUrl] = useState('');
+  const [transfermarktError, setTransfermarktError] = useState('');
 
   const load = useCallback(async (fresh = false) => {
     const cached = getCachedPlayerProfile(playerId);
@@ -610,9 +627,9 @@ export default function AgencyPlayerProfile({
       missingTitle: 'Add Transfermarkt URL',
       missingDetail:
         'Link the player’s record so a club can verify the career context quickly.',
-      where: `Players → ${name} → Sources → Transfermarkt`,
-      action: 'player-workspace',
-      actionLabel: 'Open player',
+      where: 'Player Profile → Transfermarkt',
+      action: 'transfermarkt',
+      actionLabel: 'Add link',
     },
     {
       key: 'contract',
@@ -1076,6 +1093,40 @@ export default function AgencyPlayerProfile({
     setVerifyOpen(true);
   };
 
+  const openTransfermarkt = () => {
+    setTransfermarktUrl(text(player.transfermarkt_url));
+    setTransfermarktError('');
+    setTransfermarktOpen(true);
+  };
+
+  const saveTransfermarkt = async () => {
+    if (!canEdit || actionBusy) return;
+    const url = transfermarktUrl.trim();
+    if (url && !validTransfermarktPlayerUrl(url)) {
+      setTransfermarktError('Paste the direct Transfermarkt player profile URL.');
+      return;
+    }
+
+    setActionBusy('transfermarkt');
+    setTransfermarktError('');
+    setError('');
+    setNotice('');
+
+    try {
+      await invoke('player_profile_transfermarkt_save', {
+        player_id: playerId,
+        url: url || null,
+      });
+      setTransfermarktOpen(false);
+      setNotice(url ? 'Transfermarkt link saved.' : 'Transfermarkt link removed.');
+      await load(true);
+    } catch (saveError) {
+      setTransfermarktError(friendlyError(saveError));
+    } finally {
+      setActionBusy('');
+    }
+  };
+
   const verifyPlayerData = async () => {
     if (!canEdit || actionBusy) return;
     if (!verifyForm.primary_position.trim()) {
@@ -1489,6 +1540,11 @@ export default function AgencyPlayerProfile({
                         {item.actionLabel}
                         <ShieldCheck size={13} />
                       </button>
+                    ) : item.action === 'transfermarkt' ? (
+                      <button type="button" onClick={openTransfermarkt}>
+                        {item.actionLabel}
+                        <Link2 size={13} />
+                      </button>
                     ) : item.action === 'player-workspace' ? (
                       <Link href={backHref}>
                         {item.actionLabel}
@@ -1880,6 +1936,87 @@ export default function AgencyPlayerProfile({
           >
             Unpublish Player Profile
           </button>
+        </div>
+      ) : null}
+
+      {transfermarktOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !actionBusy) {
+              setTransfermarktOpen(false);
+            }
+          }}
+        >
+          <section
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add Transfermarkt link"
+          >
+            <header>
+              <div>
+                <span className={styles.eyebrow}>PLAYER SOURCE</span>
+                <h2>Add Transfermarkt</h2>
+                <p>
+                  Paste the direct player profile. It will stay on the player record as a source reference.
+                </p>
+              </div>
+              <button
+                type="button"
+                data-ui-button="icon"
+                className={styles.iconButton}
+                onClick={() => setTransfermarktOpen(false)}
+                aria-label="Close"
+                disabled={Boolean(actionBusy)}
+              >
+                <X size={17} />
+              </button>
+            </header>
+
+            <div className={styles.form}>
+              {transfermarktError ? (
+                <div className={styles.error}>{transfermarktError}</div>
+              ) : null}
+              <label>
+                <span>Transfermarkt player URL</span>
+                <input
+                  type="url"
+                  value={transfermarktUrl}
+                  onChange={(event) => setTransfermarktUrl(event.target.value)}
+                  placeholder="https://www.transfermarkt.com/player/profil/spieler/123456"
+                  autoFocus
+                />
+                <small>Use the direct player profile, not a search or club page.</small>
+              </label>
+            </div>
+
+            <footer>
+              <button
+                type="button"
+                data-ui-button="secondary"
+                className={styles.secondaryAction}
+                onClick={() => setTransfermarktOpen(false)}
+                disabled={Boolean(actionBusy)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                data-ui-button="primary"
+                className={styles.primaryAction}
+                onClick={() => void saveTransfermarkt()}
+                disabled={Boolean(actionBusy) || !transfermarktUrl.trim()}
+              >
+                {actionBusy === 'transfermarkt' ? (
+                  <LoaderCircle className={styles.spin} size={16} />
+                ) : (
+                  <Link2 size={16} />
+                )}
+                Save link
+              </button>
+            </footer>
+          </section>
         </div>
       ) : null}
 
