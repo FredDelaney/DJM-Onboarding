@@ -8,13 +8,14 @@ import {
   Target,
   Users,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
+import EntityActionsMenu from '@/components/EntityActionsMenu';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 
@@ -157,6 +158,8 @@ export default function AgencyOpportunitiesWorkspace({
   data,
   basePath,
   onRetry,
+  onRefresh,
+  rpc,
   onOpenAction,
   onOpenPursuit,
   onOpenIntelligence,
@@ -164,6 +167,8 @@ export default function AgencyOpportunitiesWorkspace({
   data: any;
   basePath: string;
   onRetry?: () => void;
+  onRefresh: () => Promise<void>;
+  rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenPursuit: (request: AgencyPursuitRequest) => void;
   onOpenIntelligence: (request: AgencyIntelligenceRequest) => void;
@@ -173,7 +178,26 @@ export default function AgencyOpportunitiesWorkspace({
   const requestedView = opportunityViewFrom(searchParams.get('tab'));
   const [view, setView] = useState<OpportunityView>(requestedView);
   const [search, setSearch] = useState('');
+  const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const readState = opportunityReadState(data, view);
+
+  const reloadArchives = useCallback(async () => {
+    const result = await rpc<any>('redream_entity_archives');
+    setArchiveItems(Array.isArray(result?.items) ? result.items : []);
+  }, [rpc]);
+
+  const refreshEntities = useCallback(async () => {
+    await Promise.all([onRefresh(), reloadArchives()]);
+  }, [onRefresh, reloadArchives]);
+
+  useEffect(() => {
+    void reloadArchives().catch(() => undefined);
+  }, [reloadArchives]);
+
+  const archived = useMemo(
+    () => new Set(archiveItems.map((item: any) => `${String(item?.entity_type || '')}:${String(item?.entity_id || '')}`)),
+    [archiveItems],
+  );
 
   useEffect(() => {
     setView(requestedView);
@@ -188,9 +212,16 @@ export default function AgencyOpportunitiesWorkspace({
     );
   };
 
-  const needs = list(data?.market?.demand?.items);
-  const routes = list(data?.market?.pursuits?.items);
-  const deals = list(data?.deals?.portfolio?.deals);
+  const needs = list(data?.market?.demand?.items).filter((item: any) =>
+    !archived.has(`club_need:${String(item?.club_need_id || '')}`),
+  );
+  const routes = list(data?.market?.pursuits?.items).filter((item: any) => {
+    const needId = String(item?.club_need_id || item?.need?.club_need_id || item?.need?.id || '');
+    return !needId || !archived.has(`club_need:${needId}`);
+  });
+  const deals = list(data?.deals?.portfolio?.deals).filter((deal: any) =>
+    !archived.has(`deal_room:${String(deal?.deal_room_id || '')}`),
+  );
   const connectedNeeds = list(data?.connected?.needs);
   const connectedRoutes = list(data?.connected?.routes);
   const connectedDeals = list(data?.connected?.deals);
@@ -649,20 +680,35 @@ export default function AgencyOpportunitiesWorkspace({
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    data-ui-button="nav"
-              className={styles.action}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      hasRoute
-                        ? openNeedRoute(item, topCandidate)
-                        : prepareSearch(item);
-                    }}
-                  >
-                    {hasRoute ? 'Open route' : 'Start search'}
-                    <ChevronRight size={18} />
-                  </button>
+                  <div className={styles.rowActions}>
+                    <EntityActionsMenu
+                      kind="club_need"
+                      entityId={String(item.club_need_id)}
+                      label={`${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`}
+                      rpc={rpc}
+                      onChanged={refreshEntities}
+                      fields={[
+                        { key: 'title', label: 'Need title', value: item.need?.title },
+                        { key: 'position', label: 'Position', value: item.need?.position },
+                        { key: 'profile_notes', label: 'Profile notes', value: item.need?.profile_notes, type: 'textarea' },
+                        { key: 'expires_at', label: 'Expires', value: item.need?.expires_at ? String(item.need.expires_at).slice(0, 10) : '', type: 'date' },
+                      ]}
+                    />
+                    <button
+                      type="button"
+                      data-ui-button="nav"
+                      className={styles.action}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        hasRoute
+                          ? openNeedRoute(item, topCandidate)
+                          : prepareSearch(item);
+                      }}
+                    >
+                      {hasRoute ? 'Open route' : 'Start search'}
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
                 </article>
               );
             })
@@ -803,28 +849,41 @@ export default function AgencyOpportunitiesWorkspace({
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    data-ui-button="nav"
-                    className={
-                      controlInstruction
-                        ? styles.actionAttention
-                        : styles.action
-                    }
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDeal(deal);
-                    }}
-                  >
-                    {controlInstruction
-                      ? /owner|ownership/i.test(
-                          controlInstruction,
-                        )
-                        ? 'Assign owner'
-                        : 'Fix now'
-                      : 'Open deal'}
-                    <ChevronRight size={18} />
-                  </button>
+                  <div className={styles.rowActions}>
+                    <EntityActionsMenu
+                      kind="deal_room"
+                      entityId={String(deal.deal_room_id)}
+                      label={deal.title || 'Live deal'}
+                      rpc={rpc}
+                      onChanged={refreshEntities}
+                      fields={[
+                        { key: 'title', label: 'Deal title', value: deal.title },
+                        { key: 'next_action_text', label: 'Next action', value: deal.next_action_text || deal.next_decision || '', type: 'textarea' },
+                      ]}
+                    />
+                    <button
+                      type="button"
+                      data-ui-button="nav"
+                      className={
+                        controlInstruction
+                          ? styles.actionAttention
+                          : styles.action
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleDeal(deal);
+                      }}
+                    >
+                      {controlInstruction
+                        ? /owner|ownership/i.test(
+                            controlInstruction,
+                          )
+                          ? 'Assign owner'
+                          : 'Fix now'
+                        : 'Open deal'}
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
                 </article>
               );
             })

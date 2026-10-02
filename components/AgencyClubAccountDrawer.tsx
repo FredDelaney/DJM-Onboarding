@@ -24,6 +24,7 @@ import {
 } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
+import EntityActionsMenu from '@/components/EntityActionsMenu';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import {
   friendlyError,
@@ -43,6 +44,8 @@ type Invoke = (
   action: string,
   body?: Record<string, unknown>,
 ) => Promise<any>;
+
+type Rpc = <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
 
 const list = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
@@ -122,6 +125,8 @@ const stateCopy = (value: unknown) => {
 export default function AgencyClubAccountDrawer({
   request,
   invoke,
+  rpc,
+  onRefresh,
   onClose,
   onOpenAction,
   onOpenDeal,
@@ -132,6 +137,8 @@ export default function AgencyClubAccountDrawer({
 }: {
   request: AgencyClubAccountRequest;
   invoke: Invoke;
+  rpc: Rpc;
+  onRefresh: () => Promise<void>;
   onClose: () => void;
   onOpenAction: (
     request: AgencyActionRequest,
@@ -585,19 +592,34 @@ export default function AgencyClubAccountDrawer({
               </p>
             </div>
 
-            <button
-              type="button"
-              data-ui-button="icon"
-              className={
-                styles.close
-              }
-              onClick={
-                onClose
-              }
-              aria-label={pageMode ? 'Back to Network' : 'Close club'}
-            >
-              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
-            </button>
+            <div className={styles.headerControls}>
+              <EntityActionsMenu
+                kind="club"
+                entityId={request.organisationId}
+                label={club.name || request.title}
+                rpc={rpc}
+                onChanged={async (change) => {
+                  await onRefresh();
+                  if (change === 'edit') await load();
+                  else onClose();
+                }}
+                fields={[
+                  { key: 'name', label: 'Club name', value: club.name || request.title },
+                  { key: 'country', label: 'Country', value: club.country },
+                  { key: 'city', label: 'City', value: club.city },
+                  { key: 'website_url', label: 'Website', value: club.website_url, type: 'url' },
+                ]}
+              />
+              <button
+                type="button"
+                data-ui-button="icon"
+                className={styles.close}
+                onClick={onClose}
+                aria-label={pageMode ? 'Back to Network' : 'Close club'}
+              >
+                {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
+              </button>
+            </div>
           </div>
         </header>
 

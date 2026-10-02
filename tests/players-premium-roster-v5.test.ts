@@ -9,7 +9,9 @@ const playerCss = readFileSync('components/AgencyPlayersWorkspace.module.css', '
 test('Players mobile add action shares the labelled contextual action pattern', () => {
   assert.match(shell, /createAction && !inlineEntityWorkspaceOpen/);
   assert.doesNotMatch(shell, /view === 'players' && createAction/);
-  assert.match(shellCss, /Mobile action commonality \+ scroll-aware top fade v1/);
+  assert.match(shellCss, /Mobile action commonality v1/);
+  assert.doesNotMatch(shellCss, /scroll-aware top fade/);
+  assert.doesNotMatch(shellCss, /mobileTopVeil/);
   assert.match(shellCss, /\.mobileContextAction \.createButton[\s\S]*border-radius: 22px/);
   assert.match(shellCss, /\.mobileContextAction \.createButton[\s\S]*font-size: 12px/);
 });

@@ -61,12 +61,17 @@ test(
 
     assert.match(
       route,
-      /runtime\.branding\s*\.primary_color/,
+      /background_color: '#FFFFFF'/,
     );
 
     assert.match(
       route,
-      /runtime\.branding\s*\.secondary_color/,
+      /theme_color: '#FFFFFF'/,
+    );
+
+    assert.doesNotMatch(
+      route,
+      /runtime\.branding\s*\.primary_color/,
     );
   },
 );

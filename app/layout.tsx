@@ -133,7 +133,7 @@ export async function generateMetadata():
         capable: true,
         title,
         statusBarStyle:
-          'black-translucent',
+          'default',
       },
       formatDetection: {
         telephone: false,
@@ -247,7 +247,7 @@ export async function generateViewport():
   return {
     themeColor: isReDreamPublicSite
       ? '#0A1B3D'
-      : runtime.branding.primary_color,
+      : '#ffffff',
     width: 'device-width',
     initialScale: 1,
     viewportFit: 'cover',

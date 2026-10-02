@@ -1421,6 +1421,7 @@ export default function AgencyOperatingWorkspace() {
                   data={data}
                   basePath={basePath}
                   invoke={(action, body) => invoke<any>(action, body)}
+                  rpc={rpc}
                   onRefresh={loadView}
                   onOpenAction={(request) => setActionRequest(request)}
                 />
@@ -1429,6 +1430,8 @@ export default function AgencyOperatingWorkspace() {
             {view === 'opportunities' ? (
               <AgencyOpportunitiesWorkspace
                 onRetry={() => void loadView()}
+                onRefresh={loadView}
+                rpc={rpc}
                 data={data}
                 basePath={basePath}
                 onOpenAction={(request) =>
@@ -1654,6 +1657,8 @@ export default function AgencyOperatingWorkspace() {
           request={clubAccountRequest}
           presentation="page"
           invoke={(action, body) => invoke<any>(action, body)}
+          rpc={rpc}
+          onRefresh={loadView}
           onClose={closeClubAccount}
           onOpenAction={(request) => {
             setActionRequest(request);

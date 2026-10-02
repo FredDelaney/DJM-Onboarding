@@ -30,6 +30,7 @@ import { whatsappHref } from '@/lib/research-links';
 
 import AgencyRelationshipActions from '@/components/AgencyRelationshipActions';
 import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
+import EntityActionsMenu from '@/components/EntityActionsMenu';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
 
 type Rpc = <T = any>(
@@ -674,17 +675,35 @@ export default function AgencyContactIntelligenceDrawer({
             </div>
           </div>
 
-          <button
-            type="button"
-            data-ui-button="icon"
-              className={
-              styles.close
-            }
-            onClick={onClose}
-            aria-label={pageMode ? 'Back to Network' : 'Close person details'}
-          >
-            {pageMode ? <ArrowLeft size={17} /> : <X size={17} />}
-          </button>
+          <div className={styles.headerControls}>
+            <EntityActionsMenu
+              kind="club_contact"
+              entityId={clean(contact?.person_id)}
+              label={name}
+              rpc={rpc}
+              onChanged={async (change) => {
+                await onRefresh();
+                if (change === 'edit') await load();
+                else onClose();
+              }}
+              fields={[
+                { key: 'full_name', label: 'Full name', value: person?.full_name },
+                { key: 'preferred_name', label: 'Preferred name', value: person?.preferred_name },
+                { key: 'role_title', label: 'Role', value: role },
+                { key: 'country', label: 'Country', value: person?.country },
+                { key: 'city', label: 'City', value: person?.city },
+              ]}
+            />
+            <button
+              type="button"
+              data-ui-button="icon"
+              className={styles.close}
+              onClick={onClose}
+              aria-label={pageMode ? 'Back to Network' : 'Close person details'}
+            >
+              {pageMode ? <ArrowLeft size={17} /> : <X size={17} />}
+            </button>
+          </div>
         </header>
 
         {busy ? (

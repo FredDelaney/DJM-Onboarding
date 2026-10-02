@@ -892,3 +892,11 @@
     padding-inline: 8px !important;
   }
 }
+
+/* Shared entity management header v1 */
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}

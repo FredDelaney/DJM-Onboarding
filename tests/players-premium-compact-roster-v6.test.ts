@@ -23,5 +23,6 @@ test('mobile roster uses one clear next-action strip instead of the desktop fact
 test('attention status is functional inside the next-action strip', () => {
   assert.match(component, /mobileStatusDot/);
   assert.match(component, /mobileStatusDotCalm/);
-  assert.doesNotMatch(css.slice(css.indexOf('Premium compact roster v6')), /playerCardEnd \.attentionPill[\s\S]*position: absolute/);
+  const mobile = css.slice(css.indexOf('Premium compact roster v6'));
+  assert.match(mobile, /\.playerCardEnd \.attentionPill,[\s\S]*\.playerCardEnd \.calmPill[\s\S]*display: none/);
 });

@@ -786,3 +786,11 @@
     color: #596b78;
   }
 }
+
+/* Shared entity management header v1 */
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}

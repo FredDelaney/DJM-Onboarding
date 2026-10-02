@@ -19,11 +19,12 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
+import EntityActionsMenu from '@/components/EntityActionsMenu';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile } from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
@@ -38,6 +39,7 @@ type Props = {
   data: any;
   basePath: string;
   invoke: Invoke;
+  rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
   onRefresh: () => Promise<void>;
   onOpenAction: (request: AgencyActionRequest) => void;
 };
@@ -143,6 +145,8 @@ function PlayerDrawer({
   summary,
   basePath,
   invoke,
+  rpc,
+  onRefresh,
   onClose,
   onOpenAction,
 }: {
@@ -150,6 +154,8 @@ function PlayerDrawer({
   summary?: any;
   basePath: string;
   invoke: Invoke;
+  rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
+  onRefresh: () => Promise<void>;
   onClose: () => void;
   onOpenAction: (request: AgencyActionRequest) => void;
 }) {
@@ -265,6 +271,32 @@ function PlayerDrawer({
                   {[identity.primary_position, identity.current_club, identity.current_country]
                     .filter(Boolean).join(' · ') || 'Football details not fully recorded'}
                 </span>
+              </div>
+              <div className={styles.playerHeroManage}>
+                <EntityActionsMenu
+                  kind="player"
+                  entityId={playerId}
+                  label={playerName}
+                  rpc={rpc}
+                  onChanged={async (change) => {
+                    await onRefresh();
+                    if (change === 'edit') {
+                      const response = await invoke<any>('player_workspace', { player_id: playerId });
+                      setDetail(response?.player || null);
+                    } else {
+                      onClose();
+                    }
+                  }}
+                  fields={[
+                    { key: 'first_name', label: 'First name', value: identity.first_name },
+                    { key: 'last_name', label: 'Last name', value: identity.last_name },
+                    { key: 'preferred_name', label: 'Preferred name', value: identity.preferred_name },
+                    { key: 'primary_position', label: 'Primary position', value: identity.primary_position },
+                    { key: 'current_club', label: 'Current club', value: identity.current_club },
+                    { key: 'current_country', label: 'Current country', value: identity.current_country },
+                    { key: 'contract_expiry', label: 'Contract expiry', value: identity.contract_expiry || '', type: 'date' },
+                  ]}
+                />
               </div>
               <div className={styles.heroActions}>
                 <Link
@@ -470,6 +502,7 @@ export default function AgencyPlayersWorkspace({
   data,
   basePath,
   invoke,
+  rpc,
   onRefresh,
   onOpenAction,
 }: Props) {
@@ -480,6 +513,25 @@ export default function AgencyPlayersWorkspace({
   );
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
+  const [archiveItems, setArchiveItems] = useState<any[]>([]);
+
+  const reloadArchives = useCallback(async () => {
+    const result = await rpc<any>('redream_entity_archives');
+    setArchiveItems(Array.isArray(result?.items) ? result.items : []);
+  }, [rpc]);
+
+  const refreshEntities = useCallback(async () => {
+    await Promise.all([onRefresh(), reloadArchives()]);
+  }, [onRefresh, reloadArchives]);
+
+  useEffect(() => {
+    void reloadArchives().catch(() => undefined);
+  }, [reloadArchives]);
+
+  const archived = useMemo(
+    () => new Set(archiveItems.map((item: any) => `${String(item?.entity_type || '')}:${String(item?.entity_id || '')}`)),
+    [archiveItems],
+  );
   const [playerId, setPlayerId] = useState<string|null>(() =>
     searchParams.get('profile') === '1'
       ? null
@@ -629,8 +681,10 @@ export default function AgencyPlayersWorkspace({
     return () => { targetRequest.current += 1; };
   }, [invoke, targetId, targetReload]);
 
-  const players = Array.isArray(data?.directory?.items) ? data.directory.items : [];
-  const targets = Array.isArray(data?.recruitment?.items) ? data.recruitment.items : [];
+  const players = (Array.isArray(data?.directory?.items) ? data.directory.items : [])
+    .filter((item: any) => !archived.has(`player:${String(item?.player_id || '')}`));
+  const targets = (Array.isArray(data?.recruitment?.items) ? data.recruitment.items : [])
+    .filter((item: any) => !archived.has(`recruitment_target:${String(item?.id || '')}`));
   const q = search.trim().toLowerCase();
 
   const filteredPlayers = useMemo(() => players.filter((item:any) => {
@@ -718,11 +772,32 @@ export default function AgencyPlayersWorkspace({
     return (
       <div className={styles.playerPage}>
         <aside className={`${styles.drawer} ${styles.playerPagePanel}`} role="region" aria-label="Recruitment target workspace">
-          <div className={styles.drawerTop}>
+          <div className={`${styles.drawerTop} ${styles.drawerTopManaged}`}>
             <button type="button" data-ui-button="icon"
               className={styles.closeButton} onClick={closeTarget} aria-label="Back to Recruitment">
               <ArrowLeft size={18} />
             </button>
+            {targetDetail?.target ? (
+              <EntityActionsMenu
+                kind="recruitment_target"
+                entityId={targetId}
+                label={targetDetail.target.full_name || 'Recruitment target'}
+                rpc={rpc}
+                onChanged={async (change) => {
+                  await onRefresh();
+                  if (change === 'edit') setTargetReload((value) => value + 1);
+                  else closeTarget();
+                }}
+                fields={[
+                  { key: 'full_name', label: 'Player name', value: targetDetail.target.full_name },
+                  { key: 'primary_position', label: 'Position', value: targetDetail.target.primary_position },
+                  { key: 'current_club', label: 'Current club', value: targetDetail.target.current_club },
+                  { key: 'current_country', label: 'Current country', value: targetDetail.target.current_country },
+                  { key: 'contract_expiry', label: 'Contract expiry', value: targetDetail.target.contract_expiry || '', type: 'date' },
+                  { key: 'transfermarkt_url', label: 'Transfermarkt', value: targetDetail.target.transfermarkt_url, type: 'url' },
+                ]}
+              />
+            ) : null}
           </div>
           {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the recorded relationship.</span></div></div>:null}
           {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span><button type="button" data-ui-button="secondary"
@@ -770,6 +845,8 @@ export default function AgencyPlayersWorkspace({
         )}
         basePath={basePath}
         invoke={invoke}
+        rpc={rpc}
+        onRefresh={onRefresh}
         onClose={closePlayer}
         onOpenAction={onOpenAction}
       />
@@ -824,6 +901,22 @@ export default function AgencyPlayersWorkspace({
                     <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Football details not fully recorded'}</span>
                     <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not fully recorded'}</small></div>
                   <div className={styles.playerCardEnd}>
+                    <EntityActionsMenu
+                      kind="player"
+                      entityId={String(item.player_id)}
+                      label={name}
+                      rpc={rpc}
+                      onChanged={refreshEntities}
+                      fields={[
+                        { key: 'first_name', label: 'First name', value: identity.first_name },
+                        { key: 'last_name', label: 'Last name', value: identity.last_name },
+                        { key: 'preferred_name', label: 'Preferred name', value: identity.preferred_name },
+                        { key: 'primary_position', label: 'Primary position', value: identity.primary_position },
+                        { key: 'current_club', label: 'Current club', value: identity.current_club },
+                        { key: 'current_country', label: 'Current country', value: identity.current_country },
+                        { key: 'contract_expiry', label: 'Contract expiry', value: identity.contract_expiry || '', type: 'date' },
+                      ]}
+                    />
                     <button
                       type="button"
                       className={styles.profileShortcut}
@@ -924,13 +1017,31 @@ export default function AgencyPlayersWorkspace({
           </section>
           <section className={styles.recruitmentList}>
             {filteredTargets.map((item:any)=>(
-              <button type="button" className={styles.recruitmentRow} key={item.id} onClick={()=>openTarget(String(item.id))}>
+              <div className={styles.recruitmentRowWrap} key={item.id}>
+                <button type="button" className={styles.recruitmentRow} onClick={()=>openTarget(String(item.id))}>
                 <div className={styles.recruitmentMark}>{initials(item.full_name||'')||'P'}</div>
                 <div className={styles.recruitmentCopy}><div className={styles.recruitmentTitle}><strong>{item.full_name}</strong>{item.follow_up_overdue?<span className={styles.overduePill}>Follow-up overdue</span>:null}</div>
                   <span>{[item.primary_position,item.current_club,item.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span>
                   <small>{item.last_interaction?.summary||(item.next_action_at?`Next follow-up ${relativeDate(item.next_action_at)}`:'No next follow-up recorded')}</small></div>
                 <div className={styles.recruitmentStage}><span>{PIPELINE.find(([key])=>key===item.ui_stage)?.[1]||human(item.ui_stage)}</span><ChevronRight size={15}/></div>
-              </button>
+                </button>
+                <EntityActionsMenu
+                  kind="recruitment_target"
+                  entityId={String(item.id)}
+                  label={item.full_name || 'Recruitment target'}
+                  rpc={rpc}
+                  onChanged={refreshEntities}
+                  className={styles.recruitmentRowActions}
+                  fields={[
+                    { key: 'full_name', label: 'Player name', value: item.full_name },
+                    { key: 'primary_position', label: 'Position', value: item.primary_position },
+                    { key: 'current_club', label: 'Current club', value: item.current_club },
+                    { key: 'current_country', label: 'Current country', value: item.current_country },
+                    { key: 'contract_expiry', label: 'Contract expiry', value: item.contract_expiry || '', type: 'date' },
+                    { key: 'transfermarkt_url', label: 'Transfermarkt', value: item.transfermarkt_url, type: 'url' },
+                  ]}
+                />
+              </div>
             ))}
             {!filteredTargets.length?<Empty icon={Target} title="No recruitment targets here" copy="Add a target or change the stage filter to see the current recruitment pipeline."/>:null}
           </section>

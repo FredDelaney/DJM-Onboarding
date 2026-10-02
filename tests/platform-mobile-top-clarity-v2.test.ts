@@ -10,7 +10,7 @@ test('agency workspace does not mount a translucent top veil', () => {
   assert.doesNotMatch(shell, /mobileScrolled/);
   assert.doesNotMatch(shell, /styles\.mobileTopVeil/);
   assert.match(shellCss, /Mobile top clarity v2/);
-  assert.match(shellCss, /\.mobileTopVeil[\s\S]*display: none !important/);
+  assert.doesNotMatch(shellCss, /mobileTopVeil/);
 });
 
 test('global authenticated mobile headers disable blur and filters', () => {

@@ -14,10 +14,11 @@ import {
   TimerReset,
   Users,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
+import EntityActionsMenu from '@/components/EntityActionsMenu';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
@@ -218,16 +219,39 @@ export default function AgencyNetworkWorkspace({
     useState<NetworkFocus>('all');
   const [search, setSearch] = useState('');
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const searchParams = useSearchParams();
+
+  const reloadArchives = useCallback(async () => {
+    const result = await rpc<any>('redream_entity_archives');
+    setArchiveItems(Array.isArray(result?.items) ? result.items : []);
+  }, [rpc]);
+
+  const refreshEntities = useCallback(async () => {
+    await Promise.all([onRefresh(), reloadArchives()]);
+  }, [onRefresh, reloadArchives]);
+
+  useEffect(() => {
+    void reloadArchives().catch(() => undefined);
+  }, [reloadArchives]);
+
+  const archived = useMemo(
+    () => new Set(archiveItems.map((item: any) => `${String(item?.entity_type || '')}:${String(item?.entity_id || '')}`)),
+    [archiveItems],
+  );
   const requestedPersonId = String(searchParams.get('person') || '').trim();
   const requestedClubId = String(searchParams.get('club') || '').trim();
 
   const accounts = data?.accounts || {};
-  const clubs = list(accounts?.clubs);
+  const clubs = list(accounts?.clubs).filter((club: any) =>
+    !archived.has(`club:${String(club?.organisation_id || '')}`),
+  );
   const clubSummary = accounts?.summary || {};
 
   const contactData = data?.contacts || {};
-  const people = list(contactData?.items);
+  const people = list(contactData?.items).filter((item: any) =>
+    !archived.has(`club_contact:${String(item?.person_id || item?.id || '')}`),
+  );
   const peopleSummary = contactData?.summary || {};
 
   const searchValue = search.trim().toLowerCase();
@@ -800,6 +824,19 @@ export default function AgencyNetworkWorkspace({
                         .join(' · ') || 'Club context recorded'}
                     </p>
                   </div>
+                  <EntityActionsMenu
+                    kind="club"
+                    entityId={String(club?.organisation_id || '')}
+                    label={clubName}
+                    rpc={rpc}
+                    onChanged={refreshEntities}
+                    fields={[
+                      { key: 'name', label: 'Club name', value: clubName },
+                      { key: 'country', label: 'Country', value: club?.country },
+                      { key: 'city', label: 'City', value: club?.city },
+                      { key: 'website_url', label: 'Website', value: club?.website_url, type: 'url' },
+                    ]}
+                  />
                 </div>
 
                 <div className={styles.primaryFact}>
@@ -1051,6 +1088,20 @@ export default function AgencyNetworkWorkspace({
                         .join(' · ')}
                     </p>
                   </div>
+                  <EntityActionsMenu
+                    kind="club_contact"
+                    entityId={personId(item)}
+                    label={fullName}
+                    rpc={rpc}
+                    onChanged={refreshEntities}
+                    fields={[
+                      { key: 'full_name', label: 'Full name', value: person?.full_name },
+                      { key: 'preferred_name', label: 'Preferred name', value: person?.preferred_name },
+                      { key: 'role_title', label: 'Role', value: employment?.role_title },
+                      { key: 'country', label: 'Country', value: person?.country },
+                      { key: 'city', label: 'City', value: person?.city },
+                    ]}
+                  />
                 </div>
 
                 <div className={styles.relationshipSummary}>

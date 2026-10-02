@@ -69,14 +69,8 @@ export async function GET() {
       display: 'standalone',
       orientation:
         'portrait-primary',
-      background_color:
-        runtime.branding
-          .secondary_color ||
-        '#FFFFFF',
-      theme_color:
-        runtime.branding
-          .primary_color ||
-        '#111827',
+      background_color: '#FFFFFF',
+      theme_color: '#FFFFFF',
       categories: [
         'sports',
         'business',

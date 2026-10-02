@@ -9,5 +9,5 @@ test('mobile agency shell does not mount a translucent top fade layer', () => {
   assert.doesNotMatch(shell, /mobileScrolled/);
   assert.doesNotMatch(shell, /styles\.mobileTopVeil/);
   assert.match(css, /Mobile top clarity v2/);
-  assert.match(css, /\.mobileTopVeil[\s\S]*display: none !important/);
+  assert.doesNotMatch(css, /mobileTopVeil/);
 });

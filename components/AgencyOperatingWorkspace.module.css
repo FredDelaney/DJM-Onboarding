@@ -3405,11 +3405,7 @@
   }
 }
 
-/* Mobile action commonality + scroll-aware top fade v1 */
-.mobileTopVeil {
-  display: none;
-}
-
+/* Mobile action commonality v1 */
 @media (max-width: 680px) {
   .root {
     background: #f5f6f8;
@@ -3447,42 +3443,10 @@
     display: none !important;
   }
 
-  .mobileTopVeil {
-    position: fixed;
-    z-index: 38;
-    top: 0;
-    right: 0;
-    left: 0;
-    height: calc(env(safe-area-inset-top) + 78px);
-    display: block;
-    pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      rgba(255,255,255,.99) 0%,
-      rgba(255,255,255,.96) 44%,
-      rgba(255,255,255,.72) 70%,
-      rgba(255,255,255,0) 100%
-    );
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    animation: mobileTopVeilIn 140ms ease-out both;
-  }
-
-  @keyframes mobileTopVeilIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
 }
 
 /* Mobile top clarity v2 */
 @media (max-width: 680px) {
-  .mobileTopVeil {
-    display: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: transparent !important;
-  }
-
   .main,
   .pageHead,
   .pageHeadCopy,

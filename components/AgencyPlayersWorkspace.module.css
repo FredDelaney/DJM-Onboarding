@@ -1579,3 +1579,69 @@
     display: none;
   }
 }
+
+/* Shared record actions v1 */
+.recruitmentRowWrap {
+  position: relative;
+}
+
+.recruitmentRowWrap .recruitmentRow {
+  width: 100%;
+}
+
+.recruitmentRowActions {
+  position: absolute !important;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+}
+
+.recruitmentRowWrap .recruitmentStage {
+  margin-right: 38px;
+}
+
+.playerCardEnd {
+  grid-template-columns: auto auto;
+  align-items: start;
+}
+
+.playerCardEnd > span {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 680px) {
+  .recruitmentRowWrap .recruitmentRow {
+    padding-right: 54px;
+  }
+
+  .recruitmentRowWrap .recruitmentStage {
+    display: none;
+  }
+}
+
+/* Shared entity management in player workspaces v1 */
+.playerHeroManage {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+}
+
+.playerHero {
+  position: relative;
+}
+
+.drawerTopManaged {
+  justify-content: space-between;
+}
+
+.playerPagePanel .drawerTopManaged {
+  justify-content: space-between;
+}
+
+@media (max-width: 680px) {
+  .playerHeroManage {
+    top: 10px;
+    right: 10px;
+  }
+}

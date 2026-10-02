@@ -900,3 +900,19 @@
     color: #a66a43;
   }
 }
+
+/* Shared entity actions v1 */
+.rowActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+@media (max-width: 680px) {
+  .rowActions {
+    grid-column: 2;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

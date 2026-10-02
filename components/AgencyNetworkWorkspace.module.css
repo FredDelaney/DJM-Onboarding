@@ -1923,3 +1923,16 @@
     white-space: nowrap !important;
   }
 }
+
+/* Shared record actions v1 */
+.entityTop > :last-child {
+  margin-left: auto;
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+@media (max-width: 680px) {
+  .entityTop {
+    align-items: flex-start;
+  }
+}
