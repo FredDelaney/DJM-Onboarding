@@ -987,9 +987,9 @@ export default function AgencyPursuitRoom({
             PURSUIT ROOM
           </p>
           <h2>
-            {request.playerName}
-            <span>→</span>
-            {request.clubName}
+            <span className={styles.routePlayer}>{request.playerName}</span>
+            <ArrowRight className={styles.routeArrow} size={22} />
+            <span className={styles.routeClub}>{request.clubName}</span>
           </h2>
           <p className={styles.subhead}>
             {request.needTitle ||
@@ -1134,6 +1134,17 @@ export default function AgencyPursuitRoom({
                         ?.instruction ||
                       'Keep the route current from recorded evidence.'}
                 </span>
+
+                {!careerIsOpen ? (
+                  <button
+                    type="button"
+                    className={styles.heroAction}
+                    onClick={openCareerAction}
+                  >
+                    <ShieldCheck size={15} />
+                    Review career plan
+                  </button>
+                ) : null}
               </div>
 
               <div className={styles.heroScore}>
@@ -1191,33 +1202,6 @@ export default function AgencyPursuitRoom({
                 detail="Recorded preparation state"
               />
             </div>
-
-            {!careerIsOpen ? (
-              <section className={styles.panel}>
-                <div className={styles.panelHead}>
-                  <ShieldCheck size={17} />
-                  <div>
-                    <p>BEFORE YOU CONTACT THE CLUB</p>
-                    <h3>
-                      Confirm the player's direction.
-                    </h3>
-                  </div>
-                </div>
-
-                <p className={styles.copy}>
-                  Keep this route private until the player's next move is clear.
-                </p>
-
-                <button
-                  type="button"
-                  className={styles.primary}
-                  onClick={openCareerAction}
-                >
-                  <ShieldCheck size={15} />
-                  Review career plan
-                </button>
-              </section>
-            ) : null}
 
             {careerIsOpen ? (
               <section className={styles.panel}>
@@ -1556,7 +1540,7 @@ export default function AgencyPursuitRoom({
               </section>
             ) : null}
 
-            <section className={styles.panel}>
+            <section className={`${styles.panel} ${styles.responsePanel}`}>
               <div className={styles.panelHead}>
                 <MessageSquareText size={17} />
                 <div>
@@ -1646,7 +1630,7 @@ export default function AgencyPursuitRoom({
               )}
             </section>
 
-            <section className={styles.panel}>
+            <section className={`${styles.panel} ${styles.dealPanel}`}>
               <div className={styles.panelHead}>
                 <BriefcaseBusiness size={17} />
                 <div>
@@ -1674,6 +1658,14 @@ export default function AgencyPursuitRoom({
                   <BriefcaseBusiness size={15} />
                   Open Deal War Room
                 </button>
+              ) : !careerIsOpen ? (
+                <div className={styles.dealLocked}>
+                  <ShieldCheck size={16} />
+                  <div>
+                    <strong>Commercial controls stay locked for now.</strong>
+                    <span>Confirm the player's direction before promoting this route into a live deal.</span>
+                  </div>
+                </div>
               ) : (
                 <>
                   <div className={styles.formGrid}>

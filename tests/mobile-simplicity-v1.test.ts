@@ -58,7 +58,8 @@ test('opportunities and Network defer supporting evidence on phone', () => {
 
 test('Pursuit Room speaks like an agent workflow while preserving internal controls', () => {
   assert.match(pursuit, /Confirm player direction/);
-  assert.match(pursuit, /BEFORE YOU CONTACT THE CLUB/);
+  assert.doesNotMatch(pursuit, /BEFORE YOU CONTACT THE CLUB/);
+  assert.match(pursuit, /Commercial controls stay locked for now/);
   assert.match(pursuit, /Review career plan/);
   assert.doesNotMatch(pursuit, /NEXT LEGITIMATE MOVE/);
   assert.match(pursuitCss, /\.heroScore,[\s\S]*\.grid[\s\S]*display:\s*none/);
