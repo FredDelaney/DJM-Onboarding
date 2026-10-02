@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { friendlyError } from '@/lib/platform-client';
 import styles from './EntityActionsMenu.module.css';
@@ -181,7 +182,7 @@ export default function EntityActionsMenu({
         <MoreHorizontal size={18} />
       </button>
 
-      {mode ? (
+      {mode ? createPortal(
         <div
           className={styles.backdrop}
           role="presentation"
@@ -357,7 +358,8 @@ export default function EntityActionsMenu({
               </div>
             ) : null}
           </section>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

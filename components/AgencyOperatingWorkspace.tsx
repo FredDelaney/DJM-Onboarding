@@ -52,6 +52,10 @@ import type { AgencyDealCloseoutRequest } from '@/components/AgencyDealCloseoutD
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
 import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
+import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
+import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
+import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
+import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
@@ -73,11 +77,7 @@ const AgencyDealCloseoutDrawer = dynamic(() => import('@/components/AgencyDealCl
 const AgencyClubAccountDrawer = dynamic(() => import('@/components/AgencyClubAccountDrawer'));
 const AgencyNegotiationCommandRoom = dynamic(() => import('@/components/AgencyNegotiationCommandRoom'));
 const AgencyPlayerServiceReviewDrawer = dynamic(() => import('@/components/AgencyPlayerServiceReviewDrawer'));
-const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'));
 const AgencyPlayerProfile = dynamic(() => import('@/components/AgencyPlayerProfile'));
-const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'));
-const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'));
-const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'));
 const AgencyConnectionsDrawer = dynamic(() => import('@/components/AgencyConnectionsDrawer'));
 const AgencyConnectedIdentityResolverDrawer = dynamic(() => import('@/components/AgencyConnectedIdentityResolverDrawer'));
 const AgencyConnectedReplyDrawer = dynamic(() => import('@/components/AgencyConnectedReplyDrawer'));
@@ -346,6 +346,21 @@ export default function AgencyOperatingWorkspace() {
     useState<any>(null);
   const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
     useState('');
+  const previousViewRef = useRef<View>(view);
+
+  useEffect(() => {
+    if (previousViewRef.current === view) return;
+    previousViewRef.current = view;
+
+    setActionRequest(null);
+    setIntelligenceRequest(null);
+    setPursuitRequest(null);
+    setClubAccountRequest(null);
+    setNegotiationRequest(null);
+    setPlayerServiceReviewRequest(null);
+    setDealCloseoutRequest(null);
+    setCreateKind(null);
+  }, [view]);
 
   const workspaceName =
     workspace?.display_name ||

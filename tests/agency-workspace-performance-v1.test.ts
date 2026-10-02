@@ -9,16 +9,15 @@ const source = readFileSync(
 
 const lazyModules = [
   'AgencyPlayerProfile',
-  'AgencyPlayersWorkspace',
-  'AgencyOpportunitiesWorkspace',
-  'AgencyNetworkWorkspace',
-  'AgencyCalendarWorkspace',
   'AgencyPursuitRoom',
   'AgencyNegotiationCommandRoom',
   'AgencyClubAccountDrawer',
+  'AgencyContactIntelligenceDrawer',
+  'AgencyEntityIntelligenceDrawer',
+  'AgencyActionDrawer',
 ];
 
-test('heavy agency workspaces stay out of the initial Home bundle', () => {
+test('heavy secondary agency work stays out of the initial Home bundle', () => {
   for (const moduleName of lazyModules) {
     assert.match(source, new RegExp(`const ${moduleName} = dynamic\\(`));
     assert.doesNotMatch(source, new RegExp(`import ${moduleName} from`));

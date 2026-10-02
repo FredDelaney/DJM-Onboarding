@@ -82,3 +82,16 @@ test('Calendar routes known people and clubs directly into Network', () => {
     /\?view=network&club=\$\{encodeURIComponent\(item\.organisationId\)\}/,
   );
 });
+
+test('Network deep-link collections stay stable instead of reopening on every render', () => {
+  assert.match(network, /const clubs = useMemo\(/);
+  assert.match(network, /const people = useMemo\(/);
+  assert.match(network, /const clubRequestFor = useCallback\(/);
+});
+
+test('changing a primary tab dismisses a stale full-screen club workspace', () => {
+  assert.match(shell, /const previousViewRef = useRef<View>\(view\)/);
+  assert.match(shell, /previousViewRef\.current === view/);
+  assert.match(shell, /setClubAccountRequest\(null\)/);
+  assert.match(shell, /setIntelligenceRequest\(null\)/);
+});
