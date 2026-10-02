@@ -28,7 +28,10 @@ test('Network create action stays on the list surface and disappears inside enti
     shell,
     /view === 'network'[\s\S]{0,260}kind: 'contact'/,
   );
-  assert.match(network, /if \(selectedContact\)[\s\S]*return \(/);
+  assert.match(
+    network,
+    /if \(selectedContact && personId\(selectedContact\) === requestedPersonId\)[\s\S]*return \(/,
+  );
   assert.match(
     network,
     /!requestedClubId \? \([\s\S]*styles\.addEntityButton/,
