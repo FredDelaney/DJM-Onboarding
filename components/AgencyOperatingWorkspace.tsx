@@ -92,6 +92,7 @@ type ViewCacheEntry = {
 };
 
 const viewDataCache = new Map<string, ViewCacheEntry>();
+const viewWarmRequests = new Map<string, Promise<void>>();
 const VIEW_CACHE_TTL_MS = 10 * 60_000;
 
 const readViewCache = (key: string) => {
@@ -466,72 +467,90 @@ export default function AgencyOperatingWorkspace() {
 
       if (readViewCache(cacheKey)) return;
 
-      try {
-        if (targetView === 'home') {
-          let home: any = null;
+      const existingRequest = viewWarmRequests.get(cacheKey);
+      if (existingRequest) {
+        await existingRequest;
+        return;
+      }
 
-          try {
-            const focus = await invoke<any>('home_focus', {
-              limit: 8,
-            });
-            home = focus?.home || {};
-          } catch {
-            home = await rpc<any>('redream_autopilot_home', {
-              p_limit: 8,
-            });
+      const request = (async () => {
+        try {
+          if (targetView === 'home') {
+            let home: any = null;
+
+            try {
+              const focus = await invoke<any>('home_focus', {
+                limit: 8,
+              });
+              home = focus?.home || {};
+            } catch {
+              home = await rpc<any>('redream_autopilot_home', {
+                p_limit: 8,
+              });
+            }
+
+            writeViewCache(cacheKey, { home });
+            return;
           }
 
-          writeViewCache(cacheKey, { home });
-          return;
+          if (targetView === 'players') {
+            const directory = await invoke<any>(
+              'players_workspace',
+              { limit: 100 },
+            );
+
+            writeViewCache(cacheKey, {
+              directory: directory?.players || {},
+            });
+            return;
+          }
+
+          if (targetView === 'opportunities') {
+            const market = await rpc<any>(
+              'redream_autopilot_market',
+              { p_limit: 100 },
+            );
+
+            writeViewCache(cacheKey, {
+              market,
+              connected: {},
+            });
+            return;
+          }
+
+          if (targetView === 'network') {
+            writeViewCache(
+              cacheKey,
+              await rpc<any>('redream_autopilot_relationships', {
+                p_limit: 100,
+                p_contact_limit: 250,
+              }),
+            );
+            return;
+          }
+
+          if (targetView === 'calendar') {
+            writeViewCache(
+              cacheKey,
+              await rpc<any>('redream_autopilot_calendar', {
+                p_horizon_days: 90,
+                p_limit: 100,
+              }),
+            );
+          }
+        } catch {
+          // Warming is opportunistic. The visible view keeps its normal load path.
         }
+      })();
 
-        if (targetView === 'players') {
-          const directory = await invoke<any>(
-            'players_workspace',
-            { limit: 100 },
-          );
+      viewWarmRequests.set(cacheKey, request);
 
-          writeViewCache(cacheKey, {
-            directory: directory?.players || {},
-          });
-          return;
+      try {
+        await request;
+      } finally {
+        if (viewWarmRequests.get(cacheKey) === request) {
+          viewWarmRequests.delete(cacheKey);
         }
-
-        if (targetView === 'opportunities') {
-          const market = await rpc<any>(
-            'redream_autopilot_market',
-            { p_limit: 100 },
-          );
-
-          writeViewCache(cacheKey, {
-            market,
-            connected: {},
-          });
-          return;
-        }
-
-        if (targetView === 'network') {
-          writeViewCache(
-            cacheKey,
-            await rpc<any>('redream_autopilot_relationships', {
-              p_limit: 100,
-              p_contact_limit: 250,
-            }),
-          );
-          return;
-        }
-
-        if (targetView === 'calendar') {
-          writeViewCache(
-            cacheKey,
-            await rpc<any>('redream_autopilot_calendar', {
-              p_horizon_days: 90,
-              p_limit: 100,
-            }),
-          );
-        }
-      } catch {
-        // Warming is opportunistic. The visible view keeps its normal load path.
       }
     },
     [
@@ -540,6 +559,20 @@ export default function AgencyOperatingWorkspace() {
       workspace?.slug,
       workspace?.tenant_id,
     ],
+  );
+
+  const navigateWorkspaceView = useCallback(
+    (targetView: View, href: string) => {
+      if (targetView === view || typeof window === 'undefined') return;
+
+      void warmView(targetView);
+      window.history.pushState(
+        { redreamView: targetView },
+        '',
+        href,
+      );
+    },
+    [view, warmView],
   );
 
   const resolveWorkspace = useCallback(async () => {
@@ -602,7 +635,21 @@ export default function AgencyOperatingWorkspace() {
       view,
       view === 'players' ? playersSection : 'main',
     ].join(':');
-    const cached = readViewCache(cacheKey);
+    let cached = readViewCache(cacheKey);
+
+    if (!cached) {
+      const warming = viewWarmRequests.get(cacheKey);
+      if (warming) {
+        setError('');
+        setProposal(null);
+        setData(null);
+        setBusy(true);
+        await warming;
+        if (!isCurrent()) return;
+        cached = readViewCache(cacheKey);
+      }
+    }
+
     const cachedSupportsVisibleView =
       view !== 'opportunities' ||
       (opportunitiesSection === 'deals'
@@ -894,15 +941,22 @@ export default function AgencyOperatingWorkspace() {
 
     const timer = window.setTimeout(() => {
       void (async () => {
-        for (const targetView of targets) {
+        const priorityTargets = targets.slice(0, 2);
+        const remainingTargets = targets.slice(2);
+
+        await Promise.allSettled(
+          priorityTargets.map((targetView) => warmView(targetView)),
+        );
+
+        for (const targetView of remainingTargets) {
           if (cancelled) return;
           await warmView(targetView);
           await new Promise((resolve) =>
-            window.setTimeout(resolve, 120),
+            window.setTimeout(resolve, 60),
           );
         }
       })();
-    }, 900);
+    }, 320);
 
     return () => {
       cancelled = true;
@@ -1228,10 +1282,26 @@ export default function AgencyOperatingWorkspace() {
               <Link
                 key={item.key}
                 href={href}
+                prefetch={false}
                 aria-current={view === item.key ? 'page' : undefined}
                 className={`${view === item.key ? styles.navActive : ''} ${item.key === 'business' ? styles.navManagement : ''}`}
+                onPointerDown={() => void warmView(item.key)}
                 onPointerEnter={() => void warmView(item.key)}
                 onFocus={() => void warmView(item.key)}
+                onClick={(event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  ) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  navigateWorkspaceView(item.key, href);
+                }}
               >
                 <Icon size={17} />
                 <span>{item.label}</span>
@@ -1388,7 +1458,10 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {data ? (
-          <>
+          <div
+            className={styles.viewStage}
+            key={`view:${view}:${selectedPlayerId || playersSection}:${opportunitiesSection}`}
+          >
             {view === 'home' ? (
               <Home
                 data={data}
@@ -1479,7 +1552,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenOwner={() => setOwnerCommandOpen(true)}
               />
             ) : null}
-          </>
+          </div>
         ) : null}
       </main>
 
