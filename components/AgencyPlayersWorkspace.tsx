@@ -234,7 +234,8 @@ function PlayerDrawer({
     <div className={styles.playerPage}>
       <aside className={`${styles.drawer} ${styles.playerPagePanel}`} role="region" aria-label={`${playerName} player workspace`}>
         <div className={styles.drawerTop}>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Back to Players">
+          <button type="button" data-ui-button="icon"
+              className={styles.closeButton} onClick={onClose} aria-label="Back to Players">
             <ArrowLeft size={18} />
           </button>
         </div>
@@ -277,7 +278,8 @@ function PlayerDrawer({
                   {profile.published ? 'Live' : 'Not published'}
                 </span>
                 {(service?.next_control_fix?.instruction || service?.next_service_move?.instruction) ? (
-                  <button type="button" className={styles.primaryButton} onClick={openAction}>
+                  <button type="button" data-ui-button="primary" data-ui-tone="inverse"
+              className={styles.primaryButton} onClick={openAction}>
                     <ArrowRight size={14} /> Next action
                   </button>
                 ) : null}
@@ -376,7 +378,8 @@ function PlayerDrawer({
                   <h3>{career?.strategy?.objective || 'No career objective recorded'}</h3>
                   <span className={styles.sectionCopy}>{career?.next_strategy_action?.instruction || 'No career-plan action recorded'}</span>
                   {career?.next_strategy_action?.instruction ? (
-                    <button type="button" className={styles.primaryButton} onClick={() =>
+                    <button type="button" data-ui-button="primary"
+              className={styles.primaryButton} onClick={() =>
                       onOpenAction({
                         key: `career:${playerId}`,
                         eyebrow: 'CAREER PLAN',
@@ -716,12 +719,14 @@ export default function AgencyPlayersWorkspace({
       <div className={styles.playerPage}>
         <aside className={`${styles.drawer} ${styles.playerPagePanel}`} role="region" aria-label="Recruitment target workspace">
           <div className={styles.drawerTop}>
-            <button type="button" className={styles.closeButton} onClick={closeTarget} aria-label="Back to Recruitment">
+            <button type="button" data-ui-button="icon"
+              className={styles.closeButton} onClick={closeTarget} aria-label="Back to Recruitment">
               <ArrowLeft size={18} />
             </button>
           </div>
           {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the recorded relationship.</span></div></div>:null}
-          {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span><button type="button" className={styles.secondaryButton} onClick={()=>setTargetReload(value=>value+1)}>Try again</button></div></div>:null}
+          {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span><button type="button" data-ui-button="secondary"
+              className={styles.secondaryButton} onClick={()=>setTargetReload(value=>value+1)}>Try again</button></div></div>:null}
           {!targetBusy&&!targetError&&targetDetail?(
             <div className={styles.drawerBody}>
               <header className={styles.recruitHero}><div className={styles.recruitmentMark}>{initials(targetDetail.target?.full_name||'')||'P'}</div>
@@ -729,15 +734,18 @@ export default function AgencyPlayersWorkspace({
               <section className={styles.detailSection}><p>CURRENT STAGE</p><h3>{PIPELINE.find(([key])=>key===targetDetail.target?.ui_stage)?.[1]||human(targetDetail.target?.ui_stage)}</h3>
                 <span className={styles.sectionCopy}>{targetDetail.target?.next_action_at?`Next follow-up ${relativeDate(targetDetail.target.next_action_at)}`:'No next follow-up recorded'}</span>
                 <div className={styles.actionRow}>
-                  {nextMajorStage(targetDetail.target?.raw_stage)?(<button type="button" className={styles.primaryButton} onClick={()=>void changeStage()}><ArrowRight size={14}/> Move to {nextMajorStage(targetDetail.target?.raw_stage)?.[1]}</button>):null}
-                  {targetDetail.target?.raw_stage==='signed'?(<button type="button" className={styles.primaryButton} onClick={()=>void promote()}><Users size={14}/> Add to Our Players</button>):null}
+                  {nextMajorStage(targetDetail.target?.raw_stage)?(<button type="button" data-ui-button="primary"
+              className={styles.primaryButton} onClick={()=>void changeStage()}><ArrowRight size={14}/> Move to {nextMajorStage(targetDetail.target?.raw_stage)?.[1]}</button>):null}
+                  {targetDetail.target?.raw_stage==='signed'?(<button type="button" data-ui-button="primary"
+              className={styles.primaryButton} onClick={()=>void promote()}><Users size={14}/> Add to Our Players</button>):null}
                 </div>
               </section>
               <section className={styles.detailSection}><p>CONTACT</p><h3>Log what happened</h3>
                 <div className={styles.interactionForm}>
                   <select value={interactionChannel} onChange={(e)=>setInteractionChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="email">Email</option><option value="phone">Phone</option><option value="meeting">Meeting</option><option value="other">Other</option></select>
                   <textarea rows={3} value={interaction} onChange={(e)=>setInteraction(e.target.value)} placeholder="Short factual note"/>
-                  <button type="button" className={styles.primaryButton} disabled={!interaction.trim()} onClick={()=>void logInteraction()}><CheckCircle2 size={14}/> Save interaction</button>
+                  <button type="button" data-ui-button="primary"
+              className={styles.primaryButton} disabled={!interaction.trim()} onClick={()=>void logInteraction()}><CheckCircle2 size={14}/> Save interaction</button>
                 </div>
               </section>
               <section className={styles.detailSection}><p>HISTORY</p><h3>Recruitment interactions</h3>
@@ -782,7 +790,8 @@ export default function AgencyPlayersWorkspace({
         <label className={styles.search}><Search size={15}/><input value={search} onChange={(e)=>setSearch(e.target.value)}
           placeholder={section==='players'?'Search players':'Search recruitment'} /></label>
         {section==='recruitment'?(
-          <button type="button" className={styles.primaryButton} onClick={openRecruitmentCreate}><Plus size={14}/> Add target</button>
+          <button type="button" data-ui-button="secondary"
+              className={styles.primaryButton} onClick={openRecruitmentCreate}><Plus size={14}/> Add target</button>
         ):null}
       </section>
 
@@ -859,7 +868,8 @@ export default function AgencyPlayersWorkspace({
                 </div>
                 {attention?(
                   <div className={styles.playerCardActions}>
-                    <button type="button" className={styles.primaryButton} onClick={(event)=>{
+                    <button type="button" data-ui-button="primary"
+              className={styles.primaryButton} onClick={(event)=>{
                       event.stopPropagation();
                       const control=service?.next_control_fix;
                       const move=service?.next_service_move;
@@ -933,7 +943,8 @@ export default function AgencyPlayersWorkspace({
         <div className={styles.modalBackdrop} onClick={(e)=>{if(e.target===e.currentTarget&&!createBusy)closeRecruitmentCreate();}}>
           <section className={styles.createModal} role="dialog" aria-modal="true">
             <div className={styles.modalHead}><div><p>RECRUITMENT</p><h3>Add target</h3><span>Start with the facts you know. The record can improve later.</span></div>
-              <button type="button" className={styles.closeButton} onClick={closeRecruitmentCreate} disabled={createBusy}><X size={17}/></button></div>
+              <button type="button" data-ui-button="icon"
+              className={styles.closeButton} onClick={closeRecruitmentCreate} disabled={createBusy}><X size={17}/></button></div>
             {createError?<div className={styles.inlineError}><CircleAlert size={16}/><span>{createError}</span></div>:null}
             <div className={styles.formGrid}>
               <label className={styles.formWide}><span>Player name</span><input autoFocus value={createForm.full_name} onChange={(e)=>setCreateForm({...createForm,full_name:e.target.value})}/></label>
@@ -943,6 +954,7 @@ export default function AgencyPlayersWorkspace({
 
             <button
               type="button"
+              data-ui-button="tertiary"
               className={styles.createDetailsToggle}
               aria-expanded={showRecruitDetails}
               onClick={() => setShowRecruitDetails((current) => !current)}
@@ -958,8 +970,10 @@ export default function AgencyPlayersWorkspace({
                 <label className={styles.formWide}><span>Transfermarkt</span><input value={createForm.transfermarkt_url} onChange={(e)=>setCreateForm({...createForm,transfermarkt_url:e.target.value})}/></label>
               </div>
             ) : null}
-            <div className={styles.modalActions}><button type="button" className={styles.secondaryButton} onClick={closeRecruitmentCreate} disabled={createBusy}>Cancel</button>
-              <button type="button" className={styles.primaryButton} disabled={createBusy||!createForm.full_name.trim()} onClick={()=>void createTarget()}>
+            <div className={styles.modalActions}><button type="button" data-ui-button="secondary"
+              className={styles.secondaryButton} onClick={closeRecruitmentCreate} disabled={createBusy}>Cancel</button>
+              <button type="button" data-ui-button="primary"
+              className={styles.primaryButton} disabled={createBusy||!createForm.full_name.trim()} onClick={()=>void createTarget()}>
                 {createBusy?<LoaderCircle size={14} className={styles.spin}/>:<Plus size={14}/>} Add target
               </button></div>
           </section>

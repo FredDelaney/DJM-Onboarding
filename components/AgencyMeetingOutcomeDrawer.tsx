@@ -198,7 +198,8 @@ export default function AgencyMeetingOutcomeDrawer({
 
           <button
             type="button"
-            className={styles.close}
+            data-ui-button="icon"
+              className={styles.close}
             onClick={onClose}
             aria-label="Close meeting outcome"
           >
@@ -397,6 +398,7 @@ export default function AgencyMeetingOutcomeDrawer({
           <footer className={styles.footer}>
             <button
               type="button"
+              data-ui-button="secondary"
               className={
                 styles.secondary
               }
@@ -408,6 +410,7 @@ export default function AgencyMeetingOutcomeDrawer({
 
             <button
               type="submit"
+              data-ui-button="primary"
               className={styles.primary}
               disabled={
                 busy || !outcome

@@ -316,6 +316,7 @@ export default function AgencyCreateDrawer({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
               disabled={busy}
@@ -642,6 +643,7 @@ export default function AgencyCreateDrawer({
           <div className={styles.actions}>
             <button
               type="button"
+              data-ui-button="secondary"
               className={styles.secondary}
               onClick={onClose}
               disabled={busy}
@@ -651,6 +653,7 @@ export default function AgencyCreateDrawer({
 
             <button
               type="submit"
+              data-ui-button="primary"
               className={styles.primary}
               disabled={
                 busy ||
@@ -743,7 +746,8 @@ function DetailsToggle({
   return (
     <button
       type="button"
-      className={styles.detailsToggle}
+      data-ui-button="tertiary"
+              className={styles.detailsToggle}
       aria-expanded={open}
       onClick={onToggle}
     >

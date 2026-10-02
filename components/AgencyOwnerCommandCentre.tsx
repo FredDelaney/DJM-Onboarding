@@ -310,6 +310,7 @@ export default function AgencyOwnerCommandCentre({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
               aria-label={pageMode ? 'Back to Business' : 'Close Owner Command Centre'}

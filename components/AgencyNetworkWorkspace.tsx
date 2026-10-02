@@ -530,6 +530,7 @@ export default function AgencyNetworkWorkspace({
           {focus !== 'all' ? (
             <button
               type="button"
+              data-ui-button="tertiary"
               className={styles.clearFocus}
               onClick={() => setFocus('all')}
             >
@@ -664,7 +665,7 @@ export default function AgencyNetworkWorkspace({
               aria-label="Search Network"
             />
             {search ? (
-              <button type="button" onClick={() => setSearch('')}>
+              <button data-ui-button="tertiary" type="button" onClick={() => setSearch('')}>
                 Clear
               </button>
             ) : null}
@@ -673,6 +674,7 @@ export default function AgencyNetworkWorkspace({
           {!requestedClubId ? (
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.addEntityButton}
               onClick={() => onCreate(view === 'clubs' ? 'club' : 'contact')}
             >
@@ -896,7 +898,8 @@ export default function AgencyNetworkWorkspace({
                 >
                   <button
                     type="button"
-                    className={styles.secondaryAction}
+                    data-ui-button="secondary"
+              className={styles.secondaryAction}
                     onClick={() => openClub(club)}
                     aria-label={`Open ${clubName}`}
                     title="Open club"
@@ -908,7 +911,8 @@ export default function AgencyNetworkWorkspace({
                   {topPlay?.play_id ? (
                     <button
                       type="button"
-                      className={styles.primaryAction}
+                      data-ui-button="primary"
+              className={styles.primaryAction}
                       onClick={() =>
                         onOpenAction({
                           key: `relationship-play:${topPlay.play_id}`,
@@ -1107,7 +1111,8 @@ export default function AgencyNetworkWorkspace({
                 <div className={styles.actions}>
                   <button
                     type="button"
-                    className={styles.primaryAction}
+                    data-ui-button="primary"
+              className={styles.primaryAction}
                     onClick={() => openPerson(item)}
                   >
                     Open person
@@ -1117,7 +1122,8 @@ export default function AgencyNetworkWorkspace({
                   {employment?.organisation_name ? (
                     <button
                       type="button"
-                      className={styles.secondaryAction}
+                      data-ui-button="secondary"
+              className={styles.secondaryAction}
                       onClick={() => openClubFromPerson(clubName)}
                     >
                       Open club

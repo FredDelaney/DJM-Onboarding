@@ -960,7 +960,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
 
           <button
             type="button"
-            className={styles.close}
+            data-ui-button="icon"
+              className={styles.close}
             onClick={onClose}
             aria-label={pageMode ? 'Back to Connections' : 'Close identity resolution'}
           >
@@ -987,6 +988,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
           <div className={styles.contactMode}>
             <button
               type="button"
+              data-ui-button="tertiary"
               className={styles.back}
               onClick={() => {
                 setActiveThread(null);
@@ -1219,7 +1221,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
                   {!createProspectOpen ? (
                     <button
                       type="button"
-                      className={styles.createContactStart}
+                      data-ui-button="primary"
+              className={styles.createContactStart}
                       onClick={() => {
                         setError('');
                         setNewProspect((current) => ({
@@ -1310,7 +1313,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
                       <div className={styles.createContactActions}>
                         <button
                           type="button"
-                          className={styles.createContactCancel}
+                          data-ui-button="secondary"
+              className={styles.createContactCancel}
                           onClick={() => {
                             setCreateProspectOpen(false);
                             setNewProspect({
@@ -1325,7 +1329,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
                         </button>
                         <button
                           type="submit"
-                          className={styles.createContactSubmit}
+                          data-ui-button="primary"
+              className={styles.createContactSubmit}
                           disabled={Boolean(busy)}
                         >
                           {busy === 'create-prospect' ? (
@@ -1401,7 +1406,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
                   {!createContactOpen ? (
                     <button
                       type="button"
-                      className={styles.createContactStart}
+                      data-ui-button="primary"
+              className={styles.createContactStart}
                       onClick={() => {
                         setError('');
                         setNewContact((current) => ({
@@ -1522,7 +1528,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
                       <div className={styles.createContactActions}>
                         <button
                           type="button"
-                          className={styles.createContactCancel}
+                          data-ui-button="secondary"
+              className={styles.createContactCancel}
                           onClick={() => {
                             setCreateContactOpen(false);
                             setError('');
@@ -1533,7 +1540,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
                         </button>
                         <button
                           type="submit"
-                          className={styles.createContactConfirm}
+                          data-ui-button="primary"
+              className={styles.createContactConfirm}
                           disabled={
                             Boolean(busy) ||
                             newContact.full_name.trim().length < 2
@@ -1644,7 +1652,8 @@ export default function AgencyConnectedIdentityResolverDrawer({
 
                         <button
                           type="button"
-                          className={styles.confirmProvider}
+                          data-ui-button="primary"
+              className={styles.confirmProvider}
                           onClick={() =>
                             void bindProviderSuggestion(suggestion)
                           }
@@ -1762,7 +1771,7 @@ export default function AgencyConnectedIdentityResolverDrawer({
             person is created only when you choose Create and link.
             Nothing here sends an external message.
           </span>
-          <button type="button" onClick={onClose}>
+          <button data-ui-button="secondary" type="button" onClick={onClose}>
             Done
           </button>
         </footer>

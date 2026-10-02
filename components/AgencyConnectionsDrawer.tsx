@@ -464,7 +464,8 @@ export default function AgencyConnectionsDrawer({
 
           <button
             type="button"
-            className={
+            data-ui-button="icon"
+              className={
               styles.close
             }
             onClick={onClose}
@@ -705,7 +706,8 @@ export default function AgencyConnectionsDrawer({
                         <>
                           <button
                             type="button"
-                            className={
+                            data-ui-button="primary"
+              className={
                               styles.primary
                             }
                             onClick={() =>
@@ -733,7 +735,8 @@ export default function AgencyConnectionsDrawer({
                           {!emailAccessChanged ? (
                             <button
                               type="button"
-                              className={styles.secondary}
+                              data-ui-button="secondary"
+              className={styles.secondary}
                               onClick={() =>
                                 void connect(provider.key)
                               }
@@ -746,7 +749,8 @@ export default function AgencyConnectionsDrawer({
 
                           <button
                             type="button"
-                            className={
+                            data-ui-button="secondary"
+              className={
                               styles.secondary
                             }
                             onClick={() =>
@@ -769,7 +773,8 @@ export default function AgencyConnectionsDrawer({
                       ) : (
                         <button
                           type="button"
-                          className={
+                          data-ui-button="primary"
+              className={
                             styles.primary
                           }
                           onClick={() =>
@@ -854,7 +859,8 @@ export default function AgencyConnectionsDrawer({
             {messagingIdentity.unresolved > 0 ? (
               <button
                 type="button"
-                className={styles.primary}
+                data-ui-button="primary"
+              className={styles.primary}
                 onClick={() => {
                   if (!pageMode) onClose();
                   onResolveIdentities();

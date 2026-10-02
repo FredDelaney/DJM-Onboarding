@@ -631,6 +631,7 @@ export default function AgencyNegotiationCommandRoom({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
               disabled={Boolean(
@@ -830,7 +831,8 @@ export default function AgencyNegotiationCommandRoom({
               {nextStep ? (
                 <button
                   type="button"
-                  className={styles.primary}
+                  data-ui-button="primary"
+              className={styles.primary}
                   onClick={prepareNextStep}
                 >
                   <ArrowRight size={15} />
@@ -1154,7 +1156,8 @@ export default function AgencyNegotiationCommandRoom({
                 {canEdit ? (
                   <button
                     type="button"
-                    className={styles.secondary}
+                    data-ui-button="secondary"
+              className={styles.secondary}
                     onClick={() =>
                       void saveGuardrails()
                     }
@@ -1187,7 +1190,8 @@ export default function AgencyNegotiationCommandRoom({
                   'draft' ? (
                   <button
                     type="button"
-                    className={styles.primary}
+                    data-ui-button="primary"
+              className={styles.primary}
                     onClick={() =>
                       setConfirmApprove(
                         true,
@@ -1380,7 +1384,8 @@ export default function AgencyNegotiationCommandRoom({
             >
               <button
                 type="button"
-                className={styles.secondary}
+                data-ui-button="secondary"
+              className={styles.secondary}
                 onClick={() =>
                   setConfirmApprove(
                     false,
@@ -1395,7 +1400,8 @@ export default function AgencyNegotiationCommandRoom({
 
               <button
                 type="button"
-                className={styles.primary}
+                data-ui-button="primary"
+              className={styles.primary}
                 onClick={() =>
                   void approveGuardrails()
                 }

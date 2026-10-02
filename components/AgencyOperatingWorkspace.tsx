@@ -1156,7 +1156,8 @@ export default function AgencyOperatingWorkspace() {
           {error ? <ErrorBox text={error} /> : null}
           <button
             type="submit"
-            className={styles.primaryButton}
+            data-ui-button="primary"
+              className={styles.primaryButton}
             disabled={actionBusy === 'sign-in'}
           >
             {actionBusy === 'sign-in' ? (
@@ -1184,7 +1185,8 @@ export default function AgencyOperatingWorkspace() {
           <p>{error || 'Agency staff access is required.'}</p>
           <button
             type="button"
-            className={styles.secondaryButton}
+            data-ui-button="secondary"
+              className={styles.secondaryButton}
             onClick={() => void signOut()}
           >
             <LogOut size={15} />
@@ -1234,7 +1236,7 @@ export default function AgencyOperatingWorkspace() {
             <span>{human(workspace.role)}</span>
             {workspace.synthetic_demo ? <small>Demo workspace</small> : null}
           </div>
-          <button type="button" onClick={() => void signOut()}>
+          <button data-ui-button="tertiary" type="button" onClick={() => void signOut()}>
             <LogOut size={15} />
             Sign out
           </button>
@@ -1260,6 +1262,7 @@ export default function AgencyOperatingWorkspace() {
             <AiLauncher />
             <button
               type="button"
+              data-ui-button="tertiary"
               className={styles.refresh}
               onClick={() => setConnectionsOpen(true)}
               title="Connections"
@@ -1270,7 +1273,8 @@ export default function AgencyOperatingWorkspace() {
             {createAction ? (
               <button
                 type="button"
-                className={styles.createButton}
+                data-ui-button="secondary"
+              className={styles.createButton}
                 onClick={() => setCreateKind(createAction.kind)}
               >
                 <Plus size={15} />
@@ -1283,7 +1287,8 @@ export default function AgencyOperatingWorkspace() {
             ) ? (
               <button
                 type="button"
-                className={styles.refresh}
+                data-ui-button="tertiary"
+              className={styles.refresh}
                 onClick={() => setRosterImportOpen(true)}
               >
                 Import players
@@ -1291,6 +1296,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             <button
               type="button"
+              data-ui-button="tertiary"
               className={styles.refresh}
               onClick={() => void loadView()}
               disabled={busy}
@@ -1318,6 +1324,7 @@ export default function AgencyOperatingWorkspace() {
           <div className={styles.mobileContextAction}>
             <button
               type="button"
+              data-ui-button="secondary"
               className={styles.createButton}
               onClick={() => setCreateKind(createAction.kind)}
             >
@@ -1343,6 +1350,7 @@ export default function AgencyOperatingWorkspace() {
             </div>
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.firstValueHandoffAction}
               onClick={() => setShowFirstValueHandoff(false)}
             >
@@ -1354,7 +1362,8 @@ export default function AgencyOperatingWorkspace() {
         {error ? (
           <div role="alert">
             <ErrorBox text={error} />
-            <button type="button" className={styles.secondaryButton}
+            <button type="button" data-ui-button="secondary"
+              className={styles.secondaryButton}
               disabled={busy} onClick={() => void loadView()}>
               <RefreshCw size={15} />
               {busy ? 'Trying again...' : 'Try again'}
@@ -1779,7 +1788,8 @@ export default function AgencyOperatingWorkspace() {
             <div className={styles.modalActions}>
               <button
                 type="button"
-                className={styles.secondaryButton}
+                data-ui-button="secondary"
+              className={styles.secondaryButton}
                 onClick={() => setProposal(null)}
                 disabled={Boolean(actionBusy)}
               >
@@ -1787,7 +1797,8 @@ export default function AgencyOperatingWorkspace() {
               </button>
               <button
                 type="button"
-                className={styles.primaryButton}
+                data-ui-button="primary"
+              className={styles.primaryButton}
                 onClick={() => void executeProposal()}
                 disabled={Boolean(actionBusy)}
               >
@@ -3007,7 +3018,7 @@ function Relationships({
           />
 
           {relationshipSearch ? (
-            <button
+            <button data-ui-button="tertiary"
               type="button"
               onClick={() =>
                 setRelationshipSearch('')
@@ -4296,7 +4307,8 @@ function Business({
 
         <button
           type="button"
-          className={styles.primaryButton}
+          data-ui-button="primary"
+              className={styles.primaryButton}
           onClick={onOpenOwner}
           disabled={!data?.owner_business}
         >

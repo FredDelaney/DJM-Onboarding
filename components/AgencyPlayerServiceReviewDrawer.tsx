@@ -353,6 +353,7 @@ export default function AgencyPlayerServiceReviewDrawer({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
               disabled={captureBusy}
@@ -658,7 +659,8 @@ export default function AgencyPlayerServiceReviewDrawer({
               <div className={styles.actions}>
                 <button
                   type="button"
-                  className={styles.secondary}
+                  data-ui-button="secondary"
+              className={styles.secondary}
                   onClick={prepareServiceMove}
                 >
                   <ArrowRight size={15} />
@@ -667,7 +669,8 @@ export default function AgencyPlayerServiceReviewDrawer({
 
                 <button
                   type="button"
-                  className={styles.secondary}
+                  data-ui-button="secondary"
+              className={styles.secondary}
                   onClick={reviewCareerPlan}
                 >
                   <Target size={15} />
@@ -769,7 +772,8 @@ export default function AgencyPlayerServiceReviewDrawer({
 
               <button
                 type="button"
-                className={styles.primary}
+                data-ui-button="primary"
+              className={styles.primary}
                 onClick={() => void captureSnapshot()}
                 disabled={captureBusy}
               >

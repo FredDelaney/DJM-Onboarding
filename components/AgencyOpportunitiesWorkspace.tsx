@@ -569,7 +569,7 @@ export default function AgencyOpportunitiesWorkspace({
             aria-label="Search opportunities"
           />
           {search ? (
-            <button
+            <button data-ui-button="tertiary"
               type="button"
               onClick={() => setSearch('')}
             >
@@ -650,7 +650,8 @@ export default function AgencyOpportunitiesWorkspace({
 
                   <button
                     type="button"
-                    className={styles.action}
+                    data-ui-button="nav"
+              className={styles.action}
                     onClick={(event) => {
                       event.stopPropagation();
                       hasRoute
@@ -720,7 +721,8 @@ export default function AgencyOpportunitiesWorkspace({
 
                   <button
                     type="button"
-                    className={styles.action}
+                    data-ui-button="nav"
+              className={styles.action}
                     onClick={(event) => {
                       event.stopPropagation();
                       openRoute(item);

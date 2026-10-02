@@ -703,6 +703,7 @@ export default function AgencyActionDrawer({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
               disabled={busy}
@@ -941,6 +942,7 @@ export default function AgencyActionDrawer({
 
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.primary}
               onClick={() =>
                 void prepare()
@@ -1135,6 +1137,7 @@ export default function AgencyActionDrawer({
 
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.primary}
               onClick={() =>
                 void saveCareerStrategy()
@@ -1230,6 +1233,7 @@ export default function AgencyActionDrawer({
 
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.primary}
               onClick={() =>
                 void confirmCareerStrategy()
@@ -1287,6 +1291,7 @@ export default function AgencyActionDrawer({
 
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.primary}
               onClick={() =>
                 void approveCareerStrategy()
@@ -1414,7 +1419,8 @@ export default function AgencyActionDrawer({
             >
               <button
                 type="button"
-                className={styles.secondary}
+                data-ui-button="secondary"
+              className={styles.secondary}
                 onClick={onClose}
                 disabled={busy}
               >
@@ -1423,7 +1429,8 @@ export default function AgencyActionDrawer({
 
               <button
                 type="button"
-                className={styles.primary}
+                data-ui-button="primary"
+              className={styles.primary}
                 onClick={() =>
                   void executeProposal()
                 }
@@ -1521,7 +1528,8 @@ export default function AgencyActionDrawer({
               proposalId ? (
                 <button
                   type="button"
-                  className={
+                  data-ui-button="secondary"
+              className={
                     styles.secondary
                   }
                   onClick={() =>
@@ -1547,7 +1555,8 @@ export default function AgencyActionDrawer({
 
               <button
                 type="button"
-                className={styles.primary}
+                data-ui-button="primary"
+              className={styles.primary}
                 onClick={onClose}
                 disabled={busy}
               >
@@ -1598,6 +1607,7 @@ export default function AgencyActionDrawer({
 
             <button
               type="button"
+              data-ui-button="secondary"
               className={styles.retry}
               onClick={() =>
                 void prepare()

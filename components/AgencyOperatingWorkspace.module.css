@@ -4194,3 +4194,226 @@
     line-height: 0;
   }
 }
+
+/* ReDream authenticated control system v2 */
+.root {
+  --ui-control-h: 44px;
+  --ui-control-radius: 13px;
+  --ui-control-primary: #0b2d49;
+  --ui-control-secondary-bg: #f2f5f7;
+  --ui-control-secondary-text: #526472;
+  --ui-control-tertiary: #667987;
+  --ui-control-icon-bg: #f3f6f8;
+  --ui-control-icon: #60717f;
+}
+
+.root :where([data-ui-button="primary"]) {
+  border-color: transparent;
+  background: var(--ui-control-primary);
+  color: #fff;
+  box-shadow: none;
+}
+
+.root :where([data-ui-button="secondary"]) {
+  border-color: transparent;
+  background: var(--ui-control-secondary-bg);
+  color: var(--ui-control-secondary-text);
+  box-shadow: none;
+}
+
+.root :where([data-ui-button="tertiary"]) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ui-control-tertiary);
+  box-shadow: none;
+}
+
+.root :where([data-ui-button="icon"]) {
+  border-color: transparent;
+  background: var(--ui-control-icon-bg);
+  color: var(--ui-control-icon);
+  box-shadow: none;
+}
+
+.root :where([data-ui-button="nav"]) {
+  border-color: transparent;
+  background: transparent;
+  color: #7b8994;
+  box-shadow: none;
+}
+
+@media (max-width: 680px) {
+  .root [data-ui-button="primary"],
+  .root [data-ui-button="secondary"] {
+    min-height: var(--ui-control-h) !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    padding: 0 14px !important;
+    border-radius: var(--ui-control-radius) !important;
+    font-size: 11px !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+  }
+
+  .root [data-ui-button="tertiary"] {
+    min-height: 40px !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 0 9px !important;
+    border-radius: 10px !important;
+    font-size: 10.5px !important;
+    font-weight: 720 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .root [data-ui-button="icon"] {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+  }
+
+  .root [data-ui-button="nav"] {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+  }
+
+  .root [data-ui-button] > svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex: 0 0 15px !important;
+    display: block !important;
+    margin: 0 !important;
+    transform: none;
+  }
+
+  .root [data-ui-button="icon"] > svg,
+  .root [data-ui-button="nav"] > svg {
+    width: 17px !important;
+    height: 17px !important;
+    flex-basis: 17px !important;
+  }
+
+  .root [data-ui-button]:disabled {
+    opacity: .48;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+/* ReDream authenticated control palette v3 */
+.root [data-ui-button] {
+  appearance: none;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    opacity 120ms ease;
+}
+
+.root [data-ui-button="primary"]:not([data-ui-tone="inverse"]) {
+  border: 1px solid transparent !important;
+  background: #0b2d49 !important;
+  color: #fff !important;
+  box-shadow: 0 5px 14px rgba(11, 45, 73, .09) !important;
+}
+
+.root [data-ui-button="secondary"]:not([data-ui-tone="inverse"]) {
+  border: 1px solid transparent !important;
+  background: #f1f4f6 !important;
+  color: #526472 !important;
+  box-shadow: none !important;
+}
+
+.root [data-ui-button="tertiary"] {
+  border: 0 !important;
+  background: transparent !important;
+  color: #667987 !important;
+  box-shadow: none !important;
+}
+
+.root [data-ui-button="icon"] {
+  border: 0 !important;
+  background: #f2f5f7 !important;
+  color: #60717f !important;
+  box-shadow: none !important;
+}
+
+.root [data-ui-button="nav"] {
+  border: 0 !important;
+  background: transparent !important;
+  color: #7b8994 !important;
+  box-shadow: none !important;
+}
+
+.root [data-ui-tone="inverse"][data-ui-button="primary"] {
+  border: 1px solid rgba(255,255,255,.92) !important;
+  background: #fff !important;
+  color: #0b2d49 !important;
+  box-shadow: none !important;
+}
+
+.root [data-ui-tone="inverse"][data-ui-button="secondary"] {
+  border: 1px solid rgba(255,255,255,.13) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.root [data-ui-button]:focus-visible {
+  outline: 3px solid rgba(70, 116, 151, .24) !important;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .root [data-ui-button="primary"]:not([data-ui-tone="inverse"]):hover {
+    background: #123956 !important;
+  }
+
+  .root [data-ui-button="secondary"]:not([data-ui-tone="inverse"]):hover,
+  .root [data-ui-button="icon"]:hover {
+    background: #e9eef1 !important;
+  }
+
+  .root [data-ui-button="tertiary"]:hover,
+  .root [data-ui-button="nav"]:hover {
+    color: #17324d !important;
+    background: rgba(23, 50, 77, .045) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .root [data-ui-button]:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+}

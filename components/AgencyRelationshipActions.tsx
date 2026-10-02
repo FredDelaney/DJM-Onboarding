@@ -298,7 +298,7 @@ export default function AgencyRelationshipActions({
         >
           <div className={styles.formHead}>
             <strong>Log conversation</strong>
-            <button
+            <button data-ui-button="icon"
               type="button"
               onClick={close}
               aria-label="Close conversation form"
@@ -338,7 +338,8 @@ export default function AgencyRelationshipActions({
           </label>
 
           <button
-            className={styles.save}
+            data-ui-button="primary"
+              className={styles.save}
             type="submit"
             disabled={busy}
           >
@@ -356,7 +357,7 @@ export default function AgencyRelationshipActions({
         >
           <div className={styles.formHead}>
             <strong>Add follow-up</strong>
-            <button
+            <button data-ui-button="icon"
               type="button"
               onClick={close}
               aria-label="Close follow-up form"
@@ -388,7 +389,8 @@ export default function AgencyRelationshipActions({
           </label>
 
           <button
-            className={styles.save}
+            data-ui-button="primary"
+              className={styles.save}
             type="submit"
             disabled={busy}
           >
@@ -406,7 +408,7 @@ export default function AgencyRelationshipActions({
         >
           <div className={styles.formHead}>
             <strong>Add promise</strong>
-            <button
+            <button data-ui-button="icon"
               type="button"
               onClick={close}
               aria-label="Close promise form"
@@ -438,7 +440,8 @@ export default function AgencyRelationshipActions({
           </label>
 
           <button
-            className={styles.save}
+            data-ui-button="primary"
+              className={styles.save}
             type="submit"
             disabled={busy}
           >
@@ -454,7 +457,7 @@ export default function AgencyRelationshipActions({
         >
           <div className={styles.formHead}>
             <strong>Update your relationship</strong>
-            <button
+            <button data-ui-button="icon"
               type="button"
               onClick={close}
               aria-label="Close relationship form"
@@ -541,7 +544,8 @@ export default function AgencyRelationshipActions({
           </label>
 
           <button
-            className={styles.save}
+            data-ui-button="primary"
+              className={styles.save}
             type="submit"
             disabled={busy}
           >

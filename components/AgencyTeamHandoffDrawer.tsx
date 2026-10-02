@@ -388,7 +388,8 @@ export default function AgencyTeamHandoffDrawer({
 
           <button
             type="button"
-            className={styles.close}
+            data-ui-button="icon"
+              className={styles.close}
             onClick={onClose}
             aria-label="Close team handoff"
           >
@@ -452,6 +453,7 @@ export default function AgencyTeamHandoffDrawer({
 
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.primary}
               onClick={onClose}
             >
@@ -462,6 +464,7 @@ export default function AgencyTeamHandoffDrawer({
           <div className={styles.review}>
             <button
               type="button"
+              data-ui-button="tertiary"
               className={styles.back}
               onClick={() => setStep('select')}
             >
@@ -527,6 +530,7 @@ export default function AgencyTeamHandoffDrawer({
 
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.confirm}
               onClick={() => void apply()}
               disabled={applying}
@@ -658,7 +662,7 @@ export default function AgencyTeamHandoffDrawer({
                         </div>
 
                         {items.length ? (
-                          <button
+                          <button data-ui-button="tertiary"
                             type="button"
                             onClick={() => toggleGroup(group.key)}
                           >
@@ -723,7 +727,7 @@ export default function AgencyTeamHandoffDrawer({
               Only selected accountable work moves. Personal connected
               accounts never transfer.
             </span>
-            <button
+            <button data-ui-button="primary"
               type="button"
               disabled={!targetUserId || totalSelected === 0}
               onClick={() => setStep('review')}

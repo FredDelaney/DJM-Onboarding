@@ -1135,7 +1135,7 @@ export default function AgencyPlayerProfile({
         <strong>Player Profile could not load</strong>
         <p>Nothing has been changed. Try again, or return to the player workspace.</p>
         <div className={styles.errorActions}>
-          <button type="button" onClick={() => void load()} disabled={loading}>
+          <button data-ui-button="secondary" type="button" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={14} />
             {loading ? 'Trying again...' : 'Try again'}
           </button>
@@ -1169,7 +1169,8 @@ export default function AgencyPlayerProfile({
 
         <button
           type="button"
-          className={styles.quietButton}
+          data-ui-button="secondary"
+              className={styles.quietButton}
           onClick={() =>
             onOpenIntelligence(
               playerId,
@@ -1347,6 +1348,7 @@ export default function AgencyPlayerProfile({
           {published?.published ? (
             <button
               type="button"
+              data-ui-button="primary" data-ui-tone="inverse"
               className={styles.primaryAction}
               onClick={openShareComposer}
               disabled={!canEdit}
@@ -1357,6 +1359,7 @@ export default function AgencyPlayerProfile({
           ) : (
             <button
               type="button"
+              data-ui-button="primary" data-ui-tone="inverse"
               className={styles.primaryAction}
               onClick={() =>
                 void publishProfile({
@@ -1380,6 +1383,7 @@ export default function AgencyPlayerProfile({
           {verificationOnly && canEdit ? (
             <button
               type="button"
+              data-ui-button="secondary" data-ui-tone="inverse"
               className={styles.secondaryAction}
               onClick={() => openVerify('verification')}
             >
@@ -1390,7 +1394,8 @@ export default function AgencyPlayerProfile({
 
           <button
             type="button"
-            className={styles.secondaryAction}
+            data-ui-button="secondary" data-ui-tone="inverse"
+              className={styles.secondaryAction}
             onClick={() => setPreviewOpen(true)}
           >
             <Eye size={15} />
@@ -1399,7 +1404,8 @@ export default function AgencyPlayerProfile({
 
           <button
             type="button"
-            className={styles.secondaryAction}
+            data-ui-button="secondary" data-ui-tone="inverse"
+              className={styles.secondaryAction}
             onClick={downloadPdf}
             disabled={actionBusy === 'pdf'}
           >
@@ -1410,6 +1416,7 @@ export default function AgencyPlayerProfile({
           {canEdit ? (
             <button
               type="button"
+              data-ui-button="secondary" data-ui-tone="inverse"
               className={styles.secondaryAction}
               onClick={openEditor}
             >
@@ -1531,6 +1538,7 @@ export default function AgencyPlayerProfile({
             </div>
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.iconButton}
               onClick={() => setPreviewOpen(true)}
               aria-label="Preview Player Profile"
@@ -1775,6 +1783,7 @@ export default function AgencyPlayerProfile({
           {published?.published ? (
             <button
               type="button"
+              data-ui-button="secondary"
               className={styles.quietButton}
               onClick={openShareComposer}
             >
@@ -1815,7 +1824,8 @@ export default function AgencyPlayerProfile({
                 {share.active && !share.revoked_at ? (
                   <button
                     type="button"
-                    className={styles.iconButton}
+                    data-ui-button="icon"
+              className={styles.iconButton}
                     onClick={() => copyShare(share.token)}
                     aria-label="Copy profile link"
                   >
@@ -1826,7 +1836,8 @@ export default function AgencyPlayerProfile({
                 {share.active && !share.revoked_at && canEdit ? (
                   <button
                     type="button"
-                    className={styles.iconButton}
+                    data-ui-button="icon"
+              className={styles.iconButton}
                     onClick={() => revokeShare(String(share.id))}
                     aria-label="Revoke profile link"
                   >
@@ -1862,7 +1873,8 @@ export default function AgencyPlayerProfile({
         <div className={styles.bottomActions}>
           <button
             type="button"
-            className={styles.textButton}
+            data-ui-button="tertiary"
+              className={styles.textButton}
             onClick={unpublishProfile}
             disabled={Boolean(actionBusy)}
           >
@@ -1902,7 +1914,8 @@ export default function AgencyPlayerProfile({
 
               <button
                 type="button"
-                className={styles.iconButton}
+                data-ui-button="icon"
+              className={styles.iconButton}
                 onClick={() => setVerifyOpen(false)}
                 aria-label="Close"
                 disabled={Boolean(actionBusy)}
@@ -2050,7 +2063,8 @@ export default function AgencyPlayerProfile({
             <footer>
               <button
                 type="button"
-                className={styles.secondaryAction}
+                data-ui-button="secondary"
+              className={styles.secondaryAction}
                 onClick={() => setVerifyOpen(false)}
                 disabled={Boolean(actionBusy)}
               >
@@ -2059,7 +2073,8 @@ export default function AgencyPlayerProfile({
 
               <button
                 type="button"
-                className={styles.primaryAction}
+                data-ui-button="primary"
+              className={styles.primaryAction}
                 onClick={() => void verifyPlayerData()}
                 disabled={
                   Boolean(actionBusy) ||
@@ -2102,7 +2117,8 @@ export default function AgencyPlayerProfile({
               </div>
               <button
                 type="button"
-                className={styles.iconButton}
+                data-ui-button="icon"
+              className={styles.iconButton}
                 onClick={closeEditor}
                 aria-label="Close"
               >
@@ -2281,7 +2297,7 @@ export default function AgencyPlayerProfile({
                       >
                         <ExternalLink size={14} />
                       </a>
-                      <button
+                      <button data-ui-button="icon"
                         type="button"
                         onClick={() => removeVideo(String(video.id))}
                         aria-label="Remove video"
@@ -2307,7 +2323,7 @@ export default function AgencyPlayerProfile({
                     }
                     placeholder="YouTube, Vimeo or Wyscout URL"
                   />
-                  <button
+                  <button data-ui-button="primary"
                     type="button"
                     onClick={addVideo}
                     disabled={!videoUrl.trim() || actionBusy === 'video-add'}
@@ -2321,7 +2337,8 @@ export default function AgencyPlayerProfile({
             <footer>
               <button
                 type="button"
-                className={styles.secondaryAction}
+                data-ui-button="secondary"
+              className={styles.secondaryAction}
                 onClick={closeEditor}
               >
                 Cancel
@@ -2329,7 +2346,8 @@ export default function AgencyPlayerProfile({
 
               <button
                 type="button"
-                className={styles.secondaryAction}
+                data-ui-button="secondary"
+              className={styles.secondaryAction}
                 onClick={() => void saveSettings()}
                 disabled={actionBusy === 'save'}
               >
@@ -2338,7 +2356,8 @@ export default function AgencyPlayerProfile({
 
               <button
                 type="button"
-                className={styles.primaryAction}
+                data-ui-button="primary"
+              className={styles.primaryAction}
                 onClick={() => void publishProfile()}
                 disabled={!canPublish || Boolean(actionBusy)}
               >
@@ -2381,7 +2400,8 @@ export default function AgencyPlayerProfile({
               </div>
               <button
                 type="button"
-                className={styles.iconButton}
+                data-ui-button="icon"
+              className={styles.iconButton}
                 onClick={() => setShareOpen(false)}
                 disabled={actionBusy === 'share'}
                 aria-label="Close"
@@ -2404,7 +2424,7 @@ export default function AgencyPlayerProfile({
                       {shareResultMessage}
                     </div>
                     <div className={styles.shareSuccessActions}>
-                      <button
+                      <button data-ui-button="primary"
                         type="button"
                         onClick={() => void sharePreparedProfile()}
                       >
@@ -2413,7 +2433,8 @@ export default function AgencyPlayerProfile({
                       </button>
                       <button
                         type="button"
-                        className={styles.shareUtilityButton}
+                        data-ui-button="secondary"
+              className={styles.shareUtilityButton}
                         onClick={() => void copyPreparedShare()}
                       >
                         <Copy size={15} />
@@ -2421,7 +2442,8 @@ export default function AgencyPlayerProfile({
                       </button>
                       <button
                         type="button"
-                        className={styles.shareUtilityButton}
+                        data-ui-button="secondary"
+              className={styles.shareUtilityButton}
                         onClick={() => copyShare(shareResultUrl.split('/').pop() || '')}
                       >
                         <Link2 size={15} />
@@ -2431,7 +2453,8 @@ export default function AgencyPlayerProfile({
                     {shareDeal ? (
                       <button
                         type="button"
-                        className={styles.shareFollowUpButton}
+                        data-ui-button="primary"
+              className={styles.shareFollowUpButton}
                         onClick={openShareFollowUp}
                       >
                         <Clock3 size={15} />
@@ -2546,7 +2569,8 @@ export default function AgencyPlayerProfile({
             <footer>
               <button
                 type="button"
-                className={styles.secondaryAction}
+                data-ui-button="secondary"
+              className={styles.secondaryAction}
                 onClick={() => setShareOpen(false)}
                 disabled={actionBusy === 'share'}
               >
@@ -2556,7 +2580,8 @@ export default function AgencyPlayerProfile({
               {!shareResultUrl ? (
                 <button
                   type="button"
-                  className={styles.primaryAction}
+                  data-ui-button="primary"
+              className={styles.primaryAction}
                   onClick={createShare}
                   disabled={
                     !shareClub ||
@@ -2580,7 +2605,7 @@ export default function AgencyPlayerProfile({
               <strong>Exactly what a club sees</strong>
             </div>
 
-            <button
+            <button data-ui-button="secondary"
               type="button"
               onClick={() => setPreviewOpen(false)}
             >

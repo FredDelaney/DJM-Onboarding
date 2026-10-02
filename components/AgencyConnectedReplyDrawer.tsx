@@ -282,7 +282,8 @@ export default function AgencyConnectedReplyDrawer({
 
           <button
             type="button"
-            className={styles.close}
+            data-ui-button="icon"
+              className={styles.close}
             onClick={onClose}
             aria-label="Close reply draft"
           >
@@ -326,7 +327,8 @@ export default function AgencyConnectedReplyDrawer({
 
                 <button
                   type="button"
-                  className={styles.regenerate}
+                  data-ui-button="secondary"
+              className={styles.regenerate}
                   onClick={() => void generate()}
                   disabled={saving || generating}
                 >
@@ -382,7 +384,8 @@ export default function AgencyConnectedReplyDrawer({
         <footer className={styles.footer}>
           <button
             type="button"
-            className={styles.secondary}
+            data-ui-button="secondary"
+              className={styles.secondary}
             onClick={onClose}
             disabled={saving || generating}
           >
@@ -391,7 +394,8 @@ export default function AgencyConnectedReplyDrawer({
 
           <button
             type="button"
-            className={styles.primary}
+            data-ui-button="primary"
+              className={styles.primary}
             onClick={() => void copy()}
             disabled={
               loading ||

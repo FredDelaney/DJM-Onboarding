@@ -258,7 +258,7 @@ export default function AgencyRosterMigrationPanel({
             <p>PLAYER ROSTER MIGRATION</p>
             <h2>Bring {workspaceName}'s players in.</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close">
+          <button data-ui-button="icon" type="button" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
         </header>
@@ -287,7 +287,7 @@ export default function AgencyRosterMigrationPanel({
                   onChange={(event) => void readFile(event)}
                 />
               </label>
-              <button type="button" onClick={downloadTemplate}>
+              <button data-ui-button="secondary" type="button" onClick={downloadTemplate}>
                 <Download size={15} />
                 Download template
               </button>
@@ -412,7 +412,7 @@ export default function AgencyRosterMigrationPanel({
 
         <footer className={styles.footer}>
           {migration && !applied ? (
-            <button
+            <button data-ui-button="secondary"
               type="button"
               onClick={() => setMigration(null)}
               disabled={Boolean(busy)}
@@ -420,7 +420,7 @@ export default function AgencyRosterMigrationPanel({
               Edit CSV
             </button>
           ) : (
-            <button type="button" onClick={onClose} disabled={Boolean(busy)}>
+            <button data-ui-button="secondary" type="button" onClick={onClose} disabled={Boolean(busy)}>
               {applied ? 'Close' : 'Cancel'}
             </button>
           )}
@@ -428,6 +428,7 @@ export default function AgencyRosterMigrationPanel({
           {!migration ? (
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.primary}
               onClick={() => void runPreflight()}
               disabled={!csv.trim() || Boolean(busy)}
@@ -442,6 +443,7 @@ export default function AgencyRosterMigrationPanel({
           {migration && !applied ? (
             <button
               type="button"
+              data-ui-button="primary"
               className={styles.primary}
               onClick={() => void approveAndImport()}
               disabled={

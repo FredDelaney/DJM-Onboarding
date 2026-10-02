@@ -587,6 +587,7 @@ export default function AgencyClubAccountDrawer({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={
                 styles.close
               }
@@ -668,7 +669,7 @@ export default function AgencyClubAccountDrawer({
                 </small>
               </div>
 
-              <button
+              <button data-ui-button="primary"
                 type="button"
                 onClick={
                   prepareNextMove
@@ -981,7 +982,7 @@ export default function AgencyClubAccountDrawer({
                             </small>
                           </div>
 
-                          <button
+                          <button data-ui-button="primary"
                             type="button"
                             onClick={
                               onOpenMarket

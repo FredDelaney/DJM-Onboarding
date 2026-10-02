@@ -658,7 +658,8 @@ export default function AgencyContactIntelligenceDrawer({
 
           <button
             type="button"
-            className={
+            data-ui-button="icon"
+              className={
               styles.close
             }
             onClick={onClose}
@@ -691,7 +692,7 @@ export default function AgencyContactIntelligenceDrawer({
             }
           >
             {error}
-            <button type="button" onClick={() => void load()} disabled={busy}>
+            <button data-ui-button="secondary" type="button" onClick={() => void load()} disabled={busy}>
               Try again
             </button>
           </div>
@@ -1031,7 +1032,8 @@ export default function AgencyContactIntelligenceDrawer({
 
                   <button
                     type="submit"
-                    className={
+                    data-ui-button="primary"
+              className={
                       styles.primary
                     }
                     disabled={
@@ -1376,7 +1378,8 @@ export default function AgencyContactIntelligenceDrawer({
 
                   <button
                     type="submit"
-                    className={
+                    data-ui-button="primary"
+              className={
                       styles.primary
                     }
                     disabled={

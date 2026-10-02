@@ -566,7 +566,8 @@ export default function AgencyCalendarWorkspace({
                     action.prepareMeeting ? (
                       <button
                         type="button"
-                        className={styles.action}
+                        data-ui-button="nav"
+              className={styles.action}
                         onClick={() => void openMeetingBrief(item)}
                       >
                         {action.label}
@@ -726,7 +727,8 @@ function MeetingBriefDrawer({
 
           <button
             type="button"
-            className={styles.closeButton}
+            data-ui-button="icon"
+              className={styles.closeButton}
             onClick={onClose}
             aria-label="Close meeting preparation"
           >
@@ -764,7 +766,8 @@ function MeetingBriefDrawer({
                 {meetingStarted ? (
                   <button
                     type="button"
-                    className={styles.outcomeButton}
+                    data-ui-button="primary"
+              className={styles.outcomeButton}
                     onClick={() => onRecordOutcome(meeting)}
                   >
                     <CheckCircle2 size={14} />

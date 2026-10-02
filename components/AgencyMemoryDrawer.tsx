@@ -204,6 +204,7 @@ export default function AgencyMemoryDrawer({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
               disabled={undoBusy}
@@ -401,7 +402,7 @@ export default function AgencyMemoryDrawer({
                       </div>
 
                       {undoable ? (
-                        <button
+                        <button data-ui-button="tertiary"
                           type="button"
                           onClick={() => setUndoTarget(item)}
                         >
@@ -531,7 +532,8 @@ export default function AgencyMemoryDrawer({
             <div className={styles.confirmActions}>
               <button
                 type="button"
-                className={styles.secondary}
+                data-ui-button="secondary"
+              className={styles.secondary}
                 onClick={() => setUndoTarget(null)}
                 disabled={undoBusy}
               >
@@ -540,7 +542,8 @@ export default function AgencyMemoryDrawer({
 
               <button
                 type="button"
-                className={styles.primary}
+                data-ui-button="primary"
+              className={styles.primary}
                 onClick={() => void confirmUndo()}
                 disabled={undoBusy}
               >

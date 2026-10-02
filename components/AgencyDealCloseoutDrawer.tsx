@@ -433,6 +433,7 @@ export default function AgencyDealCloseoutDrawer({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
               disabled={Boolean(actionBusy)}
@@ -693,7 +694,8 @@ export default function AgencyDealCloseoutDrawer({
               <div className={styles.actions}>
                 <button
                   type="button"
-                  className={styles.secondary}
+                  data-ui-button="secondary"
+              className={styles.secondary}
                   onClick={() => void saveCloseout('draft')}
                   disabled={Boolean(actionBusy)}
                 >
@@ -702,7 +704,8 @@ export default function AgencyDealCloseoutDrawer({
 
                 <button
                   type="button"
-                  className={styles.primary}
+                  data-ui-button="primary"
+              className={styles.primary}
                   onClick={() => void saveCloseout('confirmed')}
                   disabled={
                     Boolean(actionBusy) ||
@@ -890,7 +893,8 @@ export default function AgencyDealCloseoutDrawer({
 
                   <button
                     type="button"
-                    className={styles.primary}
+                    data-ui-button="primary"
+              className={styles.primary}
                     onClick={() => void createReceivable()}
                     disabled={Boolean(actionBusy)}
                   >
@@ -944,7 +948,8 @@ export default function AgencyDealCloseoutDrawer({
             <div className={styles.confirmActions}>
               <button
                 type="button"
-                className={styles.secondary}
+                data-ui-button="secondary"
+              className={styles.secondary}
                 onClick={() => setPaymentTarget(null)}
                 disabled={Boolean(actionBusy)}
               >
@@ -953,7 +958,8 @@ export default function AgencyDealCloseoutDrawer({
 
               <button
                 type="button"
-                className={styles.primary}
+                data-ui-button="primary"
+              className={styles.primary}
                 onClick={() => void recordPayment()}
                 disabled={Boolean(actionBusy)}
               >

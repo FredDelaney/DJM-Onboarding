@@ -972,6 +972,7 @@ export default function AgencyPursuitRoom({
 
             <button
               type="button"
+              data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
               disabled={Boolean(
@@ -1138,7 +1139,8 @@ export default function AgencyPursuitRoom({
                 {!careerIsOpen ? (
                   <button
                     type="button"
-                    className={styles.heroAction}
+                    data-ui-button="primary" data-ui-tone="inverse"
+              className={styles.heroAction}
                     onClick={openCareerAction}
                   >
                     <ShieldCheck size={15} />
@@ -1248,7 +1250,8 @@ export default function AgencyPursuitRoom({
                   'dossier_missing' ? (
                     <button
                       type="button"
-                      className={styles.primary}
+                      data-ui-button="primary"
+              className={styles.primary}
                       onClick={() =>
                         setConfirmAction(
                           'create_dossier',
@@ -1266,7 +1269,8 @@ export default function AgencyPursuitRoom({
                   canPublishDossier ? (
                     <button
                       type="button"
-                      className={styles.primary}
+                      data-ui-button="primary"
+              className={styles.primary}
                       onClick={() =>
                         setConfirmAction(
                           'publish_dossier',
@@ -1326,7 +1330,8 @@ export default function AgencyPursuitRoom({
 
                     <button
                       type="button"
-                      className={styles.primary}
+                      data-ui-button="primary"
+              className={styles.primary}
                       onClick={() =>
                         setConfirmAction(
                           'create_pitch',
@@ -1383,7 +1388,7 @@ export default function AgencyPursuitRoom({
                           </strong>
                         </div>
 
-                        <button
+                        <button data-ui-button="tertiary"
                           type="button"
                           onClick={() =>
                             void copyPitch()
@@ -1399,7 +1404,8 @@ export default function AgencyPursuitRoom({
                       {!publishedPitch ? (
                         <button
                           type="button"
-                          className={styles.primary}
+                          data-ui-button="primary"
+              className={styles.primary}
                           onClick={() =>
                             setConfirmAction(
                               'publish_pitch',
@@ -1415,7 +1421,8 @@ export default function AgencyPursuitRoom({
                       !pitchDetail?.sent_at ? (
                         <button
                           type="button"
-                          className={styles.primary}
+                          data-ui-button="primary"
+              className={styles.primary}
                           onClick={() =>
                             setConfirmAction(
                               'confirm_sent',
@@ -1493,7 +1500,8 @@ export default function AgencyPursuitRoom({
                     followUpMissing ? (
                       <button
                         type="button"
-                        className={styles.primary}
+                        data-ui-button="primary"
+              className={styles.primary}
                         onClick={
                           openFollowUpAction
                         }
@@ -1512,7 +1520,8 @@ export default function AgencyPursuitRoom({
                     ) : (
                       <button
                         type="button"
-                        className={styles.secondary}
+                        data-ui-button="secondary"
+              className={styles.secondary}
                         onClick={() =>
                           onOpenDeal(
                             dealRoomId,
@@ -1586,7 +1595,8 @@ export default function AgencyPursuitRoom({
                   {!responseProposal ? (
                     <button
                       type="button"
-                      className={styles.secondary}
+                      data-ui-button="secondary"
+              className={styles.secondary}
                       onClick={() =>
                         void prepareResponse()
                       }
@@ -1610,7 +1620,8 @@ export default function AgencyPursuitRoom({
 
                       <button
                         type="button"
-                        className={styles.primary}
+                        data-ui-button="primary"
+              className={styles.primary}
                         onClick={() =>
                           setConfirmAction(
                             'execute_response',
@@ -1646,7 +1657,8 @@ export default function AgencyPursuitRoom({
               {dealRoomId ? (
                 <button
                   type="button"
-                  className={styles.primary}
+                  data-ui-button="primary"
+              className={styles.primary}
                   onClick={() =>
                     onOpenDeal(
                       dealRoomId,
@@ -1748,7 +1760,8 @@ export default function AgencyPursuitRoom({
 
                   <button
                     type="button"
-                    className={styles.secondary}
+                    data-ui-button="secondary"
+              className={styles.secondary}
                     onClick={() =>
                       setConfirmAction(
                         'create_deal',
@@ -1780,7 +1793,8 @@ export default function AgencyPursuitRoom({
             <div className={styles.confirmActions}>
               <button
                 type="button"
-                className={styles.secondary}
+                data-ui-button="secondary"
+              className={styles.secondary}
                 onClick={() =>
                   setConfirmAction(null)
                 }
@@ -1793,7 +1807,8 @@ export default function AgencyPursuitRoom({
 
               <button
                 type="button"
-                className={styles.primary}
+                data-ui-button="primary"
+              className={styles.primary}
                 onClick={() =>
                   void executeConfirmed()
                 }

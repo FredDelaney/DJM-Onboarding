@@ -1160,7 +1160,8 @@ export default function AgencyMessagingConnections({
                           'connected' ? (
                           <button
                             type="button"
-                            className={
+                            data-ui-button="secondary"
+              className={
                               styles.secondary
                             }
                             onClick={() =>
@@ -1225,7 +1226,8 @@ export default function AgencyMessagingConnections({
 
                         <button
                           type="button"
-                          className={
+                          data-ui-button="secondary"
+              className={
                             styles.secondary
                           }
                           onClick={() =>
@@ -1258,7 +1260,8 @@ export default function AgencyMessagingConnections({
                   ] ? (
                     <button
                       type="button"
-                      className={
+                      data-ui-button="primary"
+              className={
                         styles.primary
                       }
                       onClick={() =>
@@ -1290,7 +1293,8 @@ export default function AgencyMessagingConnections({
                   ) : (
                     <button
                       type="button"
-                      className={
+                      data-ui-button="secondary"
+              className={
                         styles.secondary
                       }
                       disabled
