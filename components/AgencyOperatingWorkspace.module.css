@@ -3456,7 +3456,6 @@
     height: calc(env(safe-area-inset-top) + 78px);
     display: block;
     pointer-events: none;
-    opacity: 0;
     background: linear-gradient(
       180deg,
       rgba(255,255,255,.99) 0%,
@@ -3466,10 +3465,11 @@
     );
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    transition: opacity 160ms ease;
+    animation: mobileTopVeilIn 140ms ease-out both;
   }
 
-  .mobileTopVeilVisible {
-    opacity: 1;
+  @keyframes mobileTopVeilIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }

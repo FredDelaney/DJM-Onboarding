@@ -3101,3 +3101,21 @@ details {
     height: 54px;
   }
 }
+
+/* Platform-wide mobile surface flattening v1
+   Decorative top gradients are removed on authenticated mobile surfaces.
+   Any top fade is now scroll-triggered by the active workspace shell. */
+@media (max-width: 760px) {
+  html,
+  body,
+  .djm-os-root,
+  .ux-player-root {
+    background-image: none !important;
+    background-color: #f5f6f8 !important;
+  }
+
+  .djm-os-root,
+  .ux-player-root {
+    background: #f5f6f8 !important;
+  }
+}

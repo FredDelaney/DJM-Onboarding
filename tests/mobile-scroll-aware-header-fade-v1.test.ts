@@ -7,13 +7,14 @@ const css = readFileSync('components/AgencyOperatingWorkspace.module.css', 'utf8
 
 test('mobile top fade is driven by actual page scroll position', () => {
   assert.match(shell, /mobileScrolled/);
-  assert.match(shell, /window\.scrollY > 10/);
+  assert.match(shell, /window\.scrollY > 64/);
   assert.match(shell, /addEventListener\('scroll'/);
-  assert.match(shell, /styles\.mobileTopVeilVisible/);
+  assert.match(shell, /mobileScrolled \? \(/);
 });
 
-test('mobile top veil is invisible at rest and appears only after scrolling', () => {
-  assert.match(css, /\.mobileTopVeil[\s\S]*opacity: 0/);
-  assert.match(css, /\.mobileTopVeilVisible[\s\S]*opacity: 1/);
+test('mobile top veil is not mounted at rest and fades in only after meaningful scrolling', () => {
+  assert.match(shell, /mobileScrolled \? \([\s\S]*styles\.mobileTopVeil/);
+  assert.doesNotMatch(css, /\.mobileTopVeilVisible/);
+  assert.match(css, /@keyframes mobileTopVeilIn/);
   assert.match(css, /backdrop-filter: blur\(12px\)/);
 });

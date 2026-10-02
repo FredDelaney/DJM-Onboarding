@@ -355,7 +355,7 @@ export default function AgencyOperatingWorkspace() {
 
   useEffect(() => {
     const updateScrollState = () => {
-      setMobileScrolled(window.scrollY > 10);
+      setMobileScrolled(window.scrollY > 64);
     };
     updateScrollState();
     window.addEventListener('scroll', updateScrollState, { passive: true });
@@ -1206,10 +1206,12 @@ export default function AgencyOperatingWorkspace() {
 
   return (
     <div className={styles.root} style={theme}>
-      <div
-        aria-hidden="true"
-        className={`${styles.mobileTopVeil} ${mobileScrolled ? styles.mobileTopVeilVisible : ''}`}
-      />
+      {mobileScrolled ? (
+        <div
+          aria-hidden="true"
+          className={styles.mobileTopVeil}
+        />
+      ) : null}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
