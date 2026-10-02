@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import {
   ArrowRight,
+  ChevronRight,
   CheckCircle2,
   CircleAlert,
   LoaderCircle,
@@ -686,7 +687,7 @@ export default function AgencyActionDrawer({
       }}
     >
       <aside
-        className={styles.drawer}
+        className={`${styles.drawer} ${reviewOnly ? styles.reviewDrawer : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={request.title}
@@ -712,7 +713,11 @@ export default function AgencyActionDrawer({
           </div>
 
           <p className={styles.eyebrow}>
-            {request.eyebrow}
+            {reviewOnly
+              ? request.eyebrow.toLowerCase().includes('club need')
+                ? 'Live club need'
+                : 'Decision required'
+              : request.eyebrow}
           </p>
 
           <h2>{request.title}</h2>
@@ -753,33 +758,35 @@ export default function AgencyActionDrawer({
           })}
         </div>
 
-        <section className={styles.why}>
-          <span>WHY NOW</span>
+        {reviewOnly && request.facts?.length ? (
+          <section className={`${styles.evidence} ${styles.reviewMeta}`}>
+            {request.facts
+              .filter((fact) => fact.label.trim().toLowerCase() !== 'type')
+              .slice(0, 3)
+              .map((fact) => (
+                <div key={`${fact.label}:${fact.value}`} className={styles.evidenceFact}>
+                  <span>{fact.label}</span>
+                  <strong>{fact.value}</strong>
+                  {fact.detail ? <small>{fact.detail}</small> : null}
+                </div>
+              ))}
+          </section>
+        ) : null}
+
+        <section className={`${styles.why} ${reviewOnly ? styles.reviewWhy : ''}`}>
+          <span>{reviewOnly ? 'WHY THIS MATTERS' : 'WHY NOW'}</span>
           <p>{request.instruction}</p>
         </section>
 
-        {request.facts?.length ? (
-          <section
-            className={styles.evidence}
-          >
+        {!reviewOnly && request.facts?.length ? (
+          <section className={styles.evidence}>
             {request.facts
               .slice(0, 4)
               .map((fact) => (
-                <div
-                  key={`${fact.label}:${fact.value}`}
-                  className={
-                    styles.evidenceFact
-                  }
-                >
+                <div key={`${fact.label}:${fact.value}`} className={styles.evidenceFact}>
                   <span>{fact.label}</span>
-                  <strong>
-                    {fact.value}
-                  </strong>
-                  {fact.detail ? (
-                    <small>
-                      {fact.detail}
-                    </small>
-                  ) : null}
+                  <strong>{fact.value}</strong>
+                  {fact.detail ? <small>{fact.detail}</small> : null}
                 </div>
               ))}
           </section>
@@ -1443,17 +1450,17 @@ export default function AgencyActionDrawer({
 
         {reviewOnly &&
         mode === 'review' ? (
-          <section
-            className={styles.reviewOnly}
-          >
-            <ShieldCheck size={18} />
+          <section className={styles.reviewOnly}>
+            <span className={styles.reviewDecisionIcon}>
+              <ShieldCheck size={16} />
+            </span>
 
             <div>
               <p className={styles.eyebrow}>
-                NEEDS YOU
+                DECISION REQUIRED
               </p>
               <h3>
-                This needs your judgement.
+                Your judgement is required.
               </h3>
               <p>
                 {result?.reason ||
@@ -1611,10 +1618,13 @@ export default function AgencyActionDrawer({
             onClick={onClose}
           >
             <span>
-              {request.fallbackLabel ||
-                'Open working area'}
+              {reviewOnly
+                ? request.fallbackLabel === 'Open Opportunities'
+                  ? 'Review opportunity'
+                  : request.fallbackLabel || 'Open working area'
+                : request.fallbackLabel || 'Open working area'}
             </span>
-            <ArrowRight size={14} />
+            {reviewOnly ? <ChevronRight size={17} /> : <ArrowRight size={14} />}
           </Link>
         ) : null}
       </aside>
