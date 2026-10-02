@@ -506,9 +506,9 @@
 .ux-match-title h3 { margin: 0; color: var(--ux-ink); font-size: 13px; }
 .ux-match-title span { color: #80919d; font-size: 10px; }
 .ux-match-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid #e2e9ed; border-radius: 13px; }
-.ux-fit-badge { width: 48px; height: 48px; display: grid; place-content: center; border-radius: 13px; background: #f8f3df; text-align: center; }
-.ux-fit-badge strong { color: #735d17; font-size: 16px; }
-.ux-fit-badge span { color: #937d35; font-size: 7px; text-transform: uppercase; }
+.ux-fit-badge { width: 48px; height: 48px; display: grid; place-content: center; border-radius: 13px; background: #f1f5f7; text-align: center; }
+.ux-fit-badge strong { color: #294a64; font-size: 16px; }
+.ux-fit-badge span { color: #64798a; font-size: 7px; text-transform: uppercase; }
 
 /* Comparison room */
 .ux-compare-page { max-width: 1450px; margin: 0 auto; padding: 24px clamp(16px,3vw,36px) 80px; }

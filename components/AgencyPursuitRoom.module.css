@@ -885,7 +885,7 @@
   .pagePanel .routeArrow {
     width: 18px;
     height: 18px;
-    color: #969638;
+    color: #5f7385;
     stroke-width: 2.1;
   }
 
@@ -983,7 +983,7 @@
 
   .pagePanel .hero p {
     margin: 0 0 7px;
-    color: #aeb45b;
+    color: #8ea0af;
     font-size: 7px;
     font-weight: 860;
     letter-spacing: .13em;

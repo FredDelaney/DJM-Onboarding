@@ -1447,7 +1447,7 @@
   }
 
   .reviewDrawer .header > .eyebrow {
-    color: #7f8525;
+    color: #52697d;
     font-size: 8px;
     font-weight: 870;
     letter-spacing: .145em;
@@ -1528,11 +1528,11 @@
     left: 0;
     width: 3px;
     border-radius: 0 3px 3px 0;
-    background: #a9a94f;
+    background: #6f8495;
   }
 
   .reviewDrawer .reviewWhy > span {
-    color: #8a934e;
+    color: #607589;
     font-size: 7px;
     font-weight: 870;
     letter-spacing: .14em;
@@ -1571,7 +1571,7 @@
   }
 
   .reviewDrawer .reviewOnly .eyebrow {
-    color: #8b8f37;
+    color: #52697d;
     font-size: 7px;
     letter-spacing: .14em;
   }
