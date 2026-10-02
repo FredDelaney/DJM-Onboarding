@@ -14,6 +14,10 @@ const agencyOs = readFileSync(
   'supabase/functions/agency-os/index.ts',
   'utf8',
 );
+const verificationMigration = readFileSync(
+  'supabase/migrations/20261002104000_player_profile_verification_writer_v1.sql',
+  'utf8',
+);
 
 test('verification stays inside the current Player Profile experience', () => {
   assert.match(profile, /REVIEW PLAYER DATA/);
@@ -36,16 +40,14 @@ test('inline verification can correct the publish-critical player data', () => {
   assert.match(profile, /Contract expiry/);
 });
 
-test('agency-os verifies the player through the tenant-aware server boundary', () => {
+test('agency-os verifies the player through a narrow tenant-aware writer', () => {
   assert.match(agencyOs, /action==="player_profile_verify"/);
   assert.match(agencyOs, /if\(!operator\(\)\)return deny/);
-  assert.match(agencyOs, /\.eq\("tenant_id",tenantId\)/);
-  assert.match(agencyOs, /verification_status:"verified"/);
-  assert.match(agencyOs, /verified_at:verifiedAt/);
-  assert.match(
-    agencyOs,
-    /player_profile\.player_data_verified/,
-  );
+  assert.match(agencyOs, /platform_server_confirm_player_profile_verification/);
+  assert.match(verificationMigration, /djm\.internal_profile_verification/);
+  assert.match(verificationMigration, /m\.role in \('owner','admin','agent','operations'\)/);
+  assert.match(verificationMigration, /player_profile\.player_data_verified/);
+  assert.match(verificationMigration, /grant execute[\s\S]*to service_role/);
 });
 
 test('inline verification has a deliberate mobile layout', () => {
@@ -56,4 +58,7 @@ test('inline verification has a deliberate mobile layout', () => {
     css,
     /@media\(max-width:720px\)[\s\S]*\.verifyModal \.twoFields[\s\S]*grid-template-columns:1fr/,
   );
+  assert.match(profile, /styles\.verifyBackdrop/);
+  assert.match(css, /\.verifyBackdrop[\s\S]*env\(safe-area-inset-top\)/);
+  assert.match(css, /\.verifyBackdrop[\s\S]*place-items:end center/);
 });

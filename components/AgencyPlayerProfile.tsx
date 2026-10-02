@@ -1873,7 +1873,7 @@ export default function AgencyPlayerProfile({
 
       {verifyOpen ? (
         <div
-          className={styles.modalBackdrop}
+          className={`${styles.modalBackdrop} ${styles.verifyBackdrop}`}
           onClick={(event) => {
             if (event.target === event.currentTarget && !actionBusy) {
               setVerifyOpen(false);

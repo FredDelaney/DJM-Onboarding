@@ -488,16 +488,8 @@ export default {fetch:async(req:Request)=>{
       };
       const saveResult=await ctx.supabaseAdmin.from("players").update(playerPatch).eq("id",pid).eq("tenant_id",tenantId).select("id").maybeSingle();
       if(saveResult.error)throw saveResult.error;
-      const verifiedAt=new Date().toISOString();
-      const {data,error}=await ctx.supabaseAdmin.from("players").update({
-        verification_status:"verified",
-        verified_at:verifiedAt,
-        review_required_at:null,
-        review_reason:null
-      }).eq("id",pid).eq("tenant_id",tenantId).select("id,tenant_id,user_id,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,profile_photo_path,verification_status,verified_at,current_season_label,agency_priority,next_action,next_action_due").single();
-      if(error)throw error;
-      await profileAudit("player_profile.player_data_verified",pid,before,data,{verification_method:"operator_confirmation"});
-      return json({ok:true,player:data});
+      const verification=obj(await rpc("platform_server_confirm_player_profile_verification",{p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId,p_verification_method:"operator_confirmation"}));
+      return json({ok:true,player:verification.player||await profilePlayer(pid)});
     }
 
     if(action==="player_profile_video_add"){
@@ -528,12 +520,10 @@ export default {fetch:async(req:Request)=>{
       const bundle=await profileBundle(pid);if(!bundle)return json({error:"Player not found in this agency"},404);
       const player=bundle.player,settings=bundle.settings||{},branding=bundle.branding||{};
       if((player.verification_status!=="verified"||!player.verified_at)&&body?.confirm_current_data===true){
-        const verifiedAt=new Date().toISOString();
-        const {error:verifyError}=await ctx.supabaseAdmin.from("players").update({verification_status:"verified",verified_at:verifiedAt,review_required_at:null,review_reason:null}).eq("id",pid).eq("tenant_id",tenantId);
-        if(verifyError)throw verifyError;
-        player.verification_status="verified";
-        player.verified_at=verifiedAt;
-        await profileAudit("player_profile.player_data_verified",pid,{},player,{verification_method:"publish_confirmation"});
+        const verification=obj(await rpc("platform_server_confirm_player_profile_verification",{p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId,p_verification_method:"publish_confirmation"}));
+        const verifiedPlayer=obj(verification.player);
+        player.verification_status=id(verifiedPlayer.verification_status)||"verified";
+        player.verified_at=verifiedPlayer.verified_at||verification.verified_at||new Date().toISOString();
       }
       if(player.verification_status!=="verified"||!player.verified_at)return json({error:"Verify current player data before publishing"},409);
       if(!player.primary_position)return json({error:"Record the player's primary position before publishing"},409);

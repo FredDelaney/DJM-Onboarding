@@ -948,6 +948,17 @@
     max-height:calc(100dvh - 16px);
     border-radius:14px;
   }
+  .verifyBackdrop{
+    place-items:end center;
+    padding:
+      max(56px,calc(env(safe-area-inset-top) + 18px))
+      8px
+      max(10px,env(safe-area-inset-bottom));
+  }
+  .verifyBackdrop .verifyModal{
+    max-height:calc(100dvh - max(56px,calc(env(safe-area-inset-top) + 18px)) - max(10px,env(safe-area-inset-bottom)));
+    border-radius:18px 18px 14px 14px;
+  }
   .modal>header,.form,.modal>footer{
     padding-left:16px;
     padding-right:16px;
