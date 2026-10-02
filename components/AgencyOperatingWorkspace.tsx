@@ -1,10 +1,9 @@
 'use client';
 
 import AiLauncher from '@/components/AiLauncher';
-import AgencyCreateDrawer, {
-  type AgencyCreateKind,
-} from '@/components/AgencyCreateDrawer';
+import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
@@ -46,41 +45,13 @@ import {
   relativeDate,
 } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
-import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel';
-import AgencyActionDrawer, {
-  type AgencyActionRequest,
-} from '@/components/AgencyActionDrawer';
-import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
-import AgencyEntityIntelligenceDrawer, {
-  type AgencyIntelligenceRequest,
-} from '@/components/AgencyEntityIntelligenceDrawer';
-import AgencyPursuitRoom, {
-  type AgencyPursuitRequest,
-} from '@/components/AgencyPursuitRoom';
-import AgencyOwnerCommandCentre from '@/components/AgencyOwnerCommandCentre';
-import AgencyMemoryDrawer from '@/components/AgencyMemoryDrawer';
-import AgencyDealCloseoutDrawer, {
-  type AgencyDealCloseoutRequest,
-} from '@/components/AgencyDealCloseoutDrawer';
-import AgencyClubAccountDrawer, {
-  type AgencyClubAccountRequest,
-} from '@/components/AgencyClubAccountDrawer';
-import AgencyNegotiationCommandRoom, {
-  type AgencyNegotiationRequest,
-} from '@/components/AgencyNegotiationCommandRoom';
-import AgencyPlayerServiceReviewDrawer, {
-  type AgencyPlayerServiceReviewRequest,
-} from '@/components/AgencyPlayerServiceReviewDrawer';
-import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
-import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
-import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
-import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
-import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
-import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
-import AgencyConnectedIdentityResolverDrawer from '@/components/AgencyConnectedIdentityResolverDrawer';
-import AgencyConnectedReplyDrawer from '@/components/AgencyConnectedReplyDrawer';
-import AgencyMeetingOutcomeDrawer from '@/components/AgencyMeetingOutcomeDrawer';
-import AgencyTeamHandoffDrawer from '@/components/AgencyTeamHandoffDrawer';
+import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
+import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
+import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
+import type { AgencyDealCloseoutRequest } from '@/components/AgencyDealCloseoutDrawer';
+import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
+import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
+import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
@@ -89,6 +60,29 @@ import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 import { homeReadState, settleHomeReads, homeConversationHref } from '@/lib/agency-home-state';
 
 import styles from './AgencyOperatingWorkspace.module.css';
+
+const AgencyCreateDrawer = dynamic(() => import('@/components/AgencyCreateDrawer'));
+const AgencyRosterMigrationPanel = dynamic(() => import('@/components/AgencyRosterMigrationPanel'));
+const AgencyActionDrawer = dynamic(() => import('@/components/AgencyActionDrawer'));
+const AgencyContactIntelligenceDrawer = dynamic(() => import('@/components/AgencyContactIntelligenceDrawer'));
+const AgencyEntityIntelligenceDrawer = dynamic(() => import('@/components/AgencyEntityIntelligenceDrawer'));
+const AgencyPursuitRoom = dynamic(() => import('@/components/AgencyPursuitRoom'));
+const AgencyOwnerCommandCentre = dynamic(() => import('@/components/AgencyOwnerCommandCentre'));
+const AgencyMemoryDrawer = dynamic(() => import('@/components/AgencyMemoryDrawer'));
+const AgencyDealCloseoutDrawer = dynamic(() => import('@/components/AgencyDealCloseoutDrawer'));
+const AgencyClubAccountDrawer = dynamic(() => import('@/components/AgencyClubAccountDrawer'));
+const AgencyNegotiationCommandRoom = dynamic(() => import('@/components/AgencyNegotiationCommandRoom'));
+const AgencyPlayerServiceReviewDrawer = dynamic(() => import('@/components/AgencyPlayerServiceReviewDrawer'));
+const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'));
+const AgencyPlayerProfile = dynamic(() => import('@/components/AgencyPlayerProfile'));
+const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'));
+const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'));
+const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'));
+const AgencyConnectionsDrawer = dynamic(() => import('@/components/AgencyConnectionsDrawer'));
+const AgencyConnectedIdentityResolverDrawer = dynamic(() => import('@/components/AgencyConnectedIdentityResolverDrawer'));
+const AgencyConnectedReplyDrawer = dynamic(() => import('@/components/AgencyConnectedReplyDrawer'));
+const AgencyMeetingOutcomeDrawer = dynamic(() => import('@/components/AgencyMeetingOutcomeDrawer'));
+const AgencyTeamHandoffDrawer = dynamic(() => import('@/components/AgencyTeamHandoffDrawer'));
 
 type View = 'home' | 'players' | 'opportunities' | 'network' | 'calendar' | 'business';
 
