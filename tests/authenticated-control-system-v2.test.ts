@@ -88,3 +88,9 @@ test('contextual create controls stay secondary while final submissions stay pri
   assert.match(players, /data-ui-button="secondary"[\s\S]{0,120}openRecruitmentCreate/);
   assert.match(players, /data-ui-button="primary"[\s\S]{0,500}Add target/);
 });
+
+
+test('Network contextual Add contact/club stays secondary', () => {
+  const network = readFileSync('components/AgencyNetworkWorkspace.tsx','utf8');
+  assert.match(network, /data-ui-button="secondary"[\s\S]*className=\{styles\.addEntityButton\}/);
+});

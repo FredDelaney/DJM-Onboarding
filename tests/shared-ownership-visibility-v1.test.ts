@@ -74,7 +74,7 @@ test(
   },
 );
 test(
-  'one shared ownership chip is used in Opportunities and Network',
+  'ownership remains visible in Opportunities and Network',
   () => {
     assert.match(
       operating,
@@ -86,11 +86,15 @@ test(
     );
     assert.match(
       network,
-      /AgencyOwnershipChip/,
+      /styles\.relationshipSummary/,
     );
     assert.match(
       network,
-      /label="Relationship owner"/,
+      /RELATIONSHIP OWNER/,
+    );
+    assert.match(
+      network,
+      /relationship\?\.owner_name \|\| 'Unassigned'/,
     );
   },
 );

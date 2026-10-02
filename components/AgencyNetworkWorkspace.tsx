@@ -18,7 +18,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
-import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
@@ -674,7 +673,7 @@ export default function AgencyNetworkWorkspace({
           {!requestedClubId ? (
             <button
               type="button"
-              data-ui-button="primary"
+              data-ui-button="secondary"
               className={styles.addEntityButton}
               onClick={() => onCreate(view === 'clubs' ? 'club' : 'contact')}
             >
@@ -1054,18 +1053,13 @@ export default function AgencyNetworkWorkspace({
                   </div>
                 </div>
 
-                <div className={styles.primaryFact}>
-                  <span>OUR ROUTE</span>
-                  <AgencyOwnershipChip
-                    label="Relationship owner"
-                    name={relationship?.owner_name || null}
-                    emptyText="Unassigned"
-                    attention={!relationship?.owner_name}
-                  />
-                  <small>
-                    {human(
-                      relationship?.route_state || 'route not recorded',
-                    )}
+                <div className={styles.relationshipSummary}>
+                  <div>
+                    <span>RELATIONSHIP OWNER</span>
+                    <strong>{relationship?.owner_name || 'Unassigned'}</strong>
+                  </div>
+                  <small className={styles.relationshipState}>
+                    {human(relationship?.route_state || 'route not recorded')}
                   </small>
                 </div>
 
@@ -1122,8 +1116,8 @@ export default function AgencyNetworkWorkspace({
                   {employment?.organisation_name ? (
                     <button
                       type="button"
-                      data-ui-button="secondary"
-              className={styles.secondaryAction}
+                      data-ui-button="tertiary"
+                      className={styles.secondaryAction}
                       onClick={() => openClubFromPerson(clubName)}
                     >
                       Open club

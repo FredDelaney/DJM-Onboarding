@@ -836,3 +836,67 @@
     stroke-width: 2.05;
   }
 }
+
+/* Opportunity card refinement v3 */
+.rowEyebrow {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .row {
+    min-height: 104px;
+    padding: 14px 14px 13px 15px;
+    border-radius: 20px;
+    border-color: #e4e9ed;
+    background: #fff;
+    box-shadow: 0 7px 22px rgba(18, 34, 49, .03);
+  }
+
+  .copy {
+    gap: 4px;
+  }
+
+  .rowEyebrow {
+    display: block !important;
+    width: fit-content;
+    margin-bottom: 1px;
+    color: #718392 !important;
+    font-size: 6.5px !important;
+    font-weight: 840 !important;
+    line-height: 1 !important;
+    letter-spacing: .11em !important;
+    text-transform: uppercase;
+    -webkit-line-clamp: unset !important;
+  }
+
+  .copy strong {
+    color: #202a33;
+    font-size: 14.5px;
+    font-weight: 780;
+    line-height: 1.27;
+    letter-spacing: -.018em;
+  }
+
+  .copy > span:not(.rowEyebrow) {
+    color: #6f7a84;
+    font-size: 10.5px;
+    line-height: 1.42;
+  }
+
+  .copy small {
+    margin-top: 1px;
+    color: #99a2aa;
+    font-size: 8.5px;
+    font-weight: 650;
+  }
+
+  .action,
+  .actionAttention {
+    align-self: center;
+    color: #87949e;
+  }
+
+  .actionAttention {
+    color: #a66a43;
+  }
+}

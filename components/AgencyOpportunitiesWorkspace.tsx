@@ -614,6 +614,7 @@ export default function AgencyOpportunitiesWorkspace({
                   </div>
 
                   <div className={styles.copy}>
+                    <span className={styles.rowEyebrow}>Club need</span>
                     <strong>
                       {item.club?.name || 'Club'} ·{' '}
                       {item.need?.title || 'Player need'}
@@ -698,6 +699,7 @@ export default function AgencyOpportunitiesWorkspace({
                   </div>
 
                   <div className={styles.copy}>
+                    <span className={styles.rowEyebrow}>Player route</span>
                     <strong>
                       {item.player?.name || 'Player'} →{' '}
                       {item.club?.name || 'Club'}
@@ -781,6 +783,7 @@ export default function AgencyOpportunitiesWorkspace({
                   </div>
 
                   <div className={styles.copy}>
+                    <span className={styles.rowEyebrow}>Live deal</span>
                     <strong>
                       {deal.title || 'Live deal'}
                     </strong>
@@ -802,6 +805,7 @@ export default function AgencyOpportunitiesWorkspace({
 
                   <button
                     type="button"
+                    data-ui-button="nav"
                     className={
                       controlInstruction
                         ? styles.actionAttention
