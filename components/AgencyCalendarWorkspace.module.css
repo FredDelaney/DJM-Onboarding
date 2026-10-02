@@ -653,7 +653,7 @@
     min-width: 44px;
     min-height: 44px;
     padding: 0;
-    border-radius: 50%;
+    border-radius: 0;
     font-size: 0;
   }
 
@@ -753,7 +753,7 @@
   .copy strong{font-size:14px;line-height:1.3}
   .copy>small{font-size:10px;line-height:1.4;-webkit-line-clamp:1}
   .meta span,.meta small{font-size:8px}
-  .action{width:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%}
+  .action{width:44px;min-width:44px;min-height:44px;padding:0;border-radius:0}
   .empty{min-height:220px;border-style:dashed;border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(245,233,0,.07),transparent 160px),#fbfcfd}
   .empty strong{font-size:15px}
   .empty span{max-width:270px;font-size:10px;line-height:1.45}
@@ -791,5 +791,50 @@
   .joinButton,
   .outcomeButton {
     min-height: 44px;
+  }
+}
+
+/* Product navigation affordance system v1 */
+@media (max-width: 680px) {
+  .row,
+  .rowAttention {
+    grid-template-columns: 52px minmax(0, 1fr) 44px;
+  }
+
+  .icon {
+    display: none;
+  }
+
+  .action {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    gap: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #7c8994;
+    box-shadow: none;
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .action:hover,
+  .action:active {
+    border: 0;
+    background: transparent;
+  }
+
+  .action svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+    margin: 0;
+    transform: none;
+    stroke-width: 2.05;
   }
 }

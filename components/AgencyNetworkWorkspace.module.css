@@ -1442,3 +1442,24 @@
     font-size: 11px;
   }
 }
+
+/* Product navigation affordance system v1 */
+@media (max-width: 680px) {
+  .personRow > svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    margin: 0;
+    color: #8d99a3;
+    transform: none;
+    stroke-width: 2.05;
+  }
+
+  .primaryAction svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    margin: 0;
+    transform: none;
+  }
+}

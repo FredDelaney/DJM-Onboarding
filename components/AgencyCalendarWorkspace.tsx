@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  ArrowRight,
+  ChevronRight,
   BriefcaseBusiness,
   CakeSlice,
   CalendarDays,
@@ -570,7 +570,7 @@ export default function AgencyCalendarWorkspace({
                         onClick={() => void openMeetingBrief(item)}
                       >
                         {action.label}
-                        <ArrowRight size={13} />
+                        <ChevronRight size={17} />
                       </button>
                     ) : 'external' in action && action.external ? (
                       <a
@@ -580,7 +580,7 @@ export default function AgencyCalendarWorkspace({
                         rel="noreferrer"
                       >
                         {action.label}
-                        <ArrowRight size={13} />
+                        <ChevronRight size={17} />
                       </a>
                     ) : (
                       <Link
@@ -592,7 +592,7 @@ export default function AgencyCalendarWorkspace({
                         }
                       >
                         {action.label}
-                        <ArrowRight size={13} />
+                        <ChevronRight size={17} />
                       </Link>
                     )}
                   </article>

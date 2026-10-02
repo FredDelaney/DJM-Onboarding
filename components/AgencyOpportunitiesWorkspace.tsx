@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  ArrowRight,
+  ChevronRight,
   BriefcaseBusiness,
   MessageCircleMore,
   Search,
@@ -659,7 +659,7 @@ export default function AgencyOpportunitiesWorkspace({
                     }}
                   >
                     {hasRoute ? 'Open route' : 'Start search'}
-                    <ArrowRight size={14} />
+                    <ChevronRight size={18} />
                   </button>
                 </article>
               );
@@ -727,7 +727,7 @@ export default function AgencyOpportunitiesWorkspace({
                     }}
                   >
                     Open pursuit
-                    <ArrowRight size={14} />
+                    <ChevronRight size={18} />
                   </button>
                 </article>
               );
@@ -817,7 +817,7 @@ export default function AgencyOpportunitiesWorkspace({
                         ? 'Assign owner'
                         : 'Fix now'
                       : 'Open deal'}
-                    <ArrowRight size={14} />
+                    <ChevronRight size={18} />
                   </button>
                 </article>
               );

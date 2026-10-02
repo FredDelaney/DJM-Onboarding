@@ -702,7 +702,7 @@
     min-width: 44px;
     min-height: 44px;
     padding: 0;
-    border-radius: 50%;
+    border-radius: 0;
     font-size: 0;
   }
 
@@ -783,9 +783,56 @@
   .copy>span{-webkit-line-clamp:2;color:#65707b;font-size:11px;line-height:1.4}
 }@media(max-width:680px){
   .copy small{color:#929aa2;font-size:9px}
-  .action,.actionAttention{width:46px;min-width:46px;min-height:46px;border-radius:50%}
+  .action,.actionAttention{width:46px;min-width:46px;min-height:46px;border-radius:0}
   .actionAttention{box-shadow:0 0 0 4px rgba(245,180,79,.12)}
   .empty{min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;border:1px dashed #dfe5ea;border-radius:20px;background:radial-gradient(circle at 50% 0%,color-mix(in srgb,var(--agency-accent) 9%,transparent),transparent 160px),#fbfcfd;text-align:center}
   .empty strong{font-size:16px;letter-spacing:-.015em}
   .empty span{max-width:290px;color:#7f8994;font-size:11px;line-height:1.5}
+}
+/* Product navigation affordance system v1 */
+@media (max-width: 680px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .action,
+  .actionAttention {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    gap: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #7c8994;
+    box-shadow: none;
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .action:hover,
+  .action:active {
+    border: 0;
+    background: transparent;
+  }
+
+  .actionAttention {
+    color: #9b6541;
+    box-shadow: none;
+  }
+
+  .action svg,
+  .actionAttention svg {
+    position: static;
+    width: 18px;
+    height: 18px;
+    display: block;
+    margin: 0;
+    transform: none;
+    stroke-width: 2.05;
+  }
 }

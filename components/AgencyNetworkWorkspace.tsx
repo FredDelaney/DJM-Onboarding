@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  ChevronRight,
   BriefcaseBusiness,
   CircleAlert,
   Clock3,
@@ -867,7 +868,7 @@ export default function AgencyNetworkWorkspace({
                               </small>
                             </span>
 
-                            <ArrowRight size={14} />
+                            <ChevronRight size={16} />
                           </button>
                         );
                       })}
@@ -965,7 +966,7 @@ export default function AgencyNetworkWorkspace({
                       }
                     >
                       {primaryActionLabel}
-                      <ArrowRight size={14} />
+                      <ChevronRight size={16} />
                     </button>
                   ) : null}
                 </div>
@@ -1110,7 +1111,7 @@ export default function AgencyNetworkWorkspace({
                     onClick={() => openPerson(item)}
                   >
                     Open person
-                    <ArrowRight size={14} />
+                    <ChevronRight size={16} />
                   </button>
 
                   {employment?.organisation_name ? (
