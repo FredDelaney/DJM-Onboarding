@@ -1443,10 +1443,26 @@ export default function AgencyPlayerProfile({
             </button>
           ) : null}
 
+          {canEdit ? (
+            <button
+              type="button"
+              data-ui-button="secondary"
+              data-ui-tone="inverse"
+              className={styles.secondaryAction}
+              onClick={openTransfermarkt}
+            >
+              <Link2 size={15} />
+              {player.transfermarkt_url
+                ? 'Edit Transfermarkt'
+                : 'Add Transfermarkt'}
+            </button>
+          ) : null}
+
           <button
             type="button"
-            data-ui-button="secondary" data-ui-tone="inverse"
-              className={styles.secondaryAction}
+            data-ui-button="secondary"
+            data-ui-tone="inverse"
+            className={styles.secondaryAction}
             onClick={() => setPreviewOpen(true)}
           >
             <Eye size={15} />
@@ -1455,8 +1471,9 @@ export default function AgencyPlayerProfile({
 
           <button
             type="button"
-            data-ui-button="secondary" data-ui-tone="inverse"
-              className={styles.secondaryAction}
+            data-ui-button="secondary"
+            data-ui-tone="inverse"
+            className={styles.secondaryAction}
             onClick={downloadPdf}
             disabled={actionBusy === 'pdf'}
           >

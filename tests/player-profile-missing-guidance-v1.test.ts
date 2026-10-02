@@ -85,10 +85,13 @@ test('missing guidance is visible and usable on mobile', () => {
   );
 });
 
-test('Transfermarkt guidance opens the exact source editor instead of sending the agent elsewhere', () => {
+test('Transfermarkt is directly editable from the player header and missing guidance', () => {
   assert.match(profile, /action: 'transfermarkt'/);
   assert.match(profile, /const openTransfermarkt =/);
   assert.match(profile, /player_profile_transfermarkt_save/);
+  assert.match(profile, /'Edit Transfermarkt'/);
+  assert.match(profile, /'Add Transfermarkt'/);
+  assert.match(profile, /onClick={openTransfermarkt}/);
   assert.match(profile, /Paste the direct Transfermarkt player profile URL/);
   assert.match(profile, /Save link/);
 });
