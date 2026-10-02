@@ -4170,3 +4170,27 @@
     display: block;
   }
 }
+
+/* Authenticated mobile control system v1 */
+@media (max-width: 680px) {
+  .root button {
+    box-sizing: border-box;
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .root button > svg {
+    flex: 0 0 auto;
+    display: block;
+    margin: 0;
+  }
+
+  .root button[aria-label]:has(> svg:only-child) {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    line-height: 0;
+  }
+}
