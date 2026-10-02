@@ -535,20 +535,18 @@ export default {fetch:async(req:Request)=>{
       const selected=(bundle.videos||[]).filter((video:any)=>video.featured).length?(bundle.videos||[]).filter((video:any)=>video.featured).slice(0,4):(bundle.videos||[]).slice(0,4);
       const timeline=(bundle.career||[]).map((row:any)=>({club_name:row.club_name,country:row.country,league:row.league,season_label:row.season_label,start_date:row.start_date,end_date:row.end_date,appearances:row.appearances,starts:row.starts,minutes:row.minutes,goals:row.goals,assists:row.assists,source_name:row.source_name,source_url:row.source_url,source_reviewed_at:row.source_reviewed_at,sort_order:row.sort_order}));
       const customStats=Array.isArray(settings.key_stats)&&settings.key_stats.length?settings.key_stats:bundle.auto_key_stats||[];
-      const payload={player_id:pid,public_slug:existing.public_slug||`${profileSlug(name)||"player"}-${pid.slice(0,5)}`,published:true,published_at:existing.published_at||new Date().toISOString(),display_name:name,headline:id(settings.intro_line)||[player.primary_position,player.current_club].filter(Boolean).join(" · ")||"Professional footballer",primary_position:player.primary_position,secondary_positions:player.secondary_positions||[],preferred_foot:player.preferred_foot,age_display:profileAge(player.date_of_birth),height_display:player.height_cm?`${player.height_cm} cm`:null,nationalities:player.nationalities||[],current_status:player.contract_status,current_club:player.current_club,key_stats:customStats,why_review:id(settings.why_review)||null,career_summary:id(settings.career_summary)||null,profile_photo_path:player.profile_photo_path,primary_video_url:selected?.[0]?.url||null,transfermarkt_url:player.transfermarkt_url,wyscout_url:player.wyscout_url,stats_url:player.stats_url||null,contact_email:contactEmail,career_timeline:timeline,selected_videos:selected.map((video:any)=>({title:video.title,url:video.url,video_type:video.video_type})),notable_experience:Array.isArray(settings.notable_experience)?settings.notable_experience:[],market_value_display:settings.hide_market_value===false?id(settings.market_value_display)||null:null,market_value_source_url:settings.hide_market_value===false?id(settings.market_value_source_url)||null:null,hidden_sections:Array.isArray(settings.hidden_sections)?settings.hidden_sections:[],hide_market_value:settings.hide_market_value!==false,verified_at:player.verified_at};
-      const {data,error}=await ctx.supabaseAdmin.from("player_public_profiles").upsert(payload).select("*").single();if(error)throw error;
-      await profileAudit(existing.published?"player_profile.updated":"player_profile.published",pid,existing,data,{readiness:{career_rows:(bundle.career||[]).length,videos:(bundle.videos||[]).length}});
-      return json({ok:true,published:data});
+      const snapshot={headline:id(settings.intro_line)||[player.primary_position,player.current_club].filter(Boolean).join(" · ")||"Professional footballer",key_stats:customStats,why_review:id(settings.why_review)||null,career_summary:id(settings.career_summary)||null,primary_video_url:selected?.[0]?.url||null,career_timeline:timeline,selected_videos:selected.map((video:any)=>({title:video.title,url:video.url,video_type:video.video_type})),notable_experience:Array.isArray(settings.notable_experience)?settings.notable_experience:[],market_value_display:settings.hide_market_value===false?id(settings.market_value_display)||null:null,market_value_source_url:settings.hide_market_value===false?id(settings.market_value_source_url)||null:null,hidden_sections:Array.isArray(settings.hidden_sections)?settings.hidden_sections:[],hide_market_value:settings.hide_market_value!==false};
+      const publishResult=obj(await rpc("platform_server_publish_player_profile_snapshot",{p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId,p_snapshot:snapshot}));
+      const published=obj(publishResult.profile);
+      return json({ok:true,published});
     }
 
     if(action==="player_profile_unpublish"){
       if(!operator())return deny("Agency operator access required");
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
       const player=await profilePlayer(pid);if(!player)return json({error:"Player not found in this agency"},404);
-      const current=await ctx.supabaseAdmin.from("player_public_profiles").select("*").eq("player_id",pid).maybeSingle();if(current.error)throw current.error;
-      const {data,error}=await ctx.supabaseAdmin.from("player_public_profiles").update({published:false}).eq("player_id",pid).select("*").maybeSingle();if(error)throw error;
-      await profileAudit("player_profile.unpublished",pid,current.data||{},data||{}, {});
-      return json({ok:true,published:data});
+      const unpublishResult=obj(await rpc("platform_server_unpublish_external_dossier",{p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId}));
+      return json({ok:true,published:unpublishResult.profile||null});
     }
 
     if(action==="player_profile_share_create"){
