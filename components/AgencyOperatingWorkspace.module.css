@@ -3925,7 +3925,7 @@
     white-space: nowrap;
   }
 
-  .homeCommandCentre .homeChangeRow span:not(.homeTimelineIcon) {
+  .homeCommandCentre .homeChangeRow span:not(.homeTimelineIcon):not(.homeTimelineAvatar) {
     overflow: hidden;
     display: block;
     color: #808a94;
@@ -3990,5 +3990,102 @@
 
   .homeCommandCentre .handledStrip > span {
     display: none;
+  }
+}
+
+/* Home icon language v6 */
+@media (max-width: 680px) {
+  .homeCommandCentre .attentionCardPrimary .compactButton {
+    width: 46px;
+    min-width: 46px;
+    height: 46px;
+    min-height: 46px;
+    background: rgba(255,255,255,.98);
+    box-shadow: 0 7px 18px rgba(0, 15, 29, .12);
+  }
+
+  .homeCommandCentre .attentionCardPrimary .compactButton svg {
+    width: 19px;
+    height: 19px;
+    transform: none;
+    stroke-width: 2.15;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    background: #eef4f8;
+    color: #17324d;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton svg {
+    width: 16px;
+    height: 16px;
+    transform: none;
+    stroke-width: 2.15;
+  }
+
+  .homeCommandCentre .attentionMore {
+    gap: 5px;
+  }
+
+  .homeCommandCentre .attentionMore svg,
+  .homeCommandCentre .homeTextLink svg,
+  .homeCommandCentre .simpleTimelineArrow {
+    transform: none;
+  }
+
+  .homeCommandCentre .homeTimelineIcon {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 50%;
+    background: #edf3f6;
+    color: #36536b;
+  }
+
+  .homeCommandCentre .homeTimelineIcon svg {
+    width: 13px;
+    height: 13px;
+    stroke-width: 2;
+  }
+
+  .homeCommandCentre .homeChangeRow {
+    grid-template-columns: 28px minmax(0, 1fr) 18px;
+    gap: 11px;
+  }
+
+  .homeCommandCentre .simpleTimelineArrow {
+    width: 16px;
+    height: 16px;
+    color: #9ba6ae;
+    stroke-width: 2;
+  }
+}
+
+/* Home recent-activity identity v7 */
+@media (max-width: 680px) {
+  .homeCommandCentre .homeTimelineIcon {
+    display: none;
+  }
+
+  .homeCommandCentre .homeTimelineAvatar {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    align-self: center;
+    justify-self: center;
+    border-radius: 50%;
+    background: #edf3f6;
+    color: #294a64;
+    font-size: 9px;
+    font-weight: 840;
+    line-height: 1;
+    letter-spacing: -.02em;
   }
 }

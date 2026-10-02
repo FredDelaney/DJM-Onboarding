@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
   ArrowRight,
+  ChevronRight,
   BriefcaseBusiness,
   CakeSlice,
   CalendarDays,
@@ -2146,7 +2147,7 @@ function Home({
           {actionBusy === command.command_id ? (
             <LoaderCircle size={14} className={styles.spin} />
           ) : (
-            <ArrowRight size={14} />
+            <ChevronRight size={16} />
           )}
           {command.actionability?.cta || 'Continue'}
         </button>
@@ -2159,7 +2160,7 @@ function Home({
         className={styles.compactButton}
         onClick={() => onOpenAction(command)}
       >
-        <ArrowRight size={14} />
+        <ChevronRight size={16} />
         {command.actionability?.cta || 'Open'}
       </button>
     );
@@ -2269,7 +2270,7 @@ function Home({
                   className={styles.compactButton}
                   onClick={() => onRecordMeetingOutcome(item)}
                 >
-                  <ArrowRight size={14} />
+                  <ChevronRight size={16} />
                   Record outcome
                 </button>
               </article>
@@ -2285,7 +2286,7 @@ function Home({
                 {showAllNeeds
                   ? 'Show less'
                   : `${needsYouCount - 3} more`}
-                <ArrowRight size={12} />
+                <ChevronRight size={13} />
               </button>
             ) : null}
 
@@ -2313,7 +2314,7 @@ function Home({
               href={`${basePath}?view=calendar`}
             >
               Calendar
-              <ArrowRight size={13} />
+              <ChevronRight size={14} />
             </Link>
           </div>
 
@@ -2353,7 +2354,7 @@ function Home({
                         : ''}
                     </span>
                   </div>
-                  <ArrowRight className={styles.simpleTimelineArrow} size={14} />
+                  <ChevronRight className={styles.simpleTimelineArrow} size={16} />
                 </Link>
               ))}
 
@@ -2378,20 +2379,24 @@ function Home({
           </div>
           {readNotice(connectedState)}
           <div className={styles.list}>
-            {recentConnected.slice(0, 3).map((item: any) => (
-              <Link key={item.interaction_id} className={`${styles.simpleTimelineRow} ${styles.homeChangeRow}`}
-                href={homeConversationHref(basePath, item)}>
-                <span className={styles.homeTimelineIcon}>
-                  <MessageCircleMore size={15} />
-                </span>
-                <div>
-                  <strong>{item.player_name || item.prospect_name || item.person_name || item.organisation_name || 'Conversation captured'}</strong>
-                  <span>{item.summary || 'A new conversation was captured.'}</span>
-                  {item.occurred_at ? <small>{relativeDate(item.occurred_at)}</small> : null}
-                </div>
-                <ArrowRight className={styles.simpleTimelineArrow} size={14} />
-              </Link>
-            ))}
+            {recentConnected.slice(0, 3).map((item: any) => {
+              const activityName = item.player_name || item.prospect_name || item.person_name || item.organisation_name || 'Conversation';
+              const activityInitial = activityName.trim().charAt(0).toUpperCase() || 'R';
+              return (
+                <Link key={item.interaction_id} className={`${styles.simpleTimelineRow} ${styles.homeChangeRow}`}
+                  href={homeConversationHref(basePath, item)}>
+                  <span className={styles.homeTimelineAvatar} aria-hidden="true">
+                    {activityInitial}
+                  </span>
+                  <div>
+                    <strong>{activityName}</strong>
+                    <span>{item.summary || 'A new conversation was captured.'}</span>
+                    {item.occurred_at ? <small>{relativeDate(item.occurred_at)}</small> : null}
+                  </div>
+                  <ChevronRight className={styles.simpleTimelineArrow} size={16} />
+                </Link>
+              );
+            })}
           </div>
         </section>
       ) : null}

@@ -12,10 +12,10 @@ test('Home v5 is isolated behind a single command-centre scope', () => {
 });
 
 test('recent activity icon remains contained inside the row grid', () => {
-  assert.match(component, /styles\.homeTimelineIcon/);
+  assert.match(component, /styles\.homeTimelineAvatar/);
   assert.match(css, /grid-template-columns: 34px minmax\(0, 1fr\) 20px/);
-  assert.match(css, /\.homeTimelineIcon[\s\S]*overflow: hidden/);
-  assert.match(css, /\.homeTimelineIcon svg[\s\S]*display: block[\s\S]*margin: 0/);
+  assert.match(css, /\.homeTimelineAvatar[\s\S]*border-radius: 50%/);
+  assert.match(css, /\.homeTimelineAvatar[\s\S]*place-items: center/);
 });
 
 test('all mobile Home action arrows use centred square geometry', () => {
