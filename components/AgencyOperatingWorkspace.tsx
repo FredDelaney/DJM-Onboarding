@@ -2183,8 +2183,7 @@ function Home({
           className={`${styles.sectionCard} ${styles.homeAttentionPanel}`}
         >
           <div className={styles.sectionHead}>
-            <div className={styles.homeSectionTitle}>
-              <span className={styles.homeSectionEyebrow}>Priority queue</span>
+            <div>
               <h2>Needs attention</h2>
             </div>
             {needsYouCount ? (
@@ -2303,8 +2302,7 @@ function Home({
           className={`${styles.sectionCard} ${styles.homeDayPanel}`}
         >
           <div className={styles.sectionHead}>
-            <div className={styles.homeSectionTitle}>
-              <span className={styles.homeSectionEyebrow}>Your day</span>
+            <div>
               <h2>Today</h2>
             </div>
 
@@ -2369,19 +2367,14 @@ function Home({
       </div>
 
       {recentConnected.length ? (
-        <section className={`${styles.sectionCard} ${styles.homeChangedPanel}`}>
-          <div className={styles.sectionHead}>
-            <div className={styles.homeSectionTitle}>
-              <span className={styles.homeSectionEyebrow}>Recent activity</span>
-              <h2>What changed</h2>
-            </div>
-          </div>
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}><h2>What changed</h2></div>
           {readNotice(connectedState)}
           <div className={styles.list}>
             {recentConnected.slice(0, 3).map((item: any) => (
               <Link key={item.interaction_id} className={`${styles.simpleTimelineRow} ${styles.homeChangeRow}`}
                 href={homeConversationHref(basePath, item)}>
-                <span className={styles.homeChangeIcon}><MessageCircleMore size={15} /></span>
+                <MessageCircleMore size={16} />
                 <div>
                   <strong>{item.player_name || item.prospect_name || item.person_name || item.organisation_name || 'Conversation captured'}</strong>
                   <span>{item.summary || 'A new conversation was captured.'}</span>
