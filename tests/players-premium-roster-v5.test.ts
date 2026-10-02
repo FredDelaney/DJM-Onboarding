@@ -6,13 +6,12 @@ const shell = readFileSync('components/AgencyOperatingWorkspace.tsx', 'utf8');
 const shellCss = readFileSync('components/AgencyOperatingWorkspace.module.css', 'utf8');
 const playerCss = readFileSync('components/AgencyPlayersWorkspace.module.css', 'utf8');
 
-test('Players mobile add action lives in the header with the account action', () => {
-  assert.match(shell, /view === 'players' && createAction/);
-  assert.match(shell, /styles\.mobileHeaderCreate/);
-  assert.match(shell, /createAction && view !== 'players'/);
-  assert.match(shellCss, /Players mobile header action refinement v1/);
-  assert.match(shellCss, /\.mobileHeadActions[\s\S]*display: flex/);
-  assert.match(shellCss, /\.mobileHeaderCreate[\s\S]*width: 40px/);
+test('Players mobile add action shares the labelled contextual action pattern', () => {
+  assert.match(shell, /createAction && !inlineEntityWorkspaceOpen/);
+  assert.doesNotMatch(shell, /view === 'players' && createAction/);
+  assert.match(shellCss, /Mobile action commonality \+ scroll-aware top fade v1/);
+  assert.match(shellCss, /\.mobileContextAction \.createButton[\s\S]*border-radius: 22px/);
+  assert.match(shellCss, /\.mobileContextAction \.createButton[\s\S]*font-size: 12px/);
 });
 
 test('mobile roster cards use an inset information panel and integrated attention marker', () => {

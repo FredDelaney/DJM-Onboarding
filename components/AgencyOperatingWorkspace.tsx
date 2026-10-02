@@ -351,6 +351,16 @@ export default function AgencyOperatingWorkspace() {
     useState<any>(null);
   const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
     useState('');
+  const [mobileScrolled, setMobileScrolled] = useState(false);
+
+  useEffect(() => {
+    const updateScrollState = () => {
+      setMobileScrolled(window.scrollY > 10);
+    };
+    updateScrollState();
+    window.addEventListener('scroll', updateScrollState, { passive: true });
+    return () => window.removeEventListener('scroll', updateScrollState);
+  }, []);
 
   const workspaceName =
     workspace?.display_name ||
@@ -1196,6 +1206,10 @@ export default function AgencyOperatingWorkspace() {
 
   return (
     <div className={styles.root} style={theme}>
+      <div
+        aria-hidden="true"
+        className={`${styles.mobileTopVeil} ${mobileScrolled ? styles.mobileTopVeilVisible : ''}`}
+      />
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
@@ -1306,17 +1320,6 @@ export default function AgencyOperatingWorkspace() {
             />
           </div>
           <div className={styles.mobileHeadActions}>
-            {view === 'players' && createAction ? (
-              <button
-                type="button"
-                className={`${styles.createButton} ${styles.mobileHeaderCreate}`}
-                onClick={() => setCreateKind(createAction.kind)}
-                aria-label={createAction.label}
-                title={createAction.label}
-              >
-                <Plus size={17} />
-              </button>
-            ) : null}
             <AccountMenu
               workspace={workspace}
               onSignOut={signOut}
@@ -1324,7 +1327,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
         </header>
 
-        {createAction && view !== 'players' && !inlineEntityWorkspaceOpen ? (
+        {createAction && !inlineEntityWorkspaceOpen ? (
           <div className={styles.mobileContextAction}>
             <button
               type="button"
