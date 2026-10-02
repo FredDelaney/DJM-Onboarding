@@ -1306,6 +1306,17 @@ export default function AgencyOperatingWorkspace() {
             />
           </div>
           <div className={styles.mobileHeadActions}>
+            {view === 'players' && createAction ? (
+              <button
+                type="button"
+                className={`${styles.createButton} ${styles.mobileHeaderCreate}`}
+                onClick={() => setCreateKind(createAction.kind)}
+                aria-label={createAction.label}
+                title={createAction.label}
+              >
+                <Plus size={17} />
+              </button>
+            ) : null}
             <AccountMenu
               workspace={workspace}
               onSignOut={signOut}
@@ -1313,7 +1324,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
         </header>
 
-        {createAction && !inlineEntityWorkspaceOpen ? (
+        {createAction && view !== 'players' && !inlineEntityWorkspaceOpen ? (
           <div className={styles.mobileContextAction}>
             <button
               type="button"

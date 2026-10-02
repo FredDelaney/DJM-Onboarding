@@ -1262,3 +1262,142 @@
     line-height: 1.4;
   }
 }
+
+/* Premium roster cards v5 */
+@media (max-width: 680px) {
+  .playerGrid {
+    gap: 14px;
+  }
+
+  .playerCard {
+    position: relative;
+    overflow: hidden;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid #e4e9ed;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #ffffff 0%, #fdfefe 100%);
+    box-shadow: 0 10px 30px rgba(18, 31, 44, .045);
+  }
+
+  .playerCardTop {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    gap: 13px;
+  }
+
+  .avatar {
+    width: 58px;
+    height: 58px;
+    border-color: #e8ecef;
+    border-radius: 17px;
+    background: linear-gradient(145deg, #f5f7f9, #eef2f5);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6);
+  }
+
+  .playerIdentity h3 {
+    color: #1f2933;
+    font-size: 17px;
+    font-weight: 790;
+    line-height: 1.15;
+    letter-spacing: -.03em;
+  }
+
+  .playerIdentity span {
+    margin-top: 5px;
+    color: #727d87;
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+
+  .playerCardEnd {
+    position: relative;
+    align-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0;
+  }
+
+  .profileShortcut {
+    min-height: 38px;
+    padding: 0 13px;
+    border: 1px solid #e1e6ea;
+    border-radius: 999px;
+    background: #f9fbfc;
+    color: #112c47;
+    box-shadow: 0 2px 8px rgba(18, 31, 44, .025);
+    font-size: 9.5px;
+    font-weight: 820;
+  }
+
+  .playerCardEnd .attentionPill {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 9px;
+    height: 9px;
+    min-width: 9px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #f1b44c;
+    box-shadow: 0 0 0 2px #fff6e5;
+    color: transparent;
+    font-size: 0;
+  }
+
+  .playerFacts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 116px;
+    gap: 0;
+    overflow: hidden;
+    padding: 12px 13px;
+    border: 0;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f8fafb, #f5f7f9);
+  }
+
+  .playerFacts > div:nth-child(1),
+  .playerFacts > div:nth-child(3) {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .playerFacts > div:nth-child(3) {
+    margin-left: 14px;
+    padding-left: 14px;
+    border-left: 1px solid #e3e8ec;
+    justify-items: end;
+    text-align: right;
+  }
+
+  .playerFacts span {
+    color: #96a0aa;
+    font-size: 7.5px;
+    font-weight: 820;
+    letter-spacing: .105em;
+  }
+
+  .playerFacts strong {
+    color: #35404a;
+    font-size: 11px;
+    font-weight: 760;
+    line-height: 1.38;
+  }
+
+  .playerFacts > div:nth-child(3) strong {
+    color: #25313c;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .playerFacts small {
+    color: #9aa3ac;
+    font-size: 8px;
+    line-height: 1.3;
+  }
+}
