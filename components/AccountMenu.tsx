@@ -185,11 +185,14 @@ export default function AccountMenu({
         onClick={() => setOpen((value) => !value)}
       >
         <span className={styles.avatar}>
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="" />
-          ) : (
-            initials(name)
-          )}
+          <span className={styles.mobileMonogram}>{initials(name)}</span>
+          <span className={styles.desktopAvatar}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" />
+            ) : (
+              initials(name)
+            )}
+          </span>
         </span>
         <span className={styles.triggerCopy}>
           <strong>{name.split(' ')[0]}</strong>

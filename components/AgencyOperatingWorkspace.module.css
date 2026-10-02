@@ -4417,3 +4417,32 @@
     transform: translateY(1px);
   }
 }
+
+/* Premium mobile shell chrome v3 */
+@media (max-width: 680px) {
+  .pageHead {
+    min-height: 46px;
+    margin-bottom: 12px;
+  }
+
+  .pageHeadCopy {
+    min-height: 42px;
+    padding-inline: 54px;
+  }
+
+  .pageHead h1 {
+    font-size: 19px;
+    font-weight: 790;
+    letter-spacing: -.026em;
+  }
+
+  .mobileTenantBrand {
+    top: 0;
+    left: 0;
+  }
+
+  .mobileHeadActions {
+    top: 0;
+    right: 0;
+  }
+}

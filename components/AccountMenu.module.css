@@ -417,3 +417,61 @@
   from { transform: translateY(24px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* Premium mobile account identity v2 */
+.mobileMonogram { display: none; }
+.desktopAvatar {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.desktopAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 680px) {
+  .trigger {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    padding: 4px;
+    border: 1px solid #e6ebef;
+    border-radius: 13px;
+    background: rgba(255,255,255,.96);
+    box-shadow: 0 5px 16px rgba(18,34,49,.055);
+  }
+
+  .trigger:hover {
+    border-color: #dfe6eb;
+    box-shadow: 0 6px 18px rgba(18,34,49,.07);
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(145deg,#0b2d49,#1c4b68);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+  }
+
+  .mobileMonogram {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 820;
+    letter-spacing: -.035em;
+  }
+
+  .avatar > .desktopAvatar {
+    display: none;
+  }
+}
