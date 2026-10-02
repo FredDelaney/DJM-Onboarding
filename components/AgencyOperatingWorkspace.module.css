@@ -4148,3 +4148,25 @@
     transform: translateX(1px);
   }
 }
+
+/* Home hero CTA optical centring v9 */
+@media (max-width: 680px) {
+  .homeCommandCentre .attentionCardPrimary .compactButton {
+    position: relative;
+    display: block;
+    padding: 0;
+    line-height: 0;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .compactButton svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    transform-origin: center;
+    display: block;
+  }
+}
