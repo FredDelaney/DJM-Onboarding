@@ -4089,3 +4089,62 @@
     letter-spacing: -.02em;
   }
 }
+
+/* Home CTA treatment v8: remove oversized circular buttons */
+@media (max-width: 680px) {
+  .homeCommandCentre .attentionCardPrimary {
+    grid-template-columns: minmax(0, 1fr) 42px;
+  }
+
+  .homeCommandCentre .attentionCardPrimary .compactButton {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.72);
+    border-radius: 14px;
+    background: rgba(255,255,255,.94);
+    color: #102f48;
+    box-shadow: 0 6px 16px rgba(0, 15, 29, .11);
+  }
+
+  .homeCommandCentre .attentionCardPrimary .compactButton svg {
+    width: 17px;
+    height: 17px;
+    transform: none;
+    stroke-width: 2.1;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) {
+    grid-template-columns: minmax(0, 1fr) 32px;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #7e8b96;
+    box-shadow: none;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton svg {
+    width: 17px;
+    height: 17px;
+    transform: none;
+    stroke-width: 2;
+  }
+
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton:active {
+    transform: translateX(1px);
+  }
+}
