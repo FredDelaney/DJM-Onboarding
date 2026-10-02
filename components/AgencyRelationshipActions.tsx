@@ -109,21 +109,25 @@ export default function AgencyRelationshipActions({
       {
         key: 'conversation' as const,
         label: 'Log conversation',
+        mobileLabel: 'Log conversation',
         icon: MessageCircleMore,
       },
       {
         key: 'followup' as const,
         label: 'Add follow-up',
+        mobileLabel: 'Follow-up',
         icon: Check,
       },
       {
         key: 'promise' as const,
         label: 'Add promise',
+        mobileLabel: 'Promise',
         icon: ClipboardCheck,
       },
       {
         key: 'relationship' as const,
         label: 'Update relationship',
+        mobileLabel: 'Relationship',
         icon: Route,
       },
     ],
@@ -272,6 +276,7 @@ export default function AgencyRelationshipActions({
             <button
               key={action.key}
               type="button"
+              data-ui-button={action.key === 'conversation' ? 'primary' : 'secondary'}
               className={active ? styles.active : ''}
               onClick={() => {
                 setError('');
@@ -279,7 +284,8 @@ export default function AgencyRelationshipActions({
               }}
             >
               <Icon size={15} />
-              {action.label}
+              <span className={styles.actionLabel}>{action.label}</span>
+              <span className={styles.actionLabelMobile}>{action.mobileLabel}</span>
             </button>
           );
         })}

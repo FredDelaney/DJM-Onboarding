@@ -59,19 +59,19 @@
 .actions button.active {
   border-color: color-mix(
     in srgb,
-    var(--agency-accent) 38%,
+    var(--agency-primary) 38%,
     #dfe2e6
   );
   background: color-mix(
     in srgb,
-    var(--agency-accent) 7%,
+    var(--agency-primary) 7%,
     #fff
   );
   color: #2f363e;
 }
 
 .actions svg {
-  color: var(--agency-accent);
+  color: var(--agency-primary);
 }
 
 .form {
@@ -135,7 +135,7 @@
 .form textarea:focus {
   border-color: color-mix(
     in srgb,
-    var(--agency-accent) 55%,
+    var(--agency-primary) 55%,
     #dfe2e6
   );
 }
@@ -154,7 +154,7 @@
   min-height: 38px;
   border: 0;
   border-radius: 9px;
-  background: var(--agency-accent);
+  background: var(--agency-primary);
   color: #fff;
   font: inherit;
   font-size: 9px;
@@ -261,5 +261,63 @@
   .save {
     min-height: 44px;
     font-size: 11px;
+  }
+}
+
+/* Relationship action hierarchy v3 */
+.actionLabelMobile { display: none; }
+
+@media (max-width: 680px) {
+  .section {
+    gap: 12px;
+    padding: 15px 16px;
+    border: 1px solid #e5eaee;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 7px 22px rgba(18,34,49,.028);
+  }
+
+  .head h3 {
+    color: #25313b;
+    font-size: 15px;
+    font-weight: 780;
+    letter-spacing: -.025em;
+  }
+
+  .actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .actions button:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .actions button {
+    min-height: 42px !important;
+    padding: 0 10px !important;
+    border-radius: 12px !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    font-size: 9.5px !important;
+  }
+
+  .actions button:first-child {
+    min-height: 46px !important;
+    font-size: 10.5px !important;
+  }
+
+  .actions svg {
+    color: currentColor;
+  }
+
+  .actionLabel { display: none; }
+  .actionLabelMobile { display: inline; }
+
+  .form {
+    padding: 13px;
+    border-color: #e7ebee;
+    border-radius: 14px;
+    background: #f8fafb;
   }
 }

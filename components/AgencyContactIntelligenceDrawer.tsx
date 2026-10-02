@@ -653,6 +653,24 @@ export default function AgencyContactIntelligenceDrawer({
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+
+              <div className={styles.headerMeta}>
+                <span>
+                  {clean(summaryRelationship?.route_state)
+                    .replaceAll('_', ' ') || 'Relationship not recorded'}
+                </span>
+                <span>
+                  Owner {clean(summaryRelationship?.owner_name) || 'unassigned'}
+                </span>
+                <span>
+                  Route {Number(summaryRelationship?.route_score || 0)}
+                </span>
+                <span>
+                  {summaryActivity?.last_interaction_at
+                    ? `Last contact ${relativeDate(summaryActivity.last_interaction_at)}`
+                    : 'No contact recorded'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -704,75 +722,6 @@ export default function AgencyContactIntelligenceDrawer({
               styles.body
             }
           >
-            <section
-              className={
-                styles.hero
-              }
-            >
-              <div
-                className={
-                  styles.heroTop
-                }
-              >
-                <div>
-                  <span>
-                    CURRENT RELATIONSHIP
-                  </span>
-
-                  <strong>
-                    {clean(
-                      summaryRelationship
-                        ?.route_state,
-                    )
-                      .replaceAll(
-                        '_',
-                        ' ',
-                      ) ||
-                      'Not recorded'}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    AGENCY OWNER
-                  </span>
-
-                  <strong>
-                    {clean(
-                      summaryRelationship
-                        ?.owner_name,
-                    ) ||
-                      'Not assigned'}
-                  </strong>
-                </div>
-              </div>
-
-              <div
-                className={
-                  styles.heroMeta
-                }
-              >
-                <span>
-                  Direct route{' '}
-                  {Number(
-                    summaryRelationship
-                      ?.route_score ||
-                      0,
-                  )}
-                </span>
-
-                <span>
-                  {summaryActivity
-                    ?.last_interaction_at
-                    ? `Last interaction ${relativeDate(
-                        summaryActivity
-                          .last_interaction_at,
-                      )}`
-                    : 'No interaction recorded'}
-                </span>
-              </div>
-            </section>
-
             <AgencyRelationshipActions
               personId={clean(contact?.person_id)}
               rpc={rpc}
@@ -805,6 +754,7 @@ export default function AgencyContactIntelligenceDrawer({
 
                 <button
                   type="button"
+                  data-ui-button="tertiary"
                   onClick={() =>
                     setEditingReach(
                       (value) =>
@@ -820,61 +770,42 @@ export default function AgencyContactIntelligenceDrawer({
 
               {quickActions.length ? (
                 <div
-                  className={
-                    styles.quickActions
-                  }
+                  className={styles.quickActions}
                 >
-                  {quickActions.map(
-                    (action) => {
-                      const Icon =
-                        action.icon;
-
-                      return (
-                        <a
-                          key={
-                            action.key
-                          }
-                          href={
-                            action.href
-                          }
-                          target={
-                            action.external
-                              ? '_blank'
-                              : undefined
-                          }
-                          rel={
-                            action.external
-                              ? 'noreferrer'
-                              : undefined
-                          }
-                        >
-                          <Icon
-                            size={16}
-                          />
-                          {
-                            action.label
-                          }
-                        </a>
-                      );
-                    },
-                  )}
+                  {quickActions.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <a
+                        key={action.key}
+                        href={action.href}
+                        target={action.external ? '_blank' : undefined}
+                        rel={action.external ? 'noreferrer' : undefined}
+                      >
+                        <Icon size={16} />
+                        {action.label}
+                      </a>
+                    );
+                  })}
                 </div>
-              ) : (
-                <p
-                  className={
-                    styles.empty
-                  }
-                >
-                  No direct contact
-                  details are recorded
-                  yet.
-                </p>
-              )}
+              ) : !editingReach ? (
+                <div className={styles.reachEmpty}>
+                  <div>
+                    <strong>No direct contact details yet</strong>
+                    <span>Add one trusted channel and ReDream will keep it attached to this relationship.</span>
+                  </div>
+                  <button
+                    type="button"
+                    data-ui-button="secondary"
+                    onClick={() => openReachEditor('email')}
+                  >
+                    Add contact details
+                  </button>
+                </div>
+              ) : null}
 
+              {(quickActions.length || editingReach) ? (
               <div
-                className={
-                  styles.reachList
-                }
+                className={styles.reachList}
               >
                 <ContactLine
                   label="Email"
@@ -938,6 +869,7 @@ export default function AgencyContactIntelligenceDrawer({
                   }
                 />
               </div>
+              ) : null}
 
               {editingReach ? (
                 <form
@@ -1183,6 +1115,7 @@ export default function AgencyContactIntelligenceDrawer({
                 ?.employment_id ? (
                 <button
                   type="button"
+                  data-ui-button="secondary"
                   className={
                     styles.verifyButton
                   }
@@ -1248,6 +1181,7 @@ export default function AgencyContactIntelligenceDrawer({
 
                 <button
                   type="button"
+                  data-ui-button="tertiary"
                   onClick={() =>
                     setEditingProfiles(
                       (value) =>
@@ -1468,6 +1402,7 @@ export default function AgencyContactIntelligenceDrawer({
 
               <button
                 type="button"
+                data-ui-button="tertiary"
                 className={
                   styles.clubButton
                 }

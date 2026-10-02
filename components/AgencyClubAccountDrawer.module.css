@@ -126,7 +126,7 @@
   border: 1px solid
     color-mix(
       in srgb,
-      var(--agency-accent) 20%,
+      var(--agency-primary) 20%,
       #e3e6ea
     );
   border-radius: 15px;
@@ -135,7 +135,7 @@
       135deg,
       color-mix(
         in srgb,
-        var(--agency-accent) 7%,
+        var(--agency-primary) 7%,
         #fff
       ),
       #fff 72%
@@ -171,7 +171,7 @@
   border: 0;
   border-radius: 9px;
   padding: 0 12px;
-  background: var(--agency-accent);
+  background: var(--agency-primary);
   color: #fff;
   font: inherit;
   font-size: 8px;
@@ -227,7 +227,7 @@
 
 .sectionHead > svg {
   margin-top: 2px;
-  color: var(--agency-accent);
+  color: var(--agency-primary);
 }
 
 .sectionHead > div {
@@ -280,10 +280,10 @@
   background:
     color-mix(
       in srgb,
-      var(--agency-accent) 7%,
+      var(--agency-primary) 7%,
       #f5f6f7
     );
-  color: var(--agency-accent);
+  color: var(--agency-primary);
 }
 
 .person > div:nth-child(2) {
@@ -340,14 +340,14 @@
   background:
     color-mix(
       in srgb,
-      var(--agency-accent) 6%,
+      var(--agency-primary) 6%,
       #f8f9fa
     );
 }
 
 .warmRoute > svg {
   margin-top: 2px;
-  color: var(--agency-accent);
+  color: var(--agency-primary);
 }
 
 .warmRoute > div {
@@ -449,7 +449,7 @@
 }
 
 .workTitle > svg {
-  color: var(--agency-accent);
+  color: var(--agency-primary);
 }
 
 .workTitle strong {
@@ -616,5 +616,173 @@
   .pagePanel .body {
     padding-left: 0;
     padding-right: 0;
+  }
+}
+
+/* Club account premium hierarchy v3 */
+@media (max-width: 680px) {
+  .pagePanel .header {
+    margin-bottom: 10px;
+    padding: 15px;
+    border-color: #e4e9ed;
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(18,34,49,.032);
+  }
+
+  .pagePanel .header h2 {
+    color: #202a33;
+    font-size: 21px;
+    font-weight: 790;
+    letter-spacing: -.035em;
+  }
+
+  .pagePanel .content {
+    gap: 10px;
+  }
+
+  .nextMove,
+  .section {
+    border-color: #e5eaee;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 7px 22px rgba(18,34,49,.028);
+  }
+
+  .nextMove {
+    gap: 12px;
+    padding: 15px 16px;
+    background: linear-gradient(145deg,#0b2d49,#123b58);
+  }
+
+  .nextMove span,
+  .nextMove small {
+    color: rgba(226,235,241,.7);
+  }
+
+  .nextMove strong {
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .nextMove button {
+    border: 1px solid rgba(255,255,255,.9);
+    background: #fff;
+    color: #0b2d49;
+  }
+
+  .quickFacts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    overflow: hidden;
+    border-top: 1px solid #e5eaee;
+    border-bottom: 1px solid #e5eaee;
+  }
+
+  .fact {
+    min-height: 60px;
+    align-content: center;
+    padding: 9px 8px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .fact + .fact {
+    border-left: 1px solid #e9edef;
+  }
+
+  .fact span {
+    font-size: 5.8px;
+    letter-spacing: .08em;
+  }
+
+  .fact strong {
+    font-size: 14px;
+  }
+
+  .section {
+    gap: 11px;
+    padding: 15px 16px;
+  }
+
+  .sectionHead > svg {
+    color: #627786;
+  }
+
+  .sectionHead span {
+    color: #99a3ab;
+    font-size: 6.5px;
+  }
+
+  .sectionHead h3 {
+    color: #25313b;
+    font-size: 15px;
+    font-weight: 780;
+    letter-spacing: -.025em;
+  }
+
+  .people,
+  .rows,
+  .timeline,
+  .workList {
+    border-color: #e9edef;
+    border-radius: 12px;
+  }
+
+  .workColumns {
+    gap: 10px;
+  }
+
+  .workBlock:has(.emptyText) {
+    display: none;
+  }
+
+  .warmRoute {
+    background: #f4f7f8;
+  }
+
+  .warmRoute > svg,
+  .workTitle > svg,
+  .personIcon {
+    color: #627786;
+  }
+}
+
+/* Club account row action refinement v4 */
+@media (max-width: 680px) {
+  .row {
+    min-height: 54px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 11px;
+  }
+
+  .row > .rowActions {
+    width: auto;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+
+  .row button {
+    width: auto;
+    min-width: 0;
+    min-height: 36px;
+    padding: 0 9px;
+    border-radius: 10px;
+    background: transparent;
+    color: #667987;
+  }
+
+  .rowActions .rowPrimary {
+    background: #0b2d49;
+    color: #fff;
+  }
+
+  .rowActions .rowSecondary {
+    background: #f1f4f6;
+    color: #596b78;
   }
 }
