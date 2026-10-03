@@ -125,11 +125,11 @@ test(
     );
     assert.match(
       profile,
-      /No player-linked communication yet/,
+      /No conversations linked yet/,
     );
     assert.match(
       profile,
-      /explicit evidence that they relate to this player/,
+      /Emails and chats linked to this player will appear here/,
     );
   },
 );

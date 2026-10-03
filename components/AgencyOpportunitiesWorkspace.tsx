@@ -633,6 +633,7 @@ export default function AgencyOpportunitiesWorkspace({
                       : prepareSearch(item)
                   }
                   onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
                     if (event.key !== 'Enter' && event.key !== ' ') return;
                     event.preventDefault();
                     hasRoute
@@ -735,6 +736,7 @@ export default function AgencyOpportunitiesWorkspace({
                   tabIndex={0}
                   onClick={() => openRoute(item)}
                   onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
                     if (event.key !== 'Enter' && event.key !== ' ') return;
                     event.preventDefault();
                     openRoute(item);
@@ -819,6 +821,7 @@ export default function AgencyOpportunitiesWorkspace({
                   tabIndex={0}
                   onClick={() => handleDeal(deal)}
                   onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
                     if (event.key !== 'Enter' && event.key !== ' ') return;
                     event.preventDefault();
                     handleDeal(deal);

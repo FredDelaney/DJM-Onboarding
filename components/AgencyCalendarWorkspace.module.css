@@ -838,3 +838,17 @@
     stroke-width: 2.05;
   }
 }
+
+/* Agenda text and ranges share the platform reading rhythm. */
+@media (max-width: 680px) {
+  .range { flex-wrap: wrap; }
+  .rangeButton, .rangeActive { min-height: 44px; flex: 1 1 70px; }
+  .row, .rowAttention { border-radius: 18px; padding: 16px 12px; gap: 10px; }
+  .dayLabel, .dayLabelAttention { font-size: 12px; }
+  .copy strong { font-size: 15px; line-height: 1.4; white-space: normal; }
+  .copy > small { font-size: 12px; line-height: 1.5; -webkit-line-clamp: unset; }
+  .meta { flex-wrap: wrap; }
+  .meta span, .meta small { font-size: 10px; line-height: 1.4; }
+  .empty { min-height: 160px; padding: 24px 16px; }
+  .empty span { font-size: 12px; line-height: 1.5; }
+}

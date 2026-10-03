@@ -54,7 +54,7 @@ test('inline player and profile routes skip expensive index loading', () => {
 test('player cards have a direct Player Profile shortcut', () => {
   assert.match(players, /const openPlayerProfile =/);
   assert.match(players, /profileShortcut/);
-  assert.match(players, />\s*Profile\s*</);
+  assert.match(players, />\s*View profile\s*</);
   assert.match(players, /prefetchPlayerProfile\(id, invoke\)/);
 });
 

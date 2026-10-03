@@ -1638,6 +1638,105 @@
   justify-content: space-between;
 }
 
+.profileShortcutRow {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f2;
+}
+
+.profileShortcutRow .profileShortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+@media (max-width: 680px) {
+  .playerCard {
+    padding: 16px;
+    gap: 14px;
+    border-radius: 18px;
+  }
+
+  .playerCardTop {
+    grid-template-columns: 54px minmax(0, 1fr) 44px;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .playerCardEnd {
+    display: flex;
+  }
+
+  .playerIdentity h3 {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
+  .playerIdentity > span {
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .mobilePlayerMeta {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .mobilePlayerMeta b {
+    font-size: 10px;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .mobileNextAction {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .mobileNextActionBody strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.45;
+  }
+
+  .mobileNextActionHead > span:nth-child(2),
+  .mobileNextActionHead small {
+    font-size: 10px;
+  }
+
+  .mobileNextActionHead {
+    flex-wrap: wrap;
+  }
+
+  .profileShortcutRow {
+    padding-top: 10px;
+  }
+
+  .search {
+    min-height: 48px;
+    border-radius: 12px;
+  }
+
+  .search input {
+    font-size: 16px;
+  }
+
+  .sectionTab, .sectionTabActive {
+    min-height: 44px;
+    font-size: 12px;
+  }
+}
+
 .playerPagePanel .drawerTopManaged {
   justify-content: space-between;
 }
@@ -1647,4 +1746,24 @@
     top: 10px;
     right: 10px;
   }
+}
+
+@media (max-width: 680px) {
+  .recruitmentTitle { flex-wrap: wrap; }
+  .recruitmentTitle strong { font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+  .recruitmentCopy > span, .recruitmentCopy > small {
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow: visible;
+  }
+}
+
+.stageFilters {
+  flex-wrap: wrap;
+  overflow-x: visible;
+}
+.stageFilter, .stageFilterActive {
+  min-height: 44px;
+  font-size: 11px;
 }

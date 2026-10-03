@@ -889,6 +889,7 @@ export default function AgencyPlayersWorkspace({
                 tabIndex={0}
                 onClick={() => openPlayer(String(item.player_id))}
                 onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
                     openPlayer(String(item.player_id));
@@ -917,18 +918,6 @@ export default function AgencyPlayersWorkspace({
                         { key: 'contract_expiry', label: 'Contract expiry', value: identity.contract_expiry || '', type: 'date' },
                       ]}
                     />
-                    <button
-                      type="button"
-                      className={styles.profileShortcut}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openPlayerProfile(String(item.player_id));
-                      }}
-                      aria-label={`Open ${name} Player Profile`}
-                    >
-                      <UserRound size={14} />
-                      Profile
-                    </button>
                     <span className={attention?styles.attentionPill:styles.calmPill}>{attention?'Needs action':'Current'}</span>
                   </div>
                 </div>
@@ -958,6 +947,21 @@ export default function AgencyPlayersWorkspace({
                   <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong><small>Active recorded routes</small></div>
                   <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not recorded'}</strong><small>{human(identity.contract_status||'Status not recorded')}</small></div>
                   <div><span>Agency agreement</span><strong>{item?.representation?.recorded?(item.representation.end_date?relativeDate(item.representation.end_date):'No end date'):'Not recorded'}</strong><small>{item?.representation?.recorded?human(item.representation.agreement_type):'Representation agreement not recorded'}</small></div>
+                </div>
+                <div className={styles.profileShortcutRow}>
+                  <button
+                    type="button"
+                    data-ui-button="secondary"
+                    className={styles.profileShortcut}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openPlayerProfile(String(item.player_id));
+                    }}
+                    aria-label={`Open ${name} Player Profile`}
+                  >
+                    <UserRound size={14} />
+                    View profile
+                  </button>
                 </div>
                 {attention?(
                   <div className={styles.playerCardActions}>

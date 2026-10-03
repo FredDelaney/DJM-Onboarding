@@ -1892,3 +1892,118 @@
     min-height: 44px;
   }
 }
+
+/* Profile hierarchy: identity, sources, main action, readiness. */
+.hero {
+  grid-template-areas: "identity readiness" "sources readiness" "actions readiness";
+}
+.profileLinks {
+  grid-area: sources;
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+}
+.profileLinks a {
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.cardHead {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cardHead > div {
+  flex: 1 1 160px;
+}
+.cardHead h3 {
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.topbar .quietButton,
+.cardHead .quietButton {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: 44px;
+  font-size: 12px;
+  padding: 10px 14px;
+}
+.shareCopy strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.bottomActions {
+  justify-content: flex-start;
+}
+.textButton {
+  text-decoration: none;
+}
+@media (max-width: 720px) {
+  .root { gap: 16px; }
+  .topbar {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .topbar .back {
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+    height: auto;
+    padding: 10px 12px;
+    border-radius: 11px;
+    font-size: 12px;
+    line-height: 1.35;
+    gap: 7px;
+  }
+  .topbar .quietButton { flex: 0 1 auto; }
+  .hero {
+    grid-template-areas: "identity" "sources" "actions" "readiness";
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding: 20px 16px;
+    gap: 16px;
+    border-radius: 18px;
+  }
+  .heroIdentity { gap: 12px; }
+  .photo {
+    width: 64px;
+    height: 80px;
+    flex-basis: 64px;
+    border-radius: 12px;
+  }
+  .heroCopy { min-width: 0; }
+  .heroCopy h2 {
+    font-size: clamp(22px, 6vw, 28px);
+    line-height: 1.15;
+  }
+  .heroCopy p { font-size: 12px; line-height: 1.5; }
+  .heroFacts span, .statusRow span { font-size: 10px; line-height: 1.4; }
+  .heroFacts span { padding: 4px 8px; }
+  .profileLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+  }
+  .profileLinks a { flex: 1 1 120px; min-width: 0; padding: 10px 12px; }
+  .heroActions { gap: 8px; }
+  .heroActions .secondaryAction { flex: 1 1 130px; }
+  .readiness { padding: 12px; }
+  .readinessTop strong, .readinessTop span { font-size: 11px; }
+  .readiness p { font-size: 11px; line-height: 1.5; }
+  .card { border-radius: 18px; }
+  .cardHead { padding: 16px; gap: 12px; }
+  .cardHead h3 { font-size: 17px; }
+  .empty { min-height: 128px; padding: 20px 16px; gap: 8px; }
+  .empty strong { font-size: 13px; line-height: 1.4; }
+  .empty span { font-size: 12px; line-height: 1.5; }
+  .shareRow {
+    grid-template-columns: 12px minmax(0, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+  .shareCopy strong { font-size: 14px; line-height: 1.4; }
+  .shareCopy span, .shareCopy small { font-size: 12px; line-height: 1.5; }
+  .shareActions { grid-column: 2; gap: 8px; }
+}

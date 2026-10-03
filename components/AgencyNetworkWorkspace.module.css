@@ -1936,3 +1936,32 @@
     align-items: flex-start;
   }
 }
+
+/* Readable records and flexible actions at phone widths. */
+@media (max-width: 680px) {
+  .workspace { gap: 16px; }
+  .toolbar, .toolbarTools { flex-wrap: wrap; min-width: 0; gap: 12px; }
+  .toolbarTools { width: 100%; }
+  .search { min-height: 48px; min-width: 0; flex: 1 1 200px; border-radius: 12px; }
+  .search input { font-size: 16px; }
+  .tab, .tabActive { min-height: 44px; font-size: 12px; }
+  .clubCard, .personCard { border-radius: 18px; padding: 16px; }
+  .entityTop { gap: 10px; }
+  .entityTop h3 { font-size: 17px; line-height: 1.3; white-space: normal; }
+  .entityTop p { font-size: 12px; line-height: 1.5; }
+  .primaryFact span, .clubContext span, .nextMove span,
+  .sectionLabel > span, .personCard .relationshipSummary span,
+  .personCard .nextMove span { font-size: 10px; line-height: 1.4; }
+  .primaryFact strong, .clubContext strong,
+  .personCard .relationshipSummary strong { font-size: 13px; line-height: 1.45; white-space: normal; }
+  .primaryFact small, .clubContext small { font-size: 11px; line-height: 1.5; }
+  .nextMove strong, .personCard .nextMove strong { font-size: 12px; line-height: 1.45; }
+  .personCard .relationshipState { font-size: 10px; }
+  .actions, .personCard .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .personCard .primaryAction { min-width: 0; flex: 1 1 140px; }
+  .personCard .secondaryAction { font-size: 12px !important; min-height: 44px !important; }
+  .personCard .relationshipSummary { flex-wrap: wrap; }
+  .empty { min-height: 160px; padding: 24px 16px; }
+  .empty strong { font-size: 15px; line-height: 1.4; }
+  .empty span { font-size: 12px; line-height: 1.5; }
+}

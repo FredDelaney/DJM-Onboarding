@@ -13,11 +13,11 @@ test('authenticated control system defines five semantic roles', () => {
   }
 });
 
-test('primary and secondary mobile controls share geometry and cannot stack', () => {
+test('primary and secondary mobile controls share geometry and wrap full labels', () => {
   assert.match(final, /data-ui-button="primary"[\s\S]*data-ui-button="secondary"[\s\S]*flex-direction: row !important/);
   assert.match(final, /min-height: var\(--ui-control-h\) !important/);
   assert.match(final, /border-radius: var\(--ui-control-radius\) !important/);
-  assert.match(final, /white-space: nowrap !important/);
+  assert.match(final, /white-space: normal !important/);
 });
 
 test('icon and nav controls are mathematically centred', () => {

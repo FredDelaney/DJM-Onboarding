@@ -1213,7 +1213,7 @@ export default function AgencyPlayerProfile({
   return (
     <div className={styles.root} style={theme}>
       <div className={styles.topbar}>
-        <Link href={backHref} className={styles.back}>
+        <Link href={backHref} className={styles.back} aria-label="Back to players">
           <ArrowLeft size={15} />
           Players
         </Link>
@@ -1314,40 +1314,40 @@ export default function AgencyPlayerProfile({
                   : 'Verification needed'}
               </span>
             </div>
-
-            {(draftProfile.primary_video_url ||
-              player.transfermarkt_url ||
-              player.wyscout_url ||
-              player.stats_url) ? (
-              <div className={styles.profileLinks}>
-                {draftProfile.primary_video_url ? (
-                  <a href={draftProfile.primary_video_url} target="_blank" rel="noreferrer">
-                    <Play size={13} />
-                    Watch video
-                  </a>
-                ) : null}
-                {player.transfermarkt_url ? (
-                  <a href={player.transfermarkt_url} target="_blank" rel="noreferrer">
-                    Transfermarkt
-                    <ExternalLink size={11} />
-                  </a>
-                ) : null}
-                {player.wyscout_url ? (
-                  <a href={player.wyscout_url} target="_blank" rel="noreferrer">
-                    Wyscout
-                    <ExternalLink size={11} />
-                  </a>
-                ) : null}
-                {!player.wyscout_url && player.stats_url ? (
-                  <a href={player.stats_url} target="_blank" rel="noreferrer">
-                    Stats
-                    <ExternalLink size={11} />
-                  </a>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         </div>
+
+        {(draftProfile.primary_video_url ||
+          player.transfermarkt_url ||
+          player.wyscout_url ||
+          player.stats_url) ? (
+          <div className={styles.profileLinks}>
+            {draftProfile.primary_video_url ? (
+              <a href={draftProfile.primary_video_url} target="_blank" rel="noreferrer">
+                <Play size={13} />
+                Watch video
+              </a>
+            ) : null}
+            {player.transfermarkt_url ? (
+              <a href={player.transfermarkt_url} target="_blank" rel="noreferrer">
+                Transfermarkt
+                <ExternalLink size={11} />
+              </a>
+            ) : null}
+            {player.wyscout_url ? (
+              <a href={player.wyscout_url} target="_blank" rel="noreferrer">
+                Wyscout
+                <ExternalLink size={11} />
+              </a>
+            ) : null}
+            {!player.wyscout_url && player.stats_url ? (
+              <a href={player.stats_url} target="_blank" rel="noreferrer">
+                Stats
+                <ExternalLink size={11} />
+              </a>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className={styles.readiness}>
           <div className={styles.readinessTop}>
@@ -1794,10 +1794,9 @@ export default function AgencyPlayerProfile({
         ) : secondaryReady ? (
           <div className={styles.empty}>
             <MessageCircleMore size={19} />
-            <strong>No player-linked communication yet.</strong>
+            <strong>No conversations linked yet.</strong>
             <span>
-              Email and selected chats appear here only when there is
-              explicit evidence that they relate to this player.
+              Emails and chats linked to this player will appear here.
             </span>
           </div>
         ) : (
@@ -1850,7 +1849,7 @@ export default function AgencyPlayerProfile({
         <div className={styles.cardHead}>
           <div>
             <span className={styles.eyebrow}>PROFILE ACTIVITY</span>
-            <h3>Know what happened after you sent it.</h3>
+            <h3>Club links</h3>
           </div>
 
           {published?.published ? (
@@ -1861,7 +1860,7 @@ export default function AgencyPlayerProfile({
               onClick={openShareComposer}
             >
               <Link2 size={15} />
-              New club link
+              Create link
             </button>
           ) : null}
         </div>
