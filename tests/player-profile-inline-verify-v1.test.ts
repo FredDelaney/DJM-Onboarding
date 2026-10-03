@@ -62,3 +62,11 @@ test('inline verification has a deliberate mobile layout', () => {
   assert.match(css, /\.verifyBackdrop[\s\S]*env\(safe-area-inset-top\)/);
   assert.match(css, /\.verifyBackdrop[\s\S]*place-items:end center/);
 });
+
+test('Transfermarkt source saving is tenant-bound and audited', () => {
+  assert.match(agencyOs, /action==="player_profile_transfermarkt_save"/);
+  assert.match(agencyOs, /update\(\{transfermarkt_url:url\|\|null\}\)/);
+  assert.match(agencyOs, /eq\("tenant_id",tenantId\)/);
+  assert.match(agencyOs, /player_profile\.transfermarkt_saved/);
+  assert.match(agencyOs, /\/profil\\\/spieler\\\/\\d\+/);
+});

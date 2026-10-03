@@ -25,3 +25,8 @@ test('entity actions use one premium bottom sheet', () => {
   assert.match(css, /\.sheet[\s\S]*border-radius:\s*24px/);
   assert.match(css, /\.backdrop[\s\S]*backdrop-filter:\s*blur\(4px\)/);
 });
+
+test('entity action sheet escapes card stacking contexts on mobile', () => {
+  assert.match(source, /createPortal/);
+  assert.match(source, /document\.body/);
+});

@@ -1,10 +1,9 @@
 'use client';
 
 import AiLauncher from '@/components/AiLauncher';
-import AgencyCreateDrawer, {
-  type AgencyCreateKind,
-} from '@/components/AgencyCreateDrawer';
+import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
@@ -46,41 +45,17 @@ import {
   relativeDate,
 } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
-import AgencyRosterMigrationPanel from '@/components/AgencyRosterMigrationPanel';
-import AgencyActionDrawer, {
-  type AgencyActionRequest,
-} from '@/components/AgencyActionDrawer';
-import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
-import AgencyEntityIntelligenceDrawer, {
-  type AgencyIntelligenceRequest,
-} from '@/components/AgencyEntityIntelligenceDrawer';
-import AgencyPursuitRoom, {
-  type AgencyPursuitRequest,
-} from '@/components/AgencyPursuitRoom';
-import AgencyOwnerCommandCentre from '@/components/AgencyOwnerCommandCentre';
-import AgencyMemoryDrawer from '@/components/AgencyMemoryDrawer';
-import AgencyDealCloseoutDrawer, {
-  type AgencyDealCloseoutRequest,
-} from '@/components/AgencyDealCloseoutDrawer';
-import AgencyClubAccountDrawer, {
-  type AgencyClubAccountRequest,
-} from '@/components/AgencyClubAccountDrawer';
-import AgencyNegotiationCommandRoom, {
-  type AgencyNegotiationRequest,
-} from '@/components/AgencyNegotiationCommandRoom';
-import AgencyPlayerServiceReviewDrawer, {
-  type AgencyPlayerServiceReviewRequest,
-} from '@/components/AgencyPlayerServiceReviewDrawer';
+import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
+import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
+import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
+import type { AgencyDealCloseoutRequest } from '@/components/AgencyDealCloseoutDrawer';
+import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
+import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
+import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
 import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
-import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
 import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
 import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
-import AgencyConnectionsDrawer from '@/components/AgencyConnectionsDrawer';
-import AgencyConnectedIdentityResolverDrawer from '@/components/AgencyConnectedIdentityResolverDrawer';
-import AgencyConnectedReplyDrawer from '@/components/AgencyConnectedReplyDrawer';
-import AgencyMeetingOutcomeDrawer from '@/components/AgencyMeetingOutcomeDrawer';
-import AgencyTeamHandoffDrawer from '@/components/AgencyTeamHandoffDrawer';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
@@ -90,6 +65,25 @@ import { homeReadState, settleHomeReads, homeConversationHref } from '@/lib/agen
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
+const AgencyCreateDrawer = dynamic(() => import('@/components/AgencyCreateDrawer'));
+const AgencyRosterMigrationPanel = dynamic(() => import('@/components/AgencyRosterMigrationPanel'));
+const AgencyActionDrawer = dynamic(() => import('@/components/AgencyActionDrawer'));
+const AgencyContactIntelligenceDrawer = dynamic(() => import('@/components/AgencyContactIntelligenceDrawer'));
+const AgencyEntityIntelligenceDrawer = dynamic(() => import('@/components/AgencyEntityIntelligenceDrawer'));
+const AgencyPursuitRoom = dynamic(() => import('@/components/AgencyPursuitRoom'));
+const AgencyOwnerCommandCentre = dynamic(() => import('@/components/AgencyOwnerCommandCentre'));
+const AgencyMemoryDrawer = dynamic(() => import('@/components/AgencyMemoryDrawer'));
+const AgencyDealCloseoutDrawer = dynamic(() => import('@/components/AgencyDealCloseoutDrawer'));
+const AgencyClubAccountDrawer = dynamic(() => import('@/components/AgencyClubAccountDrawer'));
+const AgencyNegotiationCommandRoom = dynamic(() => import('@/components/AgencyNegotiationCommandRoom'));
+const AgencyPlayerServiceReviewDrawer = dynamic(() => import('@/components/AgencyPlayerServiceReviewDrawer'));
+const AgencyPlayerProfile = dynamic(() => import('@/components/AgencyPlayerProfile'));
+const AgencyConnectionsDrawer = dynamic(() => import('@/components/AgencyConnectionsDrawer'));
+const AgencyConnectedIdentityResolverDrawer = dynamic(() => import('@/components/AgencyConnectedIdentityResolverDrawer'));
+const AgencyConnectedReplyDrawer = dynamic(() => import('@/components/AgencyConnectedReplyDrawer'));
+const AgencyMeetingOutcomeDrawer = dynamic(() => import('@/components/AgencyMeetingOutcomeDrawer'));
+const AgencyTeamHandoffDrawer = dynamic(() => import('@/components/AgencyTeamHandoffDrawer'));
+
 type View = 'home' | 'players' | 'opportunities' | 'network' | 'calendar' | 'business';
 
 type ViewCacheEntry = {
@@ -98,6 +92,7 @@ type ViewCacheEntry = {
 };
 
 const viewDataCache = new Map<string, ViewCacheEntry>();
+const viewWarmRequests = new Map<string, Promise<void>>();
 const VIEW_CACHE_TTL_MS = 10 * 60_000;
 
 const readViewCache = (key: string) => {
@@ -352,6 +347,21 @@ export default function AgencyOperatingWorkspace() {
     useState<any>(null);
   const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
     useState('');
+  const previousViewRef = useRef<View>(view);
+
+  useEffect(() => {
+    if (previousViewRef.current === view) return;
+    previousViewRef.current = view;
+
+    setActionRequest(null);
+    setIntelligenceRequest(null);
+    setPursuitRequest(null);
+    setClubAccountRequest(null);
+    setNegotiationRequest(null);
+    setPlayerServiceReviewRequest(null);
+    setDealCloseoutRequest(null);
+    setCreateKind(null);
+  }, [view]);
 
   const workspaceName =
     workspace?.display_name ||
@@ -457,72 +467,90 @@ export default function AgencyOperatingWorkspace() {
 
       if (readViewCache(cacheKey)) return;
 
-      try {
-        if (targetView === 'home') {
-          let home: any = null;
+      const existingRequest = viewWarmRequests.get(cacheKey);
+      if (existingRequest) {
+        await existingRequest;
+        return;
+      }
 
-          try {
-            const focus = await invoke<any>('home_focus', {
-              limit: 8,
-            });
-            home = focus?.home || {};
-          } catch {
-            home = await rpc<any>('redream_autopilot_home', {
-              p_limit: 8,
-            });
+      const request = (async () => {
+        try {
+          if (targetView === 'home') {
+            let home: any = null;
+
+            try {
+              const focus = await invoke<any>('home_focus', {
+                limit: 8,
+              });
+              home = focus?.home || {};
+            } catch {
+              home = await rpc<any>('redream_autopilot_home', {
+                p_limit: 8,
+              });
+            }
+
+            writeViewCache(cacheKey, { home });
+            return;
           }
 
-          writeViewCache(cacheKey, { home });
-          return;
+          if (targetView === 'players') {
+            const directory = await invoke<any>(
+              'players_workspace',
+              { limit: 100 },
+            );
+
+            writeViewCache(cacheKey, {
+              directory: directory?.players || {},
+            });
+            return;
+          }
+
+          if (targetView === 'opportunities') {
+            const market = await rpc<any>(
+              'redream_autopilot_market',
+              { p_limit: 100 },
+            );
+
+            writeViewCache(cacheKey, {
+              market,
+              connected: {},
+            });
+            return;
+          }
+
+          if (targetView === 'network') {
+            writeViewCache(
+              cacheKey,
+              await rpc<any>('redream_autopilot_relationships', {
+                p_limit: 100,
+                p_contact_limit: 250,
+              }),
+            );
+            return;
+          }
+
+          if (targetView === 'calendar') {
+            writeViewCache(
+              cacheKey,
+              await rpc<any>('redream_autopilot_calendar', {
+                p_horizon_days: 90,
+                p_limit: 100,
+              }),
+            );
+          }
+        } catch {
+          // Warming is opportunistic. The visible view keeps its normal load path.
         }
+      })();
 
-        if (targetView === 'players') {
-          const directory = await invoke<any>(
-            'players_workspace',
-            { limit: 100 },
-          );
+      viewWarmRequests.set(cacheKey, request);
 
-          writeViewCache(cacheKey, {
-            directory: directory?.players || {},
-          });
-          return;
+      try {
+        await request;
+      } finally {
+        if (viewWarmRequests.get(cacheKey) === request) {
+          viewWarmRequests.delete(cacheKey);
         }
-
-        if (targetView === 'opportunities') {
-          const market = await rpc<any>(
-            'redream_autopilot_market',
-            { p_limit: 100 },
-          );
-
-          writeViewCache(cacheKey, {
-            market,
-            connected: {},
-          });
-          return;
-        }
-
-        if (targetView === 'network') {
-          writeViewCache(
-            cacheKey,
-            await rpc<any>('redream_autopilot_relationships', {
-              p_limit: 100,
-              p_contact_limit: 250,
-            }),
-          );
-          return;
-        }
-
-        if (targetView === 'calendar') {
-          writeViewCache(
-            cacheKey,
-            await rpc<any>('redream_autopilot_calendar', {
-              p_horizon_days: 90,
-              p_limit: 100,
-            }),
-          );
-        }
-      } catch {
-        // Warming is opportunistic. The visible view keeps its normal load path.
       }
     },
     [
@@ -531,6 +559,20 @@ export default function AgencyOperatingWorkspace() {
       workspace?.slug,
       workspace?.tenant_id,
     ],
+  );
+
+  const navigateWorkspaceView = useCallback(
+    (targetView: View, href: string) => {
+      if (targetView === view || typeof window === 'undefined') return;
+
+      void warmView(targetView);
+      window.history.pushState(
+        { redreamView: targetView },
+        '',
+        href,
+      );
+    },
+    [view, warmView],
   );
 
   const resolveWorkspace = useCallback(async () => {
@@ -593,7 +635,21 @@ export default function AgencyOperatingWorkspace() {
       view,
       view === 'players' ? playersSection : 'main',
     ].join(':');
-    const cached = readViewCache(cacheKey);
+    let cached = readViewCache(cacheKey);
+
+    if (!cached) {
+      const warming = viewWarmRequests.get(cacheKey);
+      if (warming) {
+        setError('');
+        setProposal(null);
+        setData(null);
+        setBusy(true);
+        await warming;
+        if (!isCurrent()) return;
+        cached = readViewCache(cacheKey);
+      }
+    }
+
     const cachedSupportsVisibleView =
       view !== 'opportunities' ||
       (opportunitiesSection === 'deals'
@@ -885,15 +941,22 @@ export default function AgencyOperatingWorkspace() {
 
     const timer = window.setTimeout(() => {
       void (async () => {
-        for (const targetView of targets) {
+        const priorityTargets = targets.slice(0, 2);
+        const remainingTargets = targets.slice(2);
+
+        await Promise.allSettled(
+          priorityTargets.map((targetView) => warmView(targetView)),
+        );
+
+        for (const targetView of remainingTargets) {
           if (cancelled) return;
           await warmView(targetView);
           await new Promise((resolve) =>
-            window.setTimeout(resolve, 120),
+            window.setTimeout(resolve, 60),
           );
         }
       })();
-    }, 900);
+    }, 320);
 
     return () => {
       cancelled = true;
@@ -1219,10 +1282,26 @@ export default function AgencyOperatingWorkspace() {
               <Link
                 key={item.key}
                 href={href}
+                prefetch={false}
                 aria-current={view === item.key ? 'page' : undefined}
                 className={`${view === item.key ? styles.navActive : ''} ${item.key === 'business' ? styles.navManagement : ''}`}
+                onPointerDown={() => void warmView(item.key)}
                 onPointerEnter={() => void warmView(item.key)}
                 onFocus={() => void warmView(item.key)}
+                onClick={(event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  ) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  navigateWorkspaceView(item.key, href);
+                }}
               >
                 <Icon size={17} />
                 <span>{item.label}</span>
@@ -1379,7 +1458,10 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {data ? (
-          <>
+          <div
+            className={styles.viewStage}
+            key={`view:${view}:${selectedPlayerId || playersSection}:${opportunitiesSection}`}
+          >
             {view === 'home' ? (
               <Home
                 data={data}
@@ -1470,7 +1552,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenOwner={() => setOwnerCommandOpen(true)}
               />
             ) : null}
-          </>
+          </div>
         ) : null}
       </main>
 

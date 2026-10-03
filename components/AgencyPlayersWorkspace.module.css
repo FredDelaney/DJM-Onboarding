@@ -1313,9 +1313,10 @@
     position: relative;
     align-self: center;
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: flex-end;
-    gap: 0;
+    gap: 6px;
   }
 
   .profileShortcut {
@@ -1446,11 +1447,13 @@
 
   .profileShortcut {
     min-height: 34px;
+    flex: 0 0 auto;
     padding: 0 11px;
     border-color: #e5e9ed;
     background: #fff;
     box-shadow: none;
     font-size: 9px;
+    white-space: nowrap;
   }
 
   .playerCardEnd .attentionPill,

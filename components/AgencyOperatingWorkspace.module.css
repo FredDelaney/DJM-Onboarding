@@ -4410,3 +4410,32 @@
     right: 0;
   }
 }
+
+/* Native-feel workspace navigation v1 */
+.nav a {
+  transition:
+    color 130ms ease,
+    background-color 130ms ease,
+    box-shadow 130ms ease,
+    transform 110ms ease;
+}
+
+.nav a:active {
+  transform: scale(.985);
+}
+
+.loadingCard {
+  min-height: min(52vh, 520px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .viewStage {
+    min-width: 0;
+    animation: agencyViewIn 150ms cubic-bezier(.2,.8,.2,1) both;
+  }
+}
+
+@keyframes agencyViewIn {
+  from { opacity: .72; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

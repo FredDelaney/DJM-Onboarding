@@ -15,15 +15,20 @@ import {
   Users,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 
-import AgencyContactIntelligenceDrawer from '@/components/AgencyContactIntelligenceDrawer';
+
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
 
 import styles from './AgencyNetworkWorkspace.module.css';
+
+const AgencyContactIntelligenceDrawer = dynamic(
+  () => import('@/components/AgencyContactIntelligenceDrawer'),
+);
 
 type NetworkView = 'clubs' | 'people';
 
@@ -242,15 +247,21 @@ export default function AgencyNetworkWorkspace({
   const requestedPersonId = String(searchParams.get('person') || '').trim();
   const requestedClubId = String(searchParams.get('club') || '').trim();
 
-  const accounts = data?.accounts || {};
-  const clubs = list(accounts?.clubs).filter((club: any) =>
-    !archived.has(`club:${String(club?.organisation_id || '')}`),
+  const accounts = useMemo(() => data?.accounts || {}, [data?.accounts]);
+  const clubs = useMemo(
+    () => list(accounts?.clubs).filter((club: any) =>
+      !archived.has(`club:${String(club?.organisation_id || '')}`),
+    ),
+    [accounts?.clubs, archived],
   );
   const clubSummary = accounts?.summary || {};
 
-  const contactData = data?.contacts || {};
-  const people = list(contactData?.items).filter((item: any) =>
-    !archived.has(`club_contact:${String(item?.person_id || item?.id || '')}`),
+  const contactData = useMemo(() => data?.contacts || {}, [data?.contacts]);
+  const people = useMemo(
+    () => list(contactData?.items).filter((item: any) =>
+      !archived.has(`club_contact:${String(item?.person_id || item?.id || '')}`),
+    ),
+    [archived, contactData?.items],
   );
   const peopleSummary = contactData?.summary || {};
 
@@ -394,15 +405,18 @@ export default function AgencyNetworkWorkspace({
 
   const personId = (item: any) => String(item?.person_id || item?.id || '').trim();
 
-  const clubRequestFor = (club: any): AgencyClubAccountRequest => ({
-    key: `club-account:${club?.organisation_id}`,
-    organisationId: String(club?.organisation_id || ''),
-    title: club?.name || 'Club',
-    context:
-      [club?.city, club?.country, club?.league_name]
-        .filter(Boolean)
-        .join(' · ') || null,
-  });
+  const clubRequestFor = useCallback(
+    (club: any): AgencyClubAccountRequest => ({
+      key: `club-account:${club?.organisation_id}`,
+      organisationId: String(club?.organisation_id || ''),
+      title: club?.name || 'Club',
+      context:
+        [club?.city, club?.country, club?.league_name]
+          .filter(Boolean)
+          .join(' · ') || null,
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (!requestedPersonId) {
@@ -420,7 +434,7 @@ export default function AgencyNetworkWorkspace({
         String(club?.organisation_id || '') === requestedClubId,
     );
     if (match) onOpenClubAccount(clubRequestFor(match));
-  }, [clubs, requestedClubId, requestedPersonId]);
+  }, [clubRequestFor, clubs, onOpenClubAccount, requestedClubId, requestedPersonId]);
 
   const openPerson = (item: any) => {
     const id = personId(item);
