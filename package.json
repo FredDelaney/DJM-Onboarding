@@ -15,12 +15,14 @@
     "check:no-em-dash": "node scripts/check-no-em-dash.mjs"
   },
   "dependencies": {
+    "@fullcalendar/react": "7.1.0",
     "@react-pdf/renderer": "4.5.1",
     "@supabase/supabase-js": "2.112.4",
     "lucide-react": "^0.468.0",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "temporal-polyfill": "1.0.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14",

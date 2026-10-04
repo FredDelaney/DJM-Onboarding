@@ -28,6 +28,7 @@ import {
 } from '@/lib/platform-client';
 import { whatsappHref } from '@/lib/research-links';
 
+import AgencyBirthdayEditor from '@/components/AgencyBirthdayEditor';
 import AgencyRelationshipActions from '@/components/AgencyRelationshipActions';
 import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
@@ -749,6 +750,8 @@ export default function AgencyContactIntelligenceDrawer({
                 await onRefresh();
               }}
             />
+
+            <AgencyBirthdayEditor entityKind="contact" entityId={clean(contact?.person_id)} rpc={rpc} />
 
             <AgencyRelationshipMemory
               memory={detail?.relationship_memory}

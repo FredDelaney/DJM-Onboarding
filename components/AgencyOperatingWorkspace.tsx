@@ -304,6 +304,7 @@ export default function AgencyOperatingWorkspace() {
 
   const [sessionReady, setSessionReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [sessionUserId, setSessionUserId] = useState('');
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(true);
@@ -889,6 +890,7 @@ export default function AgencyOperatingWorkspace() {
       if (!active) return;
       const hasSession = Boolean(auth.session?.user);
       setSignedIn(hasSession);
+      setSessionUserId(auth.session?.user?.id || '');
       setSessionReady(true);
       if (!hasSession) setBusy(false);
     });
@@ -898,6 +900,7 @@ export default function AgencyOperatingWorkspace() {
         if (!active) return;
         const hasSession = Boolean(session?.user);
         setSignedIn(hasSession);
+        setSessionUserId(session?.user?.id || '');
         setSessionReady(true);
         if (!hasSession) {
           setWorkspace(null);
@@ -1538,6 +1541,8 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'calendar' ? (
               <AgencyCalendarWorkspace
+                key={`calendar:${workspace.tenant_id}:${sessionUserId}`}
+                preferenceKey={`${workspace.tenant_id}:${sessionUserId}`}
                 data={data}
                 basePath={basePath}
                 rpc={rpc}

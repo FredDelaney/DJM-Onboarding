@@ -852,3 +852,68 @@
   .empty { min-height: 160px; padding: 24px 16px; }
   .empty span { font-size: 12px; line-height: 1.5; }
 }
+
+/* Month and agenda share one date selection and a compact, touch-friendly toolbar. */
+.calendarControls { display:grid; gap:16px; border:1px solid #e3e9ee; background:#fff; padding:20px; border-radius:20px; min-width:0; }
+.calendarHeading { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.calendarHeading h2 { margin:0; font-size:22px; color:#173449; letter-spacing:-.5px; }
+.dateNavigation { display:flex; gap:6px; }
+.dateNavigation button,.datesError button { min-width:44px; min-height:44px; border:1px solid #e1e7eb; border-radius:12px; background:#fff; color:#173449; font:inherit; font-size:14px; padding:10px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+.viewSwitch { position:relative; display:grid; grid-template-columns:1fr 1fr; padding:4px; width:240px; max-width:100%; border-radius:13px; background:#f0f3f6; }
+.viewIndicator { position:absolute; top:4px; left:4px; bottom:4px; width:calc(50% - 4px); border-radius:10px; background:#fff; box-shadow:0 2px 6px #16354b12; transition:transform .2s ease; }
+.viewSwitch button { position:relative; min-height:44px; border:0; background:transparent; border-radius:10px; font:inherit; font-size:14px; font-weight:650; color:#758491; cursor:pointer; }
+.viewSwitch button[aria-pressed=true] { color:#173449; }
+.dateStrip { display:flex; gap:6px; overflow-x:auto; overscroll-behavior-x:contain; scroll-snap-type:x proximity; scrollbar-width:thin; padding:4px 2px 9px; min-width:0; }
+.stripDay,.stripSelected { display:grid; gap:4px; align-content:center; justify-items:center; scroll-snap-align:center; flex:0 0 52px; min-height:76px; border:1px solid transparent; border-radius:14px; font:inherit; color:#657887; background:#f6f8fa; cursor:pointer; padding:8px 4px; }
+.stripDay small,.stripSelected small { font-size:11px; }
+.stripDay strong,.stripSelected strong { font-size:19px; }
+.stripSelected { color:#fff; background:var(--agency-primary,#16354b); }
+.stripDay[aria-current=date] { border-color:#7195ad; color:#14364b; }
+.dateDot { width:4px; height:4px; border-radius:50%; background:transparent; }
+.dateDot[data-has-events=true] { background:currentColor; }
+.birthdayFilters { display:flex; flex-wrap:wrap; gap:6px 18px; border:0; border-top:1px solid #edf0f3; padding:12px 0 0; margin:0; min-width:0; }
+.birthdayFilters legend { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:650; padding-right:10px; color:#617787; }
+.birthdayFilters label { display:flex; align-items:center; gap:8px; min-height:44px; font-size:14px; color:#28475c; cursor:pointer; }
+.birthdayFilters input { width:18px; height:18px; margin:0; accent-color:var(--agency-primary,#16354b); }
+.birthdayHint { margin:0; color:#7a8995; font-size:12px; line-height:1.6; }
+.birthdayHint a { color:#305d7a; text-decoration:underline; text-underline-offset:3px; }
+.monthGrid { margin-bottom:16px; padding:12px; border:1px solid #e3e9ee; border-radius:20px; background:white; overflow:hidden; min-width:0;
+  --fc-classic-primary:#173449; --fc-classic-today:#eef5f8; --fc-classic-border:#e5ebef; --fc-classic-foreground:#28475c; --fc-classic-small-dot-width:5px; }
+.monthGrid table { width:100%; table-layout:fixed; }
+.monthGrid th { font-size:12px; font-weight:650; }
+.monthGrid td { height:96px; }
+.dayNumber,.todayNumber { min-width:38px; min-height:38px; border:0; border-radius:50%; background:transparent; color:#28475c; font:inherit; font-size:14px; cursor:pointer; }
+.todayNumber { background:var(--agency-primary,#16354b); color:#fff; font-weight:700; }
+.selectedCell { background:#edf3f7 !important; }
+.monthBirthday { background:#eaf6ef !important; color:#286a48 !important; border-color:#d3eadc !important; border-radius:6px !important; }
+.monthEvent { background:#edf3f9 !important; color:#214965 !important; border-color:#dce7f0 !important; border-radius:6px !important; }
+.monthEventText { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; padding:2px 3px; }
+.selectedDayTitle { margin:0; padding:8px; font-size:16px; color:#173449; }
+.loadingDates { color:#728592; font-size:13px; margin:0; }
+.datesError { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:14px; background:#fff7ed; border-radius:14px; color:#86582f; font-size:14px; }
+.calendarControls :is(button,input):focus-visible,.monthGrid button:focus-visible { outline:3px solid #4c92b5; outline-offset:2px; }
+@media(max-width:600px) {
+  .calendarControls { padding:16px; gap:12px; }
+  .calendarHeading h2 { font-size:20px; }
+  .monthGrid { padding:6px; border-radius:16px; }
+  .monthGrid td { height:72px; }
+  .dayNumber,.todayNumber { min-width:34px; min-height:40px; font-size:13px; }
+  .monthEventText { font-size:9px; padding:1px; }
+  .birthdayFilters { gap:4px 12px; }
+  .birthdayFilters label { font-size:13px; }
+}
+@media(prefers-reduced-motion:reduce) { .viewIndicator { transition:none; } }
+.workspace { min-width:0; grid-template-columns:minmax(0,1fr); }
+.calendarControls,.viewSwitch,.monthGrid { box-sizing:border-box; }
+.monthRow { min-height:96px; }
+.monthCell { min-height:96px; }
+.monthAgenda .dayGroup { grid-template-columns:minmax(0,1fr); }
+.monthAgenda .dayLabel,.monthAgenda .dayLabelAttention { display:none; }
+.eventDot { display:inline-block; width:5px; height:5px; border-radius:50%; background:currentColor; margin-right:4px; }
+@media(max-width:600px) {
+  .monthRow,.monthCell { min-height:70px; }
+  .monthEventText { padding:2px; text-align:center; }
+  .eventTitle { display:none; }
+  .eventDot { margin:0; }
+}
+@media(max-width:600px) { .monthRow,.monthCell { min-height:82px; } }
