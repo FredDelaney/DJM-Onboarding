@@ -2,6 +2,7 @@
 
 import {
   ChevronRight,
+  ChevronLeft,
   BriefcaseBusiness,
   CakeSlice,
   CalendarDays,
@@ -16,10 +17,14 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { calendarDateKey, monthDays, shiftMonth, calendarPreferences, type BirthdayFilters } from '@/lib/calendar/dates';
 import { useSearchParams } from 'next/navigation';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import styles from './AgencyCalendarWorkspace.module.css';
+
+const CalendarMonth = dynamic(() => import('./AgencyCalendarMonth'), { ssr: false, loading: () => <p role="status">Loading month...</p> });
 
 type Horizon = 7 | 30 | 90;
 
@@ -42,6 +47,7 @@ type AgendaItem = {
   meetingUrl?: string;
   source?: string;
   deadlineType?: string;
+  birthdayCategory?: keyof BirthdayFilters;
 };
 
 const list = (value: unknown): any[] =>
@@ -100,8 +106,10 @@ export default function AgencyCalendarWorkspace({
   basePath,
   rpc,
   onRecordMeetingOutcome,
+  preferenceKey,
 }: {
   data: any;
+  preferenceKey?: string;
   basePath: string;
   rpc: Rpc;
   onRecordMeetingOutcome: (meeting: any) => void;
@@ -109,6 +117,64 @@ export default function AgencyCalendarWorkspace({
   const search = useSearchParams();
   const requestedMeetingId = String(search.get('meeting') || '').trim();
   const [horizon, setHorizon] = useState<Horizon>(30);
+  const [view, setView] = useState<'month' | 'agenda'>('month');
+  const [selectedDate, setSelectedDate] = useState(() => calendarDateKey(new Date()));
+  const [birthdayFilters, setBirthdayFilters] = useState<BirthdayFilters>(() => calendarPreferences(null));
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [calendarData, setCalendarData] = useState<any>(null);
+  const [birthdayData, setBirthdayData] = useState<any>(null);
+  const [datesBusy, setDatesBusy] = useState(true);
+  const [datesError, setDatesError] = useState('');
+  const [refreshDates, setRefreshDates] = useState(0);
+  const dayStrip = useRef<HTMLDivElement>(null);
+  const swipeStart = useRef<{x:number;y:number} | null>(null);
+  const month = selectedDate.slice(0,7);
+  const today = calendarDateKey(new Date());
+  const days = useMemo(() => monthDays(`${month}-01`), [month]);
+  const rangeEnd = useMemo(() => {
+    if (view === 'month') return shiftMonth(`${month}-01`, 1);
+    const end = new Date(`${selectedDate}T12:00:00`);
+    end.setDate(end.getDate() + horizon + 1);
+    const nextMonth = shiftMonth(`${month}-01`, 1);
+    return calendarDateKey(end) > nextMonth ? calendarDateKey(end) : nextMonth;
+  }, [month, selectedDate, horizon, view]);
+  useEffect(() => {
+    setPreferencesReady(false);
+    try { setBirthdayFilters(calendarPreferences(preferenceKey ? localStorage.getItem(`redream:calendar:${preferenceKey}`) : null)); }
+    catch { setBirthdayFilters(calendarPreferences(null)); }
+    setPreferencesReady(true);
+  }, [preferenceKey]);
+  useEffect(() => {
+    if (!preferencesReady || !preferenceKey) return;
+    try { localStorage.setItem(`redream:calendar:${preferenceKey}`, JSON.stringify(birthdayFilters)); } catch { /* Storage can be disabled. */ }
+  }, [birthdayFilters, preferencesReady, preferenceKey]);
+  useEffect(() => {
+    dayStrip.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({block:'nearest',inline:'center',behavior:'auto'});
+  }, [selectedDate]);
+  useEffect(() => {
+    const refresh = () => setRefreshDates(n => n + 1);
+    window.addEventListener('redream:birthdays-updated', refresh);
+    return () => window.removeEventListener('redream:birthdays-updated', refresh);
+  }, []);
+  useEffect(() => {
+    let active = true;
+    setDatesBusy(true); setDatesError('');
+    void Promise.allSettled([
+      rpc<any>('redream_calendar_range', {p_start:`${month}-01`,p_end:rangeEnd,p_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}),
+      rpc<any>('redream_calendar_birthdays', {p_start:`${month}-01`,p_end:rangeEnd,p_include_contacts:birthdayFilters.contacts}),
+    ]).then(results => {
+      if (!active) return;
+      if (results[0].status === 'fulfilled') {
+        setCalendarData(results[0].value);
+        if (results[0].value?.limited) setDatesError('This range has more events than can be shown. Choose a shorter agenda range.');
+      }
+      if (results[1].status === 'fulfilled') setBirthdayData(results[1].value);
+      if (results.some(result => result.status === 'rejected')) setDatesError('Some calendar dates could not load. Try again to see the complete calendar.');
+      setDatesBusy(false);
+    });
+    return () => { active = false; };
+  }, [rpc, month, rangeEnd, birthdayFilters.contacts, refreshDates]);
+  const sourceData = calendarData || data;
   const [meetingBrief, setMeetingBrief] = useState<any>(null);
   const [openedMeetingId, setOpenedMeetingId] = useState('');
   const [meetingBriefBusy, setMeetingBriefBusy] = useState(false);
@@ -123,7 +189,7 @@ export default function AgencyCalendarWorkspace({
   };
 
   const agenda = useMemo(() => {
-    const deadlines = list(data?.operations?.deadlines?.items).map(
+    const deadlines = list(sourceData?.operations?.deadlines?.items).map(
       (item: any): AgendaItem => ({
         key: `deadline:${item?.deadline_type || 'date'}:${item?.entity_id || item?.title}`,
         kind: 'deadline',
@@ -150,7 +216,7 @@ export default function AgencyCalendarWorkspace({
     );
 
     const birthdays = list(
-      data?.operations?.important_dates?.birthdays?.items,
+      birthdayData?.items ?? sourceData?.operations?.important_dates?.birthdays?.items,
     ).map(
       (item: any): AgendaItem => ({
         key: `birthday:${item?.item_id || item?.player_id}`,
@@ -161,15 +227,17 @@ export default function AgencyCalendarWorkspace({
         title: item?.title || `${item?.player_name || 'Player'} birthday`,
         detail: item?.turns_age
           ? `Turns ${item.turns_age}`
-          : 'Player birthday',
+          : item?.birthday_category === 'staff' ? 'Team birthday' : item?.birthday_category === 'contacts' ? 'Club contact birthday' : 'Player birthday',
         category: 'Birthday',
+        birthdayCategory: item?.birthday_category || 'players',
+        personId: item?.person_id ? String(item.person_id) : undefined,
         playerId: item?.player_id
           ? String(item.player_id)
           : undefined,
       }),
     );
 
-    const meetings = list(data?.meetings?.items).map(
+    const meetings = list(sourceData?.meetings?.items).map(
       (item: any): AgendaItem => ({
         key: `meeting:${item?.meeting_id}`,
         kind: 'meeting',
@@ -193,7 +261,7 @@ export default function AgencyCalendarWorkspace({
       }),
     );
 
-    const followUps = list(data?.follow_ups?.items).map(
+    const followUps = list(sourceData?.follow_ups?.items).map(
       (item: any): AgendaItem => ({
         key: `follow-up:${item?.task_id}`,
         kind: 'follow_up',
@@ -254,21 +322,18 @@ export default function AgencyCalendarWorkspace({
       },
     );
 
-    const now = Date.now();
-    const max = now + horizon * 24 * 60 * 60 * 1000;
-
     return [...preferred.values()]
       .filter((item) => {
         const date = parseDate(item.dateAt, item.dateOnly);
         if (!date) return false;
-        return item.state === 'overdue' || date.getTime() <= max;
+        return item.kind !== 'birthday' || birthdayFilters[item.birthdayCategory || 'players'];
       })
       .sort((a, b) => {
         const aDate = parseDate(a.dateAt, a.dateOnly);
         const bDate = parseDate(b.dateAt, b.dateOnly);
         return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
       });
-  }, [data, horizon]);
+  }, [sourceData, birthdayData, birthdayFilters]);
 
   const groups = useMemo(() => {
     const now = new Date();
@@ -288,6 +353,8 @@ export default function AgencyCalendarWorkspace({
 
     const grouped = new Map<string, { label: string; items: AgendaItem[] }>();
 
+    const agendaEnd = new Date(`${selectedDate}T12:00:00`);
+    agendaEnd.setDate(agendaEnd.getDate() + horizon);
     agenda.forEach((item) => {
       const date = parseDate(item.dateAt, item.dateOnly);
       if (!date) return;
@@ -298,12 +365,12 @@ export default function AgencyCalendarWorkspace({
         String(date.getDate()).padStart(2, '0'),
       ].join('-');
 
-      const overdue =
-        item.state === 'overdue' ||
-        (!item.dateOnly && date.getTime() < Date.now());
+      const overdue = item.kind !== 'birthday' && item.kind !== 'meeting' && (item.state === 'overdue' || dateKey < todayKey);
+      if (view === 'month' && dateKey !== selectedDate) return;
+      if (view === 'agenda' && !(overdue && selectedDate === todayKey) && (dateKey < selectedDate || dateKey > calendarDateKey(agendaEnd))) return;
 
-      const key = overdue ? 'overdue' : dateKey;
-      const label = overdue
+      const key = overdue && view === 'agenda' ? 'overdue' : dateKey;
+      const label = key === 'overdue'
         ? 'Overdue'
         : dateKey === todayKey
           ? 'Today'
@@ -324,7 +391,7 @@ export default function AgencyCalendarWorkspace({
       key,
       ...value,
     }));
-  }, [agenda]);
+  }, [agenda, selectedDate, horizon, view]);
 
   const formatWhen = (item: AgendaItem) => {
     const date = parseDate(item.dateAt, item.dateOnly);
@@ -472,6 +539,8 @@ export default function AgencyCalendarWorkspace({
       };
     }
 
+    if (item.birthdayCategory === 'staff') return { label: 'Open team', href: '/settings/team' };
+
     if (item.organisationId) {
       return {
         label: 'Open club',
@@ -494,29 +563,53 @@ export default function AgencyCalendarWorkspace({
 
   return (
     <div className={styles.workspace}>
-      <section className={styles.controls}>
-        <div className={styles.range} aria-label="Calendar range">
-          {([7, 30, 90] as Horizon[]).map((days) => (
-            <button
-              key={days}
-              type="button"
-              className={
-                horizon === days ? styles.rangeActive : styles.rangeButton
-              }
-              aria-pressed={horizon === days}
-              onClick={() => setHorizon(days)}
-            >
-              {days} days
-            </button>
-          ))}
+      <section className={styles.calendarControls} aria-label="Calendar controls">
+        <div className={styles.calendarHeading}>
+          <h2>{new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric'}).format(new Date(`${selectedDate}T12:00:00`))}</h2>
+          <div className={styles.dateNavigation}>
+            <button type="button" aria-label="Previous month" onClick={()=>setSelectedDate(shiftMonth(selectedDate,-1))}><ChevronLeft size={18}/></button>
+            <button type="button" onClick={()=>setSelectedDate(calendarDateKey(new Date()))}>Today</button>
+            <button type="button" aria-label="Next month" onClick={()=>setSelectedDate(shiftMonth(selectedDate,1))}><ChevronRight size={18}/></button>
+          </div>
         </div>
-
-        <span className={styles.count}>
-          {agenda.length} coming up
-        </span>
+        <div className={styles.viewSwitch} role="group" aria-label="Calendar view" onKeyDown={event=>{
+          if (event.key==='ArrowLeft' || event.key==='ArrowRight') { event.preventDefault(); setView(event.key==='ArrowLeft'?'month':'agenda'); }
+        }}>
+          <span className={styles.viewIndicator} style={{transform:view==='agenda'?'translateX(100%)':'translateX(0)'}} aria-hidden="true"/>
+          <button type="button" aria-pressed={view==='month'} onClick={()=>setView('month')}>Month</button>
+          <button type="button" aria-pressed={view==='agenda'} onClick={()=>setView('agenda')}>Agenda</button>
+        </div>
+        <div className={styles.dateStrip} ref={dayStrip} role="group" aria-label="Choose a day. Swipe to see more dates.">
+          {days.map(date=><button key={date} type="button" className={date===selectedDate?styles.stripSelected:styles.stripDay}
+            aria-label={new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(`${date}T12:00:00`)).replaceAll(',', '')}
+            aria-current={date===today?'date':undefined} aria-pressed={date===selectedDate} onClick={()=>setSelectedDate(date)}>
+            <small>{new Intl.DateTimeFormat('en-GB',{weekday:'short'}).format(new Date(`${date}T12:00:00`))}</small><strong>{Number(date.slice(-2))}</strong>
+            <span className={styles.dateDot} data-has-events={agenda.some(item=>calendarDateKey(item.dateAt,Boolean(item.dateOnly))===date)} aria-hidden="true"/>
+          </button>)}
+        </div>
+        <fieldset className={styles.birthdayFilters}><legend><CakeSlice size={16}/>Birthdays</legend>
+          {([['players','Signed players'],['contacts','Club contacts'],['staff','Our team']] as const).map(([key,label])=><label key={key}>
+            <input type="checkbox" checked={birthdayFilters[key]} onChange={event=>setBirthdayFilters(current=>({...current,[key]:event.target.checked}))}/>{label}
+          </label>)}
+        </fieldset>
+        <p className={styles.birthdayHint}>Add contact birthdays in Network and your birthday in <Link href="/settings/profile">My profile</Link>.</p>
       </section>
-
-      <section className={styles.agenda}>
+      {datesError ? <div className={styles.datesError} role="alert">{datesError}<button type="button" onClick={()=>setRefreshDates(n=>n+1)}>Try again</button></div> : null}
+      {datesBusy ? <p className={styles.loadingDates} role="status">Updating dates...</p> : null}
+      <div onTouchStart={event=>{
+        if ((event.target as HTMLElement).closest('button,a,input')) { swipeStart.current=null; return; }
+        swipeStart.current={x:event.touches[0].clientX,y:event.touches[0].clientY};
+      }} onTouchEnd={event=>{
+        const start=swipeStart.current; swipeStart.current=null; if(!start) return;
+        const dx=event.changedTouches[0].clientX-start.x,dy=event.changedTouches[0].clientY-start.y;
+        if(Math.abs(dx)>70 && Math.abs(dy)<40) setView(dx<0?'agenda':'month');
+      }}>
+        {view==='month' ? <CalendarMonth date={selectedDate} items={agenda} onSelect={setSelectedDate}/> : null}
+        <section className={styles.controls}>
+          {view==='agenda' ? <div className={styles.range} aria-label="Calendar range">{([7, 30, 90] as Horizon[]).map(days=><button key={days} type="button" className={horizon===days?styles.rangeActive:styles.rangeButton} aria-pressed={horizon===days} onClick={()=>setHorizon(days)}>{days} days</button>)}</div> : <h3 className={styles.selectedDayTitle}>{selectedDate===today?'Today':new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'short'}).format(new Date(`${selectedDate}T12:00:00`))}</h3>}
+          <span className={styles.count}>{groups.reduce((sum,group)=>sum+group.items.length,0)} events</span>
+        </section>
+      <section className={view==='month'?`${styles.agenda} ${styles.monthAgenda}`:styles.agenda}>
         {groups.map((group) => (
           <div className={styles.dayGroup} key={group.key}>
             <div
@@ -606,13 +699,15 @@ export default function AgencyCalendarWorkspace({
         {!groups.length ? (
           <div className={styles.empty}>
             <CalendarDays size={20} />
-            <strong>Nothing coming up</strong>
+            <strong>{datesBusy ? 'Loading dates' : datesError ? 'Calendar partly unavailable' : view==='month' ? 'Nothing scheduled for this day' : 'Nothing scheduled in this range'}</strong>
             <span>
               Meetings, follow-ups and recorded agency dates will appear here.
             </span>
           </div>
         ) : null}
       </section>
+
+      </div>
 
       {meetingBrief ? (
         <MeetingBriefDrawer
