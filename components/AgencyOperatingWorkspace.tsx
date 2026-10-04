@@ -1543,6 +1543,8 @@ export default function AgencyOperatingWorkspace() {
               <AgencyCalendarWorkspace
                 key={`calendar:${workspace.tenant_id}:${sessionUserId}`}
                 preferenceKey={`${workspace.tenant_id}:${sessionUserId}`}
+                tenantId={workspace.tenant_id}
+                userId={sessionUserId}
                 data={data}
                 basePath={basePath}
                 rpc={rpc}
