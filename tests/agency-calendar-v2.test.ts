@@ -19,7 +19,9 @@ test('Calendar V2 is one clean agenda instead of another dashboard', async () =>
   assert.match(source, /\[7, 30, 90\]/);
   assert.match(source, /\{days\} days/);
   assert.match(source, /Today/);
-  assert.match(source, /Tomorrow/);
+  const {normaliseCalendarEvents,groupCalendarEvents}=await import('../lib/calendar/events.ts');
+  const events=normaliseCalendarEvents({}, {items:[{item_id:'today',date_at:'2026-10-04',title:'Today birthday'},{item_id:'tomorrow',date_at:'2026-10-05',title:'Tomorrow birthday'}]},[]);
+  assert.deepEqual(groupCalendarEvents(events,'2026-10-04','agenda',7,new Date('2026-10-04T12:00:00')).map(group=>group.label),['Today','Tomorrow']);
 
   assert.doesNotMatch(source, /WorkspaceIntro/);
   assert.doesNotMatch(source, /<Metric/);
