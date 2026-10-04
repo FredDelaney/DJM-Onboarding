@@ -1,6 +1,6 @@
 # Calendar workspace: personal work, company work and birthdays
 
-Status: written design awaiting Jesse's review. No implementation or production changes authorised by this document alone.
+Status: written design approved by Jesse on 4 October 2026. Implementation plan review and execution-method selection are the next gates. Production changes require separate release approval.
 
 ## Outcome and approved direction
 
