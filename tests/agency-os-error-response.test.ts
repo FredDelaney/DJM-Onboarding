@@ -4,7 +4,9 @@ import { stripTypeScriptTypes } from 'node:module';
 import test from 'node:test';
 
 // Keep the real HTTP handler. Only replace the external Supabase context.
+const shared = Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/football-data/player-data-workflow.ts','utf8'))).toString('base64');
 const source = readFileSync('supabase/functions/agency-os/index.ts','utf8')
+  .replace('"../_shared/football-data/player-data-workflow.ts"', '"data:text/javascript;base64,'+shared+'"')
   .replace('import "jsr:@supabase/functions-js/edge-runtime.d.ts";', '')
   .replace('import { createSupabaseContext } from "npm:@supabase/server@1.6.0";', 'const createSupabaseContext = () => globalThis.agencyErrorTestContext;');
 const {default: handler} = await import(`data:text/javascript;base64,${Buffer.from(stripTypeScriptTypes(source)).toString('base64')}`);

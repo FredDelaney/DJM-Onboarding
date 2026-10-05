@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { selectCurrentSeasonEvidence, safeSourceUrl } from "../_shared/football-data/player-data-workflow.ts";
 
 const cors={
   "Access-Control-Allow-Origin":"*",
@@ -11,23 +12,17 @@ const cors={
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
 const norm=(value:unknown)=>String(value||"").trim().toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
 const trustedProviders=new Set(["thesportsdb","api_football","wyscout","sportmonks","public_web_evidence","public_web_verified"]);
-const clubMatch=(rowClub:unknown,currentClub:unknown)=>{const row=norm(rowClub),current=norm(currentClub);if(!current)return true;if(!row)return false;return row===current||row.includes(current)||current.includes(row);};
-const leagueMatch=(rowLeague:unknown,currentLeague:unknown)=>{const row=norm(rowLeague),current=norm(currentLeague);if(!current)return true;if(!row)return false;if(row===current||row.includes(current)||current.includes(row))return true;const stop=new Set(["the","men","mens","dettol","premier"]),a=new Set(row.split(" ").filter(token=>token.length>1&&!stop.has(token))),b=new Set(current.split(" ").filter(token=>token.length>1&&!stop.has(token))),hit=[...a].filter(token=>b.has(token)).length;return hit>=2;};
 function currentStats(career:any[],player:any,latestCheck:any){
-  const rows=(career||[]).filter(row=>Boolean(row?.source_reviewed_at)||(Boolean(row?.source_synced_at)&&trustedProviders.has(norm(row?.source_provider).replaceAll(" ","_"))));
-  const recordedSeason=norm(player?.current_season_label);
-  const latestSeason=[...new Set(rows.map(row=>norm(row?.season_label)).filter(Boolean))].sort((a,b)=>String(b).localeCompare(String(a),undefined,{numeric:true}))[0]||"";
-  const season=recordedSeason||latestSeason;
-  const eligible=rows.filter(row=>(!season||norm(row.season_label)===season)&&clubMatch(row.club_name,player?.current_club)&&leagueMatch(row.league,player?.current_league));
-  if(!eligible.length)return{stats:[],meta:null};
-  const stamp=(row:any)=>{const value=row?.source_synced_at||row?.source_reviewed_at;const ms=value?Date.parse(String(value)):0;return Number.isFinite(ms)?ms:0;};
-  const completeness=(row:any)=>["appearances","starts","minutes","goals","assists"].filter(key=>row?.[key]!==null&&row?.[key]!==undefined&&row?.[key]!=="").length;
-  eligible.sort((a,b)=>completeness(b)-completeness(a)||stamp(b)-stamp(a));
-  const row=eligible[0];
-  const stats=[{label:"Apps",value:row.appearances},{label:"Starts",value:row.starts},{label:"Minutes",value:row.minutes},{label:"Goals",value:row.goals},{label:"Assists",value:row.assists}].filter(item=>item.value!==null&&item.value!==undefined&&item.value!=="").map(item=>({label:item.label,value:String(item.value)}));
-  const rowChecked=row.source_synced_at||row.source_reviewed_at||null;
-  const checkedAt=[rowChecked,latestCheck?.fresh_at].filter(Boolean).sort((a:any,b:any)=>Date.parse(String(b))-Date.parse(String(a)))[0]||null;
-  return{stats,meta:{season_label:row.season_label||null,club_name:row.club_name||null,league:row.league||null,source_name:row.source_name||null,source_url:latestCheck?.source_url||row.source_url||null,checked_at:checkedAt}};
+  const trusted=(career||[]).filter(row=>Boolean(row?.source_reviewed_at)||(Boolean(row?.source_synced_at)&&trustedProviders.has(norm(row?.source_provider).replaceAll(" ","_"))));
+  const row=selectCurrentSeasonEvidence(trusted,player);
+  if(!row)return{stats:[],meta:null};
+  const stats=[{label:"Apps",value:row.appearances},{label:"Starts",value:row.starts},{label:"Minutes",value:row.minutes},{label:"Goals",value:row.goals},{label:"Assists",value:row.assists}]
+    .filter(item=>item.value!==null&&item.value!==undefined&&item.value!=="").map(item=>({label:item.label,value:String(item.value)}));
+  const rowChecked=row.source_reviewed_at||row.source_synced_at||null;
+  const latest=latestCheck?.source_url&&latestCheck.source_url===row.source_url?latestCheck.fresh_at:null;
+  const checkedAt=[rowChecked,latest].filter(Boolean).sort((a,b)=>Date.parse(String(b))-Date.parse(String(a)))[0]||null;
+  return{stats,meta:{season_label:row.season_label||null,club_name:row.club_name||null,league:row.league||null,
+    source_name:row.source_name||null,source_url:safeSourceUrl(row.source_url),checked_at:checkedAt}};
 }
 
 Deno.serve(async(req:Request)=>{
