@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright`:'playwright');
+const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
+try{
+ const page=await browser.newPage({viewport:{width:390,height:844}});
+ const url=process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113/qa-calendar';
+ for(let i=0;i<60;i++){try{await page.goto(url+'?stalled');break;}catch(e){if(i===59)throw e;await page.waitForTimeout(500);}}
+ const today=page.getByRole('region',{name:'Today at a glance'});
+ await page.getByRole('button',{name:'Add task',exact:true}).waitFor();
+ assert.equal(await today.getByText('No more today',{exact:true}).count(),0,'An unresolved meeting read must not claim the day is clear');
+ await page.getByRole('button',{name:'Add task',exact:true}).click();
+ const overlay=await page.getByRole('dialog').evaluate(el=>{const backdrop=el.parentElement;const rect=backdrop.getBoundingClientRect();return {top:rect.top,bottom:rect.bottom,height:innerHeight,aboveMic:backdrop.contains(document.elementFromPoint(innerWidth-35,innerHeight-120))};});
+ assert.equal(overlay.top,0,'Overlay must cover the entire viewport despite the animated ancestor');
+ assert.ok(overlay.bottom>=overlay.height&&overlay.aboveMic,'Overlay must cover navigation and microphone');
+ await page.keyboard.press('Escape');
+ await page.getByRole('alert').filter({hasText:"today's meetings"}).waitFor({timeout:20000});
+ assert.equal(await page.getByText('Updating dates...', {exact:true}).count(),0,'Stalled requests must leave the loading state');
+ await page.getByRole('button',{name:"Retry today's meetings",exact:true}).waitFor();
+ await page.evaluate(()=>{window.releaseStalls=true;});
+ await page.getByRole('button',{name:"Retry today's meetings",exact:true}).click();
+ await today.getByText('Club meeting',{exact:true}).waitFor();
+ await page.goto(url+'?stalledTasks');
+ await today.getByText('Loading...', {exact:true}).first().waitFor();
+ assert.equal(await today.getByText('0',{exact:true}).count(),0,'Unresolved tasks must not show zero overdue or due today');
+ await page.goto(url);
+ await today.getByText('Club meeting',{exact:true}).waitFor();
+ const todayReadCount=()=>page.evaluate(()=>{const today=new Date().toLocaleDateString('en-CA');return window.calendarReads.filter(read=>read.name==='redream_calendar_range'&&read.args.p_start===today&&read.args.p_end!==today.slice(0,7)+'-01').length;});
+ const before=await todayReadCount();
+ await page.getByRole('button',{name:'Next month',exact:true}).click();
+ await page.waitForTimeout(300);
+ assert.equal(await todayReadCount(),before,'Browsing another month must not restart today summary reads');
+ await page.getByRole('button',{name:'Add task',exact:true}).click();
+ await page.setViewportSize({width:390,height:430});
+ const dialog=page.getByRole('dialog');
+ assert.ok(await dialog.evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),'Form must stay within a shortened keyboard viewport');
+ await page.getByLabel('Notes (optional)',{exact:true}).fill('Keyboard draft');
+ await page.getByRole('button',{name:'Save task',exact:true}).scrollIntoViewIfNeeded();
+ assert.ok(await page.getByRole('button',{name:'Save task',exact:true}).isVisible());
+ console.log('Stable today reads, pending summary, stalled request recovery, full viewport overlay and shortened viewport checks passed.');
+}finally{await browser.close();}

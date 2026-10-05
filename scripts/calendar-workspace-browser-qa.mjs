@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require=createRequire(import.meta.url);
-const {chromium}=require(`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright`);
-const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM||'/workspace/scratch/2401275a1357/calendar-chromium/chromium',args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
+const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright`:'playwright');
+const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
 try{
  const page=await browser.newPage({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
  const pageErrors=[];page.on('pageerror',error=>pageErrors.push(error.message));
@@ -50,6 +50,7 @@ try{
  await page.getByRole('button',{name:'Next month',exact:true}).click();
  assert.ok(await page.getByRole('region',{name:'Today at a glance'}).getByText('Club meeting',{exact:true}).isVisible());
  await page.getByRole('button',{name:'Today',exact:true}).click();
+ await page.getByText('Jump to date',{exact:true}).first().click();
  await page.getByLabel('Jump to date',{exact:true}).fill('2026-10-01');
  await page.getByRole('button',{name:'Copy greeting',exact:true}).first().click();
  await page.getByRole('status').filter({hasText:'Happy birthday!'}).waitFor();
@@ -117,6 +118,6 @@ try{
  assert.deepEqual(pageErrors,[]);
  await page.setViewportSize({width:390,height:950});await page.getByRole('button',{name:'Month',exact:true}).click();
  const dateButton=page.locator('[aria-label="Month calendar"] button').first();const target=await dateButton.boundingBox();assert.ok(target.width>=44&&target.height>=44,'Month date touch target must be 44px');
- await page.screenshot({path:process.env.CALENDAR_QA_SCREENSHOT||'/workspace/scratch/2401275a1357/calendar-workspace-mobile.png',fullPage:true});
+ await page.screenshot({path:process.env.CALENDAR_QA_SCREENSHOT||'/tmp/calendar-workspace-mobile.png',fullPage:true});
  console.log('Calendar create, company assignment, complete/reopen, archive/restore, undated and 12 viewport checks passed.');
 }finally{await browser.close();}

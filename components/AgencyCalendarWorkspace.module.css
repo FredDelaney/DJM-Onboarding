@@ -934,3 +934,35 @@
   .eventDot { margin:0; }
 }
 @media(max-width:600px) { .monthRow,.monthCell { min-height:82px; } }
+
+/* Keep daily work close to the top on a phone. */
+.jumpDisclosure{position:relative;min-width:0;}
+.jumpDisclosure summary{display:flex;align-items:center;min-height:44px;cursor:pointer;color:#31546a;font-size:13px;}
+.jumpDisclosure[open] .dateJump{position:absolute;top:100%;left:0;z-index:2;padding:12px;background:white;border:1px solid #dce5eb;border-radius:12px;box-shadow:0 8px 24px #16354b14;min-width:200px;}
+.calendarControls{column-gap:12px;row-gap:10px;grid-template-columns:minmax(0,1fr) auto;}
+.calendarHeading,.dateStrip,.calendarFilters{grid-column:1/-1;}
+.controlTools{grid-column:2;grid-row:2;align-items:center;gap:12px;}
+.viewSwitch{grid-column:1;grid-row:2;width:100%;max-width:240px;}
+@media(max-width:600px){
+ .calendarControls{padding:12px;gap:8px;}
+ .calendarHeading h2{font-size:18px;}
+ .dateNavigation{gap:3px;}
+ .dateNavigation button{padding:8px;}
+ .todayPanel{padding:10px 12px;}
+ .todayFacts{padding-top:4px;gap:8px;}
+ .todayFacts strong{font-size:18px;}
+ .todayFacts .nextMeeting strong{font-size:13px;}
+ .todayHeading{min-height:44px;}
+ .todayHeading span{font-size:10px;}
+ .stripDay,.stripSelected{min-height:60px;flex-basis:44px;gap:2px;border-radius:10px;padding:6px 2px;}
+ .stripDay strong,.stripSelected strong{font-size:16px;}
+ .dateStrip{padding-bottom:4px;}
+ .controlTools{gap:8px;}
+ .jumpDisclosure summary{font-size:0;min-width:44px;justify-content:center;}
+ .jumpDisclosure summary::after{content:'Date';font-size:12px;}
+ .jumpDisclosure[open] .dateJump{left:auto;right:0;}
+ .addTask{padding:8px 12px;font-size:13px;}
+ .viewSwitch button{font-size:13px;}
+}
+
+.todayFacts strong{overflow-wrap:anywhere;}
