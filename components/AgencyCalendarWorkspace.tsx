@@ -25,6 +25,7 @@ import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './AgencyCalendarWorkspace.module.css';
 import AgencyCalendarTaskForm from './AgencyCalendarTaskForm';
 import AgencyCalendarTaskRow from './AgencyCalendarTaskRow';
+import {sourceLabels} from '@/lib/calendar/useCalendarSources';
 import AgencyCalendarToday from './AgencyCalendarToday';
 import { useCalendarSources } from '@/lib/calendar/useCalendarSources';
 import { normaliseCalendarEvents, filterCalendarEvents, groupCalendarEvents, todayProjection, birthdayGreeting, type CalendarEvent } from '@/lib/calendar/events';
@@ -297,7 +298,7 @@ export default function AgencyCalendarWorkspace({
 
   return (
     <div className={styles.workspace}>
-      <AgencyCalendarToday projection={todaySummary} partial={source.partial} onSelectToday={()=>{setSelectedDate(today);setView('agenda');}}/>
+      <AgencyCalendarToday projection={todaySummary} partial={source.partial} sources={source.sources} onSelectToday={()=>{setSelectedDate(today);setView('agenda');}}/>
       <section className={styles.calendarControls} aria-label="Calendar controls">
         <div className={styles.calendarHeading}>
           <h2>{new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric'}).format(new Date(`${selectedDate}T12:00:00`))}</h2>
@@ -307,7 +308,7 @@ export default function AgencyCalendarWorkspace({
             <button type="button" aria-label="Next month" onClick={()=>setSelectedDate(shiftMonth(selectedDate,1))}><ChevronRight size={18}/></button>
           </div>
         </div>
-        <div className={styles.controlTools}><label className={styles.dateJump}>Jump to date<input type="date" value={selectedDate} onChange={event=>{if(event.target.value)setSelectedDate(event.target.value);}}/></label><button type="button" data-ui-button="secondary" className={styles.addTask} onClick={()=>setTaskForm({scope:source.scope})}>Add task</button></div>
+        <div className={styles.controlTools}><details className={styles.jumpDisclosure}><summary>Jump to date</summary><label className={styles.dateJump}>Jump to date<input type="date" value={selectedDate} onChange={event=>{if(event.target.value)setSelectedDate(event.target.value);}}/></label></details><button type="button" data-ui-button="secondary" className={styles.addTask} onClick={()=>setTaskForm({scope:source.scope})}>Add task</button></div>
         <div className={styles.viewSwitch} role="group" aria-label="Calendar view" onKeyDown={event=>{
           if (event.key==='ArrowLeft' || event.key==='ArrowRight') { event.preventDefault(); setView(event.key==='ArrowLeft'?'month':'agenda'); }
         }}>
@@ -335,7 +336,7 @@ export default function AgencyCalendarWorkspace({
         </details>
       </section>
       {greeting?<div className={styles.greeting} role="status"><span>{greeting}</span><button onClick={()=>setGreeting('')}>Dismiss</button></div>:null}
-      {source.errors.map(error=><div key={error.name} className={styles.datesError} role="alert">{error.message}<button type="button" onClick={()=>source.retry(error.name)}>Retry {error.name==='birthdays'?'birthdays':error.name==='tasks'?'tasks':'dates'}</button></div>)}
+      {source.errors.map(error=><div key={error.name} className={styles.datesError} role="alert">{error.message}<button type="button" onClick={()=>source.retry(error.name)}>Retry {error.name==='tasks'?'tasks':sourceLabels[error.name]}</button></div>)}
       {datesBusy ? <p className={styles.loadingDates} role="status">Updating dates...</p> : null}
       <div className={view==='month'?styles.calendarBody:styles.agendaBody}>
         {view==='month'?<CalendarMonth date={selectedDate} items={agenda} onSelect={setSelectedDate}/>:null}
