@@ -104,11 +104,14 @@ test('visible product language says Player Profile rather than dossier', () => {
 
 
 test('current stats stay live without same-season double counting', () => {
-  assert.match(agencyOs, /eligible\.sort/);
+  assert.match(agencyOs, /selectCurrentSeasonEvidence\(trusted,player\)/);
+  assert.match(publicEdge, /selectCurrentSeasonEvidence\(trusted,player\)/);
   assert.match(agencyOs, /auto_stats_meta/);
   assert.doesNotMatch(agencyOs, /known\.reduce/);
-  assert.match(manager, /Checked today/);
-  assert.match(manager, /Cross-checked/);
+  assert.match(manager, /AgencyPlayerDataPanel/);
+  const panel = read('components/AgencyPlayerDataPanel.tsx');
+  assert.match(panel, /Source reviewed/);
+  assert.match(panel, /Source updated/);
 });
 
 test('published Player Profile reads current trusted stats instead of freezing publish-time numbers', () => {

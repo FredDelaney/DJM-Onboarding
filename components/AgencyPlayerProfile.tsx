@@ -27,11 +27,13 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 import PublicProfile from '@/components/PublicProfile';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
+import AgencyPlayerDataPanel from '@/components/AgencyPlayerDataPanel';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
   friendlyError,
@@ -43,6 +45,7 @@ import {
   setCachedPlayerProfile,
 } from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
+import { safeSourceUrl } from '@/lib/player-data-workflow';
 import { tenantBrandTokens } from '@/lib/tenant-brand-style';
 
 import styles from './AgencyPlayerProfile.module.css';
@@ -196,19 +199,6 @@ const displayDate = (value: unknown) => {
         year: 'numeric',
         timeZone: 'UTC',
       }).format(date);
-};
-
-const statsFreshnessLabel = (value: unknown) => {
-  const raw = text(value);
-  if (!raw) return '';
-  const checked = new Date(raw);
-  if (Number.isNaN(checked.getTime())) return '';
-  const hours = Math.max(0, Math.floor((Date.now() - checked.getTime()) / 3600000));
-  if (hours < 24) return 'Checked today';
-  if (hours < 48) return 'Checked yesterday';
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `Checked ${days}d ago`;
-  return `Checked ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(checked)}`;
 };
 
 const parseKeyStats = (value: string) =>
@@ -400,7 +390,9 @@ export default function AgencyPlayerProfile({
   const [transfermarktUrl, setTransfermarktUrl] = useState('');
   const [transfermarktError, setTransfermarktError] = useState('');
 
+  const loadGeneration = useRef(0);
   const load = useCallback(async (fresh = false) => {
+    const generation = ++loadGeneration.current;
     const cached = getCachedPlayerProfile(playerId);
     if (!cached) setLoading(true);
     setError('');
@@ -425,6 +417,7 @@ export default function AgencyPlayerProfile({
         throw new Error('Player Profile could not be loaded.');
       }
 
+      if (generation !== loadGeneration.current) return false;
       setCachedPlayerProfile(playerId, profile);
       setBundle(profile);
       setForm(formFromProfile(profile));
@@ -436,7 +429,7 @@ export default function AgencyPlayerProfile({
         })
           .then((response) => {
             const detail = response?.detail || null;
-            if (!detail) return;
+            if (!detail || generation !== loadGeneration.current) return;
 
             setBundle((current: any) => {
               if (!current) return current;
@@ -454,15 +447,21 @@ export default function AgencyPlayerProfile({
           })
           .catch(() => undefined);
       }
+      return true;
     } catch (loadError) {
+      if (generation !== loadGeneration.current) return false;
       setError(friendlyError(loadError));
       setLoading(false);
+      return false;
     }
   }, [invoke, playerId]);
 
   useEffect(() => {
     void load(false);
+    return () => { ++loadGeneration.current; };
   }, [load]);
+
+  const reloadRecordedData = useCallback(() => load(true), [load]);
 
   const player = bundle?.player || {};
   const agency = {
@@ -537,6 +536,9 @@ export default function AgencyPlayerProfile({
     () => makeDraftProfile(bundle, form),
     [bundle, form],
   );
+
+  const recordedStats = Array.isArray(bundle?.auto_key_stats) ? bundle.auto_key_stats : [];
+  const recordedStatsSource = safeSourceUrl(bundle?.auto_stats_meta?.source_url);
 
   const checks: ProfileCheck[] = [
     {
@@ -695,6 +697,24 @@ export default function AgencyPlayerProfile({
       ...current,
       [key]: value,
     }));
+
+  const useRecordedStats = async () => {
+    if (!canEdit || actionBusy) return;
+    setActionBusy('recorded-statistics');
+    setError('');
+    try {
+      await invoke('player_profile_save', {
+        player_id: playerId,
+        settings: { ...(bundle?.settings || {}), key_stats: [] },
+      });
+      if (!(await load(true))) {
+        throw new Error('The club profile now uses recorded statistics, but could not reload. Reload recorded data to recover.');
+      }
+      setNotice('The club profile now uses recorded statistics. Publish the revised profile when it is ready.');
+    } finally {
+      setActionBusy('');
+    }
+  };
 
   const saveSettings = async (showNotice = true) => {
     if (!canEdit || actionBusy) return false;
@@ -1506,6 +1526,19 @@ export default function AgencyPlayerProfile({
         </div>
       </section>
 
+      <AgencyPlayerDataPanel
+        key={playerId}
+        player={player}
+        career={career}
+        canEdit={canEdit}
+        invoke={invoke}
+        onChanged={reloadRecordedData}
+        onReview={() => openVerify('verification')}
+        hasCustomStats={Boolean(bundle?.settings?.key_stats?.length)}
+        onUseRecordedStats={useRecordedStats}
+        blocked={Boolean(actionBusy) || editOpen || verifyOpen}
+      />
+
       {guidedRequiredChecks.length || missingOptionalChecks.length ? (
         <section className={styles.fixGuide}>
           <div className={styles.fixGuideHead}>
@@ -1696,42 +1729,16 @@ export default function AgencyPlayerProfile({
             </div>
           </div>
 
-          <div className={styles.keyStats}>
-            {(draftProfile.key_stats || []).slice(0, 6).map(
-              (item: any, index: number) => (
-                <div key={`${item.label}-${index}`}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ),
-            )}
-
-            {!draftProfile.key_stats?.length ? (
-              <p>
-                Current-season numbers will appear automatically when trusted evidence is available.
-              </p>
-            ) : null}
-          </div>
-
-          {!parseKeyStats(form.key_stats_text).length &&
-          bundle?.auto_stats_meta?.checked_at &&
-          draftProfile.key_stats?.length ? (
-            <div className={styles.statsFreshness}>
-              <ShieldCheck size={13} />
-              <span>
-                {statsFreshnessLabel(bundle.auto_stats_meta.checked_at)} · Cross-checked
-              </span>
-              {bundle.auto_stats_meta.source_url ? (
-                <a
-                  href={bundle.auto_stats_meta.source_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source <ExternalLink size={11} />
-                </a>
-              ) : null}
+          {parseKeyStats(form.key_stats_text).length ? (
+            <div className={styles.keyStats}>
+              {(draftProfile.key_stats || []).slice(0, 6).map((item: any, index: number) => (
+                <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
+              ))}
+              <p>Custom club profile statistics. Recorded figures and sources are shown above.</p>
             </div>
-          ) : null}
+          ) : (
+            <div className={styles.keyStats}><p>The club profile uses the recorded current-season statistics above.</p></div>
+          )}
         </section>
       </div>
 
@@ -2107,12 +2114,13 @@ export default function AgencyPlayerProfile({
               {player.review_required_at || player.review_reason ? (
                 <section className={styles.reviewStats} aria-label="Statistics to review">
                   <strong>Current recorded statistics</strong>
-                  <p>Check these figures against the source before confirming the player data.</p>
+                  <p>Check these figures against the source before confirming the player data. Custom club headline statistics are reviewed separately.</p>
+                  {recordedStatsSource ? <p><a href={recordedStatsSource} target="_blank" rel="noreferrer">Open recorded statistics source <ExternalLink size={11} /></a></p> : null}
                   <div className={styles.keyStats}>
-                    {(draftProfile.key_stats || []).slice(0, 6).map((item: any, index: number) => (
+                    {recordedStats.slice(0, 6).map((item: any, index: number) => (
                       <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
                     ))}
-                    {!draftProfile.key_stats?.length ? <p>No current-season statistics are recorded.</p> : null}
+                    {!recordedStats.length ? <p>No current-season statistics are recorded.</p> : null}
                   </div>
                 </section>
               ) : null}
