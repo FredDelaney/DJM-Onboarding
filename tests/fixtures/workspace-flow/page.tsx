@@ -1,0 +1,65 @@
+'use client';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {useSearchParams} from 'next/navigation';
+import Link from 'next/link';
+import WorkspaceSearch from '@/components/WorkspaceSearch';
+import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
+import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
+import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
+import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
+import {TenantRuntimeProvider} from '@/components/TenantRuntimeProvider';
+import {UNRESOLVED_TENANT_RUNTIME} from '@/lib/tenant-runtime';
+import styles from '@/components/AgencyOperatingWorkspace.module.css';
+const base='/workspace/qa-find-flow';
+export default function Page(){
+ const params=useSearchParams(),user=params.get('user')||'a',scenario=params.get('scenario')||'normal',tenant=params.get('tenant')||'a';
+ const scope='fixture-tenant-'+tenant+':fixture-user-'+user+':owner',view=params.get('view')||'players',playerId=params.get('player')||'';
+ const [created,setCreated]=useState(''),[otherDialog,setOtherDialog]=useState(false),reads=useRef<Record<string,number>>({});
+ const [ready,setReady]=useState(false);useEffect(()=>setReady(true),[]);
+ const data=useMemo(()=>({
+  directory:{items:Array.from({length:18},(_,i)=>({player_id:'qa-player-'+i,identity:{name:i===0?(user==='a'?'José Silva':'Other Account Player'):'Example Player '+i,current_club:'Example FC',primary_position:'Centre back',current_country:'NZ'},service:{},active_opportunities:0}))},
+  recruitment:{items:[{id:'qa-target',full_name:'Recruitment Prospect',current_club:'Example FC',ui_stage:'identified'}]},
+  accounts:{clubs:[{organisation_id:'qa-club',name:'Example FC',country:'NZ',league_name:'Regional League',access:{direct_score:80}}]},
+  contacts:{items:[{person_id:'qa-contact',person:{full_name:'Dapo Director'},employment:{organisation_id:'qa-club',organisation_name:'Example FC',role_title:'Director'},relationship:{route_score:80}},{person_id:'qa-scout',person:{full_name:'Moses Scout'},employment:{organisation_name:'Other FC',role_title:'Scout'},relationship:{route_score:30}}]},
+  market:{demand:{items:[{club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back'},club:{name:'Example FC'},candidate_coverage:{candidates:[]}}]},pursuits:{items:[]}},
+  deals:{portfolio:{deals:[{deal_room_id:'qa-deal',title:'Example transfer',organisation:'Example FC',stage:'open'}]}}
+ }),[user]);
+ const invoke=useCallback(async(action:string,body:any={})=>{
+  reads.current[action]=(reads.current[action]||0)+1;
+  if(action==='players_workspace')return {players:data.directory};
+  if(action==='recruitment_board')return {recruitment:data.recruitment};
+  if(action==='player_data_status')return {job:null};
+  if(action==='player_workspace')return {player:{identity:data.directory.items.find(p=>p.player_id===body.player_id)?.identity||{},service:{},agreements:[],documents:[],opportunities:[],deals:[],activity:[]}};
+  if(action==='player_profile_core'||action==='player_profile')return {profile:{player:{id:body.player_id,first_name:user==='a'?'José':'Other',last_name:'Silva',primary_position:'Centre back',current_club:'Example FC',current_country:'NZ',current_league:'Regional League',current_season_label:'2026/27',verification_status:'reviewing'},career:[],settings:{},published:{published:false},videos:[],documents:[],shares:[],deals:[],clubs:[],branding:{support_email:'qa@example.test'},secondary_ready:true,auto_key_stats:[]}};
+  throw new Error('Unexpected fixture action '+action);
+ },[data,user]);
+ const rpc=useCallback(async(name:string)=>{
+  reads.current[name]=(reads.current[name]||0)+1;
+  if(name==='redream_entity_archives')return {items:[]};
+  if(name==='redream_autopilot_relationships'){if(scenario==='partial'&&reads.current[name]===1)throw new Error('Network temporarily unavailable');return {accounts:data.accounts,contacts:data.contacts};}
+  if(name==='redream_autopilot_market')return data.market;
+  if(name==='redream_autopilot_deals')return data.deals;
+  return {};
+ },[data,scenario]);
+ const navigate=(view:string)=>{const next=new URLSearchParams(params.toString());next.set('view',view);for(const key of ['player','profile','person','record','tab'])next.delete(key);window.history.pushState(null,'',base+'?'+next);};
+ const refresh=useCallback(async()=>{},[]);
+ const runtime={...UNRESOLVED_TENANT_RUNTIME,resolved:true,tenant_id:'fixture-tenant-'+tenant,slug:'qa-find-flow',branding:{...UNRESOLVED_TENANT_RUNTIME.branding,display_name:'Example Agency'}};
+ return <TenantRuntimeProvider runtime={runtime}><div className={styles.root} data-qa-ready={ready}>
+  <aside className={styles.sidebar}><div className={styles.brand}>Example Agency</div><nav className={styles.nav} aria-label="Agency workspace">
+   {['home','players','opportunities','network','calendar'].map(item=><Link key={item} href={base+'?view='+item} onClick={event=>{event.preventDefault();navigate(item);}}>{item==='opportunities'?<><span className={styles.navDesktopLabel}>Opportunities</span><span className={styles.navMobileLabel}>Market</span></>:<span>{item[0].toUpperCase()+item.slice(1)}</span>}</Link>)}
+   <WorkspaceSearch compact className={styles.findButton} tenantId={runtime.tenant_id} userId={'fixture-user-'+user} cacheScope={scope} basePath={base} invoke={invoke as any} rpc={rpc as any} seed={{view,data}} onCreate={setCreated}/>
+  </nav></aside>
+  <main className={styles.main}>
+   <div style={{display:'flex',gap:10,marginBottom:16}}><button type="button" data-qa-switch onClick={()=>{const next=new URLSearchParams(params.toString());next.set('user',user==='a'?'b':'a');window.history.replaceState(null,'',base+'?'+next);}}>Switch account</button><button type="button" data-qa-dialog onClick={()=>setOtherDialog(true)}>Open other dialog</button></div>
+   <div key={scope+':'+view+':'+playerId+':'+(params.get('tab')||'')}>
+    {view==='players'?(params.get('profile')==='1'&&playerId?<AgencyPlayerProfile playerId={playerId} cacheScope={scope} backHref={base+'?view=players'} workHref={base+'?view=players&player='+playerId} role="owner" fallbackAgency={{}} invoke={invoke as any} onOpenAction={()=>{}} onOpenIntelligence={()=>{}}/>:<AgencyPlayersWorkspace stateScope={scope} data={data} basePath={base} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onOpenAction={()=>{}}/>):null}
+    {view==='network'?<AgencyNetworkWorkspace stateScope={scope} data={data} basePath={base} rpc={rpc as any} onRefresh={refresh} onCreate={()=>{}} onOpenAction={()=>{}} onOpenClubAccount={()=>{}}/>:null}
+    {view==='opportunities'?<AgencyOpportunitiesWorkspace data={{...data,opportunity_reads:{market:'ready',deals:'ready'}}} basePath={base} rpc={rpc as any} onRetry={()=>{}} onRefresh={refresh} onOpenAction={()=>{}} onOpenPursuit={()=>{}} onOpenIntelligence={()=>{}}/>:null}
+    {view==='home'||view==='calendar'?<h1>{view==='home'?'Home':'Calendar'}</h1>:null}
+   </div>
+   {created?<p role="status">Create {created}</p>:null}
+   {otherDialog?<section role="dialog" aria-modal="true" aria-label="Other dialog"><button type="button" onClick={()=>setOtherDialog(false)}>Close other dialog</button></section>:null}
+   <output data-qa-reads hidden>{JSON.stringify(reads.current)}</output>
+  </main>
+ </div></TenantRuntimeProvider>;
+}

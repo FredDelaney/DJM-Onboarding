@@ -28,6 +28,7 @@ import EntityActionsMenu from '@/components/EntityActionsMenu';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile } from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
+import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
 import styles from './AgencyPlayersWorkspace.module.css';
 
 type Invoke = <T,>(
@@ -36,6 +37,7 @@ type Invoke = <T,>(
 ) => Promise<T>;
 
 type Props = {
+  stateScope?: string;
   data: any;
   basePath: string;
   invoke: Invoke;
@@ -141,6 +143,7 @@ function Empty({
 }
 
 function PlayerDrawer({
+  cacheScope = '',
   playerId,
   summary,
   basePath,
@@ -150,6 +153,7 @@ function PlayerDrawer({
   onClose,
   onOpenAction,
 }: {
+  cacheScope?: string;
   playerId: string;
   summary?: any;
   basePath: string;
@@ -180,7 +184,7 @@ function PlayerDrawer({
   useEffect(() => {
     let active = true;
 
-    void prefetchPlayerProfile(playerId, invoke).catch(() => undefined);
+    void prefetchPlayerProfile(playerId, invoke, cacheScope).catch(() => undefined);
 
     void invoke<any>('player_workspace', { player_id: playerId })
       .then((response) => {
@@ -193,7 +197,7 @@ function PlayerDrawer({
         if (active) setBusy(false);
       });
     return () => { active = false; };
-  }, [invoke, playerId]);
+  }, [invoke, playerId, cacheScope]);
 
   const identity = detail?.identity || {};
   const service = detail?.service || {};
@@ -499,6 +503,7 @@ function PlayerDrawer({
 }
 
 export default function AgencyPlayersWorkspace({
+  stateScope = '',
   data,
   basePath,
   invoke,
@@ -511,8 +516,10 @@ export default function AgencyPlayersWorkspace({
   const [section, setSection] = useState<'players'|'recruitment'>(
     searchParams.get('tab') === 'recruitment' ? 'recruitment' : 'players',
   );
-  const [search, setSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState('all');
+  const memory=useWorkspaceListMemory(stateScope,section,{search:'',stage:'all'});
+  const search=memory.state.search,stageFilter=memory.state.stage;
+  const setSearch=(value:string)=>memory.update({search:value});
+  const setStageFilter=(value:string)=>memory.update({stage:value});
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
 
   const reloadArchives = useCallback(async () => {
@@ -603,8 +610,9 @@ export default function AgencyPlayersWorkspace({
   };
 
   const openPlayer = (id: string) => {
+    rememberListPosition(stateScope,section);
     setPlayerId(id);
-    void prefetchPlayerProfile(id, invoke).catch(() => undefined);
+    void prefetchPlayerProfile(id, invoke, stateScope).catch(() => undefined);
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
     params.set('player', id);
@@ -615,7 +623,8 @@ export default function AgencyPlayersWorkspace({
   };
 
   const openPlayerProfile = (id: string) => {
-    void prefetchPlayerProfile(id, invoke).catch(() => undefined);
+    rememberListPosition(stateScope,section);
+    void prefetchPlayerProfile(id, invoke, stateScope).catch(() => undefined);
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
     params.set('player', id);
@@ -636,6 +645,7 @@ export default function AgencyPlayersWorkspace({
   };
 
   const openTarget = (id: string) => {
+    rememberListPosition(stateScope,section);
     setTargetId(id);
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
@@ -654,6 +664,8 @@ export default function AgencyPlayersWorkspace({
     params.delete('target');
     router.replace(`${basePath}?${params.toString()}`);
   };
+
+  useRestoreListPosition(stateScope,section,memory.ready&&!playerId&&!targetId);
 
   useEffect(() => {
     setInteraction('');
@@ -839,6 +851,7 @@ export default function AgencyPlayersWorkspace({
   if (playerId) {
     return (
       <PlayerDrawer
+        cacheScope={stateScope}
         playerId={playerId}
         summary={players.find(
           (item: any) => String(item?.player_id || '') === playerId,
@@ -864,7 +877,7 @@ export default function AgencyPlayersWorkspace({
             Recruitment <b>{targets.length}</b>
           </button>
         </div>
-        <label className={styles.search}><Search size={15}/><input value={search} onChange={(e)=>setSearch(e.target.value)}
+        <label className={styles.search}><Search size={15}/><input aria-label={section==='players'?'Search players':'Search recruitment'} value={search} onChange={(e)=>setSearch(e.target.value)}
           placeholder={section==='players'?'Search players':'Search recruitment'} /></label>
         {section==='recruitment'?(
           <button type="button" data-ui-button="secondary"
@@ -887,12 +900,12 @@ export default function AgencyPlayersWorkspace({
                 role="button"
                 aria-label={`Open ${name}`}
                 tabIndex={0}
-                onClick={() => openPlayer(String(item.player_id))}
+                onClick={() => openPlayerProfile(String(item.player_id))}
                 onKeyDown={(event) => {
                   if (event.target !== event.currentTarget) return;
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    openPlayer(String(item.player_id));
+                    openPlayerProfile(String(item.player_id));
                   }
                 }}
               >
@@ -955,12 +968,12 @@ export default function AgencyPlayersWorkspace({
                     className={styles.profileShortcut}
                     onClick={(event) => {
                       event.stopPropagation();
-                      openPlayerProfile(String(item.player_id));
+                      openPlayer(String(item.player_id));
                     }}
-                    aria-label={`Open ${name} Player Profile`}
+                    aria-label={`Open ${name} work view`}
                   >
                     <UserRound size={14} />
-                    View profile
+                    Work view
                   </button>
                 </div>
                 {attention?(
@@ -992,7 +1005,7 @@ export default function AgencyPlayersWorkspace({
               </article>
             );
           })}
-          {!filteredPlayers.length?<Empty icon={Users} title="No players recorded yet" copy="Add the first represented player and their current position will appear here."/>:null}
+          {!filteredPlayers.length?<Empty icon={Users} title={search?'No players match this search':'No players recorded yet'} copy={search?'Try another name, club or position.':'Add the first represented player and their current position will appear here.'}/>:null}
         </section>
       ):(
         <div className={styles.recruitmentLayout}>

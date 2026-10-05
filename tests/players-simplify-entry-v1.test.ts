@@ -29,11 +29,11 @@ test('Players keeps one compact controls row for mode search and recruitment cre
   assert.match(toolbar, /Add target/);
 });
 
-test('the whole player card is the open-player action', () => {
+test('the whole player card opens the full player profile', () => {
   assert.match(players, /className=\{styles\.playerCard\}/);
   assert.match(players, /role="button"/);
   assert.match(players, /aria-label=\{`Open \$\{name\}`\}/);
-  assert.match(players, /onClick=\{\(\) => openPlayer\(String\(item\.player_id\)\)\}/);
+  assert.match(players, /onClick=\{\(\) => openPlayerProfile\(String\(item\.player_id\)\)\}/);
   assert.match(players, /event\.key === 'Enter' \|\| event\.key === ' '/);
 });
 

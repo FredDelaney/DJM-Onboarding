@@ -24,6 +24,7 @@ import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
 
+import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
 import styles from './AgencyNetworkWorkspace.module.css';
 
 const AgencyContactIntelligenceDrawer = dynamic(
@@ -203,6 +204,7 @@ function Empty({
 }
 
 export default function AgencyNetworkWorkspace({
+  stateScope = '',
   data,
   basePath,
   rpc,
@@ -211,6 +213,7 @@ export default function AgencyNetworkWorkspace({
   onOpenAction,
   onOpenClubAccount,
 }: {
+  stateScope?: string;
   data: any;
   basePath: string;
   rpc: Rpc;
@@ -219,10 +222,13 @@ export default function AgencyNetworkWorkspace({
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenClubAccount: (request: AgencyClubAccountRequest) => void;
 }) {
-  const [view, setView] = useState<NetworkView>('clubs');
-  const [focus, setFocus] =
-    useState<NetworkFocus>('all');
-  const [search, setSearch] = useState('');
+  const memory=useWorkspaceListMemory(stateScope,'network',{view:'clubs',focus:'all',search:''});
+  const view=(memory.state.view==='people'?'people':'clubs') as NetworkView;
+  const focus=(['all','attention','warm','strong','cooling'].includes(memory.state.focus)?memory.state.focus:'all') as NetworkFocus;
+  const search=memory.state.search;
+  const setView=(value:NetworkView)=>memory.update({view:value});
+  const setFocus=(value:NetworkFocus)=>memory.update({focus:value});
+  const setSearch=(value:string)=>memory.update({search:value});
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const searchParams = useSearchParams();
@@ -436,7 +442,10 @@ export default function AgencyNetworkWorkspace({
     if (match) onOpenClubAccount(clubRequestFor(match));
   }, [clubRequestFor, clubs, onOpenClubAccount, requestedClubId, requestedPersonId]);
 
+  useRestoreListPosition(stateScope,'network',memory.ready&&!requestedPersonId&&!requestedClubId);
+
   const openPerson = (item: any) => {
+    rememberListPosition(stateScope,'network');
     const id = personId(item);
     if (!id) return;
     setSelectedContact(item);
@@ -456,6 +465,7 @@ export default function AgencyNetworkWorkspace({
   };
 
   const openClub = (club: any) => {
+    rememberListPosition(stateScope,'network');
     const id = String(club?.organisation_id || '').trim();
     if (!id) return;
 
