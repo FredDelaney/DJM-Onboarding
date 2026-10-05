@@ -5,7 +5,7 @@ import {PGlite} from '@electric-sql/pglite';
 const db=new PGlite();
 const tenant='20000000-0000-4000-8000-000000000001',other='20000000-0000-4000-8000-000000000002',actor='10000000-0000-4000-8000-000000000001',scout='10000000-0000-4000-8000-000000000002',player='30000000-0000-4000-8000-000000000001',foreign='30000000-0000-4000-8000-000000000002';
 const request='40000000-0000-4000-8000-000000000001',second='40000000-0000-4000-8000-000000000002';
-const path='supabase/migrations/20261005170000_player_data_workflow.sql';
+const path='supabase/migrations/20261005182123_player_data_workflow.sql';
 const values={season_label:'2026/27',club_name:'Example II',league:'Regional League',country:'NZ',appearances:'8',starts:'5',minutes:'450',goals:'0',assists:'',source_name:'Official league',source_url:'https://league.example/player',source_confirmed:true};
 before(async()=>{
  await db.exec(`

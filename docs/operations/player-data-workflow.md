@@ -35,7 +35,7 @@ The broader calendar workspace browser check failed its Today-at-a-glance assert
 
 Production release requires explicit authorisation under AGENTS.md.
 
-1. Apply `20261005170000_player_data_workflow.sql`. It adds server-only functions and an index; no existing migration is changed.
+1. Apply `20261005182123_player_data_workflow.sql`. It adds server-only functions and an index; no existing migration is changed.
 2. Deploy `refresh-player-stats-ai-worker`, `agency-os` and `player-profile-public`, including their shared module. The worker's explicit `refresh_ok` flag must be deployed with the new status handler.
 3. Release the Next.js frontend to the connected application projects.
 4. Check a staff profile with existing evidence, one authorised update, a sourced correction, subsequent verification and separate publication. Check a read-only role and the published club profile.
