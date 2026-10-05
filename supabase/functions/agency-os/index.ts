@@ -842,5 +842,14 @@ export default {fetch:async(req:Request)=>{
       const data=await rpc("platform_server_seed_demo_story",{p_tenant_id:tenantId});await rpc("platform_server_reconcile_commitments",{p_tenant_id:tenantId});await rpc("platform_server_refresh_agency_pulse",{p_tenant_id:tenantId});return json({ok:true,result:data});
     }
     return json({error:"Unknown action"},400);
-  }catch(error){console.error("agency-os",error);return json({error:error instanceof Error?error.message:"Agency OS request failed"},500);}
+  }catch(error){
+    const message=error instanceof Error?error.message:String(obj(error).message||"");
+    const conflicts:Record<string,string>={
+      proposal_expired:"This approval has expired. Cancel and open the action again to review a fresh approval.",
+      command_no_longer_actionable:"This action is no longer available. Refresh the workspace to see the latest work.",
+    };
+    if(Object.hasOwn(conflicts,message)) return json({error:conflicts[message],code:message},409);
+    console.error("agency-os",error);
+    return json({error:error instanceof Error?error.message:"Agency OS request failed"},500);
+  }
 }};
