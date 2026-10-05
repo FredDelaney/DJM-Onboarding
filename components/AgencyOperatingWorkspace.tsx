@@ -1,6 +1,7 @@
 'use client';
 
 import AiLauncher from '@/components/AiLauncher';
+import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
 import dynamic from 'next/dynamic';
@@ -410,6 +411,8 @@ export default function AgencyOperatingWorkspace() {
     runtime.branding.display_name ||
     'Agency workspace';
   const viewPresentation = VIEW_PRESENTATION[view];
+  const stateScope = workspace?.tenant_id && sessionUserId
+    ? `${workspace.tenant_id}:${sessionUserId}:${workspace.role}` : '';
   const canSeeBusiness = ['owner', 'admin'].includes(
     String(workspace?.role || ''),
   );
@@ -503,6 +506,8 @@ export default function AgencyOperatingWorkspace() {
 
       const cacheKey = [
         workspace.tenant_id,
+        sessionUserId,
+        workspace.role,
         targetView,
         targetView === 'players' ? 'players' : 'main',
       ].join(':');
@@ -600,6 +605,8 @@ export default function AgencyOperatingWorkspace() {
       rpc,
       workspace?.slug,
       workspace?.tenant_id,
+      sessionUserId,
+      workspace?.role,
     ],
   );
 
@@ -674,6 +681,8 @@ export default function AgencyOperatingWorkspace() {
 
     const cacheKey = [
       workspace.tenant_id,
+      sessionUserId,
+      workspace.role,
       view,
       view === 'players' ? playersSection : 'main',
     ].join(':');
@@ -922,6 +931,7 @@ export default function AgencyOperatingWorkspace() {
     view,
     workspace?.role,
     workspace?.tenant_id,
+    sessionUserId,
   ]);
 
   useEffect(() => {
@@ -1355,10 +1365,17 @@ export default function AgencyOperatingWorkspace() {
                 }}
               >
                 <Icon size={17} />
-                <span>{item.label}</span>
+                {item.key === 'opportunities' ? <>
+                  <span className={styles.navDesktopLabel}>{item.label}</span>
+                  <span className={styles.navMobileLabel}>Market</span>
+                </> : <span>{item.label}</span>}
               </Link>
             );
           })}
+          <WorkspaceSearch compact className={styles.findButton}
+            tenantId={workspace.tenant_id} userId={sessionUserId}
+            basePath={basePath} cacheScope={stateScope} invoke={invoke} rpc={rpc}
+            seed={{view,data}} onCreate={setCreateKind}/>
         </nav>
 
         <div className={styles.sidebarFoot}>
@@ -1511,7 +1528,7 @@ export default function AgencyOperatingWorkspace() {
         {data ? (
           <div
             className={styles.viewStage}
-            key={`view:${view}:${selectedPlayerId || playersSection}:${opportunitiesSection}`}
+            key={`view:${stateScope}:${view}:${selectedPlayerId || playersSection}:${opportunitiesSection}`}
           >
             {view === 'home' ? (
               <Home
@@ -1535,7 +1552,9 @@ export default function AgencyOperatingWorkspace() {
                 <AgencyPlayerProfile
                   key={`player-profile:${selectedPlayerId}`}
                   playerId={selectedPlayerId}
-                  backHref={`${basePath}?view=players&player=${encodeURIComponent(selectedPlayerId)}`}
+                  backHref={`${basePath}?view=players`}
+                  cacheScope={stateScope}
+                  workHref={`${basePath}?view=players&player=${encodeURIComponent(selectedPlayerId)}`}
                   role={String(workspace?.role || '')}
                   fallbackAgency={runtime.branding}
                   invoke={(action, body) => invoke<any>(action, body)}
@@ -1552,6 +1571,7 @@ export default function AgencyOperatingWorkspace() {
                 />
               ) : (
                 <AgencyPlayersWorkspace
+                  stateScope={stateScope}
                   data={data}
                   basePath={basePath}
                   invoke={(action, body) => invoke<any>(action, body)}
@@ -1577,6 +1597,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'network' ? (
               <AgencyNetworkWorkspace
+                stateScope={stateScope}
                 data={data}
                 basePath={basePath}
                 rpc={rpc}

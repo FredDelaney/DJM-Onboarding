@@ -1,0 +1,93 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {mkdir} from 'node:fs/promises';
+const require=createRequire(import.meta.url);
+const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/playwright':'playwright');
+const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
+const root=process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow',errors=[];
+const page=await browser.newPage({viewport:{width:390,height:844}});
+page.on('pageerror',error=>errors.push(error.message));
+try{
+ const visit=async(query='')=>{
+  for(let i=0;i<50;i++){try{await page.goto(root+query);break;}catch(error){if(i===49)throw error;await page.waitForTimeout(500);}}
+  await page.getByRole('button',{name:'Find in this agency',exact:true}).waitFor();
+  await page.locator('[data-qa-ready="true"]').waitFor();
+  await page.addStyleTag({content:'nextjs-portal { display: none !important; }'});
+ };
+ const find=()=>page.getByRole('button',{name:'Find in this agency',exact:true});
+ const open=async()=>{await find().click();const dialog=page.getByRole('dialog',{name:'Find in this agency',exact:true});await dialog.waitFor();return dialog;};
+ const box=dialog=>dialog.getByRole('combobox');
+ const choose=async(text)=>{const dialog=await open();await box(dialog).fill(text);return dialog;};
+ for(const width of [320,390,430,768,1440]){
+  await page.setViewportSize({width,height:900});await visit('?width='+width);
+  const dialog=await choose('jose');
+  const option=dialog.getByRole('option',{name:/José Silva/});await option.waitFor();
+  assert.match(await option.getAttribute('href'),/player=qa-player-0&profile=1$/);
+  assert.ok(await box(dialog).evaluate(node=>node===document.activeElement));
+  await page.keyboard.press('Shift+Tab');assert.ok(await dialog.evaluate(node=>node.contains(document.activeElement)),'Focus left search');
+  await page.keyboard.press('Tab');assert.ok(await box(dialog).evaluate(node=>node===document.activeElement),'Focus did not cycle to search input');
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Horizontal overflow at '+width);
+  const heights=await dialog.getByRole('button').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().height));
+  assert.ok(heights.every(height=>height>=44),'Search controls under 44px at '+width);
+  await page.keyboard.press('Escape');assert.ok(await find().evaluate(node=>node===document.activeElement));
+  assert.equal(await page.evaluate(()=>document.body.style.overflow),'');
+  if(width===320||width===1440){
+   const profileDialog=await choose('jose');await profileDialog.getByRole('option',{name:/José Silva/}).waitFor();
+   await page.keyboard.press('Enter');await page.getByRole('region',{name:'Player data',exact:true}).waitFor();
+   assert.equal(new URL(page.url()).searchParams.get('player'),'qa-player-0');
+   assert.equal(new URL(page.url()).searchParams.get('profile'),'1');
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Direct profile overflow at '+width);
+   const work=page.getByRole('link',{name:'Work view',exact:true});
+   assert.match(await work.getAttribute('href'),/view=players&player=qa-player-0$/);
+   assert.ok((await work.boundingBox()).height>=44,'Work view target under 44px at '+width);
+   await page.getByRole('link',{name:'Back to players',exact:true}).click();
+  }
+ }
+ await page.setViewportSize({width:390,height:844});await visit();
+ await page.keyboard.press('Control+k');
+ let dialog=page.getByRole('dialog',{name:'Find in this agency',exact:true});await dialog.waitFor();await box(dialog).fill('Dapo');
+ await dialog.getByRole('option',{name:/Dapo Director/}).waitFor();
+ assert.match(await dialog.getByRole('option',{name:/Dapo Director/}).getAttribute('href'),/view=network&person=qa-contact$/);
+ await box(dialog).fill('Centre back needed');await dialog.getByRole('option',{name:/Centre back needed/}).waitFor();
+ assert.match(await dialog.getByRole('option',{name:/Centre back needed/}).getAttribute('href'),/tab=needs&record=qa-need$/);
+ await page.keyboard.press('Enter');await page.locator('#opportunity-qa-need[data-search-match="true"]').waitFor();
+ await page.waitForFunction(()=>document.activeElement?.id==='opportunity-qa-need');
+ assert.equal(new URL(page.url()).searchParams.get('record'),'qa-need');
+ await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Players',exact:true}).click();
+ dialog=await choose('Add player');await page.keyboard.press('Enter');await page.getByRole('status').getByText('Create player',{exact:true}).waitFor();
+ await page.locator('[data-qa-dialog]').click();await page.keyboard.press('Control+k');
+ assert.equal(await page.getByRole('dialog',{name:'Find in this agency',exact:true}).count(),0,'Search opened over another dialog');
+ await page.getByRole('button',{name:'Close other dialog'}).click();
+ await page.getByRole('textbox',{name:'Search players',exact:true}).fill('Example');
+ const card=page.getByRole('button',{name:'Open Example Player 5',exact:true});await card.scrollIntoViewIfNeeded();
+ const before=await page.evaluate(()=>window.scrollY);assert.ok(before>100);
+ await card.click();await page.getByRole('region',{name:'Player data',exact:true}).waitFor();
+ assert.equal(new URL(page.url()).searchParams.get('profile'),'1','Card added an intermediate screen');
+ assert.equal(await page.getByRole('link',{name:'Work view',exact:true}).count(),1);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Profile overflow');
+ await page.getByRole('link',{name:'Back to players',exact:true}).click();
+ await page.getByRole('textbox',{name:'Search players',exact:true}).waitFor();
+ await page.waitForFunction(()=>document.querySelector('input[aria-label="Search players"]')?.value==='Example');
+ await page.waitForFunction(top=>Math.abs(window.scrollY-top)<5,before);
+ await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Network',exact:true}).click();
+ await page.getByRole('button',{name:/^People/}).click();await page.getByRole('textbox',{name:'Search Network'}).fill('Director');
+ await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Home',exact:true}).click();
+ await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Network',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
+ assert.equal(await page.getByRole('textbox',{name:'Search Network'}).getAttribute('placeholder'),'Search person, club, role or country');
+ await page.reload();await page.getByRole('textbox',{name:'Search Network'}).waitFor();
+ await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
+ await page.locator('[data-qa-switch]').click();await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='');
+ dialog=await choose('jose');await dialog.getByText('No matching records',{exact:true}).waitFor();
+ assert.equal(await dialog.getByRole('option',{name:/José Silva/}).count(),0,'Previous account search result leaked');
+ await box(dialog).fill('Other Account');await dialog.getByRole('option',{name:/Other Account Player/}).waitFor();await page.keyboard.press('Escape');
+ await visit('?scenario=partial');dialog=await choose('jose');await dialog.getByRole('option',{name:/José Silva/}).waitFor();await dialog.getByRole('alert').waitFor();
+ await dialog.getByRole('button',{name:'Try again',exact:true}).click();await box(dialog).fill('Dapo');await dialog.getByRole('option',{name:/Dapo Director/}).waitFor();
+ assert.equal(await dialog.getByRole('alert').count(),0);
+ await mkdir('/private/tmp/redream-find-flow-screens',{recursive:true});
+ await page.screenshot({path:'/private/tmp/redream-find-flow-screens/mobile-search.png',fullPage:false});
+ await page.keyboard.press('Escape');await page.setViewportSize({width:1440,height:900});dialog=await choose('jose');await dialog.getByRole('option',{name:/José Silva/}).waitFor();
+ await page.screenshot({path:'/private/tmp/redream-find-flow-screens/desktop-search.png',fullPage:false});
+ assert.deepEqual(errors,[],'Browser runtime errors');
+ console.log('PASS: 5 viewports, exact links, keyboard/focus, quick add, direct player profile, list filters/scroll/reload, account separation, partial failure and retry');
+}finally{await browser.close();}

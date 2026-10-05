@@ -51,11 +51,11 @@ test('inline player and profile routes skip expensive index loading', () => {
   );
 });
 
-test('player cards have a direct Player Profile shortcut', () => {
+test('player cards open the profile directly and keep a separate work view', () => {
   assert.match(players, /const openPlayerProfile =/);
   assert.match(players, /profileShortcut/);
-  assert.match(players, />\s*View profile\s*</);
-  assert.match(players, /prefetchPlayerProfile\(id, invoke\)/);
+  assert.match(players, />\s*Work view\s*</);
+  assert.match(players, /prefetchPlayerProfile\(id, invoke, stateScope\)/);
 });
 
 test('opening a player renders known summary data immediately and prefetches the profile', () => {
@@ -64,15 +64,15 @@ test('opening a player renders known summary data immediately and prefetches the
   assert.match(players, /useState\(!initialDetail\)/);
   assert.match(
     players,
-    /prefetchPlayerProfile\(playerId, invoke\)/,
+    /prefetchPlayerProfile\(playerId, invoke, cacheScope\)/,
   );
 });
 
 test('Player Profile reuses a short-lived prefetched cache', () => {
   assert.match(cache, /const TTL_MS = 60_000/);
   assert.match(cache, /profileRequests/);
-  assert.match(profile, /getCachedPlayerProfile\(playerId\)/);
-  assert.match(profile, /setCachedPlayerProfile\(playerId, profile\)/);
+  assert.match(profile, /getCachedPlayerProfile\(playerId, cacheScope\)/);
+  assert.match(profile, /setCachedPlayerProfile\(playerId, profile, cacheScope\)/);
 });
 
 test('duplicate AI and account identity reads are deduplicated', () => {

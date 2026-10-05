@@ -58,6 +58,8 @@ type AgencyInvoke = <T = any>(
 type Props = {
   playerId: string;
   backHref: string;
+  workHref?: string;
+  cacheScope?: string;
   role: string;
   fallbackAgency: Record<string, any>;
   invoke: AgencyInvoke;
@@ -351,13 +353,15 @@ const shareStatus = (share: any) => {
 export default function AgencyPlayerProfile({
   playerId,
   backHref,
+  workHref,
+  cacheScope = '',
   role,
   fallbackAgency,
   invoke,
   onOpenAction,
   onOpenIntelligence,
 }: Props) {
-  const initialProfile = getCachedPlayerProfile(playerId);
+  const initialProfile = getCachedPlayerProfile(playerId, cacheScope);
   const [bundle, setBundle] = useState<any>(() => initialProfile);
   const [form, setForm] = useState<ProfileForm>(() =>
     initialProfile ? formFromProfile(initialProfile) : emptyForm,
@@ -393,7 +397,7 @@ export default function AgencyPlayerProfile({
   const loadGeneration = useRef(0);
   const load = useCallback(async (fresh = false) => {
     const generation = ++loadGeneration.current;
-    const cached = getCachedPlayerProfile(playerId);
+    const cached = getCachedPlayerProfile(playerId, cacheScope);
     if (!cached) setLoading(true);
     setError('');
 
@@ -405,7 +409,7 @@ export default function AgencyPlayerProfile({
           ? (await invoke<any>('player_profile_core', {
               player_id: playerId,
             }))?.profile || null
-          : await prefetchPlayerProfile(playerId, invoke);
+          : await prefetchPlayerProfile(playerId, invoke, cacheScope);
       } catch {
         profile =
           (await invoke<any>('player_profile', {
@@ -418,7 +422,7 @@ export default function AgencyPlayerProfile({
       }
 
       if (generation !== loadGeneration.current) return false;
-      setCachedPlayerProfile(playerId, profile);
+      setCachedPlayerProfile(playerId, profile, cacheScope);
       setBundle(profile);
       setForm(formFromProfile(profile));
       setLoading(false);
@@ -441,7 +445,7 @@ export default function AgencyPlayerProfile({
                   ...(detail.branding || {}),
                 },
               };
-              setCachedPlayerProfile(playerId, next);
+              setCachedPlayerProfile(playerId, next, cacheScope);
               return next;
             });
           })
@@ -454,7 +458,7 @@ export default function AgencyPlayerProfile({
       setLoading(false);
       return false;
     }
-  }, [invoke, playerId]);
+  }, [invoke, playerId, cacheScope]);
 
   useEffect(() => {
     void load(false);
@@ -1237,6 +1241,7 @@ export default function AgencyPlayerProfile({
           <ArrowLeft size={15} />
           Players
         </Link>
+        {workHref ? <Link href={workHref} className={styles.back}>Work view</Link> : null}
 
         <button
           type="button"

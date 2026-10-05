@@ -64,7 +64,7 @@ test('core profile read excludes secondary club and communication context', () =
 test('secondary profile context streams in after first paint', () => {
   assert.match(profile, /player_profile_detail/);
   assert.match(profile, /profile\.secondary_ready === false/);
-  assert.match(profile, /setCachedPlayerProfile\(playerId, next\)/);
+  assert.match(profile, /setCachedPlayerProfile\(playerId, next, cacheScope\)/);
   assert.match(agencyOs, /action==="player_profile_detail"/);
   assert.match(agencyOs, /const profileSecondary=async/);
   assert.match(agencyOs, /profileCommunication\(pid\)/);

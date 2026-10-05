@@ -179,6 +179,15 @@ export default function AgencyOpportunitiesWorkspace({
   const [view, setView] = useState<OpportunityView>(requestedView);
   const [search, setSearch] = useState('');
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
+  const requestedRecord=String(searchParams.get('record')||'');
+  useEffect(()=>{
+    if(!requestedRecord)return;
+    const frame=requestAnimationFrame(()=>{
+      const row=document.getElementById('opportunity-'+requestedRecord);
+      if(row){row.scrollIntoView({block:'center',behavior:'instant'});row.focus({preventScroll:true});}
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[requestedRecord,data,view]);
   const readState = opportunityReadState(data, view);
 
   const reloadArchives = useCallback(async () => {
@@ -625,6 +634,8 @@ export default function AgencyOpportunitiesWorkspace({
                 <article
                   className={styles.row}
                   key={item.club_need_id}
+                  id={`opportunity-${item.club_need_id}`}
+                  data-search-match={requestedRecord===String(item.club_need_id)||undefined}
                   role="button"
                   tabIndex={0}
                   onClick={() =>
@@ -817,6 +828,8 @@ export default function AgencyOpportunitiesWorkspace({
                 <article
                   className={styles.row}
                   key={deal.deal_room_id}
+                  id={`opportunity-${deal.deal_room_id}`}
+                  data-search-match={requestedRecord===String(deal.deal_room_id)||undefined}
                   role="button"
                   tabIndex={0}
                   onClick={() => handleDeal(deal)}

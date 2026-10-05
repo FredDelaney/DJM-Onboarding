@@ -935,3 +935,5 @@
   .empty { min-height: 160px; padding: 24px 16px; }
   .empty span { font-size: 12px; line-height: 1.5; }
 }
+
+.row[data-search-match="true"]{outline:2px solid #718eaf;outline-offset:3px;box-shadow:0 8px 26px rgba(59,87,123,.12)}

@@ -4560,3 +4560,15 @@
     flex-shrink: 0;
   }
 .modal { box-sizing:border-box; max-height:calc(100dvh - 40px); overflow-y:auto; }
+
+/* Find stays within the existing navigation on every screen. */
+.nav .navMobileLabel{display:none}
+.nav .findButton{justify-content:flex-start;gap:10px;padding:12px 16px;border:0;color:#7b8ba2;font-size:13px;font-weight:650;min-height:44px}
+.nav .findButton:hover{background:rgba(124,144,173,.1)}
+@media(max-width:680px){
+ .nav{grid-template-columns:repeat(6,minmax(0,1fr))}
+ .nav .navDesktopLabel{display:none}
+ .nav .navMobileLabel{display:inline}
+ .nav .findButton{flex-direction:column;justify-content:center;gap:5px;padding:7px 0;min-width:0;min-height:44px;font-size:9.5px;color:#586c85;border-radius:10px}
+ .nav .findButton svg{width:18px;height:18px}
+}

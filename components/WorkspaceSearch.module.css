@@ -1,0 +1,30 @@
+.trigger{display:flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:9px 13px;border:1px solid #dce2e9;border-radius:12px;background:#fff;color:#26354b;font:inherit;font-size:12px;font-weight:650;cursor:pointer;white-space:nowrap}
+.trigger kbd{font:inherit;font-size:10px;padding:3px 5px;border:1px solid #e3e8ee;border-radius:5px;color:#778293}
+.trigger:focus-visible{outline:3px solid #6985af;outline-offset:3px}
+.trigger:disabled{opacity:.5;cursor:wait}
+.compact{width:100%;justify-content:flex-start;background:transparent;border-color:transparent;color:inherit}
+.overlay{position:fixed;inset:0;z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:clamp(12px,10vh,90px) 16px 16px;background:rgba(12,24,42,.48);box-sizing:border-box;overflow:auto}
+.dialog{width:620px;max-width:100%;max-height:calc(100dvh - 32px);display:flex;flex-direction:column;background:#fff;color:#1b2a40;border:1px solid #e4e9ef;border-radius:20px;box-shadow:0 24px 90px rgba(0,0,0,.24);overflow:hidden}
+.title{margin:0;padding:19px 22px 0;font-size:14px;font-weight:700;letter-spacing:-.02em}
+.inputRow{display:flex;align-items:center;gap:12px;padding:13px 16px 11px 22px;border-bottom:1px solid #e9edf2;color:#607187}
+.inputRow input{flex:1;min-width:0;height:44px;padding:0;border:0;outline:none;box-shadow:none;background:transparent;color:#17253c;font:inherit;font-size:16px;border-radius:0}
+.inputRow:focus-within{box-shadow:inset 0 -2px #7592b9}
+.dialog .inputRow input:focus-visible{outline:none;box-shadow:none}
+.inputRow input::placeholder{color:#8692a2}
+.inputRow button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;padding:0;border:0;border-radius:10px;background:#f3f5f8;color:#506078;font:inherit;font-size:11px;font-weight:650;cursor:pointer}
+.status{min-height:34px;display:flex;align-items:center;gap:7px;padding:6px 22px;font-size:11px;color:#6c7a8c}
+.results{min-height:60px;overflow-y:auto;overscroll-behavior:contain;padding:0 10px 10px}
+.result{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;min-height:70px;margin:2px 0;padding:11px 42px 11px 12px;border:1px solid transparent;border-radius:11px;background:transparent;color:#1b2a40;cursor:pointer;text-align:left;text-decoration:none;font:inherit;box-sizing:border-box}
+.result strong{max-width:100%;font-size:14px;font-weight:650;overflow-wrap:anywhere}
+.result small{max-width:100%;font-size:11px;color:#718095;overflow-wrap:anywhere}
+.result:hover,.active{background:#f3f6fa;border-color:#e5ebf2}
+.result:focus-visible,.inputRow button:focus-visible,.error button:focus-visible{outline:2px solid #6480a9;outline-offset:-2px}
+.kind{display:flex;align-items:center;gap:4px;font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#7c8a9c}
+.arrow{position:absolute;right:14px;top:calc(50% - 8px);color:#6a7d94}
+.footer{display:flex;justify-content:space-between;gap:10px;padding:11px 22px;border-top:1px solid #e9edf2;font-size:10px;color:#8290a2}
+.error{display:flex;align-items:center;gap:12px;margin:2px 16px 10px;padding:10px 12px;border-radius:10px;background:#fff5ed;color:#8b502e;font-size:11px}
+.error span{flex:1}.error button{min-height:44px;flex-shrink:0;padding:8px 10px;border:1px solid #e8cdb9;border-radius:9px;background:#fff;color:inherit;font:inherit;font-weight:650;cursor:pointer}
+.empty{padding:28px 16px;color:#65758a}.empty strong{font-size:14px}.empty p{margin:7px 0;font-size:12px}
+.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:680px){.overlay{padding:12px;padding-top:calc(12px + env(safe-area-inset-top))}.dialog{border-radius:16px;max-height:calc(100dvh - 24px - env(safe-area-inset-top))}.title{padding:15px 16px 0}.inputRow{padding:8px 10px 8px 16px;gap:7px}.inputRow>svg{display:none}.inputRow input{font-size:16px}.inputRow button{flex-basis:44px}.status{padding-left:16px}.footer{padding:10px 16px}.footer span:first-child{display:none}.result{min-height:76px}}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
