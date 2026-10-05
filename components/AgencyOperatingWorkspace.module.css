@@ -4518,4 +4518,45 @@
 }
 /* Confirmation stays above navigation and keeps failures readable in place. */
 .modalBackdrop { z-index:11000; overflow-y:auto; box-sizing:border-box; padding:20px max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left)); }
+
+/* Home actions say what they do, with room for the complete label. */
+.homeReviewActions { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+  .homeCommandCentre .attentionCardPrimary,
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .homeCommandCentre .attentionCardPrimary .compactButton,
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: start;
+    gap: 8px;
+    width: auto;
+    max-width: 100%;
+    min-width: 44px;
+    height: auto;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #dce4e9;
+    background: #f4f7fa;
+    color: #17364d;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-decoration: none;
+    white-space: normal;
+  }
+  .homeCommandCentre .attentionCardPrimary .compactButton { background: #fff; }
+  .homeCommandCentre .attentionCardPrimary .compactButton svg,
+  .homeCommandCentre .attentionCard:not(.attentionCardPrimary) .compactButton svg {
+    position: static;
+    width: 16px;
+    height: 16px;
+    transform: none;
+    flex-shrink: 0;
+  }
 .modal { box-sizing:border-box; max-height:calc(100dvh - 40px); overflow-y:auto; }

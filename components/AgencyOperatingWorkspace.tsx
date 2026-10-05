@@ -185,6 +185,21 @@ const VIEW_PRESENTATION: Record<
 
 const ALLOWED_ROLES = ['owner', 'admin', 'agent', 'operations'];
 
+const reviewPlayerId = (command: any): string => {
+  const review = command?.command_type === 'Player review required' ||
+    (command?.source_type === 'task' && /^Review (?:the player record and resolve the flagged issue\.|player data:)/i.test(String(command?.title || '')));
+  if (!review) return '';
+  const tasks = Array.isArray(command?.evidence?.tasks) ? command.evidence.tasks : [];
+  const players = [...new Set(tasks.map((task: any) => String(task?.player_id || '')).filter(Boolean))];
+  if (tasks.length && (players.length !== 1 || tasks.some((task: any) => !task?.player_id))) return '';
+  return String(command?.player_id || (command?.source_type === 'player' ? command?.source_id : players[0]) || '');
+};
+
+const reviewCopy = (command: any) => ({
+  title: command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
+  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Open the player profile to check the recorded data.' : 'Check the player profile, then mark this reminder done.',
+});
+
 const commandWorkingView = (command: any): View => {
   const source = String(command?.source_type || '');
 
@@ -206,6 +221,7 @@ const commandWorkingView = (command: any): View => {
     return 'network';
   }
 
+  if (source === 'task') return 'calendar';
   return 'home';
 };
 
@@ -1085,7 +1101,10 @@ export default function AgencyOperatingWorkspace() {
   const openCommandAction = (command: any) => {
     const destination = commandWorkingView(command);
 
-    const fallbackHref =
+    const linkedPlayerId = String(command?.player_id || '').trim();
+    const fallbackHref = linkedPlayerId
+      ? `${basePath}?view=players&player=${encodeURIComponent(linkedPlayerId)}&profile=1`
+      :
       destination === 'home'
         ? basePath
         : `${basePath}?view=${destination}`;
@@ -1138,7 +1157,7 @@ export default function AgencyOperatingWorkspace() {
       ],
       fallbackHref,
       fallbackLabel:
-        destination === 'home'
+        linkedPlayerId ? 'Open player profile' : destination === 'home'
           ? 'Return to Today'
           : `Open ${NAV.find((item) => item.key === destination)?.label || 'working area'}`,
     });
@@ -1498,6 +1517,7 @@ export default function AgencyOperatingWorkspace() {
               <Home
                 data={data}
                 basePath={basePath}
+                workspaceSlug={String(workspace?.slug || targetSlug || '')}
                 actionBusy={actionBusy}
                 onRetry={() => void loadView()}
                 onPrepare={prepareCommand}
@@ -2040,6 +2060,7 @@ function EmptyState({
 function Home({
   data,
   basePath,
+  workspaceSlug,
   actionBusy,
   onPrepare,
   onRetry,
@@ -2049,6 +2070,7 @@ function Home({
 }: {
   data: any;
   basePath: string;
+  workspaceSlug: string;
   actionBusy: string;
   onRetry: () => void;
   onPrepare: (command: any) => void;
@@ -2114,7 +2136,10 @@ function Home({
     ? home.attention.delegable
     : [];
 
+  const commands = [...judgement, ...confirm, ...delegable];
+  const activeReviews = new Set(commands.filter((command: any) => command?.command_type === 'Player review required').map(reviewPlayerId).filter(Boolean));
   const priority = [...judgement, ...confirm, ...delegable]
+    .filter((command: any) => !(command?.source_type === 'task' && activeReviews.has(reviewPlayerId(command))))
     .filter(
       (command: any, index: number, source: any[]) =>
         source.findIndex(
@@ -2252,6 +2277,24 @@ function Home({
   };
 
   const actionFor = (command: any) => {
+    const playerId = reviewPlayerId(command);
+    if (playerId) return (
+      <div className={styles.homeReviewActions}>
+        <Link className={styles.compactButton} href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}&profile=1`}>
+        <ChevronRight size={16} />Review player data
+        </Link>
+        {command?.source_type === 'task' && Number(command?.evidence?.task_count || 0) === 1 ? (
+          <button type="button" className={styles.compactButton} onClick={() => onPrepare(command)} disabled={Boolean(actionBusy)}>
+            <CheckCircle2 size={16} />Mark reminder done
+          </button>
+        ) : null}
+      </div>
+    );
+    if (command?.source_type === 'capture' && command?.source_id) return (
+      <Link className={styles.compactButton} href={`${workspaceSlug ? `/workspace/${encodeURIComponent(workspaceSlug)}/capture` : '/tell'}?capture=${encodeURIComponent(command.source_id)}`}>
+        <ChevronRight size={16} />Answer question
+      </Link>
+    );
     const replyInteractionId =
       command?.source_type === 'task' &&
       Number(command?.evidence?.task_count || 0) === 1
@@ -2370,9 +2413,9 @@ function Home({
                     </small>
                   </div>
 
-                  <strong>{command.title}</strong>
+                  <strong>{reviewPlayerId(command) ? reviewCopy(command).title : command.title}</strong>
                   <span>
-                    {command.recommended_action ||
+                    {reviewPlayerId(command) ? reviewCopy(command).reason : command.recommended_action ||
                       command.why_now ||
                       'Review the current situation.'}
                   </span>

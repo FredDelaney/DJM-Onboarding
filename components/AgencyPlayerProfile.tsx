@@ -1248,6 +1248,17 @@ export default function AgencyPlayerProfile({
         </div>
       ) : null}
 
+      {player.review_required_at || player.review_reason ? (
+        <section className={`${styles.card} ${styles.reviewBanner}`} aria-label="Player data review">
+          <div>
+            <h3>Player data needs review</h3>
+            <p>{player.review_reason || 'New player information needs checking.'}</p>
+            <span>Check the recorded information before confirming it is current.</span>
+          </div>
+          {canEdit ? <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => openVerify('verification')}>Review updated data</button> : null}
+        </section>
+      ) : null}
+
       <section className={styles.hero}>
         <div className={styles.heroIdentity}>
           <div className={styles.photo}>
@@ -2092,6 +2103,19 @@ export default function AgencyPlayerProfile({
                     .join(' · ') || 'Current situation not fully recorded'}
                 </span>
               </div>
+
+              {player.review_required_at || player.review_reason ? (
+                <section className={styles.reviewStats} aria-label="Statistics to review">
+                  <strong>Current recorded statistics</strong>
+                  <p>Check these figures against the source before confirming the player data.</p>
+                  <div className={styles.keyStats}>
+                    {(draftProfile.key_stats || []).slice(0, 6).map((item: any, index: number) => (
+                      <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
+                    ))}
+                    {!draftProfile.key_stats?.length ? <p>No current-season statistics are recorded.</p> : null}
+                  </div>
+                </section>
+              ) : null}
 
               <div className={styles.twoFields}>
                 <label>

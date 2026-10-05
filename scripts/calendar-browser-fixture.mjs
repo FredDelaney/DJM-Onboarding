@@ -9,4 +9,5 @@ const port=process.env.CALENDAR_QA_PORT||'3113';
 const env={...process.env,NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'example',CALENDAR_QA_URL:`http://127.0.0.1:${port}/qa-calendar`};
 const server=spawn('npm',['run','dev','--','--webpack','--hostname','127.0.0.1','--port',port],{env,stdio:'inherit',detached:true});
 const run=script=>new Promise((resolve,reject)=>{const child=spawn(process.execPath,[script],{env,stdio:'inherit'});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(new Error(`${script} failed (${code})`)));});
-try{await run('scripts/agency-command-recovery-qa.mjs');await run('scripts/calendar-mobile-recovery-qa.mjs');await run('scripts/calendar-workspace-browser-qa.mjs');}finally{try{process.kill(-server.pid,'SIGTERM');}catch{}await rm(routes,{recursive:true,force:true});}
+const checks=process.argv.slice(2);
+try{for(const script of checks.length?checks:['scripts/home-review-context-qa.mjs','scripts/player-review-context-qa.mjs','scripts/reminder-review-context-qa.mjs','scripts/agency-command-recovery-qa.mjs','scripts/calendar-mobile-recovery-qa.mjs','scripts/calendar-workspace-browser-qa.mjs'])await run(script);}finally{try{process.kill(-server.pid,'SIGTERM');}catch{}await rm(routes,{recursive:true,force:true});}

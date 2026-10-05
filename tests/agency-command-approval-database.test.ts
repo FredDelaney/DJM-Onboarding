@@ -29,10 +29,10 @@ before(async () => {
       entity_type text,entity_id text,after_state jsonb,metadata jsonb);
     create function public.platform_server_agency_decisions(uuid,integer) returns jsonb language sql as $$
       select jsonb_build_object('commands',(select jsonb_agg(jsonb_build_object(
-        'command_id',name,'command_type','Complete follow-up','source_type','task',
+        'command_id',name,'command_type',case when name='review' then 'Player review required' else 'Complete follow-up' end,'source_type',case when name='review' then 'player' else 'task' end,
         'source_id','30000000-0000-4000-8000-000000000001','title','Speak with player',
         'priority_score',80,'actionability','{}'::jsonb,'evidence_health','{}'::jsonb
-      )) from unnest(array['expired','applied','active','handoff','denied']) name))
+      )) from unnest(array['expired','applied','active','handoff','denied','review']) name))
     $$;
     insert into platform.tenants values ('${tenant}','active');
     insert into platform.tenant_memberships values ('${tenant}','${actor}','active','owner'),('${tenant}','${colleague}','active','agent');
@@ -40,8 +40,20 @@ before(async () => {
   await db.exec(readFileSync('supabase/migrations/20260913120819_add_verify_first_action_preparation.sql','utf8'));
   const recovery = readdirSync('supabase/migrations').find(name => name.endsWith('_renew_expired_command_approvals.sql'));
   if (recovery) await db.exec(readFileSync(`supabase/migrations/${recovery}`,'utf8'));
+  const context = readdirSync('supabase/migrations').find(name => name.endsWith('_home_review_context.sql'));
+  if (context) {
+    const sql = readFileSync(`supabase/migrations/${context}`,'utf8');
+    await db.exec(sql.slice(sql.indexOf('create or replace function public.platform_server_prepare_command_action(')));
+  }
 });
 after(() => db.close());
+
+test('a player data review opens the existing record and never proposes creating a task', async () => {
+  const proposal = await prepare('review');
+  assert.equal(proposal.executable,false,'Reviewing player facts is not a task-creation action');
+  assert.equal(proposal.action_type,'review_player_record');
+  assert.equal(proposal.payload.player_id,'30000000-0000-4000-8000-000000000001');
+});
 
 test('preparing an expired pending approval renews its window after checking the live command', async () => {
   const first = await prepare('expired');

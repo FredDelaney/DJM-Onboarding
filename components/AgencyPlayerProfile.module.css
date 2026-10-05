@@ -309,6 +309,12 @@
   grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
   gap:14px;
 }
+.reviewBanner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border-color: #dce6ee; }
+.reviewBanner h3 { margin: 0 0 6px; font-size: 17px; }
+.reviewBanner p { margin: 0 0 6px; font-weight: 600; }
+.reviewBanner span, .reviewStats p { color: #526474; font-size: 13px; line-height: 1.5; }
+.reviewStats { padding: 16px; border: 1px solid #dce6ee; border-radius: 16px; background: #f6f9fb; }
+
 .card{
   min-width:0;
   overflow:hidden;
