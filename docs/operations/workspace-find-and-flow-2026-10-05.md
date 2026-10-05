@@ -34,4 +34,6 @@ node scripts/workspace-flow-browser-fixture.mjs
 
 ## Release checks
 
-Before merge, require the exact feature commit's CI and staging preview to pass. After merge, verify both production deployments reference the merged commit and their public aliases are assigned. Public browser and asset checks confirm delivery; private workspace behaviour is verified by the component browser fixtures above.
+Normally, verify the exact feature commit's CI and staging preview before merge. After merge, verify both production deployments reference the merged commit and their public aliases are assigned. Public browser and asset checks confirm delivery; private workspace behaviour is verified by the component browser fixtures above.
+
+For this release, GitHub reported an [Actions runner-assignment incident](https://www.githubstatus.com/incidents/3q1yb5m7ltvb), and the CI job remained queued without a runner. Main has no branch protection or active rulesets. The complete local CI command and browser regressions passed, and the feature's staging deployment was READY. Release verification therefore uses those completed checks while GitHub CI remains pending. No status is manually marked successful and no administrative merge override is used.
