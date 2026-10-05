@@ -32,10 +32,12 @@ import {
   FormEvent,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
 import {
@@ -314,6 +316,29 @@ export default function AgencyOperatingWorkspace() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [proposal, setProposal] = useState<any>(null);
+  const [proposalError, setProposalError] = useState('');
+  const confirmationId = useId();
+  const confirmationBackdrop = useRef<HTMLDivElement>(null);
+  const confirmationDialog = useRef<HTMLElement>(null);
+  const confirmationOpener = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!proposal || !signedIn || !workspace?.tenant_id) return;
+    const previous = confirmationOpener.current || document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    const siblings = [...document.body.children].filter(
+      (element): element is HTMLElement => element instanceof HTMLElement && element !== confirmationBackdrop.current,
+    );
+    const inert = siblings.map(element => element.inert);
+    siblings.forEach(element => { element.inert = true; });
+    document.body.style.overflow = 'hidden';
+    confirmationDialog.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    return () => {
+      siblings.forEach((element, index) => { element.inert = inert[index]; });
+      document.body.style.overflow = overflow;
+      if (previous?.isConnected) previous.focus();
+    };
+  }, [proposal, signedIn, workspace?.tenant_id]);
   const [actionRequest, setActionRequest] =
     useState<AgencyActionRequest | null>(null);
   const [intelligenceRequest, setIntelligenceRequest] =
@@ -903,6 +928,8 @@ export default function AgencyOperatingWorkspace() {
         setSessionUserId(session?.user?.id || '');
         setSessionReady(true);
         if (!hasSession) {
+          setProposal(null);
+          setProposalError('');
           setWorkspace(null);
           setData(null);
           setBusy(false);
@@ -1148,8 +1175,10 @@ export default function AgencyOperatingWorkspace() {
     const commandId = String(command?.command_id || '');
     if (!commandId || actionBusy) return;
 
+    confirmationOpener.current = document.activeElement as HTMLElement | null;
     setActionBusy(commandId);
     setError('');
+    setProposalError('');
     try {
       const result = await invoke<any>('action_prepare', {
         command_id: commandId,
@@ -1169,7 +1198,7 @@ export default function AgencyOperatingWorkspace() {
     if (!proposalId || actionBusy) return;
 
     setActionBusy('execute');
-    setError('');
+    setProposalError('');
     try {
       await invoke('action_execute', {
         proposal_id: proposalId,
@@ -1177,7 +1206,7 @@ export default function AgencyOperatingWorkspace() {
       setProposal(null);
       await loadView();
     } catch (actionError) {
-      setError(friendlyError(actionError));
+      setProposalError(friendlyError(actionError));
     } finally {
       setActionBusy('');
     }
@@ -1861,14 +1890,22 @@ export default function AgencyOperatingWorkspace() {
         />
       ) : null}
 
-      {proposal ? (
-        <div className={styles.modalBackdrop}>
-          <section className={styles.modal}>
+      {proposal && typeof document !== 'undefined' ? createPortal(
+        <div ref={confirmationBackdrop} className={styles.modalBackdrop} style={theme}
+          onKeyDown={event => {
+            if (event.key === 'Escape' && !actionBusy) { event.preventDefault(); setProposal(null); }
+            if (event.key !== 'Tab') return;
+            const buttons = [...(confirmationDialog.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') || [])];
+            const first = buttons[0], last = buttons[buttons.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+          }}>
+          <section ref={confirmationDialog} className={styles.modal} role="dialog" aria-modal="true" aria-labelledby={confirmationId}>
             <div className={styles.authMark}>
               <CheckCircle2 size={18} />
             </div>
             <p className={styles.eyebrow}>CONFIRM ACTION</p>
-            <h2>
+            <h2 id={confirmationId}>
               {String(
                 proposal?.title ||
                   proposal?.summary ||
@@ -1879,6 +1916,7 @@ export default function AgencyOperatingWorkspace() {
               Nothing changes until you confirm. The latest recorded
               information will be checked again first.
             </p>
+            {proposalError ? <div role="alert"><ErrorBox text={proposalError} /></div> : null}
             <div className={styles.modalActions}>
               <button
                 type="button"
@@ -1905,7 +1943,7 @@ export default function AgencyOperatingWorkspace() {
               </button>
             </div>
           </section>
-        </div>
+        </div>, document.body
       ) : null}
     </div>
   );

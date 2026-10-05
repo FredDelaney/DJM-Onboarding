@@ -4516,3 +4516,6 @@
     flex-wrap: wrap;
   }
 }
+/* Confirmation stays above navigation and keeps failures readable in place. */
+.modalBackdrop { z-index:11000; overflow-y:auto; box-sizing:border-box; padding:20px max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left)); }
+.modal { box-sizing:border-box; max-height:calc(100dvh - 40px); overflow-y:auto; }
