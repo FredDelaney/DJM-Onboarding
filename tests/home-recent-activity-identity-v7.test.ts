@@ -5,16 +5,19 @@ import test from 'node:test';
 const component = readFileSync('components/AgencyOperatingWorkspace.tsx','utf8');
 const css = readFileSync('components/AgencyOperatingWorkspace.module.css','utf8');
 
-test('Home recent activity uses identity initials instead of speech icons', () => {
-  const start = component.indexOf('recentConnected.slice(0, 3)');
-  const end = component.indexOf('handledConnectedCount', start);
-  const recent = component.slice(start, end);
-  assert.match(recent, /homeTimelineAvatar/);
-  assert.match(recent, /activityInitial/);
-  assert.doesNotMatch(recent, /MessageCircle/);
+const homeStart = component.indexOf('function Home(');
+const homeEnd = component.indexOf('function Players(', homeStart);
+const home = component.slice(homeStart, homeEnd);
+
+test('Home does not render raw recent conversations as a second feed', () => {
+  assert.doesNotMatch(home, /recentConnected/);
+  assert.doesNotMatch(home, /homeTimelineAvatar/);
+  assert.doesNotMatch(home, /MessageCircleMore[\s\S]*recentConnected/);
 });
 
-test('Recent activity identity marker is compact and circular', () => {
-  assert.match(css, /Home recent-activity identity v7/);
-  assert.match(css, /\.homeTimelineAvatar[\s\S]*width: 28px[\s\S]*border-radius: 50%/);
+test('Home uses structured ranked cards for visible context', () => {
+  assert.match(home, /styles\.todayQueueCard/);
+  assert.match(home, /item\.category\.toUpperCase\(\)/);
+  assert.match(home, /item\.why/);
+  assert.match(css, /\.todayQueueCard/);
 });

@@ -31,12 +31,12 @@ test('mobile header keeps account identity and moves Tell ReDream to one persist
   assert.match(shellCss, /\.mobileTell[\s\S]*position:\s*fixed/);
 });
 
-test('Home shows only three decisions until the agent asks for more', () => {
-  assert.match(shell, /showAllNeeds/);
-  assert.match(shell, /priority\.slice\(0, 3\)/);
-  assert.match(shell, /remainingAttentionSlots/);
-  assert.match(shell, /Show less/);
-  assert.match(shellCss, /\.handledStrip\s*\{/);
+test('Home shows one bounded five-item queue on mobile', () => {
+  assert.match(shell, /\.slice\(0, 5\)/);
+  assert.match(shell, /styles\.homeTodayQueue/);
+  assert.match(shell, /styles\.todayQueueCard/);
+  assert.match(shellCss, /\.todayQueueList/);
+  assert.match(shellCss, /\.todayQueueAction/);
   assert.doesNotMatch(shellCss, /\.homePulseGrid\s*\{/);
   assert.doesNotMatch(shellCss, /\.connectedWorkRow\s*\{/);
 });

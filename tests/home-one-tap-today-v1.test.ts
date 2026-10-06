@@ -2,14 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const workspace = readFileSync(
-  'components/AgencyOperatingWorkspace.tsx',
-  'utf8',
-);
-const styles = readFileSync(
-  'components/AgencyOperatingWorkspace.module.css',
-  'utf8',
-);
+const workspace = readFileSync('components/AgencyOperatingWorkspace.tsx', 'utf8');
+const styles = readFileSync('components/AgencyOperatingWorkspace.module.css', 'utf8');
 
 const homeStart = workspace.indexOf('function Home(');
 const homeEnd = workspace.indexOf('function Players(', homeStart);
@@ -23,6 +17,7 @@ test('Home receives the stable workspace base path for direct Today routing', ()
 test('Today opens meeting preparation directly through Calendar', () => {
   assert.match(home, /const meetingId = String\(item\?\.meeting_id \|\| ''\)\.trim\(\)/);
   assert.match(home, /\?view=calendar&meeting=\$\{encodeURIComponent\(meetingId\)\}/);
+  assert.match(home, /Open meeting/);
 });
 
 test('Today routes player and opportunity dates to the real work surface', () => {
@@ -38,18 +33,19 @@ test('Today routes player and opportunity dates to the real work surface', () =>
   assert.match(home, /\?view=network&club=\$\{encodeURIComponent\(organisationId\)\}/);
 });
 
-test('Today rows themselves are the action without another button column', () => {
-  assert.match(home, /<Link[\s\S]*className=\{styles\.simpleTimelineRow\}[\s\S]*href=\{dayHrefFor\(item\)\}/);
-  assert.match(home, /simpleTimelineArrow/);
-  assert.match(styles, /\.simpleTimelineRow[\s\S]*text-decoration: none/);
-  assert.match(styles, /\.simpleTimelineRow:hover/);
-  assert.match(styles, /\.simpleTimelineArrow/);
+test('Today gives each ranked item one explicit primary action', () => {
+  assert.match(home, /const queueAction = \(item: QueueItem\)/);
+  assert.match(home, /queueAction\(item\)/);
+  assert.match(home, /actionFor\(item\.payload\)/);
+  assert.match(home, /Open relationship/);
+  assert.match(home, /Record outcome/);
+  assert.match(styles, /\.todayQueueAction/);
 });
 
-test('Home section labels are concise and do not repeat themselves', () => {
-  assert.match(home, /<h2>Needs attention<\/h2>/);
+test('Home hierarchy is one concise Today surface', () => {
   assert.match(home, /<h2>Today<\/h2>/);
-  assert.doesNotMatch(home, /What needs your attention/);
-  assert.doesNotMatch(home, /<p className=\{styles\.eyebrow\}>TODAY<\/p>/);
-  assert.match(home, /Capture the outcome and next move\./);
+  assert.match(home, /Ranked across the agency/);
+  assert.doesNotMatch(home, /<h2>Needs attention<\/h2>/);
+  assert.doesNotMatch(home, /What changed/);
+  assert.doesNotMatch(home, /Recently handled by ReDream/);
 });

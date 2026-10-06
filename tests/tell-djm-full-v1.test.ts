@@ -230,7 +230,8 @@ test('global mic inherits stable context from player club contact recruitment an
 
 test('scout voice notes create or reuse Recruitment targets and dated scouting reports', () => {
   assert.match(worker, /log_scout_observation/);
-  assert.match(worker, /redream_ai_apply_scout_observation/);
+  assert.match(worker, /redream_ai_stage_action/);
+  assert.match(migration, /djm_tell_apply_scout_observation/);
   assert.match(migration, /djm_os\.scouting_prospects/);
   assert.match(migration, /djm_os\.scouting_reports/);
   assert.match(migration, /recruitment_stage,recruitment_priority/);

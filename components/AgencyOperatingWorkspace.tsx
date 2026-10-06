@@ -65,7 +65,7 @@ import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 
-import { homeReadState, settleHomeReads, homeConversationHref } from '@/lib/agency-home-state';
+import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -2166,11 +2166,9 @@ function Home({
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const [greeting, setGreeting] = useState('Good to see you.');
-  const [showAllNeeds, setShowAllNeeds] = useState(false);
 
   useEffect(() => {
     const hour = new Date().getHours();
-
     setGreeting(
       hour < 12
         ? 'Good morning.'
@@ -2180,53 +2178,53 @@ function Home({
     );
   }, []);
 
-  const attentionState = homeReadState(data?.home_reads, ['meeting_aftercare']);
-  const todayState = homeReadState(data?.home_reads, ['operations', 'connected_work']);
-  const connectedState = homeReadState(data?.home_reads, ['connected_work']);
-  const allState = homeReadState(data?.home_reads, ['operations', 'connected_work', 'meeting_aftercare']);
+  const allState = homeReadState(data?.home_reads, [
+    'operations',
+    'connected_work',
+    'meeting_aftercare',
+  ]);
   const readNotice = (state: string) => state === 'ready' ? null : (
     <div className={styles.homeReadNotice} role="status">
       <span>{state === 'loading' ? 'Checking for updates...' : 'Some updates could not be loaded.'}</span>
-      {state === 'error' ? <button type="button" className={styles.compactButton} onClick={onRetry}>Try again</button> : null}
+      {state === 'error' ? (
+        <button type="button" className={styles.compactButton} onClick={onRetry}>
+          Try again
+        </button>
+      ) : null}
     </div>
   );
+
   const home = data?.home || {};
   const operations = data?.operations || {};
   const connectedWork = data?.connected_work || {};
-  const recentConnected = Array.isArray(
-    connectedWork?.recent_conversations,
-  )
-    ? connectedWork.recent_conversations
-    : [];
-  const connectedMeetings = Array.isArray(
-    connectedWork?.upcoming_meetings,
-  )
+  const connectedMeetings = Array.isArray(connectedWork?.upcoming_meetings)
     ? connectedWork.upcoming_meetings
     : [];
-  const meetingAftercare =
-    data?.meeting_aftercare || {};
-  const meetingAftercareItems =
-    Array.isArray(meetingAftercare?.items)
-      ? meetingAftercare.items.slice(0, 4)
-      : [];
-  const handledConnectedCount = recentConnected.length;
+  const meetingAftercareItems = Array.isArray(data?.meeting_aftercare?.items)
+    ? data.meeting_aftercare.items.slice(0, 5)
+    : [];
 
   const confirm = Array.isArray(home?.attention?.confirm)
     ? home.attention.confirm
     : [];
-
   const judgement = Array.isArray(home?.attention?.judgement)
     ? home.attention.judgement
     : [];
-
   const delegable = Array.isArray(home?.attention?.delegable)
     ? home.attention.delegable
     : [];
-
   const commands = [...judgement, ...confirm, ...delegable];
-  const activeReviews = new Set(commands.filter((command: any) => command?.command_type === 'Player review required').map(reviewPlayerId).filter(Boolean));
+  const activeReviews = new Set(
+    commands
+      .filter((command: any) => command?.command_type === 'Player review required')
+      .map(reviewPlayerId)
+      .filter(Boolean),
+  );
   const priority = [...judgement, ...confirm, ...delegable]
-    .filter((command: any) => !(command?.source_type === 'task' && activeReviews.has(reviewPlayerId(command))))
+    .filter(
+      (command: any) =>
+        !(command?.source_type === 'task' && activeReviews.has(reviewPlayerId(command))),
+    )
     .filter(
       (command: any, index: number, source: any[]) =>
         source.findIndex(
@@ -2240,31 +2238,15 @@ function Home({
         Number(b?.priority_score || 0) -
         Number(a?.priority_score || 0),
     )
-    .slice(0, 8);
+    .slice(0, 10);
 
-  const needsYouCount =
-    priority.length + meetingAftercareItems.length;
-
-  const visiblePriority = showAllNeeds
-    ? priority
-    : priority.slice(0, 3);
-  const remainingAttentionSlots = Math.max(
-    0,
-    3 - visiblePriority.length,
-  );
-  const visibleMeetingAftercare = showAllNeeds
-    ? meetingAftercareItems
-    : meetingAftercareItems.slice(0, remainingAttentionSlots);
-  const deadlines = Array.isArray(
-    operations?.deadlines?.items,
-  )
+  const deadlines = Array.isArray(operations?.deadlines?.items)
     ? operations.deadlines.items
     : [];
-  const birthdays = Array.isArray(
-    operations?.important_dates?.birthdays?.items,
-  )
+  const birthdays = Array.isArray(operations?.important_dates?.birthdays?.items)
     ? operations.important_dates.birthdays.items
     : [];
+
   const localDayKey = (value: unknown) => {
     const date = value instanceof Date
       ? value
@@ -2276,13 +2258,16 @@ function Home({
       String(date.getDate()).padStart(2, '0'),
     ].join('-');
   };
-  const todayKey = localDayKey(new Date());
+  const now = new Date();
+  const todayKey = localDayKey(now);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+
   const dayItems = [
     ...connectedMeetings.map((item: any) => ({
       ...item,
       calendar_kind: 'meeting',
       deadline_at: item?.starts_at,
-      deadline_state: 'today',
       title:
         item?.title ||
         item?.person_name ||
@@ -2297,22 +2282,14 @@ function Home({
       ...item,
       calendar_kind: 'birthday',
       deadline_at: item?.date_at,
-      deadline_state: item?.date_state,
       context: {
         player_id: item?.player_id,
         player_name: item?.player_name,
+        person_id: item?.person_id,
         turns_age: item?.turns_age,
       },
     })),
-  ]
-    .filter((item: any) => localDayKey(item?.deadline_at) === todayKey)
-    .sort((a: any, b: any) => {
-      const aTime = Date.parse(String(a?.deadline_at || ''));
-      const bTime = Date.parse(String(b?.deadline_at || ''));
-      if (!Number.isFinite(aTime)) return 1;
-      if (!Number.isFinite(bTime)) return -1;
-      return aTime - bTime;
-    });
+  ];
 
   const dayHrefFor = (item: any) => {
     const meetingId = String(item?.meeting_id || '').trim();
@@ -2337,11 +2314,9 @@ function Home({
     if (entityType === 'deal') {
       return `${basePath}?view=opportunities&tab=deals`;
     }
-
     if (entityType === 'player_match') {
       return `${basePath}?view=opportunities&tab=routes`;
     }
-
     if (clubNeedId || entityType === 'club_need') {
       return `${basePath}?view=opportunities&tab=needs`;
     }
@@ -2367,21 +2342,38 @@ function Home({
     const playerId = reviewPlayerId(command);
     if (playerId) return (
       <div className={styles.homeReviewActions}>
-        <Link className={styles.compactButton} href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}&profile=1`}>
-        <ChevronRight size={16} />Review player data
+        <Link
+          className={styles.compactButton}
+          href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}&profile=1`}
+        >
+          <ChevronRight size={16} />
+          Review player data
         </Link>
-        {command?.source_type === 'task' && Number(command?.evidence?.task_count || 0) === 1 ? (
-          <button type="button" className={styles.compactButton} onClick={() => onPrepare(command)} disabled={Boolean(actionBusy)}>
-            <CheckCircle2 size={16} />Mark reminder done
+        {command?.source_type === 'task' &&
+        Number(command?.evidence?.task_count || 0) === 1 ? (
+          <button
+            type="button"
+            className={styles.compactButton}
+            onClick={() => onPrepare(command)}
+            disabled={Boolean(actionBusy)}
+          >
+            <CheckCircle2 size={16} />
+            Mark reminder done
           </button>
         ) : null}
       </div>
     );
+
     if (command?.source_type === 'capture' && command?.source_id) return (
-      <Link className={styles.compactButton} href={`${workspaceSlug ? `/workspace/${encodeURIComponent(workspaceSlug)}/capture` : '/tell'}?capture=${encodeURIComponent(command.source_id)}`}>
-        <ChevronRight size={16} />Answer question
+      <Link
+        className={styles.compactButton}
+        href={`${workspaceSlug ? `/workspace/${encodeURIComponent(workspaceSlug)}/capture` : '/tell'}?capture=${encodeURIComponent(command.source_id)}`}
+      >
+        <ChevronRight size={16} />
+        Answer question
       </Link>
     );
+
     const replyInteractionId =
       command?.source_type === 'task' &&
       Number(command?.evidence?.task_count || 0) === 1
@@ -2439,250 +2431,289 @@ function Home({
     );
   };
 
+  type QueueCategory =
+    | 'Needs action now'
+    | 'Waiting on someone'
+    | 'Upcoming risk'
+    | 'Opportunity detected'
+    | 'FYI';
+  type QueueItem = {
+    id: string;
+    category: QueueCategory;
+    score: number;
+    title: string;
+    why: string;
+    recommendation: string;
+    owner: string;
+    deadline: string;
+    kind: 'command' | 'meeting_aftercare' | 'day';
+    payload: any;
+  };
+
+  const categoryScore: Record<QueueCategory, number> = {
+    'Needs action now': 50_000,
+    'Waiting on someone': 40_000,
+    'Upcoming risk': 30_000,
+    'Opportunity detected': 20_000,
+    FYI: 10_000,
+  };
+  const textFor = (value: any) =>
+    [
+      value?.title,
+      value?.command_type,
+      value?.why_now,
+      value?.recommended_action,
+      value?.evidence?.reason,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  const waitingPattern =
+    /\b(waiting|awaiting|pending response|reply from|response from|chasing|with the club|with the player)\b/i;
+  const riskPattern =
+    /\b(risk|contract|expiry|expires|renew|renewal|deadline|window|overdue|registration)\b/i;
+  const opportunityPattern =
+    /\b(opportunity|club need|player match|pitch|send player|recruit|route|interest|looking for|requirement)\b/i;
+
+  const commandCategory = (command: any): QueueCategory => {
+    const text = textFor(command);
+    if (waitingPattern.test(text)) return 'Waiting on someone';
+    if (riskPattern.test(text)) return 'Upcoming risk';
+    if (opportunityPattern.test(text)) return 'Opportunity detected';
+    return 'Needs action now';
+  };
+  const ownerFor = (command: any) =>
+    command?.owner_name ||
+    command?.assignee_name ||
+    command?.assigned_to_name ||
+    command?.evidence?.owner_name ||
+    'You';
+  const dateLabel = (value: unknown, fallback = 'Today') =>
+    value ? relativeDate(String(value)) : fallback;
+
+  const queueCandidates: QueueItem[] = [];
+
+  priority.forEach((command: any, index: number) => {
+    const category = commandCategory(command);
+    const review = reviewPlayerId(command) ? reviewCopy(command) : null;
+    const why =
+      review?.reason ||
+      command?.why_now ||
+      command?.evidence?.reason ||
+      'This needs a decision or action from the agency.';
+    const recommendation =
+      command?.recommended_action ||
+      command?.actionability?.cta ||
+      (review ? 'Review the recorded player data.' : 'Open this and decide the next move.');
+    queueCandidates.push({
+      id: `command:${command?.command_id || index}`,
+      category,
+      score:
+        categoryScore[category] +
+        Math.min(9_000, Math.max(0, Number(command?.priority_score || 0))),
+      title: review?.title || command?.title || human(command?.command_type || 'Agency action'),
+      why,
+      recommendation,
+      owner: ownerFor(command),
+      deadline: dateLabel(command?.due_at, category === 'Waiting on someone' ? 'Waiting' : 'Today'),
+      kind: 'command',
+      payload: command,
+    });
+  });
+
+  meetingAftercareItems.forEach((item: any, index: number) => {
+    const name =
+      item?.person_name ||
+      item?.organisation_name ||
+      item?.title ||
+      'Linked meeting';
+    queueCandidates.push({
+      id: `aftercare:${item?.meeting_id || index}`,
+      category: 'Needs action now',
+      score: categoryScore['Needs action now'] + 8_500 - index,
+      title: `Record the outcome from ${name}`,
+      why: 'The meeting has ended, but the outcome and next move are not recorded.',
+      recommendation: 'Capture what happened and the next action while it is still fresh.',
+      owner: 'You',
+      deadline: item?.ends_at ? `Ended ${relativeDate(item.ends_at)}` : 'Now',
+      kind: 'meeting_aftercare',
+      payload: item,
+    });
+  });
+
+  dayItems.forEach((item: any, index: number) => {
+    const date = new Date(String(item?.deadline_at || ''));
+    if (!Number.isFinite(date.getTime())) return;
+    const isToday = localDayKey(date) === todayKey;
+    const isPast = date.getTime() < now.getTime();
+    const daysAway = Math.ceil((date.getTime() - endOfToday.getTime()) / 86_400_000);
+
+    if (item?.calendar_kind === 'meeting' && isToday) {
+      queueCandidates.push({
+        id: `meeting:${item?.meeting_id || index}`,
+        category: 'Needs action now',
+        score: categoryScore['Needs action now'] + 5_500 - index,
+        title: item?.title || 'Meeting today',
+        why: 'This meeting is on today and may need preparation or context before it starts.',
+        recommendation: 'Open the meeting and check the people, club and current situation.',
+        owner: 'You',
+        deadline: new Intl.DateTimeFormat('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(date),
+        kind: 'day',
+        payload: item,
+      });
+      return;
+    }
+
+    if (item?.calendar_kind === 'deadline' && (isPast || isToday || (daysAway >= 0 && daysAway <= 30))) {
+      const category: QueueCategory =
+        isPast || isToday ? 'Needs action now' : 'Upcoming risk';
+      queueCandidates.push({
+        id: `deadline:${item?.item_id || item?.entity_id || index}`,
+        category,
+        score:
+          categoryScore[category] +
+          (isPast ? 7_500 : isToday ? 6_500 : Math.max(0, 4_000 - daysAway * 50)),
+        title: item?.title || 'Agency deadline',
+        why: isPast
+          ? 'This recorded deadline has passed and still needs attention.'
+          : isToday
+            ? 'This recorded deadline lands today.'
+            : `This date is approaching in ${daysAway} day${daysAway === 1 ? '' : 's'}.`,
+        recommendation: 'Open the underlying record and confirm the next move.',
+        owner: item?.owner_name || 'You',
+        deadline: isPast ? `Overdue ${relativeDate(item.deadline_at)}` : relativeDate(item.deadline_at),
+        kind: 'day',
+        payload: item,
+      });
+      return;
+    }
+
+    if (item?.calendar_kind === 'birthday' && isToday) {
+      queueCandidates.push({
+        id: `birthday:${item?.item_id || item?.player_id || item?.person_id || index}`,
+        category: 'FYI',
+        score: categoryScore.FYI + 1_000 - index,
+        title: item?.title || item?.context?.player_name || 'Birthday today',
+        why: item?.context?.turns_age
+          ? `Turns ${item.context.turns_age} today.`
+          : 'Birthday recorded for today.',
+        recommendation: 'Open the relationship if a personal message would be useful.',
+        owner: 'You',
+        deadline: 'Today',
+        kind: 'day',
+        payload: item,
+      });
+    }
+  });
+
+
+
+  const queue = queueCandidates
+    .filter(
+      (item, index, source) =>
+        source.findIndex(candidate => candidate.id === item.id) === index,
+    )
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  const queueAction = (item: QueueItem) => {
+    if (item.kind === 'command') return actionFor(item.payload);
+    if (item.kind === 'meeting_aftercare') {
+      return (
+        <button
+          type="button"
+          className={styles.compactButton}
+          onClick={() => onRecordMeetingOutcome(item.payload)}
+        >
+          <ChevronRight size={16} />
+          Record outcome
+        </button>
+      );
+    }
+    return (
+      <Link
+        className={styles.compactButton}
+        href={dayHrefFor(item.payload)}
+      >
+        <ChevronRight size={16} />
+        {item.payload?.calendar_kind === 'meeting'
+          ? 'Open meeting'
+          : item.payload?.calendar_kind === 'birthday'
+            ? 'Open relationship'
+            : 'Review'}
+      </Link>
+    );
+  };
+
   return (
     <div className={`${styles.homeStack} ${styles.homeCommandCentre}`}>
       <section className={styles.homeWelcome}>
         <p>{greeting}</p>
         <h2>
-          {needsYouCount
-            ? `${needsYouCount} ${needsYouCount === 1 ? 'thing needs' : 'things need'} you`
+          {queue.length
+            ? `${queue.length} ${queue.length === 1 ? 'thing matters' : 'things matter'} now`
             : allState === 'ready'
               ? 'Nothing needs your attention'
-              : 'Your day at a glance'}
+              : 'Checking what matters now'}
         </h2>
       </section>
 
-      <div className={styles.homeOverviewGrid}>
-        <section
-          className={`${styles.sectionCard} ${styles.homeAttentionPanel}`}
-        >
-          <div className={styles.sectionHead}>
-            <div className={styles.homeSectionTitle}>
-              <span className={styles.homeSectionLabel}>Priority</span>
-              <h2>Needs attention</h2>
-            </div>
-            {needsYouCount ? (
-              <span className={styles.sectionCount}>
-                {needsYouCount}
-              </span>
-            ) : null}
+      <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`}>
+        <div className={styles.sectionHead}>
+          <div className={styles.homeSectionTitle}>
+            <span className={styles.homeSectionLabel}>Ranked across the agency</span>
+            <h2>Today</h2>
           </div>
+          <Link className={styles.homeTextLink} href={`${basePath}?view=calendar`}>
+            Calendar
+            <ChevronRight size={14} />
+          </Link>
+        </div>
 
-          <div className={styles.list}>
-            {readNotice(attentionState)}
-            {visiblePriority.map((command: any, index: number) => (
-              <article
-                className={`${styles.attentionCard} ${
-                  index === 0
-                    ? styles.attentionCardPrimary
-                    : ''
-                }`}
-                key={command.command_id}
-              >
-                <div className={styles.attentionCopy}>
-                  <div className={styles.attentionMeta}>
-                    <span>
-                      {index === 0
-                        ? 'NEXT'
-                        : human(
-                            command.source_type ||
-                              command.command_type ||
-                              'Action',
-                          )}
-                    </span>
-                    <small>
-                      {command.due_at
-                        ? relativeDate(command.due_at)
-                        : human(
-                            command.command_type ||
-                              'Agency action',
-                          )}
-                    </small>
-                  </div>
+        {readNotice(allState)}
 
-                  <strong>{reviewPlayerId(command) ? reviewCopy(command).title : command.title}</strong>
-                  <span>
-                    {reviewPlayerId(command) ? reviewCopy(command).reason : command.recommended_action ||
-                      command.why_now ||
-                      'Review the current situation.'}
-                  </span>
-                </div>
-
-                {actionFor(command)}
-              </article>
-            ))}
-
-            {visibleMeetingAftercare.map((item: any) => (
-              <article
-                className={styles.attentionCard}
-                key={`home-meeting-aftercare:${item?.meeting_id}`}
-              >
-                <div className={styles.attentionCopy}>
-                  <div className={styles.attentionMeta}>
-                    <span>MEETING FOLLOW-UP</span>
-                    <small>
-                      {item?.ends_at
-                        ? `Ended ${relativeDate(item.ends_at)}`
-                        : human(item?.provider || 'Calendar')}
-                    </small>
-                  </div>
-
-                  <strong>Did this meeting happen?</strong>
-                  <span>
-                    {item?.person_name ||
-                      item?.organisation_name ||
-                      item?.title ||
-                      'Linked meeting'}
-                    {' · '}
-                    Capture the outcome and next move.
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  className={styles.compactButton}
-                  onClick={() => onRecordMeetingOutcome(item)}
-                >
-                  <ChevronRight size={16} />
-                  Record outcome
-                </button>
-              </article>
-            ))}
-
-            {needsYouCount > 3 ? (
-              <button
-                type="button"
-                className={styles.attentionMore}
-                aria-expanded={showAllNeeds}
-                onClick={() => setShowAllNeeds((current) => !current)}
-              >
-                {showAllNeeds
-                  ? 'Show less'
-                  : `${needsYouCount - 3} more`}
-                <ChevronRight size={13} />
-              </button>
-            ) : null}
-
-            {!needsYouCount && attentionState === 'ready' ? (
-              <EmptyState
-                icon={CheckCircle2}
-                title="Nothing needs you right now"
-                copy="You are clear."
-              />
-            ) : null}
-          </div>
-        </section>
-
-        <section
-          className={`${styles.sectionCard} ${styles.homeDayPanel}`}
-        >
-          <div className={styles.sectionHead}>
-            <div className={styles.homeSectionTitle}>
-              <span className={styles.homeSectionLabel}>Your day</span>
-              <h2>Today</h2>
-            </div>
-
-            <Link
-              className={styles.homeTextLink}
-              href={`${basePath}?view=calendar`}
+        <div className={styles.todayQueueList}>
+          {queue.map((item, index) => (
+            <article
+              className={`${styles.attentionCard} ${styles.todayQueueCard} ${
+                index === 0 ? styles.attentionCardPrimary : ''
+              }`}
+              key={item.id}
             >
-              Calendar
-              <ChevronRight size={14} />
-            </Link>
-          </div>
+              <div className={styles.attentionCopy}>
+                <div className={styles.attentionMeta}>
+                  <span>{index + 1} · {item.category.toUpperCase()}</span>
+                  <small>{item.deadline}</small>
+                </div>
+                <strong>{item.title}</strong>
+                <span className={styles.todayQueueWhy}>{item.why}</span>
+                <div className={styles.todayQueueRecommendation}>
+                  <small>ReDream recommends</small>
+                  <span>{item.recommendation}</span>
+                </div>
+                <div className={styles.todayQueueOwner}>
+                  <span>Owner: {item.owner}</span>
+                  <span>When: {item.deadline}</span>
+                </div>
+              </div>
+              <div className={styles.todayQueueAction}>
+                {queueAction(item)}
+              </div>
+            </article>
+          ))}
 
-          <div className={styles.list}>
-            {readNotice(todayState)}
-            {dayItems
-              .slice(0, 3)
-              .map((item: any, index: number) => (
-                <Link
-                  className={styles.simpleTimelineRow}
-                  key={
-                    item?.item_id ||
-                    item?.entity_id ||
-                    `${item?.title || 'item'}-${index}`
-                  }
-                  href={dayHrefFor(item)}
-                  aria-label={`Open ${item?.title || 'today item'}`}
-                >
-                  {item?.calendar_kind === 'birthday' ? (
-                    <CakeSlice size={16} />
-                  ) : (
-                    <CalendarDays size={16} />
-                  )}
-                  <div>
-                    <strong>
-                      {item?.title || 'Agency date'}
-                    </strong>
-                    <span>
-                      {item?.deadline_at
-                        ? item?.calendar_kind === 'meeting'
-                          ? new Date(item.deadline_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : relativeDate(item.deadline_at)
-                        : 'Date not recorded'}
-                      {item?.calendar_kind === 'birthday' &&
-                      item?.context?.turns_age
-                        ? ` · Turns ${item.context.turns_age}`
-                        : ''}
-                    </span>
-                  </div>
-                  <ChevronRight className={styles.simpleTimelineArrow} size={16} />
-                </Link>
-              ))}
-
-            {!dayItems.length && todayState === 'ready' ? (
-              <EmptyState
-                icon={CalendarDays}
-                title="Nothing else today"
-                copy="No meetings or dated work recorded for today."
-              />
-            ) : null}
-          </div>
-        </section>
-      </div>
-
-      {recentConnected.length ? (
-        <section className={`${styles.sectionCard} ${styles.homeChangedPanel}`}>
-          <div className={styles.sectionHead}>
-            <div className={styles.homeSectionTitle}>
-              <span className={styles.homeSectionLabel}>Recent activity</span>
-              <h2>What changed</h2>
-            </div>
-          </div>
-          {readNotice(connectedState)}
-          <div className={styles.list}>
-            {recentConnected.slice(0, 3).map((item: any) => {
-              const activityName = item.player_name || item.prospect_name || item.person_name || item.organisation_name || 'Conversation';
-              const activityInitial = activityName.trim().charAt(0).toUpperCase() || 'R';
-              return (
-                <Link key={item.interaction_id} className={`${styles.simpleTimelineRow} ${styles.homeChangeRow}`}
-                  href={homeConversationHref(basePath, item)}>
-                  <span className={styles.homeTimelineAvatar} aria-hidden="true">
-                    {activityInitial}
-                  </span>
-                  <div>
-                    <strong>{activityName}</strong>
-                    <span>{item.summary || 'A new conversation was captured.'}</span>
-                    {item.occurred_at ? <small>{relativeDate(item.occurred_at)}</small> : null}
-                  </div>
-                  <ChevronRight className={styles.simpleTimelineArrow} size={16} />
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      {handledConnectedCount && connectedState === 'ready' ? (
-        <section className={styles.handledStrip}>
-          <div className={styles.handledStripIcon}><CheckCircle2 size={15} /></div>
-          <div className={styles.handledStripCopy}>
-            <small>Recently handled by ReDream</small>
-            <strong>{handledConnectedCount} recent conversation{handledConnectedCount === 1 ? '' : 's'} captured</strong>
-          </div>
-        </section>
-      ) : null}
+          {!queue.length && allState === 'ready' ? (
+            <EmptyState
+              icon={CheckCircle2}
+              title="Nothing needs you right now"
+              copy="No action, waiting item, risk or opportunity is currently asking for attention."
+            />
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }

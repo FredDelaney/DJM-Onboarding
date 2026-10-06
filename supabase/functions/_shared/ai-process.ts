@@ -50,6 +50,7 @@ const planSchema = {
             title: nullableString,
             due_at: nullableString,
             priority: nullableInteger,
+            owner_name: nullableString,
             club_name: nullableString,
             contact_name: nullableString,
             player_name: nullableString,
@@ -585,6 +586,7 @@ async function interpret(
         "Use add_claim for softer intelligence, reported contract information, player preferences, scout observations and anything that should remain sourced and unverified.",
         "For add_claim, claim_key must be short lowercase ASCII snake_case, for example preferred_side, salary_expectation or transfer_preference. Never use spaces, punctuation or non-ASCII characters.",
                 "Use create_task only when an internal speaker states a follow-up, commitment or reminder, or when an inbound connected message contains an explicit request or question that clearly requires agency action or a reply.",
+        "When an internal speaker explicitly assigns a task to a named agency team member, copy that exact spoken name into owner_name. Examples include Dapo owns it or Moses to send it. Otherwise owner_name must be null. Never infer task ownership.",
 "For email, create a task when an outbound agency email states a clear follow-up, commitment or reminder, or when an inbound email contains an explicit request or question that clearly requires agency action or a reply.",
 "For an outbound email, complete_email_thread_task may be used only when current_context.email_thread_task_candidate_count is exactly 1, current_context contains that exact candidate task id/title, and the current email explicitly proves the work is already completed. Evidence must quote the completion statement from the current email.",
 "Never use complete_email_thread_task for future tense, promises, plans, delays, partial progress, acknowledgements, or language such as I will, I can, I should, I need to, tomorrow, later, soon, working on it, or will send. The email must state or clearly contain the completed deliverable itself.",
@@ -1149,6 +1151,15 @@ async function processOne(
       capture,
     );
     const actionStarted = performance.now();
+    const captureOrigin = String(
+      capture?.context_json?.capture_origin || "",
+    ).trim().toLowerCase();
+    const captureChannel = String(capture?.channel || "")
+      .trim()
+      .toLowerCase();
+    const approvalFirst =
+      captureOrigin === "share_target" ||
+      ["voice_debrief", "typed_debrief"].includes(captureChannel);
 
     const emailInteraction =
       connectedEmailInteractionFallback(
@@ -1375,6 +1386,31 @@ async function processOne(
       let blocked = false;
       let forceReviewReason = "";
 
+      if (
+        approvalFirst &&
+        action.type === "create_task" &&
+        action.owner_name
+      ) {
+        const { data: ownerResolution, error: ownerError } = await admin.rpc(
+          "redream_ai_resolve_team_member",
+          {
+            p_capture_id: capture.capture_id,
+            p_spoken_name: action.owner_name,
+          },
+        );
+        if (ownerError) throw ownerError;
+        if (ownerResolution?.resolved && ownerResolution?.user_id) {
+          action.owner_user_id = String(ownerResolution.user_id);
+          action.owner_display_name =
+            ownerResolution.display_name || action.owner_name;
+        } else {
+          forceReviewReason =
+            forceReviewReason ||
+            `Task owner ${action.owner_name} was not uniquely matched to an active agency user.`;
+          blocked = true;
+        }
+      }
+
       if (!isScoutObservation && action.club_name && !club.id) {
         if (club.review) {
           forceReviewReason = `Club ${action.club_name} was left for review.`;
@@ -1543,53 +1579,89 @@ async function processOne(
         type: action.type,
       });
 
-      let applied: any = null;
-      let applyError: any = null;
-
-      if (isScoutObservation) {
-        const result = await admin.rpc("redream_ai_apply_scout_observation", {
-          p_capture_id: capture.capture_id,
-          p_action_hash: actionHash,
-          p_action_index: index,
-          p_confidence: action.confidence,
-          p_evidence: action.evidence,
-          p_payload: {
+      const resolvedPayload = isScoutObservation
+        ? {
             ...action,
             prospect_id: prospect.id,
+          }
+        : {
+            ...action,
+            organisation_id: club.id,
+            person_id: contact.omitted ? null : contact.id,
+            player_id: player.id,
+          };
+
+      if (approvalFirst) {
+        const { data: staged, error: stageError } = await admin.rpc(
+          "redream_ai_stage_action",
+          {
+            p_capture_id: capture.capture_id,
+            p_action_hash: actionHash,
+            p_action_index: index,
+            p_action_type: action.type,
+            p_confidence: action.confidence,
+            p_evidence: action.evidence,
+            p_payload: resolvedPayload,
           },
-        });
-        applied = result.data;
-        applyError = result.error;
+        );
+
+        if (stageError) throw stageError;
+
+        if (staged?.status === "failed") {
+          console.warn(JSON.stringify({
+            operation: "redream_ai_stage_action",
+            capture_id: capture.capture_id,
+            action_key: actionKey,
+            action_type: action.type,
+            error: staged?.error || "Action staging failed",
+          }));
+        }
       } else {
-        const resolvedPayload = {
-          ...action,
-          organisation_id: club.id,
-          person_id: contact.omitted ? null : contact.id,
-          player_id: player.id,
-        };
-        const result = await admin.rpc("redream_ai_apply_action", {
-          p_capture_id: capture.capture_id,
-          p_action_hash: actionHash,
-          p_action_index: index,
-          p_action_type: action.type,
-          p_confidence: action.confidence,
-          p_evidence: action.evidence,
-          p_payload: resolvedPayload,
-        });
-        applied = result.data;
-        applyError = result.error;
-      }
+        let applied: any = null;
+        let applyError: any = null;
 
-      if (applyError) throw applyError;
+        if (isScoutObservation) {
+          const result = await admin.rpc(
+            "redream_ai_apply_scout_observation",
+            {
+              p_capture_id: capture.capture_id,
+              p_action_hash: actionHash,
+              p_action_index: index,
+              p_confidence: action.confidence,
+              p_evidence: action.evidence,
+              p_payload: resolvedPayload,
+            },
+          );
+          applied = result.data;
+          applyError = result.error;
+        } else {
+          const result = await admin.rpc(
+            "redream_ai_apply_action",
+            {
+              p_capture_id: capture.capture_id,
+              p_action_hash: actionHash,
+              p_action_index: index,
+              p_action_type: action.type,
+              p_confidence: action.confidence,
+              p_evidence: action.evidence,
+              p_payload: resolvedPayload,
+            },
+          );
+          applied = result.data;
+          applyError = result.error;
+        }
 
-      if (applied?.status === "failed") {
-        console.warn(JSON.stringify({
-          operation: "redream_ai_apply_action",
-          capture_id: capture.capture_id,
-          action_key: actionKey,
-          action_type: action.type,
-          error: applied?.error || "Action failed",
-        }));
+        if (applyError) throw applyError;
+
+        if (applied?.status === "failed") {
+          console.warn(JSON.stringify({
+            operation: "redream_ai_apply_action",
+            capture_id: capture.capture_id,
+            action_key: actionKey,
+            action_type: action.type,
+            error: applied?.error || "Action failed",
+          }));
+        }
       }
     }
 

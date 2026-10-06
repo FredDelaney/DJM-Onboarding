@@ -26,15 +26,17 @@ test('showcase polish presents the V2 agency operating model', () => {
 });
 
 test('Home keeps attention bounded and every visible item actionable', () => {
-  assert.match(workspace, /priority\.slice\(0, 3\)/);
+  assert.match(workspace, /\.slice\(0, 5\)/);
   assert.match(workspace, /Good morning\./);
   assert.match(workspace, /const actionFor = \(command: any\)/);
+  assert.match(workspace, /const queueAction = \(item: QueueItem\)/);
   assert.match(workspace, /onClick=\{\(\) => onPrepare\(command\)\}/);
   assert.match(
     workspace,
     /command\?\.actionability\?\.evidence_gate === 'ready'/,
   );
   assert.match(css, /\.attentionCard\s*\{/);
+  assert.match(css, /\.todayQueueAction/);
 });
 
 test('showcase polish does not bypass guarded agency action execution', () => {
@@ -62,7 +64,7 @@ test('players and relationships use tenant-neutral premium entity presentation',
     /active_players \?\? items\.length\} represented/,
   );
   assert.doesNotMatch(workspace, /DJM Sports Management/);
-  assert.match(workspace, /Recently handled by ReDream/);
+  assert.match(workspace, /Ranked across the agency/);
 });
 
 test('Market and Deals separate demand creation from commercial execution without inventing probability', () => {

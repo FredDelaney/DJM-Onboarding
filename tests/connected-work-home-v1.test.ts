@@ -121,7 +121,7 @@ test(
     );
     assert.match(
       workspace,
-      /Recently handled by ReDream/,
+      /Ranked across the agency/,
     );
   },
 );
@@ -152,7 +152,8 @@ test(
     assert.match(migration, /'owner_user_id',p_user_id/);
     assert.match(migration, /i\.team_member_id=p_user_id/);
     assert.doesNotMatch(workspace, /className=\{styles\.connectedWorkRow\}/);
-    assert.match(workspace, /styles\.handledStrip/);
+    assert.doesNotMatch(workspace, /styles\.handledStrip/);
+    assert.doesNotMatch(workspace, /recentConnected\.slice/);
   },
 );
 

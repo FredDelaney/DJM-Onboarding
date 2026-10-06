@@ -207,7 +207,7 @@ test(
     );
     assert.match(
       workspace,
-      /MEETING FOLLOW-UP/,
+      /Record the outcome from/,
     );
     assert.match(
       workspace,
