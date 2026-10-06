@@ -11,6 +11,7 @@ function fixture(role:string,assigned=true){
  const tables:Record<string,any[]>={
   players:[{id:'own-player',tenant_id:'own-tenant',user_id:'private-login',first_name:'Football',last_name:'Player',archived_at:null,football_status:'active',contract_status:'SECRET_CONTRACT',contract_expiry:'2039-01-01',agency_priority:'SECRET_PRIORITY',next_action:'SECRET_ACTION'},
    {id:'other-player',tenant_id:'other-tenant',first_name:'OTHER_TENANT'}],
+  organisations:[{id:'club',tenant_id:'own-tenant',name:'Recorded Club',country:'NZ',archived_at:null}],
   staff_player_access:assigned?[{player_id:'own-player',staff_user_id:'current-user',can_edit:false}]:[],
   career_entries:[{id:'career',player_id:'own-player',club_name:'Recorded FC',season_label:'2026/27',appearances:14,minutes:900,notes:'SECRET_NOTES',source_url:'https://evidence.example.test',source_reviewed_at:'2026-10-01'}],
   player_videos:[{id:'video',player_id:'own-player',title:'Recorded football',url:'https://video.example.test',private:'SECRET_VIDEO_EXTRA'}],
@@ -34,7 +35,7 @@ function fixture(role:string,assigned=true){
   const builder:any={select:()=>builder,eq:(field:string,value:unknown)=>{conditions.push([field,value]);return builder;},order:()=>builder,limit:()=>builder,maybeSingle:()=>{single=true;return Promise.resolve(result());},then:(yes:any,no:any)=>Promise.resolve(result()).then(yes,no)};
   return builder;
  };
- const ctx={userClaims:{sub:'current-user'},supabaseAdmin:{from,rpc}};
+ const ctx={userClaims:{sub:'current-user'},supabaseAdmin:{from,rpc,schema:()=>({from})}};
  const build=new Function('createSupabaseContext','selectCurrentSeasonEvidence','restrictedPlayerProfile','restrictedClubAccount','const exports={};'+code+';return exports.default;');
  // The handler is executed; only external Supabase I/O and unrelated football refresh are replaced.
  const handler=build(async()=>({data:ctx,error:null}),()=>null,restrictedPlayerProfile,restrictedClubAccount);
