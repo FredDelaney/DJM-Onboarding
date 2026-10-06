@@ -315,8 +315,8 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
       title: `${money(revenue.expected_commission, revenue.currency)} is recorded across ${revenue.active_deals || 0} active deals.`,
       summary:
         deal?.evidence?.primary_blocker ||
-        'ReDream keeps recorded commission exposure tied to the operational blocker rather than showing revenue in isolation.',
-      action: deal?.recommended_action || 'Resolve the highest-value recorded blocker first.',
+        'ReDream connects expected commission to the issue holding the deal back, instead of showing revenue on its own.',
+      action: deal?.recommended_action || 'Resolve the highest-value blocker first.',
       evidence: [
         ['Expected commission', money(revenue.expected_commission, revenue.currency)],
         ['Weighted exposure', money(revenue.weighted_commission, revenue.currency)],
@@ -326,7 +326,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
       chain: [
         ['Revenue', money(revenue.expected_commission, revenue.currency)],
         ['Deal', deal?.title || 'Active deal'],
-        ['Blocker', deal?.evidence?.primary_blocker || 'Recorded blocker'],
+        ['Blocker', deal?.evidence?.primary_blocker || 'Current blocker'],
         ['Access', relationship?.best_route?.person_name || 'Relationship route'],
         ['Next move', deal?.recommended_action || 'Review'],
       ],
@@ -375,9 +375,9 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
         gate.next_action?.instruction ||
         'Resolve the player strategy gate before escalating external activity.',
       evidence: [
-        ['Player', career?.player?.name || 'Recorded player'],
-        ['Club need', career?.need?.title || 'Recorded need'],
-        ['Pursuit readiness', career?.readiness_score ? `${career.readiness_score}/100` : 'Recorded'],
+        ['Player', career?.player?.name || 'Player'],
+        ['Club need', career?.need?.title || 'Club need'],
+        ['Opportunity readiness', career?.readiness_score ? `${career.readiness_score}/100` : 'Recorded'],
         ['Career gate', human(gate.state) || 'Human review'],
       ],
       chain: [
@@ -395,7 +395,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
     title: `${deal?.title || 'The highest-priority situation'} needs the agent first.`,
     summary:
       deal?.why_now ||
-      'ReDream ranks the recorded situation using urgency, commercial context and evidence rather than a generic task list.',
+      'ReDream ranks what needs attention using urgency, commercial context and known information, instead of giving you a generic task list.',
     action: deal?.recommended_action || 'Review the highest-priority next move.',
     evidence: [
       ['Attention score', String(deal?.priority_score || '–')],

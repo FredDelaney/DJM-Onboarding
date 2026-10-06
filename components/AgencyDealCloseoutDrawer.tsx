@@ -428,7 +428,7 @@ export default function AgencyDealCloseoutDrawer({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Human-recorded commercial truth
+              Confirmed commercial details
             </span>
 
             <button

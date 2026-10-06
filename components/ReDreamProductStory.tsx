@@ -112,7 +112,7 @@ function Workspace({ mode }: { mode: ModeKey }) {
         </div>
         <div className={styles.dealTimeline}>
           <div className={styles.timelineItem}><span>01</span><div><strong>Offer received</strong><small>420k + bonuses</small></div></div>
-          <div className={styles.timelineItem}><span>02</span><div><strong>Guardrails checked</strong><small>Player salary and sell-on priorities recorded</small></div></div>
+          <div className={styles.timelineItem}><span>02</span><div><strong>Priorities checked</strong><small>Player salary and sell-on priorities confirmed</small></div></div>
           <div className={styles.timelineItem}><span>03</span><div><strong>Counter prepared</strong><small>Human approval required</small></div></div>
         </div>
         <div className={styles.moneyBar}><CircleDollarSign size={16} /><span><strong>Closeout & Collection</strong><small>Commission stays connected after agreement</small></span></div>

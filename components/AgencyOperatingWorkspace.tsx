@@ -2526,7 +2526,7 @@ function Home({
     const recommendation =
       command?.recommended_action ||
       command?.actionability?.cta ||
-      (review ? 'Review the recorded player data.' : 'Open this and decide the next move.');
+      (review ? 'Review the player information.' : 'Open this and decide the next move.');
     queueCandidates.push({
       id: `command:${command?.command_id || index}`,
       category,
@@ -2931,7 +2931,7 @@ function Players({
                     ?.fix_type ===
                   'assign_primary_staff'
                     ? 'One accountable primary staff member owns the player.'
-                    : 'The recorded player-control gap is resolved.'),
+                    : 'The player issue is resolved.'),
                 confirmationLabel:
                   item.next_control_fix?.fix_type ===
                   'assign_primary_staff'
@@ -3459,7 +3459,7 @@ function Relationships({
                       'protect_live_deal',
                       'remove_deal_blocker',
                     ].includes(playType)
-                  ? 'The recorded relationship action is prepared against the live deal and remains human-controlled.'
+                  ? 'The known relationship action is prepared against the live deal and remains human-controlled.'
                   : playType ===
                         'source_for_confirmed_need'
                     ? 'A controlled sourcing task is prepared against the confirmed club need.'
@@ -4849,7 +4849,7 @@ function Market({
                                       label: 'Club need',
                                       value:
                                         item.need?.title ||
-                                        'Recorded player need',
+                                        'Player need',
                                       detail:
                                         item.club?.name ||
                                         'Club recorded',
@@ -4949,7 +4949,7 @@ function Market({
                                 label: 'Need',
                                 value:
                                   item.need?.title ||
-                                  'Recorded player need',
+                                  'Player need',
                                 detail:
                                   `${human(item.need?.need_type || 'recorded')} · ${item.club?.name || 'Club recorded'}`,
                               },
@@ -5200,7 +5200,7 @@ function Market({
                                     ?.role_title ||
                                   item.best_access_route
                                     ?.why_this_route ||
-                                  'Recorded relationship route',
+                                  'Relationship route',
                               },
                               {
                                 label:

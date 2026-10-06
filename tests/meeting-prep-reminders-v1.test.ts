@@ -193,7 +193,7 @@ test(
   () => {
     assert.match(
       migration,
-      /recorded relationship, follow-up and club\/work context available/,
+      /known relationship, follow-up and club\/work context available/,
     );
     assert.doesNotMatch(
       migration,

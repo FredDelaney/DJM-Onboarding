@@ -58,7 +58,7 @@ test('Pursuit Room preserves explicit human external-action boundaries', () => {
   );
   assert.match(
     room,
-    /Pursuit readiness is not deal probability/,
+    /Opportunity readiness is not deal probability/,
   );
 });
 

@@ -926,7 +926,7 @@ export default function AgencyPursuitRoom({
     create_deal: {
       title: 'Create a live Deal Room?',
       body:
-        'Your probability is a human judgement. ReDream will not convert pursuit readiness into probability or contact the club.',
+        'Your probability is a human judgement. ReDream will not convert opportunity readiness into probability or contact the club.',
       button: 'Create Deal Room',
     },
     execute_response: {
@@ -994,7 +994,7 @@ export default function AgencyPursuitRoom({
           </h2>
           <p className={styles.subhead}>
             {request.needTitle ||
-              'Recorded player-club route'}
+              'Player-club route'}
           </p>
         </header>
 
@@ -1161,7 +1161,7 @@ export default function AgencyPursuitRoom({
                   )}
                 </strong>
                 <span>
-                  pursuit readiness
+                  opportunity readiness
                 </span>
               </div>
             </section>
@@ -1774,7 +1774,7 @@ export default function AgencyPursuitRoom({
                   </button>
 
                   <p className={styles.truth}>
-                    Pursuit readiness is not deal probability. Probability must remain your own commercial judgement.
+                    Opportunity readiness is not deal probability. Probability must remain your own commercial judgement.
                   </p>
                 </>
               )}

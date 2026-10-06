@@ -401,7 +401,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { player_id: request.entityId },
                       context: human(serviceControl.state),
                       successCondition:
-                        'The recorded player-control gap is resolved.',
+                        'The player issue is resolved.',
                     });
                   }}
                 >

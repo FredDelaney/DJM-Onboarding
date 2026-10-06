@@ -162,8 +162,8 @@ begin
     body_text:=
       case
         when stage='2h'
-          then 'Open Calendar to review the recorded relationship, follow-up and club/work context available before the meeting.'
-        else 'Your linked meeting is tomorrow. Open Calendar to review the recorded context and prepare.'
+          then 'Open Calendar to review the known relationship, follow-up and club/work context available before the meeting.'
+        else 'Your linked meeting is tomorrow. Open Calendar to review the known context and prepare.'
       end;
 
     target_url:=

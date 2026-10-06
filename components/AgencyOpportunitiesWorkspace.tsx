@@ -408,7 +408,7 @@ export default function AgencyOpportunitiesWorkspace({
           label: 'Need',
           value:
             item.need?.title ||
-            'Recorded player need',
+            'Player need',
           detail:
             `${human(item.need?.need_type || 'recorded')} · ${item.club?.name || 'Club recorded'}`,
         },
@@ -697,8 +697,8 @@ export default function AgencyOpportunitiesWorkspace({
                       {item.need?.title || 'Player need'}
                     </strong>
                     <span>
-                      {!needOpen ? 'This recorded need is no longer active.' : item.next_action?.instruction ||
-                        'Review the recorded need.'}
+                      {!needOpen ? 'This club need is no longer active.' : item.next_action?.instruction ||
+                        'Review the club need.'}
                     </span>
                     <small>
                       {item.need?.position || 'Position open'}
@@ -753,7 +753,7 @@ export default function AgencyOpportunitiesWorkspace({
                     >
                       {hasRoute ? 'Open route' : 'Start search'}
                       <ChevronRight size={18} />
-                    </button> : <span>Recorded need closed</span>}
+                    </button> : <span>Club need closed</span>}
                   </div>
                 </article>
               );

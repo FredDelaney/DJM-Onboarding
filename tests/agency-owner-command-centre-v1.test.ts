@@ -91,7 +91,7 @@ test('Owner Command Centre does not invent a composite agency score or staff uti
   );
   assert.match(
     owner,
-    /does not turn them into one opaque agency score/,
+    /does not hide them behind one made-up agency score/,
   );
   assert.doesNotMatch(
     owner,

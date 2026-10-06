@@ -348,7 +348,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Recorded player-service evidence
+              Player-service evidence
             </span>
 
             <button
@@ -466,7 +466,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                     proof?.proof_state ||
                     'not set',
                 )}
-                detail="Recorded activity, not service quality or satisfaction"
+                detail="Activity only, not a judgement of service quality or satisfaction"
               />
               <Fact
                 label="Proof history"
@@ -791,7 +791,7 @@ export default function AgencyPlayerServiceReviewDrawer({
             </section>
 
             <p className={styles.truth}>
-              Player Service Review organises recorded operating evidence for a human conversation. It does not infer player satisfaction, loyalty, agency quality or career outcome.
+              Player Service Review brings together known activity for a human conversation. It does not guess player satisfaction, loyalty, agency quality or career outcome.
             </p>
           </div>
         ) : null}
