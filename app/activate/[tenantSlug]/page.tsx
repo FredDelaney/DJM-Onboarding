@@ -122,7 +122,7 @@ const STEP_COPY: Record<
   owner_setup_complete: {
     eyebrow: 'FIRST VALUE REACHED',
     title: 'Your agency is operating now.',
-    copy: 'You have a real player, a real club relationship and a live opportunity in the workspace. From here, stop setting up and start working the business.',
+    copy: 'You have a real player, a real club relationship and a live opportunity. Now use ReDream the way you will every day: tell it what happened in plain language, review the proposed changes, then let Today show you what needs attention.',
   },
 };
 
@@ -303,6 +303,19 @@ export default function AgencyLaunchPage() {
     '--launch-on-primary': launchBrand.onPrimary,
     '--launch-on-accent': launchBrand.onAccent,
   } as CSSProperties;
+
+  const firstPlayer = launch?.players?.[0];
+  const firstPlayerName =
+    firstPlayer?.name ||
+    `${firstPlayer?.first_name || ''} ${firstPlayer?.last_name || ''}`.trim() ||
+    'your player';
+  const firstCaptureHref = `/workspace/${encodeURIComponent(runtime.slug)}/capture?${new URLSearchParams({
+    from: `/workspace/${runtime.slug}?view=home`,
+    workspace: runtime.slug,
+    context_type: 'player',
+    ...(firstPlayer?.id ? { player_id: firstPlayer.id } : {}),
+    ...(firstPlayerName ? { player_name: firstPlayerName } : {}),
+  }).toString()}`;
 
   const workspaceName =
     launch?.branding?.display_name ||
@@ -987,16 +1000,58 @@ export default function AgencyLaunchPage() {
     }
 
     return (
-      <div className={styles.completePanel}>
-        <CheckCircle2 size={28} />
-        <div>
-          <strong>First working value reached</strong>
-          <p>
-            Your first player, club relationship and live route are now real
-            operating records. Continue directly into Opportunities and work
-            from the evidence you just created.
-          </p>
+      <div className={styles.completeExperience}>
+        <div className={styles.completePanel}>
+          <CheckCircle2 size={28} />
+          <div>
+            <strong>Your agency is live in ReDream</strong>
+            <p>
+              The records are real. The last thing to learn is the daily habit:
+              tell ReDream what happened, approve what it understood, then work
+              from Today instead of maintaining the database by hand.
+            </p>
+          </div>
         </div>
+
+        <div className={styles.firstHabit}>
+          <div className={styles.firstHabitStep}>
+            <span>1</span>
+            <div>
+              <strong>Tell ReDream naturally</strong>
+              <p>
+                Try: “I spoke with the club about {firstPlayerName}. They are
+                interested but want me to follow up next week.”
+              </p>
+            </div>
+          </div>
+          <ArrowRight size={16} className={styles.workingLoopArrow} />
+          <div className={styles.firstHabitStep}>
+            <span>2</span>
+            <div>
+              <strong>Review before anything changes</strong>
+              <p>ReDream shows the records and follow-up it proposes. You stay in control.</p>
+            </div>
+          </div>
+          <ArrowRight size={16} className={styles.workingLoopArrow} />
+          <div className={styles.firstHabitStep}>
+            <span>3</span>
+            <div>
+              <strong>Work from Today</strong>
+              <p>Once approved, ReDream brings the next action back when it matters.</p>
+            </div>
+          </div>
+        </div>
+
+        <Link className={styles.primaryButton} href={firstCaptureHref}>
+          <Sparkles size={15} />
+          Try Tell ReDream now
+        </Link>
+        <Link
+          className={styles.secondaryButton}
+          href={`/workspace/${encodeURIComponent(runtime.slug)}?view=home&handoff=first-value`}
+        >
+          Skip for now and open Today
+        </Link>
       </div>
     );
   }, [
@@ -1170,18 +1225,10 @@ export default function AgencyLaunchPage() {
           <section className={styles.workCard}>{activeForm}</section>
 
           {launch.activation?.first_value_ready ? (
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() =>
-                window.location.assign(
-                  `/workspace/${encodeURIComponent(runtime.slug)}?view=opportunities&handoff=first-value`,
-                )
-              }
-            >
-              <ArrowRight size={15} />
-              Enter live opportunities
-            </button>
+            <Link className={styles.primaryButton} href={firstCaptureHref}>
+              <Sparkles size={15} />
+              Try Tell ReDream now
+            </Link>
           ) : null}
 
           <div className={styles.valueStrip}>
