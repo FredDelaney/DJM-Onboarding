@@ -54,7 +54,7 @@ test('auth routing falls back to the player workspace only for linked players', 
   assert.match(routing, /\.from\('players'\)/);
   assert.match(routing, /\.eq\('user_id', userId\)/);
   assert.match(routing, /kind: 'player'/);
-  assert.match(routing, /href: '\/home'/);
+  assert.match(routing, /href: options\.runtimeTenantId \? '\/home' : '\/player-workspaces'/);
   assert.doesNotMatch(routing, /profiles/);
 });
 

@@ -68,7 +68,7 @@ export default function ReDreamPublicLanding() {
             <Link href="/security">Security</Link>
             <Link href="/switch">Switch</Link>
             <a href="#pricing">Pricing</a>
-            <Link href="/platform/sign-in">Sign in</Link>
+            <Link href="/sign-in">Sign in</Link>
           </nav>
 
           <ReDreamDemoRequestButton
@@ -281,7 +281,8 @@ export default function ReDreamPublicLanding() {
           <Link href="/security">Security</Link>
           <Link href="/switch">Switch</Link>
           <Link href="/privacy">Privacy</Link>
-          <Link href="/platform/sign-in">Sign in</Link>
+          <Link href="/support">Support</Link>
+          <Link href="/sign-in">Sign in</Link>
         </div>
       </footer>
     </main>

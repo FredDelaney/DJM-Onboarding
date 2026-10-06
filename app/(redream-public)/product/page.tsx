@@ -26,7 +26,7 @@ export default function ProductPage() {
               ReDream turns player service, club demand, relationships, career strategy, deals and revenue into one live operating state, then shows what should happen next and who should own it.
             </p>
             <div className={styles.heroActions}>
-              <Link href="/#decision-layer" className={styles.primary}>Open the live agency <ArrowRight size={16} /></Link>
+              <Link href="#agency-demo" className={styles.primary}>Explore the agency demo <ArrowRight size={16} /></Link>
               <ReDreamDemoRequestButton className={styles.secondary} label="Run ReDream on my agency" trackingKey="product_hero_demo" />
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function ProductPage() {
         </div>
       </section>
 
-      <section className={styles.section}>
+      <section id="agency-demo" className={styles.section}>
         <div className={styles.sectionHead}>
           <p>ASK THE AGENCY</p>
           <h2>The interface should answer operating questions, not make you hunt through modules.</h2>

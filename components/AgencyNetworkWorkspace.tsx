@@ -430,7 +430,7 @@ export default function AgencyNetworkWorkspace({
       return;
     }
     const match = people.find((item: any) => personId(item) === requestedPersonId);
-    setSelectedContact(match || null);
+    setSelectedContact(match || {person_id: requestedPersonId});
   }, [people, requestedPersonId]);
 
   useEffect(() => {
@@ -440,6 +440,7 @@ export default function AgencyNetworkWorkspace({
         String(club?.organisation_id || '') === requestedClubId,
     );
     if (match) onOpenClubAccount(clubRequestFor(match));
+    else onOpenClubAccount(clubRequestFor({organisation_id: requestedClubId}));
   }, [clubRequestFor, clubs, onOpenClubAccount, requestedClubId, requestedPersonId]);
 
   useRestoreListPosition(stateScope,'network',memory.ready&&!requestedPersonId&&!requestedClubId);

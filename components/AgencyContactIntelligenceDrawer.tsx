@@ -32,6 +32,7 @@ import AgencyBirthdayEditor from '@/components/AgencyBirthdayEditor';
 import AgencyRelationshipActions from '@/components/AgencyRelationshipActions';
 import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
 
 type Rpc = <T = any>(
@@ -164,7 +165,10 @@ export default function AgencyContactIntelligenceDrawer({
     });
   };
 
+  const readSequence = useRef(0);
   const load = useCallback(async () => {
+    const sequence = ++readSequence.current;
+    const current = () => sequence === readSequence.current;
     const personId = clean(
       contact?.person_id,
     );
@@ -175,13 +179,14 @@ export default function AgencyContactIntelligenceDrawer({
     setError('');
 
     try {
-      const result = await rpc<any>(
+      const result = await readWithDeadline(rpc<any>(
         'redream_relationship_person',
         {
           p_person_id: personId,
         },
-      );
-
+      ));
+      if (!current()) return;
+      if (!result?.person) throw new Error('This person is no longer available in your agency.');
       setDetail(result);
 
       setEmail(
@@ -216,17 +221,16 @@ export default function AgencyContactIntelligenceDrawer({
           result?.person?.linkedin_url,
         ),
       );
-    } catch {
-      setError(
-        'Could not load this person’s details. Try again.',
-      );
+    } catch (loadError) {
+      if (current()) setError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }, [contact?.person_id, rpc]);
 
   useEffect(() => {
     void load();
+    return () => { readSequence.current++; };
   }, [load]);
 
   const summaryPerson =
@@ -236,10 +240,10 @@ export default function AgencyContactIntelligenceDrawer({
     contact?.employment || {};
 
   const summaryRelationship =
-    contact?.relationship || {};
+    contact?.relationship || {...detail?.relationship_memory?.best_route,route_state:detail?.relationship_memory?.state};
 
   const summaryActivity =
-    contact?.activity || {};
+    contact?.activity || {last_interaction_at:detail?.relationship_memory?.last_meaningful_at};
 
   const summaryClubContext =
     contact?.club_context || {};
@@ -665,7 +669,7 @@ export default function AgencyContactIntelligenceDrawer({
                   Owner {clean(summaryRelationship?.owner_name) || 'unassigned'}
                 </span>
                 <span>
-                  Route {Number(summaryRelationship?.route_score || 0)}
+                  Route {summaryRelationship?.route_score != null ? Number(summaryRelationship.route_score) : 'not recorded'}
                 </span>
                 <span>
                   {summaryActivity?.last_interaction_at
@@ -728,6 +732,7 @@ export default function AgencyContactIntelligenceDrawer({
             className={
               styles.error
             }
+            role="alert"
           >
             {error}
             <button data-ui-button="secondary" type="button" onClick={() => void load()} disabled={busy}>

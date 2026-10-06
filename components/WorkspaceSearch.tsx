@@ -5,20 +5,18 @@ import Link from 'next/link';
 import {ArrowRight,LoaderCircle,Plus,Search,X} from 'lucide-react';
 import {useTenantRuntime} from '@/components/TenantRuntimeProvider';
 import type {AgencyCreateKind} from '@/components/AgencyCreateDrawer';
-import {friendlyError,platformInvoke,platformRpc} from '@/lib/platform-client';
+import {friendlyError,platformInvoke} from '@/lib/platform-client';
 import {supabase} from '@/lib/supabase';
 import {prefetchPlayerProfile} from '@/lib/player-profile-cache';
-import {buildSearchItems,filterArchivedSearchItems,normaliseSearch,searchWorkspaceItems,type SearchItem,type SearchSource} from '@/lib/workspace-search';
+import {buildServerSearchItems,normaliseSearch,type SearchItem} from '@/lib/workspace-search';
 import styles from './WorkspaceSearch.module.css';
 
 type Invoke=<T=any>(action:string,body?:Record<string,unknown>)=>Promise<T>;
 type Rpc=<T=any>(name:string,args?:Record<string,unknown>)=>Promise<T>;
 type Props={cacheScope?:string;basePath?:string;tenantId?:string;userId?:string;invoke?:Invoke;rpc?:Rpc;onCreate?:(kind:AgencyCreateKind)=>void;compact?:boolean;className?:string;seed?:{view:string;data:any}};
-type Group={items:SearchItem[];pending:boolean;error:string;at:number};
+type SearchState={query:string;items:SearchItem[];total:number;hasMore:boolean;pending:boolean;error:string};
+const emptySearch=():SearchState=>({query:'',items:[],total:0,hasMore:false,pending:false,error:''});
 type Suggestion={key:string;title:string;subtitle:string;kind:string;href?:string;create?:AgencyCreateKind};
-const sources:SearchSource[]=['players','recruitment','network','opportunities','deals'];
-const group=():Group=>({items:[],pending:false,error:'',at:0});
-const empty=():Record<SearchSource,Group>=>({players:group(),recruitment:group(),network:group(),opportunities:group(),deals:group()});
 async function bounded<T>(request:Promise<T>):Promise<T>{
  let timer:ReturnType<typeof setTimeout>|undefined;
  try{return await Promise.race([request,new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('The request took too long. Try again.')),12000);})]);}
@@ -38,17 +36,15 @@ export default function WorkspaceSearch(props:Props={}){
  const tenantId=props.tenantId||(runtime.resolved?runtime.tenant_id||'':'');
  const basePath=props.basePath||'/agency';
  const invoke=useCallback<Invoke>((action,body={})=>platformInvoke('agency-os',{...body,action,tenant_id: tenantId}),[tenantId]);
- const rpc=useCallback<Rpc>((name,args={})=>platformRpc(name,args,runtime.slug),[runtime.slug]);
  return <SearchSession key={tenantId+':'+(props.userId??sessionId)+':'+basePath+':'+(props.cacheScope||'')} {...props} basePath={basePath}
-  enabled={Boolean(tenantId&&(props.userId??sessionId))} invoke={props.invoke||invoke} rpc={props.rpc||rpc}/>;
+  enabled={Boolean(tenantId&&(props.userId??sessionId))} invoke={props.invoke||invoke}/>;
 }
 
-function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,rpc,onCreate,compact,className,seed}:Props&{enabled:boolean;invoke:Invoke;rpc:Rpc}){
+function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate,compact,className}:Props&{enabled:boolean;invoke:Invoke}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[active,setActive]=useState(0);
- const [groups,setGroups]=useState(empty);
- const [archives,setArchives]=useState<any[]|null>(null),[archiveError,setArchiveError]=useState(''),[archivePending,setArchivePending]=useState(false);
- const alive=useRef(true),inFlight=useRef(new Set<string>()),generation=useRef(0),archiveAt=useRef(0);
- const adapters=useRef({invoke,rpc});adapters.current={invoke,rpc};
+ const [search,setSearch]=useState(emptySearch),[attempt,setAttempt]=useState(0);
+ const alive=useRef(true),generation=useRef(0);
+ const adapters=useRef({invoke});adapters.current={invoke};
  const overlay=useRef<HTMLDivElement>(null),dialog=useRef<HTMLElement>(null),input=useRef<HTMLInputElement>(null);
  const opener=useRef<HTMLElement|null>(null);
  const id=useId();
@@ -72,40 +68,22 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,rpc,onCr
   siblings.forEach(node=>{node.inert=true;});document.body.style.overflow='hidden';input.current?.focus();
   return()=>{siblings.forEach((node,index)=>{node.inert=inert[index];});document.body.style.overflow=overflow;if(previous?.isConnected)previous.focus();};
  },[open]);
- const load=useCallback((targets:SearchSource[],reloadArchives=false)=>{
-  const version=generation.current;
-  const {invoke,rpc}=adapters.current;
-  for(const source of targets){
-   if(inFlight.current.has(source))continue;inFlight.current.add(source);
-   setGroups(current=>({...current,[source]:{...current[source],pending:true,error:''}}));
-   const request=source==='players'?invoke<any>('players_workspace',{limit:200}).then(r=>r?.players):
-    source==='recruitment'?invoke<any>('recruitment_board',{limit:500}).then(r=>r?.recruitment):
-    source==='network'?rpc<any>('redream_autopilot_relationships',{p_limit:100,p_contact_limit:250}):
-    source==='opportunities'?rpc<any>('redream_autopilot_market',{p_limit:100}):
-    rpc<any>('redream_autopilot_deals',{p_limit:100});
-   void bounded(request).then(data=>{
-    if(alive.current&&version===generation.current)setGroups(current=>({...current,[source]:{items:buildSearchItems(source,data,basePath),pending:false,error:'',at:Date.now()}}));
-   }).catch(error=>{
-    if(alive.current&&version===generation.current)setGroups(current=>({...current,[source]:{...current[source],pending:false,error:friendlyError(error)}}));
-   }).finally(()=>inFlight.current.delete(source));
-  }
-  if(reloadArchives&&!inFlight.current.has('archives')){
-   inFlight.current.add('archives');setArchivePending(true);setArchiveError('');
-   void bounded(rpc<any>('redream_entity_archives')).then(data=>{
-    if(alive.current&&version===generation.current){setArchives(Array.isArray(data?.items)?data.items:[]);archiveAt.current=Date.now();}
-   }).catch(error=>{if(alive.current&&version===generation.current)setArchiveError(friendlyError(error));})
-   .finally(()=>{inFlight.current.delete('archives');if(alive.current&&version===generation.current)setArchivePending(false);});
-  }
- },[basePath]);
  useEffect(()=>{
-  if(!open||!enabled)return;
-  const source=seed?.view as SearchSource,data=seed?.data;
-  const payload=source==='players'&&Array.isArray(data?.directory?.items)?data.directory:source==='network'&&data?.accounts?data:source==='opportunities'&&data?.market?data.market:null;
-  if(payload&&sources.includes(source))setGroups(current=>({...current,[source]:{...current[source],items:buildSearchItems(source,payload,basePath)}}));
-  load(sources.filter(source=>Date.now()-groups[source].at>60000),Date.now()-archiveAt.current>60000);
-  // The current scope owns the cache; ordinary parent renders cannot restart reads.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[open,enabled,load]);
+  const version=++generation.current;
+  const cleanQuery=query.trim();
+  if(!open||!enabled||!cleanQuery){setSearch(emptySearch());return;}
+  setSearch({...emptySearch(),query:cleanQuery,pending:true});
+  const timer=setTimeout(()=>{
+   void bounded(adapters.current.invoke<any>('workspace_search',{query:cleanQuery,limit:30})).then(response=>{
+    if(!alive.current||version!==generation.current)return;
+    const data=response?.search||{};
+    setSearch({query:cleanQuery,items:buildServerSearchItems(data,basePath),total:Number(data.total)||0,hasMore:data.has_more===true,pending:false,error:''});
+   }).catch(error=>{
+    if(alive.current&&version===generation.current)setSearch({...emptySearch(),query:cleanQuery,error:friendlyError(error)});
+   });
+  },180);
+  return()=>{clearTimeout(timer);generation.current++;};
+ },[open,enabled,query,attempt,basePath]);
  const destinations=useMemo<Suggestion[]>(()=>[
   {key:'page:home',title:'Home',subtitle:'Your next actions',kind:'Go to',href:basePath},
   {key:'page:players',title:'Players',subtitle:'Your represented players',kind:'Go to',href:basePath+'?view=players'},
@@ -115,14 +93,13 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,rpc,onCr
   {key:'page:calendar',title:'Calendar',subtitle:'Meetings and deadlines',kind:'Go to',href:basePath+'?view=calendar'},
   ...(onCreate?(['player','contact','club','club_need'] as AgencyCreateKind[]).map(kind=>({key:'create:'+kind,title:'Add '+(kind==='club_need'?'opportunity':kind),subtitle:'Open the record form',kind:'Create',create:kind})):[])
  ],[basePath,onCreate]);
- const items=useMemo(()=>archives===null?[]:filterArchivedSearchItems(Object.values(groups).flatMap(group=>group.items),archives),[archives,groups]);
+ const current=normaliseSearch(search.query)===normaliseSearch(query);
  const results=useMemo<Suggestion[]>(()=>{
   const q=normaliseSearch(query),tokens=q.split(/\s+/).filter(Boolean);
   const commands=destinations.filter(item=>tokens.every(token=>normaliseSearch(item.title+' '+item.subtitle).includes(token)));
-  return q?[...searchWorkspaceItems(items,query),...commands].slice(0,30):destinations;
- },[destinations,items,query]);
- const pending=archivePending||Object.values(groups).some(group=>group.pending);
- const failed=sources.filter(source=>groups[source].error);
+  return q?[...(current?search.items:[]),...commands].slice(0,40):destinations;
+ },[destinations,search.items,current,query]);
+ const pending=Boolean(query.trim())&&(!current||search.pending);
  useEffect(()=>setActive(0),[query]);
  useEffect(()=>{if(active>=results.length)setActive(0);},[active,results.length]);
  const choose=(event:React.MouseEvent<HTMLAnchorElement>,href:string)=>{
@@ -153,22 +130,22 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,rpc,onCr
     <h2 id={id+'-title'} className={styles.title}>Find in this agency</h2>
     <div className={styles.inputRow}><Search size={20}/>
      <input ref={input} role="combobox" aria-label="Search players, recruitment, clubs, contacts and opportunities" aria-autocomplete="list" aria-expanded="true" aria-controls={id+'-results'} aria-activedescendant={results.length?id+'-option-'+Math.min(active,results.length-1):undefined}
-      value={query} onChange={event=>setQuery(event.target.value)} placeholder="Name, club, role or next destination" autoComplete="off"/>
+      value={query} maxLength={200} onChange={event=>setQuery(event.target.value)} placeholder="Name, club, role or next destination" autoComplete="off"/>
      {query?<button type="button" onClick={()=>{setQuery('');input.current?.focus();}} aria-label="Clear search">Clear</button>:null}
      <button type="button" onClick={close} aria-label="Close search"><X size={19}/></button>
     </div>
     <div className={styles.status} role="status" aria-live="polite">
-     {pending?<><LoaderCircle size={13} className={styles.spin}/>Searching recorded data…</>:query?results.length+' results':'Go straight to a record or start something new'}
+     {pending?<><LoaderCircle size={13} className={styles.spin}/>Searching recorded data…</>:query?(search.hasMore?'Showing '+search.items.length+' of '+search.total+' matching records':search.total+' matching '+(search.total===1?'record':'records')):'Go straight to a record or start something new'}
     </div>
-    {failed.length||archiveError?<div className={styles.error} role="alert"><span>{archiveError?'Record status could not load. Retry to search current records.':'Some records could not refresh. Available results may be incomplete.'}</span><button type="button" onClick={()=>load(failed,Boolean(archiveError))}>Try again</button></div>:null}
+    {current&&search.error?<div className={styles.error} role="alert"><span>Agency records could not be searched. {search.error}</span><button type="button" onClick={()=>{setAttempt(value=>value+1);input.current?.focus();}}>Try again</button></div>:null}
     <div className={styles.results} role="listbox" id={id+'-results'} aria-label="Search results">
      {results.map((item,index)=>{
       const body=<><span className={styles.kind}>{item.create?<Plus size={13}/>:null}{item.kind}</span><strong>{item.title}</strong>{item.subtitle?<small>{item.subtitle}</small>:null}<ArrowRight size={16} className={styles.arrow}/></>;
       const common={id:id+'-option-'+index,role:'option', 'aria-selected':active===index,className:styles.result+(active===index?' '+styles.active:''),onPointerMove:()=>setActive(index)};
       return item.href?<Link {...common} key={item.key} href={item.href} prefetch={false} onClick={event=>choose(event,item.href!)}>{body}</Link>:
-       <button {...common} type="button" key={item.key} onClick={()=>{close();if(item.create){archiveAt.current=0;setGroups(current=>Object.fromEntries(sources.map(source=>[source,{...current[source],at:0}])) as Record<SearchSource,Group>);onCreate?.(item.create);}}}>{body}</button>;
+       <button {...common} type="button" key={item.key} onClick={()=>{close();if(item.create)onCreate?.(item.create);}}>{body}</button>;
      })}
-     {query&&!results.length&&!pending?<div className={styles.empty}><strong>No matching records</strong><p>Try another name, club or role. Search uses recorded agency data.</p></div>:null}
+     {query&&!results.length&&!pending&&!search.error?<div className={styles.empty}><strong>No matching records</strong><p>Try another name, club or role. Search uses recorded agency data.</p></div>:null}
     </div>
     <footer className={styles.footer}><span>↑ ↓ move · Enter open · Esc close</span><span>Recorded agency data</span></footer>
    </section>

@@ -56,6 +56,7 @@ import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDra
 import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
 import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
 import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
 import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
@@ -328,6 +329,10 @@ export default function AgencyOperatingWorkspace() {
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(true);
   const loadSequenceRef = useRef(0);
+  const workspaceSequenceRef = useRef(0);
+  const authIdentityRef = useRef('');
+  const directoryRefreshRef = useRef(false);
+  const [directoryRefreshing, setDirectoryRefreshing] = useState(false);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
@@ -625,6 +630,9 @@ export default function AgencyOperatingWorkspace() {
   );
 
   const resolveWorkspace = useCallback(async () => {
+    const sequence = ++workspaceSequenceRef.current;
+    const identity = sessionUserId;
+    const current = () => sequence === workspaceSequenceRef.current && authIdentityRef.current === identity;
     if (!targetSlug) {
       setError('This agency workspace could not be resolved.');
       setBusy(false);
@@ -635,10 +643,11 @@ export default function AgencyOperatingWorkspace() {
     setError('');
 
     try {
-      const result = await platformInvoke<{ tenants?: Workspace[] }>(
+      const result = await readWithDeadline(platformInvoke<{ tenants?: Workspace[] }>(
         'agency-os',
         { action: 'tenants' },
-      );
+      ));
+      if (!current()) return;
       const tenants = Array.isArray(result?.tenants)
         ? result.tenants
         : [];
@@ -658,19 +667,22 @@ export default function AgencyOperatingWorkspace() {
 
       setWorkspace(match);
     } catch (loadError) {
+      if (!current()) return;
       setWorkspace(null);
       setData(null);
       setError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
-  }, [targetSlug]);
+  }, [targetSlug, sessionUserId]);
 
   const loadView = useCallback(async () => {
     if (!workspace?.tenant_id) return;
 
     const requestId = ++loadSequenceRef.current;
     const isCurrent = () => loadSequenceRef.current === requestId;
+    directoryRefreshRef.current = view === 'players' && playersSection === 'players' && !inlineEntityWorkspaceOpen;
+    setDirectoryRefreshing(directoryRefreshRef.current);
 
     if (view === 'players' && inlineEntityWorkspaceOpen) {
       setError('');
@@ -709,6 +721,7 @@ export default function AgencyOperatingWorkspace() {
     let latestData = cached;
 
     const commit = (nextData: any) => {
+      if (!isCurrent()) return;
       latestData = nextData;
       writeViewCache(cacheKey, nextData);
       if (isCurrent()) setData(nextData);
@@ -769,13 +782,19 @@ export default function AgencyOperatingWorkspace() {
             recruitment: recruitment?.recruitment || {},
           });
         } else {
-          const directory = await invoke<any>('players_workspace', {
-            limit: 100,
-          });
-
-          merge({
-            directory: directory?.players || {},
-          });
+          let response = await readWithDeadline(invoke<any>('players_workspace', { limit: 100, offset: 0 }));
+          let directory = response?.players || {};
+          const items = [...(directory.items || [])];
+          const wanted = Math.max(100, cached?.directory?.items?.length || 100);
+          while (directory.has_more && items.length < wanted) {
+            if (!isCurrent()) return;
+            response = await readWithDeadline(invoke<any>('players_workspace', { limit: 100, offset: directory.next_offset }));
+            const next = response?.players || {};
+            if (!(next.next_offset > directory.next_offset)) break;
+            directory = next;
+            items.push(...(next.items || []));
+          }
+          merge({ directory: { ...directory, items } });
         }
       } else if (view === 'opportunities') {
         if (opportunitiesSection === 'deals') {
@@ -920,7 +939,11 @@ export default function AgencyOperatingWorkspace() {
     } catch (loadError) {
       if (isCurrent()) setError(friendlyError(loadError));
     } finally {
-      if (isCurrent()) setBusy(false);
+      if (isCurrent()) {
+        directoryRefreshRef.current = false;
+        setDirectoryRefreshing(false);
+        setBusy(false);
+      }
     }
   }, [
     inlineEntityWorkspaceOpen,
@@ -937,34 +960,57 @@ export default function AgencyOperatingWorkspace() {
   useEffect(() => {
     let active = true;
 
-    void supabase.auth.getSession().then(({ data: auth }) => {
+    const acceptSession = (session: {user: {id: string}} | null) => {
       if (!active) return;
-      const hasSession = Boolean(auth.session?.user);
-      setSignedIn(hasSession);
-      setSessionUserId(auth.session?.user?.id || '');
+      const identity = session?.user.id || '';
+      if (identity !== authIdentityRef.current) {
+        authIdentityRef.current = identity;
+        loadSequenceRef.current++;
+        workspaceSequenceRef.current++;
+        setWorkspace(null);
+        setData(null);
+        setProposal(null);
+        setProposalError('');
+        setIntelligenceRequest(null);
+        setClubAccountRequest(null);
+        setActionRequest(null);
+        setPursuitRequest(null);
+        setDirectoryRefreshing(false);
+        directoryRefreshRef.current = false;
+      }
+      setSignedIn(Boolean(identity));
+      setSessionUserId(identity);
       setSessionReady(true);
-      if (!hasSession) setBusy(false);
-    });
-
+      if (!identity) setBusy(false);
+    };
+    let authEvent = 0;
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         if (!active) return;
-        const hasSession = Boolean(session?.user);
-        setSignedIn(hasSession);
-        setSessionUserId(session?.user?.id || '');
-        setSessionReady(true);
-        if (!hasSession) {
-          setProposal(null);
-          setProposalError('');
-          setWorkspace(null);
-          setData(null);
-          setBusy(false);
+        authEvent++;
+        if (event === 'SIGNED_OUT') {
+          loadSequenceRef.current++;
+          workspaceSequenceRef.current++;
         }
+        acceptSession(session);
       },
     );
 
+    const initialEvent = authEvent;
+    void readWithDeadline(supabase.auth.getSession()).then(({data: auth,error}) => {
+      if (!active || initialEvent !== authEvent) return;
+      if (error) throw error;
+      acceptSession(auth.session);
+    }).catch(error => {
+      if (!active) return;
+      setSessionReady(true);
+      setBusy(false);
+      setError(friendlyError(error));
+    });
     return () => {
       active = false;
+      loadSequenceRef.current++;
+      workspaceSequenceRef.current++;
       listener.subscription.unsubscribe();
     };
   }, []);
@@ -975,6 +1021,7 @@ export default function AgencyOperatingWorkspace() {
 
   useEffect(() => {
     if (workspace?.tenant_id) void loadView();
+    return () => { loadSequenceRef.current++; };
   }, [loadView, workspace?.tenant_id]);
 
   useEffect(() => {
@@ -1171,6 +1218,20 @@ export default function AgencyOperatingWorkspace() {
           ? 'Return to Today'
           : `Open ${NAV.find((item) => item.key === destination)?.label || 'working area'}`,
     });
+  };
+
+  const loadMorePlayers = async () => {
+    const directory = data?.directory;
+    if (!directory?.has_more || !workspace?.tenant_id || directoryRefreshRef.current) return;
+    const sequence = loadSequenceRef.current;
+    const response = await readWithDeadline(invoke<any>('players_workspace', { limit: 100, offset: directory.next_offset }));
+    if (sequence !== loadSequenceRef.current) return;
+    const next = response?.players;
+    if (!next || !Array.isArray(next.items)) throw new Error('The next players could not load. Please try again.');
+    const items = [...new Map([...(directory.items || []), ...next.items].map(item => [item.player_id, item])).values()];
+    const nextData = { ...data, directory: { ...next, items } };
+    writeViewCache([workspace.tenant_id, sessionUserId, workspace.role, 'players', 'players'].join(':'), nextData);
+    setData(nextData);
   };
 
   const signIn = async (event: FormEvent) => {
@@ -1577,12 +1638,16 @@ export default function AgencyOperatingWorkspace() {
                   invoke={(action, body) => invoke<any>(action, body)}
                   rpc={rpc}
                   onRefresh={loadView}
+                  onLoadMore={loadMorePlayers}
+                  directoryRefreshing={directoryRefreshing}
                   onOpenAction={(request) => setActionRequest(request)}
                 />
               )
             ) : null}
             {view === 'opportunities' ? (
               <AgencyOpportunitiesWorkspace
+                key={stateScope}
+                invoke={invoke}
                 onRetry={() => void loadView()}
                 onRefresh={loadView}
                 rpc={rpc}
@@ -1597,6 +1662,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'network' ? (
               <AgencyNetworkWorkspace
+                key={stateScope}
                 stateScope={stateScope}
                 data={data}
                 basePath={basePath}

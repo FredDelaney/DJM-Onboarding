@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   BarChart3,
   Check,
+  ChevronDown,
   Clock3,
   Copy,
   Download,
@@ -689,7 +690,7 @@ export default function AgencyPlayerProfile({
     missingRequiredChecks[0]?.key === 'verification';
   const canPublishFromHero = canPublish || verificationOnly;
   const guidedRequiredChecks = verificationOnly ? [] : missingRequiredChecks;
-  const canEdit = ['owner', 'admin', 'agent', 'operations'].includes(
+  const canEdit = !bundle?.access?.restricted && ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
 
@@ -1234,6 +1235,18 @@ export default function AgencyPlayerProfile({
     '--profile-on-accent': brand.onAccent,
   } as React.CSSProperties;
 
+  if (bundle?.access?.restricted) {
+    return <div className={styles.root} style={theme}>
+      <div className={styles.topbar}><Link href={backHref} className={styles.back} aria-label="Back to players"><ArrowLeft size={15}/>Players</Link></div>
+      <section className={styles.card} aria-label="Assigned player access" style={{padding:20}}>
+        <h2>Assigned player profile</h2>
+        <p>You can review this player's recorded football evidence. Contract, operational and sharing controls are available to agency administrators.</p>
+      </section>
+      {error?<p className={styles.error} role="alert">{error}</p>:null}
+      <PublicProfile profile={draftProfile} agency={agency}/>
+    </div>;
+  }
+
   return (
     <div className={styles.root} style={theme}>
       <div className={styles.topbar}>
@@ -1393,7 +1406,7 @@ export default function AgencyPlayerProfile({
                 {published?.published
                   ? 'Live'
                   : verificationOnly
-                    ? 'Ready to publish'
+                    ? 'Ready for verification'
                     : canPublish
                       ? 'Ready to publish'
                       : missingRequiredCount === 1
@@ -1467,17 +1480,6 @@ export default function AgencyPlayerProfile({
             </button>
           )}
 
-          {verificationOnly && canEdit ? (
-            <button
-              type="button"
-              data-ui-button="secondary" data-ui-tone="inverse"
-              className={styles.secondaryAction}
-              onClick={() => openVerify('verification')}
-            >
-              <Eye size={15} />
-              Check data
-            </button>
-          ) : null}
 
           {canEdit ? (
             <button
@@ -1505,13 +1507,29 @@ export default function AgencyPlayerProfile({
             Preview
           </button>
 
+          <details className={styles.profileTools}
+            onClick={event=>{if((event.target as HTMLElement).closest('button'))event.currentTarget.open=false;}}
+            onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}>
+            <summary data-ui-button="secondary" data-ui-tone="inverse" className={styles.secondaryAction}>Profile tools <ChevronDown size={15}/></summary>
+            <div className={styles.toolMenu}>
+          {verificationOnly && canEdit ? (
+            <button
+              type="button"
+              data-ui-button="secondary" data-ui-tone="inverse"
+              className={styles.secondaryAction}
+              onClick={() => openVerify('verification')}
+            >
+              <Eye size={15} />
+              Check data
+            </button>
+          ) : null}
           <button
             type="button"
             data-ui-button="secondary"
             data-ui-tone="inverse"
             className={styles.secondaryAction}
             onClick={downloadPdf}
-            disabled={actionBusy === 'pdf'}
+            disabled={Boolean(actionBusy)}
           >
             <Download size={15} />
             PDF
@@ -1528,6 +1546,8 @@ export default function AgencyPlayerProfile({
               Edit
             </button>
           ) : null}
+            </div>
+          </details>
         </div>
       </section>
 

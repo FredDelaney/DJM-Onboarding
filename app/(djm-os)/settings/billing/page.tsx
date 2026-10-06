@@ -115,6 +115,8 @@ export default function BillingSettingsPage() {
     account?.billing?.status === 'internal' ||
     Boolean(account?.billing?.metadata?.billing_exempt);
 
+  const paymentPortalAvailable = account?.payment_portal_available === true;
+
   const update = (key: keyof BillingForm, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
     setError('');
@@ -414,6 +416,11 @@ export default function BillingSettingsPage() {
               <div className={styles.notice}>
                 <CheckCircle2 size={16} />
                 This is an internal or founding ReDream account. No payment method is required.
+              </div>
+            ) : !paymentPortalAvailable ? (
+              <div className={styles.notice}>
+                <ReceiptText size={16} />
+                <div><strong>Online billing is not enabled for this agency yet.</strong><p>Contact ReDream to confirm payment arrangements or request an invoice.</p><a href="mailto:team@redreamsystems.com?subject=Billing%20support">Contact billing support</a></div>
               </div>
             ) : (
               <>
