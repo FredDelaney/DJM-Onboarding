@@ -1,0 +1,122 @@
+{
+  "name": "Tell ReDream natural agency language benchmark v1",
+  "date": "2026-10-06",
+  "timezone": "Europe/Rome",
+  "purpose": "Guard the universal capture workflow against software-style phrasing requirements. Testers should speak naturally and should not need to know ReDream's schema.",
+  "cases": [
+    {
+      "id": "b01",
+      "input": "Spoke to Northbridge FC. They need a left-footed centre-back under 23, max €400k. Send Milan tomorrow. Jesse owns it.",
+      "expect": {
+        "actions": ["log_interaction", "upsert_club_need", "suggest_player", "create_task"],
+        "club": "Northbridge FC",
+        "player": "Milan",
+        "position": "CB",
+        "max_age": 23,
+        "preferred_foot": "left",
+        "transfer_budget": 400000,
+        "owner": "Jesse Edge",
+        "due_local": "2026-10-07"
+      }
+    },
+    {
+      "id": "b02",
+      "input": "Riverton United asked for a quick right winger, 20 or younger, loan only. Send Simon on Friday, I'll handle it.",
+      "expect": {
+        "actions": ["upsert_club_need", "create_task"],
+        "club": "Riverton United",
+        "player": "Simon",
+        "position": "RW",
+        "max_age": 20,
+        "transfer_type": "loan",
+        "owner": null,
+        "due_local": "2026-10-09"
+      }
+    },
+    {
+      "id": "b03",
+      "input": "Kota told me he wants to stay in Scandinavia next season and would prefer Denmark or Sweden. Call him next Tuesday to go through options.",
+      "expect": {
+        "actions": ["add_claim", "create_task"],
+        "player": "Kota",
+        "contact": null,
+        "claim_contains": ["Scandinavia", "Denmark", "Sweden"],
+        "due_local": "2026-10-13"
+      }
+    },
+    {
+      "id": "b04",
+      "input": "Watched Lucas tonight. Left winger, really explosive one v one and gets in behind, but his final ball is inconsistent. Keep monitoring him.",
+      "expect": {
+        "actions": ["log_scout_observation"],
+        "player": "Lucas",
+        "position": "LW",
+        "strengths_contain": ["explosive", "gets in behind"],
+        "risks_contain": ["final ball"]
+      }
+    },
+    {
+      "id": "b05",
+      "input": "Had a call with Eastport City. They like Simon but won't move before January. Follow up on 1 December.",
+      "expect": {
+        "actions": ["log_interaction", "create_task"],
+        "club": "Eastport City",
+        "player": "Simon",
+        "due_local": "2026-12-01"
+      }
+    },
+    {
+      "id": "b06",
+      "input": "Harbour Athletic said their budget is around €250k and they may need a striker in January, but nothing is confirmed yet.",
+      "expect": {
+        "actions": ["add_claim"],
+        "club": "Harbour Athletic",
+        "forbid_actions": ["upsert_club_need"],
+        "claim_contains": ["€250k", "striker", "January"]
+      }
+    },
+    {
+      "id": "b07",
+      "input": "Lakewood SK need a goalkeeper. Send Noah Monday. Alex owns it.",
+      "expect": {
+        "actions": ["upsert_club_need", "create_task"],
+        "club": "Lakewood SK",
+        "player": "Noah",
+        "position": "GK",
+        "task_status": "needs_review",
+        "owner_user_id": null,
+        "review_reason_contains": "Alex"
+      }
+    },
+    {
+      "id": "b08",
+      "input": "Quick one, thanks for the chat earlier. Nothing to do for now.",
+      "expect": {
+        "actions": [],
+        "status": "done"
+      }
+    },
+    {
+      "id": "b09",
+      "input": "Spoke to Northbridge FC again. Their sporting director wants Milan's profile today and asked whether he is available on loan with an option. Send the profile this afternoon.",
+      "expect": {
+        "actions": ["log_interaction", "add_claim", "create_task"],
+        "club": "Northbridge FC",
+        "player": "Milan",
+        "claim_contains": ["loan", "option"],
+        "due_local": "2026-10-06"
+      }
+    },
+    {
+      "id": "b10",
+      "input": "Simon told me he is not interested in Asia this window. He wants Europe only. No follow-up needed.",
+      "expect": {
+        "actions": ["add_claim"],
+        "player": "Simon",
+        "contact": null,
+        "forbid_actions": ["create_task"],
+        "claim_contains": ["Europe", "Asia"]
+      }
+    }
+  ]
+}
