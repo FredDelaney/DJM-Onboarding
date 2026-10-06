@@ -9,6 +9,10 @@ const migration = readFileSync(
   'supabase/migrations/20261006084929_tell_redream_approval_today_v1.sql',
   'utf8',
 );
+const approvalSchemaFix = readFileSync(
+  'supabase/migrations/20261006092915_fix_tell_redream_approval_capture_schema.sql',
+  'utf8',
+);
 
 test('Tell ReDream voice text and share capture stage resolved work and wait for approval', () => {
   assert.match(worker, /redream_ai_stage_action/);
@@ -86,6 +90,19 @@ test('approval RPC is explicitly access checked and narrowly granted', () => {
     migration,
     /grant execute on function public\.redream_ai_approve_capture\(uuid\)[\s\S]*to authenticated,service_role/,
   );
+});
+
+test('follow-up approval function matches the real captures schema', () => {
+  const captureUpdateStart = approvalSchemaFix.indexOf('update djm_os.captures');
+  const captureUpdateEnd = approvalSchemaFix.indexOf(
+    'where id=p_capture_id and tenant_id=v_tenant;',
+    captureUpdateStart,
+  );
+  const captureUpdate = approvalSchemaFix.slice(captureUpdateStart, captureUpdateEnd);
+  assert.ok(captureUpdateStart >= 0);
+  assert.ok(captureUpdateEnd > captureUpdateStart);
+  assert.doesNotMatch(captureUpdate, /updated_at=now\(\)/);
+  assert.match(approvalSchemaFix, /redream_ai_approve_capture/);
 });
 
 test('new approval-first source contains no literal em dash', () => {
