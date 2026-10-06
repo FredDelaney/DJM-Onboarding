@@ -386,7 +386,7 @@ export default function AiCapture({
   useEffect(() => {
     if (!resumeCaptureId) return;
     rememberActiveAiCapture(resumeCaptureId, workspaceSlug, workspace);
-    setStatus('Checking this Capture update...');
+    setStatus('Checking this ReDream update...');
     void pollReceipt(resumeCaptureId, true);
   }, [pollReceipt, resumeCaptureId, workspaceSlug]);
 
@@ -806,7 +806,7 @@ export default function AiCapture({
     if (!captureId || deletingCapture) return;
 
     const ok = window.confirm(
-      'Delete this Capture update? This removes the unresolved capture from ReDream. ' +
+      'Delete this ReDream update? This removes the unresolved update. ' +
         'It cannot delete an update that has already applied changes unless those changes are undone first.',
     );
 
@@ -823,7 +823,7 @@ export default function AiCapture({
       forgetActiveAiCapture(captureId);
       displayCaptureRef.current = null;
       setReceipt(null);
-      setStatus('Capture update deleted.');
+      setStatus('ReDream update deleted.');
       onCompleted?.({
         capture: {
           id: captureId,
@@ -937,7 +937,7 @@ export default function AiCapture({
               disabled={busy || Boolean(unsavedDraft) || !text.trim()}
             >
               <Send size={14} />
-              {busy ? 'Saving...' : 'Capture'}
+              {busy ? 'Saving...' : 'Send to ReDream'}
             </button>
           </div>
         )}
@@ -1001,7 +1001,7 @@ export default function AiCapture({
               </strong>
               <span>
                 {hasPendingActions
-                  ? 'Check what ReDream understood. Nothing below changes until you approve.'
+                  ? 'Check what ReDream understood. Nothing changes until you approve.'
                   : needsAttention
                     ? 'ReDream has not guessed. Resolve the items below or edit the note.'
                     : verifiedComplete
@@ -1032,7 +1032,7 @@ export default function AiCapture({
                   <strong>{hasPendingActions ? 'Proposed changes' : 'What ReDream understood'}</strong>
                   <span>
                     {hasPendingActions
-                      ? 'One approval writes these updates to the agency record.'
+                      ? 'Approve once to save these updates.'
                       : 'This is the structured result from your original words.'}
                   </span>
                 </div>
@@ -1049,8 +1049,8 @@ export default function AiCapture({
               {hasPendingActions ? (
                 <div className={styles.approvalBar}>
                   <div>
-                    <strong>Nothing has changed yet</strong>
-                    <span>Approve once, or edit the original note before ReDream writes anything.</span>
+                    <strong>Review before saving</strong>
+                    <span>Approve these updates, or edit your note first.</span>
                   </div>
                   <div className={styles.approvalActions}>
                     <button
@@ -1073,7 +1073,7 @@ export default function AiCapture({
                       ) : (
                         <CheckCircle2 size={14} />
                       )}
-                      {approvingCapture ? 'Approving...' : 'Approve updates'}
+                      {approvingCapture ? 'Saving...' : 'Approve & save'}
                     </button>
                   </div>
                 </div>

@@ -87,6 +87,6 @@ test('Player Profile sharing can target any existing club in the tenant network'
   assert.match(profile, /shareClubOptions\.map/);
   assert.match(
     profile,
-    /Choose any club already recorded in your agency network\./,
+    /Choose a club from your agency network\./,
   );
 });

@@ -670,12 +670,12 @@ export default function AgencyContactIntelligenceDrawer({
                   Owner {clean(summaryRelationship?.owner_name) || 'unassigned'}
                 </span>
                 <span>
-                  Route {summaryRelationship?.route_score != null ? Number(summaryRelationship.route_score) : 'not set'}
+                  Relationship strength {summaryRelationship?.route_score != null ? Number(summaryRelationship.route_score) : 'not set'}
                 </span>
                 <span>
                   {summaryActivity?.last_interaction_at
                     ? `Last contact ${relativeDate(summaryActivity.last_interaction_at)}`
-                    : 'No contact recorded'}
+                    : 'No recent contact'}
                 </span>
               </div>
             </div>

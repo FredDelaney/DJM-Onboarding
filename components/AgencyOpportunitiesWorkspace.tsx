@@ -69,7 +69,7 @@ function ConnectedOpportunityContext({
   const latest = context?.latest_contact || null;
   const followup = context?.open_followup || null;
   const sourceName =
-    context?.source_person_name || 'Recorded source';
+    context?.source_person_name || 'Known source';
   const label =
     context?.scope === 'deal_source_contact'
       ? 'DEAL CONTACT'
@@ -394,7 +394,7 @@ export default function AgencyOpportunitiesWorkspace({
         `${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`,
       instruction:
         item.next_action?.instruction ||
-        'Create controlled scouting work against the recorded club need.',
+        'Create scouting work for this club need.',
       label: 'Prepare search',
       action: 'scouting_mandate_prepare',
       payload: {
@@ -402,7 +402,7 @@ export default function AgencyOpportunitiesWorkspace({
       },
       context:
         item.need?.position ||
-        'Recorded club need',
+        'Club need',
       facts: [
         {
           label: 'Need',
@@ -426,7 +426,7 @@ export default function AgencyOpportunitiesWorkspace({
             ]
               .filter(Boolean)
               .join(' · ') ||
-            'Profile not fully recorded',
+            'Player profile needs more detail',
           detail: item.need?.transfer_type
             ? human(item.need.transfer_type)
             : 'Transfer type not set',
@@ -434,7 +434,7 @@ export default function AgencyOpportunitiesWorkspace({
         {
           label: 'Coverage',
           value:
-            `${Number(item.candidate_coverage?.recorded_candidates || 0)} recorded candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
+            `${Number(item.candidate_coverage?.recorded_candidates || 0)} candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
           detail: human(
             item.coverage_state ||
               'coverage not set',
@@ -444,12 +444,12 @@ export default function AgencyOpportunitiesWorkspace({
           label: 'Timing',
           value: item.need?.expires_at
             ? relativeDate(item.need.expires_at)
-            : 'No expiry recorded',
-          detail: 'Recorded club-demand timing',
+            : 'No expiry set',
+          detail: 'Club need timing',
         },
       ],
       successCondition:
-        'At least one credible candidate route is recorded against this club need.',
+        'At least one credible player is linked to this club need.',
       confirmationLabel: 'Create search task',
     });
   };
@@ -574,14 +574,14 @@ export default function AgencyOpportunitiesWorkspace({
           detail: introductionVia
             ? `Warm introduction via ${introductionVia}`
             : introductionRole ||
-              'No warm introduction recorded',
+              'No warm introduction yet',
         },
       ],
       successCondition:
         deal.next_control_fix?.success_condition ||
         (needsOwner
           ? 'One accountable owner controls the live deal.'
-          : 'The recorded deal-control gap is resolved.'),
+          : 'No deal-control gap needs attention.'),
       confirmationLabel:
         needsOwner ? 'Assign deal owner' : 'Apply fix',
     });
@@ -751,7 +751,7 @@ export default function AgencyOpportunitiesWorkspace({
                           : prepareSearch(item);
                       }}
                     >
-                      {hasRoute ? 'Open route' : 'Start search'}
+                      {hasRoute ? 'Open opportunity' : 'Start search'}
                       <ChevronRight size={18} />
                     </button> : <span>Club need closed</span>}
                   </div>
@@ -771,7 +771,7 @@ export default function AgencyOpportunitiesWorkspace({
                 item.career_strategy_gate?.next_action
                   ?.instruction ||
                 item.best_access_route?.why_this_route ||
-                'Review the pursuit evidence.';
+                'Review this player opportunity.';
 
               return (
                 <article
@@ -823,7 +823,7 @@ export default function AgencyOpportunitiesWorkspace({
                       openRoute(item);
                     }}
                   >
-                    Open pursuit
+                    Open opportunity
                     <ChevronRight size={18} />
                   </button>
                 </article>
@@ -942,7 +942,7 @@ export default function AgencyOpportunitiesWorkspace({
         {readState !== 'ready' ? (
           <div className={styles.empty} role="status">
             <strong>{readState === 'error' ? 'This view could not be updated' : 'Loading opportunities...'}</strong>
-            <span>{readState === 'error' ? 'Your recorded work is safe. Try loading it again.' : 'Checking the latest recorded work.'}</span>
+            <span>{readState === 'error' ? 'Your work is safe. Try loading it again.' : 'Checking the latest work.'}</span>
             {readState === 'error' && onRetry ? <button type="button" className={styles.tab} onClick={onRetry}>Try again</button> : null}
           </div>
         ) : null}
@@ -973,8 +973,8 @@ export default function AgencyOpportunitiesWorkspace({
                 : view === 'needs'
                   ? 'Add a real club need and the player opportunities around it can be organised here.'
                   : view === 'routes'
-                    ? 'Routes appear when a player is linked to a recorded club need.'
-                    : 'Commercial work appears here once a player-club route becomes a live deal.'}
+                    ? 'Player opportunities appear when a player is linked to a club need.'
+                    : 'Deals appear here once a player opportunity becomes live commercial work.'}
             </span>
           </div>
         ) : null}

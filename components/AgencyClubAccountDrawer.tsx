@@ -739,7 +739,7 @@ export default function AgencyClubAccountDrawer({
                 detail={
                   bestRoute
                     ?.person_name ||
-                  'No direct route recorded'
+                  'No direct contact yet'
                 }
               />
 
@@ -795,7 +795,7 @@ export default function AgencyClubAccountDrawer({
               <SectionHead
                 icon={Users}
                 label="PEOPLE WE KNOW"
-                title="Who gives us a route into this club"
+                title="Who can help us reach this club"
               />
 
               {directRoutes.length ? (
@@ -862,7 +862,7 @@ export default function AgencyClubAccountDrawer({
                                   ? `Last meaningful ${relativeDate(
                                       route.last_meaningful_at,
                                     )}`
-                                  : 'No meaningful date recorded',
+                                  : 'No recent date',
                               ]
                                 .filter(
                                   Boolean,
@@ -886,12 +886,12 @@ export default function AgencyClubAccountDrawer({
                 </div>
               ) : (
                 <Empty
-                  title="No direct relationship recorded"
+                  title="No direct relationship yet"
                   copy={
                     bestIntro
                       ?.intermediary
                       ?.name
-                      ? `A warm introduction route is recorded through ${bestIntro.intermediary.name}.`
+                      ? `A warm introduction is available through ${bestIntro.intermediary.name}.`
                       : 'ReDream will show the strongest known contact route when the agency connects a person to this club.'
                   }
                 />
@@ -916,7 +916,7 @@ export default function AgencyClubAccountDrawer({
                       {bestIntro
                         ?.intermediary
                         ?.name ||
-                        'Introduction route recorded'}
+                        'Warm introduction available'}
                     </strong>
 
                     <small>
@@ -924,7 +924,7 @@ export default function AgencyClubAccountDrawer({
                         ?.target_contact
                         ?.name
                         ? `Can introduce us to ${bestIntro.target_contact.name}`
-                        : 'Target person recorded in Network'}
+                        : 'Target person is in Network'}
                     </small>
                   </div>
                 </div>
@@ -1019,7 +1019,7 @@ export default function AgencyClubAccountDrawer({
                                       need
                                         ?.profile_notes,
                                     ) ||
-                                    'No further brief recorded'}
+                                    'No further detail yet'}
                             </small>
                           </div>
 
@@ -1040,8 +1040,8 @@ export default function AgencyClubAccountDrawer({
                 </div>
               ) : (
                 <Empty
-                  title="No active club need recorded"
-                  copy="When the agency records what this club is looking for, it will appear here."
+                  title="No active club need yet"
+                  copy="Add what this club is looking for and it will appear here."
                 />
               )}
             </section>
@@ -1090,7 +1090,7 @@ export default function AgencyClubAccountDrawer({
                                 item
                                   ?.summary,
                               ) ||
-                                'Conversation recorded'}
+                                'Conversation added'}
                             </strong>
 
                             <span>
@@ -1163,7 +1163,7 @@ export default function AgencyClubAccountDrawer({
                 <WorkBlock
                   title="Promises"
                   items={promiseRows}
-                  empty="No open promise is recorded."
+                  empty="No open promises."
                 />
 
                 <WorkBlock
@@ -1340,7 +1340,7 @@ export default function AgencyClubAccountDrawer({
                                 {pursuit
                                   ?.need
                                   ?.title ||
-                                  'Recorded club demand'}
+                                  'Club need'}
                               </span>
 
                               <small>
@@ -1349,11 +1349,11 @@ export default function AgencyClubAccountDrawer({
                                   ?.summary ||
                                   pursuit
                                     ?.interpretation ||
-                                  'Player opportunity recorded'}
+                                  'Player opportunity'}
                                 {pursuit
                                   ?.best_access_route
                                   ?.person_name
-                                  ? ` · Route: ${pursuit.best_access_route.person_name}`
+                                  ? ` · Contact: ${pursuit.best_access_route.person_name}`
                                   : ''}
                               </small>
                             </div>
@@ -1438,7 +1438,7 @@ export default function AgencyClubAccountDrawer({
                                   })
                                 }
                               >
-                                Open pursuit
+                                Open opportunity
                                 <ArrowRight
                                   size={14}
                                 />
@@ -1451,7 +1451,7 @@ export default function AgencyClubAccountDrawer({
                 </div>
               ) : (
                 <Empty
-                  title="No live opportunity recorded"
+                  title="No live opportunity yet"
                   copy="Player opportunities and deals will appear here when they are connected to this club."
                 />
               )}
@@ -1462,7 +1462,7 @@ export default function AgencyClubAccountDrawer({
                 styles.truth
               }
             >
-              ReDream shows recorded agency relationships, conversations, needs and work. It does not guess private club intent or whether a transfer will happen.
+              ReDream only shows information your agency has captured or connected. It does not guess what a club wants or whether a transfer will happen.
             </p>
           </div>
         ) : null}

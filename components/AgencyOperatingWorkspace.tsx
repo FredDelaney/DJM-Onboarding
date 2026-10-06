@@ -4999,7 +4999,7 @@ function Market({
                               },
                             ],
                             successCondition:
-                              'At least one credible candidate route is recorded against this club need.',
+                              'At least one credible player is linked to this club need.',
                             confirmationLabel:
                               'Create search task',
                           })
