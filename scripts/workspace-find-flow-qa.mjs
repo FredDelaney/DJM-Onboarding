@@ -172,7 +172,7 @@ try{
   assert.equal(await page.getByRole('link',{name:'Business',exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:/^Manage /}).count(),0);
   if(role==='scout')assert.equal(await page.getByRole('button',{name:'Add player',exact:true}).count(),0);
-  await page.goto(root+'?coordinator=1&role='+role+'&view=network');await page.getByText('Shared clubs and contacts. Your contact pages show your own activity. Commercial agency context requires administrator access.',{exact:true}).waitFor();
+  await page.goto(root+'?coordinator=1&role='+role+'&view=network');await page.getByText('Shared clubs and contacts. Your contact pages show your own activity. Agency-wide commercial details are only shown to admins.',{exact:true}).waitFor();
   await page.getByRole('heading',{name:'Shared Staff Club',exact:true}).waitFor();
   assert.equal(await page.getByText('LIVE OPPORTUNITIES',{exact:true}).count(),0);
   assert.equal(await page.getByText('BEST ROUTE',{exact:true}).count(),0);
