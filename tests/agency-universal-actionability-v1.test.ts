@@ -248,7 +248,7 @@ test('Market search actions expose the recorded club brief before creating work'
   );
   assert.match(
     workspace,
-    /At least one credible candidate route is recorded against this club need/,
+    /At least one credible player is linked to this club need/,
   );
   assert.match(
     workspace,

@@ -41,7 +41,7 @@ test('Club opens the exact recorded player pursuit instead of a generic market p
   );
   assert.match(
     club,
-    /Open pursuit/,
+    /Open opportunity/,
   );
 });
 

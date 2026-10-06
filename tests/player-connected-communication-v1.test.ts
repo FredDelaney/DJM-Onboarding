@@ -125,7 +125,7 @@ test(
     );
     assert.match(
       profile,
-      /No conversations linked yet/,
+      /No conversations linked to this player yet/,
     );
     assert.match(
       profile,

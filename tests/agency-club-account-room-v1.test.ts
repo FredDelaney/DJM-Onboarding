@@ -89,7 +89,7 @@ test('Club keeps direct relationships and warm introduction evidence distinct', 
 
   assert.match(
     club,
-    /does not guess private club intent or whether a transfer will happen/,
+    /does not guess what a club wants or whether a transfer will happen/,
   );
 });
 

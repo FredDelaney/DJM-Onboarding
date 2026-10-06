@@ -31,8 +31,8 @@ test('Tell ReDream voice text and share capture stage resolved work and wait for
   assert.match(migration, /pending_approval_actions/);
   assert.match(migration, /approval_required/);
   assert.match(capture, /redream_ai_approve_capture/);
-  assert.match(capture, /Approve updates/);
-  assert.match(capture, /Nothing has changed yet/);
+  assert.match(capture, /Approve & save/);
+  assert.match(capture, /Review before saving/);
 });
 
 test('Tell ReDream preview exposes the agency consequences before commit', () => {

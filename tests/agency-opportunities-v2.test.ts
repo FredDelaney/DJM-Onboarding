@@ -29,9 +29,9 @@ test('Opportunities V2 keeps one clean agent-facing working surface', async () =
 test('Opportunities V2 keeps one primary next action per visible row', async () => {
   const source = await readFile(workspacePath, 'utf8');
 
-  assert.match(source, /Open route/);
+  assert.match(source, /Open opportunity/);
   assert.match(source, /Start search/);
-  assert.match(source, /Open pursuit/);
+  assert.match(source, /Open opportunity/);
   assert.match(source, /Open deal/);
   assert.match(source, /Fix now/);
   assert.match(source, /Assign owner/);
