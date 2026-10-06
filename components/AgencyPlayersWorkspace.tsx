@@ -38,6 +38,8 @@ type Invoke = <T,>(
 
 type Props = {
   stateScope?: string;
+  canManageRecords?: boolean;
+  canCreateRecords?: boolean;
   data: any;
   basePath: string;
   invoke: Invoke;
@@ -506,6 +508,8 @@ function PlayerDrawer({
 
 export default function AgencyPlayersWorkspace({
   stateScope = '',
+  canManageRecords = true,
+  canCreateRecords = true,
   data,
   basePath,
   invoke,
@@ -539,9 +543,10 @@ export default function AgencyPlayersWorkspace({
   };
 
   const reloadArchives = useCallback(async () => {
+    if (!canManageRecords) { setArchiveItems([]); return; }
     const result = await rpc<any>('redream_entity_archives');
     setArchiveItems(Array.isArray(result?.items) ? result.items : []);
-  }, [rpc]);
+  }, [rpc,canManageRecords]);
 
   const refreshEntities = useCallback(async () => {
     await Promise.all([onRefresh(), reloadArchives()]);
@@ -805,7 +810,7 @@ export default function AgencyPlayersWorkspace({
               className={styles.closeButton} onClick={closeTarget} aria-label="Back to Recruitment">
               <ArrowLeft size={18} />
             </button>
-            {targetDetail?.target ? (
+            {targetDetail?.target && canManageRecords ? (
               <EntityActionsMenu
                 kind="recruitment_target"
                 entityId={targetId}
@@ -895,7 +900,7 @@ export default function AgencyPlayersWorkspace({
         </div>
         <label className={styles.search}><Search size={15}/><input aria-label={section==='players'?'Search players':'Search recruitment'} value={search} onChange={(e)=>setSearch(e.target.value)}
           placeholder={section==='players'?'Search players':'Search recruitment'} /></label>
-        {section==='recruitment'?(
+        {section==='recruitment' && canCreateRecords?(
           <button type="button" data-ui-button="secondary"
               className={styles.primaryButton} onClick={openRecruitmentCreate}><Plus size={14}/> Add target</button>
         ):null}
@@ -931,7 +936,7 @@ export default function AgencyPlayersWorkspace({
                     <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Football details not fully recorded'}</span>
                     <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not fully recorded'}</small></div>
                   <div className={styles.playerCardEnd}>
-                    {!item.access?.restricted ? <>                    <EntityActionsMenu
+                    {!item.access?.restricted ? <>                    {canManageRecords ? <EntityActionsMenu
                       kind="player"
                       entityId={String(item.player_id)}
                       label={name}
@@ -946,7 +951,7 @@ export default function AgencyPlayersWorkspace({
                         { key: 'current_country', label: 'Current country', value: identity.current_country },
                         { key: 'contract_expiry', label: 'Contract expiry', value: identity.contract_expiry || '', type: 'date' },
                       ]}
-                    />
+                    /> : null}
 </> : null}
                     <span className={attention?styles.attentionPill:styles.calmPill}>{item.access?.restricted?'Assigned player':attention?'Needs action':'Current'}</span>
                   </div>
@@ -1071,7 +1076,7 @@ export default function AgencyPlayersWorkspace({
                   <small>{item.last_interaction?.summary||(item.next_action_at?`Next follow-up ${relativeDate(item.next_action_at)}`:'No next follow-up recorded')}</small></div>
                 <div className={styles.recruitmentStage}><span>{PIPELINE.find(([key])=>key===item.ui_stage)?.[1]||human(item.ui_stage)}</span><ChevronRight size={15}/></div>
                 </button>
-                <EntityActionsMenu
+                {canManageRecords ? <EntityActionsMenu
                   kind="recruitment_target"
                   entityId={String(item.id)}
                   label={item.full_name || 'Recruitment target'}
@@ -1086,7 +1091,7 @@ export default function AgencyPlayersWorkspace({
                     { key: 'contract_expiry', label: 'Contract expiry', value: item.contract_expiry || '', type: 'date' },
                     { key: 'transfermarkt_url', label: 'Transfermarkt', value: item.transfermarkt_url, type: 'url' },
                   ]}
-                />
+                /> : null}
               </div>
             ))}
             {!filteredTargets.length?<Empty icon={Target} title="No recruitment targets here" copy="Add a target or change the stage filter to see the current recruitment pipeline."/>:null}

@@ -48,6 +48,7 @@ export default {fetch:async(req:Request)=>{
     if(action==="tenants") return json({ok:true,tenants:workspaces});
     const requested=id(body?.tenant_id);
     let workspace=requested?workspaces.find(w=>String(w.tenant_id)===requested):workspaces.find(w=>Boolean(w.is_primary));
+    if(requested&&!workspace) return json({error:"Workspace access denied",code:"workspace_access_denied"},403);
     if(!workspace&&workspaces.length===1) workspace=workspaces[0];
     if(!workspace) return json({error:"tenant_id is required when more than one agency workspace is available",code:"tenant_required"},409);
     const tenantId=String(workspace.tenant_id),role=String(workspace.role||"");
@@ -56,6 +57,28 @@ export default {fetch:async(req:Request)=>{
     const operator=()=>["owner","admin","agent","operations"].includes(role);
     const deny=(message:string)=>json({error:message},403);
     const result=async(key:string,fn:string,args:Record<string,unknown>)=>json({ok:true,tenant:workspace,[key]:await rpc(fn,args)});
+    // New aliases fail closed. Restricted staff enter through reviewed projections
+    // or personal workflows; explicit operations permissions stay explicit.
+    const staffActions=new Set([
+      "home_focus","account_overview","account_profile_save","team",
+      "workspace_search","players_workspace","player_profile_core","player_profile_detail","player_profile","club_account",
+      "recruitment_board","recruitment_target","recruitment_create","recruitment_set_stage",
+      "recruitment_set_next_action","recruitment_log_interaction","recruitment_promote",
+      "create_options","create_player","create_club","create_contact",
+      "feedback","action_prepare","action_execute","action_undo","action_history"
+    ]);
+    const operationsActions=new Set([
+      "value_proof_review_pack","representation_renewal","receivables_command","deal_closeout_command",
+      "representation_control","knowledge_candidates","migration_batch",
+      "migration_create_batch","migration_preflight","migration_row_decision","migration_approve","migration_apply",
+      "deal_receivables","deal_receivable_save","receivable_payment_record","deal_closeout","deal_closeout_save"
+    ]);
+    const footballReads=new Set(["player_data_status"]);
+    const footballWrites=new Set(["player_data_save","player_data_refresh","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
+    if(!ownerAdmin()&&!staffActions.has(action)&&!footballReads.has(action)&&!footballWrites.has(action)&&!(role==="operations"&&operationsActions.has(action))){
+      return deny("Agency administrator access required");
+    }
+    if(!ownerAdmin()&&footballWrites.has(action)&&!operator())return deny("Agency operator access required");
     const dealId=()=>id(body?.deal_room_id),playerId=()=>id(body?.player_id),matchId=()=>id(body?.player_match_id);
     const profilePlayer=async(pid:string)=>{
       if(!pid)return null;
@@ -63,6 +86,16 @@ export default {fetch:async(req:Request)=>{
       if(error)throw error;
       return data;
     };
+    if(!ownerAdmin()&&(footballReads.has(action)||footballWrites.has(action))){
+      const pid=playerId();
+      if(!pid)return json({error:"player_id is required"},400);
+      const player=await profilePlayer(pid);
+      if(!player||player.archived_at||["retired","inactive"].includes(String(player.football_status||"").toLowerCase()))return json({error:"Player not found in this agency"},404);
+      const access=await ctx.supabaseAdmin.from("staff_player_access").select("player_id,can_edit")
+        .eq("player_id",pid).eq("staff_user_id",userId).maybeSingle();
+      if(access.error)throw access.error;
+      if(!access.data||(footballWrites.has(action)&&access.data.can_edit!==true))return deny("Assigned player edit access required");
+    }
     const profileContext=async(pid:string)=>{
       const fallbackBranding={display_name:workspace.display_name||"Agency",short_name:workspace.short_name||null,portal_name:workspace.portal_name||null,logo_asset:workspace.logo_asset||null,compact_logo_asset:workspace.compact_logo_asset||null,primary_color:workspace.primary_color||"#111827",accent_color:workspace.accent_color||"#64748B",support_email:null,website_url:null,phone:null};
       try{
@@ -150,7 +183,7 @@ export default {fetch:async(req:Request)=>{
         else if(mode==="input_then_confirm")confirm.push(command);
         else judgement.push(command);
       }
-      return json({ok:true,home:{generated_at:personal.generated_at||new Date().toISOString(),workspace:{slug:workspace.slug||null,display_name:workspace.display_name||workspace.short_name||workspace.slug||"Agency"},attention:{status:personal.status||"normal",visible_signals:Number(personal.visible_signals||commands.length),critical_count:Number(personal.critical_count||0),high_count:Number(personal.high_count||0),suppressed_by_decision_memory:Number(personal.suppressed_by_user_decision||0),delegable,confirm,judgement}}});
+      return json({ok:true,home:{access:{scope:ownerAdmin()?"agency":"assigned",restricted:!ownerAdmin()},generated_at:personal.generated_at||new Date().toISOString(),workspace:{slug:workspace.slug||null,display_name:workspace.display_name||workspace.short_name||workspace.slug||"Agency"},attention:{status:personal.status||"normal",visible_signals:Number(personal.visible_signals||commands.length),critical_count:Number(personal.critical_count||0),high_count:Number(personal.high_count||0),suppressed_by_decision_memory:Number(personal.suppressed_by_user_decision||0),delegable,confirm,judgement}}});
     }
 
     if(action==="account_overview"){
@@ -843,6 +876,10 @@ export default {fetch:async(req:Request)=>{
     if(action==="club_account"||action==="introduction_routes"||action==="access_routes"){
       const x=id(body?.organisation_id);if(!x)return json({error:"organisation_id is required"},400);
       if(action==="club_account"){
+        if(!ownerAdmin()){
+          const account=await rpc("platform_server_staff_club_identity",{p_tenant_id:tenantId,p_user_id:userId,p_organisation_id:x});
+          return json({ok:true,tenant:workspace,club:restrictedClubAccount(account)});
+        }
         const account=await rpc("platform_server_club_account",{p_tenant_id:tenantId,p_organisation_id:x});
         return json({ok:true,tenant:workspace,club:ownerAdmin()?account:restrictedClubAccount(account)});
       }
@@ -940,6 +977,9 @@ export default {fetch:async(req:Request)=>{
     return json({error:"Unknown action"},400);
   }catch(error){
     const message=error instanceof Error?error.message:String(obj(error).message||"");
+    if(obj(error).code==="42501"||["workspace_access_denied","agency_staff_access_required","active_tenant_staff_required","proposal_access_denied","agency_admin_access_required"].includes(message)){
+      return json({error:"You do not have permission to perform this action.",code:"workspace_access_denied"},403);
+    }
     const conflicts:Record<string,string>={
       proposal_expired:"This approval has expired. Cancel and open the action again to review a fresh approval.",
       command_no_longer_actionable:"This action is no longer available. Refresh the workspace to see the latest work.",

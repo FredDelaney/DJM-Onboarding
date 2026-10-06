@@ -613,8 +613,8 @@ function MeetingBriefDrawer({
 
             <BriefSection
               icon={<MessageCircleMore size={14} />}
-              eyebrow="RECENT CONVERSATIONS"
-              empty="No recorded conversation with this contact yet."
+              eyebrow={brief?.access?.restricted ? "YOUR RECENT CONVERSATIONS" : "RECENT CONVERSATIONS"}
+              empty={brief?.access?.restricted ? "You have no recorded conversation with this contact yet." : "No recorded conversation with this contact yet."}
               items={recent.map((item: any) => ({
                 key: item?.interaction_id,
                 title: item?.summary || 'Interaction recorded',
@@ -634,8 +634,8 @@ function MeetingBriefDrawer({
 
             <BriefSection
               icon={<Clock3 size={14} />}
-              eyebrow="OPEN FOLLOW-UPS"
-              empty="No open follow-up with this contact."
+              eyebrow={brief?.access?.restricted ? "YOUR OPEN FOLLOW-UPS" : "OPEN FOLLOW-UPS"}
+              empty={brief?.access?.restricted ? "You have no open follow-up with this contact." : "No open follow-up with this contact."}
               items={followUps.map((item: any) => ({
                 key: item?.task_id,
                 title: item?.title || 'Follow up',
@@ -648,6 +648,7 @@ function MeetingBriefDrawer({
                   : 'No due date',
               }))}
             />
+{!brief?.access?.restricted ? <>
             <BriefSection
               icon={<Target size={14} />}
               eyebrow="CLUB NEEDS"
@@ -708,8 +709,10 @@ function MeetingBriefDrawer({
               />
             ) : null}
 
+
+</> : null}
             <p className={styles.briefTruth}>
-              This is recorded agency context, not a prediction of meeting or deal outcome.
+              {brief?.access?.restricted ? "This brief shows your personal meeting and contact activity. Commercial club context requires administrator access." : "This is recorded agency context, not a prediction of meeting or deal outcome."}
             </p>
           </div>
         ) : null}

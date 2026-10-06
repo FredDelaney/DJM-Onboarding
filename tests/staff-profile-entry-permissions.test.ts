@@ -11,6 +11,7 @@ function fixture(role:string,assigned=true){
  const tables:Record<string,any[]>={
   players:[{id:'own-player',tenant_id:'own-tenant',user_id:'private-login',first_name:'Football',last_name:'Player',archived_at:null,football_status:'active',contract_status:'SECRET_CONTRACT',contract_expiry:'2039-01-01',agency_priority:'SECRET_PRIORITY',next_action:'SECRET_ACTION'},
    {id:'other-player',tenant_id:'other-tenant',first_name:'OTHER_TENANT'}],
+  organisations:[{id:'club',tenant_id:'own-tenant',name:'Recorded Club',country:'NZ',archived_at:null}],
   staff_player_access:assigned?[{player_id:'own-player',staff_user_id:'current-user',can_edit:false}]:[],
   career_entries:[{id:'career',player_id:'own-player',club_name:'Recorded FC',season_label:'2026/27',appearances:14,minutes:900,notes:'SECRET_NOTES',source_url:'https://evidence.example.test',source_reviewed_at:'2026-10-01'}],
   player_videos:[{id:'video',player_id:'own-player',title:'Recorded football',url:'https://video.example.test',private:'SECRET_VIDEO_EXTRA'}],
@@ -22,7 +23,8 @@ function fixture(role:string,assigned=true){
  };
  const rpc=async(name:string)=>{
   calls.push(name);
-  const data=name==='platform_server_user_workspaces'?[workspace]:
+  const data=name==='platform_server_staff_club_identity'?{club:{id:'club',name:'Recorded Club',country:'NZ'},access:{restricted:true}}:
+   name==='platform_server_user_workspaces'?[workspace]:
    name==='platform_server_club_account'?{club:{id:'club',name:'Recorded Club',country:'NZ',private:'SECRET_CLUB_EXTRA'},commercial:{expected_commission:'SECRET_COMMISSION'},pursuits:[{player_name:'SECRET_UNASSIGNED'}]}:
    name==='platform_server_player_profile_context'?{deals:[{id:'deal',title:'SECRET_DEAL'}],clubs:[{id:'club',name:'Recorded Club'}]}:
    name==='platform_server_player_connected_activity'?{items:[{summary:'SECRET_MESSAGE'}]}:{};

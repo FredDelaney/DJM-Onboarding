@@ -24,10 +24,11 @@ export default {fetch:async(req:Request)=>{
     if(!workspaces.length) return json({error:"Agency staff access required"},403);
     const requested=id(body?.tenant_id);
     let workspace=requested?workspaces.find(w=>String(w.tenant_id)===requested):workspaces.find(w=>Boolean(w.is_primary));
+    if(requested&&!workspace) return json({error:"Workspace access denied",code:"workspace_access_denied"},403);
     if(!workspace&&workspaces.length===1) workspace=workspaces[0];
     if(!workspace) return json({error:"tenant_id is required when more than one agency workspace is available",code:"tenant_required"},409);
     const tenantId=String(workspace.tenant_id),role=String(workspace.role||"");
-    if(!["owner","admin","agent","operations"].includes(role)) return json({error:"Agency operator access required"},403);
+    if(!["owner","admin"].includes(role)) return json({error:"Agency administrator access required",code:"workspace_access_denied"},403);
 
     if(action==="market_execution") return json({ok:true,tenant:workspace,market:await rpc("platform_server_market_execution_command",{p_tenant_id:tenantId})});
     if(action==="external_dossiers") return json({ok:true,tenant:workspace,dossiers:await rpc("platform_server_external_dossier_command",{p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,250,100)})});

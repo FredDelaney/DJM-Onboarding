@@ -259,6 +259,7 @@ export default function AgencyContactIntelligenceDrawer({
     detail?.employment ||
     summaryEmployment;
 
+  const restricted = Boolean(detail?.access?.restricted || contact?.access?.restricted);
   const reach =
     detail?.reach || {};
 
@@ -681,7 +682,7 @@ export default function AgencyContactIntelligenceDrawer({
           </div>
 
           <div className={styles.headerControls}>
-            <EntityActionsMenu
+            {!restricted ? <EntityActionsMenu
               kind="club_contact"
               entityId={clean(contact?.person_id)}
               label={name}
@@ -698,7 +699,7 @@ export default function AgencyContactIntelligenceDrawer({
                 { key: 'country', label: 'Country', value: person?.country },
                 { key: 'city', label: 'City', value: person?.city },
               ]}
-            />
+            /> : null}
             <button
               type="button"
               data-ui-button="icon"
@@ -747,6 +748,7 @@ export default function AgencyContactIntelligenceDrawer({
               styles.body
             }
           >
+            {restricted ? <p className={styles.section}>Shared contact details and your personal relationship activity. Commercial agency context requires administrator access.</p> : null}
             <AgencyRelationshipActions
               personId={clean(contact?.person_id)}
               rpc={rpc}

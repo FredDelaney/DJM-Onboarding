@@ -17,7 +17,7 @@ test('Business is a management-only entry point to the existing owner command ce
   assert.match(workspace, /const canSeeBusiness = \['owner', 'admin'\]/);
   assert.match(
     workspace,
-    /item\.key !== 'business' \|\| canSeeBusiness/,
+    /!\['business','opportunities'\]\.includes\(item\.key\) \|\| canSeeBusiness/,
   );
 });
 

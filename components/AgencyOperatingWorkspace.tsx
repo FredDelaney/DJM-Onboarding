@@ -185,7 +185,7 @@ const VIEW_PRESENTATION: Record<
   },
 };
 
-const ALLOWED_ROLES = ['owner', 'admin', 'agent', 'operations'];
+const ALLOWED_ROLES = ['owner', 'admin', 'agent', 'scout', 'operations'];
 
 const reviewPlayerId = (command: any): string => {
   const review = command?.command_type === 'Player review required' ||
@@ -421,18 +421,20 @@ export default function AgencyOperatingWorkspace() {
   const canSeeBusiness = ['owner', 'admin'].includes(
     String(workspace?.role || ''),
   );
+  const canCreateRecords = ['owner','admin','agent','operations'].includes(String(workspace?.role || ''));
+  const restrictedView = !canSeeBusiness && ['opportunities','business'].includes(view);
   const navigation = NAV.filter(
-    (item) => item.key !== 'business' || canSeeBusiness,
+    (item) => !['business','opportunities'].includes(item.key) || canSeeBusiness,
   );
 
   const createAction:
     | { kind: AgencyCreateKind; label: string }
     | null =
-    view === 'players' &&
+    view === 'players' && canCreateRecords &&
     !selectedPlayerId &&
     search.get('tab') !== 'recruitment'
       ? { kind: 'player', label: 'Add player' }
-      : view === 'opportunities'
+      : view === 'opportunities' && canSeeBusiness
         ? { kind: 'club_need', label: 'Add opportunity' }
         : null;
 
@@ -504,7 +506,8 @@ export default function AgencyOperatingWorkspace() {
       if (
         !workspace?.tenant_id ||
         !workspace?.slug ||
-        targetView === 'business'
+        targetView === 'business' ||
+        (targetView === 'opportunities' && !['owner','admin'].includes(String(workspace.role)))
       ) {
         return;
       }
@@ -681,6 +684,14 @@ export default function AgencyOperatingWorkspace() {
 
     const requestId = ++loadSequenceRef.current;
     const isCurrent = () => loadSequenceRef.current === requestId;
+    if (!['owner','admin'].includes(String(workspace.role)) && ['opportunities','business'].includes(view)) {
+      setError('');
+      setProposal(null);
+      setData({access:{restricted:true}});
+      setBusy(false);
+      setDirectoryRefreshing(false);
+      return;
+    }
     directoryRefreshRef.current = view === 'players' && playersSection === 'players' && !inlineEntityWorkspaceOpen;
     setDirectoryRefreshing(directoryRefreshRef.current);
 
@@ -758,10 +769,9 @@ export default function AgencyOperatingWorkspace() {
         if (isCurrent()) setBusy(false);
 
         void Promise.allSettled([
-          rpc<any>('redream_autopilot_operations', {
-            p_horizon_days: 90,
-            p_limit: 20,
-          }),
+          ['owner','admin'].includes(String(workspace.role))
+            ? rpc<any>('redream_autopilot_operations', {p_horizon_days:90,p_limit:20})
+            : Promise.resolve({access:{restricted:true}}),
           rpc<any>('redream_connected_work', {
             p_limit: 6,
           }),
@@ -1591,6 +1601,13 @@ export default function AgencyOperatingWorkspace() {
             className={styles.viewStage}
             key={`view:${stateScope}:${view}:${selectedPlayerId || playersSection}:${opportunitiesSection}`}
           >
+            {restrictedView ? (
+              <section className={styles.sectionCard}>
+                <h2>Administrator access required</h2>
+                <p>Commercial opportunities and business records are available to agency owners and administrators.</p>
+                <Link className={styles.homeTextLink} href={basePath+'?view=players'}>Open assigned players <ChevronRight size={14}/></Link>
+              </section>
+            ) : null}
             {view === 'home' ? (
               <Home
                 data={data}
@@ -1633,6 +1650,8 @@ export default function AgencyOperatingWorkspace() {
               ) : (
                 <AgencyPlayersWorkspace
                   stateScope={stateScope}
+                  canManageRecords={canSeeBusiness}
+                  canCreateRecords={canCreateRecords}
                   data={data}
                   basePath={basePath}
                   invoke={(action, body) => invoke<any>(action, body)}
@@ -1644,7 +1663,7 @@ export default function AgencyOperatingWorkspace() {
                 />
               )
             ) : null}
-            {view === 'opportunities' ? (
+            {view === 'opportunities' && canSeeBusiness ? (
               <AgencyOpportunitiesWorkspace
                 key={stateScope}
                 invoke={invoke}
@@ -1664,6 +1683,8 @@ export default function AgencyOperatingWorkspace() {
               <AgencyNetworkWorkspace
                 key={stateScope}
                 stateScope={stateScope}
+                canManageRecords={canSeeBusiness}
+                canCreateRecords={canCreateRecords}
                 data={data}
                 basePath={basePath}
                 rpc={rpc}
@@ -2165,6 +2186,7 @@ function Home({
   onPrepareConnectedReply: (interaction: any) => void;
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
+  const restricted = Boolean(data?.home?.access?.restricted);
   const [greeting, setGreeting] = useState('Good to see you.');
 
   useEffect(() => {
@@ -2664,7 +2686,7 @@ function Home({
       <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`}>
         <div className={styles.sectionHead}>
           <div className={styles.homeSectionTitle}>
-            <span className={styles.homeSectionLabel}>Ranked across the agency</span>
+            <span className={styles.homeSectionLabel}>{restricted ? 'Your personal work' : 'Ranked across the agency'}</span>
             <h2>Today</h2>
           </div>
           <Link className={styles.homeTextLink} href={`${basePath}?view=calendar`}>
@@ -2673,6 +2695,7 @@ function Home({
           </Link>
         </div>
 
+        {restricted ? <p className={styles.homeReadNotice}>Your tasks, meetings and commitments. Assigned players are in Players. Commercial agency signals require administrator access.</p> : null}
         {readNotice(allState)}
 
         <div className={styles.todayQueueList}>
@@ -2709,7 +2732,7 @@ function Home({
             <EmptyState
               icon={CheckCircle2}
               title="Nothing needs you right now"
-              copy="No action, waiting item, risk or opportunity is currently asking for attention."
+              copy={restricted ? "No personal task, meeting or commitment currently needs your attention." : "No action, waiting item, risk or opportunity is currently asking for attention."}
             />
           ) : null}
         </div>

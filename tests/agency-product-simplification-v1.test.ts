@@ -37,7 +37,7 @@ test('business is management-only and lives outside primary navigation', () => {
   assert.match(workspace, /const canSeeBusiness = \['owner', 'admin'\]/);
   assert.match(
     workspace,
-    /item\.key !== 'business' \|\| canSeeBusiness/,
+    /!\['business','opportunities'\]\.includes\(item\.key\) \|\| canSeeBusiness/,
   );
   assert.match(workspace, /styles\.navManagement/);
   assert.match(accountMenu, /view=business/);

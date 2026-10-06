@@ -205,6 +205,8 @@ function Empty({
 
 export default function AgencyNetworkWorkspace({
   stateScope = '',
+  canManageRecords = true,
+  canCreateRecords = true,
   data,
   basePath,
   rpc,
@@ -214,6 +216,8 @@ export default function AgencyNetworkWorkspace({
   onOpenClubAccount,
 }: {
   stateScope?: string;
+  canManageRecords?: boolean;
+  canCreateRecords?: boolean;
   data: any;
   basePath: string;
   rpc: Rpc;
@@ -222,9 +226,10 @@ export default function AgencyNetworkWorkspace({
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenClubAccount: (request: AgencyClubAccountRequest) => void;
 }) {
+  const restricted = !canManageRecords || Boolean(data?.access?.restricted);
   const memory=useWorkspaceListMemory(stateScope,'network',{view:'clubs',focus:'all',search:''});
   const view=(memory.state.view==='people'?'people':'clubs') as NetworkView;
-  const focus=(['all','attention','warm','strong','cooling'].includes(memory.state.focus)?memory.state.focus:'all') as NetworkFocus;
+  const focus=(!restricted && ['all','attention','warm','strong','cooling'].includes(memory.state.focus)?memory.state.focus:'all') as NetworkFocus;
   const search=memory.state.search;
   const setView=(value:NetworkView)=>memory.update({view:value});
   const setFocus=(value:NetworkFocus)=>memory.update({focus:value});
@@ -234,9 +239,10 @@ export default function AgencyNetworkWorkspace({
   const searchParams = useSearchParams();
 
   const reloadArchives = useCallback(async () => {
+    if (restricted) { setArchiveItems([]); return; }
     const result = await rpc<any>('redream_entity_archives');
     setArchiveItems(Array.isArray(result?.items) ? result.items : []);
-  }, [rpc]);
+  }, [rpc,restricted]);
 
   const refreshEntities = useCallback(async () => {
     await Promise.all([onRefresh(), reloadArchives()]);
@@ -531,13 +537,13 @@ export default function AgencyNetworkWorkspace({
 
   return (
     <div className={styles.workspace}>
+      {restricted ? <p className={styles.scopeNotice}>Shared clubs and contacts. Your contact pages show your own activity. Commercial agency context requires administrator access.</p> : null}
       <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>NETWORK</p>
-          <h2>Know the person. Know the club. Know the next move.</h2>
+          <h2>{restricted ? 'Your shared clubs and contacts' : 'Know the person. Know the club. Know the next move.'}</h2>
           <p>
-            ReDream keeps the relationship context underneath so the agency
-            can see who matters, what is happening and the best route forward.
+            {restricted ? 'Browse recorded contact details and club identity. Your contact pages show your own conversations and follow-ups. Commercial agency context requires administrator access.' : 'ReDream keeps the relationship context underneath so the agency can see who matters, what is happening and the best route forward.'}
           </p>
         </div>
 
@@ -554,13 +560,11 @@ export default function AgencyNetworkWorkspace({
             </strong>
             <span>people</span>
           </div>
-          <div>
-            <strong>{followUps}</strong>
-            <span>follow-ups</span>
-          </div>
+          {!restricted ? <div><strong>{followUps}</strong><span>follow-ups</span></div> : null}
         </div>
       </section>
 
+{!restricted ? <>
       <section
         className={styles.intelligence}
         aria-label="Network focus"
@@ -670,6 +674,8 @@ export default function AgencyNetworkWorkspace({
         </p>
       </section>
 
+
+</> : null}
       <section className={styles.toolbar}>
         <div className={styles.tabs}>
           <button
@@ -719,7 +725,7 @@ export default function AgencyNetworkWorkspace({
             ) : null}
           </label>
 
-          {!requestedClubId ? (
+          {!requestedClubId && canCreateRecords ? (
             <button
               type="button"
               data-ui-button="secondary"
@@ -733,6 +739,7 @@ export default function AgencyNetworkWorkspace({
         </div>
       </section>
 
+{!restricted ? <>
       <section className={styles.signalBar}>
         <div>
           <span>Recorded routes</span>
@@ -748,6 +755,8 @@ export default function AgencyNetworkWorkspace({
         </div>
       </section>
 
+
+</> : null}
       {view === 'clubs' ? (
         <section className={styles.grid}>
           {filteredClubs.map((club: any) => {
@@ -795,7 +804,7 @@ export default function AgencyNetworkWorkspace({
                 ? `${routeOwner} → ${routeName}`
                 : routeName;
 
-            const clubSignal =
+            const clubSignal = restricted ? 'Club identity' :
               clubNeedsAttention(club)
                 ? 'Needs attention'
                 : clubHasWarmRoute(club)
@@ -849,7 +858,7 @@ export default function AgencyNetworkWorkspace({
                         .join(' · ') || 'Club context recorded'}
                     </p>
                   </div>
-                  <EntityActionsMenu
+                  {!restricted ? <EntityActionsMenu
                     kind="club"
                     entityId={String(club?.organisation_id || '')}
                     label={clubName}
@@ -861,9 +870,10 @@ export default function AgencyNetworkWorkspace({
                       { key: 'city', label: 'City', value: club?.city },
                       { key: 'website_url', label: 'Website', value: club?.website_url, type: 'url' },
                     ]}
-                  />
+                  /> : null}
                 </div>
 
+{!restricted ? <>
                 <div className={styles.primaryFact}>
                   <span>BEST ROUTE</span>
                   <strong>{routeDisplay}</strong>
@@ -893,6 +903,8 @@ export default function AgencyNetworkWorkspace({
                   </div>
                 </div>
 
+
+</> : null}
                 <div className={styles.peopleBlock}>
                   <div className={styles.sectionLabel}>
                     <span>PEOPLE WE KNOW</span>
@@ -1104,7 +1116,7 @@ export default function AgencyNetworkWorkspace({
 
                   <div className={styles.identity}>
                     <p className={styles.eyebrow}>
-                      {personSignal}
+                      {restricted ? 'Contact identity' : personSignal}
                     </p>
                     <h3>{fullName}</h3>
                     <p>
@@ -1113,7 +1125,7 @@ export default function AgencyNetworkWorkspace({
                         .join(' · ')}
                     </p>
                   </div>
-                  <EntityActionsMenu
+                  {!restricted ? <EntityActionsMenu
                     kind="club_contact"
                     entityId={personId(item)}
                     label={fullName}
@@ -1126,9 +1138,10 @@ export default function AgencyNetworkWorkspace({
                       { key: 'country', label: 'Country', value: person?.country },
                       { key: 'city', label: 'City', value: person?.city },
                     ]}
-                  />
+                  /> : null}
                 </div>
 
+{!restricted ? <>
                 <div className={styles.relationshipSummary}>
                   <div>
                     <span>RELATIONSHIP OWNER</span>
@@ -1168,6 +1181,8 @@ export default function AgencyNetworkWorkspace({
                   </div>
                 </div>
 
+
+</> : null}
                 {number(clubContext?.confirmed_needs) > 0 ? (
                   <div className={styles.nextMove}>
                     <span>CURRENT SIGNAL</span>

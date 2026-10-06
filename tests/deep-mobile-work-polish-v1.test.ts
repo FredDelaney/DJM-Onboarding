@@ -34,7 +34,7 @@ test('Network create action stays on the list surface and disappears inside enti
   );
   assert.match(
     network,
-    /!requestedClubId \? \([\s\S]*styles\.addEntityButton/,
+    /!requestedClubId && canCreateRecords \? \([\s\S]*styles\.addEntityButton/,
   );
   assert.match(
     network,
