@@ -254,3 +254,77 @@ button.firstPlayerRoute:hover {
   font-size: 8px;
   font-weight: 800;
 }
+
+.completeExperience {
+  display: grid;
+  gap: 14px;
+}
+
+.firstHabit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid rgba(10, 10, 12, 0.065);
+  border-radius: 14px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--launch-accent) 4%, #fff), #fff 72%);
+}
+
+.firstHabitStep {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+}
+
+.firstHabitStep > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--launch-primary);
+  color: var(--launch-on-primary, #fff);
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.firstHabitStep > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.firstHabitStep strong {
+  color: #34383e;
+  font-size: 9px;
+}
+
+.firstHabitStep p {
+  margin: 0;
+  color: #7a7f86;
+  font-size: 7.5px;
+  line-height: 1.5;
+}
+
+.completeExperience > a {
+  width: fit-content;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .firstHabit {
+    grid-template-columns: 1fr;
+  }
+
+  .firstHabit > .workingLoopArrow {
+    display: none;
+  }
+
+  .completeExperience > a {
+    width: 100%;
+    justify-content: center;
+  }
+}
