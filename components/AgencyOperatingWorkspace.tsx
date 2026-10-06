@@ -2149,10 +2149,12 @@ function EmptyState({
   icon: Icon,
   title,
   copy,
+  action,
 }: {
   icon: typeof Users;
   title: string;
   copy: string;
+  action?: React.ReactNode;
 }) {
   return (
     <div className={styles.emptyState}>
@@ -2161,6 +2163,7 @@ function EmptyState({
       </div>
       <strong>{title}</strong>
       <span>{copy}</span>
+      {action ? <div className={styles.emptyStateAction}>{action}</div> : null}
     </div>
   );
 }
@@ -2761,7 +2764,16 @@ function Home({
             <EmptyState
               icon={CheckCircle2}
               title="Nothing needs you right now"
-              copy={restricted ? "You have no tasks, meetings or commitments that need action right now." : "You are up to date. New follow-ups, risks and opportunities will appear here when they need you."}
+              copy={restricted ? "You have no tasks, meetings or commitments that need action right now." : "You are up to date. Use the quiet time to add what happened or check the next move for your players."}
+              action={
+                <div className={styles.emptyStateActions}>
+                  <AiLauncher />
+                  <Link className={styles.compactButton} href={basePath + '?view=players'}>
+                    <Users size={14} />
+                    Check players
+                  </Link>
+                </div>
+              }
             />
           ) : null}
         </div>
@@ -3075,7 +3087,7 @@ function Players({
           <EmptyState
             icon={Users}
             title="Add your first player"
-            copy="Add a player to start tracking their contract, opportunities and next actions here."
+            copy="Add the player once. ReDream will keep their contract, club opportunities and next actions together."
           />
         ) : null}
       </section>
@@ -4607,7 +4619,7 @@ function AgencyCalendar({
             <EmptyState
               icon={CalendarDays}
               title="Nothing coming up yet"
-              copy="Meetings, follow-ups, birthdays and contract dates will appear here when they are added or connected."
+              copy="Connect your calendar or add a meeting. ReDream will bring follow-ups, birthdays and contract dates into the same view."
             />
           ) : null}
         </div>
@@ -5018,7 +5030,7 @@ function Market({
               <EmptyState
                 icon={Target}
                 title="No club needs yet"
-                copy="Add or capture what a club is looking for. ReDream will keep the possible players and next step together here."
+                copy="Tell ReDream what the club needs. It will keep the possible players and next step together here."
               />
             ) : null}
           </div>
@@ -5242,7 +5254,7 @@ function Market({
               <EmptyState
                 icon={Target}
                 title="No player opportunities yet"
-                copy="When a player is linked to a real club need, the opportunity and next step will appear here."
+                copy="Start with a real club need and the player you are discussing. ReDream will keep the opportunity and next step together."
               />
             ) : null}
           </div>
@@ -5580,7 +5592,7 @@ function Deals({
             <EmptyState
               icon={BriefcaseBusiness}
               title="No live deals yet"
-              copy="Live deals will appear here with the value, blocker and next step."
+              copy="Create a live deal when money or terms are being discussed. ReDream will keep the value, blocker and next step visible."
             />
           ) : null}
         </div>
