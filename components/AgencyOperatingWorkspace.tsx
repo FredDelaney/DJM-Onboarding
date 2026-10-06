@@ -2640,6 +2640,20 @@ function Home({
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+  const queueSummary = (
+    [
+      'Needs action now',
+      'Waiting on someone',
+      'Upcoming risk',
+      'Opportunity detected',
+      'FYI',
+    ] as QueueCategory[]
+  )
+    .map((category) => ({
+      category,
+      count: queue.filter((item) => item.category === category).length,
+    }))
+    .filter((item) => item.count > 0);
 
   const queueAction = (item: QueueItem) => {
     if (item.kind === 'command') return actionFor(item.payload);
@@ -2681,9 +2695,24 @@ function Home({
               ? 'Nothing needs your attention'
               : 'Checking what matters now'}
         </h2>
+        {queue.length ? (
+          <>
+            <p className={styles.homeFocusHint}>
+              Start with number one. ReDream has ranked the rest for you.
+            </p>
+            <div className={styles.homeQueueSummary} aria-label="Today at a glance">
+              {queueSummary.map((item) => (
+                <span key={item.category}>
+                  <b>{item.count}</b>
+                  {item.category}
+                </span>
+              ))}
+            </div>
+          </>
+        ) : null}
       </section>
 
-      <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`}>
+      <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`} aria-label="Today priorities">
         <div className={styles.sectionHead}>
           <div className={styles.homeSectionTitle}>
             <span className={styles.homeSectionLabel}>{restricted ? 'Your personal work' : 'Ranked across the agency'}</span>
