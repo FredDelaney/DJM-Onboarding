@@ -15,6 +15,8 @@ declare
   v_limit integer := greatest(1, least(coalesce(p_limit,100),100));
   v_offset integer := greatest(0,coalesce(p_offset,0));
   v_total integer;
+  v_admin boolean;
+  v_item jsonb;
   v_player public.players%rowtype;
   v_service jsonb;
   v_representation jsonb;
@@ -25,9 +27,11 @@ begin
   if not private.user_has_staff_tenant_access(p_tenant_id,p_user_id) then
     raise exception 'staff_tenant_access_required' using errcode='42501';
   end if;
+  v_admin := private.user_is_tenant_admin(p_tenant_id,p_user_id);
   select count(*)::integer into v_total from public.players p
     where p.tenant_id=p_tenant_id and p.archived_at is null
-      and coalesce(p.football_status,'active')<>'retired';
+      and coalesce(p.football_status,'active')<>'retired'
+      and (v_admin or exists(select 1 from public.staff_player_access a where a.player_id=p.id and a.staff_user_id=p_user_id));
   if not exists(
     select 1 from platform.tenants
     where id=p_tenant_id and status='active'
@@ -41,6 +45,7 @@ begin
     where p.tenant_id=p_tenant_id
       and p.archived_at is null
       and coalesce(p.football_status,'active') not in ('retired')
+      and (v_admin or exists(select 1 from public.staff_player_access a where a.player_id=p.id and a.staff_user_id=p_user_id))
     order by
       case p.agency_priority when 'urgent' then 0 when 'high' then 1 when 'normal' then 2 else 3 end,
       p.next_action_due nulls first,
@@ -48,7 +53,8 @@ begin
       p.id
     offset v_offset limit v_limit
   loop
-    v_service := public.platform_server_player_service_card(p_tenant_id,v_player.id);
+    if v_admin then
+      v_service := public.platform_server_player_service_card(p_tenant_id,v_player.id);
 
     select jsonb_build_object(
       'recorded',true,
@@ -71,6 +77,11 @@ begin
       v_representation := jsonb_build_object('recorded',false,'status','not_recorded');
     end if;
 
+    else
+      v_service := '{}'::jsonb;
+      v_representation := '{}'::jsonb;
+    end if;
+
     select jsonb_build_object(
       'exists',true,
       'published',pp.published,
@@ -88,6 +99,7 @@ begin
       v_profile := jsonb_build_object('exists',false,'published',false);
     end if;
 
+    if v_admin then
     select count(*)::integer
     into v_active_opportunities
     from public.player_opportunities po
@@ -95,8 +107,11 @@ begin
       and po.player_id=v_player.id
       and po.stage not in ('won','lost','paused');
 
-    v_items := v_items || jsonb_build_array(
-      jsonb_build_object(
+    else
+      v_active_opportunities := null;
+    end if;
+
+    v_item := jsonb_build_object(
         'player_id',v_player.id,
         'identity',jsonb_build_object(
           'name',coalesce(
@@ -135,8 +150,15 @@ begin
         'representation',v_representation,
         'profile',v_profile,
         'active_opportunities',v_active_opportunities
-      )
-    );
+      );
+    if not v_admin then
+      v_item := (v_item - 'service' - 'representation' - 'active_opportunities')
+        || jsonb_build_object(
+          'identity',(v_item->'identity') - array['contract_status','contract_expiry','transfermarkt_market_value','transfermarkt_market_value_currency','agency_priority','next_action','next_action_due'],
+          'access',jsonb_build_object('scope','assigned','restricted',true)
+        );
+    end if;
+    v_items := v_items || jsonb_build_array(v_item);
   end loop;
 
   return jsonb_build_object(
@@ -145,6 +167,7 @@ begin
     'generated_at',now(),
     'items',v_items,
     'total',v_total,
+    'access',jsonb_build_object('scope',case when v_admin then 'agency' else 'assigned' end),
     'next_offset',v_offset+jsonb_array_length(v_items),
     'has_more',v_offset+jsonb_array_length(v_items)<v_total,
     'truth_contract',jsonb_build_object(

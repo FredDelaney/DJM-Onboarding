@@ -18,6 +18,7 @@ import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
@@ -163,8 +164,10 @@ export default function AgencyOpportunitiesWorkspace({
   onOpenAction,
   onOpenPursuit,
   onOpenIntelligence,
+  invoke,
 }: {
   data: any;
+  invoke: <T,>(action: string, body?: Record<string, unknown>) => Promise<T>;
   basePath: string;
   onRetry?: () => void;
   onRefresh: () => Promise<void>;
@@ -180,6 +183,34 @@ export default function AgencyOpportunitiesWorkspace({
   const [search, setSearch] = useState('');
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const requestedRecord=String(searchParams.get('record')||'');
+  const [exactNeed,setExactNeed]=useState<any>(null);
+  const [exactError,setExactError]=useState('');
+  const [exactBusy,setExactBusy]=useState(false);
+  const [exactRetry,setExactRetry]=useState(0);
+  const needInSummary=list(data?.market?.demand?.items).some(item=>String(item?.club_need_id||'')===requestedRecord);
+  const dealInSummary=list(data?.deals?.portfolio?.deals).some(item=>String(item?.deal_room_id||'')===requestedRecord);
+  useEffect(()=>{
+    setSearch('');
+  },[requestedRecord,requestedView]);
+  useEffect(()=>{
+    let current=true;
+    setExactNeed(null);setExactError('');setExactBusy(false);
+    if(!requestedRecord||requestedView!=='needs'||needInSummary)return;
+    setExactBusy(true);
+    void readWithDeadline(invoke<any>('workspace_need_record',{club_need_id:requestedRecord})).then(response=>{
+      if(!current)return;
+      const record=response?.record;
+      if(!record?.available||String(record?.item?.club_need_id||'')!==requestedRecord)throw new Error('This opportunity is no longer available in your agency.');
+      setExactNeed(record.item);
+    }).catch(error=>{if(current)setExactError(error instanceof Error?error.message:'This opportunity could not load.');})
+      .finally(()=>{if(current)setExactBusy(false);});
+    return()=>{current=false;};
+  },[requestedRecord,requestedView,needInSummary,invoke,exactRetry]);
+  useEffect(()=>{
+    if(requestedRecord&&requestedView==='deals'&&!dealInSummary){
+      onOpenIntelligence({key:'deal-war-room:'+requestedRecord,kind:'deal',entityId:requestedRecord,title:'Deal details',context:null});
+    }
+  },[requestedRecord,requestedView,dealInSummary,onOpenIntelligence]);
   useEffect(()=>{
     if(!requestedRecord)return;
     const frame=requestAnimationFrame(()=>{
@@ -187,7 +218,7 @@ export default function AgencyOpportunitiesWorkspace({
       if(row){row.scrollIntoView({block:'center',behavior:'instant'});row.focus({preventScroll:true});}
     });
     return()=>cancelAnimationFrame(frame);
-  },[requestedRecord,data,view]);
+  },[requestedRecord,data,view,exactNeed]);
   const readState = opportunityReadState(data, view);
 
   const reloadArchives = useCallback(async () => {
@@ -221,7 +252,7 @@ export default function AgencyOpportunitiesWorkspace({
     );
   };
 
-  const needs = list(data?.market?.demand?.items).filter((item: any) =>
+  const needs = [...list(data?.market?.demand?.items),...(exactNeed&&!needInSummary?[exactNeed]:[])].filter((item: any) =>
     !archived.has(`club_need:${String(item?.club_need_id || '')}`),
   );
   const routes = list(data?.market?.pursuits?.items).filter((item: any) => {
@@ -619,6 +650,8 @@ export default function AgencyOpportunitiesWorkspace({
         </label>
       </section>
 
+      {exactBusy?<p role="status">Opening opportunity...</p>:null}
+      {exactError?<div role="alert"><p>{exactError}</p><button type="button" className="btn" onClick={()=>setExactRetry(value=>value+1)}>Try again</button></div>:null}
       <section className={styles.listCard}>
         {view === 'needs'
           ? filteredNeeds.map((item: any) => {
@@ -629,6 +662,7 @@ export default function AgencyOpportunitiesWorkspace({
               const hasRoute = Boolean(
                 topCandidate?.player_match_id,
               );
+              const needOpen = !item.need?.status || (item.need.status==='active' && (!item.need?.expires_at || Date.parse(item.need.expires_at)>=Date.now()));
 
               return (
                 <article
@@ -636,15 +670,15 @@ export default function AgencyOpportunitiesWorkspace({
                   key={item.club_need_id}
                   id={`opportunity-${item.club_need_id}`}
                   data-search-match={requestedRecord===String(item.club_need_id)||undefined}
-                  role="button"
+                  role={needOpen ? "button" : undefined}
                   tabIndex={0}
                   onClick={() =>
-                    hasRoute
+                    needOpen && (hasRoute
                       ? openNeedRoute(item, topCandidate)
-                      : prepareSearch(item)
+                      : prepareSearch(item))
                   }
                   onKeyDown={(event) => {
-                    if (event.target !== event.currentTarget) return;
+                    if (!needOpen || event.target !== event.currentTarget) return;
                     if (event.key !== 'Enter' && event.key !== ' ') return;
                     event.preventDefault();
                     hasRoute
@@ -663,7 +697,7 @@ export default function AgencyOpportunitiesWorkspace({
                       {item.need?.title || 'Player need'}
                     </strong>
                     <span>
-                      {item.next_action?.instruction ||
+                      {!needOpen ? 'This recorded need is no longer active.' : item.next_action?.instruction ||
                         'Review the recorded need.'}
                     </span>
                     <small>
@@ -706,7 +740,7 @@ export default function AgencyOpportunitiesWorkspace({
                         { key: 'expires_at', label: 'Expires', value: item.need?.expires_at ? String(item.need.expires_at).slice(0, 10) : '', type: 'date' },
                       ]}
                     />
-                    <button
+                    {needOpen ? <button
                       type="button"
                       data-ui-button="nav"
                       className={styles.action}
@@ -719,7 +753,7 @@ export default function AgencyOpportunitiesWorkspace({
                     >
                       {hasRoute ? 'Open route' : 'Start search'}
                       <ChevronRight size={18} />
-                    </button>
+                    </button> : <span>Recorded need closed</span>}
                   </div>
                 </article>
               );

@@ -135,7 +135,7 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
      <button type="button" onClick={close} aria-label="Close search"><X size={19}/></button>
     </div>
     <div className={styles.status} role="status" aria-live="polite">
-     {pending?<><LoaderCircle size={13} className={styles.spin}/>Searching recorded data…</>:query?(search.hasMore?'Showing '+search.items.length+' of '+search.total+' matching records':search.total+' matching records'):'Go straight to a record or start something new'}
+     {pending?<><LoaderCircle size={13} className={styles.spin}/>Searching recorded data…</>:query?(search.hasMore?'Showing '+search.items.length+' of '+search.total+' matching records':search.total+' matching '+(search.total===1?'record':'records')):'Go straight to a record or start something new'}
     </div>
     {current&&search.error?<div className={styles.error} role="alert"><span>Agency records could not be searched. {search.error}</span><button type="button" onClick={()=>{setAttempt(value=>value+1);input.current?.focus();}}>Try again</button></div>:null}
     <div className={styles.results} role="listbox" id={id+'-results'} aria-label="Search results">

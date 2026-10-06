@@ -15,6 +15,10 @@ test('complete workspace search enforces membership, lifecycle, ranking and resu
    create function private.user_has_staff_tenant_access(uuid,uuid) returns boolean language sql stable as $$
     select exists(select 1 from platform.tenant_memberships m join platform.tenants t on t.id=m.tenant_id and t.status='active'
      where m.tenant_id=$1 and m.user_id=$2 and m.status='active' and m.role in ('owner','admin','agent','operations','scout')); $$;
+   create function private.user_is_tenant_admin(uuid,uuid) returns boolean language sql stable as $$
+    select exists(select 1 from platform.tenant_memberships m join platform.tenants t on t.id=m.tenant_id and t.status='active'
+     where m.tenant_id=$1 and m.user_id=$2 and m.status='active' and m.role in ('owner','admin')); $$;
+   create table public.staff_player_access(player_id uuid,staff_user_id uuid,can_edit boolean);
    create table public.players(id uuid primary key,tenant_id uuid,preferred_name text,first_name text,last_name text,current_club text,primary_position text,current_country text,football_status text,archived_at timestamptz);
    create table djm_os.scouting_prospects(id uuid,tenant_id uuid,full_name text,current_club text,primary_position text,current_country text,archived_at timestamptz);
    create table djm_os.organisations(id uuid,tenant_id uuid,name text,country text,league_name text,organisation_type text,archived_at timestamptz);
@@ -64,7 +68,14 @@ test('complete workspace search enforces membership, lifecycle, ranking and resu
    for(const [tenant,user] of [[uuid(2),uuid(10)],[uuid(1),uuid(12)],[uuid(1),uuid(13)],[uuid(1),uuid(99)]]){
     await assert.rejects(search('Player',30,tenant,user),/staff_tenant_access_required/);
    }
+   assert.equal((await search('José',30,uuid(1),uuid(11))).total,0);
+   await db.query('insert into public.staff_player_access values($1,$2,false)',[uuid(2000),uuid(11)]);
    assert.equal((await search('José',30,uuid(1),uuid(11))).total,1);
+   assert.equal((await search('Capacity',30,uuid(1),uuid(11))).total,0);
+   const scoped=await search('Needle',30,uuid(1),uuid(11));
+   assert.deepEqual(scoped.items.map((x:any)=>x.kind).sort(),['club','contact','recruitment']);
+   assert.equal((await search('Needle Deal',30,uuid(1),uuid(11))).total,0);
+   assert.equal((await search('Needle Opportunity',30,uuid(1),uuid(11))).total,0);
    await db.query("update platform.tenants set status='suspended' where id=$1",[uuid(1)]);
    await assert.rejects(search('Player'),/staff_tenant_access_required/);
    await db.query("update platform.tenants set status='active' where id=$1",[uuid(1)]);
@@ -97,6 +108,22 @@ test('complete workspace search enforces membership, lifecycle, ranking and resu
    const ids=[...one.items,...two.items,...three.items].map(x=>x.player_id);
    assert.equal(new Set(ids).size,251);assert.ok(ids.includes(uuid(1249)));
    await assert.rejects(page(0,uuid(99)),/staff_tenant_access_required/);
+   await db.query("update public.players set contract_status='private-contract',contract_expiry='2027-01-01',transfermarkt_market_value=900000,next_action='Private negotiation' where id=$1",[uuid(2000)]);
+   await db.query("insert into public.player_agreements values($1,$2,'representation','active','Private agreement',null,null,now())",[uuid(6000),uuid(2000)]);
+   const assigned=await page(0,uuid(11));assert.equal(assigned.total,1);assert.equal(assigned.items[0].player_id,uuid(2000));
+   assert.equal(assigned.items[0].access.restricted,true);
+   for(const key of ['contract_status','contract_expiry','transfermarkt_market_value','next_action','next_action_due','agency_priority'])assert.equal(key in assigned.items[0].identity,false);
+   for(const key of ['service','representation','active_opportunities'])assert.equal(key in assigned.items[0],false);
+   assert.doesNotMatch(JSON.stringify(assigned),/Private agreement|private-contract|Private negotiation/);
+   await db.query("insert into platform.tenant_memberships values($1,$2,'agent','active'),($1,$3,'operations','active')",[uuid(1),uuid(14),uuid(15)]);
+   for(const member of [uuid(14),uuid(15)]){
+    assert.equal((await page(0,member)).total,0);
+    await db.query('insert into public.staff_player_access values($1,$2,true)',[uuid(2000),member]);
+    assert.equal((await page(0,member)).total,1);
+    assert.equal((await search('Capacity',30,uuid(1),member)).total,0);
+   }
+   await db.query("insert into platform.tenant_memberships values($1,$2,'admin','active')",[uuid(1),uuid(16)]);
+   assert.equal((await page(0,uuid(16))).total,251);
    for(const role of ['anon','authenticated']){await db.exec('set role '+role);await assert.rejects(page(0),/permission denied for function/);await db.exec('reset role');}
   });
   await t.test('player entry returns only owned workspaces and verified domains',async()=>{

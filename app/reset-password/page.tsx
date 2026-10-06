@@ -49,12 +49,11 @@ export default function ResetPasswordPage() {
       if (event === 'PASSWORD_RECOVERY' && session) acceptRecovery();
     });
     const checkSession = async () => {
-      const recoveryLink =
-        window.location.hash.includes('type=recovery') ||
-        window.location.search.includes('type=recovery');
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
-      if (recoveryLink && data.session) acceptRecovery();
+      // Supabase may finish recovery and clear the callback before this page mounts.
+      // Any valid signed-in session may update its own password through Auth.
+      if (data.session) acceptRecovery();
     };
     void checkSession().catch(() => {
       if (active && !recoveryReady) {

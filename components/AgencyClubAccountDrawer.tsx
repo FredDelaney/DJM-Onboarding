@@ -20,6 +20,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -31,6 +32,7 @@ import {
   relativeDate,
 } from '@/lib/platform-client';
 
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import styles from './AgencyClubAccountDrawer.module.css';
 
 export type AgencyClubAccountRequest = {
@@ -166,19 +168,25 @@ export default function AgencyClubAccountDrawer({
   const [account, setAccount] =
     useState<any>(null);
 
+  const readSequence = useRef(0);
   const load = useCallback(
     async () => {
+      const sequence = ++readSequence.current;
+      const current = () => sequence === readSequence.current;
       setBusy(true);
       setError('');
 
       try {
-        const response = await invoke(
+        const response = await readWithDeadline(invoke(
           'club_account',
           {
             organisation_id:
               request.organisationId,
           },
-        );
+        ));
+        if (!current()) return;
+        const record = response?.club || response?.result;
+        if (!record?.club) throw new Error('This club is no longer available in your agency.');
 
         setAccount(
           response?.club ||
@@ -186,11 +194,12 @@ export default function AgencyClubAccountDrawer({
             null,
         );
       } catch (loadError) {
+        if (!current()) return;
         setError(
           friendlyError(loadError),
         );
       } finally {
-        setBusy(false);
+        if (current()) setBusy(false);
       }
     },
     [
@@ -201,6 +210,7 @@ export default function AgencyClubAccountDrawer({
 
   useEffect(() => {
     void load();
+    return () => { readSequence.current++; };
   }, [load]);
 
   useEffect(() => {
@@ -534,6 +544,14 @@ export default function AgencyClubAccountDrawer({
   };
 
   const pageMode = presentation === 'page';
+  if (account?.access?.restricted) {
+    return <div className={pageMode?styles.pageShell:styles.backdrop} onMouseDown={event=>{if(!pageMode&&event.target===event.currentTarget)onClose();}}>
+      <aside className={styles.drawer} role={pageMode?'region':'dialog'} aria-modal={pageMode?undefined:true} aria-label={'Club details for '+(club.name||request.title)}>
+        <header className={styles.header}><div className={styles.headerTop}><div><p className={styles.eyebrow}>CLUB</p><h2>{club.name||request.title}</h2><p>{[club.city,club.country,club.league_name].filter(Boolean).join(' · ')}</p></div><button type="button" className="btn" onClick={onClose} aria-label={pageMode?'Back':'Close'}><X size={18}/></button></div></header>
+        <section className={styles.notice}><p>Club identity is available to your account. Deal, player and commercial details are available to agency administrators.</p></section>
+      </aside>
+    </div>;
+  }
 
   return (
     <div
@@ -649,7 +667,7 @@ export default function AgencyClubAccountDrawer({
 
         {error ? (
           <div
-            className={`${styles.notice} ${styles.error}`}
+            className={`${styles.notice} ${styles.error}`} role="alert"
           >
             <CircleAlert
               size={18}
@@ -660,6 +678,7 @@ export default function AgencyClubAccountDrawer({
                 Club unavailable
               </strong>
               <span>{error}</span>
+              <button type="button" className="btn" onClick={() => void load()}>Try again</button>
             </div>
           </div>
         ) : null}

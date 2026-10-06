@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import styles from './AgencyEntityIntelligenceDrawer.module.css';
 
 export type AgencyIntelligenceRequest = {
@@ -115,6 +116,7 @@ export default function AgencyEntityIntelligenceDrawer({
   presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] = useState(true);
+  const [retry,setRetry]=useState(0);
   const [error, setError] = useState('');
   const [data, setData] = useState<Record<string, any>>({});
 
@@ -154,12 +156,13 @@ export default function AgencyEntityIntelligenceDrawer({
             });
           }
         } else {
-          const response = await invoke('deal_war_room', {
+          const response = await readWithDeadline(invoke('deal_war_room', {
             deal_room_id: request.entityId,
-          });
-
+          }));
+          const warRoom = unwrap(response);
+          if (active && (!warRoom?.deal || warRoom?.available === false)) throw new Error('This deal is no longer available in your agency.');
           if (active) {
-            setData({ warRoom: unwrap(response) });
+            setData({ warRoom });
           }
         }
       } catch (loadError) {
@@ -174,7 +177,7 @@ export default function AgencyEntityIntelligenceDrawer({
     return () => {
       active = false;
     };
-  }, [invoke, request.entityId, request.kind]);
+  }, [invoke, request.entityId, request.kind, retry]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -272,7 +275,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
             <div>
               <p>{request.kind === 'player' ? 'PLAYER INTELLIGENCE' : 'DEAL WAR ROOM'}</p>
-              <h2>{request.title}</h2>
+              <h2>{request.kind==='deal' ? deal.title || request.title : request.title}</h2>
               {request.context ? <span>{request.context}</span> : null}
             </div>
           </div>
@@ -289,11 +292,12 @@ export default function AgencyEntityIntelligenceDrawer({
         ) : null}
 
         {error ? (
-          <div className={styles.state}>
+          <div className={styles.state} role="alert">
             <CircleAlert size={19} />
             <div>
               <strong>Intelligence unavailable</strong>
               <span>{error}</span>
+              <button type="button" className="btn" onClick={()=>setRetry(value=>value+1)}>Try again</button>
             </div>
           </div>
         ) : null}

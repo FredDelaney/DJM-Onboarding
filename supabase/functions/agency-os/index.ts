@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createSupabaseContext } from "npm:@supabase/server@1.6.0";
 import { refreshOutcome, safeSourceUrl, selectCurrentSeasonEvidence } from "../_shared/football-data/player-data-workflow.ts";
 
+import {restrictedPlayerProfile,restrictedClubAccount} from "../_shared/staff-read-contract.ts";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
 const id=(v:unknown)=>String(v??"").trim();
@@ -58,7 +59,7 @@ export default {fetch:async(req:Request)=>{
     const dealId=()=>id(body?.deal_room_id),playerId=()=>id(body?.player_id),matchId=()=>id(body?.player_match_id);
     const profilePlayer=async(pid:string)=>{
       if(!pid)return null;
-      const {data,error}=await ctx.supabaseAdmin.from("players").select("id,tenant_id,user_id,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,profile_photo_path,verification_status,verified_at,review_required_at,review_reason,current_season_label,agency_priority,next_action,next_action_due").eq("id",pid).eq("tenant_id",tenantId).maybeSingle();
+      const {data,error}=await ctx.supabaseAdmin.from("players").select("id,tenant_id,user_id,archived_at,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,profile_photo_path,verification_status,verified_at,review_required_at,review_reason,current_season_label,agency_priority,next_action,next_action_due").eq("id",pid).eq("tenant_id",tenantId).maybeSingle();
       if(error)throw error;
       return data;
     };
@@ -493,6 +494,23 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,job},202);
     }
 
+    if(["player_profile_core","player_profile_detail","player_profile"].includes(action)&&!ownerAdmin()){
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const player=await profilePlayer(pid);
+      if(!player||player.archived_at||player.football_status==="retired")return json({error:"Player not found in this agency"},404);
+      const assignment=await ctx.supabaseAdmin.from("staff_player_access").select("player_id").eq("player_id",pid).eq("staff_user_id",userId).maybeSingle();
+      if(assignment.error)throw assignment.error;
+      if(!assignment.data)return deny("This player is not assigned to your account");
+      if(action==="player_profile_detail")return json({ok:true,tenant:workspace,detail:{access:{scope:"assigned",restricted:true},documents:[],shares:[],deals:[],clubs:[],communication:{summary:{},items:[],open_followups:[]},secondary_ready:true}});
+      const [careerResult,videosResult]=await Promise.all([
+        ctx.supabaseAdmin.from("career_entries").select("id,player_id,club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,is_international,sort_order,source_name,source_url,source_reviewed_at,source_provider,source_synced_at,updated_at").eq("player_id",pid).order("sort_order").order("start_date",{ascending:false}),
+        ctx.supabaseAdmin.from("player_videos").select("id,title,url,video_type,featured,sort_order").eq("player_id",pid).order("featured",{ascending:false}).order("sort_order")
+      ]);
+      if(careerResult.error)throw careerResult.error;if(videosResult.error)throw videosResult.error;
+      const stats=profileAutoStats(careerResult.data||[],player);
+      return json({ok:true,tenant:workspace,profile:restrictedPlayerProfile({player,career:careerResult.data||[],videos:videosResult.data||[],auto_key_stats:stats.stats,auto_stats_meta:stats.meta})});
+    }
+
     if(action==="player_profile_core"){
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
       const profile=await profileCore(pid);if(!profile)return json({error:"Player not found in this agency"},404);
@@ -708,6 +726,7 @@ export default {fetch:async(req:Request)=>{
       player_value_proof_portfolio:{key:"value_proof",fn:"platform_server_player_value_proof_portfolio",args:()=>({p_tenant_id:tenantId,p_window_days:clamp(body?.window_days,1,366,30),p_limit:clamp(body?.limit,1,500,100)})},
       agency_roi_proof:{key:"roi",fn:"platform_server_agency_roi_proof",args:()=>({p_tenant_id:tenantId,p_window_days:clamp(body?.window_days,1,366,30)}),guard:ownerAdmin,deny:"Owner or admin access required"},
       revenue_command:{key:"revenue",fn:"platform_server_revenue_command",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,50,12)})},
+      workspace_need_record:{key:"record",fn:"platform_server_workspace_need_record",guard:ownerAdmin,deny:"Agency administrator access required",args:()=>({p_tenant_id:tenantId,p_user_id:userId,p_need_id:id(body?.club_need_id)||null})},
       workspace_search:{key:"search",fn:"platform_server_workspace_search",args:()=>({p_tenant_id:tenantId,p_user_id:userId,p_query:id(body?.query).slice(0,200),p_limit:clamp(body?.limit,1,30,30)})},
       players_workspace:{key:"players",fn:"platform_server_players_workspace_page",args:()=>({p_tenant_id:tenantId,p_user_id:userId,p_offset:Math.floor(clamp(body?.offset,0,1000000,0)),p_limit:Math.floor(clamp(body?.limit,1,100,100))})},
       player_workspace:{key:"player",fn:"platform_server_player_workspace",args:()=>({p_tenant_id:tenantId,p_player_id:playerId()})},
@@ -823,7 +842,10 @@ export default {fetch:async(req:Request)=>{
 
     if(action==="club_account"||action==="introduction_routes"||action==="access_routes"){
       const x=id(body?.organisation_id);if(!x)return json({error:"organisation_id is required"},400);
-      if(action==="club_account") return result("club","platform_server_club_account",{p_tenant_id:tenantId,p_organisation_id:x});
+      if(action==="club_account"){
+        const account=await rpc("platform_server_club_account",{p_tenant_id:tenantId,p_organisation_id:x});
+        return json({ok:true,tenant:workspace,club:ownerAdmin()?account:restrictedClubAccount(account)});
+      }
       if(action==="introduction_routes") return result("introductions","platform_server_introduction_routes",{p_tenant_id:tenantId,p_organisation_id:x,p_limit:clamp(body?.limit,1,20,5)});
       return result("access","platform_server_access_routes",{p_tenant_id:tenantId,p_organisation_id:x,p_limit:clamp(body?.limit,1,10,5)});
     }

@@ -690,7 +690,7 @@ export default function AgencyPlayerProfile({
     missingRequiredChecks[0]?.key === 'verification';
   const canPublishFromHero = canPublish || verificationOnly;
   const guidedRequiredChecks = verificationOnly ? [] : missingRequiredChecks;
-  const canEdit = ['owner', 'admin', 'agent', 'operations'].includes(
+  const canEdit = !bundle?.access?.restricted && ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
 
@@ -1234,6 +1234,18 @@ export default function AgencyPlayerProfile({
     '--profile-on-primary': brand.onPrimary,
     '--profile-on-accent': brand.onAccent,
   } as React.CSSProperties;
+
+  if (bundle?.access?.restricted) {
+    return <div className={styles.root} style={theme}>
+      <div className={styles.topbar}><Link href={backHref} className={styles.back} aria-label="Back to players"><ArrowLeft size={15}/>Players</Link></div>
+      <section className={styles.card} aria-label="Assigned player access" style={{padding:20}}>
+        <h2>Assigned player profile</h2>
+        <p>You can review this player's recorded football evidence. Contract, operational and sharing controls are available to agency administrators.</p>
+      </section>
+      {error?<p className={styles.error} role="alert">{error}</p>:null}
+      <PublicProfile profile={draftProfile} agency={agency}/>
+    </div>;
+  }
 
   return (
     <div className={styles.root} style={theme}>

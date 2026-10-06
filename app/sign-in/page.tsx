@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Fingerprint } from 'lucide-react';
@@ -9,6 +9,8 @@ import Brand from '@/components/Brand';
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
 import { getAuthCapabilities } from '@/lib/auth-capabilities';
 import { resolveSignedInDestination } from '@/lib/auth-routing';
+import { resolveActiveAuthDestination, resolveCurrentAuthentication } from '@/lib/current-auth-entry';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import { captureReturnPath } from '@/lib/capture-return-path';
 import { supabase } from '@/lib/supabase';
 
@@ -22,12 +24,27 @@ export default function SignIn() {
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [passkeyReady, setPasskeyReady] = useState(false);
   const [msg, setMsg] = useState('');
+  const routeGeneration = useRef(0);
+  const entryActive = useRef(false);
+  const authAttempt = useRef(0);
 
   const routeUser = async (userId: string) => {
-    const destination = await resolveSignedInDestination(userId, {
-      runtimeTenantId: runtime.tenant_id,
-      runtimeTenantSlug: runtime.resolved ? runtime.slug : null,
+    if (!entryActive.current) return;
+    const request = ++routeGeneration.current;
+    const destination = await resolveActiveAuthDestination({
+      userId,
+      resolve: () => readWithDeadline(resolveSignedInDestination(userId, {
+        runtimeTenantId: runtime.tenant_id,
+        runtimeTenantSlug: runtime.resolved ? runtime.slug : null,
+      })),
+      getCurrentUserId: async () => {
+        const {data,error} = await readWithDeadline(supabase.auth.getSession());
+        if (error) throw error;
+        return data.session?.user.id || null;
+      },
+      isCurrent: () => request === routeGeneration.current,
     });
+    if (!destination) return;
 
     const captureReturn = captureReturnPath(
       new URLSearchParams(window.location.search).get('next'),
@@ -46,15 +63,26 @@ export default function SignIn() {
 
   useEffect(() => {
     let active = true;
-
-    void supabase.auth.getSession().then(async ({ data }) => {
-      if (!active || !data.session) return;
-      try {
-        await routeUser(data.session.user.id);
-      } catch (error) {
-        if (active) setMsg(error instanceof Error ? error.message : 'We could not open your workspace. Please try again.');
-      }
+    entryActive.current = true;
+    const initialRequest = ++routeGeneration.current;
+    const reportError = (error: unknown) => {
+      if (active) setMsg(error instanceof Error ? error.message : 'We could not open your workspace. Please try again.');
+    };
+    const {data: listener} = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== 'SIGNED_OUT' && event !== 'SIGNED_IN') return;
+      if (event === 'SIGNED_OUT') { authAttempt.current++; setBusy(false); setPasskeyBusy(false); }
+      const generation = ++routeGeneration.current;
+      // Defer Auth reads outside the SDK callback lock. An explicit submit or later event cancels this task.
+      if (event === 'SIGNED_IN' && session) window.setTimeout(() => {
+        if (active && generation === routeGeneration.current) void routeUser(session.user.id).catch(reportError);
+      }, 0);
     });
+
+    void readWithDeadline(supabase.auth.getSession()).then(async ({ data, error }) => {
+      if (!active || initialRequest !== routeGeneration.current) return;
+      if (error) throw error;
+      if (data.session) await routeUser(data.session.user.id);
+    }).catch(reportError);
 
     void getAuthCapabilities().then((capabilities) => {
       if (!active) return;
@@ -65,46 +93,50 @@ export default function SignIn() {
 
     return () => {
       active = false;
+      entryActive.current = false;
+      authAttempt.current++;
+      routeGeneration.current++;
+      listener.subscription.unsubscribe();
     };
   }, [runtime.tenant_id, runtime.resolved, runtime.slug]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (busy || passkeyBusy) return;
+    const attempt = ++authAttempt.current;
+    const current = () => entryActive.current && attempt === authAttempt.current;
     setBusy(true);
     setMsg('');
-
-    const cleanEmail = email.trim().toLowerCase();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: cleanEmail,
-      password,
-    });
-
-    if (error) {
-      setMsg(error.message);
-      setBusy(false);
-      return;
-    }
-
     try {
-      await routeUser(data.user.id);
+      const result = await resolveCurrentAuthentication(() => supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(), password,
+      }),current);
+      if (!result) return;
+      if (result.error) throw result.error;
+      await routeUser(result.data.user.id);
     } catch (error) {
-      setMsg(error instanceof Error ? error.message : 'You signed in, but we could not open your workspace. Please try again.');
+      if (current()) setMsg(error instanceof Error ? error.message : 'You signed in, but we could not open your workspace. Please try again.');
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   };
 
   const signInWithPasskey = async () => {
-    if (!passkeyReady || passkeyBusy) return;
+    if (!passkeyReady || passkeyBusy || busy) return;
+    const attempt = ++authAttempt.current;
+    const current = () => entryActive.current && attempt === authAttempt.current;
     setPasskeyBusy(true);
     setMsg('');
 
     try {
-      const { data, error } = await supabase.auth.signInWithPasskey();
+      const result = await resolveCurrentAuthentication(() => supabase.auth.signInWithPasskey(),current);
+      if (!result) return;
+      const { data, error } = result;
       if (error) throw error;
       if (!data.user) throw new Error('passkey_not_found');
       await routeUser(data.user.id);
     } catch (error: any) {
+      if (!current()) return;
       const code = String(error?.code || '').toLowerCase();
       const name = String(error?.name || '').toLowerCase();
       const text = String(error?.message || '').toLowerCase();
@@ -126,7 +158,7 @@ export default function SignIn() {
         setMsg('Face ID or passkey sign-in did not complete. Use your password below.');
       }
     } finally {
-      setPasskeyBusy(false);
+      if (current()) setPasskeyBusy(false);
     }
   };
 
@@ -175,7 +207,7 @@ export default function SignIn() {
               style={{ marginTop: 26 }}
               type="button"
               onClick={() => void signInWithPasskey()}
-              disabled={passkeyBusy}
+              disabled={passkeyBusy || busy}
             >
               <Fingerprint size={18} />
               {passkeyBusy ? 'Opening secure sign-in...' : 'Use Face ID or passkey'}
@@ -281,7 +313,7 @@ export default function SignIn() {
               </div>
             ) : null}
 
-            <button className="btn btn-navy btn-block" disabled={busy}>
+            <button className="btn btn-navy btn-block" disabled={busy || passkeyBusy}>
               {busy ? 'Opening workspace...' : 'Sign in'}
               <ArrowRight size={17} />
             </button>
