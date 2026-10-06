@@ -182,7 +182,7 @@ try{
   assert.equal(await page.getByText('RELATIONSHIP OWNER',{exact:true}).count(),0);
   await coordinatorView('home');await page.getByText('Your work',{exact:true}).waitFor();
   await page.getByText('You have no tasks, meetings or commitments that need action right now.',{exact:true}).waitFor();
-  await coordinatorView('opportunities');await page.getByRole('heading',{name:'Administrator access required',exact:true}).waitFor();
+  await coordinatorView('opportunities');await page.getByRole('heading',{name:'Admin access needed',exact:true}).waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1));
  }
  assert.deepEqual(restrictedRequests,[],'Restricted workspace requested private agency or archive data');
