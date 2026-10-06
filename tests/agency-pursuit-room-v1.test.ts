@@ -17,7 +17,7 @@ const marketEdge = fs.readFileSync(
 
 test('Market opens one tenant-native Pursuit Room from a live player-club route', () => {
   assert.match(workspace, /AgencyPursuitRoom/);
-  assert.match(workspace, /Open route/);
+  assert.match(workspace, /Open opportunity/);
   assert.match(workspace, /playerMatchId/);
 });
 

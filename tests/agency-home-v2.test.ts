@@ -52,7 +52,7 @@ test('Home is one bounded ranked Today queue rather than a dashboard', () => {
 
 test('Every Today card explains why, recommends the next move, owns it and has one action', () => {
   assert.match(home, /item\.why/);
-  assert.match(home, /ReDream recommends/);
+  assert.match(home, /Next step/);
   assert.match(home, /item\.recommendation/);
   assert.match(home, /Owner: \{item\.owner\}/);
   assert.match(home, /When: \{item\.deadline\}/);
