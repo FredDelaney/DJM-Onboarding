@@ -180,7 +180,7 @@ try{
   await page.getByRole('button',{name:/^People/}).click();
   await page.getByRole('heading',{name:'Shared Staff Contact',exact:true}).waitFor();
   assert.equal(await page.getByText('RELATIONSHIP OWNER',{exact:true}).count(),0);
-  await coordinatorView('home');await page.getByText('Your personal work',{exact:true}).waitFor();
+  await coordinatorView('home');await page.getByText('Your work',{exact:true}).waitFor();
   await page.getByText('No personal task, meeting or commitment currently needs your attention.',{exact:true}).waitFor();
   await coordinatorView('opportunities');await page.getByRole('heading',{name:'Administrator access required',exact:true}).waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1));
