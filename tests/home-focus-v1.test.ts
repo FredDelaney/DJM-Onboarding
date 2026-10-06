@@ -26,6 +26,8 @@ test('Home shows no more than five ranked items', () => {
   assert.match(home, /\.sort\(\(a, b\) => b\.score - a\.score\)/);
   assert.match(home, /\.slice\(0, 5\)/);
   assert.match(home, /<h2>Today<\/h2>/);
+  assert.match(home, /Start with number one/);
+  assert.match(home, /Today at a glance/);
   assert.match(home, /queueAction\(item\)/);
   assert.match(home, /Record outcome/);
   assert.doesNotMatch(home, /Resolve identities/);
