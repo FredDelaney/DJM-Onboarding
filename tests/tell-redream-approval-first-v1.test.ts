@@ -13,6 +13,14 @@ const approvalSchemaFix = readFileSync(
   'supabase/migrations/20261006092915_fix_tell_redream_approval_capture_schema.sql',
   'utf8',
 );
+const workerClaimFix = readFileSync(
+  'supabase/migrations/20261006094427_include_channel_in_ai_worker_claim.sql',
+  'utf8',
+);
+const ownerResolverFix = readFileSync(
+  'supabase/migrations/20261006094938_secure_ai_team_member_resolver.sql',
+  'utf8',
+);
 
 test('Tell ReDream voice text and share capture stage resolved work and wait for approval', () => {
   assert.match(worker, /redream_ai_stage_action/);
@@ -64,6 +72,32 @@ test('explicit spoken task ownership is resolved inside the capture tenant', () 
   assert.match(migration, /REDREAM_AI_TASK_OWNER_ASSIGNED/);
 });
 
+test('worker claim preserves capture channel so approval-first routing cannot silently downgrade', () => {
+  assert.match(workerClaimFix, /'channel',c\.channel/);
+  assert.match(workerClaimFix, /redream_ai_worker_claim/);
+  assert.match(worker, /const captureChannel = String\(/);
+  assert.match(worker, /capture\?\.channel/);
+  assert.match(worker, /\["voice_debrief", "typed_debrief"\]\.includes\(captureChannel\)/);
+});
+
+test('spoken owner resolver is privileged only for the internal service worker', () => {
+  assert.match(ownerResolverFix, /STABLE SECURITY DEFINER/);
+  assert.match(ownerResolverFix, /SET search_path TO ''/);
+  assert.match(ownerResolverFix, /platform\.tenant_memberships/);
+  assert.match(
+    ownerResolverFix,
+    /revoke all on function public\.redream_ai_resolve_team_member\(uuid,text\) from public,anon,authenticated/,
+  );
+  assert.match(
+    ownerResolverFix,
+    /grant execute on function public\.redream_ai_resolve_team_member\(uuid,text\) to service_role/,
+  );
+  assert.doesNotMatch(
+    ownerResolverFix,
+    /grant execute on function public\.redream_ai_resolve_team_member\(uuid,text\) to authenticated/,
+  );
+});
+
 test('approval preserves deterministic writes, provenance and undo', () => {
   assert.match(migration, /redream_ai_apply_action/);
   assert.match(migration, /redream_ai_apply_scout_observation/);
@@ -106,7 +140,7 @@ test('follow-up approval function matches the real captures schema', () => {
 });
 
 test('new approval-first source contains no literal em dash', () => {
-  for (const source of [capture, captureCss, worker, migration]) {
+  for (const source of [capture, captureCss, worker, migration, approvalSchemaFix, workerClaimFix, ownerResolverFix]) {
     assert.equal(source.includes('\u2014'), false);
   }
 });
