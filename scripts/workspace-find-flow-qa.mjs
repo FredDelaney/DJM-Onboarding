@@ -124,12 +124,19 @@ try{
   const restricted=currentRole!=='owner';
   if(restricted && (/redream_autopilot_(?:operations|market|deals)|redream_entity_archives/.test(path) ||
     ['agency_decisions','agency_roi_proof','team_capacity','workspace_need_record'].includes(body.action)))restrictedRequests.push(path+':'+body.action);
-  if(path.includes('/auth/v1/token')){currentUser=userB;result=session(userB);}
+  if(path.includes('/auth/v1/token')){
+   currentUser=userB;result=session(userB);
+   // Deliver the issued token after its timestamp second; identity must use its stable subject.
+   await new Promise(resolve=>setTimeout(resolve,1100));
+  }
   else if(path.includes('/auth/v1/user'))result=currentUser;
   else if(path.endsWith('/functions/v1/agency-os')){
    if(body.action==='tenants')result={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-find-flow',role:currentRole,display_name:'Example Agency'}]};
    else if(body.action==='players_workspace'){
-    const account=route.request().headers().authorization?.includes(token(userB))?'b':'a';
+    const bearer=route.request().headers().authorization||'';
+    const claims=JSON.parse(Buffer.from(bearer.split('.')[1],'base64url').toString());
+    assert.ok([userA.id,userB.id].includes(claims.sub),'Unknown coordinator fixture account');
+    const account=claims.sub===userB.id?'b':'a';
     const offset=Number(body.offset)||0;
     if(slowRefresh&&account==='a'&&offset===0){refreshStarted();await refreshGate;}
     if(slowPage&&account==='a'&&offset===200){pageStarted();await pageGate;}
