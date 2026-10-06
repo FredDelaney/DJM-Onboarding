@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   BarChart3,
   Check,
+  ChevronDown,
   Clock3,
   Copy,
   Download,
@@ -1393,7 +1394,7 @@ export default function AgencyPlayerProfile({
                 {published?.published
                   ? 'Live'
                   : verificationOnly
-                    ? 'Ready to publish'
+                    ? 'Ready for verification'
                     : canPublish
                       ? 'Ready to publish'
                       : missingRequiredCount === 1
@@ -1467,17 +1468,6 @@ export default function AgencyPlayerProfile({
             </button>
           )}
 
-          {verificationOnly && canEdit ? (
-            <button
-              type="button"
-              data-ui-button="secondary" data-ui-tone="inverse"
-              className={styles.secondaryAction}
-              onClick={() => openVerify('verification')}
-            >
-              <Eye size={15} />
-              Check data
-            </button>
-          ) : null}
 
           {canEdit ? (
             <button
@@ -1505,13 +1495,29 @@ export default function AgencyPlayerProfile({
             Preview
           </button>
 
+          <details className={styles.profileTools}
+            onClick={event=>{if((event.target as HTMLElement).closest('button'))event.currentTarget.open=false;}}
+            onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}>
+            <summary data-ui-button="secondary" data-ui-tone="inverse" className={styles.secondaryAction}>Profile tools <ChevronDown size={15}/></summary>
+            <div className={styles.toolMenu}>
+          {verificationOnly && canEdit ? (
+            <button
+              type="button"
+              data-ui-button="secondary" data-ui-tone="inverse"
+              className={styles.secondaryAction}
+              onClick={() => openVerify('verification')}
+            >
+              <Eye size={15} />
+              Check data
+            </button>
+          ) : null}
           <button
             type="button"
             data-ui-button="secondary"
             data-ui-tone="inverse"
             className={styles.secondaryAction}
             onClick={downloadPdf}
-            disabled={actionBusy === 'pdf'}
+            disabled={Boolean(actionBusy)}
           >
             <Download size={15} />
             PDF
@@ -1528,6 +1534,8 @@ export default function AgencyPlayerProfile({
               Edit
             </button>
           ) : null}
+            </div>
+          </details>
         </div>
       </section>
 

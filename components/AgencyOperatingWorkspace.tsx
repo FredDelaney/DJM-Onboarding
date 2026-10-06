@@ -56,6 +56,7 @@ import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDra
 import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
 import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
 import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
 import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
@@ -769,13 +770,19 @@ export default function AgencyOperatingWorkspace() {
             recruitment: recruitment?.recruitment || {},
           });
         } else {
-          const directory = await invoke<any>('players_workspace', {
-            limit: 100,
-          });
-
-          merge({
-            directory: directory?.players || {},
-          });
+          let response = await invoke<any>('players_workspace', { limit: 100, offset: 0 });
+          let directory = response?.players || {};
+          const items = [...(directory.items || [])];
+          const wanted = Math.max(100, cached?.directory?.items?.length || 100);
+          while (directory.has_more && items.length < wanted) {
+            if (!isCurrent()) return;
+            response = await invoke<any>('players_workspace', { limit: 100, offset: directory.next_offset });
+            const next = response?.players || {};
+            if (!(next.next_offset > directory.next_offset)) break;
+            directory = next;
+            items.push(...(next.items || []));
+          }
+          merge({ directory: { ...directory, items } });
         }
       } else if (view === 'opportunities') {
         if (opportunitiesSection === 'deals') {
@@ -1171,6 +1178,20 @@ export default function AgencyOperatingWorkspace() {
           ? 'Return to Today'
           : `Open ${NAV.find((item) => item.key === destination)?.label || 'working area'}`,
     });
+  };
+
+  const loadMorePlayers = async () => {
+    const directory = data?.directory;
+    if (!directory?.has_more || !workspace?.tenant_id) return;
+    const sequence = loadSequenceRef.current;
+    const response = await readWithDeadline(invoke<any>('players_workspace', { limit: 100, offset: directory.next_offset }));
+    if (sequence !== loadSequenceRef.current) return;
+    const next = response?.players;
+    if (!next || !Array.isArray(next.items)) throw new Error('The next players could not load. Please try again.');
+    const items = [...new Map([...(directory.items || []), ...next.items].map(item => [item.player_id, item])).values()];
+    const nextData = { ...data, directory: { ...next, items } };
+    writeViewCache([workspace.tenant_id, sessionUserId, workspace.role, 'players', 'players'].join(':'), nextData);
+    setData(nextData);
   };
 
   const signIn = async (event: FormEvent) => {
@@ -1577,6 +1598,7 @@ export default function AgencyOperatingWorkspace() {
                   invoke={(action, body) => invoke<any>(action, body)}
                   rpc={rpc}
                   onRefresh={loadView}
+                  onLoadMore={loadMorePlayers}
                   onOpenAction={(request) => setActionRequest(request)}
                 />
               )

@@ -8,6 +8,7 @@ const REDREAM_PUBLIC_ROUTES = new Set([
   '/product',
   '/security',
   '/switch',
+  '/support',
 ]);
 
 export function TenantRouteGate({
@@ -45,6 +46,9 @@ export function TenantRouteGate({
       isReDreamPublicRoute ||
       pathname === '/tell' ||
       pathname === '/sign-in' ||
+      pathname === '/forgot-password' ||
+      pathname === '/reset-password' ||
+      pathname === '/player-workspaces' ||
       pathname === '/privacy'
         ? children
         : fallback}

@@ -81,13 +81,21 @@ try{
  dialog=await choose('jose');await dialog.getByText('No matching records',{exact:true}).waitFor();
  assert.equal(await dialog.getByRole('option',{name:/José Silva/}).count(),0,'Previous account search result leaked');
  await box(dialog).fill('Other Account');await dialog.getByRole('option',{name:/Other Account Player/}).waitFor();await page.keyboard.press('Escape');
- await visit('?scenario=partial');dialog=await choose('jose');await dialog.getByRole('option',{name:/José Silva/}).waitFor();await dialog.getByRole('alert').waitFor();
+ await visit('?scenario=partial');dialog=await choose('jose');await dialog.getByRole('alert').waitFor();
  await dialog.getByRole('button',{name:'Try again',exact:true}).click();await box(dialog).fill('Dapo');await dialog.getByRole('option',{name:/Dapo Director/}).waitFor();
  assert.equal(await dialog.getByRole('alert').count(),0);
- await mkdir('/private/tmp/redream-find-flow-screens',{recursive:true});
- await page.screenshot({path:'/private/tmp/redream-find-flow-screens/mobile-search.png',fullPage:false});
+ await page.keyboard.press('Escape');await visit();dialog=await choose('Example Player 249');await dialog.getByRole('option',{name:/Example Player 249/}).waitFor();
+ await box(dialog).fill('Example Player 248');await dialog.getByText('No matching records',{exact:true}).waitFor();await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
+ await page.getByRole('button',{name:'Load more players',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Load more players',exact:true}).count(),0);
+ await page.getByRole('textbox',{name:'Search players',exact:true}).fill('Example Player 249');await page.getByRole('button',{name:'Open Example Player 249',exact:true}).waitFor();
+ await visit('?scenario=page-failure');await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByRole('alert').filter({hasText:'Next page unavailable'}).waitFor();await page.getByRole('button',{name:'Retry loading players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
+ await visit('?scenario=stale');dialog=await choose('jose');await page.waitForTimeout(300);await box(dialog).fill('Dapo');await dialog.getByRole('option',{name:/Dapo Director/}).waitFor();await page.waitForTimeout(850);assert.equal(await dialog.getByRole('option',{name:/José Silva/}).count(),0);await page.keyboard.press('Escape');
+ await visit('?scenario=hung');dialog=await choose('jose');await dialog.getByRole('alert').filter({hasText:'took too long'}).waitFor({timeout:15000});await dialog.getByRole('button',{name:'Try again',exact:true}).click();await dialog.getByRole('option',{name:/José Silva/}).waitFor();
+ const shotDir=process.env.WORKSPACE_QA_SCREEN_DIR||'/tmp/redream-find-flow-screens';await mkdir(shotDir,{recursive:true});
+ await page.screenshot({path:shotDir+'/mobile-search.png',fullPage:false});
  await page.keyboard.press('Escape');await page.setViewportSize({width:1440,height:900});dialog=await choose('jose');await dialog.getByRole('option',{name:/José Silva/}).waitFor();
- await page.screenshot({path:'/private/tmp/redream-find-flow-screens/desktop-search.png',fullPage:false});
+ await page.screenshot({path:shotDir+'/desktop-search.png',fullPage:false});
  assert.deepEqual(errors,[],'Browser runtime errors');
- console.log('PASS: 5 viewports, exact links, keyboard/focus, quick add, direct player profile, list filters/scroll/reload, account separation, partial failure and retry');
+ console.log('PASS: 5 viewports, exact links, keyboard/focus, quick add, direct player profile, filters/scroll/reload, account separation, complete 250-player pagination, retry, stale response and timeout recovery');
 }finally{await browser.close();}

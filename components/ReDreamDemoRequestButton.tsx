@@ -134,10 +134,12 @@ export default function ReDreamDemoRequestButton({
   };
 
   const continueToContext = () => {
-    if (!form.fullName.trim() || !form.email.trim() || !form.agencyName.trim()) {
-      setError('Add your name, work email and agency to continue.');
+    if (form.fullName.trim().length < 2 || form.agencyName.trim().length < 2) {
+      setError('Add your full name and agency name to continue.');
       return;
     }
+    const detailsForm = modalRef.current?.querySelector<HTMLFormElement>('form');
+    if (!detailsForm?.reportValidity()) return;
     setError('');
     setStep(2);
     trackFunnel('demo_step_2', { cta_key: trackingKey, metadata: { plan: requestedPlan } });
@@ -310,7 +312,7 @@ export default function ReDreamDemoRequestButton({
                       />
                     </label>
 
-                    {error ? <div className={`${styles.error} ${styles.full}`}>{error}</div> : null}
+                    {error ? <div role="alert" className={`${styles.error} ${styles.full}`}>{error}</div> : null}
 
                     <button className={`${styles.submit} ${styles.full}`} type="button" onClick={continueToContext}>
                       Continue
@@ -409,7 +411,7 @@ export default function ReDreamDemoRequestButton({
                       />
                     </label>
 
-                    {error ? <div className={styles.error}>{error}</div> : null}
+                    {error ? <div role="alert" className={styles.error}>{error}</div> : null}
 
                     <div className={styles.actions}>
                       <button type="button" className={styles.back} onClick={() => setStep(1)} disabled={submitting}>

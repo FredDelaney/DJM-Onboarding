@@ -43,6 +43,7 @@ type Props = {
   invoke: Invoke;
   rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
   onRefresh: () => Promise<void>;
+  onLoadMore?: () => Promise<void>;
   onOpenAction: (request: AgencyActionRequest) => void;
 };
 
@@ -510,6 +511,7 @@ export default function AgencyPlayersWorkspace({
   rpc,
   onRefresh,
   onOpenAction,
+  onLoadMore,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -521,6 +523,18 @@ export default function AgencyPlayersWorkspace({
   const setSearch=(value:string)=>memory.update({search:value});
   const setStageFilter=(value:string)=>memory.update({stage:value});
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
+  const [pageBusy, setPageBusy] = useState(false);
+  const [pageError, setPageError] = useState('');
+  const paging = useRef(false);
+  const loadNextPage = async () => {
+    if (!onLoadMore || paging.current) return;
+    paging.current = true;
+    setPageBusy(true);
+    setPageError('');
+    try { await onLoadMore(); }
+    catch (error) { setPageError(friendlyError(error)); }
+    finally { paging.current = false; setPageBusy(false); }
+  };
 
   const reloadArchives = useCallback(async () => {
     const result = await rpc<any>('redream_entity_archives');
@@ -871,7 +885,7 @@ export default function AgencyPlayersWorkspace({
       <section className={styles.toolbar}>
         <div className={styles.sectionTabs}>
           <button type="button" className={section==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('players')}>
-            Our Players <b>{players.length}</b>
+            Our Players <b>{data?.directory?.total ?? players.length}</b>
           </button>
           <button type="button" className={section==='recruitment'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('recruitment')}>
             Recruitment <b>{targets.length}</b>
@@ -944,7 +958,7 @@ export default function AgencyPlayersWorkspace({
                     <b>{Number(item.active_opportunities||0)} active {Number(item.active_opportunities||0)===1?'opportunity':'opportunities'}</b>
                   </span>
                 </div>
-                <div className={`${styles.mobileNextAction} ${attention?styles.mobileNextActionAttention:''}`}>
+                {attention || identity.next_action ? <div className={`${styles.mobileNextAction} ${attention?styles.mobileNextActionAttention:''}`}>
                   <div className={styles.mobileNextActionHead}>
                     <span className={attention?styles.mobileStatusDot:styles.mobileStatusDotCalm} />
                     <span>Next action</span>
@@ -954,7 +968,7 @@ export default function AgencyPlayersWorkspace({
                     <strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong>
                     <ChevronRight size={15} />
                   </div>
-                </div>
+                </div> : null}
                 <div className={styles.playerFacts}>
                   <div><span>Next action</span><strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong><small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date recorded'}</small></div>
                   <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong><small>Active recorded routes</small></div>
@@ -1005,6 +1019,16 @@ export default function AgencyPlayersWorkspace({
               </article>
             );
           })}
+          {data?.directory?.has_more ? (
+            <div className={styles.pagination}>
+              <p>{players.length} of {data.directory.total} players loaded.{search ? ' This filter applies to loaded players. Use Find to search every agency record.' : ''}</p>
+              {pageError ? <p role="alert">{pageError}</p> : null}
+              <button type="button" data-ui-button="secondary" className={styles.secondaryButton} disabled={pageBusy} onClick={()=>void loadNextPage()}>
+                {pageBusy ? <LoaderCircle size={15} className={styles.spin}/> : <Plus size={15}/>}
+                {pageBusy ? 'Loading players...' : pageError ? 'Retry loading players' : 'Load more players'}
+              </button>
+            </div>
+          ) : null}
           {!filteredPlayers.length?<Empty icon={Users} title={search?'No players match this search':'No players recorded yet'} copy={search?'Try another name, club or position.':'Add the first represented player and their current position will appear here.'}/>:null}
         </section>
       ):(

@@ -2015,3 +2015,14 @@
   .shareCopy span, .shareCopy small { font-size: 12px; line-height: 1.5; }
   .shareActions { grid-column: 2; gap: 8px; }
 }
+
+/* Keep secondary tools available without crowding the primary profile actions. */
+.hero { overflow: visible; z-index: 2; }
+.hero::after { display: none; }
+.profileTools { position: relative; }
+.profileTools summary { list-style: none; cursor: pointer; min-height: 44px; }
+.profileTools summary::-webkit-details-marker { display: none; }
+.toolMenu { position: absolute; z-index: 30; right: 0; top: calc(100% + 8px); min-width: 220px; display: grid; gap: 4px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; box-shadow: 0 14px 36px #0f172a26; }
+.toolMenu button[data-ui-button] { justify-content: flex-start; width: 100%; min-height: 44px; color: #0f172a; background: #fff; border-color: transparent; }
+.toolMenu button[data-ui-button]:hover { background: #f1f5f9; }
+@media (max-width: 720px) { .profileTools { flex: 1 1 130px; } .profileTools summary { width: 100%; } }

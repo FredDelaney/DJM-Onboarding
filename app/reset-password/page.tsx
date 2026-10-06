@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useId, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
@@ -31,30 +31,37 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     let active = true;
+    let recoveryReady = false;
+    const timeout = window.setTimeout(() => {
+      if (active && !recoveryReady) {
+        setMessage('This recovery link is no longer active. Request a new one.');
+      }
+    }, 5000);
+    const acceptRecovery = () => {
+      if (!active) return;
+      recoveryReady = true;
+      window.clearTimeout(timeout);
+      setReady(true);
+      setMessage('');
+    };
+    // Subscribe before reading the session so the recovery event cannot be missed.
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) acceptRecovery();
+    });
     const checkSession = async () => {
       const recoveryLink =
         window.location.hash.includes('type=recovery') ||
         window.location.search.includes('type=recovery');
-      const { data } = await supabase.auth.getSession();
-      if (active && recoveryLink && data.session) {
-        setReady(true);
-        setMessage('');
-      }
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (recoveryLink && data.session) acceptRecovery();
     };
-    void checkSession();
-
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!active) return;
-      if (event === 'PASSWORD_RECOVERY' && session) {
-        setReady(true);
-        setMessage('');
+    void checkSession().catch(() => {
+      if (active && !recoveryReady) {
+        window.clearTimeout(timeout);
+        setMessage('This recovery link could not be checked. Request a new one.');
       }
     });
-
-    const timeout = window.setTimeout(() => {
-      if (active) setMessage((current) => current || 'This recovery link is no longer active. Request a new one.');
-    }, 5000);
-
     return () => {
       active = false;
       window.clearTimeout(timeout);
@@ -117,12 +124,12 @@ export default function ResetPasswordPage() {
               <PasswordField label="New password" value={password} show={show} setShow={setShow} onChange={setPassword} />
               <PasswordField label="Confirm password" value={confirmPassword} show={show} setShow={setShow} onChange={setConfirmPassword} />
               <p className="small muted">{STRONG_PASSWORD_MESSAGE}</p>
-              {message ? <div className="small" style={{ padding: 12, borderRadius: 12, background: '#f3f4f6' }}>{message}</div> : null}
+              {message ? <div role="alert" className="small" style={{ padding: 12, borderRadius: 12, background: '#f3f4f6' }}>{message}</div> : null}
               <button className="btn btn-navy btn-block" disabled={busy}>{busy ? 'Updating...' : 'Set new password'} <ArrowRight size={17} /></button>
             </form>
           ) : (
             <div className="stack" style={{ marginTop: 28 }}>
-              <div className="small" style={{ padding: 12, borderRadius: 12, background: '#f3f4f6' }}>{message}</div>
+              <div role="status" aria-live="polite" className="small" style={{ padding: 12, borderRadius: 12, background: '#f3f4f6' }}>{message}</div>
               <Link href={forgotHref} className="btn btn-navy btn-block">Request a new link <ArrowRight size={17} /></Link>
             </div>
           )}
@@ -133,12 +140,13 @@ export default function ResetPasswordPage() {
 }
 
 function PasswordField({ label, value, show, setShow, onChange }: { label: string; value: string; show: boolean; setShow: (value: boolean) => void; onChange: (value: string) => void }) {
+  const id = useId();
   return (
     <div className="field">
-      <label className="label">{label}</label>
+      <label className="label" htmlFor={id}>{label}</label>
       <div style={{ position: 'relative' }}>
-        <input className="input" style={{ paddingRight: 48 }} type={show ? 'text' : 'password'} autoComplete="new-password" value={value} onChange={(event) => onChange(event.target.value)} minLength={12} required />
-        <button type="button" aria-label={show ? 'Hide password' : 'Show password'} onClick={() => setShow(!show)} style={{ position: 'absolute', right: 12, top: 12, border: 0, background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>{show ? <EyeOff size={19} /> : <Eye size={19} />}</button>
+        <input id={id} className="input" style={{ paddingRight: 48 }} type={show ? 'text' : 'password'} autoComplete="new-password" value={value} onChange={(event) => onChange(event.target.value)} minLength={12} required />
+        <button type="button" aria-label={show ? 'Hide password' : 'Show password'} onClick={() => setShow(!show)} style={{ position: 'absolute', right: 2, top: 2, bottom: 2, width: 44, display: 'grid', placeItems: 'center', border: 0, background: 'transparent', color: 'var(--muted)', cursor: 'pointer' }}>{show ? <EyeOff size={19} /> : <Eye size={19} />}</button>
       </div>
     </div>
   );

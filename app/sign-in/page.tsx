@@ -38,6 +38,9 @@ export default function SignIn() {
       return;
     }
 
+    if (destination.kind === 'unresolved') {
+      throw new Error('No linked workspace is available. Use your agency invitation or contact your representative.');
+    }
     router.replace(destination.href);
   };
 
@@ -48,8 +51,8 @@ export default function SignIn() {
       if (!active || !data.session) return;
       try {
         await routeUser(data.session.user.id);
-      } catch {
-        if (active) setMsg('We could not open your workspace. Please try again.');
+      } catch (error) {
+        if (active) setMsg(error instanceof Error ? error.message : 'We could not open your workspace. Please try again.');
       }
     });
 
@@ -84,8 +87,8 @@ export default function SignIn() {
 
     try {
       await routeUser(data.user.id);
-    } catch {
-      setMsg('You signed in, but we could not resolve your workspace. Please try again.');
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : 'You signed in, but we could not open your workspace. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -199,9 +202,10 @@ export default function SignIn() {
 
           <form onSubmit={submit} className="stack" style={{ marginTop: 30 }}>
             <div className="field">
-              <label className="label">Email</label>
+              <label className="label" htmlFor="sign-in-email">Email</label>
               <input
                 className="input"
+                id="sign-in-email"
                 type="email"
                 autoCapitalize="none"
                 autoComplete="email"
@@ -221,7 +225,7 @@ export default function SignIn() {
                   alignItems: 'center',
                 }}
               >
-                <label className="label">Password</label>
+                <label className="label" htmlFor="sign-in-password">Password</label>
                 <Link
                   href="/forgot-password"
                   className="small"
@@ -235,6 +239,7 @@ export default function SignIn() {
                 <input
                   className="input"
                   style={{ paddingRight: 48 }}
+                  id="sign-in-password"
                   type={show ? 'text' : 'password'}
                   autoComplete="current-password"
                   value={password}
@@ -249,8 +254,12 @@ export default function SignIn() {
                   onClick={() => setShow(!show)}
                   style={{
                     position: 'absolute',
-                    right: 12,
-                    top: 12,
+                    right: 2,
+                    top: 2,
+                    bottom: 2,
+                    width: 44,
+                    display: 'grid',
+                    placeItems: 'center',
                     border: 0,
                     background: 'transparent',
                     color: 'var(--muted)',
@@ -264,6 +273,7 @@ export default function SignIn() {
 
             {msg ? (
               <div
+                role="alert"
                 className="small"
                 style={{ padding: 12, borderRadius: 12, background: '#f3f4f6' }}
               >
@@ -275,6 +285,7 @@ export default function SignIn() {
               {busy ? 'Opening workspace...' : 'Sign in'}
               <ArrowRight size={17} />
             </button>
+            {msg ? <button type="button" className="btn btn-block" onClick={async()=>{await supabase.auth.signOut();setPassword('');setMsg('');}}>Use another account</button> : null}
           </form>
 
           <p className="small muted" style={{ marginTop: 22, lineHeight: 1.6 }}>

@@ -163,7 +163,7 @@ export default {fetch:async(req:Request)=>{
       const accountContext=obj(accountContextRaw);
       const billing=role==="owner"&&Object.keys(obj(accountContext.billing)).length?accountContext.billing:null;
       const pendingPlanChange=role==="owner"&&Object.keys(obj(accountContext.pending_plan_change)).length?accountContext.pending_plan_change:null;
-      return json({ok:true,tenant:workspace,account:{profile:profileResult.data||null,branding:obj(accountContext.branding),plan:obj(accountContext.plan),plans:Array.isArray(accountContext.plans)?accountContext.plans:[],usage:{players:playersResult.count||0,staff:Number(accountContext.staff_count||0)},billing,pending_plan_change:pendingPlanChange}});
+      return json({ok:true,tenant:workspace,account:{profile:profileResult.data||null,branding:obj(accountContext.branding),plan:obj(accountContext.plan),plans:Array.isArray(accountContext.plans)?accountContext.plans:[],usage:{players:playersResult.count||0,staff:Number(accountContext.staff_count||0)},billing,payment_portal_available:role==="owner"&&String(obj(billing).payment_provider||"").toLowerCase()==="stripe"&&Boolean(obj(billing).external_customer_reference)&&Boolean(Deno.env.get("STRIPE_SECRET_KEY")),pending_plan_change:pendingPlanChange}});
     }
 
     if(action==="account_profile_save"){
@@ -708,7 +708,8 @@ export default {fetch:async(req:Request)=>{
       player_value_proof_portfolio:{key:"value_proof",fn:"platform_server_player_value_proof_portfolio",args:()=>({p_tenant_id:tenantId,p_window_days:clamp(body?.window_days,1,366,30),p_limit:clamp(body?.limit,1,500,100)})},
       agency_roi_proof:{key:"roi",fn:"platform_server_agency_roi_proof",args:()=>({p_tenant_id:tenantId,p_window_days:clamp(body?.window_days,1,366,30)}),guard:ownerAdmin,deny:"Owner or admin access required"},
       revenue_command:{key:"revenue",fn:"platform_server_revenue_command",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,50,12)})},
-      players_workspace:{key:"players",fn:"platform_server_players_workspace",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,200,100)})},
+      workspace_search:{key:"search",fn:"platform_server_workspace_search",args:()=>({p_tenant_id:tenantId,p_user_id:userId,p_query:id(body?.query).slice(0,200),p_limit:clamp(body?.limit,1,30,30)})},
+      players_workspace:{key:"players",fn:"platform_server_players_workspace_page",args:()=>({p_tenant_id:tenantId,p_user_id:userId,p_offset:Math.floor(clamp(body?.offset,0,1000000,0)),p_limit:Math.floor(clamp(body?.limit,1,100,100))})},
       player_workspace:{key:"player",fn:"platform_server_player_workspace",args:()=>({p_tenant_id:tenantId,p_player_id:playerId()})},
       recruitment_board:{key:"recruitment",fn:"platform_server_recruitment_board",args:()=>({p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,500,250)})},
       recruitment_target:{key:"recruitment",fn:"platform_server_recruitment_target",args:()=>({p_tenant_id:tenantId,p_prospect_id:id(body?.prospect_id)})},

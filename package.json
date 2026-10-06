@@ -12,14 +12,15 @@
     "typecheck": "next typegen && tsc --noEmit",
     "precheck": "npm run check:no-em-dash",
     "check": "npm test && npm run typecheck && npm run build",
-    "check:no-em-dash": "node scripts/check-no-em-dash.mjs"
+    "check:no-em-dash": "node scripts/check-no-em-dash.mjs",
+    "check:browser": "node scripts/customer-journey-browser-qa.mjs && node scripts/workspace-flow-browser-fixture.mjs && node scripts/calendar-browser-fixture.mjs scripts/calendar-workspace-browser-qa.mjs"
   },
   "dependencies": {
     "@fullcalendar/react": "7.1.0",
     "@react-pdf/renderer": "4.5.1",
     "@supabase/supabase-js": "2.112.4",
     "lucide-react": "^0.468.0",
-    "next": "16.3.3",
+    "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "temporal-polyfill": "1.0.5"
@@ -29,6 +30,7 @@
     "@types/node": "^22",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
+    "playwright": "1.63.0",
     "typescript": "^5.8.3"
   },
   "overrides": {

@@ -5,6 +5,7 @@ const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${proce
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
 try{
  const page=await browser.newPage({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
+ await page.clock.setFixedTime(new Date('2026-10-06T10:00:00Z'));
  const pageErrors=[];page.on('pageerror',error=>pageErrors.push(error.message));
  for(let attempt=0;attempt<60;attempt++){try{await page.goto(process.env.CALENDAR_QA_URL||'http://127.0.0.1:3101/qa-calendar');break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(500);}}
  await page.getByRole('button',{name:'Add task',exact:true}).click({timeout:15000});
@@ -56,7 +57,7 @@ try{
  await page.getByRole('status').filter({hasText:'Happy birthday!'}).waitFor();
  await page.getByRole('button',{name:'Today',exact:true}).click();
  await page.getByRole('button',{name:'Add task',exact:true}).click();
- await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog',{name:'Add task',exact:true}).count(),0);
+ await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'Add task',exact:true}).waitFor({state:'hidden'});
  await page.getByRole('button',{name:'Add task',exact:true}).click();
  await page.getByLabel('Title',{exact:true}).fill('Unsaved draft');
  page.once('dialog',dialog=>dialog.dismiss());await page.getByRole('button',{name:'Close task form',exact:true}).click();

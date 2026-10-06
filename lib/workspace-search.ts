@@ -42,3 +42,19 @@ export function searchWorkspaceItems(items:SearchItem[],query:string,limit=30):S
  });
  return ranked.filter(row=>row.match).sort((a,b)=>b.score-a.score||a.index-b.index).slice(0,limit).map(row=>row.item);
 }
+
+export function buildServerSearchItems(data:any,basePath:string):SearchItem[]{
+ const base=/^\/workspace\/[a-z0-9%_-]+$/i.test(basePath)?basePath:'/agency';
+ return list(data?.items).flatMap(row=>{
+  const id=text(row?.id),kind=row?.kind as SearchItem['kind'];
+  if(!id)return [];
+  const params:Record<string,string>|null=kind==='player'?{view:'players',player:id,profile:'1'}:
+   kind==='recruitment'?{view:'players',tab:'recruitment',target:id}:
+   kind==='club'?{view:'network',club:id}:
+   kind==='contact'?{view:'network',person:id}:
+   kind==='opportunity'?{view:'opportunities',tab:'needs',record:id}:
+   kind==='deal'?{view:'opportunities',tab:'deals',record:id}:null;
+  if(!params)return [];
+  return [{key:kind+':'+id,id,kind,title:text(row?.title)||'Name not recorded',subtitle:text(row?.subtitle),href:base+'?'+new URLSearchParams(params)}];
+ });
+}

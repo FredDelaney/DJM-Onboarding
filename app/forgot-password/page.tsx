@@ -76,13 +76,13 @@ export default function ForgotPasswordPage() {
           ) : (
             <form className="stack" style={{ marginTop: 30 }} onSubmit={submit}>
               <div className="field">
-                <label className="label">Email</label>
+                <label className="label" htmlFor="recovery-email">Email</label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={18} style={{ position: 'absolute', left: 14, top: 13, color: 'var(--muted)' }} />
-                  <input className="input" style={{ paddingLeft: 44 }} type="email" autoCapitalize="none" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" required />
+                  <input id="recovery-email" className="input" style={{ paddingLeft: 44 }} type="email" autoCapitalize="none" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" required />
                 </div>
               </div>
-              {error ? <div className="small" style={{ padding: 12, borderRadius: 12, background: '#fff1f2', color: '#9f1239' }}>{error}</div> : null}
+              {error ? <div role="alert" className="small" style={{ padding: 12, borderRadius: 12, background: '#fff1f2', color: '#9f1239' }}>{error}</div> : null}
               <button className="btn btn-navy btn-block" disabled={busy}>{busy ? 'Sending...' : 'Send secure reset link'} <ArrowRight size={17} /></button>
             </form>
           )}

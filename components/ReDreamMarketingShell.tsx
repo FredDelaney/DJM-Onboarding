@@ -17,7 +17,7 @@ export default function ReDreamMarketingShell({ children }: { children: ReactNod
             <Link href="/security">Security</Link>
             <Link href="/switch">Switch</Link>
             <Link href="/#pricing">Pricing</Link>
-            <Link href="/platform/sign-in">Sign in</Link>
+            <Link href="/sign-in">Sign in</Link>
           </nav>
           <ReDreamDemoRequestButton className={styles.demoButton} label="Book a demo" trackingKey="subpage_nav_demo" />
         </div>
@@ -35,7 +35,8 @@ export default function ReDreamMarketingShell({ children }: { children: ReactNod
           <Link href="/security">Security</Link>
           <Link href="/switch">Switch</Link>
           <Link href="/privacy">Privacy</Link>
-          <Link href="/platform/sign-in">Sign in</Link>
+          <Link href="/support">Support</Link>
+          <Link href="/sign-in">Sign in</Link>
         </div>
       </footer>
     </main>
