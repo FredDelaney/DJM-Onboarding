@@ -41,7 +41,8 @@ The full ACL gate passed before this release: 345 production and 353 staging ser
 | Customer agreement | Confirm the actual contracting entity, service terms, DPA, subprocessors and agreed support commitments. Public copy does not invent these. |
 | Owned customer journey | Run invitation, recovery email delivery, staff/player access, approved club share and onboarding with an owned pilot account. Fixture checks are not evidence of delivery to a real mailbox. |
 | Password protection | Supabase's leaked-password protection setting still needs a targeted Auth configuration change. The exposed connector cannot modify Auth settings; do not replace unrelated project configuration blindly. |
-| Wider staff authorization | Audit existing staff APIs outside the customer entry paths individually against assignment and field permissions; the new entry paths have executing deny and redaction coverage. |\n| Staging parity | Investigate historical migration differences. Staging lacks four archive columns present in production; this release reads those archive fields portably rather than rewriting old migration history. |
+| Wider staff authorization | Audit existing staff APIs outside the customer entry paths individually against assignment and field permissions; the new entry paths have executing deny and redaction coverage. |
+| Staging parity | Investigate historical migration differences. Staging lacks four archive columns present in production; this release reads those archive fields portably rather than rewriting old migration history. |
 | Performance | Improve measured first-load cost after field measurements. The prior 2.876-second median lab LCP is a small controlled sample, not real-user performance evidence. |
 | Sales proof | Obtain genuine pilot outcomes and approved testimonials. Synthetic demonstration data must remain labelled. |
 
