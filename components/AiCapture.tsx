@@ -7,6 +7,7 @@ import { pollCaptureReceipt } from '@/lib/capture-polling';
 import { flushAiQueue, uploadAiCaptureOnce } from '@/lib/ai-upload-queue';
 
 import { pendingAiWorkspace } from '@/lib/ai-workspace';
+import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { useAiWorkspaceContext } from './useAiWorkspace';
 
 import {
@@ -242,6 +243,7 @@ export default function AiCapture({
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [answering, setAnswering] = useState<string | null>(null);
   const [deletingCapture, setDeletingCapture] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [approvingCapture, setApprovingCapture] = useState(false);
   const [editingCapture, setEditingCapture] = useState(false);
 
@@ -805,13 +807,6 @@ export default function AiCapture({
     const captureId = receipt?.capture?.id;
     if (!captureId || deletingCapture) return;
 
-    const ok = window.confirm(
-      'Delete this ReDream update? This removes the unresolved update. ' +
-        'It cannot delete an update that has already applied changes unless those changes are undone first.',
-    );
-
-    if (!ok) return;
-
     setDeletingCapture(true);
     setError('');
 
@@ -824,6 +819,7 @@ export default function AiCapture({
       displayCaptureRef.current = null;
       setReceipt(null);
       setStatus('ReDream update deleted.');
+      setDeleteConfirmOpen(false);
       onCompleted?.({
         capture: {
           id: captureId,
@@ -872,6 +868,7 @@ export default function AiCapture({
     ].includes(terminalStatus) && !hasAppliedActions;
 
   return (
+    <>
     <div className={`${styles.shell} ${compact ? styles.compact : ''}`}>
       <section className={styles.hero}>
         {context?.label ? (
@@ -1100,7 +1097,7 @@ export default function AiCapture({
               <button
                 type="button"
                 className={styles.retryButton}
-                onClick={() => void deleteCapture()}
+                onClick={() => setDeleteConfirmOpen(true)}
                 disabled={deletingCapture}
               >
                 <Trash2 size={12} />
@@ -1198,5 +1195,15 @@ export default function AiCapture({
         </div>
       ) : null}
     </div>
+      <ConfirmActionDialog
+        open={deleteConfirmOpen}
+        title="Delete this ReDream update?"
+        description="This removes the unresolved update. If changes were already applied, undo them first."
+        confirmLabel="Delete update"
+        busy={deletingCapture}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={deleteCapture}
+      />
+    </>
   );
 }
