@@ -94,7 +94,7 @@ export default function AiRecentCaptures({
       <div className={styles.head}>
         <div>
           <strong>Recent</strong>
-          <span>Your last Capture updates and their real status.</span>
+          <span>Your latest ReDream updates and what happened to them.</span>
         </div>
         <button
           type="button"
@@ -107,7 +107,7 @@ export default function AiRecentCaptures({
       </div>
 
       {initialLoading && !items.length ? (
-        <div className={styles.empty}>Checking your recent captures...</div>
+        <div className={styles.empty}>Checking your recent updates...</div>
       ) : items.length ? (
         <div className={styles.list} aria-busy={refreshing}>
           {items.map((item) => {
@@ -132,7 +132,7 @@ export default function AiRecentCaptures({
                 onClick={() => onOpen(item.id)}
               >
                 <div className={styles.copy}>
-                  <strong>{item.summary || 'Capture update'}</strong>
+                  <strong>{item.summary || 'ReDream update'}</strong>
                   <span>{timeLabel(item.created_at)}</span>
                 </div>
                 <div className={styles.right}>
@@ -159,7 +159,7 @@ export default function AiRecentCaptures({
         </div>
       ) : (
         <div className={styles.empty}>
-          Your Capture history will appear here after the first capture.
+          Your recent ReDream updates will appear here after you send the first one.
         </div>
       )}
     </section>

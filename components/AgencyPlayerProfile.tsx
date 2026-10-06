@@ -563,7 +563,7 @@ export default function AgencyPlayerProfile({
     },
     {
       key: 'position',
-      label: 'Position recorded',
+      label: 'Position added',
       ok: Boolean(player.primary_position),
       important: true,
       missingTitle: 'Add the primary position',
@@ -713,7 +713,7 @@ export default function AgencyPlayerProfile({
         settings: { ...(bundle?.settings || {}), key_stats: [] },
       });
       if (!(await load(true))) {
-        throw new Error('The club profile now uses current statistics, but could not reload. Reload recorded data to recover.');
+        throw new Error('The club profile now uses current statistics, but could not reload. Reload the player data to recover.');
       }
       setNotice('The club profile now uses current statistics. Publish the revised profile when it is ready.');
     } finally {
@@ -1240,7 +1240,7 @@ export default function AgencyPlayerProfile({
       <div className={styles.topbar}><Link href={backHref} className={styles.back} aria-label="Back to players"><ArrowLeft size={15}/>Players</Link></div>
       <section className={styles.card} aria-label="Assigned player access" style={{padding:20}}>
         <h2>Assigned player profile</h2>
-        <p>You can review this player's recorded football evidence. Contract, operational and sharing controls are available to agency administrators.</p>
+        <p>You can review this player's football information. Contract and sharing controls are managed by agency admins.</p>
       </section>
       {error?<p className={styles.error} role="alert">{error}</p>:null}
       <PublicProfile profile={draftProfile} agency={agency}/>
@@ -1750,7 +1750,7 @@ export default function AgencyPlayerProfile({
             </div>
             <div>
               <strong>{secondaryReady ? documents.length : '…'}</strong>
-              <span>shareable docs</span>
+              <span>documents</span>
             </div>
           </div>
 
@@ -1759,10 +1759,10 @@ export default function AgencyPlayerProfile({
               {(draftProfile.key_stats || []).slice(0, 6).map((item: any, index: number) => (
                 <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
               ))}
-              <p>Custom club profile statistics. Recorded figures and sources are shown above.</p>
+              <p>Custom club profile statistics. Current figures and sources are shown above.</p>
             </div>
           ) : (
-            <div className={styles.keyStats}><p>The club profile uses the recorded current-season statistics above.</p></div>
+            <div className={styles.keyStats}><p>The club profile uses the current-season statistics above.</p></div>
           )}
         </section>
       </div>
@@ -1837,7 +1837,7 @@ export default function AgencyPlayerProfile({
         ) : secondaryReady ? (
           <div className={styles.empty}>
             <MessageCircleMore size={19} />
-            <strong>No conversations linked yet.</strong>
+            <strong>No conversations linked to this player yet.</strong>
             <span>
               Emails and chats linked to this player will appear here.
             </span>
@@ -1856,7 +1856,7 @@ export default function AgencyPlayerProfile({
         {communicationFollowups.length ? (
           <div className={styles.communicationFollowups}>
             <div className={styles.communicationFollowupHead}>
-              <span>OPEN FOLLOW-UP</span>
+              <span>NEXT FOLLOW-UP</span>
               <strong>
                 {communicationFollowups.length}
               </strong>
@@ -1874,7 +1874,7 @@ export default function AgencyPlayerProfile({
                   <span>
                     {task?.due_at
                       ? relativeDate(task.due_at)
-                      : 'No due date recorded'}
+                      : 'No due date set'}
                   </span>
                 </div>
 
@@ -1891,7 +1891,7 @@ export default function AgencyPlayerProfile({
       <section className={styles.card}>
         <div className={styles.cardHead}>
           <div>
-            <span className={styles.eyebrow}>PROFILE ACTIVITY</span>
+            <span className={styles.eyebrow}>SHARED PROFILE</span>
             <h3>Club links</h3>
           </div>
 
@@ -2132,7 +2132,7 @@ export default function AgencyPlayerProfile({
                 <span>
                   {[player.current_club, player.current_country]
                     .filter(Boolean)
-                    .join(' · ') || 'Current situation not fully recorded'}
+                    .join(' · ') || 'Current situation needs more detail'}
                 </span>
               </div>
 
@@ -2145,7 +2145,7 @@ export default function AgencyPlayerProfile({
                     {recordedStats.slice(0, 6).map((item: any, index: number) => (
                       <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
                     ))}
-                    {!recordedStats.length ? <p>No current-season statistics are recorded.</p> : null}
+                    {!recordedStats.length ? <p>No current-season statistics yet.</p> : null}
                   </div>
                 </section>
               ) : null}
@@ -2712,7 +2712,7 @@ export default function AgencyPlayerProfile({
                   <small>
                     {shareClubsBusy
                       ? 'Loading your agency club network...'
-                      : 'Choose any club already recorded in your agency network.'}
+                      : 'Choose a club from your agency network.'}
                   </small>
                 </label>
 
