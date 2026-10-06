@@ -22,4 +22,3 @@ grant usage on schema platform to service_role;
 grant select,insert,update,delete on all tables in schema djm_os to authenticated;
 grant select on public.players,public.staff_player_access to authenticated;
 grant select,insert,update,delete on all tables in schema public,platform,djm_os to service_role;
-
