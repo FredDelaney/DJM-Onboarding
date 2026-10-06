@@ -16,7 +16,7 @@ test('Opportunities V2 keeps one clean agent-facing working surface', async () =
   const source = await readFile(workspacePath, 'utf8');
 
   assert.match(source, />\s*Needs\s*(?:<|\{)/);
-  assert.match(source, />\s*Player routes\s*(?:<|\{)/);
+  assert.match(source, />\s*Player opportunities\s*(?:<|\{)/);
   assert.match(source, />\s*Live deals\s*(?:<|\{)/);
   assert.match(source, /Search opportunities/);
 

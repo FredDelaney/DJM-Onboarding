@@ -795,8 +795,8 @@ export default function PlatformPage() {
         label: 'Trial still proving value',
         copy:
           days === null
-            ? 'First working value is not recorded yet. Keep the commercial decision tied to evidence, not login activity.'
-            : `${days} day${days === 1 ? '' : 's'} remain and first working value is not recorded yet. Keep the commercial decision tied to evidence, not login activity.`,
+            ? 'First working value is not set yet. Keep the commercial decision tied to evidence, not login activity.'
+            : `${days} day${days === 1 ? '' : 's'} remain and first working value is not set yet. Keep the commercial decision tied to evidence, not login activity.`,
       };
     }
 
@@ -2369,8 +2369,8 @@ export default function PlatformPage() {
                           <div className={styles.contractTermConfirm}>
                             <strong>Confirm contract term change</strong>
                             <span>
-                              {currentContractTermEnd || 'Not recorded'} to{' '}
-                              {detailContractTermEnd || 'Not recorded'}
+                              {currentContractTermEnd || 'Not set'} to{' '}
+                              {detailContractTermEnd || 'Not set'}
                             </span>
                             <small>
                               This changes renewal evidence only. It does not

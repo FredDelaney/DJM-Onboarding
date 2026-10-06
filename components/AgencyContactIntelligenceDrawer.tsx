@@ -85,7 +85,7 @@ const verificationLabel = (
   }
 
   if (state === 'not_recorded') {
-    return 'Employment not recorded';
+    return 'Employment not set';
   }
 
   return 'Verification unknown';
@@ -277,7 +277,7 @@ export default function AgencyContactIntelligenceDrawer({
     clean(
       summaryEmployment?.organisation_name,
     ) ||
-    'Club not recorded';
+    'Club not set';
 
   const role =
     clean(employment?.role_title) ||
@@ -310,7 +310,7 @@ export default function AgencyContactIntelligenceDrawer({
     transfermarktUrl ||
     transfermarktSearch(
       name,
-      clubName === 'Club not recorded'
+      clubName === 'Club not set'
         ? ''
         : clubName,
     );
@@ -664,13 +664,13 @@ export default function AgencyContactIntelligenceDrawer({
               <div className={styles.headerMeta}>
                 <span>
                   {clean(summaryRelationship?.route_state)
-                    .replaceAll('_', ' ') || 'Relationship not recorded'}
+                    .replaceAll('_', ' ') || 'Relationship not set'}
                 </span>
                 <span>
                   Owner {clean(summaryRelationship?.owner_name) || 'unassigned'}
                 </span>
                 <span>
-                  Route {summaryRelationship?.route_score != null ? Number(summaryRelationship.route_score) : 'not recorded'}
+                  Route {summaryRelationship?.route_score != null ? Number(summaryRelationship.route_score) : 'not set'}
                 </span>
                 <span>
                   {summaryActivity?.last_interaction_at
@@ -748,7 +748,7 @@ export default function AgencyContactIntelligenceDrawer({
               styles.body
             }
           >
-            {restricted ? <p className={styles.section}>Shared contact details and your personal relationship activity. Commercial agency context requires administrator access.</p> : null}
+            {restricted ? <p className={styles.section}>Shared contact details and your personal relationship activity. Agency-wide commercial details are only shown to admins.</p> : null}
             <AgencyRelationshipActions
               personId={clean(contact?.person_id)}
               rpc={rpc}
@@ -1088,7 +1088,7 @@ export default function AgencyContactIntelligenceDrawer({
                         Boolean,
                       )
                       .join(', ') ||
-                      'Not recorded'}
+                      'Not set'}
                   </strong>
                 </div>
 

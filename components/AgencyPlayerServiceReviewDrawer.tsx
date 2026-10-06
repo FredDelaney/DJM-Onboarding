@@ -44,7 +44,7 @@ const num = (value: unknown) => {
 };
 
 const prettyDate = (value: unknown) => {
-  if (!value) return 'Not recorded';
+  if (!value) return 'Not set';
 
   const parsed = new Date(String(value));
   if (Number.isNaN(parsed.getTime())) return String(value);
@@ -272,7 +272,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         },
         {
           label: 'Recorded proof',
-          value: human(proof?.proof_state || 'not recorded'),
+          value: human(proof?.proof_state || 'not set'),
           detail: 'Evidence of recorded work, not player satisfaction',
         },
       ],
@@ -290,7 +290,7 @@ export default function AgencyPlayerServiceReviewDrawer({
       instruction:
         alignment?.next_strategy_action?.instruction ||
         alignment?.strategy?.next_checkpoint ||
-        'Review the player-owned career plan with current recorded evidence.',
+        'Review the player-owned career plan with current known information.',
       label: 'Review career plan',
       action: 'career_strategy_action_prepare',
       payload: {
@@ -315,7 +315,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           value: human(
             alignment?.confirmation_state ||
               statement?.career_plan?.player_confirmation ||
-              'not recorded',
+              'not set',
           ),
         },
         {
@@ -348,7 +348,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Recorded player-service evidence
+              Player-service evidence
             </span>
 
             <button
@@ -440,7 +440,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 value={human(
                   meeting?.service_control_state ||
                     serviceRelationship?.service_control?.state ||
-                    'not recorded',
+                    'not set',
                 )}
                 detail={`${num(
                   serviceRelationship?.service_control?.high_breach_count,
@@ -451,7 +451,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 value={human(
                   meeting?.career_alignment_state ||
                     alignment?.alignment_state ||
-                    'not recorded',
+                    'not set',
                 )}
                 detail={
                   alignment?.review_due_at
@@ -464,9 +464,9 @@ export default function AgencyPlayerServiceReviewDrawer({
                 value={human(
                   meeting?.value_proof_state ||
                     proof?.proof_state ||
-                    'not recorded',
+                    'not set',
                 )}
-                detail="Recorded activity, not service quality or satisfaction"
+                detail="Activity only, not a judgement of service quality or satisfaction"
               />
               <Fact
                 label="Proof history"
@@ -610,7 +610,7 @@ export default function AgencyPlayerServiceReviewDrawer({
               )}
 
               <p className={styles.truth}>
-                Snapshot deltas compare recorded evidence. Overlapping rolling windows can move counts in either direction, so a negative delta is not automatically deterioration.
+                Snapshot deltas compare known information. Overlapping rolling windows can move counts in either direction, so a negative delta is not automatically deterioration.
               </p>
             </section>
 
@@ -693,7 +693,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                   label="Next service action"
                   value={
                     statement?.service_plan?.next_action ||
-                    'Not recorded'
+                    'Not set'
                   }
                   detail={
                     statement?.service_plan?.next_action_due
@@ -703,7 +703,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 />
                 <Fact
                   label="Career plan"
-                  value={human(statement?.career_plan?.state || 'not recorded')}
+                  value={human(statement?.career_plan?.state || 'not set')}
                   detail={
                     statement?.career_plan?.objective ||
                     'No player-safe objective recorded'
@@ -791,7 +791,7 @@ export default function AgencyPlayerServiceReviewDrawer({
             </section>
 
             <p className={styles.truth}>
-              Player Service Review organises recorded operating evidence for a human conversation. It does not infer player satisfaction, loyalty, agency quality or career outcome.
+              Player Service Review brings together known activity for a human conversation. It does not guess player satisfaction, loyalty, agency quality or career outcome.
             </p>
           </div>
         ) : null}

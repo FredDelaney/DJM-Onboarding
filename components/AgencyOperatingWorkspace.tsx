@@ -151,25 +151,25 @@ const VIEW_PRESENTATION: Record<
     eyebrow: 'HOME',
     title: 'Home',
     description:
-      'What needs your attention.',
+      'What needs your attention today.',
   },
   players: {
     eyebrow: 'PLAYERS',
     title: 'Players',
     description:
-      'Your players, recruitment and the next decisions around them.',
+      'Your players, what needs attention and what to do next.',
   },
   opportunities: {
     eyebrow: 'OPPORTUNITIES',
     title: 'Opportunities',
     description:
-      'Club need, player fit, relationship and next action.',
+      'Live opportunities, the people involved and the next step.',
   },
   network: {
     eyebrow: 'NETWORK',
     title: 'Network',
     description:
-      'The clubs and people that move opportunities.',
+      'Your club relationships and the people you know.',
   },
   calendar: {
     eyebrow: 'CALENDAR',
@@ -181,7 +181,7 @@ const VIEW_PRESENTATION: Record<
     eyebrow: 'BUSINESS',
     title: 'Business',
     description:
-      'Money, live business and the agency position.',
+      'Live deals, expected income and the agency position.',
   },
 };
 
@@ -199,7 +199,7 @@ const reviewPlayerId = (command: any): string => {
 
 const reviewCopy = (command: any) => ({
   title: command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
-  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Open the player profile to check the recorded data.' : 'Check the player profile, then mark this reminder done.',
+  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Open the player profile to check the current information.' : 'Check the player profile, then mark this reminder done.',
 });
 
 const commandWorkingView = (command: any): View => {
@@ -256,7 +256,7 @@ const money = (value: unknown, currency = 'EUR') => {
 
 const careerGateLabel = (value: unknown) => {
   const state = String(value || '').trim().toLowerCase();
-  if (!state) return 'Recorded';
+  if (!state) return 'Upcoming';
   if (state.startsWith('open_')) return 'Open to progress';
   if (state.startsWith('review_')) return 'Review needed';
   if (state.startsWith('hold_')) return 'Player decision needed';
@@ -1603,7 +1603,7 @@ export default function AgencyOperatingWorkspace() {
           >
             {restrictedView ? (
               <section className={styles.sectionCard}>
-                <h2>Administrator access required</h2>
+                <h2>Admin access needed</h2>
                 <p>Commercial opportunities and business records are available to agency owners and administrators.</p>
                 <Link className={styles.homeTextLink} href={basePath+'?view=players'}>Open assigned players <ChevronRight size={14}/></Link>
               </section>
@@ -2526,7 +2526,7 @@ function Home({
     const recommendation =
       command?.recommended_action ||
       command?.actionability?.cta ||
-      (review ? 'Review the recorded player data.' : 'Open this and decide the next move.');
+      (review ? 'Review the player information.' : 'Open this and decide the next move.');
     queueCandidates.push({
       id: `command:${command?.command_id || index}`,
       category,
@@ -2554,7 +2554,7 @@ function Home({
       category: 'Needs action now',
       score: categoryScore['Needs action now'] + 8_500 - index,
       title: `Record the outcome from ${name}`,
-      why: 'The meeting has ended, but the outcome and next move are not recorded.',
+      why: 'The meeting has ended, but the outcome and next step have not been added yet.',
       recommendation: 'Capture what happened and the next action while it is still fresh.',
       owner: 'You',
       deadline: item?.ends_at ? `Ended ${relativeDate(item.ends_at)}` : 'Now',
@@ -2715,7 +2715,7 @@ function Home({
       <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`} aria-label="Today priorities">
         <div className={styles.sectionHead}>
           <div className={styles.homeSectionTitle}>
-            <span className={styles.homeSectionLabel}>{restricted ? 'Your personal work' : 'Ranked across the agency'}</span>
+            <span className={styles.homeSectionLabel}>{restricted ? 'Your work' : 'What matters most'}</span>
             <h2>Today</h2>
           </div>
           <Link className={styles.homeTextLink} href={`${basePath}?view=calendar`}>
@@ -2724,7 +2724,7 @@ function Home({
           </Link>
         </div>
 
-        {restricted ? <p className={styles.homeReadNotice}>Your tasks, meetings and commitments. Assigned players are in Players. Commercial agency signals require administrator access.</p> : null}
+        {restricted ? <p className={styles.homeReadNotice}>Your tasks, meetings and commitments. You can find players assigned to you under Players. Agency-wide commercial items are only shown to admins.</p> : null}
         {readNotice(allState)}
 
         <div className={styles.todayQueueList}>
@@ -2743,7 +2743,7 @@ function Home({
                 <strong>{item.title}</strong>
                 <span className={styles.todayQueueWhy}>{item.why}</span>
                 <div className={styles.todayQueueRecommendation}>
-                  <small>ReDream recommends</small>
+                  <small>Next step</small>
                   <span>{item.recommendation}</span>
                 </div>
                 <div className={styles.todayQueueOwner}>
@@ -2761,7 +2761,7 @@ function Home({
             <EmptyState
               icon={CheckCircle2}
               title="Nothing needs you right now"
-              copy={restricted ? "No personal task, meeting or commitment currently needs your attention." : "No action, waiting item, risk or opportunity is currently asking for attention."}
+              copy={restricted ? "You have no tasks, meetings or commitments that need action right now." : "You are up to date. New follow-ups, risks and opportunities will appear here when they need you."}
             />
           ) : null}
         </div>
@@ -2794,7 +2794,7 @@ function Players({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="PLAYERS"
-        title="Know what every player needs next."
+        title="Know what each player needs next."
         copy="Contracts, opportunities and next actions in one place."
         icon={Users}
         badge={`${summary.active_players ?? items.length} players`}
@@ -2808,23 +2808,23 @@ function Players({
         />
 
         <Metric
-          label="Contract windows"
+          label="Contracts coming up"
           value={String(summary.contract_critical_window || 0)}
-          detail="Players nearing a key contract date"
+          detail="Players with an important contract date approaching"
         />
 
         <Metric
-          label="Without market activity"
+          label="No active opportunity"
           value={String(summary.market_coverage_gaps || 0)}
-          detail="No active route or deal recorded"
+          detail="Players with no live club opportunity"
         />
 
         <Metric
-          label="Representation records"
+          label="Representation details"
           value={String(
             representation.records_needing_review || 0,
           )}
-          detail={`${representation.missing_representation_records || 0} missing records`}
+          detail={`${representation.missing_representation_records || 0} missing details`}
         />
       </section>
 
@@ -2877,7 +2877,7 @@ function Players({
               value: human(serviceState),
               detail: serviceGaps.length
                 ? `${serviceGaps.length} recorded gap${serviceGaps.length === 1 ? '' : 's'}`
-                : 'No player-service gap recorded',
+                : 'Nothing missing right now',
             },
             {
               label: 'Next move',
@@ -2887,7 +2887,7 @@ function Players({
                   ? relativeDate(
                       item.player.next_action_due,
                     )
-                  : 'No due date recorded',
+                  : 'No due date set',
             },
             {
               label: 'Contract timing',
@@ -2902,8 +2902,8 @@ function Players({
               label: 'Market activity',
               value: human(marketState),
               detail: activeDeals
-                ? `${activeDeals} active recorded deal${activeDeals === 1 ? '' : 's'}`
-                : 'No active deal recorded',
+                ? `${activeDeals} active opportunit${activeDeals === 1 ? 'y' : 'ies'}`
+                : 'No active opportunity',
             },
           ];
 
@@ -2931,7 +2931,7 @@ function Players({
                     ?.fix_type ===
                   'assign_primary_staff'
                     ? 'One accountable primary staff member owns the player.'
-                    : 'The recorded player-control gap is resolved.'),
+                    : 'The player issue is resolved.'),
                 confirmationLabel:
                   item.next_control_fix?.fix_type ===
                   'assign_primary_staff'
@@ -3006,8 +3006,8 @@ function Players({
                   <strong>{human(marketState)}</strong>
                   <small>
                     {activeDeals
-                      ? `${activeDeals} active recorded deal${activeDeals === 1 ? '' : 's'}`
-                      : 'No active deal recorded'}
+                      ? `${activeDeals} active opportunit${activeDeals === 1 ? 'y' : 'ies'}`
+                      : 'No active opportunity'}
                   </small>
                 </div>
 
@@ -3074,8 +3074,8 @@ function Players({
         {!items.length ? (
           <EmptyState
             icon={Users}
-            title="No players recorded yet"
-            copy="Once the first player is active, their service position and live business will appear here."
+            title="Add your first player"
+            copy="Add a player to start tracking their contract, opportunities and next actions here."
           />
         ) : null}
       </section>
@@ -3103,12 +3103,11 @@ function Players({
             </div>
 
             <strong>
-              Player service exceptions are surfaced on the cards above.
+              The players who need action are shown above.
             </strong>
 
             <span>
-              These players have a real follow-up, ownership or coverage issue
-              recorded. Open the player above to see the next action.
+              These players have a follow-up, ownership or opportunity issue. Open a player to see what needs to happen next.
             </span>
           </div>
         </section>
@@ -3246,7 +3245,7 @@ function Relationships({
       <WorkspaceIntro
         eyebrow="NETWORK"
         title="Your football network."
-        copy="See the clubs and people you know, what is happening there and the best route in."
+        copy="See who you know at each club, what is happening there and the best person to contact."
         icon={Network}
         badge={`${clubSummary.relevant_clubs ?? clubs.length} relevant clubs`}
       />
@@ -3258,7 +3257,7 @@ function Relationships({
             clubSummary.relevant_clubs ??
               clubs.length,
           )}
-          detail="Clubs connected to current work"
+          detail="Clubs in your network and live work"
         />
 
         <Metric
@@ -3267,7 +3266,7 @@ function Relationships({
             contactSummary.club_contacts ??
               contacts.length,
           )}
-          detail="People recorded at clubs"
+          detail="People you know at clubs"
         />
 
         <Metric
@@ -3277,7 +3276,7 @@ function Relationships({
               .strong_recorded_direct_relationships ||
               0,
           )}
-          detail="Direct access already recorded"
+          detail="People you already know well"
         />
 
         <Metric
@@ -3417,17 +3416,17 @@ function Relationships({
                 ? access.introduction_via ||
                   'Warm introduction'
                 : access.best_direct_contact ||
-                  'No recorded contact';
+                  'No contact yet';
 
             const routeDetail =
               useIntroduction
                 ? access.introduction_target
                   ? `Introduction to ${access.introduction_target}`
-                  : 'Recorded introduction route'
+                  : 'Warm introduction available'
                 : access.best_direct_role ||
                   human(
                     access.direct_state ||
-                      'recorded access',
+                      'contact available',
                   );
 
             const playType = String(
@@ -3460,13 +3459,13 @@ function Relationships({
                       'protect_live_deal',
                       'remove_deal_blocker',
                     ].includes(playType)
-                  ? 'The recorded relationship action is prepared against the live deal and remains human-controlled.'
+                  ? 'The known relationship action is prepared against the live deal and remains human-controlled.'
                   : playType ===
                         'source_for_confirmed_need'
                     ? 'A controlled sourcing task is prepared against the confirmed club need.'
                     : playType === 'pitch_now'
                       ? 'The pitch route is reviewed and prepared for human-led external action.'
-                      : 'The recommended relationship play is prepared against the recorded evidence.';
+                      : 'The recommended relationship step is based on the information you have.';
 
             const playConfirmationLabel =
               warmPlay
@@ -3495,7 +3494,7 @@ function Relationships({
                   ]
                     .filter(Boolean)
                     .join(' · ') ||
-                  'Club context recorded',
+                  'Club details',
               },
               {
                 label: 'Best route',
@@ -3540,7 +3539,7 @@ function Relationships({
                     <p className={styles.eyebrow}>
                       {human(
                         item.account_state ||
-                          'relationship recorded',
+                          'relationship',
                       )}
                     </p>
 
@@ -3564,7 +3563,7 @@ function Relationships({
                       ? 'Warm introduction'
                       : human(
                           access.direct_state ||
-                            'Recorded access',
+                            'Contact available',
                         )}
                   </span>
                 </div>
@@ -3624,7 +3623,7 @@ function Relationships({
                       <strong>
                         {keyContacts.length
                           ? 'Who we know here'
-                          : 'No current contact recorded'}
+                          : 'No contacts yet'}
                       </strong>
                     </div>
 
@@ -3707,7 +3706,7 @@ function Relationships({
                               >
                                 {human(
                                   relationship.route_state ||
-                                    'not recorded',
+                                    'not set',
                                 )}
                               </small>
                             </button>
@@ -3721,9 +3720,7 @@ function Relationships({
                         styles.clubPeopleEmpty
                       }
                     >
-                      Add or capture the people
-                      behind this club to build a
-                      usable relationship route.
+                      Add the people you know at this club so ReDream can show you the best route in.
                     </p>
                   )}
                 </div>
@@ -3779,7 +3776,7 @@ function Relationships({
                             clubName,
                           instruction:
                             topPlay.recommended_action ||
-                            'Prepare the strongest recorded relationship route.',
+                            'Prepare the best relationship route.',
                           label:
                             playActionLabel,
                           action:
@@ -3861,12 +3858,12 @@ function Relationships({
               title={
                 relationshipSearch
                   ? 'No clubs match this search'
-                  : 'No relevant club relationships yet'
+                  : 'Add your first club relationship'
               }
               copy={
                 relationshipSearch
                   ? 'Try another club, country or league.'
-                  : 'Add club contacts and keep your relationships current to build this view.'
+                  : 'Add a club or contact to start building your network here.'
               }
             />
           ) : null}
@@ -3901,7 +3898,7 @@ function Relationships({
 
               const clubName =
                 employment.organisation_name ||
-                'Club not recorded';
+                'Club not set';
 
               const location = [
                 employment.organisation_city,
@@ -3957,7 +3954,7 @@ function Relationships({
                       >
                         {human(
                           item.operating_state ||
-                            'relationship recorded',
+                            'relationship',
                         )}
                       </p>
 
@@ -3978,7 +3975,7 @@ function Relationships({
                     >
                       {human(
                         relationship.route_state ||
-                          'not recorded',
+                          'not set',
                       )}
                     </span>
                   </div>
@@ -3996,7 +3993,7 @@ function Relationships({
                       <small>
                         {location ||
                           employment.league_name ||
-                          'Location not recorded'}
+                          'Location not set'}
                       </small>
                     </div>
 
@@ -4010,7 +4007,7 @@ function Relationships({
                       </strong>
                       <small>
                         {relationship.route_score
-                          ? `Recorded route ${relationship.route_score}`
+                          ? `Contact route ${relationship.route_score}`
                           : 'No direct relationship score recorded'}
                       </small>
                     </div>
@@ -4026,7 +4023,7 @@ function Relationships({
                           ? relativeDate(
                               activity.last_interaction_at,
                             )
-                          : 'Not recorded'}
+                          : 'Not set'}
                       </strong>
                       <small>
                         {Number(
@@ -4143,7 +4140,7 @@ function Relationships({
               title={
                 relationshipSearch
                   ? 'No contacts match this search'
-                  : 'No club contacts recorded yet'
+                  : 'No club contacts yet'
               }
               copy={
                 relationshipSearch
@@ -4308,7 +4305,7 @@ function AgencyCalendar({
 
   const exactDate = (value: unknown) => {
     const raw = String(value || '').trim();
-    if (!raw) return 'Date not recorded';
+    if (!raw) return 'Date not set';
 
     const date = new Date(
       /^\d{4}-\d{2}-\d{2}$/.test(raw)
@@ -4397,8 +4394,8 @@ function AgencyCalendar({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="CALENDAR"
-        title="The dates your agency cannot forget."
-        copy="Birthdays, contracts, representation records and dated work from information already recorded by the agency."
+        title="Everything coming up."
+        copy="Meetings, follow-ups, birthdays and important contract dates in one place."
         icon={CalendarDays}
         badge={`${items.length} upcoming dates`}
       />
@@ -4434,7 +4431,7 @@ function AgencyCalendar({
             {contractDates}
           </strong>
           <small>
-            Recorded in this horizon
+            Coming up in this period
           </small>
         </div>
 
@@ -4444,7 +4441,7 @@ function AgencyCalendar({
             {representationDates}
           </strong>
           <small>
-            Recorded end dates
+            Agreements ending in this period
           </small>
         </div>
       </section>
@@ -4520,7 +4517,7 @@ function AgencyCalendar({
                         ?.instruction ||
                       human(
                         item?.deadline_type ||
-                          'Recorded date',
+                          'Important date',
                       );
 
                 return (
@@ -4562,7 +4559,7 @@ function AgencyCalendar({
                           {human(
                             item?.date_state ||
                               item?.deadline_state ||
-                              'Recorded',
+                              'Upcoming',
                           )}
                         </small>
                       </div>
@@ -4580,7 +4577,7 @@ function AgencyCalendar({
                             )} · ${relativeDate(
                               item.date_at,
                             )}`
-                          : 'Date not recorded'}
+                          : 'Date not set'}
                       </span>
 
                       <small>
@@ -4609,8 +4606,8 @@ function AgencyCalendar({
           {!items.length ? (
             <EmptyState
               icon={CalendarDays}
-              title="No upcoming dates recorded"
-              copy="Birthdays, contracts, representation dates, meetings and follow-ups will appear here as they are recorded."
+              title="Nothing coming up yet"
+              copy="Meetings, follow-ups, birthdays and contract dates will appear here when they are added or connected."
             />
           ) : null}
         </div>
@@ -4620,7 +4617,7 @@ function AgencyCalendar({
             styles.calendarTruth
           }
         >
-          The calendar shows recorded dates and recurring player birthdays. A date can prompt attention, but it does not determine legal, regulatory or commercial consequence.
+          Calendar dates help you plan your work. Always check the underlying contract or agreement before relying on a legal or commercial deadline.
         </p>
       </section>
     </div>
@@ -4638,16 +4635,16 @@ function Business({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="BUSINESS"
-        title="Agency business"
-        copy="Deals, money owed and team ownership."
+        title="Your business"
+        copy="See your live deals, expected income and who owns each piece of work."
         icon={Coins}
         badge="Management only"
       />
 
       <section className={styles.businessEntry}>
         <div>
-          <h2>See the agency position.</h2>
-          <p>Deals, receivables and team ownership in one place.</p>
+          <h2>See where the business stands.</h2>
+          <p>Live deals, money due and team ownership in one place.</p>
         </div>
 
         <button
@@ -4658,7 +4655,7 @@ function Business({
           disabled={!data?.owner_business}
         >
           <Coins size={15} />
-          Open business view
+          Open business
         </button>
       </section>
     </div>
@@ -4694,8 +4691,8 @@ function Market({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="OPPORTUNITIES"
-        title="Club needs. Player fits. Best route in."
-        copy="See what clubs need, which players could fit and who can open the door."
+        title="See every live opportunity clearly."
+        copy="See what a club needs, which player fits and who can help you move it forward."
         icon={Target}
         badge={`${demandSummary.active_needs ?? needs.length} active needs`}
       />
@@ -4706,21 +4703,21 @@ function Market({
           value={String(
             demandSummary.active_needs ?? needs.length,
           )}
-          detail="Live requirements from clubs"
+          detail="What clubs are actively looking for"
         />
 
         <Metric
-          label="Needs without a player"
+          label="Needs without a match"
           value={String(demandSummary.roster_gaps || 0)}
-          detail="No player route recorded yet"
+          detail="No suitable player linked yet"
         />
 
         <Metric
-          label="Player routes"
+          label="Player opportunities"
           value={String(
             pursuitSummary.pursuit_count ?? pursuits.length,
           )}
-          detail="Player to club opportunities"
+          detail="Players linked to a club opportunity"
         />
 
         <Metric
@@ -4775,7 +4772,7 @@ function Market({
 
                     <span>
                       {item.next_action?.instruction ||
-                        'Review the recorded need.'}
+                        'Review the club need.'}
                     </span>
 
                     <small>
@@ -4786,7 +4783,7 @@ function Market({
 
                     <div
                       className={styles.routeCandidates}
-                      aria-label="Recorded player routes"
+                      aria-label="Player opportunities"
                     >
                       {visibleCandidates.map((candidate: any) => (
                         <div
@@ -4822,7 +4819,7 @@ function Market({
                                     'PLAYER-CLUB ROUTE',
                                   title:
                                     candidate.player_name ||
-                                    'Player route',
+                                    'Player opportunity',
                                   instruction:
                                     candidate.career_gate_reason ||
                                     'Review the player-owned career strategy before external activity.',
@@ -4852,7 +4849,7 @@ function Market({
                                       label: 'Club need',
                                       value:
                                         item.need?.title ||
-                                        'Recorded player need',
+                                        'Player need',
                                       detail:
                                         item.club?.name ||
                                         'Club recorded',
@@ -4901,7 +4898,7 @@ function Market({
 
                       {!visibleCandidates.length ? (
                         <div className={styles.routeCandidateEmpty}>
-                          No recorded candidate yet
+                          No player linked yet
                         </div>
                       ) : null}
 
@@ -4952,7 +4949,7 @@ function Market({
                                 label: 'Need',
                                 value:
                                   item.need?.title ||
-                                  'Recorded player need',
+                                  'Player need',
                                 detail:
                                   `${human(item.need?.need_type || 'recorded')} · ${item.club?.name || 'Club recorded'}`,
                               },
@@ -4977,7 +4974,7 @@ function Market({
                                       item.need
                                         .transfer_type,
                                     )
-                                  : 'Transfer type not recorded',
+                                  : 'Transfer type not set',
                               },
                               {
                                 label: 'Coverage',
@@ -4985,7 +4982,7 @@ function Market({
                                   `${Number(item.candidate_coverage?.recorded_candidates || 0)} recorded candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
                                 detail: human(
                                   item.coverage_state ||
-                                    'coverage not recorded',
+                                    'coverage not set',
                                 ),
                               },
                               {
@@ -5020,8 +5017,8 @@ function Market({
             {!needs.length ? (
               <EmptyState
                 icon={Target}
-                title="No active club demand"
-                copy="Club needs will appear here with possible players and the next action."
+                title="No club needs yet"
+                copy="Add or capture what a club is looking for. ReDream will keep the possible players and next step together here."
               />
             ) : null}
           </div>
@@ -5033,9 +5030,9 @@ function Market({
           <div className={styles.sectionHead}>
             <div>
               <p className={styles.eyebrow}>
-                PLAYER-CLUB ROUTES
+                PLAYER OPPORTUNITIES
               </p>
-              <h2>Routes to move</h2>
+              <h2>Player opportunities to move</h2>
             </div>
 
             <span className={styles.sectionCount}>
@@ -5137,7 +5134,7 @@ function Market({
                       }
                     >
                       <BriefcaseBusiness size={14} />
-                      Open route
+                      Open opportunity
                     </button>
 
                     {item.player?.player_id ? (
@@ -5203,7 +5200,7 @@ function Market({
                                     ?.role_title ||
                                   item.best_access_route
                                     ?.why_this_route ||
-                                  'Recorded relationship route',
+                                  'Relationship route',
                               },
                               {
                                 label:
@@ -5244,8 +5241,8 @@ function Market({
             {!pursuits.length ? (
               <EmptyState
                 icon={Target}
-                title="No active player-club pursuits"
-                copy="Recorded player routes will appear here only when real club demand and player context exist."
+                title="No player opportunities yet"
+                copy="When a player is linked to a real club need, the opportunity and next step will appear here."
               />
             ) : null}
           </div>
@@ -5292,7 +5289,7 @@ function Deals({
           value={String(
             summary.active_deals ?? deals.length,
           )}
-          detail="Deals currently in play"
+          detail="Deals you are actively working"
         />
 
         <Metric
@@ -5307,7 +5304,7 @@ function Deals({
             (summary.momentum_recovery_deals || 0) +
               (summary.commercial_rescue_deals || 0),
           )}
-          detail="Cooling or stalled work"
+          detail="Deals that need a push"
         />
 
         <Metric
@@ -5315,7 +5312,7 @@ function Deals({
           value={String(
             summary.negotiation_preparation_required_count || 0,
           )}
-          detail="Deals needing preparation"
+          detail="Deals to prepare for negotiation"
         />
       </section>
 
@@ -5356,7 +5353,7 @@ function Deals({
                     deal.expected_commission,
                     deal.currency,
                   )
-                : 'Commission not recorded';
+                : 'Commission not set';
 
             const introductionContext =
               deal.next_best_move
@@ -5399,7 +5396,7 @@ function Deals({
                 label: 'Primary blocker',
                 value:
                   deal.primary_blocker ||
-                  'No blocker recorded',
+                  'No blocker',
                 detail: human(
                   deal.control_state ||
                     deal.rescue_state ||
@@ -5412,19 +5409,19 @@ function Deals({
                 detail:
                   hasExpectedCommission
                     ? 'Expected commission'
-                    : 'Expected commission not recorded',
+                    : 'Expected commission not set',
               },
               {
                 label: 'Access route',
                 value:
                   introductionTarget ||
                   deal.organisation ||
-                  'No route recorded',
+                  'No contact route yet',
                 detail:
                   introductionVia
                     ? `Warm introduction via ${introductionVia}`
                     : introductionRole ||
-                      'No warm introduction recorded',
+                      'No warm introduction yet',
               },
             ];
 
@@ -5582,8 +5579,8 @@ function Deals({
           {!deals.length ? (
             <EmptyState
               icon={BriefcaseBusiness}
-              title="No live deals recorded"
-              copy="Active deal rooms will appear here with their next recorded decision and commercial context."
+              title="No live deals yet"
+              copy="Live deals will appear here with the value, blocker and next step."
             />
           ) : null}
         </div>

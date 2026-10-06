@@ -88,7 +88,7 @@ test('Calendar distinguishes birthdays playing contracts and agency agreements',
 
   assert.match(
     workspace,
-    /The dates your agency cannot forget/,
+    /Everything coming up/,
   );
 
   assert.match(

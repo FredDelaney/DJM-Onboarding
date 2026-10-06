@@ -21,7 +21,7 @@ test('first relationship becomes one guided working loop for the owner', () => {
   assert.match(ownerLaunch, /FIRST WORKING LOOP/);
   assert.match(ownerLaunch, /Put one player in motion/);
   assert.match(ownerLaunch, /Real club relationship/);
-  assert.match(ownerLaunch, /Live player route/);
+  assert.match(ownerLaunch, /Live player opportunity/);
   assert.match(ownerLaunch, /Create first working loop/);
 });
 

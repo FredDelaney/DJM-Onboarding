@@ -42,7 +42,7 @@ const money = (
   const amount = Number(value);
 
   if (!Number.isFinite(amount)) {
-    return 'Not recorded';
+    return 'Not set';
   }
 
   try {
@@ -81,7 +81,7 @@ const teamStateLabel = (value: unknown) => {
     case 'active_load':
       return 'Active work';
     default:
-      return 'No recorded load';
+      return 'No active workload';
   }
 };
 
@@ -243,7 +243,7 @@ export default function AgencyOwnerCommandCentre({
       instruction:
         item.breach?.required_action ||
         item.breach?.fact ||
-        'Review the recorded service-control gap.',
+        'Review the service issue.',
       label:
         action ===
         'player_control_fix_prepare'
@@ -262,7 +262,7 @@ export default function AgencyOwnerCommandCentre({
       ),
       facts: [
         {
-          label: 'Recorded issue',
+          label: 'Issue',
           value: human(
             item.breach?.code ||
               'service control',
@@ -282,7 +282,7 @@ export default function AgencyOwnerCommandCentre({
       successCondition:
         item.action_plan?.expected_fix
           ? `The recorded ${human(item.action_plan.expected_fix)} gap is resolved.`
-          : 'The recorded operating gap is resolved or deliberately reset.',
+          : 'The operating issue is resolved or deliberately reset.',
     });
   };
 
@@ -336,7 +336,7 @@ export default function AgencyOwnerCommandCentre({
               <p>PIPELINE</p>
               <h3>{weightedLabel}</h3>
               <span>
-                Weighted commission is recorded expected commission multiplied by the agency-entered deal probability. It is not guaranteed revenue.
+                Weighted commission is expected commission multiplied by the deal probability your agency entered. It is not guaranteed revenue.
               </span>
             </div>
 
@@ -358,7 +358,7 @@ export default function AgencyOwnerCommandCentre({
                 executive.active_deals ??
                   primaryCurrency?.active_deals,
               )}
-              detail="Recorded live commercial processes"
+              detail="Live commercial processes"
             />
             <Fact
               label="Service breaches"
@@ -368,7 +368,7 @@ export default function AgencyOwnerCommandCentre({
               )}
               detail={`${count(
                 serviceSummary.players_with_breaches,
-              )} player(s) with recorded breaches`}
+              )} player(s) with service issues`}
             />
             <Fact
               label="Players without owner"
@@ -376,7 +376,7 @@ export default function AgencyOwnerCommandCentre({
                 capacity.active_players_without_primary_owner ??
                   executive.players_without_primary_owner,
               )}
-              detail="Primary staff ownership not recorded"
+              detail="Primary staff ownership not set"
             />
             <Fact
               label="Open receivables"
@@ -434,7 +434,7 @@ export default function AgencyOwnerCommandCentre({
                       </span>
                       <small>
                         {item.primary_blocker ||
-                          `${count(item.exposure_gap_count)} recorded operating gap(s)`}
+                          `${count(item.exposure_gap_count)} operating issue(s)`}
                       </small>
                     </div>
 
@@ -469,7 +469,7 @@ export default function AgencyOwnerCommandCentre({
                   />
                   <div>
                     <strong>
-                      No revenue-protection item is currently recorded.
+                      No revenue-protection item needs attention right now.
                     </strong>
                     <span>
                       ReDream will only surface exposure supported by the deal record.
@@ -667,7 +667,7 @@ export default function AgencyOwnerCommandCentre({
                           {count(
                             network.recorded_relationships,
                           )}{' '}
-                          recorded relationship
+                          known relationship
                           {Number(
                             network.recorded_relationships ||
                               0,
@@ -724,7 +724,7 @@ export default function AgencyOwnerCommandCentre({
                 <Users size={16} />
                 <div>
                   <strong>
-                    No active team members are recorded.
+                    No active team members yet.
                   </strong>
                   <span>
                     Team ownership will appear here as agents join the workspace.
@@ -734,7 +734,7 @@ export default function AgencyOwnerCommandCentre({
             )}
 
             <p className={styles.truth}>
-              Work counts show recorded ownership, not effort or performance. ReDream does not calculate a fake utilisation percentage because actual working hours and effort per task are not recorded.
+              Work counts show recorded ownership, not effort or performance. ReDream does not calculate a fake utilisation percentage because actual working hours and effort per task are not set.
             </p>
           </section>
 
@@ -788,7 +788,7 @@ export default function AgencyOwnerCommandCentre({
                           ?.fact ||
                           item.breach
                             ?.required_action ||
-                          'Recorded operating gap'}
+                          'Operating issue'}
                       </small>
                     </div>
 
@@ -820,7 +820,7 @@ export default function AgencyOwnerCommandCentre({
                   />
                   <div>
                     <strong>
-                      No directly actionable player-control gap is currently recorded.
+                      No player-control issue needs action right now.
                     </strong>
                     <span>
                       Other evidence remains visible without inventing an action.
@@ -890,7 +890,7 @@ export default function AgencyOwnerCommandCentre({
           </section>
 
           <p className={styles.truth}>
-            This command centre separates factual operating control, recorded commercial exposure and measured platform activity. It does not turn them into one opaque agency score.
+            This view keeps operations, commercial exposure and platform activity separate. ReDream does not hide them behind one made-up agency score.
           </p>
         </div>
       </aside>

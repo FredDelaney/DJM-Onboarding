@@ -713,9 +713,9 @@ export default function AgencyPlayerProfile({
         settings: { ...(bundle?.settings || {}), key_stats: [] },
       });
       if (!(await load(true))) {
-        throw new Error('The club profile now uses recorded statistics, but could not reload. Reload recorded data to recover.');
+        throw new Error('The club profile now uses current statistics, but could not reload. Reload recorded data to recover.');
       }
-      setNotice('The club profile now uses recorded statistics. Publish the revised profile when it is ready.');
+      setNotice('The club profile now uses current statistics. Publish the revised profile when it is ready.');
     } finally {
       setActionBusy('');
     }
@@ -1208,7 +1208,7 @@ export default function AgencyPlayerProfile({
   if (!bundle) {
     return (
       <section className={styles.errorCard}>
-        <strong>Player Profile could not load</strong>
+        <strong>Player profile could not load</strong>
         <p>Nothing has been changed. Try again, or return to the player workspace.</p>
         <div className={styles.errorActions}>
           <button data-ui-button="secondary" type="button" onClick={() => void load()} disabled={loading}>
@@ -1291,7 +1291,7 @@ export default function AgencyPlayerProfile({
           <div>
             <h3>Player data needs review</h3>
             <p>{player.review_reason || 'New player information needs checking.'}</p>
-            <span>Check the recorded information before confirming it is current.</span>
+            <span>Check the information before confirming it is current.</span>
           </div>
           {canEdit ? <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => openVerify('verification')}>Review updated data</button> : null}
         </section>
@@ -1692,24 +1692,24 @@ export default function AgencyPlayerProfile({
           <div className={styles.facts}>
             <div>
               <span>Position</span>
-              <strong>{player.primary_position || 'Not recorded'}</strong>
+              <strong>{player.primary_position || 'Not set'}</strong>
             </div>
             <div>
               <span>Current club</span>
-              <strong>{player.current_club || 'Not recorded'}</strong>
+              <strong>{player.current_club || 'Not set'}</strong>
             </div>
             <div>
               <span>Contract</span>
               <strong>
-                {human(player.contract_status) || 'Not recorded'}
+                {human(player.contract_status) || 'Not set'}
               </strong>
             </div>
             <div>
               <span>Nationality</span>
               <strong>
                 {Array.isArray(player.nationalities)
-                  ? player.nationalities.join(' · ') || 'Not recorded'
-                  : 'Not recorded'}
+                  ? player.nationalities.join(' · ') || 'Not set'
+                  : 'Not set'}
               </strong>
             </div>
           </div>
@@ -2138,9 +2138,9 @@ export default function AgencyPlayerProfile({
 
               {player.review_required_at || player.review_reason ? (
                 <section className={styles.reviewStats} aria-label="Statistics to review">
-                  <strong>Current recorded statistics</strong>
+                  <strong>Current statistics</strong>
                   <p>Check these figures against the source before confirming the player data. Custom club headline statistics are reviewed separately.</p>
-                  {recordedStatsSource ? <p><a href={recordedStatsSource} target="_blank" rel="noreferrer">Open recorded statistics source <ExternalLink size={11} /></a></p> : null}
+                  {recordedStatsSource ? <p><a href={recordedStatsSource} target="_blank" rel="noreferrer">Open current statistics source <ExternalLink size={11} /></a></p> : null}
                   <div className={styles.keyStats}>
                     {recordedStats.slice(0, 6).map((item: any, index: number) => (
                       <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
@@ -2319,7 +2319,7 @@ export default function AgencyPlayerProfile({
             <header>
               <div>
                 <span className={styles.eyebrow}>EDIT PLAYER PROFILE</span>
-                <h2>Only edit what needs agency judgement.</h2>
+                <h2>Only change what needs your judgement.</h2>
                 <p>
                   Core player data, verified stats, career history and agency
                   branding are pulled in automatically.

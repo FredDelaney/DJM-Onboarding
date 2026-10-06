@@ -39,6 +39,6 @@ test('Player intelligence leads with recorded actions instead of an internal sco
   assert.match(drawer, /NEXT PLAYER CONTROL/);
   assert.match(drawer, /control gaps/);
   assert.match(drawer, /No active market process/);
-  assert.match(drawer, /Career plan not recorded/);
+  assert.match(drawer, /Career plan not set/);
   assert.match(drawer, /Recorded service/);
 });

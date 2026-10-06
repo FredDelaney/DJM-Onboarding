@@ -524,7 +524,7 @@ export default function AgencyTeamHandoffDrawer({
               <strong>What will not move</strong>
               <span>
                 Personal calendars, email connections, selected chats and
-                recorded relationship routes stay exactly where they are.
+                known relationship routes stay exactly where they are.
               </span>
             </div>
 

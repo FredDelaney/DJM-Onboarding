@@ -23,7 +23,7 @@ test('Network People Open club is tertiary navigation', () => {
 
 test('Opportunity cards expose semantic card labels', () => {
   assert.match(opportunities, /Club need/);
-  assert.match(opportunities, /Player route/);
+  assert.match(opportunities, /Player opportunity/);
   assert.match(opportunities, /Live deal/);
   const final = opportunitiesCss.slice(opportunitiesCss.lastIndexOf('Opportunity card refinement v3'));
   assert.match(final, /\.rowEyebrow[\s\S]*text-transform: uppercase/);

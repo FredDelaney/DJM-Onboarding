@@ -41,7 +41,7 @@ test('generic opportunity and network empty states stay white-label and tenant-b
   );
   assert.match(
     opportunities,
-    /Add a real club need and the player routes around it can be organised here\./,
+    /Add a real club need and the player opportunities around it can be organised here\./,
   );
   assert.match(
     opportunitiesCss,

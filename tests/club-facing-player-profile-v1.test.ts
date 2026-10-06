@@ -68,7 +68,7 @@ test('club hero shows recorded identity and keeps evaluation actions usable on m
   assert.match(profile, /primaryVideo && !hidden\.has\('videos'\)/);
   assert.match(profile, /profile\.transfermarkt_url && \(/);
   assert.match(profile, /email && \([\s\S]*href=\{mailto\}/);
-  assert.match(profile, /profile\.current_club \|\| 'Not recorded'/);
+  assert.match(profile, /profile\.current_club \|\| 'Not set'/);
   assert.match(css, /"copy photo"\s*"actions actions"/);
   assert.match(css, /\.dossier-hero-btn \{[\s\S]*?min-height: 48px/);
 });

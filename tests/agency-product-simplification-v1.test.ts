@@ -57,8 +57,8 @@ test('Home stays focused on five ranked agency decisions rather than dashboard w
   assert.match(workspace, /\.slice\(0, 5\)/);
   assert.match(workspace, /Good morning\./);
   assert.match(workspace, /things matter/);
-  assert.match(workspace, /Ranked across the agency/);
-  assert.match(workspace, /ReDream recommends/);
+  assert.match(workspace, /What matters most/);
+  assert.match(workspace, /Next step/);
   assert.doesNotMatch(workspace, /AGENCY PULSE/);
   assert.doesNotMatch(workspace, /OPPORTUNITIES MOVING/);
   assert.doesNotMatch(workspace, /PLAYERS NEEDING ATTENTION/);
@@ -70,7 +70,7 @@ test('Opportunities combines existing market and deal capability without rebuild
   assert.match(workspace, /redream_autopilot_market/);
   assert.match(workspace, /redream_autopilot_deals/);
   assert.match(workspace, /function Opportunities/);
-  assert.match(workspace, /Club needs\. Player fits\. Best route in\./);
+  assert.match(workspace, /See every live opportunity clearly\./);
   assert.match(workspace, /AgencyPursuitRoom/);
   assert.match(workspace, /AgencyNegotiationCommandRoom/);
   assert.match(workspace, /AgencyDealCloseoutDrawer/);

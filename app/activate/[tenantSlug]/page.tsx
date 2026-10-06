@@ -784,7 +784,7 @@ export default function AgencyLaunchPage() {
             <div className={styles.workingLoopStage}>
               <span>2</span>
               <div>
-                <strong>Live player route</strong>
+                <strong>Live player opportunity</strong>
                 <p>Attach one represented player and the next commercial move.</p>
               </div>
             </div>

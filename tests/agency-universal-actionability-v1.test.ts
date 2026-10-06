@@ -124,7 +124,7 @@ test('Relationship plays can be prepared beside the relationship evidence', () =
 test('aggregate warnings point to actionable rows instead of becoming dead ends', () => {
   assert.match(
     workspace,
-    /Player service exceptions are surfaced on the cards above/,
+    /The players who need action are shown above/,
   );
   assert.match(
     workspace,
@@ -325,7 +325,7 @@ test('Deal actions distinguish internal introduction preparation from external s
   );
   assert.match(
     workspace,
-    /const commissionValue =[\s\S]*hasExpectedCommission && deal\.currency[\s\S]*Commission not recorded/,
+    /const commissionValue =[\s\S]*hasExpectedCommission && deal\.currency[\s\S]*Commission not set/,
   );
   assert.match(
     workspace,

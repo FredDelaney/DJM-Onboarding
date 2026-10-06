@@ -44,7 +44,7 @@ test('Today gives each ranked item one explicit primary action', () => {
 
 test('Home hierarchy is one concise Today surface', () => {
   assert.match(home, /<h2>Today<\/h2>/);
-  assert.match(home, /Ranked across the agency/);
+  assert.match(home, /What matters most/);
   assert.doesNotMatch(home, /<h2>Needs attention<\/h2>/);
   assert.doesNotMatch(home, /What changed/);
   assert.doesNotMatch(home, /Recently handled by ReDream/);

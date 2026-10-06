@@ -89,9 +89,9 @@ const ageFromDob = (value: unknown) => {
 
 const nextBirthday = (value: unknown) => {
   const raw = String(value || '');
-  if (!raw) return 'Birthday not recorded';
+  if (!raw) return 'Birthday not set';
   const dob = new Date(`${raw}T12:00:00`);
-  if (Number.isNaN(dob.getTime())) return 'Birthday not recorded';
+  if (Number.isNaN(dob.getTime())) return 'Birthday not set';
   const now = new Date();
   const next = new Date(now.getFullYear(), dob.getMonth(), dob.getDate(), 12);
   if (next < now) next.setFullYear(now.getFullYear() + 1);
@@ -235,12 +235,12 @@ function PlayerDrawer({
       payload: { player_id: playerId },
       facts: [
         { label: 'Player status', value: human(service?.service_control?.state || 'Recorded') },
-        { label: 'Next move', value: nextMove?.instruction || identity.next_action || 'Not recorded' },
-        { label: 'Contract timing', value: identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'No expiry recorded' },
-        { label: 'Market activity', value: human(service?.market_coverage?.state || 'Not recorded') },
+        { label: 'Next move', value: nextMove?.instruction || identity.next_action || 'Not set' },
+        { label: 'Contract timing', value: identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'No expiry set' },
+        { label: 'Market activity', value: human(service?.market_coverage?.state || 'Not set') },
       ],
       successCondition: control?.success_condition || nextMove?.success_condition ||
-        'The recorded player action is completed and the next step is current.',
+        'The player action is complete and the next step is current.',
     });
   };
 
@@ -257,7 +257,7 @@ function PlayerDrawer({
         {busy ? (
           <div className={styles.drawerState}>
             <LoaderCircle size={20} className={styles.spin} />
-            <div><strong>Opening player</strong><span>Loading the current agency record.</span></div>
+            <div><strong>Opening player</strong><span>Loading the latest player details.</span></div>
           </div>
         ) : null}
 
@@ -277,7 +277,7 @@ function PlayerDrawer({
                 <h2>{playerName}</h2>
                 <span>
                   {[identity.primary_position, identity.current_club, identity.current_country]
-                    .filter(Boolean).join(' · ') || 'Football details not fully recorded'}
+                    .filter(Boolean).join(' · ') || 'Add position, club or country'}
                 </span>
               </div>
               <div className={styles.playerHeroManage}>
@@ -346,24 +346,24 @@ function PlayerDrawer({
                 <div className={styles.detailStack}>
                   <section className={styles.detailHero}>
                     <p>NEXT MOVE</p>
-                    <h3>{service?.next_service_move?.instruction || identity.next_action || 'No next action recorded'}</h3>
-                    <span>{identity.next_action_due ? relativeDate(identity.next_action_due) : 'No due date recorded'}</span>
+                    <h3>{service?.next_service_move?.instruction || identity.next_action || 'No next action yet'}</h3>
+                    <span>{identity.next_action_due ? relativeDate(identity.next_action_due) : 'No due date set'}</span>
                   </section>
                   <div className={styles.factGrid}>
-                    <div><span>Birthday</span><strong>{nextBirthday(identity.date_of_birth)}</strong><small>{identity.date_of_birth || 'Date not recorded'}</small></div>
-                    <div><span>Playing contract</span><strong>{identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'Not recorded'}</strong><small>{human(identity.contract_status || 'Status not recorded')}</small></div>
-                    <div><span>Agency agreement</span><strong>{representation?.end_date ? relativeDate(representation.end_date) : representation ? 'No end date recorded' : 'Not recorded'}</strong><small>{representation ? human(representation.agreement_type) : 'Representation agreement not recorded'}</small></div>
-                    <div><span>Opportunities</span><strong>{opportunities.filter((item: any) => !['won','lost','paused'].includes(String(item?.stage || ''))).length + deals.filter((deal: any) => deal?.status === 'active').length}</strong><small>Active recorded routes</small></div>
+                    <div><span>Birthday</span><strong>{nextBirthday(identity.date_of_birth)}</strong><small>{identity.date_of_birth || 'Date not set'}</small></div>
+                    <div><span>Playing contract</span><strong>{identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'Not set'}</strong><small>{human(identity.contract_status || 'Status not set')}</small></div>
+                    <div><span>Agency agreement</span><strong>{representation?.end_date ? relativeDate(representation.end_date) : representation ? 'No end date set' : 'Not set'}</strong><small>{representation ? human(representation.agreement_type) : 'No representation agreement'}</small></div>
+                    <div><span>Opportunities</span><strong>{opportunities.filter((item: any) => !['won','lost','paused'].includes(String(item?.stage || ''))).length + deals.filter((deal: any) => deal?.status === 'active').length}</strong><small>Active opportunities</small></div>
                   </div>
                   <section className={styles.recentActivity}>
                     <span>Latest activity</span>
                     {activity[0] ? (
                       <div>
                         <strong>{human(activity[0]?.event_type || 'Agency activity')}</strong>
-                        <small>{activity[0]?.occurred_at ? relativeDate(activity[0].occurred_at) : 'Date not recorded'}</small>
+                        <small>{activity[0]?.occurred_at ? relativeDate(activity[0].occurred_at) : 'Date not set'}</small>
                       </div>
                     ) : (
-                      <strong>No recent activity recorded</strong>
+                      <strong>No recent activity</strong>
                     )}
                   </section>
                 </div>
@@ -400,12 +400,12 @@ function PlayerDrawer({
                     {[...opportunities, ...deals].map((item: any) => (
                       <article className={styles.row} key={`${item.id}:${item.stage}`}>
                         <div><strong>{item.club_name || item.title || 'Opportunity'}</strong>
-                          <span>{item.summary || item.next_action || item.primary_blocker || 'Recorded opportunity'}</span>
+                          <span>{item.summary || item.next_action || item.primary_blocker || 'Opportunity'}</span>
                           <small>{human(item.stage || item.status || 'Recorded')}</small></div>
                       </article>
                     ))}
                     {!opportunities.length && !deals.length ? (
-                      <Empty icon={Target} title="No active opportunities recorded"
+                      <Empty icon={Target} title="No active opportunities"
                         copy="Player-club routes and live deals will appear here when they are created." />
                     ) : null}
                   </div>
@@ -415,8 +415,8 @@ function PlayerDrawer({
               {tab === 'career' ? (
                 <section className={styles.detailSection}>
                   <p>CAREER PLAN</p>
-                  <h3>{career?.strategy?.objective || 'No career objective recorded'}</h3>
-                  <span className={styles.sectionCopy}>{career?.next_strategy_action?.instruction || 'No career-plan action recorded'}</span>
+                  <h3>{career?.strategy?.objective || 'No career objective yet'}</h3>
+                  <span className={styles.sectionCopy}>{career?.next_strategy_action?.instruction || 'No career-plan action yet'}</span>
                   {career?.next_strategy_action?.instruction ? (
                     <button type="button" data-ui-button="primary"
               className={styles.primaryButton} onClick={() =>
@@ -439,25 +439,25 @@ function PlayerDrawer({
                 <div className={styles.detailStack}>
                   <section className={styles.detailSection}>
                     <p>PLAYING CONTRACT</p>
-                    <h3>{identity.current_club || 'Current club not recorded'}</h3>
+                    <h3>{identity.current_club || 'Current club not set'}</h3>
                     <div className={styles.factGrid}>
-                      <div><span>Status</span><strong>{human(identity.contract_status || 'Not recorded')}</strong></div>
-                      <div><span>Expiry</span><strong>{identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'Not recorded'}</strong></div>
+                      <div><span>Status</span><strong>{human(identity.contract_status || 'Not set')}</strong></div>
+                      <div><span>Expiry</span><strong>{identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'Not set'}</strong></div>
                     </div>
                   </section>
                   <section className={styles.detailSection}>
                     <p>AGENCY AGREEMENTS</p>
-                    <h3>Representation records</h3>
+                    <h3>Representation</h3>
                     <div className={styles.rows}>
                       {agreements.map((item: any) => (
                         <article className={styles.row} key={item.id}>
                           <div><strong>{item.title || human(item.agreement_type || 'Agreement')}</strong>
                             <span>{human(item.status || 'Recorded')}</span>
-                            <small>{item.end_date ? `Ends ${relativeDate(item.end_date)}` : 'No end date recorded'}</small></div>
+                            <small>{item.end_date ? `Ends ${relativeDate(item.end_date)}` : 'No end date set'}</small></div>
                         </article>
                       ))}
                       {!agreements.length ? (
-                        <Empty icon={ShieldCheck} title="Representation agreement not recorded"
+                        <Empty icon={ShieldCheck} title="No representation agreement"
                           copy="This means no active agreement record is stored here. It is not a legal conclusion about representation authority." />
                       ) : null}
                     </div>
@@ -467,15 +467,15 @@ function PlayerDrawer({
 
               {tab === 'activity' ? (
                 <section className={styles.detailSection}>
-                  <p>ACTIVITY</p><h3>Recorded agency activity</h3>
+                  <p>ACTIVITY</p><h3>Agency activity</h3>
                   <div className={styles.rows}>
                     {activity.map((item: any, index: number) => (
                       <article className={styles.row} key={`${item.event_type}:${index}`}>
                         <div><strong>{human(item.event_type || 'Agency activity')}</strong>
-                          <span>{item.occurred_at ? relativeDate(item.occurred_at) : 'Date not recorded'}</span></div>
+                          <span>{item.occurred_at ? relativeDate(item.occurred_at) : 'Date not set'}</span></div>
                       </article>
                     ))}
-                    {!activity.length ? <Empty icon={CalendarDays} title="No player activity recorded yet"
+                    {!activity.length ? <Empty icon={CalendarDays} title="No player activity yet"
                       copy="Relevant agency events will appear here without exposing private event payloads." /> : null}
                   </div>
                 </section>
@@ -490,10 +490,10 @@ function PlayerDrawer({
                         <FileText size={15} />
                         <div><strong>{item.title || 'Player document'}</strong>
                           <span>{human(item.document_type || 'Document')}</span>
-                          <small>{item.expires_at ? `Expires ${relativeDate(item.expires_at)}` : 'No expiry recorded'}</small></div>
+                          <small>{item.expires_at ? `Expires ${relativeDate(item.expires_at)}` : 'No expiry set'}</small></div>
                       </article>
                     ))}
-                    {!documents.length ? <Empty icon={FileText} title="No player files recorded"
+                    {!documents.length ? <Empty icon={FileText} title="No player files yet"
                       copy="File metadata appears here. Private storage paths are not exposed in this workspace." /> : null}
                   </div>
                 </section>
@@ -832,15 +832,15 @@ export default function AgencyPlayersWorkspace({
               />
             ) : null}
           </div>
-          {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the recorded relationship.</span></div></div>:null}
+          {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the latest recruitment details.</span></div></div>:null}
           {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span><button type="button" data-ui-button="secondary"
               className={styles.secondaryButton} onClick={()=>setTargetReload(value=>value+1)}>Try again</button></div></div>:null}
           {!targetBusy&&!targetError&&targetDetail?(
             <div className={styles.drawerBody}>
               <header className={styles.recruitHero}><div className={styles.recruitmentMark}>{initials(targetDetail.target?.full_name||'')||'P'}</div>
-                <div><p>RECRUITMENT</p><h2>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span></div></header>
+                <div><p>RECRUITMENT</p><h2>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Add more player details'}</span></div></header>
               <section className={styles.detailSection}><p>CURRENT STAGE</p><h3>{PIPELINE.find(([key])=>key===targetDetail.target?.ui_stage)?.[1]||human(targetDetail.target?.ui_stage)}</h3>
-                <span className={styles.sectionCopy}>{targetDetail.target?.next_action_at?`Next follow-up ${relativeDate(targetDetail.target.next_action_at)}`:'No next follow-up recorded'}</span>
+                <span className={styles.sectionCopy}>{targetDetail.target?.next_action_at?`Next follow-up ${relativeDate(targetDetail.target.next_action_at)}`:'No next follow-up yet'}</span>
                 <div className={styles.actionRow}>
                   {nextMajorStage(targetDetail.target?.raw_stage)?(<button type="button" data-ui-button="primary"
               className={styles.primaryButton} onClick={()=>void changeStage()}><ArrowRight size={14}/> Move to {nextMajorStage(targetDetail.target?.raw_stage)?.[1]}</button>):null}
@@ -859,7 +859,7 @@ export default function AgencyPlayersWorkspace({
               <section className={styles.detailSection}><p>HISTORY</p><h3>Recruitment interactions</h3>
                 <div className={styles.rows}>
                   {(targetDetail.interactions||[]).map((item:any)=>(<article className={styles.row} key={item.id}><div><strong>{human(item.channel)} · {human(item.direction)}</strong><span>{item.summary}</span><small>{relativeDate(item.occurred_at)}</small></div></article>))}
-                  {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction recorded" copy="Log the first real conversation here. Contact timestamps are never invented."/>:null}
+                  {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction yet" copy="Log the first real conversation here. Contact timestamps are never invented."/>:null}
                 </div>
               </section>
             </div>
@@ -933,8 +933,8 @@ export default function AgencyPlayersWorkspace({
                 <div className={styles.playerCardTop}>
                   <Avatar name={name} path={identity.profile_photo_path}/>
                   <div className={styles.playerIdentity}><h3>{name}</h3>
-                    <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Football details not fully recorded'}</span>
-                    <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not fully recorded'}</small></div>
+                    <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Add position, club or country'}</span>
+                    <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Add age or nationality'}</small></div>
                   <div className={styles.playerCardEnd}>
                     {!item.access?.restricted ? <>                    {canManageRecords ? <EntityActionsMenu
                       kind="player"
@@ -960,7 +960,7 @@ export default function AgencyPlayersWorkspace({
                 <div className={styles.mobilePlayerMeta}>
                   <span>
                     <CalendarDays size={12} />
-                    <b>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Contract not recorded'}</b>
+                    <b>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Contract not set'}</b>
                   </span>
                   <span>
                     <Target size={12} />
@@ -974,15 +974,15 @@ export default function AgencyPlayersWorkspace({
                     <small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date'}</small>
                   </div>
                   <div className={styles.mobileNextActionBody}>
-                    <strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong>
+                    <strong>{service?.next_service_move?.instruction||identity.next_action||'No next action yet'}</strong>
                     <ChevronRight size={15} />
                   </div>
                 </div> : null}
                 <div className={styles.playerFacts}>
-                  <div><span>Next action</span><strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong><small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date recorded'}</small></div>
-                  <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong><small>Active recorded routes</small></div>
-                  <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not recorded'}</strong><small>{human(identity.contract_status||'Status not recorded')}</small></div>
-                  <div><span>Agency agreement</span><strong>{item?.representation?.recorded?(item.representation.end_date?relativeDate(item.representation.end_date):'No end date'):'Not recorded'}</strong><small>{item?.representation?.recorded?human(item.representation.agreement_type):'Representation agreement not recorded'}</small></div>
+                  <div><span>Next action</span><strong>{service?.next_service_move?.instruction||identity.next_action||'No next action yet'}</strong><small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date set'}</small></div>
+                  <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong><small>Active opportunities</small></div>
+                  <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not set'}</strong><small>{human(identity.contract_status||'Status not set')}</small></div>
+                  <div><span>Agency agreement</span><strong>{item?.representation?.recorded?(item.representation.end_date?relativeDate(item.representation.end_date):'No end date'):'Not set'}</strong><small>{item?.representation?.recorded?human(item.representation.agreement_type):'No representation agreement'}</small></div>
                 </div>
                 </>}
                 {!item.access?.restricted ? <div className={styles.profileShortcutRow}>
@@ -1017,11 +1017,11 @@ export default function AgencyPlayersWorkspace({
                         payload:{player_id:item.player_id},
                         facts:[
                           {label:'Player status',value:human(service.state||'Recorded')},
-                          {label:'Next move',value:move?.instruction||identity.next_action||'Not recorded'},
-                          {label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'No expiry recorded'},
-                          {label:'Market activity',value:human(service?.market_coverage?.state||'Not recorded')},
+                          {label:'Next move',value:move?.instruction||identity.next_action||'Not set'},
+                          {label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'No expiry set'},
+                          {label:'Market activity',value:human(service?.market_coverage?.state||'Not set')},
                         ],
-                        successCondition:'The recorded player action is completed and the next step is current.',
+                        successCondition:'The player action is complete and the next step is current.',
                       });
                     }}><ArrowRight size={14}/>{service?.next_control_fix?.instruction?'Fix this':'Prepare next move'}</button>
                   </div>
@@ -1039,7 +1039,7 @@ export default function AgencyPlayersWorkspace({
               </button>
             </div>
           ) : null}
-          {!filteredPlayers.length?<Empty icon={Users} title={search?'No players match this search':data?.directory?.access?.scope==='assigned'?'No assigned players yet':'No players recorded yet'} copy={search?'Try another name, club or position.':data?.directory?.access?.scope==='assigned'?'Ask an agency administrator to assign the players you should work with.':'Add the first represented player and their current position will appear here.'}/>:null}
+          {!filteredPlayers.length?<Empty icon={Users} title={search?'No players match this search':data?.directory?.access?.scope==='assigned'?'No assigned players yet':'No players yet'} copy={search?'Try another name, club or position.':data?.directory?.access?.scope==='assigned'?'Ask an agency administrator to assign the players you should work with.':'Add the first represented player and their current position will appear here.'}/>:null}
         </section>
       ):(
         <div className={styles.recruitmentLayout}>
@@ -1072,8 +1072,8 @@ export default function AgencyPlayersWorkspace({
                 <button type="button" className={styles.recruitmentRow} onClick={()=>openTarget(String(item.id))}>
                 <div className={styles.recruitmentMark}>{initials(item.full_name||'')||'P'}</div>
                 <div className={styles.recruitmentCopy}><div className={styles.recruitmentTitle}><strong>{item.full_name}</strong>{item.follow_up_overdue?<span className={styles.overduePill}>Follow-up overdue</span>:null}</div>
-                  <span>{[item.primary_position,item.current_club,item.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span>
-                  <small>{item.last_interaction?.summary||(item.next_action_at?`Next follow-up ${relativeDate(item.next_action_at)}`:'No next follow-up recorded')}</small></div>
+                  <span>{[item.primary_position,item.current_club,item.current_country].filter(Boolean).join(' · ')||'Add more player details'}</span>
+                  <small>{item.last_interaction?.summary||(item.next_action_at?`Next follow-up ${relativeDate(item.next_action_at)}`:'No next follow-up yet')}</small></div>
                 <div className={styles.recruitmentStage}><span>{PIPELINE.find(([key])=>key===item.ui_stage)?.[1]||human(item.ui_stage)}</span><ChevronRight size={15}/></div>
                 </button>
                 {canManageRecords ? <EntityActionsMenu
@@ -1104,7 +1104,7 @@ export default function AgencyPlayersWorkspace({
       {createOpen?(
         <div className={styles.modalBackdrop} onClick={(e)=>{if(e.target===e.currentTarget&&!createBusy)closeRecruitmentCreate();}}>
           <section className={styles.createModal} role="dialog" aria-modal="true">
-            <div className={styles.modalHead}><div><p>RECRUITMENT</p><h3>Add target</h3><span>Start with the facts you know. The record can improve later.</span></div>
+            <div className={styles.modalHead}><div><p>RECRUITMENT</p><h3>Add target</h3><span>Start with what you know. You can add more later.</span></div>
               <button type="button" data-ui-button="icon"
               className={styles.closeButton} onClick={closeRecruitmentCreate} disabled={createBusy}><X size={17}/></button></div>
             {createError?<div className={styles.inlineError}><CircleAlert size={16}/><span>{createError}</span></div>:null}

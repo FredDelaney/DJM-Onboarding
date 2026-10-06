@@ -558,7 +558,7 @@ export default function ReDreamLiveOperatingDemo({
               <div className={styles.situationPanel}>
                 <span>WHY THIS NEEDS ATTENTION</span>
                 <h4>{why}</h4>
-                <p>ReDream starts from the recorded situation rather than inventing a generic recommendation.</p>
+                <p>ReDream starts from what your agency knows rather than inventing a generic recommendation.</p>
               </div>
             ) : null}
 
