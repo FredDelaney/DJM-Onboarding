@@ -1006,7 +1006,7 @@ export default function AiCapture({
                     ? 'ReDream has not guessed. Resolve the items below or edit the note.'
                     : verifiedComplete
                       ? 'Approved, written back and verified. Supported changes can still be undone.'
-                      : 'ReDream is finishing the interpretation. No record changes are needed from you yet.'}
+                      : 'ReDream is finishing the interpretation. You do not need to do anything yet.'}
               </span>
             </div>
             <div

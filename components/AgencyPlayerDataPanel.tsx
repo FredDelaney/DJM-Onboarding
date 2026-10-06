@@ -36,7 +36,7 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    const next=response?.job||null;
    const finished=pending(jobRef.current)&&next&&!pending(next);
    setCurrentJob(next);setUncertain(false);setError('');
-   if(finished){requestId.current=null;const reloaded=await onChanged();if(alive.current&&reloaded===false)setError('The update finished, but recorded data could not reload. Reload recorded data to recover.');}
+   if(finished){requestId.current=null;const reloaded=await onChanged();if(alive.current&&reloaded===false)setError('The update finished, but player data could not reload. Reload player data to recover.');}
   }catch(failure){if(alive.current&&generation===statusGeneration.current){setUncertain(true);setError(friendlyError(failure));}}
   finally{if(alive.current&&generation===statusGeneration.current)setChecking(false);}
  },[invoke,onChanged,playerId]);
@@ -60,7 +60,7 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    if(!alive.current)return;
    setCurrentJob(response?.job||null);setUncertain(false);
    if(!response?.job)throw new Error('The update could not be confirmed. Check progress before trying again.');
-   if(!pending(response.job)){requestId.current=null;if(await onChanged()===false)throw new Error('The update finished, but recorded data could not reload. Reload recorded data to recover.');}
+   if(!pending(response.job)){requestId.current=null;if(await onChanged()===false)throw new Error('The update finished, but player data could not reload. Reload player data to recover.');}
   }catch(failure){if(alive.current){setUncertain(true);setError(friendlyError(failure));}}
   finally{mutation.current=false;if(alive.current)setStarting(false);}
  };
@@ -74,11 +74,11 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    if(!alive.current)return;
    setEditing(false);setNotice('Corrections saved. Review the current player data before verifying it.');
    const reloaded=await onChanged();
-   if(alive.current&&reloaded===false)setError('Corrections were saved, but the recorded data could not reload. Reload recorded data to recover.');
+   if(alive.current&&reloaded===false)setError('Corrections were saved, but the player data could not reload. Reload player data to recover.');
   }catch(failure){if(alive.current)setError(friendlyError(failure));}
   finally{mutation.current=false;if(alive.current)setSaving(false);}
  };
- const reload=async()=>{setChecking(true);try{if(await onChanged()===false)throw new Error('Recorded data could not reload. Try again when the connection recovers.');await readStatus();}catch(failure){if(alive.current)setError(friendlyError(failure));}finally{if(alive.current)setChecking(false);}};
+ const reload=async()=>{setChecking(true);try{if(await onChanged()===false)throw new Error('Player data could not reload. Try again when the connection recovers.');await readStatus();}catch(failure){if(alive.current)setError(friendlyError(failure));}finally{if(alive.current)setChecking(false);}};
  const sourceUrl=safeSourceUrl(row?.source_url);
  const sourceDate=row?.source_reviewed_at||row?.source_synced_at;
  const missing=PLAYER_STAT_FIELDS.filter(key=>row?.[key]==null||row?.[key]==='').map(key=>labels[key].toLowerCase());
@@ -102,7 +102,7 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
   </div>
   {!contextReady?<p className={styles.guidance}>Add the current season, club and competition in the statistics form below. Historical figures remain in season history.</p>:!row?<p className={styles.guidance}>No statistics match this season, club and competition. Update statistics or add sourced figures below.</p>:missing.length?<p className={styles.guidance}>Not set: {missing.join(', ')}. Unknown figures stay blank when you edit.</p>:null}
   {pending(job)?<div className={styles.status} role="status"><LoaderCircle size={15} className={styles.spin}/><div><strong>Checking current-season sources</strong><span>You can keep using the profile. Results appear here when the update finishes.</span></div></div>:job?.summary?.message?<div className={job.status==='failed'?styles.warning:styles.status} role="status"><div><strong>{!currentJobContext?'Previous source check':job.status==='failed'?'Update needs attention':'Source check finished'}</strong><span>{currentJobContext?job.summary.message:'This check was for a previous season, club or competition. Update the current statistics to check the new context.'}</span>{currentJobContext&&job.summary.checked_at?<small>Checked {compactDateTime(job.summary.checked_at)}</small>:null}</div></div>:null}
-  {error?<div className={styles.error} role="alert"><span>{error}</span><button type="button" data-ui-button="secondary" onClick={()=>void reload()} disabled={checking||saving}>{checking?'Checking...':'Reload recorded data'}</button></div>:null}
+  {error?<div className={styles.error} role="alert"><span>{error}</span><button type="button" data-ui-button="secondary" onClick={()=>void reload()} disabled={checking||saving}>{checking?'Checking...':'Reload player data'}</button></div>:null}
   {notice?<div className={styles.status} role="status"><Check size={15}/>{notice}</div>:null}
   {hasCustomStats?<div className={styles.warning}><div><strong>The club profile uses custom headline statistics</strong><span>Updates here will appear in the club profile after you switch it to current statistics and publish the revised profile.</span></div>{canEdit&&onUseRecordedStats?<button type="button" data-ui-button="secondary" disabled={busy||blocked||editing} onClick={()=>void onUseRecordedStats().catch(failure=>setError(friendlyError(failure)))}>Use current statistics</button>:null}</div>:null}
   {!editing?<div className={styles.actions}>

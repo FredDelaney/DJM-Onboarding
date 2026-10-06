@@ -439,7 +439,7 @@ export default function AgencyCalendarWorkspace({
             <CalendarDays size={20} />
             <strong>{datesBusy ? 'Loading dates' : datesError ? 'Calendar partly unavailable' : view==='month' ? 'Nothing scheduled for this day' : 'Nothing scheduled in this range'}</strong>
             <span>
-              Meetings, follow-ups and recorded agency dates will appear here.
+              Meetings, follow-ups and important agency dates will appear here.
             </span>
           </div>
         ) : null}
@@ -614,7 +614,7 @@ function MeetingBriefDrawer({
             <BriefSection
               icon={<MessageCircleMore size={14} />}
               eyebrow={brief?.access?.restricted ? "YOUR RECENT CONVERSATIONS" : "RECENT CONVERSATIONS"}
-              empty={brief?.access?.restricted ? "You have no recorded conversation with this contact yet." : "No recorded conversation with this contact yet."}
+              empty={brief?.access?.restricted ? "You have no conversation with this contact yet." : "No conversation with this contact yet."}
               items={recent.map((item: any) => ({
                 key: item?.interaction_id,
                 title: item?.summary || 'Interaction recorded',
@@ -670,7 +670,7 @@ function MeetingBriefDrawer({
               eyebrow="LIVE BUSINESS"
               empty={
                 pursuits.length
-                  ? 'No active deal room yet. Live pursuits are shown below.'
+                  ? 'No active deal yet. Live opportunities are shown below.'
                   : 'No active deal or pursuit is recorded with this club.'
               }
               items={deals.map((item: any) => ({

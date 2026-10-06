@@ -1031,7 +1031,7 @@ export default function AgencyPlayersWorkspace({
           })}
           {data?.directory?.has_more ? (
             <div className={styles.pagination}>
-              <p>{players.length} of {data.directory.total} players loaded.{search ? ' This filter applies to loaded players. Use Find to search every agency record.' : ''}</p>
+              <p>{players.length} of {data.directory.total} players loaded.{search ? ' This filter applies to loaded players. Use Find to search every player.' : ''}</p>
               {pageError ? <p role="alert">{pageError}</p> : null}
               <button type="button" data-ui-button="secondary" className={styles.secondaryButton} disabled={pageBusy || directoryRefreshing} onClick={()=>void loadNextPage()}>
                 {pageBusy ? <LoaderCircle size={15} className={styles.spin}/> : <Plus size={15}/>}

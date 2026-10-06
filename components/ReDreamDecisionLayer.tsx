@@ -137,7 +137,7 @@ const FALLBACK: Sandbox = {
       career_strategy_gate: {
         state: 'review_strategy_overdue',
         reason:
-          'The strategy review date has passed, so the pursuit needs a current player-strategy check.',
+          'The strategy review date has passed, so this player opportunity needs a current strategy check.',
         player_confirmation: 'confirmed',
         next_action: {
           instruction: 'Review the strategy with the player before escalating external activity.',
@@ -153,11 +153,11 @@ const FALLBACK: Sandbox = {
       career_strategy_gate: {
         state: 'hold_strategy_missing',
         reason:
-          'The football pursuit exists, but no human-owned career strategy is recorded for the player.',
+          'The player opportunity exists, but no human-owned career strategy is set for the player.',
         player_confirmation: 'missing',
         next_action: {
           instruction:
-            'Agree the player career strategy before treating this pursuit as career-approved external action.',
+            'Agree the player career strategy before treating this opportunity as approved external action.',
           requires_human_input: true,
         },
       },
@@ -350,7 +350,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
       evidence: [
         ['Direct access', direct.route_score ? `${direct.route_score}/100` : 'Not scored'],
         ['Warm introduction', intro.introduction_score ? `${intro.introduction_score}/100` : 'Not scored'],
-        ['Direct contact', direct.person_name || 'Not recorded'],
+        ['Direct contact', direct.person_name || 'Not set'],
         ['Commercial exposure', money(exposure.expected_commission, exposure.currency)],
       ],
       chain: [
@@ -367,7 +367,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
     const gate = career?.career_strategy_gate || {};
     return {
       eyebrow: 'PLAYER CAREER CONTROL',
-      title: `${career?.player?.name || 'The player'} is a football pursuit, but ReDream will not treat it as career-approved external action yet.`,
+      title: `${career?.player?.name || 'The player'} has an opportunity, but ReDream will not treat it as career-approved external action yet.`,
       summary:
         gate.reason ||
         'A strong player-club fit does not override the player-owned career strategy gate.',
@@ -384,7 +384,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
         ['Player', career?.player?.name || 'Player'],
         ['Career strategy', human(gate.state) || 'Review'],
         ['Club need', career?.need?.title || 'Need'],
-        ['Pursuit', career?.readiness_score ? `${career.readiness_score}/100 readiness` : 'Recorded'],
+        ['Opportunity', career?.readiness_score ? `${career.readiness_score}/100 readiness` : 'Not scored'],
         ['Control', 'Human career decision'],
       ],
     };
