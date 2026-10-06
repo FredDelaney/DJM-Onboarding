@@ -877,11 +877,8 @@ export default {fetch:async(req:Request)=>{
       const x=id(body?.organisation_id);if(!x)return json({error:"organisation_id is required"},400);
       if(action==="club_account"){
         if(!ownerAdmin()){
-          const clubResult=await ctx.supabaseAdmin.schema("djm_os").from("organisations")
-            .select("id,name,country,city,league_name,archived_at").eq("id",x).eq("tenant_id",tenantId).maybeSingle();
-          if(clubResult.error)throw clubResult.error;
-          if(!clubResult.data||clubResult.data.archived_at)return json({error:"Club not found in this agency"},404);
-          return json({ok:true,tenant:workspace,club:restrictedClubAccount({club:clubResult.data})});
+          const account=await rpc("platform_server_staff_club_identity",{p_tenant_id:tenantId,p_user_id:userId,p_organisation_id:x});
+          return json({ok:true,tenant:workspace,club:restrictedClubAccount(account)});
         }
         const account=await rpc("platform_server_club_account",{p_tenant_id:tenantId,p_organisation_id:x});
         return json({ok:true,tenant:workspace,club:ownerAdmin()?account:restrictedClubAccount(account)});

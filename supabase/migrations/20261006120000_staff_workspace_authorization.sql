@@ -149,11 +149,11 @@ $boundary$private.redream_admin_tenant()$boundary$);
 
 select pg_temp.patch_staff_boundary('public.djm_entity_archive_v1(text,uuid,boolean)'::regprocedure,
 $boundary$if not private.user_has_staff_tenant_access(v_tenant,auth.uid()) then raise exception 'Tenant access required'; end if;$boundary$,
-$boundary$if not private.user_is_tenant_admin(v_tenant,auth.uid()) then raise exception 'agency_admin_access_required' using errcode='42501'; end if;$boundary$);
+$boundary$if not private.user_is_tenant_admin(v_tenant,auth.uid()) or v_tenant is distinct from private.redream_request_tenant() then raise exception 'agency_admin_access_required' using errcode='42501'; end if;$boundary$);
 
 select pg_temp.patch_staff_boundary('public.djm_entity_patch_v1(text,uuid,jsonb)'::regprocedure,
 $boundary$if not private.user_has_staff_tenant_access(v_tenant,auth.uid()) then raise exception 'Tenant access required'; end if;$boundary$,
-$boundary$if not private.user_is_tenant_admin(v_tenant,auth.uid()) then raise exception 'agency_admin_access_required' using errcode='42501'; end if;$boundary$);
+$boundary$if not private.user_is_tenant_admin(v_tenant,auth.uid()) or v_tenant is distinct from private.redream_request_tenant() then raise exception 'agency_admin_access_required' using errcode='42501'; end if;$boundary$);
 
 select pg_temp.patch_staff_boundary('public.djm_assign_player(uuid,uuid)'::regprocedure,
 $boundary$if not private.user_has_staff_tenant_access(v_tenant) then raise exception 'Agency staff access required'; end if;$boundary$,
@@ -173,11 +173,11 @@ $boundary$  if v_role in ('owner','admin') then
 
 select pg_temp.patch_staff_boundary('public.platform_server_prepare_command_action(uuid,text,uuid,jsonb)'::regprocedure,
 $boundary$  if v_source_type='player' and v_command_type='Player review required' then$boundary$,
-$boundary$  if v_role not in ('owner','admin') and not (
+$boundary$  if v_role not in ('owner','admin') and not coalesce((
     v_source_type='task' and v_command_type='Complete follow-up'
     and exists(select 1 from djm_os.tasks t where t.id=v_source_id
       and t.tenant_id=p_tenant_id and t.owner_user_id=p_actor_user_id and t.status='open')
-  ) then raise exception 'proposal_access_denied' using errcode='42501'; end if;
+  ),false) then raise exception 'proposal_access_denied' using errcode='42501'; end if;
 
   if v_source_type='player' and v_command_type='Player review required' then$boundary$);
 
@@ -255,4 +255,69 @@ $boundary$  returning id into v_player_id;
   insert into public.staff_player_access(staff_user_id,player_id,can_edit)
   values(p_actor_user_id,v_player_id,true) on conflict (staff_user_id,player_id) do nothing;$boundary$);
 
+select pg_temp.patch_staff_boundary('public.djm_delete_entity(text,uuid,boolean)'::regprocedure,
+$boundary$if not private.user_has_staff_tenant_access(v_tenant,auth.uid()) then raise exception 'Tenant access required'; end if;$boundary$,
+$boundary$if not private.user_is_tenant_admin(v_tenant,auth.uid()) or v_tenant is distinct from private.redream_request_tenant() then
+    raise exception 'agency_admin_access_required' using errcode='42501'; end if;$boundary$);
+
+select pg_temp.patch_staff_boundary('public.platform_server_recruitment_promote_player(uuid,uuid,uuid)'::regprocedure,
+$boundary$  if v_prospect.linked_player_id is not null then$boundary$,
+$boundary$  if v_prospect.linked_player_id is not null and not (private.user_is_tenant_admin(p_tenant_id,p_actor_user_id)
+    or exists(select 1 from public.staff_player_access a where a.player_id=v_prospect.linked_player_id and a.staff_user_id=p_actor_user_id)) then
+    raise exception 'workspace_access_denied' using errcode='42501';
+  end if;
+  if v_prospect.linked_player_id is not null then$boundary$);
+
+select pg_temp.patch_staff_boundary('public.platform_server_recruitment_promote_player(uuid,uuid,uuid)'::regprocedure,
+$boundary$  returning id into v_player_id;$boundary$,
+$boundary$  returning id into v_player_id;
+
+  insert into public.staff_player_access(staff_user_id,player_id,can_edit)
+  values(p_actor_user_id,v_player_id,true) on conflict (staff_user_id,player_id) do nothing;$boundary$);
+
+select pg_temp.patch_staff_boundary('public.redream_messaging_player_candidates()'::regprocedure,
+$boundary$    and coalesce(p.football_status,'active') not in ('retired','inactive')$boundary$,
+$boundary$    and coalesce(p.football_status,'active') not in ('retired','inactive')
+    and p.archived_at is null
+    and (private.user_is_tenant_admin(v_tenant,v_user) or exists(
+      select 1 from public.staff_player_access a where a.player_id=p.id and a.staff_user_id=v_user))$boundary$);
+
+select pg_temp.patch_staff_boundary('public.redream_messaging_thread_bind_player(text,text,uuid)'::regprocedure,
+$boundary$    and coalesce(p.football_status,'active') not in ('retired','inactive')$boundary$,
+$boundary$    and coalesce(p.football_status,'active') not in ('retired','inactive')
+    and p.archived_at is null
+    and (private.user_is_tenant_admin(v_tenant,v_user) or exists(
+      select 1 from public.staff_player_access a where a.player_id=p.id and a.staff_user_id=v_user))$boundary$);
+
+
+select pg_temp.patch_staff_boundary('public.redream_entity_action_preview(text,uuid)'::regprocedure,
+$boundary$private.redream_request_tenant()$boundary$,
+$boundary$private.redream_admin_tenant()$boundary$);
+
+select pg_temp.patch_staff_boundary('public.redream_entity_archives()'::regprocedure,
+$boundary$private.redream_request_tenant()$boundary$,
+$boundary$private.redream_admin_tenant()$boundary$);
+
+select pg_temp.patch_staff_boundary('public.djm_delete_preview(text,uuid)'::regprocedure,
+$boundary$if not private.user_has_staff_tenant_access(v_tenant,auth.uid()) then raise exception 'Tenant access required'; end if;$boundary$,
+$boundary$if not private.user_is_tenant_admin(v_tenant,auth.uid()) or v_tenant is distinct from private.redream_request_tenant() then raise exception 'agency_admin_access_required' using errcode='42501'; end if;$boundary$);
+
+revoke all on function public.redream_opportunity_connected_context(integer) from public,anon;
+grant execute on function public.redream_opportunity_connected_context(integer) to authenticated,service_role;
+revoke all on function public.djm_entity_archive_v1(text,uuid,boolean) from public,anon,authenticated;
+grant execute on function public.djm_entity_archive_v1(text,uuid,boolean) to service_role;
+revoke all on function public.djm_entity_patch_v1(text,uuid,jsonb) from public,anon,authenticated;
+grant execute on function public.djm_entity_patch_v1(text,uuid,jsonb) to service_role;
+revoke all on function public.redream_messaging_player_candidates() from public,anon;
+grant execute on function public.redream_messaging_player_candidates() to authenticated,service_role;
+revoke all on function public.redream_messaging_thread_bind_player(text,text,uuid) from public,anon;
+grant execute on function public.redream_messaging_thread_bind_player(text,text,uuid) to authenticated,service_role;
+revoke all on function public.redream_entity_action_preview(text,uuid) from public,anon;
+grant execute on function public.redream_entity_action_preview(text,uuid) to authenticated,service_role;
+revoke all on function public.redream_entity_archives() from public,anon;
+grant execute on function public.redream_entity_archives() to authenticated,service_role;
+revoke all on function public.djm_delete_entity(text,uuid,boolean) from public,anon,authenticated;
+grant execute on function public.djm_delete_entity(text,uuid,boolean) to service_role;
+revoke all on function public.djm_delete_preview(text,uuid) from public,anon,authenticated;
+grant execute on function public.djm_delete_preview(text,uuid) to service_role;
 commit;

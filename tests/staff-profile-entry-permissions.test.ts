@@ -23,7 +23,8 @@ function fixture(role:string,assigned=true){
  };
  const rpc=async(name:string)=>{
   calls.push(name);
-  const data=name==='platform_server_user_workspaces'?[workspace]:
+  const data=name==='platform_server_staff_club_identity'?{club:{id:'club',name:'Recorded Club',country:'NZ'},access:{restricted:true}}:
+   name==='platform_server_user_workspaces'?[workspace]:
    name==='platform_server_club_account'?{club:{id:'club',name:'Recorded Club',country:'NZ',private:'SECRET_CLUB_EXTRA'},commercial:{expected_commission:'SECRET_COMMISSION'},pursuits:[{player_name:'SECRET_UNASSIGNED'}]}:
    name==='platform_server_player_profile_context'?{deals:[{id:'deal',title:'SECRET_DEAL'}],clubs:[{id:'club',name:'Recorded Club'}]}:
    name==='platform_server_player_connected_activity'?{items:[{summary:'SECRET_MESSAGE'}]}:{};
@@ -35,7 +36,7 @@ function fixture(role:string,assigned=true){
   const builder:any={select:()=>builder,eq:(field:string,value:unknown)=>{conditions.push([field,value]);return builder;},order:()=>builder,limit:()=>builder,maybeSingle:()=>{single=true;return Promise.resolve(result());},then:(yes:any,no:any)=>Promise.resolve(result()).then(yes,no)};
   return builder;
  };
- const ctx={userClaims:{sub:'current-user'},supabaseAdmin:{from,rpc,schema:()=>({from})}};
+ const ctx={userClaims:{sub:'current-user'},supabaseAdmin:{from,rpc}};
  const build=new Function('createSupabaseContext','selectCurrentSeasonEvidence','restrictedPlayerProfile','restrictedClubAccount','const exports={};'+code+';return exports.default;');
  // The handler is executed; only external Supabase I/O and unrelated football refresh are replaced.
  const handler=build(async()=>({data:ctx,error:null}),()=>null,restrictedPlayerProfile,restrictedClubAccount);

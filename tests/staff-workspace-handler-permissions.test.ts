@@ -16,7 +16,8 @@ function fixture(file='agency-os', role='agent', canEdit=false, assigned=true, m
   };
   const rpc = async (name:string,args:any={}) => {
     calls.push({name,args});
-    const data = name==='platform_server_user_workspaces'?workspaces:
+    const data = name==='platform_server_staff_club_identity'?{club:{id:'club',name:'Recorded Club',country:'NZ'},access:{restricted:true}}:
+   name==='platform_server_user_workspaces'?workspaces:
       name==='platform_server_player_workspaces'?{workspaces}:
       name==='platform_server_personal_home_commands'?{commands:[],status:'normal'}:
       {private:'SECRET_COMMERCIAL',args};
@@ -43,7 +44,7 @@ function fixture(file='agency-os', role='agent', canEdit=false, assigned=true, m
   const source=readFileSync('supabase/functions/'+file+'/index.ts','utf8').replace(/^import .*;\r?$/gm,'');
   const code=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
   const build=new Function('createSupabaseContext','selectCurrentSeasonEvidence','restrictedPlayerProfile','restrictedClubAccount','const exports={};'+code+';return exports.default;');
-  const handler=build(async()=>({data:{userClaims:{sub:'trusted-user'},supabaseAdmin:{rpc,from,schema:()=>({from})}},error:null}),()=>null,restrictedPlayerProfile,restrictedClubAccount);
+  const handler=build(async()=>({data:{userClaims:{sub:'trusted-user'},supabaseAdmin:{rpc,from}},error:null}),()=>null,restrictedPlayerProfile,restrictedClubAccount);
   return {calls,call:async(action:string, extra:any={})=>{
     const response=await handler.fetch(new Request('https://test.example.test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action,tenant_id:'own-tenant',player_id:'own-player',organisation_id:'own-club',...extra})}));
     return {status:response.status,body:await response.json()};

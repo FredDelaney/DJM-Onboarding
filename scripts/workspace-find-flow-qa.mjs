@@ -116,14 +116,18 @@ try{
  let slowRefresh=false,slowPage=false,releaseRefresh,releasePage,refreshStarted,pageStarted;
  const refreshGate=new Promise(resolve=>{releaseRefresh=resolve;}),pageGate=new Promise(resolve=>{releasePage=resolve;});
  const refreshRead=new Promise(resolve=>{refreshStarted=resolve;}),nextRead=new Promise(resolve=>{pageStarted=resolve;});
- let currentUser=userA;
+ let currentUser=userA,currentRole='owner';
+ const restrictedRequests=[];
  await page.route('https://example.supabase.co/**',async route=>{
   const path=new URL(route.request().url()).pathname,body=route.request().postDataJSON()||{};
   let result={};
+  const restricted=currentRole!=='owner';
+  if(restricted && (/redream_autopilot_(?:operations|market|deals)|redream_entity_archives/.test(path) ||
+    ['agency_decisions','agency_roi_proof','team_capacity','workspace_need_record'].includes(body.action)))restrictedRequests.push(path+':'+body.action);
   if(path.includes('/auth/v1/token')){currentUser=userB;result=session(userB);}
   else if(path.includes('/auth/v1/user'))result=currentUser;
   else if(path.endsWith('/functions/v1/agency-os')){
-   if(body.action==='tenants')result={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-find-flow',role:'owner',display_name:'Example Agency'}]};
+   if(body.action==='tenants')result={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-find-flow',role:currentRole,display_name:'Example Agency'}]};
    else if(body.action==='players_workspace'){
     const account=route.request().headers().authorization?.includes(token(userB))?'b':'a';
     const offset=Number(body.offset)||0;
@@ -131,8 +135,12 @@ try{
     if(slowPage&&account==='a'&&offset===200){pageStarted();await pageGate;}
     const items=Array.from({length:Math.min(100,250-offset)},(_,i)=>({player_id:account+'-coordinator-'+(offset+i),identity:{name:(account==='a'?'Coordinator Player ':'Other Account Player ')+(offset+i),current_club:'Example FC',primary_position:'Centre back'},service:{}}));
     result={players:{items,total:250,next_offset:offset+items.length,has_more:offset+items.length<250}};
-   }else result={home:{},items:[]};
-  }else if(path.includes('/rest/v1/rpc/'))result={items:[],accounts:{clubs:[]},contacts:{items:[]}};
+   }else if(body.action==='home_focus')result={home:{access:{restricted},commands:[]}};
+   else result={home:{},items:[]};
+  }else if(path.endsWith('/rest/v1/rpc/redream_autopilot_relationships')&&restricted)result={
+    access:{restricted:true},accounts:{clubs:[{organisation_id:'staff-club',name:'Shared Staff Club',country:'NZ'}]},
+    contacts:{items:[{person_id:'staff-contact',person:{full_name:'Shared Staff Contact'},employment:{organisation_name:'Shared Staff Club'},access:{restricted:true}}]}};
+  else if(path.includes('/rest/v1/rpc/'))result={items:[],accounts:{clubs:[]},contacts:{items:[]}};
   await route.fulfill({contentType:'application/json',body:JSON.stringify(result)});
  });
  await page.addInitScript(value=>localStorage.setItem('sb-example-auth-token',JSON.stringify(value)),session(userA));
@@ -150,6 +158,28 @@ try{
  releasePage();await page.waitForTimeout(500);
  assert.equal(await page.getByRole('button',{name:/^Open Coordinator Player/}).count(),0,'Previous account page leaked');
  await page.getByText(/^100 of 250 players loaded\./).waitFor();
+ for(const role of ['agent','scout','operations']){
+  currentRole=role;currentUser=userA;await page.goto(root+'?coordinator=1&view=players&role='+role);
+  await page.getByRole('button',{name:'Open Coordinator Player 0',exact:true}).waitFor();
+  assert.equal(await page.getByRole('link',{name:'Opportunities',exact:true}).count(),0);
+  assert.equal(await page.getByRole('link',{name:'Business',exact:true}).count(),0);
+  assert.equal(await page.getByRole('button',{name:/^Manage /}).count(),0);
+  if(role==='scout')assert.equal(await page.getByRole('button',{name:'Add player',exact:true}).count(),0);
+  await page.goto(root+'?coordinator=1&role='+role+'&view=network');await page.getByText('Shared clubs and contacts. Your contact pages show your own activity. Commercial agency context requires administrator access.',{exact:true}).waitFor();
+  await page.getByRole('heading',{name:'Shared Staff Club',exact:true}).waitFor();
+  assert.equal(await page.getByText('LIVE OPPORTUNITIES',{exact:true}).count(),0);
+  assert.equal(await page.getByText('BEST ROUTE',{exact:true}).count(),0);
+  assert.equal(await page.getByRole('button',{name:/^Manage /}).count(),0);
+  await page.getByRole('button',{name:/^People/}).click();
+  await page.getByRole('heading',{name:'Shared Staff Contact',exact:true}).waitFor();
+  assert.equal(await page.getByText('RELATIONSHIP OWNER',{exact:true}).count(),0);
+  await coordinatorView('home');await page.getByText('Your personal work',{exact:true}).waitFor();
+  await page.getByText('No personal task, meeting or commitment currently needs your attention.',{exact:true}).waitFor();
+  await coordinatorView('opportunities');await page.getByRole('heading',{name:'Administrator access required',exact:true}).waitFor();
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1));
+ }
+ assert.deepEqual(restrictedRequests,[],'Restricted workspace requested private agency or archive data');
+ currentRole='owner';
  await visit();dialog=await choose('jose');await dialog.getByRole('option',{name:/José Silva/}).waitFor();
  const shotDir=process.env.WORKSPACE_QA_SCREEN_DIR||'/tmp/redream-find-flow-screens';await mkdir(shotDir,{recursive:true});
  await page.screenshot({path:shotDir+'/mobile-search.png',fullPage:false});

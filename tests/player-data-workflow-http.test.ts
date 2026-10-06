@@ -28,7 +28,7 @@ beforeEach(()=>{
  (globalThis as any).playerDataHttpContext={data:{userClaims:{sub:'actor'},supabaseAdmin:{
   rpc:async(name:string,args:any)=>{calls.push({name,args});return {data:name==='platform_server_user_workspaces'?[{tenant_id:'tenant',role,is_primary:true}]:name==='get_push_scheduler_secret'?'fake-cron':name==='platform_server_request_player_stats_refresh'?{dispatch,job}:name==='platform_server_player_stats_refresh_status'?job:{ok:true,row:{}},error:null};},
   from:(table:string)=>{
-   const query:any={select:()=>query,eq:()=>query,in:()=>query,order:()=>query,limit:()=>query,maybeSingle:async()=>({data:table==='staff_player_access'?{player_id:'player'}:table==='players'?(allowed?{...player}:null):table==='player_public_profiles'?(published?{player_id:player.id,key_stats:[]}:null):table==='player_cv_settings'?{key_stats:[]}:null,error:null}),update:(value:any)=>{writes.push({table,value});return query;},then:(resolve:any)=>Promise.resolve({data:table==='career_entries'?structuredClone(careerRows):[],error:null}).then(resolve)};
+   const query:any={select:()=>query,eq:()=>query,in:()=>query,order:()=>query,limit:()=>query,maybeSingle:async()=>({data:table==='staff_player_access'?{player_id:'player',can_edit:true}:table==='players'?(allowed?{...player}:null):table==='player_public_profiles'?(published?{player_id:player.id,key_stats:[]}:null):table==='player_cv_settings'?{key_stats:[]}:null,error:null}),update:(value:any)=>{writes.push({table,value});return query;},then:(resolve:any)=>Promise.resolve({data:table==='career_entries'?structuredClone(careerRows):[],error:null}).then(resolve)};
    return query;
   }
  }},error:null};
