@@ -584,6 +584,7 @@ async function interpret(
         "Use canonical football positions only: GK, RB, LB, CB, RCB, LCB, 6, 8, 10, RW, LW, Winger, ST.",
         "Use upsert_club_need only when a club requirement is confirmed or explicitly described as a predicted scouting need.",
         "Use add_claim for softer intelligence, reported contract information, player preferences, scout observations and anything that should remain sourced and unverified.",
+        "When a named signed player is speaking about their own career, transfer preference, contract preference or future plans, use player_name for that person and leave contact_name null unless a different Network contact is explicitly named. For example, Kota told me he wants Denmark means player_name Kota, not contact_name Kota.",
         "For add_claim, claim_key must be short lowercase ASCII snake_case, for example preferred_side, salary_expectation or transfer_preference. Never use spaces, punctuation or non-ASCII characters.",
                 "Use create_task only when an internal speaker states a follow-up, commitment or reminder, or when an inbound connected message contains an explicit request or question that clearly requires agency action or a reply.",
         "When an internal speaker explicitly assigns a task to a named agency team member, copy that exact spoken name into owner_name. Examples include Dapo owns it or Moses to send it. Otherwise owner_name must be null. Never infer task ownership.",
@@ -688,6 +689,30 @@ function normaliseEntityName(value: unknown) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function preferSignedPlayerReference(action: any) {
+  const next = { ...action };
+  const playerName = normaliseEntityName(next.player_name);
+  const contactName = normaliseEntityName(next.contact_name);
+  const claimType = String(next.claim_type || "").toLowerCase().trim();
+  const playerSubjectClaim =
+    next.type === "add_claim" &&
+    (claimType === "player_preference" ||
+      claimType === "player_transfer_preference" ||
+      claimType.startsWith("player_"));
+
+  if (playerSubjectClaim && !playerName && contactName) {
+    next.player_name = next.contact_name;
+    next.contact_name = null;
+    return next;
+  }
+
+  if (playerName && contactName && playerName === contactName) {
+    next.contact_name = null;
+  }
+
+  return next;
 }
 
 function contextEntity(capture: any, type: "club" | "contact" | "player" | "prospect") {
@@ -1243,7 +1268,9 @@ async function processOne(
       const sourceAction = item.action;
       const action = applyConfirmedEntityResolutions(
         capture,
-        enrichNeedDependentAction({ ...sourceAction }, needActions),
+        preferSignedPlayerReference(
+          enrichNeedDependentAction({ ...sourceAction }, needActions),
+        ),
       );
       if (action.type === "add_claim") {
         action.claim_key = canonicalClaimKey(action.claim_key, action.claim_type);

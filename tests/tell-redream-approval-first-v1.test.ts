@@ -98,6 +98,17 @@ test('spoken owner resolver is privileged only for the internal service worker',
   );
 });
 
+
+test('player self-statements prefer the signed player identity over a duplicate contact lookup', () => {
+  assert.match(worker, /function preferSignedPlayerReference/);
+  assert.match(worker, /claimType === "player_preference"/);
+  assert.match(worker, /claimType === "player_transfer_preference"/);
+  assert.match(worker, /next\.player_name = next\.contact_name/);
+  assert.match(worker, /if \(playerName && contactName && playerName === contactName\)/);
+  assert.match(worker, /Kota told me he wants Denmark means player_name Kota, not contact_name Kota/);
+  assert.match(worker, /preferSignedPlayerReference\([\s\S]*enrichNeedDependentAction/);
+});
+
 test('approval preserves deterministic writes, provenance and undo', () => {
   assert.match(migration, /redream_ai_apply_action/);
   assert.match(migration, /redream_ai_apply_scout_observation/);
