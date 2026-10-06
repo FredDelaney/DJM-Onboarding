@@ -482,13 +482,13 @@ export default function CareerPage() {
                             <MapPin size={13} />
                             {[entry.league, entry.country]
                               .filter(Boolean)
-                              .join(' · ') || 'Competition not recorded'}
+                              .join(' · ') || 'Competition not set'}
                           </p>
                         </div>
                         <small>
                           {[fmtDate(entry.start_date), fmtDate(entry.end_date)]
                             .filter((value) => value !== '-')
-                            .join(' - ') || 'Dates not recorded'}
+                            .join(' - ') || 'Dates not set'}
                         </small>
                       </div>
 

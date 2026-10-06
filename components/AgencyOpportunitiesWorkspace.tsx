@@ -37,7 +37,7 @@ const human = (value: unknown) =>
 
 const money = (value: unknown, currency = 'EUR') => {
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return 'Commission not recorded';
+  if (!Number.isFinite(amount)) return 'Commission not set';
 
   try {
     return new Intl.NumberFormat('en-GB', {
@@ -429,7 +429,7 @@ export default function AgencyOpportunitiesWorkspace({
             'Profile not fully recorded',
           detail: item.need?.transfer_type
             ? human(item.need.transfer_type)
-            : 'Transfer type not recorded',
+            : 'Transfer type not set',
         },
         {
           label: 'Coverage',
@@ -437,7 +437,7 @@ export default function AgencyOpportunitiesWorkspace({
             `${Number(item.candidate_coverage?.recorded_candidates || 0)} recorded candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
           detail: human(
             item.coverage_state ||
-              'coverage not recorded',
+              'coverage not set',
           ),
         },
         {
@@ -509,7 +509,7 @@ export default function AgencyOpportunitiesWorkspace({
     const commissionValue =
       hasExpectedCommission && deal.currency
         ? money(deal.expected_commission, deal.currency)
-        : 'Commission not recorded';
+        : 'Commission not set';
 
     const introductionContext =
       deal.next_best_move?.introduction_context || {};
@@ -551,7 +551,7 @@ export default function AgencyOpportunitiesWorkspace({
           label: 'Primary blocker',
           value:
             deal.primary_blocker ||
-            'No blocker recorded',
+            'No blocker',
           detail: human(
             deal.control_state ||
               deal.rescue_state ||
@@ -563,14 +563,14 @@ export default function AgencyOpportunitiesWorkspace({
           value: commissionValue,
           detail: hasExpectedCommission
             ? 'Expected commission'
-            : 'Expected commission not recorded',
+            : 'Expected commission not set',
         },
         {
           label: 'Access route',
           value:
             introductionTarget ||
             deal.organisation ||
-            'No route recorded',
+            'No contact route yet',
           detail: introductionVia
             ? `Warm introduction via ${introductionVia}`
             : introductionRole ||
@@ -609,7 +609,7 @@ export default function AgencyOpportunitiesWorkspace({
             onClick={() => selectView('routes')}
           >
             <Users size={15} />
-            Player routes
+            Player opportunities
             {data?.market != null ? <span>{routes.length}</span> : null}
           </button>
 
@@ -792,7 +792,7 @@ export default function AgencyOpportunitiesWorkspace({
                   </div>
 
                   <div className={styles.copy}>
-                    <span className={styles.rowEyebrow}>Player route</span>
+                    <span className={styles.rowEyebrow}>Player opportunity</span>
                     <strong>
                       {item.player?.name || 'Player'} →{' '}
                       {item.club?.name || 'Club'}
@@ -856,7 +856,7 @@ export default function AgencyOpportunitiesWorkspace({
                       deal.expected_commission,
                       deal.currency,
                     )
-                  : 'Commission not recorded';
+                  : 'Commission not set';
 
               return (
                 <article
@@ -964,14 +964,14 @@ export default function AgencyOpportunitiesWorkspace({
                 : view === 'needs'
                   ? 'No active club needs'
                   : view === 'routes'
-                    ? 'No player routes yet'
+                    ? 'No player opportunities yet'
                     : 'No live deals'}
             </strong>
             <span>
               {search
                 ? 'Try a different search.'
                 : view === 'needs'
-                  ? 'Add a real club need and the player routes around it can be organised here.'
+                  ? 'Add a real club need and the player opportunities around it can be organised here.'
                   : view === 'routes'
                     ? 'Routes appear when a player is linked to a recorded club need.'
                     : 'Commercial work appears here once a player-club route becomes a live deal.'}

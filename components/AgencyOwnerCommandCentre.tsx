@@ -42,7 +42,7 @@ const money = (
   const amount = Number(value);
 
   if (!Number.isFinite(amount)) {
-    return 'Not recorded';
+    return 'Not set';
   }
 
   try {
@@ -81,7 +81,7 @@ const teamStateLabel = (value: unknown) => {
     case 'active_load':
       return 'Active work';
     default:
-      return 'No recorded load';
+      return 'No active workload';
   }
 };
 
@@ -376,7 +376,7 @@ export default function AgencyOwnerCommandCentre({
                 capacity.active_players_without_primary_owner ??
                   executive.players_without_primary_owner,
               )}
-              detail="Primary staff ownership not recorded"
+              detail="Primary staff ownership not set"
             />
             <Fact
               label="Open receivables"
@@ -469,7 +469,7 @@ export default function AgencyOwnerCommandCentre({
                   />
                   <div>
                     <strong>
-                      No revenue-protection item is currently recorded.
+                      No revenue-protection item needs attention right now.
                     </strong>
                     <span>
                       ReDream will only surface exposure supported by the deal record.
@@ -724,7 +724,7 @@ export default function AgencyOwnerCommandCentre({
                 <Users size={16} />
                 <div>
                   <strong>
-                    No active team members are recorded.
+                    No active team members yet.
                   </strong>
                   <span>
                     Team ownership will appear here as agents join the workspace.
@@ -734,7 +734,7 @@ export default function AgencyOwnerCommandCentre({
             )}
 
             <p className={styles.truth}>
-              Work counts show recorded ownership, not effort or performance. ReDream does not calculate a fake utilisation percentage because actual working hours and effort per task are not recorded.
+              Work counts show recorded ownership, not effort or performance. ReDream does not calculate a fake utilisation percentage because actual working hours and effort per task are not set.
             </p>
           </section>
 
@@ -820,7 +820,7 @@ export default function AgencyOwnerCommandCentre({
                   />
                   <div>
                     <strong>
-                      No directly actionable player-control gap is currently recorded.
+                      No player-control issue needs action right now.
                     </strong>
                     <span>
                       Other evidence remains visible without inventing an action.

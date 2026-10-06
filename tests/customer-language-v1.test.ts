@@ -24,7 +24,7 @@ test('empty states tell a new customer what will happen next', () => {
 
 test('primary workspace copy avoids internal operating jargon', () => {
   assert.doesNotMatch(workspace, /Ranked across the agency/);
-  assert.doesNotMatch(workspace, /Commercial agency signals require administrator access/);
+  assert.doesNotMatch(workspace, /Commercial agency signals require admin access/);
   assert.doesNotMatch(workspace, /No player-service gap recorded/);
   assert.doesNotMatch(workspace, /No active player-club pursuits/);
   assert.doesNotMatch(workspace, /No live deals recorded/);

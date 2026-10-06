@@ -102,7 +102,7 @@ test(
     );
     assert.match(
       calendar,
-      /not a prediction of meeting or deal outcome/,
+      /not a prediction of the meeting or deal outcome/,
     );
   },
 );

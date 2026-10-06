@@ -338,7 +338,7 @@ export default function AgencyPursuitRoom({
     pursuit?.best_access_route?.person_name ||
     human(
       pursuit?.access_strategy?.recommended_mode ||
-        'recorded route',
+        'known contact route',
     );
 
   const accessDetail =
@@ -1133,7 +1133,7 @@ export default function AgencyPursuitRoom({
                         ?.instruction ||
                       pitch?.recommended_review
                         ?.instruction ||
-                      'Keep the route current from recorded evidence.'}
+                      'Keep the route current from known information.'}
                 </span>
 
                 {!careerIsOpen ? (

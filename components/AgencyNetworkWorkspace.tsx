@@ -537,13 +537,13 @@ export default function AgencyNetworkWorkspace({
 
   return (
     <div className={styles.workspace}>
-      {restricted ? <p className={styles.scopeNotice}>Shared clubs and contacts. Your contact pages show your own activity. Commercial agency context requires administrator access.</p> : null}
+      {restricted ? <p className={styles.scopeNotice}>Shared clubs and contacts. Your contact pages show your own activity. Agency-wide commercial details are only shown to admins.</p> : null}
       <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>NETWORK</p>
           <h2>{restricted ? 'Your shared clubs and contacts' : 'Know the person. Know the club. Know the next move.'}</h2>
           <p>
-            {restricted ? 'Browse recorded contact details and club identity. Your contact pages show your own conversations and follow-ups. Commercial agency context requires administrator access.' : 'ReDream keeps the relationship context underneath so the agency can see who matters, what is happening and the best route forward.'}
+            {restricted ? 'Browse club and contact details. Your contact pages show your own conversations and follow-ups. Agency-wide commercial details are only shown to admins.' : 'ReDream keeps the relationship context underneath so the agency can see who matters, what is happening and the best route forward.'}
           </p>
         </div>
 
@@ -575,7 +575,7 @@ export default function AgencyNetworkWorkspace({
               WHERE TO FOCUS
             </p>
             <strong>
-              Use recorded relationship evidence to decide the next move.
+              Use what you know about the relationship to decide the next move.
             </strong>
           </div>
 
@@ -607,7 +607,7 @@ export default function AgencyNetworkWorkspace({
             <span>NEEDS ATTENTION</span>
             <strong>{attentionClubs}</strong>
             <small>
-              Live clubs with a due deal action or weak recorded access.
+              Live clubs with a due deal action or a weak contact route.
             </small>
           </button>
 
@@ -626,7 +626,7 @@ export default function AgencyNetworkWorkspace({
             <span>WARM ROUTES</span>
             <strong>{warmRouteClubs}</strong>
             <small>
-              Clubs where a recorded introduction route is stronger than direct access.
+              Clubs where a warm introduction is stronger than going direct.
             </small>
           </button>
 
@@ -645,7 +645,7 @@ export default function AgencyNetworkWorkspace({
             <span>STRONG ROUTES</span>
             <strong>{strongPeople}</strong>
             <small>
-              People with a strong recorded direct agency route.
+              People where your agency already has a strong direct relationship.
             </small>
           </button>
 
@@ -664,13 +664,13 @@ export default function AgencyNetworkWorkspace({
             <span>GOING QUIET</span>
             <strong>{coolingPeople}</strong>
             <small>
-              Recorded relationships with no captured activity for more than 45 days.
+              Relationships with no activity for more than 45 days.
             </small>
           </button>
         </div>
 
         <p className={styles.intelligenceTruth}>
-          These signals use recorded activity, follow-up, direct relationship evidence and current club work. They are not predictions of influence, response or deal success.
+          These signals use your activity, follow-ups, relationships and current club work. They are not predictions of influence, response or deal success.
         </p>
       </section>
 
@@ -742,7 +742,7 @@ export default function AgencyNetworkWorkspace({
 {!restricted ? <>
       <section className={styles.signalBar}>
         <div>
-          <span>Recorded routes</span>
+          <span>Known contact routes</span>
           <strong>{strongestRoutes}</strong>
         </div>
         <div>
@@ -779,14 +779,14 @@ export default function AgencyNetworkWorkspace({
 
             const routeName = useWarmRoute
               ? access?.introduction_via || 'Warm introduction'
-              : access?.best_direct_contact || 'No recorded contact';
+              : access?.best_direct_contact || 'No contact yet';
 
             const routeDetail = useWarmRoute
               ? access?.introduction_target
                 ? `Introduction to ${access.introduction_target}`
-                : 'Warm route recorded'
+                : 'Warm introduction available'
               : access?.best_direct_role ||
-                human(access?.direct_state || 'route not recorded');
+                human(access?.direct_state || 'route not set');
 
             const directPerson =
               clubPeople.find(
@@ -815,7 +815,7 @@ export default function AgencyNetworkWorkspace({
                       ? 'Going quiet'
                       : human(
                           club?.account_state ||
-                            'relationship recorded',
+                            'relationship',
                         );
 
             const playType = String(topPlay?.play_type || '');
@@ -855,7 +855,7 @@ export default function AgencyNetworkWorkspace({
                     <p>
                       {[club?.city, club?.country, club?.league_name]
                         .filter(Boolean)
-                        .join(' · ') || 'Club context recorded'}
+                        .join(' · ') || 'Club details'}
                     </p>
                   </div>
                   {!restricted ? <EntityActionsMenu
@@ -993,7 +993,7 @@ export default function AgencyNetworkWorkspace({
                           title: topPlay?.title || clubName,
                           instruction:
                             playLabel ||
-                            'Prepare the strongest recorded relationship route.',
+                            'Prepare the strongest relationship route.',
                           label: primaryActionLabel,
                           action: 'play_prepare',
                           payload: {
@@ -1021,7 +1021,7 @@ export default function AgencyNetworkWorkspace({
                             },
                           ],
                           successCondition:
-                            'The next relationship action is prepared from recorded agency information. Nothing is sent externally without a person confirming it.',
+                            'The next relationship action is based on the information your agency has. Nothing is sent externally without a person confirming it.',
                           confirmationLabel: primaryActionLabel,
                           fallbackHref:
                             playType === 'pitch_now' ||
@@ -1080,11 +1080,11 @@ export default function AgencyNetworkWorkspace({
               person?.full_name || person?.preferred_name || 'Club contact';
 
             const clubName =
-              employment?.organisation_name || 'Club not recorded';
+              employment?.organisation_name || 'Club not set';
 
             const lastInteraction = activity?.last_interaction_at
               ? relativeDate(activity.last_interaction_at)
-              : 'Not recorded';
+              : 'Not set';
 
             const nextFollowUp = work?.next_task_due
               ? relativeDate(work.next_task_due)
@@ -1101,7 +1101,7 @@ export default function AgencyNetworkWorkspace({
                     ? 'Strong route'
                     : human(
                         item?.operating_state ||
-                          'relationship recorded',
+                          'relationship',
                       );
 
             return (
@@ -1148,7 +1148,7 @@ export default function AgencyNetworkWorkspace({
                     <strong>{relationship?.owner_name || 'Unassigned'}</strong>
                   </div>
                   <small className={styles.relationshipState}>
-                    {human(relationship?.route_state || 'route not recorded')}
+                    {human(relationship?.route_state || 'route not set')}
                   </small>
                 </div>
 
@@ -1224,7 +1224,7 @@ export default function AgencyNetworkWorkspace({
               title={
                 search
                   ? 'No people match this search'
-                  : 'No people recorded yet'
+                  : 'No people yet'
               }
               copy={
                 search

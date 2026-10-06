@@ -27,7 +27,7 @@ test('opportunities already receive candidate names and career gate evidence', (
 test('club demand shows real recorded candidate names in the operating workspace', () => {
   assert.match(workspace, /candidate_coverage\?\.candidates/);
   assert.match(workspace, /candidate\.player_name \|\| 'Player'/);
-  assert.match(workspace, /aria-label="Recorded player routes"/);
+  assert.match(workspace, /aria-label="Player opportunities"/);
   assert.match(workspace, /No player linked yet/);
 });
 

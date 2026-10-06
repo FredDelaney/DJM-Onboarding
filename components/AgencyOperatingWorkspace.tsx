@@ -199,7 +199,7 @@ const reviewPlayerId = (command: any): string => {
 
 const reviewCopy = (command: any) => ({
   title: command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
-  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Open the player profile to check the recorded data.' : 'Check the player profile, then mark this reminder done.',
+  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Open the player profile to check the current information.' : 'Check the player profile, then mark this reminder done.',
 });
 
 const commandWorkingView = (command: any): View => {
@@ -1603,7 +1603,7 @@ export default function AgencyOperatingWorkspace() {
           >
             {restrictedView ? (
               <section className={styles.sectionCard}>
-                <h2>Administrator access required</h2>
+                <h2>Admin access needed</h2>
                 <p>Commercial opportunities and business records are available to agency owners and administrators.</p>
                 <Link className={styles.homeTextLink} href={basePath+'?view=players'}>Open assigned players <ChevronRight size={14}/></Link>
               </section>
@@ -2554,7 +2554,7 @@ function Home({
       category: 'Needs action now',
       score: categoryScore['Needs action now'] + 8_500 - index,
       title: `Record the outcome from ${name}`,
-      why: 'The meeting has ended, but the outcome and next move are not recorded.',
+      why: 'The meeting has ended, but the outcome and next step have not been added yet.',
       recommendation: 'Capture what happened and the next action while it is still fresh.',
       owner: 'You',
       deadline: item?.ends_at ? `Ended ${relativeDate(item.ends_at)}` : 'Now',
@@ -3465,7 +3465,7 @@ function Relationships({
                     ? 'A controlled sourcing task is prepared against the confirmed club need.'
                     : playType === 'pitch_now'
                       ? 'The pitch route is reviewed and prepared for human-led external action.'
-                      : 'The recommended relationship play is prepared against the recorded evidence.';
+                      : 'The recommended relationship step is based on the information you have.';
 
             const playConfirmationLabel =
               warmPlay
@@ -3993,7 +3993,7 @@ function Relationships({
                       <small>
                         {location ||
                           employment.league_name ||
-                          'Location not recorded'}
+                          'Location not set'}
                       </small>
                     </div>
 
@@ -4007,7 +4007,7 @@ function Relationships({
                       </strong>
                       <small>
                         {relationship.route_score
-                          ? `Recorded route ${relationship.route_score}`
+                          ? `Contact route ${relationship.route_score}`
                           : 'No direct relationship score recorded'}
                       </small>
                     </div>
@@ -4023,7 +4023,7 @@ function Relationships({
                           ? relativeDate(
                               activity.last_interaction_at,
                             )
-                          : 'Not recorded'}
+                          : 'Not set'}
                       </strong>
                       <small>
                         {Number(
@@ -4140,7 +4140,7 @@ function Relationships({
               title={
                 relationshipSearch
                   ? 'No contacts match this search'
-                  : 'No club contacts recorded yet'
+                  : 'No club contacts yet'
               }
               copy={
                 relationshipSearch
@@ -4772,7 +4772,7 @@ function Market({
 
                     <span>
                       {item.next_action?.instruction ||
-                        'Review the recorded need.'}
+                        'Review the club need.'}
                     </span>
 
                     <small>
@@ -4783,7 +4783,7 @@ function Market({
 
                     <div
                       className={styles.routeCandidates}
-                      aria-label="Recorded player routes"
+                      aria-label="Player opportunities"
                     >
                       {visibleCandidates.map((candidate: any) => (
                         <div
@@ -4819,7 +4819,7 @@ function Market({
                                     'PLAYER-CLUB ROUTE',
                                   title:
                                     candidate.player_name ||
-                                    'Player route',
+                                    'Player opportunity',
                                   instruction:
                                     candidate.career_gate_reason ||
                                     'Review the player-owned career strategy before external activity.',
@@ -4974,7 +4974,7 @@ function Market({
                                       item.need
                                         .transfer_type,
                                     )
-                                  : 'Transfer type not recorded',
+                                  : 'Transfer type not set',
                               },
                               {
                                 label: 'Coverage',
@@ -4982,7 +4982,7 @@ function Market({
                                   `${Number(item.candidate_coverage?.recorded_candidates || 0)} recorded candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
                                 detail: human(
                                   item.coverage_state ||
-                                    'coverage not recorded',
+                                    'coverage not set',
                                 ),
                               },
                               {

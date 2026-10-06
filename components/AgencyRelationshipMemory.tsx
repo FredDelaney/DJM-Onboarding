@@ -41,8 +41,8 @@ const stateCopy = (state: string) => {
   }
 
   return {
-    label: 'Not recorded',
-    copy: 'ReDream has no meaningful interaction recorded yet.',
+    label: 'Not set',
+    copy: 'ReDream has no meaningful interaction to show yet.',
   };
 };
 
@@ -181,7 +181,7 @@ export default function AgencyRelationshipMemory({
           </div>
         ) : (
           <p className={styles.empty}>
-            No agency relationship is recorded yet.
+            No agency relationship has been added yet.
           </p>
         )}
       </div>
@@ -191,7 +191,7 @@ export default function AgencyRelationshipMemory({
           title="Recent conversations"
           count={interactions.length}
           icon="conversation"
-          empty="No conversations are recorded yet."
+          empty="No conversations yet."
           items={interactions.slice(0, 6).map((item: any) => ({
             id: item?.interaction_id,
             title: clean(item?.summary) || 'Interaction recorded',

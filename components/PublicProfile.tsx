@@ -789,7 +789,7 @@ export default function PublicProfile({
                 <p>{profile.headline || [profile.primary_position, profile.current_club].filter(Boolean).join(' · ')}</p>
 
                 <div className="dossier-role-facts">
-                  <div><span>Current club</span><strong>{profile.current_club || 'Not recorded'}</strong></div>
+                  <div><span>Current club</span><strong>{profile.current_club || 'Not set'}</strong></div>
                   <div><span>Additional positions</span><strong>{dossierList(profile.secondary_positions).join(' · ') || '-'}</strong></div>
                   <div><span>Preferred foot</span><strong>{profile.preferred_foot || '-'}</strong></div>
                   <div><span>Status</span><strong>{profile.current_status || `Contact ${agencyShortName}`}</strong></div>
@@ -937,7 +937,7 @@ export default function PublicProfile({
 
                   <p className="dossier-chart-note">
                     Bar length compares only the seasons shown. The value at
-                    right is the exact recorded total; unknown values are not
+                    right is the confirmed total; unknown values are not
                     treated as zero.
                   </p>
 

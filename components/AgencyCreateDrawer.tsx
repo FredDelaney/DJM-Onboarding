@@ -64,7 +64,7 @@ const META: Record<
   club_need: {
     eyebrow: 'MARKET',
     title: 'Add club need',
-    copy: 'Record what a club is actively looking for so the right player routes can be connected.',
+    copy: 'Add what a club is actively looking for so you can connect the right players.',
     submit: 'Add club need',
   },
   deal: {

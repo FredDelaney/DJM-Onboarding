@@ -52,7 +52,7 @@ const money = (
   const amount = Number(value);
 
   if (!Number.isFinite(amount)) {
-    return 'Not recorded';
+    return 'Not set';
   }
 
   try {
@@ -316,7 +316,7 @@ export default function AgencyNegotiationCommandRoom({
     guardrails?.guardrails || {};
 
   const guardrailState =
-    guardrails?.state || 'not recorded';
+    guardrails?.state || 'not set';
 
   const originRecord =
     origin?.origin || {};
@@ -546,7 +546,7 @@ export default function AgencyNegotiationCommandRoom({
       'prepare_negotiation_brief'
     ) {
       setMessage(
-        'The negotiation brief is ready for human review in this room. ReDream will not invent positions that are not recorded.',
+        'The negotiation brief is ready for human review in this room. ReDream will not invent positions that are not set.',
       );
       return;
     }
@@ -746,7 +746,7 @@ export default function AgencyNegotiationCommandRoom({
                 label="Decision pressure"
                 value={human(
                   pressure?.state ||
-                    'not recorded',
+                    'not set',
                 )}
                 detail={
                   pressure
@@ -771,7 +771,7 @@ export default function AgencyNegotiationCommandRoom({
                 value={human(
                   originRecord.route_type ||
                     origin?.state ||
-                    'not recorded',
+                    'not set',
                 )}
                 detail={
                   originRecord
@@ -847,7 +847,7 @@ export default function AgencyNegotiationCommandRoom({
               ) : null}
 
               <p className={styles.truth}>
-                Completing a task does not prove the underlying negotiation gap is resolved. The sequence stays tied to recorded evidence.
+                Completing a task does not prove the underlying negotiation gap is resolved. The sequence stays tied to known information.
               </p>
             </section>
 
@@ -876,11 +876,11 @@ export default function AgencyNegotiationCommandRoom({
                         </strong>
                         <span>
                           {person.role_title ||
-                            'Role not recorded'}
+                            'Role not set'}
                           {' '}·{' '}
                           {human(
                             person.route_mode ||
-                              'recorded route',
+                              'known contact route',
                           )}
                         </span>
                         <small>
@@ -1246,7 +1246,7 @@ export default function AgencyNegotiationCommandRoom({
                   )}
                   detail={
                     terms.salary_period ||
-                    'Period not recorded'
+                    'Period not set'
                   }
                 />
                 <Fact
@@ -1330,7 +1330,7 @@ export default function AgencyNegotiationCommandRoom({
                   value={human(
                     originRecord.route_type ||
                       origin?.state ||
-                      'not recorded',
+                      'not set',
                   )}
                   detail={
                     originRecord
@@ -1343,7 +1343,7 @@ export default function AgencyNegotiationCommandRoom({
                   value={
                     originRecord
                       .intermediary_person_name ||
-                    'Not recorded'
+                    'Not set'
                   }
                   detail={
                     originRecord

@@ -130,7 +130,7 @@ export default function AgencyCalendarWorkspace({
   const undated=source.undated.filter(task=>preferences.layers[task.visibility]);
   const formatWhen = (item: AgendaItem) => {
     const date = parseDate(item.dateAt, item.dateOnly);
-    if (!date) return 'Date not recorded';
+    if (!date) return 'Date not set';
 
     if (item.dateOnly) {
       return new Intl.DateTimeFormat('en-GB', {
@@ -526,7 +526,7 @@ function MeetingBriefDrawer({
         hour: '2-digit',
         minute: '2-digit',
       }).format(startsAt)
-    : 'Time not recorded';
+    : 'Time not set';
   const meetingStarted = Boolean(
     startsAt &&
       startsAt.getTime() <= Date.now() &&
@@ -712,7 +712,7 @@ function MeetingBriefDrawer({
 
 </> : null}
             <p className={styles.briefTruth}>
-              {brief?.access?.restricted ? "This brief shows your personal meeting and contact activity. Commercial club context requires administrator access." : "This is recorded agency context, not a prediction of meeting or deal outcome."}
+              {brief?.access?.restricted ? "This brief shows your personal meeting and contact activity. Commercial club context requires admin access." : "This is known agency context, not a prediction of the meeting or deal outcome."}
             </p>
           </div>
         ) : null}

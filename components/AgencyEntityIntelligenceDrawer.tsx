@@ -326,7 +326,7 @@ export default function AgencyEntityIntelligenceDrawer({
               />
               <Fact
                 label="Career plan"
-                value={strategyMissing ? 'Not recorded' : human(alignment.alignment_state || 'current')}
+                value={strategyMissing ? 'Not set' : human(alignment.alignment_state || 'current')}
                 detail={strategyMissing
                   ? 'Objective, target markets and next checkpoint still need to be agreed.'
                   : alignment.review_due_at
@@ -335,7 +335,7 @@ export default function AgencyEntityIntelligenceDrawer({
               />
               <Fact
                 label="Contract"
-                value={human(player.contract_status || 'Not recorded')}
+                value={human(player.contract_status || 'Not set')}
                 detail={
                   player.contract_expiry
                     ? `Expires ${relativeDate(player.contract_expiry)}`
@@ -355,12 +355,12 @@ export default function AgencyEntityIntelligenceDrawer({
 
             <section className={styles.panel}>
               <p>CAREER PLAN</p>
-              <h3>{alignment.strategy?.objective || 'Career plan not recorded'}</h3>
+              <h3>{alignment.strategy?.objective || 'Career plan not set'}</h3>
               {alignment.strategy ? (
                 <div className={styles.grid}>
                   <Fact
                     label="Next checkpoint"
-                    value={alignment.strategy?.next_checkpoint || 'Not recorded'}
+                    value={alignment.strategy?.next_checkpoint || 'Not set'}
                   />
                   <Fact
                     label="Target markets"
@@ -368,11 +368,11 @@ export default function AgencyEntityIntelligenceDrawer({
                   />
                   <Fact
                     label="Alignment"
-                    value={human(alignment.alignment_state || 'not recorded')}
+                    value={human(alignment.alignment_state || 'not set')}
                   />
                   <Fact
                     label="Market state"
-                    value={human(alignment.market_coverage?.state || 'not recorded')}
+                    value={human(alignment.market_coverage?.state || 'not set')}
                   />
                 </div>
               ) : (
@@ -503,12 +503,12 @@ export default function AgencyEntityIntelligenceDrawer({
             <div className={styles.grid}>
               <Fact
                 label="Stage"
-                value={human(deal.stage || 'not recorded')}
-                detail={deal.primary_blocker || 'No blocker recorded'}
+                value={human(deal.stage || 'not set')}
+                detail={deal.primary_blocker || 'No blocker'}
               />
               <Fact
                 label="Momentum"
-                value={human(momentum.state || 'not recorded')}
+                value={human(momentum.state || 'not set')}
                 detail={
                   momentum.score !== undefined
                     ? `${numeric(momentum.score)} momentum score`
@@ -517,7 +517,7 @@ export default function AgencyEntityIntelligenceDrawer({
               />
               <Fact
                 label="Decision pressure"
-                value={human(pressure.state || 'not recorded')}
+                value={human(pressure.state || 'not set')}
                 detail={
                   pressure.observed_days_in_stage !== undefined
                     ? `${numeric(pressure.observed_days_in_stage)} observed days in stage`
@@ -526,7 +526,7 @@ export default function AgencyEntityIntelligenceDrawer({
               />
               <Fact
                 label="Negotiation"
-                value={human(negotiation.state || 'not recorded')}
+                value={human(negotiation.state || 'not set')}
                 detail={
                   negotiation.score !== undefined
                     ? `${numeric(negotiation.score)} preparation score`
@@ -547,7 +547,7 @@ export default function AgencyEntityIntelligenceDrawer({
                   value={
                     access.direct_score !== undefined
                       ? `${numeric(access.direct_score)}/100`
-                      : 'Not recorded'
+                      : 'Not set'
                   }
                 />
                 <Fact
@@ -555,12 +555,12 @@ export default function AgencyEntityIntelligenceDrawer({
                   value={
                     access.introduction_score !== undefined
                       ? `${numeric(access.introduction_score)}/100`
-                      : 'Not recorded'
+                      : 'Not set'
                   }
                 />
                 <Fact
                   label="Operating advantage"
-                  value={human(advantage.state || 'not recorded')}
+                  value={human(advantage.state || 'not set')}
                   detail={
                     advantage.score !== undefined
                       ? `${numeric(advantage.score)} operating score`
@@ -675,7 +675,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
 
             <p className={styles.truth}>
-              Deal War Room supports judgement from recorded evidence. Scores describe control, preparation and observed movement, not transfer probability or predicted outcome.
+              Deal War Room supports judgement from known information. Scores describe control, preparation and observed movement, not transfer probability or predicted outcome.
             </p>
           </div>
         ) : null}
