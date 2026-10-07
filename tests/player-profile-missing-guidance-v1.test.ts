@@ -64,15 +64,11 @@ test('missing items have direct fix actions without legacy admin routing', () =>
   assert.doesNotMatch(profile, /href={\x60\/admin\/players/);
 });
 
-test('status headline uses the actual missing item instead of only a count', () => {
-  assert.match(
-    profile,
-    /missingRequiredCount === 1[\s\S]*missingRequiredChecks\[0\]\.missingTitle/,
-  );
-  assert.match(
-    profile,
-    /missingRequiredCount === 1[\s\S]*missingRequiredChecks\[0\]\.where/,
-  );
+test('status headline uses the actual first missing item instead of only a count', () => {
+  assert.match(profile, /const primaryRequiredCheck = guidedRequiredChecks\[0\]/);
+  assert.match(profile, /primaryRequiredCheck\?\.missingTitle/);
+  assert.match(profile, /primaryRequiredCheck\?\.missingDetail/);
+  assert.match(profile, /runProfileCheck\(primaryRequiredCheck\)/);
 });
 
 test('missing guidance is visible and usable on mobile', () => {
@@ -89,8 +85,8 @@ test('Transfermarkt is directly editable from the player header and missing guid
   assert.match(profile, /action: 'transfermarkt'/);
   assert.match(profile, /const openTransfermarkt =/);
   assert.match(profile, /player_profile_transfermarkt_save/);
-  assert.match(profile, /'Edit Transfermarkt'/);
-  assert.match(profile, /'Add Transfermarkt'/);
+  assert.match(profile, /Edit Transfermarkt/);
+  assert.match(profile, /Add Transfermarkt/);
   assert.match(profile, /onClick={openTransfermarkt}/);
   assert.match(profile, /Paste the direct Transfermarkt player profile URL/);
   assert.match(profile, /Save link/);

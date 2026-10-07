@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import {
   ArrowLeft,
+  ArrowRight,
   BarChart3,
   Check,
   ChevronDown,
@@ -693,6 +694,10 @@ export default function AgencyPlayerProfile({
   const canEdit = !bundle?.access?.restricted && ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
+  const primaryRequiredCheck = guidedRequiredChecks[0] || null;
+  const primaryMoveBlocked =
+    primaryRequiredCheck?.action === 'agency-settings' &&
+    !['owner', 'admin'].includes(role);
 
   const setField = <K extends keyof ProfileForm>(
     key: K,
@@ -1152,6 +1157,42 @@ export default function AgencyPlayerProfile({
     }
   };
 
+  const runProfileCheck = (item: ProfileCheck) => {
+    if (!canEdit) return;
+
+    if (item.action === 'verify-player') {
+      openVerify(
+        item.key === 'position'
+          ? 'position'
+          : item.key === 'contract'
+            ? player.contract_status
+              ? 'contract-expiry'
+              : 'contract-status'
+            : 'verification',
+      );
+      return;
+    }
+
+    if (item.action === 'transfermarkt') {
+      openTransfermarkt();
+      return;
+    }
+
+    if (item.action === 'profile-video' || item.action === 'profile-positioning') {
+      openEditorAt(item.action === 'profile-video' ? 'video' : 'positioning');
+      return;
+    }
+
+    if (item.action === 'player-workspace') {
+      window.location.assign(backHref);
+      return;
+    }
+
+    if (item.action === 'agency-settings' && ['owner', 'admin'].includes(role)) {
+      window.location.assign('/settings/agency');
+    }
+  };
+
   const verifyPlayerData = async () => {
     if (!canEdit || actionBusy) return;
     if (!verifyForm.primary_position.trim()) {
@@ -1401,46 +1442,32 @@ export default function AgencyPlayerProfile({
         <div className={styles.readiness}>
           <div className={styles.readinessTop}>
             <div>
-              <span>Profile status</span>
+              <span>Next move</span>
               <strong>
                 {published?.published
-                  ? 'Live'
+                  ? 'Share with a club'
                   : verificationOnly
-                    ? 'Ready for verification'
+                    ? 'Verify and publish'
                     : canPublish
-                      ? 'Ready to publish'
-                      : missingRequiredCount === 1
-                        ? missingRequiredChecks[0].missingTitle
-                        : `${missingRequiredCount} required items missing`}
+                      ? 'Publish Player Profile'
+                      : primaryRequiredCheck?.missingTitle || 'Finish the player record'}
               </strong>
             </div>
           </div>
 
           <p>
             {published?.published
-              ? missingOptionalChecks.length
-                ? `Before sharing: ${(missingShareHighlights.length
-                    ? missingShareHighlights
-                    : missingOptionalChecks)
-                    .slice(0, 3)
+              ? missingShareHighlights.length
+                ? `Before sharing: ${missingShareHighlights
+                    .slice(0, 2)
                     .map((item) => item.missingTitle)
                     .join(' · ')}`
-                : 'Ready to share with clubs.'
+                : 'The profile is live and ready to send.'
               : verificationOnly
-                ? `Confirm this current record once: ${[
-                    player.primary_position,
-                    player.current_club,
-                    player.current_country,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}.`
+                ? 'Confirm the current player record once before the profile goes live.'
                 : canPublish
-                  ? 'The required player information is ready.'
-                  : missingRequiredCount === 1
-                    ? missingRequiredChecks[0].where
-                    : `Missing: ${missingRequiredChecks
-                        .map((item) => item.missingTitle)
-                        .join(' · ')}`}
+                  ? 'Everything required is ready.'
+                  : primaryRequiredCheck?.missingDetail || 'Complete the required player information first.'}
           </p>
         </div>
 
@@ -1451,12 +1478,12 @@ export default function AgencyPlayerProfile({
               data-ui-button="primary" data-ui-tone="inverse"
               className={styles.primaryAction}
               onClick={openShareComposer}
-              disabled={!canEdit}
+              disabled={!canEdit || Boolean(actionBusy)}
             >
               <Send size={16} />
               Share Player Profile
             </button>
-          ) : (
+          ) : canPublishFromHero ? (
             <button
               type="button"
               data-ui-button="primary" data-ui-tone="inverse"
@@ -1467,21 +1494,29 @@ export default function AgencyPlayerProfile({
                   confirmCurrentData: verificationOnly,
                 })
               }
-              disabled={!canEdit || !canPublishFromHero || Boolean(actionBusy)}
+              disabled={!canEdit || Boolean(actionBusy)}
             >
               {actionBusy === 'publish' ? (
                 <LoaderCircle className={styles.spin} size={16} />
               ) : (
                 <ShieldCheck size={16} />
               )}
-              {verificationOnly
-                ? 'Verify & publish'
-                : 'Publish Player Profile'}
+              {verificationOnly ? 'Verify & publish' : 'Publish Player Profile'}
             </button>
-          )}
+          ) : primaryRequiredCheck ? (
+            <button
+              type="button"
+              data-ui-button="primary" data-ui-tone="inverse"
+              className={styles.primaryAction}
+              onClick={() => runProfileCheck(primaryRequiredCheck)}
+              disabled={!canEdit || primaryMoveBlocked || Boolean(actionBusy)}
+            >
+              <ArrowRight size={16} />
+              {primaryMoveBlocked ? 'Owner or admin required' : primaryRequiredCheck.actionLabel}
+            </button>
+          ) : null}
 
-
-          {canEdit ? (
+          {canEdit && !player.transfermarkt_url ? (
             <button
               type="button"
               data-ui-button="secondary"
@@ -1490,62 +1525,71 @@ export default function AgencyPlayerProfile({
               onClick={openTransfermarkt}
             >
               <Link2 size={15} />
-              {player.transfermarkt_url
-                ? 'Edit Transfermarkt'
-                : 'Add Transfermarkt'}
+              Add Transfermarkt
             </button>
           ) : null}
 
-          <button
-            type="button"
-            data-ui-button="secondary"
-            data-ui-tone="inverse"
-            className={styles.secondaryAction}
-            onClick={() => setPreviewOpen(true)}
-          >
-            <Eye size={15} />
-            Preview
-          </button>
-
-          <details className={styles.profileTools}
+          <details
+            className={styles.profileTools}
             onClick={event=>{if((event.target as HTMLElement).closest('button'))event.currentTarget.open=false;}}
-            onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}>
-            <summary data-ui-button="secondary" data-ui-tone="inverse" className={styles.secondaryAction}>Profile tools <ChevronDown size={15}/></summary>
-            <div className={styles.toolMenu}>
-          {verificationOnly && canEdit ? (
-            <button
-              type="button"
-              data-ui-button="secondary" data-ui-tone="inverse"
-              className={styles.secondaryAction}
-              onClick={() => openVerify('verification')}
-            >
-              <Eye size={15} />
-              Check data
-            </button>
-          ) : null}
-          <button
-            type="button"
-            data-ui-button="secondary"
-            data-ui-tone="inverse"
-            className={styles.secondaryAction}
-            onClick={downloadPdf}
-            disabled={Boolean(actionBusy)}
+            onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}
           >
-            <Download size={15} />
-            PDF
-          </button>
-
-          {canEdit ? (
-            <button
-              type="button"
-              data-ui-button="secondary" data-ui-tone="inverse"
-              className={styles.secondaryAction}
-              onClick={openEditor}
-            >
-              <Pencil size={15} />
-              Edit
-            </button>
-          ) : null}
+            <summary data-ui-button="secondary" data-ui-tone="inverse" className={styles.secondaryAction}>
+              More <ChevronDown size={15}/>
+            </summary>
+            <div className={styles.toolMenu}>
+              <button
+                type="button"
+                data-ui-button="secondary"
+                className={styles.secondaryAction}
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye size={15} />
+                Preview
+              </button>
+              {player.transfermarkt_url && canEdit ? (
+                <button
+                  type="button"
+                  data-ui-button="secondary"
+                  className={styles.secondaryAction}
+                  onClick={openTransfermarkt}
+                >
+                  <Link2 size={15} />
+                  Edit Transfermarkt
+                </button>
+              ) : null}
+              {verificationOnly && canEdit ? (
+                <button
+                  type="button"
+                  data-ui-button="secondary"
+                  className={styles.secondaryAction}
+                  onClick={() => openVerify('verification')}
+                >
+                  <ShieldCheck size={15} />
+                  Check data
+                </button>
+              ) : null}
+              <button
+                type="button"
+                data-ui-button="secondary"
+                className={styles.secondaryAction}
+                onClick={downloadPdf}
+                disabled={Boolean(actionBusy)}
+              >
+                <Download size={15} />
+                Download PDF
+              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  data-ui-button="secondary"
+                  className={styles.secondaryAction}
+                  onClick={openEditor}
+                >
+                  <Pencil size={15} />
+                  Edit profile
+                </button>
+              ) : null}
             </div>
           </details>
         </div>

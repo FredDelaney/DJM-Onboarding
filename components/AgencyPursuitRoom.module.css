@@ -1170,3 +1170,30 @@
     box-shadow: 0 5px 16px rgba(20,34,48,.022);
   }
 }
+
+/* Core pursuit journey: one obvious next move. */
+.heroAction {
+  margin-top: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+}
+.heroAction:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+@media (max-width: 680px) {
+  .heroAction {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 16px;
+    font-size: 12px;
+  }
+}
