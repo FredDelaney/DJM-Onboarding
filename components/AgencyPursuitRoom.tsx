@@ -21,6 +21,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -168,6 +169,7 @@ export default function AgencyPursuitRoom({
   onApplied: () => Promise<void> | void;
   presentation?: 'drawer' | 'page';
 }) {
+  const panelRef = useRef<HTMLElement>(null);
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] =
     useState('');
@@ -479,8 +481,15 @@ export default function AgencyPursuitRoom({
     ) => {
       if (
         event.key === 'Escape' &&
-        !actionBusy
+        !actionBusy &&
+        !event.defaultPrevented
       ) {
+        // A follow-up dialog owns Escape while it is open above the pursuit.
+        const otherModal = [...document.querySelectorAll(
+          '[aria-modal="true"][role="dialog"], [aria-modal="true"][role="alertdialog"]',
+        )].some((modal) => modal !== panelRef.current);
+        if (otherModal) return;
+        event.preventDefault();
         onClose();
       }
     };
@@ -1117,6 +1126,7 @@ export default function AgencyPursuitRoom({
       }}
     >
       <aside
+        ref={panelRef}
         className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`}
         role={pageMode ? 'region' : 'dialog'}
         aria-modal={pageMode ? undefined : true}

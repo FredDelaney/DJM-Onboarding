@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
   Building2,
   CheckCircle2,
   ExternalLink,
@@ -610,6 +611,34 @@ export default function AgencyContactIntelligenceDrawer({
       ],
     );
 
+  const primaryReach = quickActions[0] || null;
+  const employmentNeedsConfirmation =
+    Boolean(employment?.employment_id) &&
+    verificationState !== 'recently_verified';
+
+  const nextMove = !quickActions.length
+    ? {
+        title: 'Add a direct contact route',
+        detail: 'Add one trusted email, WhatsApp or phone number before the next outreach.',
+        label: 'Add contact details',
+        kind: 'reach' as const,
+      }
+    : employmentNeedsConfirmation && !restricted
+      ? {
+          title: `Confirm ${name}'s current role`,
+          detail: `Check ${role} at ${clubName} before the next outreach.`,
+          label: `Confirm still at ${clubName}`,
+          kind: 'verify' as const,
+        }
+      : {
+          title: `Contact ${name}`,
+          detail: summaryActivity?.last_interaction_at
+            ? `Last contact ${relativeDate(summaryActivity.last_interaction_at)}. Use the strongest recorded channel and keep the relationship current.`
+            : 'No recent contact is recorded. Use the strongest recorded channel to start or restart the relationship.',
+          label: primaryReach?.label || 'Contact',
+          kind: 'contact' as const,
+        };
+
   const pageMode = presentation === 'page';
 
   return (
@@ -749,20 +778,50 @@ export default function AgencyContactIntelligenceDrawer({
             }
           >
             {restricted ? <p className={styles.section}>Shared contact details and your personal relationship activity. Agency-wide commercial details are only shown to admins.</p> : null}
-            <AgencyRelationshipActions
-              personId={clean(contact?.person_id)}
-              rpc={rpc}
-              onSaved={async (result) => {
-                setDetail(result);
-                await onRefresh();
-              }}
-            />
+            <section className={styles.nextMove} aria-label="Next relationship action">
+              <div>
+                <span>NEXT MOVE</span>
+                <strong>{nextMove.title}</strong>
+                <small>{nextMove.detail}</small>
+              </div>
 
-            <AgencyBirthdayEditor entityKind="contact" entityId={clean(contact?.person_id)} rpc={rpc} />
-
-            <AgencyRelationshipMemory
-              memory={detail?.relationship_memory}
-            />
+              {nextMove.kind === 'reach' ? (
+                <button
+                  type="button"
+                  data-ui-button="primary"
+                  data-ui-tone="inverse"
+                  onClick={() => openReachEditor('email')}
+                >
+                  {nextMove.label}
+                  <ArrowRight size={15} />
+                </button>
+              ) : nextMove.kind === 'verify' ? (
+                <button
+                  type="button"
+                  data-ui-button="primary"
+                  data-ui-tone="inverse"
+                  disabled={Boolean(saving)}
+                  onClick={() => void confirmEmployment()}
+                >
+                  {saving === 'employment' ? (
+                    <LoaderCircle size={15} className={styles.spin} />
+                  ) : (
+                    <ShieldCheck size={15} />
+                  )}
+                  {nextMove.label}
+                </button>
+              ) : primaryReach ? (
+                <a
+                  className={styles.nextMoveLink}
+                  href={primaryReach.href}
+                  target={primaryReach.external ? '_blank' : undefined}
+                  rel={primaryReach.external ? 'noreferrer' : undefined}
+                >
+                  {nextMove.label}
+                  <ArrowRight size={15} />
+                </a>
+              ) : null}
+            </section>
 
             <section
               className={
@@ -822,13 +881,15 @@ export default function AgencyContactIntelligenceDrawer({
                     <strong>No direct contact details yet</strong>
                     <span>Add one trusted channel and ReDream will keep it attached to this relationship.</span>
                   </div>
-                  <button
-                    type="button"
-                    data-ui-button="secondary"
-                    onClick={() => openReachEditor('email')}
-                  >
-                    Add contact details
-                  </button>
+                  {nextMove.kind !== 'reach' ? (
+                    <button
+                      type="button"
+                      data-ui-button="secondary"
+                      onClick={() => openReachEditor('email')}
+                    >
+                      Add contact details
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -1188,6 +1249,21 @@ export default function AgencyContactIntelligenceDrawer({
                 human confirmation.
               </p>
             </section>
+
+            <AgencyRelationshipActions
+              personId={clean(contact?.person_id)}
+              rpc={rpc}
+              onSaved={async (result) => {
+                setDetail(result);
+                await onRefresh();
+              }}
+            />
+
+            <AgencyRelationshipMemory
+              memory={detail?.relationship_memory}
+            />
+
+            <AgencyBirthdayEditor entityKind="contact" entityId={clean(contact?.person_id)} rpc={rpc} />
 
             <section
               className={

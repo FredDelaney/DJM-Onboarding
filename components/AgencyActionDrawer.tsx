@@ -637,6 +637,7 @@ export default function AgencyActionDrawer({
   }, [request.key]);
 
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
     const previous =
       document.body.style.overflow;
 
@@ -646,6 +647,9 @@ export default function AgencyActionDrawer({
     return () => {
       document.body.style.overflow =
         previous;
+      queueMicrotask(() => {
+        if (opener?.isConnected) opener.focus();
+      });
     };
   }, []);
 
@@ -655,8 +659,10 @@ export default function AgencyActionDrawer({
     ) => {
       if (
         event.key === 'Escape' &&
-        !busy
+        !busy &&
+        !event.defaultPrevented
       ) {
+        event.preventDefault();
         onClose();
       }
     };
