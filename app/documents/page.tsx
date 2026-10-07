@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  useEffect,
   useState,
 } from 'react';
 
@@ -24,6 +23,19 @@ import {
   supabase,
 } from '@/lib/supabase';
 
+import JourneyStatus from '@/components/JourneyStatus';
+import {usePlayerPageRead} from '@/lib/use-player-page-read';
+
+const readDocuments = async (playerId: string) => {
+  const [documentResult, agreementResult] = await Promise.all([
+    supabase.from('player_documents').select('*').eq('player_id', playerId).order('created_at', {ascending:false}),
+    supabase.from('player_agreements').select('*').eq('player_id', playerId).eq('visible_to_player', true).order('created_at', {ascending:false}),
+  ]);
+  if (documentResult.error) throw documentResult.error;
+  if (agreementResult.error) throw agreementResult.error;
+  return {documents:documentResult.data || [],agreements:agreementResult.data || []};
+};
+
 const MAX_FILE_BYTES =
   15 * 1024 * 1024;
 
@@ -31,13 +43,9 @@ export default function Documents() {
   const ctx =
     usePlayerContext();
 
-  const [docs, setDocs] =
-    useState<any[]>([]);
-
-  const [
-    agreements,
-    setAgreements,
-  ] = useState<any[]>([]);
+  const pageRead = usePlayerPageRead(ctx.player?.id, readDocuments);
+  const docs = pageRead.data?.documents || [];
+  const agreements = pageRead.data?.agreements || [];
 
   const [
     docType,
@@ -71,77 +79,23 @@ export default function Documents() {
     );
   };
 
-  const load = async () => {
-    if (!ctx.player) {
-      return;
-    }
-
-    const [
-      {
-        data: documents,
-      },
-      {
-        data:
-          visibleAgreements,
-      },
-    ] = await Promise.all([
-      supabase
-        .from(
-          'player_documents',
-        )
-        .select('*')
-        .eq(
-          'player_id',
-          ctx.player.id,
-        )
-        .order(
-          'created_at',
-          {
-            ascending:
-              false,
-          },
-        ),
-
-      supabase
-        .from(
-          'player_agreements',
-        )
-        .select('*')
-        .eq(
-          'player_id',
-          ctx.player.id,
-        )
-        .eq(
-          'visible_to_player',
-          true,
-        )
-        .order(
-          'created_at',
-          {
-            ascending:
-              false,
-          },
-        ),
-    ]);
-
-    setDocs(
-      documents || [],
-    );
-
-    setAgreements(
-      visibleAgreements ||
-        [],
-    );
-  };
-
-  useEffect(() => {
-    void load();
-  }, [ctx.player?.id]);
-
   if (ctx.loading || ctx.error) {
     return (
       <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />
     );
+  }
+
+  if (!ctx.player) {
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile to this account."/></main></PlayerShell>;
+  }
+
+  if (pageRead.loading || pageRead.error) {
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus
+      kind={pageRead.error ? 'error' : 'loading'}
+      title={pageRead.error ? 'Your documents could not load' : 'Loading your documents'}
+      description={pageRead.error || 'Loading your private files and shared agreements.'}
+      onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
+    /></main></PlayerShell>;
   }
 
   const upload = async (
@@ -273,12 +227,10 @@ export default function Documents() {
       return;
     }
 
-    setDocs(
-      (current) => [
-        record,
-        ...current,
-      ],
-    );
+    pageRead.updateData(current => ({
+      ...current,
+      documents: [record, ...current.documents],
+    }));
 
     setDocType('');
     setCountry('');
