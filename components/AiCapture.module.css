@@ -360,3 +360,11 @@
     width: 100%;
   }
 }
+
+/* Capture instructions and controls must be readable without zooming. */
+.shell:not(.compact) .prompt span { max-width: 440px; font-size: 14px; line-height: 1.6; }
+.shell:not(.compact) .secondary,
+.shell:not(.compact) .primary { min-height: 44px; font-size: 14px; padding: 10px 16px; }
+.shell:not(.compact) .context { font-size: 12px; }
+.shell:not(.compact) .textPanel textarea { box-sizing: border-box; font-size: 16px; }
+.shell:not(.compact) .status { font-size: 12px; line-height: 1.5; }
