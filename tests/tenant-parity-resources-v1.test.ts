@@ -58,7 +58,6 @@ test('tenant runtime carries the canonical tenant id', () => {
 
 test('player and settings resource queries are explicitly tenant scoped', () => {
   const player = readFileSync('components/PlayerShell.tsx', 'utf8');
-  const career = readFileSync('app/career/page.tsx', 'utf8');
   const settings = readFileSync(
     'app/(djm-os)/settings/player-experience/page.tsx',
     'utf8',
@@ -66,7 +65,7 @@ test('player and settings resource queries are explicitly tenant scoped', () => 
   const editor = readFileSync('components/AdminResourceStudio.tsx', 'utf8');
 
   assert.match(player, /id,tenant_id,user_id/);
-  assert.match(career, /\.eq\('tenant_id', ctx\.player\.tenant_id\)/);
+  // Career resource scoping is exercised at the real SDK HTTP boundary in player-entry-browser-qa.mjs.
   assert.match(settings, /const tenantId = runtime\.tenant_id/);
   assert.match(settings, /\.eq\('tenant_id', tenantId\)/);
   assert.match(settings, /tenant_id: tenantId/);

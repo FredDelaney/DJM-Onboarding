@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import JourneyStatus from '@/components/JourneyStatus';
+import {usePlayerPageRead} from '@/lib/use-player-page-read';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -58,101 +60,71 @@ const statusLabel = (value?: string | null) => {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
+const readCareer = async (playerId:string,tenantId:string|undefined):Promise<CareerData> => {
+  const [
+    careerResult,
+    documentResult,
+    videoResult,
+    agreementResult,
+    profileResult,
+    resourceResult,
+  ] = await Promise.all([
+    supabase
+      .from('career_entries')
+      .select('*')
+      .eq('player_id', playerId)
+      .order('sort_order', { ascending: true })
+      .order('start_date', { ascending: false }),
+    supabase
+      .from('player_documents')
+      .select(
+        'id,title,document_type,country,expires_at,club_shareable,created_at',
+      )
+      .eq('player_id', playerId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('player_videos')
+      .select('id,title,video_type,featured,updated_at')
+      .eq('player_id', playerId)
+      .order('featured', { ascending: false })
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('player_agreements')
+      .select(
+        'id,title,agreement_type,status,start_date,end_date,territory,visible_to_player',
+      )
+      .eq('player_id', playerId)
+      .eq('visible_to_player', true)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('player_public_profiles')
+      .select('*')
+      .eq('player_id', playerId)
+      .maybeSingle(),
+    supabase
+      .from('resources')
+      .select(
+        'id,title,description,category,resource_type,url,featured,sort_order',
+      )
+      .eq('tenant_id', tenantId)
+      .eq('published', true)
+      .order('featured', { ascending: false })
+      .order('sort_order', { ascending: true }),
+  ]);
+
+  if ([careerResult,documentResult,videoResult,agreementResult,profileResult,resourceResult].some(result=>result.error)) throw new Error('Career information unavailable');
+  return {
+    careerEntries:careerResult.data || [],documents:documentResult.data || [],videos:videoResult.data || [],
+    agreements:agreementResult.data || [],publicProfile:profileResult.data || null,resources:resourceResult.data || [],
+  };
+};
+
 export default function CareerPage() {
   const ctx = usePlayerContext();
-  const [data, setData] = useState<CareerData>(EMPTY_DATA);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-
-  useEffect(() => {
-    if (!ctx.player) return;
-
-    let active = true;
-
-    const load = async () => {
-      setDataLoading(true);
-      setLoadError(false);
-
-      const [
-        careerResult,
-        documentResult,
-        videoResult,
-        agreementResult,
-        profileResult,
-        resourceResult,
-      ] = await Promise.all([
-        supabase
-          .from('career_entries')
-          .select('*')
-          .eq('player_id', ctx.player.id)
-          .order('sort_order', { ascending: true })
-          .order('start_date', { ascending: false }),
-        supabase
-          .from('player_documents')
-          .select(
-            'id,title,document_type,country,expires_at,club_shareable,created_at',
-          )
-          .eq('player_id', ctx.player.id)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('player_videos')
-          .select('id,title,video_type,featured,updated_at')
-          .eq('player_id', ctx.player.id)
-          .order('featured', { ascending: false })
-          .order('sort_order', { ascending: true }),
-        supabase
-          .from('player_agreements')
-          .select(
-            'id,title,agreement_type,status,start_date,end_date,territory,visible_to_player',
-          )
-          .eq('player_id', ctx.player.id)
-          .eq('visible_to_player', true)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('player_public_profiles')
-          .select('*')
-          .eq('player_id', ctx.player.id)
-          .maybeSingle(),
-        supabase
-          .from('resources')
-          .select(
-            'id,title,description,category,resource_type,url,featured,sort_order',
-          )
-          .eq('tenant_id', ctx.player.tenant_id)
-          .eq('published', true)
-          .order('featured', { ascending: false })
-          .order('sort_order', { ascending: true }),
-      ]);
-
-      if (!active) return;
-
-      const failed = [
-        careerResult.error,
-        documentResult.error,
-        videoResult.error,
-        agreementResult.error,
-        profileResult.error,
-        resourceResult.error,
-      ].some(Boolean);
-
-      setData({
-        careerEntries: careerResult.data || [],
-        documents: documentResult.data || [],
-        videos: videoResult.data || [],
-        agreements: agreementResult.data || [],
-        publicProfile: profileResult.data || null,
-        resources: resourceResult.data || [],
-      });
-      setLoadError(failed);
-      setDataLoading(false);
-    };
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, [ctx.player?.id]);
+  const read = useCallback((playerId:string)=>readCareer(playerId,ctx.player?.tenant_id),[ctx.player?.tenant_id]);
+  const pageRead = usePlayerPageRead(ctx.player?.id,read);
+  const data = pageRead.data || EMPTY_DATA;
+  const dataLoading = pageRead.loading;
 
   const readiness = useMemo(
     () =>
@@ -189,6 +161,15 @@ export default function CareerPage() {
         </main>
       </PlayerShell>
     );
+  }
+
+  if (pageRead.loading || pageRead.error) {
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus
+      kind={pageRead.error ? 'error' : 'loading'}
+      title={pageRead.error ? 'Your career information could not load' : 'Loading your career information'}
+      description={pageRead.error || 'Loading your saved career, documents and player profile.'}
+      onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
+    /></main></PlayerShell>;
   }
 
   const player = ctx.player;
@@ -276,14 +257,6 @@ export default function CareerPage() {
         </header>
 
         <PlayerCareerNavigator current="career" />
-
-        {loadError && (
-          <div className="career-load-warning" role="status">
-            <CircleAlert size={17} />
-            Some live career information could not refresh. Your
-            saved record has not been changed.
-          </div>
-        )}
 
         <section className="career-control-strip">
           <div>
