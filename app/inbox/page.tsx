@@ -72,8 +72,8 @@ function InboxContent() {
     void load();
   }, [ctx.player?.id]);
 
-  if (ctx.loading) {
-    return <LoadingScreen />;
+  if (ctx.loading || ctx.error) {
+    return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
   }
 
   const update = async (

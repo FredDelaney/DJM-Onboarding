@@ -120,8 +120,8 @@ export default function CheckIn() {
     }
   }, [existing?.id]);
 
-  if (ctx.loading) {
-    return <LoadingScreen />;
+  if (ctx.loading || ctx.error) {
+    return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
   }
 
   const submit = async (

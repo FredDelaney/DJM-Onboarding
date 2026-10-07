@@ -138,9 +138,9 @@ export default function Documents() {
     void load();
   }, [ctx.player?.id]);
 
-  if (ctx.loading) {
+  if (ctx.loading || ctx.error) {
     return (
-      <LoadingScreen />
+      <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />
     );
   }
 

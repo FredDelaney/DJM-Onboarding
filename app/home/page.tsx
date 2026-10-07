@@ -131,7 +131,7 @@ export default function Home() {
     [ctx.player, ctx.privateInfo, ctx.latestCheckin, data],
   );
 
-  if (ctx.loading) return <LoadingScreen />;
+  if (ctx.loading || ctx.error) return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
 
   if (!ctx.player) {
     return (
