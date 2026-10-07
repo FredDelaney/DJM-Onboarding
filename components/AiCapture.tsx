@@ -17,6 +17,7 @@ import {
   FileText,
   LoaderCircle,
   Mic,
+  Plus,
   RotateCcw,
   Send,
   Square,
@@ -833,6 +834,14 @@ export default function AiCapture({
     }
   };
 
+  const startAnotherUpdate = () => {
+    displayCaptureRef.current = null;
+    setReceipt(null);
+    setStatus('');
+    setError('');
+    setText('');
+  };
+
   const terminalStatus = receipt?.capture?.status || '';
   const needsAttention = [
     'needs_input',
@@ -870,7 +879,8 @@ export default function AiCapture({
   return (
     <>
     <div className={`${styles.shell} ${compact ? styles.compact : ''}`}>
-      <section className={styles.hero}>
+      {!receipt?.capture ? (
+        <section className={styles.hero}>
         {context?.label ? (
           <div className={styles.context}>
             <Check size={12} />
@@ -881,8 +891,7 @@ export default function AiCapture({
         <div className={styles.prompt}>
           <strong>Tell ReDream</strong>
           <span>
-            Say what happened naturally. ReDream will understand the right
-            records, show you the consequences, then wait for your approval.
+            Say or type what happened. ReDream proposes the right updates, then waits for your approval before anything changes.
           </span>
         </div>
 
@@ -951,6 +960,8 @@ export default function AiCapture({
           </button>
         </div>
       </section>
+
+      ) : null}
 
       {status ? (
         <div
@@ -1170,6 +1181,23 @@ export default function AiCapture({
               </div>
             ))}
           </div>
+
+          {verifiedComplete ? (
+            <div className={styles.completeActions}>
+              <div>
+                <strong>Update complete</strong>
+                <span>The approved changes are saved. You can capture the next update now.</span>
+              </div>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={startAnotherUpdate}
+              >
+                <Plus size={14} />
+                Capture another update
+              </button>
+            </div>
+          ) : null}
 
           {receipt.capture.transcript_text ? (
             <details className={styles.details} open={!TERMINAL.has(receipt.capture.status)}>

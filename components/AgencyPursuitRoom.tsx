@@ -351,6 +351,16 @@ export default function AgencyPursuitRoom({
     'admin',
   ].includes(role);
 
+  const readinessScore =
+    readiness?.pursuit_readiness?.score ??
+    pursuit?.readiness_score ??
+    null;
+  const hasReadinessScore =
+    readinessScore !== null &&
+    readinessScore !== undefined &&
+    String(readinessScore).trim() !== '' &&
+    Number.isFinite(Number(readinessScore));
+
   const pitchUrl =
     pitchDetail?.token &&
     typeof window !== 'undefined'
@@ -948,6 +958,155 @@ export default function AgencyPursuitRoom({
   const dossierIsSafe =
     dossierState === 'share_safe';
 
+  const nextMove = (() => {
+    const openDeal = () => {
+      if (!dealRoomId) return;
+      onOpenDeal(
+        dealRoomId,
+        `${request.playerName} → ${request.clubName}`,
+        request.needTitle,
+      );
+    };
+
+    const openDealControl = () => {
+      document
+        .getElementById('pursuit-deal-control')
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+    };
+
+    if (!careerIsOpen) {
+      return {
+        title: 'Confirm player direction',
+        instruction:
+          careerGate?.reason ||
+          request.careerGateReason ||
+          'Confirm what the player wants next before progressing the club route.',
+        label: 'Review career plan',
+        run: openCareerAction,
+        disabled: false,
+      };
+    }
+
+    if (dossierState === 'dossier_missing') {
+      return {
+        title: 'Create the dossier',
+        instruction: 'Prepare the private club-facing player dossier before building the pitch.',
+        label: 'Create private dossier',
+        run: () => setConfirmAction('create_dossier'),
+        disabled: false,
+      };
+    }
+
+    if (!dossierIsSafe) {
+      return canPublishDossier
+        ? {
+            title: 'Review dossier publication',
+            instruction: 'The dossier exists but still needs controlled publication before it can support the pitch.',
+            label: 'Publish dossier',
+            run: () => setConfirmAction('publish_dossier'),
+            disabled: false,
+          }
+        : {
+            title: 'Dossier approval required',
+            instruction: 'An owner or admin must approve external dossier publication before this route can progress.',
+            label: 'Owner or admin required',
+            run: () => {},
+            disabled: true,
+          };
+    }
+
+    if (!shareId) {
+      return {
+        title: 'Prepare the pitch',
+        instruction: 'Create the private pitch draft for this exact player-club route.',
+        label: 'Create private pitch',
+        run: () => setConfirmAction('create_pitch'),
+        disabled: false,
+      };
+    }
+
+    if (!publishedPitch) {
+      return {
+        title: 'Publish the pitch link',
+        instruction: 'Make the private pitch link available. ReDream will not send it for you.',
+        label: 'Publish pitch link',
+        run: () => setConfirmAction('publish_pitch'),
+        disabled: false,
+      };
+    }
+
+    if (!pitchDetail?.sent_at) {
+      return {
+        title: 'Complete human delivery',
+        instruction: 'Send the pitch through your chosen channel, then confirm the delivery here.',
+        label: 'I sent this pitch',
+        run: () => setConfirmAction('confirm_sent'),
+        disabled: false,
+      };
+    }
+
+    if (response) {
+      return responseProposal
+        ? {
+            title: 'Review the club response',
+            instruction: 'Confirm the internal response-review work before ReDream creates it.',
+            label: 'Review and confirm',
+            run: () => setConfirmAction('execute_response'),
+            disabled: false,
+          }
+        : {
+            title: 'Review the club response',
+            instruction:
+              response.agency_review?.instruction ||
+              'Prepare the next internal review from the explicit club response.',
+            label: 'Prepare response review',
+            run: () => void prepareResponse(),
+            disabled: false,
+          };
+    }
+
+    if (followUpNeedsOwner) {
+      return {
+        title: 'Assign follow-up owner',
+        instruction: 'Give one agency user clear ownership before a reminder is created.',
+        label: 'Assign owner',
+        run: openFollowUpAction,
+        disabled: false,
+      };
+    }
+
+    if (followUpMissing) {
+      return {
+        title: 'Set the follow-up',
+        instruction: `Record the next concrete action for ${dealOwnerName || 'the deal owner'} and when it will happen.`,
+        label: 'Set follow-up',
+        run: openFollowUpAction,
+        disabled: false,
+      };
+    }
+
+    if (!dealRoomId) {
+      return {
+        title: 'Protect the follow-up',
+        instruction: 'Create deal control when this pursuit needs accountable ownership and a scheduled next action.',
+        label: 'Set up deal control',
+        run: openDealControl,
+        disabled: false,
+      };
+    }
+
+    return {
+      title: recordedNextActionAt ? 'Follow-up is controlled' : 'Open deal control',
+      instruction: recordedNextActionText || 'The pursuit is owned. Keep the next action current in the Deal War Room.',
+      label: 'Open Deal War Room',
+      run: openDeal,
+      disabled: false,
+    };
+  })();
+
   const pageMode = presentation === 'page';
 
   return (
@@ -1097,73 +1256,31 @@ export default function AgencyPursuitRoom({
               />
             </section>
 
-            <section className={styles.hero}>
+            <section className={styles.hero} aria-label="Next pursuit action">
               <div>
-                <p>NEXT</p>
-                <h3>
-                  {!careerIsOpen
-                    ? 'Confirm player direction'
-                    : dossierState ===
-                        'dossier_missing'
-                      ? 'Create the dossier'
-                      : !dossierIsSafe
-                        ? 'Review dossier publication'
-                        : !shareId
-                          ? 'Prepare the pitch'
-                          : !publishedPitch
-                            ? 'Publish the pitch link'
-                            : !pitchDetail?.sent_at
-                              ? 'Complete human delivery'
-                              : response
-                                ? 'Review the response'
-                                : followUpNeedsOwner
-                                  ? 'Assign follow-up owner'
-                                  : followUpMissing
-                                    ? 'Set the follow-up'
-                                    : recordedNextActionAt
-                                      ? 'Follow-up is controlled'
-                                      : 'Protect the follow-up'}
-                </h3>
-                <span>
-                  {!careerIsOpen
-                    ? careerGate?.reason ||
-                      request.careerGateReason ||
-                      'Confirm what the player wants next.'
-                    : readiness?.next_action
-                        ?.instruction ||
-                      pitch?.recommended_review
-                        ?.instruction ||
-                      'Keep the route current from known information.'}
-                </span>
+                <p>NEXT MOVE</p>
+                <h3>{nextMove.title}</h3>
+                <span>{nextMove.instruction}</span>
 
-                {!careerIsOpen ? (
-                  <button
-                    type="button"
-                    data-ui-button="primary" data-ui-tone="inverse"
-              className={styles.heroAction}
-                    onClick={openCareerAction}
-                  >
-                    <ShieldCheck size={15} />
-                    Review career plan
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  data-ui-button="primary" data-ui-tone="inverse"
+                  className={styles.heroAction}
+                  onClick={nextMove.run}
+                  disabled={nextMove.disabled || Boolean(actionBusy)}
+                >
+                  <ArrowRight size={15} />
+                  {nextMove.label}
+                </button>
               </div>
 
-              <div className={styles.heroScore}>
-                <Target size={17} />
-                <strong>
-                  {numeric(
-                    readiness
-                      ?.pursuit_readiness
-                      ?.score ||
-                      pursuit
-                        ?.readiness_score,
-                  )}
-                </strong>
-                <span>
-                  opportunity readiness
-                </span>
-              </div>
+              {hasReadinessScore ? (
+                <div className={styles.heroScore}>
+                  <Target size={17} />
+                  <strong>{numeric(readinessScore)}</strong>
+                  <span>opportunity readiness</span>
+                </div>
+              ) : null}
             </section>
 
             <div className={styles.grid}>
@@ -1205,7 +1322,7 @@ export default function AgencyPursuitRoom({
               />
             </div>
 
-            {careerIsOpen ? (
+            {careerIsOpen && dossierState !== 'dossier_missing' ? (
               <section className={styles.panel}>
                 <div className={styles.panelHead}>
                   <FileText size={17} />
@@ -1295,7 +1412,8 @@ export default function AgencyPursuitRoom({
             ) : null}
 
             {careerIsOpen &&
-            dossierIsSafe ? (
+            dossierIsSafe &&
+            Boolean(shareId) ? (
               <section className={styles.panel}>
                 <div className={styles.panelHead}>
                   <Send size={17} />
@@ -1549,6 +1667,7 @@ export default function AgencyPursuitRoom({
               </section>
             ) : null}
 
+            {response || Boolean(pitchDetail?.sent_at) ? (
             <section className={`${styles.panel} ${styles.responsePanel}`}>
               <div className={styles.panelHead}>
                 <MessageSquareText size={17} />
@@ -1640,8 +1759,10 @@ export default function AgencyPursuitRoom({
                 </p>
               )}
             </section>
+            ) : null}
 
-            <section className={`${styles.panel} ${styles.dealPanel}`}>
+            {dealRoomId || Boolean(pitchDetail?.sent_at) ? (
+            <section id="pursuit-deal-control" className={`${styles.panel} ${styles.dealPanel}`}>
               <div className={styles.panelHead}>
                 <BriefcaseBusiness size={17} />
                 <div>
@@ -1779,6 +1900,7 @@ export default function AgencyPursuitRoom({
                 </>
               )}
             </section>
+            ) : null}
           </div>
         ) : null}
 
