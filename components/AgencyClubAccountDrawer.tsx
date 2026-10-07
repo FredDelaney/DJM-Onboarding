@@ -766,10 +766,10 @@ export default function AgencyClubAccountDrawer({
                   deals.length === 1
                     ? ''
                     : 's'
-                } · ${pursuits.length} player opportunity${
+                } · ${pursuits.length} player ${
                   pursuits.length === 1
-                    ? ''
-                    : 's'
+                    ? 'opportunity'
+                    : 'opportunities'
                 }`}
               />
 
