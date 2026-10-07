@@ -18,7 +18,8 @@ try {
  const setup=async(mode='failed')=>{
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   if(mode!=='signed-out')await context.addInitScript(session=>{if(location.hostname==='127.0.0.1')localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},mode==='session-failed'?{...session,expires_at:Math.floor(Date.now()/1000)-3600}:session);
-  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0};
+  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],hasPhoto:mode.startsWith('photo'),photoPath:user.id+'/existing.png',releaseMedia:null};
+  const holdMedia=()=>new Promise(resolve=>{state.releaseMedia=resolve;});
   await context.route('https://example.supabase.co/**',async route=>{
    const path=new URL(route.request().url()).pathname;
    let status=200,data=[];
@@ -31,6 +32,16 @@ try {
     else if(state.mode==='agency')data={tenants:[{tenant_id:'tenant',slug:'example',role:'owner'}]};
     else {status=403;data={error:'Agency staff access required'};}
    } else if(path.includes('/rest/v1/profiles')){if(state.mode==='profile-failed'){status=500;data={message:'Profile temporarily unavailable'};}else data={id:user.id,full_name:'Fixture Player'};}
+   else if(path.includes('/rest/v1/players')&&route.request().method()==='PATCH'&&route.request().postDataJSON().profile_photo_path){
+    state.photoAttaches.push(route.request().postDataJSON().profile_photo_path);
+    assert.equal(new URL(route.request().url()).searchParams.get('id'),'eq.owned-player');
+    if(state.mode==='photo-attach-network'){await route.abort('failed');return;}
+    if(state.mode==='photo-attach-hung')await holdMedia();
+    if(state.mode==='photo-attach-failed'){status=403;data={code:'42501',message:'Photo attach denied'};}
+    else if(state.mode==='photo-attach-zero'&&route.request().headers().accept.includes('vnd.pgrst.object')){status=406;data={code:'PGRST116',message:'No rows returned'};}
+    else if(state.mode==='photo-attach-zero'){status=204;data=null;}
+    else {data={id:'owned-player'};state.photoPath=route.request().postDataJSON().profile_photo_path;}
+   }
    else if(path.includes('/rest/v1/players')&&route.request().method()==='PATCH'){
     state.writes++;state.savedNames.push(route.request().postDataJSON().first_name);
     assert.equal(new URL(route.request().url()).searchParams.get('id'),'eq.owned-player');
@@ -62,16 +73,32 @@ try {
     else if(state.mode==='career-hung'){await new Promise(resolve=>setTimeout(resolve,15000));data=[];}
     else data=[{id:'career',club_name:'Fixture career club',start_date:'2025-01-01'}];
    }
+   else if(path.includes('/rest/v1/player_videos')&&route.request().method()==='POST'){
+    const body=route.request().postDataJSON();state.videoAdds.push({body,url:route.request().url(),prefer:route.request().headers().prefer});
+    assert.equal(body.player_id,'owned-player');
+    if(state.mode==='video-add-network'){await route.abort('failed');return;}
+    if(state.mode==='video-add-failed'){status=403;data={code:'42501',message:'Video denied'};}
+    else {data={...body,id:body.id||'generated-'+state.videoAdds.length};state.videoRows.set(data.id,data);if(state.mode==='video-add-hung')await holdMedia();}
+   }
+   else if(path.includes('/rest/v1/player_videos')&&route.request().method()==='DELETE'){
+    state.videoDeletes.push(route.request().url());
+    if(state.mode==='video-delete-network'){await route.abort('failed');return;}
+    if(state.mode==='video-delete-failed'){status=403;data={code:'42501',message:'Remove denied'};}
+    else if(state.mode==='video-delete-zero')data=[];
+    else {data=state.videoDeleted?[]:[{id:'video'}];state.videoDeleted=true;if(state.mode==='video-delete-hung')await holdMedia();}
+   }
    else if(path.includes('/rest/v1/player_videos')){
-    if(state.mode==='media-failed'){status=500;data={message:'Videos unavailable'};}
+    const videoId=new URL(route.request().url()).searchParams.get('id');
+    if(videoId)data=state.videoDeleted?null:{id:'video',title:'Fixture highlight'};
+    else if(state.mode==='media-failed'){status=500;data={message:'Videos unavailable'};}
     else if(state.mode==='media-hung'){await new Promise(resolve=>setTimeout(resolve,15000));data=[];}
-    else data=[{id:'video',title:'Fixture highlight',url:'https://example.test/video',video_type:'highlight',featured:true}];
+    else data=[...(state.videoDeleted?[]:[{id:'video',title:'Fixture highlight',url:'https://example.test/video',video_type:'highlight',featured:true}]),...state.videoRows.values()];
    }
    else if(path.includes('/rest/v1/players')){
     state.playerCalls++;
     if(state.mode==='player-failed'){status=503;data={message:'Players unavailable'};}
     else if(state.mode==='no-player')data=[];
-    else data=[{id:'owned-player',tenant_id:'tenant',user_id:user.id,first_name:'Fixture',last_name:'Player',preferred_name:'Fixture',nationalities:[],secondary_positions:[],primary_position:'CM',onboarding_status:'verified'}];
+    else data=[{id:'owned-player',tenant_id:'tenant',user_id:user.id,first_name:'Fixture',last_name:'Player',preferred_name:'Fixture',nationalities:[],secondary_positions:[],primary_position:'CM',onboarding_status:'verified',...(state.hasPhoto?{profile_photo_path:state.photoPath}:{})}];
    } else if(path.includes('/rest/v1/player_private')){
     if(route.request().method()==='POST'){
      state.privateWrites++;
@@ -102,6 +129,15 @@ try {
     state.secondaryCalls++;
     assert.equal(new URL(route.request().url()).searchParams.get('visible_to_player'),'eq.true');
     if(state.mode==='agreements-failed'){status=500;data={message:'Agreements unavailable'};}
+   } else if(path.includes('/storage/v1/object/public/player-public/')){
+    await route.fulfill({status:200,contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=','base64')});return;
+   } else if(path.includes('/storage/v1/object/player-public/')){
+    const objectPath=decodeURIComponent(path.split('/storage/v1/object/player-public/')[1]);state.photoUploads.push(objectPath);
+    assert.ok(objectPath.startsWith(user.id+'/'),'Photo path escaped the current user');
+    if(state.mode==='photo-upload-network'){await route.abort('failed');return;}
+    if(state.mode==='photo-upload-hung')await holdMedia();
+    if(state.mode==='photo-upload-failed'){status=400;data={statusCode:'400',error:'InvalidMimeType',message:'Upload rejected'};}
+    else data={Id:'photo-object',Key:'player-public/'+objectPath};
    } else if(path.includes('/storage/v1/object/'))data={Key:'player-private/fixture/upload.pdf'};
    else if(path.includes('/functions/'))data={};
    try{await route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});}catch{}
@@ -112,6 +148,110 @@ try {
  const visit=async(page,path)=>{
   for(let i=0;i<60;i++){try{await page.goto(root+'/workspace/qa-player-entry?view='+encodeURIComponent(path.slice(1)));return;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
  };
+ const waitForMedia=async(list)=>{for(let i=0;i<200&&!list.length;i++)await new Promise(resolve=>setTimeout(resolve,25));assert.ok(list.length,'Media request did not start');};
+ const mediaCase=process.env.PLAYER_MEDIA_CASE;
+ for(const mode of ['video-add-hung','video-add-network','video-add-failed'].filter(mode=>!mediaCase||mode===mediaCase)){
+  const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/profile');
+  await page.getByRole('button',{name:/^Media /}).click();
+  const input=page.getByPlaceholder(/YouTube, Vimeo/);await input.fill('https://example.test/new-highlight');
+  await page.getByRole('button',{name:'Add',exact:true}).click();await waitForMedia(state.videoAdds);
+  if(mode.endsWith('hung')){assert.equal(await input.isDisabled(),true);await page.clock.runFor(12500);}
+  await page.getByRole('alert').filter({hasText:'video'}).waitFor({timeout:4000});
+  assert.equal(await input.inputValue(),'https://example.test/new-highlight','Video recovery discarded the URL');
+  assert.equal(await input.isEnabled(),true);assert.equal(state.videoAdds.length,1,'Video was automatically retried');
+  if(!mode.endsWith('failed'))assert.match(await page.getByRole('alert').filter({hasText:'video'}).innerText(),/could not confirm/i);
+  state.mode='healthy';await page.getByRole('button',{name:'Add',exact:true}).click();
+  await page.getByText('Video added',{exact:true}).waitFor();
+  assert.equal(state.videoAdds.length,2);assert.ok(state.videoAdds[0].body.id,'Video retry has no stable record ID');
+  assert.equal(state.videoAdds[0].body.id,state.videoAdds[1].body.id,'Video retry changed the record ID');
+  for(const request of state.videoAdds){assert.equal(new URL(request.url).searchParams.get('on_conflict'),'id');assert.ok(request.prefer.includes('resolution=merge-duplicates'));}
+  assert.equal(state.videoRows.size,1,'Retry duplicated a saved video');
+  state.releaseMedia?.();await context.close();
+ }
+ for(const mode of ['video-delete-hung','video-delete-network','video-delete-failed','video-delete-zero'].filter(mode=>!mediaCase||mode===mediaCase)){
+  const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/profile');
+  await page.getByRole('button',{name:/^Media /}).click();await page.getByRole('button',{name:'Remove video',exact:true}).click();await waitForMedia(state.videoDeletes);
+  if(mode.endsWith('hung'))await page.clock.runFor(12500);
+  await page.getByRole('alert').filter({hasText:'video'}).waitFor({timeout:4000});
+  assert.equal(await page.getByText('Fixture highlight',{exact:true}).count(),1,'Unconfirmed removal hid the video');
+  assert.equal(await page.getByRole('button',{name:'Remove video',exact:true}).isEnabled(),true);
+  assert.equal(state.videoDeletes.length,1,'Removal was automatically retried');
+  state.mode='healthy';await page.getByRole('button',{name:'Remove video',exact:true}).click();
+  await page.getByText('Video removed',{exact:true}).waitFor();assert.equal(state.videoDeletes.length,2);
+  for(const url of state.videoDeletes){assert.equal(new URL(url).searchParams.get('id'),'eq.video');assert.equal(new URL(url).searchParams.get('player_id'),'eq.owned-player');}
+  assert.equal(await page.getByText('Fixture highlight',{exact:true}).count(),0);
+  state.releaseMedia?.();await context.close();
+ }
+ for(const mode of ['photo-upload-hung','photo-upload-network','photo-upload-failed','photo-attach-hung','photo-attach-network','photo-attach-failed','photo-attach-zero'].filter(mode=>!mediaCase||mode===mediaCase)){
+  const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/profile');
+  const input=page.locator('input[type="file"]');
+  await input.setInputFiles({name:'Profile photo.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=','base64')});
+  await waitForMedia(mode.startsWith('photo-upload')?state.photoUploads:state.photoAttaches);
+  if(mode.endsWith('hung')){assert.equal(await input.isDisabled(),true);await page.clock.runFor(mode.startsWith('photo-upload')?30500:12500);}
+  const recovery=page.getByRole('alert').filter({hasText:'photo'});await recovery.waitFor({timeout:4000});
+  assert.equal(await input.isEnabled(),true,'Photo picker did not unlock');assert.equal(state.photoUploads.length,1,'Photo was automatically retried');
+  assert.ok((await page.locator('.profile-21-photo img').getAttribute('src')).includes('existing.png'),'Unconfirmed photo replaced the current photo');
+  assert.equal(state.photoAttaches.length,mode.startsWith('photo-upload')?0:1);
+  for(const width of [320,390,1440]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Photo recovery overflows '+width);if(process.env.PLAYER_MEDIA_SCREENSHOT&&mode==='photo-upload-hung')await page.screenshot({path:'/private/tmp/player-media-recovery-'+width+'.png',fullPage:true});}
+  state.mode='healthy';await recovery.getByRole('button',{name:'Try again',exact:true}).click();
+  if(mode.endsWith('hung'))state.releaseMedia?.();
+  await page.getByText('Photo updated',{exact:true}).waitFor();
+  assert.equal(state.photoUploads.length,mode==='photo-upload-failed'||mode==='photo-upload-network'?2:1,'Retry started another confirmed/in-flight upload');
+  assert.ok(state.photoUploads.every(path=>path===state.photoUploads[0]),'Retry changed the photo object path');
+  assert.equal(state.photoAttaches.length,mode.startsWith('photo-upload')?1:2);
+  assert.ok(state.photoAttaches.every(path=>path===state.photoUploads[0]));
+  assert.ok((await page.locator('.profile-21-photo img').getAttribute('src')).includes(state.photoUploads[0]),'Confirmed photo did not replace the current photo');
+  await context.close();
+ }
+ if(!mediaCase||mediaCase==='photo-error-during-video'){
+  const {context,page,state}=await setup('photo-upload-failed');await visit(page,'/profile');
+  await page.locator('input[type="file"]').setInputFiles({name:'Selected.png',mimeType:'image/png',buffer:Buffer.from('photo')});
+  await page.getByRole('alert').filter({hasText:'photo'}).waitFor();
+  state.mode='video-add-hung';await page.getByRole('button',{name:/^Media /}).click();
+  const input=page.getByPlaceholder(/YouTube, Vimeo/);await input.fill('https://example.test/another-video');
+  await page.getByRole('button',{name:'Add',exact:true}).click();await waitForMedia(state.videoAdds);
+  assert.equal(await input.isDisabled(),true);
+  assert.equal(await page.getByRole('alert').filter({hasText:'photo'}).count(),1,'A video write changed the failed photo into an uploading status');
+  state.releaseMedia();await page.getByText('Video added',{exact:true}).waitFor();await context.close();
+ }
+ if(!mediaCase||mediaCase==='photo-upload-late'){
+  const {context,page,state}=await setup('photo-upload-hung');await page.clock.install();await visit(page,'/profile');
+  await page.locator('input[type="file"]').setInputFiles({name:'Late.png',mimeType:'image/png',buffer:Buffer.from('photo')});
+  await waitForMedia(state.photoUploads);await page.clock.runFor(30500);
+  const recovery=page.getByRole('alert').filter({hasText:'photo'});await recovery.waitFor();
+  const reply=page.waitForResponse(response=>response.url().includes('/storage/v1/object/player-public/')&&response.request().method()==='POST');
+  state.releaseMedia();await reply;await page.clock.runFor(1);
+  assert.equal(state.photoAttaches.length,0,'A late upload started an attachment after the deadline');
+  assert.equal(await recovery.count(),1);
+  state.mode='healthy';await recovery.getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Photo updated',{exact:true}).waitFor();
+  assert.equal(state.photoUploads.length,1);assert.equal(state.photoAttaches.length,1);await context.close();
+ }
+ if(!mediaCase||mediaCase==='photo-discard'){
+  const {context,page,state}=await setup('photo-healthy');await visit(page,'/profile');
+  await page.getByRole('button',{name:/^Football /}).click();
+  await page.getByRole('region',{name:'Edit profile',exact:true}).locator('input').first().fill('Unsaved football draft');
+  await page.locator('input[type="file"]').setInputFiles({name:'Confirmed.png',mimeType:'image/png',buffer:Buffer.from('photo')});
+  await page.getByText('Photo updated',{exact:true}).waitFor();
+  const path=state.photoUploads[0];assert.ok(path);
+  await page.getByRole('button',{name:'Discard',exact:true}).click();
+  await page.getByRole('region',{name:'Edit profile',exact:true}).waitFor({state:'hidden'});
+  assert.ok((await page.locator('.profile-21-photo img').getAttribute('src')).includes(path),'Discard reverted a separately confirmed photo');
+  await page.getByRole('button',{name:/^Football /}).click();
+  assert.equal(await page.getByRole('region',{name:'Edit profile',exact:true}).locator('input').first().inputValue(),'Fixture','Discard retained the football draft');
+  await context.close();
+ }
+ if(!mediaCase||mediaCase==='photo-unmount'){
+  const {context,page,state}=await setup('photo-upload-hung');await page.clock.install();await visit(page,'/profile');
+  await page.locator('input[type="file"]').setInputFiles({name:'Leaving.png',mimeType:'image/png',buffer:Buffer.from('photo')});
+  await waitForMedia(state.photoUploads);
+  await page.evaluate(()=>window.history.pushState({},'',location.pathname+'?view=documents'));
+  await page.locator('.profile-21').waitFor({state:'detached'});
+  const reply=page.waitForResponse(response=>response.url().includes('/storage/v1/object/player-public/')&&response.request().method()==='POST');
+  state.releaseMedia();await reply;await page.clock.runFor(1);
+  assert.equal(state.photoAttaches.length,0,'Upload attached a photo after leaving Profile');
+  await context.close();
+ }
+ if(!process.env.PLAYER_MEDIA_ONLY){
  {
   const {context,page}=await setup('save-delayed');await visit(page,'/profile');
   await page.getByRole('button',{name:/^Football /}).click();
@@ -270,6 +410,7 @@ try {
   await context.close();
  }
  }
+ }
  assert.deepEqual(errors,[]);
- console.log('PASS: player read recovery, draft-preserving save and weekly update retries, transport failures, responsive layouts, late responses and private upload. Entry cases run unless PLAYER_SECONDARY_ONLY is set.');
+ console.log(process.env.PLAYER_MEDIA_ONLY?'PASS: photo/video recovery, stable manual retries, confirmed attachments, late replies and responsive layouts.':'PASS: full player entry/read/write recovery, photo/video recovery, stable retries, transport failures, responsive layouts, late responses and private upload. Entry cases run unless PLAYER_SECONDARY_ONLY is set.');
 } finally {await browser?.close();try{process.kill(-server.pid,'SIGTERM');}catch{}await rm(fixtureRoute,{recursive:true,force:true});await rm(new URL('../.next/dev/types/',import.meta.url),{recursive:true,force:true});}
