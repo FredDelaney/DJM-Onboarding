@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, LogOut, MessageCircle, Settings2, UserRound } from 'lucide-react';
@@ -11,6 +11,8 @@ import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
 import WorkspaceTabs, { type WorkspaceTab } from '@/components/WorkspaceTabs';
 import { resolveAgencyWorkspaceEntry } from '@/lib/auth-routing';
 import { supabase } from '@/lib/supabase';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import JourneyStatus from '@/components/JourneyStatus';
 
 type PlayerState = {
   user: any;
@@ -20,6 +22,7 @@ type PlayerState = {
   openRequests: any[];
   latestCheckin: any;
   loading: boolean;
+  error: string | null;
 };
 
 export type PlayerCtx = PlayerState & { refresh: () => Promise<void> };
@@ -32,6 +35,7 @@ const EMPTY_STATE: PlayerState = {
   openRequests: [],
   latestCheckin: null,
   loading: true,
+  error: null,
 };
 
 let playerCache: PlayerState | null = null;
@@ -40,6 +44,7 @@ let playerCacheTenantId: string | null = null;
 let playerLoad:
   | Promise<{ state: PlayerState | null; redirect: string | null }>
   | null = null;
+let playerLoadKey: string | null = null;
 const playerListeners = new Set<(state: PlayerState) => void>();
 
 const publishPlayerState = (state: PlayerState, tenantId: string | null) => {
@@ -67,7 +72,8 @@ const fetchPlayerState = async ({
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  if (sessionError || !session?.user) {
+  if (sessionError) throw sessionError;
+  if (!session?.user) {
     return { state: null, redirect: '/sign-in' };
   }
 
@@ -92,11 +98,12 @@ const fetchPlayerState = async ({
     playerQuery = playerQuery.eq('tenant_id', runtimeTenantId);
   }
 
-  const [{ data: profile }, { data: players, error: playerError }] = await Promise.all([
+  const [{ data: profile, error: profileError }, { data: players, error: playerError }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
     playerQuery.limit(1),
   ]);
 
+  if (profileError) throw profileError;
   if (playerError) throw playerError;
 
   const player = players?.[0] || null;
@@ -111,11 +118,12 @@ const fetchPlayerState = async ({
         openRequests: [],
         latestCheckin: null,
         loading: false,
+        error: null,
       },
     };
   }
 
-  const [{ data: privateInfo }, { data: requests }, { data: checkins }] = await Promise.all([
+  const [{ data: privateInfo, error: privateError }, { data: requests, error: requestError }, { data: checkins, error: checkinError }] = await Promise.all([
     supabase.from('player_private').select('*').eq('player_id', player.id).maybeSingle(),
     supabase
       .from('player_requests')
@@ -130,6 +138,10 @@ const fetchPlayerState = async ({
       .order('week_start', { ascending: false })
       .limit(1),
   ]);
+
+  if (privateError) throw privateError;
+  if (requestError) throw requestError;
+  if (checkinError) throw checkinError;
 
   const actionable = (requests || []).filter(
     (request: any) =>
@@ -148,6 +160,7 @@ const fetchPlayerState = async ({
       openRequests: actionable,
       latestCheckin: checkins?.[0] || null,
       loading: false,
+      error: null,
     },
   };
 };
@@ -159,29 +172,40 @@ const loadPlayerState = async (
 ) => {
   const sameTenant = playerCacheTenantId === runtimeTenantId;
   const freshEnough =
-    sameTenant && playerCache && Date.now() - playerCacheAt < 30_000;
+    sameTenant && playerCache && !playerCache.loading && !playerCache.error &&
+    Date.now() - playerCacheAt < 30_000;
 
   if (!force && freshEnough) {
     return { state: playerCache, redirect: null };
   }
 
-  if (playerLoad) return playerLoad;
+  const key = JSON.stringify([runtimeTenantId, runtimeTenantSlug]);
+  if (playerLoad && playerLoadKey === key) return playerLoad;
 
-  playerLoad = fetchPlayerState({
+  // Bound the entire entry journey. A late read only resolves its discarded
+  // promise; it cannot publish state or redirect after this deadline.
+  const request = readWithDeadline(fetchPlayerState({
     runtimeTenantId,
     runtimeTenantSlug,
-  })
+  }))
     .catch(() => ({
-      state: sameTenant
-        ? playerCache || { ...EMPTY_STATE, loading: false }
-        : { ...EMPTY_STATE, loading: false },
+      state: {
+        ...EMPTY_STATE,
+        loading: false,
+        error: 'We could not open your workspace. Please try again.',
+      },
       redirect: null,
     }))
     .finally(() => {
-      playerLoad = null;
+      if (playerLoad === request) {
+        playerLoad = null;
+        playerLoadKey = null;
+      }
     });
 
-  return playerLoad;
+  playerLoadKey = key;
+  playerLoad = request;
+  return request;
 };
 
 export function usePlayerContext(): PlayerCtx {
@@ -192,9 +216,13 @@ export function usePlayerContext(): PlayerCtx {
       : { ...EMPTY_STATE },
   );
   const router = useRouter();
+  const entryActive = useRef(false);
+  const entryGeneration = useRef(0);
 
   useEffect(() => {
     let active = true;
+    entryActive.current = true;
+    const generation = ++entryGeneration.current;
     const listener = (next: PlayerState) => active && setState(next);
     playerListeners.add(listener);
 
@@ -214,17 +242,22 @@ export function usePlayerContext(): PlayerCtx {
 
     return () => {
       active = false;
+      entryActive.current = false;
+      if (entryGeneration.current === generation) entryGeneration.current++;
       playerListeners.delete(listener);
     };
   }, [router, runtime.tenant_id, runtime.resolved, runtime.slug]);
 
   const refresh = useCallback(async () => {
+    const generation = entryGeneration.current;
+    if (state.error) publishPlayerState({ ...EMPTY_STATE }, runtime.tenant_id);
     const result = await loadPlayerState(
       true,
       runtime.tenant_id,
       runtime.resolved ? runtime.slug : null,
     );
 
+    if (!entryActive.current || generation !== entryGeneration.current) return;
     if (result.redirect) {
       clearPlayerState();
       router.replace(result.redirect);
@@ -232,7 +265,7 @@ export function usePlayerContext(): PlayerCtx {
     }
 
     if (result.state) publishPlayerState(result.state, runtime.tenant_id);
-  }, [router, runtime.tenant_id, runtime.resolved, runtime.slug]);
+  }, [router, runtime.tenant_id, runtime.resolved, runtime.slug, state.error]);
 
   return { ...state, refresh };
 }
@@ -356,10 +389,21 @@ export function PlayerShell({
   );
 }
 
-export function LoadingScreen() {
+export function LoadingScreen({
+  error,
+  onRetry,
+}: {
+  error?: string | null;
+  onRetry?: () => void;
+} = {}) {
   return (
-    <div className="center">
-      <div className="loader" />
-    </div>
+    <main style={{width:'100%',maxWidth:600,margin:'48px auto',padding:16,boxSizing:'border-box'}}>
+      <JourneyStatus
+        kind={error ? 'error' : 'loading'}
+        title={error ? 'Your workspace could not open' : 'Opening your workspace'}
+        description={error || 'Checking your secure access and loading your information.'}
+        onRetry={error ? onRetry : undefined}
+      />
+    </main>
   );
 }

@@ -63,11 +63,11 @@ export default function CV() {
   ]);
 
   if (
-    ctx.loading ||
+    ctx.loading || ctx.error ||
     pub === undefined
   ) {
     return (
-      <LoadingScreen />
+      <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />
     );
   }
 

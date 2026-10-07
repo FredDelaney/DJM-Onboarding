@@ -174,7 +174,7 @@ export default function CareerPage() {
     ],
   );
 
-  if (ctx.loading) return <LoadingScreen />;
+  if (ctx.loading || ctx.error) return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
 
   if (!ctx.player) {
     return (

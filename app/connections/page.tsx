@@ -5,7 +5,7 @@ import { LoadingScreen, PlayerShell, usePlayerContext } from '@/components/Playe
 
 export default function PlayerConnectionsPage() {
   const ctx = usePlayerContext();
-  if (ctx.loading) return <LoadingScreen />;
+  if (ctx.loading || ctx.error) return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
 
   return (
     <PlayerShell inboxCount={ctx.openRequests.length}>
