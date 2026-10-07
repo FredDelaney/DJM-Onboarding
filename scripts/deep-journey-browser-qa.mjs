@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {chromium} from 'playwright';
 const root=process.env.DEEP_JOURNEY_QA_URL||'http://127.0.0.1:3113/workspace/qa-deep-journey';
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox']});
 const page=await browser.newPage(),errors=[];
 page.on('pageerror',error=>errors.push(error.message));
 page.on('console',message=>{if(/same key|Each child|hydration/i.test(message.text()))errors.push(message.text());});
-await mkdir('/private/tmp/redream-deep-qa',{recursive:true});
+const artifactDir=process.env.DEEP_QA_ARTIFACT_DIR||join(tmpdir(),'redream-deep-qa');
+await mkdir(artifactDir,{recursive:true});
 let captureScenario='failed',recentScenario='normal',accessReads=0;
 await page.route('https://example.supabase.co/rest/v1/rpc/**',async route=>{
  const name=new URL(route.request().url()).pathname.split('/').pop();
@@ -45,7 +48,7 @@ try{
   await page.getByRole('button',{name:'Create private pitch',exact:true}).first().waitFor();
   assert.equal(await error.count(),0);
   assert.ok(await page.getByText('Create the private pitch draft for this exact player-club route.',{exact:true}).evaluate(node=>parseFloat(getComputedStyle(node).fontSize)>=14),'Opportunity instruction too small');
-  if(width===390)await page.screenshot({path:'/private/tmp/redream-deep-qa/opportunity-mobile.png'});
+  if(width===390)await page.screenshot({path:join(artifactDir,'opportunity-mobile.png')});
   captureScenario='failed';accessReads=0;await visit('?view=capture&share_text=Call%20the%20sporting%20director');
   const captureError=page.getByRole('alert').filter({hasText:'Could not open Capture'});await captureError.waitFor();
   assert.equal(await page.getByText('Capture is not enabled yet',{exact:true}).count(),0,'Network failure misreported as feature disabled');
@@ -56,7 +59,7 @@ try{
   assert.equal(await captureError.count(),0);
   assert.ok(await page.getByText('Say or type what happened. ReDream proposes the right updates, then waits for your approval before anything changes.',{exact:true}).evaluate(node=>parseFloat(getComputedStyle(node).fontSize)>=14),'Capture instruction too small');
   assert.equal(await page.getByRole('textbox',{name:'Your update',exact:true}).count(),1);
-  if(width===390)await page.screenshot({path:'/private/tmp/redream-deep-qa/capture-mobile.png'});
+  if(width===390)await page.screenshot({path:join(artifactDir,'capture-mobile.png')});
   assert.equal(await page.getByPlaceholder('Spoke to Chris at Wellington. They need a striker...',{exact:true}).inputValue(),'Call the sporting director','Retry lost the shared update');
  }
  await page.setViewportSize({width:390,height:844});
