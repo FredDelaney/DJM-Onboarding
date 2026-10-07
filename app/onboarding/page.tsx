@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,6 +15,8 @@ import {
 } from 'lucide-react';
 
 import Brand from '@/components/Brand';
+import {useTenantRuntime} from '@/components/TenantRuntimeProvider';
+import {awaitOnboardingRequest,ONBOARDING_PLAYER_COLUMNS,onboardingSaveError} from '@/lib/player-onboarding';
 import {
   localDateISO,
   supabase,
@@ -31,6 +34,12 @@ const steps = [
 
 export default function Onboarding() {
   const router = useRouter();
+  const runtime = useTenantRuntime();
+  const lifecycle = useRef<AbortController | null>(null);
+  const saving = useRef(false);
+  const [retry, setRetry] = useState(0);
+  const [loadError, setLoadError] = useState('');
+  const [needsReload, setNeedsReload] = useState(false);
 
   const [player, setPlayer] =
     useState<any>(null);
@@ -50,81 +59,92 @@ export default function Onboarding() {
     useState(false);
 
   useEffect(() => {
-    (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
+    const controller = new AbortController();
+    lifecycle.current = controller;
+    let userId = '';
+    setLoaded(false);
+    setPlayer(null);
+    setPriv({});
+    setVideo('');
+    setStep(0);
+    setError('');
+    setLoadError('');
+    setComplete(false);
+    setNeedsReload(false);
+    setBusy(false);
+    saving.current = false;
+    const {data: {subscription}} = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || (event === 'SIGNED_IN' && userId && session?.user.id !== userId)) {
+        controller.abort();
+        setPlayer(null);
         router.replace('/sign-in');
-        return;
       }
-
-      const { data: players } =
-        await supabase
-          .from('players')
-          .select('*')
-          .eq('user_id', user.id)
-          .limit(1);
-
-      const currentPlayer =
-        players?.[0];
-
-      if (!currentPlayer) {
-        setLoaded(true);
-        return;
+    });
+    void (async () => {
+      try {
+        const auth = await awaitOnboardingRequest(supabase.auth.getUser(), controller.signal);
+        if (auth.error) {
+          if (auth.error.name === 'AuthSessionMissingError' || [401,403].includes(auth.error.status || 0)) {
+            router.replace('/sign-in');
+            return;
+          }
+          throw auth.error;
+        }
+        if (!auth.data.user) {
+          router.replace('/sign-in');
+          return;
+        }
+        userId = auth.data.user.id;
+        let query = supabase.from('players').select(ONBOARDING_PLAYER_COLUMNS)
+          .eq('user_id', userId).is('archived_at', null).neq('football_status', 'retired');
+        if (runtime.tenant_id) query = query.eq('tenant_id', runtime.tenant_id);
+        const records = await awaitOnboardingRequest(query.limit(2).abortSignal(controller.signal), controller.signal);
+        if (records.error) throw records.error;
+        if ((records.data || []).length > 1) {
+          router.replace('/player-workspaces');
+          return;
+        }
+        const currentPlayer = records.data?.[0];
+        if (!currentPlayer) return;
+        if (['submitted', 'verified', 'complete'].includes(currentPlayer.onboarding_status)) {
+          router.replace('/home');
+          return;
+        }
+        const [privateInfo, onboarding] = await awaitOnboardingRequest(Promise.all([
+          supabase.from('player_private')
+            .select('phone,whatsapp,residence_country,passports_held,work_rights,market_preferences,relocation_preferences,preferred_move_timing,salary_expectation,travel_availability,updated_at')
+            .eq('player_id', currentPlayer.id).abortSignal(controller.signal).maybeSingle(),
+          supabase.from('player_onboarding').select('current_step,draft,draft_state')
+            .eq('player_id', currentPlayer.id).abortSignal(controller.signal).maybeSingle(),
+        ]), controller.signal);
+        if (privateInfo.error) throw privateInfo.error;
+        if (onboarding.error) throw onboarding.error;
+        if (controller.signal.aborted) return;
+        setPlayer(currentPlayer);
+        setPriv(privateInfo.data || {});
+        const savedStep = Number(onboarding.data?.current_step || 1);
+        setStep(Number.isFinite(savedStep) ? Math.min(3, Math.max(0, savedStep - 1)) : 0);
+        const savedVideo = onboarding.data?.draft?.video_url ?? onboarding.data?.draft_state?.video_url;
+        setVideo(typeof savedVideo === 'string' ? savedVideo : '');
+      } catch {
+        if (!controller.signal.aborted) {
+          setLoadError('We couldn’t load your saved setup. Nothing has been changed. Please try again.');
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoaded(true);
       }
-
-      if (
-        currentPlayer.onboarding_status ===
-        'submitted'
-      ) {
-        router.replace('/home');
-        return;
-      }
-
-      setPlayer(currentPlayer);
-
-      const [
-        { data: privateInfo },
-        { data: onboarding },
-      ] = await Promise.all([
-        supabase
-          .from('player_private')
-          .select('*')
-          .eq(
-            'player_id',
-            currentPlayer.id,
-          )
-          .maybeSingle(),
-
-        supabase
-          .from('player_onboarding')
-          .select('*')
-          .eq(
-            'player_id',
-            currentPlayer.id,
-          )
-          .maybeSingle(),
-      ]);
-
-      setPriv(privateInfo || {});
-
-      if (onboarding?.current_step) {
-        setStep(
-          Math.min(
-            3,
-            Math.max(
-              0,
-              onboarding.current_step - 1,
-            ),
-          ),
-        );
-      }
-
-      setLoaded(true);
     })();
-  }, [router]);
+    return () => {
+      controller.abort();
+      subscription.unsubscribe();
+    };
+  }, [router, runtime.tenant_id, retry]);
+
+  useEffect(() => {
+    if (!complete) return;
+    const timer = window.setTimeout(() => router.replace('/home'), 850);
+    return () => window.clearTimeout(timer);
+  }, [complete, router]);
 
   const patchPlayer = (
     key: string,
@@ -152,7 +172,10 @@ export default function Onboarding() {
     nextStep: number,
     finishing = false,
   ) => {
-    if (!player) return false;
+    const controller = lifecycle.current;
+    if (!player || !controller || controller.signal.aborted || saving.current || needsReload ||
+        (runtime.tenant_id && player.tenant_id !== runtime.tenant_id)) return false;
+    saving.current = true;
 
     setBusy(true);
     setError('');
@@ -212,9 +235,6 @@ export default function Onboarding() {
         instagram_url:
           player.instagram_url?.trim() || null,
 
-        onboarding_status: finishing
-          ? 'submitted'
-          : 'in_progress',
       };
 
       const privatePayload: any = {
@@ -247,100 +267,41 @@ export default function Onboarding() {
           priv.travel_availability?.trim() || null,
       };
 
-      const onboardingPayload: any = {
-        player_id: player.id,
-        current_step: finishing
-          ? 4
-          : nextStep + 1,
-        draft: {
-          step: finishing
-            ? 3
-            : nextStep,
-        },
-      };
-
-      if (finishing) {
-        const now =
-          new Date().toISOString();
-        onboardingPayload.completed_at = now;
-        onboardingPayload.submitted_at = now;
-      }
-
-      const results = await Promise.all([
-        supabase
-          .from('players')
-          .update(playerPayload)
-          .eq('id', player.id),
-
-        supabase
-          .from('player_private')
-          .upsert({
-            player_id: player.id,
-            ...privatePayload,
-          }),
-
-        supabase
-          .from('player_onboarding')
-          .upsert(onboardingPayload),
-      ]);
-
-      const failed = results.find(
-        (result: any) => result.error,
-      );
-
-      if (failed?.error) {
-        throw failed.error;
-      }
-
-      if (finishing && video.trim()) {
-        const cleanVideo = video.trim();
-
-        const {
-          data: existing,
-          error: lookupError,
-        } = await supabase
-          .from('player_videos')
-          .select('id')
-          .eq('player_id', player.id)
-          .eq('url', cleanVideo)
-          .maybeSingle();
-
-        if (lookupError) {
-          throw lookupError;
-        }
-
-        if (!existing) {
-          const { error: videoError } =
-            await supabase
-              .from('player_videos')
-              .insert({
-                player_id: player.id,
-                title:
-                  'Player highlight video',
-                url: cleanVideo,
-                video_type: 'highlight',
-                featured: true,
-              });
-
-          if (videoError) {
-            throw videoError;
-          }
-        }
-      }
-
+      const result = await awaitOnboardingRequest(supabase.rpc('player_save_onboarding', {
+        p_player_id: player.id,
+        p_tenant_id: player.tenant_id,
+        p_profile: playerPayload,
+        p_private: privatePayload,
+        p_next_step: finishing ? 4 : nextStep + 1,
+        p_video_url: video.trim() || null,
+        p_finishing: finishing,
+        p_expected_updated_at: player.updated_at,
+        p_expected_private_updated_at: priv.updated_at || null,
+      }).abortSignal(controller.signal), controller.signal);
+      if (controller.signal.aborted) return false;
+      if (result.error) throw result.error;
+      if (!result.data?.saved || !result.data?.updated_at) throw new Error('onboarding_save_unconfirmed');
+      setPlayer((current: any) => ({...current, updated_at: result.data.updated_at}));
+      setPriv((current: any) => ({...current, updated_at: result.data.private_updated_at || null}));
+      if (result.data.completed) setComplete(true);
       return true;
-    } catch (caught: any) {
-      setError(
-        caught?.message ||
-          'We couldn’t save that. Please try again.',
-      );
+    } catch (caught) {
+      if (!controller.signal.aborted) {
+        setError(onboardingSaveError(caught));
+        const message = caught && typeof caught === 'object' && 'message' in caught ? String(caught.message) : '';
+        setNeedsReload(message.includes('onboarding_changed') || message.includes('onboarding_timeout'));
+      }
       return false;
     } finally {
-      setBusy(false);
+      if (lifecycle.current === controller && !controller.signal.aborted) {
+        saving.current = false;
+        setBusy(false);
+      }
     }
   };
 
   const goNext = async () => {
+    if (saving.current || needsReload) return;
     const validation =
       validateOnboardingStep(
         step,
@@ -366,9 +327,7 @@ export default function Onboarding() {
 
       if (saved) {
         setComplete(true);
-        setTimeout(() => {
-          router.replace('/home');
-        }, 850);
+
       }
       return;
     }
@@ -389,7 +348,8 @@ export default function Onboarding() {
     if (step === 0 || busy) return;
 
     const previous = step - 1;
-    await save(previous);
+    const saved = await save(previous);
+    if (!saved) return;
     setStep(previous);
     window.scrollTo({
       top: 0,
@@ -399,9 +359,22 @@ export default function Onboarding() {
 
   if (!loaded) {
     return (
-      <div className="center">
+      <div className="center" role="status" aria-label="Loading your saved setup">
         <div className="loader" />
       </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <main className="center">
+        <section className="card pad-lg narrow" aria-labelledby="onboarding-load-title">
+          <h1 id="onboarding-load-title">Your setup couldn’t load.</h1>
+          <p role="alert">{loadError}</p>
+          <button type="button" className="btn btn-navy" onClick={() => setRetry(value => value + 1)}>Try again</button>
+          <a className="btn btn-quiet" href="/sign-in">Back to sign in</a>
+        </section>
+      </main>
     );
   }
 
@@ -415,6 +388,9 @@ export default function Onboarding() {
           <p className="muted">
             Contact your agency and we’ll fix the invitation.
           </p>
+          <button type="button" className="btn btn-navy" onClick={() => setRetry(value => value + 1)}>Check again</button>
+          <a className="btn btn-quiet" href="/player-workspaces">Choose a workspace</a>
+          <a className="btn btn-quiet" href="/sign-in">Back to sign in</a>
         </div>
       </div>
     );
@@ -483,6 +459,7 @@ export default function Onboarding() {
             role="alert"
           >
             {error}
+            {needsReload && <button type="button" className="btn btn-quiet" onClick={() => setRetry(value => value + 1)}>Reload saved details</button>}
           </div>
         )}
 
@@ -526,10 +503,10 @@ export default function Onboarding() {
 
             <div className="grid2">
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-1">
                   First name
                 </label>
-                <input
+                <input id="onboarding-field-1"
                   className="input"
                   autoComplete="given-name"
                   value={
@@ -545,10 +522,10 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-2">
                   Last name
                 </label>
-                <input
+                <input id="onboarding-field-2"
                   className="input"
                   autoComplete="family-name"
                   value={
@@ -564,13 +541,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-3">
                   Known as
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-3"
                   className="input"
                   value={
                     player.preferred_name || ''
@@ -585,13 +562,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-4">
                   Date of birth
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-4"
                   type="date"
                   max={today}
                   className="input"
@@ -608,13 +585,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-5">
                   Nationality / nationalities
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-5"
                   className="input"
                   value={
                     player.nationalitiesText ??
@@ -633,13 +610,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-6">
                   Passports held
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-6"
                   className="input"
                   value={
                     priv.passportsText ??
@@ -658,13 +635,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-7">
                   Phone
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-7"
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
@@ -680,13 +657,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-8">
                   Country you live in
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-8"
                   className="input"
                   autoComplete="country-name"
                   value={
@@ -708,10 +685,10 @@ export default function Onboarding() {
           <section className="onboarding-review-card">
             <div className="grid2">
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-9">
                   Primary position
                 </label>
-                <input
+                <input id="onboarding-field-9"
                   className="input"
                   value={
                     player.primary_position || ''
@@ -727,13 +704,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-10">
                   Other positions
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-10"
                   className="input"
                   value={
                     player.secondaryText ??
@@ -752,10 +729,10 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-11">
                   Preferred foot
                 </label>
-                <select
+                <select id="onboarding-field-11"
                   className="select"
                   value={
                     player.preferred_foot || ''
@@ -783,13 +760,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-12">
                   Height cm
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-12"
                   className="input"
                   type="number"
                   inputMode="numeric"
@@ -808,13 +785,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-13">
                   Current club
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-13"
                   className="input"
                   value={
                     player.current_club || ''
@@ -829,13 +806,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-14">
                   League
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-14"
                   className="input"
                   value={
                     player.current_league || ''
@@ -850,13 +827,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-15">
                   Club country
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-15"
                   className="input"
                   value={
                     player.current_country || ''
@@ -871,13 +848,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-16">
                   Contract status
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-16"
                   className="input"
                   value={
                     player.contract_status || ''
@@ -893,13 +870,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-17">
                   Contract expiry
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-17"
                   className="input"
                   type="date"
                   value={
@@ -931,13 +908,13 @@ export default function Onboarding() {
 
             <div className="stack onboarding-textarea-stack">
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-18">
                   Markets you would consider
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <textarea
+                <textarea id="onboarding-field-18"
                   className="textarea"
                   value={
                     priv.market_preferences || ''
@@ -953,13 +930,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-19">
                   Relocation preferences
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <textarea
+                <textarea id="onboarding-field-19"
                   className="textarea"
                   value={
                     priv.relocation_preferences || ''
@@ -976,13 +953,13 @@ export default function Onboarding() {
 
               <div className="grid2">
                 <div className="field">
-                  <label className="label">
+                  <label className="label" htmlFor="onboarding-field-20">
                     Move timing
                     <span className="muted">
                       {' '}optional
                     </span>
                   </label>
-                  <input
+                  <input id="onboarding-field-20"
                     className="input"
                     value={
                       priv.preferred_move_timing || ''
@@ -998,13 +975,13 @@ export default function Onboarding() {
                 </div>
 
                 <div className="field">
-                  <label className="label">
+                  <label className="label" htmlFor="onboarding-field-21">
                     Salary expectation
                     <span className="muted">
                       {' '}optional
                     </span>
                   </label>
-                  <input
+                  <input id="onboarding-field-21"
                     className="input"
                     value={
                       priv.salary_expectation || ''
@@ -1019,13 +996,13 @@ export default function Onboarding() {
                 </div>
 
                 <div className="field">
-                  <label className="label">
+                  <label className="label" htmlFor="onboarding-field-22">
                     Travel availability
                     <span className="muted">
                       {' '}optional
                     </span>
                   </label>
-                  <input
+                  <input id="onboarding-field-22"
                     className="input"
                     value={
                       priv.travel_availability || ''
@@ -1041,13 +1018,13 @@ export default function Onboarding() {
                 </div>
 
                 <div className="field">
-                  <label className="label">
+                  <label className="label" htmlFor="onboarding-field-23">
                     Work rights
                     <span className="muted">
                       {' '}optional
                     </span>
                   </label>
-                  <input
+                  <input id="onboarding-field-23"
                     className="input"
                     value={
                       priv.work_rights || ''
@@ -1082,13 +1059,13 @@ export default function Onboarding() {
 
             <div className="stack">
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-24">
                   Transfermarkt
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-24"
                   className="input"
                   inputMode="url"
                   value={
@@ -1105,13 +1082,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-25">
                   Wyscout
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-25"
                   className="input"
                   inputMode="url"
                   value={
@@ -1128,13 +1105,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-26">
                   Other stats profile
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-26"
                   className="input"
                   inputMode="url"
                   value={
@@ -1151,13 +1128,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-27">
                   Instagram
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-27"
                   className="input"
                   inputMode="url"
                   value={
@@ -1174,13 +1151,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label className="label" htmlFor="onboarding-field-28">
                   Current highlight video
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-28"
                   className="input"
                   inputMode="url"
                   value={video}
@@ -1199,7 +1176,7 @@ export default function Onboarding() {
             <button
               className="btn btn-quiet"
               onClick={goBack}
-              disabled={busy}
+              disabled={busy || needsReload}
             >
               <ArrowLeft size={16} />
               Back
@@ -1211,7 +1188,7 @@ export default function Onboarding() {
           <button
             className="btn btn-navy"
             onClick={goNext}
-            disabled={busy}
+            disabled={busy || needsReload}
           >
             {busy
               ? 'Saving…'
