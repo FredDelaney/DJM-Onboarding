@@ -1,4 +1,4 @@
-.backdrop{position:fixed;inset:0;z-index:240;display:grid;place-items:center;padding:18px;background:rgba(15,23,32,.32);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.backdrop{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(15,23,32,.32);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 .dialog{width:min(430px,calc(100vw - 24px));box-sizing:border-box;padding:22px;border:1px solid #e2e8ec;border-radius:22px;background:#fff;box-shadow:0 30px 90px rgba(14,28,41,.22);color:#222d36}
 .icon{width:50px;height:50px;display:grid;place-items:center;margin-bottom:15px;border-radius:15px;background:#fff0ef;color:#a13c38}
 .warning .icon{background:#fff8e8;color:#815d16}
