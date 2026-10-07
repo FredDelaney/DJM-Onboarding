@@ -1197,3 +1197,18 @@
     font-size: 12px;
   }
 }
+
+/* Readable decision guidance at every viewport. */
+.pagePanel .hero > div:first-child > span {
+  font-size: 14px;
+  line-height: 1.55;
+}
+@media (max-width: 680px) {
+  .pagePanel .step > div > span { font-size: 10px; line-height: 1.35; }
+  .pagePanel .subhead { font-size: 12px; line-height: 1.5; }
+  .pagePanel .hero p, .pagePanel .panelHead p { font-size: 10px; }
+  .pagePanel .heroAction { font-size: 14px; }
+  .pagePanel .panelHead h3 { font-size: 16px; line-height: 1.4; }
+  .pagePanel .copy { font-size: 13px; line-height: 1.55; }
+  .pagePanel .truth { font-size: 12px; line-height: 1.55; }
+}

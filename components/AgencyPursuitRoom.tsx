@@ -25,6 +25,9 @@ import {
   useState,
 } from 'react';
 
+import JourneyStatus from '@/components/JourneyStatus';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
   friendlyError,
@@ -170,6 +173,7 @@ export default function AgencyPursuitRoom({
   presentation?: 'drawer' | 'page';
 }) {
   const panelRef = useRef<HTMLElement>(null);
+  const loadGeneration = useRef(0);
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] =
     useState('');
@@ -378,86 +382,45 @@ export default function AgencyPursuitRoom({
     setBusy(true);
     setError('');
 
+    const generation = ++loadGeneration.current;
     try {
-      const [
-        dossierResponse,
-        readinessResponse,
-        executionResponse,
-        responsesResponse,
-      ] = await Promise.all([
-        invoke(
-          'external_dossiers',
-          { limit: 250 },
-        ),
-        invoke(
-          'pitch_readiness',
-          { limit: 100 },
-        ),
-        invoke(
-          'pitch_execution',
-          { limit: 500 },
-        ),
-        invoke(
-          'pitch_responses',
-          { limit: 500 },
-        ),
-      ]);
-
-      const nextDossiers =
-        dossierResponse?.dossiers ||
-        dossierResponse?.result ||
-        null;
-
-      const nextReadiness =
-        readinessResponse?.readiness ||
-        readinessResponse?.result ||
-        null;
-
-      const nextExecution =
-        executionResponse?.execution ||
-        executionResponse?.result ||
-        null;
-
-      const nextResponses =
-        responsesResponse?.responses ||
-        responsesResponse?.result ||
-        null;
-
-      setDossierControl(nextDossiers);
-      setReadinessControl(nextReadiness);
-      setExecutionControl(nextExecution);
-      setResponseControl(nextResponses);
-
-      const currentPitch = safeArray(
-        nextExecution?.items,
-      ).find(
-        (item: any) =>
-          String(item?.player_id || '') ===
-            playerId &&
-          (!clubId ||
-            String(
-              item?.organisation_id || '',
-            ) === clubId),
-      );
-
-      if (currentPitch?.share_id) {
-        const pitchResponse =
-          await invoke('pitch_detail', {
-            share_id: currentPitch.share_id,
-          });
-
-        setPitchDetail(
-          pitchResponse?.pitch || null,
+      // Commit one complete snapshot; late or failed reads cannot expose partial controls.
+      const snapshot = await readWithDeadline((async () => {
+        const [dossiers, readiness, execution, responses] = await Promise.all([
+          invoke('external_dossiers', { limit: 250 }),
+          invoke('pitch_readiness', { limit: 100 }),
+          invoke('pitch_execution', { limit: 500 }),
+          invoke('pitch_responses', { limit: 500 }),
+        ]);
+        const nextExecution = execution?.execution || execution?.result || null;
+        const currentPitch = safeArray(nextExecution?.items).find((item: any) =>
+          String(item?.player_id || '') === playerId &&
+          (!clubId || String(item?.organisation_id || '') === clubId),
         );
-      } else {
-        setPitchDetail(null);
-      }
+        const detail = currentPitch?.share_id
+          ? await invoke('pitch_detail', { share_id: currentPitch.share_id })
+          : null;
+        return {
+          dossiers: dossiers?.dossiers || dossiers?.result || null,
+          readiness: readiness?.readiness || readiness?.result || null,
+          execution: nextExecution,
+          responses: responses?.responses || responses?.result || null,
+          pitch: detail?.pitch || null,
+        };
+      })());
+      if (generation !== loadGeneration.current) return;
+      setDossierControl(snapshot.dossiers);
+      setReadinessControl(snapshot.readiness);
+      setExecutionControl(snapshot.execution);
+      setResponseControl(snapshot.responses);
+      setPitchDetail(snapshot.pitch);
     } catch (loadError) {
+      if (generation !== loadGeneration.current) return;
       setError(
         friendlyError(loadError),
       );
     } finally {
-      setBusy(false);
+      if (generation === loadGeneration.current) setBusy(false);
     }
   }, [
     clubId,
@@ -467,6 +430,7 @@ export default function AgencyPursuitRoom({
 
   useEffect(() => {
     void loadDetails();
+    return () => { ++loadGeneration.current; };
   }, [loadDetails]);
 
   useEffect(() => {
@@ -1168,34 +1132,11 @@ export default function AgencyPursuitRoom({
         </header>
 
         {busy ? (
-          <section className={styles.notice}>
-            <LoaderCircle
-              size={19}
-              className={styles.spin}
-            />
-            <div>
-              <strong>
-                Checking the live route
-              </strong>
-              <span>
-                Career control, dossier safety and pitch access are being refreshed.
-              </span>
-            </div>
-          </section>
+          <JourneyStatus kind="loading" title="Opening this opportunity" description="Checking the player dossier, pitch and latest club response."/>
         ) : null}
 
         {error ? (
-          <section
-            className={`${styles.notice} ${styles.error}`}
-          >
-            <CircleAlert size={18} />
-            <div>
-              <strong>
-                This route needs attention
-              </strong>
-              <span>{error}</span>
-            </div>
-          </section>
+          <JourneyStatus kind="error" title="Could not load this opportunity" description={error} onRetry={() => void loadDetails()}/>
         ) : null}
 
         {message ? (
@@ -1210,7 +1151,7 @@ export default function AgencyPursuitRoom({
           </section>
         ) : null}
 
-        {!busy ? (
+        {!busy && !error ? (
           <div className={styles.content}>
             <section className={styles.journey}>
               <Step
@@ -1914,7 +1855,7 @@ export default function AgencyPursuitRoom({
           </div>
         ) : null}
 
-        {confirm ? (
+        {confirm && !busy && !error ? (
           <div className={styles.confirmBar}>
             <div>
               <p>CONFIRM CONTROLLED ACTION</p>

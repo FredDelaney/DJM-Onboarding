@@ -928,6 +928,7 @@ export default function AiCapture({
         ) : (
           <div className={styles.textPanel}>
             <textarea
+              aria-label="Your update"
               autoFocus
               disabled={busy || Boolean(unsavedDraft)}
               value={text}

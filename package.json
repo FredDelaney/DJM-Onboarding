@@ -13,7 +13,7 @@
     "precheck": "npm run check:no-em-dash",
     "check": "npm test && npm run typecheck && npm run build",
     "check:no-em-dash": "node scripts/check-no-em-dash.mjs",
-    "check:browser": "node scripts/customer-journey-browser-qa.mjs && node scripts/workspace-flow-browser-fixture.mjs && node scripts/calendar-browser-fixture.mjs scripts/calendar-workspace-browser-qa.mjs scripts/pursuit-continuity-browser-qa.mjs"
+    "check:browser": "node scripts/customer-journey-browser-qa.mjs && node scripts/workspace-flow-browser-fixture.mjs && node scripts/calendar-browser-fixture.mjs scripts/calendar-workspace-browser-qa.mjs scripts/pursuit-continuity-browser-qa.mjs && node scripts/deep-journey-browser-fixture.mjs"
   },
   "dependencies": {
     "@fullcalendar/react": "7.1.0",
