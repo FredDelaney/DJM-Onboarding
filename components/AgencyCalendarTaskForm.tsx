@@ -2,15 +2,17 @@
 import { useEffect,useRef,useState } from 'react';
 import {createPortal} from 'react-dom';
 import { X } from 'lucide-react';
+import ConfirmActionDialog from './ConfirmActionDialog';
 import { taskErrorMessage,taskLocalInstant,type CalendarTask,type TaskInput,type Assignee } from '@/lib/calendar/tasks';
 import styles from './AgencyCalendarTaskForm.module.css';
 export default function AgencyCalendarTaskForm({task,selectedDate,userId,assignees,onSave,onClose}:{task?:CalendarTask;selectedDate:string;userId:string;assignees:Assignee[];onSave:(input:TaskInput,task?:CalendarTask)=>Promise<void>;onClose:()=>void}){
  const [title,setTitle]=useState(task?.title||''),[notes,setNotes]=useState(task?.notes||''),[visibility,setVisibility]=useState<'personal'|'company'>(task?.visibility||'personal');
  const [owner,setOwner]=useState(task?.owner_user_id||userId),[date,setDate]=useState(task?.due_on??(task?'':selectedDate)),[time,setTime]=useState(task?.due_time?.slice(0,5)||''),[zone,setZone]=useState(task?.time_zone||Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC');
  const [busy,setBusy]=useState(false),[error,setError]=useState('');const dialog=useRef<HTMLDivElement>(null),requestId=useRef<string|null>(null),alive=useRef(true);
+ const [discardOpen,setDiscardOpen]=useState(false);
  const [mounted,setMounted]=useState(false);const [viewport,setViewport]=useState<{top:number;height:number}|null>(null);const backdrop=useRef<HTMLDivElement>(null);
  const initial=useRef(JSON.stringify([title,notes,visibility,owner,date,time,zone]));const dirty=JSON.stringify([title,notes,visibility,owner,date,time,zone])!==initial.current;
- const close=()=>{if(!busy&&(!dirty||window.confirm('Discard your unsaved task changes?')))onClose();};
+ const close=()=>{if(busy)return;if(dirty){setDiscardOpen(true);return;}onClose();};
  useEffect(()=>{setMounted(true);alive.current=true;const previous=document.activeElement as HTMLElement|null;dialog.current?.querySelector<HTMLInputElement>('input')?.focus();const old=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{alive.current=false;document.body.style.overflow=old;queueMicrotask(()=>{if(previous?.isConnected)previous.focus();});};},[]);
  useEffect(()=>{
   if(!mounted)return;
@@ -43,5 +45,5 @@ export default function AgencyCalendarTaskForm({task,selectedDate,userId,assigne
  <label>Notes (optional)<textarea value={notes} maxLength={2000} disabled={busy} rows={3} onChange={e=>setNotes(e.target.value)}/></label>
  {error?<p role="alert" className={styles.error}>{error}</p>:null}
  <footer><button type="button" data-ui-button="secondary" disabled={busy} onClick={close}>Cancel</button><button type="submit" data-ui-button="primary" className={styles.primary} disabled={busy}>{busy?'Saving...':'Save task'}</button></footer>
- </form></div></div>,document.body);
+ </form><ConfirmActionDialog open={discardOpen} tone="warning" title="Discard these task changes?" description="Your unsaved changes will be lost." confirmLabel="Discard changes" onClose={()=>setDiscardOpen(false)} onConfirm={()=>{setDiscardOpen(false);onClose();}}/></div></div>,document.body);
 }

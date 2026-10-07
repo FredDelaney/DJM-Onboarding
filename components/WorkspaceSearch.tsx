@@ -135,9 +135,9 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
      <button type="button" onClick={close} aria-label="Close search"><X size={19}/></button>
     </div>
     <div className={styles.status} role="status" aria-live="polite">
-     {pending?<><LoaderCircle size={13} className={styles.spin}/>Searching recorded data…</>:query?(search.hasMore?'Showing '+search.items.length+' of '+search.total+' matching records':search.total+' matching '+(search.total===1?'record':'records')):'Go straight to a record or start something new'}
+     {pending?<><LoaderCircle size={13} className={styles.spin}/>Searching your workspace…</>:query?(search.hasMore?'Showing '+search.items.length+' of '+search.total+' matching records':search.total+' matching '+(search.total===1?'record':'records')):'Go straight to a record or start something new'}
     </div>
-    {current&&search.error?<div className={styles.error} role="alert"><span>Agency records could not be searched. {search.error}</span><button type="button" onClick={()=>{setAttempt(value=>value+1);input.current?.focus();}}>Try again</button></div>:null}
+    {current&&search.error?<div className={styles.error} role="alert"><span>ReDream could not search your workspace. {search.error}</span><button type="button" onClick={()=>{setAttempt(value=>value+1);input.current?.focus();}}>Try again</button></div>:null}
     <div className={styles.results} role="listbox" id={id+'-results'} aria-label="Search results">
      {results.map((item,index)=>{
       const body=<><span className={styles.kind}>{item.create?<Plus size={13}/>:null}{item.kind}</span><strong>{item.title}</strong>{item.subtitle?<small>{item.subtitle}</small>:null}<ArrowRight size={16} className={styles.arrow}/></>;
@@ -145,7 +145,7 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
       return item.href?<Link {...common} key={item.key} href={item.href} prefetch={false} onClick={event=>choose(event,item.href!)}>{body}</Link>:
        <button {...common} type="button" key={item.key} onClick={()=>{close();if(item.create)onCreate?.(item.create);}}>{body}</button>;
      })}
-     {query&&!results.length&&!pending&&!search.error?<div className={styles.empty}><strong>No matching records</strong><p>Try another name, club or role. Search uses recorded agency data.</p></div>:null}
+     {query&&!results.length&&!pending&&!search.error?<div className={styles.empty}><strong>No matching records</strong><p>Try another name, club or role. Search uses your agency information.</p></div>:null}
     </div>
     <footer className={styles.footer}><span>↑ ↓ move · Enter open · Esc close</span><span>Recorded agency data</span></footer>
    </section>

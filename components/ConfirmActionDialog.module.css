@@ -1,0 +1,15 @@
+.backdrop{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(15,23,32,.32);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.dialog{width:min(430px,calc(100vw - 24px));box-sizing:border-box;padding:22px;border:1px solid #e2e8ec;border-radius:22px;background:#fff;box-shadow:0 30px 90px rgba(14,28,41,.22);color:#222d36}
+.icon{width:50px;height:50px;display:grid;place-items:center;margin-bottom:15px;border-radius:15px;background:#fff0ef;color:#a13c38}
+.warning .icon{background:#fff8e8;color:#815d16}
+.kicker{margin:0 0 6px;color:#98a3ab;font-size:10px;font-weight:800;letter-spacing:.12em}
+.dialog h2{margin:0;font-size:21px;line-height:1.2;letter-spacing:-.025em}
+.dialog p{margin:9px 0 0;color:#6f7d88;font-size:13px;line-height:1.55}
+.actions{display:grid;grid-template-columns:1fr 1.25fr;gap:9px;margin-top:22px}
+.actions button{min-height:46px;border:0;border-radius:12px;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.actions button:disabled{opacity:.5;cursor:not-allowed}
+.cancel{background:#f1f4f6;color:#61717d}
+.confirm{background:#9b3734;color:#fff}
+.warning .confirm{background:#0b2d49}
+.actions button:focus-visible{outline:3px solid rgba(70,116,151,.35);outline-offset:2px}
+@media(max-width:680px){.backdrop{place-items:end center;padding:0 8px}.dialog{width:100%;border-radius:24px 24px 0 0;padding:22px 18px calc(20px + env(safe-area-inset-bottom))}.actions{grid-template-columns:1fr 1fr}.actions button{min-height:48px}}

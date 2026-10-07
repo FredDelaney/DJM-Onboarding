@@ -344,7 +344,7 @@ function scenarioEvidence(key: ScenarioKey, scenario: Scenario) {
   if (key === 'player') {
     const e = scenario.evidence || {};
     return [
-      { label: 'Current club', value: e.current_club || 'Not recorded' },
+      { label: 'Current club', value: e.current_club || 'Not set' },
       { label: 'Agency priority', value: human(e.agency_priority) || 'Normal' },
       { label: 'Commitment', value: e.next_action || 'Review next action' },
       { label: 'Evidence health', value: `${scenario.evidence_health?.score || '–'} · ${human(scenario.evidence_health?.state)}` },

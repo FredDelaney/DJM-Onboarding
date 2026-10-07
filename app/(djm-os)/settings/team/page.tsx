@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import SettingsWorkspace from '@/components/SettingsWorkspace';
+import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { useAdmin } from '@/components/AdminShell';
 import {
   friendlyError,
@@ -74,6 +75,7 @@ export default function TeamSettingsPage() {
   const [lastInviteLink, setLastInviteLink] = useState('');
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] = useState('');
+  const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -249,19 +251,6 @@ export default function TeamSettingsPage() {
       return;
     }
 
-    const name =
-      member.display_name ||
-      member.email ||
-      'this team member';
-
-    if (
-      !window.confirm(
-        `Remove ${name} from this agency workspace?`,
-      )
-    ) {
-      return;
-    }
-
     setActionBusy(`member:${member.user_id}`);
     setError('');
 
@@ -273,6 +262,7 @@ export default function TeamSettingsPage() {
       });
 
       setMessage('Team member removed from this agency.');
+      setMemberToRemove(null);
       await load();
     } catch (removeError) {
       setError(friendlyError(removeError));
@@ -537,9 +527,7 @@ export default function TeamSettingsPage() {
                       {!protectedMember ? (
                         <button
                           type="button"
-                          onClick={() =>
-                            void removeMember(member)
-                          }
+                          onClick={() => setMemberToRemove(member)}
                           aria-label={`Remove ${
                             member.display_name ||
                             member.email ||
@@ -756,6 +744,15 @@ export default function TeamSettingsPage() {
           </section>
         </div>
       ) : null}
+      <ConfirmActionDialog
+        open={Boolean(memberToRemove)}
+        title={`Remove ${memberToRemove?.display_name || memberToRemove?.email || 'this team member'}?`}
+        description="They will lose access to this agency workspace. Their historical agency activity stays intact."
+        confirmLabel="Remove team member"
+        busy={Boolean(memberToRemove && actionBusy === `member:${memberToRemove.user_id}`)}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={() => memberToRemove ? removeMember(memberToRemove) : undefined}
+      />
     </SettingsWorkspace>
   );
 }

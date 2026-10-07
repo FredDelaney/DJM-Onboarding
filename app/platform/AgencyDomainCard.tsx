@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 
 import { friendlyError, platformInvoke } from '@/lib/platform-client';
+import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 
 import styles from './AgencyDomainCard.module.css';
 
@@ -100,6 +101,7 @@ export default function AgencyDomainCard({
     useState<Infrastructure | null>(null);
   const [hostname, setHostname] = useState('');
   const [busy, setBusy] = useState('');
+  const [disconnectDomain, setDisconnectDomain] = useState<DomainRecord | null>(null);
 
   useEffect(() => {
     setControl(initialControl || null);
@@ -230,6 +232,7 @@ export default function AgencyDomainCard({
         : 'Managed ReDream addresses are not enabled in this environment yet.';
 
   return (
+    <>
     <section id="domain-control" className={styles.card}>
       <div className={styles.heading}>
         <div>
@@ -471,23 +474,7 @@ export default function AgencyDomainCard({
                   <button
                     type="button"
                     className={styles.dangerButton}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Disconnect ${domain.hostname}? The ReDream address remains available when configured.`,
-                        )
-                      ) {
-                        void run(
-                          `disable:${domain.id}`,
-                          {
-                            action: 'disable_custom_domain',
-                            tenant_id: tenantId,
-                            domain_id: domain.id,
-                          },
-                          `${domain.hostname} disconnected.`,
-                        );
-                      }
-                    }}
+                    onClick={() => setDisconnectDomain(domain)}
                     disabled={Boolean(busy)}
                   >
                     {busy === `disable:${domain.id}` ? (
@@ -517,5 +504,20 @@ export default function AgencyDomainCard({
         ) : null}
       </div>
     </section>
+      <ConfirmActionDialog
+        open={Boolean(disconnectDomain)}
+        title={`Disconnect ${disconnectDomain?.hostname || 'this domain'}?`}
+        description="This custom address will stop opening the workspace. Your ReDream address stays available."
+        confirmLabel="Disconnect domain"
+        busy={Boolean(disconnectDomain && busy === `disable:${disconnectDomain.id}`)}
+        onClose={() => setDisconnectDomain(null)}
+        onConfirm={async () => {
+          if (!disconnectDomain) return;
+          const domain = disconnectDomain;
+          await run(`disable:${domain.id}`, { action: 'disable_custom_domain', tenant_id: tenantId, domain_id: domain.id }, `${domain.hostname} disconnected.`);
+          setDisconnectDomain(null);
+        }}
+      />
+    </>
   );
 }

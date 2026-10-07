@@ -2603,11 +2603,11 @@ function Home({
           (isPast ? 7_500 : isToday ? 6_500 : Math.max(0, 4_000 - daysAway * 50)),
         title: item?.title || 'Agency deadline',
         why: isPast
-          ? 'This recorded deadline has passed and still needs attention.'
+          ? 'This deadline has passed and still needs attention.'
           : isToday
-            ? 'This recorded deadline lands today.'
+            ? 'This deadline is today.'
             : `This date is approaching in ${daysAway} day${daysAway === 1 ? '' : 's'}.`,
-        recommendation: 'Open the underlying record and confirm the next move.',
+        recommendation: 'Open the item and confirm the next move.',
         owner: item?.owner_name || 'You',
         deadline: isPast ? `Overdue ${relativeDate(item.deadline_at)}` : relativeDate(item.deadline_at),
         kind: 'day',
@@ -3466,7 +3466,7 @@ function Relationships({
 
             const playSuccessCondition =
               warmPlay
-                ? 'A controlled introduction task is prepared from the recorded route. No external message is sent automatically.'
+                ? 'An introduction task is ready from the known relationship. No external message is sent automatically.'
                 : [
                       'protect_live_deal',
                       'remove_deal_blocker',
@@ -4945,7 +4945,7 @@ function Market({
                             instruction:
                               item.next_action
                                 ?.instruction ||
-                              'Create controlled scouting work against the recorded club need.',
+                              'Create scouting work for this club need.',
                             label: 'Prepare search',
                             action:
                               'scouting_mandate_prepare',
@@ -5048,7 +5048,7 @@ function Market({
             </div>
 
             <span className={styles.sectionCount}>
-              {pursuits.length} recorded
+              {pursuits.length} opportunities
             </span>
           </div>
 
@@ -5063,7 +5063,7 @@ function Market({
                 item.career_strategy_gate?.next_action
                   ?.instruction ||
                 item.best_access_route?.why_this_route ||
-                'Review the pursuit evidence.';
+                'Review this player opportunity.';
 
               return (
                 <article
@@ -5234,8 +5234,8 @@ function Market({
                               ).startsWith(
                                 'hold_',
                               )
-                                ? 'The player-owned career strategy is current before the pursuit progresses externally.'
-                                : 'The recorded career-control action is completed before the pursuit progresses externally.',
+                                ? 'The player-owned career strategy is current before the opportunity progresses externally.'
+                                : 'The required career action is completed before the opportunity progresses externally.',
                             confirmationLabel:
                               'Continue strategy review',
                           })
@@ -5465,7 +5465,7 @@ function Deals({
                         ?.success_condition ||
                       (needsOwner
                         ? 'One accountable owner controls the live deal.'
-                        : 'The recorded deal-control gap is resolved.'),
+                        : 'No deal issue needs attention.'),
                     confirmationLabel:
                       needsOwner
                         ? 'Assign deal owner'

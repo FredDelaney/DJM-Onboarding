@@ -581,7 +581,7 @@ export default function AgencyOpportunitiesWorkspace({
         deal.next_control_fix?.success_condition ||
         (needsOwner
           ? 'One accountable owner controls the live deal.'
-          : 'No deal-control gap needs attention.'),
+          : 'No deal issue needs attention.'),
       confirmationLabel:
         needsOwner ? 'Assign deal owner' : 'Apply fix',
     });

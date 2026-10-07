@@ -32,7 +32,7 @@ const modes = [
     eyebrow: 'MARKET',
     title: 'Turn club demand into a route, owner and next move.',
     copy:
-      'Market Pursuit keeps a club request with suitable players and people you know. Access Intelligence helps you understand who could make the introduction.',
+      'Player Opportunities keeps a club request with suitable players and people you know. Relationship Intelligence helps you understand who could make the introduction.',
     icon: Target,
   },
   {
@@ -65,7 +65,7 @@ function Workspace({ mode }: { mode: ModeKey }) {
             <strong>Left winger · Belgium</strong>
             <small>Under 23 · left-footed · permanent or loan</small>
           </div>
-          <span className={styles.liveState}>Pursuit open</span>
+          <span className={styles.liveState}>Opportunity open</span>
         </div>
 
         <div className={styles.marketColumns}>

@@ -379,7 +379,7 @@ export default function AgencyTeamHandoffDrawer({
             </h2>
             <p>
               {step === 'select'
-                ? 'Choose the next accountable agent and exactly which recorded work should move.'
+                ? 'Choose the next accountable agent and exactly which work should move.'
                 : step === 'review'
                   ? 'Review the ownership change before anything moves.'
                   : 'The selected ownership has moved and the agency audit trail has been updated.'}

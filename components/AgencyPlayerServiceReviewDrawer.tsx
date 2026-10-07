@@ -273,7 +273,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         {
           label: 'Recorded proof',
           value: human(proof?.proof_state || 'not set'),
-          detail: 'Evidence of recorded work, not player satisfaction',
+          detail: 'Evidence of agency work, not player satisfaction',
         },
       ],
       successCondition:
@@ -367,7 +367,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           <h2>{request.title}</h2>
           <p className={styles.subhead}>
             {request.context ||
-              'Prepare a factual player review from service delivery, career control, market work and recorded deadlines.'}
+              'Prepare a factual player review from service delivery, career control, market work and known deadlines.'}
           </p>
         </header>
 
@@ -377,7 +377,7 @@ export default function AgencyPlayerServiceReviewDrawer({
             <div>
               <strong>Preparing the player review</strong>
               <span>
-                Loading the service statement, review pack and persisted proof history.
+                Loading the service statement, review pack and saved proof history.
               </span>
             </div>
           </div>
@@ -419,7 +419,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 <span>
                   {meeting?.nearest_deadline?.title ||
                     statement?.service_plan?.next_action ||
-                    'Review the recorded service position with the player.'}
+                    'Review the current service position with the player.'}
                 </span>
               </div>
 
@@ -430,7 +430,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                     ? prettyDate(meeting.nearest_deadline.deadline_at)
                     : 'No date'}
                 </strong>
-                <span>nearest recorded deadline</span>
+                <span>nearest deadline</span>
               </div>
             </section>
 
@@ -474,7 +474,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 detail={
                   latestSnapshot?.snapshot_date
                     ? `Latest ${prettyDate(latestSnapshot.snapshot_date)}`
-                    : 'No persisted baseline yet'
+                    : 'No saved baseline yet'
                 }
               />
             </div>
@@ -637,7 +637,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                       </span>
                       <small>
                         {item.next_action?.instruction ||
-                          'Review the recorded deadline with the player.'}
+                          'Review the deadline with the player.'}
                       </small>
                     </div>
                   </article>
@@ -647,7 +647,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <CheckCircle2 size={17} />
                     <div>
-                      <strong>No upcoming recorded deadline in this review horizon.</strong>
+                      <strong>No upcoming deadline in this review period.</strong>
                       <span>
                         The review stays factual rather than manufacturing urgency.
                       </span>
@@ -761,7 +761,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <History size={17} />
                     <div>
-                      <strong>No persisted proof snapshot yet.</strong>
+                      <strong>No saved proof snapshot yet.</strong>
                       <span>
                         Capture one when the agency wants a point-in-time baseline for a future review.
                       </span>

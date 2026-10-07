@@ -271,7 +271,7 @@ test('Market career actions expose career control without presenting readiness a
   );
   assert.match(
     workspace,
-    /The player-owned career strategy is current before the pursuit progresses externally/,
+    /The player-owned career strategy is current before the opportunity progresses externally/,
   );
 });
 

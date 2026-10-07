@@ -286,7 +286,7 @@ export default function AgencyEntityIntelligenceDrawer({
             <LoaderCircle size={20} className={styles.spin} />
             <div>
               <strong>Building the current operating picture</strong>
-              <span>Pulling the latest recorded agency evidence.</span>
+              <span>Pulling the latest agency information.</span>
             </div>
           </div>
         ) : null}
@@ -477,7 +477,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
 
             <p className={styles.truth}>
-              Player Intelligence shows recorded agency evidence and the next control to resolve. It does not infer player intent, satisfaction or transfer outcomes.
+              Player Intelligence shows known agency information and the next issue to resolve. It does not guess player intent, satisfaction or transfer outcomes.
             </p>
           </div>
         ) : null}
@@ -589,7 +589,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { deal_room_id: request.entityId },
                       context: human(control.state),
                       successCondition:
-                        'The recorded deal-control gap is resolved.',
+                        'No deal issue needs attention.',
                     })
                   }
                 >
