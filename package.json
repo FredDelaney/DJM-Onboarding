@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/*.test.ts",
-    "typecheck": "next typegen && tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tests/fixtures/player-entry/tsconfig.json",
     "precheck": "npm run check:no-em-dash",
     "check": "npm test && npm run typecheck && npm run build",
     "check:no-em-dash": "node scripts/check-no-em-dash.mjs",

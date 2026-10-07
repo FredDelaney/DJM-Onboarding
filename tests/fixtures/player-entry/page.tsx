@@ -1,4 +1,5 @@
 'use client';
+import type {ComponentType} from 'react';
 import {useSearchParams} from 'next/navigation';
 import {TenantRuntimeProvider} from '@/components/TenantRuntimeProvider';
 import {UNRESOLVED_TENANT_RUNTIME} from '@/lib/tenant-runtime';
@@ -11,7 +12,7 @@ import CV from '@/app/cv/page';
 import Documents from '@/app/documents/page';
 import Connections from '@/app/connections/page';
 const runtime={...UNRESOLVED_TENANT_RUNTIME,resolved:true,tenant_id:'tenant',slug:'example',branding:{...UNRESOLVED_TENANT_RUNTIME.branding,display_name:'Example Agency'}};
-const pages:Record<string,typeof Home>={home:Home,profile:Profile,inbox:Inbox,career:Career,'check-in':CheckIn,cv:CV,documents:Documents,connections:Connections};
+const pages:Record<string,ComponentType>={home:Home,profile:Profile,inbox:Inbox,career:Career,'check-in':CheckIn,cv:CV,documents:Documents,connections:Connections};
 export default function Page(){
  const params=useSearchParams(),Component=pages[params.get('view')||'home']||Home;
  return <TenantRuntimeProvider runtime={runtime}><Component/></TenantRuntimeProvider>;
