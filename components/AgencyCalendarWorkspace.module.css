@@ -966,3 +966,27 @@
 }
 
 .todayFacts strong{overflow-wrap:anywhere;}
+
+/* Hydration-safe calendar boot state. */
+.calendarBoot {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 9px;
+  border: 1px solid #e4e9ed;
+  border-radius: 20px;
+  background: #fff;
+  color: #6e818e;
+  font-size: 12px;
+  font-weight: 750;
+}
+.calendarBootSpinner {
+  animation: calendarBootSpin 900ms linear infinite;
+}
+@keyframes calendarBootSpin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendarBootSpinner { animation: none; }
+}

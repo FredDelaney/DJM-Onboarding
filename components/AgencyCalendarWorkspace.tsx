@@ -83,6 +83,7 @@ export default function AgencyCalendarWorkspace({
 }) {
   const search = useSearchParams();
   const requestedMeetingId = String(search.get('meeting') || '').trim();
+  const [clientReady, setClientReady] = useState(false);
   const [horizon, setHorizon] = useState<Horizon>(30);
   const [view, setView] = useState<'month' | 'agenda'>('month');
   const [selectedDate, setSelectedDate] = useState(() => calendarDateKey(new Date()));
@@ -100,6 +101,7 @@ export default function AgencyCalendarWorkspace({
   const rangeEnd=useMemo(()=>{if(view==='month')return shiftMonth(`${month}-01`,1);const end=new Date(`${selectedDate}T12:00:00`);end.setDate(end.getDate()+horizon+1);return calendarDateKey(end)>shiftMonth(`${month}-01`,1)?calendarDateKey(end):shiftMonth(`${month}-01`,1);},[month,selectedDate,horizon,view]);
   const source=useCalendarSources(rpc,tenantId,userId,`${month}-01`,rangeEnd,today,birthdayFilters.contacts,showDone,showArchived,refreshDates);
   const scopeRef=useRef(source.scope);scopeRef.current=source.scope;
+  useEffect(()=>{setClientReady(true);},[]);
   useEffect(()=>{let saved=null;try{saved=preferenceKey?localStorage.getItem(`redream:calendar:${preferenceKey}`):null;}catch{}const value=parseCalendarPreferences(saved);setPreferences(value);setView(value.view);setPrefScope(preferenceKey||'');setTaskForm(null);setGreeting('');setShowDone(false);setShowArchived(false);},[preferenceKey]);
   useEffect(()=>{if(!preferenceKey||prefScope!==preferenceKey)return;try{localStorage.setItem(`redream:calendar:${preferenceKey}`,JSON.stringify({...preferences,view}));}catch{}},[preferences,view,preferenceKey,prefScope]);
   useEffect(()=>{dayStrip.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({block:'nearest',inline:'center',behavior:'auto'});},[selectedDate]);
@@ -295,6 +297,15 @@ export default function AgencyCalendarWorkspace({
       href: `${basePath}?view=home`,
     };
   };
+
+  if (!clientReady) {
+    return (
+      <div className={styles.calendarBoot} role="status" aria-live="polite">
+        <LoaderCircle size={18} className={styles.calendarBootSpinner} />
+        <span>Loading calendar...</span>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.workspace}>

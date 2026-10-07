@@ -2037,3 +2037,19 @@
     display: none;
   }
 }
+
+/* Keep the mobile secondary action legible beside the compact More menu. */
+@media (max-width: 720px) {
+  .heroActions > .secondaryAction:not(summary) {
+    flex: 1 1 210px;
+    white-space: nowrap;
+  }
+  .heroActions .profileTools {
+    flex: 0 0 auto;
+  }
+  .heroActions .profileTools summary {
+    width: auto;
+    min-width: 94px;
+    white-space: nowrap;
+  }
+}
