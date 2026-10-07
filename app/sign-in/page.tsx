@@ -13,6 +13,7 @@ import { resolveActiveAuthDestination, resolveCurrentAuthentication } from '@/li
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { captureReturnPath } from '@/lib/capture-return-path';
 import { supabase } from '@/lib/supabase';
+import { authEntryErrorMessage } from '@/lib/password-auth-fetch';
 
 export default function SignIn() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function SignIn() {
     entryActive.current = true;
     const initialRequest = ++routeGeneration.current;
     const reportError = (error: unknown) => {
-      if (active) setMsg(error instanceof Error ? error.message : 'We could not open your workspace. Please try again.');
+      if (active) setMsg(authEntryErrorMessage(error));
     };
     const {data: listener} = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== 'SIGNED_OUT' && event !== 'SIGNED_IN') return;
@@ -115,7 +116,7 @@ export default function SignIn() {
       if (result.error) throw result.error;
       await routeUser(result.data.user.id);
     } catch (error) {
-      if (current()) setMsg(error instanceof Error ? error.message : 'You signed in, but we could not open your workspace. Please try again.');
+      if (current()) setMsg(authEntryErrorMessage(error));
     } finally {
       if (current()) setBusy(false);
     }

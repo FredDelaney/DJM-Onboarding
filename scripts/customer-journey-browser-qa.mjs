@@ -9,6 +9,7 @@ try{
  browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
  page.on('pageerror',error=>errors.push(error.message));
+ let authNetworkMode='normal';
  let recoveryRequests=0,loginAllowed=false,playerAccount=false,holdLookup=false,releaseLookup,holdAuthentication=false,releaseAuthentication;
  const authenticationGate=new Promise(resolve=>{releaseAuthentication=resolve;});
  const lookupGate=new Promise(resolve=>{releaseLookup=resolve;});
@@ -18,7 +19,10 @@ try{
  await page.route('https://example.supabase.co/**',async route=>{
   const path=new URL(route.request().url()).pathname,body=route.request().postDataJSON()||{};
   let data={},status=200;
-  if(path.includes('/auth/v1/token')){if(holdAuthentication)await authenticationGate;if(loginAllowed)data=session;else{status=400;data={error:'invalid_grant',error_description:'Invalid login credentials',msg:'Invalid login credentials'};}}
+  if(path.includes('/auth/v1/token')){
+   if(authNetworkMode==='failed'){await route.abort('failed');return;}
+   if(authNetworkMode==='stalled'){await new Promise(resolve=>setTimeout(resolve,14000));try{await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(session)});}catch{}return;}
+   if(holdAuthentication)await authenticationGate;if(loginAllowed)data=session;else{status=400;data={error:'invalid_grant',error_description:'Invalid login credentials',msg:'Invalid login credentials'};}}
   else if(path.includes('/auth/v1/recover')){recoveryRequests++;data={};assert.match(body.redirect_to||new URL(route.request().url()).searchParams.get('redirect_to')||'',/reset-password/);}
   else if(path.includes('/auth/v1/user'))data=user;
   else if(path.endsWith('/functions/v1/agency-os')){
@@ -51,6 +55,19 @@ try{
  await page.getByRole('button',{name:'Continue',exact:true}).click();await page.getByText('Team size',{exact:true}).waitFor();await page.keyboard.press('Escape');
  await visit('/sign-in');await page.getByLabel('Email',{exact:true}).fill('fixture@example.test');await page.getByLabel('Password',{exact:true}).fill('fixture-password');
  await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByRole('alert').filter({hasText:'Invalid login credentials'}).waitFor();
+ // Exercise the real SDK and password transport during the recorded outage.
+ for(const mode of ['failed','stalled']){
+  authNetworkMode=mode;
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await page.getByRole('alert').filter({hasText:'We could not connect to secure sign-in'}).waitFor({timeout:16000});
+  assert.equal(await page.getByLabel('Email',{exact:true}).inputValue(),'fixture@example.test');
+  assert.equal(await page.getByLabel('Password',{exact:true}).inputValue(),'fixture-password');
+  assert.equal(await page.getByRole('button',{name:'Sign in',exact:true}).isEnabled(),true);
+  if(mode==='stalled'){await page.waitForTimeout(2500);assert.equal(new URL(page.url()).pathname,'/sign-in','An aborted password request created a late sign-in');}
+ }
+ authNetworkMode='normal';
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await page.getByRole('alert').filter({hasText:'Invalid login credentials'}).waitFor();
  assert.match(await page.locator('meta[name="robots"]').getAttribute('content'),/noindex/);
  assert.match(await page.locator('link[rel="canonical"]').getAttribute('href'),/\/sign-in$/);
  await page.getByRole('link',{name:'Forgot password?',exact:true}).click();await page.getByRole('heading',{name:'Reset your password.',exact:true}).waitFor();
