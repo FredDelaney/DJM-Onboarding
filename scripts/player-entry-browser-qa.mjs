@@ -16,9 +16,9 @@ try {
  const routes=['/home','/profile','/inbox','/career','/check-in','/cv','/documents','/connections'];
  const errors=[];
  const setup=async(mode='failed')=>{
-  const context=await browser.newContext({viewport:{width:390,height:844}});
+  const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   if(mode!=='signed-out')await context.addInitScript(session=>{if(location.hostname==='127.0.0.1')localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},mode==='session-failed'?{...session,expires_at:Math.floor(Date.now()/1000)-3600}:session);
-  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0};
+  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0};
   await context.route('https://example.supabase.co/**',async route=>{
    const path=new URL(route.request().url()).pathname;
    let status=200,data=[];
@@ -31,13 +31,56 @@ try {
     else if(state.mode==='agency')data={tenants:[{tenant_id:'tenant',slug:'example',role:'owner'}]};
     else {status=403;data={error:'Agency staff access required'};}
    } else if(path.includes('/rest/v1/profiles')){if(state.mode==='profile-failed'){status=500;data={message:'Profile temporarily unavailable'};}else data={id:user.id,full_name:'Fixture Player'};}
+   else if(path.includes('/rest/v1/players')&&route.request().method()==='PATCH'){
+    state.writes++;state.savedNames.push(route.request().postDataJSON().first_name);
+    assert.equal(new URL(route.request().url()).searchParams.get('id'),'eq.owned-player');
+    if(state.mode==='save-network'){await route.abort('failed');return;}
+    if(state.mode==='save-delayed')await new Promise(resolve=>setTimeout(resolve,1000));
+    if(state.mode==='save-zero-failed'&&route.request().headers().accept.includes('vnd.pgrst.object')){status=406;data={code:'PGRST116',message:'No rows returned',details:'The result contains 0 rows',hint:null};}
+    else if(state.mode==='save-zero-failed'){status=204;data=null;}
+    else if(state.mode==='save-failed'){status=500;data={code:'XX000',message:'Save failed'};}
+    else if(state.mode==='save-hung'){await new Promise(resolve=>setTimeout(resolve,20000));data={id:'owned-player'};}
+    else data={id:'owned-player'};
+   }
+   else if(path.includes('/rest/v1/weekly_checkins')&&route.request().method()==='POST'){
+    state.writes++;const body=route.request().postDataJSON();state.submittedWeeks.push(body.week_start);
+    assert.equal(body.player_id,'owned-player');assert.equal(typeof body.week_start,'string');
+    assert.equal(new URL(route.request().url()).searchParams.get('on_conflict'),'player_id,week_start');
+    assert.ok(route.request().headers().prefer.includes('resolution=merge-duplicates'));
+    if(state.mode==='submit-network'){await route.abort('failed');return;}
+    if(state.mode==='submit-delayed')await new Promise(resolve=>setTimeout(resolve,1000));
+    if(state.mode==='submit-failed'){status=500;data={code:'XX000',message:'Submit failed'};}
+    else if(state.mode==='submit-hung'){await new Promise(resolve=>setTimeout(resolve,20000));state.checkin=body;data={id:'checkin'};}
+    else {state.checkin=body;data={id:'checkin'};}
+   }
+   else if(path.includes('/rest/v1/resources')){
+    assert.equal(new URL(route.request().url()).searchParams.get('tenant_id'),'eq.tenant');
+    assert.equal(new URL(route.request().url()).searchParams.get('published'),'eq.true');
+   }
+   else if(path.includes('/rest/v1/career_entries')){
+    if(state.mode==='career-failed'){status=500;data={message:'Career unavailable'};}
+    else if(state.mode==='career-hung'){await new Promise(resolve=>setTimeout(resolve,15000));data=[];}
+    else data=[{id:'career',club_name:'Fixture career club',start_date:'2025-01-01'}];
+   }
+   else if(path.includes('/rest/v1/player_videos')){
+    if(state.mode==='media-failed'){status=500;data={message:'Videos unavailable'};}
+    else if(state.mode==='media-hung'){await new Promise(resolve=>setTimeout(resolve,15000));data=[];}
+    else data=[{id:'video',title:'Fixture highlight',url:'https://example.test/video',video_type:'highlight',featured:true}];
+   }
    else if(path.includes('/rest/v1/players')){
     state.playerCalls++;
     if(state.mode==='player-failed'){status=503;data={message:'Players unavailable'};}
     else if(state.mode==='no-player')data=[];
     else data=[{id:'owned-player',tenant_id:'tenant',user_id:user.id,first_name:'Fixture',last_name:'Player',preferred_name:'Fixture',nationalities:[],secondary_positions:[],primary_position:'CM',onboarding_status:'verified'}];
    } else if(path.includes('/rest/v1/player_private')){
-    if(state.mode==='private-failed'){status=500;data={message:'Private details unavailable'};}
+    if(route.request().method()==='POST'){
+     state.privateWrites++;
+     assert.equal(route.request().postDataJSON().player_id,'owned-player');
+     if(state.mode==='save-private-failed'){status=500;data={code:'XX000',message:'Private save failed'};}
+     else if(state.mode==='save-private-hung'){await new Promise(resolve=>setTimeout(resolve,20000));data={player_id:'owned-player'};}
+     else data={player_id:'owned-player'};
+    }
+    else if(state.mode==='private-failed'){status=500;data={message:'Private details unavailable'};}
     else data=null;
    } else if(path.includes('/rest/v1/player_requests')&&state.mode==='requests-failed'){status=500;data={message:'Requests unavailable'};}
    else if(path.includes('/rest/v1/weekly_checkins')&&state.mode==='checkins-failed'){status=500;data={message:'Check-ins unavailable'};}
@@ -69,6 +112,88 @@ try {
  const visit=async(page,path)=>{
   for(let i=0;i<60;i++){try{await page.goto(root+'/workspace/qa-player-entry?view='+encodeURIComponent(path.slice(1)));return;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
  };
+ {
+  const {context,page}=await setup('save-delayed');await visit(page,'/profile');
+  await page.getByRole('button',{name:/^Football /}).click();
+  const input=page.getByRole('region',{name:'Edit profile',exact:true}).locator('input').first();await input.fill('Confirmed draft');
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();
+  assert.equal(await input.isDisabled(),true,'Profile accepts unsent edits during a save');
+  await page.getByRole('region',{name:'Edit profile',exact:true}).waitFor({state:'hidden'});
+  await context.close();
+ }
+ {
+  const {context,page}=await setup('submit-delayed');await visit(page,'/check-in');
+  const input=page.locator('textarea').first();await input.fill('Confirmed weekly draft');
+  await page.getByRole('button',{name:'Send weekly update',exact:true}).click();
+  assert.equal(await input.isDisabled(),true,'Weekly form accepts unsent edits during a save');
+  await page.getByRole('heading',{name:'You’re done.',exact:true}).waitFor();
+  await context.close();
+ }
+ {
+  const {context,page,state}=await setup('submit-failed');
+  await page.clock.setFixedTime(new Date('2026-10-04T23:59:50+02:00'));await visit(page,'/check-in');
+  await page.locator('textarea').first().fill('Sunday draft');
+  await page.getByRole('button',{name:'Send weekly update',exact:true}).click();
+  await page.getByRole('alert').filter({hasText:'send'}).waitFor();
+  await page.clock.setFixedTime(new Date('2026-10-05T00:00:10+02:00'));
+  await page.locator('textarea').first().fill('Draft after midnight');
+  state.mode='healthy';await page.getByRole('button',{name:'Send weekly update',exact:true}).click();
+  await page.getByRole('heading',{name:'You’re done.',exact:true}).waitFor();
+  assert.deepEqual(state.submittedWeeks,['2026-09-28','2026-09-28'],'Retry changed the weekly record key');
+  await context.close();
+ }
+ if(!process.env.PLAYER_REVIEW_ONLY){
+ for(const [path,mode] of (process.env.PLAYER_WRITE_ONLY?[]:[['/career','career-failed'],['/career','career-hung'],['/profile','media-failed'],['/profile','media-hung']])){
+  const {context,page,state}=await setup(mode);await visit(page,path);
+  await page.getByRole('alert').filter({hasText:'information could not load'}).waitFor({timeout:mode.endsWith('hung')?16000:7000});
+  for(const width of [320,390,1440]){
+   await page.setViewportSize({width,height:900});
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Recovery overflow '+path+' '+width);
+  }
+  state.mode='healthy';await page.getByRole('button',{name:'Try again',exact:true}).click();
+  if(path==='/career')await page.getByRole('heading',{name:'Build the career, not just the profile.',exact:true}).waitFor();
+  else await page.getByText('1 video saved',{exact:true}).waitFor();
+  if(mode.endsWith('hung')){
+   await page.waitForTimeout(3500);
+   assert.equal(await page.getByRole('alert').filter({hasText:'information could not load'}).count(),0);
+   if(path==='/profile')assert.equal(await page.getByText('1 video saved',{exact:true}).count(),1);
+  }
+  await context.close();
+ }
+ for(const mode of (process.env.PLAYER_NETWORK_ONLY?['save-network']:['save-failed','save-hung','save-network','save-private-failed','save-private-hung','save-zero-failed'])){
+  const {context,page,state}=await setup(mode);await visit(page,'/profile');
+  await page.getByRole('button',{name:/^Football /}).click();
+  const input=page.getByRole('region',{name:'Edit profile',exact:true}).locator('input').first();await input.fill('Draft name');
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();
+  if(mode.endsWith('hung'))assert.equal(await input.isDisabled(),true);
+  await page.getByRole('alert').filter({hasText:!mode.endsWith('failed')?'could not confirm':'save'}).waitFor({timeout:mode.endsWith('hung')?16000:7000});
+  assert.equal(await input.inputValue(),'Draft name','Save recovery discarded the draft');
+  assert.equal(await input.isEnabled(),true,'Profile did not unlock after save recovery');
+  assert.equal(await page.getByRole('button',{name:'Save changes',exact:true}).isEnabled(),true);
+  assert.equal(state.writes,1,'Save was automatically retried');
+  assert.equal(state.privateWrites,1,'Private save was automatically retried');
+  state.mode='healthy';await page.getByRole('button',{name:'Save changes',exact:true}).click();
+  await page.getByRole('region',{name:'Edit profile',exact:true}).waitFor({state:'hidden'});
+  assert.equal(state.writes,2);
+  assert.deepEqual(state.savedNames,['Draft name','Draft name']);
+  assert.equal(state.privateWrites,2);
+  await context.close();
+ }
+ for(const mode of (process.env.PLAYER_NETWORK_ONLY?['submit-network']:['submit-failed','submit-hung','submit-network'])){
+  const {context,page,state}=await setup(mode);await visit(page,'/check-in');
+  await page.locator('textarea').first().fill('Keep this draft');
+  await page.getByRole('button',{name:'Send weekly update',exact:true}).click();
+  await page.getByRole('alert').filter({hasText:!mode.endsWith('failed')?'could not confirm':'send'}).waitFor({timeout:mode.endsWith('hung')?16000:7000});
+  assert.equal(await page.locator('textarea').first().inputValue(),'Keep this draft');
+  assert.equal(await page.locator('textarea').first().isEnabled(),true,'Weekly form did not unlock after save recovery');
+  assert.equal(await page.getByRole('button',{name:'Send weekly update',exact:true}).isEnabled(),true);
+  assert.equal(state.writes,1,'Weekly update was automatically retried');
+  state.mode='healthy';await page.getByRole('button',{name:'Send weekly update',exact:true}).click();
+  await page.getByRole('heading',{name:'You’re done.',exact:true}).waitFor();
+  assert.equal(state.checkin.player_notes,'Keep this draft');
+  assert.equal(state.writes,2);
+  await context.close();
+ }
  if(!process.env.PLAYER_SECONDARY_ONLY){
  // An upstream outage must never become a claim that a profile is being prepared.
  for(const path of routes){
@@ -129,7 +254,7 @@ try {
   assert.ok(state.secondaryCalls>=2,'Retry did not reread the page data');
   await context.close();
  }
- for(const path of ['/cv','/documents']){
+ for(const path of ['/cv','/documents','/profile']){
   const {context,page}=await setup('no-player');await visit(page,path);
   await page.getByRole('heading',{name:'No player profile is linked yet',exact:true}).waitFor();
   assert.equal(await page.locator('input[type="file"]').count(),0);
@@ -144,6 +269,7 @@ try {
   assert.equal(await page.getByText('Existing fixture document',{exact:true}).count(),1);
   await context.close();
  }
+ }
  assert.deepEqual(errors,[]);
- console.log('PASS: player page read recovery, responsive retry, late response protection, linked-profile guidance and document upload; full entry cases run unless PLAYER_SECONDARY_ONLY is set.');
+ console.log('PASS: player read recovery, draft-preserving save and weekly update retries, transport failures, responsive layouts, late responses and private upload. Entry cases run unless PLAYER_SECONDARY_ONLY is set.');
 } finally {await browser?.close();try{process.kill(-server.pid,'SIGTERM');}catch{}await rm(fixtureRoute,{recursive:true,force:true});await rm(new URL('../.next/dev/types/',import.meta.url),{recursive:true,force:true});}

@@ -26,6 +26,7 @@ import {
 import {
   optionalNonNegativeInteger,
 } from '@/lib/validation';
+import {writeWithDeadline} from '@/lib/write-with-deadline';
 
 const value = (input: any) =>
   input === null ||
@@ -65,7 +66,12 @@ export default function CheckIn() {
   const [error, setError] =
     useState('');
 
-  const currentWeek = weekStartISO();
+  // Keep retries on the draft's original week, even across Sunday midnight.
+  const [draftScope,setDraftScope] = useState(()=>({playerId:ctx.player?.id,week:weekStartISO()}));
+  if (draftScope.playerId !== ctx.player?.id) {
+    setDraftScope({playerId:ctx.player?.id,week:weekStartISO()});
+  }
+  const currentWeek = draftScope.week;
 
   const existing =
     ctx.latestCheckin?.week_start ===
@@ -127,7 +133,7 @@ export default function CheckIn() {
   const submit = async (
     quick = false,
   ) => {
-    if (!ctx.player) return;
+    if (!ctx.player || busy) return;
 
     setBusy(true);
     setError('');
@@ -234,22 +240,21 @@ export default function CheckIn() {
         new Date().toISOString(),
     };
 
-    const query = existing
-      ? supabase
-          .from('weekly_checkins')
-          .update(payload)
-          .eq('id', existing.id)
-      : supabase
-          .from('weekly_checkins')
-          .insert(payload);
-
-    const {
-      error: submitError,
-    } = await query;
+    const outcome = await writeWithDeadline(signal=>
+      supabase.from('weekly_checkins')
+        .upsert(payload,{onConflict:'player_id,week_start'})
+        .select('id').abortSignal(signal).single(),
+    );
+    if (outcome.status === 'unknown') {
+      setError('We could not confirm your weekly update. Your draft is still here. Sending again updates the same week, rather than creating a second update.');
+      setBusy(false);
+      return;
+    }
+    const submitError = outcome.result.error;
 
     if (submitError) {
       setError(
-        'We couldn’t send your update. Please try again.',
+        submitError.code ? 'We couldn’t send your update. Your draft is still here. Please try again.' : 'We could not confirm your weekly update. Your draft is still here. Sending again updates the same week, rather than creating a second update.',
       );
       setBusy(false);
       return;
@@ -295,6 +300,7 @@ export default function CheckIn() {
       }
     >
       <main className="narrow player-shell checkin-21 checkin-premium">
+        <fieldset disabled={busy} style={{border:0,minWidth:0,margin:0,padding:0}}>
         {error && (
           <div
             className="check-alert"
@@ -631,6 +637,7 @@ export default function CheckIn() {
             <ArrowRight size={17} />
           </button>
         </div>
+        </fieldset>
       </main>
     </PlayerShell>
   );

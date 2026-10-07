@@ -32,6 +32,9 @@ import {
 } from '@/components/PlayerShell';
 
 import AppExperience from '@/components/AppExperience';
+import JourneyStatus from '@/components/JourneyStatus';
+import {usePlayerPageRead} from '@/lib/use-player-page-read';
+import {writeWithDeadline} from '@/lib/write-with-deadline';
 
 import {
   publicFile,
@@ -79,6 +82,15 @@ const shortList = (
     : fallback;
 };
 
+const readProfileMedia = async (playerId:string) => {
+  const [videosResult,docsResult] = await Promise.all([
+    supabase.from('player_videos').select('*').eq('player_id',playerId).order('featured',{ascending:false}).order('sort_order'),
+    supabase.from('player_documents').select('id',{count:'exact',head:true}).eq('player_id',playerId),
+  ]);
+  if (videosResult.error || docsResult.error) throw new Error('Profile media unavailable');
+  return {videos:videosResult.data || [],documentCount:docsResult.count || 0};
+};
+
 export default function Profile() {
   const ctx = usePlayerContext();
 
@@ -88,14 +100,13 @@ export default function Profile() {
   const [pr, setPr] =
     useState<any>({});
 
-  const [videos, setVideos] =
-    useState<any[]>([]);
+  const pageRead = usePlayerPageRead(ctx.player?.id,readProfileMedia);
+  const videos = pageRead.data?.videos || [];
 
   const [videoUrl, setVideoUrl] =
     useState('');
 
-  const [documentCount, setDocumentCount] =
-    useState(0);
+  const documentCount = pageRead.data?.documentCount || 0;
 
   const [editor, setEditor] =
     useState<Editor>(null);
@@ -123,34 +134,7 @@ export default function Profile() {
 
     setDirty(false);
 
-    Promise.all([
-      supabase
-        .from('player_videos')
-        .select('*')
-        .eq('player_id', ctx.player.id)
-        .order('featured', {
-          ascending: false,
-        })
-        .order('sort_order'),
 
-      supabase
-        .from('player_documents')
-        .select('id', {
-          count: 'exact',
-          head: true,
-        })
-        .eq('player_id', ctx.player.id),
-    ]).then(
-      ([videosResult, docsResult]) => {
-        setVideos(
-          videosResult.data || [],
-        );
-
-        setDocumentCount(
-          docsResult.count || 0,
-        );
-      },
-    );
   }, [     ctx.player?.id,     ctx.player?.updated_at,   ]);
 
   useEffect(() => {
@@ -206,7 +190,15 @@ useEffect(() => {
   }
 
   if (!ctx.player) {
-    return null;
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile to this account."/></main></PlayerShell>;
+  }
+  if (pageRead.loading || pageRead.error) {
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus
+      kind={pageRead.error ? 'error' : 'loading'}
+      title={pageRead.error ? 'Your profile information could not load' : 'Loading your profile information'}
+      description={pageRead.error || 'Loading your saved videos and document information.'}
+      onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
+    /></main></PlayerShell>;
   }
 
   const updatePlayer = (
@@ -299,6 +291,7 @@ useEffect(() => {
   const save = async (
     closeAfter = true,
   ) => {
+    if (busy) return false;
     const validationError =
       validate();
 
@@ -429,31 +422,24 @@ useEffect(() => {
         pr.travel_availability || null,
     };
 
-    const results =
-      await Promise.all([
-        supabase
-          .from('players')
-          .update(playerPatch)
-          .eq('id', ctx.player.id),
-
-        supabase
-          .from('player_private')
-          .upsert({
-            player_id:
-              ctx.player.id,
-            ...privatePatch,
-          }),
-      ]);
-
+    const outcome = await writeWithDeadline(signal=>Promise.all([
+      supabase.from('players').update(playerPatch).eq('id',ctx.player.id).select('id').abortSignal(signal).single(),
+      supabase.from('player_private').upsert({player_id:ctx.player.id,...privatePatch}).select('player_id').abortSignal(signal).single(),
+    ]));
+    if (outcome.status === 'unknown') {
+      setError('We could not confirm that all changes saved. Your edits are still here. Some changes may already be saved.');
+      setBusy(false);
+      return false;
+    }
     const failed =
-      results.find(
+      outcome.result.find(
         (result: any) =>
           result.error,
       );
 
     if (failed?.error) {
       setError(
-        'We couldn’t save your changes. Please try again.',
+        failed.error.code ? 'We couldn’t save all your changes. Your edits are still here. Some changes may have saved; please try again.' : 'We could not confirm that all changes saved. Your edits are still here. Some changes may already be saved.',
       );
 
       setBusy(false);
@@ -527,10 +513,7 @@ return true;
       return;
     }
 
-    setVideos((current) => [
-      ...current,
-      data,
-    ]);
+    pageRead.updateData(current=>({...current,videos:[...current.videos,data]}));
 
     setVideoUrl('');
     setBusy(false);
@@ -558,12 +541,7 @@ return true;
       return;
     }
 
-    setVideos((current) =>
-      current.filter(
-        (video) =>
-          video.id !== videoId,
-      ),
-    );
+    pageRead.updateData(current=>({...current,videos:current.videos.filter(video=>video.id!==videoId)}));
 
     setBusy(false);
     flash('Video removed');
@@ -995,7 +973,7 @@ void ctx.refresh();
                 </button>
               </header>
 
-              <div className="profile-editor-body">
+              <fieldset className="profile-editor-body" disabled={busy} style={{border:0,minWidth:0,margin:0}}>
                 {editor ===
                   'football' && (
                   <FootballEditor
@@ -1050,7 +1028,7 @@ void ctx.refresh();
                     {error}
                   </div>
                 )}
-              </div>
+              </fieldset>
 
               {editor !== 'media' &&
                 dirty && (
