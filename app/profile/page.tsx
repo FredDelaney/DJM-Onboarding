@@ -653,8 +653,10 @@ return true;
       return;
     }
 
+    // Photos are separately confirmed media, not part of the editable field draft.
     setP({
       ...ctx.player,
+      profile_photo_path:p.profile_photo_path??ctx.player.profile_photo_path,
     });
 
     setPr({

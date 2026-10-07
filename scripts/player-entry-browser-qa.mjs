@@ -18,7 +18,7 @@ try {
  const setup=async(mode='failed')=>{
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   if(mode!=='signed-out')await context.addInitScript(session=>{if(location.hostname==='127.0.0.1')localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},mode==='session-failed'?{...session,expires_at:Math.floor(Date.now()/1000)-3600}:session);
-  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],photoPath:user.id+'/existing.png',releaseMedia:null};
+  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],hasPhoto:mode.startsWith('photo'),photoPath:user.id+'/existing.png',releaseMedia:null};
   const holdMedia=()=>new Promise(resolve=>{state.releaseMedia=resolve;});
   await context.route('https://example.supabase.co/**',async route=>{
    const path=new URL(route.request().url()).pathname;
@@ -98,7 +98,7 @@ try {
     state.playerCalls++;
     if(state.mode==='player-failed'){status=503;data={message:'Players unavailable'};}
     else if(state.mode==='no-player')data=[];
-    else data=[{id:'owned-player',tenant_id:'tenant',user_id:user.id,first_name:'Fixture',last_name:'Player',preferred_name:'Fixture',nationalities:[],secondary_positions:[],primary_position:'CM',onboarding_status:'verified',profile_photo_path:state.photoPath}];
+    else data=[{id:'owned-player',tenant_id:'tenant',user_id:user.id,first_name:'Fixture',last_name:'Player',preferred_name:'Fixture',nationalities:[],secondary_positions:[],primary_position:'CM',onboarding_status:'verified',...(state.hasPhoto?{profile_photo_path:state.photoPath}:{})}];
    } else if(path.includes('/rest/v1/player_private')){
     if(route.request().method()==='POST'){
      state.privateWrites++;
@@ -225,6 +225,31 @@ try {
   assert.equal(await recovery.count(),1);
   state.mode='healthy';await recovery.getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Photo updated',{exact:true}).waitFor();
   assert.equal(state.photoUploads.length,1);assert.equal(state.photoAttaches.length,1);await context.close();
+ }
+ if(!mediaCase||mediaCase==='photo-discard'){
+  const {context,page,state}=await setup('photo-healthy');await visit(page,'/profile');
+  await page.getByRole('button',{name:/^Football /}).click();
+  await page.getByRole('region',{name:'Edit profile',exact:true}).locator('input').first().fill('Unsaved football draft');
+  await page.locator('input[type="file"]').setInputFiles({name:'Confirmed.png',mimeType:'image/png',buffer:Buffer.from('photo')});
+  await page.getByText('Photo updated',{exact:true}).waitFor();
+  const path=state.photoUploads[0];assert.ok(path);
+  await page.getByRole('button',{name:'Discard',exact:true}).click();
+  await page.getByRole('region',{name:'Edit profile',exact:true}).waitFor({state:'hidden'});
+  assert.ok((await page.locator('.profile-21-photo img').getAttribute('src')).includes(path),'Discard reverted a separately confirmed photo');
+  await page.getByRole('button',{name:/^Football /}).click();
+  assert.equal(await page.getByRole('region',{name:'Edit profile',exact:true}).locator('input').first().inputValue(),'Fixture','Discard retained the football draft');
+  await context.close();
+ }
+ if(!mediaCase||mediaCase==='photo-unmount'){
+  const {context,page,state}=await setup('photo-upload-hung');await page.clock.install();await visit(page,'/profile');
+  await page.locator('input[type="file"]').setInputFiles({name:'Leaving.png',mimeType:'image/png',buffer:Buffer.from('photo')});
+  await waitForMedia(state.photoUploads);
+  await page.evaluate(()=>window.history.pushState({},'',location.pathname+'?view=documents'));
+  await page.locator('.profile-21').waitFor({state:'detached'});
+  const reply=page.waitForResponse(response=>response.url().includes('/storage/v1/object/player-public/')&&response.request().method()==='POST');
+  state.releaseMedia();await reply;await page.clock.runFor(1);
+  assert.equal(state.photoAttaches.length,0,'Upload attached a photo after leaving Profile');
+  await context.close();
  }
  if(!process.env.PLAYER_MEDIA_ONLY){
  {

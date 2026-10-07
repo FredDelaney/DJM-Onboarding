@@ -62,3 +62,7 @@ test('confirmed upload and attachment report one completed photo update',async()
 test('a storage server error leaves the upload outcome unconfirmed',async()=>{
  assert.deepEqual(await saveProfilePhoto(draft(),async()=>({data:null,error:{statusCode:'500'}}),async()=>saved,5,5),{status:'unknown',stage:'upload'});
 });
+
+test('a named storage access code still respects the confirmed HTTP 403 denial',async()=>{
+ assert.deepEqual(await saveProfilePhoto(draft(),async()=>({data:null,error:{status:403,statusCode:'AccessDenied'}}),async()=>saved,5,5),{status:'failed',stage:'upload'});
+});

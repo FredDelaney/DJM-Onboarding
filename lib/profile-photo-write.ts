@@ -1,6 +1,6 @@
 import {writeWithDeadline} from './write-with-deadline.ts';
 
-export type MediaWriteResult = {data:unknown;error:{message?:string;code?:string;statusCode?:string|number}|null};
+export type MediaWriteResult = {data:unknown;error:{message?:string;code?:string;statusCode?:string|number;status?:number}|null};
 export type PhotoDraft = {path:string;uploaded:boolean;uploadTask?:Promise<MediaWriteResult>};
 export type PhotoOutcome = {status:'saved'} | {status:'failed'|'unknown';stage:'upload'|'attach'};
 export async function saveProfilePhoto(
@@ -17,7 +17,7 @@ export async function saveProfilePhoto(
   if(outcome.status==='unknown')return {status:'unknown',stage:'upload'};
   draft.uploadTask=undefined;
   if(outcome.result.error||!outcome.result.data){
-   const status=Number(outcome.result.error?.statusCode);
+   const status=Number(outcome.result.error?.status??outcome.result.error?.statusCode);
    return {status:status>=400&&status<500?'failed':'unknown',stage:'upload'};
   }
   draft.uploaded=true;
