@@ -66,7 +66,12 @@ export default function CheckIn() {
   const [error, setError] =
     useState('');
 
-  const currentWeek = weekStartISO();
+  // Keep retries on the draft's original week, even across Sunday midnight.
+  const [draftScope,setDraftScope] = useState(()=>({playerId:ctx.player?.id,week:weekStartISO()}));
+  if (draftScope.playerId !== ctx.player?.id) {
+    setDraftScope({playerId:ctx.player?.id,week:weekStartISO()});
+  }
+  const currentWeek = draftScope.week;
 
   const existing =
     ctx.latestCheckin?.week_start ===
@@ -295,6 +300,7 @@ export default function CheckIn() {
       }
     >
       <main className="narrow player-shell checkin-21 checkin-premium">
+        <fieldset disabled={busy} style={{border:0,minWidth:0,margin:0,padding:0}}>
         {error && (
           <div
             className="check-alert"
@@ -631,6 +637,7 @@ export default function CheckIn() {
             <ArrowRight size={17} />
           </button>
         </div>
+        </fieldset>
       </main>
     </PlayerShell>
   );

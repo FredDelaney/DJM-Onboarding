@@ -973,7 +973,7 @@ void ctx.refresh();
                 </button>
               </header>
 
-              <div className="profile-editor-body">
+              <fieldset className="profile-editor-body" disabled={busy} style={{border:0,minWidth:0,margin:0}}>
                 {editor ===
                   'football' && (
                   <FootballEditor
@@ -1028,7 +1028,7 @@ void ctx.refresh();
                     {error}
                   </div>
                 )}
-              </div>
+              </fieldset>
 
               {editor !== 'media' &&
                 dirty && (
