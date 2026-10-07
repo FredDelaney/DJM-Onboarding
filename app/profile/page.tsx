@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -35,6 +36,7 @@ import AppExperience from '@/components/AppExperience';
 import JourneyStatus from '@/components/JourneyStatus';
 import {usePlayerPageRead} from '@/lib/use-player-page-read';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
+import {saveProfilePhoto,type PhotoDraft} from '@/lib/profile-photo-write';
 
 import {
   publicFile,
@@ -122,6 +124,26 @@ export default function Profile() {
 
   const [error, setError] =
     useState('');
+  const [photoError,setPhotoError]=useState('');
+  const [photoBusy,setPhotoBusy]=useState(false);
+  const [photoName,setPhotoName]=useState('');
+  const photoDraft=useRef<(PhotoDraft & {file:File;playerId:string})|null>(null);
+  const pendingVideos=useRef(new Map<string,any>());
+  const mediaMounted=useRef(true);
+  const mediaScope=useRef({playerId:ctx.player?.id,userId:ctx.user?.id});
+  if(mediaScope.current.playerId!==ctx.player?.id||mediaScope.current.userId!==ctx.user?.id)mediaScope.current={playerId:ctx.player?.id,userId:ctx.user?.id};
+  useEffect(()=>{mediaMounted.current=true;return()=>{mediaMounted.current=false;};},[]);
+  useEffect(()=>{
+    pendingVideos.current.clear();
+    photoDraft.current=null;
+    setPhotoName('');
+    setPhotoError('');
+    setPhotoBusy(false);
+    setVideoUrl('');
+    setError('');
+    setBusy(false);
+  },[ctx.player?.id,ctx.user?.id]);
+  const isCurrentMediaWrite=(scope:typeof mediaScope.current)=>mediaMounted.current&&mediaScope.current===scope;
 
   useEffect(() => {
     if (!ctx.player) {
@@ -462,6 +484,8 @@ return true;
   };
 
   const addVideo = async () => {
+    if(busy)return;
+    const scope=mediaScope.current;
     const url =
       videoUrl.trim();
 
@@ -479,12 +503,10 @@ return true;
     setBusy(true);
     setError('');
 
-    const {
-      data,
-      error: addError,
-    } = await supabase
-      .from('player_videos')
-      .insert({
+    let payload=pendingVideos.current.get(url);
+    if(!payload){
+      payload={
+        id:crypto.randomUUID(),
         player_id:
           ctx.player.id,
 
@@ -501,11 +523,18 @@ return true;
 
         sort_order:
           videos.length,
-      })
-      .select('*')
-      .single();
-
-    if (addError) {
+      };
+      pendingVideos.current.set(url,payload);
+    }
+    const outcome=await writeWithDeadline(signal=>supabase.from('player_videos').upsert(payload,{onConflict:'id'}).select('*').abortSignal(signal).single());
+    if(!isCurrentMediaWrite(scope))return;
+    if(outcome.status==='unknown'||(outcome.result.error&&!outcome.result.error.code)){
+      setError('We could not confirm that the video saved. Your link is still here. Trying again uses the same video record.');
+      setBusy(false);
+      return;
+    }
+    const {data,error:addError}=outcome.result;
+    if (addError || !data) {
       setError(
         'We couldn’t add that video.',
       );
@@ -513,7 +542,8 @@ return true;
       return;
     }
 
-    pageRead.updateData(current=>({...current,videos:[...current.videos,data]}));
+    pageRead.updateData(current=>({...current,videos:[...current.videos.filter(video=>video.id!==data.id),data]}));
+    pendingVideos.current.delete(url);
 
     setVideoUrl('');
     setBusy(false);
@@ -523,17 +553,26 @@ return true;
   const removeVideo = async (
     videoId: string,
   ) => {
+    if(busy)return;
+    const scope=mediaScope.current;
+    const playerId=ctx.player.id;
     setBusy(true);
     setError('');
 
-    const {
-      error: removeError,
-    } = await supabase
-      .from('player_videos')
-      .delete()
-      .eq('id', videoId);
-
-    if (removeError) {
+    const outcome=await writeWithDeadline(async signal=>{
+      const removed=await supabase.from('player_videos').delete().eq('id',videoId).eq('player_id',playerId).select('id').abortSignal(signal);
+      if(removed.error||removed.data?.length)return removed;
+      const remaining=await supabase.from('player_videos').select('id').eq('id',videoId).eq('player_id',playerId).abortSignal(signal).maybeSingle();
+      if(remaining.error)return remaining;
+      return remaining.data?{error:{code:'NOT_REMOVED'},data:null}:removed;
+    });
+    if(!isCurrentMediaWrite(scope))return;
+    if(outcome.status==='unknown'||(outcome.result.error&&!outcome.result.error.code)){
+      setError('We could not confirm that the video was removed. It is still shown here. You can try again.');
+      setBusy(false);
+      return;
+    }
+    if (outcome.result.error) {
       setError(
         'We couldn’t remove that video.',
       );
@@ -547,82 +586,50 @@ return true;
     flash('Video removed');
   };
 
-  const uploadPhoto = async (
-    event: any,
-  ) => {
-    const file =
-      event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
+  const savePhotoDraft=async()=>{
+    const draft=photoDraft.current;
+    if(busy||!draft||draft.playerId!==ctx.player.id)return;
+    const scope=mediaScope.current;
     setBusy(true);
-    setError('');
-
-    const ext =
-      file.name
-        .split('.')
-        .pop()
-        ?.toLowerCase() || 'jpg';
-
-    const path =
-      `${ctx.user.id}/profile-${Date.now()}.${ext}`;
-
-    const {
-      error: uploadError,
-    } = await supabase
-      .storage
-      .from('player-public')
-      .upload(
-        path,
-        file,
-        {
-          upsert: true,
-        },
-      );
-
-    if (uploadError) {
-      setError(
-        'We couldn’t upload that photo.',
-      );
-      setBusy(false);
+    setPhotoBusy(true);
+    setPhotoError('');
+    const outcome=await saveProfilePhoto(draft,
+      ()=>{
+        if(!isCurrentMediaWrite(scope))throw new Error('Photo owner changed');
+        return supabase.storage.from('player-public').upload(draft.path,draft.file,{upsert:true});
+      },
+      signal=>{
+        if(!isCurrentMediaWrite(scope))throw new Error('Photo owner changed');
+        return supabase.from('players').update({profile_photo_path:draft.path}).eq('id',draft.playerId).select('id').abortSignal(signal).single();
+      },
+    );
+    if(!isCurrentMediaWrite(scope)||photoDraft.current!==draft)return;
+    setBusy(false);
+    setPhotoBusy(false);
+    if(outcome.status!=='saved'){
+      setPhotoError(outcome.status==='unknown'
+        ? 'We could not confirm your photo update. Your selected photo is still here. Try again to continue the same update.'
+        : outcome.stage==='upload'
+          ? 'We couldn’t upload that photo. Your selected photo is still here. Please try again.'
+          : 'The photo uploaded but could not be attached to your profile. Try again to attach the same photo.');
       return;
     }
+    setP((current:any)=>({...current,profile_photo_path:draft.path}));
+    photoDraft.current=null;
+    setPhotoName('');
+    setPhotoError('');
+    flash('Photo updated');
+    if(!dirty)void ctx.refresh();
+  };
 
-    const {
-      error: attachError,
-    } = await supabase
-      .from('players')
-      .update({
-        profile_photo_path:
-          path,
-      })
-      .eq(
-        'id',
-        ctx.player.id,
-      );
-
-    if (attachError) {
-      setError(
-        'The photo uploaded but could not be attached to your profile.',
-      );
-      setBusy(false);
-      return;
-    }
-
-setP(
-  (current: any) => ({
-    ...current,
-    profile_photo_path:
-      path,
-  }),
-);
-
-setBusy(false);
-flash('Photo updated');
-
-void ctx.refresh();
+  const uploadPhoto=(event:any)=>{
+    const file:File|undefined=event.target.files?.[0];
+    event.target.value='';
+    if(!file||busy)return;
+    const ext=file.name.split('.').pop()?.toLowerCase()||'jpg';
+    photoDraft.current={file,playerId:ctx.player.id,path:`${ctx.user.id}/profile-${crypto.randomUUID()}.${ext}`,uploaded:false};
+    setPhotoName(file.name);
+    void savePhotoDraft();
   };
 
   const closeEditor = () => {
@@ -768,11 +775,19 @@ void ctx.refresh();
             <input
               type="file"
               accept="image/*"
+              aria-label="Update profile photo"
+              disabled={busy}
               hidden
               onChange={uploadPhoto}
             />
           </label>
         </header>
+        {photoName&&<div style={{marginBottom:20}}><JourneyStatus
+          kind={photoBusy?'loading':'error'}
+          title={photoBusy?'Updating your profile photo':'Your photo update needs another try'}
+          description={photoError||`Uploading ${photoName}. Your current photo stays in place until this update is confirmed.`}
+          onRetry={!busy&&photoError?()=>void savePhotoDraft():undefined}
+        /></div>}
 
         <section className="profile-21-status">
           <div className="profile-21-status-main">
