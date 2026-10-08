@@ -9,15 +9,15 @@ const shell = readFileSync('components/AgencyOperatingWorkspace.module.css','utf
 
 test('mobile agency identity uses a consistent squircle tile', () => {
   const final = brand.slice(brand.lastIndexOf('Premium mobile workspace identity v2'));
-  assert.match(final, /width: 42px/);
-  assert.match(final, /height: 42px/);
+  assert.match(final, /width: 44px/);
+  assert.match(final, /height: 44px/);
   assert.match(final, /border-radius: 13px/);
   assert.doesNotMatch(final, /border-radius: 50%/);
 });
 
 test('mobile account trigger matches the same shell geometry', () => {
   const final = account.slice(account.lastIndexOf('Premium mobile account identity v2'));
-  assert.match(final, /\.trigger[\s\S]*width: 42px[\s\S]*height: 42px[\s\S]*border-radius: 13px/);
+  assert.match(final, /\.trigger[\s\S]*width: 44px[\s\S]*height: 44px[\s\S]*border-radius: 13px/);
   assert.match(final, /\.avatar[\s\S]*width: 32px[\s\S]*height: 32px[\s\S]*border-radius: 9px/);
 });
 

@@ -39,7 +39,7 @@
   align-items: center;
   gap: 7px;
   color: #6f7781;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -68,7 +68,7 @@
 .hero p {
   margin: 0;
   color: #888f98;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.1em;
 }
@@ -85,7 +85,7 @@
   max-width: 680px;
   margin: 0;
   color: #79818b;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -107,13 +107,13 @@
 
 .notice strong {
   color: #363d45;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .notice span {
   margin-top: 3px;
   color: #7f8790;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -163,7 +163,7 @@
   max-width: 540px;
   display: block;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -181,7 +181,7 @@
 .heroSide span {
   margin-top: 3px;
   color: rgba(255, 255, 255, 0.62);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .grid,
@@ -203,7 +203,7 @@
 .fact span,
 .exclusions > span {
   color: #8a919a;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -217,7 +217,7 @@
 
 .fact small {
   color: #858d96;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -266,7 +266,7 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--agency-accent) 10%, #f1f3f5);
   color: var(--agency-primary);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -277,13 +277,13 @@
 
 .timelineRow strong {
   color: #343b43;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .timelineRow span {
   margin-top: 3px;
   color: #8c939b;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .comparisonHead {
@@ -292,7 +292,7 @@
   align-items: center;
   gap: 8px;
   color: #68717b;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -310,7 +310,7 @@
 
 .delta span {
   color: #7e8690;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -322,7 +322,7 @@
 
 .delta small {
   color: #949aa1;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .row {
@@ -338,19 +338,19 @@
 
 .row strong {
   color: #343b43;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .row span {
   margin-top: 3px;
   color: #6f7882;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .row small {
   margin-top: 3px;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -372,7 +372,7 @@
   border-radius: 9px;
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -414,7 +414,7 @@
   border-radius: 999px;
   background: #fff;
   color: #6c7580;
-  font-size: 8px;
+  font-size: 12px;
   font-style: normal;
 }
 
@@ -434,14 +434,14 @@
 
 .snapshot strong {
   color: #343b43;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .snapshot span,
 .snapshot small {
   margin-top: 2px;
   color: #8c939b;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .empty {
@@ -462,19 +462,19 @@
 
 .empty strong {
   color: #414850;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .empty span {
   margin-top: 2px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .truth {
   margin: 10px 1px 0;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 

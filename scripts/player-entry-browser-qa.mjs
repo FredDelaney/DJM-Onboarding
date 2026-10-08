@@ -615,7 +615,7 @@ try {
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Recovery overflow '+path+' '+width);
   }
   state.mode='healthy';await page.getByRole('button',{name:'Try again',exact:true}).click();
-  if(path==='/career')await page.getByRole('heading',{name:'Build the career, not just the profile.',exact:true}).waitFor();
+  if(path==='/career')await page.getByRole('heading',{name:'Your career',exact:true}).waitFor();
   else await page.getByText('1 video saved',{exact:true}).waitFor();
   if(mode.endsWith('hung')){
    await page.waitForTimeout(3500);

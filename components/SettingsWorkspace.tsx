@@ -142,7 +142,12 @@ export default function SettingsWorkspace({
                 className={item.key === 'business' ? shellStyles.navManagement : ''}
               >
                 <Icon size={17} />
-                <span>{item.label}</span>
+                {item.key === 'opportunities' ? (
+                  <>
+                    <span className={shellStyles.navDesktopLabel}>{item.label}</span>
+                    <span className={shellStyles.navMobileLabel}>Market</span>
+                  </>
+                ) : <span>{item.label}</span>}
               </Link>
             );
           })}

@@ -756,7 +756,7 @@ return true;
             </h1>
 
             <p className="page-intro">
-              Keep it accurate once. Your agency uses the same information when opportunities move quickly.
+              Keep your details, preferences and footage up to date.
             </p>
           </div>
 
@@ -1718,7 +1718,7 @@ function SourcesEditor({
           </strong>
 
           <span>
-            External profiles give your agency a verification trail. Your dossier statistics are reviewed separately by your agency.
+            Add reliable profile links. Your agency reviews the statistics before sharing them.
           </span>
         </div>
       </div>

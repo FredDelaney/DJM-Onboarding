@@ -39,7 +39,7 @@
   align-items: center;
   gap: 7px;
   color: #6f7781;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -68,7 +68,7 @@
 .hero p {
   margin: 0;
   color: #888f98;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.1em;
 }
@@ -85,7 +85,7 @@
   max-width: 620px;
   margin: 0;
   color: #79818b;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -117,7 +117,7 @@
   max-width: 520px;
   display: block;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -136,7 +136,7 @@
 .heroSide span {
   margin-top: 3px;
   color: rgba(255, 255, 255, 0.62);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .grid {
@@ -157,7 +157,7 @@
 
 .fact span {
   color: #8a919a;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -172,7 +172,7 @@
 
 .fact small {
   color: #858d96;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -229,19 +229,19 @@
 
 .row strong {
   color: #343b43;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .row span {
   margin-top: 3px;
   color: #6f7882;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .row small {
   margin-top: 3px;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -258,7 +258,7 @@
   color: var(--agency-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -280,13 +280,13 @@
 
 .empty strong {
   color: #414850;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .empty span,
 .baseline span {
   margin-top: 2px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -297,7 +297,7 @@
 .truth {
   margin: 10px 1px 0;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -401,7 +401,7 @@
 .teamIdentity strong {
   overflow: hidden;
   color: #30373f;
-  font-size: 11px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -410,7 +410,7 @@
   margin-top: 2px;
   overflow: hidden;
   color: #8a929b;
-  font-size: 8px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -421,7 +421,7 @@
   max-width: 112px;
   padding: 5px 7px;
   border-radius: 999px;
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 850;
   line-height: 1;
   white-space: nowrap;
@@ -476,7 +476,7 @@
 .teamMemberFacts span {
   margin-top: 4px;
   color: #939aa2;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.15;
 }
 
@@ -485,7 +485,7 @@
   flex-wrap: wrap;
   gap: 5px 12px;
   color: #7d8790;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .teamCommercial {
@@ -500,7 +500,7 @@
   border-radius: 999px;
   background: #fff;
   color: #65727d;
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -523,12 +523,12 @@
 
 .teamEmpty strong {
   color: #414a52;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .teamEmpty span {
   margin-top: 2px;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -565,7 +565,7 @@
   background: #fff;
   color: #587181;
   font: inherit;
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -605,7 +605,7 @@
 
   .subhead {
     margin-top: 5px;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.4;
   }
 
@@ -621,7 +621,7 @@
 
   .hero p,
   .panelHead p {
-    font-size: 6.5px;
+    font-size: 12px;
   }
 
   .hero h3 {
@@ -654,7 +654,7 @@
   }
 
   .fact span {
-    font-size: 6px;
+    font-size: 12px;
   }
 
   .fact strong {

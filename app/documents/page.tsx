@@ -308,13 +308,7 @@ export default function Documents() {
               30,
           }}
         >
-          Passports,
-          agreements and career
-          documents live here
-          securely. Upload once,
-          then your agency has access
-          when it is genuinely
-          needed.
+          Upload the private documents your agency needs.
         </p>
 
         <section

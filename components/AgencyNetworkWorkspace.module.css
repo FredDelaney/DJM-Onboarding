@@ -18,7 +18,7 @@
 .eyebrow {
   margin: 0 0 5px;
   color: var(--agency-accent);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.14em;
 }
@@ -63,7 +63,7 @@
 
 .heroSummary span {
   color: #818891;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 750;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -96,7 +96,7 @@
   border-radius: 9px;
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -136,7 +136,7 @@
   background: transparent;
   color: #262c34;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .search button {
@@ -145,7 +145,7 @@
   color: #6e7580;
   cursor: pointer;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -176,7 +176,7 @@
 .nextMove span,
 .sectionLabel > span {
   color: #858c95;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.1em;
 }
@@ -184,7 +184,7 @@
 .signalBar strong {
   overflow: hidden;
   color: #303740;
-  font-size: 11px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -255,7 +255,7 @@
   margin: 5px 0 0;
   overflow: hidden;
   color: #777f89;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -276,7 +276,7 @@
 
 .primaryFact small {
   color: #747c86;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .clubContext {
@@ -293,12 +293,12 @@
 
 .clubContext strong {
   color: #343b44;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .clubContext small {
   color: #858c95;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .peopleBlock {
@@ -315,7 +315,7 @@
 
 .sectionLabel small {
   color: #8a919a;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .peopleList {
@@ -353,7 +353,7 @@
   width: 31px;
   height: 31px;
   border-radius: 50%;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .personIdentity {
@@ -371,12 +371,12 @@
 
 .personIdentity strong {
   color: #343b44;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .personIdentity small {
   color: #878e97;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .personRow > svg {
@@ -386,7 +386,7 @@
 .muted {
   margin: 0;
   color: #858c95;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -401,7 +401,7 @@
 
 .nextMove strong {
   color: #343b44;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -433,7 +433,7 @@
 
 .personFacts small {
   color: #8a919a;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.07em;
 }
@@ -441,7 +441,7 @@
 .personFacts strong {
   overflow: hidden;
   color: #343b44;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -463,7 +463,7 @@
   border-radius: 10px;
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -500,7 +500,7 @@
 
 .empty span {
   max-width: 360px;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -612,7 +612,7 @@
   display: block;
   margin-top: 3px;
   color: #4b535d;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -623,7 +623,7 @@
   color: var(--agency-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -680,7 +680,7 @@
 .intelligenceCard > span,
 .intelligenceActive > span {
   color: #858c95;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
 }
@@ -697,14 +697,14 @@
 .intelligenceActive > small {
   grid-column: 2 / 4;
   color: #858c95;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
 .intelligenceTruth {
   margin: 0;
   color: #90969e;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -792,7 +792,7 @@
   .intelligenceActive > span {
     grid-column: auto;
     grid-row: auto;
-    font-size: 5.8px;
+    font-size: 12px;
     letter-spacing: .04em;
   }
 
@@ -820,7 +820,7 @@
   .tabActive {
     min-height: 42px;
     justify-content: center;
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .search {
@@ -857,7 +857,7 @@
 
   .identity .eyebrow {
     margin-bottom: 2px;
-    font-size: 6.5px;
+    font-size: 12px;
   }
 
   .identity h3 {
@@ -866,7 +866,7 @@
 
   .identity > p:last-child {
     margin-top: 2px;
-    font-size: 8.5px;
+    font-size: 12px;
   }
 
   .primaryFact {
@@ -878,15 +878,15 @@
   .primaryFact span,
   .clubContext span,
   .nextMove span {
-    font-size: 6px;
+    font-size: 12px;
   }
 
   .primaryFact strong {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .primaryFact small {
-    font-size: 7.5px;
+    font-size: 12px;
   }
 
   .clubContext {
@@ -894,7 +894,7 @@
   }
 
   .clubContext strong {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .clubContext small {
@@ -912,7 +912,7 @@
   }
 
   .nextMove strong {
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.35;
   }
 
@@ -936,11 +936,11 @@
   }
 
   .personFacts small {
-    font-size: 5.8px;
+    font-size: 12px;
   }
 
   .personFacts strong {
-    font-size: 8.5px;
+    font-size: 12px;
   }
 
   .actions {
@@ -955,14 +955,14 @@
     border: 0;
     background: transparent;
     color: #78828a;
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .primaryAction {
     min-height: 36px;
     padding: 0 11px;
     border-radius: 10px;
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .empty {
@@ -1052,7 +1052,7 @@
   }
 
   .identity > p:last-child {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .primaryFact {
@@ -1069,7 +1069,7 @@
   }
 
   .primaryFact strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .primaryFact small {
@@ -1086,7 +1086,7 @@
   }
 
   .nextMove strong {
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.35;
   }
 
@@ -1147,7 +1147,7 @@
   }
 
   .identity .eyebrow {
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: .06em;
   }
 
@@ -1157,7 +1157,7 @@
   }
 
   .identity > p:last-child {
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.35;
   }
 
@@ -1199,7 +1199,7 @@
   }
 
   .empty span {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 
@@ -1283,7 +1283,7 @@
   .primaryFact span {
     display: block;
     color: #8a939c;
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: .07em;
   }
 
@@ -1303,7 +1303,7 @@
   .nextMove span {
     display: block;
     color: #8a939c;
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: .07em;
   }
 
@@ -1325,7 +1325,7 @@
     min-height: 44px;
     padding: 0 14px;
     border-radius: 12px;
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 /* World-class relationship network pass v2 */
@@ -1342,17 +1342,17 @@
   .clubMark,.personMark{width:50px;height:50px;border-radius:15px;background:color-mix(in srgb,var(--agency-accent) 9%,#f2f5f7)}
   .personMark{border-radius:50%}
   .identity h3{font-size:17px;letter-spacing:-.025em}
-  .identity>p:last-child{font-size:11px;line-height:1.4}
+  .identity>p:last-child{font-size:12px;line-height:1.4}
 }@media(max-width:680px){
   .primaryFact{gap:4px;padding:11px 12px;border:1px solid #edf0f2;border-radius:13px;background:#f8fafb}
-  .primaryFact span{display:block;color:#9099a2;font-size:8px;letter-spacing:.08em}
+  .primaryFact span{display:block;color:#9099a2;font-size:12px;letter-spacing:.08em}
   .primaryFact strong{font-size:13px;line-height:1.35}
-  .primaryFact small{display:block;font-size:9px;line-height:1.35}
+  .primaryFact small{display:block;font-size:12px;line-height:1.35}
   .nextMove{gap:4px;padding:11px 12px;border:0;border-left:3px solid color-mix(in srgb,var(--agency-accent) 74%,#d9dfe4);border-radius:0 12px 12px 0;background:color-mix(in srgb,var(--agency-primary) 3%,#f7f9fb)}
-  .nextMove span{display:block;color:#8f98a1;font-size:8px;letter-spacing:.08em}
+  .nextMove span{display:block;color:#8f98a1;font-size:12px;letter-spacing:.08em}
   .nextMove strong{font-size:12px;line-height:1.45}
   .actions{margin-top:1px}
-  .primaryAction{width:100%;min-height:46px;border-radius:13px;font-size:11px}
+  .primaryAction{width:100%;min-height:46px;border-radius:13px;font-size:12px}
   .secondaryAction{min-height:46px;border-radius:13px}
   .empty{min-height:220px;border-radius:20px;background:radial-gradient(circle at 50% 0%,color-mix(in srgb,var(--agency-accent) 8%,transparent),transparent 160px),#fbfcfd}
 }
@@ -1381,7 +1381,7 @@
   color: #fff;
   cursor: pointer;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -1395,7 +1395,7 @@
   .addEntityButton {
     min-height: 44px;
     padding-inline: 14px;
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 
@@ -1439,7 +1439,7 @@
   .clubCard .actionsSolo .secondaryAction {
     width: 100%;
     padding: 0 14px;
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 
@@ -1503,7 +1503,7 @@
     border-radius: 14px;
     background: #0b2d49;
     box-shadow: 0 7px 18px rgba(11, 45, 73, .10);
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .grid {
@@ -1558,7 +1558,7 @@
     margin: 0;
     padding-left: 11px;
     color: var(--network-slate);
-    font-size: 7px;
+    font-size: 12px;
     font-weight: 830;
     line-height: 1.2;
     letter-spacing: .08em;
@@ -1587,7 +1587,7 @@
   .identity > p:last-child {
     margin-top: 1px;
     color: #7f8a94;
-    font-size: 10.5px;
+    font-size: 12px;
   }
 
   .primaryFact {
@@ -1604,7 +1604,7 @@
 
   .primaryFact span {
     color: #95a0a9;
-    font-size: 7px;
+    font-size: 12px;
     font-weight: 840;
     letter-spacing: .11em;
   }
@@ -1619,7 +1619,7 @@
   .primaryFact small {
     display: block;
     color: #8a959e;
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.35;
   }
 
@@ -1648,14 +1648,14 @@
 
   .nextMove span {
     color: #98a2aa;
-    font-size: 7px;
+    font-size: 12px;
     font-weight: 840;
     letter-spacing: .11em;
   }
 
   .nextMove strong {
     color: #4e5a64;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 690;
     line-height: 1.42;
   }
@@ -1686,7 +1686,7 @@
     background: #0b2d49;
     border-color: #0b2d49;
     box-shadow: 0 6px 16px rgba(11, 45, 73, .09);
-    font-size: 10.5px;
+    font-size: 12px;
   }
 
   .clubCard .primaryAction svg {
@@ -1727,7 +1727,7 @@
     background: #f8fafb;
     color: #5f6f7d;
     box-shadow: none;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 760;
     line-height: 1;
     white-space: nowrap;
@@ -1750,7 +1750,7 @@
     width: 100%;
     min-width: 0;
     padding-inline: 14px;
-    font-size: 10.5px;
+    font-size: 12px;
   }
 }
 
@@ -1772,7 +1772,7 @@
     background: transparent !important;
     color: #657786 !important;
     box-shadow: none !important;
-    font-size: 10.5px !important;
+    font-size: 12px !important;
     font-weight: 730 !important;
     line-height: 1 !important;
     white-space: nowrap !important;
@@ -1831,7 +1831,7 @@
 
   .personCard .relationshipSummary span {
     color: #99a3ab;
-    font-size: 6.5px;
+    font-size: 12px;
     font-weight: 840;
     letter-spacing: .11em;
   }
@@ -1852,7 +1852,7 @@
     border-radius: 999px;
     background: #f1f4f6;
     color: #74828d;
-    font-size: 7px;
+    font-size: 12px;
     font-weight: 760;
     line-height: 1;
     white-space: nowrap;
@@ -1881,7 +1881,7 @@
   .personCard .nextMove span {
     flex: 0 0 auto;
     color: #99a3ab;
-    font-size: 6.5px;
+    font-size: 12px;
     font-weight: 840;
     letter-spacing: .11em;
   }
@@ -1889,7 +1889,7 @@
   .personCard .nextMove strong {
     min-width: 0;
     color: #43515d;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1.3;
     text-align: right;
@@ -1918,7 +1918,7 @@
     background: transparent !important;
     color: #687986 !important;
     box-shadow: none !important;
-    font-size: 10px !important;
+    font-size: 12px !important;
     font-weight: 720 !important;
     white-space: nowrap !important;
   }
@@ -1951,12 +1951,12 @@
   .entityTop p { font-size: 12px; line-height: 1.5; }
   .primaryFact span, .clubContext span, .nextMove span,
   .sectionLabel > span, .personCard .relationshipSummary span,
-  .personCard .nextMove span { font-size: 10px; line-height: 1.4; }
+  .personCard .nextMove span { font-size: 12px; line-height: 1.4; }
   .primaryFact strong, .clubContext strong,
   .personCard .relationshipSummary strong { font-size: 13px; line-height: 1.45; white-space: normal; }
-  .primaryFact small, .clubContext small { font-size: 11px; line-height: 1.5; }
+  .primaryFact small, .clubContext small { font-size: 12px; line-height: 1.5; }
   .nextMove strong, .personCard .nextMove strong { font-size: 12px; line-height: 1.45; }
-  .personCard .relationshipState { font-size: 10px; }
+  .personCard .relationshipState { font-size: 12px; }
   .actions, .personCard .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .personCard .primaryAction { min-width: 0; flex: 1 1 140px; }
   .personCard .secondaryAction { font-size: 12px !important; min-height: 44px !important; }

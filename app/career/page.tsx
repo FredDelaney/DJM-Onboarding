@@ -204,13 +204,11 @@ export default function CareerPage() {
           <div className="career-hub-copy">
             <div className="career-hub-kicker">
               <Sparkles size={14} />
-              MY PRIVATE PROFESSIONAL CENTRE
+              YOUR CAREER
             </div>
-            <h1>Build the career, not just the profile.</h1>
+            <h1>Your career</h1>
             <p>
-              {firstName}, use this space to manage the work that matters to
-              you: your week, development, season, decisions, records and
-              private documents.
+              {firstName}, review your week, club history and private career records here.
             </p>
 
             <div className="career-hub-actions">
@@ -410,7 +408,7 @@ export default function CareerPage() {
           <div className="career-section-heading">
             <div>
               <div className="section-kicker">PROFESSIONAL RECORD</div>
-              <h2>Your career, with evidence attached.</h2>
+              <h2>Clubs and seasons</h2>
               <p>
                 Club history and season numbers remain source-aware.
                 Unknown data stays unknown. It is never turned into a zero.
@@ -504,7 +502,7 @@ export default function CareerPage() {
             <div className="career-record-empty">
               <Trophy size={22} />
               <div>
-                <strong>Build a career record worth carrying.</strong>
+                <strong>Add your first club or season</strong>
                 <span>
                   Add clubs and seasons once, then use the same trusted
                   record in your agency profile and club presentation.

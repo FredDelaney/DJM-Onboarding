@@ -879,7 +879,7 @@ export default function AgencyContactIntelligenceDrawer({
                 <div className={styles.reachEmpty}>
                   <div>
                     <strong>No direct contact details yet</strong>
-                    <span>Add one trusted channel and ReDream will keep it attached to this relationship.</span>
+                    <span>Add a verified email address or phone number.</span>
                   </div>
                   {nextMove.kind !== 'reach' ? (
                     <button

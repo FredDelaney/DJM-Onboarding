@@ -61,13 +61,13 @@
 .headerIdentity p:last-child {
   margin: 0;
   color: #7b828b;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .eyebrow {
   margin: 0;
   color: #999fa7;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 820;
   letter-spacing: 0.11em;
 }
@@ -98,7 +98,7 @@
   justify-content: center;
   gap: 9px;
   color: #777f89;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .error {
@@ -108,7 +108,7 @@
   border-radius: 10px;
   background: #fff7f7;
   color: #8f4545;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -140,7 +140,7 @@
 .sectionHead span,
 .contextGrid span {
   color: #969ca4;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 820;
   letter-spacing: 0.09em;
 }
@@ -165,7 +165,7 @@
   border-radius: 8px;
   background: #f5f6f7;
   color: #69717a;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 650;
 }
 
@@ -199,7 +199,7 @@
   background: transparent;
   color: #69717b;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 740;
   cursor: pointer;
 }
@@ -228,7 +228,7 @@
   padding: 0 12px;
   border-radius: 10px;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 740;
   text-decoration: none;
   cursor: pointer;
@@ -313,7 +313,7 @@
 
 .contactLine span {
   color: #949aa2;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -322,7 +322,7 @@
 .contactLine strong {
   overflow: hidden;
   color: #373e47;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -330,14 +330,14 @@
 .contactLine small {
   flex: 0 0 auto;
   color: #818891;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 720;
 }
 
 .empty {
   margin: 0 0 12px;
   color: #7d858e;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -353,7 +353,7 @@
   display: grid;
   gap: 5px;
   color: #717983;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -367,7 +367,7 @@
   background: #fff;
   color: #2f363e;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .form input:focus {
@@ -437,7 +437,7 @@
 .employment strong {
   overflow: hidden;
   color: #353c44;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
 }
 
@@ -448,7 +448,7 @@
   gap: 5px;
   padding: 6px 8px;
   border-radius: 8px;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 740;
   white-space: nowrap;
 }
@@ -474,7 +474,7 @@
 .truth {
   margin: 11px 0 0;
   color: #858c95;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -628,7 +628,7 @@
   border-radius: 999px;
   background: #f2f5f7;
   color: #6c7b87;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 730;
   line-height: 1;
   text-transform: capitalize;
@@ -652,12 +652,12 @@
 
 .reachEmpty strong {
   color: #394650;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .reachEmpty span {
   color: #82909b;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -695,7 +695,7 @@
 
   .headerIdentity p:last-of-type {
     color: #7d8993;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .headerMeta {
@@ -705,7 +705,7 @@
 
   .headerMeta span {
     padding: 4px 6px;
-    font-size: 6.5px;
+    font-size: 12px;
   }
 
   .pagePanel .body {
@@ -726,7 +726,7 @@
   }
 
   .sectionHead span {
-    font-size: 6.5px;
+    font-size: 12px;
     letter-spacing: .11em;
   }
 
@@ -741,7 +741,7 @@
     min-height: 34px !important;
     padding-inline: 6px !important;
     color: #6f7e89 !important;
-    font-size: 9px !important;
+    font-size: 12px !important;
   }
 
   .reachEmpty {
@@ -752,11 +752,11 @@
   }
 
   .reachEmpty strong {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .reachEmpty span {
-    font-size: 8.5px;
+    font-size: 12px;
   }
 
   .reachEmpty button {
@@ -776,7 +776,7 @@
     border-radius: 11px;
     background: #f1f4f6;
     color: #556673;
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .quickActions a:first-child {
@@ -797,11 +797,11 @@
   }
 
   .contactLine span {
-    font-size: 6.5px;
+    font-size: 12px;
   }
 
   .contactLine strong {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .employment {
@@ -823,12 +823,12 @@
   }
 
   .employment span {
-    font-size: 6px;
+    font-size: 12px;
     letter-spacing: .09em;
   }
 
   .employment strong {
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.3;
     white-space: normal;
   }
@@ -837,7 +837,7 @@
   .statusWarning {
     padding: 5px 7px;
     border-radius: 999px;
-    font-size: 6.5px;
+    font-size: 12px;
   }
 
   .verifyButton {
@@ -846,7 +846,7 @@
 
   .truth {
     margin-top: 9px;
-    font-size: 7.5px;
+    font-size: 12px;
   }
 
   .contextGrid {
@@ -879,7 +879,7 @@
   }
 
   .contextGrid span {
-    font-size: 6px;
+    font-size: 12px;
   }
 
   .contextGrid strong {
@@ -919,7 +919,7 @@
 }
 .nextMove span {
   color: rgba(255,255,255,.56);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .11em;
 }
@@ -932,7 +932,7 @@
 .nextMove small {
   max-width: 430px;
   color: rgba(255,255,255,.68);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .nextMove button,
@@ -949,7 +949,7 @@
   background: #fff;
   color: var(--agency-primary, #17364d);
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
   text-decoration: none;
   cursor: pointer;
@@ -970,7 +970,7 @@
     font-size: 18px;
   }
   .nextMove small {
-    font-size: 10px;
+    font-size: 12px;
   }
   .nextMove button,
   .nextMoveLink {

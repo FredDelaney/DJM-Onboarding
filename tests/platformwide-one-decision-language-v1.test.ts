@@ -14,7 +14,7 @@ test('authenticated workspaces use customer language for next decisions', () => 
   assert.match(operating, /No deal issue needs attention/);
   assert.match(search, /Searching your workspace/);
   assert.match(calendar, /important agency dates will appear here/);
-  assert.match(intelligence, /known agency information/);
+  assert.match(intelligence, /recorded agency information/);
 
   assert.doesNotMatch(operating, /Review the pursuit evidence/);
   assert.doesNotMatch(operating, /recorded deal-control gap/);
@@ -27,7 +27,7 @@ test('player data and service screens avoid database language', () => {
 
   assert.match(data, /Reload player data/);
   assert.match(service, /known deadlines/);
-  assert.match(service, /saved proof history/);
+  assert.match(service, /previous reviews/);
   assert.doesNotMatch(data, /Reload recorded data/);
   assert.doesNotMatch(service, /persisted proof history/);
 });

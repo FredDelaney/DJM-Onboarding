@@ -659,7 +659,7 @@ export default function AgencyClubAccountDrawer({
                 Loading club
               </strong>
               <span>
-                Pulling together the relationship, current needs and live work.
+                Loading contacts, current needs and deals.
               </span>
             </div>
           </div>
@@ -892,7 +892,7 @@ export default function AgencyClubAccountDrawer({
                       ?.intermediary
                       ?.name
                       ? `A warm introduction is available through ${bestIntro.intermediary.name}.`
-                      : 'ReDream will show the strongest known contact route when the agency connects a person to this club.'
+                      : 'Link a contact to this club to record how your agency can reach them.'
                   }
                 />
               )}
@@ -1462,7 +1462,7 @@ export default function AgencyClubAccountDrawer({
                 styles.truth
               }
             >
-              ReDream only shows information your agency has captured or connected. It does not guess what a club wants or whether a transfer will happen.
+              Based on recorded agency information. Club needs and transfer outcomes are not inferred.
             </p>
           </div>
         ) : null}

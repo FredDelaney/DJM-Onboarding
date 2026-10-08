@@ -1444,6 +1444,7 @@ a:focus-visible {
 }
 
 .app-setting-row .btn {
+  min-height: 44px;
   flex: 0 0 auto;
 }
 

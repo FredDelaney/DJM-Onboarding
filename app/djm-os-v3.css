@@ -30,9 +30,11 @@
 .djm-os-header {
   min-height: 66px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(5, 25, 46, 0.94);
-  box-shadow: 0 10px 34px rgba(4, 19, 35, 0.12);
-  backdrop-filter: blur(24px) saturate(1.25);
+  background: var(--tenant-primary, #061f3a);
+  color: var(--tenant-on-primary, #fff);
+  box-shadow: 0 4px 16px rgba(4, 19, 35, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .djm-os-header-inner {
