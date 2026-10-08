@@ -18,7 +18,8 @@ try {
  const setup=async(mode='failed')=>{
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   if(mode!=='signed-out')await context.addInitScript(session=>{if(location.hostname==='127.0.0.1')localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},mode==='session-failed'?{...session,expires_at:Math.floor(Date.now()/1000)-3600}:session);
-  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],hasPhoto:mode.startsWith('photo'),photoPath:user.id+'/existing.png',releaseMedia:null,inboxReads:0,requestInserts:[],requestUpdates:[],requestRows:new Map(),requestNotifications:0,requestLookups:[],contextReads:0,releaseContext:null,completionResponses:0};
+  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],hasPhoto:mode.startsWith('photo'),photoPath:user.id+'/existing.png',releaseMedia:null,inboxReads:0,requestInserts:[],requestUpdates:[],requestRows:new Map(),requestNotifications:0,requestLookups:[],contextReads:0,releaseContext:null,completionResponses:0,documentUploads:[],documentInserts:[],documentLookups:[],documentRows:new Map(),documentObjects:new Set(),documentRemovals:[]};
+  if(mode.startsWith('document-'))state.documentRows.set('existing-document',{id:'existing-document',player_id:'owned-player',title:'Existing fixture document',document_type:'passport',bucket_id:'player-private',object_path:user.id+'/existing-fixture.pdf',club_shareable:false,uploaded_by:user.id,country:'NZ',expires_at:'2028-01-01',created_at:'2026-10-07T00:00:00Z'});
   if(mode.startsWith('inbox')){
    state.requestRows.set('agency-action',{id:'agency-action',player_id:'owned-player',title:'Confirm your availability',message:'Reply to your agency',request_type:'action',status:'open',player_reply:null,created_by:'staff',created_at:'2026-10-07T12:00:00Z',completed_at:null});
    state.requestRows.set('internal-signal',{id:'internal-signal',player_id:'owned-player',title:'Internal agency signal',request_type:'signal',status:'open'});
@@ -160,8 +161,24 @@ try {
     state.secondaryCalls++;
     if(route.request().method()==='POST'){
      const body=route.request().postDataJSON();assert.equal(body.player_id,'owned-player');assert.equal(body.club_shareable,false);assert.equal(body.bucket_id,'player-private');
-     data={...body,id:'new-document'};
-    }else if(state.mode==='documents-failed'){status=500;data={message:'Files unavailable'};}
+     state.documentInserts.push(body);
+     if(state.mode==='document-record-failed'){status=403;data={code:'42501',message:'Document denied'};}
+     else if(body.id&&state.documentRows.has(body.id)){status=409;data={code:'23505',message:'Duplicate document ID'};}
+     else {
+      data={...body,id:body.id||'generated-document-'+state.documentInserts.length,created_at:'2026-10-08T06:50:00Z'};state.documentRows.set(data.id,data);
+      if(state.mode==='document-record-network'){await route.abort('failed');return;}
+      if(state.mode==='document-record-hung')await holdMedia();
+      if(state.mode==='document-record-zero')data=null;
+      if(state.mode==='document-record-mismatch')data={...data,object_path:'different-owner/wrong-file.pdf'};
+     }
+    }else if(new URL(route.request().url()).searchParams.has('id')){
+     state.documentLookups.push(route.request().url());
+     assert.equal(new URL(route.request().url()).searchParams.get('player_id'),'eq.owned-player');
+     assert.equal(new URL(route.request().url()).searchParams.get('uploaded_by'),'eq.'+user.id);
+     data=state.documentRows.get(new URL(route.request().url()).searchParams.get('id').replace('eq.',''))||null;
+     if(state.mode==='document-lookup-failed'){status=500;data={code:'XX000',message:'Document lookup unavailable'};}
+    }else if(state.mode.startsWith('document-'))data=[...state.documentRows.values()];
+    else if(state.mode==='documents-failed'){status=500;data={message:'Files unavailable'};}
     else if(state.mode==='documents-hung'){await new Promise(resolve=>setTimeout(resolve,15000));data=[];}
     else if(state.mode==='secondary-healthy')data=[{id:'document',title:'Existing fixture document',document_type:'passport',bucket_id:'player-private',object_path:'fixture/document.pdf'}];
    } else if(path.includes('/rest/v1/player_agreements')){
@@ -177,6 +194,20 @@ try {
     if(state.mode==='photo-upload-hung')await holdMedia();
     if(state.mode==='photo-upload-failed'){status=400;data={statusCode:'400',error:'InvalidMimeType',message:'Upload rejected'};}
     else data={Id:'photo-object',Key:'player-public/'+objectPath};
+   } else if(path.includes('/storage/v1/object/player-private')){
+    if(route.request().method()==='DELETE'){
+     state.documentRemovals.push(route.request().postDataJSON());for(const object of route.request().postDataJSON().prefixes||[])state.documentObjects.delete(object);data=[];
+    }else{
+     const objectPath=decodeURIComponent(path.split('/storage/v1/object/player-private/')[1]);state.documentUploads.push(objectPath);
+     assert.ok(objectPath.startsWith(user.id+'/'),'Private document path escaped the current user');
+     if(state.mode==='document-upload-failed'){status=403;data={statusCode:'403',error:'AccessDenied',message:'Upload denied'};}
+     else {
+      state.documentObjects.add(objectPath);
+      if(state.mode==='document-upload-network'){await route.abort('failed');return;}
+      if(state.mode==='document-upload-hung')await holdMedia();
+      data={Id:'private-file-object',Key:'player-private/'+objectPath};
+     }
+    }
    } else if(path.includes('/storage/v1/object/'))data={Key:'player-private/fixture/upload.pdf'};
    else if(path.includes('/functions/'))data={};
    try{await route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});}catch{}
@@ -188,8 +219,95 @@ try {
   for(let i=0;i<60;i++){try{await page.goto(root+'/workspace/qa-player-entry?view='+encodeURIComponent(path.slice(1)));return;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
  };
  const waitForMedia=async(list)=>{for(let i=0;i<200&&!list.length;i++)await new Promise(resolve=>setTimeout(resolve,25));assert.ok(list.length,'Media request did not start');};
+ const documentCase=process.env.PLAYER_DOCUMENT_CASE;
+ if(!process.env.PLAYER_INBOX_ONLY&&!process.env.PLAYER_MEDIA_ONLY&&!process.env.PLAYER_REVIEW_ONLY&&!process.env.PLAYER_WRITE_ONLY&&!process.env.PLAYER_NETWORK_ONLY&&!process.env.PLAYER_SECONDARY_ONLY){
+ const selectDocument=async page=>{
+  await page.getByText('Existing fixture document',{exact:true}).waitFor();
+  await page.getByLabel('Document type',{exact:true}).selectOption('passport');
+  await page.getByLabel(/Country/).fill('NZ');await page.getByLabel(/Expiry/).fill('2028-01-01');
+  await page.getByLabel('Choose private file',{exact:true}).setInputFiles({name:'Keep my private passport.pdf',mimeType:'application/pdf',buffer:Buffer.from('private fixture file')});
+ };
+ const documentRecovery=page=>page.getByRole('alert').filter({hasText:/document upload/i});
+ for(const mode of ['document-upload-failed','document-upload-network','document-upload-hung','document-record-failed','document-record-network','document-record-hung','document-record-zero','document-record-mismatch'].filter(mode=>!documentCase||documentCase===mode)){
+  const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/documents');await selectDocument(page);
+  await waitForMedia(mode.startsWith('document-upload')?state.documentUploads:state.documentInserts);
+  if(mode.endsWith('hung'))await page.clock.runFor(mode.startsWith('document-upload')?30500:12500);
+  const recovery=documentRecovery(page);await recovery.waitFor({timeout:4000});
+  assert.equal(state.documentRemovals.length,0,'An uncertain document save deleted a private file');
+  assert.equal(state.documentUploads.length,1,'File was automatically retried');
+  assert.equal(state.documentInserts.length,mode.startsWith('document-upload')?0:1,'Unconfirmed upload created a record');
+  assert.equal(await page.getByLabel('Document type',{exact:true}).inputValue(),'passport');
+  assert.equal(await page.getByLabel(/Country/).inputValue(),'NZ');
+  assert.equal(await page.getByLabel(/Expiry/).inputValue(),'2028-01-01');
+  assert.equal(await page.getByLabel(/Country/).isDisabled(),true,'Recovery allows changing captured metadata');
+  assert.equal(await page.getByLabel('Choose private file',{exact:true}).evaluate(input=>input.files[0].name),'Keep my private passport.pdf','Selected file was discarded');
+  assert.equal(await page.getByText('Existing fixture document',{exact:true}).count(),1,'Recovery hid an existing document');
+  for(const width of [320,390,1440]){
+   await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Document recovery overflows '+width);
+   const box=await recovery.getByRole('button',{name:'Try again',exact:true}).boundingBox();assert.ok(box&&box.height>=44,'Document retry touch target too small');
+  }
+  state.mode='document-healthy';await recovery.getByRole('button',{name:'Try again',exact:true}).click();
+  if(mode.endsWith('hung'))state.releaseMedia?.();
+  await page.getByText('Uploaded securely',{exact:true}).waitFor();
+  assert.equal(state.documentRemovals.length,0);assert.equal(state.documentRows.size,2,'Manual retry duplicated a document');
+  assert.equal(state.documentObjects.size,1,'Manual retry duplicated a private object');
+  assert.equal(state.documentUploads.length,mode==='document-upload-network'||mode==='document-upload-failed'?2:1);
+  assert.ok(state.documentUploads.every(path=>path===state.documentUploads[0]),'Retry changed the private path');
+  assert.ok(state.documentInserts[0].id,'Document has no stable record identity');
+  assert.ok(state.documentInserts.every(row=>row.id===state.documentInserts[0].id),'Retry changed the record identity');
+  assert.ok(state.documentInserts.every(row=>row.object_path===state.documentUploads[0]&&row.country==='NZ'&&row.expires_at==='2028-01-01'));
+  assert.equal(await page.getByRole('button',{name:/Keep my private passport/}).count(),1,'Saved document displayed more than once');
+  assert.equal(await page.getByLabel(/Country/).isEnabled(),true);
+  assert.equal(await page.getByLabel('Choose private file',{exact:true}).evaluate(input=>input.files.length),0,'Confirmed upload did not clear the file');
+  await context.close();
+ }
+ if(!documentCase||documentCase==='document-upload-late'){
+  const {context,page,state}=await setup('document-upload-hung');await page.clock.install();await visit(page,'/documents');await selectDocument(page);await waitForMedia(state.documentUploads);
+  await page.clock.runFor(30500);await documentRecovery(page).waitFor();
+  const response=page.waitForResponse(response=>response.url().includes('/storage/v1/object/player-private/'));
+  state.releaseMedia();await response;await page.clock.runFor(1);
+  assert.equal(state.documentInserts.length,0,'Late upload automatically saved a record');
+  assert.equal(await documentRecovery(page).count(),1);
+  state.mode='document-healthy';await documentRecovery(page).getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Uploaded securely',{exact:true}).waitFor();
+  assert.equal(state.documentUploads.length,1);assert.equal(state.documentInserts.length,1);await context.close();
+ }
+ if(!documentCase||documentCase==='document-upload-still-pending'){
+  const {context,page,state}=await setup('document-upload-hung');await page.clock.install();await visit(page,'/documents');await selectDocument(page);await waitForMedia(state.documentUploads);
+  await page.clock.runFor(30500);await documentRecovery(page).waitFor();await documentRecovery(page).getByRole('button',{name:'Try again',exact:true}).click();
+  await page.clock.runFor(30500);await documentRecovery(page).waitFor();assert.equal(state.documentUploads.length,1,'Retry overlapped a pending private upload');assert.equal(state.documentInserts.length,0);
+  state.releaseMedia();await context.close();
+ }
+ if(!documentCase||documentCase==='document-upload-unmount'){
+  const {context,page,state}=await setup('document-upload-hung');await page.clock.install();await visit(page,'/documents');await selectDocument(page);await waitForMedia(state.documentUploads);
+  await page.evaluate(()=>window.history.pushState({},'',location.pathname+'?view=inbox'));
+  await page.getByRole('heading',{name:'Documents.',exact:true}).waitFor({state:'detached'});
+  const response=page.waitForResponse(response=>response.url().includes('/storage/v1/object/player-private/'));
+  state.releaseMedia();await response;await page.clock.runFor(1);
+  assert.equal(state.documentInserts.length,0,'Upload saved a document after leaving the page');await context.close();
+ }
+ if(!documentCase||documentCase==='document-change-selection'){
+  const {context,page,state}=await setup('document-upload-hung');await page.clock.install();await visit(page,'/documents');await selectDocument(page);await waitForMedia(state.documentUploads);
+  await page.clock.runFor(30500);await documentRecovery(page).waitFor();await page.getByRole('button',{name:'Choose another file',exact:true}).click();
+  state.mode='document-healthy';
+  await page.getByLabel('Choose private file',{exact:true}).setInputFiles({name:'A different private file.pdf',mimeType:'application/pdf',buffer:Buffer.from('different fixture')});
+  await page.getByText('Uploaded securely',{exact:true}).waitFor();
+  const response=page.waitForResponse(response=>response.url().includes('/storage/v1/object/player-private/')&&response.url().includes(state.documentUploads[0]));
+  state.releaseMedia();await response;await page.clock.runFor(1);
+  assert.equal(state.documentInserts.length,1,'Discarded selection saved a late record');
+  assert.notEqual(state.documentUploads[0],state.documentUploads[1],'Different file reused an earlier private path');
+  assert.equal(state.documentInserts[0].title,'A different private file.pdf');await context.close();
+ }
+ if(!documentCase||documentCase==='document-lookup-failed'){
+  const {context,page,state}=await setup('document-record-network');await page.clock.install();await visit(page,'/documents');await selectDocument(page);await waitForMedia(state.documentInserts);
+  await documentRecovery(page).waitFor();state.mode='document-lookup-failed';await documentRecovery(page).getByRole('button',{name:'Try again',exact:true}).click();
+  await waitForMedia(state.documentLookups);await page.clock.runFor(12500);await documentRecovery(page).waitFor();
+  assert.equal(state.documentRows.size,2);assert.equal(state.documentRemovals.length,0);assert.equal(state.documentUploads.length,1);
+  state.mode='document-healthy';await documentRecovery(page).getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Uploaded securely',{exact:true}).waitFor();
+  assert.equal(state.documentRows.size,2);assert.equal(state.documentUploads.length,1);await context.close();
+ }
+ }
  const inboxCase=process.env.PLAYER_INBOX_CASE;
- if(!process.env.PLAYER_MEDIA_ONLY&&!process.env.PLAYER_REVIEW_ONLY&&!process.env.PLAYER_WRITE_ONLY&&!process.env.PLAYER_NETWORK_ONLY&&!process.env.PLAYER_SECONDARY_ONLY){
+ if(!process.env.PLAYER_DOCUMENT_ONLY&&!process.env.PLAYER_MEDIA_ONLY&&!process.env.PLAYER_REVIEW_ONLY&&!process.env.PLAYER_WRITE_ONLY&&!process.env.PLAYER_NETWORK_ONLY&&!process.env.PLAYER_SECONDARY_ONLY){
  for(const mode of ['inbox-read-hung','inbox-read-failed','inbox-read-network'].filter(mode=>!inboxCase||inboxCase===mode)){
   const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/inbox');
   for(let i=0;i<200&&!state.inboxReads;i++)await new Promise(resolve=>setTimeout(resolve,25));
@@ -319,7 +437,7 @@ try {
   assert.equal(await page.getByRole('button',{name:'Send a note',exact:true}).count(),0);assert.equal(await page.getByText('You’re all clear.',{exact:true}).count(),0);await context.close();
  }
  }
- if(!process.env.PLAYER_INBOX_ONLY){
+ if(!process.env.PLAYER_INBOX_ONLY&&!process.env.PLAYER_DOCUMENT_ONLY){
  const mediaCase=process.env.PLAYER_MEDIA_CASE;
  for(const mode of ['video-add-hung','video-add-network','video-add-failed'].filter(mode=>!mediaCase||mode===mediaCase)){
   const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/profile');
@@ -423,7 +541,7 @@ try {
   await context.close();
  }
  }
- if(!process.env.PLAYER_MEDIA_ONLY&&!process.env.PLAYER_INBOX_ONLY){
+ if(!process.env.PLAYER_MEDIA_ONLY&&!process.env.PLAYER_INBOX_ONLY&&!process.env.PLAYER_DOCUMENT_ONLY){
  {
   const {context,page}=await setup('save-delayed');await visit(page,'/profile');
   await page.getByRole('button',{name:/^Football /}).click();
