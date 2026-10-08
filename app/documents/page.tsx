@@ -168,8 +168,9 @@ export default function Documents() {
       async signal => {
         if (signal.aborted || !isCurrent()) return {data: null, error: null};
         setUploadStage('record');
-        let result = await supabase.from('player_documents').insert(selected.payload)
+        const inserted = await supabase.from('player_documents').insert(selected.payload)
           .select(DOCUMENT_FIELDS).abortSignal(signal).single();
+        let result: {data: typeof inserted.data; error: typeof inserted.error} = inserted;
         if (result.error?.code === '23505' && !signal.aborted && isCurrent()) {
           // INSERT may already have committed before its response was lost.
           // Reconcile this exact owned record; never overwrite agency approval.
@@ -179,7 +180,7 @@ export default function Documents() {
         }
         if (result.error) return {data: null, error: result.error};
         const record = result.data;
-        const matches = record && Object.entries(selected.payload).every(([key, value]) => record[key] === value);
+        const matches = record && Object.entries(selected.payload).every(([key, value]) => record[key as keyof typeof record] === value);
         return {data: matches ? record : null, error: null};
       },
       isCurrent,
