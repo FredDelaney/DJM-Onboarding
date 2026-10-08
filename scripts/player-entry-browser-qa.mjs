@@ -36,7 +36,7 @@ try {
     else if(state.mode==='hung'){await new Promise(resolve=>setTimeout(resolve,15000));status=403;data={error:'Agency staff access required'};}
     else if(state.mode==='agency')data={tenants:[{tenant_id:'tenant',slug:'example',role:'owner'}]};
     else {status=403;data={error:'Agency staff access required'};}
-   } else if(path.includes('/rest/v1/profiles')){if(state.mode==='inbox-refresh-hung'&&state.requestUpdates.length){state.contextReads++;await new Promise(resolve=>{state.releaseContext=resolve;});status=500;data={message:'Profile temporarily unavailable'};}else if(state.mode==='profile-failed'||(state.mode==='inbox-refresh-failed'&&state.requestUpdates.length)){status=500;data={message:'Profile temporarily unavailable'};}else data={id:user.id,full_name:'Fixture Player'};}
+   } else if(path.includes('/rest/v1/profiles')){if(state.mode==='inbox-refresh-hung'&&state.requestUpdates.length){state.contextReads++;await new Promise(resolve=>{state.releaseContext=resolve;});status=500;data={message:'Profile temporarily unavailable'};}else if(state.mode==='profile-failed'||state.mode==='document-context-failed'||(state.mode==='inbox-refresh-failed'&&state.requestUpdates.length)){status=500;data={message:'Profile temporarily unavailable'};}else data={id:user.id,full_name:'Fixture Player'};}
    else if(path.includes('/rest/v1/players')&&route.request().method()==='PATCH'&&route.request().postDataJSON().profile_photo_path){
     state.photoAttaches.push(route.request().postDataJSON().profile_photo_path);
     assert.equal(new URL(route.request().url()).searchParams.get('id'),'eq.owned-player');
@@ -103,7 +103,7 @@ try {
     state.playerCalls++;
     if(state.mode==='player-failed'){status=503;data={message:'Players unavailable'};}
     else if(state.mode==='no-player')data=[];
-    else data=[{id:'owned-player',tenant_id:'tenant',user_id:user.id,first_name:'Fixture',last_name:'Player',preferred_name:'Fixture',nationalities:[],secondary_positions:[],primary_position:'CM',onboarding_status:'verified',...(state.hasPhoto?{profile_photo_path:state.photoPath}:{})}];
+    else data=[{id:state.mode==='document-other-player'?'other-owned-player':'owned-player',tenant_id:'tenant',user_id:user.id,first_name:'Fixture',last_name:'Player',preferred_name:'Fixture',nationalities:[],secondary_positions:[],primary_position:'CM',onboarding_status:'verified',...(state.hasPhoto?{profile_photo_path:state.photoPath}:{})}];
    } else if(path.includes('/rest/v1/player_private')){
     if(route.request().method()==='POST'){
      state.privateWrites++;
@@ -177,7 +177,7 @@ try {
      assert.equal(new URL(route.request().url()).searchParams.get('uploaded_by'),'eq.'+user.id);
      data=state.documentRows.get(new URL(route.request().url()).searchParams.get('id').replace('eq.',''))||null;
      if(state.mode==='document-lookup-failed'){status=500;data={code:'XX000',message:'Document lookup unavailable'};}
-    }else if(state.mode.startsWith('document-'))data=[...state.documentRows.values()];
+    }else if(state.mode.startsWith('document-'))data=[...state.documentRows.values()].filter(row=>'eq.'+row.player_id===new URL(route.request().url()).searchParams.get('player_id'));
     else if(state.mode==='documents-failed'){status=500;data={message:'Files unavailable'};}
     else if(state.mode==='documents-hung'){await new Promise(resolve=>setTimeout(resolve,15000));data=[];}
     else if(state.mode==='secondary-healthy')data=[{id:'document',title:'Existing fixture document',document_type:'passport',bucket_id:'player-private',object_path:'fixture/document.pdf'}];
@@ -221,9 +221,9 @@ try {
  const waitForMedia=async(list)=>{for(let i=0;i<200&&!list.length;i++)await new Promise(resolve=>setTimeout(resolve,25));assert.ok(list.length,'Media request did not start');};
  const documentCase=process.env.PLAYER_DOCUMENT_CASE;
  if(!process.env.PLAYER_INBOX_ONLY&&!process.env.PLAYER_MEDIA_ONLY&&!process.env.PLAYER_REVIEW_ONLY&&!process.env.PLAYER_WRITE_ONLY&&!process.env.PLAYER_NETWORK_ONLY&&!process.env.PLAYER_SECONDARY_ONLY){
- const selectDocument=async page=>{
+ const selectDocument=async (page,type='passport')=>{
   await page.getByText('Existing fixture document',{exact:true}).waitFor();
-  await page.getByLabel('Document type',{exact:true}).selectOption('passport');
+  await page.getByLabel('Document type',{exact:true}).selectOption(type);
   await page.getByLabel(/Country/).fill('NZ');await page.getByLabel(/Expiry/).fill('2028-01-01');
   await page.getByLabel('Choose private file',{exact:true}).setInputFiles({name:'Keep my private passport.pdf',mimeType:'application/pdf',buffer:Buffer.from('private fixture file')});
  };
@@ -245,6 +245,7 @@ try {
   for(const width of [320,390,1440]){
    await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Document recovery overflows '+width);
    const box=await recovery.getByRole('button',{name:'Try again',exact:true}).boundingBox();assert.ok(box&&box.height>=44,'Document retry touch target too small');
+   if(process.env.PLAYER_DOCUMENT_SCREENSHOT&&mode==='document-record-network')await page.screenshot({path:'/private/tmp/player-document-recovery-'+width+'.png',fullPage:true});
   }
   state.mode='document-healthy';await recovery.getByRole('button',{name:'Try again',exact:true}).click();
   if(mode.endsWith('hung'))state.releaseMedia?.();
@@ -304,6 +305,39 @@ try {
   assert.equal(state.documentRows.size,2);assert.equal(state.documentRemovals.length,0);assert.equal(state.documentUploads.length,1);
   state.mode='document-healthy';await documentRecovery(page).getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Uploaded securely',{exact:true}).waitFor();
   assert.equal(state.documentRows.size,2);assert.equal(state.documentUploads.length,1);await context.close();
+ }
+ if(!documentCase||documentCase==='document-preserve-approval'){
+  const {context,page,state}=await setup('document-record-network');await visit(page,'/documents');await selectDocument(page,'other');
+  await waitForMedia(state.documentInserts);await documentRecovery(page).waitFor();
+  const id=state.documentInserts[0].id;state.documentRows.get(id).club_shareable=true;
+  state.mode='document-healthy';await documentRecovery(page).getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Uploaded securely',{exact:true}).waitFor();
+  assert.equal(state.documentRows.get(id).club_shareable,true,'Recovery reset agency approval');
+  assert.equal(state.documentRows.size,2);assert.equal(state.documentUploads.length,1);assert.equal(state.documentLookups.length,1);await context.close();
+ }
+ if(!documentCase||documentCase==='document-context-recovery'){
+  const {context,page,state}=await setup('document-upload-hung');await page.clock.install();await visit(page,'/documents');await selectDocument(page);await waitForMedia(state.documentUploads);
+  const originalPath=state.documentUploads[0];
+  state.mode='document-context-failed';await page.getByRole('button',{name:'Refresh fixture account',exact:true}).click();
+  await page.getByRole('alert').filter({hasText:'workspace'}).waitFor();
+  state.mode='document-healthy';await page.getByRole('alert').filter({hasText:'workspace'}).getByRole('button',{name:'Try again',exact:true}).click();
+  await page.getByRole('heading',{name:'Documents.',exact:true}).waitFor();await documentRecovery(page).waitFor();
+  assert.equal(await page.getByLabel(/Country/).inputValue(),'NZ','Account recovery cleared document details');
+  assert.match(await page.locator('main').innerText(),/Selected file: Keep my private passport.pdf/,'Account recovery discarded the selected File');
+  const response=page.waitForResponse(response=>response.url().includes('/storage/v1/object/player-private/'));
+  state.releaseMedia();await response;await page.clock.runFor(1);
+  assert.equal(state.documentInserts.length,0,'Old account scope saved a late record');
+  await documentRecovery(page).getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Uploaded securely',{exact:true}).waitFor();
+  assert.equal(state.documentUploads.length,1);assert.equal(state.documentInserts[0].object_path,originalPath);await context.close();
+ }
+ if(!documentCase||documentCase==='document-owner-change'){
+  const {context,page,state}=await setup('document-upload-hung');await page.clock.install();await visit(page,'/documents');await selectDocument(page);await waitForMedia(state.documentUploads);
+  state.mode='document-other-player';await page.getByRole('button',{name:'Refresh fixture account',exact:true}).click();
+  await page.getByLabel(/Country/).waitFor();await page.waitForFunction(()=>document.getElementById('private-document-country')?.value==='');
+  assert.equal(await page.getByText('Existing fixture document',{exact:true}).count(),0,'A different player sees the prior private document');
+  assert.equal(await page.getByText('Keep my private passport.pdf',{exact:true}).count(),0,'A different player retains the prior file draft');
+  assert.equal(await page.getByLabel('Document type',{exact:true}).inputValue(),'');
+  const response=page.waitForResponse(response=>response.url().includes('/storage/v1/object/player-private/'));
+  state.releaseMedia();await response;await page.clock.runFor(1);assert.equal(state.documentInserts.length,0,'Late upload was attached after the player changed');await context.close();
  }
  }
  const inboxCase=process.env.PLAYER_INBOX_CASE;
@@ -702,5 +736,5 @@ try {
  }
  }
  assert.deepEqual(errors,[]);
- console.log(process.env.PLAYER_INBOX_ONLY?'PASS: Inbox read/write recovery, preserved drafts, owned confirmation, stable note retry IDs, late responses and mobile layouts.':process.env.PLAYER_MEDIA_ONLY?'PASS: photo/video recovery, stable manual retries, confirmed attachments, late replies and responsive layouts.':'PASS: full player entry/read/write recovery, photo/video recovery, stable retries, transport failures, responsive layouts, late responses and private upload. Entry cases run unless PLAYER_SECONDARY_ONLY is set.');
+ console.log(process.env.PLAYER_DOCUMENT_ONLY?'PASS: private document upload/save recovery, stable owned retries, preserved selections, late/unmount guards, approval preservation and account recovery.':process.env.PLAYER_INBOX_ONLY?'PASS: Inbox read/write recovery, preserved drafts, owned confirmation, stable note retry IDs, late responses and mobile layouts.':process.env.PLAYER_MEDIA_ONLY?'PASS: photo/video recovery, stable manual retries, confirmed attachments, late replies and responsive layouts.':'PASS: full player entry/read/write recovery, photo/video recovery, stable retries, transport failures, responsive layouts, late responses and private upload. Entry cases run unless PLAYER_SECONDARY_ONLY is set.');
 } finally {await browser?.close();try{process.kill(-server.pid,'SIGTERM');}catch{}await rm(fixtureRoute,{recursive:true,force:true});await rm(new URL('../.next/dev/types/',import.meta.url),{recursive:true,force:true});}

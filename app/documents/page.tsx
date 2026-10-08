@@ -180,7 +180,9 @@ export default function Documents() {
         }
         if (result.error) return {data: null, error: result.error};
         const record = result.data;
-        const matches = record && Object.entries(selected.payload).every(([key, value]) => record[key as keyof typeof record] === value);
+        const matches = record && typeof record.club_shareable === 'boolean' &&
+          Object.entries(selected.payload).every(([key, value]) =>
+            key === 'club_shareable' || record[key as keyof typeof record] === value);
         return {data: matches ? record : null, error: null};
       },
       isCurrent,
