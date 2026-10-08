@@ -18,7 +18,11 @@ try {
  const setup=async(mode='failed')=>{
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   if(mode!=='signed-out')await context.addInitScript(session=>{if(location.hostname==='127.0.0.1')localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},mode==='session-failed'?{...session,expires_at:Math.floor(Date.now()/1000)-3600}:session);
-  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],hasPhoto:mode.startsWith('photo'),photoPath:user.id+'/existing.png',releaseMedia:null};
+  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],hasPhoto:mode.startsWith('photo'),photoPath:user.id+'/existing.png',releaseMedia:null,inboxReads:0,requestInserts:[],requestUpdates:[],requestRows:new Map(),requestNotifications:0,requestLookups:[]};
+  if(mode.startsWith('inbox')){
+   state.requestRows.set('agency-action',{id:'agency-action',player_id:'owned-player',title:'Confirm your availability',message:'Reply to your agency',request_type:'action',status:'open',player_reply:null,created_by:'staff',created_at:'2026-10-07T12:00:00Z',completed_at:null});
+   state.requestRows.set('internal-signal',{id:'internal-signal',player_id:'owned-player',title:'Internal agency signal',request_type:'signal',status:'open'});
+  }
   const holdMedia=()=>new Promise(resolve=>{state.releaseMedia=resolve;});
   await context.route('https://example.supabase.co/**',async route=>{
    const path=new URL(route.request().url()).pathname;
@@ -31,7 +35,7 @@ try {
     else if(state.mode==='hung'){await new Promise(resolve=>setTimeout(resolve,15000));status=403;data={error:'Agency staff access required'};}
     else if(state.mode==='agency')data={tenants:[{tenant_id:'tenant',slug:'example',role:'owner'}]};
     else {status=403;data={error:'Agency staff access required'};}
-   } else if(path.includes('/rest/v1/profiles')){if(state.mode==='profile-failed'){status=500;data={message:'Profile temporarily unavailable'};}else data={id:user.id,full_name:'Fixture Player'};}
+   } else if(path.includes('/rest/v1/profiles')){if(state.mode==='profile-failed'||(state.mode==='inbox-refresh-failed'&&state.requestUpdates.length)){status=500;data={message:'Profile temporarily unavailable'};}else data={id:user.id,full_name:'Fixture Player'};}
    else if(path.includes('/rest/v1/players')&&route.request().method()==='PATCH'&&route.request().postDataJSON().profile_photo_path){
     state.photoAttaches.push(route.request().postDataJSON().profile_photo_path);
     assert.equal(new URL(route.request().url()).searchParams.get('id'),'eq.owned-player');
@@ -109,7 +113,35 @@ try {
     }
     else if(state.mode==='private-failed'){status=500;data={message:'Private details unavailable'};}
     else data=null;
-   } else if(path.includes('/rest/v1/player_requests')&&state.mode==='requests-failed'){status=500;data={message:'Requests unavailable'};}
+   } else if(path.includes('/rest/v1/player_requests')&&route.request().method()==='POST'){
+    const body=route.request().postDataJSON();state.requestInserts.push(body);
+    assert.equal(body.player_id,'owned-player');assert.equal(body.request_type,'message');assert.equal(body.created_by,null);
+    if(state.mode==='inbox-send-failed'){status=403;data={code:'42501',message:'Note denied'};}
+    else if(body.id&&state.requestRows.has(body.id)){status=409;data={code:'23505',message:'Duplicate request ID'};if(state.mode==='inbox-conflict-hung')await holdMedia();}
+    else {
+     data={...body,id:body.id||'generated-'+state.requestInserts.length,created_at:'2026-10-08T05:00:00Z'};state.requestRows.set(data.id,data);state.requestNotifications++;
+     if(state.mode==='inbox-send-network'){await route.abort('failed');return;}
+     if(state.mode==='inbox-send-hung')await holdMedia();
+     if(state.mode==='inbox-send-zero')data=null;
+    }
+   } else if(path.includes('/rest/v1/player_requests')&&route.request().method()==='PATCH'){
+    const body=route.request().postDataJSON(),query=new URL(route.request().url()).searchParams;state.requestUpdates.push({body,url:route.request().url()});
+    if(state.mode==='inbox-complete-network'){await route.abort('failed');return;}
+    if(state.mode==='inbox-complete-failed'){status=403;data={code:'42501',message:'Completion denied'};}
+    else if(state.mode==='inbox-complete-zero'){if(route.request().headers().accept?.includes('vnd.pgrst.object')){status=406;data={code:'PGRST116',message:'No rows returned',details:'The result contains 0 rows',hint:null};}else{status=204;data=null;}}
+    else {
+     const current=state.requestRows.get(query.get('id')?.replace('eq.',''));
+     if(current?.status==='completed'&&body.completed_at&&body.completed_at!==current.completed_at){status=400;data={code:'P0001',message:'Completion time is managed by the player workspace'};}
+     else {data={...current,...body,completed_at:current?.completed_at||'2026-10-08T05:08:00Z'};state.requestRows.set(data.id,data);if(state.mode==='inbox-complete-hung')await holdMedia();if(state.mode==='inbox-complete-mismatch')data={...data,player_reply:'Stale reply'};}
+    }
+   } else if(path.includes('/rest/v1/player_requests')){
+    const query=new URL(route.request().url()).searchParams,id=query.get('id');
+    if(id){state.requestLookups.push(route.request().url());assert.equal(query.get('player_id'),'eq.owned-player');data=state.requestRows.get(id.replace('eq.',''))||null;if(state.mode==='inbox-note-lookup-failed'){status=500;data={code:'XX000',message:'Lookup unavailable'};}}
+    else {data=[...state.requestRows.values()];if(query.has('status'))data=data.filter(row=>row.status!=='completed');
+     else {state.inboxReads++;if(state.mode==='inbox-read-failed'){status=500;data={code:'XX000',message:'Inbox unavailable'};}else if(state.mode==='inbox-read-network'){await route.abort('failed');return;}else if(state.mode==='inbox-read-hung'){data=data.map(row=>row.id==='agency-action'?{...row,title:'Stale agency request'}:row);await holdMedia();}}
+     if(state.mode==='requests-failed'){status=500;data={message:'Requests unavailable'};}
+    }
+   }
    else if(path.includes('/rest/v1/weekly_checkins')&&state.mode==='checkins-failed'){status=500;data={message:'Check-ins unavailable'};}
    else if(path.includes('/rest/v1/player_public_profiles')){
     state.secondaryCalls++;
@@ -149,6 +181,97 @@ try {
   for(let i=0;i<60;i++){try{await page.goto(root+'/workspace/qa-player-entry?view='+encodeURIComponent(path.slice(1)));return;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
  };
  const waitForMedia=async(list)=>{for(let i=0;i<200&&!list.length;i++)await new Promise(resolve=>setTimeout(resolve,25));assert.ok(list.length,'Media request did not start');};
+ const inboxCase=process.env.PLAYER_INBOX_CASE;
+ if(!process.env.PLAYER_MEDIA_ONLY&&!process.env.PLAYER_REVIEW_ONLY&&!process.env.PLAYER_WRITE_ONLY&&!process.env.PLAYER_NETWORK_ONLY&&!process.env.PLAYER_SECONDARY_ONLY){
+ for(const mode of ['inbox-read-hung','inbox-read-failed','inbox-read-network'].filter(mode=>!inboxCase||inboxCase===mode)){
+  const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/inbox');
+  for(let i=0;i<200&&!state.inboxReads;i++)await new Promise(resolve=>setTimeout(resolve,25));
+  assert.ok(state.inboxReads,'Inbox read did not start');
+  assert.equal(await page.getByText('You’re all clear.',{exact:true}).count(),0,'Inbox claims all clear without a confirmed read');
+  if(mode==='inbox-read-hung'||mode==='inbox-read-network'){await page.getByRole('status').filter({hasText:'Loading your agency updates'}).waitFor({timeout:4000});await page.clock.runFor(12500);}
+  await page.getByRole('alert').filter({hasText:'agency updates'}).waitFor({timeout:4000});
+  for(const width of [320,390,1440]){
+   await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Inbox recovery overflow '+width);
+   const box=await page.getByRole('button',{name:'Try again',exact:true}).boundingBox();assert.ok(box&&box.height>=44,'Inbox retry touch target too small');
+  }
+  state.mode='inbox-healthy';await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  assert.equal(await page.getByText('Internal agency signal',{exact:true}).count(),0,'Inbox exposed an internal signal');
+  if(state.releaseMedia){const response=page.waitForResponse(response=>response.url().includes('/rest/v1/player_requests')&&!new URL(response.url()).searchParams.has('status'));state.releaseMedia();await response;await page.clock.runFor(1);}
+  assert.equal(await page.getByRole('heading',{name:'Confirm your availability',exact:true}).count(),1,'Late read replaced the recovered Inbox');
+  assert.equal(await page.getByText('Stale agency request',{exact:true}).count(),0,'Late Inbox response exposed stale actions');
+  await context.close();
+ }
+ for(const mode of ['inbox-send-hung','inbox-send-network','inbox-send-failed','inbox-send-zero'].filter(mode=>!inboxCase||inboxCase===mode)){
+  const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Send a note',exact:true}).click();const input=page.getByPlaceholder('Type your note…');await input.fill('Keep my agency note');
+  await page.getByRole('button',{name:'Send to your agency',exact:true}).click();await waitForMedia(state.requestInserts);
+  if(mode.endsWith('hung')){assert.equal(await input.isDisabled(),true,'Inbox accepts unsent edits during a send');await page.clock.runFor(12500);}
+  await page.getByRole('alert').filter({hasText:'note'}).waitFor({timeout:4000});
+  assert.equal(await input.inputValue(),'Keep my agency note','Inbox recovery discarded the note');assert.equal(await input.isEnabled(),true);
+  assert.equal(state.requestInserts.length,1,'Agency note was automatically retried');
+  if(mode==='inbox-send-network'){
+   state.mode='inbox-note-lookup-failed';await page.getByRole('button',{name:'Send to your agency',exact:true}).click();
+   await page.getByRole('alert').filter({hasText:'note'}).waitFor();assert.equal(await input.inputValue(),'Keep my agency note','Failed conflict lookup discarded the note');
+  }
+  state.mode='inbox-healthy';await page.getByRole('button',{name:'Send to your agency',exact:true}).click();
+  await page.getByText('Sent to your agency',{exact:true}).waitFor();assert.equal(await input.count(),0,'Confirmed send kept the composer open');
+  assert.ok(state.requestInserts[0].id,'Agency note has no stable retry ID');
+  for(const body of state.requestInserts)assert.equal(body.id,state.requestInserts[0].id,'Agency note retry changed the record ID');
+  assert.equal([...state.requestRows.values()].filter(row=>row.request_type==='message').length,1,'Retry duplicated an agency note');
+  assert.equal(state.requestNotifications,1,'Duplicate note queued another agency notification');
+  state.releaseMedia?.();await context.close();
+ }
+ for(const mode of ['inbox-complete-hung','inbox-complete-network','inbox-complete-failed','inbox-complete-zero','inbox-complete-mismatch'].filter(mode=>!inboxCase||inboxCase===mode)){
+  const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Open',exact:true}).click();const input=page.getByPlaceholder('Anything your agency should know?');await input.fill('Keep my availability reply');
+  await page.getByRole('button',{name:'Done',exact:true}).click();await waitForMedia(state.requestUpdates);
+  if(mode.endsWith('hung')){assert.equal(await input.isDisabled(),true,'Inbox accepts unsent edits during completion');await page.clock.runFor(12500);}
+  await page.getByRole('alert').filter({hasText:'action'}).waitFor({timeout:4000});assert.equal(await input.inputValue(),'Keep my availability reply');
+  assert.equal(await input.isEnabled(),true);assert.equal(state.requestUpdates.length,1,'Completion was automatically retried');
+  await page.getByRole('button',{name:'Close',exact:true}).click();await page.getByRole('button',{name:'Open',exact:true}).click();
+  assert.equal(await input.inputValue(),'Keep my availability reply','Closing the action lost an unconfirmed reply');
+  state.mode='inbox-healthy';await page.getByRole('button',{name:'Done',exact:true}).click();await page.getByText('Completed',{exact:true}).waitFor();
+  assert.equal(state.requestUpdates.length,2);
+  for(const {body,url} of state.requestUpdates){const query=new URL(url).searchParams;assert.equal(query.get('id'),'eq.agency-action');assert.equal(query.get('player_id'),'eq.owned-player');assert.equal(body.completed_at,undefined,'Client overwrote the database completion time');assert.equal(body.player_reply,'Keep my availability reply');}
+  assert.equal(state.requestRows.get('agency-action').completed_at,'2026-10-08T05:08:00Z');
+  state.releaseMedia?.();await context.close();
+ }
+ if(!inboxCase||inboxCase==='inbox-conflict-unmount'){
+  const {context,page,state}=await setup('inbox-send-network');await page.clock.install();await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Send a note',exact:true}).click();await page.getByPlaceholder('Type your note…').fill('Keep the original note');
+  await page.getByRole('button',{name:'Send to your agency',exact:true}).click();await page.getByRole('alert').filter({hasText:'note'}).waitFor();
+  state.mode='inbox-conflict-hung';await page.getByRole('button',{name:'Send to your agency',exact:true}).click();
+  for(let i=0;i<200&&state.requestInserts.length<2;i++)await new Promise(resolve=>setTimeout(resolve,25));assert.equal(state.requestInserts.length,2);
+  await page.evaluate(()=>window.history.pushState({},'',location.pathname+'?view=documents'));await page.locator('.djm-updates-page').waitFor({state:'detached'});
+  const response=page.waitForResponse(response=>response.url().includes('/rest/v1/player_requests')&&response.request().method()==='POST');
+  state.releaseMedia();await response;await page.clock.runFor(50);
+  assert.equal(state.requestLookups.length,0,'Leaving Inbox started a follow-on note lookup');
+  assert.equal(state.requestNotifications,1);await context.close();
+ }
+ if(!inboxCase||inboxCase==='inbox-independent-drafts'){
+  const {context,page,state}=await setup('inbox-healthy');await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Send a note',exact:true}).click();const input=page.getByPlaceholder('Type your note…');await input.fill('My separate unsent note');
+  await page.getByRole('button',{name:'Open',exact:true}).click();await page.getByPlaceholder('Anything your agency should know?').fill('My completed reply');
+  state.mode='inbox-refresh-failed';await page.getByRole('button',{name:'Done',exact:true}).click();await page.getByText('Completed',{exact:true}).waitFor();
+  for(let i=0;i<20;i++)await new Promise(resolve=>setTimeout(resolve,25));
+  assert.equal(await input.count(),1,'Background context refresh hid an unrelated draft');
+  assert.equal(await input.inputValue(),'My separate unsent note','Completing an action cleared the unsent note');await context.close();
+ }
+ if(!inboxCase||inboxCase==='inbox-distinct-drafts'){
+  const {context,page,state}=await setup('inbox-send-network');await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Send a note',exact:true}).click();const input=page.getByPlaceholder('Type your note…');await input.fill('Original unconfirmed note');
+  await page.getByRole('button',{name:'Send to your agency',exact:true}).click();await page.getByRole('alert').filter({hasText:'note'}).waitFor();
+  await input.fill('A different intended note');state.mode='inbox-healthy';await page.getByRole('button',{name:'Send to your agency',exact:true}).click();await page.getByText('Sent to your agency',{exact:true}).waitFor();
+  assert.notEqual(state.requestInserts[0].id,state.requestInserts[1].id,'Distinct note drafts share an identity');
+  assert.deepEqual([...state.requestRows.values()].filter(row=>row.request_type==='message').map(row=>row.player_reply),['Original unconfirmed note','A different intended note']);await context.close();
+ }
+ if(!inboxCase||inboxCase==='inbox-no-player'){
+  const {context,page}=await setup('no-player');await visit(page,'/inbox');await page.getByRole('heading',{name:'No player profile is linked yet',exact:true}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Send a note',exact:true}).count(),0);assert.equal(await page.getByText('You’re all clear.',{exact:true}).count(),0);await context.close();
+ }
+ }
+ if(!process.env.PLAYER_INBOX_ONLY){
  const mediaCase=process.env.PLAYER_MEDIA_CASE;
  for(const mode of ['video-add-hung','video-add-network','video-add-failed'].filter(mode=>!mediaCase||mode===mediaCase)){
   const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/profile');
@@ -251,7 +374,8 @@ try {
   assert.equal(state.photoAttaches.length,0,'Upload attached a photo after leaving Profile');
   await context.close();
  }
- if(!process.env.PLAYER_MEDIA_ONLY){
+ }
+ if(!process.env.PLAYER_MEDIA_ONLY&&!process.env.PLAYER_INBOX_ONLY){
  {
   const {context,page}=await setup('save-delayed');await visit(page,'/profile');
   await page.getByRole('button',{name:/^Football /}).click();
@@ -412,5 +536,5 @@ try {
  }
  }
  assert.deepEqual(errors,[]);
- console.log(process.env.PLAYER_MEDIA_ONLY?'PASS: photo/video recovery, stable manual retries, confirmed attachments, late replies and responsive layouts.':'PASS: full player entry/read/write recovery, photo/video recovery, stable retries, transport failures, responsive layouts, late responses and private upload. Entry cases run unless PLAYER_SECONDARY_ONLY is set.');
+ console.log(process.env.PLAYER_INBOX_ONLY?'PASS: Inbox read/write recovery, preserved drafts, owned confirmation, stable note retry IDs, late responses and mobile layouts.':process.env.PLAYER_MEDIA_ONLY?'PASS: photo/video recovery, stable manual retries, confirmed attachments, late replies and responsive layouts.':'PASS: full player entry/read/write recovery, photo/video recovery, stable retries, transport failures, responsive layouts, late responses and private upload. Entry cases run unless PLAYER_SECONDARY_ONLY is set.');
 } finally {await browser?.close();try{process.kill(-server.pid,'SIGTERM');}catch{}await rm(fixtureRoute,{recursive:true,force:true});await rm(new URL('../.next/dev/types/',import.meta.url),{recursive:true,force:true});}
