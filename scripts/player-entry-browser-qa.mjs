@@ -18,7 +18,7 @@ try {
  const setup=async(mode='failed')=>{
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   if(mode!=='signed-out')await context.addInitScript(session=>{if(location.hostname==='127.0.0.1')localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},mode==='session-failed'?{...session,expires_at:Math.floor(Date.now()/1000)-3600}:session);
-  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],hasPhoto:mode.startsWith('photo'),photoPath:user.id+'/existing.png',releaseMedia:null,inboxReads:0,requestInserts:[],requestUpdates:[],requestRows:new Map(),requestNotifications:0,requestLookups:[]};
+  const state={mode,agencyCalls:0,playerCalls:0,secondaryCalls:0,writes:0,checkin:null,savedNames:[],submittedWeeks:[],privateWrites:0,videoAdds:[],videoDeletes:[],videoRows:new Map(),videoDeleted:false,photoUploads:[],photoAttaches:[],hasPhoto:mode.startsWith('photo'),photoPath:user.id+'/existing.png',releaseMedia:null,inboxReads:0,requestInserts:[],requestUpdates:[],requestRows:new Map(),requestNotifications:0,requestLookups:[],contextReads:0,releaseContext:null,completionResponses:0};
   if(mode.startsWith('inbox')){
    state.requestRows.set('agency-action',{id:'agency-action',player_id:'owned-player',title:'Confirm your availability',message:'Reply to your agency',request_type:'action',status:'open',player_reply:null,created_by:'staff',created_at:'2026-10-07T12:00:00Z',completed_at:null});
    state.requestRows.set('internal-signal',{id:'internal-signal',player_id:'owned-player',title:'Internal agency signal',request_type:'signal',status:'open'});
@@ -35,7 +35,7 @@ try {
     else if(state.mode==='hung'){await new Promise(resolve=>setTimeout(resolve,15000));status=403;data={error:'Agency staff access required'};}
     else if(state.mode==='agency')data={tenants:[{tenant_id:'tenant',slug:'example',role:'owner'}]};
     else {status=403;data={error:'Agency staff access required'};}
-   } else if(path.includes('/rest/v1/profiles')){if(state.mode==='profile-failed'||(state.mode==='inbox-refresh-failed'&&state.requestUpdates.length)){status=500;data={message:'Profile temporarily unavailable'};}else data={id:user.id,full_name:'Fixture Player'};}
+   } else if(path.includes('/rest/v1/profiles')){if(state.mode==='inbox-refresh-hung'&&state.requestUpdates.length){state.contextReads++;await new Promise(resolve=>{state.releaseContext=resolve;});status=500;data={message:'Profile temporarily unavailable'};}else if(state.mode==='profile-failed'||(state.mode==='inbox-refresh-failed'&&state.requestUpdates.length)){status=500;data={message:'Profile temporarily unavailable'};}else data={id:user.id,full_name:'Fixture Player'};}
    else if(path.includes('/rest/v1/players')&&route.request().method()==='PATCH'&&route.request().postDataJSON().profile_photo_path){
     state.photoAttaches.push(route.request().postDataJSON().profile_photo_path);
     assert.equal(new URL(route.request().url()).searchParams.get('id'),'eq.owned-player');
@@ -126,14 +126,21 @@ try {
     }
    } else if(path.includes('/rest/v1/player_requests')&&route.request().method()==='PATCH'){
     const body=route.request().postDataJSON(),query=new URL(route.request().url()).searchParams;state.requestUpdates.push({body,url:route.request().url()});
+    if(state.mode==='inbox-complete-before-commit'&&state.requestUpdates.length===1)await holdMedia();
     if(state.mode==='inbox-complete-network'){await route.abort('failed');return;}
     if(state.mode==='inbox-complete-failed'){status=403;data={code:'42501',message:'Completion denied'};}
-    else if(state.mode==='inbox-complete-zero'){if(route.request().headers().accept?.includes('vnd.pgrst.object')){status=406;data={code:'PGRST116',message:'No rows returned',details:'The result contains 0 rows',hint:null};}else{status=204;data=null;}}
     else {
      const current=state.requestRows.get(query.get('id')?.replace('eq.',''));
-     if(current?.status==='completed'&&body.completed_at&&body.completed_at!==current.completed_at){status=400;data={code:'P0001',message:'Completion time is managed by the player workspace'};}
-     else {data={...current,...body,completed_at:current?.completed_at||'2026-10-08T05:08:00Z'};state.requestRows.set(data.id,data);if(state.mode==='inbox-complete-hung')await holdMedia();if(state.mode==='inbox-complete-mismatch')data={...data,player_reply:'Stale reply'};}
+     const noMatch=state.mode==='inbox-complete-zero'||(query.get('status')==='eq.open'&&current?.status!=='open');
+     if(noMatch){if(route.request().headers().accept?.includes('vnd.pgrst.object')){status=406;data={code:'PGRST116',message:'No rows returned',details:'The result contains 0 rows',hint:null};}else{status=204;data=null;}}
+     else if(current?.status==='completed'&&body.completed_at&&body.completed_at!==current.completed_at){status=400;data={code:'P0001',message:'Completion time is managed by the player workspace'};}
+     else {
+      data={...current,...body,completed_at:current?.completed_at||'2026-10-08T05:08:00Z'};
+      if(state.mode==='inbox-complete-mismatch')data={...data,player_reply:'Stale reply'};
+      state.requestRows.set(data.id,data);if(state.mode==='inbox-complete-hung')await holdMedia();
+     }
     }
+    state.completionResponses++;
    } else if(path.includes('/rest/v1/player_requests')){
     const query=new URL(route.request().url()).searchParams,id=query.get('id');
     if(id){state.requestLookups.push(route.request().url());assert.equal(query.get('player_id'),'eq.owned-player');data=state.requestRows.get(id.replace('eq.',''))||null;if(state.mode==='inbox-note-lookup-failed'){status=500;data={code:'XX000',message:'Lookup unavailable'};}}
@@ -222,7 +229,7 @@ try {
   assert.equal(state.requestNotifications,1,'Duplicate note queued another agency notification');
   state.releaseMedia?.();await context.close();
  }
- for(const mode of ['inbox-complete-hung','inbox-complete-network','inbox-complete-failed','inbox-complete-zero','inbox-complete-mismatch'].filter(mode=>!inboxCase||inboxCase===mode)){
+ for(const mode of ['inbox-complete-hung','inbox-complete-network','inbox-complete-failed','inbox-complete-zero'].filter(mode=>!inboxCase||inboxCase===mode)){
   const {context,page,state}=await setup(mode);await page.clock.install();await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
   await page.getByRole('button',{name:'Open',exact:true}).click();const input=page.getByPlaceholder('Anything your agency should know?');await input.fill('Keep my availability reply');
   await page.getByRole('button',{name:'Done',exact:true}).click();await waitForMedia(state.requestUpdates);
@@ -235,6 +242,46 @@ try {
   assert.equal(state.requestUpdates.length,2);
   for(const {body,url} of state.requestUpdates){const query=new URL(url).searchParams;assert.equal(query.get('id'),'eq.agency-action');assert.equal(query.get('player_id'),'eq.owned-player');assert.equal(body.completed_at,undefined,'Client overwrote the database completion time');assert.equal(body.player_reply,'Keep my availability reply');}
   assert.equal(state.requestRows.get('agency-action').completed_at,'2026-10-08T05:08:00Z');
+  state.releaseMedia?.();await context.close();
+ }
+ if(!inboxCase||inboxCase==='inbox-refresh-new-draft'){
+  const {context,page,state}=await setup('inbox-healthy');await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Open',exact:true}).click();state.mode='inbox-refresh-hung';await page.getByRole('button',{name:'Done',exact:true}).click();await page.getByText('Completed',{exact:true}).waitFor();
+  for(let i=0;i<200&&!state.releaseContext;i++)await new Promise(resolve=>setTimeout(resolve,25));assert.ok(state.releaseContext,'Completion did not refresh the shared workspace');
+  await page.getByRole('button',{name:'Send a note',exact:true}).click();const input=page.getByPlaceholder('Type your note…');await input.fill('A draft started during refresh');
+  state.mode='inbox-send-network';await page.getByRole('button',{name:'Send to your agency',exact:true}).click();await page.getByRole('alert').filter({hasText:'note'}).waitFor();
+  const response=page.waitForResponse(response=>response.url().includes('/rest/v1/profiles'));state.releaseContext();await response;
+  await page.getByRole('button',{name:'Try again',exact:true}).waitFor();state.mode='inbox-healthy';await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await page.getByRole('heading',{name:'Your agency updates.',exact:true}).waitFor();assert.equal(await input.count(),1,'Context recovery discarded a newly started note');
+  assert.equal(await input.inputValue(),'A draft started during refresh');await page.getByRole('button',{name:'Send to your agency',exact:true}).click();await page.getByText('Sent to your agency',{exact:true}).waitFor();
+  assert.equal(state.requestInserts[0].id,state.requestInserts[1].id,'Context recovery discarded the pending note identity');assert.equal(state.requestNotifications,1);await context.close();
+ }
+ if(!inboxCase||inboxCase==='inbox-complete-before-commit'){
+  const {context,page,state}=await setup('inbox-complete-before-commit');await page.clock.install();await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Open',exact:true}).click();const input=page.getByPlaceholder('Anything your agency should know?');await input.fill('Older unconfirmed reply');
+  await page.getByRole('button',{name:'Done',exact:true}).click();await waitForMedia(state.requestUpdates);await page.clock.runFor(12500);await page.getByRole('alert').filter({hasText:'action'}).waitFor();
+  const release=state.releaseMedia;await input.fill('Newest confirmed reply');state.mode='inbox-healthy';await page.getByRole('button',{name:'Done',exact:true}).click();await page.getByText('Completed',{exact:true}).waitFor();
+  assert.equal(state.requestRows.get('agency-action').player_reply,'Newest confirmed reply');
+  release();for(let i=0;i<200&&state.completionResponses<2;i++)await new Promise(resolve=>setTimeout(resolve,25));assert.equal(state.completionResponses,2);
+  assert.equal(state.requestRows.get('agency-action').player_reply,'Newest confirmed reply','An older timed-out completion overwrote a confirmed reply');
+  for(const {url}of state.requestUpdates)assert.equal(new URL(url).searchParams.get('status'),'eq.open','Completion lacks an atomic status guard');
+  await context.close();
+ }
+ for(const mode of ['inbox-complete-first-wins','inbox-complete-mismatch'].filter(mode=>!inboxCase||inboxCase===mode)){
+  const {context,page,state}=await setup(mode==='inbox-complete-first-wins'?'inbox-complete-hung':mode);await page.clock.install();await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Open',exact:true}).click();const input=page.getByPlaceholder('Anything your agency should know?');await input.fill('Original completion reply');
+  await page.getByRole('button',{name:'Done',exact:true}).click();await waitForMedia(state.requestUpdates);
+  if(mode==='inbox-complete-first-wins'){
+   await page.clock.runFor(12500);await page.getByRole('alert').filter({hasText:'action'}).waitFor();await input.fill('Keep this newer reply as a draft');
+   state.mode='inbox-healthy';await page.getByRole('button',{name:'Done',exact:true}).click();
+  }
+  await page.getByRole('heading',{name:'Your edited reply is still a draft',exact:true}).waitFor({timeout:4000});
+  const draft=page.getByLabel('Unsent reply for Confirm your availability');assert.equal(await draft.inputValue(),mode==='inbox-complete-first-wins'?'Keep this newer reply as a draft':'Original completion reply');
+  assert.equal(state.requestRows.get('agency-action').player_reply,mode==='inbox-complete-first-wins'?'Original completion reply':'Stale reply','Recovery changed an already completed reply');
+  assert.equal(await page.getByRole('button',{name:'Done',exact:true}).count(),0,'Completed action is still presented as pending');
+  state.mode='inbox-healthy';await page.getByRole('button',{name:'Use as a note',exact:true}).click();assert.equal(state.requestInserts.length,0,'Moving a reply sent a note automatically');
+  await page.getByRole('button',{name:'Send to your agency',exact:true}).click();await page.getByText('Sent to your agency',{exact:true}).waitFor();
+  assert.equal([...state.requestRows.values()].filter(row=>row.request_type==='message')[0].player_reply,mode==='inbox-complete-first-wins'?'Keep this newer reply as a draft':'Original completion reply');
   state.releaseMedia?.();await context.close();
  }
  if(!inboxCase||inboxCase==='inbox-conflict-unmount'){
@@ -254,8 +301,9 @@ try {
   await page.getByRole('button',{name:'Send a note',exact:true}).click();const input=page.getByPlaceholder('Type your note…');await input.fill('My separate unsent note');
   await page.getByRole('button',{name:'Open',exact:true}).click();await page.getByPlaceholder('Anything your agency should know?').fill('My completed reply');
   state.mode='inbox-refresh-failed';await page.getByRole('button',{name:'Done',exact:true}).click();await page.getByText('Completed',{exact:true}).waitFor();
-  for(let i=0;i<20;i++)await new Promise(resolve=>setTimeout(resolve,25));
-  assert.equal(await input.count(),1,'Background context refresh hid an unrelated draft');
+  await page.getByRole('button',{name:'Try again',exact:true}).waitFor();state.mode='inbox-healthy';await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await page.getByRole('heading',{name:'Your agency updates.',exact:true}).waitFor();
+  assert.equal(await input.count(),1,'Context recovery discarded an unrelated draft');
   assert.equal(await input.inputValue(),'My separate unsent note','Completing an action cleared the unsent note');await context.close();
  }
  if(!inboxCase||inboxCase==='inbox-distinct-drafts'){

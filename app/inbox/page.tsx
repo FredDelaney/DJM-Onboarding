@@ -60,53 +60,76 @@ function InboxContent() {
   const [toast, setToast] =
     useState('');
 
-  const scope = useRef({playerId:ctx.player?.id,userId:ctx.user?.id});
-  if(scope.current.playerId!==ctx.player?.id||scope.current.userId!==ctx.user?.id){
-    scope.current={playerId:ctx.player?.id,userId:ctx.user?.id};
+  const resolved=!ctx.loading&&!ctx.error;
+  const scope = useRef({playerId:ctx.player?.id,userId:ctx.user?.id,resolved});
+  if(scope.current.playerId!==ctx.player?.id||scope.current.userId!==ctx.user?.id||scope.current.resolved!==resolved){
+    scope.current={playerId:ctx.player?.id,userId:ctx.user?.id,resolved};
   }
+  const draftOwner=useRef<typeof scope.current|null>(null);
   const mounted=useRef(false);
   const activeWrite=useRef(false);
   const pendingNotes=useRef(new Map<string,NoteDraft>());
   const [writeError,setWriteError]=useState('');
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   useEffect(()=>{
+    if(!resolved){
+      if(activeWrite.current)setWriteError('Your agency update could not be confirmed. Your draft is still here.');
+      activeWrite.current=false;setBusy(false);setToast('');
+      return;
+    }
+    if(draftOwner.current?.playerId===ctx.player?.id&&draftOwner.current?.userId===ctx.user?.id)return;
+    draftOwner.current=scope.current;
     pendingNotes.current.clear();activeWrite.current=false;
     setReplies({});setExpanded(null);setNote('');setBusy(false);setWriteError('');setToast('');
     setCompose(search.get('compose')==='1');
-  },[ctx.player?.id,ctx.user?.id]);
-  const isCurrent=(owner:typeof scope.current)=>mounted.current&&scope.current===owner;
+  },[resolved,ctx.player?.id,ctx.user?.id]);
+  const isCurrent=(owner:typeof scope.current)=>mounted.current&&owner.resolved&&scope.current===owner;
   const flash=(message:string,owner:typeof scope.current)=>{
     setToast(message);
     setTimeout(()=>{if(isCurrent(owner))setToast('');},1600);
   };
 
   const update=async(request:any)=>{
-    if(activeWrite.current||!ctx.player||request.player_id!==ctx.player.id)return;
+    if(activeWrite.current||!resolved||!ctx.player||request.player_id!==ctx.player.id||request.status!=='open')return;
     const owner=scope.current;
     const payload={player_reply:replies[request.id]??request.player_reply??null,status:'completed'};
     activeWrite.current=true;setBusy(true);setWriteError('');
-    const outcome=await writeWithDeadline(signal=>supabase.from('player_requests')
-      .update(payload).eq('id',request.id).eq('player_id',ctx.player!.id)
-      .select(REQUEST_FIELDS).abortSignal(signal).single());
+    const outcome=await writeWithDeadline(async signal=>{
+      // Only the first completion may change the reply. A delayed retry must
+      // not overwrite a reply that another completion already confirmed.
+      const updated=await supabase.from('player_requests')
+        .update(payload).eq('id',request.id).eq('player_id',owner.playerId!).eq('status','open')
+        .select(REQUEST_FIELDS).abortSignal(signal).single();
+      if(updated.error&&updated.error.code!=='PGRST116')return updated;
+      if(updated.data?.id===request.id&&updated.data.player_id===owner.playerId&&
+        updated.data.status==='completed'&&updated.data.player_reply===payload.player_reply)return updated;
+      if(signal.aborted||!isCurrent(owner))return updated;
+      return supabase.from('player_requests').select(REQUEST_FIELDS)
+        .eq('id',request.id).eq('player_id',owner.playerId!).abortSignal(signal).maybeSingle();
+    });
     if(!isCurrent(owner))return;
     activeWrite.current=false;setBusy(false);
     if(outcome.status==='unknown'){
       setWriteError('We could not confirm that your action was completed. Your reply is still here. You can try again.');return;
     }
     const {data:record,error}=outcome.result;
-    if(error||!record||record.id!==request.id||record.player_id!==owner.playerId||record.status!=='completed'||record.player_reply!==payload.player_reply){
+    if(error||!record||record.id!==request.id||record.player_id!==owner.playerId||record.status!=='completed'){
       setWriteError('Your action could not be confirmed. Your reply is still here. Please try again.');return;
     }
     pageRead.updateData(current=>current.map(item=>item.id===record.id?record:item));
+    setExpanded(null);
+    if(record.player_reply!==payload.player_reply){
+      setReplies(current=>({...current,[request.id]:payload.player_reply??''}));
+      setWriteError('This action was already completed with a different reply. Your edited reply has not been sent. You can keep it or send it as a separate note.');
+      void ctx.refresh();return;
+    }
     setReplies(current=>{const next={...current};delete next[request.id];return next;});
-    setExpanded(null);flash('Done',owner);
-    // A failed background context read must not clear a separate unsent draft.
-    if(!note.trim()&&!Object.entries(replies).some(([id,text])=>id!==request.id&&text.trim()))void ctx.refresh();
+    flash('Done',owner);void ctx.refresh();
   };
 
   const send=async()=>{
     const text=note.trim();
-    if(activeWrite.current||!text||!ctx.player)return;
+    if(activeWrite.current||!resolved||!text||!ctx.player)return;
     const owner=scope.current;
     let payload=pendingNotes.current.get(text);
     if(!payload){
@@ -120,7 +143,7 @@ function InboxContent() {
     const outcome=await writeWithDeadline(async signal=>{
       const inserted=await supabase.from('player_requests').insert(draft)
         .select(REQUEST_FIELDS).abortSignal(signal).single();
-      if(inserted.error?.code!=='23505'||!isCurrent(owner))return inserted;
+      if(inserted.error?.code!=='23505'||signal.aborted||!isCurrent(owner))return inserted;
       return supabase.from('player_requests').select(REQUEST_FIELDS)
         .eq('id',draft.id).eq('player_id',draft.player_id).abortSignal(signal).maybeSingle();
     });
@@ -175,6 +198,8 @@ function InboxContent() {
     (request) =>
       request.status === 'completed',
   );
+  const completedDrafts=done.filter(request=>
+    replies[request.id]!==undefined&&replies[request.id]!==request.player_reply);
 
   return (
     <PlayerShell inboxCount={open.length}>
@@ -250,6 +275,28 @@ function InboxContent() {
             </div>
           </section>
         )}
+
+        {completedDrafts.map(request=>(
+          <section className="djm-note-composer" key={'draft-'+request.id}>
+            <div className="section-kicker">UNSENT REPLY</div>
+            <h2>Your edited reply is still a draft</h2>
+            <p>{request.title} was already completed. This reply has not been sent. You can send it as a separate note.</p>
+            <textarea className="textarea" aria-label={'Unsent reply for '+request.title}
+              disabled={busy} value={replies[request.id]}
+              onChange={event=>setReplies(current=>({...current,[request.id]:event.target.value}))}/>
+            {note.trim()&&<p>Send or clear your other note before using this reply as a note.</p>}
+            <div className="djm-note-actions">
+              <button className="btn btn-quiet btn-sm" disabled={busy} onClick={()=>{
+                setReplies(current=>{const next={...current};delete next[request.id];return next;});
+                setWriteError('');
+              }}>Discard draft</button>
+              <button className="btn btn-navy btn-sm" disabled={busy||!!note.trim()||!replies[request.id]?.trim()} onClick={()=>{
+                setNote(replies[request.id]);setCompose(true);setWriteError('');
+                setReplies(current=>{const next={...current};delete next[request.id];return next;});
+              }}>Use as a note<ArrowRight size={15}/></button>
+            </div>
+          </section>
+        ))}
 
         <section className="djm-action-section">
           <div className="djm-section-line">
