@@ -526,10 +526,10 @@ export default function Onboarding() {
 
             <div className="grid2">
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-1" className="label">
                   First name
                 </label>
-                <input
+                <input id="onboarding-field-1"
                   className="input"
                   autoComplete="given-name"
                   value={
@@ -545,10 +545,10 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-2" className="label">
                   Last name
                 </label>
-                <input
+                <input id="onboarding-field-2"
                   className="input"
                   autoComplete="family-name"
                   value={
@@ -564,13 +564,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-3" className="label">
                   Known as
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-3"
                   className="input"
                   value={
                     player.preferred_name || ''
@@ -585,13 +585,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-4" className="label">
                   Date of birth
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-4"
                   type="date"
                   max={today}
                   className="input"
@@ -608,13 +608,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-5" className="label">
                   Nationality / nationalities
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-5"
                   className="input"
                   value={
                     player.nationalitiesText ??
@@ -633,13 +633,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-6" className="label">
                   Passports held
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-6"
                   className="input"
                   value={
                     priv.passportsText ??
@@ -658,13 +658,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-7" className="label">
                   Phone
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-7"
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
@@ -680,13 +680,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-8" className="label">
                   Country you live in
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-8"
                   className="input"
                   autoComplete="country-name"
                   value={
@@ -708,10 +708,10 @@ export default function Onboarding() {
           <section className="onboarding-review-card">
             <div className="grid2">
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-9" className="label">
                   Primary position
                 </label>
-                <input
+                <input id="onboarding-field-9"
                   className="input"
                   value={
                     player.primary_position || ''
@@ -727,13 +727,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-10" className="label">
                   Other positions
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-10"
                   className="input"
                   value={
                     player.secondaryText ??
@@ -752,10 +752,10 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-preferred-foot" className="label">
                   Preferred foot
                 </label>
-                <select
+                <select id="onboarding-preferred-foot"
                   className="select"
                   value={
                     player.preferred_foot || ''
@@ -783,13 +783,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-11" className="label">
                   Height cm
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-11"
                   className="input"
                   type="number"
                   inputMode="numeric"
@@ -808,13 +808,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-12" className="label">
                   Current club
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-12"
                   className="input"
                   value={
                     player.current_club || ''
@@ -829,13 +829,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-13" className="label">
                   League
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-13"
                   className="input"
                   value={
                     player.current_league || ''
@@ -850,13 +850,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-14" className="label">
                   Club country
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-14"
                   className="input"
                   value={
                     player.current_country || ''
@@ -871,13 +871,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-15" className="label">
                   Contract status
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-15"
                   className="input"
                   value={
                     player.contract_status || ''
@@ -893,13 +893,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-16" className="label">
                   Contract expiry
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-16"
                   className="input"
                   type="date"
                   value={
@@ -931,13 +931,13 @@ export default function Onboarding() {
 
             <div className="stack onboarding-textarea-stack">
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-17" className="label">
                   Markets you would consider
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <textarea
+                <textarea id="onboarding-field-17"
                   className="textarea"
                   value={
                     priv.market_preferences || ''
@@ -953,13 +953,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-18" className="label">
                   Relocation preferences
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <textarea
+                <textarea id="onboarding-field-18"
                   className="textarea"
                   value={
                     priv.relocation_preferences || ''
@@ -976,13 +976,13 @@ export default function Onboarding() {
 
               <div className="grid2">
                 <div className="field">
-                  <label className="label">
+                  <label htmlFor="onboarding-field-19" className="label">
                     Move timing
                     <span className="muted">
                       {' '}optional
                     </span>
                   </label>
-                  <input
+                  <input id="onboarding-field-19"
                     className="input"
                     value={
                       priv.preferred_move_timing || ''
@@ -998,13 +998,13 @@ export default function Onboarding() {
                 </div>
 
                 <div className="field">
-                  <label className="label">
+                  <label htmlFor="onboarding-field-20" className="label">
                     Salary expectation
                     <span className="muted">
                       {' '}optional
                     </span>
                   </label>
-                  <input
+                  <input id="onboarding-field-20"
                     className="input"
                     value={
                       priv.salary_expectation || ''
@@ -1019,13 +1019,13 @@ export default function Onboarding() {
                 </div>
 
                 <div className="field">
-                  <label className="label">
+                  <label htmlFor="onboarding-field-21" className="label">
                     Travel availability
                     <span className="muted">
                       {' '}optional
                     </span>
                   </label>
-                  <input
+                  <input id="onboarding-field-21"
                     className="input"
                     value={
                       priv.travel_availability || ''
@@ -1041,13 +1041,13 @@ export default function Onboarding() {
                 </div>
 
                 <div className="field">
-                  <label className="label">
+                  <label htmlFor="onboarding-field-22" className="label">
                     Work rights
                     <span className="muted">
                       {' '}optional
                     </span>
                   </label>
-                  <input
+                  <input id="onboarding-field-22"
                     className="input"
                     value={
                       priv.work_rights || ''
@@ -1082,13 +1082,13 @@ export default function Onboarding() {
 
             <div className="stack">
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-23" className="label">
                   Transfermarkt
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-23"
                   className="input"
                   inputMode="url"
                   value={
@@ -1105,13 +1105,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-24" className="label">
                   Wyscout
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-24"
                   className="input"
                   inputMode="url"
                   value={
@@ -1128,13 +1128,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-25" className="label">
                   Other stats profile
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-25"
                   className="input"
                   inputMode="url"
                   value={
@@ -1151,13 +1151,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-26" className="label">
                   Instagram
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-26"
                   className="input"
                   inputMode="url"
                   value={
@@ -1174,13 +1174,13 @@ export default function Onboarding() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="onboarding-field-27" className="label">
                   Current highlight video
                   <span className="muted">
                     {' '}optional
                   </span>
                 </label>
-                <input
+                <input id="onboarding-field-27"
                   className="input"
                   inputMode="url"
                   value={video}

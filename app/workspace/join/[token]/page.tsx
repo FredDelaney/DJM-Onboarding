@@ -532,10 +532,10 @@ export default function StaffInvitePage() {
               </p>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="invite-field-1" className="label">
                   Full name
                 </label>
-                <input
+                <input id="invite-field-1"
                   className="input"
                   value={fullName}
                   onChange={(event) =>
@@ -549,10 +549,10 @@ export default function StaffInvitePage() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="invite-field-2" className="label">
                   Email
                 </label>
-                <input
+                <input id="invite-field-2"
                   className="input"
                   value={inviteEmail}
                   readOnly
@@ -560,7 +560,7 @@ export default function StaffInvitePage() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="staff-invite-password" className="label">
                   Password
                 </label>
 
@@ -570,7 +570,9 @@ export default function StaffInvitePage() {
                   }}
                 >
                   <input
+                    id="staff-invite-password"
                     className="input"
+                    style={{ paddingRight: 60 }}
                     type={
                       showPassword
                         ? 'text'
@@ -602,7 +604,11 @@ export default function StaffInvitePage() {
                     style={{
                       position:
                         'absolute',
-                      right: 10,
+                      right: 4,
+                      width: 44,
+                      height: 44,
+                      display: 'grid',
+                      placeItems: 'center',
                       top: '50%',
                       transform:
                         'translateY(-50%)',
@@ -717,10 +723,10 @@ export default function StaffInvitePage() {
               </p>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="invite-field-3" className="label">
                   Email
                 </label>
-                <input
+                <input id="invite-field-3"
                   className="input"
                   value={inviteEmail}
                   readOnly
@@ -728,10 +734,10 @@ export default function StaffInvitePage() {
               </div>
 
               <div className="field">
-                <label className="label">
+                <label htmlFor="invite-field-4" className="label">
                   Password
                 </label>
-                <input
+                <input id="invite-field-4"
                   className="input"
                   type="password"
                   value={password}

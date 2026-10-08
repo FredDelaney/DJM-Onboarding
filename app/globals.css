@@ -302,7 +302,7 @@ img {
 
   opacity: 0.58;
 
-  font-size: 9px;
+  font-size: 12px;
 
   line-height: 1;
 
@@ -2458,7 +2458,7 @@ a:focus-visible {
   .brand-copy small {
     margin-top: 5px;
 
-    font-size: 8px;
+    font-size: 12px;
 
     letter-spacing: 0.13em;
   }
@@ -3443,7 +3443,7 @@ a:focus-visible {
   }
 
   .brand-copy small {
-    font-size: 8px;
+    font-size: 12px;
   }
 }
  

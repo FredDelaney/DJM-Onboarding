@@ -114,10 +114,10 @@ export default function ReDreamPublicLanding() {
 
           <div className={styles.heroVisual} aria-label="ReDream turns scattered agency work into one clear next move">
             <div className={styles.heroInputs}>
-              <div><MessageSquareText size={17} /><span><small>WHATSAPP</small><strong>Club needs a left-footed CB</strong></span></div>
+              <div><MessageSquareText size={17} /><span><small>CLUB MESSAGE</small><strong>Club needs a left-footed CB</strong></span></div>
               <div><UsersRound size={17} /><span><small>PLAYER</small><strong>Daniel Costa is available</strong></span></div>
               <div><Network size={17} /><span><small>RELATIONSHIP</small><strong>You have a warm route</strong></span></div>
-              <div><BellRing size={17} /><span><small>FOLLOW-UP</small><strong>Nothing gets forgotten</strong></span></div>
+              <div><BellRing size={17} /><span><small>FOLLOW-UP</small><strong>Follow-ups stay visible</strong></span></div>
             </div>
 
             <div className={styles.heroArrow}><ArrowRight size={19} /></div>
