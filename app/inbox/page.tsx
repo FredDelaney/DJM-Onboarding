@@ -101,7 +101,7 @@ function InboxContent() {
         .update(payload).eq('id',request.id).eq('player_id',owner.playerId!).eq('status','open')
         .select(REQUEST_FIELDS).abortSignal(signal).single();
       if(updated.error&&updated.error.code!=='PGRST116')return updated;
-      if(updated.data?.id===request.id&&updated.data.player_id===owner.playerId&&
+      if(updated.data&&updated.data.id===request.id&&updated.data.player_id===owner.playerId&&
         updated.data.status==='completed'&&updated.data.player_reply===payload.player_reply)return updated;
       if(signal.aborted||!isCurrent(owner))return updated;
       return supabase.from('player_requests').select(REQUEST_FIELDS)
