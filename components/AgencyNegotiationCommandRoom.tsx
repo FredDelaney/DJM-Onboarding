@@ -663,10 +663,10 @@ export default function AgencyNegotiationCommandRoom({
             />
             <div>
               <strong>
-                Building the negotiation picture
+                Loading negotiation details
               </strong>
               <span>
-                Readiness, guardrails, decision-makers, pressure and provenance are being refreshed.
+                Loading deal facts, contacts and your saved negotiation limits.
               </span>
             </div>
           </div>
@@ -789,7 +789,7 @@ export default function AgencyNegotiationCommandRoom({
                 <div>
                   <p>PREPARATION SEQUENCE</p>
                   <h3>
-                    Close uncertainty in dependency order
+                    Resolve these items first
                   </h3>
                 </div>
               </div>
@@ -918,7 +918,7 @@ export default function AgencyNegotiationCommandRoom({
                         No decision-maker route is recorded.
                       </strong>
                       <span>
-                        ReDream will not invent signing authority or club hierarchy.
+                        Confirm the decision-maker and their authority with the club.
                       </span>
                     </div>
                   </div>
@@ -936,7 +936,7 @@ export default function AgencyNegotiationCommandRoom({
                 <div>
                   <p>PRIVATE GUARDRAILS</p>
                   <h3>
-                    Human-set objectives, limits and concession order
+                    Your objectives, limits and concession order
                   </h3>
                 </div>
               </div>
@@ -1223,7 +1223,7 @@ export default function AgencyNegotiationCommandRoom({
                 <div>
                   <p>KNOWN FACTS & OPEN QUESTIONS</p>
                   <h3>
-                    Keep negotiation positions separate from what is actually recorded
+                    Recorded facts and open questions
                   </h3>
                 </div>
               </div>

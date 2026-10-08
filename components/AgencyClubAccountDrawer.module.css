@@ -35,7 +35,7 @@
 .fact span,
 .warmRoute span {
   color: #8a919a;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.1em;
 }
@@ -51,7 +51,7 @@
 .location {
   margin: 7px 0 0;
   color: #727a84;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -93,12 +93,12 @@
 
 .notice strong {
   color: #343b44;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .notice span {
   color: #858c95;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -157,7 +157,7 @@
 
 .nextMove small {
   color: #7a828c;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .nextMove button,
@@ -174,7 +174,7 @@
   background: var(--agency-primary);
   color: #fff;
   font: inherit;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -205,7 +205,7 @@
 .fact small {
   overflow: hidden;
   color: #818892;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.35;
   text-overflow: ellipsis;
 }
@@ -297,7 +297,7 @@
 .timelineRow strong,
 .workRow strong {
   color: #414953;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -305,7 +305,7 @@
 .row span,
 .timelineRow span {
   color: #6e7680;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -314,7 +314,7 @@
 .timelineRow small,
 .workRow small {
   color: #8a919a;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -323,7 +323,7 @@
   border-radius: 999px;
   background: #f2f4f5;
   color: #747c86;
-  font-size: 7px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 700;
   white-space: nowrap;
@@ -357,12 +357,12 @@
 
 .warmRoute strong {
   color: #414953;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .warmRoute small {
   color: #7e8690;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .row {
@@ -453,7 +453,7 @@
 }
 
 .workTitle strong {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .workTitle span {
@@ -465,7 +465,7 @@
   border-radius: 999px;
   background: #f1f3f5;
   color: #747c86;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -489,13 +489,13 @@
 
 .empty strong {
   color: #5b636d;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .empty span,
 .emptyText {
   color: #898f98;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -503,7 +503,7 @@
   margin: 0;
   padding: 2px 4px 12px;
   color: #9399a1;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.5;
   text-align: center;
 }
@@ -693,7 +693,7 @@
   }
 
   .fact span {
-    font-size: 5.8px;
+    font-size: 12px;
     letter-spacing: .08em;
   }
 
@@ -712,7 +712,7 @@
 
   .sectionHead span {
     color: #99a3ab;
-    font-size: 6.5px;
+    font-size: 12px;
   }
 
   .sectionHead h3 {

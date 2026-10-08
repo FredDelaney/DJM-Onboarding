@@ -55,11 +55,11 @@ test('Commercial exposure remains evidence-led and multi-currency safe', () => {
   );
   assert.match(
     owner,
-    /Currencies remain separate/,
+    /Totals are shown separately for each currency/,
   );
   assert.match(
     owner,
-    /does not invent an FX conversion/,
+    /No exchange-rate conversion is applied/,
   );
 });
 
@@ -87,11 +87,11 @@ test('Owner service gaps remain directly actionable through guarded player actio
 test('Owner Command Centre does not invent a composite agency score or staff utilisation percentage', () => {
   assert.match(
     owner,
-    /does not calculate a fake utilisation percentage/,
+    /No utilisation percentage is estimated/,
   );
   assert.match(
     owner,
-    /does not hide them behind one made-up agency score/,
+    /Operations, commercial exposure and platform activity are shown separately/,
   );
   assert.doesNotMatch(
     owner,

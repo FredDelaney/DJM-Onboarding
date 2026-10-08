@@ -21,7 +21,7 @@ test('icon-only geometry uses explicit roles rather than ignoring text nodes', (
 
 test('Network Open club action is always horizontal and readable', () => {
   assert.match(networkFinal, /\.clubCard \.secondaryAction[\s\S]*min-width: 96px/);
-  assert.match(networkFinal, /font-size: 10px/);
+  assert.match(networkFinal, /font-size: 12px/);
   assert.match(networkFinal, /white-space: nowrap/);
   assert.match(networkFinal, /\.actionsSolo \.secondaryAction[\s\S]*width: 100%/);
   assert.doesNotMatch(networkFinal, /font-size: 0/);

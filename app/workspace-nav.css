@@ -102,3 +102,15 @@
     display: none !important;
   }
 }
+
+.player-workspace-header .brand-copy {
+  min-width: 0;
+  max-width: 180px;
+}
+
+.player-workspace-header .brand-copy small {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

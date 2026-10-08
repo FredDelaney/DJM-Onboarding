@@ -377,7 +377,7 @@ export default function AgencyPlayerServiceReviewDrawer({
             <div>
               <strong>Preparing the player review</strong>
               <span>
-                Loading the service statement, review pack and saved proof history.
+                Loading recorded activity and previous reviews.
               </span>
             </div>
           </div>
@@ -554,7 +554,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 <History size={17} />
                 <div>
                   <p>WHAT CHANGED SINCE THE LAST REVIEW</p>
-                  <h3>Compare persisted snapshots instead of reconstructing history</h3>
+                  <h3>Compare this review with the previous saved review</h3>
                 </div>
               </div>
 
@@ -603,7 +603,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div>
                     <strong>No comparison yet.</strong>
                     <span>
-                      At least two persisted snapshots are required. The platform does not fabricate a historical baseline.
+                      Save two reviews to compare changes over time.
                     </span>
                   </div>
                 </div>
@@ -619,7 +619,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 <Target size={17} />
                 <div>
                   <p>PLAYER MEETING AGENDA</p>
-                  <h3>What deserves an explicit human conversation next</h3>
+                  <h3>Topics for your next player conversation</h3>
                 </div>
               </div>
 
@@ -742,7 +742,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 <History size={17} />
                 <div>
                   <p>PROOF HISTORY</p>
-                  <h3>Persist a factual baseline for future player reviews</h3>
+                  <h3>Save this review for next time</h3>
                 </div>
               </div>
 
@@ -761,9 +761,9 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <History size={17} />
                     <div>
-                      <strong>No saved proof snapshot yet.</strong>
+                      <strong>No saved review yet.</strong>
                       <span>
-                        Capture one when the agency wants a point-in-time baseline for a future review.
+                        Save the current review to compare it with a future review.
                       </span>
                     </div>
                   </div>

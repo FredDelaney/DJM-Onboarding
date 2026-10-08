@@ -387,8 +387,7 @@ export default function TeamSettingsPage() {
                 <p className="ux-eyebrow">AGENCY TEAM</p>
                 <h2>Who can operate this agency?</h2>
                 <p>
-                  Access comes from this agency membership only.
-                  No global ReDream role grants access to another agency.
+                  These roles apply only to this agency workspace.
                 </p>
               </div>
               <UserPlus size={20} />
@@ -606,9 +605,7 @@ export default function TeamSettingsPage() {
                 </p>
                 <h2>Player assignments</h2>
                 <p>
-                  Scout access can remain limited to specific
-                  player records while the agency membership stays
-                  tenant-native.
+                  Assign scouts the specific player records they should access.
                 </p>
               </div>
               <ShieldCheck size={20} />

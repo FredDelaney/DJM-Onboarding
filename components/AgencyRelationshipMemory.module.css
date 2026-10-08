@@ -22,7 +22,7 @@
 .head span,
 .note span {
   color: #8a919a;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.1em;
 }
@@ -44,12 +44,12 @@
 
 .state strong {
   color: #343b44;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .state small {
   color: #858c95;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -83,7 +83,7 @@
 
 .summary small {
   color: #8b929b;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.07em;
 }
@@ -91,14 +91,14 @@
 .summary strong {
   overflow: hidden;
   color: #343b44;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .summary em {
   color: #858c95;
-  font-size: 8px;
+  font-size: 12px;
   font-style: normal;
   line-height: 1.35;
 }
@@ -114,7 +114,7 @@
 .note p {
   margin: 0;
   color: #555d67;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -146,7 +146,7 @@
 }
 
 .blockHead strong {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .blockHead > span {
@@ -157,7 +157,7 @@
   border-radius: 999px;
   background: #f1f3f5;
   color: #69717b;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -196,14 +196,14 @@
 .row strong {
   overflow: hidden;
   color: #454d57;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.35;
   text-overflow: ellipsis;
 }
 
 .row small {
   color: #8a919a;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -213,7 +213,7 @@
   border: 1px dashed #dfe2e6;
   border-radius: 10px;
   color: #8a919a;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -257,12 +257,12 @@
 
 .routeChips strong {
   color: #454d57;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .routeChips span {
   color: #8a919a;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -294,7 +294,7 @@
   }
 
   .state strong {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .summary {
@@ -315,11 +315,11 @@
   }
 
   .summary small {
-    font-size: 5.8px;
+    font-size: 12px;
   }
 
   .summary strong {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .routes {
@@ -331,7 +331,7 @@
   }
 
   .blockHead strong {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .row {
@@ -341,14 +341,14 @@
   .row strong {
     display: -webkit-box;
     overflow: hidden;
-    font-size: 8.5px;
+    font-size: 12px;
     line-height: 1.35;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
 
   .row small {
-    font-size: 6.8px;
+    font-size: 12px;
   }
 
   .list .row:nth-child(n+4) {
@@ -386,7 +386,7 @@
 
   .state strong {
     color: #6e7d89;
-    font-size: 7px;
+    font-size: 12px;
     line-height: 1;
   }
 
@@ -414,13 +414,13 @@
   }
 
   .summary small {
-    font-size: 5.6px;
+    font-size: 12px;
     letter-spacing: .08em;
   }
 
   .summary strong {
     color: #34404a;
-    font-size: 8.5px;
+    font-size: 12px;
     font-weight: 760;
     white-space: normal;
     line-height: 1.25;
@@ -440,7 +440,7 @@
 
   .blockHead strong {
     color: #56636e;
-    font-size: 8.5px;
+    font-size: 12px;
   }
 
   .list {
@@ -453,7 +453,7 @@
   }
 
   .row strong {
-    font-size: 8.5px;
+    font-size: 12px;
     font-weight: 680;
   }
 }

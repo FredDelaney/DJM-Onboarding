@@ -285,8 +285,8 @@ export default function AgencyEntityIntelligenceDrawer({
           <div className={styles.state}>
             <LoaderCircle size={20} className={styles.spin} />
             <div>
-              <strong>Building the current operating picture</strong>
-              <span>Pulling the latest agency information.</span>
+              <strong>Loading the latest details</strong>
+              <span>Loading your agency records.</span>
             </div>
           </div>
         ) : null}
@@ -477,7 +477,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
 
             <p className={styles.truth}>
-              Player Intelligence shows known agency information and the next issue to resolve. It does not guess player intent, satisfaction or transfer outcomes.
+              Based on recorded agency information. Player intent, satisfaction and transfer outcomes are not inferred.
             </p>
           </div>
         ) : null}
@@ -486,7 +486,7 @@ export default function AgencyEntityIntelligenceDrawer({
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
-                <p>CURRENT CONTROL POSITION</p>
+                <p>DEAL STATUS</p>
                 <h3>{human(control.state || momentum.state || 'recorded')}</h3>
                 <span>
                   {nextMove.instruction ||
@@ -675,7 +675,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
 
             <p className={styles.truth}>
-              Deal War Room supports judgement from known information. Scores describe control, preparation and observed movement, not transfer probability or predicted outcome.
+              Based on recorded deal information. Indicators describe preparation and activity, not the probability of a transfer.
             </p>
           </div>
         ) : null}

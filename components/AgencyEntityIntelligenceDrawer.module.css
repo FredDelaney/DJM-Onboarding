@@ -39,7 +39,7 @@
   align-items: center;
   gap: 7px;
   color: #737b85;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -52,8 +52,8 @@
 }
 
 .topline button {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 1px solid #e5e7eb;
@@ -86,7 +86,7 @@
 .hero p {
   margin: 0;
   color: #858c95;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.11em;
 }
@@ -100,7 +100,7 @@
 
 .title span {
   color: #777f89;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .state {
@@ -126,7 +126,7 @@
 .state span {
   margin-top: 4px;
   color: #7a828c;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .spin {
@@ -165,7 +165,7 @@
   max-width: 470px;
   display: block;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -183,7 +183,7 @@
 .score span {
   margin-top: 6px;
   color: rgba(255, 255, 255, 0.62);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .grid {
@@ -204,7 +204,7 @@
 
 .fact span {
   color: #8a9098;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -218,7 +218,7 @@
 
 .fact small {
   color: #858c95;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .panel {
@@ -259,7 +259,7 @@
   color: var(--agency-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -272,7 +272,7 @@
 .truth {
   margin: 0 2px;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -395,6 +395,6 @@
 }
 .planEmpty span {
   color: #858c95;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }

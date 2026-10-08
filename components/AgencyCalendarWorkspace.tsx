@@ -584,7 +584,7 @@ function MeetingBriefDrawer({
         {busy ? (
           <div className={styles.briefLoading}>
             <LoaderCircle size={16} />
-            Loading what matters for this meeting
+            Loading meeting details
           </div>
         ) : null}
 

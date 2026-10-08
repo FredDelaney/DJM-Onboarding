@@ -318,7 +318,7 @@ export default function CheckIn() {
             How’s your week?
           </h1>
           <p className="page-intro">
-            This is not admin. It is the quickest way to keep your agent current on what actually matters.
+            Tell your agency what changed this week and what you need help with.
           </p>
         </div>
 

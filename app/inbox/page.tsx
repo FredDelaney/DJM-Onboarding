@@ -213,7 +213,7 @@ function InboxContent() {
               Your agency updates.
             </h1>
             <p className="page-intro">
-              Anything that needs your attention lives here. No admin, no clutter.
+              Review agency requests, reply or send a note.
             </p>
           </div>
 

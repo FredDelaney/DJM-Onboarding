@@ -103,7 +103,7 @@
   align-items: center;
   gap: 9px;
   color: rgba(255, 255, 255, .68);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 830;
   letter-spacing: .11em;
 }
@@ -166,7 +166,7 @@
   padding: 0 14px;
   background: rgba(3, 16, 30, .34);
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 760;
   backdrop-filter: blur(12px);
 }
@@ -187,7 +187,7 @@
 .player-next-kicker {
   margin-bottom: 8px;
   color: var(--blue);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .10em;
 }
@@ -264,7 +264,7 @@
 
 .player-dossier-teaser-kicker {
   color: rgba(255, 255, 255, .58);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .11em;
 }
@@ -295,7 +295,7 @@
   padding: 0 15px;
   background: #fff;
   color: var(--navy);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 790;
 }
 
@@ -334,7 +334,7 @@
   padding: 12px 13px;
   background: #f4f5f7;
   color: var(--navy);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 740;
 }
 
@@ -364,7 +364,7 @@
   padding: 7px 10px;
   background: var(--navy);
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 770;
 }
 
@@ -386,7 +386,7 @@
 .season-personal-head > div > span {
   display: block;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .10em;
 }
@@ -401,7 +401,7 @@
 
 .season-verified-head small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .season-verified-grid {
@@ -435,7 +435,7 @@
   display: block;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .season-verified-performance {
@@ -460,7 +460,7 @@
 
 .season-verified-row > div:first-child strong {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .season-verified-row > div:first-child span {
@@ -468,7 +468,7 @@
   overflow: hidden;
   margin-top: 3px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -476,7 +476,7 @@
 .season-verified-row > strong {
   text-align: right;
   color: var(--navy);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .season-verified-bar {
@@ -515,7 +515,7 @@
   display: block;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -552,7 +552,7 @@
   display: block;
   margin-top: 3px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .season-premium-trend {
@@ -614,7 +614,7 @@
   display: block;
   margin-top: 4px;
   color: rgba(255, 255, 255, .64);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -638,7 +638,7 @@
 .check-card-number {
   margin-bottom: 10px;
   color: #a4a8ad;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .10em;
 }
@@ -659,7 +659,7 @@
 .check-toggle-premium > span small {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -722,7 +722,7 @@
 .djm-note-composer > p {
   margin: 0 0 16px;
   color: rgba(255, 255, 255, .62);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -754,7 +754,7 @@
 .djm-section-line span {
   display: block;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .10em;
 }
@@ -798,7 +798,7 @@
   max-width: 360px;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -823,7 +823,7 @@
   padding: 6px 9px;
   background: var(--navy);
   color: #fff;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 840;
   letter-spacing: .08em;
 }
@@ -833,7 +833,7 @@
   align-items: center;
   gap: 5px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .djm-request-card h2 {
@@ -862,7 +862,7 @@
   padding: 0 13px;
   background: #f2f3f5;
   color: var(--navy);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 760;
 }
 
@@ -924,21 +924,21 @@
 }
 
 .djm-history-row strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .djm-history-row span {
   overflow: hidden;
   margin-top: 3px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .djm-history-row small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .djm-updates-foot {
@@ -950,7 +950,7 @@
   border-top: 1px solid var(--line);
   padding-top: 18px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .djm-updates-foot button {
@@ -960,7 +960,7 @@
   border: 0;
   background: transparent;
   color: var(--navy);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 770;
 }
 
@@ -989,7 +989,7 @@
 
 .onboarding-premium-topbar > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 720;
 }
 
@@ -1018,7 +1018,7 @@
   display: block;
   margin-top: 7px;
   color: #9da1a6;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 720;
 }
 
@@ -1086,7 +1086,7 @@
   display: block;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -1117,7 +1117,7 @@
 .onboarding-skip-note {
   margin: 13px 0 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   text-align: right;
 }
 
@@ -1255,7 +1255,7 @@
 .join-known-card span {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .join-message {
@@ -1263,7 +1263,7 @@
   padding: 12px 13px;
   background: #f4f5f7;
   color: var(--navy);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -1277,7 +1277,7 @@
   gap: 9px;
   margin-top: 20px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -1567,11 +1567,11 @@
   }
 
   .player-identity-kicker {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .player-identity-badges span {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .season-verified-grid strong {
@@ -1653,7 +1653,7 @@
   align-items: center;
   gap: 9px;
   color: rgba(255, 255, 255, .58);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .12em;
 }
@@ -1698,7 +1698,7 @@
 .player-club-view-strip span {
   display: block;
   color: rgba(255, 255, 255, .52);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .11em;
 }
@@ -1778,7 +1778,7 @@
 .career-score-panel > div:last-child > span {
   display: block;
   color: rgba(255, 255, 255, .48);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .10em;
 }
@@ -1796,7 +1796,7 @@
 .player-command-score > div:nth-child(2) small {
   margin-top: 2px;
   color: rgba(255, 255, 255, .52);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .career-load-warning {
@@ -1809,7 +1809,7 @@
   padding: 11px 13px;
   background: #fff;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .career-load-warning svg {
@@ -1841,7 +1841,7 @@
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .10em;
 }
@@ -1867,7 +1867,7 @@
 .player-pulse-grid small {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .player-week-grid,
@@ -1915,7 +1915,7 @@
   align-items: center;
   gap: 6px;
   color: var(--blue);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 760;
 }
 
@@ -1941,7 +1941,7 @@
   border-radius: 12px;
   background: #eef3f7;
   color: var(--blue);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -1952,7 +1952,7 @@
 
 .player-week-list small {
   color: var(--blue);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 830;
   letter-spacing: .08em;
 }
@@ -1965,7 +1965,7 @@
 .player-week-list p {
   margin: 3px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -1993,14 +1993,14 @@
   border-radius: 15px;
   background: var(--yellow);
   color: var(--navy);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
 }
 
 .player-agent-desk-head > div > strong {
   display: block;
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .player-agent-update {
@@ -2021,7 +2021,7 @@
   overflow: hidden;
   margin: 8px 0 0;
   color: rgba(255, 255, 255, .62);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
@@ -2031,7 +2031,7 @@
   display: block;
   margin-top: 10px;
   color: rgba(255, 255, 255, .42);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .player-agent-actions {
@@ -2046,7 +2046,7 @@
   gap: 9px;
   min-height: 43px;
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 720;
 }
 
@@ -2124,14 +2124,14 @@
 
 .player-toolkit-spotlight > div:last-child > strong {
   color: var(--yellow-ink);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .player-toolkit-spotlight > div:last-child > span {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 760;
 }
 
@@ -2151,7 +2151,7 @@
   min-height: 55px;
   border-top: 1px solid var(--line);
   color: var(--navy);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 720;
 }
 
@@ -2266,7 +2266,7 @@
 .career-score-ring > div span {
   margin-top: 2px;
   color: rgba(255, 255, 255, .46);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .career-score-panel > div:last-child {
@@ -2282,7 +2282,7 @@
 .career-score-panel p {
   margin: 5px 0 0;
   color: rgba(255, 255, 255, .48);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .career-control-strip {
@@ -2308,7 +2308,7 @@
   align-items: center;
   gap: 6px;
   color: var(--blue);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .09em;
 }
@@ -2330,7 +2330,7 @@
 .career-control-strip small {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .career-readiness-section,
@@ -2364,7 +2364,7 @@
   max-width: 650px;
   margin: 8px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -2374,7 +2374,7 @@
   padding: 8px 11px;
   background: #edf4f9;
   color: var(--blue);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -2428,18 +2428,18 @@
 }
 
 .career-readiness-item strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .career-readiness-item small {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
 .career-readiness-score {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -2472,7 +2472,7 @@
 .career-asset-card > span {
   margin-top: 22px;
   color: var(--blue);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .09em;
 }
@@ -2486,7 +2486,7 @@
   margin-top: 4px;
   padding-right: 22px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -2545,7 +2545,7 @@
   border-radius: 50%;
   background: var(--navy);
   color: #fff;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -2565,7 +2565,7 @@
 
 .career-timeline-head span {
   color: var(--blue);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .09em;
 }
@@ -2583,12 +2583,12 @@
   gap: 5px;
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .career-timeline-head > small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -2623,7 +2623,7 @@
 .career-timeline-metrics span {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .career-timeline-source {
@@ -2633,7 +2633,7 @@
   border-top: 1px solid var(--line);
   padding: 10px 20px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .career-record-empty {
@@ -2664,7 +2664,7 @@
 .career-record-empty span {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -2674,7 +2674,7 @@
   align-items: center;
   gap: 6px;
   color: var(--blue);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 770;
 }
 
@@ -2702,20 +2702,20 @@
 
 .career-agreement-strip span {
   color: rgba(255, 255, 255, .46);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 840;
   letter-spacing: .09em;
 }
 
 .career-agreement-strip strong {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .career-agreement-strip small {
   margin-top: 2px;
   color: rgba(255, 255, 255, .55);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .career-agreement-strip > a {
@@ -2739,13 +2739,13 @@
 
 .toolkit-categories button {
   flex: 0 0 auto;
-  min-height: 34px;
+  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 0 13px;
   background: #fff;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -2816,7 +2816,7 @@
   align-items: center;
   gap: 4px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 750;
   letter-spacing: .05em;
@@ -2843,7 +2843,7 @@
 .toolkit-playbook-copy > small {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -2873,7 +2873,7 @@
 
 .toolkit-outcome span {
   color: var(--blue);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .09em;
 }
@@ -2913,13 +2913,13 @@
 .toolkit-steps strong {
   display: block;
   color: var(--navy);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .toolkit-steps p {
   margin: 3px 0 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2932,7 +2932,7 @@
   padding: 10px 11px;
   background: #eef2f5;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -2968,7 +2968,7 @@
 
 .djm-resource-library-head span {
   color: rgba(255, 255, 255, .44);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 840;
   letter-spacing: .09em;
 }
@@ -3003,7 +3003,7 @@
 
 .djm-resource-grid span {
   color: var(--yellow-ink);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 820;
   text-transform: uppercase;
 }
@@ -3011,13 +3011,13 @@
 .djm-resource-grid strong {
   margin-top: 6px;
   padding-right: 20px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .djm-resource-grid small {
   margin-top: 4px;
   color: rgba(255, 255, 255, .5);
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -3357,7 +3357,7 @@
 
   .player-pulse-grid strong,
   .career-control-strip strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .career-readiness-item {
@@ -3366,7 +3366,7 @@
   }
 
   .career-readiness-score {
-    font-size: 9px;
+    font-size: 12px;
   }
 }
 /* Seven player-first career lanes: never exposes DJM's club-side activity. */
@@ -3397,7 +3397,7 @@
 .player-career-navigator-head span {
   margin-bottom: 5px;
   color: #6c7d8e;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: .14em;
 }
@@ -3411,7 +3411,7 @@
 .player-career-navigator-head > small {
   max-width: 330px;
   color: #788897;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
   text-align: right;
 }
@@ -3456,13 +3456,13 @@
 
 .player-career-lanes strong {
   color: var(--navy);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .player-career-lanes small {
   margin-top: 4px;
   color: #8b99a6;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.35;
 }
 

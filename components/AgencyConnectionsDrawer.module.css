@@ -31,7 +31,7 @@
 .eyebrow {
   margin: 0 0 6px;
   color: var(--agency-accent);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .13em;
 }
@@ -47,7 +47,7 @@
   max-width: 440px;
   margin: 8px 0 0;
   color: #71808a;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -117,7 +117,7 @@
 .notConnected {
   padding: 4px 7px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .04em;
   text-transform: uppercase;
@@ -141,7 +141,7 @@
 .providerCopy > span {
   overflow: hidden;
   color: #7b8991;
-  font-size: 9px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -169,13 +169,13 @@
 
 .capabilities span {
   color: #355469;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .capabilities small {
   color: #89959d;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .emailOption {
@@ -204,12 +204,12 @@
 
 .emailOption strong {
   color: #355469;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .emailOption small {
   color: #87949c;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -235,7 +235,7 @@
   border-radius: 9px;
   cursor: pointer;
   font: inherit;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -267,7 +267,7 @@
   gap: 9px;
   padding: 12px 13px;
   border-radius: 12px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -313,7 +313,7 @@
 
 .sectionIntro > div > span {
   color: var(--agency-accent);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .12em;
 }
@@ -333,7 +333,7 @@
   max-width: 470px;
   margin: 0;
   color: #7c8a93;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -368,7 +368,7 @@
   border-radius: 13px;
   background: #fff;
   color: #7d8c95;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .threadList {
@@ -397,14 +397,14 @@
 .threadRow strong {
   overflow: hidden;
   color: #355469;
-  font-size: 9px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .threadRow small {
   color: #87949c;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -433,7 +433,7 @@
   background: #fff;
   color: #496273;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   outline: none;
 }
 
@@ -450,7 +450,7 @@
   border-radius: 10px;
   background: #f7f9fa;
   color: #839099;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -460,7 +460,7 @@
   border-radius: 10px;
   background: #fff9ed;
   color: #7d652f;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -560,7 +560,7 @@
 
   .header p:last-child {
     margin-top: 4px;
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.35;
   }
 
@@ -586,11 +586,11 @@
   }
 
   .providerTitle strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .providerCopy > span {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .capabilities {
@@ -610,7 +610,7 @@
   }
 
   .capabilities span {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .emailOption {
@@ -620,7 +620,7 @@
   .emailOption small {
     display: -webkit-box;
     overflow: hidden;
-    font-size: 7.5px;
+    font-size: 12px;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
@@ -638,7 +638,7 @@
   .secondary {
     min-height: 40px;
     padding-inline: 8px;
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .messagingSection {
@@ -667,12 +667,12 @@
   }
 
   .threadRow small {
-    font-size: 7px;
+    font-size: 12px;
   }
 
   .security {
     padding: 9px 10px;
-    font-size: 8px;
+    font-size: 12px;
   }
 }
 
@@ -696,12 +696,12 @@
 
 .identityReview strong {
   color: #30383f;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .identityReview span {
   color: #7d8790;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -754,7 +754,7 @@
 .emailOff {
   padding: 2px 6px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 850;
   letter-spacing: .04em;
@@ -778,6 +778,6 @@
 
 .identityReady {
   color: #4e735d;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 }

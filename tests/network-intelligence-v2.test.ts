@@ -73,7 +73,7 @@ test('Network intelligence stays deterministic and evidence based', async () => 
 
   assert.match(
     source,
-    /not predictions of influence, response or deal success/,
+    /do not predict responses or deal success/,
   );
 });
 

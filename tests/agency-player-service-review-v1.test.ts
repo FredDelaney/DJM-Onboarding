@@ -41,8 +41,8 @@ test('Player-safe preview stays explicitly separated from internal deal intellig
 
 test('Historical comparison requires persisted evidence instead of a fabricated baseline', () => {
   assert.match(review, /No comparison yet/);
-  assert.match(review, /At least two persisted snapshots are required/);
-  assert.match(review, /does not fabricate a historical baseline/);
+  assert.match(review, /Save two reviews to compare changes over time/);
+  assert.match(review, /Compare this review with the previous saved review/);
   assert.match(review, /negative delta is not automatically deterioration/);
 });
 

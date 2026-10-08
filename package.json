@@ -9,11 +9,11 @@
     "build": "next build",
     "start": "next start",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/*.test.ts",
-    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tests/fixtures/player-entry/tsconfig.json",
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tests/fixtures/player-entry/tsconfig.json && tsc --noEmit -p tests/fixtures/platform-polish/tsconfig.json",
     "precheck": "npm run check:no-em-dash",
     "check": "npm test && npm run typecheck && npm run build",
     "check:no-em-dash": "node scripts/check-no-em-dash.mjs",
-    "check:browser": "node scripts/customer-journey-browser-qa.mjs && node scripts/workspace-flow-browser-fixture.mjs && node scripts/calendar-browser-fixture.mjs scripts/calendar-workspace-browser-qa.mjs scripts/pursuit-continuity-browser-qa.mjs && node scripts/deep-journey-browser-fixture.mjs && node scripts/player-entry-browser-qa.mjs"
+    "check:browser": "node scripts/customer-journey-browser-qa.mjs && node scripts/workspace-flow-browser-fixture.mjs && node scripts/calendar-browser-fixture.mjs scripts/calendar-workspace-browser-qa.mjs scripts/pursuit-continuity-browser-qa.mjs && node scripts/deep-journey-browser-fixture.mjs && node scripts/player-entry-browser-qa.mjs && node scripts/platform-polish-browser-qa.mjs"
   },
   "dependencies": {
     "@fullcalendar/react": "7.1.0",

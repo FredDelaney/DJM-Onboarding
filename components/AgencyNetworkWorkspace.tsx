@@ -541,9 +541,9 @@ export default function AgencyNetworkWorkspace({
       <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>NETWORK</p>
-          <h2>{restricted ? 'Your shared clubs and contacts' : 'Know the person. Know the club. Know the next move.'}</h2>
+          <h2>{restricted ? 'Your shared clubs and contacts' : 'Clubs and contacts'}</h2>
           <p>
-            {restricted ? 'Browse club and contact details. Your contact pages show your own conversations and follow-ups. Agency-wide commercial details are only shown to admins.' : 'ReDream keeps the relationship context underneath so the agency can see who matters, what is happening and the best route forward.'}
+            {restricted ? 'Find shared clubs and contacts, then review your own conversations and follow-ups.' : 'Find a contact, review your conversations and plan the next follow-up.'}
           </p>
         </div>
 
@@ -575,7 +575,7 @@ export default function AgencyNetworkWorkspace({
               WHERE TO FOCUS
             </p>
             <strong>
-              Use what you know about the relationship to decide the next move.
+              Review recent contact and the next follow-up.
             </strong>
           </div>
 
@@ -670,7 +670,7 @@ export default function AgencyNetworkWorkspace({
         </div>
 
         <p className={styles.intelligenceTruth}>
-          These signals use your activity, follow-ups, relationships and current club work. They are not predictions of influence, response or deal success.
+          Based on recorded activity and follow-ups. These signals do not predict responses or deal success.
         </p>
       </section>
 
@@ -751,7 +751,7 @@ export default function AgencyNetworkWorkspace({
         </div>
         <div>
           <span>Network principle</span>
-          <strong>One relationship, one next move</strong>
+          <strong>Next follow-up</strong>
         </div>
       </section>
 

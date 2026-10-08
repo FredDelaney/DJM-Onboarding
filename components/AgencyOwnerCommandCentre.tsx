@@ -481,7 +481,7 @@ export default function AgencyOwnerCommandCentre({
 
             {currencies.length > 1 ? (
               <p className={styles.truth}>
-                Currencies remain separate. ReDream does not invent an FX conversion or combine them into a false single total.
+                Totals are shown separately for each currency. No exchange-rate conversion is applied.
               </p>
             ) : null}
           </section>
@@ -734,7 +734,7 @@ export default function AgencyOwnerCommandCentre({
             )}
 
             <p className={styles.truth}>
-              Work counts show recorded ownership, not effort or performance. ReDream does not calculate a fake utilisation percentage because actual working hours and effort per task are not set.
+              Counts show assigned work, not effort or performance. No utilisation percentage is estimated.
             </p>
           </section>
 
@@ -744,7 +744,7 @@ export default function AgencyOwnerCommandCentre({
               <div>
                 <p>PLAYER SERVICE</p>
                 <h3>
-                  Fix the operating gaps with a real next action
+                  Player issues to resolve
                 </h3>
               </div>
             </div>
@@ -890,7 +890,7 @@ export default function AgencyOwnerCommandCentre({
           </section>
 
           <p className={styles.truth}>
-            This view keeps operations, commercial exposure and platform activity separate. ReDream does not hide them behind one made-up agency score.
+            Operations, commercial exposure and platform activity are shown separately.
           </p>
         </div>
       </aside>
