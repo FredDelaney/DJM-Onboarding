@@ -850,8 +850,8 @@ export default function AgencyPlayersWorkspace({
               </section>
               <section className={styles.detailSection}><p>CONTACT</p><h3>Log what happened</h3>
                 <div className={styles.interactionForm}>
-                  <select value={interactionChannel} onChange={(e)=>setInteractionChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="email">Email</option><option value="phone">Phone</option><option value="meeting">Meeting</option><option value="other">Other</option></select>
-                  <textarea rows={3} value={interaction} onChange={(e)=>setInteraction(e.target.value)} placeholder="Short factual note"/>
+                  <select aria-label="Interaction channel" value={interactionChannel} onChange={(e)=>setInteractionChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="email">Email</option><option value="phone">Phone</option><option value="meeting">Meeting</option><option value="other">Other</option></select>
+                  <textarea aria-label="Interaction note" rows={3} value={interaction} onChange={(e)=>setInteraction(e.target.value)} placeholder="Short factual note"/>
                   <button type="button" data-ui-button="primary"
               className={styles.primaryButton} disabled={!interaction.trim()} onClick={()=>void logInteraction()}><CheckCircle2 size={14}/> Save interaction</button>
                 </div>

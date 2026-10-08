@@ -180,8 +180,9 @@
 .footerMeta a { min-height: 44px; display: inline-flex; align-items: center; color: #64748b; font-weight: 720; text-decoration: none; }
 
 @media (max-width: 1080px) {
-  .navLinks { display: none; }
-  .nav { grid-template-columns: 1fr auto; }
+  .navLinks { grid-column: 1 / -1; grid-row: 2; flex-wrap: wrap; justify-content: flex-start; gap: 0 20px; }
+  .nav { grid-template-columns: 1fr auto; gap: 12px; }
+  .hero { padding-top: 180px; }
   .heroInner, .daySection { grid-template-columns: 1fr; }
   .heroCopy { max-width: 850px; }
   .heroVisual { max-width: 820px; }
@@ -192,7 +193,7 @@
   .navWrap { padding: 14px; }
   .brandLogo { width: 138px; }
   .navCta { padding: 10px 12px; font-size: 14px; }
-  .hero { min-height: auto; padding: 101px 18px 60px; }
+  .hero { min-height: auto; padding: 210px 18px 60px; }
   .heroInner { gap: 38px; }
   .heroCopy h1 { font-size: clamp(42px, 12vw, 58px); }
   .heroLead { margin-top: 21px; font-size: 17px; }

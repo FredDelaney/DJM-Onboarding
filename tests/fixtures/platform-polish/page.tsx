@@ -28,6 +28,7 @@ import Billing from '@/app/(djm-os)/settings/billing/page';
 import SettingsConnections from '@/app/(djm-os)/settings/connections/page';
 import PlayerExperience from '@/app/(djm-os)/settings/player-experience/page';
 import styles from '@/components/AgencyOperatingWorkspace.module.css';
+import RemainingSurfaces from '@/tests/fixtures/platform-polish/remaining';
 const playerPages:Record<string,ComponentType>={home:Home,profile:Profile,inbox:Inbox,career:Career,'check-in':CheckIn,cv:CV,documents:Documents,connections:Connections};
 const settingsPages:Record<string,ComponentType>={settings:Settings,profile:SettingsProfile,preferences:Preferences,security:Security,team:Team,agency:Agency,billing:Billing,connections:SettingsConnections,'player-experience':PlayerExperience};
 const runtime={...UNRESOLVED_TENANT_RUNTIME,resolved:true,tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-platform-polish',branding:{...UNRESOLVED_TENANT_RUNTIME.branding,display_name:'Example Agency'}};
@@ -47,7 +48,8 @@ export default function Page(){
  const params=useSearchParams(),suite=params.get('suite')||'agency',screen=params.get('screen')||'home';
  const Component=suite==='player'?playerPages[screen]:settingsPages[screen];
  let content;
- if(suite==='agency')content=<AgencyOperatingWorkspace/>;
+ if(['marketing','account','presentation','capture','recruitment'].includes(suite))content=<RemainingSurfaces suite={suite} screen={screen}/>;
+ else if(suite==='agency')content=<AgencyOperatingWorkspace/>;
  else if(suite==='player'||suite==='settings')content=Component?<Component/>:<p>Unknown fixture screen</p>;
  else content=<div className={styles.root}><main className={styles.main}>
   {screen==='deal'?<AgencyEntityIntelligenceDrawer presentation={params.get('drawer')==='1'?'drawer':'page'} request={{key:'deal',kind:'deal',entityId:'deal',title:'Example transfer'}} invoke={invoke as any} onClose={noop} onOpenAction={noop} onOpenCloseout={noop} onOpenNegotiation={noop} onOpenPlayerReview={noop}/>:null}
