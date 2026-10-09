@@ -1393,12 +1393,11 @@ export default function AgencyOperatingWorkspace() {
   }
 
   return (
-    <div className={styles.root} style={theme}>
+    <div className={styles.root} style={theme} data-interface="calm">
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
             href={basePath}
-            darkSurface
           />
         </div>
 
@@ -1472,22 +1471,9 @@ export default function AgencyOperatingWorkspace() {
                 <h1>{viewPresentation.title}</h1>
               </div>
             </div>
-            <p className={styles.pageDescription}>
-              {viewPresentation.description}
-            </p>
           </div>
           <div className={styles.desktopHeadActions}>
             <AiLauncher />
-            <button
-              type="button"
-              data-ui-button="tertiary"
-              className={styles.refresh}
-              onClick={() => setConnectionsOpen(true)}
-              title="Connections"
-            >
-              <PlugZap size={15} />
-              Connections
-            </button>
             {createAction ? (
               <button
                 type="button"
@@ -1499,32 +1485,57 @@ export default function AgencyOperatingWorkspace() {
                 {createAction.label}
               </button>
             ) : null}
-            {view === 'players' &&
-            ['owner', 'admin', 'operations'].includes(
-              workspace.role,
-            ) ? (
-              <button
-                type="button"
-                data-ui-button="tertiary"
-              className={styles.refresh}
-                onClick={() => setRosterImportOpen(true)}
-              >
-                Import players
-              </button>
-            ) : null}
-            <button
-              type="button"
-              data-ui-button="tertiary"
-              className={styles.refresh}
-              onClick={() => void loadView()}
-              disabled={busy}
-            >
-              <RefreshCw
-                size={15}
-                className={busy ? styles.spin : ''}
-              />
-              Refresh
-            </button>
+            <details className={styles.workspaceTools}
+              onClick={event => {
+                if ((event.target as HTMLElement).closest('button')) event.currentTarget.open = false;
+              }}
+              onKeyDown={event => {
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.currentTarget.open = false;
+                  event.currentTarget.querySelector('summary')?.focus();
+                }
+              }}>
+              <summary data-ui-button="secondary">More</summary>
+              <div className={styles.workspaceToolsMenu}>
+                <button
+                  type="button"
+                  data-ui-button="tertiary"
+                  className={styles.refresh}
+                  onClick={() => setConnectionsOpen(true)}
+                  title="Connections"
+                >
+                  <PlugZap size={15} />
+                  Connections
+                </button>
+                {view === 'players' &&
+                ['owner', 'admin', 'operations'].includes(
+                  workspace.role,
+                ) ? (
+                  <button
+                    type="button"
+                    data-ui-button="tertiary"
+                  className={styles.refresh}
+                    onClick={() => setRosterImportOpen(true)}
+                  >
+                    Import players
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  data-ui-button="tertiary"
+                  className={styles.refresh}
+                  onClick={() => void loadView()}
+                  disabled={busy}
+                >
+                  <RefreshCw
+                    size={15}
+                    className={busy ? styles.spin : ''}
+                  />
+                  Refresh
+                </button>
+              </div>
+            </details>
             <AccountMenu
               workspace={workspace}
               onSignOut={signOut}
@@ -2641,21 +2652,6 @@ function Home({
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
-  const queueSummary = (
-    [
-      'Needs action now',
-      'Waiting on someone',
-      'Upcoming risk',
-      'Opportunity detected',
-      'FYI',
-    ] as QueueCategory[]
-  )
-    .map((category) => ({
-      category,
-      count: queue.filter((item) => item.category === category).length,
-    }))
-    .filter((item) => item.count > 0);
-
   const queueAction = (item: QueueItem) => {
     if (item.kind === 'command') return actionFor(item.payload);
     if (item.kind === 'meeting_aftercare') {
@@ -2692,31 +2688,15 @@ function Home({
         {queue.length || allState !== 'ready' ? (
           <h2>
             {queue.length
-              ? `${queue.length} ${queue.length === 1 ? 'thing matters' : 'things matter'} now`
+              ? `${queue.length} ${queue.length === 1 ? 'priority' : 'priorities'} today`
               : 'Checking what matters now'}
           </h2>
-        ) : null}
-        {queue.length ? (
-          <>
-            <p className={styles.homeFocusHint}>
-              Start with the first item.
-            </p>
-            <div className={styles.homeQueueSummary} aria-label="Today at a glance">
-              {queueSummary.map((item) => (
-                <span key={item.category}>
-                  <b>{item.count}</b>
-                  {item.category}
-                </span>
-              ))}
-            </div>
-          </>
         ) : null}
       </section>
 
       <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`} aria-label="Today priorities">
         <div className={styles.sectionHead}>
           <div className={styles.homeSectionTitle}>
-            <span className={styles.homeSectionLabel}>{restricted ? 'Your work' : 'What matters most'}</span>
             <h2>Today</h2>
           </div>
           <Link className={styles.homeTextLink} href={`${basePath}?view=calendar`}>
@@ -2739,18 +2719,17 @@ function Home({
               <div className={styles.attentionCopy}>
                 <div className={styles.attentionMeta}>
                   <span>{index + 1} · {item.category.toUpperCase()}</span>
-                  <small>{item.deadline}</small>
+                  <small>{item.owner} · {item.deadline}</small>
                 </div>
                 <strong>{item.title}</strong>
-                <span className={styles.todayQueueWhy}>{item.why}</span>
                 <div className={styles.todayQueueRecommendation}>
                   <small>Next step</small>
                   <span>{item.recommendation}</span>
                 </div>
-                <div className={styles.todayQueueOwner}>
-                  <span>Owner: {item.owner}</span>
-                  <span>When: {item.deadline}</span>
-                </div>
+                <details className={styles.queueContext + ' interface-details'}>
+                  <summary>Why this matters</summary>
+                  <p>{item.why}</p>
+                </details>
               </div>
               <div className={styles.todayQueueAction}>
                 {queueAction(item)}

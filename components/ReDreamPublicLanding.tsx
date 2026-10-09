@@ -43,7 +43,7 @@ const structuredData = {
 
 export default function ReDreamPublicLanding() {
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-interface="calm">
       <ReDreamFunnelTracker />
       <script
         type="application/ld+json"
@@ -56,7 +56,7 @@ export default function ReDreamPublicLanding() {
         <div className={styles.nav}>
           <Link href="/" className={styles.brand} aria-label="ReDream Systems">
             <img
-              src="/brand/redream-lockup-light.png"
+              src="/brand/redream-lockup-dark.png"
               alt="ReDream Systems"
               className={styles.brandLogo}
             />
@@ -87,10 +87,10 @@ export default function ReDreamPublicLanding() {
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>SOFTWARE FOR FOOTBALL AGENCIES</p>
             <h1>
-              Run your agency without relying on memory.
+              Your agency. Connected.
             </h1>
             <p className={styles.heroLead}>
-              ReDream keeps your players, club requests, contacts and deals connected. It shows your team what needs attention and what to do next.
+              Players, clubs, contacts and deals in one place. Know what needs attention and what to do next.
             </p>
 
             <div className={styles.heroActions}>
@@ -134,9 +134,9 @@ export default function ReDreamPublicLanding() {
       <section className={styles.storySection} id="how-it-works">
         <div className={styles.sectionIntro}>
           <p>SEE REDREAM WORK</p>
-          <h2>One club request. One clear next move.</h2>
+          <h2>One request. A clear next move.</h2>
           <span>
-            ReDream turns scattered information into something your team can act on.
+            Turn a club request into your next action.
           </span>
         </div>
         <ReDreamSimpleStory />
@@ -155,7 +155,7 @@ export default function ReDreamPublicLanding() {
         <div className={styles.changeGrid}>
           <article data-tone="problem">
             <span>Today</span>
-            <h3>Too much depends on people remembering.</h3>
+            <h3>Too much to remember.</h3>
             <ul>
               <li>Club requests arrive everywhere.</li>
               <li>Relationships live in people's heads.</li>
@@ -165,7 +165,7 @@ export default function ReDreamPublicLanding() {
 
           <article data-tone="value">
             <span>With ReDream</span>
-            <h3>The important work stays connected.</h3>
+            <h3>Keep the work connected.</h3>
             <ul>
               <li>Requests connect to the right players.</li>
               <li>Players connect to the best route into the club.</li>
@@ -205,7 +205,7 @@ export default function ReDreamPublicLanding() {
       <section className={styles.controlSection} id="control">
         <div>
           <p>YOU STAY IN CONTROL</p>
-          <h2>ReDream helps with the work. You make the decisions.</h2>
+          <h2>You stay in control.</h2>
         </div>
 
         <div className={styles.controlGrid}>
@@ -227,7 +227,7 @@ export default function ReDreamPublicLanding() {
       <section className={styles.commercialSection} id="pricing">
         <div className={styles.sectionIntro}>
           <p>PLANS FOR YOUR AGENCY</p>
-          <h2>Start small. Prove the value first.</h2>
+          <h2>Start with one player.</h2>
           <span>
             Start with one player, club request or live deal. See how ReDream works with your agency before moving everything across.
           </span>
@@ -259,7 +259,7 @@ export default function ReDreamPublicLanding() {
       <section className={styles.finalCta} id="final-cta">
         <div>
           <p>TRY IT WITH SOMETHING REAL</p>
-          <h2>A player. A club request. A relationship. A live deal.</h2>
+          <h2>Bring one real situation.</h2>
           <span>
             Bring us one real situation from your agency. We will show you how ReDream connects it and what the next move could be.
           </span>

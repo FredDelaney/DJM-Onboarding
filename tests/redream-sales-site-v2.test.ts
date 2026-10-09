@@ -17,8 +17,8 @@ const migration = fs.readFileSync('supabase/migrations/20260924122500_redream_pu
 
 test('V6.1 homepage explains the product in plain football-agency language', () => {
   assert.match(site, /SOFTWARE FOR FOOTBALL AGENCIES/);
-  assert.match(site, /Run your agency without relying on memory/);
-  assert.match(site, /players, club requests, contacts and deals connected/);
+  assert.match(site, /Your agency\. Connected\./);
+  assert.match(site, /Players, clubs, contacts and deals in one place/);
   assert.match(site, /what needs attention and what to do next/);
   assert.doesNotMatch(site, /THE DECISION LAYER FOR FOOTBALL AGENCIES/);
   assert.doesNotMatch(site, /Ask the agency, not the dashboard/);

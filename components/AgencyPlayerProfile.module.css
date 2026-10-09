@@ -2053,3 +2053,10 @@
     white-space: nowrap;
   }
 }
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.hero { background: #111827; box-shadow: none; min-height: 200px; }
+.hero::after { display: none; }
+.heroCopy h2 { font-weight: 600; }
+.card { box-shadow: none; border-color: #e5e5e7; }

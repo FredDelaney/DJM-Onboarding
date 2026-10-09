@@ -1263,7 +1263,7 @@ export default function PlatformPage() {
   }
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-interface="calm">
       <header className={styles.topbar}>
         <div className={styles.brandBlock}>
           <img
@@ -1305,9 +1305,9 @@ export default function PlatformPage() {
               </b>
             </div>
 
-            <h1>Know what blocks launch, value and revenue before the agency asks.</h1>
+            <h1>Agencies and revenue.</h1>
             <p className={styles.heroCopy}>
-              ReDream separates launch readiness, working value and commercial intervention so you always know who should act next.
+              See agency status, launch issues and who needs follow-up.
             </p>
 
             <div className={styles.heroPills} aria-label="Portfolio snapshot">

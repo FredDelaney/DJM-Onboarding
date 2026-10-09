@@ -11,7 +11,7 @@ test('deep customer screens use agent language instead of database language',()=
   const opportunities=read('components/AgencyOpportunitiesWorkspace.tsx');
   assert.match(player,/NEXT FOLLOW-UP/);
   assert.match(player,/SHARED PROFILE/);
-  assert.match(club,/Who can help us reach this club/);
+  assert.match(club,/Club contacts/);
   assert.match(contact,/Relationship strength/);
   assert.match(opportunities,/Open opportunity/);
   assert.doesNotMatch(club,/No active club need recorded/);

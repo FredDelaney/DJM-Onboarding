@@ -831,16 +831,8 @@ export default function AgencyOwnerCommandCentre({
             </div>
           </section>
 
-          <section className={styles.panel}>
-            <div className={styles.panelHead}>
-              <Network size={17} />
-              <div>
-                <p>LAST 30 DAYS</p>
-                <h3>
-                  What ReDream recorded
-                </h3>
-              </div>
-            </div>
+          <details className={styles.panel + ' interface-details'}>
+            <summary>What ReDream recorded in the last 30 days</summary>
 
             <div className={styles.grid}>
               <Fact
@@ -887,7 +879,7 @@ export default function AgencyOwnerCommandCentre({
                 </>
               )}
             </div>
-          </section>
+          </details>
 
           <p className={styles.truth}>
             Operations, commercial exposure and platform activity are shown separately.

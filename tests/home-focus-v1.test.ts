@@ -17,7 +17,7 @@ const home = workspace.slice(homeStart, homeEnd);
 
 test('Home headline reflects the bounded ranked queue', () => {
   assert.match(home, /queue\.length/);
-  assert.match(home, /things matter/);
+  assert.match(home, /priorities/);
   assert.match(home, /Nothing needs you right now/);
   assert.doesNotMatch(home, /identityResolution/);
 });
@@ -26,8 +26,8 @@ test('Home shows no more than five ranked items', () => {
   assert.match(home, /\.sort\(\(a, b\) => b\.score - a\.score\)/);
   assert.match(home, /\.slice\(0, 5\)/);
   assert.match(home, /<h2>Today<\/h2>/);
-  assert.match(home, /Start with the first item/);
-  assert.match(home, /Today at a glance/);
+  assert.match(home, /Why this matters/);
+  assert.match(home, /item\.recommendation/);
   assert.match(home, /queueAction\(item\)/);
   assert.match(home, /Record outcome/);
   assert.doesNotMatch(home, /Resolve identities/);

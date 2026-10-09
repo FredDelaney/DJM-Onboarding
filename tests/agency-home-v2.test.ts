@@ -54,8 +54,8 @@ test('Every Today card explains why, recommends the next move, owns it and has o
   assert.match(home, /item\.why/);
   assert.match(home, /Next step/);
   assert.match(home, /item\.recommendation/);
-  assert.match(home, /Owner: \{item\.owner\}/);
-  assert.match(home, /When: \{item\.deadline\}/);
+  assert.match(home, /\{item\.owner\}/);
+  assert.match(home, /\{item\.deadline\}/);
   assert.match(home, /queueAction\(item\)/);
   assert.match(home, /actionFor\(item\.payload\)/);
   assert.match(home, /Record outcome/);

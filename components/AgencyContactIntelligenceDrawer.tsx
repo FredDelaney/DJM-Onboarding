@@ -1261,40 +1261,12 @@ export default function AgencyContactIntelligenceDrawer({
 
             <AgencyBirthdayEditor entityKind="contact" entityId={clean(contact?.person_id)} rpc={rpc} />
 
-            <section
-              className={
-                styles.section
-              }
-            >
-              <div
-                className={
-                  styles.sectionHead
-                }
-              >
-                <div>
-                  <span>
-                    IDENTITY SOURCES
-                  </span>
-                  <h3>
-                    Research profiles
-                  </h3>
-                </div>
-
-                <button
-                  type="button"
-                  data-ui-button="tertiary"
-                  onClick={() =>
-                    setEditingProfiles(
-                      (value) =>
-                        !value,
-                    )
-                  }
-                >
-                  {editingProfiles
-                    ? 'Cancel'
-                    : 'Edit profiles'}
-                </button>
-              </div>
+            <details className={styles.section + ' interface-details'}>
+              <summary>Research profiles</summary>
+              <button type="button" data-ui-button="tertiary"
+                onClick={() => setEditingProfiles(value => !value)}>
+                {editingProfiles ? 'Cancel' : 'Edit profiles'}
+              </button>
 
               <ProfileLine
                 label="Transfermarkt"
@@ -1441,27 +1413,10 @@ export default function AgencyContactIntelligenceDrawer({
                   </button>
                 </form>
               ) : null}
-            </section>
+            </details>
 
-            <section
-              className={
-                styles.section
-              }
-            >
-              <div
-                className={
-                  styles.sectionHead
-                }
-              >
-                <div>
-                  <span>
-                    WHY THIS PERSON
-                  </span>
-                  <h3>
-                    Live agency context
-                  </h3>
-                </div>
-              </div>
+            <details className={styles.section + ' interface-details'}>
+              <summary>Live agency context</summary>
 
               <div
                 className={
@@ -1518,7 +1473,7 @@ export default function AgencyContactIntelligenceDrawer({
                 />
                 Open club context
               </button>
-            </section>
+            </details>
           </div>
         ) : null}
       </aside>

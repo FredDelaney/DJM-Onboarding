@@ -208,7 +208,7 @@ export default function CareerPage() {
             </div>
             <h1>Your career</h1>
             <p>
-              {firstName}, review your week, club history and private career records here.
+              Your week, club history and private career plans.
             </p>
 
             <div className="career-hub-actions">

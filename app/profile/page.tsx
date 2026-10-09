@@ -480,7 +480,7 @@ flash('Saved');
 void ctx.refresh();
 
 return true;
-    
+
   };
 
   const addVideo = async () => {
@@ -752,7 +752,7 @@ return true;
             </div>
 
             <h1 className="page-title">
-              Your career record.
+              Your profile
             </h1>
 
             <p className="page-intro">

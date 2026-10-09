@@ -233,7 +233,7 @@ export default function ProfileSettingsPage() {
           <div className={styles.panelHead}>
             <div>
               <h2>Profile photo</h2>
-              <p>Used across ownership, team handoffs and your account menu.</p>
+              <p>Shown beside your name.</p>
             </div>
             <Camera size={19} />
           </div>

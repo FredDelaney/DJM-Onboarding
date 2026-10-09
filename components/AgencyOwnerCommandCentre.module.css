@@ -756,3 +756,16 @@
     padding-right: 0;
   }
 }
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+.panel, .pagePanel .header, .fact { box-shadow: none; border-color: #e5e5e7; }
+.pageShell { background: #f5f5f7; }
+.header h2 { font-weight: 600; letter-spacing: -.035em; }
+.hero { min-height: 0; padding: 22px; background: #111827; box-shadow: none; }
+.hero h3 { font-size: 24px; font-weight: 600; }
+.pagePanel :global(.interface-details) { display: block; }
+.pagePanel :global(.interface-details:not([open])) { padding-top: 8px; padding-bottom: 8px; }
+@media (max-width:680px) {
+  .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .fact { padding: 12px; border-radius: 12px; }
+}

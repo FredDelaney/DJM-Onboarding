@@ -535,8 +535,9 @@ export default function AgencyEntityIntelligenceDrawer({
               />
             </div>
 
-            <section className={styles.panel}>
-              <p>ACCESS + ADVANTAGE</p>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Contact routes and deal context</summary>
+
               <h3>
                 {bestIntro.recommended_action ||
                   'No stronger recorded access move is available.'}
@@ -572,7 +573,7 @@ export default function AgencyEntityIntelligenceDrawer({
                   value={compact(advantage.exposures)}
                 />
               </div>
-            </section>
+            </details>
 
             <div className={styles.actions}>
               {controlFix.instruction ? (

@@ -121,11 +121,11 @@ export default function SettingsWorkspace({
     <div
       className={shellStyles.root}
       style={theme}
-      data-settings-shell="agency-workspace"
+      data-settings-shell="agency-workspace" data-interface="calm"
     >
       <aside className={shellStyles.sidebar}>
         <div className={shellStyles.brand}>
-          <TenantWorkspaceBrand href="/agency" darkSurface />
+          <TenantWorkspaceBrand href="/agency" />
         </div>
 
         <nav className={shellStyles.nav} aria-label="Agency workspace">

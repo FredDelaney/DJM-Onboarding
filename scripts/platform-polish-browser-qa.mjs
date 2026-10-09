@@ -144,6 +144,52 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      if(metrics.navigationOverlap)failures.push(screen+' marketing header overlaps the hero at '+width);
     }
     if(process.env.PLATFORM_POLISH_SCREENSHOTS&&[390,1440].includes(width)&&['home','product','sign-in','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4','review','complete','detail','players','network','profile','settings','deal'].includes(screen))await page.screenshot({path:join(process.env.PLATFORM_POLISH_SCREENSHOT_DIR||tmpdir(),'platform-polish-'+suite+'-'+screen+'-'+width+'.png'),fullPage:false});
+
+    if(width===390) {
+     const disclosures=page.locator('details.interface-details');
+     for(let index=0;index<await disclosures.count();index++) {
+      const disclosure=disclosures.nth(index),summary=disclosure.locator(':scope > summary');
+      await summary.press('Enter');
+      assert.equal(await disclosure.evaluate(node=>node.open),true,suite+'/'+screen+' detail must open with keyboard');
+      const expanded=await page.evaluate(()=>{
+       const visible=node=>{const r=node.getBoundingClientRect(),s=getComputedStyle(node);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none';};
+       return {
+        overflow:document.documentElement.scrollWidth-innerWidth,
+        smallControls:[...document.querySelectorAll('details.interface-details[open] button,details.interface-details[open] input:not([type=hidden]):not([type=checkbox]):not([type=radio]),details.interface-details[open] select,details.interface-details[open] summary')].filter(visible).filter(node=>node.getBoundingClientRect().height<43.5).map(node=>(node.getAttribute('aria-label')||node.textContent||node.tagName).trim().slice(0,60)),
+        missingLabels:[...document.querySelectorAll('details.interface-details[open] input:not([type=hidden]):not([type=checkbox]):not([type=radio]),details.interface-details[open] select,details.interface-details[open] textarea')].filter(visible).filter(node=>!node.labels?.length&&!node.getAttribute('aria-label')&&!node.getAttribute('aria-labelledby')).map(node=>node.name||node.tagName)
+       };
+      });
+      assert.ok(expanded.overflow<=1,suite+'/'+screen+' opened detail overflow');
+      assert.deepEqual(expanded.smallControls,[],suite+'/'+screen+' opened detail touch controls');
+      assert.deepEqual(expanded.missingLabels,[],suite+'/'+screen+' opened detail field labels');
+      if((await summary.textContent()).trim()==='Research profiles') {
+       await disclosure.getByRole('button',{name:'Edit profiles',exact:true}).click();
+       assert.ok(await disclosure.getByRole('textbox').count()>0,'Contact research profiles must remain editable');
+       await disclosure.getByRole('button',{name:'Cancel',exact:true}).click();
+       await disclosure.getByRole('button',{name:'Edit profiles',exact:true}).waitFor();
+      }
+      await summary.press('Enter');
+      assert.equal(await disclosure.evaluate(node=>node.open),false,suite+'/'+screen+' detail must close with keyboard');
+     }
+    }
+    if(suite==='agency'&&screen==='network'&&width===390) {
+     await page.getByRole('button',{name:/NEEDS ATTENTION/}).click();
+     await page.getByRole('button',{name:'Show all network',exact:true}).click();
+     await page.getByRole('button',{name:/Open club/}).first().waitFor();
+    }
+    if(suite==='agency'&&screen==='players'&&width===1440) {
+     const more=page.locator('details').filter({has:page.getByRole('button',{name:'Refresh',exact:true,includeHidden:true})});
+     const summary=more.locator('summary');
+     assert.equal(await more.evaluate(node=>node.open),false);
+     await summary.press('Enter');
+     await more.getByRole('button',{name:'Import players',exact:true}).waitFor();
+     await summary.press('Escape');
+     assert.equal(await more.evaluate(node=>node.open),false,'Escape closes workspace tools');
+     assert.equal(await summary.evaluate(node=>node===document.activeElement),true,'Escape returns focus');
+     await summary.press('Enter');
+     await more.getByRole('button',{name:'Refresh',exact:true}).click();
+     assert.equal(await more.evaluate(node=>node.open),false,'Workspace tool selection closes the menu');
+    }
    }
    console.log('SCREEN',suite,screen);
   }

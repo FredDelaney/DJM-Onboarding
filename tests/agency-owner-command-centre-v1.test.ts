@@ -45,7 +45,7 @@ test('Owner Command Centre keeps revenue service ownership and collection separa
   assert.match(owner, /TEAM/);
   assert.match(owner, /PLAYER SERVICE/);
   assert.match(owner, /Open receivables/);
-  assert.match(owner, /LAST 30 DAYS/);
+  assert.match(owner, /last 30 days/);
 });
 
 test('Commercial exposure remains evidence-led and multi-currency safe', () => {

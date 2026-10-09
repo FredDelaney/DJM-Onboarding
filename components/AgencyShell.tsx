@@ -40,7 +40,7 @@ export default function AgencyShell({
   if (!auth.user) return null;
 
   return (
-    <div className="djm-os-root" data-djm-page={pageKey}>
+    <div className="djm-os-root" data-djm-page={pageKey} data-interface="calm">
       <WorkspaceHeader
         workspace={auth.workspace}
         onSignOut={signOut}

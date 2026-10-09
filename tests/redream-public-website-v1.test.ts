@@ -41,7 +41,7 @@ test('resolved tenant metadata still wins before public ReDream metadata', () =>
 });
 
 test('homepage explains ReDream without requiring product vocabulary', () => {
-  assert.match(marketing, /Run your agency without relying on memory/);
+  assert.match(marketing, /Your agency\. Connected\./);
   assert.match(marketing, /what needs attention and what to do next/);
   assert.match(marketing, /Less admin/);
   assert.match(marketing, /Fewer missed follow-ups/);
@@ -67,7 +67,7 @@ test('simple story connects club request player relationship next move and outco
 });
 
 test('website keeps human control simple and explicit', () => {
-  assert.match(marketing, /ReDream helps with the work\. You make the decisions\./);
+  assert.match(marketing, /You stay in control\./);
   assert.match(marketing, /You approve important actions/);
   assert.match(marketing, /You own the judgement/);
 });

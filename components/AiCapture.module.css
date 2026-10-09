@@ -368,3 +368,8 @@
 .shell:not(.compact) .context { font-size: 12px; }
 .shell:not(.compact) .textPanel textarea { box-sizing: border-box; font-size: 16px; }
 .shell:not(.compact) .status { font-size: 12px; line-height: 1.5; }
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.shell:not(.compact) .hero { min-height: 230px; background: #111827; box-shadow: none; }
+.previewGrid { gap: 16px; }

@@ -16,6 +16,7 @@ import './djm-global-beauty.css';
 import './staff-mobile-layout-fix.css';
 import './djm-os-v3.css';
 import './tenant-theme.css';
+import './interface.css';
 
 import type {
   Metadata,

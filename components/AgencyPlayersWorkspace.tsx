@@ -934,7 +934,7 @@ export default function AgencyPlayersWorkspace({
                   <Avatar name={name} path={identity.profile_photo_path}/>
                   <div className={styles.playerIdentity}><h3>{name}</h3>
                     <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Add position, club or country'}</span>
-                    <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Add age or nationality'}</small></div>
+                    <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not set'}</small></div>
                   <div className={styles.playerCardEnd}>
                     {!item.access?.restricted ? <>                    {canManageRecords ? <EntityActionsMenu
                       kind="player"
@@ -979,10 +979,8 @@ export default function AgencyPlayersWorkspace({
                   </div>
                 </div> : null}
                 <div className={styles.playerFacts}>
-                  <div><span>Next action</span><strong>{service?.next_service_move?.instruction||identity.next_action||'No next action yet'}</strong><small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date set'}</small></div>
-                  <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong><small>Active opportunities</small></div>
-                  <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not set'}</strong><small>{human(identity.contract_status||'Status not set')}</small></div>
-                  <div><span>Agency agreement</span><strong>{item?.representation?.recorded?(item.representation.end_date?relativeDate(item.representation.end_date):'No end date'):'Not set'}</strong><small>{item?.representation?.recorded?human(item.representation.agreement_type):'No representation agreement'}</small></div>
+                  <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not set'}</strong></div>
+                  <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong></div>
                 </div>
                 </>}
                 {!item.access?.restricted ? <div className={styles.profileShortcutRow}>

@@ -56,8 +56,8 @@ test('legacy market, deals and relationships URLs resolve into V2 areas', () => 
 test('Home stays focused on five ranked agency decisions rather than dashboard widgets', () => {
   assert.match(workspace, /\.slice\(0, 5\)/);
   assert.match(workspace, /Good morning\./);
-  assert.match(workspace, /things matter/);
-  assert.match(workspace, /What matters most/);
+  assert.match(workspace, /priorities/);
+  assert.match(workspace, /Today priorities/);
   assert.match(workspace, /Next step/);
   assert.doesNotMatch(workspace, /AGENCY PULSE/);
   assert.doesNotMatch(workspace, /OPPORTUNITIES MOVING/);

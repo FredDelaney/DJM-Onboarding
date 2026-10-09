@@ -4680,3 +4680,67 @@
     transition: none;
   }
 }
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.root { background: var(--interface-canvas); color: var(--interface-ink); }
+.main { padding-top: 32px; }
+.pageHead { align-items: center; margin-bottom: 28px; }
+.pageHead h1 { font-size: clamp(28px, 3vw, 36px); line-height: 1.15; font-weight: 650; }
+.sectionCard, .card, .metric, .heroCard { box-shadow: none; border-color: var(--interface-line); }
+.sectionHead { border-color: var(--interface-line); }
+.eyebrow { letter-spacing: .06em; font-weight: 600; }
+.homeWelcome { margin-bottom: 4px; }
+.homeWelcome h2 { font-size: clamp(23px, 3vw, 30px); font-weight: 600; }
+.homeTodayQueue .todayQueueCard { background: #fff; box-shadow: none; }
+.homeTodayQueue .attentionCardPrimary {
+  background: #f2f7fd; color: #1d1d1f; border: 1px solid #dbe9f9; box-shadow: none;
+}
+.homeTodayQueue .attentionCardPrimary::after { display: none; }
+.homeTodayQueue .attentionCardPrimary .attentionCopy strong { color: #1d1d1f; }
+.homeTodayQueue .attentionCardPrimary .attentionMeta :is(span,small) { color: #536379; }
+.homeTodayQueue .attentionCardPrimary .todayQueueRecommendation { background: transparent; padding-left: 0; }
+.homeTodayQueue .attentionCardPrimary .todayQueueRecommendation small { color: #536379; }
+.homeTodayQueue .attentionCardPrimary .todayQueueRecommendation span { color: #1d1d1f; }
+.homeTodayQueue .attentionCardPrimary .compactButton { background: #0071e3; color: #fff; }
+.queueContext > summary { min-height: 44px; justify-content: flex-start; color: #536379; font-size: 12px; font-weight: 500; }
+.queueContext p { margin: 0; color: #536379; font-size: 13px; line-height: 1.6; }
+.workspaceTools { position: relative; flex: 0 0 auto; z-index: 12; }
+.workspaceTools > summary {
+  min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px;
+  border-radius: 12px; list-style: none; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.workspaceTools > summary::-webkit-details-marker { display: none; }
+.workspaceTools > summary::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid; border-bottom: 1.5px solid; transform: rotate(45deg); margin-top: -3px; }
+.workspaceToolsMenu {
+  position: absolute; right: 0; top: calc(100% + 8px); min-width: 210px; display: grid; gap: 4px;
+  padding: 8px; border: 1px solid #e5e5e7; border-radius: 16px; background: #fff; box-shadow: 0 12px 40px #1d1d1f14;
+}
+.workspaceToolsMenu button { width: 100%; min-height: 44px; justify-content: flex-start; text-align: left; }
+@media (min-width: 681px) {
+  .root { grid-template-columns: 220px minmax(0, 1fr); }
+  .sidebar { border-right: 1px solid #e5e5e7; background: #fff; color: #1d1d1f; }
+  .nav a { color: #6e6e73; font-weight: 500; min-height: 44px; }
+  .nav a:hover { background: #f5f5f7; color: #1d1d1f; }
+  .nav a.navActive { background: #edf5ff; color: #0071e3; box-shadow: none; }
+  .sidebarFoot { border-color: #e5e5e7; }
+  .sidebarFoot button, .sidebarFoot small { color: #6e6e73; }
+  .findButton { color: #6e6e73; }
+}
+@media (max-width: 680px) {
+  .main { padding-top: 18px; }
+  .pageHead { margin-bottom: 18px; }
+  .pageHead h1 { font-size: 22px; }
+  .sidebar { background: #fff; backdrop-filter: none; }
+  .homeTodayQueue .attentionCardPrimary { padding: 18px; border: 1px solid #dbe9f9; }
+}
+
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.root [data-ui-button="primary"]:not([data-ui-tone="inverse"]) { background: #0071e3 !important; box-shadow: none !important; }
+.root [data-ui-button="primary"]:not([data-ui-tone="inverse"]):hover { background: #0077ed !important; }
+.root [data-ui-button="secondary"]:not([data-ui-tone="inverse"]) { background: #f5f5f7 !important; color: #333336 !important; }
+.root [data-ui-button="tertiary"] { color: #6e6e73 !important; }
+.root [data-ui-button="icon"] { background: #f5f5f7 !important; color: #6e6e73 !important; }
+.root [data-ui-button]:focus-visible { outline: 3px solid #0071e3 !important; outline-offset: 3px; }

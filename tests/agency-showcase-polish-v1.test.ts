@@ -64,7 +64,7 @@ test('players and relationships use tenant-neutral premium entity presentation',
     /active_players \?\? items\.length\} represented/,
   );
   assert.doesNotMatch(workspace, /DJM Sports Management/);
-  assert.match(workspace, /What matters most/);
+  assert.match(workspace, /Today priorities/);
 });
 
 test('Market and Deals separate demand creation from commercial execution without inventing probability', () => {
