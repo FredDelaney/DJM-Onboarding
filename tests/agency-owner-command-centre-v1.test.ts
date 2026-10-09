@@ -51,7 +51,7 @@ test('Owner Command Centre keeps revenue service ownership and collection separa
 test('Commercial exposure remains evidence-led and multi-currency safe', () => {
   assert.match(
     owner,
-    /not guaranteed revenue/,
+    /Revenue is not guaranteed/,
   );
   assert.match(
     owner,

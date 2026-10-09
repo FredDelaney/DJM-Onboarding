@@ -950,7 +950,7 @@ export default function AgencyNetworkWorkspace({
                     </div>
                   ) : (
                     <p className={styles.muted}>
-                      No person is linked to this club yet.
+                      No linked contact yet.
                     </p>
                   )}
                 </div>

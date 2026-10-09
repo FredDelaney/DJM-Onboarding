@@ -756,7 +756,7 @@ return true;
             </h1>
 
             <p className="page-intro">
-              Keep your details, preferences and footage up to date.
+              Your details, preferences and footage.
             </p>
           </div>
 
@@ -937,7 +937,7 @@ return true;
             </strong>
 
             <span>
-              Salary expectations, passports, personal contact details and move preferences are not automatically shown to clubs.
+              Pay, passports, personal contacts and move preferences stay private unless approved for sharing.
             </span>
           </div>
         </section>

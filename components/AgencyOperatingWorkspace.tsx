@@ -1561,9 +1561,7 @@ export default function AgencyOperatingWorkspace() {
               <p className={styles.eyebrow}>FIRST WORKING VALUE REACHED</p>
               <h2>Your agency is operating now.</h2>
               <p>
-                Your player, club contact and live opportunity are now connected.
-                Keep the opportunity current here, then use Today to see what
-                matters next.
+                Your player, contact and opportunity are connected. Keep the next step current here.
               </p>
             </div>
             <button
@@ -2691,17 +2689,17 @@ function Home({
     <div className={`${styles.homeStack} ${styles.homeCommandCentre}`}>
       <section className={styles.homeWelcome}>
         <p>{greeting}</p>
-        <h2>
-          {queue.length
-            ? `${queue.length} ${queue.length === 1 ? 'thing matters' : 'things matter'} now`
-            : allState === 'ready'
-              ? 'Nothing needs your attention'
+        {queue.length || allState !== 'ready' ? (
+          <h2>
+            {queue.length
+              ? `${queue.length} ${queue.length === 1 ? 'thing matters' : 'things matter'} now`
               : 'Checking what matters now'}
-        </h2>
+          </h2>
+        ) : null}
         {queue.length ? (
           <>
             <p className={styles.homeFocusHint}>
-              Start with number one. ReDream has ranked the rest for you.
+              Start with the first item.
             </p>
             <div className={styles.homeQueueSummary} aria-label="Today at a glance">
               {queueSummary.map((item) => (
@@ -2727,7 +2725,7 @@ function Home({
           </Link>
         </div>
 
-        {restricted ? <p className={styles.homeReadNotice}>Your tasks, meetings and commitments. You can find players assigned to you under Players. Agency-wide commercial items are only shown to admins.</p> : null}
+        {restricted ? <p className={styles.homeReadNotice}>Your work only. Assigned players are under Players; commercial records require admin access.</p> : null}
         {readNotice(allState)}
 
         <div className={styles.todayQueueList}>
@@ -2764,7 +2762,7 @@ function Home({
             <EmptyState
               icon={CheckCircle2}
               title="Nothing needs you right now"
-              copy={restricted ? "You have no tasks, meetings or commitments that need action right now." : "You are up to date. Use the quiet time to add what happened or check the next move for your players."}
+              copy={restricted ? "You have no tasks, meetings or commitments that need action right now." : "Check your players or capture a new update."}
               action={
                 <div className={styles.emptyStateActions}>
                   <AiLauncher />
@@ -4655,8 +4653,7 @@ function Business({
 
       <section className={styles.businessEntry}>
         <div>
-          <h2>See where the business stands.</h2>
-          <p>Live deals, money due and team ownership in one place.</p>
+          <h2>Deals, income and team ownership</h2>
         </div>
 
         <button

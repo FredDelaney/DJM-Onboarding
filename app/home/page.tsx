@@ -193,8 +193,8 @@ export default function Home() {
           }
         : {
             eyebrow: "YOU'RE ALL GOOD",
-            title: 'Your agency has everything we need right now.',
-            detail: 'We will only ask you when something actually needs your attention.',
+            title: 'You are up to date.',
+            detail: 'No update needed today.',
             href: '/inbox',
             cta: 'Open your inbox',
           };
@@ -258,7 +258,7 @@ export default function Home() {
             <p>
               {lastCheckin
                 ? humanStatus(lastCheckin.availability_status)
-                : 'Your agency will ask only for information we cannot collect automatically.'}
+                : 'Send your weekly update.'}
             </p>
           </Link>
 
@@ -268,7 +268,7 @@ export default function Home() {
             <strong>{data.latestAgencyUpdate?.title || 'Your private agency line'}</strong>
             <p>
               {data.latestAgencyUpdate?.message ||
-                'Messages, requests and meaningful representation updates live here.'}
+                'Messages and requests from your agency.'}
             </p>
           </Link>
 
@@ -276,7 +276,7 @@ export default function Home() {
             <span className="ux-kicker">MY PROFILE</span>
             <UserRound size={20} />
             <strong>{profileState}</strong>
-            <p>Career, club profile and secure files are all under Me.</p>
+            <p>Review your details, footage and files.</p>
           </Link>
         </section>
 
@@ -286,8 +286,8 @@ export default function Home() {
             <h2>Your club profile.</h2>
             <p>
               {data.publicProfile?.published
-                ? 'Your approved profile is live. You can preview the exact club-facing version.'
-                : 'Your agency is building one clean, verified profile from your current information.'}
+                ? 'Your approved profile is live.'
+                : 'Your agency is preparing your club profile.'}
             </p>
           </div>
           <Link href="/cv" className="ux-secondary-button">

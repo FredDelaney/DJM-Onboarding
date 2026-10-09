@@ -231,10 +231,6 @@ export default function BillingSettingsPage() {
               {currentPlan?.display_name || 'ReDream'} plan
             </span>
             <h2>{formatPrice(currentPlan)} <small>/ month</small></h2>
-            <p>
-              Manage the agency plan, seats, billing identity, invoices and the
-              secure payment route from one place.
-            </p>
           </div>
           <div className={styles.usageGrid}>
             <div className={styles.usageCard}>

@@ -359,8 +359,7 @@ export default function TeamSettingsPage() {
           <div>
             <strong>Owner or admin access required.</strong>
             <p>
-              Your role is scoped to this agency. Team access is
-              managed independently for every ReDream customer.
+              Ask this agency's owner or admin to manage team access.
             </p>
           </div>
         </div>

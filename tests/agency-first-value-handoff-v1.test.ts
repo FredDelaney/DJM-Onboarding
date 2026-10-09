@@ -63,7 +63,7 @@ test('handoff preserves normal evidence-led workspace navigation', () => {
   assert.match(workspace, /Today/);
   assert.match(workspace, /Market/);
   assert.match(workspace, /Deals/);
-  assert.match(workspace, /see what\s+matters next/);
+  assert.match(workspace, /Keep the next step current here/);
   assert.doesNotMatch(workspace, /mark.*first.*value/i);
   assert.doesNotMatch(workspace, /complete.*first.*value/i);
 });

@@ -57,7 +57,7 @@ try{
   await captureError.getByRole('button',{name:'Try again',exact:true}).click();
   await page.getByPlaceholder('Spoke to Chris at Wellington. They need a striker...',{exact:true}).waitFor();
   assert.equal(await captureError.count(),0);
-  assert.ok(await page.getByText('Say or type what happened. ReDream proposes the right updates, then waits for your approval before anything changes.',{exact:true}).evaluate(node=>parseFloat(getComputedStyle(node).fontSize)>=14),'Capture instruction too small');
+  assert.ok(await page.getByText('Say or type an update. Review and approve the changes before they are saved.',{exact:true}).evaluate(node=>parseFloat(getComputedStyle(node).fontSize)>=14),'Capture instruction too small');
   assert.equal(await page.getByRole('textbox',{name:'Your update',exact:true}).count(),1);
   if(width===390)await page.screenshot({path:join(artifactDir,'capture-mobile.png')});
   assert.equal(await page.getByPlaceholder('Spoke to Chris at Wellington. They need a striker...',{exact:true}).inputValue(),'Call the sporting director','Retry lost the shared update');
@@ -68,7 +68,7 @@ try{
  captureScenario='normal';recentScenario='failed';await visit('?view=capture');
  const recent=page.getByRole('region',{name:'Recent captures',exact:true});
  const recentError=recent.getByRole('alert');await recentError.waitFor({timeout:5000});
- assert.equal(await recent.getByText('Your recent ReDream updates will appear here after you send the first one.',{exact:true}).count(),0,'Read failure was shown as an empty history');
+ assert.equal(await recent.getByText('No updates yet.',{exact:true}).count(),0,'Read failure was shown as an empty history');
  recentScenario='populated';await recentError.getByRole('button',{name:'Try again',exact:true}).click();
  await recent.getByRole('button',{name:/Call with the sporting director/}).waitFor();
  assert.equal(await recentError.count(),0);

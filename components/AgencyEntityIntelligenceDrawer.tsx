@@ -675,7 +675,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
 
             <p className={styles.truth}>
-              Based on recorded deal information. Indicators describe preparation and activity, not the probability of a transfer.
+              Recorded preparation and activity; no transfer probability is estimated.
             </p>
           </div>
         ) : null}

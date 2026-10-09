@@ -84,11 +84,11 @@ test('Agency settings explains the automatic contrast guardrail before save', ()
   assert.match(settings, /tenantBrandTokens/);
   assert.match(settings, /Accent highlight/);
   assert.match(settings, /Readable accent text/);
-  assert.match(settings, /protects contrast automatically/);
+  assert.match(settings, /Text and controls use accessible contrast/);
 });
 
 test('tenant admins can see the brand contrast guardrail and player UI uses safe accent ink', () => {
-  assert.match(agencySettings, /ReDream protects contrast automatically/);
+  assert.match(agencySettings, /Text and controls use accessible contrast/);
   assert.match(agencySettings, /brandPreview\.accentRaw/);
   assert.match(agencySettings, /brandPreview\.accent/);
   assert.match(playerPremium, /var\(--yellow-ink\)/);

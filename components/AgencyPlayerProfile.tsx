@@ -2147,8 +2147,7 @@ export default function AgencyPlayerProfile({
                     : 'Check the current player record.'}
                 </h2>
                 <p>
-                  Only change anything that is wrong. Confirming below saves
-                  these values and marks the current record verified.
+                  Correct any errors. Confirming saves these values and marks the record verified.
                 </p>
               </div>
 
@@ -2307,8 +2306,7 @@ export default function AgencyPlayerProfile({
                 <div>
                   <strong>Confirm this is current</strong>
                   <span>
-                    This is a human verification step. If the player data
-                    changes later, you will be asked to verify it again.
+                    Changes to player data require a new review.
                   </span>
                 </div>
               </div>
@@ -2363,10 +2361,9 @@ export default function AgencyPlayerProfile({
             <header>
               <div>
                 <span className={styles.eyebrow}>EDIT PLAYER PROFILE</span>
-                <h2>Only change what needs your judgement.</h2>
+                <h2>Edit club presentation</h2>
                 <p>
-                  Core player data, verified stats, career history and agency
-                  branding are pulled in automatically.
+                  Player details, verified statistics, history and branding are included automatically.
                 </p>
               </div>
               <button
