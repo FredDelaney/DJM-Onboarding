@@ -36,8 +36,9 @@ const transport:typeof fetch=async(input:any,options:any)=>{
  if(name==='player_source_refreshes')return jsonResponse(null);
  throw new Error('Unexpected request '+url.pathname);
 };
-const club=edgeHandler('supabase/functions/club-share-public/index.ts',transport);
-const player=edgeHandler('supabase/functions/player-profile-public/index.ts',transport);
+const edgeRoot=process.env.PUBLIC_PROFILE_EDGE_ROOT||'supabase/functions';
+const club=edgeHandler(edgeRoot+'/club-share-public/index.ts',transport);
+const player=edgeHandler(edgeRoot+'/player-profile-public/index.ts',transport);
 before(async()=>{
  db=await profileDatabase();
  await db.query("insert into public.club_share_links(id,player_id,token,organisation_id,active,expires_at,view_count,pitch_status) values($1,$2,$3,$4,true,now()+interval '1 day',0,'ready')",[id(161),id(21),id(181),id(41)]);
