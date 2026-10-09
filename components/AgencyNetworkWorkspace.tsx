@@ -387,10 +387,6 @@ export default function AgencyNetworkWorkspace({
     });
   }, [focus, people, searchValue]);
 
-  const strongestRoutes = people.filter(
-    (item: any) => number(item?.relationship?.route_score) > 0,
-  ).length;
-
   const followUps = number(
     peopleSummary?.contacts_with_open_follow_up,
   );
@@ -538,144 +534,90 @@ export default function AgencyNetworkWorkspace({
   return (
     <div className={styles.workspace}>
       {restricted ? <p className={styles.scopeNotice}>Shared clubs and contacts. Your contact pages show your own activity. Agency-wide commercial details are only shown to admins.</p> : null}
-      <section className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>NETWORK</p>
-          <h2>{restricted ? 'Your shared clubs and contacts' : 'Clubs and contacts'}</h2>
-          <p>
-            {restricted ? 'Find shared clubs and contacts, then review your own conversations and follow-ups.' : 'Find a contact, review your conversations and plan the next follow-up.'}
-          </p>
+
+      <section className={styles.networkOverview} aria-label="Network overview">
+        <div className={styles.networkCounts}>
+          <span><strong>{clubSummary?.relevant_clubs ?? clubs.length}</strong> clubs</span>
+          <span><strong>{peopleSummary?.club_contacts ?? people.length}</strong> people</span>
+          {!restricted ? <span><strong>{followUps}</strong> follow-ups</span> : null}
         </div>
 
-        <div className={styles.heroSummary}>
-          <div>
-            <strong>
-              {clubSummary?.relevant_clubs ?? clubs.length}
-            </strong>
-            <span>clubs</span>
-          </div>
-          <div>
-            <strong>
-              {peopleSummary?.club_contacts ?? people.length}
-            </strong>
-            <span>people</span>
-          </div>
-          {!restricted ? <div><strong>{followUps}</strong><span>follow-ups</span></div> : null}
-        </div>
+        {!restricted ? (
+          <details className={styles.focusDisclosure}>
+            <summary>
+              <span>Relationship signals</span>
+              <small>{attentionClubs || coolingPeople ? 'Needs review' : 'Review when needed'}</small>
+              <ChevronRight size={15} />
+            </summary>
+            <div className={styles.intelligence}>
+              <div className={styles.intelligenceHead}>
+                <strong>Where to focus</strong>
+                {focus !== 'all' ? (
+                  <button
+                    type="button"
+                    data-ui-button="tertiary"
+                    className={styles.clearFocus}
+                    onClick={() => setFocus('all')}
+                  >
+                    Show all network
+                  </button>
+                ) : null}
+              </div>
+
+              <div className={styles.intelligenceGrid}>
+                <button
+                  type="button"
+                  className={focus === 'attention' ? styles.intelligenceActive : styles.intelligenceCard}
+                  onClick={() => selectFocus('attention')}
+                >
+                  <CircleAlert size={17} />
+                  <span>Needs attention</span>
+                  <strong>{attentionClubs}</strong>
+                  <small>Live clubs with a due action or weak contact route.</small>
+                </button>
+
+                <button
+                  type="button"
+                  className={focus === 'warm' ? styles.intelligenceActive : styles.intelligenceCard}
+                  onClick={() => selectFocus('warm')}
+                >
+                  <GitBranch size={17} />
+                  <span>Warm routes</span>
+                  <strong>{warmRouteClubs}</strong>
+                  <small>Clubs where a warm introduction is stronger than going direct.</small>
+                </button>
+
+                <button
+                  type="button"
+                  className={focus === 'strong' ? styles.intelligenceActive : styles.intelligenceCard}
+                  onClick={() => selectFocus('strong')}
+                >
+                  <Route size={17} />
+                  <span>Strong routes</span>
+                  <strong>{strongPeople}</strong>
+                  <small>People where your agency already has a strong direct relationship.</small>
+                </button>
+
+                <button
+                  type="button"
+                  className={focus === 'cooling' ? styles.intelligenceActive : styles.intelligenceCard}
+                  onClick={() => selectFocus('cooling')}
+                >
+                  <TimerReset size={17} />
+                  <span>Going quiet</span>
+                  <strong>{coolingPeople}</strong>
+                  <small>Relationships with no activity for more than 45 days.</small>
+                </button>
+              </div>
+
+              <p className={styles.intelligenceTruth}>
+                Based on recorded activity and follow-ups. These signals do not predict responses or deal success.
+              </p>
+            </div>
+          </details>
+        ) : null}
       </section>
 
-{!restricted ? <>
-      <section
-        className={styles.intelligence}
-        aria-label="Network focus"
-      >
-        <div className={styles.intelligenceHead}>
-          <div>
-            <p className={styles.eyebrow}>
-              WHERE TO FOCUS
-            </p>
-            <strong>
-              Review recent contact and the next follow-up.
-            </strong>
-          </div>
-
-          {focus !== 'all' ? (
-            <button
-              type="button"
-              data-ui-button="tertiary"
-              className={styles.clearFocus}
-              onClick={() => setFocus('all')}
-            >
-              Show all network
-            </button>
-          ) : null}
-        </div>
-
-        <div className={styles.intelligenceGrid}>
-          <button
-            type="button"
-            className={
-              focus === 'attention'
-                ? styles.intelligenceActive
-                : styles.intelligenceCard
-            }
-            onClick={() =>
-              selectFocus('attention')
-            }
-          >
-            <CircleAlert size={17} />
-            <span>NEEDS ATTENTION</span>
-            <strong>{attentionClubs}</strong>
-            <small>
-              Live clubs with a due deal action or a weak contact route.
-            </small>
-          </button>
-
-          <button
-            type="button"
-            className={
-              focus === 'warm'
-                ? styles.intelligenceActive
-                : styles.intelligenceCard
-            }
-            onClick={() =>
-              selectFocus('warm')
-            }
-          >
-            <GitBranch size={17} />
-            <span>WARM ROUTES</span>
-            <strong>{warmRouteClubs}</strong>
-            <small>
-              Clubs where a warm introduction is stronger than going direct.
-            </small>
-          </button>
-
-          <button
-            type="button"
-            className={
-              focus === 'strong'
-                ? styles.intelligenceActive
-                : styles.intelligenceCard
-            }
-            onClick={() =>
-              selectFocus('strong')
-            }
-          >
-            <Route size={17} />
-            <span>STRONG ROUTES</span>
-            <strong>{strongPeople}</strong>
-            <small>
-              People where your agency already has a strong direct relationship.
-            </small>
-          </button>
-
-          <button
-            type="button"
-            className={
-              focus === 'cooling'
-                ? styles.intelligenceActive
-                : styles.intelligenceCard
-            }
-            onClick={() =>
-              selectFocus('cooling')
-            }
-          >
-            <TimerReset size={17} />
-            <span>GOING QUIET</span>
-            <strong>{coolingPeople}</strong>
-            <small>
-              Relationships with no activity for more than 45 days.
-            </small>
-          </button>
-        </div>
-
-        <p className={styles.intelligenceTruth}>
-          Based on recorded activity and follow-ups. These signals do not predict responses or deal success.
-        </p>
-      </section>
-
-
-</> : null}
       <section className={styles.toolbar}>
         <div className={styles.tabs}>
           <button
@@ -739,24 +681,6 @@ export default function AgencyNetworkWorkspace({
         </div>
       </section>
 
-{!restricted ? <>
-      <section className={styles.signalBar}>
-        <div>
-          <span>Known contact routes</span>
-          <strong>{strongestRoutes}</strong>
-        </div>
-        <div>
-          <span>Open follow-ups</span>
-          <strong>{followUps}</strong>
-        </div>
-        <div>
-          <span>Network principle</span>
-          <strong>Next follow-up</strong>
-        </div>
-      </section>
-
-
-</> : null}
       {view === 'clubs' ? (
         <section className={styles.grid}>
           {filteredClubs.map((club: any) => {
@@ -880,42 +804,43 @@ export default function AgencyNetworkWorkspace({
                   <small>{routeDetail}</small>
                 </div>
 
-                <div className={styles.clubContext}>
-                  <div>
-                    <span>WHAT THEY NEED</span>
-                    <strong>
-                      {number(demand?.active_needs)} active need
-                      {number(demand?.active_needs) === 1 ? '' : 's'}
-                    </strong>
-                    <small>
-                      {number(demand?.confirmed_needs)} confirmed
-                    </small>
-                  </div>
+                {number(demand?.active_needs) > 0 || number(commercial?.active_deals) > 0 ? (
+                  <div className={styles.clubContext}>
+                    {number(demand?.active_needs) > 0 ? (
+                      <div>
+                        <span>Club needs</span>
+                        <strong>
+                          {number(demand?.active_needs)} active
+                        </strong>
+                        {number(demand?.confirmed_needs) > 0 ? (
+                          <small>{number(demand?.confirmed_needs)} confirmed</small>
+                        ) : null}
+                      </div>
+                    ) : null}
 
-                  <div>
-                    <span>LIVE OPPORTUNITIES</span>
-                    <strong>
-                      {number(commercial?.active_deals)} active
-                    </strong>
-                    <small>
-                      {number(commercial?.deals_needing_action)} need action
-                    </small>
+                    {number(commercial?.active_deals) > 0 ? (
+                      <div>
+                        <span>Opportunities</span>
+                        <strong>{number(commercial?.active_deals)} active</strong>
+                        {number(commercial?.deals_needing_action) > 0 ? (
+                          <small>{number(commercial?.deals_needing_action)} need action</small>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
-                </div>
+                ) : null}
 
 
 </> : null}
-                <div className={styles.peopleBlock}>
-                  <div className={styles.sectionLabel}>
-                    <span>PEOPLE WE KNOW</span>
-                    {clubPeople.length > keyPeople.length ? (
-                      <small>
-                        +{clubPeople.length - keyPeople.length} more
-                      </small>
-                    ) : null}
-                  </div>
+                {keyPeople.length ? (
+                  <div className={styles.peopleBlock}>
+                    <div className={styles.sectionLabel}>
+                      <span>People we know</span>
+                      {clubPeople.length > keyPeople.length ? (
+                        <small>+{clubPeople.length - keyPeople.length} more</small>
+                      ) : null}
+                    </div>
 
-                  {keyPeople.length ? (
                     <div className={styles.peopleList}>
                       {keyPeople.map((item: any) => {
                         const person = item?.person || {};
@@ -929,18 +854,12 @@ export default function AgencyNetworkWorkspace({
                             onClick={() => openPerson(item)}
                           >
                             <span className={styles.personAvatar}>
-                              {initials(
-                                person?.full_name || 'Person',
-                              ) || 'P'}
+                              {initials(person?.full_name || 'Person') || 'P'}
                             </span>
 
                             <span className={styles.personIdentity}>
-                              <strong>
-                                {person?.full_name || 'Club contact'}
-                              </strong>
-                              <small>
-                                {employment?.role_title || 'Club contact'}
-                              </small>
+                              <strong>{person?.full_name || 'Club contact'}</strong>
+                              <small>{employment?.role_title || 'Club contact'}</small>
                             </span>
 
                             <ChevronRight size={16} />
@@ -948,12 +867,8 @@ export default function AgencyNetworkWorkspace({
                         );
                       })}
                     </div>
-                  ) : (
-                    <p className={styles.muted}>
-                      No linked contact yet.
-                    </p>
-                  )}
-                </div>
+                  </div>
+                ) : null}
 
                 {playLabel ? (
                   <div className={styles.nextMove}>

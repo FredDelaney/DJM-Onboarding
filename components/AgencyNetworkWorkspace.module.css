@@ -1976,3 +1976,217 @@
   font-size: 12px;
   line-height: 1.55;
 }
+
+/* Calm network v1: records first, signals on demand. */
+.networkOverview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.networkCounts {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #7b8690;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.networkCounts span {
+  white-space: nowrap;
+}
+
+.networkCounts strong {
+  margin-right: 3px;
+  color: #23313c;
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.focusDisclosure {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.focusDisclosure > summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border-radius: 11px;
+  background: transparent;
+  color: #60707c;
+  list-style: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.focusDisclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.focusDisclosure > summary:hover,
+.focusDisclosure[open] > summary {
+  background: #eef2f4;
+  color: #263a49;
+}
+
+.focusDisclosure > summary small {
+  color: #99a1a9;
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.focusDisclosure > summary svg {
+  transition: transform 140ms ease;
+}
+
+.focusDisclosure[open] > summary svg {
+  transform: rotate(90deg);
+}
+
+.focusDisclosure .intelligence {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(720px, calc(100vw - 300px));
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #e3e8eb;
+  border-radius: 16px;
+  background: rgba(255,255,255,.99);
+  box-shadow: 0 18px 50px rgba(24,37,49,.12);
+}
+
+.focusDisclosure .intelligenceHead {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.focusDisclosure .intelligenceHead > strong {
+  color: #26343e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.focusDisclosure .intelligenceGrid {
+  gap: 7px;
+}
+
+.focusDisclosure .intelligenceCard,
+.focusDisclosure .intelligenceActive {
+  min-height: 94px;
+  padding: 11px;
+  box-shadow: none;
+}
+
+.focusDisclosure .intelligenceTruth {
+  margin: 10px 2px 0;
+}
+
+@media (min-width: 681px) {
+  .workspace {
+    gap: 12px;
+  }
+
+  .toolbar {
+    min-height: 44px;
+  }
+
+  .search {
+    min-height: 40px;
+    border-color: #e7eaed;
+    box-shadow: none;
+  }
+
+  .clubGrid,
+  .peopleGrid,
+  .relationshipCards {
+    gap: 10px;
+  }
+
+  .clubCard,
+  .personCard {
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .networkOverview {
+    display: none;
+  }
+}
+
+/* Calm relationship cards v2. */
+@media (min-width: 681px) {
+  .clubCard {
+    gap: 11px;
+    padding: 16px;
+    border-radius: 15px;
+    box-shadow: none;
+  }
+
+  .clubMark {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+  }
+
+  .identity h3 {
+    font-size: 17px;
+  }
+
+  .primaryFact {
+    gap: 3px;
+    padding: 10px 0;
+    border-top: 1px solid #edf0f2;
+    border-bottom: 1px solid #edf0f2;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .primaryFact span,
+  .clubContext span,
+  .sectionLabel > span,
+  .nextMove span {
+    color: #96a0a8;
+    font-size: 12px;
+    letter-spacing: .07em;
+  }
+
+  .clubContext {
+    display: flex;
+    gap: 8px;
+  }
+
+  .clubContext > div {
+    min-height: 44px;
+    flex: 0 1 170px;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #f6f8f9;
+  }
+
+  .peopleBlock {
+    gap: 7px;
+  }
+
+  .nextMove {
+    margin: 0;
+    padding: 9px 0 9px 11px;
+    background: transparent;
+  }
+
+  .actions {
+    margin-top: 0;
+    padding-top: 1px;
+  }
+}

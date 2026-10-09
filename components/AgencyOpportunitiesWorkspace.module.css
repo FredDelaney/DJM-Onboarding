@@ -937,3 +937,52 @@
 }
 
 .row[data-search-match="true"]{outline:2px solid #718eaf;outline-offset:3px;box-shadow:0 8px 26px rgba(59,87,123,.12)}
+
+/* Calm opportunity list v1. */
+@media (min-width: 681px) {
+  .workspace {
+    gap: 12px;
+  }
+
+  .controls {
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .tabs {
+    padding: 3px;
+    border: 1px solid #e7eaed;
+    border-radius: 12px;
+    background: #f2f4f6;
+  }
+
+  .tab,
+  .tabActive {
+    min-height: 34px;
+    border-radius: 9px;
+  }
+
+  .search {
+    min-height: 40px;
+    border-color: #e7eaed;
+    box-shadow: none;
+  }
+
+  .listCard {
+    border-color: #e6eaed;
+    border-radius: 15px;
+    box-shadow: none;
+  }
+
+  .row {
+    min-height: 74px;
+    padding: 13px 15px;
+  }
+
+  .copy strong {
+    font-size: 13px;
+  }
+}

@@ -20,6 +20,7 @@ import {
   Home as HomeIcon,
   LogOut,
   MessageCircleMore,
+  MoreHorizontal,
   Network,
   Plus,
   PlugZap,
@@ -1478,53 +1479,49 @@ export default function AgencyOperatingWorkspace() {
           </div>
           <div className={styles.desktopHeadActions}>
             <AiLauncher />
-            <button
-              type="button"
-              data-ui-button="tertiary"
-              className={styles.refresh}
-              onClick={() => setConnectionsOpen(true)}
-              title="Connections"
-            >
-              <PlugZap size={15} />
-              Connections
-            </button>
             {createAction ? (
               <button
                 type="button"
                 data-ui-button="secondary"
-              className={styles.createButton}
+                className={styles.createButton}
                 onClick={() => setCreateKind(createAction.kind)}
               >
                 <Plus size={15} />
                 {createAction.label}
               </button>
             ) : null}
-            {view === 'players' &&
-            ['owner', 'admin', 'operations'].includes(
-              workspace.role,
-            ) ? (
-              <button
-                type="button"
-                data-ui-button="tertiary"
-              className={styles.refresh}
-                onClick={() => setRosterImportOpen(true)}
+            <details className={styles.pageUtilities}>
+              <summary
+                className={styles.utilityTrigger}
+                aria-label="More workspace actions"
+                title="More"
               >
-                Import players
-              </button>
-            ) : null}
-            <button
-              type="button"
-              data-ui-button="tertiary"
-              className={styles.refresh}
-              onClick={() => void loadView()}
-              disabled={busy}
-            >
-              <RefreshCw
-                size={15}
-                className={busy ? styles.spin : ''}
-              />
-              Refresh
-            </button>
+                <MoreHorizontal size={18} />
+              </summary>
+              <div className={styles.utilityMenu}>
+                <button type="button" onClick={() => setConnectionsOpen(true)}>
+                  <PlugZap size={15} />
+                  Connections
+                </button>
+                {view === 'players' &&
+                ['owner', 'admin', 'operations'].includes(workspace.role) ? (
+                  <button type="button" onClick={() => setRosterImportOpen(true)}>
+                    Import players
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void loadView()}
+                  disabled={busy}
+                >
+                  <RefreshCw
+                    size={15}
+                    className={busy ? styles.spin : ''}
+                  />
+                  Refresh
+                </button>
+              </div>
+            </details>
             <AccountMenu
               workspace={workspace}
               onSignOut={signOut}

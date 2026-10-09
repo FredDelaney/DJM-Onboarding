@@ -15,23 +15,23 @@ test('Network adds evidence-led focus without adding another product area', asyn
 
   assert.match(
     source,
-    /WHERE TO FOCUS/,
+    /Where to focus/,
   );
   assert.match(
     source,
-    /NEEDS ATTENTION/,
+    /Needs attention/,
   );
   assert.match(
     source,
-    /WARM ROUTES/,
+    /Warm routes/,
   );
   assert.match(
     source,
-    /STRONG ROUTES/,
+    /Strong routes/,
   );
   assert.match(
     source,
-    /GOING QUIET/,
+    /Going quiet/,
   );
 
   assert.match(

@@ -1770,3 +1770,133 @@
 
 .pagination { grid-column: 1 / -1; display: grid; justify-items: center; gap: 10px; padding: 18px; color: var(--text-muted, #64748b); text-align: center; font-size: 13px; }
 .pagination p { margin: 0; }
+
+/* Calm roster v1: the player is the object, metadata is supporting detail. */
+@media (min-width: 681px) {
+  .workspace {
+    gap: 12px;
+  }
+
+  .toolbar {
+    min-height: 44px;
+    gap: 10px;
+  }
+
+  .sectionTabs {
+    padding: 3px;
+    border-color: #e7eaed;
+    background: #f2f4f6;
+  }
+
+  .sectionTab,
+  .sectionTabActive {
+    min-height: 34px;
+  }
+
+  .search {
+    min-height: 40px;
+    border-color: #e7eaed;
+    box-shadow: none;
+  }
+
+  .playerGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .playerCard {
+    grid-template-columns: minmax(250px, .9fr) minmax(0, 1.35fr) auto;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 15px;
+    border-radius: 15px;
+    border-color: #e6eaed;
+    box-shadow: none;
+  }
+
+  .playerCardTop {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 11px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+  }
+
+  .playerIdentity h3 {
+    font-size: 14px;
+  }
+
+  .playerFacts {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(130px, .75fr);
+    gap: 0;
+    overflow: visible;
+    border: 0;
+    border-left: 1px solid #edf0f2;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .playerFacts > div {
+    min-width: 0;
+    display: none;
+    gap: 2px;
+    padding: 3px 16px;
+    background: transparent;
+  }
+
+  .playerFacts > div:nth-child(1),
+  .playerFacts > div:nth-child(3) {
+    display: grid;
+  }
+
+  .playerFacts > div:nth-child(3) {
+    border-left: 1px solid #edf0f2;
+  }
+
+  .playerFacts span {
+    color: #9aa2a9;
+    font-size: 12px;
+    letter-spacing: .05em;
+  }
+
+  .playerFacts strong {
+    color: #37424b;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .playerFacts small {
+    color: #9aa2a9;
+    font-size: 12px;
+  }
+
+  .profileShortcutRow {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 0 0 4px;
+    border: 0;
+  }
+
+  .profileShortcutRow .profileShortcut {
+    min-height: 40px;
+    padding: 0 10px;
+    border: 0;
+    background: transparent;
+    color: #687884;
+  }
+
+  .profileShortcutRow .profileShortcut:hover {
+    background: #f1f4f6;
+  }
+
+  .playerCardActions {
+    grid-column: 1 / -1;
+    margin-top: -4px;
+  }
+}

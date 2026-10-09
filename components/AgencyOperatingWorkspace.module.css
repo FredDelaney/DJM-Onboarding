@@ -4680,3 +4680,164 @@
     transition: none;
   }
 }
+
+/* Calm product shell v1: progressive disclosure over dashboard chrome. */
+@media (min-width: 681px) {
+  .root {
+    grid-template-columns: 216px minmax(0, 1fr);
+    background: #f7f8fa;
+  }
+
+  .sidebar {
+    gap: 24px;
+    padding: 24px 14px 20px;
+  }
+
+  .nav {
+    gap: 2px;
+  }
+
+  .nav a {
+    min-height: 42px;
+    border-radius: 10px;
+  }
+
+  .main {
+    width: min(1180px, 100%);
+    padding: 30px clamp(28px, 3.5vw, 48px) 64px;
+  }
+
+  .pageHead {
+    min-height: 48px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .pageHeadCopy {
+    gap: 5px;
+  }
+
+  .pageHead h1 {
+    margin: 0;
+    font-size: clamp(30px, 2.8vw, 38px);
+    font-weight: 760;
+    line-height: 1.02;
+    letter-spacing: -.045em;
+  }
+
+  .pageDescription {
+    color: #818993;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .desktopHeadActions {
+    gap: 5px;
+  }
+
+  .createButton {
+    min-height: 40px;
+    padding-inline: 13px;
+    border-radius: 11px;
+    box-shadow: none;
+  }
+
+  .sectionCard,
+  .card,
+  .metric,
+  .loadingCard {
+    box-shadow: none;
+    border-color: #e7eaed;
+  }
+
+  .stack,
+  .homeStack {
+    gap: 14px;
+  }
+}
+
+.pageUtilities {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.pageUtilities > summary {
+  list-style: none;
+}
+
+.pageUtilities > summary::-webkit-details-marker {
+  display: none;
+}
+
+.utilityTrigger {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #73808a;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.utilityTrigger:hover,
+.pageUtilities[open] .utilityTrigger {
+  background: #eef2f4;
+  color: #17324d;
+}
+
+.utilityTrigger:focus-visible {
+  outline: 3px solid rgba(70, 116, 151, .24);
+  outline-offset: 2px;
+}
+
+.utilityMenu {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 196px;
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid #e5e9ec;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 16px 42px rgba(23, 35, 47, .12);
+}
+
+.utilityMenu button {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #55636e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.utilityMenu button:hover {
+  background: #f3f5f6;
+  color: #1f3343;
+}
+
+.utilityMenu button:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+@media (max-width: 680px) {
+  .pageDescription {
+    display: none;
+  }
+}
