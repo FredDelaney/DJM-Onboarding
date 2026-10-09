@@ -1980,6 +1980,11 @@
 /* Calm interface: common reading rhythm and quiet surfaces. */
 
 .workspace { gap: 18px; }
+.toolbar { flex-wrap: wrap; }
+.tabs { flex-shrink: 0; }
+.toolbarTools { flex: 1 1 320px; max-width: 100%; }
+.search { min-width: 0; max-width: 410px; flex: 1 1 240px; }
+.tab, .tabActive, .search, .addEntityButton { min-height: 44px; }
 .hero { padding: 0 0 4px; border: 0; border-radius: 0; background: transparent; box-shadow: none; align-items: center; }
 .hero h2 { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
 .heroSummary { gap: 18px; }
