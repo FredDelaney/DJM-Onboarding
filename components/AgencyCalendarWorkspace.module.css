@@ -990,3 +990,34 @@
 @media (prefers-reduced-motion: reduce) {
   .calendarBootSpinner { animation: none; }
 }
+
+/* Calm empty-day summary v1 */
+.todayPanelClear {
+  padding: 12px 15px;
+}
+.todayPanelClear .todayHeading {
+  min-height: 36px;
+}
+.todayClear {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-top: 4px;
+}
+.todayClear strong {
+  color: #334753;
+  font-size: 13px;
+}
+.todayClear span {
+  color: #8a969e;
+  font-size: 12px;
+  line-height: 1.45;
+}
+@media (max-width: 680px) {
+  .todayPanelClear { padding: 11px 13px; }
+  .todayClear { display: grid; gap: 2px; }
+}
+
+@media (max-width: 680px) {
+  .todayPanelClear .todayHeading { min-height: 44px; }
+}

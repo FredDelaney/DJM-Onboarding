@@ -1050,7 +1050,7 @@ export default function AgencyPlayersWorkspace({
               onChange={(event) => setStageFilter(event.target.value)}
             >
               <option value="all">All ({targets.length})</option>
-              {PIPELINE.map(([key, label]) => (
+              {PIPELINE.filter(([key]) => Number(stageCounts[key] || 0) > 0).map(([key, label]) => (
                 <option value={key} key={key}>
                   {label} ({stageCounts[key] || 0})
                 </option>
@@ -1060,7 +1060,7 @@ export default function AgencyPlayersWorkspace({
 
           <section className={styles.stageFilters}>
             <button type="button" className={stageFilter==='all'?styles.stageFilterActive:styles.stageFilter} onClick={()=>setStageFilter('all')}>All <span>{targets.length}</span></button>
-            {PIPELINE.map(([key,label])=>(
+            {PIPELINE.filter(([key]) => Number(stageCounts[key] || 0) > 0).map(([key,label])=>(
               <button type="button" key={key} className={stageFilter===key?styles.stageFilterActive:styles.stageFilter} onClick={()=>setStageFilter(key)}>
                 {label}<span>{stageCounts[key]||0}</span>
               </button>

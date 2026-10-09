@@ -51,7 +51,7 @@ export default function Page(){
  if(['marketing','account','presentation','capture','recruitment'].includes(suite))content=<RemainingSurfaces suite={suite} screen={screen}/>;
  else if(suite==='agency')content=<AgencyOperatingWorkspace/>;
  else if(suite==='player'||suite==='settings')content=Component?<Component/>:<p>Unknown fixture screen</p>;
- else content=<div className={styles.root}><main className={styles.main}>
+ else content=<div className={styles.root}><main className={styles.main} style={{gridColumn:'1 / -1'}}>
   {screen==='deal'?<AgencyEntityIntelligenceDrawer presentation={params.get('drawer')==='1'?'drawer':'page'} request={{key:'deal',kind:'deal',entityId:'deal',title:'Example transfer'}} invoke={invoke as any} onClose={noop} onOpenAction={noop} onOpenCloseout={noop} onOpenNegotiation={noop} onOpenPlayerReview={noop}/>:null}
   {screen==='club'?<AgencyClubAccountDrawer presentation="page" request={{key:'club',organisationId:'club',title:'Example FC'}} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onClose={noop} onOpenAction={noop} onOpenDeal={noop} onOpenMarket={noop} onOpenPursuit={noop} onOpenPlayer={noop}/>:null}
   {screen==='contact'?<AgencyContactIntelligenceDrawer presentation="page" contact={{person_id:'contact',person:{full_name:'Example Director'}}} rpc={rpc as any} onClose={noop} onRefresh={refresh} onOpenClub={noop}/>:null}

@@ -1,0 +1,242 @@
+/* ReDream calm product layer v1
+   The product keeps its depth, but the default view should expose only what matters now. */
+
+/* Player workspace: quieter scale, less card theatre, same information. */
+.player-workspace-header .djm-os-header-inner {
+  min-height: 58px;
+}
+
+.ux-player-page,
+.player-career-page,
+.checkin-21,
+.djm-updates-page,
+.profile-21 {
+  --calm-radius: 16px;
+}
+
+.ux-player-page {
+  width: min(920px, calc(100% - 32px));
+  margin-top: 14px;
+  gap: 10px;
+}
+
+.ux-player-hero {
+  min-height: 224px;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.ux-player-hero-copy h1 {
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: .98;
+}
+
+.ux-player-primary-action {
+  gap: 5px;
+  padding: 12px 13px;
+  border-radius: 12px;
+}
+
+.ux-player-three {
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+.ux-player-summary-card {
+  min-height: 90px;
+  padding: 12px 14px;
+}
+
+.ux-player-club-card,
+.ux-player-season-fold,
+.ux-player-card {
+  border-radius: var(--calm-radius);
+  box-shadow: none;
+}
+
+/* Career is a work surface, not a landing page. */
+.career-hub-hero {
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 24px;
+  padding: 28px;
+  border-radius: 20px;
+  box-shadow: none;
+}
+
+.career-hub-copy h1 {
+  margin: 9px 0 8px;
+  font-size: clamp(34px, 4.6vw, 48px);
+  line-height: .96;
+}
+
+.career-hub-actions {
+  margin-top: 16px;
+}
+
+.career-score-panel {
+  padding: 17px;
+  border-radius: 16px;
+}
+
+.career-score-ring {
+  width: 82px;
+  height: 82px;
+}
+
+.career-score-ring > div strong {
+  font-size: 27px;
+}
+
+.career-control-strip {
+  margin-top: 10px;
+  border-radius: 16px;
+}
+
+.career-control-strip > div {
+  padding: 13px 14px;
+}
+
+.career-readiness-section,
+.career-record-section,
+.career-toolkit-section,
+.career-asset-card,
+.career-timeline-card {
+  border-radius: var(--calm-radius) !important;
+  box-shadow: none !important;
+}
+
+/* Check-in and agency updates: one question/action at a time. */
+.checkin-premium-intro {
+  margin: 4px 0 16px;
+}
+
+.quick-good-premium {
+  min-height: 72px;
+  padding: 13px 15px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.check-card-premium {
+  border-radius: 16px !important;
+  box-shadow: none;
+}
+
+.djm-updates-head {
+  margin: 4px 0 18px;
+}
+
+.djm-note-composer {
+  margin-bottom: 16px;
+  padding: 18px;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.djm-note-composer h2 {
+  margin-top: 5px;
+  font-size: 20px;
+}
+
+.djm-request-card,
+.profile-21-status,
+.profile-21-list,
+.player-dossier-empty-card {
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+.profile-21-head {
+  margin-top: 6px;
+}
+
+@media (max-width: 700px) {
+  .ux-player-page {
+    width: calc(100% - 24px);
+    margin-top: 10px;
+  }
+
+  .ux-player-hero {
+    min-height: 220px;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .ux-player-hero-copy h1 {
+    font-size: 30px;
+  }
+
+  .ux-player-summary-card {
+    min-height: 72px;
+  }
+
+  .career-hub-hero {
+    gap: 18px;
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .career-hub-copy h1 {
+    font-size: 35px;
+  }
+
+  .career-hub-actions {
+    margin-top: 13px;
+  }
+
+  .career-score-panel {
+    gap: 13px;
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .career-score-ring {
+    width: 70px;
+    height: 70px;
+  }
+
+  .career-score-ring > div strong {
+    font-size: 23px;
+  }
+
+  .career-control-strip {
+    border-radius: 14px;
+  }
+
+  .career-control-strip > div {
+    padding: 11px 12px;
+  }
+
+  .career-readiness-section,
+  .career-record-section,
+  .career-toolkit-section {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .quick-good-premium {
+    min-height: 66px;
+    padding: 12px 14px;
+    border-radius: 15px;
+  }
+
+  .checkin-premium-intro {
+    margin-bottom: 12px;
+  }
+
+  .djm-updates-head {
+    margin-bottom: 14px;
+  }
+
+  .djm-note-composer {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .djm-request-card {
+    border-radius: 16px !important;
+    padding: 16px !important;
+  }
+}
