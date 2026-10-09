@@ -8,7 +8,7 @@ Deal context, contact research and selected negotiation, service-review and busi
 
 No auth, tenant, approval, sharing, data-fetch, database, Edge Function, model or dependency changes. Existing pitch visuals, status meaning and private/public boundaries remain in place.
 
-Verification in progress:
+Verification and release gates:
 - Full npm run check passed: 1,633 tests, zero failures, TypeScript and production build.
 - Production browser acceptance runs 51 surfaces at 320, 390, 768 and 1440 pixels. Added keyboard disclosure, contact edit and workspace-menu assertions.
 - Final release requires verify and browser_journeys, followed by production deployment and alias verification.

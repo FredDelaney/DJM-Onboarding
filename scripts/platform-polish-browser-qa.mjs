@@ -175,7 +175,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     if(suite==='agency'&&screen==='network'&&width===390) {
      await page.getByRole('button',{name:/NEEDS ATTENTION/}).click();
      await page.getByRole('button',{name:'Show all network',exact:true}).click();
-     await page.getByRole('button',{name:/Open club/}).first().waitFor();
+     await page.getByRole('button',{name:'Open Example FC',exact:true}).first().waitFor();
     }
     if(suite==='agency'&&screen==='players'&&width===1440) {
      const more=page.locator('details').filter({has:page.getByRole('button',{name:'Refresh',exact:true,includeHidden:true})});

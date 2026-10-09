@@ -1986,7 +1986,7 @@
 .heroSummary > div { display: flex; align-items: baseline; gap: 5px; min-width: 0; padding: 0; border: 0; background: transparent; }
 .heroSummary strong { font-size: 14px; }
 .heroSummary span { color: #6e6e73; font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 400; }
-.intelligence { display: grid; padding: 12px 14px; background: #fff; border-color: #e5e5e7; box-shadow: none; }
+.intelligence { display: grid; padding: 12px 14px; background: #fff; border: 1px solid #e5e5e7; border-radius: 18px; box-shadow: none; }
 .intelligenceHead { display: flex; }
 .intelligenceHead:empty { display: none; }
 .intelligenceGrid { gap: 8px; }
