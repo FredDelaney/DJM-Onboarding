@@ -40,7 +40,7 @@ test('Private negotiation limits remain human-set and never AI-invented', () => 
   assert.match(negotiation, /deal_guardrails_save/);
   assert.match(
     negotiation,
-    /never invents negotiation floors, targets, concessions or walk-away terms/,
+    /Private limits set by your agency/,
   );
 });
 
@@ -75,11 +75,11 @@ test('Negotiation intelligence does not masquerade as outcome or authority predi
   );
   assert.match(
     negotiation,
-    /does not prove formal signing authority/,
+    /Job titles do not confirm decision-making or signing authority/,
   );
   assert.match(
     negotiation,
-    /not legal advice, regulatory clearance, authority confirmation, bargaining-power analysis or a prediction of signing outcome/,
+    /Internal preparation only\. Verify legal, regulatory and signing requirements separately/,
   );
   assert.doesNotMatch(negotiation, /\bDJM\b/);
 });

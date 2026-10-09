@@ -891,7 +891,7 @@ export default function AiCapture({
         <div className={styles.prompt}>
           <strong>Tell ReDream</strong>
           <span>
-            Say or type what happened. ReDream proposes the right updates, then waits for your approval before anything changes.
+            Say or type an update. Review and approve the changes before they are saved.
           </span>
         </div>
 
@@ -1010,7 +1010,7 @@ export default function AiCapture({
               </strong>
               <span>
                 {hasPendingActions
-                  ? 'Check what ReDream understood. Nothing changes until you approve.'
+                  ? 'Review the proposed changes below.'
                   : needsAttention
                     ? 'ReDream has not guessed. Resolve the items below or edit the note.'
                     : verifiedComplete
@@ -1039,13 +1039,7 @@ export default function AiCapture({
               <div className={styles.previewHead}>
                 <div>
                   <strong>{hasPendingActions ? 'Proposed changes' : 'What ReDream understood'}</strong>
-                  <span>
-                    {hasPendingActions
-                      ? 'Approve once to save these updates.'
-                      : 'This is the structured result from your original words.'}
-                  </span>
                 </div>
-                {hasPendingActions ? <small>Approval required</small> : null}
               </div>
               <div className={styles.previewGrid}>
                 {proposedRows.map(row => (
@@ -1059,7 +1053,7 @@ export default function AiCapture({
                 <div className={styles.approvalBar}>
                   <div>
                     <strong>Review before saving</strong>
-                    <span>Approve these updates, or edit your note first.</span>
+                    <span>Nothing changes until you approve.</span>
                   </div>
                   <div className={styles.approvalActions}>
                     <button

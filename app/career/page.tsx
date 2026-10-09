@@ -318,7 +318,7 @@ export default function CareerPage() {
           <div className="career-section-heading">
             <div>
               <div className="section-kicker">PROFESSIONAL READINESS</div>
-              <h2>Remove avoidable stress before an important moment.</h2>
+              <h2>Get ready for your next opportunity</h2>
               <p>{readiness.summary}</p>
             </div>
             <span className="career-readiness-total">
@@ -410,8 +410,7 @@ export default function CareerPage() {
               <div className="section-kicker">PROFESSIONAL RECORD</div>
               <h2>Clubs and seasons</h2>
               <p>
-                Club history and season numbers remain source-aware.
-                Unknown data stays unknown. It is never turned into a zero.
+                Sources stay attached. Missing figures stay blank.
               </p>
             </div>
             <Link href="/profile" className="btn btn-quiet btn-sm">
@@ -504,8 +503,7 @@ export default function CareerPage() {
               <div>
                 <strong>Add your first club or season</strong>
                 <span>
-                  Add clubs and seasons once, then use the same trusted
-                  record in your agency profile and club presentation.
+                  Your agency can review this history for your club profile.
                 </span>
               </div>
               <Link href="/profile">

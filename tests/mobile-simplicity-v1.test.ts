@@ -67,7 +67,7 @@ test('Pursuit Room speaks like an agent workflow while preserving internal contr
 
 test('Business uses plain agency language', () => {
   assert.match(owner, /Run the agency/);
-  assert.match(owner, /Deals, money owed, player service and who owns what/);
+  assert.match(owner, /Deals, income, player service and team ownership/);
   assert.doesNotMatch(owner, /Run the business without losing the football/);
 });
 

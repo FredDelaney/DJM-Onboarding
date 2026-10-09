@@ -847,7 +847,7 @@ export default function AgencyNegotiationCommandRoom({
               ) : null}
 
               <p className={styles.truth}>
-                Completing a task does not prove the underlying negotiation gap is resolved. The sequence stays tied to known information.
+                After completing a task, check that the underlying issue is resolved.
               </p>
             </section>
 
@@ -857,7 +857,7 @@ export default function AgencyNegotiationCommandRoom({
                 <div>
                   <p>DECISION ROUTE</p>
                   <h3>
-                    Who can move this deal and how the agency can reach them
+                    Decision-makers and contact routes
                   </h3>
                 </div>
               </div>
@@ -926,7 +926,7 @@ export default function AgencyNegotiationCommandRoom({
               </div>
 
               <p className={styles.truth}>
-                Role proximity comes from recorded job titles. It does not prove formal signing authority or final decision ownership.
+                Job titles do not confirm decision-making or signing authority. Verify both with the club.
               </p>
             </section>
 
@@ -1213,7 +1213,7 @@ export default function AgencyNegotiationCommandRoom({
               ) : null}
 
               <p className={styles.truth}>
-                The platform never invents negotiation floors, targets, concessions or walk-away terms. These fields are private human-set operating limits and are not proof of client consent, legal authority or enforceability.
+                Private limits set by your agency. Confirm client consent and legal authority separately.
               </p>
             </section>
 
@@ -1355,12 +1355,12 @@ export default function AgencyNegotiationCommandRoom({
               </div>
 
               <p className={styles.truth}>
-                Deal origin is explicit agency provenance. It is not inferred from whichever contact is currently attached to the deal, and it does not explain why a deal succeeds or fails.
+                Origin records who sourced the deal. A linked contact does not establish its origin or explain its outcome.
               </p>
             </section>
 
             <p className={styles.truth}>
-              Negotiation Command Room is internal preparation support. It is not legal advice, regulatory clearance, authority confirmation, bargaining-power analysis or a prediction of signing outcome.
+              Internal preparation only. Verify legal, regulatory and signing requirements separately.
             </p>
           </div>
         ) : null}
@@ -1373,7 +1373,7 @@ export default function AgencyNegotiationCommandRoom({
                 Approve these private negotiation limits?
               </strong>
               <span>
-                Approval marks the current draft as the agency’s internal operating limits for this deal. It does not send, accept or legally bind any term.
+                Saves these private limits. It does not send, accept or legally bind any term.
               </span>
             </div>
 

@@ -1242,11 +1242,7 @@ export default function AgencyContactIntelligenceDrawer({
                   styles.truth
                 }
               >
-                External profiles are
-                evidence only. ReDream
-                never changes someone's
-                club or role without
-                human confirmation.
+                Confirm club or role changes before updating this contact.
               </p>
             </section>
 

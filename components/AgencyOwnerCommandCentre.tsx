@@ -326,7 +326,7 @@ export default function AgencyOwnerCommandCentre({
             Run the agency.
           </h2>
           <p className={styles.subhead}>
-            Deals, money owed, player service and who owns what.
+            Deals, income, player service and team ownership.
           </p>
         </header>
 
@@ -336,7 +336,7 @@ export default function AgencyOwnerCommandCentre({
               <p>PIPELINE</p>
               <h3>{weightedLabel}</h3>
               <span>
-                Weighted commission is expected commission multiplied by the deal probability your agency entered. It is not guaranteed revenue.
+                Expected commission × your recorded deal probability. Revenue is not guaranteed.
               </span>
             </div>
 

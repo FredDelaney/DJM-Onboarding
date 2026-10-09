@@ -35,21 +35,21 @@ test('Player Service Review composes the existing service proof and history cont
 test('Player-safe preview stays explicitly separated from internal deal intelligence', () => {
   assert.match(review, /PLAYER-SAFE PREVIEW/);
   assert.match(review, /Club names remain hidden/);
-  assert.match(review, /Nothing is sent to the player automatically/);
-  assert.match(review, /internal negotiation, relationship and commercial intelligence remains separate/);
+  assert.match(review, /Nothing is sent automatically/);
+  assert.match(review, /internal deal and relationship intelligence stays private/);
 });
 
 test('Historical comparison requires persisted evidence instead of a fabricated baseline', () => {
   assert.match(review, /No comparison yet/);
   assert.match(review, /Save two reviews to compare changes over time/);
-  assert.match(review, /Compare this review with the previous saved review/);
-  assert.match(review, /negative delta is not automatically deterioration/);
+  assert.match(review, /Changes since the last review/);
+  assert.match(review, /A fall does not necessarily mean deterioration/);
 });
 
 test('Proof snapshot capture is explicit and uses the existing audited contract', () => {
   assert.match(review, /player_value_proof_capture/);
-  assert.match(review, /Capture current proof snapshot/);
-  assert.match(review, /same-day 30-day capture refreshes/);
+  assert.match(review, /Save review/);
+  assert.match(review, /Saving again today updates the same 30-day review/);
 });
 
 test('Review actions remain inside existing guarded player workflows', () => {

@@ -106,7 +106,6 @@ export default function AiRecentCaptures({
       <div className={styles.head}>
         <div>
           <strong>Recent</strong>
-          <span>Your latest ReDream updates and what happened to them.</span>
         </div>
         <button
           type="button"
@@ -173,7 +172,7 @@ export default function AiRecentCaptures({
         </div>
       ) : !error ? (
         <div className={styles.empty}>
-          Your recent ReDream updates will appear here after you send the first one.
+          No updates yet.
         </div>
       ) : null}
     </section>

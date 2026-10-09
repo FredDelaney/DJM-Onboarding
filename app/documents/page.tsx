@@ -330,9 +330,7 @@ export default function Documents() {
               lineHeight: 1.5,
             }}
           >
-            Tell your agency what the
-            file is first, then
-            choose the document.
+            Choose a type, then select your file.
           </p>
 
           <div className="grid3">
@@ -529,13 +527,7 @@ export default function Documents() {
               lineHeight: 1.5,
             }}
           >
-            Files are not
-            public. Your agency can
-            intentionally
-            approve specific
-            material for a club
-            share when
-            appropriate.
+            Files stay private. Your agency must approve eligible documents before sharing them with a club.
           </p>
         </section>
 

@@ -72,10 +72,7 @@ export default function CV() {
           </h1>
 
           <p className="page-intro">
-            Your Player Profile appears here
-            once your agency has prepared
-            the verified
-            presentation.
+            It will appear here after your agency prepares and verifies it.
           </p>
 
           <div className="card pad-lg player-dossier-empty-card">
@@ -90,13 +87,7 @@ export default function CV() {
               </strong>
 
               <span>
-                Salary expectations,
-                passports, personal
-                contact information,
-                check-ins and private
-                documents are not
-                automatically included
-                in your Player Profile.
+                Pay, passports, personal contacts, check-ins and private files are not automatically shared.
               </span>
             </div>
           </div>

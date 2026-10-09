@@ -318,7 +318,7 @@ export default function CheckIn() {
             How’s your week?
           </h1>
           <p className="page-intro">
-            Tell your agency what changed this week and what you need help with.
+            What changed, and what do you need?
           </p>
         </div>
 
@@ -375,7 +375,7 @@ export default function CheckIn() {
               Are you available to train and play?
             </h2>
             <p className="check-help">
-              This is only your football availability. Your club or move situation is separate below.
+              Your club and move situation are separate below.
             </p>
 
             <div className="choice-grid">
@@ -531,7 +531,7 @@ export default function CheckIn() {
                   Add this week’s match numbers
                 </h2>
                 <p className="check-help">
-                  Only if you want them in your private season log. Your agency verifies club-facing stats separately.
+                  Private season log only. Your agency verifies club statistics separately.
                 </p>
               </div>
               {details ? (

@@ -25,5 +25,5 @@ test('Tell ReDream makes the approval boundary obvious',()=>{
   assert.match(capture,/Review before saving/);
   assert.match(capture,/Approve & save/);
   assert.match(capture,/Nothing changes until you approve/);
-  assert.match(recent,/latest ReDream updates/);
+  assert.match(recent,/<strong>Recent<\/strong>/);
 });

@@ -367,7 +367,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           <h2>{request.title}</h2>
           <p className={styles.subhead}>
             {request.context ||
-              'Prepare a factual player review from service delivery, career control, market work and known deadlines.'}
+              'Recorded work, career plans and known deadlines.'}
           </p>
         </header>
 
@@ -413,13 +413,13 @@ export default function AgencyPlayerServiceReviewDrawer({
                     meeting?.relationship_control_state ||
                       meeting?.service_control_state ||
                       proof?.proof_state ||
-                      'recorded',
+                      'not set',
                   )}
                 </h3>
                 <span>
                   {meeting?.nearest_deadline?.title ||
                     statement?.service_plan?.next_action ||
-                    'Review the current service position with the player.'}
+                    'Discuss the next step with the player.'}
                 </span>
               </div>
 
@@ -469,8 +469,8 @@ export default function AgencyPlayerServiceReviewDrawer({
                 detail="Activity only, not a judgement of service quality or satisfaction"
               />
               <Fact
-                label="Proof history"
-                value={`${snapshots.length} snapshot(s)`}
+                label="Saved reviews"
+                value={`${snapshots.length} saved`}
                 detail={
                   latestSnapshot?.snapshot_date
                     ? `Latest ${prettyDate(latestSnapshot.snapshot_date)}`
@@ -483,8 +483,8 @@ export default function AgencyPlayerServiceReviewDrawer({
               <div className={styles.panelHead}>
                 <CheckCircle2 size={17} />
                 <div>
-                  <p>WHAT THE AGENCY ACTUALLY DID</p>
-                  <h3>Recorded service and market work in the last 30 days</h3>
+                  <p>RECORDED ACTIVITY</p>
+                  <h3>Last 30 days</h3>
                 </div>
               </div>
 
@@ -535,9 +535,9 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <History size={17} />
                     <div>
-                      <strong>No material recorded movement in this window.</strong>
+                      <strong>No activity recorded in this period.</strong>
                       <span>
-                        Offline work that has not been captured cannot appear as proof.
+                        Add any work completed outside ReDream.
                       </span>
                     </div>
                   </div>
@@ -545,7 +545,7 @@ export default function AgencyPlayerServiceReviewDrawer({
               </div>
 
               <p className={styles.truth}>
-                Activity volume is evidence that work was recorded. It is not proof of service quality, player satisfaction or transfer success.
+                Recorded activity does not measure service quality, player satisfaction or transfer success.
               </p>
             </section>
 
@@ -554,7 +554,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 <History size={17} />
                 <div>
                   <p>WHAT CHANGED SINCE THE LAST REVIEW</p>
-                  <h3>Compare this review with the previous saved review</h3>
+                  <h3>Changes since the last review</h3>
                 </div>
               </div>
 
@@ -591,7 +591,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                       <div>
                         <strong>No count changes between the two snapshots.</strong>
                         <span>
-                          The evidence state can still be reviewed without inventing movement.
+                          Review the underlying records for context.
                         </span>
                       </div>
                     </div>
@@ -610,7 +610,7 @@ export default function AgencyPlayerServiceReviewDrawer({
               )}
 
               <p className={styles.truth}>
-                Snapshot deltas compare known information. Overlapping rolling windows can move counts in either direction, so a negative delta is not automatically deterioration.
+                Overlapping review periods can change counts. A fall does not necessarily mean deterioration.
               </p>
             </section>
 
@@ -684,7 +684,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 <ShieldCheck size={17} />
                 <div>
                   <p>PLAYER-SAFE PREVIEW</p>
-                  <h3>What can be used for service transparency without exposing internal deal intelligence</h3>
+                  <h3>Player preview</h3>
                 </div>
               </div>
 
@@ -733,7 +733,7 @@ export default function AgencyPlayerServiceReviewDrawer({
               ) : null}
 
               <p className={styles.truth}>
-                This is a preview only. Nothing is sent to the player automatically, and internal negotiation, relationship and commercial intelligence remains separate.
+                Preview only. Nothing is sent automatically; internal deal and relationship intelligence stays private.
               </p>
             </section>
 
@@ -782,17 +782,14 @@ export default function AgencyPlayerServiceReviewDrawer({
                 ) : (
                   <History size={15} />
                 )}
-                Capture current proof snapshot
+                Save review
               </button>
 
               <p className={styles.truth}>
-                A same-day 30-day capture refreshes that day’s snapshot rather than creating a duplicate baseline.
+                Saving again today updates the same 30-day review.
               </p>
             </section>
 
-            <p className={styles.truth}>
-              Player Service Review brings together known activity for a human conversation. It does not guess player satisfaction, loyalty, agency quality or career outcome.
-            </p>
           </div>
         ) : null}
       </aside>

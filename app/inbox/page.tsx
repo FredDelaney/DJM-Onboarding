@@ -213,7 +213,7 @@ function InboxContent() {
               Your agency updates.
             </h1>
             <p className="page-intro">
-              Review agency requests, reply or send a note.
+              Requests and messages from your agency.
             </p>
           </div>
 
@@ -239,7 +239,7 @@ function InboxContent() {
             </div>
             <h2>What do you need?</h2>
             <p>
-              Keep it short. A question, update or something you want the agency to follow up.
+              Send a question, update or request.
             </p>
             <textarea
               className="textarea"
