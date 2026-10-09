@@ -1,0 +1,30 @@
+# Production release verification, 9 October 2026
+
+PR: https://github.com/FredDelaney/DJM-Onboarding/pull/220
+Reviewed and tested feature head: 50479577b07e879a84591339bae55250d574fe37
+Merged main commit: 0dc64100427e947e3727b182877b581dd8d5ebb6
+Merged at: 2026-10-09T15:25:38Z
+Fetched origin/main matches the merge commit. The merged code tree matches the tested feature head.
+
+Required CI run 37949893567 passed both verify and browser_journeys.
+verify includes dependency audit, 1,633 tests, TypeScript checks and production build.
+The browser gate passed customer entry/recovery, workspace navigation and role separation, calendar, pursuit continuity, Capture recovery, player read/write/upload recovery and 204 platform screen/viewport combinations.
+The final focused local detail/Capture production-build rerun passed 40 combinations.
+Two obsolete browser copy selectors were aligned with the revised Capture instructions and empty history; existing readability, retained-note and truthful failure assertions were kept.
+
+Existing Vercel projects released through their normal Git integration:
+- djm-player / prj_VjUR9esINumuWk1YGsQATg2kywCp / dpl_BtZmwArPXtomGJ5T5n9KAWHzcfhG / READY / production / main / merged SHA
+- redream-systems / prj_x29nbgEDWaW6hOw8F5mK7jgq18Xv / dpl_Ere4kJv42biA8456zAbs5EajJJWd / READY / production / main / merged SHA
+Both deployment records identify FredDelaney/DJM-Onboarding.
+Aliases verified: https://app.djmsports.com and https://redreamsystems.com.
+Zero Vercel preview deployments for the feature branch. No manual or duplicate deployments were started.
+
+Live checks passed:
+- The production agency JavaScript bundle serves the revised Home copy without browser page errors.
+- Five marketing pages at 320, 768 and 1440px: no horizontal overflow or heading overlap, usable navigation targets, no page errors.
+- Synthetic unavailable profile and club-share links show their intended unavailable states without misleading retry controls.
+- Production club-share-public and player-profile-public hosted method, unavailable response, CORS and no-store checks passed.
+
+Public-profile staging/production database and Edge-function evidence is in docs/operations/public-profile-visibility-2026-10-09.md.
+Private workflows were tested with synthetic fixtures. No positive live customer-token workflow was exercised.
+This verification is attached as a Git note so recording release evidence does not create another main-branch deployment.
