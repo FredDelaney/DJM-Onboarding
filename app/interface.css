@@ -1,0 +1,50 @@
+/* Shared interface tokens. Tenant identity, pitch colours and status semantics stay local. */
+:root {
+  --interface-ink: #1d1d1f;
+  --interface-muted: #6e6e73;
+  --interface-line: #e5e5e7;
+  --interface-canvas: #f5f5f7;
+  --interface-surface: #ffffff;
+  --interface-blue: #0071e3;
+  --interface-soft: #f5f5f7;
+}
+[data-interface="calm"] {
+  font-family: -apple-system, BlinkMacSystemFont, var(--font-redream-inter), "Segoe UI", sans-serif;
+  color: var(--interface-ink);
+}
+[data-interface="calm"] h1,
+[data-interface="calm"] h2,
+[data-interface="calm"] h3 { text-wrap: balance; }
+[data-interface="calm"] :where(p, li) { text-wrap: pretty; }
+[data-interface="calm"] :where(button, a, summary, input, select, textarea):focus-visible {
+  outline: 3px solid #0071e3;
+  outline-offset: 3px;
+}
+.interface-details { min-width: 0; }
+.interface-details > summary {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: 44px; list-style: none; cursor: pointer;
+  color: #1d1d1f; font-size: 14px; font-weight: 600; line-height: 1.4;
+}
+.interface-details > summary::-webkit-details-marker { display: none; }
+.interface-details > summary::after {
+  content: ""; flex: 0 0 7px; width: 7px; height: 7px; margin-right: 3px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg);
+}
+.interface-details[open] > summary::after { transform: rotate(225deg); }
+.interface-details[open] > summary { margin-bottom: 14px; }
+.interface-details > summary:hover { color: #0071e3; }
+@media (prefers-reduced-motion: reduce) {
+  [data-interface="calm"] *, [data-interface="calm"] *::before, [data-interface="calm"] *::after {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Player pages and legacy staff screens share the same quiet canvas. */
+.ux-player-root, .admin-shell, .djm-os-root { background: #f5f5f7; }
+.ux-player-root :is(.ux-player-card, .career-readiness-section, .career-record-section, .profile-21-list),
+.djm-os-root :is(.djm-os-card, .ux-settings-card) { box-shadow: none; border-color: #e5e5e7; }
+.ux-player-root :is(.page-title, .career-hub-copy h1) { font-weight: 600; letter-spacing: -.035em; }
+.ux-player-root .ux-player-card h2 { font-weight: 600; }
+.ux-player-root .ux-primary-button { background: #0071e3; box-shadow: none; }
+.ux-settings-grid :is(h2,h3) { font-weight: 600; }

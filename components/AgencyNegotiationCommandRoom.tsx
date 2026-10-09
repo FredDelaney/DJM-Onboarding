@@ -851,16 +851,8 @@ export default function AgencyNegotiationCommandRoom({
               </p>
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Users size={17} />
-                <div>
-                  <p>DECISION ROUTE</p>
-                  <h3>
-                    Decision-makers and contact routes
-                  </h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Decision-makers and contact routes</summary>
 
               <div className={styles.rows}>
                 {people
@@ -928,7 +920,7 @@ export default function AgencyNegotiationCommandRoom({
               <p className={styles.truth}>
                 Job titles do not confirm decision-making or signing authority. Verify both with the club.
               </p>
-            </section>
+            </details>
 
             <section className={styles.panel}>
               <div className={styles.panelHead}>
@@ -936,7 +928,7 @@ export default function AgencyNegotiationCommandRoom({
                 <div>
                   <p>PRIVATE GUARDRAILS</p>
                   <h3>
-                    Your objectives, limits and concession order
+                    Objectives and limits
                   </h3>
                 </div>
               </div>
@@ -1217,16 +1209,8 @@ export default function AgencyNegotiationCommandRoom({
               </p>
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Target size={17} />
-                <div>
-                  <p>KNOWN FACTS & OPEN QUESTIONS</p>
-                  <h3>
-                    Recorded facts and open questions
-                  </h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Recorded facts and open questions</summary>
 
               <div className={styles.grid}>
                 <Fact
@@ -1311,18 +1295,10 @@ export default function AgencyNegotiationCommandRoom({
                     )}
                 </div>
               </div>
-            </section>
+            </details>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Network size={17} />
-                <div>
-                  <p>PROVENANCE</p>
-                  <h3>
-                    Where this opportunity actually came from
-                  </h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Opportunity history</summary>
 
               <div className={styles.grid}>
                 <Fact
@@ -1357,7 +1333,7 @@ export default function AgencyNegotiationCommandRoom({
               <p className={styles.truth}>
                 Origin records who sourced the deal. A linked contact does not establish its origin or explain its outcome.
               </p>
-            </section>
+            </details>
 
             <p className={styles.truth}>
               Internal preparation only. Verify legal, regulatory and signing requirements separately.

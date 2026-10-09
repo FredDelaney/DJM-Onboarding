@@ -121,7 +121,7 @@ test(
     );
     assert.match(
       workspace,
-      /What matters most/,
+      /Today priorities/,
     );
   },
 );

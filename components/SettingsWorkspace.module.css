@@ -326,3 +326,11 @@
 .content :global(.admin-resource-switches label) {
   font-size: 12px;
 }
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.workspace { gap: 24px; }
+.rail { gap: 16px; }
+.link { font-weight: 500; }
+.current { background: #edf5ff; color: #0071e3; }
+.workspaceIdentity { border-color: #e5e5e7; }

@@ -937,3 +937,8 @@
 }
 
 .row[data-search-match="true"]{outline:2px solid #718eaf;outline-offset:3px;box-shadow:0 8px 26px rgba(59,87,123,.12)}
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.listCard { box-shadow: none; border-color: #e5e5e7; }
+.toolbar { gap: 14px; }

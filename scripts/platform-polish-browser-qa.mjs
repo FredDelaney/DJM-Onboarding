@@ -27,7 +27,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
  const user={id:'00000000-0000-0000-0000-000000000080',email:'fixture@example.test',aud:'authenticated',role:'authenticated',created_at:'2026-01-01T00:00:00Z',app_metadata:{},user_metadata:{}};
  const token='fixture.'+Buffer.from(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture';
  const session={access_token:token,refresh_token:'fixture-refresh',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
- const screens={agency:['home','players','opportunities','network','calendar','business'],player:['home','profile','inbox','career','check-in','cv','documents','connections'],settings:['settings','profile','preferences','security','team','agency','billing','connections','player-experience'],detail:['deal','club','contact','negotiation','review','business'],marketing:['home','product','security','support','switch'],account:['sign-in','forgot','reset','player-invite','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4'],presentation:['profile','share'],capture:['voice','text','review','complete'],recruitment:['list','detail']};
+ const screens={agency:['home','players','opportunities','network','calendar','business'],player:['home','profile','inbox','career','check-in','cv','documents','connections'],settings:['settings','profile','preferences','security','team','agency','billing','connections','player-experience'],detail:['deal','club','contact','negotiation','review','business'],marketing:['home','product','security','support','switch'],account:['sign-in','forgot','reset','player-invite','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4'],presentation:['profile','share'],capture:['voice','text','review','complete'],recruitment:['list','detail'],setup:['branding','privacy','first_player','first_relationship','first_opportunity','owner_setup_complete'],misc:['privacy','workspaces']};
  const selectedSuites=process.env.PLATFORM_POLISH_SUITES?.split(',');
  const fixturePath='/workspace/qa-platform-polish/example-player/00000000-0000-4000-8000-000000000081/qa-platform-polish';
  const publicProfile={display_name:'Example Club Player',primary_position:'CM',current_club:'Example FC',headline:'Central midfielder',nationalities:['NZ'],key_stats:[{label:'Appearances',value:'18'},{label:'Minutes',value:'1250'}],career_history:[{club:'Example FC',season:'2025/26',appearances:18,minutes:1250}],videos:[{title:'Example highlights',url:'https://example.test/highlights',video_type:'highlight',featured:true}],transfermarkt_url:'https://www.transfermarkt.com/example/profil/spieler/1',verified_at:'2026-10-07T00:00:00Z'};
@@ -55,6 +55,8 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
    }
    else if(path.endsWith('/functions/v1/player-invite-public'))data={invite:{valid:true,can_activate:true,email:'invited@example.test',full_name:'Example Player',agency:{display_name:'Example Agency',short_name:'Example'},privacy:{ready:true,noticeVersion:'fixture-v1',noticeUrl:'https://example.test/privacy',controllerName:'Example Agency'}}};
    else if(path.endsWith('/functions/v1/agency-staff-invite-public'))data={invite:{email:'invited@example.test',full_name:'Example Agent',role:'agent',tenant:{slug:'qa-platform-polish'},branding:{display_name:'Example Agency'}}};
+   else if(path.endsWith('/functions/v1/agency-launch'))data={launch:{tenant_id:'00000000-0000-0000-0000-000000000081',tenant_slug:'qa-platform-polish',branding:{display_name:'Example Agency',portal_name:'Example Agency',primary_color:'#111827',accent_color:'#64748b',support_email:'agent@example.test'},owner_setup:{next_step:state.screen,completed_count:0,total_count:5,steps:[{key:'branding',label:'Agency identity',complete:false},{key:'privacy',label:'Privacy notice',complete:false},{key:'first_player',label:'First player',complete:false},{key:'first_relationship',label:'Club contact',complete:false},{key:'first_opportunity',label:'Live opportunity',complete:false}]},players:[{id:'player',name:'Example Player'}]}};
+   else if(path.endsWith('/functions/v1/player-os')&&body.action==='workspaces')data={workspaces:[{player_id:'player',portal_hostname:'example.redreamsystems.com',agency:{display_name:'Example Agency'}}]};
    else if(path.endsWith('/functions/v1/agency-os')){
     if(suite==='player'){status=403;data={error:'Agency staff access required'};}
     else if(body.action==='tenants')data={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-platform-polish',role:'owner',display_name:'Example Agency'}]};
@@ -100,6 +102,11 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      else if(screen==='review')await page.getByRole('button',{name:'Approve & save',exact:true}).waitFor();
      else await page.getByText('Approved, written back and verified.',{exact:false}).waitFor();
     }
+    if(suite==='setup') {
+     if(screen==='owner_setup_complete')await page.getByText('Owner setup complete',{exact:true}).waitFor();
+     else await page.locator('input:visible').first().waitFor();
+    }
+    if(suite==='misc'&&screen==='workspaces')await page.getByRole('link',{name:/Open player portal/}).waitFor();
     if(suite==='recruitment'){
      if(screen==='detail')await page.getByLabel('Interaction channel',{exact:true}).waitFor();
      else await page.getByText('Example Recruitment Player',{exact:true}).first().waitFor();
@@ -118,15 +125,19 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      const header=document.querySelector('.player-workspace-header'),tabs=document.querySelector('.player-workspace-tabs');
      const smallControls=[...document.querySelectorAll('button,input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,summary')].filter(visible).filter(n=>n.getBoundingClientRect().height<43.5).map(n=>({text:(n.getAttribute('aria-label')||n.textContent||n.getAttribute('placeholder')||n.tagName).trim().slice(0,65),height:Math.round(n.getBoundingClientRect().height)}));
      const missingLabels=[...document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea')].filter(visible).filter(n=>!n.labels?.length&&!n.getAttribute('aria-label')&&!n.getAttribute('aria-labelledby')).map(n=>n.getAttribute('placeholder')||n.name||n.tagName);
+     const networkTabs=document.querySelector('[class*=AgencyNetworkWorkspace][class*=__tabs]'),networkSearch=document.querySelector('[class*=AgencyNetworkWorkspace][class*=__search]');
+     const networkToolbarOverlap=!!(networkTabs&&networkSearch&&visible(networkSearch)&&[...networkTabs.querySelectorAll('button')].filter(visible).some(button=>{const a=button.getBoundingClientRect(),b=networkSearch.getBoundingClientRect();return a.right>b.left+1&&a.left<b.right-1&&a.bottom>b.top+1&&a.top<b.bottom-1;}));
      const primaryNav=document.querySelector('nav[aria-label="Primary"]');
      const navLinks=[...primaryNav?.querySelectorAll('a')||[]];
      const navigationIssues=['/product','/security','/switch','/sign-in'].filter(href=>!navLinks.some(link=>link.getAttribute('href')===href&&visible(link)&&link.getBoundingClientRect().height>=43.5));
      const navWrap=document.querySelector('[class*="navWrap"]'),heroHeading=document.querySelector('h1');
      const navigationOverlap=!!(navWrap&&heroHeading&&visible(heroHeading)&&navWrap.getBoundingClientRect().bottom>heroHeading.getBoundingClientRect().top);
      const smallText=[...document.querySelectorAll('p,small,label,[class*="receiptHead"] span,[class*="previewHead"] span,[class*="provenance"],[class*="approvalBar"] span,[class*="completeActions"] span')].filter(visible).filter(n=>parseFloat(getComputedStyle(n).fontSize)<12).map(n=>({text:n.textContent.trim().slice(0,65),size:getComputedStyle(n).fontSize}));
-     return {overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
+     return {overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),networkToolbarOverlap,primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
     });
     report.push({suite,screen,width,...metrics});
+    if(metrics.networkToolbarOverlap)failures.push('Network tabs overlap search at '+width);
+    if(metrics.overflow>1)console.log('Overflow elements',suite,screen,width,await page.evaluate(()=>[...document.querySelectorAll('*')].map(node=>({tag:node.tagName,class:typeof node.className==='string'?node.className:'',right:node.getBoundingClientRect().right,width:node.getBoundingClientRect().width})).filter(node=>node.width>0&&node.right>innerWidth+1).slice(-15)));
     if(metrics.overflow>1)failures.push(suite+'/'+screen+' overflows at '+width+' ('+metrics.overflow+'px)');
     if(suite==='player'){
      if(/rgba\([^)]*,\s*0\./.test(metrics.header||''))failures.push('Translucent player header at '+width);
@@ -138,12 +149,58 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     }
     if(width<=760&&metrics.smallControls.length)failures.push(suite+'/'+screen+' has small touch controls at '+width+': '+JSON.stringify(metrics.smallControls));
     if(metrics.smallText.length)failures.push(suite+'/'+screen+' has undersized guidance at '+width+': '+JSON.stringify(metrics.smallText));
-    if(['account','capture','recruitment','marketing'].includes(suite)&&metrics.missingLabels.length)failures.push(suite+'/'+screen+' has unlabelled form controls at '+width+': '+JSON.stringify(metrics.missingLabels));
+    if(['account','capture','recruitment','marketing','setup'].includes(suite)&&metrics.missingLabels.length)failures.push(suite+'/'+screen+' has unlabelled form controls at '+width+': '+JSON.stringify(metrics.missingLabels));
     if(suite==='marketing'){
      if(!metrics.primaryNavVisible||metrics.navigationIssues.length)failures.push(screen+' marketing navigation missing or too small at '+width+': '+metrics.navigationIssues.join(','));
      if(metrics.navigationOverlap)failures.push(screen+' marketing header overlaps the hero at '+width);
     }
-    if(process.env.PLATFORM_POLISH_SCREENSHOTS&&[390,1440].includes(width)&&['home','product','sign-in','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4','review','complete','detail','players','network','profile','settings','deal'].includes(screen))await page.screenshot({path:join(process.env.PLATFORM_POLISH_SCREENSHOT_DIR||tmpdir(),'platform-polish-'+suite+'-'+screen+'-'+width+'.png'),fullPage:false});
+    if(process.env.PLATFORM_POLISH_SCREENSHOTS&&[390,1440].includes(width)&&['home','product','sign-in','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4','review','complete','detail','players','network','profile','settings','deal','branding','first_opportunity','privacy','workspaces'].includes(screen))await page.screenshot({path:join(process.env.PLATFORM_POLISH_SCREENSHOT_DIR||tmpdir(),'platform-polish-'+suite+'-'+screen+'-'+width+'.png'),fullPage:false});
+
+    if(width===390) {
+     const disclosures=page.locator('details.interface-details');
+     for(let index=0;index<await disclosures.count();index++) {
+      const disclosure=disclosures.nth(index),summary=disclosure.locator(':scope > summary');
+      await summary.press('Enter');
+      assert.equal(await disclosure.evaluate(node=>node.open),true,suite+'/'+screen+' detail must open with keyboard');
+      const expanded=await page.evaluate(()=>{
+       const visible=node=>{const r=node.getBoundingClientRect(),s=getComputedStyle(node);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none';};
+       return {
+        overflow:document.documentElement.scrollWidth-innerWidth,
+        smallControls:[...document.querySelectorAll('details.interface-details[open] button,details.interface-details[open] input:not([type=hidden]):not([type=checkbox]):not([type=radio]),details.interface-details[open] select,details.interface-details[open] summary')].filter(visible).filter(node=>node.getBoundingClientRect().height<43.5).map(node=>(node.getAttribute('aria-label')||node.textContent||node.tagName).trim().slice(0,60)),
+        missingLabels:[...document.querySelectorAll('details.interface-details[open] input:not([type=hidden]):not([type=checkbox]):not([type=radio]),details.interface-details[open] select,details.interface-details[open] textarea')].filter(visible).filter(node=>!node.labels?.length&&!node.getAttribute('aria-label')&&!node.getAttribute('aria-labelledby')).map(node=>node.name||node.tagName)
+       };
+      });
+      assert.ok(expanded.overflow<=1,suite+'/'+screen+' opened detail overflow');
+      assert.deepEqual(expanded.smallControls,[],suite+'/'+screen+' opened detail touch controls');
+      assert.deepEqual(expanded.missingLabels,[],suite+'/'+screen+' opened detail field labels');
+      if((await summary.textContent()).trim()==='Research profiles') {
+       await disclosure.getByRole('button',{name:'Edit profiles',exact:true}).click();
+       assert.ok(await disclosure.getByRole('textbox').count()>0,'Contact research profiles must remain editable');
+       await disclosure.getByRole('button',{name:'Cancel',exact:true}).click();
+       await disclosure.getByRole('button',{name:'Edit profiles',exact:true}).waitFor();
+      }
+      await summary.press('Enter');
+      assert.equal(await disclosure.evaluate(node=>node.open),false,suite+'/'+screen+' detail must close with keyboard');
+     }
+    }
+    if(suite==='agency'&&screen==='network'&&width===390) {
+     await page.getByRole('button',{name:/NEEDS ATTENTION/}).click();
+     await page.getByRole('button',{name:'Show all network',exact:true}).click();
+     await page.getByRole('button',{name:'Open Example FC',exact:true}).first().waitFor();
+    }
+    if(suite==='agency'&&screen==='players'&&width===1440) {
+     const more=page.locator('details').filter({has:page.getByRole('button',{name:'Refresh',exact:true,includeHidden:true})});
+     const summary=more.locator('summary');
+     assert.equal(await more.evaluate(node=>node.open),false);
+     await summary.press('Enter');
+     await more.getByRole('button',{name:'Import players',exact:true}).waitFor();
+     await summary.press('Escape');
+     assert.equal(await more.evaluate(node=>node.open),false,'Escape closes workspace tools');
+     assert.equal(await summary.evaluate(node=>node===document.activeElement),true,'Escape returns focus');
+     await summary.press('Enter');
+     await more.getByRole('button',{name:'Refresh',exact:true}).click();
+     assert.equal(await more.evaluate(node=>node.open),false,'Workspace tool selection closes the menu');
+    }
    }
    console.log('SCREEN',suite,screen);
   }

@@ -325,7 +325,7 @@ export function PlayerShell({
   };
 
   return (
-    <div className="screen player-premium-screen ux-player-root">
+    <div className="screen player-premium-screen ux-player-root" data-interface="calm">
       <header className="djm-os-header player-workspace-header no-print ux-player-header">
         <div className="djm-os-header-inner">
           <div className="djm-os-brand-row">

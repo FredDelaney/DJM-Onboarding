@@ -1976,3 +1976,36 @@
   font-size: 12px;
   line-height: 1.55;
 }
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.workspace { gap: 18px; }
+.toolbar { flex-wrap: wrap; }
+.tabs { flex-shrink: 0; }
+.toolbarTools { flex: 1 1 320px; max-width: 100%; }
+.search { min-width: 0; max-width: 410px; flex: 1 1 240px; }
+.tab, .tabActive, .search, .addEntityButton { min-height: 44px; }
+.hero { padding: 0 0 4px; border: 0; border-radius: 0; background: transparent; box-shadow: none; align-items: center; }
+.hero h2 { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+.heroSummary { gap: 18px; }
+.heroSummary > div { display: flex; align-items: baseline; gap: 5px; min-width: 0; padding: 0; border: 0; background: transparent; }
+.heroSummary strong { font-size: 14px; }
+.heroSummary span { color: #6e6e73; font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.intelligence { display: grid; padding: 12px 14px; background: #fff; border: 1px solid #e5e5e7; border-radius: 18px; box-shadow: none; }
+.intelligenceHead { display: flex; }
+.intelligenceHead:empty { display: none; }
+.intelligenceGrid { gap: 8px; }
+.intelligenceCard, .intelligenceActive { min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 10px; box-shadow: none; }
+.intelligenceCard span, .intelligenceActive span { font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.intelligenceCard strong, .intelligenceActive strong { margin-left: auto; font-size: 14px; }
+.filterHelp { margin-top: 2px; }
+.filterHelp > summary { justify-content: flex-start; min-height: 44px; color: #6e6e73; font-size: 12px; font-weight: 400; }
+.filterHelp p { margin: 0 0 10px; color: #6e6e73; font-size: 12px; line-height: 1.6; }
+.clubCard, .personCard { box-shadow: none; border-color: #e5e5e7; }
+@media (max-width: 680px) {
+  .hero { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; }
+  .hero h2 { font-size: 16px; }
+  .heroSummary { gap: 14px; }
+  .intelligenceGrid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .intelligenceCard, .intelligenceActive { padding: 9px; }
+}

@@ -426,3 +426,8 @@
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* Consistent settings surfaces and readable field groups. */
+.hero, .panel, .planCard { background: #fff; box-shadow: none; border-color: #e5e5e7; }
+.heroCopy h2, .panel h2, .planCard h3 { font-weight: 600; }
+.panelHead { gap: 20px; }

@@ -2062,7 +2062,7 @@ export default function AgencyPlayerProfile({
                 <span className={styles.eyebrow}>PLAYER SOURCE</span>
                 <h2>Add Transfermarkt</h2>
                 <p>
-                  Paste the direct player profile. It will stay on the player record as a source reference.
+                  Paste the player profile URL to save it as a reference.
                 </p>
               </div>
               <button
@@ -2363,7 +2363,7 @@ export default function AgencyPlayerProfile({
                 <span className={styles.eyebrow}>EDIT PLAYER PROFILE</span>
                 <h2>Edit club presentation</h2>
                 <p>
-                  Player details, verified statistics, history and branding are included automatically.
+                  Player details and verified statistics are included.
                 </p>
               </div>
               <button
@@ -2646,7 +2646,7 @@ export default function AgencyPlayerProfile({
                 <p>
                   {shareResultUrl
                     ? 'The private link is live and the club message is prepared.'
-                    : 'Create one private link for the club. Opens are tracked and the link stays attached to the player.'}
+                    : 'Create a private club link with tracked opens.'}
                 </p>
               </div>
               <button

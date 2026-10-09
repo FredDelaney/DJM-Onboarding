@@ -16,6 +16,7 @@ import './djm-global-beauty.css';
 import './staff-mobile-layout-fix.css';
 import './djm-os-v3.css';
 import './tenant-theme.css';
+import './interface.css';
 
 import type {
   Metadata,
@@ -301,7 +302,7 @@ export default async function RootLayout({
       }
       style={tenantStyle}
     >
-      <body>
+      <body data-interface="calm">
         <TenantRuntimeProvider
           runtime={runtime}
         >

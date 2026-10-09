@@ -753,3 +753,23 @@
     font-size: 24px;
   }
 }
+
+/* The setup journey uses the same calm, readable interface. */
+.page, .authPage, .loading { background: #f5f5f7; color: #1d1d1f; }
+.header { background: #fff; backdrop-filter: none; border-color: #e5e5e7; }
+.workCard, .rail, .authCard { box-shadow: none; border-color: #e5e5e7; }
+.hero h1, .authCard h1 { font-weight: 600; letter-spacing: -.035em; }
+.identity strong, .step strong { font-size: 13px; font-weight: 600; }
+.identity span, .progressHeader strong, .eyebrow, .step small,
+.platformState strong, .platformState small, .field > span,
+.boundary, .notice, .error, .valueStrip span, .valueStrip strong,
+.completePanel p, .authCard > p { font-size: 12px; line-height: 1.6; }
+.hero .eyebrow { font-size: 12px; }
+.hero > p:last-child { font-size: 14px; line-height: 1.6; }
+.signOut, .secondaryButton, .primaryButton { min-height: 44px; font-size: 13px; font-weight: 600; }
+.field input, .field select, .field textarea { min-height: 48px; font-size: 16px; }
+.colourInput { min-height: 48px !important; }
+.signOut { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 620px) {
+  .signOut { width: auto; padding: 0 12px; border-radius: 12px; }
+}

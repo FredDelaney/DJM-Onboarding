@@ -26,9 +26,9 @@ export default function SwitchPage() {
         <div className={styles.heroInner}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>SWITCH TO REDREAM</p>
-            <h1>Bring the roster. Keep control of the move.</h1>
+            <h1>Bring your players with you.</h1>
             <p>
-              ReDream already supports controlled player-roster migration from CSV. The import is preflighted first, possible duplicates need a human decision, and nothing is written until approval.
+              Upload your player CSV. Review errors and possible duplicates. Approve the import when you are ready.
             </p>
             <div className={styles.heroActions}>
               <ReDreamDemoRequestButton className={styles.primary} label="Plan my switch" trackingKey="switch_hero_demo" />
@@ -63,7 +63,7 @@ export default function SwitchPage() {
       <section className={styles.section}>
         <div className={styles.sectionHead}>
           <p>FIRST VALUE</p>
-          <h2>Do not migrate everything before ReDream proves itself.</h2>
+          <h2>Start small.</h2>
         </div>
         <div className={styles.firstValue}>
           <article><b>01</b><strong>One player</strong><span>Start with a player whose next move, commitments or market strategy actually matters now.</span></article>
@@ -73,7 +73,7 @@ export default function SwitchPage() {
       </section>
 
       <section className={styles.final}>
-        <div><h2>Switching should feel controlled, not like another software project.</h2><p>Start with the roster and one live operating situation. Expand only when the system earns it.</p></div>
+        <div><h2>Make the move at your pace.</h2><p>Start with the roster and one live operating situation. Expand only when the system earns it.</p></div>
         <ReDreamDemoRequestButton className={styles.lightButton} label="Plan my switch" trackingKey="switch_final_demo" />
       </section>
     </ReDreamMarketingShell>

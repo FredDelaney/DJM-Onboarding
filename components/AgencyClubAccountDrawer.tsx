@@ -795,7 +795,7 @@ export default function AgencyClubAccountDrawer({
               <SectionHead
                 icon={Users}
                 label="PEOPLE WE KNOW"
-                title="Who can help us reach this club"
+                title="Club contacts"
               />
 
               {directRoutes.length ? (
@@ -1204,7 +1204,7 @@ export default function AgencyClubAccountDrawer({
                   BriefcaseBusiness
                 }
                 label="LIVE OPPORTUNITIES"
-                title="Players and deals currently moving with this club"
+                title="Live opportunities"
               />
 
               {deals.length ||

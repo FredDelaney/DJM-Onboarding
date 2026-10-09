@@ -23,3 +23,11 @@
 @media (max-width: 1080px) { .links { grid-column:1 / -1; grid-row:2; flex-wrap:wrap; gap:0 20px; justify-content:flex-start; } .nav { grid-template-columns:1fr auto; gap:12px; } }
 @media (max-width: 700px) { .navWrap { padding:14px; } .logo { width:138px; } .demoButton { padding:10px 12px; font-size:14px; } .footer { width:calc(100% - 28px); min-height:190px; padding:32px 0; align-items:flex-start; flex-direction:column; } .footerLinks { justify-content:flex-start; } .footerLinks > span { flex-basis:100%; } }
 @media (prefers-reduced-motion: reduce) { .links a { transition:none; } }
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.page { background: #fff; }
+.navWrap { background: #fff; border-bottom: 1px solid #e5e5e7; }
+.links a { color: #6e6e73; font-weight: 500; }
+.links a:hover { color: #0071e3; transform: none; }
+.demoButton { background: #0071e3; color: #fff; box-shadow: none; border-radius: 999px; font-weight: 500; }

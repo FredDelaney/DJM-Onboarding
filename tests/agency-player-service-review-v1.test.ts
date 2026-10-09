@@ -33,7 +33,7 @@ test('Player Service Review composes the existing service proof and history cont
 });
 
 test('Player-safe preview stays explicitly separated from internal deal intelligence', () => {
-  assert.match(review, /PLAYER-SAFE PREVIEW/);
+  assert.match(review, /<summary>Player preview<\/summary>/);
   assert.match(review, /Club names remain hidden/);
   assert.match(review, /Nothing is sent automatically/);
   assert.match(review, /internal deal and relationship intelligence stays private/);

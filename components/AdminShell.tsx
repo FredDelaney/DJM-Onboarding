@@ -267,7 +267,7 @@ export function AdminShell({
   }
 
   return (
-    <div className="admin-shell">
+    <div className="admin-shell" data-interface="calm">
       <WorkspaceHeader
         workspace={auth.workspace}
         onSignOut={signOut}

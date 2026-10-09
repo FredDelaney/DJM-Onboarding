@@ -540,11 +540,7 @@ export default function AgencyNetworkWorkspace({
       {restricted ? <p className={styles.scopeNotice}>Shared clubs and contacts. Your contact pages show your own activity. Agency-wide commercial details are only shown to admins.</p> : null}
       <section className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>NETWORK</p>
           <h2>{restricted ? 'Your shared clubs and contacts' : 'Clubs and contacts'}</h2>
-          <p>
-            {restricted ? 'Find shared clubs and contacts, then review your own conversations and follow-ups.' : 'Find a contact, review your conversations and plan the next follow-up.'}
-          </p>
         </div>
 
         <div className={styles.heroSummary}>
@@ -570,14 +566,6 @@ export default function AgencyNetworkWorkspace({
         aria-label="Network focus"
       >
         <div className={styles.intelligenceHead}>
-          <div>
-            <p className={styles.eyebrow}>
-              WHERE TO FOCUS
-            </p>
-            <strong>
-              Review recent contact and the next follow-up.
-            </strong>
-          </div>
 
           {focus !== 'all' ? (
             <button
@@ -606,9 +594,6 @@ export default function AgencyNetworkWorkspace({
             <CircleAlert size={17} />
             <span>NEEDS ATTENTION</span>
             <strong>{attentionClubs}</strong>
-            <small>
-              Live clubs with a due deal action or a weak contact route.
-            </small>
           </button>
 
           <button
@@ -625,9 +610,6 @@ export default function AgencyNetworkWorkspace({
             <GitBranch size={17} />
             <span>WARM ROUTES</span>
             <strong>{warmRouteClubs}</strong>
-            <small>
-              Clubs where a warm introduction is stronger than going direct.
-            </small>
           </button>
 
           <button
@@ -644,9 +626,6 @@ export default function AgencyNetworkWorkspace({
             <Route size={17} />
             <span>STRONG ROUTES</span>
             <strong>{strongPeople}</strong>
-            <small>
-              People where your agency already has a strong direct relationship.
-            </small>
           </button>
 
           <button
@@ -663,15 +642,14 @@ export default function AgencyNetworkWorkspace({
             <TimerReset size={17} />
             <span>GOING QUIET</span>
             <strong>{coolingPeople}</strong>
-            <small>
-              Relationships with no activity for more than 45 days.
-            </small>
           </button>
         </div>
 
-        <p className={styles.intelligenceTruth}>
-          Based on recorded activity and follow-ups. These signals do not predict responses or deal success.
-        </p>
+        <details className={styles.filterHelp + ' interface-details'}>
+          <summary>About these filters</summary>
+          <p>Needs attention: a due deal action or a weak contact route. Warm routes: a recorded introduction is stronger than the direct route. Strong routes: a strong direct relationship is recorded. Going quiet: no recorded activity for more than 45 days.</p>
+          <p>Based on recorded activity and follow-ups. These signals do not predict responses or deal success.</p>
+        </details>
       </section>
 
 
@@ -739,24 +717,7 @@ export default function AgencyNetworkWorkspace({
         </div>
       </section>
 
-{!restricted ? <>
-      <section className={styles.signalBar}>
-        <div>
-          <span>Known contact routes</span>
-          <strong>{strongestRoutes}</strong>
-        </div>
-        <div>
-          <span>Open follow-ups</span>
-          <strong>{followUps}</strong>
-        </div>
-        <div>
-          <span>Network principle</span>
-          <strong>Next follow-up</strong>
-        </div>
-      </section>
 
-
-</> : null}
       {view === 'clubs' ? (
         <section className={styles.grid}>
           {filteredClubs.map((club: any) => {

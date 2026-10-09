@@ -15,7 +15,7 @@ test('Network adds evidence-led focus without adding another product area', asyn
 
   assert.match(
     source,
-    /WHERE TO FOCUS/,
+    /About these filters/,
   );
   assert.match(
     source,

@@ -18,9 +18,9 @@ export default function SecurityPage() {
         <div className={styles.heroInner}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>SECURITY + CONTROL</p>
-            <h1>Useful autonomy without blind trust.</h1>
+            <h1>Your agency. Your control.</h1>
             <p>
-              ReDream is built around tenant isolation, evidence-backed actions and explicit human control. The system should move routine work faster without pretending software should own sensitive football or commercial judgement.
+              Agency data stays separate. Actions use recorded evidence. Sensitive decisions need your approval.
             </p>
             <div className={styles.heroActions}>
               <ReDreamDemoRequestButton className={styles.primary} label="Discuss our setup" trackingKey="security_hero_demo" />
@@ -41,12 +41,12 @@ export default function SecurityPage() {
       <section className={styles.section}>
         <div className={styles.sectionHead}>
           <p>CONTROL ARCHITECTURE</p>
-          <h2>Security is part of the operating model, not a footer promise.</h2>
+          <h2>Control at every step.</h2>
         </div>
         <div className={styles.architecture}>
-          <article><div><div className={styles.icon}><LockKeyhole size={20} /></div><small>TENANT BOUNDARY</small><h3>Agency context stays tenant-aware.</h3><p>The architecture resolves agency workspace context before data is used, keeping one agency from becoming another agency’s operating memory.</p></div><div className={styles.pills}><span>Tenant-aware</span><span>Role-aware</span><span>Private workspace</span></div></article>
-          <article><div><div className={styles.icon}><ShieldCheck size={20} /></div><small>EVIDENCE GATE</small><h3>Action follows recorded evidence.</h3><p>ReDream keeps evidence health and decision readiness visible so a strong-looking recommendation does not silently become an unsupported fact.</p></div><div className={styles.pills}><span>Why now</span><span>Evidence health</span><span>Source context</span></div></article>
-          <article><div><div className={styles.icon}><RotateCcw size={20} /></div><small>PROVENANCE + UNDO</small><h3>Internal actions leave a trace.</h3><p>Where the action protocol supports it, internal work is recorded with provenance and an undo path instead of disappearing into an opaque automation.</p></div><div className={styles.pills}><span>Audit trail</span><span>Outcome record</span><span>Undo where permitted</span></div></article>
+          <article><div><div className={styles.icon}><LockKeyhole size={20} /></div><small>TENANT BOUNDARY</small><h3>Separate agency workspaces.</h3><p>The architecture resolves agency workspace context before data is used, keeping one agency from becoming another agency’s operating memory.</p></div><div className={styles.pills}><span>Tenant-aware</span><span>Role-aware</span><span>Private workspace</span></div></article>
+          <article><div><div className={styles.icon}><ShieldCheck size={20} /></div><small>EVIDENCE GATE</small><h3>Evidence before action.</h3><p>ReDream keeps evidence health and decision readiness visible so a strong-looking recommendation does not silently become an unsupported fact.</p></div><div className={styles.pills}><span>Why now</span><span>Evidence health</span><span>Source context</span></div></article>
+          <article><div><div className={styles.icon}><RotateCcw size={20} /></div><small>PROVENANCE + UNDO</small><h3>A clear audit trail.</h3><p>Where the action protocol supports it, internal work is recorded with provenance and an undo path instead of disappearing into an opaque automation.</p></div><div className={styles.pills}><span>Audit trail</span><span>Outcome record</span><span>Undo where permitted</span></div></article>
         </div>
 
         <div className={styles.truthBand}>

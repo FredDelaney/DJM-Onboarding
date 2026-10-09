@@ -76,3 +76,20 @@
 @media (max-width:1080px) { .hero { padding-top:180px; } }
 @media (max-width:1050px) { .heroInner { grid-template-columns:1fr; } .architecture,.controlGrid { grid-template-columns:1fr; } .migrationFlow { grid-template-columns:1fr 1fr; } .migrationStep::after { display:none!important; } .firstValue { grid-template-columns:1fr; } }
 @media (max-width:700px) { .hero { min-height:auto; padding:210px 18px 58px; } .heroInner { gap:40px; } .heroCopy h1 { font-size:clamp(42px,12vw,58px); } .heroCopy > p:last-of-type { font-size:17px; } .heroActions { align-items:stretch; flex-direction:column; } .primary,.secondary { width:100%; } .section,.final { width:calc(100% - 28px); } .section { padding-top:64px; } .sectionHead h2 { font-size:34px; } .migrationFlow { grid-template-columns:1fr; padding:16px; } .truthBand { grid-template-columns:1fr; } .final { margin-top:64px; padding:30px 22px; align-items:stretch; flex-direction:column; } .lightButton { width:100%; } }
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.hero { background: #f5f5f7; min-height: 560px; padding-top: 165px; }
+.hero::before { display: none; }
+.heroCopy h1 { color: #1d1d1f; font-weight: 600; line-height: 1.05; }
+.heroCopy > p:last-of-type { color: #6e6e73; }
+.eyebrow { color: #0071e3; font-weight: 500; letter-spacing: .06em; }
+.primary { background: #0071e3; box-shadow: none; border-radius: 999px; font-weight: 500; }
+.secondary { background: transparent; color: #0071e3; border-color: transparent; font-weight: 500; }
+.sectionHead h2 { font-weight: 600; }
+.architecture article { min-height: 250px; box-shadow: none; }
+.architecture article:nth-child(2) { background: #f5f5f7; border-color: #e5e5e7; }
+.architecture article:nth-child(2) :is(h3,small) { color: #1d1d1f; }
+.architecture article:nth-child(2) p { color: #6e6e73; }
+.architecture article:nth-child(2) .pills span { background: #fff; color: #6e6e73; border-color: #e5e5e7; }
+@media (max-width:700px) { .hero { padding-top: 200px; min-height: 0; } }

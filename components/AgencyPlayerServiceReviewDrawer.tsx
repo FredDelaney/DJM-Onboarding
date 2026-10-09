@@ -479,14 +479,8 @@ export default function AgencyPlayerServiceReviewDrawer({
               />
             </div>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <CheckCircle2 size={17} />
-                <div>
-                  <p>RECORDED ACTIVITY</p>
-                  <h3>Last 30 days</h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Last 30 days</summary>
 
               <div className={styles.grid}>
                 <Fact
@@ -547,16 +541,10 @@ export default function AgencyPlayerServiceReviewDrawer({
               <p className={styles.truth}>
                 Recorded activity does not measure service quality, player satisfaction or transfer success.
               </p>
-            </section>
+            </details>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <History size={17} />
-                <div>
-                  <p>WHAT CHANGED SINCE THE LAST REVIEW</p>
-                  <h3>Changes since the last review</h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Changes since the last review</summary>
 
               {comparable ? (
                 <>
@@ -612,14 +600,14 @@ export default function AgencyPlayerServiceReviewDrawer({
               <p className={styles.truth}>
                 Overlapping review periods can change counts. A fall does not necessarily mean deterioration.
               </p>
-            </section>
+            </details>
 
             <section className={styles.panel}>
               <div className={styles.panelHead}>
                 <Target size={17} />
                 <div>
                   <p>PLAYER MEETING AGENDA</p>
-                  <h3>Topics for your next player conversation</h3>
+                  <h3>Next conversation</h3>
                 </div>
               </div>
 
@@ -679,14 +667,8 @@ export default function AgencyPlayerServiceReviewDrawer({
               </div>
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <ShieldCheck size={17} />
-                <div>
-                  <p>PLAYER-SAFE PREVIEW</p>
-                  <h3>Player preview</h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Player preview</summary>
 
               <div className={styles.grid}>
                 <Fact
@@ -735,16 +717,10 @@ export default function AgencyPlayerServiceReviewDrawer({
               <p className={styles.truth}>
                 Preview only. Nothing is sent automatically; internal deal and relationship intelligence stays private.
               </p>
-            </section>
+            </details>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <History size={17} />
-                <div>
-                  <p>PROOF HISTORY</p>
-                  <h3>Save this review for next time</h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Save this review</summary>
 
               <div className={styles.snapshotRows}>
                 {snapshots.slice(0, 8).map((item: any) => (
@@ -788,7 +764,7 @@ export default function AgencyPlayerServiceReviewDrawer({
               <p className={styles.truth}>
                 Saving again today updates the same 30-day review.
               </p>
-            </section>
+            </details>
 
           </div>
         ) : null}

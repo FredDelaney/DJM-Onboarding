@@ -180,7 +180,8 @@ try{
   await page.getByRole('button',{name:/^People/}).click();
   await page.getByRole('heading',{name:'Shared Staff Contact',exact:true}).waitFor();
   assert.equal(await page.getByText('RELATIONSHIP OWNER',{exact:true}).count(),0);
-  await coordinatorView('home');await page.getByText('Your work',{exact:true}).waitFor();
+  await coordinatorView('home');await page.getByRole('heading',{name:'Today',exact:true}).waitFor();
+  await page.getByText('Your work only. Assigned players are under Players; commercial records require admin access.',{exact:true}).waitFor();
   await page.getByText('You have no tasks, meetings or commitments that need action right now.',{exact:true}).waitFor();
   await coordinatorView('opportunities');await page.getByRole('heading',{name:'Admin access needed',exact:true}).waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1));
