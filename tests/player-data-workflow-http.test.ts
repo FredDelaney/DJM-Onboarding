@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import {stripTypeScriptTypes} from 'node:module';
 import {test,beforeEach,after} from 'node:test';
 const shared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/football-data/player-data-workflow.ts','utf8'))).toString('base64');
+const visibilityShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/public-profile-visibility.ts','utf8'))).toString('base64');
 const staffShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/staff-read-contract.ts','utf8'))).toString('base64');
 const source=readFileSync('supabase/functions/agency-os/index.ts','utf8')
  .replace('"../_shared/staff-read-contract.ts"','"data:text/javascript;base64,'+staffShared+'"')
@@ -17,6 +18,7 @@ let publicHandler:any;
 const publicSource=readFileSync('supabase/functions/player-profile-public/index.ts','utf8')
  .replace('import "jsr:@supabase/functions-js/edge-runtime.d.ts";','')
  .replace('import { createClient } from "jsr:@supabase/supabase-js@2";','const createClient = () => globalThis.playerDataHttpContext.data.supabaseAdmin;')
+ .replace('"../_shared/public-profile-visibility.ts"','"data:text/javascript;base64,'+visibilityShared+'"')
  .replace('"../_shared/football-data/player-data-workflow.ts"','"data:text/javascript;base64,'+shared+'"');
 await import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(publicSource)).toString('base64'));
 const job={id:'40000000-0000-4000-8000-000000000001',status:'queued'};
@@ -28,7 +30,7 @@ beforeEach(()=>{
  (globalThis as any).playerDataHttpContext={data:{userClaims:{sub:'actor'},supabaseAdmin:{
   rpc:async(name:string,args:any)=>{calls.push({name,args});return {data:name==='platform_server_user_workspaces'?[{tenant_id:'tenant',role,is_primary:true}]:name==='get_push_scheduler_secret'?'fake-cron':name==='platform_server_request_player_stats_refresh'?{dispatch,job}:name==='platform_server_player_stats_refresh_status'?job:{ok:true,row:{}},error:null};},
   from:(table:string)=>{
-   const query:any={select:()=>query,eq:()=>query,in:()=>query,order:()=>query,limit:()=>query,maybeSingle:async()=>({data:table==='staff_player_access'?{player_id:'player',can_edit:true}:table==='players'?(allowed?{...player}:null):table==='player_public_profiles'?(published?{player_id:player.id,key_stats:[]}:null):table==='player_cv_settings'?{key_stats:[]}:null,error:null}),update:(value:any)=>{writes.push({table,value});return query;},then:(resolve:any)=>Promise.resolve({data:table==='career_entries'?structuredClone(careerRows):[],error:null}).then(resolve)};
+   const query:any={select:()=>query,eq:()=>query,in:()=>query,order:()=>query,limit:()=>query,maybeSingle:async()=>({data:table==='staff_player_access'?{player_id:'player',can_edit:true}:table==='players'?(allowed?{...player}:null):table==='player_public_profiles'?(published?{player_id:player.id,key_stats:[],hidden_sections:[],hide_market_value:true}:null):table==='player_cv_settings'?{key_stats:[]}:null,error:null}),update:(value:any)=>{writes.push({table,value});return query;},then:(resolve:any)=>Promise.resolve({data:table==='career_entries'?structuredClone(careerRows):[],error:null}).then(resolve)};
    return query;
   }
  }},error:null};

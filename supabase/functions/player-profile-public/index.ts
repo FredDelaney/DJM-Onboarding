@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { visiblePublicPlayerProfile, publicProfileSectionHidden } from "../_shared/public-profile-visibility.ts";
 import { selectCurrentSeasonEvidence, safeSourceUrl } from "../_shared/football-data/player-data-workflow.ts";
 
 const cors={
@@ -58,7 +59,8 @@ Deno.serve(async(req:Request)=>{
     const profile={...profileResult.data,key_stats:customStats?profileResult.data.key_stats:auto.stats};
     const context=contextResult.data&&typeof contextResult.data==="object"?contextResult.data:{};
 
-    return reply({data:{profile,agency:context.branding||null,stats_meta:customStats?null:auto.meta}});
+    return reply({data:{profile:visiblePublicPlayerProfile(profile),agency:context.branding||null,
+      stats_meta:customStats||publicProfileSectionHidden(profile,"stats")?null:auto.meta}});
   }catch(error){
     console.error("player-profile-public",error);
     return reply({error:"Unable to load Player Profile"},500);
