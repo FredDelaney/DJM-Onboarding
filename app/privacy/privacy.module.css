@@ -34,3 +34,15 @@
   .summary { grid-template-columns: 1fr; }
   .hero, .summaryCard, .section { border-radius: 20px; }
 }
+
+/* Keep the complete notice readable within the shared visual language. */
+.page { background: #f5f5f7; color: #1d1d1f; }
+.hero { background: #111827; box-shadow: none; }
+.hero h1 { font-weight: 600; line-height: 1.08; }
+.kicker { color: #6e6e73; font-weight: 600; letter-spacing: .06em; }
+.hero .kicker { color: #d6dfeb; }
+.summaryCard, .section { border-color: #e5e5e7; box-shadow: none; }
+.back { min-height: 44px; color: #0071e3; font-weight: 600; }
+.section p, .section li, .summaryCard span, .footer { color: #6e6e73; }
+.rights { border-left-color: #0071e3; }
+.contact a { color: #0071e3; font-weight: 600; }

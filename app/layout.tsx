@@ -302,7 +302,7 @@ export default async function RootLayout({
       }
       style={tenantStyle}
     >
-      <body>
+      <body data-interface="calm">
         <TenantRuntimeProvider
           runtime={runtime}
         >

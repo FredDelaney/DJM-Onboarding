@@ -27,6 +27,9 @@ import Agency from '@/app/(djm-os)/settings/agency/page';
 import Billing from '@/app/(djm-os)/settings/billing/page';
 import SettingsConnections from '@/app/(djm-os)/settings/connections/page';
 import PlayerExperience from '@/app/(djm-os)/settings/player-experience/page';
+import Launch from '@/app/launch/page';
+import PublicPrivacy from '@/app/privacy/ReDreamPublicPrivacy';
+import PlayerWorkspaces from '@/app/player-workspaces/page';
 import styles from '@/components/AgencyOperatingWorkspace.module.css';
 import RemainingSurfaces from '@/tests/fixtures/platform-polish/remaining';
 const playerPages:Record<string,ComponentType>={home:Home,profile:Profile,inbox:Inbox,career:Career,'check-in':CheckIn,cv:CV,documents:Documents,connections:Connections};
@@ -49,6 +52,8 @@ export default function Page(){
  const Component=suite==='player'?playerPages[screen]:settingsPages[screen];
  let content;
  if(['marketing','account','presentation','capture','recruitment'].includes(suite))content=<RemainingSurfaces suite={suite} screen={screen}/>;
+ else if(suite==='setup')content=<Launch/>;
+ else if(suite==='misc')content=screen==='privacy'?<PublicPrivacy/>:<PlayerWorkspaces/>;
  else if(suite==='agency')content=<AgencyOperatingWorkspace/>;
  else if(suite==='player'||suite==='settings')content=Component?<Component/>:<p>Unknown fixture screen</p>;
  else content=<div className={styles.root}><main className={styles.main}>
