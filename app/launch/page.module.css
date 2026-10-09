@@ -769,3 +769,7 @@
 .signOut, .secondaryButton, .primaryButton { min-height: 44px; font-size: 13px; font-weight: 600; }
 .field input, .field select, .field textarea { min-height: 48px; font-size: 16px; }
 .colourInput { min-height: 48px !important; }
+.signOut { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 620px) {
+  .signOut { width: auto; padding: 0 12px; border-radius: 12px; }
+}
