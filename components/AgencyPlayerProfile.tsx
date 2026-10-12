@@ -420,7 +420,7 @@ export default function AgencyPlayerProfile({
       }
 
       if (!profile) {
-        throw new Error('Player Profile could not be loaded.');
+        throw new Error('Player profile could not load.');
       }
 
       if (generation !== loadGeneration.current) return false;
@@ -556,7 +556,7 @@ export default function AgencyPlayerProfile({
       important: true,
       missingTitle: 'Verify current player data',
       missingDetail:
-        'Review the player record, save any corrections, then mark the current data verified.',
+        'Review, correct and verify the player data.',
       where:
         'Player Profile → Review current data → Confirm & verify',
       action: 'verify-player',
@@ -569,7 +569,7 @@ export default function AgencyPlayerProfile({
       important: true,
       missingTitle: 'Add the primary position',
       missingDetail:
-        'The club profile cannot publish without the player’s primary position.',
+        'Add the primary position before publishing.',
       where:
         'Player Profile → Review current data → Primary position',
       action: 'verify-player',
@@ -582,7 +582,7 @@ export default function AgencyPlayerProfile({
       important: true,
       missingTitle: 'Add the agency support email',
       missingDetail:
-        'Clubs need a clear reply address on the Player Profile.',
+        'Add a reply email before publishing.',
       where:
         'Settings → Agency settings → Workspace identity → Support email',
       action: 'agency-settings',
@@ -595,7 +595,7 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add a player profile photo',
       missingDetail:
-        'A strong player photo makes the club-facing profile feel complete and credible.',
+        'Add a player photo.',
       where:
         `Players → ${name} → player workspace`,
       action: 'player-workspace',
@@ -608,7 +608,7 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add career history',
       missingDetail:
-        'Record at least one career entry so clubs can see the player’s pathway.',
+        'Add at least one career entry.',
       where:
         `Players → ${name} → Career`,
       action: 'player-workspace',
@@ -621,7 +621,7 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add current player footage',
       missingDetail:
-        'Paste a YouTube, Vimeo or Wyscout video so clubs can watch the player immediately.',
+        'Add a current player video.',
       where:
         'Edit Player Profile → Current player footage → Video URL',
       action: 'profile-video',
@@ -634,7 +634,7 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add Transfermarkt URL',
       missingDetail:
-        'Link the player’s record so a club can verify the career context quickly.',
+        'Add a trusted profile link.',
       where: 'Player Profile → Transfermarkt',
       action: 'transfermarkt',
       actionLabel: 'Add link',
@@ -650,8 +650,8 @@ export default function AgencyPlayerProfile({
         ? 'Add contract expiry'
         : 'Add contract status',
       missingDetail: player.contract_status
-        ? 'Record the expiry date for a player who is under contract.'
-        : 'Record the current contract status so clubs understand availability.',
+        ? 'Add the contract expiry date.'
+        : 'Add the contract status.',
       where: player.contract_status
         ? 'Player Profile → Review current data → Contract expiry'
         : 'Player Profile → Review current data → Contract status',
@@ -669,9 +669,9 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add the agency view',
       missingDetail:
-        'Write a short profile headline or “Why this player?” note to explain the player quickly.',
+        'Add a short player headline.',
       where:
-        'Edit Player Profile → Profile headline / Why this player?',
+        'Edit profile headline',
       action: 'profile-positioning',
       actionLabel: 'Add positioning',
     },
@@ -718,9 +718,9 @@ export default function AgencyPlayerProfile({
         settings: { ...(bundle?.settings || {}), key_stats: [] },
       });
       if (!(await load(true))) {
-        throw new Error('The club profile now uses current statistics, but could not reload. Reload the player data to recover.');
+        throw new Error('Statistics updated, but the profile could not reload. Try again.');
       }
-      setNotice('The club profile now uses current statistics. Publish the revised profile when it is ready.');
+      setNotice('Statistics updated. Publish when ready.');
     } finally {
       setActionBusy('');
     }
@@ -776,8 +776,8 @@ export default function AgencyPlayerProfile({
       });
       setNotice(
         published?.published
-          ? 'Live Player Profile updated.'
-          : 'Player Profile is live and ready to share.',
+          ? 'Live profile updated.'
+          : 'Profile is live.',
       );
       setEditOpen(false);
       await load(true);
@@ -796,7 +796,7 @@ export default function AgencyPlayerProfile({
       await invoke('player_profile_unpublish', {
         player_id: playerId,
       });
-      setNotice('Player Profile unpublished.');
+      setNotice('Profile unpublished.');
       await load(true);
     } catch (publishError) {
       setError(friendlyError(publishError));
@@ -831,7 +831,7 @@ export default function AgencyPlayerProfile({
         logoUrl,
         filename: `${name}-${agency.short_name || agency.display_name || 'Agency'}-Player-Profile.pdf`,
       });
-      setNotice('Player Profile PDF downloaded.');
+      setNotice('PDF downloaded.');
     } catch (pdfError) {
       setError(friendlyError(pdfError));
     } finally {
@@ -867,7 +867,7 @@ export default function AgencyPlayerProfile({
     const organisationId =
       selectedDeal?.organisation_id || shareClub;
     if (!organisationId) {
-      setError('Choose the club this profile is being shared with.');
+      setError('Choose a club first.');
       return;
     }
     setActionBusy('share');
@@ -886,7 +886,7 @@ export default function AgencyPlayerProfile({
       );
       const token = response?.share?.token;
       if (!token) {
-        throw new Error('The profile link was not created.');
+        throw new Error('Could not create the link.');
       }
       const url = `${window.location.origin}/s/${token}`;
       const readyMessage = buildShareMessage(url);
@@ -894,9 +894,9 @@ export default function AgencyPlayerProfile({
       setShareResultMessage(readyMessage);
       try {
         await navigator.clipboard.writeText(readyMessage);
-        setNotice('Private Player Profile share created and message copied.');
+        setNotice('Private link created. Message copied.');
       } catch {
-        setNotice('Private Player Profile share created.');
+        setNotice('Private link created.');
       }
       await load(true);
     } catch (shareError) {
@@ -928,7 +928,7 @@ export default function AgencyPlayerProfile({
     const url = `${window.location.origin}/s/${token}`;
     try {
       await navigator.clipboard.writeText(url);
-      setNotice('Player Profile link copied.');
+      setNotice('Profile link copied.');
     } catch {
       setShareResultUrl(url);
       setShareOpen(true);
@@ -940,7 +940,7 @@ export default function AgencyPlayerProfile({
 
     try {
       await navigator.clipboard.writeText(shareResultMessage);
-      setNotice('Club-ready share message copied.');
+      setNotice('Share message copied.');
     } catch {
       setNotice('Copy was blocked by the browser. You can still copy the message manually.');
     }
@@ -1250,7 +1250,7 @@ export default function AgencyPlayerProfile({
     return (
       <section className={styles.errorCard}>
         <strong>Player profile could not load</strong>
-        <p>Nothing has been changed. Try again, or return to the player workspace.</p>
+        <p>Nothing changed. Try again or return to Players.</p>
         <div className={styles.errorActions}>
           <button data-ui-button="secondary" type="button" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={14} />

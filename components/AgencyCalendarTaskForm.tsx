@@ -24,7 +24,7 @@ export default function AgencyCalendarTaskForm({task,selectedDate,userId,assigne
   return()=>{siblings.forEach((el,i)=>{el.inert=inert[i];});window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);};
  },[mounted]);
  async function submit(event:React.FormEvent){event.preventDefault();if(busy)return;setError('');
-  if(!title.trim()||title.trim().length>200||notes.length>2000){setError('Add a title of up to 200 characters and notes of up to 2,000 characters.');return;}
+  if(!title.trim()||title.trim().length>200||notes.length>2000){setError('Title up to 200 characters. Notes up to 2,000.');return;}
   if(time&&date){try{taskLocalInstant(date,time,zone);}catch{setError('This local time is invalid or occurs twice when the clocks change. Choose another time or leave the time blank.');return;}}
   const input:TaskInput={title:title.trim(),notes,due_on:date||null,due_time:date&&time?time:null,time_zone:date&&time?zone:null};
   if(!task){requestId.current??=crypto.randomUUID();input.id=requestId.current;input.visibility=visibility;input.owner_user_id=visibility==='personal'?userId:owner;}else if(owner!==task.owner_user_id)input.owner_user_id=owner;

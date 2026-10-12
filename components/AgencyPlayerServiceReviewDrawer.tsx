@@ -218,7 +218,7 @@ export default function AgencyPlayerServiceReviewDrawer({
       });
 
       setMessage(
-        'The current 30-day player-safe proof was captured as a point-in-time snapshot.',
+        '30-day snapshot saved.',
       );
 
       await onApplied();
@@ -241,7 +241,7 @@ export default function AgencyPlayerServiceReviewDrawer({
       instruction:
         firstBreach?.required_action ||
         meeting?.nearest_deadline?.next_action?.instruction ||
-        'Review the player service position and record the next accountable action.',
+        'Review player service and set the next action.',
       label: 'Prepare service move',
       action: 'player_service_move_prepare',
       payload: {
@@ -277,7 +277,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         },
       ],
       successCondition:
-        'The player service gap is resolved or the next accountable action is explicitly reset.',
+        'The service gap is resolved.',
       confirmationLabel: 'Prepare service action',
     });
   };
@@ -290,7 +290,7 @@ export default function AgencyPlayerServiceReviewDrawer({
       instruction:
         alignment?.next_strategy_action?.instruction ||
         alignment?.strategy?.next_checkpoint ||
-        'Review the player-owned career plan with current known information.',
+        'Review the career plan.',
       label: 'Review career plan',
       action: 'career_strategy_action_prepare',
       payload: {
@@ -324,7 +324,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         },
       ],
       successCondition:
-        'The player-owned career plan is current, explicitly confirmed where required and usable for market decisions.',
+        'The career plan is current and confirmed.',
       confirmationLabel: 'Prepare career review',
     });
   };
@@ -367,7 +367,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           <h2>{request.title}</h2>
           <p className={styles.subhead}>
             {request.context ||
-              'Recorded work, career plans and known deadlines.'}
+              'Work, plans and deadlines.'}
           </p>
         </header>
 
@@ -419,7 +419,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 <span>
                   {meeting?.nearest_deadline?.title ||
                     statement?.service_plan?.next_action ||
-                    'Discuss the next step with the player.'}
+                    'Discuss the next step.'}
                 </span>
               </div>
 
@@ -529,7 +529,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <History size={17} />
                     <div>
-                      <strong>No activity recorded in this period.</strong>
+                      <strong>No recorded activity in this period.</strong>
                       <span>
                         Add any work completed outside ReDream.
                       </span>
@@ -577,7 +577,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                     <div className={styles.empty}>
                       <CheckCircle2 size={17} />
                       <div>
-                        <strong>No count changes between the two snapshots.</strong>
+                        <strong>No count change between snapshots.</strong>
                         <span>
                           Review the underlying records for context.
                         </span>
@@ -625,7 +625,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                       </span>
                       <small>
                         {item.next_action?.instruction ||
-                          'Review the deadline with the player.'}
+                          'Review the deadline.'}
                       </small>
                     </div>
                   </article>
@@ -635,7 +635,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <CheckCircle2 size={17} />
                     <div>
-                      <strong>No upcoming deadline in this review period.</strong>
+                      <strong>No upcoming deadline in this period.</strong>
                       <span>
                         The review stays factual rather than manufacturing urgency.
                       </span>

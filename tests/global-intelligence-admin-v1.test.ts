@@ -52,7 +52,7 @@ test('the admin score is visual, automated and honest about missing evidence', (
 
 test('manual player identity fields are correction-only instead of the main workflow', () => {
   assert.match(playerPage, /AUTOMATED PLAYER RECORD/);
-  assert.match(playerPage, /Open only to correct verified identity or contract information/);
+  assert.match(playerPage, /Correct verified identity and contract details/);
   assert.match(
     playerPage,
     /<details className="admin-card admin-player-disclosure">[\s\S]*AUTOMATED PLAYER RECORD/,

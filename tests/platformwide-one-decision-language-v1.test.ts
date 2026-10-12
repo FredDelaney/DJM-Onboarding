@@ -10,8 +10,8 @@ test('authenticated workspaces use customer language for next decisions', () => 
   const calendar = read('components/AgencyCalendarWorkspace.tsx');
   const intelligence = read('components/AgencyEntityIntelligenceDrawer.tsx');
 
-  assert.match(operating, /Review this player opportunity/);
-  assert.match(operating, /No deal issue needs attention/);
+  assert.match(operating, /Review the player\./);
+  assert.match(operating, /Nothing needs attention/);
   assert.match(search, /Searching your workspace/);
   assert.match(calendar, /important agency dates will appear here/);
   assert.match(intelligence, /recorded agency information/);
@@ -25,8 +25,8 @@ test('player data and service screens avoid database language', () => {
   const data = read('components/AgencyPlayerDataPanel.tsx');
   const service = read('components/AgencyPlayerServiceReviewDrawer.tsx');
 
-  assert.match(data, /Reload player data/);
-  assert.match(service, /known deadlines/);
+  assert.match(data, /data could not reload/);
+  assert.match(service, /Work, plans and deadlines/);
   assert.match(service, /previous reviews/);
   assert.doesNotMatch(data, /Reload recorded data/);
   assert.doesNotMatch(service, /persisted proof history/);

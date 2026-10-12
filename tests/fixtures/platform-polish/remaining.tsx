@@ -27,6 +27,6 @@ export default function RemainingSurfaces({suite,screen}:{suite:string;screen:st
  }
  if(suite==='presentation')return screen==='profile'?<PublicPlayerProfile/>:<ClubShare/>;
  if(suite==='capture')return <main style={{maxWidth:760,margin:'0 auto',padding:'24px 16px'}}><h1>Capture</h1><AiFullPage key={params.toString()}/></main>;
- if(suite==='recruitment')return <div className={styles.root}><main className={styles.main}><h1>Recruitment</h1><AgencyPlayersWorkspace data={{directory:{items:[]},recruitment:{items:[target]}}} basePath={path} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onOpenAction={noop} canManageRecords canCreateRecords/></main></div>;
+ if(suite==='recruitment')return <div className={styles.root}><main className={styles.main} style={{gridColumn:'1 / -1'}}><h1>Recruitment</h1><AgencyPlayersWorkspace data={{directory:{items:[]},recruitment:{items:[target]}}} basePath={path} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onOpenAction={noop} canManageRecords canCreateRecords/></main></div>;
  return <p>Unknown remaining fixture</p>;
 }

@@ -243,7 +243,7 @@ export default function AgencyOwnerCommandCentre({
       instruction:
         item.breach?.required_action ||
         item.breach?.fact ||
-        'Review the service issue.',
+        'Review the issue.',
       label:
         action ===
         'player_control_fix_prepare'
@@ -282,7 +282,7 @@ export default function AgencyOwnerCommandCentre({
       successCondition:
         item.action_plan?.expected_fix
           ? `The recorded ${human(item.action_plan.expected_fix)} gap is resolved.`
-          : 'The operating issue is resolved or deliberately reset.',
+          : 'The issue is resolved.',
     });
   };
 
@@ -874,7 +874,7 @@ export default function AgencyOwnerCommandCentre({
                   <CircleAlert size={15} />
                   <span>
                     {baseline.message ||
-                      'No time or labour saving estimate is shown until the agency configures its own baseline assumptions.'}
+                      'Add baseline assumptions to estimate time saved.'}
                   </span>
                 </>
               )}

@@ -187,7 +187,7 @@ export default function AgencyContactIntelligenceDrawer({
         },
       ));
       if (!current()) return;
-      if (!result?.person) throw new Error('This person is no longer available in your agency.');
+      if (!result?.person) throw new Error('This contact is unavailable.');
       setDetail(result);
 
       setEmail(
@@ -351,7 +351,7 @@ export default function AgencyContactIntelligenceDrawer({
 
     if (!values.length) {
       setError(
-        'Add at least one contact detail.',
+        'Add a contact detail.',
       );
       return;
     }
@@ -430,7 +430,7 @@ export default function AgencyContactIntelligenceDrawer({
 
     if (!values.length) {
       setError(
-        'Add at least one external profile.',
+        'Add a profile link.',
       );
       return;
     }
@@ -498,7 +498,7 @@ export default function AgencyContactIntelligenceDrawer({
         !employmentId
       ) {
         setError(
-          'There is no current employment record to verify.',
+          'No current role to verify.',
         );
         return;
       }
@@ -619,7 +619,7 @@ export default function AgencyContactIntelligenceDrawer({
   const nextMove = !quickActions.length
     ? {
         title: 'Add a direct contact route',
-        detail: 'Add one trusted email, WhatsApp or phone number before the next outreach.',
+        detail: 'Add a trusted contact method.',
         label: 'Add contact details',
         kind: 'reach' as const,
       }
@@ -634,7 +634,7 @@ export default function AgencyContactIntelligenceDrawer({
           title: `Contact ${name}`,
           detail: summaryActivity?.last_interaction_at
             ? `Last contact ${relativeDate(summaryActivity.last_interaction_at)}. Use the strongest recorded channel and keep the relationship current.`
-            : 'No recent contact is recorded. Use the strongest recorded channel to start or restart the relationship.',
+            : 'No recent contact. Use the strongest channel.',
           label: primaryReach?.label || 'Contact',
           kind: 'contact' as const,
         };
@@ -777,7 +777,7 @@ export default function AgencyContactIntelligenceDrawer({
               styles.body
             }
           >
-            {restricted ? <p className={styles.section}>Shared contact details and your personal relationship activity. Agency-wide commercial details are only shown to admins.</p> : null}
+            {restricted ? <p className={styles.section}>Shared contact. Commercial details are for admins.</p> : null}
             <section className={styles.nextMove} aria-label="Next relationship action">
               <div>
                 <span>NEXT MOVE</span>
@@ -879,7 +879,7 @@ export default function AgencyContactIntelligenceDrawer({
                 <div className={styles.reachEmpty}>
                   <div>
                     <strong>No direct contact details yet</strong>
-                    <span>Add a verified email address or phone number.</span>
+                    <span>Add a verified contact method.</span>
                   </div>
                   {nextMove.kind !== 'reach' ? (
                     <button

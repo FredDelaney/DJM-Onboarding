@@ -102,7 +102,7 @@ test('cockpit contract term changes require explicit review and confirmation', (
   assert.match(page, /Review term/);
   assert.match(page, /Confirm term/);
   assert.match(page, /No end date[\s\S]*guessed automatically/);
-  assert.match(page, /renewal timing cannot yet be tracked/);
+  assert.match(page, /Add a term end date to track renewal timing/);
   assert.match(css, /\.contractTermControl\s*\{/);
   assert.match(css, /\.contractTermConfirm\s*\{/);
 });

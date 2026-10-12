@@ -43,7 +43,7 @@ export default function PublicPlayerProfilePage() {
   if (failed) {
     return <div className="center"><JourneyStatus kind="error"
       title="We could not load this profile."
-      description="Please try again. A failed request does not mean the link is unavailable."
+      description="Try again. The link may still be available."
       onRetry={() => setAttempt(value => value + 1)} /></div>;
   }
   if (data === undefined) {

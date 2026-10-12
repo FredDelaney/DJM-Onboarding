@@ -5,12 +5,12 @@ import test from 'node:test';
 const workspace = readFileSync('components/AgencyOperatingWorkspace.tsx', 'utf8');
 
 test('main workspace screens explain themselves in simple customer language', () => {
-  assert.match(workspace, /What needs your attention today\./);
-  assert.match(workspace, /Your players, what needs attention and what to do next\./);
-  assert.match(workspace, /Live opportunities, the people involved and the next step\./);
-  assert.match(workspace, /Your club relationships and the people you know\./);
-  assert.match(workspace, /Meetings, follow-ups and deadlines in one place\./);
-  assert.match(workspace, /Live deals, expected income and the agency position\./);
+  assert.match(workspace, /What needs attention\./);
+  assert.match(workspace, /Roster and next steps\./);
+  assert.match(workspace, /Needs, matches and deals\./);
+  assert.match(workspace, /Clubs and relationships\./);
+  assert.match(workspace, /Meetings and deadlines\./);
+  assert.match(workspace, /Deals and revenue\./);
 });
 
 test('empty states tell a new customer what will happen next', () => {

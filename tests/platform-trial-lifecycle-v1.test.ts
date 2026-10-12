@@ -44,9 +44,9 @@ test('paid conversion requires explicit review and confirmation', () => {
 test('conversion does not falsely mark the agency live', () => {
   assert.match(
     page,
-    /Go-live remains a separate[\s\S]*evidence-guarded action/,
+    /Go-live is separate and requires readiness checks/,
   );
-  assert.match(page, /It does not mark the agency live/);
+  assert.match(page, /Go-live is separate and requires readiness checks/);
 
   const convertStart = page.indexOf('const convertTrial = async');
   const planStart = page.indexOf('const updateCustomerPlan', convertStart);

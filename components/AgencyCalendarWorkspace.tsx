@@ -189,7 +189,7 @@ export default function AgencyCalendarWorkspace({
       setMeetingBriefError(
         error instanceof Error
           ? error.message
-          : 'Could not load meeting preparation.',
+          : 'Meeting brief could not load.',
       );
     } finally {
       if (request === meetingRequest.current) setMeetingBriefBusy(false);
@@ -327,7 +327,7 @@ export default function AgencyCalendarWorkspace({
           <button type="button" aria-pressed={view==='month'} onClick={()=>setView('month')}>Month</button>
           <button type="button" aria-pressed={view==='agenda'} onClick={()=>setView('agenda')}>Agenda</button>
         </div>
-        <div className={styles.dateStrip} ref={dayStrip} role="group" aria-label="Choose a day. Swipe to see more dates.">
+        <div className={styles.dateStrip} ref={dayStrip} role="group" aria-label="Choose a day">
           {days.map(date=><button key={date} type="button" className={date===selectedDate?styles.stripSelected:styles.stripDay}
             aria-label={new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(`${date}T12:00:00`)).replaceAll(',', '')}
             aria-current={date===today?'date':undefined} aria-pressed={date===selectedDate} onClick={()=>setSelectedDate(date)}>
@@ -625,7 +625,7 @@ function MeetingBriefDrawer({
             <BriefSection
               icon={<MessageCircleMore size={14} />}
               eyebrow={brief?.access?.restricted ? "YOUR RECENT CONVERSATIONS" : "RECENT CONVERSATIONS"}
-              empty={brief?.access?.restricted ? "You have no conversation with this contact yet." : "No conversation with this contact yet."}
+              empty="No conversation recorded."
               items={recent.map((item: any) => ({
                 key: item?.interaction_id,
                 title: item?.summary || 'Interaction recorded',
@@ -646,7 +646,7 @@ function MeetingBriefDrawer({
             <BriefSection
               icon={<Clock3 size={14} />}
               eyebrow={brief?.access?.restricted ? "YOUR OPEN FOLLOW-UPS" : "OPEN FOLLOW-UPS"}
-              empty={brief?.access?.restricted ? "You have no open follow-up with this contact." : "No open follow-up with this contact."}
+              empty="No open follow-up."
               items={followUps.map((item: any) => ({
                 key: item?.task_id,
                 title: item?.title || 'Follow up',
@@ -663,7 +663,7 @@ function MeetingBriefDrawer({
             <BriefSection
               icon={<Target size={14} />}
               eyebrow="CLUB NEEDS"
-              empty="No active club need is recorded."
+              empty="No active club need."
               items={needs.map((item: any) => ({
                 key: item?.club_need_id,
                 title: item?.title || item?.position || 'Club need',
@@ -681,8 +681,8 @@ function MeetingBriefDrawer({
               eyebrow="LIVE BUSINESS"
               empty={
                 pursuits.length
-                  ? 'No active deal yet. Live opportunities are shown below.'
-                  : 'No active deal or pursuit is recorded with this club.'
+                  ? 'No active deal. Opportunities are below.'
+                  : 'No active deal or pursuit.'
               }
               items={deals.map((item: any) => ({
                 key: item?.deal_room_id,
@@ -723,7 +723,7 @@ function MeetingBriefDrawer({
 
 </> : null}
             <p className={styles.briefTruth}>
-              {brief?.access?.restricted ? "This brief shows your personal meeting and contact activity. Commercial club context requires admin access." : "This is known agency context, not a prediction of the meeting or deal outcome."}
+              {brief?.access?.restricted ? "Your activity only. Commercial context requires admin access." : "This is known agency context, not a prediction of the meeting or deal outcome."}
             </p>
           </div>
         ) : null}

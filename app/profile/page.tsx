@@ -212,13 +212,13 @@ useEffect(() => {
   }
 
   if (!ctx.player) {
-    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile to this account."/></main></PlayerShell>;
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile."/></main></PlayerShell>;
   }
   if (pageRead.loading || pageRead.error) {
     return <PlayerShell><main className="narrow player-shell"><JourneyStatus
       kind={pageRead.error ? 'error' : 'loading'}
       title={pageRead.error ? 'Your profile information could not load' : 'Loading your profile information'}
-      description={pageRead.error || 'Loading your saved videos and document information.'}
+      description={pageRead.error || 'Loading your profile.'}
       onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
     /></main></PlayerShell>;
   }
@@ -449,7 +449,7 @@ useEffect(() => {
       supabase.from('player_private').upsert({player_id:ctx.player.id,...privatePatch}).select('player_id').abortSignal(signal).single(),
     ]));
     if (outcome.status === 'unknown') {
-      setError('We could not confirm that all changes saved. Your edits are still here. Some changes may already be saved.');
+      setError('Could not confirm every change. Some may have saved. Your edits are still here.');
       setBusy(false);
       return false;
     }
@@ -461,7 +461,7 @@ useEffect(() => {
 
     if (failed?.error) {
       setError(
-        failed.error.code ? 'We couldn’t save all your changes. Your edits are still here. Some changes may have saved; please try again.' : 'We could not confirm that all changes saved. Your edits are still here. Some changes may already be saved.',
+        failed.error.code ? 'Could not save every change. Some may have saved. Your edits are still here.' : 'Could not confirm every change. Some may have saved. Your edits are still here.',
       );
 
       setBusy(false);
@@ -495,7 +495,7 @@ return true;
 
     if (!isHttpUrl(url)) {
       setError(
-        'Video must be a valid http or https link.',
+        'Enter a valid video link.',
       );
       return;
     }
@@ -529,14 +529,14 @@ return true;
     const outcome=await writeWithDeadline(signal=>supabase.from('player_videos').upsert(payload,{onConflict:'id'}).select('*').abortSignal(signal).single());
     if(!isCurrentMediaWrite(scope))return;
     if(outcome.status==='unknown'||(outcome.result.error&&!outcome.result.error.code)){
-      setError('We could not confirm that the video saved. Your link is still here. Trying again uses the same video record.');
+      setError('Could not confirm the video. Your link is still here. Try again.');
       setBusy(false);
       return;
     }
     const {data,error:addError}=outcome.result;
     if (addError || !data) {
       setError(
-        'We couldn’t add that video.',
+        'Could not add the video.',
       );
       setBusy(false);
       return;
@@ -568,13 +568,13 @@ return true;
     });
     if(!isCurrentMediaWrite(scope))return;
     if(outcome.status==='unknown'||(outcome.result.error&&!outcome.result.error.code)){
-      setError('We could not confirm that the video was removed. It is still shown here. You can try again.');
+      setError('Could not confirm video removal. Try again.');
       setBusy(false);
       return;
     }
     if (outcome.result.error) {
       setError(
-        'We couldn’t remove that video.',
+        'Could not remove the video.',
       );
       setBusy(false);
       return;
@@ -639,7 +639,7 @@ return true;
 
     if (dirty) {
       setError(
-        'You have unsaved changes. Save them or choose Discard.',
+        'Save or discard your changes.',
       );
       return;
     }
@@ -1525,7 +1525,7 @@ function CareerEditor({
                   event.target.value,
               })
             }
-            placeholder="Be realistic. This helps your agency target the right opportunities."
+            placeholder="Markets you would seriously consider"
           />
         </div>
 

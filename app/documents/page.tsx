@@ -101,7 +101,7 @@ export default function Documents() {
   }, []);
   useEffect(() => {
     if (!owner.resolved) {
-      if (activeWrite.current) setUploadError('We could not confirm your document upload. Your selected file is still here. Try again after your account reconnects.');
+      if (activeWrite.current) setUploadError('Could not confirm the upload. Your file is still selected. Try again when connected.');
       activeWrite.current = false;
       setBusy(false);
       setToast('');
@@ -134,14 +134,14 @@ export default function Documents() {
   }
 
   if (!ctx.player) {
-    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile to this account."/></main></PlayerShell>;
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile."/></main></PlayerShell>;
   }
 
   if (pageRead.loading || pageRead.error) {
     return <PlayerShell><main className="narrow player-shell"><JourneyStatus
       kind={pageRead.error ? 'error' : 'loading'}
       title={pageRead.error ? 'Your documents could not load' : 'Loading your documents'}
-      description={pageRead.error || 'Loading your private files and shared agreements.'}
+      description={pageRead.error || 'Loading documents.'}
       onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
     /></main></PlayerShell>;
   }
@@ -191,8 +191,8 @@ export default function Documents() {
     activeWrite.current = false; setBusy(false);
     if (outcome.status !== 'saved') {
       if (outcome.status !== 'stale') setUploadError(outcome.stage === 'upload'
-        ? 'We could not confirm your file upload. Your selected file and details are still here. Try again to continue with the same file.'
-        : 'We could not confirm your document was saved. Your file has not been deleted. Try again to check and save the same document.');
+        ? 'Could not confirm the upload. Your file is still selected. Try again.'
+        : 'Could not confirm the document. Your file is still selected. Try again.');
       return;
     }
     pageRead.updateData(current => ({
@@ -211,7 +211,7 @@ export default function Documents() {
     if (!file || activeWrite.current || pendingDraft.current || !ctx.player || !ctx.user || !scope.current.resolved) return;
     if (!docType) { flash('Choose the document type first.'); input.value = ''; return; }
     if (file.size > MAX_FILE_BYTES) {
-      flash('That file is too large. Please keep uploads under 15 MB.');
+      flash('File too large. Maximum 15 MB.');
       input.value = ''; return;
     }
     const id = crypto.randomUUID();
@@ -487,12 +487,12 @@ export default function Documents() {
             </p>
             {busy ? <JourneyStatus kind="loading"
               title={uploadStage === 'upload' ? 'Uploading your private file' : 'Saving your document details'}
-              description="Keep this page open while we confirm your upload."/> : uploadError ? <>
+              description="Keep this page open until the upload is confirmed."/> : uploadError ? <>
               <JourneyStatus kind="error" title="Your document upload needs another try" description={uploadError}
                 onRetry={() => void saveSelected(draft)}/>
               <button type="button" className="btn btn-soft btn-block" style={{marginTop: 12}}
                 onClick={chooseAnother}>Choose another file</button>
-              <p className="tiny muted">An earlier upload may still finish. Choosing another file does not delete a file already stored.</p>
+              <p className="tiny muted">An earlier upload may still finish.</p>
             </> : null}
           </div>}
 

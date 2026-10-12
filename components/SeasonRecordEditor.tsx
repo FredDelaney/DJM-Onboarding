@@ -1635,7 +1635,7 @@ const openNew = () => {
 
               <div className="season-editor-section">
                 <div className="section-kicker">
-                  SOURCE / PROVENANCE
+                  SOURCE
                 </div>
 
                 <p className="small muted">

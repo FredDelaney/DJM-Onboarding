@@ -312,8 +312,7 @@ export default function AgencyOwnerJoinPage() {
           <ShieldCheck size={24} />
           <h1>This invitation is no longer available.</h1>
           <p>
-            It may have expired, been replaced or already been used. Ask your
-            agency contact for a new secure invitation.
+            It may have expired or been used. Ask your agency for a new invitation.
           </p>
         </section>
       </main>
@@ -394,8 +393,7 @@ export default function AgencyOwnerJoinPage() {
           <p className={styles.eyebrow}>PRIVATE AGENCY WORKSPACE</p>
           <h1>Your agency, ready to operate.</h1>
           <p>
-            Activate your owner account to open the workspace prepared for your
-            players, relationships and opportunities.
+            Activate your owner account to open your agency workspace.
           </p>
         </div>
 
@@ -461,8 +459,7 @@ export default function AgencyOwnerJoinPage() {
               <p className={styles.eyebrow}>OWNER ACTIVATION</p>
               <h2>Set up your owner account.</h2>
               <p className={styles.copy}>
-                This account controls the agency workspace. Use your real name
-                and a strong private password.
+                Use your name and a strong password.
               </p>
 
               <label className={styles.field}>

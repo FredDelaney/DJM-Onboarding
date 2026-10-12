@@ -308,7 +308,7 @@ test('older background receipts cannot overwrite the capture the user opened', (
 test('recording and unsafe save guard against accidental navigation', () => {
   assert.match(capture, /beforeunload/);
   assert.match(capture, /document\.addEventListener\('click', guardLinks, true\)/);
-  assert.match(capture, /Finish the voice note before leaving this screen/);
+  assert.match(capture, /Finish the voice note first/);
   assert.match(launcher, /Finish saving before opening full screen/);
   assert.match(launcher, /disabled=\{unsafeToClose\}/);
 });

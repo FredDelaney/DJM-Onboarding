@@ -125,7 +125,7 @@ export default function ReDreamPublicLanding() {
             <div className={styles.heroAnswer}>
               <span>NEXT MOVE</span>
               <strong>Send Daniel's clips and confirm availability.</strong>
-              <small>ReDream keeps the opportunity moving.</small>
+              <small>Keep it moving.</small>
             </div>
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function ReDreamPublicLanding() {
         </div>
         <ReDreamSimpleStory />
         <div className={styles.deepLink}>
-          <span>Want to see the technology underneath?</span>
+          <span>See how it works.</span>
           <Link href="/product">Explore the full product <ArrowRight size={15} /></Link>
         </div>
       </section>
@@ -211,15 +211,15 @@ export default function ReDreamPublicLanding() {
         <div className={styles.controlGrid}>
           <article>
             <CheckCircle2 size={18} />
-            <span><strong>ReDream can help</strong><small>Organise information, connect the dots, prepare next steps and remind your team what is due.</small></span>
+            <span><strong>ReDream can help</strong><small>Connect information and keep work moving.</small></span>
           </article>
           <article>
             <ShieldCheck size={18} />
-            <span><strong>You approve important actions</strong><small>Important communication stays controlled by your agency.</small></span>
+            <span><strong>You approve important actions</strong><small>Important communication stays with you.</small></span>
           </article>
           <article>
             <UsersRound size={18} />
-            <span><strong>You own the judgement</strong><small>Negotiations and player career decisions stay with the agent.</small></span>
+            <span><strong>You own the judgement</strong><small>Negotiations and career decisions stay with your agency.</small></span>
           </article>
         </div>
       </section>

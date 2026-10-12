@@ -259,7 +259,7 @@ export default function AgencyDealCloseoutDrawer({
     if (status === 'confirmed') {
       if (!closeoutStage) {
         setError(
-          'A confirmed closeout is only available once the deal is recorded at contracting or won.',
+          'Closeout is available once the deal reaches contracting or won.',
         );
         return;
       }
@@ -735,7 +735,7 @@ export default function AgencyDealCloseoutDrawer({
                 <ReceiptText size={17} />
                 <div>
                   <p>COMMISSION COLLECTION</p>
-                  <h3>Turn an agreed entitlement into a receivable only when a human records it</h3>
+                  <h3>Create a receivable only after a human records it</h3>
                 </div>
               </div>
 

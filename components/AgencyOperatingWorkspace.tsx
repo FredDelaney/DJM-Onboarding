@@ -151,37 +151,37 @@ const VIEW_PRESENTATION: Record<
     eyebrow: 'HOME',
     title: 'Home',
     description:
-      'What needs your attention today.',
+      'What needs attention.',
   },
   players: {
     eyebrow: 'PLAYERS',
     title: 'Players',
     description:
-      'Your players, what needs attention and what to do next.',
+      'Roster and next steps.',
   },
   opportunities: {
     eyebrow: 'OPPORTUNITIES',
     title: 'Opportunities',
     description:
-      'Live opportunities, the people involved and the next step.',
+      'Needs, matches and deals.',
   },
   network: {
     eyebrow: 'NETWORK',
     title: 'Network',
     description:
-      'Your club relationships and the people you know.',
+      'Clubs and relationships.',
   },
   calendar: {
     eyebrow: 'CALENDAR',
     title: 'Calendar',
     description:
-      'Meetings, follow-ups and deadlines in one place.',
+      'Meetings and deadlines.',
   },
   business: {
     eyebrow: 'BUSINESS',
     title: 'Business',
     description:
-      'Live deals, expected income and the agency position.',
+      'Deals and revenue.',
   },
 };
 
@@ -199,7 +199,7 @@ const reviewPlayerId = (command: any): string => {
 
 const reviewCopy = (command: any) => ({
   title: command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
-  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Open the player profile to check the current information.' : 'Check the player profile, then mark this reminder done.',
+  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Review the player profile.' : 'Review the profile, then mark this done.',
 });
 
 const commandWorkingView = (command: any): View => {
@@ -637,7 +637,7 @@ export default function AgencyOperatingWorkspace() {
     const identity = sessionUserId;
     const current = () => sequence === workspaceSequenceRef.current && authIdentityRef.current === identity;
     if (!targetSlug) {
-      setError('This agency workspace could not be resolved.');
+      setError('Workspace unavailable.');
       setBusy(false);
       return;
     }
@@ -663,7 +663,7 @@ export default function AgencyOperatingWorkspace() {
         setWorkspace(null);
         setData(null);
         setError(
-          'This signed-in account does not have agency staff access here.',
+          'This account does not have staff access.',
         );
         return;
       }
@@ -901,7 +901,7 @@ export default function AgencyOperatingWorkspace() {
           if (isCurrent()) {
             setData(null);
             setError(
-              'Business is available to agency owners and administrators.',
+              'Business is for owners and admins.',
             );
           }
         } else {
@@ -1187,7 +1187,7 @@ export default function AgencyOperatingWorkspace() {
       instruction:
         command?.recommended_action ||
         command?.why_now ||
-        'Review the current evidence and decide the next step.',
+        'Review the evidence and decide.',
       label:
         command?.actionability?.cta ||
         (command?.actionability?.requires_input
@@ -1237,7 +1237,7 @@ export default function AgencyOperatingWorkspace() {
     const response = await readWithDeadline(invoke<any>('players_workspace', { limit: 100, offset: directory.next_offset }));
     if (sequence !== loadSequenceRef.current) return;
     const next = response?.players;
-    if (!next || !Array.isArray(next.items)) throw new Error('The next players could not load. Please try again.');
+    if (!next || !Array.isArray(next.items)) throw new Error('Players could not load. Try again.');
     const items = [...new Map([...(directory.items || []), ...next.items].map(item => [item.player_id, item])).values()];
     const nextData = { ...data, directory: { ...next, items } };
     writeViewCache([workspace.tenant_id, sessionUserId, workspace.role, 'players', 'players'].join(':'), nextData);
@@ -1376,8 +1376,8 @@ export default function AgencyOperatingWorkspace() {
       <main className={styles.authPage} style={theme}>
         <section className={styles.authCard}>
           <CircleAlert size={22} />
-          <h1>Workspace access unavailable.</h1>
-          <p>{error || 'Agency staff access is required.'}</p>
+          <h1>Workspace unavailable</h1>
+          <p>{error || 'Staff access is required.'}</p>
           <button
             type="button"
             data-ui-button="secondary"
@@ -1478,7 +1478,7 @@ export default function AgencyOperatingWorkspace() {
               <button
                 type="button"
                 data-ui-button="secondary"
-              className={styles.createButton}
+                className={styles.createButton}
                 onClick={() => setCreateKind(createAction.kind)}
               >
                 <Plus size={15} />
@@ -1570,7 +1570,7 @@ export default function AgencyOperatingWorkspace() {
             </div>
             <div className={styles.firstValueHandoffCopy}>
               <p className={styles.eyebrow}>FIRST WORKING VALUE REACHED</p>
-              <h2>Your agency is operating now.</h2>
+              <h2>Ready to go</h2>
               <p>
                 Your player, contact and opportunity are connected. Keep the next step current here.
               </p>
@@ -1613,7 +1613,7 @@ export default function AgencyOperatingWorkspace() {
             {restrictedView ? (
               <section className={styles.sectionCard}>
                 <h2>Admin access needed</h2>
-                <p>Commercial opportunities and business records are available to agency owners and administrators.</p>
+                <p>Commercial records are for owners and admins.</p>
                 <Link className={styles.homeTextLink} href={basePath+'?view=players'}>Open assigned players <ChevronRight size={14}/></Link>
               </section>
             ) : null}
@@ -2219,7 +2219,7 @@ function Home({
   ]);
   const readNotice = (state: string) => state === 'ready' ? null : (
     <div className={styles.homeReadNotice} role="status">
-      <span>{state === 'loading' ? 'Checking for updates...' : 'Some updates could not be loaded.'}</span>
+      <span>{state === 'loading' ? 'Checking...' : 'Some updates failed to load.'}</span>
       {state === 'error' ? (
         <button type="button" className={styles.compactButton} onClick={onRetry}>
           Try again
@@ -2534,11 +2534,11 @@ function Home({
       review?.reason ||
       command?.why_now ||
       command?.evidence?.reason ||
-      'This needs a decision or action from the agency.';
+      'This needs a decision.';
     const recommendation =
       command?.recommended_action ||
       command?.actionability?.cta ||
-      (review ? 'Review the player information.' : 'Open this and decide the next move.');
+      (review ? 'Review the player.' : 'Decide the next move.');
     queueCandidates.push({
       id: `command:${command?.command_id || index}`,
       category,
@@ -2566,7 +2566,7 @@ function Home({
       category: 'Needs action now',
       score: categoryScore['Needs action now'] + 8_500 - index,
       title: `Record the outcome from ${name}`,
-      why: 'The meeting has ended, but the outcome and next step have not been added yet.',
+      why: 'The meeting outcome is missing.',
       recommendation: 'Capture what happened and the next action while it is still fresh.',
       owner: 'You',
       deadline: item?.ends_at ? `Ended ${relativeDate(item.ends_at)}` : 'Now',
@@ -2652,6 +2652,21 @@ function Home({
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+  const queueSummary = (
+    [
+      'Needs action now',
+      'Waiting on someone',
+      'Upcoming risk',
+      'Opportunity detected',
+      'FYI',
+    ] as QueueCategory[]
+  )
+    .map((category) => ({
+      category,
+      count: queue.filter((item) => item.category === category).length,
+    }))
+    .filter((item) => item.count > 0);
+
   const queueAction = (item: QueueItem) => {
     if (item.kind === 'command') return actionFor(item.payload);
     if (item.kind === 'meeting_aftercare') {
@@ -2688,15 +2703,31 @@ function Home({
         {queue.length || allState !== 'ready' ? (
           <h2>
             {queue.length
-              ? `${queue.length} ${queue.length === 1 ? 'priority' : 'priorities'} today`
+              ? `${queue.length} ${queue.length === 1 ? 'thing matters' : 'things matter'} now`
               : 'Checking what matters now'}
           </h2>
+        ) : null}
+        {queue.length ? (
+          <>
+            <p className={styles.homeFocusHint}>
+              Start with the first item.
+            </p>
+            <div className={styles.homeQueueSummary} aria-label="Today at a glance">
+              {queueSummary.map((item) => (
+                <span key={item.category}>
+                  <b>{item.count}</b>
+                  {item.category}
+                </span>
+              ))}
+            </div>
+          </>
         ) : null}
       </section>
 
       <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`} aria-label="Today priorities">
         <div className={styles.sectionHead}>
           <div className={styles.homeSectionTitle}>
+            <span className={styles.homeSectionLabel}>{restricted ? 'Your work' : 'What matters most'}</span>
             <h2>Today</h2>
           </div>
           <Link className={styles.homeTextLink} href={`${basePath}?view=calendar`}>
@@ -2705,7 +2736,7 @@ function Home({
           </Link>
         </div>
 
-        {restricted ? <p className={styles.homeReadNotice}>Your work only. Assigned players are under Players; commercial records require admin access.</p> : null}
+        {restricted ? <p className={styles.homeReadNotice}>Your work only. Commercial records require admin access.</p> : null}
         {readNotice(allState)}
 
         <div className={styles.todayQueueList}>
@@ -2719,17 +2750,18 @@ function Home({
               <div className={styles.attentionCopy}>
                 <div className={styles.attentionMeta}>
                   <span>{index + 1} · {item.category.toUpperCase()}</span>
-                  <small>{item.owner} · {item.deadline}</small>
+                  <small>{item.deadline}</small>
                 </div>
                 <strong>{item.title}</strong>
+                <span className={styles.todayQueueWhy}>{item.why}</span>
                 <div className={styles.todayQueueRecommendation}>
                   <small>Next step</small>
                   <span>{item.recommendation}</span>
                 </div>
-                <details className={styles.queueContext + ' interface-details'}>
-                  <summary>Why this matters</summary>
-                  <p>{item.why}</p>
-                </details>
+                <div className={styles.todayQueueOwner}>
+                  <span>Owner: {item.owner}</span>
+                  <span>When: {item.deadline}</span>
+                </div>
               </div>
               <div className={styles.todayQueueAction}>
                 {queueAction(item)}
@@ -3234,7 +3266,7 @@ function Relationships({
       <WorkspaceIntro
         eyebrow="NETWORK"
         title="Your football network."
-        copy="See who you know at each club, what is happening there and the best person to contact."
+        copy="See who you know and the best route in."
         icon={Network}
         badge={`${clubSummary.relevant_clubs ?? clubs.length} relevant clubs`}
       />
@@ -4625,7 +4657,7 @@ function Business({
       <WorkspaceIntro
         eyebrow="BUSINESS"
         title="Your business"
-        copy="See your live deals, expected income and who owns each piece of work."
+        copy="Live deals, income and owners."
         icon={Coins}
         badge="Management only"
       />
@@ -5441,7 +5473,7 @@ function Deals({
                         ?.success_condition ||
                       (needsOwner
                         ? 'One accountable owner controls the live deal.'
-                        : 'No deal issue needs attention.'),
+                        : 'Nothing needs attention.'),
                     confirmationLabel:
                       needsOwner
                         ? 'Assign deal owner'

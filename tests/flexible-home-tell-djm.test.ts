@@ -126,7 +126,7 @@ test('ReDream AI polls faster, surfaces transcript progress and uses routed reas
 
   assert.match(
     tellCapture,
-    /Transcript ready\. Doing it now\.\.\./,
+    /Transcript ready\. Preparing suggestions\.\.\./,
   );
 
   assert.match(

@@ -160,7 +160,7 @@ export default function AgencyEntityIntelligenceDrawer({
             deal_room_id: request.entityId,
           }));
           const warRoom = unwrap(response);
-          if (active && (!warRoom?.deal || warRoom?.available === false)) throw new Error('This deal is no longer available in your agency.');
+          if (active && (!warRoom?.deal || warRoom?.available === false)) throw new Error('This deal is unavailable.');
           if (active) {
             setData({ warRoom });
           }
@@ -216,7 +216,7 @@ export default function AgencyEntityIntelligenceDrawer({
     alignment.next_strategy_action?.instruction ||
     service.next_service_move?.instruction ||
     player.next_action ||
-    'No immediate player-service action is recorded.';
+    'No next action recorded.';
   const marketDeals = Number(service.market_coverage?.active_deals || 0);
   const marketOpportunities = Number(
     service.market_coverage?.active_player_opportunities || 0,
@@ -261,7 +261,7 @@ export default function AgencyEntityIntelligenceDrawer({
       <aside className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`} role={pageMode ? 'region' : 'dialog'} aria-modal={pageMode ? undefined : true}>
         <header className={styles.header}>
           <div className={styles.topline}>
-            <span className={styles.live}><i />Live agency evidence</span>
+            <span className={styles.live}><i />Agency record</span>
             <button type="button" onClick={onClose} aria-label={pageMode ? 'Back' : 'Close'}>
               {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
@@ -274,7 +274,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 : <BriefcaseBusiness size={18} />}
             </div>
             <div>
-              <p>{request.kind === 'player' ? 'PLAYER INTELLIGENCE' : 'DEAL WAR ROOM'}</p>
+              <p>{request.kind === 'player' ? 'PLAYER' : 'DEAL'}</p>
               <h2>{request.kind==='deal' ? deal.title || request.title : request.title}</h2>
               {request.context ? <span>{request.context}</span> : null}
             </div>
@@ -286,7 +286,7 @@ export default function AgencyEntityIntelligenceDrawer({
             <LoaderCircle size={20} className={styles.spin} />
             <div>
               <strong>Loading the latest details</strong>
-              <span>Loading your agency records.</span>
+              <span>Loading...</span>
             </div>
           </div>
         ) : null}
@@ -322,16 +322,16 @@ export default function AgencyEntityIntelligenceDrawer({
                 value={marketActivity ? `${marketActivity} active record${marketActivity === 1 ? '' : 's'}` : 'No active market process'}
                 detail={marketActivity
                   ? `${marketDeals} deal${marketDeals === 1 ? '' : 's'} · ${marketOpportunities} opportunit${marketOpportunities === 1 ? 'y' : 'ies'} · ${marketMatches} match${marketMatches === 1 ? '' : 'es'}`
-                  : 'No recorded active deals, opportunities or market matches.'}
+                  : 'No active deals, opportunities or matches recorded.'}
               />
               <Fact
                 label="Career plan"
                 value={strategyMissing ? 'Not set' : human(alignment.alignment_state || 'current')}
                 detail={strategyMissing
-                  ? 'Objective, target markets and next checkpoint still need to be agreed.'
+                  ? 'Career plan still needs agreement.'
                   : alignment.review_due_at
                     ? `Review ${relativeDate(alignment.review_due_at)}`
-                    : 'Career strategy is recorded.'}
+                    : 'Career plan recorded.'}
               />
               <Fact
                 label="Contract"
@@ -349,7 +349,7 @@ export default function AgencyEntityIntelligenceDrawer({
                   : 'No service activity recorded'}
                 detail={recordedMarketProcesses
                   ? `${recordedMarketProcesses} club process${recordedMarketProcesses === 1 ? '' : 'es'} opened in this window.`
-                  : 'No club process opened in the current proof window.'}
+                  : 'No recent club process.'}
               />
             </div>
 
@@ -377,8 +377,8 @@ export default function AgencyEntityIntelligenceDrawer({
                 </div>
               ) : (
                 <div className={styles.planEmpty}>
-                  <strong>Define this with the player.</strong>
-                  <span>Record the objective, target markets and next checkpoint once they are agreed.</span>
+                  <strong>Agree this with the player.</strong>
+                  <span>Add the objective, markets and next checkpoint.</span>
                 </div>
               )}
             </section>
@@ -401,7 +401,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { player_id: request.entityId },
                       context: human(serviceControl.state),
                       successCondition:
-                        'The player issue is resolved.',
+                        'Player issue resolved.',
                     });
                   }}
                 >
@@ -426,7 +426,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { player_id: request.entityId },
                       context: human(alignment.alignment_state),
                       successCondition:
-                        'The player-owned career plan is current and usable for market decisions.',
+                        'Career plan is current.',
                     })
                   }
                 >
@@ -452,7 +452,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       context: human(serviceControl.state),
                       successCondition:
                         service.next_service_move.success_condition ||
-                        'The player action is completed and the next step is recorded.',
+                        'Player action complete.',
                     })
                   }
                 >
@@ -491,7 +491,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 <span>
                   {nextMove.instruction ||
                     deal.next_decision ||
-                    'Review the live deal and define the next decision.'}
+                    'Review the deal and decide.'}
                 </span>
               </div>
               <div className={styles.score}>
@@ -540,7 +540,7 @@ export default function AgencyEntityIntelligenceDrawer({
 
               <h3>
                 {bestIntro.recommended_action ||
-                  'No stronger recorded access move is available.'}
+                  'No stronger route recorded.'}
               </h3>
               <div className={styles.grid}>
                 <Fact
@@ -590,7 +590,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { deal_room_id: request.entityId },
                       context: human(control.state),
                       successCondition:
-                        'No deal issue needs attention.',
+                        'Nothing needs attention.',
                     })
                   }
                 >
@@ -613,7 +613,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { deal_room_id: request.entityId },
                       context: human(deal.stage),
                       successCondition:
-                        'A decision-producing next move is recorded against the live deal.',
+                        'The next move is recorded.',
                     })
                   }
                 >
@@ -665,7 +665,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       context: human(negotiation.state),
                       successCondition:
                         negotiation.next_step.success_condition ||
-                        'The blocking preparation gap is resolved or explicitly recorded.',
+                        'The preparation gap is resolved or recorded.',
                     })
                   }
                 >

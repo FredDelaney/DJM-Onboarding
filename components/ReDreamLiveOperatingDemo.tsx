@@ -370,6 +370,13 @@ function scenarioContext(key: ScenarioKey, scenario: Scenario) {
   return [e.organisation, e.current_club, e.stage && human(e.stage)].filter(Boolean).join(' · ') || scenarioMeta[key].sub;
 }
 
+function reviewLabel(actionability: Actionability) {
+  if (actionability.external_side_effect) return 'Your approval required';
+  if (actionability.mode === 'input_then_confirm') return 'Review before saving';
+  if (actionability.mode === 'one_tap') return 'Ready to prepare';
+  return 'Review required';
+}
+
 function ControlBoundary({ actionability }: { actionability: Actionability }) {
   const external = actionability.external_side_effect === true;
   return (
@@ -377,14 +384,13 @@ function ControlBoundary({ actionability }: { actionability: Actionability }) {
       <div>
         <ShieldCheck size={17} />
         <span>
-          <small>CONTROL BOUNDARY</small>
-          <strong>{external ? 'Human approval required' : human(actionability.mode) || 'Review required'}</strong>
+          <small>YOUR APPROVAL</small>
+          <strong>{reviewLabel(actionability)}</strong>
         </span>
       </div>
       <div className={styles.controlPills}>
-        {actionability.risk_level ? <span>{human(actionability.risk_level)}</span> : null}
-        {actionability.undo_expected ? <span><Undo2 size={13} /> Undoable</span> : null}
-        {!external ? <span><Check size={13} /> No external side effect</span> : null}
+        {actionability.undo_expected ? <span><Undo2 size={13} /> Undo available</span> : null}
+        {!external ? <span><Check size={13} /> Nothing sent</span> : null}
       </div>
     </div>
   );
@@ -447,10 +453,10 @@ export default function ReDreamLiveOperatingDemo({
 
   if (variant === 'hero') {
     return (
-      <aside className={styles.heroFrame} aria-label="Live synthetic ReDream operating model">
+      <aside className={styles.heroFrame} aria-label="Example agency">
         <div className={styles.frameChrome}>
           <span className={styles.liveDot} data-mode={sourceMode} />
-          <strong>{sourceMode === 'live' ? 'LIVE SYNTHETIC PRODUCT MODEL' : sourceMode === 'loading' ? 'CONNECTING PRODUCT MODEL' : 'CACHED SYNTHETIC PRODUCT MODEL'}</strong>
+          <strong>{'EXAMPLE AGENCY'}</strong>
           <small>No customer data</small>
         </div>
 
@@ -480,32 +486,32 @@ export default function ReDreamLiveOperatingDemo({
         </div>
 
         <ControlBoundary actionability={scenarioActionability('deal', data.scenarios.deal)} />
-        <p className={styles.syntheticNote}>Synthetic Northstar agency data. The UI is driven by live ReDream read models, not a fabricated customer case study.</p>
+        <p className={styles.syntheticNote}>Explore the example Northstar agency. This demo uses synthetic data.</p>
       </aside>
     );
   }
 
   const steps = [
     { label: 'Situation', value: title },
-    { label: 'Agency Memory', value: 'Connected evidence' },
-    { label: 'Decision', value: action || 'Review next move' },
-    { label: 'Control', value: actionability.external_side_effect ? 'Human approval' : human(actionability.mode) },
-    { label: 'Record', value: actionability.undo_expected ? 'Logged + undoable' : 'Logged with provenance' },
+    { label: 'Context', value: 'Relevant agency information' },
+    { label: 'Next step', value: action || 'Review next move' },
+    { label: 'Approval', value: reviewLabel(actionability) },
+    { label: 'History', value: actionability.undo_expected ? 'Recorded with undo' : 'Recorded' },
   ];
 
   return (
-    <section className={styles.shell} aria-label="Live ReDream synthetic operating loop">
+    <section className={styles.shell} aria-label="Interactive agency demo">
       <div className={styles.shellTop}>
         <div>
           <span className={styles.liveDot} data-mode={sourceMode} />
-          <strong>LIVE REDREAM OPERATING MODEL</strong>
+          <strong>EXAMPLE AGENCY</strong>
         </div>
-        <span>{sourceMode === 'live' ? 'Connected to synthetic staging data' : sourceMode === 'loading' ? 'Connecting…' : 'Using cached synthetic snapshot'}</span>
+        <span>{'Interactive demo'}</span>
       </div>
 
       <div className={styles.workspace}>
         <aside className={styles.scenarioRail} aria-label="Agency situations">
-          <span>CHOOSE A REAL OPERATING QUESTION</span>
+          <span>CHOOSE A SITUATION</span>
           {Object.entries(scenarioMeta).map(([key, meta]) => {
             const Icon = meta.icon;
             const active = selected === key;
@@ -526,7 +532,7 @@ export default function ReDreamLiveOperatingDemo({
 
           <div className={styles.sandboxTruth}>
             <ShieldCheck size={16} />
-            <span><strong>Real product logic. Synthetic data.</strong><small>No customer tenant is queried by this public experience.</small></span>
+            <span><strong>Example agency data</strong><small>This demo uses no customer records.</small></span>
           </div>
         </aside>
 
@@ -558,7 +564,7 @@ export default function ReDreamLiveOperatingDemo({
               <div className={styles.situationPanel}>
                 <span>WHY THIS NEEDS ATTENTION</span>
                 <h4>{why}</h4>
-                <p>ReDream starts from what your agency knows rather than inventing a generic recommendation.</p>
+                <p>ReDream works from recorded agency context.</p>
               </div>
             ) : null}
 
@@ -585,20 +591,20 @@ export default function ReDreamLiveOperatingDemo({
 
             {stage >= 4 ? (
               <div className={styles.recordPanel}>
-                <div><Check size={18} /><span><small>BACK INTO THE SYSTEM</small><strong>{data.operating_loop.record}</strong></span></div>
-                <p>{actionability.external_side_effect ? 'The public demo does not send, disclose or negotiate anything. Those actions remain human-controlled.' : 'The action protocol records provenance and can support undo where the action type permits it.'}</p>
+                <div><Check size={18} /><span><small>AGENCY HISTORY</small><strong>{'Approved work stays in your agency history.'}</strong></span></div>
+                <p>{actionability.external_side_effect ? 'Sharing and negotiations need your approval.' : 'Each change is recorded, with undo where supported.'}</p>
               </div>
             ) : null}
           </div>
 
           <div className={styles.canvasFooter}>
             <div>
-              <span>{sourceMode === 'live' ? 'Live synthetic contract' : sourceMode === 'loading' ? 'Connecting' : 'Resilient cached fallback'}</span>
-              <small>{data.product_truth.scoring}</small>
+              <span>{'Example agency'}</span>
+              <small>{'Readiness and access scores are not transfer probabilities.'}</small>
             </div>
             <button type="button" onClick={runLoop} disabled={running}>
               {running ? <LoaderCircle size={16} className={styles.spin} /> : stage >= 4 ? <RefreshCw size={16} /> : <ArrowRight size={16} />}
-              {running ? 'Running the loop' : stage >= 4 ? 'Run it again' : 'Watch ReDream operate'}
+              {running ? 'Playing demo' : stage >= 4 ? 'Run it again' : 'Watch the demo'}
             </button>
           </div>
         </div>
@@ -607,7 +613,7 @@ export default function ReDreamLiveOperatingDemo({
       <div className={styles.demoClose}>
         <div>
           <span>THIS IS THE DIFFERENCE</span>
-          <strong>ReDream does not stop at storing the situation. It connects the context, decides what deserves attention, prepares bounded work and records what happens next.</strong>
+          <strong>ReDream connects the context, prioritises the work and records what happens next.</strong>
         </div>
         <ReDreamDemoRequestButton
           className={styles.demoButton}

@@ -153,7 +153,7 @@ export default function CareerPage() {
       <PlayerShell>
         <main className="narrow player-shell">
           <section className="card pad-lg">
-            <h1>Your career space is being prepared.</h1>
+            <h1>Career being prepared</h1>
             <p className="muted">
               Contact your agency if this does not update shortly.
             </p>
@@ -167,7 +167,7 @@ export default function CareerPage() {
     return <PlayerShell><main className="narrow player-shell"><JourneyStatus
       kind={pageRead.error ? 'error' : 'loading'}
       title={pageRead.error ? 'Your career information could not load' : 'Loading your career information'}
-      description={pageRead.error || 'Loading your saved career, documents and player profile.'}
+      description={pageRead.error || 'Loading your career.'}
       onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
     /></main></PlayerShell>;
   }
@@ -249,7 +249,7 @@ export default function CareerPage() {
             <div>
               <span>OPPORTUNITY READINESS</span>
               <strong>{readiness.label}</strong>
-              <p>Preparation score, not a rating of your ability.</p>
+              <p>Measures preparation, not ability.</p>
             </div>
           </div>
         </header>

@@ -572,9 +572,7 @@ export default function AgencyActionBar({
       )}
 
       <small className={styles.truth}>
-        ReDream advances milestones from live tenant, workspace and usage
-        evidence. Operator actions never mark a blocker complete by
-        themselves.
+        Milestones update from agency setup and activity. Actions never mark a blocker complete. Finish the required work.
       </small>
     </section>
   );
