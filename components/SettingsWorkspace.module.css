@@ -495,3 +495,14 @@
 .workspaceIdentity { border-color: #e5e5e7; }
 
 /* Quiet typography and surfaces for this work view. */
+
+/* World-class product pass v11: settings uses an iOS-like grouped list. */
+@media(max-width:680px){
+ .workspace{gap:12px}
+ .workspace :global(.ux-settings-grid){display:grid;gap:0;overflow:hidden;border:1px solid #e5e5e7;border-radius:17px;background:#fff}
+ .workspace :global(.ux-settings-card){min-height:66px;grid-template-columns:38px minmax(0,1fr) auto;gap:10px;padding:11px 13px;border:0;border-bottom:1px solid #efeff1;border-radius:0;background:#fff}
+ .workspace :global(.ux-settings-card:last-child){border-bottom:0}
+ .workspace :global(.ux-settings-icon){width:38px;height:38px;border-radius:11px}
+ .workspace :global(.ux-settings-card strong){font-size:13px}
+ .workspace :global(.ux-settings-card p){margin-top:2px;font-size:12px;line-height:1.45}
+}

@@ -20,3 +20,7 @@
 .options p { padding: 8px; margin: 0; color: #6e6e73; font-size: 13px; }
 .done { width: 100%; min-height: 40px; margin-top: 4px; border: 0 !important; background: #f5f5f7; color: #0066cc; font: inherit; font-size: 13px; border-radius: 8px; cursor: pointer; }
 @media (max-width: 680px) { .chip { min-height: 44px; } .popover { right: auto; left: 0; } }
+
+/* World-class product pass v11: small identity chips and a contained picker. */
+.selection{gap:5px}.chip{min-height:34px;padding:3px 8px 3px 4px;border-radius:17px;background:#f5f5f7;font-size:12px}.avatar{width:22px;height:22px;font-size:9px}.menu>summary{min-height:36px;padding:0 6px;font-size:12px}.popover{width:min(288px,calc(100vw - 64px));border-radius:14px;box-shadow:0 16px 42px rgba(0,0,0,.12)}
+@media(max-width:680px){.chip{min-height:36px}.popover{left:0;right:auto}}
