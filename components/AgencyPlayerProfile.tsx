@@ -368,11 +368,42 @@ export default function AgencyPlayerProfile({
   const [form, setForm] = useState<ProfileForm>(() =>
     initialProfile ? formFromProfile(initialProfile) : emptyForm,
   );
+  useEffect(() => {
+    if (bundle) setCachedPlayerProfile(playerId, bundle, cacheScope);
+  }, [bundle, playerId, cacheScope]);
   const [loading, setLoading] = useState(!initialProfile);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [editOpen, setEditOpen] = useState(false);
+  const [editorSection, setEditorSection] = useState<'story' | 'presentation' | 'video'>('story');
+  const editorDialog = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!editOpen) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusFirst = () => {
+      Array.from(editorDialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled)') || []).find(node => node.getClientRects().length > 0)?.focus();
+    };
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !editorDialog.current?.contains(event.target)) focusFirst();
+    };
+    const recoverFocus = (event: KeyboardEvent) => {
+      if (event.key === 'Tab' && !editorDialog.current?.contains(document.activeElement)) {
+        event.preventDefault(); focusFirst();
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', recoverFocus);
+    Array.from(editorDialog.current?.querySelectorAll<HTMLElement>('input, textarea') || []).find(node => node.getClientRects().length > 0)?.focus();
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', recoverFocus);
+      queueMicrotask(() => { if (opener?.isConnected) opener.focus(); });
+    };
+  }, [editOpen]);
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyFocus, setVerifyFocus] = useState<'verification' | 'position' | 'contract-status' | 'contract-expiry'>(
     'verification',
@@ -397,7 +428,7 @@ export default function AgencyPlayerProfile({
   const [transfermarktError, setTransfermarktError] = useState('');
 
   const loadGeneration = useRef(0);
-  const load = useCallback(async (fresh = false) => {
+  const load = useCallback(async (fresh = false, preserveDraft = false) => {
     const generation = ++loadGeneration.current;
     const cached = getCachedPlayerProfile(playerId, cacheScope);
     if (!cached) setLoading(true);
@@ -424,9 +455,8 @@ export default function AgencyPlayerProfile({
       }
 
       if (generation !== loadGeneration.current) return false;
-      setCachedPlayerProfile(playerId, profile, cacheScope);
       setBundle(profile);
-      setForm(formFromProfile(profile));
+      if (!preserveDraft) setForm(formFromProfile(profile));
       setLoading(false);
 
       if (profile.secondary_ready === false) {
@@ -447,7 +477,6 @@ export default function AgencyPlayerProfile({
                   ...(detail.branding || {}),
                 },
               };
-              setCachedPlayerProfile(playerId, next, cacheScope);
               return next;
             });
           })
@@ -731,21 +760,23 @@ export default function AgencyPlayerProfile({
     setActionBusy('save');
     setError('');
     if (showNotice) setNotice('');
+    const savedSettings = {
+      intro_line: form.intro_line,
+      why_review: form.why_review,
+      career_summary: form.career_summary,
+      key_stats: parseKeyStats(form.key_stats_text),
+      notable_experience: parseLines(form.experience_text),
+      hide_market_value: form.hide_market_value,
+      market_value_display: form.market_value_display,
+      market_value_source_url: form.market_value_source_url,
+      hidden_sections: form.hidden_sections,
+    };
     try {
       await invoke('player_profile_save', {
         player_id: playerId,
-        settings: {
-          intro_line: form.intro_line,
-          why_review: form.why_review,
-          career_summary: form.career_summary,
-          key_stats: parseKeyStats(form.key_stats_text),
-          notable_experience: parseLines(form.experience_text),
-          hide_market_value: form.hide_market_value,
-          market_value_display: form.market_value_display,
-          market_value_source_url: form.market_value_source_url,
-          hidden_sections: form.hidden_sections,
-        },
+        settings: savedSettings,
       });
+      setBundle((current: any) => current ? { ...current, settings: { ...(current.settings || {}), ...savedSettings } } : current);
       if (showNotice) {
         setNotice('Player Profile saved.');
       }
@@ -1030,7 +1061,7 @@ export default function AgencyPlayerProfile({
       setVideoTitle('');
       setVideoUrl('');
       setNotice('Video added to the player record.');
-      await load(true);
+      await load(true, true);
     } catch (videoError) {
       setError(friendlyError(videoError));
     } finally {
@@ -1048,7 +1079,7 @@ export default function AgencyPlayerProfile({
         video_id: videoId,
       });
       setNotice('Video removed.');
-      await load(true);
+      await load(true, true);
     } catch (videoError) {
       setError(friendlyError(videoError));
     } finally {
@@ -1090,11 +1121,17 @@ export default function AgencyPlayerProfile({
   };
 
   const openEditor = () => {
+    setEditorSection('story');
+    setError('');
+    setNotice('');
     setForm(formFromProfile(bundle));
     setEditOpen(true);
   };
 
   const openEditorAt = (target: 'positioning' | 'video') => {
+    setEditorSection(target === 'video' ? 'video' : 'story');
+    setError('');
+    setNotice('');
     setForm(formFromProfile(bundle));
     setEditOpen(true);
     window.setTimeout(() => {
@@ -1233,6 +1270,7 @@ export default function AgencyPlayerProfile({
   };
 
   const closeEditor = () => {
+    if (actionBusy) return;
     setForm(formFromProfile(bundle));
     setEditOpen(false);
   };
@@ -1528,6 +1566,14 @@ export default function AgencyPlayerProfile({
             </button>
           ) : null}
 
+          {canEdit ? (
+            <button type="button" data-ui-button="secondary"
+              className={styles.secondaryAction}
+              onClick={openEditor} disabled={Boolean(actionBusy)}>
+              <Pencil size={15} /> Edit profile
+            </button>
+          ) : null}
+
           <details
             className={styles.profileTools}
             onClick={event=>{if((event.target as HTMLElement).closest('button'))event.currentTarget.open=false;}}
@@ -1578,17 +1624,7 @@ export default function AgencyPlayerProfile({
                 <Download size={15} />
                 Download PDF
               </button>
-              {canEdit ? (
-                <button
-                  type="button"
-                  data-ui-button="secondary"
-                  className={styles.secondaryAction}
-                  onClick={openEditor}
-                >
-                  <Pencil size={15} />
-                  Edit profile
-                </button>
-              ) : null}
+
             </div>
           </details>
         </div>
@@ -2352,7 +2388,17 @@ export default function AgencyPlayerProfile({
           }}
         >
           <section
-            className={styles.modal}
+            className={styles.modal + ' ' + styles.editorModal}
+            ref={editorDialog}
+            onKeyDown={event => {
+              if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeEditor(); }
+              if (event.key !== 'Tab') return;
+              const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href]')).filter(node => node.getClientRects().length > 0);
+              const first = controls[0], last = controls.at(-1);
+              if (!controls.includes(document.activeElement as HTMLElement)) { event.preventDefault(); (event.shiftKey ? last : first)?.focus(); return; }
+              if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+              else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+            }}
             role="dialog"
             aria-modal="true"
             aria-label="Edit Player Profile"
@@ -2371,15 +2417,26 @@ export default function AgencyPlayerProfile({
               className={styles.iconButton}
                 onClick={closeEditor}
                 aria-label="Close"
+                disabled={Boolean(actionBusy)}
               >
                 <X size={17} />
               </button>
             </header>
 
-            <div className={styles.form}>
+            <nav className={styles.editorNav} aria-label="Profile editor sections">
+              {(['story', 'presentation', 'video'] as const).map(section => (
+                <button type="button" key={section} aria-pressed={editorSection === section}
+                  onClick={() => setEditorSection(section)}>
+                  {section === 'story' ? 'Story' : section === 'presentation' ? 'Presentation' : 'Video'}
+                </button>
+              ))}
+            </nav>
+            <fieldset disabled={Boolean(actionBusy)} className={styles.form + ' ' + styles.editorBody}>
+              <div className={styles.editorSection} hidden={editorSection !== 'story'}>
               <label id="player-profile-positioning">
                 <span>Profile headline</span>
                 <input
+                  aria-label="Profile headline"
                   value={form.intro_line}
                   onChange={(event) =>
                     setField('intro_line', event.target.value)
@@ -2416,10 +2473,13 @@ export default function AgencyPlayerProfile({
                 />
               </label>
 
+              </div>
+              <div className={styles.editorSection} hidden={editorSection !== 'presentation'}>
               <label>
                 <span>Custom key numbers</span>
                 <textarea
                   rows={4}
+                  aria-label="Custom key numbers"
                   value={form.key_stats_text}
                   onChange={(event) =>
                     setField('key_stats_text', event.target.value)
@@ -2436,6 +2496,7 @@ export default function AgencyPlayerProfile({
                 <span>Selected experience</span>
                 <textarea
                   rows={4}
+                  aria-label="Selected experience"
                   value={form.experience_text}
                   onChange={(event) =>
                     setField('experience_text', event.target.value)
@@ -2460,6 +2521,7 @@ export default function AgencyPlayerProfile({
                       <button
                         key={key}
                         type="button"
+                        aria-pressed={shown}
                         className={shown ? styles.sectionOn : styles.sectionOff}
                         onClick={() => toggleSection(key)}
                       >
@@ -2519,6 +2581,8 @@ export default function AgencyPlayerProfile({
                 ) : null}
               </div>
 
+              </div>
+              <div className={styles.editorSection} hidden={editorSection !== 'video'}>
               <div
                 className={styles.mediaEditor}
                 id="player-profile-video"
@@ -2564,6 +2628,7 @@ export default function AgencyPlayerProfile({
                     onChange={(event) =>
                       setVideoTitle(event.target.value)
                     }
+                    aria-label="Video title"
                     placeholder="Video title"
                   />
                   <input
@@ -2571,6 +2636,7 @@ export default function AgencyPlayerProfile({
                     onChange={(event) =>
                       setVideoUrl(event.target.value)
                     }
+                    aria-label="Video URL"
                     placeholder="YouTube, Vimeo or Wyscout URL"
                   />
                   <button data-ui-button="primary"
@@ -2582,14 +2648,18 @@ export default function AgencyPlayerProfile({
                   </button>
                 </div>
               </div>
-            </div>
+              </div>
+            </fieldset>
 
             <footer>
+              {error ? <div className={styles.editorFeedback} role="alert">{error}</div> : null}
+              {notice ? <div className={styles.editorFeedback} role="status">{notice}</div> : null}
               <button
                 type="button"
                 data-ui-button="secondary"
               className={styles.secondaryAction}
                 onClick={closeEditor}
+                disabled={Boolean(actionBusy)}
               >
                 Cancel
               </button>
@@ -2599,7 +2669,7 @@ export default function AgencyPlayerProfile({
                 data-ui-button="secondary"
               className={styles.secondaryAction}
                 onClick={() => void saveSettings()}
-                disabled={actionBusy === 'save'}
+                disabled={Boolean(actionBusy)}
               >
                 Save
               </button>

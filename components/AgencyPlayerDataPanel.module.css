@@ -39,3 +39,29 @@
 /* Quiet typography and surfaces for this work view. */
 .kicker { letter-spacing: 0; text-transform: none; font-weight: 500; }
 .panel { box-shadow: none; border-color: #e5e5e7; }
+
+/* Keep the season figures together as one readable evidence surface. */
+.kicker { font-size: 12px; color: #6e6e73; }
+.header p, .guidance { font-size: 13px; color: #6e6e73; }
+.stats { gap: 0; overflow: hidden; border: 1px solid #e5e5e7; border-radius: 12px; background: #f5f5f7; }
+.stats > div { min-width: 0; padding: 16px; border-radius: 0; border-right: 1px solid #e5e5e7; background: transparent; }
+.stats > div:last-child { border-right: 0; }
+.stats span { font-size: 12px; font-weight: 500; color: #6e6e73; }
+.stats strong { color: #1d1d1f; font-weight: 600; }
+.provenance { font-size: 12px; color: #6e6e73; }
+.historyRows article { border: 0; border-bottom: 1px solid #e5e5e7; border-radius: 0; padding: 14px 0; }
+.historyRows article:last-child { border-bottom: 0; }
+.historyRows article > div strong { font-size: 13px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+@media (min-width: 361px) and (max-width: 600px) {
+  .stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .stats > div { padding: 12px 7px; }
+  .stats strong { font-size: 20px; letter-spacing: -.04em; }
+  .stats strong.unknown { font-size: 12px; }
+}
+@media (max-width: 360px) {
+  .stats > div { border-bottom: 1px solid #e5e5e7; }
+  .stats > div:nth-child(3) { border-right: 0; }
+  .stats > div:nth-child(n+4) { border-bottom: 0; }
+}
+
+.stats strong.unknown { overflow-wrap: anywhere; }
