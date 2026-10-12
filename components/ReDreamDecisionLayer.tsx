@@ -481,9 +481,9 @@ export default function ReDreamDecisionLayer() {
         <div>
           <span className={styles.statusDot} data-mode={mode} />
           <BrainCircuit size={17} />
-          <strong>AGENCY DECISION LAYER</strong>
+          <strong>AGENCY OVERVIEW</strong>
         </div>
-        <span>{mode === 'live' ? 'Live synthetic ReDream state' : mode === 'loading' ? 'Connecting…' : 'Cached synthetic state'}</span>
+        <span>{'Interactive demo'}</span>
       </div>
 
       <div className={styles.questionBar}>
@@ -548,7 +548,7 @@ export default function ReDreamDecisionLayer() {
       <div className={styles.autonomyBlock}>
         <div className={styles.blockHead}>
           <ShieldCheck size={17} />
-          <span><strong>ONE QUEUE. THREE CONTROL LANES.</strong><small>Autonomy is routed by the action, not hidden behind an “AI” button.</small></span>
+          <span><strong>YOU STAY IN CONTROL</strong><small>Review important changes before they happen.</small></span>
         </div>
         <div className={styles.laneGrid}>
           {laneCards.map((lane) => {
@@ -563,8 +563,8 @@ export default function ReDreamDecisionLayer() {
                   <b>{items.length}</b>
                 </div>
                 <div className={styles.laneExample}>
-                  <span>{example?.title || 'No current item in this lane'}</span>
-                  <small>{example?.recommended_action || example?.why_now || 'ReDream keeps the lane clear until the recorded state requires it.'}</small>
+                  <span>{example?.title || 'Nothing here yet'}</span>
+                  <small>{example?.recommended_action || example?.why_now || 'No action recorded.'}</small>
                 </div>
               </article>
             );

@@ -71,7 +71,7 @@ test('market-leading intelligence remains available on the deeper product experi
   assert.match(product, /ReDreamLiveOperatingDemo/);
   assert.match(decision, /What needs me first\?/);
   assert.match(decision, /Where is revenue exposed\?/);
-  assert.match(live, /LIVE REDREAM OPERATING MODEL/);
+  assert.match(live, /EXAMPLE AGENCY/);
   assert.match(sandboxContract, /redream_public_sandbox_v1/);
 });
 
