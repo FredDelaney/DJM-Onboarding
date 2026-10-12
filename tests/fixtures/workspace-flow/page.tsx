@@ -19,7 +19,7 @@ const base='/workspace/qa-find-flow';
 export default function Page(){
  const params=useSearchParams(),user=params.get('user')||'a',scenario=params.get('scenario')||'normal',tenant=params.get('tenant')||'a';
  const fixtureRole=params.get('role')||'owner';
- const scope='fixture-tenant-'+tenant+':fixture-user-'+user+':'+fixtureRole,view=params.get('view')||'players',playerId=params.get('player')||'';
+ const scope='fixture-tenant-'+tenant+':fixture-user-'+user+':'+fixtureRole+':'+scenario,view=params.get('view')||'players',playerId=params.get('player')||'';
  const [created,setCreated]=useState(''),[otherDialog,setOtherDialog]=useState(false),reads=useRef<Record<string,number>>({});
  const [loaded,setLoaded]=useState(100);useEffect(()=>setLoaded(100),[user]);
  const [clubRequest,setClubRequest]=useState<any>(null),[dealRequest,setDealRequest]=useState<any>(null);
@@ -27,6 +27,8 @@ export default function Page(){
   (window as any).qaSignIn=(email:string)=>supabase.auth.signInWithPassword({email,password:'fixture'});
   return()=>{delete (window as any).qaSignIn;};
  },[]);
+ const finishLateDetail=useRef<any>(null);
+ const savedProfileSettings=useRef<any>(null),fixtureVideos=useRef<any[]>([{id:'film',title:'Full match footage',url:'https://example.test/film',is_primary:true}]);
  const [ready,setReady]=useState(false);useEffect(()=>setReady(true),[]);
  const data=useMemo(()=>({
   directory:{items:Array.from({length:251},(_,i)=>({player_id:'qa-player-'+i,identity:{name:i===0?(user==='a'?'José Silva':'Other Account Player'):'Example Player '+i,current_club:'Example FC',primary_position:'Centre back',current_country:'NZ'},service:{},active_opportunities:0}))},
@@ -59,7 +61,25 @@ export default function Page(){
   if(action==='recruitment_board')return {recruitment:data.recruitment};
   if(action==='player_data_status')return {job:null};
   if(action==='player_workspace')return {player:{identity:data.directory.items.find(p=>p.player_id===body.player_id)?.identity||{},service:{},agreements:[],documents:[],opportunities:[],deals:[],activity:[]}};
-  if(action==='player_profile_core'||action==='player_profile')return {profile:{access:fixtureRole!=='owner'?{scope:'assigned',restricted:true}:undefined,player:{id:body.player_id,first_name:user==='a'?'José':'Other',last_name:'Silva',primary_position:'Centre back',current_club:'Example FC',current_country:'NZ',current_league:'Regional League',current_season_label:'2026/27',verification_status:'reviewing'},career:[],settings:{},published:{published:false},videos:[],documents:[],shares:[],deals:[],clubs:[],branding:{support_email:'qa@example.test'},secondary_ready:true,auto_key_stats:[]}};
+  if((action==='player_profile_core'||action==='player_profile')&&scenario.startsWith('populated'))return {profile:{
+   player:{id:body.player_id,first_name:'José',last_name:'Silva',date_of_birth:'2002-04-19',primary_position:'Centre back',current_club:'Wellington Harbour Football Club',current_country:'New Zealand',current_league:'National League Championship',current_season_label:'2026/27',nationalities:['New Zealand','Portugal'],contract_status:'under_contract',contract_expiry:'2027-06-30',verified_at:'2026-10-10T12:00:00Z',verification_status:'verified',transfermarkt_url:'https://example.test/player',wyscout_url:'https://example.test/scouting'},
+   career:Array.from({length:6},(_,i)=>({id:'season-'+i,season_label:i===0?'2026/27':String(2026-i)+'/'+String(27-i),club_name:i===0?'Wellington Harbour Football Club':'Harbour Development Football Club',league:'National League Championship',country:'New Zealand',appearances:24-i,starts:22-i,minutes:1980-i*110,goals:2,assists:0,source_name:'Official competition match reports',source_url:'https://example.test/competition',source_reviewed_at:'2026-10-10T12:00:00Z',updated_at:'2026-10-10T12:00:00Z'})),
+   settings:savedProfileSettings.current||{intro_line:'A left-footed centre back with first-team experience in New Zealand.',why_review:'Comfortable building play from the back. Review the full-match footage and recorded season figures together.',career_summary:'Progressed from academy football into the first team.'},
+   published:{published:true},videos:fixtureVideos.current,documents:[{id:'document',title:'Player CV'}],
+   shares:[{id:'share-1',club_name:'North Coast Football Club Recruitment Department',view_count:3,last_viewed_at:'2026-10-11T12:00:00Z',active:true,token:'fixture-share-one',deal_title:'Summer recruitment discussion'},{id:'share-2',club_name:'Riverdale Athletic',view_count:0,active:true,token:'fixture-share-two'}],
+   communication:{summary:{connected_items:3},items:[{capture_id:'activity-1',channel:'email',direction:'inbound',person_name:'Recruitment director',summary:'Requested full-match footage and current-season figures before the next recruitment meeting.',owner_name:'Example Agent',occurred_at:'2026-10-11T12:00:00Z'}],open_followups:[{task_id:'followup-1',title:'Send reviewed footage and season evidence to North Coast FC',due_at:'2026-10-15T12:00:00Z',owner_name:'Example Agent'}]},
+   deals:[],clubs:[],branding:{support_email:'qa@example.test'},secondary_ready:scenario!=='populated-late-detail',auto_key_stats:[]
+  }};
+  if(action==='player_profile_detail')return await new Promise(resolve=>{finishLateDetail.current=resolve;(window as any).qaWaitingProfileDetail=true;});
+  if(action==='player_profile_video_add'){fixtureVideos.current=[...fixtureVideos.current,{id:'added-film',title:body.title,url:body.url}];return {};}
+  if(action==='player_profile_video_remove'){fixtureVideos.current=fixtureVideos.current.filter(video=>video.id!==body.video_id);return {};}
+  if(action==='player_profile_save'){
+   if(scenario==='populated-save-failure')throw new Error('Profile save temporarily unavailable');
+   if(scenario==='populated-late-detail')finishLateDetail.current?.({detail:{secondary_ready:true,shares:[{id:'late-share',club_name:'Late loaded club recruitment',view_count:1,active:false}],communication:{summary:{connected_items:1},items:[{capture_id:'late-activity',channel:'email',summary:'Progressive detail arrived during Save.'}],open_followups:[]}}});
+   await new Promise(resolve=>setTimeout(resolve,300));
+   savedProfileSettings.current=body.settings;(window as any).qaProfileSave=body.settings;return {};
+  }
+  if(action==='player_profile_core'||action==='player_profile')return {profile:{access:fixtureRole!=='owner'?{scope:'assigned',restricted:true}:undefined,player:{id:body.player_id,first_name:user==='a'?'José':'Other',last_name:'Silva',primary_position:'Centre back',current_club:'Example FC',current_country:'NZ',current_league:'Regional League',current_season_label:'2026/27',verification_status:'reviewing'},career:[],settings:{},published:{published:false},videos:[],documents:[],shares:[],deals:[],clubs:[],branding:{support_email:'qa@example.test'},secondary_ready:scenario!=='populated-late-detail',auto_key_stats:[]}};
   throw new Error('Unexpected fixture action '+action);
  },[data,user,scenario,fixtureRole]);
  const rpc=useCallback(async(name:string,args:any={})=>{

@@ -2086,3 +2086,68 @@
  .heroActions{gap:6px}.heroActions :is(button,a,summary){min-height:44px!important}
  .card{border-radius:16px}.cardHead{padding:14px}
 }
+
+/* Populated profiles: readable facts and direct, focused editing. */
+.root { gap: 20px; }
+.hero { padding: 28px; gap: 20px; }
+.heroCopy p { font-size: 14px; line-height: 1.55; }
+.heroFacts { gap: 6px 12px; }
+.heroFacts span { padding: 0; min-height: 20px; background: transparent; color: #6e6e73; font-size: 13px; font-weight: 400; }
+.statusRow span:not(.liveStatus) { padding-left: 0; background: transparent; color: #6e6e73; font-weight: 400; }
+.profileLinks a { flex: 0 1 auto; padding: 10px 12px; border: 1px solid #e5e5e7; background: #fff; color: #0066cc; font-weight: 500; }
+.profileLinks a:first-child { background: #fff; color: #0066cc; }
+.heroActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.root .facts strong { white-space: normal; overflow: visible; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; font-weight: 500; }
+.root .facts span, .root .story > span { color: #6e6e73; font-weight: 500; letter-spacing: 0; }
+.story strong { font-size: 14px; font-weight: 500; }
+.story p, .shareCopy span, .shareCopy small { font-size: 13px; line-height: 1.55; color: #6e6e73; }
+.proofStats span, .keyStats span { color: #6e6e73; }
+.communicationCopy > small, .communicationCopy > span { color: #6e6e73; line-height: 1.55; }
+
+.modal.editorModal { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; height: min(760px, calc(100dvh - 40px)); overflow: hidden; }
+.editorModal > header { position: static; padding-bottom: 16px; }
+.editorNav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 24px 0; padding: 4px; gap: 4px; border-radius: 12px; background: #f5f5f7; }
+.editorNav button { appearance: none; min-width: 0; min-height: 44px; padding: 8px; border: 0; border-radius: 9px; background: transparent; color: #6e6e73; font: inherit; font-size: 14px; cursor: pointer; }
+.editorNav button[aria-pressed="true"] { background: #fff; color: #0066cc; box-shadow: 0 1px 4px #0000000a; }
+.editorNav button:focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }
+.editorBody { min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: block; padding-top: 22px; }
+.editorSection { display: grid; gap: 20px; }
+.editorSection[hidden] { display: none; }
+.editorSection label > span { font-size: 14px; font-weight: 500; color: #424245; }
+.editorSection small { color: #6e6e73; font-size: 13px; line-height: 1.5; }
+.editorSection .sectionChooser > span { font-size: 14px; font-weight: 500; }
+.editorSection .sectionOn, .editorSection .sectionOff { min-height: 44px; border-radius: 10px; font-size: 13px; }
+.editorSection .sectionOn { color: #0066cc; border-color: #c8dff7; background: #f0f7ff; }
+.editorModal > footer { position: static; display: flex; flex-wrap: wrap; align-items: center; padding-top: 12px; padding-bottom: 12px; }
+.editorModal > footer > button { min-height: 44px; }
+.editorFeedback { flex: 1 1 100%; margin-bottom: 4px; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; background: #f5f5f7; color: #424245; }
+.editorFeedback[role="alert"] { color: #b42318; background: #fef3f2; }
+
+@media (max-width: 720px) {
+  .root { gap: 16px; }
+  .hero { padding: 20px; gap: 16px; }
+  .photo { width: 66px; height: 82px; flex-basis: 66px; }
+  .heroCopy h2 { font-size: 27px; line-height: 1.15; }
+  .heroCopy p { font-size: 13px; }
+  .heroFacts span { font-size: 12px; line-height: 1.5; }
+  .heroActions > .primaryAction { flex: 1 1 100%; }
+  .heroActions > .secondaryAction:not(summary) { flex: 1 1 150px; }
+  .root .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .facts > div { padding: 14px; }
+  .story { padding: 16px; }
+  .modal.editorModal { height: min(780px, calc(100dvh - 16px)); }
+  .editorNav { margin: 12px 16px 0; }
+  .editorNav button { font-size: 13px; padding: 6px; }
+  .editorModal > footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .editorModal > footer > .primaryAction, .editorFeedback { grid-column: 1 / -1; }
+}
+
+.topbar { justify-content: flex-start; }
+.topbar > .back:nth-child(2) { margin-left: auto; }
+fieldset.editorBody { min-width: 0; margin: 0; border: 0; }
+@media (max-height: 600px) {
+  .modal.editorModal { display: block; height: auto; max-height: calc(100dvh - 16px); overflow-y: auto; }
+  .editorBody { overflow: visible; }
+}
+
+.communicationFollowupRow > div > strong { white-space: normal; overflow: visible; overflow-wrap: anywhere; line-height: 1.5; }

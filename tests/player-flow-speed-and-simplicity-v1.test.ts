@@ -72,7 +72,7 @@ test('Player Profile reuses a short-lived prefetched cache', () => {
   assert.match(cache, /const TTL_MS = 60_000/);
   assert.match(cache, /profileRequests/);
   assert.match(profile, /getCachedPlayerProfile\(playerId, cacheScope\)/);
-  assert.match(profile, /setCachedPlayerProfile\(playerId, profile, cacheScope\)/);
+  assert.match(profile, /setCachedPlayerProfile\(playerId, bundle, cacheScope\)/);
 });
 
 test('duplicate AI and account identity reads are deduplicated', () => {
