@@ -46,7 +46,11 @@ export default function WorkResponsibilityControl({work,tenantId,rpc,onSaved}:{w
  }
  return <details className={styles.control} ref={details} onToggle={event=>{if(event.target===event.currentTarget&&event.currentTarget.open)void load();}}
   onKeyDown={event=>{if(event.key==='Escape'&&!busy){event.preventDefault();event.stopPropagation();if(details.current){details.current.open=false;details.current.querySelector<HTMLElement>('summary')?.focus();}}}}>
-  <summary>{visible?.people.length?visible.people.map(person=>person.display_name).join(', '):visible?'Unassigned':'Assign people'}<ChevronDown size={13}/></summary>
+  <summary aria-label="Change responsible people" aria-description={visible?.people.length ? 'Responsible: '+visible.people.map(person=>person.display_name).join(', ') : visible ? 'Unassigned' : undefined}>
+   {visible?.people.length ? <span className={styles.summaryAvatar} aria-hidden="true">{visible.people[0].display_name.split(' ').map(part=>part[0]).slice(0,2).join('')}</span> : null}
+   <span className={styles.summaryText}>{visible?.people.length ? (visible.people.length === 1 ? visible.people[0].display_name : visible.people[0].display_name.split(' ')[0] + ' +' + (visible.people.length - 1)) : visible ? 'Unassigned' : 'Assign'}</span>
+   <ChevronDown size={13}/>
+  </summary>
   <div className={styles.panel}>
    {!ready&&!error?<p role="status">Loading people...</p>:null}
    {ready?<ResponsiblePeoplePicker members={members} selected={draft} onChange={setDraft} knownPeople={visible?.people} disabled={busy}/>:null}

@@ -1475,7 +1475,7 @@ export default function AgencyPlayerProfile({
           {published?.published ? (
             <button
               type="button"
-              data-ui-button="primary" data-ui-tone="inverse"
+              data-ui-button="primary"
               className={styles.primaryAction}
               onClick={openShareComposer}
               disabled={!canEdit || Boolean(actionBusy)}
@@ -1486,7 +1486,7 @@ export default function AgencyPlayerProfile({
           ) : canPublishFromHero ? (
             <button
               type="button"
-              data-ui-button="primary" data-ui-tone="inverse"
+              data-ui-button="primary"
               className={styles.primaryAction}
               onClick={() =>
                 void publishProfile({
@@ -1506,7 +1506,7 @@ export default function AgencyPlayerProfile({
           ) : primaryRequiredCheck ? (
             <button
               type="button"
-              data-ui-button="primary" data-ui-tone="inverse"
+              data-ui-button="primary"
               className={styles.primaryAction}
               onClick={() => runProfileCheck(primaryRequiredCheck)}
               disabled={!canEdit || primaryMoveBlocked || Boolean(actionBusy)}
@@ -1520,7 +1520,6 @@ export default function AgencyPlayerProfile({
             <button
               type="button"
               data-ui-button="secondary"
-              data-ui-tone="inverse"
               className={styles.secondaryAction}
               onClick={openTransfermarkt}
             >
@@ -1534,7 +1533,7 @@ export default function AgencyPlayerProfile({
             onClick={event=>{if((event.target as HTMLElement).closest('button'))event.currentTarget.open=false;}}
             onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}
           >
-            <summary data-ui-button="secondary" data-ui-tone="inverse" className={styles.secondaryAction}>
+            <summary data-ui-button="secondary" className={styles.secondaryAction}>
               More <ChevronDown size={15}/>
             </summary>
             <div className={styles.toolMenu}>

@@ -4923,7 +4923,7 @@
 .focusMeta > span { color: #6e6e73; font-weight: 400; }
 .focusMeta small { color: #6e6e73; font-size: 12px; }
 .focusCopy > strong { color: #1d1d1f; font-size: 16px; font-weight: 600; line-height: 1.4; letter-spacing: -.015em; overflow-wrap: anywhere; }
-.focusDetails > summary { width: max-content; min-height: 32px; display: flex; align-items: center; gap: 5px; list-style: none; cursor: pointer; color: #6e6e73; font-size: 12px; }
+.focusDetails > summary { width: max-content; min-height: 44px; display: flex; align-items: center; gap: 5px; list-style: none; cursor: pointer; color: #6e6e73; font-size: 12px; }
 .focusDetails > summary::-webkit-details-marker { display: none; }
 .focusDetails > summary::after { content: ''; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); margin: -3px 3px 0; }
 .focusDetails[open] > summary::after { transform: rotate(225deg); margin-top: 3px; }
@@ -4964,4 +4964,61 @@
  .focusAction { justify-self: end; }
  .focusRow:has(details[open]) { grid-template-columns: minmax(0,1fr); }
  .focusRow:has(details[open]) .focusAction { justify-self: start; }
+}
+
+/* World-class product pass v11: native mobile hierarchy and calmer grouped surfaces. */
+.focusUrgency{display:inline-flex;align-items:center;gap:7px}
+.focusUrgency::before{content:'';width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:#ff9f0a}
+.focusHome{width:min(820px,100%)}
+.focusPanel{box-shadow:0 1px 2px rgba(0,0,0,.018)}
+.focusHeading h3{font-size:17px}
+.focusHeading>span{display:inline-flex;align-items:center;min-height:26px;padding:0 8px;border-radius:999px;background:#f5f5f7;color:#6e6e73}
+.focusRow{min-height:86px}
+.focusAction .compactButton{white-space:nowrap}
+@media(max-width:680px){
+ .root{background:#f7f7f8}
+ .main{padding-inline:18px;padding-bottom:calc(86px + env(safe-area-inset-bottom))}
+ .pageHead{margin-bottom:8px}
+ .focusHome{gap:14px}
+ .focusWelcome{align-items:end;padding:2px 1px 0}
+ .focusWelcome p{margin-bottom:3px;font-size:13px;color:#8e8e93}
+ .focusWelcome h2{font-size:32px;line-height:1.03;font-weight:650;letter-spacing:-.045em}
+ .focusCalendarLink{min-height:40px;padding-bottom:1px;font-size:14px;font-weight:550}
+ .focusPanel{overflow:visible;border:1px solid #e4e4e7;border-radius:18px;background:rgba(255,255,255,.96);box-shadow:0 1px 2px rgba(0,0,0,.02)}
+ .focusHeading{padding:15px 16px 11px}
+ .focusHeading h3{font-size:16px;font-weight:650}
+ .focusHeading>span{min-height:24px;padding:0 7px;background:#f2f2f4;font-size:11px}
+ .focusRow{min-height:84px;grid-template-columns:max-content minmax(0,1fr) auto;gap:2px 8px;padding:12px 16px;align-items:center}
+ .focusCopy{display:contents}
+ .focusMeta,.focusCopy>strong{grid-column:1 / -1}
+ .focusDetails{grid-column:1}
+ .focusCopy>details:not(.focusDetails){grid-column:2;justify-self:start;max-width:100%}
+ .focusCopy>details[open]{grid-column:1 / -1;justify-self:stretch}
+ .focusMeta{gap:5px 9px;font-size:11.5px;line-height:1.25}
+ .focusMeta small{font-size:11.5px}
+ .focusUrgency{color:#8a5a12;font-weight:500}
+ .focusCopy>strong{margin-top:1px;font-size:16px;font-weight:620;line-height:1.28;letter-spacing:-.018em}
+ .focusDetails>summary{min-height:44px;font-size:12px;color:#8e8e93}
+ .focusDetails p{margin:3px 0 8px;font-size:12.5px;line-height:1.48}
+ .focusAction{grid-column:3;justify-self:end;align-self:center;min-width:0}
+ .focusAction .compactButton{min-width:44px;min-height:44px;max-width:150px;display:inline-flex;justify-content:center;gap:4px;padding:6px 8px;border-radius:10px;background:transparent;color:#0071e3;font-size:12px;line-height:1.35;white-space:normal;text-align:right}
+ .focusAction .compactButton svg{width:15px;height:15px;flex-shrink:0;margin:0}
+ .focusRow:has(details[open]){grid-template-columns:max-content minmax(0,1fr) auto}
+ .focusRow:has(details[open]) .focusAction{justify-self:end}
+ .root .sidebar{padding:4px 6px calc(4px + env(safe-area-inset-bottom));background:rgba(250,250,252,.94);border-top:1px solid rgba(60,60,67,.16);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px)}
+ .root .nav{grid-template-columns:repeat(6,minmax(0,1fr));gap:0;background:transparent}
+ .root .nav a,.root .nav .findButton{min-height:52px;padding:5px 1px 3px;border-radius:10px;background:transparent;color:#7d8793;font-weight:520}
+ .root .nav a svg,.root .nav .findButton svg{width:21px;height:21px;stroke-width:1.9}
+ .root .nav a.navActive{background:transparent;color:#0071e3;box-shadow:none;font-weight:620}
+ .root .nav a.navActive::after{display:none}
+ .root .nav a.navActive svg{stroke-width:2.25}
+ .root .nav a span,.root .nav .findButton{font-size:9.5px}
+ .mobileTell{right:18px;bottom:calc(72px + env(safe-area-inset-bottom))}
+ .mobileTell button{width:48px;min-width:48px;height:48px;min-height:48px;border-radius:50%;box-shadow:0 8px 20px rgba(16,43,65,.18)}
+}
+@media(max-width:360px){
+ .focusRow,.focusRow:has(details[open]){grid-template-columns:max-content minmax(0,1fr)}
+ .focusAction{grid-column:1 / -1}
+ .focusCopy>details:not(.focusDetails){justify-self:end}
+ .focusCopy>details[open]{justify-self:stretch}
 }

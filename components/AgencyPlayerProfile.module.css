@@ -2065,3 +2065,24 @@
 .eyebrow, .live { letter-spacing: 0; text-transform: none; font-weight: 500; }
 .card { box-shadow: none; border-color: #e5e5e7; }
 .primary, .secondary, .primaryAction, .secondaryAction { font-weight: 500; box-shadow: none; }
+
+/* World-class product pass v11: player identity is premium without a heavy dark hero. */
+.hero{border:1px solid #e5e5e7;background:#fff;color:#1d1d1f;box-shadow:none}
+.heroCopy h2{color:#1d1d1f}.heroCopy p{color:#6e6e73}
+.heroFacts span{border:0;background:#f5f5f7;color:#515154}
+.profileLinks a{border:0;background:#f5f5f7;color:#0066cc}
+.photo{border-color:#e5e5e7;background:#f1f3f5;color:#52687b}
+.statusRow span,.statusRow .draftStatus{border:0;background:#f5f5f7;color:#515154}
+.statusRow .liveStatus{border:0;background:#eaf6ef;color:#286a48}
+.readiness{border-color:#e5e5e7;background:#f5f5f7}
+.readinessTop span,.readiness p{color:#6e6e73}
+.readinessTop strong{color:#1d1d1f}
+.heroActions .primaryAction{min-height:44px;border-color:transparent;background:#0071e3;color:#fff}
+.hero .secondaryAction{min-height:44px;border-color:transparent;background:#f5f5f7;color:#424245}
+@media(max-width:720px){
+ .root{gap:12px}.hero{gap:12px;padding:16px;border-radius:17px}
+ .photo{width:58px;height:72px;flex-basis:58px;border-radius:11px}.heroCopy h2{font-size:25px}
+ .heroFacts{gap:5px}.heroFacts span{padding:4px 7px}.profileLinks{gap:6px}.profileLinks a{min-height:44px;padding:8px 10px}
+ .heroActions{gap:6px}.heroActions :is(button,a,summary){min-height:44px!important}
+ .card{border-radius:16px}.cardHead{padding:14px}
+}

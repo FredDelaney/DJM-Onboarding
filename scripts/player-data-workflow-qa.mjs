@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {mkdir} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 const require=createRequire(import.meta.url);
 const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright`:'playwright');
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
 const root=process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113';
 const errors=[];
+const screenshotDir=join(tmpdir(),'redream-player-data-screens');
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
  page.on('pageerror',error=>errors.push(error.message));
@@ -14,7 +17,7 @@ try{
   for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(error){if(i===59)throw error;await page.waitForTimeout(500);}}
   const panel=page.getByRole('region',{name:'Player data',exact:true});await panel.waitFor();return panel;
  };
- const stats=panel=>panel.getByLabel('Recorded season statistics');
+ const stats=panel=>panel.getByLabel('Season statistics');
  const ledger=scenario=>page.evaluate(key=>JSON.parse(sessionStorage.getItem('qa-player-data-'+key)||'{}'),scenario);
  for(const width of [320,390,430,768,1440]){
   await page.setViewportSize({width,height:900});
@@ -33,7 +36,7 @@ try{
  let panel=await visit('normal');
  await panel.getByRole('button',{name:'Update statistics',exact:true}).click();
  await panel.getByRole('button',{name:'Updating statistics...',exact:true}).waitFor();
- assert.ok(await panel.getByRole('button',{name:'Edit recorded statistics',exact:true}).isDisabled());
+ assert.ok(await panel.getByRole('button',{name:'Edit current statistics',exact:true}).isDisabled());
  await page.reload();panel=page.getByRole('region',{name:'Player data',exact:true});
  await panel.getByRole('button',{name:'Updating statistics...',exact:true}).waitFor();
  await stats(panel).getByText('9',{exact:true}).waitFor({timeout:15000});
@@ -53,7 +56,7 @@ try{
  assert.equal(await panel.getByText(/^Checked /).count(),0,'Failure cannot display a new successful check');
  assert.ok(await panel.getByRole('button',{name:'Update statistics',exact:true}).isEnabled());
  panel=await visit('manual');
- await panel.getByRole('button',{name:'Edit recorded statistics',exact:true}).click();
+ await panel.getByRole('button',{name:'Edit current statistics',exact:true}).click();
  let form=panel.getByRole('form',{name:'Edit current-season statistics'});
  assert.equal(await form.getByRole('textbox',{name:'Goals',exact:true}).inputValue(),'0');
  assert.equal(await form.getByRole('textbox',{name:'Assists',exact:true}).inputValue(),'');
@@ -66,14 +69,14 @@ try{
  await stats(panel).getByText('10',{exact:true}).waitFor();
  saved=await ledger('manual');assert.equal(saved.saves,1);assert.equal(saved.career[0].goals,0);assert.equal(saved.career[0].assists,null);assert.equal(saved.verifications,0);
  panel=await visit('conflict');
- await panel.getByRole('button',{name:'Edit recorded statistics',exact:true}).click();
+ await panel.getByRole('button',{name:'Edit current statistics',exact:true}).click();
  form=panel.getByRole('form',{name:'Edit current-season statistics'});
  await form.getByRole('textbox',{name:'Apps',exact:true}).fill('12');await form.getByRole('checkbox').check();
  await form.getByRole('button',{name:'Save reviewed statistics',exact:true}).click();
  await panel.getByRole('alert').waitFor();assert.equal(await form.getByRole('textbox',{name:'Apps',exact:true}).inputValue(),'12');
  assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
- await mkdir('/private/tmp/redream-player-data-screens',{recursive:true});
- await page.screenshot({path:'/private/tmp/redream-player-data-screens/mobile-editor.png',fullPage:true});
+ await mkdir(screenshotDir,{recursive:true});
+ await page.screenshot({path:join(screenshotDir,'mobile-editor.png'),fullPage:true});
  panel=await visit('missing');
  assert.ok(await panel.getByRole('button',{name:'Update statistics',exact:true}).isDisabled());
  assert.equal(await stats(panel).getByText('Unknown',{exact:true}).count(),5);
@@ -97,15 +100,15 @@ try{
  const customReview=page.getByRole('dialog',{name:'Review current player data'});
  await customReview.getByText('9',{exact:true}).waitFor();
  assert.equal(await customReview.getByText('99',{exact:true}).count(),0,'Verification must show canonical figures rather than custom club headlines');
- await customReview.getByRole('link',{name:'Open recorded statistics source',exact:true}).waitFor();
+ await customReview.getByRole('link',{name:'Open current statistics source',exact:true}).waitFor();
  await customReview.getByRole('button',{name:'Close',exact:true}).click();
  await customReview.waitFor({state:'detached'});
- await panel.getByRole('button',{name:'Use recorded statistics',exact:true}).click();
- await page.getByText('The club profile now uses recorded statistics. Publish the revised profile when it is ready.',{exact:true}).waitFor();
+ await panel.getByRole('button',{name:'Use current statistics',exact:true}).click();
+ await page.getByText('Statistics updated. Publish when ready.',{exact:true}).waitFor();
  saved=await ledger('custom');assert.deepEqual(saved.settings.key_stats,[]);assert.equal(saved.publishes,0);
- await page.screenshot({path:'/private/tmp/redream-player-data-screens/mobile-profile.png',fullPage:true});
+ await page.screenshot({path:join(screenshotDir,'mobile-profile.png'),fullPage:true});
  await page.setViewportSize({width:1440,height:1000});await visit('manual');
- await page.screenshot({path:'/private/tmp/redream-player-data-screens/desktop-profile.png',fullPage:true});
+ await page.screenshot({path:join(screenshotDir,'desktop-profile.png'),fullPage:true});
  assert.deepEqual(errors,[],'Browser must have no unhandled application errors');
  console.log('Player data: five viewport widths, strict season evidence, persistent refresh/reload, failure recovery, sourced corrections, edit conflicts, verification, read-only access and custom-stat handoff passed.');
 }finally{await browser.close();}

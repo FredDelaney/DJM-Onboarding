@@ -9,9 +9,9 @@ export function workRefFor(value: any): WorkRef | null {
 export function workHref(value:any,basePath:string):string {
   if(value?.work_kind==='calendar_task')return basePath+'?view=calendar&task='+encodeURIComponent(value.work_id)+(value.due_at?'&date='+encodeURIComponent(String(value.due_at).slice(0,10)):'');
   const context=value?.context||{};
-  if(context.deal_room_id)return basePath+'?view=opportunities&tab=deals&deal='+encodeURIComponent(context.deal_room_id);
-  if(context.player_id)return basePath+'?view=players&player='+encodeURIComponent(context.player_id);
-  if(context.club_need_id)return basePath+'?view=opportunities&tab=needs&need='+encodeURIComponent(context.club_need_id);
+  if(context.deal_room_id)return basePath+'?view=opportunities&tab=deals&record='+encodeURIComponent(context.deal_room_id);
+  if(context.player_id)return basePath+'?view=players&player='+encodeURIComponent(context.player_id)+'&profile=1';
+  if(context.club_need_id)return basePath+'?view=opportunities&tab=needs&record='+encodeURIComponent(context.club_need_id);
   if(context.person_id)return basePath+'?view=network&person='+encodeURIComponent(context.person_id);
   if(context.organisation_id)return basePath+'?view=network&club='+encodeURIComponent(context.organisation_id);
   return basePath+'?view=calendar'+(!value?.due_at?'&undated=1#work-'+encodeURIComponent(value?.work_id||''):'');

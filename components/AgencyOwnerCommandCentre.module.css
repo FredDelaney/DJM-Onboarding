@@ -787,3 +787,18 @@
 .eyebrow, .live, .topline { letter-spacing: 0; text-transform: none; font-weight: 500; }
 .panel { box-shadow: none; border-color: #e5e5e7; }
 .drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }
+
+/* Detail pages follow the same quiet reading hierarchy as the workspace. */
+.hero { border: 1px solid #e5e5e7; background: #fff; color: #1d1d1f; box-shadow: none; }
+.hero h3 { color: #1d1d1f; font-weight: 600; }
+.hero p { font-weight: 500; letter-spacing: 0; }
+.hero > div:first-child > span { color: #6e6e73; line-height: 1.5; }
+.heroSide strong { color: #1d1d1f; font-weight: 600; }
+.heroSide span { color: #6e6e73; }
+.fact span { font-weight: 500; letter-spacing: 0; text-transform: none; }
+.fact strong { font-size: 14px; font-weight: 500; }
+@media (max-width: 680px) {
+ .hero { gap: 16px; padding: 18px; }
+ .hero h3 { font-size: 23px; }
+ .content { gap: 12px; }
+}

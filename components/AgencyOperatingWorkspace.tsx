@@ -2750,7 +2750,16 @@ function Home({
         <div className={styles.focusList}>
           {queue.map(item => <article className={styles.focusRow} key={item.id}>
             <div className={styles.focusCopy}>
-              <div className={styles.focusMeta}><span>{categoryLabel[item.category]}</span>{item.deadline!==categoryLabel[item.category]?<small>{item.deadline.replace(/^Overdue\s+(.*overdue)$/i,'$1')}</small>:null}</div>
+              <div className={styles.focusMeta}>
+                <span className={item.category === 'Needs action now' ? styles.focusUrgency : undefined}>
+                  {item.category === 'Needs action now'
+                    ? item.deadline.replace(/^Overdue\s+(.*overdue)$/i, '$1')
+                    : categoryLabel[item.category]}
+                </span>
+                {item.category !== 'Needs action now' && item.deadline !== categoryLabel[item.category]
+                  ? <small>{item.deadline.replace(/^Overdue\s+(.*overdue)$/i, '$1')}</small>
+                  : null}
+              </div>
               <strong>{item.title}</strong>
               <details className={styles.focusDetails}><summary>Details</summary>
                 <p>{item.why}</p>{meaningfulRecommendation(item)?<p>{item.recommendation}</p>:null}

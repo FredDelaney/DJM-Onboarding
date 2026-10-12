@@ -1001,3 +1001,15 @@
 .rowEyebrow { letter-spacing: 0; text-transform: none; font-weight: 400; }
 .row { box-shadow: none; }
 @media(max-width:680px) { .row { border-radius: 14px; padding: 14px; } }
+
+/* World-class product pass v11: Market is one grouped list with clear routing. */
+@media(max-width:680px){
+ .workspace{gap:12px}.controls{gap:8px}
+ .listCard{overflow:hidden;border:1px solid #e5e5e7;border-radius:17px;background:#fff}
+ .row{min-height:82px;grid-template-columns:minmax(0,1fr) 36px;gap:8px;padding:13px 10px 13px 15px;border:0;border-bottom:1px solid #efeff1;border-radius:0;background:#fff;box-shadow:none}
+ .row:last-child{border-bottom:0}.copy{gap:3px}.copy strong{font-size:15.5px;line-height:1.28}
+ .copy>span:not(.rowEyebrow),.copy small,.rowEyebrow{font-size:11.5px!important;line-height:1.38!important}
+ .action,.actionAttention{width:44px;min-width:44px;height:44px;min-height:44px;border-radius:50%;background:radial-gradient(circle,#f2f2f4 0 17px,transparent 17.5px);color:#7d8793}
+ .actionAttention{color:#9b6541;background:radial-gradient(circle,#fbf3ed 0 17px,transparent 17.5px)}
+ .action svg,.actionAttention svg{width:16px;height:16px}
+}
