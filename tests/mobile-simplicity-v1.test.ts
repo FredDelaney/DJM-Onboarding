@@ -33,8 +33,8 @@ test('mobile header keeps account identity and moves Tell ReDream to one persist
 
 test('Home shows one bounded five-item queue on mobile', () => {
   assert.match(shell, /\.slice\(0, 5\)/);
-  assert.match(shell, /styles\.homeTodayQueue/);
-  assert.match(shell, /styles\.todayQueueCard/);
+  assert.match(shell, /styles\.focusPanel/);
+  assert.match(shell, /styles\.focusRow/);
   assert.match(shellCss, /\.todayQueueList/);
   assert.match(shellCss, /\.todayQueueAction/);
   assert.doesNotMatch(shellCss, /\.homePulseGrid\s*\{/);

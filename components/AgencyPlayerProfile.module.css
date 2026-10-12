@@ -2060,3 +2060,8 @@
 .hero::after { display: none; }
 .heroCopy h2 { font-weight: 600; }
 .card { box-shadow: none; border-color: #e5e5e7; }
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow, .live { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.card { box-shadow: none; border-color: #e5e5e7; }
+.primary, .secondary, .primaryAction, .secondaryAction { font-weight: 500; box-shadow: none; }

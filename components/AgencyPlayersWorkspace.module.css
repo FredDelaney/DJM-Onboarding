@@ -1917,3 +1917,14 @@
   .playerCard { padding: 16px; }
   .playerFacts { display: none; }
 }
+
+/* Quiet typography and surfaces for this work view. */
+.playerCard { box-shadow: none; border-color: #e5e5e7; }
+.primary, .secondary, .primaryButton, .secondaryButton { font-weight: 500; box-shadow: none; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }
+
+.playerCard { gap: 10px; border-radius: 16px; }
+.playerCard .mobileNextAction { padding: 0; background: transparent; border-radius: 0; }
+.playerCard .mobileNextAction strong { font-size: 13px; font-weight: 400; color: #515154; }
+.playerIdentity h3 { font-weight: 600; }
+@media(max-width:680px) { .playerCard { padding: 15px; } }

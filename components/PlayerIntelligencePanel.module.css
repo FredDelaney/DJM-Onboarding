@@ -988,3 +988,7 @@
     animation: none;
   }
 }
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow, .projectionKicker { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.primary, .secondary, .primaryAction, .secondaryAction { font-weight: 500; box-shadow: none; }

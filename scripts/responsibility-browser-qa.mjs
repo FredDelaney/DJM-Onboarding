@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+const browser=await chromium.launch({args:['--no-sandbox']});
+try{
+ const page=await browser.newPage({viewport:{width:320,height:650}});
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ const url=(process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113/qa-calendar').replace('/qa-calendar','/qa-responsibility');
+ for(let attempt=0;attempt<60;attempt++){try{await page.goto(url);break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}}
+ await page.locator('main > details > summary').filter({hasText:/^Jesse$/}).waitFor();
+ await page.locator('main > details > summary').filter({hasText:/^Jesse$/}).click();
+ await page.getByLabel('Choose responsible people',{exact:true}).click();
+ const dropdown=page.getByRole('checkbox',{name:'Dapo',exact:true}).locator('..').locator('..').locator('..');
+ const bounds=await dropdown.boundingBox();assert.ok(bounds.x>=0&&bounds.x+bounds.width<=320,'People dropdown must fit the phone screen');
+ await page.getByRole('checkbox',{name:'Dapo',exact:true}).check();
+ await page.getByRole('button',{name:'Done',exact:true}).click();
+ await page.getByRole('button',{name:'Save people',exact:true}).click();
+ await page.locator('main > details > summary').filter({hasText:'Jesse, Dapo'}).waitFor();
+ await page.getByRole('status').filter({hasText:'Confirmed saves: 1'}).waitFor();
+ await page.reload();await page.locator('main > details > summary').filter({hasText:'Jesse, Dapo'}).waitFor();
+ await page.locator('main > details > summary').filter({hasText:'Jesse, Dapo'}).click();
+ await page.getByRole('button',{name:'Remove Dapo',exact:true}).click();
+ await page.getByRole('button',{name:'Toggle conflict',exact:true}).click();
+ await page.getByRole('button',{name:'Save people',exact:true}).click();
+ await page.getByRole('alert').filter({hasText:'changed while you were editing'}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'Remove Jesse',exact:true}).count(),1,'Draft people survive a failed save');
+ await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await page.locator('main > details > summary').filter({hasText:'Jesse, Dapo'}).waitFor();
+ await page.getByRole('button',{name:'Toggle conflict',exact:true}).click();
+ await page.locator('main > details > summary').filter({hasText:'Jesse, Dapo'}).click();
+ await page.getByRole('button',{name:'Remove Dapo',exact:true}).click();
+ await page.getByRole('button',{name:'Save people',exact:true}).click();
+ await page.locator('main > details > summary').filter({hasText:/^Jesse$/}).waitFor();
+ const race=await browser.newPage({viewport:{width:390,height:650}});
+ await race.goto(url+'?race=1');
+ await race.getByText('Assign people',{exact:true}).click();
+ await race.getByLabel('Choose responsible people',{exact:true}).click();
+ await race.getByRole('checkbox',{name:'Dapo',exact:true}).check();
+ await race.getByRole('button',{name:'Done',exact:true}).click();
+ await race.getByRole('button',{name:'Save people',exact:true}).click();
+ await race.getByText('Jesse, Dapo',{exact:true}).waitFor();
+ await race.waitForTimeout(1900);
+ assert.equal(await race.getByText('Jesse, Dapo',{exact:true}).isVisible(),true,'An old read must not replace confirmed people');
+ await race.close();
+ assert.deepEqual(errors,[]);
+ console.log('Reminder assignment browser QA passed: add, save, reload, remove and recover from conflict.');
+}finally{await browser.close();}

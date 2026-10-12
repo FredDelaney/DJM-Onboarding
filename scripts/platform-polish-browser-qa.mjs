@@ -61,11 +61,12 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     if(suite==='player'){status=403;data={error:'Agency staff access required'};}
     else if(body.action==='tenants')data={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-platform-polish',role:'owner',display_name:'Example Agency'}]};
     else if(body.action==='players_workspace')data={players:{items:[{player_id:'player',identity:{name:'Example Player',current_club:'Example FC',primary_position:'Centre back'},service:{}}],total:1,has_more:false}};
-    else if(body.action==='home_focus')data={home:{commands:[]}};
+    else if(body.action==='home_focus')data={home:{attention:{judgement:[{command_id:'example-follow-up',source_type:'task',source_id:'60000000-0000-4000-8000-000000000001',title:'Confirm the trial dates',why_now:'The club is waiting for availability.',recommended_action:'Agree a week with the sporting director.',owner_name:'Jesse',priority_score:90},{command_id:'example-player',source_type:'task',source_id:'60000000-0000-4000-8000-000000000002',title:'Review the club shortlist',why_now:'Your player has new options to consider.',recommended_action:'Choose the two strongest routes.',owner_name:'Dapo',priority_score:80}]}}};
     else if(body.action==='recruitment_board')data={recruitment:{items:[]}};
     else data={home:{},items:[]};
    }else if(path.includes('/rest/v1/rpc/')){
-    if(path.endsWith('/redream_ai_current_access'))data={enabled:true,workspace_slug:'qa-platform-polish',max_audio_seconds:240};
+    if(path.endsWith('/redream_work_responsibility_v1'))data={user_ids:['10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002'],people:[{user_id:'10000000-0000-4000-8000-000000000001',display_name:'Jesse'},{user_id:'10000000-0000-4000-8000-000000000002',display_name:'Dapo'}],revision:1};
+    else if(path.endsWith('/redream_ai_current_access'))data={enabled:true,workspace_slug:'qa-platform-polish',max_audio_seconds:240};
     else if(path.endsWith('/redream_ai_recent_captures'))data=[{id:'00000000-0000-4000-8000-000000000092',status:'needs_review',summary:'Example club update',created_at:'2026-10-08T10:00:00Z',action_count:1,question_count:0}];
     else if(path.endsWith('/redream_ai_receipt'))data={capture:{id:body.p_capture_id,status:state.screen==='complete'?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up on Friday.'},actions:[{id:'action',action_type:'create_task',status:state.screen==='complete'?'applied':'pending',evidence:'Follow up on Friday',proposed_payload:{title:'Follow up with Example FC'},undo_supported:true}]};
     else if(path.endsWith('/redream_autopilot_relationships'))data={accounts:{clubs:[{organisation_id:'club',name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};
@@ -154,7 +155,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      if(!metrics.primaryNavVisible||metrics.navigationIssues.length)failures.push(screen+' marketing navigation missing or too small at '+width+': '+metrics.navigationIssues.join(','));
      if(metrics.navigationOverlap)failures.push(screen+' marketing header overlaps the hero at '+width);
     }
-    if(process.env.PLATFORM_POLISH_SCREENSHOTS&&[390,1440].includes(width)&&['home','product','sign-in','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4','review','complete','detail','players','network','profile','settings','deal','branding','first_opportunity','privacy','workspaces'].includes(screen))await page.screenshot({path:join(process.env.PLATFORM_POLISH_SCREENSHOT_DIR||tmpdir(),'platform-polish-'+suite+'-'+screen+'-'+width+'.png'),fullPage:false});
+    if(process.env.PLATFORM_POLISH_SCREENSHOTS&&[390,1440].includes(width)&&['home','calendar','opportunities','business','product','sign-in','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4','review','complete','detail','players','network','profile','settings','deal','branding','first_opportunity','privacy','workspaces'].includes(screen))await page.screenshot({path:join(process.env.PLATFORM_POLISH_SCREENSHOT_DIR||tmpdir(),'platform-polish-'+suite+'-'+screen+'-'+width+'.png'),fullPage:false});
 
     if(width===390) {
      const disclosures=page.locator('details.interface-details');

@@ -781,3 +781,8 @@
   font-size: 12px;
   font-weight: 800;
 }
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.primary, .secondary { font-weight: 500; box-shadow: none; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }

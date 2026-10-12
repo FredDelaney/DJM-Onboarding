@@ -1609,3 +1609,9 @@
     flex: 0 0 auto;
   }
 }
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow, .live { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.panel { box-shadow: none; border-color: #e5e5e7; }
+.primary, .secondary { font-weight: 500; box-shadow: none; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }

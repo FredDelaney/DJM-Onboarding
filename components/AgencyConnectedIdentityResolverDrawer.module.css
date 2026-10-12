@@ -976,3 +976,6 @@
     border-radius: 14px;
   }
 }
+
+/* Quiet typography and surfaces for this work view. */
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }

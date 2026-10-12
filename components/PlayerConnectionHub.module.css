@@ -355,3 +355,6 @@
     padding-right: 16px;
   }
 }
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow { letter-spacing: 0; text-transform: none; font-weight: 500; }

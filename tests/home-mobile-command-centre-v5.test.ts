@@ -6,14 +6,14 @@ const component = readFileSync('components/AgencyOperatingWorkspace.tsx','utf8')
 const css = readFileSync('components/AgencyOperatingWorkspace.module.css','utf8');
 
 test('Home remains isolated behind one command-centre scope', () => {
-  assert.match(component, /styles\.homeCommandCentre/);
-  assert.match(css, /Home command centre v5: single authoritative mobile layer/);
-  assert.match(css, /\.homeCommandCentre \.attentionCardPrimary/);
+  assert.match(component, /styles\.focusHome/);
+  assert.match(css, /Daily focus uses a single reading surface/);
+  assert.match(css, /\.focusCopy > strong/);
 });
 
 test('ranked Today cards stay contained on phone', () => {
-  assert.match(component, /styles\.todayQueueCard/);
-  assert.match(component, /styles\.todayQueueAction/);
+  assert.match(component, /styles\.focusRow/);
+  assert.match(component, /styles\.focusAction/);
   assert.match(css, /\.todayQueueList/);
   assert.match(css, /\.todayQueueCard/);
   assert.match(css, /\.todayQueueAction/);

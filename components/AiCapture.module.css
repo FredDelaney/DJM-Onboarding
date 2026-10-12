@@ -373,3 +373,6 @@
 
 .shell:not(.compact) .hero { min-height: 230px; background: #111827; box-shadow: none; }
 .previewGrid { gap: 16px; }
+
+/* Quiet typography and surfaces for this work view. */
+.primary, .secondary { font-weight: 500; box-shadow: none; }
