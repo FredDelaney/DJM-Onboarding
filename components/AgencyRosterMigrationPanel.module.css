@@ -356,3 +356,7 @@
     min-height: 44px;
   }
 }
+
+/* Quiet typography and surfaces for this work view. */
+.panel { box-shadow: none; border-color: #e5e5e7; }
+.primary { font-weight: 500; box-shadow: none; }

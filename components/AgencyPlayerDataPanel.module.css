@@ -35,3 +35,7 @@
 .spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:600px){.panel{padding:18px;gap:14px;border-radius:15px}.header{flex-direction:column;gap:12px}.header h3{font-size:19px}.update{width:100%}.stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.stats>div{padding:12px 10px}.stats strong{font-size:22px}.statFields{grid-template-columns:repeat(3,minmax(0,1fr))}.fields{grid-template-columns:1fr}.actions{flex-direction:column}.actions button{width:100%}.warning button,.error button{width:100%}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* Quiet typography and surfaces for this work view. */
+.kicker { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.panel { box-shadow: none; border-color: #e5e5e7; }

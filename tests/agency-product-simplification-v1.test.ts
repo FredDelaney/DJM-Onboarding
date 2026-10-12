@@ -58,7 +58,6 @@ test('Home stays focused on five ranked agency decisions rather than dashboard w
   assert.match(workspace, /Good morning\./);
   assert.match(workspace, /priorities/);
   assert.match(workspace, /Today priorities/);
-  assert.match(workspace, /Next step/);
   assert.doesNotMatch(workspace, /AGENCY PULSE/);
   assert.doesNotMatch(workspace, /OPPORTUNITIES MOVING/);
   assert.doesNotMatch(workspace, /PLAYERS NEEDING ATTENTION/);

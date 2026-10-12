@@ -1,0 +1,9 @@
+.control { position: relative; min-width: 0; }
+.control > summary { display: flex; align-items: center; gap: 5px; min-height: 44px; width: fit-content; color: #0066cc; font-size: 12px; list-style: none; cursor: pointer; }
+.control > summary::-webkit-details-marker { display: none; }
+.panel { padding: 12px; margin-bottom: 8px; border: 1px solid #e5e5e7; border-radius: 12px; background: #fff; }
+.panel p { margin: 0 0 10px; font-size: 13px; color: #6e6e73; }
+.panel p[role="alert"] { color: #b03c2e; }
+.actions { display: flex; gap: 6px; margin-top: 8px; }
+.actions button { min-height: 44px; padding: 0 12px; border: 0; border-radius: 9px; background: #f5f5f7; color: #424245; font: inherit; font-size: 13px; cursor: pointer; }
+.actions button:last-child { color: #0066cc; }

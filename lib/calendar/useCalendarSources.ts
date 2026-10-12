@@ -1,4 +1,5 @@
 'use client';
+import {readAssignedWorkPages} from '../work-responsibility';
 import {useEffect,useState,useRef} from 'react';
 import {reconcileTaskRows} from './task-state';
 import {readTaskPages,type CalendarRpc,type CalendarTask,type Assignee} from './tasks';
@@ -19,6 +20,7 @@ export function useCalendarSources(rpc:CalendarRpc,tenantId:string,userId:string
    overdue:{key:[today,zone],load:()=>readTaskPages(rpc,{...args,p_mode:'overdue',p_include_done:false,p_include_archived:false})},
    todayDates:{key:[today,zone],load:()=>rpc('redream_calendar_range',{p_start:today,p_end:tomorrow,p_timezone:zone})},
    todayTasks:{key:[today,zone],load:()=>readTaskPages(rpc,{...args,p_start:today,p_end:tomorrow,p_include_done:false,p_include_archived:false})},
+   sharedWork:{key:[],load:async()=>({items:await readAssignedWorkPages(rpc,tenantId)})},
    assignees:{key:[],load:()=>rpc('redream_calendar_task_assignees_v1',{p_tenant_id:tenantId})}
   };
   const rpcChanged=previousRpc.current!==rpc;previousRpc.current=rpc;
@@ -43,6 +45,6 @@ export function useCalendarSources(rpc:CalendarRpc,tenantId:string,userId:string
   setSources(old=>{const next={...old};for(const name of ['tasks','undated','overdue','todayTasks']){const current=old[name];const rows=current?.scope===scope&&Array.isArray(current.value)?current.value:[];next[name]={scope,busy:false,ready:Boolean(current?.scope===scope&&current.ready),error:current?.scope===scope?current.error:'',value:reconcileTaskRows(rows,task,{mode:name==='undated'?'undated':name==='overdue'?'overdue':'range',start:name==='todayTasks'?today:start,end:name==='todayTasks'?nextDay:end,today,now,done:name==='tasks'||name==='undated'?done:false,archived:name==='tasks'||name==='undated'?archived:false})};}return next;});
  };
  const visible=Object.fromEntries(Object.entries(sources).filter(([,s])=>s.scope===scope));
- return {confirmTask,retry:(name:string)=>retryRef.current(name),scope,sources:visible,dates:visible.dates?.value||{},birthdays:visible.birthdays?.value||{items:[]},tasks:(visible.tasks?.value||[])as CalendarTask[],undated:(visible.undated?.value||[])as CalendarTask[],overdue:(visible.overdue?.value||[])as CalendarTask[],todayDates:visible.todayDates?.value||{},todayTasks:(visible.todayTasks?.value||[])as CalendarTask[],assignees:(visible.assignees?.value?.items||[])as Assignee[],busy:['dates','birthdays','tasks'].some(name=>!visible[name]||visible[name].busy),errors:Object.entries(visible).filter(([,s])=>s.error).map(([name,s])=>({name,message:s.error})),partial:!visible.todayDates||!visible.todayTasks||!visible.overdue||['todayDates','todayTasks','overdue'].some(name=>visible[name]?.busy||visible[name]?.error)};
+ return {confirmTask,retry:(name:string)=>retryRef.current(name),scope,sources:visible,sharedWork:visible.sharedWork?.value?.items||[],dates:visible.dates?.value||{},birthdays:visible.birthdays?.value||{items:[]},tasks:(visible.tasks?.value||[])as CalendarTask[],undated:(visible.undated?.value||[])as CalendarTask[],overdue:(visible.overdue?.value||[])as CalendarTask[],todayDates:visible.todayDates?.value||{},todayTasks:(visible.todayTasks?.value||[])as CalendarTask[],assignees:(visible.assignees?.value?.items||[])as Assignee[],busy:['dates','birthdays','tasks'].some(name=>!visible[name]||visible[name].busy),errors:Object.entries(visible).filter(([,s])=>s.error).map(([name,s])=>({name,message:s.error})),partial:!visible.todayDates||!visible.todayTasks||!visible.overdue||['todayDates','todayTasks','overdue','sharedWork'].some(name=>visible[name]?.busy||visible[name]?.error)};
 }
-export const sourceLabels:Record<string,string>={dates:'meetings and agency dates',birthdays:'birthdays',tasks:'tasks',undated:'undated tasks',overdue:'overdue tasks',todayDates:'today\'s meetings',todayTasks:'today\'s tasks',assignees:'company members'};
+export const sourceLabels:Record<string,string>={dates:'meetings and agency dates',birthdays:'birthdays',tasks:'tasks',undated:'undated tasks',overdue:'overdue tasks',todayDates:'today\'s meetings',todayTasks:'today\'s tasks',assignees:'company members',sharedWork:'assigned work'};

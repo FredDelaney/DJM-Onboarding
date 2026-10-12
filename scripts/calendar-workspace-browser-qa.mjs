@@ -17,9 +17,12 @@ try{
  await page.getByRole('button',{name:'Add task',exact:true}).click();
  await page.getByLabel('Title',{exact:true}).fill('Company planning');
  await page.getByLabel('Visibility',{exact:true}).selectOption('company');
- await page.getByLabel('Owner',{exact:true}).selectOption('colleague');
+ await page.getByLabel('Choose responsible people',{exact:true}).click();
+ await page.getByRole('checkbox',{name:'Dapo',exact:true}).check();
+ await page.getByRole('button',{name:'Done',exact:true}).click();
  await page.getByRole('button',{name:'Save task',exact:true}).click();
  await page.locator('article[data-task-id]').getByText('Company planning',{exact:true}).waitFor();
+ assert.ok(await page.locator('article[data-task-id]').filter({hasText:'Company planning'}).getByText('Company · Jesse, Dapo',{exact:true}).isVisible(),'Both responsible people must be shown after save');
  await page.getByRole('button',{name:'Complete Company planning',exact:true}).click();
  await page.getByText('Show in calendar',{exact:true}).click();
  await page.getByLabel('Show completed tasks').check();
@@ -33,6 +36,7 @@ try{
  await page.getByRole('button',{name:'Save task',exact:true}).click();
  await page.getByText('No date',{exact:true}).click();
  await page.getByText('Unscheduled work',{exact:true}).waitFor();
+ await page.getByText('Shared unscheduled follow-up',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Toggle save failure',exact:true}).click();
  await page.getByRole('button',{name:'Edit Review club shortlist',exact:true}).click();
  assert.equal(await page.getByLabel('Visibility',{exact:true}).isDisabled(),true);
@@ -91,10 +95,9 @@ try{
  await page.getByLabel('Title',{exact:true}).fill('Company reassigned');
  await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Toggle inactive owner').click());
  await page.getByRole('button',{name:'Save task',exact:true}).click();
- await page.getByRole('alert').filter({hasText:'active member'}).waitFor();
+ await page.getByRole('alert').filter({hasText:'active agency members'}).waitFor();
  assert.equal(await page.getByLabel('Title',{exact:true}).inputValue(),'Company reassigned');
- await page.waitForFunction(()=>!document.querySelector('select[aria-label="Owner"] option[value="colleague"]')||document.querySelector('select[aria-label="Owner"] option[value="colleague"]').textContent==='Needs reassignment');
- await page.getByLabel('Owner',{exact:true}).selectOption('qa-user');
+ await page.getByRole('button',{name:'Remove Dapo',exact:true}).click();
  await page.getByRole('button',{name:'Save task',exact:true}).click();
  await page.getByRole('button',{name:'Edit Company reassigned',exact:true}).waitFor();
  await page.getByRole('button',{name:'Edit Revised shortlist',exact:true}).click();

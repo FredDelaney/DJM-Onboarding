@@ -16,8 +16,8 @@ test('Home does not render raw recent conversations as a second feed', () => {
 });
 
 test('Home uses structured ranked cards for visible context', () => {
-  assert.match(home, /styles\.todayQueueCard/);
-  assert.match(home, /item\.category\.toUpperCase\(\)/);
+  assert.match(home, /styles\.focusRow/);
+  assert.match(home, /categoryLabel\[item\.category\]/);
   assert.match(home, /item\.why/);
   assert.match(css, /\.todayQueueCard/);
 });

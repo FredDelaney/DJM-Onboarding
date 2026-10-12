@@ -1212,3 +1212,9 @@
   .pagePanel .copy { font-size: 13px; line-height: 1.55; }
   .pagePanel .truth { font-size: 12px; line-height: 1.55; }
 }
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow, .live, .topline { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.panel { box-shadow: none; border-color: #e5e5e7; }
+.primary, .secondary { font-weight: 500; box-shadow: none; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }

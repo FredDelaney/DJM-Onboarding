@@ -1,5 +1,7 @@
 'use client';
 
+import WorkResponsibilityControl from './WorkResponsibilityControl';
+import {workRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
 import AiLauncher from '@/components/AiLauncher';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
@@ -1619,6 +1621,9 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'home' ? (
               <Home
+                rpc={rpc}
+                tenantId={workspace.tenant_id}
+                userId={sessionUserId}
                 data={data}
                 basePath={basePath}
                 workspaceSlug={String(workspace?.slug || targetSlug || '')}
@@ -2178,6 +2183,9 @@ function EmptyState({
 }
 
 function Home({
+  rpc,
+  tenantId,
+  userId,
   data,
   basePath,
   workspaceSlug,
@@ -2188,6 +2196,9 @@ function Home({
   onPrepareConnectedReply,
   onRecordMeetingOutcome,
 }: {
+  rpc: <T=any>(name:string,args?:Record<string,unknown>)=>Promise<T>;
+  tenantId: string;
+  userId: string;
   data: any;
   basePath: string;
   workspaceSlug: string;
@@ -2199,6 +2210,17 @@ function Home({
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const restricted = Boolean(data?.home?.access?.restricted);
+  const assignedScope=tenantId+':'+userId;
+  const [assignedLoading,setAssignedLoading]=useState(true);
+  const [assignedWork,setAssignedWork]=useState<{scope:string;items:any[]}>({scope:'',items:[]});
+  const [assignedError,setAssignedError]=useState('');
+  useEffect(()=>{
+    let alive=true,request=0;
+    const load=()=>{const token=++request;setAssignedError('');setAssignedLoading(true);void readWithDeadline(readAssignedWorkPages(rpc,tenantId).then(items=>({items}))).then(value=>{if(alive&&token===request){if(!Array.isArray(value?.items)){setAssignedError('Could not confirm your assigned tasks.');}else setAssignedWork({scope:assignedScope,items:value.items});setAssignedLoading(false);}},()=>{if(alive&&token===request){setAssignedError('Could not load your assigned tasks.');setAssignedLoading(false);}});};
+    load();window.addEventListener('redream:responsibilities-updated',load);
+    return()=>{alive=false;window.removeEventListener('redream:responsibilities-updated',load);};
+  },[rpc,tenantId,assignedScope]);
+
   const [greeting, setGreeting] = useState('Good to see you.');
 
   useEffect(() => {
@@ -2618,7 +2640,7 @@ function Home({
             : `This date is approaching in ${daysAway} day${daysAway === 1 ? '' : 's'}.`,
         recommendation: 'Open the item and confirm the next move.',
         owner: item?.owner_name || 'You',
-        deadline: isPast ? `Overdue ${relativeDate(item.deadline_at)}` : relativeDate(item.deadline_at),
+        deadline: isPast ? relativeDate(item.deadline_at) : relativeDate(item.deadline_at),
         kind: 'day',
         payload: item,
       });
@@ -2644,6 +2666,14 @@ function Home({
   });
 
 
+
+  for (const work of assignedWork.scope===assignedScope?assignedWork.items:[]) {
+    const date=work.due_at?new Date(work.date_only?String(work.due_at).slice(0,10)+'T12:00:00':work.due_at):null;
+    if(date&&(Number.isNaN(date.getTime())||date.getTime()>now.getTime()+7*86400000))continue;
+    const key=work.work_kind+':'+work.work_id;
+    if(queueCandidates.some(item=>{const ref=workRefFor(item.payload);return ref?.kind+':'+ref?.id===key;}))continue;
+    queueCandidates.push({id:'assigned:'+key,category:!date||date<=endOfToday?'Needs action now':'Upcoming risk',score:!date?15000:date<now?47500:date<=endOfToday?46500:30500,title:work.title,why:'This work is assigned to you.',recommendation:'',owner:work.responsible_people?.map((person:any)=>person.display_name).join(', ')||'',deadline:date?dateLabel(work.due_at):'No date',kind:'day',payload:work});
+  }
 
   const queue = queueCandidates
     .filter(
@@ -2684,7 +2714,7 @@ function Home({
     return (
       <Link
         className={styles.compactButton}
-        href={dayHrefFor(item.payload)}
+        href={item.payload?.work_kind?workHref(item.payload,basePath):dayHrefFor(item.payload)}
       >
         <ChevronRight size={16} />
         {item.payload?.calendar_kind === 'meeting'
@@ -2696,95 +2726,43 @@ function Home({
     );
   };
 
+  const categoryLabel: Record<QueueCategory,string> = {
+    'Needs action now':'Needs attention','Waiting on someone':'Waiting',
+    'Upcoming risk':'Coming up','Opportunity detected':'Opportunity','FYI':'For you',
+  };
+  const meaningfulRecommendation = (item: QueueItem) =>
+    item.recommendation && !/^(Open the item|Decide the next move|Review the player|Open the meeting)/i.test(item.recommendation)
+      && item.recommendation.trim() !== item.why.trim();
+
   return (
-    <div className={`${styles.homeStack} ${styles.homeCommandCentre}`}>
-      <section className={styles.homeWelcome}>
-        <p>{greeting}</p>
-        {queue.length || allState !== 'ready' ? (
-          <h2>
-            {queue.length
-              ? `${queue.length} ${queue.length === 1 ? 'thing matters' : 'things matter'} now`
-              : 'Checking what matters now'}
-          </h2>
-        ) : null}
-        {queue.length ? (
-          <>
-            <p className={styles.homeFocusHint}>
-              Start with the first item.
-            </p>
-            <div className={styles.homeQueueSummary} aria-label="Today at a glance">
-              {queueSummary.map((item) => (
-                <span key={item.category}>
-                  <b>{item.count}</b>
-                  {item.category}
-                </span>
-              ))}
-            </div>
-          </>
-        ) : null}
-      </section>
-
-      <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`} aria-label="Today priorities">
-        <div className={styles.sectionHead}>
-          <div className={styles.homeSectionTitle}>
-            <span className={styles.homeSectionLabel}>{restricted ? 'Your work' : 'What matters most'}</span>
-            <h2>Today</h2>
-          </div>
-          <Link className={styles.homeTextLink} href={`${basePath}?view=calendar`}>
-            Calendar
-            <ChevronRight size={14} />
-          </Link>
-        </div>
-
+    <div className={styles.focusHome}>
+      <header className={styles.focusWelcome}>
+        <div><p>{greeting}</p><h2>Your day</h2></div>
+        <Link className={styles.focusCalendarLink} href={`${basePath}?view=calendar`}>Calendar<ChevronRight size={16}/></Link>
+      </header>
+      <section className={styles.focusPanel} aria-label="Today priorities">
+        <div className={styles.focusHeading}><h3>{restricted ? 'Your work' : 'Needs your attention'}</h3>
+          <span>{queue.length ? `${queue.length} items` : allState !== 'ready' || assignedLoading ? 'Updating' : assignedError ? 'Unavailable' : 'All clear'}</span></div>
         {restricted ? <p className={styles.homeReadNotice}>Your work only. Commercial records require admin access.</p> : null}
         {readNotice(allState)}
-
-        <div className={styles.todayQueueList}>
-          {queue.map((item, index) => (
-            <article
-              className={`${styles.attentionCard} ${styles.todayQueueCard} ${
-                index === 0 ? styles.attentionCardPrimary : ''
-              }`}
-              key={item.id}
-            >
-              <div className={styles.attentionCopy}>
-                <div className={styles.attentionMeta}>
-                  <span>{index + 1} · {item.category.toUpperCase()}</span>
-                  <small>{item.deadline}</small>
-                </div>
-                <strong>{item.title}</strong>
-                <span className={styles.todayQueueWhy}>{item.why}</span>
-                <div className={styles.todayQueueRecommendation}>
-                  <small>Next step</small>
-                  <span>{item.recommendation}</span>
-                </div>
-                <div className={styles.todayQueueOwner}>
-                  <span>Owner: {item.owner}</span>
-                  <span>When: {item.deadline}</span>
-                </div>
-              </div>
-              <div className={styles.todayQueueAction}>
-                {queueAction(item)}
-              </div>
-            </article>
-          ))}
-
-          {!queue.length && allState === 'ready' ? (
-            <EmptyState
-              icon={CheckCircle2}
-              title="Nothing needs you right now"
-              copy={restricted ? "You have no tasks, meetings or commitments that need action right now." : "Check your players or capture a new update."}
-              action={
-                <div className={styles.emptyStateActions}>
-                  <AiLauncher />
-                  <Link className={styles.compactButton} href={basePath + '?view=players'}>
-                    <Users size={14} />
-                    Check players
-                  </Link>
-                </div>
-              }
-            />
-          ) : null}
+        {assignedLoading&&!queue.length?<p className={styles.homeReadNotice} role="status">Loading your tasks...</p>:null}
+        {assignedError?<p className={styles.homeReadNotice} role="alert">{assignedError}</p>:null}
+        <div className={styles.focusList}>
+          {queue.map(item => <article className={styles.focusRow} key={item.id}>
+            <div className={styles.focusCopy}>
+              <div className={styles.focusMeta}><span>{categoryLabel[item.category]}</span>{item.deadline!==categoryLabel[item.category]?<small>{item.deadline.replace(/^Overdue\s+(.*overdue)$/i,'$1')}</small>:null}</div>
+              <strong>{item.title}</strong>
+              <details className={styles.focusDetails}><summary>Details</summary>
+                <p>{item.why}</p>{meaningfulRecommendation(item)?<p>{item.recommendation}</p>:null}
+                {item.owner && item.owner !== 'You' ? <p>Responsible: {item.owner}</p>:null}
+              </details>
+              {workRefFor(item.payload)?<WorkResponsibilityControl key={assignedScope+item.id} work={workRefFor(item.payload)!} tenantId={tenantId} rpc={rpc}/>:null}
+            </div>
+            <div className={styles.focusAction}>{queueAction(item)}</div>
+          </article>)}
+          {!queue.length && allState === 'ready' && !assignedLoading && !assignedError ? <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
+            copy={restricted ? "Your work is up to date." : "Check your players or capture a new update."}
+            action={<div className={styles.emptyStateActions}><AiLauncher/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
         </div>
       </section>
     </div>

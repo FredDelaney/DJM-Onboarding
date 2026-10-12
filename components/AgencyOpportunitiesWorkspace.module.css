@@ -991,3 +991,13 @@
 
 .listCard { box-shadow: none; border-color: #e5e5e7; }
 .toolbar { gap: 14px; }
+
+/* Quiet typography and surfaces for this work view. */
+.rowEyebrow { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.listCard { box-shadow: none; border-color: #e5e5e7; }
+
+.copy strong { font-weight: 600; }
+.copy > span { font-weight: 400; color: #6e6e73; }
+.rowEyebrow { letter-spacing: 0; text-transform: none; font-weight: 400; }
+.row { box-shadow: none; }
+@media(max-width:680px) { .row { border-radius: 14px; padding: 14px; } }

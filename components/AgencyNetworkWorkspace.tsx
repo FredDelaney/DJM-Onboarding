@@ -763,7 +763,7 @@ export default function AgencyNetworkWorkspace({
 
             return (
               <article
-                className={styles.clubCard}
+                className={`${styles.clubCard} ${styles.calmClub}`}
                 key={club?.organisation_id || clubName}
               >
                 <div className={styles.entityTop}>
@@ -799,7 +799,7 @@ export default function AgencyNetworkWorkspace({
 
 {!restricted ? <>
                 <div className={styles.primaryFact}>
-                  <span>BEST ROUTE</span>
+                  <span>Contact</span>
                   <strong>{routeDisplay}</strong>
                   <small>{routeDetail}</small>
                 </div>
@@ -832,6 +832,7 @@ export default function AgencyNetworkWorkspace({
 
 
 </> : null}
+                {keyPeople.length || playLabel ? <details className={styles.clubDetails}><summary>Relationship details</summary>
                 {keyPeople.length ? (
                   <div className={styles.peopleBlock}>
                     <div className={styles.sectionLabel}>
@@ -872,10 +873,12 @@ export default function AgencyNetworkWorkspace({
 
                 {playLabel ? (
                   <div className={styles.nextMove}>
-                    <span>NEXT MOVE</span>
+                    <span>Suggested next step</span>
                     <strong>{playLabel}</strong>
                   </div>
                 ) : null}
+
+                </details> : null}
 
                 <div
                   className={

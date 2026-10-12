@@ -1021,3 +1021,50 @@
 @media (max-width: 680px) {
   .todayPanelClear .todayHeading { min-height: 44px; }
 }
+
+/* One calm calendar, with compact controls and a readable selected day. */
+.workspace { gap: 14px; }
+.todayPanel { padding: 12px 16px; border: 0; border-radius: 14px; background: #fff; box-shadow: none; }
+.todayHeading { min-height: 32px; }
+.todayHeading strong { color: #1d1d1f; font-size: 13px; font-weight: 600; }
+.todayHeading span { color: #6e6e73; font-size: 12px; }
+.todayFacts { gap: 18px; padding-top: 5px; }
+.todayFacts strong { font-size: 20px; color: #1d1d1f; font-weight: 500; }
+.todayFacts span { font-size: 12px; color: #6e6e73; }
+.todayClear strong { font-weight: 500; }
+.calendarControls { border: 0; padding: 0 2px; background: transparent; border-radius: 0; gap: 12px; }
+.calendarHeading h2 { font-size: 21px; font-weight: 600; letter-spacing: -.025em; color: #1d1d1f; }
+.dateNavigation button { min-height: 44px; min-width: 44px; padding: 0 10px; border: 0; background: transparent; font-size: 13px; color: #424245; }
+.calendarFilters { border-top: 0; padding-top: 0; }
+.calendarFilters > summary { min-height: 44px; padding: 0; font-weight: 400; font-size: 12px; color: #6e6e73; }
+.calendarFilters > summary::before { display: none; }
+.viewSwitch { background: #eaeaec; border: 0; border-radius: 10px; padding: 3px; max-width: 190px; }
+.viewSwitch button { min-height: 44px; font-size: 12px; font-weight: 500; }
+.viewIndicator { border-radius: 8px; box-shadow: 0 1px 3px #00000009; }
+.addTask { min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: #0071e3; color: #fff; font-size: 13px; font-weight: 500; }
+.controlTools { gap: 8px; }
+.monthGrid { border: 0; border-radius: 16px; overflow: hidden; box-shadow: none; margin: 0; width: 100%; background: #fff; }
+.monthGrid :global(.fc-theme-standard td), .monthGrid :global(.fc-theme-standard th) { border-color: #f0f0f2; }
+.dayNumber, .todayNumber { min-width: 36px; min-height: 36px; width: 36px; height: 36px; font-size: 13px; font-weight: 400; }
+.todayNumber { background: #0071e3; color: #fff; }
+.selectedCell { background: #f1f6fc; }
+.monthRow, .monthCell { min-height: 68px; }
+.selectedDayTitle { font-size: 16px; font-weight: 600; }
+.taskRow { box-shadow: none; border: 0; border-bottom: 1px solid #efeff1; border-radius: 0; padding: 14px 0; }
+.taskCopy > strong { font-size: 14px; font-weight: 500; color: #1d1d1f; }
+.taskMeta { font-size: 12px; color: #6e6e73; font-weight: 400; }
+.taskActions { gap: 4px; }
+.taskActions button { min-width: 44px; min-height: 44px; border: 0; border-radius: 9px; background: #f5f5f7; color: #424245; font-size: 12px; font-weight: 400; }
+@media(max-width:680px) {
+ .calendarHeading h2 { font-size: 19px; }
+ .todayHeading { min-height: 44px; }
+ .calendarControls { padding: 0; gap: 8px; }
+ .todayPanel { padding: 10px 14px; }
+ .monthRow, .monthCell { min-height: 56px; }
+ .viewSwitch { max-width: 180px; }
+ .calendarBody { gap: 14px; }
+ .dayNumber, .todayNumber { min-width: 36px; min-height: 36px; }
+ .taskActions button span { display: none; }
+}
+
+.workspace .empty { background: #fff; border: 1px solid #e5e5e7; border-radius: 14px; box-shadow: none; min-height: 110px; padding: 22px; }

@@ -431,3 +431,7 @@
 .hero, .panel, .planCard { background: #fff; box-shadow: none; border-color: #e5e5e7; }
 .heroCopy h2, .panel h2, .planCard h3 { font-weight: 600; }
 .panelHead { gap: 20px; }
+
+/* Quiet typography and surfaces for this work view. */
+.panel, .usageCard, .usageGrid { box-shadow: none; border-color: #e5e5e7; }
+.primary, .secondary { font-weight: 500; box-shadow: none; }

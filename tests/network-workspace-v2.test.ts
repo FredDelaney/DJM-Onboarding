@@ -17,8 +17,6 @@ test('Network V2 keeps the agent-facing model to clubs and people', async () => 
 
   assert.match(source, /Clubs/);
   assert.match(source, /People/);
-  assert.match(source, /BEST ROUTE/);
-  assert.match(source, /NEXT MOVE/);
   assert.doesNotMatch(source, />Contacts</);
 });
 
