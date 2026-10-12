@@ -22,7 +22,7 @@ try{
  await page.getByRole('button',{name:"Retry today's meetings",exact:true}).click();
  await today.getByText('Club meeting',{exact:true}).waitFor();
  await page.goto(url+'?stalledTasks');
- await today.getByText('Loading...', {exact:true}).first().waitFor();
+ await today.getByText('–', {exact:true}).first().waitFor();
  assert.equal(await today.getByText('0',{exact:true}).count(),0,'Unresolved tasks must not show zero overdue or due today');
  await page.goto(url);
  await today.getByText('Club meeting',{exact:true}).waitFor();
@@ -35,6 +35,7 @@ try{
  await page.setViewportSize({width:390,height:430});
  const dialog=page.getByRole('dialog');
  assert.ok(await dialog.evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),'Form must stay within a shortened keyboard viewport');
+ await page.getByText('Add notes',{exact:true}).click();
  await page.getByLabel('Notes (optional)',{exact:true}).fill('Keyboard draft');
  await page.getByRole('button',{name:'Save task',exact:true}).scrollIntoViewIfNeeded();
  assert.ok(await page.getByRole('button',{name:'Save task',exact:true}).isVisible());

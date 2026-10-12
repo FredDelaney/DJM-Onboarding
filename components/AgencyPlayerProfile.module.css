@@ -2075,6 +2075,6 @@
  .root{gap:12px}.hero{gap:12px;padding:16px;border-radius:17px}
  .photo{width:58px;height:72px;flex-basis:58px;border-radius:11px}.heroCopy h2{font-size:25px}
  .heroFacts{gap:5px}.heroFacts span{padding:4px 7px}.profileLinks{gap:6px}.profileLinks a{min-height:38px;padding:8px 10px}
- .heroActions{gap:6px}.heroActions :is(button,a,summary){min-height:40px!important}
+ .heroActions{gap:6px}.heroActions :is(button,a,summary){min-height:44px!important}
  .card{border-radius:16px}.cardHead{padding:14px}
 }

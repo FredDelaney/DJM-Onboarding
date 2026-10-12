@@ -27,6 +27,8 @@ try {
   assert.equal(await page.getByRole('link',{name:'Review player data',exact:true}).count(),1,'Player review must open the existing record, not create another reminder');
   const review=page.getByRole('link',{name:'Review player data',exact:true});
   assert.equal(await review.getAttribute('href'),'/agency?view=players&player='+dylan+'&profile=1');
+  const reviewRow=page.locator('article').filter({has:review});
+  await reviewRow.locator('summary').filter({hasText:'Details'}).click();
   await page.getByText('Career statistics changed',{exact:true}).waitFor();
   assert.equal(await page.getByText('Review the player record and resolve the flagged issue.',{exact:true}).count(),0,'Generic reminder must not duplicate the same player review card');
   assert.equal(await page.getByRole('link',{name:'Answer question',exact:true}).getAttribute('href'),'/workspace/qa/capture?capture='+capture);

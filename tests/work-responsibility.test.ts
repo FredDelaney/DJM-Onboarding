@@ -21,6 +21,15 @@ test('an assigned reminder already present as an agency date appears only once',
 test('assigned calendar task links select its due month',()=>{
  assert.equal(workHref({work_kind:'calendar_task',work_id:id,due_at:'2026-11-02',date_only:true},'/workspace/example'),'/workspace/example?view=calendar&task='+id+'&date=2026-11-02');
 });
+test('shared deal work selects the linked deal in the current agency',()=>{
+ assert.equal(workHref({context:{deal_room_id:id}},'/workspace/example'),'/workspace/example?view=opportunities&tab=deals&record='+id);
+});
+test('shared club need work selects the linked need',()=>{
+ assert.equal(workHref({context:{club_need_id:id}},'/agency'),'/agency?view=opportunities&tab=needs&record='+id);
+});
+test('shared player work opens the player profile directly',()=>{
+ assert.equal(workHref({context:{player_id:id}},'/workspace/example'),'/workspace/example?view=players&player='+id+'&profile=1');
+});
 test('assigned work reads all result pages without hiding later reminders',async()=>{
  assert.equal(typeof (responsibility as any).readAssignedWorkPages,'function');
  const calls:any[]=[];

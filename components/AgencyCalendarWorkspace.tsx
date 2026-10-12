@@ -252,14 +252,14 @@ export default function AgencyCalendarWorkspace({
     if (item.playerId) {
       return {
         label: 'Open player',
-        href: `${basePath}?view=players&player=${encodeURIComponent(item.playerId)}`,
+        href: workHref({context:{player_id:item.playerId}},basePath),
       };
     }
 
     if (item.entityType === 'deal') {
       return {
         label: 'Open deal',
-        href: `${basePath}?view=opportunities&tab=deals`,
+        href: item.entityId ? workHref({context:{deal_room_id:item.entityId}},basePath) : `${basePath}?view=opportunities&tab=deals`,
       };
     }
 
@@ -273,7 +273,7 @@ export default function AgencyCalendarWorkspace({
     if (item.clubNeedId || item.entityType === 'club_need') {
       return {
         label: 'Open need',
-        href: `${basePath}?view=opportunities&tab=needs`,
+        href: item.clubNeedId || item.entityId ? workHref({context:{club_need_id:item.clubNeedId || item.entityId}},basePath) : `${basePath}?view=opportunities&tab=needs`,
       };
     }
 
