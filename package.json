@@ -13,7 +13,7 @@
     "precheck": "npm run check:no-em-dash",
     "check": "npm test && npm run typecheck && npm run build",
     "check:no-em-dash": "node scripts/check-no-em-dash.mjs",
-    "check:browser": "node scripts/customer-journey-browser-qa.mjs && node scripts/workspace-flow-browser-fixture.mjs && node scripts/calendar-browser-fixture.mjs scripts/home-responsibility-layout-qa.mjs scripts/home-review-context-qa.mjs scripts/player-review-context-qa.mjs scripts/player-data-workflow-qa.mjs scripts/reminder-review-context-qa.mjs scripts/agency-command-recovery-qa.mjs scripts/calendar-mobile-recovery-qa.mjs scripts/calendar-workspace-browser-qa.mjs scripts/responsibility-browser-qa.mjs scripts/pursuit-continuity-browser-qa.mjs && node scripts/deep-journey-browser-fixture.mjs && node scripts/player-entry-browser-qa.mjs && node scripts/platform-polish-browser-qa.mjs"
+    "check:browser": "node scripts/customer-journey-browser-qa.mjs && node scripts/workspace-flow-browser-fixture.mjs scripts/workspace-find-flow-qa.mjs scripts/profile-header-contrast-qa.mjs && node scripts/calendar-browser-fixture.mjs scripts/home-responsibility-layout-qa.mjs scripts/home-review-context-qa.mjs scripts/player-review-context-qa.mjs scripts/player-data-workflow-qa.mjs scripts/reminder-review-context-qa.mjs scripts/agency-command-recovery-qa.mjs scripts/calendar-mobile-recovery-qa.mjs scripts/calendar-workspace-browser-qa.mjs scripts/responsibility-browser-qa.mjs scripts/pursuit-continuity-browser-qa.mjs && node scripts/deep-journey-browser-fixture.mjs && node scripts/player-entry-browser-qa.mjs && node scripts/platform-polish-browser-qa.mjs"
   },
   "dependencies": {
     "@fullcalendar/react": "7.1.0",

@@ -9,6 +9,8 @@ Shared work and Calendar links now select their actual player, deal or club need
 Verification:
 - 1,647 automated tests passed.
 - Production build and TypeScript checks passed.
+- Player profile editing controls, status labels and readiness details passed browser contrast checks at 320, 390, 768 and 1440 pixels, with at least 44-pixel control heights.
+- Browser screenshots use portable temporary paths on macOS and Linux.
 - Home labels and expanded responsibility editing passed at five viewport widths.
 - Player data refresh, reload recovery, sourced correction, conflict handling, verification, read-only access and custom statistics handoff passed.
 - Calendar task creation/editing, shared assignment, complete/reopen, archive/restore, undated work, retained drafts, nested dialogs and stalled-read recovery passed.

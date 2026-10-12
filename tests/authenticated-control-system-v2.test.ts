@@ -64,11 +64,12 @@ test('recognised standard Agency button classes cannot bypass the shared control
   }
 });
 
-test('dark hero controls explicitly opt into inverse tone', () => {
+test('hero controls use tones that match their backgrounds', () => {
   const profile = readFileSync('components/AgencyPlayerProfile.tsx','utf8');
   const pursuit = readFileSync('components/AgencyPursuitRoom.tsx','utf8');
-  assert.match(profile, /data-ui-button="primary" data-ui-tone="inverse"/);
-  assert.match(profile, /data-ui-button="secondary" data-ui-tone="inverse"/);
+  assert.match(profile, /data-ui-button="primary"/);
+  assert.doesNotMatch(profile, /data-ui-tone="inverse"/);
+  assert.match(profile, /data-ui-button="secondary"/);
   assert.match(pursuit, /data-ui-button="primary" data-ui-tone="inverse"[\s\S]*heroAction/);
 });
 
