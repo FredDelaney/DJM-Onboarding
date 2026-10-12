@@ -841,3 +841,14 @@
  .drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){font-size:16px!important}
  .actions button,.footer button{min-height:44px}
 }
+
+.pagePanel .nextMove { background: #fff; border: 1px solid #e5e5e7; box-shadow: none; }
+.pagePanel .nextMove strong { color: #1d1d1f; font-weight: 600; }
+.pagePanel .nextMove span, .pagePanel .nextMove small { color: #6e6e73; letter-spacing: 0; font-weight: 400; }
+.sectionHead span, .fact span { letter-spacing: 0; font-weight: 400; }
+@media (max-width: 680px) {
+  .pagePanel .quickFacts { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0; overflow: hidden; border: 1px solid #e5e5e7; border-radius: 14px; background: #fff; }
+  .pagePanel .quickFacts > .fact { border: 0; border-radius: 0; padding: 12px 14px; background: transparent; }
+  .pagePanel .quickFacts > .fact:nth-child(even) { border-left: 1px solid #efeff1; }
+  .pagePanel .quickFacts > .fact:nth-child(n+3) { border-top: 1px solid #efeff1; }
+}

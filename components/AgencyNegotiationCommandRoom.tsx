@@ -16,6 +16,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
+import { hasRecordedNumber } from '@/lib/recorded-number';
+
 import styles from './AgencyNegotiationCommandRoom.module.css';
 
 export type AgencyNegotiationRequest = {
@@ -39,6 +41,7 @@ const list = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
 
 const numeric = (value: unknown, fallback = '-') => {
+  if (!hasRecordedNumber(value)) return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed)
     ? String(Math.round(parsed))
@@ -576,7 +579,7 @@ export default function AgencyNegotiationCommandRoom({
         {
           label: 'Readiness',
           value:
-            `${numeric(readiness?.score)} / 100`,
+            hasRecordedNumber(readiness?.score) ? `${numeric(readiness.score)} / 100` : 'Not recorded',
           detail:
             'Internal preparation completeness, not signing probability',
         },
@@ -716,7 +719,7 @@ export default function AgencyNegotiationCommandRoom({
                 </span>
               </div>
 
-              <div className={styles.heroScore}>
+              {hasRecordedNumber(readiness?.score) ? <div className={styles.heroScore}>
                 <ShieldCheck size={18} />
                 <strong>
                   {numeric(
@@ -726,7 +729,7 @@ export default function AgencyNegotiationCommandRoom({
                 <span>
                   preparation completeness
                 </span>
-              </div>
+              </div> : null}
             </section>
 
             <div className={styles.grid}>

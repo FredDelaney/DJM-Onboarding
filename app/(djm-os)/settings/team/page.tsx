@@ -384,7 +384,7 @@ export default function TeamSettingsPage() {
             <div className="ux-surface-head">
               <div>
                 <p className="ux-eyebrow">AGENCY TEAM</p>
-                <h2>Who can operate this agency?</h2>
+                <h2>Invite a teammate</h2>
                 <p>
                   These roles apply only to this agency workspace.
                 </p>
@@ -429,7 +429,7 @@ export default function TeamSettingsPage() {
                 type="submit"
                 disabled={actionBusy === 'invite'}
               >
-                Create secure invitation
+                Create invitation
               </button>
             </form>
 
@@ -604,7 +604,7 @@ export default function TeamSettingsPage() {
                 </p>
                 <h2>Player assignments</h2>
                 <p>
-                  Assign scouts the specific player records they should access.
+                  Choose which players each scout can access.
                 </p>
               </div>
               <ShieldCheck size={20} />

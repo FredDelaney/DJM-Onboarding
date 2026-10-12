@@ -152,6 +152,14 @@
   margin-top: 6px;
 }
 
+/* Preserve the single-column career layout on phones and tablets. */
+@media (max-width: 1000px) {
+  .career-hub-hero { grid-template-columns: minmax(0, 1fr); }
+  .career-hub-copy, .career-score-panel { min-width: 0; }
+  .career-hub-actions { display: flex; flex-wrap: wrap; }
+  .career-hub-actions .btn { width: auto; flex: 1 1 170px; }
+}
+
 @media (max-width: 700px) {
   .ux-player-page {
     width: calc(100% - 24px);
@@ -239,4 +247,52 @@
     border-radius: 16px !important;
     padding: 16px !important;
   }
+}
+
+/* The player workspace shares the agency's light, readable navigation. */
+.ux-player-root .player-workspace-header {
+  background: #fff !important;
+  color: #1d1d1f;
+  border-bottom: 1px solid #e5e5e7;
+  box-shadow: none;
+}
+.ux-player-root .player-workspace-header .brand { color: #1d1d1f; }
+.ux-player-root .player-workspace-header .tenant-lettermark {
+  display: grid; place-items: center; width: 36px; height: 36px;
+  border-radius: 10px; background: #f5f5f7; color: #424245;
+}
+.ux-player-root .player-workspace-header .djm-os-icon-button {
+  min-width: 44px; min-height: 44px;
+  background: #f5f5f7 !important; color: #515154 !important;
+  border-color: transparent !important; border-radius: 12px !important;
+}
+.ux-player-root .player-workspace-header .djm-os-product-link {
+  color: #6e6e73; font-weight: 500;
+}
+.ux-player-root .player-workspace-header .djm-os-product-link.is-active {
+  background: #edf5ff; color: #0066cc; box-shadow: none;
+}
+.ux-player-root .player-workspace-header .djm-os-product-link.is-active::after { display: none; }
+.ux-player-root .player-workspace-header .djm-os-chip {
+  color: #6e6e73; background: #f5f5f7; border-color: #e5e5e7;
+}
+.ux-player-root .career-hub-hero {
+  background: #fff; color: #1d1d1f; border: 1px solid #e5e5e7;
+}
+.ux-player-root .career-hub-copy > p { color: #6e6e73; }
+.ux-player-root .career-hub-kicker { color: #6e6e73; letter-spacing: 0; font-weight: 500; }
+.ux-player-root .career-hub-actions .btn-yellow { background: #0071e3; color: #fff; }
+.ux-player-root .career-ghost-btn { background: #f5f5f7; color: #424245; border-color: transparent; }
+.ux-player-root .career-score-panel {
+  gap: 14px; background: #f5f5f7; border: 0; backdrop-filter: none;
+}
+.ux-player-root .career-score-ring {
+  background: conic-gradient(#0071e3 var(--career-score), #e5e5e7 0);
+}
+.ux-player-root .career-score-ring::before { background: #f5f5f7; }
+.ux-player-root .career-score-ring > div span,
+.ux-player-root .career-score-panel > div:last-child > span,
+.ux-player-root .career-score-panel p { color: #6e6e73; }
+.ux-player-root .career-score-panel > div:last-child > span {
+  letter-spacing: 0; text-transform: none; font-weight: 500;
 }
