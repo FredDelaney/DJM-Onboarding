@@ -40,7 +40,7 @@ export default function SwitchPage() {
             <div className={styles.controlGrid}>
               <article data-tone="go"><div><small>INPUT</small><h3>Your existing CSV</h3><p>Common player columns map automatically.</p></div><footer><FileSpreadsheet size={15} /> Existing spreadsheet accepted</footer></article>
               <article data-tone="confirm"><div><small>CHECKS</small><h3>Review before write</h3><p>Review errors and possible duplicates before import.</p></div><footer><ShieldCheck size={15} /> Human create-or-skip decision</footer></article>
-              <article data-tone="human"><div><small>APPROVAL</small><h3>Import only when ready</h3><p>The batch cannot be applied until the approval gate is clear and the authorised user confirms it.</p></div><footer><CheckCircle2 size={15} /> Explicit approval required</footer></article>
+              <article data-tone="human"><div><small>APPROVAL</small><h3>Import only when ready</h3><p>Import only after authorised approval.</p></div><footer><CheckCircle2 size={15} /> Explicit approval required</footer></article>
             </div>
           </div>
         </div>
@@ -72,7 +72,7 @@ export default function SwitchPage() {
       </section>
 
       <section className={styles.final}>
-        <div><h2>Make the move at your pace.</h2><p>Start with the roster and one live situation. Expand when it proves useful.</p></div>
+        <div><h2>Make the move at your pace.</h2><p>Start with the roster and one live situation. Expand when useful.</p></div>
         <ReDreamDemoRequestButton className={styles.lightButton} label="Plan my switch" trackingKey="switch_final_demo" />
       </section>
     </ReDreamMarketingShell>

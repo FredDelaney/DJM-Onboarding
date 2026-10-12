@@ -1474,7 +1474,7 @@ export default function PlatformPage() {
                 <div className={styles.clearState}>
                   <ShieldCheck size={21} />
                   <strong>No urgent agency action</strong>
-                  <span>The portfolio has no external agency currently below the action threshold.</span>
+                  <span>No external agency is below the action threshold.</span>
                 </div>
               ) : null}
             </div>
@@ -1516,7 +1516,7 @@ export default function PlatformPage() {
               <Activity size={16} />
               <div>
                 <strong>{summary.due_now || 0} due now · {summary.waiting_on_agency || 0} deliberately waiting</strong>
-                <span>Ranked from explicit follow-ups, trial deadlines, owner-invite timing and observed activation progress.</span>
+                <span>Ranked by follow-ups, trial deadlines, invite timing and activation.</span>
               </div>
             </div>
           </article>

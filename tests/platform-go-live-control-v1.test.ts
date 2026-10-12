@@ -53,7 +53,7 @@ test('ReDream cockpit makes launch blockers actionable without becoming a manual
   assert.match(page, /operator_intervention/);
   assert.doesNotMatch(page, /onClick=\{\(\) => void updateOnboardingTask/);
   assert.match(card, /update_privacy_profile/);
-  assert.match(card, /ReDream records the supplied identity and version/);
+  assert.match(card, /ReDream records its identity and version/);
   assert.match(card, /Agency action/);
   assert.match(card, /ReDream action/);
 });

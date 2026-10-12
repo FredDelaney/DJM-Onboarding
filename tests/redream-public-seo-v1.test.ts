@@ -17,7 +17,7 @@ test('ReDream public root retains clear canonical production metadata for indexi
   assert.match(layout, /index:\s*true/);
   assert.match(layout, /follow:\s*true/);
   assert.match(page, /Software for football agencies/);
-  assert.match(page, /what needs attention and what to do next/);
+  assert.match(page, /next move clear/);
 });
 
 test('public sitemap exposes only intentional ReDream research routes', () => {

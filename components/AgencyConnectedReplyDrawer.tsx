@@ -214,7 +214,7 @@ export default function AgencyConnectedReplyDrawer({
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
       setError(
-        'Copy was blocked by the browser. Select the draft text and copy it manually.',
+        'Copy failed. Select and copy the draft manually.',
       );
     }
   };

@@ -273,7 +273,7 @@ export default function AgencyGoLiveCard({
 
           <div className={styles.legalBoundary}>
             <ShieldCheck size={14} />
-            <span>Use the agency-approved notice. ReDream records the supplied identity and version; it does not generate or approve legal wording.</span>
+            <span>Use the agency-approved notice. ReDream records its identity and version, not the legal wording.</span>
           </div>
 
           <div className={styles.formActions}>

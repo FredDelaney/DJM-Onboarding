@@ -441,7 +441,7 @@ export default function AiCapture({
     try {
       const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false));
       uploadedAny = result.uploaded > 0;
-      if (result.failed > 0 && mountedRef.current) setError('Some notes did not upload. They remain on this phone. Reconnect with the original account. Older notes may need recovery.');
+      if (result.failed > 0 && mountedRef.current) setError('Some notes did not upload. They are safe on this phone. Reconnect with the original account.');
     } catch {
       return; // Local storage is unavailable; existing pending data is untouched.
     }
@@ -1094,7 +1094,7 @@ export default function AiCapture({
                 <RotateCcw size={12} />
                 Retry failed updates
               </button>
-              <span>ReDream reuses the saved transcript and plan. It does not create duplicates.</span>
+              <span>The saved transcript and plan are reused. No duplicate is created.</span>
             </div>
           ) : null}
 
@@ -1221,7 +1221,7 @@ export default function AiCapture({
       <ConfirmActionDialog
         open={deleteConfirmOpen}
         title="Delete this ReDream update?"
-        description="This removes the unresolved update. If changes were already applied, undo them first."
+        description="This removes the unresolved update. Undo applied changes first."
         confirmLabel="Delete update"
         busy={deletingCapture}
         onClose={() => setDeleteConfirmOpen(false)}

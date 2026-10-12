@@ -31,7 +31,7 @@ const structuredData = {
   operatingSystem: 'Web',
   url: 'https://redreamsystems.com/',
   description:
-    'ReDream helps football agencies keep players, club requests, relationships, follow-ups and deals connected so the team knows what needs attention and what to do next.',
+    'ReDream keeps players, club requests, relationships and deals connected, with the next move clear.',
   offers: {
     '@type': 'AggregateOffer',
     lowPrice: '149',
@@ -90,7 +90,7 @@ export default function ReDreamPublicLanding() {
               Your agency. Connected.
             </h1>
             <p className={styles.heroLead}>
-              Players, clubs, contacts and deals in one place. Know what needs attention and what to do next.
+              Players, clubs, contacts and deals in one place. Keep the next move clear.
             </p>
 
             <div className={styles.heroActions}>
@@ -249,7 +249,7 @@ export default function ReDreamPublicLanding() {
             <CircleDollarSign size={18} />
             <span>
               <strong>See the value before a full rollout.</strong>
-              <small>Bring one real situation. ReDream should make the next move clearer immediately.</small>
+              <small>Bring one real situation. The next move should be clearer immediately.</small>
             </span>
           </div>
           <ReDreamDemoRequestButton className={styles.darkButton} label="Run ReDream on my agency" trackingKey="pricing_demo" />

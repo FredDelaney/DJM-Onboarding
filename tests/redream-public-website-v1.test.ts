@@ -42,7 +42,7 @@ test('resolved tenant metadata still wins before public ReDream metadata', () =>
 
 test('homepage explains ReDream without requiring product vocabulary', () => {
   assert.match(marketing, /Your agency\. Connected\./);
-  assert.match(marketing, /what needs attention and what to do next/);
+  assert.match(marketing, /next move clear/);
   assert.match(marketing, /Less admin/);
   assert.match(marketing, /Fewer missed follow-ups/);
   assert.match(marketing, /More time for deals/);

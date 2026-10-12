@@ -418,7 +418,7 @@ test('partial or failed captures can retry only their unfinished work from the p
   assert.match(migration, /v_capture\.status not in \('partial','failed'\)/);
   assert.match(capture, /Retry failed updates/);
   assert.match(capture, /redream_ai_retry_capture/);
-  assert.match(capture, /ReDream reuses the saved transcript and plan/);
+  assert.match(capture, /saved transcript and plan are reused/);
 });
 
 test('receipt polling spans the durable one-minute cron fallback without fan-out on reconnect', () => {

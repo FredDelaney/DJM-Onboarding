@@ -859,7 +859,7 @@ export default function AgencyPlayersWorkspace({
               <section className={styles.detailSection}><p>HISTORY</p><h3>Recruitment interactions</h3>
                 <div className={styles.rows}>
                   {(targetDetail.interactions||[]).map((item:any)=>(<article className={styles.row} key={item.id}><div><strong>{human(item.channel)} · {human(item.direction)}</strong><span>{item.summary}</span><small>{relativeDate(item.occurred_at)}</small></div></article>))}
-                  {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction yet" copy="Log the first real conversation here. Contact timestamps are never invented."/>:null}
+                  {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction yet" copy="Log the first real conversation. Timestamps are never invented."/>:null}
                 </div>
               </section>
             </div>

@@ -1747,7 +1747,7 @@ export default function AgencyPursuitRoom({
                   <ShieldCheck size={16} />
                   <div>
                     <strong>Commercial controls stay locked for now.</strong>
-                    <span>Confirm the player's direction before promoting this route into a live deal.</span>
+                    <span>Confirm the player's direction before creating a live deal.</span>
                   </div>
                 </div>
               ) : (
