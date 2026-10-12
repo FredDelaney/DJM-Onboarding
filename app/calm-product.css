@@ -296,3 +296,8 @@
 .ux-player-root .career-score-panel > div:last-child > span {
   letter-spacing: 0; text-transform: none; font-weight: 500;
 }
+
+/* Header navigation is the single player navigation on larger screens. */
+@media (min-width: 761px) {
+  .ux-player-root .ux-player-mobile-nav { display: none; }
+}

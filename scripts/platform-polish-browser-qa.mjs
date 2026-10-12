@@ -153,6 +153,8 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     if(metrics.overflow>1)failures.push(suite+'/'+screen+' overflows at '+width+' ('+metrics.overflow+'px)');
     if(suite==='player'){
      if(/rgba\([^)]*,\s*0\./.test(metrics.header||''))failures.push('Translucent player header at '+width);
+     if(width>760&&metrics.bottomVisible)failures.push('Player desktop navigation repeats the mobile bar at '+width);
+     if(width>760&&!metrics.tabsVisible)failures.push('Missing player header navigation at '+width);
      if(width<=760){
       if(metrics.tabsVisible&&metrics.bottomVisible)failures.push('Duplicate player navigation at '+width);
       if(!metrics.bottomVisible)failures.push('Missing player mobile navigation at '+width);

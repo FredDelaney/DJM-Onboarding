@@ -5,7 +5,7 @@ This pass continues the approved page-by-page simplification of the existing ReD
 ## Changes
 
 - Career keeps its title and actions above readiness on phones and tablets. The earlier calm CSS had reintroduced desktop columns below 1000px.
-- Player navigation uses an opaque light surface, readable icons and the same selected-state hierarchy as the agency workspace.
+- Player navigation uses an opaque light surface, readable icons and the same selected-state hierarchy as the agency workspace. Desktop and tablet pages use the header navigation without repeating the mobile bar.
 - Player and Network lists use grouped surfaces, plain metadata and quieter shortcuts. Network search labels fit on phones.
 - Settings and record-edit sheets share typography and controls. Native file upload controls have readable, comfortable buttons.
 - Club, contact, negotiation and player-service detail pages use lighter surfaces and grouped facts.

@@ -73,7 +73,7 @@ test('player navigation is Home, agency and Me while legacy destinations stay co
   assert.match(source, /label: 'Home'/);
   assert.match(source, /label: 'Your agency'/);
   assert.match(source, /label: 'Me'/);
-  assert.match(source, /activePrefixes: \['\/profile', '\/career', '\/check-in', '\/cv', '\/documents'\]/);
+  assert.match(source, /activePrefixes: \['\/profile', '\/career', '\/check-in', '\/cv', '\/documents', '\/connections'\]/);
   assert.doesNotMatch(source, /label: 'Career'/);
   assert.doesNotMatch(source, /label: 'Documents'/);
 });
