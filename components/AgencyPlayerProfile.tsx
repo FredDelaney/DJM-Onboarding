@@ -942,7 +942,7 @@ export default function AgencyPlayerProfile({
       await navigator.clipboard.writeText(shareResultMessage);
       setNotice('Share message copied.');
     } catch {
-      setNotice('Copy was blocked by the browser. You can still copy the message manually.');
+      setNotice('Copy failed. Select and copy the message manually.');
     }
   };
 
@@ -1281,7 +1281,7 @@ export default function AgencyPlayerProfile({
       <div className={styles.topbar}><Link href={backHref} className={styles.back} aria-label="Back to players"><ArrowLeft size={15}/>Players</Link></div>
       <section className={styles.card} aria-label="Assigned player access" style={{padding:20}}>
         <h2>Assigned player profile</h2>
-        <p>You can review this player's football information. Contract and sharing controls are managed by agency admins.</p>
+        <p>Review football information here. Contract and sharing controls are for admins.</p>
       </section>
       {error?<p className={styles.error} role="alert">{error}</p>:null}
       <PublicProfile profile={draftProfile} agency={agency}/>
@@ -1803,7 +1803,7 @@ export default function AgencyPlayerProfile({
               {(draftProfile.key_stats || []).slice(0, 6).map((item: any, index: number) => (
                 <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
               ))}
-              <p>Custom club profile statistics. Current figures and sources are shown above.</p>
+              <p>Custom club statistics. Current figures and sources are above.</p>
             </div>
           ) : (
             <div className={styles.keyStats}><p>The club profile uses the current-season statistics above.</p></div>
@@ -2182,7 +2182,7 @@ export default function AgencyPlayerProfile({
               {player.review_required_at || player.review_reason ? (
                 <section className={styles.reviewStats} aria-label="Statistics to review">
                   <strong>Current statistics</strong>
-                  <p>Check these figures against the source before confirming the player data. Custom club headline statistics are reviewed separately.</p>
+                  <p>Check these figures against the source before confirming.</p>
                   {recordedStatsSource ? <p><a href={recordedStatsSource} target="_blank" rel="noreferrer">Open current statistics source <ExternalLink size={11} /></a></p> : null}
                   <div className={styles.keyStats}>
                     {recordedStats.slice(0, 6).map((item: any, index: number) => (
@@ -2401,7 +2401,7 @@ export default function AgencyPlayerProfile({
                   onChange={(event) =>
                     setField('why_review', event.target.value)
                   }
-                  placeholder="A short, factual agency view that helps a club understand the player quickly."
+                  placeholder="A short club-ready view of the player."
                 />
               </label>
 

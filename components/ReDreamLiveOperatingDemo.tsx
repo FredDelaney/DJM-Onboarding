@@ -583,7 +583,7 @@ export default function ReDreamLiveOperatingDemo({
               <div className={styles.decisionPanel}>
                 <span>PREPARED NEXT MOVE</span>
                 <h4>{action || 'Review the connected context and choose the next move.'}</h4>
-                <div><BadgeCheck size={17} /><p>Recommendation and evidence stay separate. The score is an operating signal, not a promised football outcome.</p></div>
+                <div><BadgeCheck size={17} /><p>Evidence and recommendation stay separate. The score is a signal, not a prediction.</p></div>
               </div>
             ) : null}
 

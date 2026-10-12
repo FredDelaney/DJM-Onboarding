@@ -13,3 +13,7 @@ Copy review retains important distinctions: a failed read is not an empty record
 No backend, authentication, tenant, dependency or database changes. The work branch disables automatic preview builds; main retains normal production deployment behaviour.
 
 Release verification is recorded in the pull request. Browser tests use intercepted fixture backends and synthetic records. Live release verification checks deployment commits, domain assignment and entry routes; it does not send customer messages or write customer records.
+
+Final language sweep: removed the remaining explanatory layer from helper text, empty states, recovery messages, public pages and operator surfaces while preserving legal, safety and evidence meaning.
+
+Final release gate: 1,633 automated tests passed, TypeScript passed, production build passed, no-em-dash passed, git diff check passed, and browser QA passed 236 screen/viewport combinations.

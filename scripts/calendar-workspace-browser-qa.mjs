@@ -85,7 +85,7 @@ try{
  assert.equal(await page.evaluate(()=>document.body.style.overflow),'','Closing nested dialogs must restore scrolling');
  await page.setViewportSize({width:390,height:844});
  await page.getByRole('button',{name:'Add task',exact:true}).click();await page.getByLabel('Title',{exact:true}).fill('Clock change');await page.getByLabel('Due date',{exact:true}).fill('2026-10-25');await page.getByLabel('Time (optional)',{exact:true}).fill('02:30');
- await page.getByRole('button',{name:'Save task',exact:true}).click();await page.getByRole('alert').filter({hasText:'occurs twice'}).waitFor();
+ await page.getByRole('button',{name:'Save task',exact:true}).click();await page.getByRole('alert').filter({hasText:'duplicated by a clock change'}).waitFor();
  await closeTask().click();await discard().getByRole('button',{name:'Discard changes',exact:true}).click();
  await page.getByRole('button',{name:'Edit Company planning',exact:true}).click();
  await page.getByLabel('Title',{exact:true}).fill('Company reassigned');

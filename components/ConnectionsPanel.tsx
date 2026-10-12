@@ -274,7 +274,7 @@ export default function ConnectionsPanel({
       const text = String(passkeyError?.message || '').toLowerCase();
 
       if (name.includes('notallowed') || text.includes('cancel')) {
-        setError('Passkey setup was cancelled. Nothing changed and your password still works.');
+        setError('Passkey setup cancelled. Your password still works.');
       } else if (code.includes('credential_exists') || text.includes('already')) {
         setError('This passkey is already linked to your ReDream account.');
       } else if (code.includes('passkey_disabled')) {
@@ -398,7 +398,7 @@ export default function ConnectionsPanel({
 
         <div className={styles.privateNote}>
           <ShieldCheck size={16} />
-          <span>The feed contains only dated ReDream action titles, times and deep links. Treat the subscription URL like a password.</span>
+          <span>Private feed of dated ReDream actions and links. Keep the subscription URL private.</span>
           <button type="button" onClick={() => void rotateCalendar()} disabled={busy === 'calendar'}>
             <RotateCcw size={14} /> {busy === 'calendar' ? 'Resetting...' : 'Reset link'}
           </button>

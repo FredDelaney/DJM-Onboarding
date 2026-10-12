@@ -3096,7 +3096,7 @@ function Players({
           <EmptyState
             icon={Users}
             title="Add your first player"
-            copy="Add the player once. ReDream will keep their contract, club opportunities and next actions together."
+            copy="Add the player once. Their contract, opportunities and next actions stay together."
           />
         ) : null}
       </section>
@@ -4416,7 +4416,7 @@ function AgencyCalendar({
       <WorkspaceIntro
         eyebrow="CALENDAR"
         title="Everything coming up."
-        copy="Meetings, follow-ups, birthdays and important contract dates in one place."
+        copy="Meetings, follow-ups and key dates."
         icon={CalendarDays}
         badge={`${items.length} upcoming dates`}
       />
@@ -4628,7 +4628,7 @@ function AgencyCalendar({
             <EmptyState
               icon={CalendarDays}
               title="Nothing coming up yet"
-              copy="Connect your calendar or add a meeting. ReDream will bring follow-ups, birthdays and contract dates into the same view."
+              copy="Connect your calendar or add a meeting."
             />
           ) : null}
         </div>
@@ -4712,7 +4712,7 @@ function Market({
       <WorkspaceIntro
         eyebrow="OPPORTUNITIES"
         title="See every live opportunity clearly."
-        copy="See what a club needs, which player fits and who can help you move it forward."
+        copy="See the need, player fit and best route in."
         icon={Target}
         badge={`${demandSummary.active_needs ?? needs.length} active needs`}
       />
@@ -5038,7 +5038,7 @@ function Market({
               <EmptyState
                 icon={Target}
                 title="No club needs yet"
-                copy="Tell ReDream what the club needs. It will keep the possible players and next step together here."
+                copy="Add what the club needs. Matching players and next steps stay together."
               />
             ) : null}
           </div>
@@ -5262,7 +5262,7 @@ function Market({
               <EmptyState
                 icon={Target}
                 title="No player opportunities yet"
-                copy="Start with a real club need and the player you are discussing. ReDream will keep the opportunity and next step together."
+                copy="Add a club need and player. The next step stays with the opportunity."
               />
             ) : null}
           </div>
@@ -5600,7 +5600,7 @@ function Deals({
             <EmptyState
               icon={BriefcaseBusiness}
               title="No live deals yet"
-              copy="Create a live deal when money or terms are being discussed. ReDream will keep the value, blocker and next step visible."
+              copy="Create a deal when money or terms are being discussed."
             />
           ) : null}
         </div>

@@ -13,7 +13,7 @@ export default function AgencyCalendarToday({projection,partial,sources,onSelect
    <strong>Today at a glance</strong>
    <span>{incomplete?'Summary incomplete':partial?'Summary updating':'Open today'}</span>
   </button>
-  {clear?<div className={styles.todayClear}><strong>Nothing needs you today.</strong><span>Your calendar is clear. Add a task only if there is something worth tracking.</span></div>:<div className={styles.todayFacts}>
+  {clear?<div className={styles.todayClear}><strong>Nothing needs you today.</strong><span>Your calendar is clear.</span></div>:<div className={styles.todayFacts}>
    <div><strong>{display('overdue',projection.overdue.length)}</strong><span>Overdue</span></div>
    <div><strong>{display('todayTasks',projection.dueToday.length)}</strong><span>Due today</span></div>
    <div className={styles.nextMeeting}><span>Next meeting</span><strong>{display('todayDates',projection.nextMeeting?new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit'}).format(new Date(projection.nextMeeting.dateAt)):'No more today')}</strong>{projection.nextMeeting?<small>{projection.nextMeeting.title}</small>:null}</div>

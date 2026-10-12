@@ -71,7 +71,7 @@ test('Market and Deals separate demand creation from commercial execution withou
   assert.match(workspace, /See every live opportunity clearly\./);
   assert.match(
     workspace,
-    /which player fits and who can help you move it forward/,
+    /player fit and best route in/,
   );
   assert.doesNotMatch(
     workspace,

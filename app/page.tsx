@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const title = 'ReDream | Software for football agencies';
   const description =
-    'ReDream keeps players, club requests, relationships, follow-ups and deals connected so your agency knows what needs attention and what to do next.';
+    'Players, club requests, relationships and deals stay connected, with the next move clear.';
 
   return {
     title,

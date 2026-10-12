@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
         <div>
           <div className="yellow-line" />
           <h1>Choose a new password for your workspace.</h1>
-          <p>Use a strong password you do not reuse elsewhere. You can return to the same agency journey when recovery is complete.</p>
+          <p>Use a strong password you do not reuse elsewhere.</p>
         </div>
         <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>Secure account recovery</span>
       </section>

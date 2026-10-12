@@ -497,7 +497,7 @@ export default function AgencyLaunchPage() {
         );
       } else {
         setNotice(
-          'First working loop created. Your club relationship and live opportunity are now in the workspace.',
+          'First workflow created. The relationship and opportunity are now in your workspace.',
         );
       }
     } catch (relationshipError) {
@@ -1259,7 +1259,7 @@ export default function AgencyLaunchPage() {
           onClose={() => setRosterImportOpen(false)}
           onImported={async () => {
             setNotice(
-              'Roster imported. Your first player milestone now comes from the real roster.',
+              'Roster imported. Your first player milestone is ready.',
             );
             await loadLaunch();
           }}

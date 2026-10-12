@@ -507,7 +507,7 @@ export default function AgencyDomainCard({
       <ConfirmActionDialog
         open={Boolean(disconnectDomain)}
         title={`Disconnect ${disconnectDomain?.hostname || 'this domain'}?`}
-        description="This address will stop opening the workspace. Your ReDream address stays available."
+        description="This address will stop working. Your ReDream address stays available."
         confirmLabel="Disconnect domain"
         busy={Boolean(disconnectDomain && busy === `disable:${disconnectDomain.id}`)}
         onClose={() => setDisconnectDomain(null)}

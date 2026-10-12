@@ -254,7 +254,7 @@ export default function AdminResourceStudio({
         {!canManage ? (
           <div className="admin-command-callout">
             <Check size={18} />
-            <p>Your scoped role can review published resources. Full admins control publication.</p>
+            <p>You can review published resources. Full admins control publication.</p>
           </div>
         ) : (
           <>

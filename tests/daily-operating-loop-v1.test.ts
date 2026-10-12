@@ -19,11 +19,11 @@ test('quiet Home turns spare attention into useful agency work', () => {
 });
 
 test('empty workspaces explain the first useful move', () => {
-  assert.match(workspace, /Add the player once\. ReDream will keep/);
+  assert.match(workspace, /Add the player once\. Their contract/);
   assert.match(workspace, /Connect your calendar or add a meeting/);
-  assert.match(workspace, /Tell ReDream what the club needs/);
-  assert.match(workspace, /Start with a real club need and the player you are discussing/);
-  assert.match(workspace, /Create a live deal when money or terms are being discussed/);
+  assert.match(workspace, /Add what the club needs/);
+  assert.match(workspace, /Add a club need and player/);
+  assert.match(workspace, /Create a deal when money or terms are being discussed/);
 });
 
 test('empty-state actions remain touch friendly', () => {

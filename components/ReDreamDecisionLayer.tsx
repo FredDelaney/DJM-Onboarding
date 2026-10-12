@@ -574,7 +574,7 @@ export default function ReDreamDecisionLayer() {
 
       <div className={styles.truthLine}>
         <Check size={15} />
-        <span><strong>Example agency.</strong> This demo uses synthetic agency data. It cannot change records or send anything.</span>
+        <span><strong>Example agency.</strong> Synthetic demo data only. Nothing can be changed or sent.</span>
       </div>
     </section>
   );

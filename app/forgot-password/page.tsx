@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
         <div>
           <div className="yellow-line" />
           <h1>Get back into your workspace securely.</h1>
-          <p>Password recovery uses your confirmed account email. Your agency and ReDream never need to know your password.</p>
+          <p>Recovery uses your account email. Your agency never sees your password.</p>
         </div>
         <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>Secure account recovery</span>
       </section>
