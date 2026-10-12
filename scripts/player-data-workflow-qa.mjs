@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {mkdir} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 const require=createRequire(import.meta.url);
 const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright`:'playwright');
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
 const root=process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113';
 const errors=[];
+const screenshotDir=join(tmpdir(),'redream-player-data-screens');
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
  page.on('pageerror',error=>errors.push(error.message));
@@ -72,8 +75,8 @@ try{
  await form.getByRole('button',{name:'Save reviewed statistics',exact:true}).click();
  await panel.getByRole('alert').waitFor();assert.equal(await form.getByRole('textbox',{name:'Apps',exact:true}).inputValue(),'12');
  assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
- await mkdir('/private/tmp/redream-player-data-screens',{recursive:true});
- await page.screenshot({path:'/private/tmp/redream-player-data-screens/mobile-editor.png',fullPage:true});
+ await mkdir(screenshotDir,{recursive:true});
+ await page.screenshot({path:join(screenshotDir,'mobile-editor.png'),fullPage:true});
  panel=await visit('missing');
  assert.ok(await panel.getByRole('button',{name:'Update statistics',exact:true}).isDisabled());
  assert.equal(await stats(panel).getByText('Unknown',{exact:true}).count(),5);
@@ -103,9 +106,9 @@ try{
  await panel.getByRole('button',{name:'Use current statistics',exact:true}).click();
  await page.getByText('Statistics updated. Publish when ready.',{exact:true}).waitFor();
  saved=await ledger('custom');assert.deepEqual(saved.settings.key_stats,[]);assert.equal(saved.publishes,0);
- await page.screenshot({path:'/private/tmp/redream-player-data-screens/mobile-profile.png',fullPage:true});
+ await page.screenshot({path:join(screenshotDir,'mobile-profile.png'),fullPage:true});
  await page.setViewportSize({width:1440,height:1000});await visit('manual');
- await page.screenshot({path:'/private/tmp/redream-player-data-screens/desktop-profile.png',fullPage:true});
+ await page.screenshot({path:join(screenshotDir,'desktop-profile.png'),fullPage:true});
  assert.deepEqual(errors,[],'Browser must have no unhandled application errors');
  console.log('Player data: five viewport widths, strict season evidence, persistent refresh/reload, failure recovery, sourced corrections, edit conflicts, verification, read-only access and custom-stat handoff passed.');
 }finally{await browser.close();}
