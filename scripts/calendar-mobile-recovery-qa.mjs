@@ -33,6 +33,8 @@ try{
  assert.equal(await todayReadCount(),before,'Browsing another month must not restart today summary reads');
  await page.getByRole('button',{name:'Add task',exact:true}).click();
  await page.setViewportSize({width:390,height:430});
+ // Viewport units settle on the next browser layout frame after the resize.
+ await page.waitForFunction(()=>{const overlay=document.querySelector('[role=dialog]')?.parentElement;return overlay&&Math.abs(overlay.getBoundingClientRect().height-innerHeight)<1;});
  const dialog=page.getByRole('dialog');
  assert.ok(await dialog.evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),'Form must stay within a shortened keyboard viewport');
  await page.getByText('Add notes',{exact:true}).click();

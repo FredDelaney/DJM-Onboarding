@@ -17,6 +17,8 @@ import { useEffect, useState } from 'react';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import { hasRecordedNumber } from '@/lib/recorded-number';
+
 import styles from './AgencyEntityIntelligenceDrawer.module.css';
 
 export type AgencyIntelligenceRequest = {
@@ -38,6 +40,7 @@ const human = (value: unknown) =>
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const numeric = (value: unknown, fallback = '-') => {
+  if (!hasRecordedNumber(value)) return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed)
     ? String(Math.round(parsed))
@@ -494,10 +497,10 @@ export default function AgencyEntityIntelligenceDrawer({
                     'Review the deal and decide.'}
                 </span>
               </div>
-              <div className={styles.score}>
+              {hasRecordedNumber(control.score) ? <div className={styles.score}>
                 <strong>{numeric(control.score)}</strong>
                 <span>deal control</span>
-              </div>
+              </div> : null}
             </section>
 
             <div className={styles.grid}>
@@ -510,7 +513,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 label="Momentum"
                 value={human(momentum.state || 'not set')}
                 detail={
-                  momentum.score !== undefined
+                  hasRecordedNumber(momentum.score)
                     ? `${numeric(momentum.score)} momentum score`
                     : null
                 }
@@ -519,7 +522,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 label="Decision pressure"
                 value={human(pressure.state || 'not set')}
                 detail={
-                  pressure.observed_days_in_stage !== undefined
+                  hasRecordedNumber(pressure.observed_days_in_stage)
                     ? `${numeric(pressure.observed_days_in_stage)} observed days in stage`
                     : null
                 }
@@ -528,7 +531,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 label="Negotiation"
                 value={human(negotiation.state || 'not set')}
                 detail={
-                  negotiation.score !== undefined
+                  hasRecordedNumber(negotiation.score)
                     ? `${numeric(negotiation.score)} preparation score`
                     : null
                 }
@@ -546,7 +549,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 <Fact
                   label="Direct access"
                   value={
-                    access.direct_score !== undefined
+                    hasRecordedNumber(access.direct_score)
                       ? `${numeric(access.direct_score)}/100`
                       : 'Not set'
                   }
@@ -554,7 +557,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 <Fact
                   label="Introduction"
                   value={
-                    access.introduction_score !== undefined
+                    hasRecordedNumber(access.introduction_score)
                       ? `${numeric(access.introduction_score)}/100`
                       : 'Not set'
                   }
@@ -563,7 +566,7 @@ export default function AgencyEntityIntelligenceDrawer({
                   label="Operating advantage"
                   value={human(advantage.state || 'not set')}
                   detail={
-                    advantage.score !== undefined
+                    hasRecordedNumber(advantage.score)
                       ? `${numeric(advantage.score)} operating score`
                       : null
                   }

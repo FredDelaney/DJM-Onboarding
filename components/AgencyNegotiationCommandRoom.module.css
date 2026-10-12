@@ -696,3 +696,13 @@
  .hero h3 { font-size: 23px; }
  .content { gap: 12px; }
 }
+
+/* One fact surface, rather than four separate cards, on phones too. */
+@media (max-width: 680px) {
+  .pagePanel .grid {
+    gap: 0; overflow: hidden; border: 1px solid #e5e5e7; border-radius: 14px; background: #fff;
+  }
+  .pagePanel .grid > .fact { border: 0; border-radius: 0; padding: 12px 14px; background: transparent; }
+  .pagePanel .grid > .fact:nth-child(even) { border-left: 1px solid #efeff1; }
+  .pagePanel .grid > .fact:nth-child(n+3) { border-top: 1px solid #efeff1; }
+}

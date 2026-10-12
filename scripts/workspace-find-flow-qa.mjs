@@ -74,7 +74,8 @@ try{
  await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Home',exact:true}).click();
  await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Network',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
- assert.equal(await page.getByRole('textbox',{name:'Search Network'}).getAttribute('placeholder'),'Search person, club, role or country');
+ await page.getByRole('heading',{name:'Dapo Director',exact:true}).waitFor();
+ assert.equal(await page.getByRole('heading',{name:'Example FC',exact:true}).count(),0,'Returning to Network must preserve the People view');
  await page.reload();await page.getByRole('textbox',{name:'Search Network'}).waitFor();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
  await page.locator('[data-qa-switch]').click();await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='');

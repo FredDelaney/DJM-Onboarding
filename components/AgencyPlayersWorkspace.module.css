@@ -1944,3 +1944,21 @@
  .profileShortcutRow{margin-left:52px;padding-top:0}
  .profileShortcutRow .profileShortcut{min-height:44px;padding:0;background:transparent;color:#0071e3;font-size:12px}
 }
+
+/* Roster metadata stays readable without turning each fact into a badge. */
+@media (max-width: 680px) {
+  .playerGrid:has(.playerCard) { overflow: visible; }
+  .playerCard:first-child { border-radius: 17px 17px 0 0; }
+  .playerCard:last-child { border-radius: 0 0 17px 17px; }
+  .playerCard:only-child { border-radius: 17px; }
+  .mobilePlayerMeta { flex-wrap: wrap; gap: 4px 14px; margin-left: 52px; overflow: visible; }
+  .mobilePlayerMeta > span {
+    min-height: 20px; padding: 0; border: 0; border-radius: 0; background: transparent;
+  }
+  .mobilePlayerMeta b { font-weight: 400; color: #6e6e73; }
+  .profileShortcutRow { margin-left: 52px; justify-content: flex-start; border: 0; }
+  .playerCard .profileShortcutRow .profileShortcut[data-ui-button] {
+    background: transparent !important; color: #0066cc !important;
+    min-height: 44px; padding: 0; font-weight: 500;
+  }
+}

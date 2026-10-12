@@ -282,7 +282,7 @@ const tabs = (inboxCount: number): WorkspaceTab[] => [
     href: '/profile',
     label: 'Me',
     icon: UserRound,
-    activePrefixes: ['/profile', '/career', '/check-in', '/cv', '/documents'],
+    activePrefixes: ['/profile', '/career', '/check-in', '/cv', '/documents', '/connections'],
   },
 ];
 

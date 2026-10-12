@@ -655,8 +655,8 @@ export default function AgencyNetworkWorkspace({
               onChange={(event) => setSearch(event.target.value)}
               placeholder={
                 view === 'clubs'
-                  ? 'Search club, country or league'
-                  : 'Search person, club, role or country'
+                  ? 'Search clubs'
+                  : 'Search people'
               }
               aria-label="Search Network"
             />

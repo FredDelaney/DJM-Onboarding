@@ -134,14 +134,27 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      const navWrap=document.querySelector('[class*="navWrap"]'),heroHeading=document.querySelector('h1');
      const navigationOverlap=!!(navWrap&&heroHeading&&visible(heroHeading)&&navWrap.getBoundingClientRect().bottom>heroHeading.getBoundingClientRect().top);
      const smallText=[...document.querySelectorAll('p,small,label,[class*="receiptHead"] span,[class*="previewHead"] span,[class*="provenance"],[class*="approvalBar"] span,[class*="completeActions"] span')].filter(visible).filter(n=>parseFloat(getComputedStyle(n).fontSize)<12).map(n=>({text:n.textContent.trim().slice(0,65),size:getComputedStyle(n).fontSize}));
-     return {overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),networkToolbarOverlap,primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
+     const reviewHero=[...document.querySelectorAll('section')].find(n=>n.className.includes('hero')&&n.className.includes('AgencyPlayerServiceReviewDrawer'));
+     const reviewHeroContrast=reviewHero?[...reviewHero.querySelectorAll(':scope > div > span')].map(n=>{
+      const fg=getComputedStyle(n).color.match(/[\d.]+/g).map(Number),bg=getComputedStyle(reviewHero).backgroundColor.match(/[\d.]+/g).map(Number),alpha=fg[3]??1;
+      const luminance=values=>values.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((total,v,i)=>total+v*[.2126,.7152,.0722][i],0);
+      const levels=[luminance(fg.slice(0,3).map((v,i)=>alpha*v+(1-alpha)*bg[i])),luminance(bg)].sort((a,b)=>b-a);
+      return {text:n.textContent.trim(),ratio:(levels[0]+.05)/(levels[1]+.05)};
+     }):[];
+     const careerCopy=document.querySelector('.career-hub-copy'),careerPanel=document.querySelector('.career-score-panel');
+     const careerStacked=!(careerCopy&&careerPanel)||careerPanel.getBoundingClientRect().top>=careerCopy.getBoundingClientRect().bottom-1;
+     return {reviewHeroContrast,careerStacked,overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),networkToolbarOverlap,primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
     });
     report.push({suite,screen,width,...metrics});
     if(metrics.networkToolbarOverlap)failures.push('Network tabs overlap search at '+width);
+    if(suite==='detail'&&screen==='review'&&(!metrics.reviewHeroContrast.length||metrics.reviewHeroContrast.some(item=>item.ratio<4.5)))failures.push('Service-review summary has unreadable contrast at '+width);
+    if(suite==='player'&&screen==='career'&&width<=1000&&!metrics.careerStacked)failures.push('Career title and actions must have a full row above readiness at '+width);
     if(metrics.overflow>1)console.log('Overflow elements',suite,screen,width,await page.evaluate(()=>[...document.querySelectorAll('*')].map(node=>({tag:node.tagName,class:typeof node.className==='string'?node.className:'',right:node.getBoundingClientRect().right,width:node.getBoundingClientRect().width})).filter(node=>node.width>0&&node.right>innerWidth+1).slice(-15)));
     if(metrics.overflow>1)failures.push(suite+'/'+screen+' overflows at '+width+' ('+metrics.overflow+'px)');
     if(suite==='player'){
      if(/rgba\([^)]*,\s*0\./.test(metrics.header||''))failures.push('Translucent player header at '+width);
+     if(width>760&&metrics.bottomVisible)failures.push('Player desktop navigation repeats the mobile bar at '+width);
+     if(width>760&&!metrics.tabsVisible)failures.push('Missing player header navigation at '+width);
      if(width<=760){
       if(metrics.tabsVisible&&metrics.bottomVisible)failures.push('Duplicate player navigation at '+width);
       if(!metrics.bottomVisible)failures.push('Missing player mobile navigation at '+width);
@@ -155,7 +168,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      if(!metrics.primaryNavVisible||metrics.navigationIssues.length)failures.push(screen+' marketing navigation missing or too small at '+width+': '+metrics.navigationIssues.join(','));
      if(metrics.navigationOverlap)failures.push(screen+' marketing header overlaps the hero at '+width);
     }
-    if(process.env.PLATFORM_POLISH_SCREENSHOTS&&[390,1440].includes(width)&&['home','calendar','opportunities','business','product','sign-in','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4','review','complete','detail','players','network','profile','settings','deal','branding','first_opportunity','privacy','workspaces'].includes(screen))await page.screenshot({path:join(process.env.PLATFORM_POLISH_SCREENSHOT_DIR||tmpdir(),'platform-polish-'+suite+'-'+screen+'-'+width+'.png'),fullPage:false});
+    if(process.env.PLATFORM_POLISH_SCREENSHOTS&&[390,1440].includes(width))await page.screenshot({path:join(process.env.PLATFORM_POLISH_SCREENSHOT_DIR||tmpdir(),'platform-polish-'+suite+'-'+screen+'-'+width+'.png'),fullPage:false});
 
     if(width===390) {
      const disclosures=page.locator('details.interface-details');

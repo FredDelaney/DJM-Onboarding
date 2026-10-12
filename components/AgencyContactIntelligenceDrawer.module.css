@@ -1024,3 +1024,10 @@
  .drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){font-size:16px!important}
  .actions button,.footer button{min-height:44px}
 }
+
+.headerMeta { gap: 4px 12px; }
+.headerMeta span { border: 0; background: transparent; padding: 0; font-weight: 400; color: #6e6e73; }
+.pagePanel .nextMove { background: #fff; color: #1d1d1f; border: 1px solid #e5e5e7; box-shadow: none; }
+.pagePanel .nextMove strong { color: #1d1d1f; font-weight: 600; }
+.pagePanel .nextMove span, .pagePanel .nextMove small { color: #6e6e73; letter-spacing: 0; font-weight: 400; }
+.pagePanel .nextMoveLink { background: #0071e3; color: #fff; border: 0; }
