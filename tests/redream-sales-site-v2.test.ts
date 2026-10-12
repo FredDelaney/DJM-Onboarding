@@ -91,9 +91,9 @@ test('deeper buyer pages remain available without bloating the homepage', () => 
   assert.match(site, /href="\/product"/);
   assert.match(site, /href="\/security"/);
   assert.match(site, /href="\/switch"/);
-  assert.match(product, /THREE LAYERS, ONE SYSTEM/);
-  assert.match(security, /AUTONOMY ROUTER/);
-  assert.match(switchPage, /PLAYER ROSTER MIGRATION/);
+  assert.match(product, /YOUR AGENCY, CONNECTED/);
+  assert.match(security, /YOU STAY IN CONTROL/);
+  assert.match(switchPage, /PLAYER IMPORT/);
 });
 
 test('canonical pricing remains unchanged', () => {

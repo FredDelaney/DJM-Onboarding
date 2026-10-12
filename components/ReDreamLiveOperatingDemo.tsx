@@ -480,7 +480,7 @@ export default function ReDreamLiveOperatingDemo({
         </div>
 
         <ControlBoundary actionability={scenarioActionability('deal', data.scenarios.deal)} />
-        <p className={styles.syntheticNote}>Synthetic Northstar agency data. The UI is driven by live ReDream read models, not a fabricated customer case study.</p>
+        <p className={styles.syntheticNote}>Explore the example Northstar agency. This demo uses synthetic data.</p>
       </aside>
     );
   }
@@ -526,7 +526,7 @@ export default function ReDreamLiveOperatingDemo({
 
           <div className={styles.sandboxTruth}>
             <ShieldCheck size={16} />
-            <span><strong>Real product logic. Synthetic data.</strong><small>No customer tenant is queried by this public experience.</small></span>
+            <span><strong>Real product logic. Synthetic data.</strong><small>This demo uses no customer records.</small></span>
           </div>
         </aside>
 
@@ -558,7 +558,7 @@ export default function ReDreamLiveOperatingDemo({
               <div className={styles.situationPanel}>
                 <span>WHY THIS NEEDS ATTENTION</span>
                 <h4>{why}</h4>
-                <p>ReDream starts from what your agency knows rather than inventing a generic recommendation.</p>
+                <p>ReDream works from recorded agency context.</p>
               </div>
             ) : null}
 
@@ -607,7 +607,7 @@ export default function ReDreamLiveOperatingDemo({
       <div className={styles.demoClose}>
         <div>
           <span>THIS IS THE DIFFERENCE</span>
-          <strong>ReDream does not stop at storing the situation. It connects the context, decides what deserves attention, prepares bounded work and records what happens next.</strong>
+          <strong>ReDream connects the context, prioritises the work and records what happens next.</strong>
         </div>
         <ReDreamDemoRequestButton
           className={styles.demoButton}

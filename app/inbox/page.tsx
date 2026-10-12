@@ -73,7 +73,7 @@ function InboxContent() {
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   useEffect(()=>{
     if(!resolved){
-      if(activeWrite.current)setWriteError('Your agency update could not be confirmed. Your draft is still here.');
+      if(activeWrite.current)setWriteError('Could not confirm the update. Your draft is still here.');
       activeWrite.current=false;setBusy(false);setToast('');
       return;
     }
@@ -110,17 +110,17 @@ function InboxContent() {
     if(!isCurrent(owner))return;
     activeWrite.current=false;setBusy(false);
     if(outcome.status==='unknown'){
-      setWriteError('We could not confirm that your action was completed. Your reply is still here. You can try again.');return;
+      setWriteError('Could not confirm the action. Your reply is still here. Try again.');return;
     }
     const {data:record,error}=outcome.result;
     if(error||!record||record.id!==request.id||record.player_id!==owner.playerId||record.status!=='completed'){
-      setWriteError('Your action could not be confirmed. Your reply is still here. Please try again.');return;
+      setWriteError('Could not confirm the action. Your reply is still here. Try again.');return;
     }
     pageRead.updateData(current=>current.map(item=>item.id===record.id?record:item));
     setExpanded(null);
     if(record.player_reply!==payload.player_reply){
       setReplies(current=>({...current,[request.id]:payload.player_reply??''}));
-      setWriteError('This action was already completed with a different reply. Your edited reply has not been sent. You can keep it or send it as a separate note.');
+      setWriteError('This action already has a different reply. Your edit was not sent.');
       void ctx.refresh();return;
     }
     setReplies(current=>{const next={...current};delete next[request.id];return next;});
@@ -150,12 +150,12 @@ function InboxContent() {
     if(!isCurrent(owner))return;
     activeWrite.current=false;setBusy(false);
     if(outcome.status==='unknown'){
-      setWriteError('We could not confirm that your note was sent. Your draft is still here. Retrying the same draft uses the same note record.');return;
+      setWriteError('Could not confirm the note. Your draft is still here. Try again.');return;
     }
     const {data:record,error}=outcome.result;
     if(error||!record||record.id!==draft.id||record.player_id!==draft.player_id||
       record.request_type!=='message'||record.created_by!==null||record.player_reply!==draft.player_reply){
-      setWriteError('Your note could not be confirmed. Your draft is still here. Retrying the same draft uses the same note record.');return;
+      setWriteError('Could not confirm the note. Your draft is still here. Try again.');return;
     }
     pageRead.updateData(current=>[record,...current.filter(item=>item.id!==record.id)]);
     pendingNotes.current.delete(text);setNote('');setCompose(false);flash('Sent to your agency',owner);
@@ -165,13 +165,13 @@ function InboxContent() {
     return <LoadingScreen error={ctx.error} onRetry={()=>void ctx.refresh()}/>;
   }
   if(!ctx.player){
-    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile to this account."/></main></PlayerShell>;
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile."/></main></PlayerShell>;
   }
   if(pageRead.loading||pageRead.error){
     return <PlayerShell><main className="narrow player-shell"><JourneyStatus
       kind={pageRead.error?'error':'loading'}
       title={pageRead.error?'Your agency updates could not load':'Loading your agency updates'}
-      description={pageRead.error||'Checking the actions and notes shared with you.'}
+      description={pageRead.error||'Loading messages.'}
       onRetry={pageRead.error?()=>void pageRead.retry():undefined}
     /></main></PlayerShell>;
   }
@@ -284,7 +284,7 @@ function InboxContent() {
             <textarea className="textarea" aria-label={'Unsent reply for '+request.title}
               disabled={busy} value={replies[request.id]}
               onChange={event=>setReplies(current=>({...current,[request.id]:event.target.value}))}/>
-            {note.trim()&&<p>Send or clear your other note before using this reply as a note.</p>}
+            {note.trim()&&<p>Finish your other note first.</p>}
             <div className="djm-note-actions">
               <button className="btn btn-quiet btn-sm" disabled={busy} onClick={()=>{
                 setReplies(current=>{const next={...current};delete next[request.id];return next;});

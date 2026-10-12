@@ -403,7 +403,7 @@ export default function BillingSettingsPage() {
             <div className={styles.panelHead}>
               <div>
                 <h2>Payments & invoices</h2>
-                <p>Card details stay with the secure payment provider, never in ReDream.</p>
+                <p>Card details stay with the payment provider.</p>
               </div>
               <CreditCard size={19} />
             </div>
@@ -416,7 +416,7 @@ export default function BillingSettingsPage() {
             ) : !paymentPortalAvailable ? (
               <div className={styles.notice}>
                 <ReceiptText size={16} />
-                <div><strong>Online billing is not enabled for this agency yet.</strong><p>Contact ReDream to confirm payment arrangements or request an invoice.</p><a href="mailto:team@redreamsystems.com?subject=Billing%20support">Contact billing support</a></div>
+                <div><strong>Online billing is not enabled for this agency yet.</strong><p>Contact ReDream for payment arrangements or invoices.</p><a href="mailto:team@redreamsystems.com?subject=Billing%20support">Contact billing support</a></div>
               </div>
             ) : (
               <>

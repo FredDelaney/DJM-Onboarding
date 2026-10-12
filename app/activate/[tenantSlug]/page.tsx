@@ -912,7 +912,7 @@ export default function AgencyLaunchPage() {
                   }))
                 }
                 rows={4}
-                placeholder="What is the club looking for, why does this player fit, or what are you trying to make happen?"
+                placeholder="What does the club need? Why does this player fit?"
               />
             </Field>
           </div>
@@ -1029,7 +1029,7 @@ export default function AgencyLaunchPage() {
             <span>2</span>
             <div>
               <strong>Review before anything changes</strong>
-              <p>ReDream shows the records and follow-up it proposes. You stay in control.</p>
+              <p>Review the proposed records and follow-up. You stay in control.</p>
             </div>
           </div>
           <ArrowRight size={16} className={styles.workingLoopArrow} />

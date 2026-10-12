@@ -43,7 +43,7 @@ export default function SharePage() {
   if (failed) {
     return <div className="center"><JourneyStatus kind="error"
       title="We could not load this club link."
-      description="Please try again. A failed request does not mean the link is unavailable."
+      description="Try again. The link may still be available."
       onRetry={() => setAttempt(value => value + 1)} /></div>;
   }
   if (data === undefined) {

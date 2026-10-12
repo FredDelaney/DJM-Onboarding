@@ -743,7 +743,7 @@ export default function TeamSettingsPage() {
       <ConfirmActionDialog
         open={Boolean(memberToRemove)}
         title={`Remove ${memberToRemove?.display_name || memberToRemove?.email || 'this team member'}?`}
-        description="They will lose access to this agency workspace. Their historical agency activity stays intact."
+        description="They will lose workspace access. Historical activity stays intact."
         confirmLabel="Remove team member"
         busy={Boolean(memberToRemove && actionBusy === `member:${memberToRemove.user_id}`)}
         onClose={() => setMemberToRemove(null)}

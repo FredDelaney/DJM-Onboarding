@@ -60,7 +60,7 @@ export default function ReDreamOperatorSignIn() {
             alt="ReDream Systems | Agency Autopilot"
             className={styles.brandLogo}
           />
-          <span className={styles.brandContext}>Private control plane</span>
+          <span className={styles.brandContext}>ReDream admin</span>
         </div>
 
         <div className={styles.statement}>
@@ -81,7 +81,7 @@ export default function ReDreamOperatorSignIn() {
           <p className={styles.eyebrow}>OPERATOR ACCESS</p>
           <h2>Welcome back.</h2>
           <p className={styles.copy}>
-            Sign in to the ReDream Systems control plane.
+            Sign in to manage ReDream agencies.
           </p>
 
           <label>

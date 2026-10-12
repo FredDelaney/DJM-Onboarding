@@ -145,7 +145,7 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
       return item.href?<Link {...common} key={item.key} href={item.href} prefetch={false} onClick={event=>choose(event,item.href!)}>{body}</Link>:
        <button {...common} type="button" key={item.key} onClick={()=>{close();if(item.create)onCreate?.(item.create);}}>{body}</button>;
      })}
-     {query&&!results.length&&!pending&&!search.error?<div className={styles.empty}><strong>No matching records</strong><p>Try another name, club or role. Search uses your agency information.</p></div>:null}
+     {query&&!results.length&&!pending&&!search.error?<div className={styles.empty}><strong>No matching records</strong><p>Try another name, club or role.</p></div>:null}
     </div>
     <footer className={styles.footer}><span>↑ ↓ move · Enter open · Esc close</span><span>Recorded agency data</span></footer>
    </section>

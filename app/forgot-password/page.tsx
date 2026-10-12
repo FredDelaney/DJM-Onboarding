@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
             <div className="stack" style={{ marginTop: 28 }}>
               <div className="card pad" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <ShieldCheck size={20} />
-                <div><strong>Recovery email requested</strong><p className="small muted" style={{ marginTop: 4 }}>Open the newest ReDream recovery email. The link returns you to ReDream to set a new password.</p></div>
+                <div><strong>Recovery email requested</strong><p className="small muted" style={{ marginTop: 4 }}>Open the newest recovery email to set a new password.</p></div>
               </div>
               <Link href={backHref} className="btn btn-navy btn-block">{returnPath ? 'Back to owner workspace' : 'Back to sign in'} <ArrowRight size={17} /></Link>
             </div>

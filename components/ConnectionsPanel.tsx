@@ -255,7 +255,7 @@ export default function ConnectionsPanel({
       return;
     }
     if (!passkeysSupported) {
-      setError('This browser or device cannot create a passkey here. Your password will keep working.');
+      setError('This device cannot create a passkey. Your password still works.');
       return;
     }
 
@@ -280,7 +280,7 @@ export default function ConnectionsPanel({
       } else if (code.includes('passkey_disabled')) {
         setError('Face ID or passkey sign-in is not enabled for this workspace.');
       } else {
-        setError('Passkey setup did not complete. Your password still works, so you can try again safely.');
+        setError('Passkey setup failed. Your password still works.');
       }
     } finally {
       setBusy('');
@@ -380,7 +380,7 @@ export default function ConnectionsPanel({
           <div>
             <span>CALENDAR</span>
             <h2>Your ReDream dates, where you already look.</h2>
-            <p>Subscribe once. Dated ReDream actions then stay current from the private ReDream feed.</p>
+            <p>Subscribe once to keep dated ReDream actions current.</p>
           </div>
         </div>
 

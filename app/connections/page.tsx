@@ -13,7 +13,7 @@ export default function PlayerConnectionsPage() {
         <section className="ux-player-page-heading">
           <span className="ux-kicker">MY WORKSPACE</span>
           <h1>Connections</h1>
-          <p>Security, calendar and reminders in one place.</p>
+          <p>Security, calendar and reminders.</p>
         </section>
         <ConnectionsPanel
           userId={String(ctx.user?.id || '')}

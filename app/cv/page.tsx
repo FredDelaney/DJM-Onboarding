@@ -41,14 +41,14 @@ export default function CV() {
   }
 
   if (!ctx.player) {
-    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile to this account."/></main></PlayerShell>;
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile."/></main></PlayerShell>;
   }
 
   if (pageRead.loading || pageRead.error) {
     return <PlayerShell><main className="narrow player-shell"><JourneyStatus
       kind={pageRead.error ? 'error' : 'loading'}
       title={pageRead.error ? 'Your presentation could not load' : 'Loading your presentation'}
-      description={pageRead.error || 'Loading the profile your agency has prepared for clubs.'}
+      description={pageRead.error || 'Loading your club profile.'}
       onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
     /></main></PlayerShell>;
   }

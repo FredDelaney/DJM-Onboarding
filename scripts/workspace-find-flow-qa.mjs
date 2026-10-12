@@ -172,7 +172,7 @@ try{
   assert.equal(await page.getByRole('link',{name:'Business',exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:/^Manage /}).count(),0);
   if(role==='scout')assert.equal(await page.getByRole('button',{name:'Add player',exact:true}).count(),0);
-  await page.goto(root+'?coordinator=1&role='+role+'&view=network');await page.getByText('Shared clubs and contacts. Your contact pages show your own activity. Agency-wide commercial details are only shown to admins.',{exact:true}).waitFor();
+  await page.goto(root+'?coordinator=1&role='+role+'&view=network');await page.getByText('Shared network. Commercial details are for admins.',{exact:true}).waitFor();
   await page.getByRole('heading',{name:'Shared Staff Club',exact:true}).waitFor();
   assert.equal(await page.getByText('LIVE OPPORTUNITIES',{exact:true}).count(),0);
   assert.equal(await page.getByText('BEST ROUTE',{exact:true}).count(),0);
@@ -181,7 +181,7 @@ try{
   await page.getByRole('heading',{name:'Shared Staff Contact',exact:true}).waitFor();
   assert.equal(await page.getByText('RELATIONSHIP OWNER',{exact:true}).count(),0);
   await coordinatorView('home');await page.getByRole('heading',{name:'Today',exact:true}).waitFor();
-  await page.getByText('Your work only. Assigned players are under Players; commercial records require admin access.',{exact:true}).waitFor();
+  await page.getByText('Your work only. Commercial records require admin access.',{exact:true}).waitFor();
   await page.getByText('You have no tasks, meetings or commitments that need action right now.',{exact:true}).waitFor();
   await coordinatorView('opportunities');await page.getByRole('heading',{name:'Admin access needed',exact:true}).waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1));

@@ -533,7 +533,7 @@ export default function ReDreamDecisionLayer() {
       <div className={styles.impactBlock}>
         <div className={styles.blockHead}>
           <GitBranch size={17} />
-          <span><strong>CONNECTED IMPACT</strong><small>One question crosses the agency graph instead of stopping in one screen.</small></span>
+          <span><strong>CONNECTED IMPACT</strong><small>One question can connect the whole agency.</small></span>
         </div>
         <div className={styles.impactRail}>
           {answer.chain.map(([label, value], index) => (
@@ -574,7 +574,7 @@ export default function ReDreamDecisionLayer() {
 
       <div className={styles.truthLine}>
         <Check size={15} />
-        <span><strong>Not chatbot theatre.</strong> These answers are assembled from ReDream read models running on an isolated synthetic agency. The public experience cannot mutate the agency or send an external action.</span>
+        <span><strong>Example agency.</strong> This demo uses synthetic agency data. It cannot change records or send anything.</span>
       </div>
     </section>
   );

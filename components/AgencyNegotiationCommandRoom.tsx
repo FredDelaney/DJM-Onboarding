@@ -406,7 +406,7 @@ export default function AgencyNegotiationCommandRoom({
         currency.trim().length !== 3
       ) {
         throw new Error(
-          'Use a three-letter currency code for numeric guardrails.',
+          'Use a three-letter currency code.',
         );
       }
 
@@ -474,7 +474,7 @@ export default function AgencyNegotiationCommandRoom({
       );
 
       setMessage(
-        'Private negotiation guardrails saved as a draft. No term was sent or accepted.',
+        'Draft saved. Nothing was sent or accepted.',
       );
 
       await onApplied();
@@ -514,7 +514,7 @@ export default function AgencyNegotiationCommandRoom({
       setConfirmApprove(false);
 
       setMessage(
-        'Negotiation guardrails approved as the current internal operating limits.',
+        'Negotiation limits approved.',
       );
 
       await onApplied();
@@ -536,7 +536,7 @@ export default function AgencyNegotiationCommandRoom({
       'set_negotiation_guardrails'
     ) {
       setMessage(
-        'Record the private negotiation guardrails below before advancing.',
+        'Set the private limits before advancing.',
       );
       return;
     }
@@ -546,7 +546,7 @@ export default function AgencyNegotiationCommandRoom({
       'prepare_negotiation_brief'
     ) {
       setMessage(
-        'The negotiation brief is ready for human review in this room. ReDream will not invent positions that are not set.',
+        'Ready for review. Unset positions stay unset.',
       );
       return;
     }
@@ -559,7 +559,7 @@ export default function AgencyNegotiationCommandRoom({
       title: request.title,
       instruction:
         nextStep.instruction ||
-        'Close the highest-priority recorded negotiation-preparation gap.',
+        'Close the top preparation gap.',
       label:
         'Prepare negotiation step',
       action:
@@ -601,7 +601,7 @@ export default function AgencyNegotiationCommandRoom({
       ],
       successCondition:
         nextStep.success_condition ||
-        'The recorded preparation gap is resolved or explicitly documented.',
+        'The preparation gap is resolved.',
       confirmationLabel:
         'Create preparation task',
     });
@@ -651,7 +651,7 @@ export default function AgencyNegotiationCommandRoom({
 
           <p className={styles.subhead}>
             {request.context ||
-              'Prepare the negotiation from recorded facts, private human-set limits and the real decision route.'}
+              'Prepare from facts, private limits and the real decision route.'}
           </p>
         </header>
 
@@ -712,7 +712,7 @@ export default function AgencyNegotiationCommandRoom({
                 <span>
                   {nextStep?.instruction ||
                     brief?.readiness_statement ||
-                    'Review the recorded facts before advancing.'}
+                    'Review the facts before advancing.'}
                 </span>
               </div>
 
@@ -944,7 +944,7 @@ export default function AgencyNegotiationCommandRoom({
                       )
                     }
                     disabled={!canEdit}
-                    placeholder="What outcome are we trying to achieve?"
+                    placeholder="Target outcome"
                   />
                 </label>
 
@@ -958,7 +958,7 @@ export default function AgencyNegotiationCommandRoom({
                       )
                     }
                     disabled={!canEdit}
-                    placeholder="What fallback would still be acceptable?"
+                    placeholder="Acceptable fallback"
                   />
                 </label>
 

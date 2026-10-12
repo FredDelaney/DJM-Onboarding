@@ -83,8 +83,7 @@ export default function TenantPlayerLanding() {
               <div>
                 <b>Agency staff</b>
                 <span>
-                  Your agency workspace opens automatically from your tenant
-                  membership.
+                  Your authorised agency workspace opens automatically.
                 </span>
               </div>
             </div>
@@ -113,7 +112,7 @@ export default function TenantPlayerLanding() {
             <div className="landing-item">
               <Activity size={21} color="#f5e900" />
               <div>
-                <b>Tenant-native from sign-in onward</b>
+                <b>Your agency, from sign-in onward</b>
                 <span>
                   Access follows the agency membership, permissions and player
                   relationship recorded for this workspace.

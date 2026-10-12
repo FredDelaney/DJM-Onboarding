@@ -91,7 +91,7 @@ function ConnectedOpportunityContext({
             </strong>
             <span>
               {latest?.summary ||
-                'Connected contact recorded.'}
+                'Contact linked.'}
             </span>
             <div className={styles.connectedContextMeta}>
               <em>
@@ -200,7 +200,7 @@ export default function AgencyOpportunitiesWorkspace({
     void readWithDeadline(invoke<any>('workspace_need_record',{club_need_id:requestedRecord})).then(response=>{
       if(!current)return;
       const record=response?.record;
-      if(!record?.available||String(record?.item?.club_need_id||'')!==requestedRecord)throw new Error('This opportunity is no longer available in your agency.');
+      if(!record?.available||String(record?.item?.club_need_id||'')!==requestedRecord)throw new Error('This opportunity is unavailable.');
       setExactNeed(record.item);
     }).catch(error=>{if(current)setExactError(error instanceof Error?error.message:'This opportunity could not load.');})
       .finally(()=>{if(current)setExactBusy(false);});
@@ -394,7 +394,7 @@ export default function AgencyOpportunitiesWorkspace({
         `${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`,
       instruction:
         item.next_action?.instruction ||
-        'Create scouting work for this club need.',
+        'Create scouting work.',
       label: 'Prepare search',
       action: 'scouting_mandate_prepare',
       payload: {
@@ -449,7 +449,7 @@ export default function AgencyOpportunitiesWorkspace({
         },
       ],
       successCondition:
-        'At least one credible player is linked to this club need.',
+        'A credible player is linked.',
       confirmationLabel: 'Create search task',
     });
   };
@@ -580,8 +580,8 @@ export default function AgencyOpportunitiesWorkspace({
       successCondition:
         deal.next_control_fix?.success_condition ||
         (needsOwner
-          ? 'One accountable owner controls the live deal.'
-          : 'No deal issue needs attention.'),
+          ? 'One owner is accountable.'
+          : 'Nothing needs attention.'),
       confirmationLabel:
         needsOwner ? 'Assign deal owner' : 'Apply fix',
     });
@@ -650,7 +650,7 @@ export default function AgencyOpportunitiesWorkspace({
         </label>
       </section>
 
-      {exactBusy?<p role="status">Opening opportunity...</p>:null}
+      {exactBusy?<p role="status">Opening...</p>:null}
       {exactError?<div role="alert"><p>{exactError}</p><button type="button" className="btn" onClick={()=>setExactRetry(value=>value+1)}>Try again</button></div>:null}
       <section className={styles.listCard}>
         {view === 'needs'
@@ -697,7 +697,7 @@ export default function AgencyOpportunitiesWorkspace({
                       {item.need?.title || 'Player need'}
                     </strong>
                     <span>
-                      {!needOpen ? 'This club need is no longer active.' : item.next_action?.instruction ||
+                      {!needOpen ? 'This need is closed.' : item.next_action?.instruction ||
                         'Review the club need.'}
                     </span>
                     <small>
@@ -771,7 +771,7 @@ export default function AgencyOpportunitiesWorkspace({
                 item.career_strategy_gate?.next_action
                   ?.instruction ||
                 item.best_access_route?.why_this_route ||
-                'Review this player opportunity.';
+                'Review this opportunity.';
 
               return (
                 <article
@@ -941,8 +941,8 @@ export default function AgencyOpportunitiesWorkspace({
 
         {readState !== 'ready' ? (
           <div className={styles.empty} role="status">
-            <strong>{readState === 'error' ? 'This view could not be updated' : 'Loading opportunities...'}</strong>
-            <span>{readState === 'error' ? 'Your work is safe. Try loading it again.' : 'Checking the latest work.'}</span>
+            <strong>{readState === 'error' ? 'Could not update' : 'Loading...'}</strong>
+            <span>{readState === 'error' ? 'Try again.' : 'Checking...'}</span>
             {readState === 'error' && onRetry ? <button type="button" className={styles.tab} onClick={onRetry}>Try again</button> : null}
           </div>
         ) : null}
@@ -969,12 +969,12 @@ export default function AgencyOpportunitiesWorkspace({
             </strong>
             <span>
               {search
-                ? 'Try a different search.'
+                ? 'Try another search.'
                 : view === 'needs'
-                  ? 'Add a real club need and the player opportunities around it can be organised here.'
+                  ? 'Add a club need to get started.'
                   : view === 'routes'
-                    ? 'Player opportunities appear when a player is linked to a club need.'
-                    : 'Deals appear here once a player opportunity becomes live commercial work.'}
+                    ? 'Linked players will appear here.'
+                    : 'Live deals will appear here.'}
             </span>
           </div>
         ) : null}

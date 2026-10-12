@@ -246,7 +246,7 @@ export default function CheckIn() {
         .select('id').abortSignal(signal).single(),
     );
     if (outcome.status === 'unknown') {
-      setError('We could not confirm your weekly update. Your draft is still here. Sending again updates the same week, rather than creating a second update.');
+      setError('Could not confirm your update. Your draft is still here. Try again.');
       setBusy(false);
       return;
     }
@@ -254,7 +254,7 @@ export default function CheckIn() {
 
     if (submitError) {
       setError(
-        submitError.code ? 'We couldn’t send your update. Your draft is still here. Please try again.' : 'We could not confirm your weekly update. Your draft is still here. Sending again updates the same week, rather than creating a second update.',
+        submitError.code ? 'Could not send your update. Your draft is still here. Try again.' : 'Could not confirm your update. Your draft is still here. Try again.',
       );
       setBusy(false);
       return;

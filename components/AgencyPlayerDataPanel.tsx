@@ -72,9 +72,9 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
   try{
    await bounded(invoke('player_data_save',{player_id:playerId,row_id:draft.row_id||null,expected_updated_at:draft.expected_updated_at||null,values:draft}));
    if(!alive.current)return;
-   setEditing(false);setNotice('Corrections saved. Review the current player data before verifying it.');
+   setEditing(false);setNotice('Corrections saved. Review before verifying.');
    const reloaded=await onChanged();
-   if(alive.current&&reloaded===false)setError('Corrections were saved, but the player data could not reload. Reload player data to recover.');
+   if(alive.current&&reloaded===false)setError('Corrections saved, but the data could not reload. Try again.');
   }catch(failure){if(alive.current)setError(friendlyError(failure));}
   finally{mutation.current=false;if(alive.current)setSaving(false);}
  };
@@ -110,7 +110,7 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    {pending(job)||uncertain?<button type="button" data-ui-button="secondary" onClick={()=>void readStatus()} disabled={checking}>{checking?'Checking...':'Check progress'}</button>:null}
    {canEdit&&(player.review_required_at||player.review_reason)?<button type="button" data-ui-button="secondary" onClick={onReview} disabled={busy||blocked}>Review current player data</button>:null}
   </div>:<form ref={formRef} className={styles.form} onSubmit={event=>{event.preventDefault();void save();}} aria-label="Edit current-season statistics">
-   <div className={styles.formHeading}><h4>{row?'Correct the current statistics':'Add season statistics'}</h4><p>These details set the player's current season. Keep league and cup figures separate, and leave unknown numbers blank. Changing the season, club or competition preserves the earlier record in season history.</p></div>
+   <div className={styles.formHeading}><h4>{row?'Correct the current statistics':'Add season statistics'}</h4><p>Set the current season. Keep league and cup figures separate. Unknown values can stay blank.</p></div>
    <div className={styles.fields}>{(['season_label','club_name','league','country'] as const).map(key=><label key={key}>{({season_label:'Season',club_name:'Club',league:'Competition',country:'Country'})[key]}<input value={draft[key]} onChange={event=>field(key,event.target.value)} required={key!=='country'} maxLength={key==='season_label'?40:key==='country'?100:180}/></label>)}</div>
    <div className={styles.statFields}>{PLAYER_STAT_FIELDS.map(key=><label key={key}>{labels[key]}<input inputMode="numeric" value={draft[key]} onChange={event=>field(key,event.target.value)} placeholder="Unknown" aria-label={labels[key]}/></label>)}</div>
    <div className={styles.fields}><label>Source name<input value={draft.source_name} onChange={event=>field('source_name',event.target.value)} required maxLength={180} placeholder="Official competition website"/></label><label>Source link<input type="url" value={draft.source_url} onChange={event=>field('source_url',event.target.value)} required maxLength={2000} placeholder="https://..." /></label></div>

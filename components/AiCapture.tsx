@@ -361,7 +361,7 @@ export default function AiCapture({
               return null;
             }
             if (displayCaptureRef.current === captureId) {
-              setStatus(transcriptReady ? 'Transcript ready. Doing it now...' : 'Transcribing...');
+              setStatus(transcriptReady ? 'Transcript ready. Preparing suggestions...' : 'Transcribing...');
             }
             return attempt >= 40 ? BACKGROUND_POLL_MS : transcriptReady ? ACTIVE_POLL_MS : TRANSCRIBING_POLL_MS;
           },
@@ -369,13 +369,13 @@ export default function AiCapture({
             if (displayCaptureRef.current !== captureId) return;
             setReceipt(null);
             setStatus('');
-            setError('This update is not available in this workspace. Check your agency access and try again.');
+            setError('This update is unavailable here. Check your access.');
           },
           exhausted: () => {
             if (displayCaptureRef.current !== captureId) return;
             setStatus(verified
-              ? 'Safely saved. ReDream is still processing this in the background. You can close this screen.'
-              : 'Unable to check this update right now. Reopen Capture when connected.');
+              ? 'Note saved. Processing continues. You can close this screen.'
+              : 'Could not check this update. Try again when connected.');
           },
         });
       } finally {
@@ -389,7 +389,7 @@ export default function AiCapture({
   useEffect(() => {
     if (!resumeCaptureId) return;
     rememberActiveAiCapture(resumeCaptureId, workspaceSlug, workspace);
-    setStatus('Checking this ReDream update...');
+    setStatus('Checking...');
     void pollReceipt(resumeCaptureId, true);
   }, [pollReceipt, resumeCaptureId, workspaceSlug]);
 
@@ -422,7 +422,7 @@ export default function AiCapture({
 
         const result: any = await platformInvoke('redream-ai-capture', form, session!.access_token);
         if (!result?.capture_id) {
-          throw new Error('Your update could not be confirmed. Please try again.');
+          throw new Error('Could not confirm the update. Try again.');
         }
 
         rememberActiveAiCapture(result.capture_id, pendingWorkspace, pending.workspace);
@@ -441,7 +441,7 @@ export default function AiCapture({
     try {
       const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false));
       uploadedAny = result.uploaded > 0;
-      if (result.failed > 0 && mountedRef.current) setError('Some saved notes could not upload. They remain on this phone; check your connection and original account. Older notes without an account need recovery.');
+      if (result.failed > 0 && mountedRef.current) setError('Some notes did not upload. They remain on this phone. Reconnect with the original account. Older notes may need recovery.');
     } catch {
       return; // Local storage is unavailable; existing pending data is untouched.
     }
@@ -496,8 +496,8 @@ export default function AiCapture({
       event.stopPropagation();
       setError(
         recording
-          ? 'Finish the voice note before leaving this screen.'
-          : 'ReDream is still securing this note. Wait until it says safely saved.',
+          ? 'Finish the voice note first.'
+          : 'Wait until the note is saved.',
       );
     };
 
@@ -533,14 +533,14 @@ export default function AiCapture({
     });
     setBusy(false);
     if (result.state === 'unsaved') {
-      setStatus('Not saved yet. Keep this screen open, reconnect and try saving again.');
-      setError(result.error ? friendlyError(result.error) : 'This browser could not store the note.');
+      setStatus('Not saved. Keep this screen open and try again.');
+      setError(result.error ? friendlyError(result.error) : 'Could not store the note.');
       return;
     }
     setUnsavedDraft(null);
     setText('');
     if (result.state === 'queued') {
-      setStatus('Saved on this phone. ReDream will retry automatically when connected.');
+      setStatus('Saved on this phone. It will retry when connected.');
       if (result.error) setError(friendlyError(result.error));
     }
   };
@@ -585,7 +585,7 @@ export default function AiCapture({
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Sign in before recording a note.');
+      if (!session) throw new Error('Sign in to record.');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -658,7 +658,7 @@ export default function AiCapture({
 
     setBusy(true);
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setBusy(false); setError('Sign in before saving a note.'); return; }
+    if (!session) { setBusy(false); setError('Sign in to save.'); return; }
     const id = crypto.randomUUID();
     const pending: PendingAiCapture = {
       id,
@@ -692,7 +692,7 @@ export default function AiCapture({
       }, workspaceSlug);
 
       if (result?.capture_id) {
-        setStatus('Got it. ReDream is finishing the update...');
+        setStatus('Got it. Preparing suggestions...');
         try {
           await platformInvoke('redream-ai-process', {
             capture_id: result.capture_id,
@@ -727,7 +727,7 @@ export default function AiCapture({
     if (!captureId) return;
 
     setError('');
-    setStatus('Retrying the unfinished updates...');
+    setStatus('Retrying...');
     try {
       const result: any = await platformRpc('redream_ai_retry_capture', {
         p_capture_id: captureId,
@@ -755,7 +755,7 @@ export default function AiCapture({
 
     setApprovingCapture(true);
     setError('');
-    setStatus('Applying the updates you approved...');
+    setStatus('Applying approved updates...');
     try {
       const result: any = await platformRpc(
         'redream_ai_approve_capture',
@@ -796,7 +796,7 @@ export default function AiCapture({
       setReceipt(null);
       setMode('text');
       setText(transcript);
-      setStatus('Edit what happened, then send it back to ReDream.');
+      setStatus('Edit the note, then send it again.');
     } catch (editError) {
       setError(friendlyError(editError));
     } finally {
@@ -819,7 +819,7 @@ export default function AiCapture({
       forgetActiveAiCapture(captureId);
       displayCaptureRef.current = null;
       setReceipt(null);
-      setStatus('ReDream update deleted.');
+      setStatus('Update deleted.');
       setDeleteConfirmOpen(false);
       onCompleted?.({
         capture: {
@@ -994,7 +994,7 @@ export default function AiCapture({
 
       {unsavedDraft && !busy ? (
         <div className={styles.status}>
-          <span>Your note is still in this screen. It will be lost if the browser closes before saving.</span>
+          <span>Keep this screen open until the note is saved.</span>
           <button type="button" className={styles.primary} onClick={() => void persistDraft(unsavedDraft)}>
             Try saving again
           </button>
@@ -1010,11 +1010,11 @@ export default function AiCapture({
               </strong>
               <span>
                 {hasPendingActions
-                  ? 'Review the proposed changes below.'
+                  ? 'Review the changes below.'
                   : needsAttention
                     ? 'ReDream has not guessed. Resolve the items below or edit the note.'
                     : verifiedComplete
-                      ? 'Approved, written back and verified. Supported changes can still be undone.'
+                      ? 'Approved changes saved. Undo is available where supported.'
                       : 'ReDream is finishing the interpretation. You do not need to do anything yet.'}
               </span>
             </div>
@@ -1181,7 +1181,7 @@ export default function AiCapture({
             <div className={styles.completeActions}>
               <div>
                 <strong>Update complete</strong>
-                <span>The approved changes are saved. You can capture the next update now.</span>
+                <span>Changes saved. Ready for the next update.</span>
               </div>
               <button
                 type="button"

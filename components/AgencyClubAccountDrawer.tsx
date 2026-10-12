@@ -186,7 +186,7 @@ export default function AgencyClubAccountDrawer({
         ));
         if (!current()) return;
         const record = response?.club || response?.result;
-        if (!record?.club) throw new Error('This club is no longer available in your agency.');
+        if (!record?.club) throw new Error('This club is unavailable.');
 
         setAccount(
           response?.club ||
@@ -434,7 +434,7 @@ export default function AgencyClubAccountDrawer({
     clean(
       bestIntro?.recommended_action,
     ) ||
-    'Review the strongest relationship before the next external move.';
+    'Review the strongest route first.';
 
   const nextMoveLabel =
     String(
@@ -536,7 +536,7 @@ export default function AgencyClubAccountDrawer({
       ],
 
       successCondition:
-        'The agency prepares the next internal relationship action from known information. Nothing is sent externally without a person confirming it.',
+        'Prepared from recorded information. Nothing is sent without approval.',
 
       confirmationLabel:
         nextMoveLabel,
@@ -548,7 +548,7 @@ export default function AgencyClubAccountDrawer({
     return <div className={pageMode?styles.pageShell:styles.backdrop} onMouseDown={event=>{if(!pageMode&&event.target===event.currentTarget)onClose();}}>
       <aside className={styles.drawer} role={pageMode?'region':'dialog'} aria-modal={pageMode?undefined:true} aria-label={'Club details for '+(club.name||request.title)}>
         <header className={styles.header}><div className={styles.headerTop}><div><p className={styles.eyebrow}>CLUB</p><h2>{club.name||request.title}</h2><p>{[club.city,club.country,club.league_name].filter(Boolean).join(' · ')}</p></div><button type="button" className="btn" onClick={onClose} aria-label={pageMode?'Back':'Close'}><X size={18}/></button></div></header>
-        <section className={styles.notice}><p>Club identity is available to your account. Deal, player and commercial details are available to agency administrators.</p></section>
+        <section className={styles.notice}><p>Club details are shared. Commercial details are for admins.</p></section>
       </aside>
     </div>;
   }
@@ -892,7 +892,7 @@ export default function AgencyClubAccountDrawer({
                       ?.intermediary
                       ?.name
                       ? `A warm introduction is available through ${bestIntro.intermediary.name}.`
-                      : 'Link a contact to this club to record how your agency can reach them.'
+                      : 'Link a contact to record your route in.'
                   }
                 />
               )}
@@ -1041,7 +1041,7 @@ export default function AgencyClubAccountDrawer({
               ) : (
                 <Empty
                   title="No active club need yet"
-                  copy="Add what this club is looking for and it will appear here."
+                  copy="Add a club need."
                 />
               )}
             </section>
@@ -1137,7 +1137,7 @@ export default function AgencyClubAccountDrawer({
               ) : (
                 <Empty
                   title="No conversation yet"
-                  copy="Calls, meetings and connected conversations will build the club history here."
+                  copy="Activity will appear here."
                 />
               )}
             </section>
@@ -1189,7 +1189,7 @@ export default function AgencyClubAccountDrawer({
                         ),
                     }),
                   )}
-                  empty="Nothing is currently due."
+                  empty="Nothing due."
                 />
               </div>
             </section>
@@ -1452,7 +1452,7 @@ export default function AgencyClubAccountDrawer({
               ) : (
                 <Empty
                   title="No live opportunity yet"
-                  copy="Player opportunities and deals will appear here when they are connected to this club."
+                  copy="Opportunities and deals will appear here."
                 />
               )}
             </section>

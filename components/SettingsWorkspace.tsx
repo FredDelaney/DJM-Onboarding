@@ -8,6 +8,7 @@ import {
   BookOpen,
   Building2,
   CalendarDays,
+  ChevronDown,
   Coins,
   CreditCard,
   Home as HomeIcon,
@@ -109,6 +110,12 @@ export default function SettingsWorkspace({
         { href: '/settings/billing', label: 'Plan & billing', icon: <CreditCard size={16} /> },
       ]
     : [];
+  const currentSettingLabel = [
+    { href: '/settings', label: 'Overview' },
+    ...personal,
+    ...agency,
+    ...account,
+  ].find((item) => item.href === pathname)?.label || (title === 'Settings' ? 'Overview' : title);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -189,31 +196,40 @@ export default function SettingsWorkspace({
         </header>
 
         <div className={styles.workspace}>
-          <aside className={styles.rail} aria-label="Settings navigation">
-            <Link href="/agency" className={styles.back}>
-              <ArrowLeft size={14} />
-              Back to workspace
-            </Link>
+          <details className={styles.settingsMenu}>
+            <summary aria-label="Settings navigation">
+              <div>
+                <span>Settings</span>
+                <strong>{currentSettingLabel}</strong>
+              </div>
+              <ChevronDown size={16} />
+            </summary>
 
-            <div className={styles.workspaceIdentity}>
-              <strong>{workspaceName}</strong>
-              <span>{humanRole(role)}</span>
+            <div className={styles.settingsMenuPanel}>
+              <div className={styles.settingsMenuMeta}>
+                <strong>{workspaceName}</strong>
+                <span>{humanRole(role)}</span>
+              </div>
+              <Link href="/agency" className={styles.back}>
+                <ArrowLeft size={14} />
+                Back to workspace
+              </Link>
+
+              <nav className={styles.nav}>
+                <SettingsLink
+                  item={{ href: '/settings', label: 'Overview', icon: <LayoutGrid size={16} /> }}
+                  current={pathname === '/settings'}
+                />
+                <SettingsGroup label="You" items={personal} pathname={pathname} />
+                {agency.length ? (
+                  <SettingsGroup label="Agency" items={agency} pathname={pathname} />
+                ) : null}
+                {account.length ? (
+                  <SettingsGroup label="ReDream" items={account} pathname={pathname} />
+                ) : null}
+              </nav>
             </div>
-
-            <nav className={styles.nav}>
-              <SettingsLink
-                item={{ href: '/settings', label: 'Overview', icon: <LayoutGrid size={16} /> }}
-                current={pathname === '/settings'}
-              />
-              <SettingsGroup label="You" items={personal} pathname={pathname} />
-              {agency.length ? (
-                <SettingsGroup label="Agency" items={agency} pathname={pathname} />
-              ) : null}
-              {account.length ? (
-                <SettingsGroup label="ReDream" items={account} pathname={pathname} />
-              ) : null}
-            </nav>
-          </aside>
+          </details>
 
           <section className={styles.content}>{children}</section>
         </div>

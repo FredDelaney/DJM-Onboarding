@@ -199,7 +199,7 @@ export default function AgencyMemoryDrawer({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Provenance-backed memory
+              Agency history
             </span>
 
             <button
@@ -219,8 +219,7 @@ export default function AgencyMemoryDrawer({
             What changed. What was decided. What ReDream has actually learned.
           </h2>
           <p className={styles.subhead}>
-            A traceable operating memory built from known information,
-            explicit actions and bounded learning.
+            Your agency’s recorded information, actions and outcomes.
           </p>
         </header>
 

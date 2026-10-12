@@ -664,7 +664,7 @@ try {
   const {context,page}=await setup();await visit(page,path);
   await page.getByRole('alert').filter({hasText:'could not open your workspace'}).waitFor({timeout:7000});
   assert.equal(await page.getByRole('button',{name:'Try again',exact:true}).isEnabled(),true);
-  assert.equal(await page.getByText('Your profile is being prepared.',{exact:true}).count(),0);
+  assert.equal(await page.getByText('Profile in progress',{exact:true}).count(),0);
   assert.equal(new URL(page.url()).searchParams.get('view'),path.slice(1));
   for(const width of [320,390,1440]){
    await page.setViewportSize({width,height:900});
@@ -688,7 +688,7 @@ try {
  for(const mode of ['signed-out','no-player']){
   const {context,page,state}=await setup(mode);await visit(page,'/home');
   if(mode==='signed-out'){await page.waitForURL('**/sign-in');assert.equal(state.playerCalls,0,'Player reads ran before sign-in');}
-  else {await page.getByRole('heading',{name:'Your profile is being prepared.',exact:true}).waitFor();assert.equal(await page.getByRole('alert').filter({hasText:'could not open your workspace'}).count(),0);}
+  else {await page.getByRole('heading',{name:'Profile in progress',exact:true}).waitFor();assert.equal(await page.getByRole('alert').filter({hasText:'could not open your workspace'}).count(),0);}
   await context.close();
  }
  const {context,page}=await setup('agency');await visit(page,'/home');await page.waitForURL('**/agency');await context.close();

@@ -123,7 +123,7 @@ test('Strategic club plays remain guarded internal preparations rather than exte
 
   assert.match(
     club,
-    /Nothing is sent externally without a person confirming it/,
+    /Nothing is sent without approval/,
   );
 
   assert.match(

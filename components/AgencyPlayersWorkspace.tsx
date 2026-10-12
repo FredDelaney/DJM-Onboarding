@@ -240,7 +240,7 @@ function PlayerDrawer({
         { label: 'Market activity', value: human(service?.market_coverage?.state || 'Not set') },
       ],
       successCondition: control?.success_condition || nextMove?.success_condition ||
-        'The player action is complete and the next step is current.',
+        'The next step is current.',
     });
   };
 
@@ -257,7 +257,7 @@ function PlayerDrawer({
         {busy ? (
           <div className={styles.drawerState}>
             <LoaderCircle size={20} className={styles.spin} />
-            <div><strong>Opening player</strong><span>Loading the latest player details.</span></div>
+            <div><strong>Opening player</strong><span>Loading details.</span></div>
           </div>
         ) : null}
 
@@ -406,7 +406,7 @@ function PlayerDrawer({
                     ))}
                     {!opportunities.length && !deals.length ? (
                       <Empty icon={Target} title="No active opportunities"
-                        copy="Player-club routes and live deals will appear here when they are created." />
+                        copy="Routes and deals will appear here." />
                     ) : null}
                   </div>
                 </section>
@@ -428,7 +428,7 @@ function PlayerDrawer({
                         label: 'Review career plan',
                         action: 'career_strategy_action_prepare',
                         payload: { player_id: playerId },
-                        successCondition: 'The player-owned career plan is current and usable for market decisions.',
+                        successCondition: 'The career plan is current.',
                       })
                     }><Target size={14} /> Review career plan</button>
                   ) : null}
@@ -457,8 +457,8 @@ function PlayerDrawer({
                         </article>
                       ))}
                       {!agreements.length ? (
-                        <Empty icon={ShieldCheck} title="No representation agreement"
-                          copy="This means no active agreement record is stored here. It is not a legal conclusion about representation authority." />
+                        <Empty icon={ShieldCheck} title="No agreement recorded"
+                          copy="No active agreement is recorded here." />
                       ) : null}
                     </div>
                   </section>
@@ -476,7 +476,7 @@ function PlayerDrawer({
                       </article>
                     ))}
                     {!activity.length ? <Empty icon={CalendarDays} title="No player activity yet"
-                      copy="Relevant agency events will appear here without exposing private event payloads." /> : null}
+                      copy="Agency activity will appear here." /> : null}
                   </div>
                 </section>
               ) : null}
@@ -494,7 +494,7 @@ function PlayerDrawer({
                       </article>
                     ))}
                     {!documents.length ? <Empty icon={FileText} title="No player files yet"
-                      copy="File metadata appears here. Private storage paths are not exposed in this workspace." /> : null}
+                      copy="Player files will appear here." /> : null}
                   </div>
                 </section>
               ) : null}
@@ -956,7 +956,7 @@ export default function AgencyPlayersWorkspace({
                     <span className={attention?styles.attentionPill:styles.calmPill}>{item.access?.restricted?'Assigned player':attention?'Needs action':'Current'}</span>
                   </div>
                 </div>
-                {item.access?.restricted ? <p className={styles.sectionCopy}>Assigned player. Operational and contract details are limited to agency administrators.</p> : <>
+                {item.access?.restricted ? <p className={styles.sectionCopy}>Assigned player. Contract details require admin access.</p> : <>
                 <div className={styles.mobilePlayerMeta}>
                   <span>
                     <CalendarDays size={12} />
@@ -1019,7 +1019,7 @@ export default function AgencyPlayersWorkspace({
                           {label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'No expiry set'},
                           {label:'Market activity',value:human(service?.market_coverage?.state||'Not set')},
                         ],
-                        successCondition:'The player action is complete and the next step is current.',
+                        successCondition:'The next step is current.',
                       });
                     }}><ArrowRight size={14}/>{service?.next_control_fix?.instruction?'Fix this':'Prepare next move'}</button>
                   </div>
@@ -1048,7 +1048,7 @@ export default function AgencyPlayersWorkspace({
               onChange={(event) => setStageFilter(event.target.value)}
             >
               <option value="all">All ({targets.length})</option>
-              {PIPELINE.map(([key, label]) => (
+              {PIPELINE.filter(([key]) => key === stageFilter || Number(stageCounts[key] || 0) > 0).map(([key, label]) => (
                 <option value={key} key={key}>
                   {label} ({stageCounts[key] || 0})
                 </option>
@@ -1058,7 +1058,7 @@ export default function AgencyPlayersWorkspace({
 
           <section className={styles.stageFilters}>
             <button type="button" className={stageFilter==='all'?styles.stageFilterActive:styles.stageFilter} onClick={()=>setStageFilter('all')}>All <span>{targets.length}</span></button>
-            {PIPELINE.map(([key,label])=>(
+            {PIPELINE.filter(([key]) => key === stageFilter || Number(stageCounts[key] || 0) > 0).map(([key,label])=>(
               <button type="button" key={key} className={stageFilter===key?styles.stageFilterActive:styles.stageFilter} onClick={()=>setStageFilter(key)}>
                 {label}<span>{stageCounts[key]||0}</span>
               </button>
@@ -1092,7 +1092,7 @@ export default function AgencyPlayersWorkspace({
                 /> : null}
               </div>
             ))}
-            {!filteredTargets.length?<Empty icon={Target} title="No recruitment targets here" copy="Add a target or change the stage filter to see the current recruitment pipeline."/>:null}
+            {!filteredTargets.length?<Empty icon={Target} title="No recruitment targets here" copy="Add a target or change the filter."/>:null}
           </section>
         </div>
       )}
