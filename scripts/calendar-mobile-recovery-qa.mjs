@@ -4,7 +4,8 @@ const require=createRequire(import.meta.url);
 const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright`:'playwright');
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
 try{
- const page=await browser.newPage({viewport:{width:390,height:844}});
+ const page=await browser.newPage({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
+ await page.clock.setFixedTime(new Date('2026-10-13T09:00:00Z'));
  const url=process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113/qa-calendar';
  for(let i=0;i<60;i++){try{await page.goto(url+'?stalled');break;}catch(e){if(i===59)throw e;await page.waitForTimeout(500);}}
  const today=page.getByRole('region',{name:'Today at a glance'});
