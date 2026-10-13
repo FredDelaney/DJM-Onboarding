@@ -58,7 +58,7 @@ test('Capture stays out of the workspace grid and mobile navigation fits all fiv
 
   assert.match(
     app,
-    /className=\{styles\.desktopHeadActions\}[\s\S]*<AiLauncher \/>/,
+    /className=\{styles\.desktopHeadActions\}[\s\S]*<AiLauncher\b/,
   );
   assert.match(
     app,

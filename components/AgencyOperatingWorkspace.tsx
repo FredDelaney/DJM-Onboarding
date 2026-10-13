@@ -4,7 +4,7 @@ import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
-import {workspaceIntelligenceHref,workspaceIntelligenceListHref} from '@/lib/workspace-record-navigation';
+import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery} from '@/lib/workspace-record-navigation';
 import PeopleViewSwitcher from './PeopleViewSwitcher';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
@@ -401,20 +401,21 @@ export default function AgencyOperatingWorkspace() {
   const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
     useState('');
   const previousViewRef = useRef<View>(view);
+  const recordRouteQuery = search.toString();
 
   useEffect(() => {
+    setIntelligenceRequest(current => workspaceIntelligenceRequestFromQuery(recordRouteQuery, current, ['owner','admin'].includes(String(workspace?.role || ''))));
     if (previousViewRef.current === view) return;
     previousViewRef.current = view;
 
     setActionRequest(null);
-    setIntelligenceRequest(null);
     setPursuitRequest(null);
     setClubAccountRequest(null);
     setNegotiationRequest(null);
     setPlayerServiceReviewRequest(null);
     setDealCloseoutRequest(null);
     setCreateKind(null);
-  }, [view]);
+  }, [view, recordRouteQuery, workspace?.role]);
 
   const workspaceName =
     workspace?.display_name ||
@@ -1500,7 +1501,7 @@ export default function AgencyOperatingWorkspace() {
             </div>
           </div>
           <div className={styles.desktopHeadActions}>
-            <AiLauncher />
+            <AiLauncher onCaptureCompleted={handleCaptureCompleted} />
             {createAction ? (
               <button
                 type="button"
@@ -2800,7 +2801,7 @@ function Home({
           </article>)}
           {!queue.length && allState === 'ready' && !assignedLoading && !assignedError ? <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
             copy={restricted ? "Your work is up to date." : "Check your players or capture a new update."}
-            action={<div className={styles.emptyStateActions}><AiLauncher/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
+            action={<div className={styles.emptyStateActions}><AiLauncher onCaptureCompleted={onRetry}/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
         </div>
       </section>
     </div>

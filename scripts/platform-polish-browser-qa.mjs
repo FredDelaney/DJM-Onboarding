@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {verifyDailyMobileNavigation,verifyInPlaceCaptureCompletion,verifyDealRecordCapture} from './daily-mobile-journey-qa.mjs';
+import {verifyDailyMobileNavigation,verifyInPlaceCaptureCompletion,verifyDealRecordCapture,verifyDealHistoryAndCrossView} from './daily-mobile-journey-qa.mjs';
 import {verifyCaptureFollowupJourney} from './capture-followup-journey-qa.mjs';
 import {spawn} from 'node:child_process';
 import {chromium} from 'playwright';
@@ -71,7 +71,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(body.action==='tenants')data={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-platform-polish',role:'owner',display_name:'Example Agency'}]};
     else if(body.action==='players_workspace')data={players:{items:[{player_id:'player',identity:{name:'Example Player',current_club:'Example FC',primary_position:'Centre back'},service:{}}],total:1,has_more:false}};
     else if(body.action==='home_focus')data={home:{attention:{confirm:state.approved&&!state.taskDone?[{command_id:'capture-follow-up',source_type:'task',source_id:taskId,title:'Follow up with Example FC',owner_name:'Jesse',priority_score:99,actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[],judgement:[{command_id:'example-follow-up',source_type:'task',source_id:'60000000-0000-4000-8000-000000000001',title:'Confirm the trial dates',why_now:'The club is waiting for availability.',recommended_action:'Agree a week with the sporting director.',owner_name:'Jesse',priority_score:90},{command_id:'example-player',source_type:'task',source_id:'60000000-0000-4000-8000-000000000002',title:'Review the club shortlist',why_now:'Your player has new options to consider.',recommended_action:'Choose the two strongest routes.',owner_name:'Dapo',priority_score:80}]}}};
-    else if(body.action==='club_account')data={club:{club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],deals:[]}};
+    else if(body.action==='club_account')data={club:{club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],commercial:{deals:[{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}}};
     else if(body.action==='deal_war_room')data={war_room:{available:true,deal:{id:body.deal_room_id,title:body.deal_room_id===dealB?'Example transfer B':'Example transfer A',stage:'open'},control:{},next_control_fix:{}}};
     else if(body.action==='action_prepare'&&state.approved)data={proposal:{proposal_id:'capture-follow-up-proposal',title:'Complete: Follow up with Example FC',status:'proposed',executable:true}};
     else if(body.action==='action_execute'&&state.approved){state.completions++;state.taskDone=true;data={ok:true};}
@@ -162,11 +162,11 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      return {reviewHeroContrast,careerStacked,overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),networkToolbarOverlap,primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
     });
     if(suite==='agency'&&screen==='home'&&width<=680)await verifyDailyMobileNavigation(page);
-    if(suite==='agency'&&screen==='home'&&width===390){
+    if(suite==='agency'&&screen==='home'&&[390,768,1440].includes(width)){
      state.approved=false;state.taskDone=false;state.approvals=0;state.completions=0;
-     await verifyInPlaceCaptureCompletion(page,url);
+     await verifyInPlaceCaptureCompletion(page,url,width===390);
     }
-    if(suite==='agency'&&screen==='opportunities'&&width===390)await verifyDealRecordCapture(page,url,dealA,dealB);
+    if(suite==='agency'&&screen==='opportunities'&&width===390){await verifyDealRecordCapture(page,url,dealA,dealB);await verifyDealHistoryAndCrossView(page,url,dealA,dealB);}
     report.push({suite,screen,width,...metrics});
     if(metrics.networkToolbarOverlap)failures.push('Network tabs overlap search at '+width);
     if(suite==='detail'&&screen==='review'&&(!metrics.reviewHeroContrast.length||metrics.reviewHeroContrast.some(item=>item.ratio<4.5)))failures.push('Service-review summary has unreadable contrast at '+width);

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-export async function verifyInPlaceCaptureCompletion(page, url) {
+export async function verifyInPlaceCaptureCompletion(page, url, mobile = true) {
   await page.goto(url);
   const nav = page.getByRole("navigation", {
     name: "Mobile workspace",
     exact: true,
   });
-  await nav.getByRole("link", { name: "Today", exact: true }).waitFor();
+  if (mobile) await nav.getByRole("link", { name: "Today", exact: true }).waitFor();
   await page.getByText("Confirm the trial dates", { exact: true }).waitFor();
   const complete = page.getByRole("button", {
     name: "Complete follow-up",
@@ -28,7 +28,8 @@ export async function verifyInPlaceCaptureCompletion(page, url) {
       ]),
     ),
   );
-  await nav.getByRole("button", { name: "Tell ReDream", exact: true }).click();
+  const trigger = mobile ? nav.getByRole("button", { name: "Tell ReDream", exact: true }) : page.locator('header').getByRole("button", { name: "Tell ReDream", exact: true });
+  await trigger.click();
   const capture = page.getByRole("dialog", {
     name: "Tell ReDream",
     exact: true,
@@ -296,7 +297,7 @@ export async function verifyDealRecordCapture(page, url, dealA, dealB) {
     name: "Mobile workspace",
     exact: true,
   });
-  for (const selected of ["", dealA]) {
+  for (const selected of [""]) {
     await page.goto(
       url + "&tab=deals" + (selected ? "&record=" + selected : ""),
     );
@@ -353,4 +354,39 @@ export async function verifyDealRecordCapture(page, url, dealA, dealB) {
       );
     }
   }
+}
+
+export async function verifyDealHistoryAndCrossView(page, url, dealA, dealB) {
+  await page.goto(url + '&tab=deals');
+  await page.locator('#opportunity-' + dealB).getByRole('button', { name: 'Open deal', exact: true }).click();
+  const heading = page.getByRole('heading', { name: 'Example transfer B', exact: true });
+  await heading.waitFor();
+  await page.goBack();
+  assert.equal(new URL(page.url()).searchParams.has('record'), false, 'Native Back returns to the deal list');
+  await heading.waitFor({ state: 'hidden', timeout: 3000 });
+  await page.goForward();
+  await heading.waitFor({ timeout: 3000 });
+  const nav = page.getByRole('navigation', { name: 'Mobile workspace', exact: true });
+  await nav.getByRole('button', { name: 'Tell ReDream', exact: true }).click();
+  const capture = page.getByRole('dialog', { name: 'Tell ReDream', exact: true });
+  await capture.waitFor();
+  const link = capture.getByRole('link', { name: 'Open full screen', exact: true });
+  assert.equal(new URL(await link.getAttribute('href'), 'https://example.test').searchParams.get('opportunity_id'), dealB, 'Forward restores the displayed deal and its capture identity');
+  await page.keyboard.press('Escape');
+  await capture.waitFor({ state: 'hidden' });
+  await page.goto(url + '&tab=deals&record=' + dealA);
+  await page.getByRole('heading', { name: 'Example transfer A', exact: true }).waitFor({ timeout: 3000 });
+  const network = new URL(url);
+  network.searchParams.set('view', 'network');
+  network.searchParams.set('network', 'clubs');
+  network.searchParams.delete('record');
+  network.searchParams.delete('tab');
+  await page.goto(network.href);
+  await page.getByRole('button', { name: 'Open Example FC', exact: true }).first().click();
+  const club = page.getByRole('region', { name: 'Club details for Example FC', exact: true });
+  await club.waitFor();
+  await club.getByRole('button', { name: 'Open deal', exact: true }).click();
+  await heading.waitFor({ timeout: 3000 });
+  assert.equal(new URL(page.url()).searchParams.get('view'), 'opportunities', 'Cross-section opening keeps the requested deal visible');
+  assert.equal(new URL(page.url()).searchParams.get('record'), dealB);
 }

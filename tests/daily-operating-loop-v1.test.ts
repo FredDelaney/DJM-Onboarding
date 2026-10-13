@@ -13,7 +13,7 @@ const css = fs.readFileSync(
 
 test('quiet Home turns spare attention into useful agency work', () => {
   assert.match(workspace, /Check your players or capture a new update/);
-  assert.match(workspace, /<AiLauncher \/>/);
+  assert.match(workspace, /<AiLauncher\b/);
   assert.match(workspace, /Check players/);
   assert.match(workspace, /emptyStateActions/);
 });

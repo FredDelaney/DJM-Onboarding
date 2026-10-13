@@ -1,5 +1,16 @@
 import { UUID_PATTERN } from "./entity-context.ts";
 type RecordRequest = { kind: "player" | "deal"; entityId: string };
+type IntelligenceRequest = RecordRequest & { key: string; title: string; context?: string | null };
+export function workspaceIntelligenceRequestFromQuery(query: string, current: IntelligenceRequest | null, canSeeDeals: boolean): IntelligenceRequest | null {
+  const params = new URLSearchParams(query);
+  const view = params.get('view');
+  const dealId = params.get('record') || '';
+  if (canSeeDeals && ['opportunities','market','deals'].includes(view || '') && params.get('tab') === 'deals' && UUID_PATTERN.test(dealId)) {
+    return current?.kind === 'deal' && current.entityId === dealId ? current : { key: 'deal-war-room:' + dealId, kind: 'deal', entityId: dealId, title: 'Deal details', context: null };
+  }
+  if (current?.kind === 'player' && view === 'players' && params.get('player') === current.entityId) return current;
+  return null;
+}
 const recordKeys = [
   "player",
   "profile",

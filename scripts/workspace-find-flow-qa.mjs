@@ -10,11 +10,18 @@ page.on('pageerror',error=>errors.push(error.message));
 try{
  const visit=async(query='')=>{
   for(let i=0;i<50;i++){try{await page.goto(root+query);break;}catch(error){if(i===49)throw error;await page.waitForTimeout(500);}}
-  await page.getByRole('button',{name:'Find in this agency',exact:true}).waitFor();
+  await find().waitFor();
   await page.locator('[data-qa-ready="true"]').waitFor();
   await page.addStyleTag({content:'nextjs-portal { display: none !important; }'});
  };
  const find=()=>page.getByRole('button',{name:'Find in this agency',exact:true});
+ const contacts=async()=>page.viewportSize().width<=680?page.getByRole('navigation',{name:'People categories',exact:true}).getByRole('link',{name:'Contacts',exact:true}).click():page.getByRole('button',{name:/^People/}).click();
+ const navigate=async (view, category='Clubs')=>{
+  if(page.viewportSize().width>680)return page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:view==='home'?'Home':view==='network'?'Network':'Players',exact:true}).click();
+  const nav=page.getByRole('navigation',{name:'Mobile workspace',exact:true});
+  await nav.getByRole('link',{name:view==='home'?'Today':'People',exact:true}).click();
+  if(view==='network')await page.getByRole('navigation',{name:'People categories',exact:true}).getByRole('link',{name:category,exact:true}).click();
+ };
  const open=async()=>{await find().click();const dialog=page.getByRole('dialog',{name:'Find in this agency',exact:true});await dialog.waitFor();return dialog;};
  const box=dialog=>dialog.getByRole('combobox');
  const choose=async(text)=>{const dialog=await open();await box(dialog).fill(text);return dialog;};
@@ -53,7 +60,7 @@ try{
  await page.keyboard.press('Enter');await page.locator('#opportunity-qa-need[data-search-match="true"]').waitFor();
  await page.waitForFunction(()=>document.activeElement?.id==='opportunity-qa-need');
  assert.equal(new URL(page.url()).searchParams.get('record'),'qa-need');
- await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Players',exact:true}).click();
+ await navigate('players');
  dialog=await choose('Add player');await page.keyboard.press('Enter');await page.getByRole('status').getByText('Create player',{exact:true}).waitFor();
  await page.locator('[data-qa-dialog]').click();await page.keyboard.press('Control+k');
  assert.equal(await page.getByRole('dialog',{name:'Find in this agency',exact:true}).count(),0,'Search opened over another dialog');
@@ -69,10 +76,10 @@ try{
  await page.getByRole('textbox',{name:'Search players',exact:true}).waitFor();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search players"]')?.value==='Example');
  await page.waitForFunction(top=>Math.abs(window.scrollY-top)<5,before);
- await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Network',exact:true}).click();
- await page.getByRole('button',{name:/^People/}).click();await page.getByRole('textbox',{name:'Search Network'}).fill('Director');
- await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Home',exact:true}).click();
- await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Network',exact:true}).click();
+ await navigate('network');
+ await contacts();await page.getByRole('textbox',{name:'Search Network'}).fill('Director');
+ await navigate('home');
+ await navigate('network','Contacts');
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
  await page.getByRole('heading',{name:'Dapo Director',exact:true}).waitFor();
  assert.equal(await page.getByRole('heading',{name:'Example FC',exact:true}).count(),0,'Returning to Network must preserve the People view');
@@ -178,7 +185,7 @@ try{
   assert.equal(await page.getByText('LIVE OPPORTUNITIES',{exact:true}).count(),0);
   assert.equal(await page.getByText('BEST ROUTE',{exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:/^Manage /}).count(),0);
-  await page.getByRole('button',{name:/^People/}).click();
+  await contacts();
   await page.getByRole('heading',{name:'Shared Staff Contact',exact:true}).waitFor();
   assert.equal(await page.getByText('RELATIONSHIP OWNER',{exact:true}).count(),0);
   await coordinatorView('home');await page.getByRole('heading',{name:'Your day',exact:true}).waitFor();
