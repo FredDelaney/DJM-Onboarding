@@ -7,6 +7,10 @@ import test from 'node:test';
 const shared = Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/football-data/player-data-workflow.ts','utf8'))).toString('base64');
 const staffShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/staff-read-contract.ts','utf8'))).toString('base64');
 const source = readFileSync('supabase/functions/agency-os/index.ts','utf8')
+ .replace(/^import .*player-profile-preparation\.ts";$/m,'const preparePlayerProfileEvidence = () => { throw new Error("outside this test"); }; const reviewPlayerProfileEvidence = preparePlayerProfileEvidence;')
+ .replace(/^import .*player-profile-ai\.ts";$/m,'const selectPlayerProfilePresentation = () => { throw new Error("outside this test"); };')
+ .replace(/^import .*player-profile-text-improvement\.ts";$/m,'const suggestPlayerProfileTextImprovement = () => { throw new Error("outside this test"); };')
+ .replace(/^import .*ai-router\.ts";$/m,'const selectAiRoute = () => { throw new Error("outside this test"); };')
  .replace('"../_shared/staff-read-contract.ts"','"data:text/javascript;base64,'+staffShared+'"')
   .replace('"../_shared/football-data/player-data-workflow.ts"', '"data:text/javascript;base64,'+shared+'"')
   .replace('import "jsr:@supabase/functions-js/edge-runtime.d.ts";', '')

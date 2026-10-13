@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Send,
   ShieldCheck,
+  Sparkles,
   Trash2,
   X,
 } from 'lucide-react';
@@ -78,11 +79,51 @@ type ProfileForm = {
   why_review: string;
   career_summary: string;
   key_stats_text: string;
+  selected_stat_refs: string[];
+  selected_video_id: string | null;
   experience_text: string;
   hide_market_value: boolean;
   market_value_display: string;
   market_value_source_url: string;
   hidden_sections: string[];
+};
+
+type ProfileKind = 'general' | 'club';
+type ImprovementStyle = 'shorter' | 'clearer' | 'football_focused' | 'more_direct' | 'tailor_to_club';
+type ProfileStat = {
+  ref: string;
+  label: string;
+  value: string | number;
+  seasonLabel?: string | null;
+  competition?: string | null;
+  source?: { name?: string | null; status?: string | null } | null;
+};
+type ProfileVideo = { id: string; title: string; url: string };
+type ProfileProposal = {
+  kind: ProfileKind;
+  headline: string;
+  why_review: string;
+  selected_stat_refs: string[];
+  selected_video_id: string | null;
+  hidden_sections: string[];
+  source_fingerprint: string;
+  club_name?: string | null;
+  club_requirement?: { title?: string | null; position?: string | null } | null;
+};
+type ProfileVersion = {
+  id: string;
+  organisation_id: string;
+  deal_room_id?: string | null;
+  club_name?: string | null;
+  headline?: string | null;
+  created_at?: string | null;
+  status?: string | null;
+  presentation?: Record<string, any> | null;
+  new_player_data_available?: boolean;
+};
+type ProfileReview = {
+  status: 'ready' | 'suggestions';
+  suggestions: { code: string; message: string }[];
 };
 
 type ProfileCheckAction =
@@ -151,6 +192,8 @@ const emptyForm: ProfileForm = {
   why_review: '',
   career_summary: '',
   key_stats_text: '',
+  selected_stat_refs: [],
+  selected_video_id: null,
   experience_text: '',
   hide_market_value: true,
   market_value_display: '',
@@ -246,6 +289,10 @@ const formFromProfile = (profile: any): ProfileForm => {
           .map((item: any) => `${item.label}: ${item.value}`)
           .join('\n')
       : '',
+    selected_stat_refs: Array.isArray(settings.selected_stat_refs)
+      ? settings.selected_stat_refs.filter((value: unknown) => typeof value === 'string')
+      : [],
+    selected_video_id: text(settings.selected_video_id) || null,
     experience_text: Array.isArray(settings.notable_experience)
       ? settings.notable_experience
           .map((item: any) =>
@@ -278,14 +325,44 @@ const makeDraftProfile = (
     : [];
   const published = bundle?.published || {};
   const customStats = parseKeyStats(form.key_stats_text);
-  const keyStats = customStats.length
-    ? customStats
-    : Array.isArray(bundle?.auto_key_stats)
-      ? bundle.auto_key_stats
-      : [];
-  const selectedVideos = videos.filter((item: any) => item.featured).length
-    ? videos.filter((item: any) => item.featured).slice(0, 4)
-    : videos.slice(0, 4);
+  const statLabels: Record<string, string> = {
+    appearances: 'Apps',
+    starts: 'Starts',
+    minutes: 'Minutes',
+    goals: 'Goals',
+    assists: 'Assists',
+  };
+  const selectedStats = form.selected_stat_refs.map((ref) => {
+    const separator = ref.lastIndexOf(':');
+    if (separator < 1) return null;
+    const row = career.find((item: any) => String(item.id) === ref.slice(0, separator));
+    const field = ref.slice(separator + 1);
+    if (!row || !Object.hasOwn(statLabels, field)) return null;
+    const value = row[field];
+    if (value === null || value === undefined || value === '') return null;
+    return {
+      label: statLabels[field],
+      value: String(value),
+      season_label: row.season_label || null,
+      source_name: row.source_name || row.source_provider || null,
+    };
+  }).filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const keyStats = form.selected_stat_refs.length
+    ? selectedStats
+    : customStats.length
+      ? customStats
+      : Array.isArray(bundle?.auto_key_stats)
+        ? bundle.auto_key_stats
+        : [];
+  const featuredVideo = videos.find(
+    (item: any) => String(item.id) === form.selected_video_id,
+  );
+  const orderedVideos = featuredVideo
+    ? [featuredVideo, ...videos.filter((item: any) => item.id !== featuredVideo.id)]
+    : videos.filter((item: any) => item.featured).length
+      ? [...videos.filter((item: any) => item.featured), ...videos.filter((item: any) => !item.featured)]
+      : videos;
+  const selectedVideos = orderedVideos.slice(0, 4);
   const name =
     [player.first_name, player.last_name]
       .filter(Boolean)
@@ -423,6 +500,30 @@ export default function AgencyPlayerProfile({
   const [shareExpiry, setShareExpiry] = useState('30');
   const [shareResultUrl, setShareResultUrl] = useState('');
   const [shareResultMessage, setShareResultMessage] = useState('');
+  const [shareVersionId, setShareVersionId] = useState('');
+  const [versions, setVersions] = useState<ProfileVersion[]>([]);
+  const [versionsBusy, setVersionsBusy] = useState(false);
+  const [prepareOpen, setPrepareOpen] = useState(false);
+  const [prepareKind, setPrepareKind] = useState<ProfileKind>('general');
+  const [prepareClub, setPrepareClub] = useState('');
+  const [prepareDeal, setPrepareDeal] = useState('');
+  const [proposal, setProposal] = useState<ProfileProposal | null>(null);
+  const [evidenceStats, setEvidenceStats] = useState<ProfileStat[]>([]);
+  const [evidenceVideos, setEvidenceVideos] = useState<ProfileVideo[]>([]);
+  const [preparedVersionId, setPreparedVersionId] = useState('');
+  const [preparedSaved, setPreparedSaved] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [profileReview, setProfileReview] = useState<ProfileReview | null>(null);
+  const [improveSection, setImproveSection] = useState<'headline' | 'why_review' | null>(null);
+  const [improveStyle, setImproveStyle] = useState<ImprovementStyle>('clearer');
+  const [improvement, setImprovement] = useState<{
+    section: 'headline' | 'why_review';
+    originalText: string;
+    suggestedText: string;
+    status: 'suggested' | 'unchanged';
+  } | null>(null);
+  const [previewProfile, setPreviewProfile] = useState<any>(null);
+  const [previewLabel, setPreviewLabel] = useState('PLAYER PROFILE PREVIEW');
   const [transfermarktOpen, setTransfermarktOpen] = useState(false);
   const [transfermarktUrl, setTransfermarktUrl] = useState('');
   const [transfermarktError, setTransfermarktError] = useState('');
@@ -570,6 +671,37 @@ export default function AgencyPlayerProfile({
   const draftProfile = useMemo(
     () => makeDraftProfile(bundle, form),
     [bundle, form],
+  );
+  const proposalPreview = useMemo(() => {
+    if (!proposal) return null;
+    const chosenVideo = evidenceVideos.find(
+      (video) => video.id === proposal.selected_video_id,
+    );
+    return {
+      ...draftProfile,
+      headline: proposal.headline,
+      why_review: proposal.why_review || null,
+      key_stats: proposal.selected_stat_refs
+        .map((ref) => evidenceStats.find((stat) => stat.ref === ref))
+        .filter((stat): stat is ProfileStat => Boolean(stat))
+        .map((stat) => ({
+          label: stat.label,
+          value: String(stat.value),
+          season_label: stat.seasonLabel || null,
+          source_name: stat.source?.name || null,
+        })),
+      primary_video_url: chosenVideo?.url || draftProfile.primary_video_url || null,
+      selected_videos: chosenVideo
+        ? [{ title: chosenVideo.title, url: chosenVideo.url }]
+        : draftProfile.selected_videos,
+      hidden_sections: proposal.hidden_sections,
+    };
+  }, [draftProfile, evidenceStats, evidenceVideos, proposal]);
+  const shareableVersions = versions.filter(
+    (version) =>
+      version.status === 'approved' &&
+      version.organisation_id === shareClub &&
+      (!version.deal_room_id || version.deal_room_id === shareDeal),
   );
 
   const recordedStats = Array.isArray(bundle?.auto_key_stats) ? bundle.auto_key_stats : [];
@@ -744,7 +876,7 @@ export default function AgencyPlayerProfile({
     try {
       await invoke('player_profile_save', {
         player_id: playerId,
-        settings: { ...(bundle?.settings || {}), key_stats: [] },
+        settings: { ...(bundle?.settings || {}), key_stats: [], selected_stat_refs: [] },
       });
       if (!(await load(true))) {
         throw new Error('Statistics updated, but the profile could not reload. Try again.');
@@ -755,21 +887,27 @@ export default function AgencyPlayerProfile({
     }
   };
 
-  const saveSettings = async (showNotice = true) => {
+  const saveSettings = async (
+    showNotice = true,
+    overrides: Partial<ProfileForm> = {},
+  ) => {
     if (!canEdit || actionBusy) return false;
+    const nextForm = { ...form, ...overrides };
     setActionBusy('save');
     setError('');
     if (showNotice) setNotice('');
     const savedSettings = {
-      intro_line: form.intro_line,
-      why_review: form.why_review,
-      career_summary: form.career_summary,
-      key_stats: parseKeyStats(form.key_stats_text),
-      notable_experience: parseLines(form.experience_text),
-      hide_market_value: form.hide_market_value,
-      market_value_display: form.market_value_display,
-      market_value_source_url: form.market_value_source_url,
-      hidden_sections: form.hidden_sections,
+      intro_line: nextForm.intro_line,
+      why_review: nextForm.why_review,
+      career_summary: nextForm.career_summary,
+      key_stats: parseKeyStats(nextForm.key_stats_text),
+      selected_stat_refs: nextForm.selected_stat_refs,
+      selected_video_id: nextForm.selected_video_id,
+      notable_experience: parseLines(nextForm.experience_text),
+      hide_market_value: nextForm.hide_market_value,
+      market_value_display: nextForm.market_value_display,
+      market_value_source_url: nextForm.market_value_source_url,
+      hidden_sections: nextForm.hidden_sections,
     };
     try {
       await invoke('player_profile_save', {
@@ -784,6 +922,251 @@ export default function AgencyPlayerProfile({
     } catch (saveError) {
       setError(friendlyError(saveError));
       return false;
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const loadVersions = async () => {
+    setVersionsBusy(true);
+    try {
+      const response = await invoke<any>('player_profile_versions', {
+        player_id: playerId,
+      });
+      const next = Array.isArray(response?.versions) ? response.versions : [];
+      setVersions(next);
+      setShareVersionId((current) => current && !next.some(
+        (version: ProfileVersion) => version.id === current && version.status === 'approved',
+      ) ? '' : current);
+      return next as ProfileVersion[];
+    } finally {
+      setVersionsBusy(false);
+    }
+  };
+
+  const openProfilePreview = (profile: any, label = 'PLAYER PROFILE PREVIEW') => {
+    setPreviewProfile(profile);
+    setPreviewLabel(label);
+    setPreviewOpen(true);
+  };
+
+  const openPrepare = () => {
+    if (!canEdit) return;
+    if (prepareOpen) {
+      document.getElementById('player-profile-prepare')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      return;
+    }
+    setPrepareOpen(true);
+    if (shareNetworkClubs.length || shareClubsBusy) return;
+    setShareClubsBusy(true);
+    void invoke<any>('create_options')
+      .then((response) => {
+        setShareNetworkClubs(Array.isArray(response?.options?.clubs)
+          ? response.options.clubs
+          : []);
+      })
+      .catch(() => undefined)
+      .finally(() => setShareClubsBusy(false));
+  };
+
+  const editProposal = (patch: Partial<ProfileProposal>) => {
+    setProposal((current) => current ? { ...current, ...patch } : current);
+    setPreparedSaved(false);
+    setPreparedVersionId('');
+    setProfileReview(null);
+    setImprovement(null);
+  };
+
+  const prepareProfile = async () => {
+    if (!canEdit || actionBusy || (prepareKind === 'club' && !prepareClub)) return;
+    setActionBusy('prepare');
+    setError('');
+    setProfileReview(null);
+    try {
+      const response = await invoke<any>('player_profile_prepare', {
+        player_id: playerId,
+        kind: prepareKind,
+        ...(prepareKind === 'club'
+          ? { organisation_id: prepareClub, deal_room_id: prepareDeal || null }
+          : {}),
+      });
+      const incoming = response?.proposal;
+      if (!incoming || !text(incoming.source_fingerprint)) {
+        throw new Error('The profile could not be prepared. Try again.');
+      }
+      const stats: ProfileStat[] = Array.isArray(response?.evidence?.stats)
+        ? response.evidence.stats.filter((item: ProfileStat) => item?.ref && item?.label)
+        : [];
+      const videos: ProfileVideo[] = Array.isArray(response?.evidence?.videos)
+        ? response.evidence.videos.filter((item: ProfileVideo) => item?.id && item?.url)
+        : [];
+      const availableRefs = new Set(stats.map((item) => item.ref));
+      const selectedRefs = Array.isArray(incoming.selected_stat_refs)
+        ? incoming.selected_stat_refs.filter((ref: unknown) =>
+            typeof ref === 'string' && availableRefs.has(ref))
+        : [];
+      const videoId = text(incoming.selected_video_id);
+      setEvidenceStats(stats);
+      setEvidenceVideos(videos);
+      setAiAvailable(response?.ai_available === true);
+      setImproveSection(null);
+      setProposal({
+        kind: prepareKind,
+        headline: text(incoming.headline),
+        why_review: text(incoming.why_review),
+        selected_stat_refs: selectedRefs.slice(0, 6),
+        selected_video_id: videos.some((video) => video.id === videoId)
+          ? videoId
+          : null,
+        hidden_sections: Array.isArray(incoming.hidden_sections)
+          ? incoming.hidden_sections.filter((value: unknown) => typeof value === 'string')
+          : form.hidden_sections,
+        source_fingerprint: text(incoming.source_fingerprint),
+        club_name: text(incoming.club_name) || null,
+        club_requirement: incoming.club_requirement && typeof incoming.club_requirement === 'object'
+          ? {
+              title: text(incoming.club_requirement.title) || null,
+              position: text(incoming.club_requirement.position) || null,
+            }
+          : null,
+      });
+      setPreparedSaved(false);
+      setPreparedVersionId('');
+      setImprovement(null);
+    } catch (prepareError) {
+      setError(friendlyError(prepareError));
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const improveProfileText = async () => {
+    if (!proposal || !improveSection || actionBusy) return;
+    const originalText = proposal[improveSection];
+    if (!text(originalText)) {
+      setError('Add some text before asking for an improvement.');
+      return;
+    }
+    setActionBusy('improve');
+    setError('');
+    setImprovement(null);
+    try {
+      const response = await invoke<any>('player_profile_improve', {
+        player_id: playerId,
+        section: improveSection,
+        style: improveStyle,
+        text: originalText,
+        ...(proposal.kind === 'club' ? {
+          organisation_id: prepareClub,
+          deal_room_id: prepareDeal || null,
+        } : {}),
+      });
+      const result = response?.improvement;
+      if (!result || !['suggested', 'unchanged'].includes(result.status)) {
+        throw new Error('No text improvement was available. Try again.');
+      }
+      setImprovement({
+        section: improveSection,
+        originalText,
+        suggestedText: text(result.suggestedText),
+        status: result.status,
+      });
+    } catch (improveError) {
+      setError(friendlyError(improveError));
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const reviewProfile = async () => {
+    if (actionBusy) return;
+    setActionBusy('review');
+    setError('');
+    try {
+      const response = await invoke<any>('player_profile_review', {
+        player_id: playerId,
+        kind: proposal?.kind || 'general',
+        ...(proposal?.kind === 'club' ? {
+          organisation_id: prepareClub,
+          deal_room_id: prepareDeal || null,
+        } : {}),
+        ...(proposal ? {
+          proposal: {
+            headline: proposal.headline,
+            why_review: proposal.why_review,
+            selected_stat_refs: proposal.selected_stat_refs,
+            selected_video_id: proposal.selected_video_id,
+            source_fingerprint: proposal.source_fingerprint,
+          },
+        } : {}),
+        ...(preparedVersionId ? { version_id: preparedVersionId } : {}),
+      });
+      const incoming = response?.review;
+      if (incoming?.status !== 'ready' && incoming?.status !== 'suggestions') {
+        throw new Error('The profile review could not be completed. Try again.');
+      }
+      setProfileReview({
+        status: incoming?.status === 'suggestions' ? 'suggestions' : 'ready',
+        suggestions: Array.isArray(incoming?.suggestions)
+          ? incoming.suggestions.filter((item: any) => text(item?.message)).slice(0, 8)
+          : [],
+      });
+    } catch (reviewError) {
+      setError(friendlyError(reviewError));
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const savePreparedProfile = async () => {
+    if (!proposal || !canEdit || actionBusy) return;
+    if (proposal.kind === 'general') {
+      const saved = await saveSettings(false, {
+        intro_line: proposal.headline,
+        why_review: proposal.why_review,
+        key_stats_text: '',
+        selected_stat_refs: proposal.selected_stat_refs,
+        selected_video_id: proposal.selected_video_id,
+        hidden_sections: proposal.hidden_sections,
+      });
+      if (!saved) return;
+      setPreparedSaved(true);
+      setNotice('General profile saved. Publish to update the live profile.');
+      await load(true);
+      return;
+    }
+    if (!prepareClub) return;
+    if (!published?.published) {
+      setError('Publish the general Player Profile before saving a club version.');
+      return;
+    }
+    setActionBusy('version-save');
+    setError('');
+    try {
+      const response = await invoke<any>('player_profile_version_save', {
+        player_id: playerId,
+        organisation_id: prepareClub,
+        deal_room_id: prepareDeal || null,
+        presentation: {
+          headline: proposal.headline,
+          why_review: proposal.why_review,
+          selected_stat_refs: proposal.selected_stat_refs,
+          selected_video_id: proposal.selected_video_id,
+          hidden_sections: proposal.hidden_sections,
+        },
+        source_fingerprint: proposal.source_fingerprint,
+      });
+      const versionId = text(response?.version?.id);
+      if (!versionId) throw new Error('The club profile was not saved. Try again.');
+      setPreparedVersionId(versionId);
+      setPreparedSaved(true);
+      setNotice('Club profile saved. Review it, then create a private share link.');
+      void loadVersions().catch(() => undefined);
+    } catch (saveError) {
+      setError(friendlyError(saveError));
     } finally {
       setActionBusy('');
     }
@@ -901,6 +1284,14 @@ export default function AgencyPlayerProfile({
       setError('Choose a club first.');
       return;
     }
+    if (shareVersionId && !versions.some((version) =>
+      version.id === shareVersionId &&
+      version.status === 'approved' &&
+      version.organisation_id === organisationId &&
+      (!version.deal_room_id || version.deal_room_id === shareDeal))) {
+      setError('Choose a saved club profile for this club.');
+      return;
+    }
     setActionBusy('share');
     setError('');
     setNotice('');
@@ -911,6 +1302,7 @@ export default function AgencyPlayerProfile({
           player_id: playerId,
           organisation_id: organisationId,
           deal_room_id: shareDeal || null,
+          profile_version_id: shareVersionId || null,
           pitch_message: shareMessage || null,
           expires_days: Number(shareExpiry) || 30,
         },
@@ -1094,9 +1486,14 @@ export default function AgencyPlayerProfile({
     setShareResultMessage('');
     setShareMessage('');
     setShareExpiry('30');
-    setShareDeal('');
-    setShareClub('');
+    const preparedClub = preparedSaved && proposal?.kind === 'club'
+      ? prepareClub
+      : '';
+    setShareDeal(preparedClub ? prepareDeal : '');
+    setShareClub(preparedClub);
+    setShareVersionId(preparedClub ? preparedVersionId : '');
     setShareOpen(true);
+    void loadVersions().catch(() => setVersions([]));
     setShareClubsBusy(true);
 
     void invoke<any>('create_options')
@@ -1554,6 +1951,19 @@ export default function AgencyPlayerProfile({
             </button>
           ) : null}
 
+          {canEdit ? (
+            <button
+              type="button"
+              data-ui-button="secondary"
+              className={styles.secondaryAction}
+              onClick={openPrepare}
+              disabled={Boolean(actionBusy)}
+            >
+              <Sparkles size={15} />
+              Prepare Profile
+            </button>
+          ) : null}
+
           {canEdit && !player.transfermarkt_url ? (
             <button
               type="button"
@@ -1630,6 +2040,310 @@ export default function AgencyPlayerProfile({
         </div>
       </section>
 
+      {prepareOpen && canEdit ? (
+        <section id="player-profile-prepare" className={styles.preparePanel} aria-label="Prepare Player Profile">
+          <header className={styles.prepareHead}>
+            <div>
+              <span className={styles.eyebrow}>PREPARE PROFILE</span>
+              <h3>{proposal ? (proposal.kind === 'club' ? `For ${proposal.club_name || 'a club'}` : 'General profile') : 'Choose the presentation'}</h3>
+            </div>
+            <button
+              type="button"
+              data-ui-button="icon"
+              className={styles.iconButton}
+              aria-label="Close profile preparation"
+              onClick={() => setPrepareOpen(false)}
+            >
+              <X size={17} />
+            </button>
+          </header>
+
+          {!proposal ? (
+            <div className={styles.prepareBody}>
+              <div className={styles.prepareModes}>
+                <button
+                  type="button"
+                  aria-pressed={prepareKind === 'general'}
+                  onClick={() => setPrepareKind('general')}
+                  disabled={Boolean(actionBusy)}
+                >
+                  <strong>General</strong>
+                  <span>The strongest overall view of this player.</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={prepareKind === 'club'}
+                  onClick={() => setPrepareKind('club')}
+                  disabled={Boolean(actionBusy)}
+                >
+                  <strong>For a Club</strong>
+                  <span>Focus on a club you already know.</span>
+                </button>
+              </div>
+              {prepareKind === 'club' ? (
+                <div className={styles.prepareTargets}>
+                  <label>
+                    <span>Club</span>
+                    <select
+                      value={prepareClub}
+                      disabled={Boolean(actionBusy)}
+                      onChange={(event) => {
+                        setPrepareClub(event.target.value);
+                        setPrepareDeal('');
+                      }}
+                    >
+                      <option value="">{shareClubsBusy ? 'Loading clubs...' : 'Choose club'}</option>
+                      {shareClubOptions.map((club: any) => (
+                        <option key={club.id} value={club.id}>{club.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Existing opportunity (optional)</span>
+                    <select
+                      value={prepareDeal}
+                      disabled={Boolean(actionBusy)}
+                      onChange={(event) => {
+                        const dealId = event.target.value;
+                        setPrepareDeal(dealId);
+                        const deal = deals.find((item: any) => String(item.id) === dealId);
+                        if (deal?.organisation_id) setPrepareClub(String(deal.organisation_id));
+                      }}
+                    >
+                      <option value="">No opportunity selected</option>
+                      {deals
+                        .filter((deal: any) => !prepareClub || String(deal.organisation_id) === prepareClub)
+                        .map((deal: any) => (
+                          <option key={deal.id} value={deal.id}>
+                            {deal.club_name || 'Club'} · {deal.title || human(deal.stage)}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                </div>
+              ) : null}
+              <div className={styles.prepareFooter}>
+                <button
+                  type="button"
+                  data-ui-button="primary"
+                  className={styles.primaryAction}
+                  onClick={() => void prepareProfile()}
+                  disabled={Boolean(actionBusy) || (prepareKind === 'club' && !prepareClub)}
+                >
+                  {actionBusy === 'prepare' ? <LoaderCircle className={styles.spin} size={15} /> : <Sparkles size={15} />}
+                  Prepare {prepareKind === 'club' ? 'for club' : 'general profile'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.prepareBody}>
+              <p className={styles.prepareIntro}>
+                Prepared from recorded player evidence. Edit the presentation before saving; player facts stay on the player record.
+              </p>
+              {proposal.kind === 'club' && (proposal.club_requirement?.title || proposal.club_requirement?.position) ? (
+                <p className={styles.prepareKnownNeed}>
+                  Known need: {proposal.club_requirement.title || proposal.club_requirement.position}
+                </p>
+              ) : null}
+              <div className={styles.prepareFields}>
+                <label>
+                  <span className={styles.prepareFieldLabel}>
+                    Headline
+                    {aiAvailable ? <button type="button" onClick={() => {
+                      setImproveSection('headline');
+                      setImproveStyle('clearer');
+                      setImprovement(null);
+                    }}><Sparkles size={13} /> Improve</button> : null}
+                  </span>
+                  <input
+                    value={proposal.headline}
+                    onChange={(event) => editProposal({ headline: event.target.value })}
+                    maxLength={220}
+                  />
+                </label>
+                <label>
+                  <span className={styles.prepareFieldLabel}>
+                    Why this player?
+                    {aiAvailable ? <button type="button" onClick={() => {
+                      setImproveSection('why_review');
+                      setImproveStyle(proposal.kind === 'club' ? 'tailor_to_club' : 'more_direct');
+                      setImprovement(null);
+                    }}><Sparkles size={13} /> Improve</button> : null}
+                  </span>
+                  <textarea
+                    rows={3}
+                    value={proposal.why_review}
+                    onChange={(event) => editProposal({ why_review: event.target.value })}
+                    maxLength={1200}
+                  />
+                </label>
+              </div>
+              {aiAvailable && improveSection ? (
+                <div className={styles.improvePanel}>
+                  <div className={styles.improveHead}>
+                    <strong>Improve {improveSection === 'headline' ? 'headline' : 'introduction'}</strong>
+                    <button type="button" aria-label="Close text improvement" onClick={() => {
+                      setImproveSection(null);
+                      setImprovement(null);
+                    }}><X size={15} /></button>
+                  </div>
+                  <div className={styles.improveActions}>
+                    <select value={improveStyle} onChange={(event) => setImproveStyle(event.target.value as ImprovementStyle)}>
+                      <option value="shorter">Shorter</option>
+                      <option value="clearer">Clearer</option>
+                      <option value="football_focused">More football-focused</option>
+                      <option value="more_direct">More direct</option>
+                      {proposal.kind === 'club' ? <option value="tailor_to_club">Tailor to club</option> : null}
+                    </select>
+                    <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => void improveProfileText()} disabled={Boolean(actionBusy)}>
+                      {actionBusy === 'improve' ? <LoaderCircle className={styles.spin} size={14} /> : <Sparkles size={14} />}
+                      Suggest wording
+                    </button>
+                  </div>
+                  {improvement ? (
+                    improvement.status === 'suggested' && improvement.suggestedText && improvement.suggestedText !== improvement.originalText ? (
+                      <div className={styles.improveSuggestion}>
+                        <span>Suggested wording</span>
+                        <p>{improvement.suggestedText}</p>
+                        <div>
+                          <button type="button" data-ui-button="primary" className={styles.primaryAction} onClick={() => {
+                            if (proposal[improvement.section] !== improvement.originalText) {
+                              setImprovement(null);
+                              setError('The text changed. Ask for a fresh suggestion.');
+                              return;
+                            }
+                            editProposal({ [improvement.section]: improvement.suggestedText });
+                            setImproveSection(null);
+                          }}>Apply wording</button>
+                          <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => setImprovement(null)}>Dismiss</button>
+                        </div>
+                      </div>
+                    ) : <p className={styles.prepareEmpty}>No useful wording change found.</p>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className={styles.prepareEvidence}>
+                <div className={styles.prepareSectionHead}>
+                  <strong>Featured numbers</strong>
+                  <span>Choose up to six recorded stats. Order them with the arrows.</span>
+                </div>
+                {proposal.selected_stat_refs.length ? (
+                  <ol className={styles.selectedStats}>
+                    {proposal.selected_stat_refs.map((ref, index) => {
+                      const stat = evidenceStats.find((item) => item.ref === ref);
+                      if (!stat) return null;
+                      return (
+                        <li key={ref}>
+                          <span>
+                            <strong>{stat.value} {stat.label}</strong>
+                            {[stat.seasonLabel, stat.competition, stat.source?.name].filter(Boolean).length
+                              ? ` · ${[stat.seasonLabel, stat.competition, stat.source?.name].filter(Boolean).join(' · ')}`
+                              : ''}
+                          </span>
+                          <div>
+                            <button type="button" aria-label={`Move ${stat.label} up`} disabled={index === 0} onClick={() => {
+                              const next = [...proposal.selected_stat_refs];
+                              [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                              editProposal({ selected_stat_refs: next });
+                            }}>↑</button>
+                            <button type="button" aria-label={`Move ${stat.label} down`} disabled={index === proposal.selected_stat_refs.length - 1} onClick={() => {
+                              const next = [...proposal.selected_stat_refs];
+                              [next[index + 1], next[index]] = [next[index], next[index + 1]];
+                              editProposal({ selected_stat_refs: next });
+                            }}>↓</button>
+                            <button type="button" aria-label={`Remove ${stat.label}`} onClick={() => editProposal({ selected_stat_refs: proposal.selected_stat_refs.filter((item) => item !== ref) })}>×</button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                ) : <p className={styles.prepareEmpty}>No stats selected. The profile will not show invented numbers.</p>}
+                {evidenceStats.some((stat) => !proposal.selected_stat_refs.includes(stat.ref)) ? (
+                  <div className={styles.availableStats}>
+                    {evidenceStats.filter((stat) => !proposal.selected_stat_refs.includes(stat.ref)).map((stat) => (
+                      <button
+                        type="button"
+                        key={stat.ref}
+                        disabled={proposal.selected_stat_refs.length >= 6}
+                        onClick={() => editProposal({ selected_stat_refs: [...proposal.selected_stat_refs, stat.ref] })}
+                      >
+                        + {stat.value} {stat.label}
+                        {stat.seasonLabel ? ` · ${stat.seasonLabel}` : ''}
+                        {stat.source?.name ? ` · ${stat.source.name}` : ''}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <div className={styles.prepareFields}>
+                <label>
+                  <span>Featured video</span>
+                  <select
+                    value={proposal.selected_video_id || ''}
+                    onChange={(event) => editProposal({ selected_video_id: event.target.value || null })}
+                  >
+                    <option value="">Use current featured video</option>
+                    {evidenceVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className={styles.prepareSections}>
+                <strong>Sections shown</strong>
+                <div>
+                  {([
+                    ['why_review', 'Why this player'],
+                    ['stats', 'Stats'],
+                    ['career', 'Career'],
+                    ['videos', 'Video'],
+                    ['experience', 'Experience'],
+                  ] as const).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={!proposal.hidden_sections.includes(key)}
+                      onClick={() => editProposal({ hidden_sections: proposal.hidden_sections.includes(key)
+                        ? proposal.hidden_sections.filter((item) => item !== key)
+                        : [...proposal.hidden_sections, key] })}
+                    >{label}</button>
+                  ))}
+                </div>
+              </div>
+              {profileReview ? (
+                <div className={styles.prepareReview} role="status">
+                  <strong>{profileReview.suggestions.length ? `${profileReview.suggestions.length} suggestions` : 'Profile ready'}</strong>
+                  {profileReview.suggestions.length ? (
+                    <ul>{profileReview.suggestions.map((item) => <li key={item.code}>{item.message}</li>)}</ul>
+                  ) : null}
+                </div>
+              ) : null}
+              {proposal.kind === 'club' && !published?.published ? (
+                <p className={styles.prepareEmpty}>Publish the general Player Profile before saving this club version or creating its private link.</p>
+              ) : null}
+              <div className={styles.prepareFooter}>
+                <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => {
+                  setProposal(null);
+                  setProfileReview(null);
+                }}>Change type</button>
+                <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => openProfilePreview(proposalPreview, 'PREPARED PROFILE PREVIEW')}>
+                  <Eye size={15} /> Preview
+                </button>
+                <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => void reviewProfile()} disabled={Boolean(actionBusy)}>
+                  {actionBusy === 'review' ? <LoaderCircle className={styles.spin} size={15} /> : <Sparkles size={15} />}
+                  Review Profile
+                </button>
+                <button type="button" data-ui-button="primary" className={styles.primaryAction} onClick={() => void savePreparedProfile()} disabled={Boolean(actionBusy) || preparedSaved || (proposal.kind === 'club' && !published?.published)}>
+                  <Check size={15} /> {preparedSaved ? 'Saved' : 'Save profile'}
+                </button>
+                {preparedSaved && proposal.kind === 'club' && published?.published ? (
+                  <button type="button" data-ui-button="primary" className={styles.primaryAction} onClick={openShareComposer}>
+                    <Send size={15} /> Share with club
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          )}
+        </section>
+      ) : null}
       <AgencyPlayerDataPanel
         key={playerId}
         player={player}
@@ -1761,7 +2475,7 @@ export default function AgencyPlayerProfile({
               type="button"
               data-ui-button="icon"
               className={styles.iconButton}
-              onClick={() => setPreviewOpen(true)}
+              onClick={() => openProfilePreview(draftProfile)}
               aria-label="Preview Player Profile"
             >
               <Eye size={16} />
@@ -2805,6 +3519,7 @@ export default function AgencyPlayerProfile({
                     onChange={(event) => {
                       setShareClub(event.target.value);
                       setShareDeal('');
+                      setShareVersionId('');
                     }}
                   >
                     <option value="">
@@ -2838,6 +3553,7 @@ export default function AgencyPlayerProfile({
                       );
                       if (deal?.organisation_id) {
                         setShareClub(String(deal.organisation_id));
+                        setShareVersionId('');
                       }
                     }}
                   >
@@ -2852,6 +3568,42 @@ export default function AgencyPlayerProfile({
                     Optional. Linking a live deal carries profile activity into that
                     opportunity.
                   </small>
+                </label>
+
+                <label>
+                  <span>Profile to share</span>
+                  <select
+                    value={shareVersionId}
+                    onChange={(event) => setShareVersionId(event.target.value)}
+                    disabled={versionsBusy}
+                  >
+                    <option value="">General Player Profile</option>
+                    {shareableVersions.map((version) => (
+                      <option key={version.id} value={version.id}>
+                        {version.headline || `${version.club_name || 'Club'} profile`}
+                        {version.new_player_data_available ? ' · New player data available' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <small>
+                    {versionsBusy
+                      ? 'Loading saved club profiles...'
+                      : shareableVersions.length
+                        ? 'Saved club versions stay fixed when player data changes.'
+                        : 'Prepare a club profile first to share a tailored version.'}
+                  </small>
+                  {shareVersionId && versions.find((version) => version.id === shareVersionId)?.presentation ? (
+                    <button
+                      type="button"
+                      className={styles.preparePreviewLink}
+                      onClick={() => openProfilePreview(
+                        versions.find((version) => version.id === shareVersionId)?.presentation,
+                        'CLUB PROFILE PREVIEW',
+                      )}
+                    >
+                      <Eye size={14} /> Preview selected club profile
+                    </button>
+                  ) : null}
                 </label>
 
                 <label>
@@ -2905,7 +3657,8 @@ export default function AgencyPlayerProfile({
                   onClick={createShare}
                   disabled={
                     !shareClub ||
-                    actionBusy === 'share'
+                    actionBusy === 'share' ||
+                    versionsBusy
                   }
                 >
                   <Send size={15} />
@@ -2921,8 +3674,8 @@ export default function AgencyPlayerProfile({
         <div className={styles.previewBackdrop}>
           <div className={styles.previewBar}>
             <div>
-              <span>PLAYER PROFILE PREVIEW</span>
-              <strong>Exactly what a club sees</strong>
+              <span>{previewLabel}</span>
+              <strong>Review before sharing</strong>
             </div>
 
             <button data-ui-button="secondary"
@@ -2936,7 +3689,7 @@ export default function AgencyPlayerProfile({
 
           <div className={styles.previewScroll}>
             <PublicProfile
-              profile={draftProfile}
+              profile={previewProfile || draftProfile}
               agency={agency}
             />
           </div>

@@ -5,7 +5,9 @@ export const id=(n:number)=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0'
 export function latestFunction(name:string){
  let definition='';
  for(const file of readdirSync('supabase/migrations').sort()){
-  if(file.endsWith('_public_profile_visibility_boundary.sql'))continue;
+  // This fixture exercises the pre-version public profile boundary. The
+  // versioned share function has its own database fixture and needs a newer schema.
+  if(file.endsWith('_public_profile_visibility_boundary.sql')||file.endsWith('_player_profile_versions_and_source_refs_v1.sql'))continue;
   const sql=readFileSync('supabase/migrations/'+file,'utf8');
   const pattern=new RegExp('create(?:\\s+or\\s+replace)?\\s+function\\s+'+name.replaceAll('.','\\.')+'\\s*\\(','ig');
   for(const match of sql.matchAll(pattern)){
