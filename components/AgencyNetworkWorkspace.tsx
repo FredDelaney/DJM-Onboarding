@@ -228,15 +228,26 @@ export default function AgencyNetworkWorkspace({
 }) {
   const restricted = !canManageRecords || Boolean(data?.access?.restricted);
   const memory=useWorkspaceListMemory(stateScope,'network',{view:'clubs',focus:'all',search:''});
-  const view=(memory.state.view==='people'?'people':'clubs') as NetworkView;
+  const explicitView=useSearchParams().get('network');
+  const view=(explicitView==='people'||explicitView==='clubs'?explicitView:memory.state.view==='people'?'people':'clubs') as NetworkView;
   const focus=(!restricted && ['all','attention','warm','strong','cooling'].includes(memory.state.focus)?memory.state.focus:'all') as NetworkFocus;
   const search=memory.state.search;
-  const setView=(value:NetworkView)=>memory.update({view:value});
+  const setView=(value:NetworkView)=>{memory.update({view:value});const params=new URLSearchParams(window.location.search);params.set('network',value);window.history.replaceState(null,'',window.location.pathname+'?'+params.toString());};
   const setFocus=(value:NetworkFocus)=>memory.update({focus:value});
   const setSearch=(value:string)=>memory.update({search:value});
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const searchParams = useSearchParams();
+  useEffect(() => {
+    if (!memory.ready) return;
+    if (explicitView === 'people' || explicitView === 'clubs') {
+      if (memory.state.view !== explicitView) memory.update({view: explicitView});
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    params.set('network', params.get('person') ? 'people' : view);
+    window.history.replaceState(null, '', window.location.pathname + '?' + params.toString());
+  }, [explicitView, memory.ready, memory.state.view, memory.update, view]);
 
   const reloadArchives = useCallback(async () => {
     if (restricted) { setArchiveItems([]); return; }
@@ -618,8 +629,8 @@ export default function AgencyNetworkWorkspace({
         ) : null}
       </section>
 
-      <section className={styles.toolbar}>
-        <div className={styles.tabs}>
+      <section className={styles.toolbar} data-people-toolbar>
+        <div className={styles.tabs} data-people-internal-tabs>
           <button
             type="button"
             className={view === 'clubs' ? styles.tabActive : styles.tab}

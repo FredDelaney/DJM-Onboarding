@@ -1031,3 +1031,14 @@
 .pagePanel .nextMove strong { color: #1d1d1f; font-weight: 600; }
 .pagePanel .nextMove span, .pagePanel .nextMove small { color: #6e6e73; letter-spacing: 0; font-weight: 400; }
 .pagePanel .nextMoveLink { background: #0071e3; color: #fff; border: 0; }
+
+@media (max-width: 680px) {
+  .drawer .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .headerIdentity > div:last-child { min-width: 0; flex: 1; }
+  .headerControls { justify-self: end; }
+  .headerMeta span { line-height: 1.45; text-transform: none; }
+}

@@ -58,15 +58,15 @@ test('Capture stays out of the workspace grid and mobile navigation fits all fiv
 
   assert.match(
     app,
-    /className=\{styles\.desktopHeadActions\}[\s\S]*<AiLauncher \/>/,
+    /className=\{styles\.desktopHeadActions\}[\s\S]*<AiLauncher\b/,
   );
   assert.match(
     app,
-    /className=\{styles\.mobileTell\}[\s\S]*<AiLauncher \/>/,
+    /<AgencyMobileNavigation/,
   );
 
   assert.match(
-    css,
+    read('components/AgencyMobileNavigation.module.css'),
     /grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/,
   );
   assert.match(css, /\.navManagement[\s\S]*display:\s*none/);

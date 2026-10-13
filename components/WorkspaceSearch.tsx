@@ -13,7 +13,7 @@ import styles from './WorkspaceSearch.module.css';
 
 type Invoke=<T=any>(action:string,body?:Record<string,unknown>)=>Promise<T>;
 type Rpc=<T=any>(name:string,args?:Record<string,unknown>)=>Promise<T>;
-type Props={cacheScope?:string;basePath?:string;tenantId?:string;userId?:string;invoke?:Invoke;rpc?:Rpc;onCreate?:(kind:AgencyCreateKind)=>void;compact?:boolean;className?:string;seed?:{view:string;data:any}};
+type Props={cacheScope?:string;basePath?:string;tenantId?:string;userId?:string;invoke?:Invoke;rpc?:Rpc;onCreate?:(kind:AgencyCreateKind)=>void;compact?:boolean;className?:string;triggerLabel?:string;seed?:{view:string;data:any}};
 type SearchState={query:string;items:SearchItem[];total:number;hasMore:boolean;pending:boolean;error:string};
 const emptySearch=():SearchState=>({query:'',items:[],total:0,hasMore:false,pending:false,error:''});
 type Suggestion={key:string;title:string;subtitle:string;kind:string;href?:string;create?:AgencyCreateKind};
@@ -40,21 +40,21 @@ export default function WorkspaceSearch(props:Props={}){
   enabled={Boolean(tenantId&&(props.userId??sessionId))} invoke={props.invoke||invoke}/>;
 }
 
-function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate,compact,className}:Props&{enabled:boolean;invoke:Invoke}){
+function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate,compact,className,triggerLabel}:Props&{enabled:boolean;invoke:Invoke}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[active,setActive]=useState(0);
  const [search,setSearch]=useState(emptySearch),[attempt,setAttempt]=useState(0);
  const alive=useRef(true),generation=useRef(0);
  const adapters=useRef({invoke});adapters.current={invoke};
  const overlay=useRef<HTMLDivElement>(null),dialog=useRef<HTMLElement>(null),input=useRef<HTMLInputElement>(null);
- const opener=useRef<HTMLElement|null>(null);
+ const opener=useRef<HTMLElement|null>(null),trigger=useRef<HTMLButtonElement>(null);
  const id=useId();
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;generation.current++;};},[]);
  const close=useCallback(()=>{setOpen(false);setQuery('');},[]);
  const show=()=>{opener.current=document.activeElement as HTMLElement;setOpen(true);};
  useEffect(()=>{
   const key=(event:KeyboardEvent)=>{
-   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'&&enabled){
-    if(document.querySelector('[aria-modal="true"]')&&!open)return;
+   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'&&enabled&&trigger.current?.getClientRects().length){
+    if(Array.from(document.querySelectorAll<HTMLElement>('[aria-modal="true"]')).some(node=>node.getClientRects().length&&getComputedStyle(node).visibility!=='hidden')&&!open)return;
     event.preventDefault();if(open)close();else{opener.current=document.activeElement as HTMLElement;setOpen(true);}
    }
   };
@@ -110,8 +110,8 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
   close();
  };
  return <>
-  <button type="button" className={[styles.trigger,compact?styles.compact:'',className||''].join(' ')} onClick={show} disabled={!enabled} aria-label="Find in this agency" aria-haspopup="dialog" aria-expanded={open}>
-   <Search size={17}/><span>{compact?'Find':'Search this agency'}</span>{!compact?<kbd>⌘K</kbd>:null}
+  <button ref={trigger} type="button" className={[styles.trigger,compact?styles.compact:'',className||''].join(' ')} onClick={show} disabled={!enabled} aria-label="Find in this agency" aria-haspopup="dialog" aria-expanded={open}>
+   <Search size={17}/><span>{triggerLabel||(compact?'Find':'Search this agency')}</span>{!compact?<kbd>⌘K</kbd>:null}
   </button>
   {open?createPortal(<div ref={overlay} className={styles.overlay} onPointerDown={event=>{if(event.target===event.currentTarget)close();}}>
    <section ref={dialog} role="dialog" aria-modal="true" aria-labelledby={id+'-title'} className={styles.dialog}
