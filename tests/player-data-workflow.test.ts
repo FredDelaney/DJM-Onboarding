@@ -21,6 +21,12 @@ test('season aliases match without changing calendar-year and split-season meani
  assert.equal(selectCurrentSeasonEvidence([{...row,season_label:'2026/2027'}],player)?.id,'r1');
  assert.equal(selectCurrentSeasonEvidence([{...row,season_label:'2026'}],player),null);
 });
+test('a generic parent club can match a reserve row when the tracked competition disambiguates it', () => {
+ const tracked={current_season_label:'2026',current_club:'Wellington Phoenix',current_league:'Central League/National League'};
+ const reserve={...row,id:'phoenix',season_label:'2026',club_name:'Wellington Phoenix FC Reserves',league:'Central League',appearances:17};
+ const senior={...reserve,id:'senior',club_name:'Wellington Phoenix FC',league:'A-League'};
+ assert.equal(selectCurrentSeasonEvidence([senior,reserve],tracked)?.id,'phoenix');
+});
 test('manual reviewed evidence wins over another provider without adding duplicate totals', () => {
  const provider={...row,id:'provider',source_reviewed_at:null,source_provider:'thesportsdb',source_synced_at:'2026-10-05T12:00:00Z',appearances:9};
  assert.equal(selectCurrentSeasonEvidence([provider,row],player)?.id,'r1');

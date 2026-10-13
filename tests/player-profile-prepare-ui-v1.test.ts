@@ -16,6 +16,15 @@ test('preparation stays in the existing Player Profile and supports general or a
   assert.match(profile, /deal_room_id: prepareDeal \|\| null/);
 });
 
+test('preparing a profile refreshes missing current statistics before presenting evidence', () => {
+  const prepare = profile.slice(profile.indexOf('const prepareProfile ='), profile.indexOf('const improveProfileText ='));
+  assert.match(prepare, /seasonScope === 'current'/);
+  assert.match(prepare, /player_data_refresh/);
+  assert.match(prepare, /player_data_status/);
+  assert.match(prepare, /crypto\.randomUUID\(\)/);
+  assert.match(profile, /Finding current statistics/);
+});
+
 test('the agent edits presentation while statistics and video stay bound to returned evidence', () => {
   const prepare = profile.slice(profile.indexOf('const prepareProfile ='), profile.indexOf('const reviewProfile ='));
   const save = profile.slice(profile.indexOf('const savePreparedProfile ='), profile.indexOf('const publishProfile ='));
