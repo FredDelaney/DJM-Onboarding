@@ -189,9 +189,8 @@ export async function selectPlayerProfilePresentation(
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: clean(options.model, 100) || "gpt-5.6-luna",
+        model: clean(options.model, 100) || "gpt-6-luna",
         store: false,
-        reasoning: { effort: "none" },
         max_output_tokens: 240,
         instructions: [
           "Select only supplied statistic refs and an optional supplied video ID for a professional football player profile.",

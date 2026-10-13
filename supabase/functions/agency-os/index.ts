@@ -3,7 +3,6 @@ import { createSupabaseContext } from "npm:@supabase/server@1.6.0";
 import { preparePlayerProfileEvidence, reviewPlayerProfileEvidence } from "../_shared/player-profile-preparation.ts";
 import { selectPlayerProfilePresentation } from "../_shared/player-profile-ai.ts";
 import { suggestPlayerProfileTextImprovement } from "../_shared/player-profile-text-improvement.ts";
-import { selectAiRoute } from "../_shared/ai-router.ts";
 import { refreshOutcome, safeSourceUrl, selectCurrentSeasonEvidence } from "../_shared/football-data/player-data-workflow.ts";
 
 import {restrictedPlayerProfile,restrictedClubAccount} from "../_shared/staff-read-contract.ts";
@@ -630,7 +629,7 @@ export default {fetch:async(req:Request)=>{
         player:{displayName:name,primaryPosition:player.primary_position,currentClub:player.current_club,currentSeasonLabel:player.current_season_label},
         club:target?{name:id(target.organisation.name),league:id(clubOrganisation.league_name)||null,positionNeed:id(clubNeed.position)||null}:null,
         statCandidates:evidence.statCandidates,videoCandidates:evidence.videoCandidates
-      },{apiKey:aiKey,model:selectAiRoute("player_intelligence",{forceTier:"fast"}).model,timeoutMs:12000});
+      },{apiKey:aiKey,model:Deno.env.get("REDREAM_PROFILE_MODEL")||"gpt-6-luna",timeoutMs:12000});
       const fingerprint=await profileMasterFingerprint(bundle);
       return json({ok:true,ai_available:Boolean(aiKey),proposal:{kind,headline:selected.headline,why_review:selected.introLine,selected_stat_refs:selected.selectedStatRefs,selected_video_id:selected.selectedVideoId,hidden_sections:Array.isArray(bundle.settings?.hidden_sections)?bundle.settings.hidden_sections:[],source_fingerprint:fingerprint,club_name:target?id(target.organisation.name):null,club_requirement:clubNeed.id?{title:id(clubNeed.title)||null,position:id(clubNeed.position)||null}:null,preparation_source:selected.source,preparation_reason:selected.reason},evidence:{stats:evidence.statCandidates.map(candidate=>({ref:candidate.ref,label:candidate.label,value:candidate.value,seasonLabel:candidate.seasonLabel,competition:candidate.competition,source:{name:candidate.source.name||candidate.source.provider,status:candidate.source.provenance,updatedAt:candidate.source.reviewedAt||candidate.source.syncedAt}})),videos:evidence.videoCandidates}});
     }
@@ -670,7 +669,7 @@ export default {fetch:async(req:Request)=>{
         if(!target)return json({error:"Choose a club in this workspace"},400);
         clubName=id(target.organisation.name);
       }
-      const improvement=await suggestPlayerProfileTextImprovement({section:section as "headline"|"why_review",style:style as "shorter"|"clearer"|"football_focused"|"more_direct"|"tailor_to_club",text:sourceText,clubName},{apiKey:await profileAiKey(),model:selectAiRoute("player_intelligence",{forceTier:"fast"}).model,timeoutMs:12000});
+      const improvement=await suggestPlayerProfileTextImprovement({section:section as "headline"|"why_review",style:style as "shorter"|"clearer"|"football_focused"|"more_direct"|"tailor_to_club",text:sourceText,clubName},{apiKey:await profileAiKey(),model:Deno.env.get("REDREAM_PROFILE_MODEL")||"gpt-6-luna",timeoutMs:12000});
       return json({ok:true,improvement});
     }
 
