@@ -238,6 +238,16 @@ export default function AgencyNetworkWorkspace({
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const searchParams = useSearchParams();
+  useEffect(() => {
+    if (!memory.ready) return;
+    if (explicitView === 'people' || explicitView === 'clubs') {
+      if (memory.state.view !== explicitView) memory.update({view: explicitView});
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    params.set('network', params.get('person') ? 'people' : view);
+    window.history.replaceState(null, '', window.location.pathname + '?' + params.toString());
+  }, [explicitView, memory.ready, memory.state.view, memory.update, view]);
 
   const reloadArchives = useCallback(async () => {
     if (restricted) { setArchiveItems([]); return; }

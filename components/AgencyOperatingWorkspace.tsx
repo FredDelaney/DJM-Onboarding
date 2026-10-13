@@ -4,6 +4,7 @@ import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
+import {workspaceIntelligenceHref,workspaceIntelligenceListHref} from '@/lib/workspace-record-navigation';
 import PeopleViewSwitcher from './PeopleViewSwitcher';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
@@ -979,6 +980,20 @@ export default function AgencyOperatingWorkspace() {
     sessionUserId,
   ]);
 
+  const handleCaptureCompleted = useCallback(() => { void loadView(); }, [loadView]);
+  const openIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
+    setIntelligenceRequest(request);
+    const href = workspaceIntelligenceHref(basePath, window.location.search, request);
+    if (href && href !== window.location.pathname + window.location.search) {
+      window.history.pushState(null, '', href);
+    }
+  }, [basePath]);
+  const closeIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
+    const href = workspaceIntelligenceListHref(basePath, window.location.search, request);
+    if (href) window.history.replaceState(null, '', href);
+    setIntelligenceRequest(current => current?.kind === request.kind && current.entityId === request.entityId ? null : current);
+  }, [basePath]);
+
   useEffect(() => {
     let active = true;
 
@@ -1663,7 +1678,7 @@ export default function AgencyOperatingWorkspace() {
                   invoke={(action, body) => invoke<any>(action, body)}
                   onOpenAction={(request) => setActionRequest(request)}
                   onOpenIntelligence={(playerId, title, context) =>
-                    setIntelligenceRequest({
+                    openIntelligenceRequest({
                       key: `player-360:${playerId}`,
                       kind: 'player',
                       entityId: playerId,
@@ -1701,7 +1716,7 @@ export default function AgencyOperatingWorkspace() {
                   setActionRequest(request)
                 }
                 onOpenPursuit={setPursuitRequest}
-                onOpenIntelligence={setIntelligenceRequest}
+                onOpenIntelligence={openIntelligenceRequest}
               />
             ) : null}
             {view === 'network' ? (
@@ -1745,7 +1760,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
       </main>
 
-      <AgencyMobileNavigation basePath={basePath} view={view} canSeeBusiness={canSeeBusiness}
+      <AgencyMobileNavigation basePath={basePath} view={view} canSeeBusiness={canSeeBusiness} onCaptureCompleted={handleCaptureCompleted}
         search={{tenantId:workspace.tenant_id,userId:sessionUserId,basePath,cacheScope:stateScope,invoke,rpc,seed:{view,data},onCreate:setCreateKind}}
         onNavigate={navigateWorkspaceView} onWarm={target=>void warmView(target)} onConnections={()=>setConnectionsOpen(true)}/>
 
@@ -1829,7 +1844,7 @@ export default function AgencyOperatingWorkspace() {
           canManageRecords={canSeeBusiness}
           onRefresh={loadView}
           invoke={(action, body) => invoke<any>(action, body)}
-          onClose={() => setIntelligenceRequest(null)}
+          onClose={() => closeIntelligenceRequest(intelligenceRequest)}
           onOpenAction={(request) => {
             setActionRequest(request);
           }}
@@ -1877,7 +1892,7 @@ export default function AgencyOperatingWorkspace() {
           }}
           onOpenDeal={(dealRoomId, title, context) => {
             setPursuitRequest(null);
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,
@@ -1939,7 +1954,7 @@ export default function AgencyOperatingWorkspace() {
           }}
           onOpenDeal={(dealRoomId, title, context) => {
             closeClubAccount();
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,
@@ -2004,7 +2019,7 @@ export default function AgencyOperatingWorkspace() {
           onClose={() => setOwnerCommandOpen(false)}
           onOpenDeal={(dealRoomId, title, context) => {
             setOwnerCommandOpen(false);
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,

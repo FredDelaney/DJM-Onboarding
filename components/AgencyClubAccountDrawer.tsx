@@ -27,6 +27,7 @@ import {
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import RecordActivitySummary from './RecordActivitySummary';
+import {recordEditReady} from '@/lib/record-edit-readiness';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import {
   friendlyError,
@@ -168,6 +169,7 @@ export default function AgencyClubAccountDrawer({
 
   const [account, setAccount] =
     useState<any>(null);
+  const [loadedOrganisationId, setLoadedOrganisationId] = useState('');
 
   const readSequence = useRef(0);
   const load = useCallback(
@@ -176,6 +178,7 @@ export default function AgencyClubAccountDrawer({
       const current = () => sequence === readSequence.current;
       setBusy(true);
       setError('');
+      setLoadedOrganisationId('');
 
       try {
         const response = await readWithDeadline(invoke(
@@ -194,6 +197,7 @@ export default function AgencyClubAccountDrawer({
             response?.result ||
             null,
         );
+        setLoadedOrganisationId(request.organisationId);
       } catch (loadError) {
         if (!current()) return;
         setError(
@@ -613,7 +617,7 @@ export default function AgencyClubAccountDrawer({
             </div>
 
             <div className={styles.headerControls}>
-              <EntityActionsMenu
+              {recordEditReady({requestedId:request.organisationId,loadedId:loadedOrganisationId,busy,error,restricted:Boolean(account?.access?.restricted)}) ? <EntityActionsMenu
                   showEdit
                 kind="club"
                 entityId={request.organisationId}
@@ -630,7 +634,7 @@ export default function AgencyClubAccountDrawer({
                   { key: 'city', label: 'City', value: club.city },
                   { key: 'website_url', label: 'Website', value: club.website_url, type: 'url' },
                 ]}
-              />
+              /> : null}
               <button
                 type="button"
                 data-ui-button="icon"

@@ -31,6 +31,7 @@ export async function verifyCaptureFollowupJourney(page, counts) {
   await page.getByRole("heading", { name: "Calendar", exact: true }).waitFor();
   const row = page.locator("article").filter({ hasText: title }).first();
   await row.waitFor();
+  await row.getByText("Jesse", { exact: true }).waitFor();
   assert.ok(
     (await row.textContent()).includes("Jesse"),
     "The Calendar follow-up retains its responsible person",

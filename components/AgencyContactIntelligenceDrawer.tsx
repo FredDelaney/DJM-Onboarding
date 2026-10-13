@@ -34,6 +34,7 @@ import AgencyRelationshipActions from '@/components/AgencyRelationshipActions';
 import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import RecordActivitySummary from './RecordActivitySummary';
+import {recordEditReady} from '@/lib/record-edit-readiness';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
 
@@ -168,6 +169,7 @@ export default function AgencyContactIntelligenceDrawer({
   };
 
   const readSequence = useRef(0);
+  const [loadedPersonId, setLoadedPersonId] = useState('');
   const load = useCallback(async () => {
     const sequence = ++readSequence.current;
     const current = () => sequence === readSequence.current;
@@ -179,6 +181,7 @@ export default function AgencyContactIntelligenceDrawer({
 
     setBusy(true);
     setError('');
+    setLoadedPersonId('');
 
     try {
       const result = await readWithDeadline(rpc<any>(
@@ -190,6 +193,7 @@ export default function AgencyContactIntelligenceDrawer({
       if (!current()) return;
       if (!result?.person) throw new Error('This contact is unavailable.');
       setDetail(result);
+      setLoadedPersonId(personId);
 
       setEmail(
         clean(
@@ -712,7 +716,7 @@ export default function AgencyContactIntelligenceDrawer({
           </div>
 
           <div className={styles.headerControls}>
-            {!restricted ? <EntityActionsMenu
+            {recordEditReady({requestedId:clean(contact?.person_id),loadedId:loadedPersonId,busy,error,restricted}) ? <EntityActionsMenu
                   showEdit
               kind="club_contact"
               entityId={clean(contact?.person_id)}

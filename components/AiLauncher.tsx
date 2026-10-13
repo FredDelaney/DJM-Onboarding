@@ -66,7 +66,7 @@ const cachedAiRouteContext = (
   return request;
 };
 
-export default function AiLauncher({navigation=false,className}:{navigation?:boolean;className?:string}={}) {
+export default function AiLauncher({navigation=false,className,onCaptureCompleted}:{navigation?:boolean;className?:string;onCaptureCompleted?:()=>void}={}) {
   const [open, setOpen] = useState(false);
   const [unsafeToClose, setUnsafeToClose] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -219,6 +219,7 @@ export default function AiLauncher({navigation=false,className}:{navigation?:boo
                   context={context}
                   onUnsafeToCloseChange={setUnsafeToClose}
                   onNavigate={() => { if (!unsafeToClose) setOpen(false); }}
+                  onCompleted={onCaptureCompleted}
                   maxAudioSeconds={Number(access.max_audio_seconds || 240)}
                   resolvedWorkspaceSlug={access.workspace_slug}
                 />

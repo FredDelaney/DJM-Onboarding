@@ -1,4 +1,53 @@
 import assert from "node:assert/strict";
+export async function verifyInPlaceCaptureCompletion(page, url) {
+  await page.goto(url);
+  const nav = page.getByRole("navigation", {
+    name: "Mobile workspace",
+    exact: true,
+  });
+  await nav.getByRole("link", { name: "Today", exact: true }).waitFor();
+  await page.getByText("Confirm the trial dates", { exact: true }).waitFor();
+  const complete = page.getByRole("button", {
+    name: "Complete follow-up",
+    exact: true,
+  });
+  assert.equal(
+    await complete.count(),
+    0,
+    "The unsaved follow-up is absent from Today",
+  );
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "redream-ai-active-captures",
+      JSON.stringify([
+        {
+          captureId: "00000000-0000-4000-8000-000000000092",
+          workspaceSlug: "qa-platform-polish",
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    ),
+  );
+  await nav.getByRole("button", { name: "Tell ReDream", exact: true }).click();
+  const capture = page.getByRole("dialog", {
+    name: "Tell ReDream",
+    exact: true,
+  });
+  await capture
+    .getByRole("button", { name: "Approve & save", exact: true })
+    .click();
+  await capture.getByText("Update complete", { exact: true }).waitFor();
+  await capture
+    .getByRole("button", { name: "Close Tell ReDream", exact: true })
+    .click();
+  await capture.waitFor({ state: "hidden" });
+  await complete.waitFor();
+  assert.equal(
+    new URL(page.url()).searchParams.get("view"),
+    "home",
+    "Approval refreshes Today without a navigation round-trip",
+  );
+}
 export async function verifyDailyMobileNavigation(page) {
   const nav = page.getByRole("navigation", {
     name: "Mobile workspace",
@@ -60,6 +109,22 @@ export async function verifyDailyMobileNavigation(page) {
   assert.ok(
     page.url().includes("network=people"),
     "Contacts opens its list directly",
+  );
+  await page.getByText("Example Director", { exact: true }).first().waitFor();
+  await page.evaluate(() => {
+    const query = new URLSearchParams(location.search);
+    query.delete("network");
+    history.replaceState(null, "", location.pathname + "?" + query.toString());
+  });
+  await page.waitForFunction(
+    () => new URLSearchParams(location.search).get("network") === "people",
+  );
+  assert.equal(
+    await categories
+      .getByRole("link", { name: "Contacts", exact: true })
+      .getAttribute("aria-current"),
+    "page",
+    "The remembered directory and its People category agree",
   );
   await nav
     .getByRole("button", { name: "Tell ReDream", exact: true })
@@ -224,4 +289,68 @@ export async function verifyDailyMobileNavigation(page) {
       .getAttribute("aria-current"),
     "page",
   );
+}
+
+export async function verifyDealRecordCapture(page, url, dealA, dealB) {
+  const nav = page.getByRole("navigation", {
+    name: "Mobile workspace",
+    exact: true,
+  });
+  for (const selected of ["", dealA]) {
+    await page.goto(
+      url + "&tab=deals" + (selected ? "&record=" + selected : ""),
+    );
+    const row = page.locator("#opportunity-" + dealB);
+    await row.waitFor();
+    await row.getByRole("button", { name: "Open deal", exact: true }).click();
+    await page
+      .getByRole("heading", { name: "Example transfer B", exact: true })
+      .waitFor();
+    assert.equal(
+      new URL(page.url()).searchParams.get("record"),
+      dealB,
+      "The displayed deal replaces any prior search identity",
+    );
+    await nav
+      .getByRole("button", { name: "Tell ReDream", exact: true })
+      .click();
+    const capture = page.getByRole("dialog", {
+      name: "Tell ReDream",
+      exact: true,
+    });
+    await capture.waitFor();
+    const link = capture.getByRole("link", {
+      name: "Open full screen",
+      exact: true,
+    });
+    const query = new URL(
+      await link.getAttribute("href"),
+      "https://example.test",
+    ).searchParams;
+    assert.equal(
+      query.get("opportunity_id"),
+      dealB,
+      "Capture targets the displayed deal",
+    );
+    assert.ok(
+      query.get("from").includes("record=" + dealB),
+      "Capture returns to the displayed deal",
+    );
+    await page.keyboard.press("Escape");
+    await capture.waitFor({ state: "hidden" });
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    assert.equal(
+      new URL(page.url()).searchParams.has("record"),
+      false,
+      "Closing the deal clears its selected identity",
+    );
+    if (selected) {
+      await page.goBack();
+      assert.equal(
+        new URL(page.url()).searchParams.get("record"),
+        dealA,
+        "Browser back restores the previous selected record",
+      );
+    }
+  }
 }

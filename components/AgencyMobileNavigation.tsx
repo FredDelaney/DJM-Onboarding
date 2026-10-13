@@ -37,6 +37,7 @@ type Props = {
   onNavigate: (view: WorkspaceSection, href: string) => void;
   onWarm: (view: WorkspaceSection) => void;
   onConnections: () => void;
+  onCaptureCompleted: () => void;
 };
 export default function AgencyMobileNavigation({
   basePath,
@@ -46,6 +47,7 @@ export default function AgencyMobileNavigation({
   onNavigate,
   onWarm,
   onConnections,
+  onCaptureCompleted,
 }: Props) {
   const params = useSearchParams();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -112,7 +114,7 @@ export default function AgencyMobileNavigation({
           triggerLabel="Search"
           className={styles.search}
         />
-        <AiLauncher navigation className={styles.capture} />
+        <AiLauncher navigation className={styles.capture} onCaptureCompleted={onCaptureCompleted} />
         <Link
           href={destinations[3].href!}
           aria-current={destinations[3].active ? "page" : undefined}
