@@ -565,7 +565,7 @@ export default function AgencyEntityIntelligenceDrawer({
 
             <RecordActivitySummary
               summary={lastForwardMovement ? 'Forward movement recorded' : 'No forward movement recorded'}
-              when={lastForwardMovement ? relativeDate(lastForwardMovement) : null}
+              when={lastForwardMovement || null}
             />
 
             <div className={styles.grid}>

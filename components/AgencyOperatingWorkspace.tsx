@@ -1405,7 +1405,7 @@ export default function AgencyOperatingWorkspace() {
   }
 
   return (
-    <div className={styles.root} style={theme} data-interface="calm" data-people-directory={['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?'true':undefined}>
+    <div className={styles.root} style={theme} data-interface="calm" data-mobile-workspace data-people-directory={['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?'true':undefined}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand

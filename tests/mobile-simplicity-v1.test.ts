@@ -28,7 +28,7 @@ test('mobile header keeps account identity and moves Tell ReDream to one persist
   assert.match(shell, /desktopHeadActions/);
   assert.match(shell, /mobileHeadActions/);
   assert.match(shell, /AgencyMobileNavigation/);
-  assert.match(readFileSync('components/AgencyMobileNavigation.module.css','utf8'), /position:fixed/);
+  assert.match(readFileSync('components/AgencyMobileNavigation.module.css','utf8'), /position:\s*fixed/);
 });
 
 test('Home shows one bounded five-item queue on mobile', () => {

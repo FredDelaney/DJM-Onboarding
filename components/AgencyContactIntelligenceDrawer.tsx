@@ -825,7 +825,7 @@ export default function AgencyContactIntelligenceDrawer({
               ) : null}
             </section>
 
-            <RecordActivitySummary summary={summaryActivity?.last_interaction_at?'Last contact':null} when={summaryActivity?.last_interaction_at?relativeDate(summaryActivity.last_interaction_at):null}/>
+            <RecordActivitySummary summary={summaryActivity?.last_interaction_at?'Last contact':null} when={summaryActivity?.last_interaction_at||null}/>
             <section
               className={
                 styles.section

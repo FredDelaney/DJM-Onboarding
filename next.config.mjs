@@ -22,6 +22,18 @@ const contentSecurityPolicy = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  async rewrites() {
+    // Browser QA creates this destination only while its synthetic fixture runs.
+    if (process.env.PLATFORM_POLISH_FIXTURE !== '1') return [];
+    return {
+      beforeFiles: [{
+        source: '/workspace/qa-platform-polish',
+        destination: '/workspace/qa-platform-polish/example-player/00000000-0000-4000-8000-000000000081/qa-platform-polish',
+      }],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
   async headers() {
     return [
       {

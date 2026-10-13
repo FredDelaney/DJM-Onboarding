@@ -20,6 +20,7 @@ export async function verifyCaptureFollowupJourney(page, counts) {
   const club = page.getByRole("link", { name: "Open club", exact: true });
   await club.click();
   await page
+    .getByRole("region", { name: "Club details for Example FC", exact: true })
     .getByRole("heading", { name: "Example FC", exact: true })
     .waitFor();
   await page.goBack();
@@ -33,6 +34,18 @@ export async function verifyCaptureFollowupJourney(page, counts) {
   assert.ok(
     (await row.textContent()).includes("Jesse"),
     "The Calendar follow-up retains its responsible person",
+  );
+  const time = await page.evaluate(
+    (value) =>
+      new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value)),
+    counts().dueAt,
+  );
+  assert.ok(
+    (await row.textContent()).includes(time),
+    "The Calendar follow-up retains its due time in the current timezone",
   );
   await page
     .getByRole("navigation", { name: "Mobile workspace", exact: true })

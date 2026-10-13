@@ -359,7 +359,7 @@ function PlayerDrawer({
                     <div><span>Agency agreement</span><strong>{representation?.end_date ? relativeDate(representation.end_date) : representation ? 'No end date set' : 'Not set'}</strong><small>{representation ? human(representation.agreement_type) : 'No representation agreement'}</small></div>
                     <div><span>Opportunities</span><strong>{opportunities.filter((item: any) => !['won','lost','paused'].includes(String(item?.stage || ''))).length + deals.filter((deal: any) => deal?.status === 'active').length}</strong><small>Active opportunities</small></div>
                   </div>
-                  <RecordActivitySummary summary={activity[0]?human(activity[0]?.event_type||'Agency activity'):null} when={activity[0]?.occurred_at?relativeDate(activity[0].occurred_at):null}/>
+                  <RecordActivitySummary summary={activity[0]?human(activity[0]?.event_type||'Agency activity'):null} when={activity[0]?.occurred_at||null}/>
                 </div>
               ) : null}
 

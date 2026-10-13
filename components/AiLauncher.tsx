@@ -144,6 +144,11 @@ export default function AiLauncher({navigation=false,className}:{navigation?:boo
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      const anotherModal = Array.from(document.querySelectorAll<HTMLElement>('[aria-modal="true"]')).some(node =>
+        node !== captureDialog.current && node.getClientRects().length > 0 && !node.closest('[inert]') && !captureDialog.current?.contains(node),
+      );
+      if (anotherModal) return;
       if (event.key === 'Escape' && !unsafeToClose) {event.preventDefault();setOpen(false);}
       if(event.key==='Tab'){
         const controls=Array.from(captureDialog.current?.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]')||[]).filter(node=>node.getClientRects().length&&!node.closest('[inert]'));
@@ -213,6 +218,7 @@ export default function AiLauncher({navigation=false,className}:{navigation?:boo
                   compact
                   context={context}
                   onUnsafeToCloseChange={setUnsafeToClose}
+                  onNavigate={() => { if (!unsafeToClose) setOpen(false); }}
                   maxAudioSeconds={Number(access.max_audio_seconds || 240)}
                   resolvedWorkspaceSlug={access.workspace_slug}
                 />

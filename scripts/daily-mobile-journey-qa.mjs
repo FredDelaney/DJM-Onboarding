@@ -116,6 +116,102 @@ export async function verifyDailyMobileNavigation(page) {
     true,
     "Capture restores focus",
   );
+  await page.evaluate(() => {
+    localStorage.setItem(
+      "redream-ai-active-captures",
+      JSON.stringify([
+        {
+          captureId: "00000000-0000-4000-8000-000000000092",
+          workspaceSlug: "qa-platform-polish",
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    );
+  });
+  await nav.getByRole("button", { name: "Tell ReDream", exact: true }).click();
+  await capture
+    .getByRole("button", { name: "Delete this update", exact: true })
+    .waitFor();
+  await capture
+    .getByRole("button", { name: "Delete this update", exact: true })
+    .click();
+  const confirmation = page.getByRole("alertdialog", {
+    name: "Delete this ReDream update?",
+    exact: true,
+  });
+  await confirmation.waitFor();
+  const cancel = confirmation.getByRole("button", {
+    name: "Cancel",
+    exact: true,
+  });
+  const remove = confirmation.getByRole("button", {
+    name: "Delete update",
+    exact: true,
+  });
+  await cancel.focus();
+  await page.keyboard.press("Tab");
+  assert.equal(
+    await remove.evaluate((node) => node === document.activeElement),
+    true,
+    "Confirmation retains forward keyboard focus",
+  );
+  await page.keyboard.press("Tab");
+  assert.equal(
+    await cancel.evaluate((node) => node === document.activeElement),
+    true,
+    "Confirmation wraps keyboard focus",
+  );
+  await page.keyboard.press("Escape");
+  await confirmation.waitFor({ state: "hidden" });
+  assert.equal(
+    await capture.isVisible(),
+    true,
+    "Cancelling confirmation keeps capture open",
+  );
+  await capture
+    .getByRole("button", { name: "Approve & save", exact: true })
+    .click();
+  await capture.getByText("Update complete", { exact: true }).waitFor();
+  await capture.getByRole("link", { name: "Open club", exact: true }).click();
+  await capture.waitFor({ state: "hidden" });
+  await page
+    .getByRole("region", { name: "Club details for Example FC", exact: true })
+    .waitFor();
+  const tell = nav.getByRole("button", { name: "Tell ReDream", exact: true });
+  const reachable = await tell.evaluate((node) => {
+    const r = node.getBoundingClientRect();
+    return node.contains(
+      document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2),
+    );
+  });
+  assert.equal(
+    reachable,
+    true,
+    "Mobile capture remains reachable from a club record",
+  );
+  await tell.click();
+  await capture.waitFor();
+  const recordLink = capture.getByRole("link", {
+    name: "Open full screen",
+    exact: true,
+  });
+  const recordParams = new URL(
+    await recordLink.getAttribute("href"),
+    "https://example.test",
+  ).searchParams;
+  assert.equal(
+    recordParams.get("organisation_id"),
+    "00000000-0000-4000-8000-000000000095",
+    "Capture retains the opened club identity",
+  );
+  assert.ok(
+    recordParams
+      .get("from")
+      .includes("club=00000000-0000-4000-8000-000000000095"),
+    "Capture returns to the opened club",
+  );
+  await page.keyboard.press("Escape");
+  await capture.waitFor({ state: "hidden" });
   await more.click();
   await sheet.getByRole("link", { name: "Calendar", exact: true }).click();
   await sheet.waitFor({ state: "hidden" });

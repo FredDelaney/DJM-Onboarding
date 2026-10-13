@@ -729,7 +729,7 @@ export default function AgencyClubAccountDrawer({
               </button>
             </section>
 
-            <RecordActivitySummary summary={interactions[0]?clean(interactions[0].summary)||'Conversation added':null} when={interactions[0]?.occurred_at?relativeDate(interactions[0].occurred_at):null}/>
+            <RecordActivitySummary summary={interactions[0]?clean(interactions[0].summary)||'Conversation added':null} when={interactions[0]?.occurred_at||null}/>
             <section
               className={
                 styles.quickFacts

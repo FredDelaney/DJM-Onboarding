@@ -10,7 +10,7 @@ const routeDir=new URL('../app/workspace/qa-platform-polish/',import.meta.url);
 const nextEnv=new URL('../next-env.d.ts',import.meta.url),nextEnvBefore=await readFile(nextEnv,'utf8');
 try{await access(routeDir);throw new Error('Refusing to replace an existing route');}catch(error){if(error.code!=='ENOENT')throw error;}
 const port=process.env.PLATFORM_POLISH_QA_PORT||'3117',root='http://127.0.0.1:'+port;
-const env={...process.env,NEXT_PUBLIC_REDREAM_ENVIRONMENT:'qa',NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'example'};
+const env={...process.env,PLATFORM_POLISH_FIXTURE:'1',NEXT_PUBLIC_REDREAM_ENVIRONMENT:'qa',NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'example'};
 let server,browser;
 const report=[],failures=[],errors=[];
 try{
@@ -32,15 +32,16 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
  const session={access_token:token,refresh_token:'fixture-refresh',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
  const screens={agency:['home','players','opportunities','network','calendar','business'],player:['home','profile','inbox','career','check-in','cv','documents','connections'],settings:['settings','profile','preferences','security','team','agency','billing','connections','player-experience'],detail:['deal','club','contact','negotiation','review','business'],marketing:['home','product','security','support','switch'],account:['sign-in','forgot','reset','player-invite','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4'],presentation:['profile','share'],capture:['voice','text','review','complete'],recruitment:['list','detail'],setup:['branding','privacy','first_player','first_relationship','first_opportunity','owner_setup_complete'],misc:['privacy','workspaces']};
  const selectedSuites=process.env.PLATFORM_POLISH_SUITES?.split(',');
+ const selectedScreens=process.env.PLATFORM_POLISH_SCREENS?.split(',');
  const fixturePath='/workspace/qa-platform-polish/example-player/00000000-0000-4000-8000-000000000081/qa-platform-polish';
  const publicProfile={display_name:'Example Club Player',primary_position:'CM',current_club:'Example FC',headline:'Central midfielder',nationalities:['NZ'],key_stats:[{label:'Appearances',value:'18'},{label:'Minutes',value:'1250'}],career_history:[{club:'Example FC',season:'2025/26',appearances:18,minutes:1250}],videos:[{title:'Example highlights',url:'https://example.test/highlights',video_type:'highlight',featured:true}],transfermarkt_url:'https://www.transfermarkt.com/example/profil/spieler/1',verified_at:'2026-10-07T00:00:00Z'};
  for(const [suite,names] of Object.entries(screens)){
   if(selectedSuites&&!selectedSuites.includes(suite))continue;
   const state={screen:'',publicMode:'healthy',release:null,approved:false,taskDone:false,approvals:0,completions:0};
   const taskId='00000000-0000-4000-8000-000000000094',clubId='00000000-0000-4000-8000-000000000095';
-  const dueAt=new Date().toISOString().slice(0,10)+'T23:59:00Z';
+  const dueAt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00Z';
   const receipt=captureId=>{const applied=state.screen==='complete'||state.approved;return {capture:{id:captureId,status:applied?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up today.'},actions:[{id:'action',action_type:'create_task',status:applied?'applied':'pending',evidence:'Follow up today',proposed_payload:{title:'Follow up with Example FC',owner_name:'Jesse',due_at:dueAt},resolved_payload:applied?{organisation_id:clubId}:undefined,target_type:applied?'task':undefined,target_id:applied?taskId:undefined,undo_supported:true}]};};
-  const context=await browser.newContext({viewport:{width:390,height:844}});
+  const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   await context.addInitScript(({session,suite})=>{if(location.hostname!=='127.0.0.1')return;const screen=new URL(location.href).searchParams.get('screen')||'';if(suite==='account'&&screen!=='reset'&&!screen.startsWith('onboarding-'))localStorage.removeItem('sb-example-auth-token');else localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},{session,suite});
   await context.route('https://example.supabase.co/**',async route=>{
    const req=route.request(),url=new URL(req.url()),path=url.pathname,body=req.postDataJSON()||{};
@@ -96,7 +97,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
    await route.fulfill({status,contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(data)});
   });
   const page=await context.newPage();page.on('pageerror',error=>errors.push(suite+': '+error.message));
-  for(const screen of names){
+  for(const screen of names.filter(name=>!selectedScreens||selectedScreens.includes(name))){
    for(const width of [320,390,768,1440]){
     await page.setViewportSize({width,height:900});
     state.screen=screen;state.approved=false;state.taskDone=false;state.approvals=0;state.completions=0;
@@ -210,7 +211,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       assert.equal(await disclosure.evaluate(node=>node.open),false,suite+'/'+screen+' detail must close with keyboard');
      }
     }
-    if(suite==='capture'&&screen==='review'&&width===390)await verifyCaptureFollowupJourney(page,()=>({approvals:state.approvals,completions:state.completions}));
+    if(suite==='capture'&&screen==='review'&&width===390)await verifyCaptureFollowupJourney(page,()=>({approvals:state.approvals,completions:state.completions,dueAt}));
     if(suite==='detail'&&['club','contact','deal'].includes(screen)&&width===390){
      const label=screen==='club'?'Example FC':screen==='contact'?'Example Director':'Example transfer';
      const edit=page.getByRole('button',{name:'Edit '+label,exact:true});await edit.click();
@@ -280,6 +281,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
    assert.equal(await page.evaluate(()=>document.body.style.overflow),'','A page record allows document scrolling');
    await page.getByRole('heading',{name:'Confirm the trial dates',exact:true}).waitFor();
    await page.getByText('Forward movement recorded',{exact:true}).waitFor();
+   assert.equal(await page.getByRole('region',{name:'Latest activity',exact:true}).locator('time').textContent(),'8 Oct 2026','Activity shows the recorded date rather than a due-date warning');
    const scroller=page.locator('[role="region"]').locator('..');
    await page.mouse.move(190,400);await page.mouse.wheel(0,700);
    await page.waitForFunction(()=>{const region=document.querySelector('[role="region"]');return region?.parentElement?.scrollTop>0;});
