@@ -99,7 +99,8 @@ export default function Page(){
  const loadMore=async()=>{reads.current.pages=(reads.current.pages||0)+1;if(scenario==='page-failure'&&reads.current.pages===1)throw new Error('Next page unavailable');setLoaded(value=>Math.min(250,value+100));};
  const pageData={...data,directory:{items:data.directory.items.filter(player=>player.player_id!=='qa-player-248').slice(0,loaded),total:250,next_offset:loaded,has_more:loaded<250}};
  const runtime={...UNRESOLVED_TENANT_RUNTIME,resolved:true,tenant_id:'fixture-tenant-'+tenant,slug:'qa-find-flow',branding:{...UNRESOLVED_TENANT_RUNTIME.branding,display_name:'Example Agency'}};
- if(params.get('coordinator')==='1')return <TenantRuntimeProvider runtime={runtime}><AgencyOperatingWorkspace/></TenantRuntimeProvider>;
+ const [coordinator]=useState(()=>params.get('coordinator')==='1');
+ if(coordinator)return <TenantRuntimeProvider runtime={runtime}><AgencyOperatingWorkspace/></TenantRuntimeProvider>;
  return <TenantRuntimeProvider runtime={runtime}><div className={styles.root} data-qa-ready={ready}>
   <aside className={styles.sidebar}><div className={styles.brand}>Example Agency</div><nav className={styles.nav} aria-label="Agency workspace">
    {['home','players','opportunities','network','calendar'].map(item=><Link key={item} href={base+'?view='+item} onClick={event=>{event.preventDefault();navigate(item);}}>{item==='opportunities'?<><span className={styles.navDesktopLabel}>Opportunities</span><span className={styles.navMobileLabel}>Market</span></>:<span>{item[0].toUpperCase()+item.slice(1)}</span>}</Link>)}
