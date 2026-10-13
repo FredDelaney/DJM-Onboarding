@@ -159,7 +159,7 @@ try{
   await route.fulfill({contentType:'application/json',body:JSON.stringify(result)});
  });
  await page.addInitScript(value=>localStorage.setItem('sb-example-auth-token',JSON.stringify(value)),session(userA));
- await page.goto(root+'?coordinator=1&view=players');
+ await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&view=players');
  await page.getByRole('button',{name:'Open Coordinator Player 0',exact:true}).waitFor();
  await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
  const coordinatorView=async view=>page.evaluate(({url,view})=>{const next=new URL(url);next.searchParams.set('view',view);window.history.pushState(null,'',next.pathname+next.search);},{url:page.url(),view});
@@ -174,13 +174,13 @@ try{
  assert.equal(await page.getByRole('button',{name:/^Open Coordinator Player/}).count(),0,'Previous account page leaked');
  await page.getByText(/^100 of 250 players loaded\./).waitFor();
  for(const role of ['agent','scout','operations']){
-  currentRole=role;currentUser=userA;await page.goto(root+'?coordinator=1&view=players&role='+role);
+  currentRole=role;currentUser=userA;await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&view=players&role='+role);
   await page.getByRole('button',{name:'Open Coordinator Player 0',exact:true}).waitFor();
   assert.equal(await page.getByRole('link',{name:'Opportunities',exact:true}).count(),0);
   assert.equal(await page.getByRole('link',{name:'Business',exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:/^Manage /}).count(),0);
   if(role==='scout')assert.equal(await page.getByRole('button',{name:'Add player',exact:true}).count(),0);
-  await page.goto(root+'?coordinator=1&role='+role+'&view=network');await page.getByText('Shared network. Commercial details are for admins.',{exact:true}).waitFor();
+  await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&role='+role+'&view=network');await page.getByText('Shared network. Commercial details are for admins.',{exact:true}).waitFor();
   await page.getByRole('heading',{name:'Shared Staff Club',exact:true}).waitFor();
   assert.equal(await page.getByText('LIVE OPPORTUNITIES',{exact:true}).count(),0);
   assert.equal(await page.getByText('BEST ROUTE',{exact:true}).count(),0);
