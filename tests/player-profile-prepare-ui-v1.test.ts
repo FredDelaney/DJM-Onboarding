@@ -21,6 +21,7 @@ test('preparing a profile refreshes missing current statistics before presenting
   assert.match(prepare, /seasonScope === 'current'/);
   assert.match(prepare, /player_data_refresh/);
   assert.match(prepare, /player_data_status/);
+  assert.match(prepare, /canRefreshStats = Boolean\(player\.current_club\)/);
   assert.match(prepare, /crypto\.randomUUID\(\)/);
   assert.match(profile, /Finding current statistics/);
 });

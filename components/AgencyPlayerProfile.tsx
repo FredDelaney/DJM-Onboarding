@@ -1001,11 +1001,7 @@ export default function AgencyPlayerProfile({
       let response = await requestPreparation();
       let stats = readStats(response);
       const hasCurrentStats = stats.some((item) => item.seasonScope === 'current');
-      const canRefreshStats = Boolean(
-        player.current_club &&
-        player.current_season_label &&
-        player.current_league,
-      );
+      const canRefreshStats = Boolean(player.current_club);
 
       if (!hasCurrentStats && canRefreshStats) {
         setActionBusy('prepare-stats');
@@ -1049,7 +1045,7 @@ export default function AgencyPlayerProfile({
         }
       } else if (!hasCurrentStats && !canRefreshStats) {
         setNotice(
-          'Add the current season, club and competition to find current statistics automatically.',
+          'Add the current club to find current statistics automatically.',
         );
       }
 
