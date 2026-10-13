@@ -215,6 +215,7 @@ export default function AgencyClubAccountDrawer({
   }, [load]);
 
   useEffect(() => {
+    if (presentation === 'page') return;
     const previous =
       document.body.style.overflow;
 
@@ -243,7 +244,7 @@ export default function AgencyClubAccountDrawer({
         keydown,
       );
     };
-  }, [onClose]);
+  }, [onClose, presentation]);
 
   const club =
     account?.club || {};
