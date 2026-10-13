@@ -109,7 +109,7 @@ export async function suggestPlayerProfileTextImprovement(
       body: JSON.stringify({
         model: clean(options.model) || "gpt-6-luna",
         store: false,
-        max_output_tokens: 120,
+        max_output_tokens: 512,
         instructions: [
           "Improve exactly one existing player-profile text section by choosing a shorter set of its existing sentences.",
           "Choose only indices from the supplied sentences in their original order. Do not write or rewrite any words.",

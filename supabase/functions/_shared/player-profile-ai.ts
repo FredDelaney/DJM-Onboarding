@@ -191,7 +191,7 @@ export async function selectPlayerProfilePresentation(
       body: JSON.stringify({
         model: clean(options.model, 100) || "gpt-6-luna",
         store: false,
-        max_output_tokens: 240,
+        max_output_tokens: 512,
         instructions: [
           "Select only supplied statistic refs and an optional supplied video ID for a professional football player profile.",
           "Use the recorded player position and, for a club profile, the supplied club context to choose relevant evidence.",

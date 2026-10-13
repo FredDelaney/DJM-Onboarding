@@ -213,7 +213,7 @@ export default {fetch:async(req:Request)=>{
     };
     const profileAiKey=async()=>{
       const key=Deno.env.get("OPENAI_API_KEY");
-      if(Deno.env.get("REDREAM_PROFILE_AI_ENABLED")!=="true"||!key)return null;
+      if(!key)return null;
       try{return await rpc("platform_server_player_profile_ai_access",{p_tenant_id:tenantId,p_user_id:userId})===true?key:null;}
       catch(error){console.warn("player-profile AI access unavailable",error);return null;}
     };
