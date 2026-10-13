@@ -17,9 +17,9 @@ const migration = fs.readFileSync('supabase/migrations/20260924122500_redream_pu
 
 test('V6.1 homepage explains the product in plain football-agency language', () => {
   assert.match(site, /SOFTWARE FOR FOOTBALL AGENCIES/);
-  assert.match(site, /Run your agency without relying on memory/);
-  assert.match(site, /players, club requests, contacts and deals connected/);
-  assert.match(site, /what needs attention and what to do next/);
+  assert.match(site, /Your agency\. Connected\./);
+  assert.match(site, /Players, clubs, contacts and deals in one place/);
+  assert.match(site, /next move clear/);
   assert.doesNotMatch(site, /THE DECISION LAYER FOR FOOTBALL AGENCIES/);
   assert.doesNotMatch(site, /Ask the agency, not the dashboard/);
   assert.doesNotMatch(site, /Agency Memory/);
@@ -71,7 +71,7 @@ test('market-leading intelligence remains available on the deeper product experi
   assert.match(product, /ReDreamLiveOperatingDemo/);
   assert.match(decision, /What needs me first\?/);
   assert.match(decision, /Where is revenue exposed\?/);
-  assert.match(live, /LIVE REDREAM OPERATING MODEL/);
+  assert.match(live, /EXAMPLE AGENCY/);
   assert.match(sandboxContract, /redream_public_sandbox_v1/);
 });
 
@@ -91,9 +91,9 @@ test('deeper buyer pages remain available without bloating the homepage', () => 
   assert.match(site, /href="\/product"/);
   assert.match(site, /href="\/security"/);
   assert.match(site, /href="\/switch"/);
-  assert.match(product, /THREE LAYERS, ONE SYSTEM/);
-  assert.match(security, /AUTONOMY ROUTER/);
-  assert.match(switchPage, /PLAYER ROSTER MIGRATION/);
+  assert.match(product, /YOUR AGENCY, CONNECTED/);
+  assert.match(security, /YOU STAY IN CONTROL/);
+  assert.match(switchPage, /PLAYER IMPORT/);
 });
 
 test('canonical pricing remains unchanged', () => {

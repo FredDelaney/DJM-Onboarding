@@ -9,7 +9,7 @@ test('agency workspace authorises with tenant memberships rather than legacy glo
   assert.match(app, /'agency-os'/);
   assert.match(app, /action: 'tenants'/);
   assert.match(app, /tenant\.slug/);
-  assert.match(app, /owner', 'admin', 'agent', 'operations/);
+  assert.match(app, /owner', 'admin', 'agent', 'scout', 'operations/);
   assert.doesNotMatch(app, /useAdmin/);
   assert.doesNotMatch(app, /\.from\('profiles'\)/);
 });
@@ -29,7 +29,7 @@ test('agency workspace exposes the V2 operating areas with management-only Busin
   assert.match(app, /rawRequestedView === 'market'/);
   assert.match(app, /rawRequestedView === 'deals'/);
   assert.match(app, /rawRequestedView === 'relationships'/);
-  assert.match(app, /item\.key !== 'business' \|\| canSeeBusiness/);
+  assert.match(app, /!\['business','opportunities'\]\.includes\(item\.key\) \|\| canSeeBusiness/);
 });
 
 test('agency workspace uses tenant-native Autopilot reads while preserving the relationship surface', () => {
@@ -92,7 +92,7 @@ test('temporary same-origin workspace stays membership-bound before custom domai
 test('operating surface stays tenant-neutral without DJM agency branding', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
   const layout = read('app/workspace/[tenantSlug]/layout.tsx');
-  assert.match(app, /Recently handled by ReDream/);
+  assert.match(app, /Today priorities/);
   assert.doesNotMatch(app, /DJM Sports Management/);
   assert.doesNotMatch(layout, /DJM Sports Management/);
 });

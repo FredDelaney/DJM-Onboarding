@@ -37,7 +37,7 @@ test('business is management-only and lives outside primary navigation', () => {
   assert.match(workspace, /const canSeeBusiness = \['owner', 'admin'\]/);
   assert.match(
     workspace,
-    /item\.key !== 'business' \|\| canSeeBusiness/,
+    /!\['business','opportunities'\]\.includes\(item\.key\) \|\| canSeeBusiness/,
   );
   assert.match(workspace, /styles\.navManagement/);
   assert.match(accountMenu, /view=business/);
@@ -53,12 +53,11 @@ test('legacy market, deals and relationships URLs resolve into V2 areas', () => 
   assert.match(workspace, /tenant_id: workspace\.tenant_id/);
 });
 
-test('Home stays focused on agent decisions today and quiet automation proof', () => {
-  assert.match(workspace, /priority\.slice\(0, 3\)/);
+test('Home stays focused on five ranked agency decisions rather than dashboard widgets', () => {
+  assert.match(workspace, /\.slice\(0, 5\)/);
   assert.match(workspace, /Good morning\./);
-  assert.match(workspace, /things need/);
-  assert.match(workspace, /Recently handled by ReDream/);
-  assert.match(workspace, /Nothing else today/);
+  assert.match(workspace, /priorities/);
+  assert.match(workspace, /Today priorities/);
   assert.doesNotMatch(workspace, /AGENCY PULSE/);
   assert.doesNotMatch(workspace, /OPPORTUNITIES MOVING/);
   assert.doesNotMatch(workspace, /PLAYERS NEEDING ATTENTION/);
@@ -70,7 +69,7 @@ test('Opportunities combines existing market and deal capability without rebuild
   assert.match(workspace, /redream_autopilot_market/);
   assert.match(workspace, /redream_autopilot_deals/);
   assert.match(workspace, /function Opportunities/);
-  assert.match(workspace, /Club needs\. Player fits\. Best route in\./);
+  assert.match(workspace, /See every live opportunity clearly\./);
   assert.match(workspace, /AgencyPursuitRoom/);
   assert.match(workspace, /AgencyNegotiationCommandRoom/);
   assert.match(workspace, /AgencyDealCloseoutDrawer/);

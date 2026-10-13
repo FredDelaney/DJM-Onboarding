@@ -18,10 +18,12 @@
 }
 .back{
   display:inline-flex;
+  min-width:44px;
+  min-height:44px;
   align-items:center;
   gap:7px;
   color:#5e6670;
-  font-size:11px;
+  font-size:12px;
   font-weight:800;
   text-decoration:none;
 }
@@ -36,7 +38,7 @@
   border-radius:9px;
   background:#fff;
   color:#4f5761;
-  font-size:10px;
+  font-size:12px;
   font-weight:800;
 }
 .hero{
@@ -100,7 +102,7 @@
 }
 .eyebrow{
   color:var(--profile-accent);
-  font-size:9px;
+  font-size:12px;
   font-weight:850;
   letter-spacing:.12em;
   text-transform:uppercase;
@@ -134,7 +136,7 @@
   border-radius:999px;
   background:rgba(255,255,255,.09);
   color:rgba(255,255,255,.78);
-  font-size:9px;
+  font-size:12px;
   font-weight:800;
 }
 .statusRow .liveStatus{
@@ -168,14 +170,15 @@
 }
 .readinessTop span{
   color:rgba(255,255,255,.62);
-  font-size:9px;
+  font-size:12px;
   font-weight:750;
   text-transform:uppercase;
   letter-spacing:.08em;
 }
 .readinessTop strong{
-  font-size:30px;
-  letter-spacing:-.04em;
+  font-size:16px;
+  line-height:1.25;
+  letter-spacing:-.02em;
 }
 .progress{
   height:5px;
@@ -192,7 +195,7 @@
 .readiness p{
   margin:0;
   color:rgba(255,255,255,.66);
-  font-size:10px;
+  font-size:12px;
   line-height:1.45;
 }
 .heroActions{
@@ -209,7 +212,7 @@
   gap:7px;
   padding:0 13px;
   border-radius:10px;
-  font-size:10px;
+  font-size:12px;
   font-weight:850;
 }
 .primaryAction{
@@ -241,7 +244,7 @@
   gap:8px;
   padding:0 12px;
   border-radius:10px;
-  font-size:10px;
+  font-size:12px;
   font-weight:700;
 }
 .error{
@@ -296,19 +299,25 @@
 .checkDone strong,.checkPending strong{
   overflow:hidden;
   color:#343a42;
-  font-size:10px;
+  font-size:12px;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
 .checkDone small,.checkPending small{
   color:#8a9199;
-  font-size:8px;
+  font-size:12px;
 }
 .columns{
   display:grid;
   grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
   gap:14px;
 }
+.reviewBanner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border-color: #dce6ee; }
+.reviewBanner h3 { margin: 0 0 6px; font-size: 17px; }
+.reviewBanner p { margin: 0 0 6px; font-weight: 600; }
+.reviewBanner span, .reviewStats p { color: #526474; font-size: 13px; line-height: 1.5; }
+.reviewStats { padding: 16px; border: 1px solid #dce6ee; border-radius: 16px; background: #f6f9fb; }
+
 .card{
   min-width:0;
   overflow:hidden;
@@ -361,7 +370,7 @@
 }
 .facts span,.story>span{
   color:#8a9199;
-  font-size:8px;
+  font-size:12px;
   font-weight:800;
   text-transform:uppercase;
   letter-spacing:.07em;
@@ -369,7 +378,7 @@
 .facts strong{
   overflow:hidden;
   color:#313840;
-  font-size:11px;
+  font-size:12px;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
@@ -386,7 +395,7 @@
 .story p{
   margin:0 0 6px;
   color:#646c75;
-  font-size:11px;
+  font-size:12px;
   line-height:1.5;
 }
 .proofStats{
@@ -410,7 +419,7 @@
 }
 .proofStats span{
   color:#878e97;
-  font-size:9px;
+  font-size:12px;
 }
 .keyStats{
   display:grid;
@@ -427,7 +436,7 @@
 }
 .keyStats span{
   color:#858c95;
-  font-size:8px;
+  font-size:12px;
   text-transform:uppercase;
   font-weight:800;
 }
@@ -439,7 +448,7 @@
   grid-column:1/-1;
   margin:0;
   color:#747c85;
-  font-size:10px;
+  font-size:12px;
   line-height:1.5;
 }
 
@@ -450,7 +459,7 @@
   min-height:34px;
   padding:0 16px 13px;
   color:#7b838b;
-  font-size:9px;
+  font-size:12px;
 }
 .statsFreshness svg{
   flex:0 0 auto;
@@ -511,17 +520,17 @@
 .shareCopy strong{
   overflow:hidden;
   color:#333941;
-  font-size:11px;
+  font-size:12px;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
 .shareCopy span{
   color:#707882;
-  font-size:9px;
+  font-size:12px;
 }
 .shareCopy small{
   color:#969ca4;
-  font-size:8px;
+  font-size:12px;
 }
 .shareActions{
   display:flex;
@@ -539,11 +548,11 @@
 }
 .empty strong{
   color:#454c55;
-  font-size:11px;
+  font-size:12px;
 }
 .empty span{
   max-width:390px;
-  font-size:9px;
+  font-size:12px;
   line-height:1.5;
 }
 .bottomActions{
@@ -553,7 +562,7 @@
 .textButton{
   background:transparent;
   color:#7f858d;
-  font-size:9px;
+  font-size:12px;
   text-decoration:underline;
   text-underline-offset:3px;
 }
@@ -567,7 +576,7 @@
   border-radius:16px;
   background:#fff;
   color:#727a84;
-  font-size:11px;
+  font-size:12px;
 }
 .errorCard strong{
   color:#343a42;
@@ -626,7 +635,7 @@
   max-width:560px;
   margin:0;
   color:#727a84;
-  font-size:10px;
+  font-size:12px;
   line-height:1.5;
 }
 .form{
@@ -640,7 +649,7 @@
 }
 .form label>span,.sectionChooser>span{
   color:#59616b;
-  font-size:9px;
+  font-size:12px;
   font-weight:800;
 }
 .form input,.form textarea,.form select,.addVideo input{
@@ -652,7 +661,7 @@
   background:#fff;
   color:#2f353d;
   font:inherit;
-  font-size:11px;
+  font-size:12px;
   outline:none;
 }
 .form input:focus,.form textarea:focus,.form select:focus,.addVideo input:focus{
@@ -665,7 +674,7 @@
 }
 .form small{
   color:#91979f;
-  font-size:8px;
+  font-size:12px;
   line-height:1.4;
 }
 .sectionChooser{
@@ -689,7 +698,7 @@
   color:#5d6570;
   cursor:pointer;
   font:inherit;
-  font-size:9px;
+  font-size:12px;
   font-weight:750;
 }
 .sectionOn{
@@ -749,11 +758,11 @@
   gap:2px;
 }
 .videoList strong{
-  font-size:9px;
+  font-size:12px;
 }
 .videoList small{
   color:#8b929b;
-  font-size:8px;
+  font-size:12px;
 }
 .videoList a,.videoList button{
   width:28px;
@@ -778,7 +787,7 @@
   color:#fff;
   cursor:pointer;
   font:inherit;
-  font-size:9px;
+  font-size:12px;
   font-weight:800;
 }
 .modal>footer{
@@ -812,7 +821,7 @@
   margin:0;
   overflow-wrap:anywhere;
   color:#707882;
-  font-size:9px;
+  font-size:12px;
 }
 .shareSuccess button{
   min-height:38px;
@@ -826,7 +835,7 @@
   color:#fff;
   cursor:pointer;
   font:inherit;
-  font-size:9px;
+  font-size:12px;
   font-weight:800;
 }
 .previewBackdrop{
@@ -853,7 +862,7 @@
 }
 .previewBar span{
   color:#8a919a;
-  font-size:8px;
+  font-size:12px;
   font-weight:850;
   letter-spacing:.09em;
 }
@@ -873,7 +882,7 @@
   color:#545c66;
   cursor:pointer;
   font:inherit;
-  font-size:9px;
+  font-size:12px;
   font-weight:800;
 }
 .previewScroll{
@@ -971,7 +980,7 @@
     align-items:flex-start;
   }
   .quietButton{
-    font-size:9px;
+    font-size:12px;
   }
 }
 
@@ -988,7 +997,7 @@
       #fff
     );
   color: var(--profile-primary);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -1033,19 +1042,19 @@
 
 .communicationCopy > small {
   color: #8a939b;
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .05em;
 }
 
 .communicationCopy > strong {
   color: #333b43;
-  font-size: 10.5px;
+  font-size: 12px;
 }
 
 .communicationCopy > span {
   color: #6e7881;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -1059,7 +1068,7 @@
 
 .communicationFoot em {
   color: #969da4;
-  font-size: 7.5px;
+  font-size: 12px;
   font-style: normal;
 }
 
@@ -1079,7 +1088,7 @@
 }
 
 .communicationFollowupHead span {
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .06em;
 }
@@ -1092,7 +1101,7 @@
   border-radius: 999px;
   background: #eef1f3;
   color: #59636c;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .communicationFollowupRow {
@@ -1114,14 +1123,14 @@
 .communicationFollowupRow > div:first-child strong {
   overflow: hidden;
   color: #363d45;
-  font-size: 9.5px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .communicationFollowupRow > div:first-child span {
   color: #8a929a;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 @media(max-width:720px){
@@ -1172,7 +1181,7 @@
   padding:0 12px;
   border-radius:10px;
   font:inherit;
-  font-size:9px;
+  font-size:12px;
   font-weight:800;
   text-decoration:none;
 }
@@ -1207,41 +1216,41 @@
 /* Player Profile clarity pass */
 @media (min-width: 721px) {
   .back{font-size:12px}
-  .quietButton{font-size:11px}
+  .quietButton{font-size:12px}
   .heroCopy p{font-size:13px}
-  .statusRow span{font-size:10px}
-  .readinessTop span{font-size:10px}
+  .statusRow span{font-size:12px}
+  .readinessTop span{font-size:12px}
   .readinessTop strong{font-size:26px;line-height:1.05}
-  .readiness p{font-size:11px}
-  .primaryAction,.secondaryAction{font-size:11px}
-  .error,.notice{font-size:11px}
-  .checkDone strong,.checkPending strong{font-size:11px}
-  .checkDone small,.checkPending small{font-size:9px;line-height:1.35}
+  .readiness p{font-size:12px}
+  .primaryAction,.secondaryAction{font-size:12px}
+  .error,.notice{font-size:12px}
+  .checkDone strong,.checkPending strong{font-size:12px}
+  .checkDone small,.checkPending small{font-size:12px;line-height:1.35}
   .cardHead h3{font-size:17px}
-  .facts span,.story>span{font-size:9px}
+  .facts span,.story>span{font-size:12px}
   .facts strong{font-size:12px}
   .story p{font-size:12px}
-  .proofStats span{font-size:10px}
-  .keyStats span{font-size:9px}
-  .statsFreshness{font-size:10px}
+  .proofStats span{font-size:12px}
+  .keyStats span{font-size:12px}
+  .statsFreshness{font-size:12px}
   .shareCopy strong{font-size:12px}
-  .shareCopy span{font-size:10px}
-  .shareCopy small{font-size:9px}
+  .shareCopy span{font-size:12px}
+  .shareCopy small{font-size:12px}
   .empty strong{font-size:12px}
-  .empty span{font-size:10px}
-  .modal>header p{font-size:11px}
-  .form label>span,.sectionChooser>span{font-size:10px}
+  .empty span{font-size:12px}
+  .modal>header p{font-size:12px}
+  .form label>span,.sectionChooser>span{font-size:12px}
   .form input,.form textarea,.form select,.addVideo input{font-size:13px}
-  .form small{font-size:9px}
-  .sectionOn,.sectionOff{font-size:10px}
-  .addVideo button{font-size:10px}
-  .communicationCopy>small{font-size:8.5px}
-  .communicationCopy>strong{font-size:11.5px}
-  .communicationCopy>span{font-size:10.5px}
-  .communicationFoot em{font-size:8.5px}
-  .communicationFollowupHead span{font-size:8.5px}
-  .communicationFollowupRow>div:first-child strong{font-size:10.5px}
-  .communicationFollowupRow>div:first-child span{font-size:9px}
+  .form small{font-size:12px}
+  .sectionOn,.sectionOff{font-size:12px}
+  .addVideo button{font-size:12px}
+  .communicationCopy>small{font-size:12px}
+  .communicationCopy>strong{font-size:12px}
+  .communicationCopy>span{font-size:12px}
+  .communicationFoot em{font-size:12px}
+  .communicationFollowupHead span{font-size:12px}
+  .communicationFollowupRow>div:first-child strong{font-size:12px}
+  .communicationFollowupRow>div:first-child span{font-size:12px}
 }
 
 /* ReDream visual reset v1 */
@@ -1341,7 +1350,7 @@
 
   .heroCopy p {
     color: #77818c;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .statusRow {
@@ -1355,7 +1364,7 @@
     min-height: 24px;
     background: #f3f5f7;
     color: #6a7580;
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .statusRow .liveStatus {
@@ -1382,7 +1391,7 @@
 
   .readinessTop strong {
     color: #77818c;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 720;
     letter-spacing: 0;
   }
@@ -1460,15 +1469,15 @@
   }
 
   .story > span {
-    font-size: 7px;
+    font-size: 12px;
   }
 
   .story strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .story p {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .proofStats > div {
@@ -1563,7 +1572,7 @@
 .fixGuideHead>small{
   max-width:360px;
   color:#818a94;
-  font-size:9px;
+  font-size:12px;
   line-height:1.45;
   text-align:right;
 }
@@ -1598,7 +1607,7 @@
   border-radius:999px;
   background:#fff;
   color:#7f8891;
-  font-size:8px;
+  font-size:12px;
   font-weight:850;
   letter-spacing:.06em;
   text-transform:uppercase;
@@ -1617,18 +1626,18 @@
 }
 .fixCopy strong{
   color:#2c343c;
-  font-size:11px;
+  font-size:12px;
 }
 .fixCopy p{
   margin:4px 0 0;
   color:#606a74;
-  font-size:10px;
+  font-size:12px;
   line-height:1.45;
 }
 .fixCopy small{
   margin-top:5px;
   color:#8a929a;
-  font-size:8.5px;
+  font-size:12px;
   line-height:1.4;
 }
 .fixAction{
@@ -1648,7 +1657,7 @@
   border-radius:9px;
   background:#fff;
   color:#3e4a55;
-  font-size:9px;
+  font-size:12px;
   font-weight:800;
   white-space:nowrap;
 }
@@ -1660,7 +1669,7 @@
 }
 .fixAction>span{
   color:#8b9299;
-  font-size:8.5px;
+  font-size:12px;
   font-weight:750;
 }
 #player-profile-positioning,
@@ -1700,10 +1709,10 @@
     font-size:12px;
   }
   .fixCopy p{
-    font-size:10px;
+    font-size:12px;
   }
   .fixCopy small{
-    font-size:9px;
+    font-size:12px;
   }
   .fixAction{
     justify-content:stretch;
@@ -1712,7 +1721,7 @@
   .fixAction button{
     width:100%;
     min-height:44px;
-    font-size:10px;
+    font-size:12px;
   }
 }
 
@@ -1734,7 +1743,7 @@
 }
 .verifyIdentity span{
   color:#7a848e;
-  font-size:9px;
+  font-size:12px;
 }
 .verifyConfirmNote{
   display:grid;
@@ -1761,11 +1770,11 @@
 }
 .verifyConfirmNote strong{
   color:#315d49;
-  font-size:10px;
+  font-size:12px;
 }
 .verifyConfirmNote span{
   color:#668172;
-  font-size:9px;
+  font-size:12px;
   line-height:1.45;
 }
 
@@ -1783,9 +1792,9 @@
 }
 /* World-class player profile pass v2 */
 .heroFacts{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
-.heroFacts span{min-height:24px;display:inline-flex;align-items:center;padding:0 8px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.78);font-size:9px;font-weight:750}
+.heroFacts span{min-height:24px;display:inline-flex;align-items:center;padding:0 8px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.78);font-size:12px;font-weight:750}
 .profileLinks{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px}
-.profileLinks a{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.085);color:#fff;font-size:9px;font-weight:820;text-decoration:none;transition:background 140ms ease,transform 140ms ease}
+.profileLinks a{min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.085);color:#fff;font-size:12px;font-weight:820;text-decoration:none;transition:background 140ms ease,transform 140ms ease}
 .profileLinks a:first-child{background:#fff;color:var(--profile-primary)}
 @media(hover:hover){
   .profileLinks a:hover{transform:translateY(-1px);background:rgba(255,255,255,.14)}
@@ -1796,19 +1805,19 @@
   .photo{flex:0 0 88px;width:88px;height:106px;border:1px solid rgba(255,255,255,.15);border-radius:16px;background:rgba(255,255,255,.08);color:#fff;box-shadow:none}
   .heroCopy{padding-top:2px}
   .heroCopy h2{margin:0 0 6px;color:#fff;font-size:28px}
-  .heroCopy p{color:rgba(255,255,255,.68);font-size:11px;line-height:1.35}
+  .heroCopy p{color:rgba(255,255,255,.68);font-size:12px;line-height:1.35}
   .heroFacts{margin-top:9px;gap:5px}
-  .heroFacts span{min-height:22px;padding:0 7px;border-color:rgba(255,255,255,.11);background:rgba(255,255,255,.07);color:rgba(255,255,255,.78);font-size:8px}
+  .heroFacts span{min-height:22px;padding:0 7px;border-color:rgba(255,255,255,.11);background:rgba(255,255,255,.07);color:rgba(255,255,255,.78);font-size:12px}
 }@media(max-width:720px){
   .statusRow{justify-content:flex-start;margin-top:9px}
-  .statusRow span,.statusRow .liveStatus,.statusRow .draftStatus{min-height:22px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);font-size:8px}
+  .statusRow span,.statusRow .liveStatus,.statusRow .draftStatus{min-height:22px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);font-size:12px}
   .statusRow .liveStatus{background:rgba(82,196,135,.18);color:#ddffeb}
   .profileLinks{margin-top:10px;gap:6px}
-  .profileLinks a{min-height:30px;padding:0 9px;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.08);font-size:8.5px}
+  .profileLinks a{min-height:30px;padding:0 9px;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.08);font-size:12px}
   .profileLinks a:first-child{background:#fff;color:var(--profile-primary)}
   .readiness{width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.06);text-align:left}
   .readinessTop{justify-content:flex-start}
-  .readinessTop strong{color:rgba(255,255,255,.76);font-size:9px}
+  .readinessTop strong{color:rgba(255,255,255,.76);font-size:12px}
   .heroActions{justify-content:flex-start}
   .heroActions .primaryAction{background:#fff;color:var(--profile-primary)}
   .hero .secondaryAction{border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.08);color:#fff}
@@ -1817,8 +1826,8 @@
 @media(max-width:720px){
   .hero{grid-template-areas:"identity" "actions" "readiness"}
   .heroActions .primaryAction{flex-basis:100%;width:100%;min-height:48px}
-  .hero .secondaryAction{width:auto;min-width:44px;min-height:44px;padding:0 12px;border-radius:10px;font-size:10px}
-  .profileLinks a{min-height:44px;padding:0 12px;font-size:11px}
+  .hero .secondaryAction{width:auto;min-width:44px;min-height:44px;padding:0 12px;border-radius:10px;font-size:12px}
+  .profileLinks a{min-height:44px;padding:0 12px;font-size:12px}
 }
 
 /* Club-ready share handoff v1 */
@@ -1830,7 +1839,7 @@
   border-radius: 13px;
   background: #f8fafb;
   color: #39434c;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
   text-align: left;
   white-space: pre-wrap;
@@ -2206,3 +2215,252 @@
   .availableStats button,
   .prepareSections button { min-height: 44px; }
 }
+/* Profile hierarchy: identity, sources, main action, readiness. */
+.hero {
+  grid-template-areas: "identity readiness" "sources readiness" "actions readiness";
+}
+.profileLinks {
+  grid-area: sources;
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+}
+.profileLinks a {
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.cardHead {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cardHead > div {
+  flex: 1 1 160px;
+}
+.cardHead h3 {
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.topbar .quietButton,
+.cardHead .quietButton {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  min-height: 44px;
+  font-size: 12px;
+  padding: 10px 14px;
+}
+.shareCopy strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.bottomActions {
+  justify-content: flex-start;
+}
+.textButton {
+  text-decoration: none;
+}
+@media (max-width: 720px) {
+  .root { gap: 16px; }
+  .topbar {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .topbar .back {
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+    height: auto;
+    padding: 10px 12px;
+    border-radius: 11px;
+    font-size: 12px;
+    line-height: 1.35;
+    gap: 7px;
+  }
+  .topbar .quietButton { flex: 0 1 auto; }
+  .hero {
+    grid-template-areas: "identity" "sources" "actions" "readiness";
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding: 20px 16px;
+    gap: 16px;
+    border-radius: 18px;
+  }
+  .heroIdentity { gap: 12px; }
+  .photo {
+    width: 64px;
+    height: 80px;
+    flex-basis: 64px;
+    border-radius: 12px;
+  }
+  .heroCopy { min-width: 0; }
+  .heroCopy h2 {
+    font-size: clamp(22px, 6vw, 28px);
+    line-height: 1.15;
+  }
+  .heroCopy p { font-size: 12px; line-height: 1.5; }
+  .heroFacts span, .statusRow span { font-size: 12px; line-height: 1.4; }
+  .heroFacts span { padding: 4px 8px; }
+  .profileLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+  }
+  .profileLinks a { flex: 1 1 120px; min-width: 0; padding: 10px 12px; }
+  .heroActions { gap: 8px; }
+  .heroActions .secondaryAction { flex: 1 1 130px; }
+  .readiness { padding: 12px; }
+  .readinessTop strong, .readinessTop span { font-size: 12px; }
+  .readiness p { font-size: 12px; line-height: 1.5; }
+  .card { border-radius: 18px; }
+  .cardHead { padding: 16px; gap: 12px; }
+  .cardHead h3 { font-size: 17px; }
+  .empty { min-height: 128px; padding: 20px 16px; gap: 8px; }
+  .empty strong { font-size: 13px; line-height: 1.4; }
+  .empty span { font-size: 12px; line-height: 1.5; }
+  .shareRow {
+    grid-template-columns: 12px minmax(0, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+  .shareCopy strong { font-size: 14px; line-height: 1.4; }
+  .shareCopy span, .shareCopy small { font-size: 12px; line-height: 1.5; }
+  .shareActions { grid-column: 2; gap: 8px; }
+}
+
+/* Keep secondary tools available without crowding the primary profile actions. */
+.hero { overflow: visible; z-index: 2; }
+.hero::after { display: none; }
+.profileTools { position: relative; }
+.profileTools summary { list-style: none; cursor: pointer; min-height: 44px; }
+.profileTools summary::-webkit-details-marker { display: none; }
+.toolMenu { position: absolute; z-index: 30; right: 0; top: calc(100% + 8px); min-width: 220px; display: grid; gap: 4px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; box-shadow: 0 14px 36px #0f172a26; }
+.toolMenu button[data-ui-button] { justify-content: flex-start; width: 100%; min-height: 44px; color: #0f172a; background: #fff; border-color: transparent; }
+.toolMenu button[data-ui-button]:hover { background: #f1f5f9; }
+@media (max-width: 720px) { .profileTools { flex: 1 1 130px; } .profileTools summary { width: 100%; } }
+
+/* Core mobile profile: the primary action already communicates readiness. */
+@media (max-width: 720px) {
+  .hero {
+    grid-template-areas: "identity" "sources" "actions";
+  }
+  .readiness {
+    display: none;
+  }
+}
+
+/* Keep the mobile secondary action legible beside the compact More menu. */
+@media (max-width: 720px) {
+  .heroActions > .secondaryAction:not(summary) {
+    flex: 1 1 210px;
+    white-space: nowrap;
+  }
+  .heroActions .profileTools {
+    flex: 0 0 auto;
+  }
+  .heroActions .profileTools summary {
+    width: auto;
+    min-width: 94px;
+    white-space: nowrap;
+  }
+}
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+
+.hero { background: #111827; box-shadow: none; min-height: 200px; }
+.hero::after { display: none; }
+.heroCopy h2 { font-weight: 600; }
+.card { box-shadow: none; border-color: #e5e5e7; }
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow, .live { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.card { box-shadow: none; border-color: #e5e5e7; }
+.primary, .secondary, .primaryAction, .secondaryAction { font-weight: 500; box-shadow: none; }
+
+/* World-class product pass v11: player identity is premium without a heavy dark hero. */
+.hero{border:1px solid #e5e5e7;background:#fff;color:#1d1d1f;box-shadow:none}
+.heroCopy h2{color:#1d1d1f}.heroCopy p{color:#6e6e73}
+.heroFacts span{border:0;background:#f5f5f7;color:#515154}
+.profileLinks a{border:0;background:#f5f5f7;color:#0066cc}
+.photo{border-color:#e5e5e7;background:#f1f3f5;color:#52687b}
+.statusRow span,.statusRow .draftStatus{border:0;background:#f5f5f7;color:#515154}
+.statusRow .liveStatus{border:0;background:#eaf6ef;color:#286a48}
+.readiness{border-color:#e5e5e7;background:#f5f5f7}
+.readinessTop span,.readiness p{color:#6e6e73}
+.readinessTop strong{color:#1d1d1f}
+.heroActions .primaryAction{min-height:44px;border-color:transparent;background:#0071e3;color:#fff}
+.hero .secondaryAction{min-height:44px;border-color:transparent;background:#f5f5f7;color:#424245}
+@media(max-width:720px){
+ .root{gap:12px}.hero{gap:12px;padding:16px;border-radius:17px}
+ .photo{width:58px;height:72px;flex-basis:58px;border-radius:11px}.heroCopy h2{font-size:25px}
+ .heroFacts{gap:5px}.heroFacts span{padding:4px 7px}.profileLinks{gap:6px}.profileLinks a{min-height:44px;padding:8px 10px}
+ .heroActions{gap:6px}.heroActions :is(button,a,summary){min-height:44px!important}
+ .card{border-radius:16px}.cardHead{padding:14px}
+}
+
+/* Populated profiles: readable facts and direct, focused editing. */
+.root { gap: 20px; }
+.hero { padding: 28px; gap: 20px; }
+.heroCopy p { font-size: 14px; line-height: 1.55; }
+.heroFacts { gap: 6px 12px; }
+.heroFacts span { padding: 0; min-height: 20px; background: transparent; color: #6e6e73; font-size: 13px; font-weight: 400; }
+.statusRow span:not(.liveStatus) { padding-left: 0; background: transparent; color: #6e6e73; font-weight: 400; }
+.profileLinks a { flex: 0 1 auto; padding: 10px 12px; border: 1px solid #e5e5e7; background: #fff; color: #0066cc; font-weight: 500; }
+.profileLinks a:first-child { background: #fff; color: #0066cc; }
+.heroActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.root .facts strong { white-space: normal; overflow: visible; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; font-weight: 500; }
+.root .facts span, .root .story > span { color: #6e6e73; font-weight: 500; letter-spacing: 0; }
+.story strong { font-size: 14px; font-weight: 500; }
+.story p, .shareCopy span, .shareCopy small { font-size: 13px; line-height: 1.55; color: #6e6e73; }
+.proofStats span, .keyStats span { color: #6e6e73; }
+.communicationCopy > small, .communicationCopy > span { color: #6e6e73; line-height: 1.55; }
+
+.modal.editorModal { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; height: min(760px, calc(100dvh - 40px)); overflow: hidden; }
+.editorModal > header { position: static; padding-bottom: 16px; }
+.editorNav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 24px 0; padding: 4px; gap: 4px; border-radius: 12px; background: #f5f5f7; }
+.editorNav button { appearance: none; min-width: 0; min-height: 44px; padding: 8px; border: 0; border-radius: 9px; background: transparent; color: #6e6e73; font: inherit; font-size: 14px; cursor: pointer; }
+.editorNav button[aria-pressed="true"] { background: #fff; color: #0066cc; box-shadow: 0 1px 4px #0000000a; }
+.editorNav button:focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }
+.editorBody { min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: block; padding-top: 22px; }
+.editorSection { display: grid; gap: 20px; }
+.editorSection[hidden] { display: none; }
+.editorSection label > span { font-size: 14px; font-weight: 500; color: #424245; }
+.editorSection small { color: #6e6e73; font-size: 13px; line-height: 1.5; }
+.editorSection .sectionChooser > span { font-size: 14px; font-weight: 500; }
+.editorSection .sectionOn, .editorSection .sectionOff { min-height: 44px; border-radius: 10px; font-size: 13px; }
+.editorSection .sectionOn { color: #0066cc; border-color: #c8dff7; background: #f0f7ff; }
+.editorModal > footer { position: static; display: flex; flex-wrap: wrap; align-items: center; padding-top: 12px; padding-bottom: 12px; }
+.editorModal > footer > button { min-height: 44px; }
+.editorFeedback { flex: 1 1 100%; margin-bottom: 4px; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; background: #f5f5f7; color: #424245; }
+.editorFeedback[role="alert"] { color: #b42318; background: #fef3f2; }
+
+@media (max-width: 720px) {
+  .root { gap: 16px; }
+  .hero { padding: 20px; gap: 16px; }
+  .photo { width: 66px; height: 82px; flex-basis: 66px; }
+  .heroCopy h2 { font-size: 27px; line-height: 1.15; }
+  .heroCopy p { font-size: 13px; }
+  .heroFacts span { font-size: 12px; line-height: 1.5; }
+  .heroActions > .primaryAction { flex: 1 1 100%; }
+  .heroActions > .secondaryAction:not(summary) { flex: 1 1 150px; }
+  .root .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .facts > div { padding: 14px; }
+  .story { padding: 16px; }
+  .modal.editorModal { height: min(780px, calc(100dvh - 16px)); }
+  .editorNav { margin: 12px 16px 0; }
+  .editorNav button { font-size: 13px; padding: 6px; }
+  .editorModal > footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .editorModal > footer > .primaryAction, .editorFeedback { grid-column: 1 / -1; }
+}
+
+.topbar { justify-content: flex-start; }
+.topbar > .back:nth-child(2) { margin-left: auto; }
+fieldset.editorBody { min-width: 0; margin: 0; border: 0; }
+@media (max-height: 600px) {
+  .modal.editorModal { display: block; height: auto; max-height: calc(100dvh - 16px); overflow-y: auto; }
+  .editorBody { overflow: visible; }
+}
+
+.communicationFollowupRow > div > strong { white-space: normal; overflow: visible; overflow-wrap: anywhere; line-height: 1.5; }

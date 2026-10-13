@@ -1170,3 +1170,51 @@
     box-shadow: 0 5px 16px rgba(20,34,48,.022);
   }
 }
+
+/* Core pursuit journey: one obvious next move. */
+.heroAction {
+  margin-top: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+}
+.heroAction:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+@media (max-width: 680px) {
+  .heroAction {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 16px;
+    font-size: 12px;
+  }
+}
+
+/* Readable decision guidance at every viewport. */
+.pagePanel .hero > div:first-child > span {
+  font-size: 14px;
+  line-height: 1.55;
+}
+@media (max-width: 680px) {
+  .pagePanel .step > div > span { font-size: 10px; line-height: 1.35; }
+  .pagePanel .subhead { font-size: 12px; line-height: 1.5; }
+  .pagePanel .hero p, .pagePanel .panelHead p { font-size: 10px; }
+  .pagePanel .heroAction { font-size: 14px; }
+  .pagePanel .panelHead h3 { font-size: 16px; line-height: 1.4; }
+  .pagePanel .copy { font-size: 13px; line-height: 1.55; }
+  .pagePanel .truth { font-size: 12px; line-height: 1.55; }
+}
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow, .live, .topline { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.panel { box-shadow: none; border-color: #e5e5e7; }
+.primary, .secondary { font-weight: 500; box-shadow: none; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }

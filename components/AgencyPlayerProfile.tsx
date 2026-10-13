@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import {
   ArrowLeft,
+  ArrowRight,
   BarChart3,
   Check,
+  ChevronDown,
   Clock3,
   Copy,
   Download,
@@ -28,11 +30,13 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 import PublicProfile from '@/components/PublicProfile';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
+import AgencyPlayerDataPanel from '@/components/AgencyPlayerDataPanel';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
   friendlyError,
@@ -44,6 +48,7 @@ import {
   setCachedPlayerProfile,
 } from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
+import { safeSourceUrl } from '@/lib/player-data-workflow';
 import { tenantBrandTokens } from '@/lib/tenant-brand-style';
 
 import styles from './AgencyPlayerProfile.module.css';
@@ -56,6 +61,8 @@ type AgencyInvoke = <T = any>(
 type Props = {
   playerId: string;
   backHref: string;
+  workHref?: string;
+  cacheScope?: string;
   role: string;
   fallbackAgency: Record<string, any>;
   invoke: AgencyInvoke;
@@ -239,19 +246,6 @@ const displayDate = (value: unknown) => {
         year: 'numeric',
         timeZone: 'UTC',
       }).format(date);
-};
-
-const statsFreshnessLabel = (value: unknown) => {
-  const raw = text(value);
-  if (!raw) return '';
-  const checked = new Date(raw);
-  if (Number.isNaN(checked.getTime())) return '';
-  const hours = Math.max(0, Math.floor((Date.now() - checked.getTime()) / 3600000));
-  if (hours < 24) return 'Checked today';
-  if (hours < 48) return 'Checked yesterday';
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `Checked ${days}d ago`;
-  return `Checked ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(checked)}`;
 };
 
 const parseKeyStats = (value: string) =>
@@ -438,22 +432,55 @@ const shareStatus = (share: any) => {
 export default function AgencyPlayerProfile({
   playerId,
   backHref,
+  workHref,
+  cacheScope = '',
   role,
   fallbackAgency,
   invoke,
   onOpenAction,
   onOpenIntelligence,
 }: Props) {
-  const initialProfile = getCachedPlayerProfile(playerId);
+  const initialProfile = getCachedPlayerProfile(playerId, cacheScope);
   const [bundle, setBundle] = useState<any>(() => initialProfile);
   const [form, setForm] = useState<ProfileForm>(() =>
     initialProfile ? formFromProfile(initialProfile) : emptyForm,
   );
+  useEffect(() => {
+    if (bundle) setCachedPlayerProfile(playerId, bundle, cacheScope);
+  }, [bundle, playerId, cacheScope]);
   const [loading, setLoading] = useState(!initialProfile);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [editOpen, setEditOpen] = useState(false);
+  const [editorSection, setEditorSection] = useState<'story' | 'presentation' | 'video'>('story');
+  const editorDialog = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!editOpen) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusFirst = () => {
+      Array.from(editorDialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled)') || []).find(node => node.getClientRects().length > 0)?.focus();
+    };
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !editorDialog.current?.contains(event.target)) focusFirst();
+    };
+    const recoverFocus = (event: KeyboardEvent) => {
+      if (event.key === 'Tab' && !editorDialog.current?.contains(document.activeElement)) {
+        event.preventDefault(); focusFirst();
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', recoverFocus);
+    Array.from(editorDialog.current?.querySelectorAll<HTMLElement>('input, textarea') || []).find(node => node.getClientRects().length > 0)?.focus();
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', recoverFocus);
+      queueMicrotask(() => { if (opener?.isConnected) opener.focus(); });
+    };
+  }, [editOpen]);
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyFocus, setVerifyFocus] = useState<'verification' | 'position' | 'contract-status' | 'contract-expiry'>(
     'verification',
@@ -501,8 +528,10 @@ export default function AgencyPlayerProfile({
   const [transfermarktUrl, setTransfermarktUrl] = useState('');
   const [transfermarktError, setTransfermarktError] = useState('');
 
-  const load = useCallback(async (fresh = false) => {
-    const cached = getCachedPlayerProfile(playerId);
+  const loadGeneration = useRef(0);
+  const load = useCallback(async (fresh = false, preserveDraft = false) => {
+    const generation = ++loadGeneration.current;
+    const cached = getCachedPlayerProfile(playerId, cacheScope);
     if (!cached) setLoading(true);
     setError('');
 
@@ -514,7 +543,7 @@ export default function AgencyPlayerProfile({
           ? (await invoke<any>('player_profile_core', {
               player_id: playerId,
             }))?.profile || null
-          : await prefetchPlayerProfile(playerId, invoke);
+          : await prefetchPlayerProfile(playerId, invoke, cacheScope);
       } catch {
         profile =
           (await invoke<any>('player_profile', {
@@ -523,12 +552,12 @@ export default function AgencyPlayerProfile({
       }
 
       if (!profile) {
-        throw new Error('Player Profile could not be loaded.');
+        throw new Error('Player profile could not load.');
       }
 
-      setCachedPlayerProfile(playerId, profile);
+      if (generation !== loadGeneration.current) return false;
       setBundle(profile);
-      setForm(formFromProfile(profile));
+      if (!preserveDraft) setForm(formFromProfile(profile));
       setLoading(false);
 
       if (profile.secondary_ready === false) {
@@ -537,7 +566,7 @@ export default function AgencyPlayerProfile({
         })
           .then((response) => {
             const detail = response?.detail || null;
-            if (!detail) return;
+            if (!detail || generation !== loadGeneration.current) return;
 
             setBundle((current: any) => {
               if (!current) return current;
@@ -549,21 +578,26 @@ export default function AgencyPlayerProfile({
                   ...(detail.branding || {}),
                 },
               };
-              setCachedPlayerProfile(playerId, next);
               return next;
             });
           })
           .catch(() => undefined);
       }
+      return true;
     } catch (loadError) {
+      if (generation !== loadGeneration.current) return false;
       setError(friendlyError(loadError));
       setLoading(false);
+      return false;
     }
-  }, [invoke, playerId]);
+  }, [invoke, playerId, cacheScope]);
 
   useEffect(() => {
     void load(false);
+    return () => { ++loadGeneration.current; };
   }, [load]);
+
+  const reloadRecordedData = useCallback(() => load(true), [load]);
 
   const player = bundle?.player || {};
   const agency = {
@@ -670,6 +704,9 @@ export default function AgencyPlayerProfile({
       (!version.deal_room_id || version.deal_room_id === shareDeal),
   );
 
+  const recordedStats = Array.isArray(bundle?.auto_key_stats) ? bundle.auto_key_stats : [];
+  const recordedStatsSource = safeSourceUrl(bundle?.auto_stats_meta?.source_url);
+
   const checks: ProfileCheck[] = [
     {
       key: 'verification',
@@ -680,7 +717,7 @@ export default function AgencyPlayerProfile({
       important: true,
       missingTitle: 'Verify current player data',
       missingDetail:
-        'Review the player record, save any corrections, then mark the current data verified.',
+        'Review, correct and verify the player data.',
       where:
         'Player Profile → Review current data → Confirm & verify',
       action: 'verify-player',
@@ -688,12 +725,12 @@ export default function AgencyPlayerProfile({
     },
     {
       key: 'position',
-      label: 'Position recorded',
+      label: 'Position added',
       ok: Boolean(player.primary_position),
       important: true,
       missingTitle: 'Add the primary position',
       missingDetail:
-        'The club profile cannot publish without the player’s primary position.',
+        'Add the primary position before publishing.',
       where:
         'Player Profile → Review current data → Primary position',
       action: 'verify-player',
@@ -706,7 +743,7 @@ export default function AgencyPlayerProfile({
       important: true,
       missingTitle: 'Add the agency support email',
       missingDetail:
-        'Clubs need a clear reply address on the Player Profile.',
+        'Add a reply email before publishing.',
       where:
         'Settings → Agency settings → Workspace identity → Support email',
       action: 'agency-settings',
@@ -719,7 +756,7 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add a player profile photo',
       missingDetail:
-        'A strong player photo makes the club-facing profile feel complete and credible.',
+        'Add a player photo.',
       where:
         `Players → ${name} → player workspace`,
       action: 'player-workspace',
@@ -732,7 +769,7 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add career history',
       missingDetail:
-        'Record at least one career entry so clubs can see the player’s pathway.',
+        'Add at least one career entry.',
       where:
         `Players → ${name} → Career`,
       action: 'player-workspace',
@@ -745,7 +782,7 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add current player footage',
       missingDetail:
-        'Paste a YouTube, Vimeo or Wyscout video so clubs can watch the player immediately.',
+        'Add a current player video.',
       where:
         'Edit Player Profile → Current player footage → Video URL',
       action: 'profile-video',
@@ -758,7 +795,7 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add Transfermarkt URL',
       missingDetail:
-        'Link the player’s record so a club can verify the career context quickly.',
+        'Add a trusted profile link.',
       where: 'Player Profile → Transfermarkt',
       action: 'transfermarkt',
       actionLabel: 'Add link',
@@ -774,8 +811,8 @@ export default function AgencyPlayerProfile({
         ? 'Add contract expiry'
         : 'Add contract status',
       missingDetail: player.contract_status
-        ? 'Record the expiry date for a player who is under contract.'
-        : 'Record the current contract status so clubs understand availability.',
+        ? 'Add the contract expiry date.'
+        : 'Add the contract status.',
       where: player.contract_status
         ? 'Player Profile → Review current data → Contract expiry'
         : 'Player Profile → Review current data → Contract status',
@@ -793,9 +830,9 @@ export default function AgencyPlayerProfile({
       important: false,
       missingTitle: 'Add the agency view',
       missingDetail:
-        'Write a short profile headline or “Why this player?” note to explain the player quickly.',
+        'Add a short player headline.',
       where:
-        'Edit Player Profile → Profile headline / Why this player?',
+        'Edit profile headline',
       action: 'profile-positioning',
       actionLabel: 'Add positioning',
     },
@@ -815,9 +852,13 @@ export default function AgencyPlayerProfile({
     missingRequiredChecks[0]?.key === 'verification';
   const canPublishFromHero = canPublish || verificationOnly;
   const guidedRequiredChecks = verificationOnly ? [] : missingRequiredChecks;
-  const canEdit = ['owner', 'admin', 'agent', 'operations'].includes(
+  const canEdit = !bundle?.access?.restricted && ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
+  const primaryRequiredCheck = guidedRequiredChecks[0] || null;
+  const primaryMoveBlocked =
+    primaryRequiredCheck?.action === 'agency-settings' &&
+    !['owner', 'admin'].includes(role);
 
   const setField = <K extends keyof ProfileForm>(
     key: K,
@@ -828,6 +869,24 @@ export default function AgencyPlayerProfile({
       [key]: value,
     }));
 
+  const useRecordedStats = async () => {
+    if (!canEdit || actionBusy) return;
+    setActionBusy('recorded-statistics');
+    setError('');
+    try {
+      await invoke('player_profile_save', {
+        player_id: playerId,
+        settings: { ...(bundle?.settings || {}), key_stats: [], selected_stat_refs: [] },
+      });
+      if (!(await load(true))) {
+        throw new Error('Statistics updated, but the profile could not reload. Try again.');
+      }
+      setNotice('Statistics updated. Publish when ready.');
+    } finally {
+      setActionBusy('');
+    }
+  };
+
   const saveSettings = async (
     showNotice = true,
     overrides: Partial<ProfileForm> = {},
@@ -837,23 +896,25 @@ export default function AgencyPlayerProfile({
     setActionBusy('save');
     setError('');
     if (showNotice) setNotice('');
+    const savedSettings = {
+      intro_line: nextForm.intro_line,
+      why_review: nextForm.why_review,
+      career_summary: nextForm.career_summary,
+      key_stats: parseKeyStats(nextForm.key_stats_text),
+      selected_stat_refs: nextForm.selected_stat_refs,
+      selected_video_id: nextForm.selected_video_id,
+      notable_experience: parseLines(nextForm.experience_text),
+      hide_market_value: nextForm.hide_market_value,
+      market_value_display: nextForm.market_value_display,
+      market_value_source_url: nextForm.market_value_source_url,
+      hidden_sections: nextForm.hidden_sections,
+    };
     try {
       await invoke('player_profile_save', {
         player_id: playerId,
-        settings: {
-          intro_line: nextForm.intro_line,
-          why_review: nextForm.why_review,
-          career_summary: nextForm.career_summary,
-          key_stats: parseKeyStats(nextForm.key_stats_text),
-          selected_stat_refs: nextForm.selected_stat_refs,
-          selected_video_id: nextForm.selected_video_id,
-          notable_experience: parseLines(nextForm.experience_text),
-          hide_market_value: nextForm.hide_market_value,
-          market_value_display: nextForm.market_value_display,
-          market_value_source_url: nextForm.market_value_source_url,
-          hidden_sections: nextForm.hidden_sections,
-        },
+        settings: savedSettings,
       });
+      setBundle((current: any) => current ? { ...current, settings: { ...(current.settings || {}), ...savedSettings } } : current);
       if (showNotice) {
         setNotice('Player Profile saved.');
       }
@@ -1129,8 +1190,8 @@ export default function AgencyPlayerProfile({
       });
       setNotice(
         published?.published
-          ? 'Live Player Profile updated.'
-          : 'Player Profile is live and ready to share.',
+          ? 'Live profile updated.'
+          : 'Profile is live.',
       );
       setEditOpen(false);
       await load(true);
@@ -1149,7 +1210,7 @@ export default function AgencyPlayerProfile({
       await invoke('player_profile_unpublish', {
         player_id: playerId,
       });
-      setNotice('Player Profile unpublished.');
+      setNotice('Profile unpublished.');
       await load(true);
     } catch (publishError) {
       setError(friendlyError(publishError));
@@ -1184,7 +1245,7 @@ export default function AgencyPlayerProfile({
         logoUrl,
         filename: `${name}-${agency.short_name || agency.display_name || 'Agency'}-Player-Profile.pdf`,
       });
-      setNotice('Player Profile PDF downloaded.');
+      setNotice('PDF downloaded.');
     } catch (pdfError) {
       setError(friendlyError(pdfError));
     } finally {
@@ -1220,7 +1281,7 @@ export default function AgencyPlayerProfile({
     const organisationId =
       selectedDeal?.organisation_id || shareClub;
     if (!organisationId) {
-      setError('Choose the club this profile is being shared with.');
+      setError('Choose a club first.');
       return;
     }
     if (shareVersionId && !versions.some((version) =>
@@ -1248,7 +1309,7 @@ export default function AgencyPlayerProfile({
       );
       const token = response?.share?.token;
       if (!token) {
-        throw new Error('The profile link was not created.');
+        throw new Error('Could not create the link.');
       }
       const url = `${window.location.origin}/s/${token}`;
       const readyMessage = buildShareMessage(url);
@@ -1256,9 +1317,9 @@ export default function AgencyPlayerProfile({
       setShareResultMessage(readyMessage);
       try {
         await navigator.clipboard.writeText(readyMessage);
-        setNotice('Private Player Profile share created and message copied.');
+        setNotice('Private link created. Message copied.');
       } catch {
-        setNotice('Private Player Profile share created.');
+        setNotice('Private link created.');
       }
       await load(true);
     } catch (shareError) {
@@ -1290,7 +1351,7 @@ export default function AgencyPlayerProfile({
     const url = `${window.location.origin}/s/${token}`;
     try {
       await navigator.clipboard.writeText(url);
-      setNotice('Player Profile link copied.');
+      setNotice('Profile link copied.');
     } catch {
       setShareResultUrl(url);
       setShareOpen(true);
@@ -1302,9 +1363,9 @@ export default function AgencyPlayerProfile({
 
     try {
       await navigator.clipboard.writeText(shareResultMessage);
-      setNotice('Club-ready share message copied.');
+      setNotice('Share message copied.');
     } catch {
-      setNotice('Copy was blocked by the browser. You can still copy the message manually.');
+      setNotice('Copy failed. Select and copy the message manually.');
     }
   };
 
@@ -1392,7 +1453,7 @@ export default function AgencyPlayerProfile({
       setVideoTitle('');
       setVideoUrl('');
       setNotice('Video added to the player record.');
-      await load(true);
+      await load(true, true);
     } catch (videoError) {
       setError(friendlyError(videoError));
     } finally {
@@ -1410,7 +1471,7 @@ export default function AgencyPlayerProfile({
         video_id: videoId,
       });
       setNotice('Video removed.');
-      await load(true);
+      await load(true, true);
     } catch (videoError) {
       setError(friendlyError(videoError));
     } finally {
@@ -1457,11 +1518,17 @@ export default function AgencyPlayerProfile({
   };
 
   const openEditor = () => {
+    setEditorSection('story');
+    setError('');
+    setNotice('');
     setForm(formFromProfile(bundle));
     setEditOpen(true);
   };
 
   const openEditorAt = (target: 'positioning' | 'video') => {
+    setEditorSection(target === 'video' ? 'video' : 'story');
+    setError('');
+    setNotice('');
     setForm(formFromProfile(bundle));
     setEditOpen(true);
     window.setTimeout(() => {
@@ -1524,6 +1591,42 @@ export default function AgencyPlayerProfile({
     }
   };
 
+  const runProfileCheck = (item: ProfileCheck) => {
+    if (!canEdit) return;
+
+    if (item.action === 'verify-player') {
+      openVerify(
+        item.key === 'position'
+          ? 'position'
+          : item.key === 'contract'
+            ? player.contract_status
+              ? 'contract-expiry'
+              : 'contract-status'
+            : 'verification',
+      );
+      return;
+    }
+
+    if (item.action === 'transfermarkt') {
+      openTransfermarkt();
+      return;
+    }
+
+    if (item.action === 'profile-video' || item.action === 'profile-positioning') {
+      openEditorAt(item.action === 'profile-video' ? 'video' : 'positioning');
+      return;
+    }
+
+    if (item.action === 'player-workspace') {
+      window.location.assign(backHref);
+      return;
+    }
+
+    if (item.action === 'agency-settings' && ['owner', 'admin'].includes(role)) {
+      window.location.assign('/settings/agency');
+    }
+  };
+
   const verifyPlayerData = async () => {
     if (!canEdit || actionBusy) return;
     if (!verifyForm.primary_position.trim()) {
@@ -1564,6 +1667,7 @@ export default function AgencyPlayerProfile({
   };
 
   const closeEditor = () => {
+    if (actionBusy) return;
     setForm(formFromProfile(bundle));
     setEditOpen(false);
   };
@@ -1580,8 +1684,8 @@ export default function AgencyPlayerProfile({
   if (!bundle) {
     return (
       <section className={styles.errorCard}>
-        <strong>Player Profile could not load</strong>
-        <p>Nothing has been changed. Try again, or return to the player workspace.</p>
+        <strong>Player profile could not load</strong>
+        <p>Nothing changed. Try again or return to Players.</p>
         <div className={styles.errorActions}>
           <button data-ui-button="secondary" type="button" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={14} />
@@ -1607,13 +1711,26 @@ export default function AgencyPlayerProfile({
     '--profile-on-accent': brand.onAccent,
   } as React.CSSProperties;
 
+  if (bundle?.access?.restricted) {
+    return <div className={styles.root} style={theme}>
+      <div className={styles.topbar}><Link href={backHref} className={styles.back} aria-label="Back to players"><ArrowLeft size={15}/>Players</Link></div>
+      <section className={styles.card} aria-label="Assigned player access" style={{padding:20}}>
+        <h2>Assigned player profile</h2>
+        <p>Review football information here. Contract and sharing controls are for admins.</p>
+      </section>
+      {error?<p className={styles.error} role="alert">{error}</p>:null}
+      <PublicProfile profile={draftProfile} agency={agency}/>
+    </div>;
+  }
+
   return (
     <div className={styles.root} style={theme}>
       <div className={styles.topbar}>
-        <Link href={backHref} className={styles.back}>
+        <Link href={backHref} className={styles.back} aria-label="Back to players">
           <ArrowLeft size={15} />
           Players
         </Link>
+        {workHref ? <Link href={workHref} className={styles.back}>Work view</Link> : null}
 
         <button
           type="button"
@@ -1643,6 +1760,17 @@ export default function AgencyPlayerProfile({
           <Check size={15} />
           {notice}
         </div>
+      ) : null}
+
+      {player.review_required_at || player.review_reason ? (
+        <section className={`${styles.card} ${styles.reviewBanner}`} aria-label="Player data review">
+          <div>
+            <h3>Player data needs review</h3>
+            <p>{player.review_reason || 'New player information needs checking.'}</p>
+            <span>Check the information before confirming it is current.</span>
+          </div>
+          {canEdit ? <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => openVerify('verification')}>Review updated data</button> : null}
+        </section>
       ) : null}
 
       <section className={styles.hero}>
@@ -1711,84 +1839,70 @@ export default function AgencyPlayerProfile({
                   : 'Verification needed'}
               </span>
             </div>
-
-            {(draftProfile.primary_video_url ||
-              player.transfermarkt_url ||
-              player.wyscout_url ||
-              player.stats_url) ? (
-              <div className={styles.profileLinks}>
-                {draftProfile.primary_video_url ? (
-                  <a href={draftProfile.primary_video_url} target="_blank" rel="noreferrer">
-                    <Play size={13} />
-                    Watch video
-                  </a>
-                ) : null}
-                {player.transfermarkt_url ? (
-                  <a href={player.transfermarkt_url} target="_blank" rel="noreferrer">
-                    Transfermarkt
-                    <ExternalLink size={11} />
-                  </a>
-                ) : null}
-                {player.wyscout_url ? (
-                  <a href={player.wyscout_url} target="_blank" rel="noreferrer">
-                    Wyscout
-                    <ExternalLink size={11} />
-                  </a>
-                ) : null}
-                {!player.wyscout_url && player.stats_url ? (
-                  <a href={player.stats_url} target="_blank" rel="noreferrer">
-                    Stats
-                    <ExternalLink size={11} />
-                  </a>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         </div>
+
+        {(draftProfile.primary_video_url ||
+          player.transfermarkt_url ||
+          player.wyscout_url ||
+          player.stats_url) ? (
+          <div className={styles.profileLinks}>
+            {draftProfile.primary_video_url ? (
+              <a href={draftProfile.primary_video_url} target="_blank" rel="noreferrer">
+                <Play size={13} />
+                Watch video
+              </a>
+            ) : null}
+            {player.transfermarkt_url ? (
+              <a href={player.transfermarkt_url} target="_blank" rel="noreferrer">
+                Transfermarkt
+                <ExternalLink size={11} />
+              </a>
+            ) : null}
+            {player.wyscout_url ? (
+              <a href={player.wyscout_url} target="_blank" rel="noreferrer">
+                Wyscout
+                <ExternalLink size={11} />
+              </a>
+            ) : null}
+            {!player.wyscout_url && player.stats_url ? (
+              <a href={player.stats_url} target="_blank" rel="noreferrer">
+                Stats
+                <ExternalLink size={11} />
+              </a>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className={styles.readiness}>
           <div className={styles.readinessTop}>
             <div>
-              <span>Profile status</span>
+              <span>Next move</span>
               <strong>
                 {published?.published
-                  ? 'Live'
+                  ? 'Share with a club'
                   : verificationOnly
-                    ? 'Ready to publish'
+                    ? 'Verify and publish'
                     : canPublish
-                      ? 'Ready to publish'
-                      : missingRequiredCount === 1
-                        ? missingRequiredChecks[0].missingTitle
-                        : `${missingRequiredCount} required items missing`}
+                      ? 'Publish Player Profile'
+                      : primaryRequiredCheck?.missingTitle || 'Finish the player record'}
               </strong>
             </div>
           </div>
 
           <p>
             {published?.published
-              ? missingOptionalChecks.length
-                ? `Before sharing: ${(missingShareHighlights.length
-                    ? missingShareHighlights
-                    : missingOptionalChecks)
-                    .slice(0, 3)
+              ? missingShareHighlights.length
+                ? `Before sharing: ${missingShareHighlights
+                    .slice(0, 2)
                     .map((item) => item.missingTitle)
                     .join(' · ')}`
-                : 'Ready to share with clubs.'
+                : 'The profile is live and ready to send.'
               : verificationOnly
-                ? `Confirm this current record once: ${[
-                    player.primary_position,
-                    player.current_club,
-                    player.current_country,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}.`
+                ? 'Confirm the current player record once before the profile goes live.'
                 : canPublish
-                  ? 'The required player information is ready.'
-                  : missingRequiredCount === 1
-                    ? missingRequiredChecks[0].where
-                    : `Missing: ${missingRequiredChecks
-                        .map((item) => item.missingTitle)
-                        .join(' · ')}`}
+                  ? 'Everything required is ready.'
+                  : primaryRequiredCheck?.missingDetail || 'Complete the required player information first.'}
           </p>
         </div>
 
@@ -1796,18 +1910,18 @@ export default function AgencyPlayerProfile({
           {published?.published ? (
             <button
               type="button"
-              data-ui-button="primary" data-ui-tone="inverse"
+              data-ui-button="primary"
               className={styles.primaryAction}
               onClick={openShareComposer}
-              disabled={!canEdit}
+              disabled={!canEdit || Boolean(actionBusy)}
             >
               <Send size={16} />
               Share Player Profile
             </button>
-          ) : (
+          ) : canPublishFromHero ? (
             <button
               type="button"
-              data-ui-button="primary" data-ui-tone="inverse"
+              data-ui-button="primary"
               className={styles.primaryAction}
               onClick={() =>
                 void publishProfile({
@@ -1815,24 +1929,32 @@ export default function AgencyPlayerProfile({
                   confirmCurrentData: verificationOnly,
                 })
               }
-              disabled={!canEdit || !canPublishFromHero || Boolean(actionBusy)}
+              disabled={!canEdit || Boolean(actionBusy)}
             >
               {actionBusy === 'publish' ? (
                 <LoaderCircle className={styles.spin} size={16} />
               ) : (
                 <ShieldCheck size={16} />
               )}
-              {verificationOnly
-                ? 'Verify & publish'
-                : 'Publish Player Profile'}
+              {verificationOnly ? 'Verify & publish' : 'Publish Player Profile'}
             </button>
-          )}
+          ) : primaryRequiredCheck ? (
+            <button
+              type="button"
+              data-ui-button="primary"
+              className={styles.primaryAction}
+              onClick={() => runProfileCheck(primaryRequiredCheck)}
+              disabled={!canEdit || primaryMoveBlocked || Boolean(actionBusy)}
+            >
+              <ArrowRight size={16} />
+              {primaryMoveBlocked ? 'Owner or admin required' : primaryRequiredCheck.actionLabel}
+            </button>
+          ) : null}
 
           {canEdit ? (
             <button
               type="button"
               data-ui-button="secondary"
-              data-ui-tone="inverse"
               className={styles.secondaryAction}
               onClick={openPrepare}
               disabled={Boolean(actionBusy)}
@@ -1842,67 +1964,79 @@ export default function AgencyPlayerProfile({
             </button>
           ) : null}
 
-          {verificationOnly && canEdit ? (
-            <button
-              type="button"
-              data-ui-button="secondary" data-ui-tone="inverse"
-              className={styles.secondaryAction}
-              onClick={() => openVerify('verification')}
-            >
-              <Eye size={15} />
-              Check data
-            </button>
-          ) : null}
-
-          {canEdit ? (
+          {canEdit && !player.transfermarkt_url ? (
             <button
               type="button"
               data-ui-button="secondary"
-              data-ui-tone="inverse"
               className={styles.secondaryAction}
               onClick={openTransfermarkt}
             >
               <Link2 size={15} />
-              {player.transfermarkt_url
-                ? 'Edit Transfermarkt'
-                : 'Add Transfermarkt'}
+              Add Transfermarkt
             </button>
           ) : null}
-
-          <button
-            type="button"
-            data-ui-button="secondary"
-            data-ui-tone="inverse"
-            className={styles.secondaryAction}
-            onClick={() => openProfilePreview(draftProfile)}
-          >
-            <Eye size={15} />
-            Preview
-          </button>
-
-          <button
-            type="button"
-            data-ui-button="secondary"
-            data-ui-tone="inverse"
-            className={styles.secondaryAction}
-            onClick={downloadPdf}
-            disabled={actionBusy === 'pdf'}
-          >
-            <Download size={15} />
-            PDF
-          </button>
 
           {canEdit ? (
-            <button
-              type="button"
-              data-ui-button="secondary" data-ui-tone="inverse"
+            <button type="button" data-ui-button="secondary"
               className={styles.secondaryAction}
-              onClick={openEditor}
-            >
-              <Pencil size={15} />
-              Edit
+              onClick={openEditor} disabled={Boolean(actionBusy)}>
+              <Pencil size={15} /> Edit profile
             </button>
           ) : null}
+
+          <details
+            className={styles.profileTools}
+            onClick={event=>{if((event.target as HTMLElement).closest('button'))event.currentTarget.open=false;}}
+            onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}
+          >
+            <summary data-ui-button="secondary" className={styles.secondaryAction}>
+              More <ChevronDown size={15}/>
+            </summary>
+            <div className={styles.toolMenu}>
+              <button
+                type="button"
+                data-ui-button="secondary"
+                className={styles.secondaryAction}
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye size={15} />
+                Preview
+              </button>
+              {player.transfermarkt_url && canEdit ? (
+                <button
+                  type="button"
+                  data-ui-button="secondary"
+                  className={styles.secondaryAction}
+                  onClick={openTransfermarkt}
+                >
+                  <Link2 size={15} />
+                  Edit Transfermarkt
+                </button>
+              ) : null}
+              {verificationOnly && canEdit ? (
+                <button
+                  type="button"
+                  data-ui-button="secondary"
+                  className={styles.secondaryAction}
+                  onClick={() => openVerify('verification')}
+                >
+                  <ShieldCheck size={15} />
+                  Check data
+                </button>
+              ) : null}
+              <button
+                type="button"
+                data-ui-button="secondary"
+                className={styles.secondaryAction}
+                onClick={downloadPdf}
+                disabled={Boolean(actionBusy)}
+              >
+                <Download size={15} />
+                Download PDF
+              </button>
+
+            </div>
+          </details>
         </div>
       </section>
 
@@ -2210,6 +2344,18 @@ export default function AgencyPlayerProfile({
           )}
         </section>
       ) : null}
+      <AgencyPlayerDataPanel
+        key={playerId}
+        player={player}
+        career={career}
+        canEdit={canEdit}
+        invoke={invoke}
+        onChanged={reloadRecordedData}
+        onReview={() => openVerify('verification')}
+        hasCustomStats={Boolean(bundle?.settings?.key_stats?.length)}
+        onUseRecordedStats={useRecordedStats}
+        blocked={Boolean(actionBusy) || editOpen || verifyOpen}
+      />
 
       {guidedRequiredChecks.length || missingOptionalChecks.length ? (
         <section className={styles.fixGuide}>
@@ -2339,24 +2485,24 @@ export default function AgencyPlayerProfile({
           <div className={styles.facts}>
             <div>
               <span>Position</span>
-              <strong>{player.primary_position || 'Not recorded'}</strong>
+              <strong>{player.primary_position || 'Not set'}</strong>
             </div>
             <div>
               <span>Current club</span>
-              <strong>{player.current_club || 'Not recorded'}</strong>
+              <strong>{player.current_club || 'Not set'}</strong>
             </div>
             <div>
               <span>Contract</span>
               <strong>
-                {human(player.contract_status) || 'Not recorded'}
+                {human(player.contract_status) || 'Not set'}
               </strong>
             </div>
             <div>
               <span>Nationality</span>
               <strong>
                 {Array.isArray(player.nationalities)
-                  ? player.nationalities.join(' · ') || 'Not recorded'
-                  : 'Not recorded'}
+                  ? player.nationalities.join(' · ') || 'Not set'
+                  : 'Not set'}
               </strong>
             </div>
           </div>
@@ -2397,46 +2543,20 @@ export default function AgencyPlayerProfile({
             </div>
             <div>
               <strong>{secondaryReady ? documents.length : '…'}</strong>
-              <span>shareable docs</span>
+              <span>documents</span>
             </div>
           </div>
 
-          <div className={styles.keyStats}>
-            {(draftProfile.key_stats || []).slice(0, 6).map(
-              (item: any, index: number) => (
-                <div key={`${item.label}-${index}`}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ),
-            )}
-
-            {!draftProfile.key_stats?.length ? (
-              <p>
-                Current-season numbers will appear automatically when trusted evidence is available.
-              </p>
-            ) : null}
-          </div>
-
-          {!parseKeyStats(form.key_stats_text).length &&
-          bundle?.auto_stats_meta?.checked_at &&
-          draftProfile.key_stats?.length ? (
-            <div className={styles.statsFreshness}>
-              <ShieldCheck size={13} />
-              <span>
-                {statsFreshnessLabel(bundle.auto_stats_meta.checked_at)} · Cross-checked
-              </span>
-              {bundle.auto_stats_meta.source_url ? (
-                <a
-                  href={bundle.auto_stats_meta.source_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source <ExternalLink size={11} />
-                </a>
-              ) : null}
+          {parseKeyStats(form.key_stats_text).length ? (
+            <div className={styles.keyStats}>
+              {(draftProfile.key_stats || []).slice(0, 6).map((item: any, index: number) => (
+                <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
+              ))}
+              <p>Custom club statistics. Current figures and sources are above.</p>
             </div>
-          ) : null}
+          ) : (
+            <div className={styles.keyStats}><p>The club profile uses the current-season statistics above.</p></div>
+          )}
         </section>
       </div>
 
@@ -2510,10 +2630,9 @@ export default function AgencyPlayerProfile({
         ) : secondaryReady ? (
           <div className={styles.empty}>
             <MessageCircleMore size={19} />
-            <strong>No player-linked communication yet.</strong>
+            <strong>No conversations linked to this player yet.</strong>
             <span>
-              Email and selected chats appear here only when there is
-              explicit evidence that they relate to this player.
+              Emails and chats linked to this player will appear here.
             </span>
           </div>
         ) : (
@@ -2530,7 +2649,7 @@ export default function AgencyPlayerProfile({
         {communicationFollowups.length ? (
           <div className={styles.communicationFollowups}>
             <div className={styles.communicationFollowupHead}>
-              <span>OPEN FOLLOW-UP</span>
+              <span>NEXT FOLLOW-UP</span>
               <strong>
                 {communicationFollowups.length}
               </strong>
@@ -2548,7 +2667,7 @@ export default function AgencyPlayerProfile({
                   <span>
                     {task?.due_at
                       ? relativeDate(task.due_at)
-                      : 'No due date recorded'}
+                      : 'No due date set'}
                   </span>
                 </div>
 
@@ -2565,8 +2684,8 @@ export default function AgencyPlayerProfile({
       <section className={styles.card}>
         <div className={styles.cardHead}>
           <div>
-            <span className={styles.eyebrow}>PROFILE ACTIVITY</span>
-            <h3>Know what happened after you sent it.</h3>
+            <span className={styles.eyebrow}>SHARED PROFILE</span>
+            <h3>Club links</h3>
           </div>
 
           {published?.published ? (
@@ -2577,7 +2696,7 @@ export default function AgencyPlayerProfile({
               onClick={openShareComposer}
             >
               <Link2 size={15} />
-              New club link
+              Create link
             </button>
           ) : null}
         </div>
@@ -2692,7 +2811,7 @@ export default function AgencyPlayerProfile({
                 <span className={styles.eyebrow}>PLAYER SOURCE</span>
                 <h2>Add Transfermarkt</h2>
                 <p>
-                  Paste the direct player profile. It will stay on the player record as a source reference.
+                  Paste the player profile URL to save it as a reference.
                 </p>
               </div>
               <button
@@ -2777,8 +2896,7 @@ export default function AgencyPlayerProfile({
                     : 'Check the current player record.'}
                 </h2>
                 <p>
-                  Only change anything that is wrong. Confirming below saves
-                  these values and marks the current record verified.
+                  Correct any errors. Confirming saves these values and marks the record verified.
                 </p>
               </div>
 
@@ -2806,9 +2924,23 @@ export default function AgencyPlayerProfile({
                 <span>
                   {[player.current_club, player.current_country]
                     .filter(Boolean)
-                    .join(' · ') || 'Current situation not fully recorded'}
+                    .join(' · ') || 'Current situation needs more detail'}
                 </span>
               </div>
+
+              {player.review_required_at || player.review_reason ? (
+                <section className={styles.reviewStats} aria-label="Statistics to review">
+                  <strong>Current statistics</strong>
+                  <p>Check these figures against the source before confirming.</p>
+                  {recordedStatsSource ? <p><a href={recordedStatsSource} target="_blank" rel="noreferrer">Open current statistics source <ExternalLink size={11} /></a></p> : null}
+                  <div className={styles.keyStats}>
+                    {recordedStats.slice(0, 6).map((item: any, index: number) => (
+                      <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
+                    ))}
+                    {!recordedStats.length ? <p>No current-season statistics yet.</p> : null}
+                  </div>
+                </section>
+              ) : null}
 
               <div className={styles.twoFields}>
                 <label>
@@ -2923,8 +3055,7 @@ export default function AgencyPlayerProfile({
                 <div>
                   <strong>Confirm this is current</strong>
                   <span>
-                    This is a human verification step. If the player data
-                    changes later, you will be asked to verify it again.
+                    Changes to player data require a new review.
                   </span>
                 </div>
               </div>
@@ -2971,7 +3102,17 @@ export default function AgencyPlayerProfile({
           }}
         >
           <section
-            className={styles.modal}
+            className={styles.modal + ' ' + styles.editorModal}
+            ref={editorDialog}
+            onKeyDown={event => {
+              if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeEditor(); }
+              if (event.key !== 'Tab') return;
+              const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href]')).filter(node => node.getClientRects().length > 0);
+              const first = controls[0], last = controls.at(-1);
+              if (!controls.includes(document.activeElement as HTMLElement)) { event.preventDefault(); (event.shiftKey ? last : first)?.focus(); return; }
+              if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+              else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+            }}
             role="dialog"
             aria-modal="true"
             aria-label="Edit Player Profile"
@@ -2979,10 +3120,9 @@ export default function AgencyPlayerProfile({
             <header>
               <div>
                 <span className={styles.eyebrow}>EDIT PLAYER PROFILE</span>
-                <h2>Only edit what needs agency judgement.</h2>
+                <h2>Edit club presentation</h2>
                 <p>
-                  Core player data, verified stats, career history and agency
-                  branding are pulled in automatically.
+                  Player details and verified statistics are included.
                 </p>
               </div>
               <button
@@ -2991,15 +3131,26 @@ export default function AgencyPlayerProfile({
               className={styles.iconButton}
                 onClick={closeEditor}
                 aria-label="Close"
+                disabled={Boolean(actionBusy)}
               >
                 <X size={17} />
               </button>
             </header>
 
-            <div className={styles.form}>
+            <nav className={styles.editorNav} aria-label="Profile editor sections">
+              {(['story', 'presentation', 'video'] as const).map(section => (
+                <button type="button" key={section} aria-pressed={editorSection === section}
+                  onClick={() => setEditorSection(section)}>
+                  {section === 'story' ? 'Story' : section === 'presentation' ? 'Presentation' : 'Video'}
+                </button>
+              ))}
+            </nav>
+            <fieldset disabled={Boolean(actionBusy)} className={styles.form + ' ' + styles.editorBody}>
+              <div className={styles.editorSection} hidden={editorSection !== 'story'}>
               <label id="player-profile-positioning">
                 <span>Profile headline</span>
                 <input
+                  aria-label="Profile headline"
                   value={form.intro_line}
                   onChange={(event) =>
                     setField('intro_line', event.target.value)
@@ -3020,7 +3171,7 @@ export default function AgencyPlayerProfile({
                   onChange={(event) =>
                     setField('why_review', event.target.value)
                   }
-                  placeholder="A short, factual agency view that helps a club understand the player quickly."
+                  placeholder="A short club-ready view of the player."
                 />
               </label>
 
@@ -3036,10 +3187,13 @@ export default function AgencyPlayerProfile({
                 />
               </label>
 
+              </div>
+              <div className={styles.editorSection} hidden={editorSection !== 'presentation'}>
               <label>
                 <span>Custom key numbers</span>
                 <textarea
                   rows={4}
+                  aria-label="Custom key numbers"
                   value={form.key_stats_text}
                   onChange={(event) =>
                     setField('key_stats_text', event.target.value)
@@ -3056,6 +3210,7 @@ export default function AgencyPlayerProfile({
                 <span>Selected experience</span>
                 <textarea
                   rows={4}
+                  aria-label="Selected experience"
                   value={form.experience_text}
                   onChange={(event) =>
                     setField('experience_text', event.target.value)
@@ -3080,6 +3235,7 @@ export default function AgencyPlayerProfile({
                       <button
                         key={key}
                         type="button"
+                        aria-pressed={shown}
                         className={shown ? styles.sectionOn : styles.sectionOff}
                         onClick={() => toggleSection(key)}
                       >
@@ -3139,6 +3295,8 @@ export default function AgencyPlayerProfile({
                 ) : null}
               </div>
 
+              </div>
+              <div className={styles.editorSection} hidden={editorSection !== 'video'}>
               <div
                 className={styles.mediaEditor}
                 id="player-profile-video"
@@ -3184,6 +3342,7 @@ export default function AgencyPlayerProfile({
                     onChange={(event) =>
                       setVideoTitle(event.target.value)
                     }
+                    aria-label="Video title"
                     placeholder="Video title"
                   />
                   <input
@@ -3191,6 +3350,7 @@ export default function AgencyPlayerProfile({
                     onChange={(event) =>
                       setVideoUrl(event.target.value)
                     }
+                    aria-label="Video URL"
                     placeholder="YouTube, Vimeo or Wyscout URL"
                   />
                   <button data-ui-button="primary"
@@ -3202,14 +3362,18 @@ export default function AgencyPlayerProfile({
                   </button>
                 </div>
               </div>
-            </div>
+              </div>
+            </fieldset>
 
             <footer>
+              {error ? <div className={styles.editorFeedback} role="alert">{error}</div> : null}
+              {notice ? <div className={styles.editorFeedback} role="status">{notice}</div> : null}
               <button
                 type="button"
                 data-ui-button="secondary"
               className={styles.secondaryAction}
                 onClick={closeEditor}
+                disabled={Boolean(actionBusy)}
               >
                 Cancel
               </button>
@@ -3219,7 +3383,7 @@ export default function AgencyPlayerProfile({
                 data-ui-button="secondary"
               className={styles.secondaryAction}
                 onClick={() => void saveSettings()}
-                disabled={actionBusy === 'save'}
+                disabled={Boolean(actionBusy)}
               >
                 Save
               </button>
@@ -3265,7 +3429,7 @@ export default function AgencyPlayerProfile({
                 <p>
                   {shareResultUrl
                     ? 'The private link is live and the club message is prepared.'
-                    : 'Create one private link for the club. Opens are tracked and the link stays attached to the player.'}
+                    : 'Create a private club link with tracked opens.'}
                 </p>
               </div>
               <button
@@ -3373,7 +3537,7 @@ export default function AgencyPlayerProfile({
                   <small>
                     {shareClubsBusy
                       ? 'Loading your agency club network...'
-                      : 'Choose any club already recorded in your agency network.'}
+                      : 'Choose a club from your agency network.'}
                   </small>
                 </label>
 

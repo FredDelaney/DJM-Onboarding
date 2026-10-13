@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
         <div>
           <div className="yellow-line" />
           <h1>Get back into your workspace securely.</h1>
-          <p>Password recovery uses your confirmed account email. Your agency and ReDream never need to know your password.</p>
+          <p>Recovery uses your account email. Your agency never sees your password.</p>
         </div>
         <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>Secure account recovery</span>
       </section>
@@ -69,20 +69,20 @@ export default function ForgotPasswordPage() {
             <div className="stack" style={{ marginTop: 28 }}>
               <div className="card pad" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <ShieldCheck size={20} />
-                <div><strong>Recovery email requested</strong><p className="small muted" style={{ marginTop: 4 }}>Open the newest ReDream recovery email. The link returns you to ReDream to set a new password.</p></div>
+                <div><strong>Recovery email requested</strong><p className="small muted" style={{ marginTop: 4 }}>Open the newest recovery email to set a new password.</p></div>
               </div>
               <Link href={backHref} className="btn btn-navy btn-block">{returnPath ? 'Back to owner workspace' : 'Back to sign in'} <ArrowRight size={17} /></Link>
             </div>
           ) : (
             <form className="stack" style={{ marginTop: 30 }} onSubmit={submit}>
               <div className="field">
-                <label className="label">Email</label>
+                <label className="label" htmlFor="recovery-email">Email</label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={18} style={{ position: 'absolute', left: 14, top: 13, color: 'var(--muted)' }} />
-                  <input className="input" style={{ paddingLeft: 44 }} type="email" autoCapitalize="none" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" required />
+                  <input id="recovery-email" className="input" style={{ paddingLeft: 44 }} type="email" autoCapitalize="none" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" required />
                 </div>
               </div>
-              {error ? <div className="small" style={{ padding: 12, borderRadius: 12, background: '#fff1f2', color: '#9f1239' }}>{error}</div> : null}
+              {error ? <div role="alert" className="small" style={{ padding: 12, borderRadius: 12, background: '#fff1f2', color: '#9f1239' }}>{error}</div> : null}
               <button className="btn btn-navy btn-block" disabled={busy}>{busy ? 'Sending...' : 'Send secure reset link'} <ArrowRight size={17} /></button>
             </form>
           )}

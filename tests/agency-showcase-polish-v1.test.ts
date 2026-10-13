@@ -26,15 +26,17 @@ test('showcase polish presents the V2 agency operating model', () => {
 });
 
 test('Home keeps attention bounded and every visible item actionable', () => {
-  assert.match(workspace, /priority\.slice\(0, 3\)/);
+  assert.match(workspace, /\.slice\(0, 5\)/);
   assert.match(workspace, /Good morning\./);
   assert.match(workspace, /const actionFor = \(command: any\)/);
+  assert.match(workspace, /const queueAction = \(item: QueueItem\)/);
   assert.match(workspace, /onClick=\{\(\) => onPrepare\(command\)\}/);
   assert.match(
     workspace,
     /command\?\.actionability\?\.evidence_gate === 'ready'/,
   );
   assert.match(css, /\.attentionCard\s*\{/);
+  assert.match(css, /\.todayQueueAction/);
 });
 
 test('showcase polish does not bypass guarded agency action execution', () => {
@@ -46,8 +48,8 @@ test('showcase polish does not bypass guarded agency action execution', () => {
 });
 
 test('players and relationships use tenant-neutral premium entity presentation', () => {
-  assert.match(workspace, /Know what every player needs next\./);
-  assert.match(workspace, /Your football network\./);
+  assert.match(workspace, /Know what each player needs next\./);
+  assert.match(workspace, /Your football network./);
   assert.match(workspace, /className=\{styles\.entityMark\}/);
   assert.match(workspace, /initials\(playerName\)/);
   assert.match(workspace, /initials\(clubName\)/);
@@ -62,14 +64,14 @@ test('players and relationships use tenant-neutral premium entity presentation',
     /active_players \?\? items\.length\} represented/,
   );
   assert.doesNotMatch(workspace, /DJM Sports Management/);
-  assert.match(workspace, /Recently handled by ReDream/);
+  assert.match(workspace, /Today priorities/);
 });
 
 test('Market and Deals separate demand creation from commercial execution without inventing probability', () => {
-  assert.match(workspace, /Club needs\. Player fits\. Best route in\./);
+  assert.match(workspace, /See every live opportunity clearly\./);
   assert.match(
     workspace,
-    /which players could fit and who can open the door/,
+    /player fit and best route in/,
   );
   assert.doesNotMatch(
     workspace,
@@ -78,7 +80,7 @@ test('Market and Deals separate demand creation from commercial execution withou
   assert.match(workspace, /Keep every live deal moving\./);
   assert.match(workspace, /className=\{styles\.opportunityColumns\}/);
   assert.match(workspace, /What clubs are looking for/);
-  assert.match(workspace, /Routes to move/);
+  assert.match(workspace, /Player opportunities to move/);
   assert.match(workspace, /Live deals/);
   assert.match(workspace, /candidate_coverage\?\.candidates/);
   assert.match(workspace, /redream_autopilot_market/);
@@ -89,10 +91,10 @@ test('Market and Deals separate demand creation from commercial execution withou
 
 test('every primary operating area has an intentional empty state', () => {
   assert.match(workspace, /Nothing needs you right now/);
-  assert.match(workspace, /No players recorded yet/);
-  assert.match(workspace, /No relevant club relationships yet/);
-  assert.match(workspace, /No live deals recorded/);
-  assert.match(workspace, /No active club demand/);
+  assert.match(workspace, /Add your first player/);
+  assert.match(workspace, /Add your first club relationship/);
+  assert.match(workspace, /No live deals yet/);
+  assert.match(workspace, /No club needs yet/);
   assert.match(css, /\.emptyState\s*\{/);
 });
 

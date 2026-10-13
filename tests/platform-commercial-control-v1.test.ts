@@ -44,7 +44,7 @@ test('existing explicit plan mutation remains the only commercial write in this 
   assert.match(page, /plan_key: detailPlan/);
   assert.match(
     page,
-    /Changing plan changes entitlements\. It does not convert[\s\S]*lifecycle stage by itself/,
+    /Plan changes update limits and features\. Stage stays unchanged/,
   );
 });
 

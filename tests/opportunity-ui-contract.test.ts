@@ -12,7 +12,7 @@ test('shared workspace composes Market and Deals underneath Opportunities while 
   const header = read('components/WorkspaceHeader.tsx');
 
   assert.match(opportunities, /redirect\('\/agency\?view=market'\)/);
-  assert.match(detail, /redirect\('\/agency\?view=deals'\)/);
+  assert.match(detail, /redirect\(legacyWorkspaceRecordHref\('deal',\(await params\)\.id\)\)/);
   assert.match(
     workspace,
     /type View = 'home' \| 'players' \| 'opportunities' \| 'network' \| 'calendar' \| 'business'/,

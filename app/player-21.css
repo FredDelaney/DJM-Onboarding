@@ -100,7 +100,7 @@
 .season-kicker {
   margin-bottom: 7px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   font-weight: 820;
   letter-spacing: .095em;
@@ -119,7 +119,7 @@
   padding: 6px 9px;
   background: #f0f1f3;
   color: #5d636b;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 740;
 }
 
@@ -184,7 +184,7 @@
 }
 
 .season-primary-side span {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .season-metrics {
@@ -215,7 +215,7 @@
   display: block;
   margin-top: 3px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .season-trend {
@@ -235,7 +235,7 @@
 .season-trend-head span {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .08em;
 }
@@ -287,7 +287,7 @@
 .season-chart-labels span {
   min-width: 0;
   color: var(--muted-2);
-  font-size: 9px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -322,7 +322,7 @@
   display: block;
   margin-top: 2px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.25;
 }
 
@@ -339,7 +339,7 @@
 .season-foot > span {
   max-width: 480px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -387,7 +387,7 @@
 .existing-checkin span {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 820;
   letter-spacing: .08em;
 }
@@ -402,7 +402,7 @@
   display: block;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -421,7 +421,7 @@
 
 .check-divider small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .075em;
 }
@@ -635,7 +635,7 @@
   }
 
   .season-chart-labels span {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .season-insights {
@@ -716,7 +716,7 @@
   }
 
   .season-metrics span {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .choice {

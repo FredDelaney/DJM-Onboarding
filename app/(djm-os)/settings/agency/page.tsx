@@ -145,7 +145,7 @@ export default function AgencySettingsPage() {
           <div className={styles.panelHead}>
             <div>
               <h2>Workspace identity</h2>
-              <p>Keep the agency name and customer-facing contact details current.</p>
+              <p>Used in your workspace and club presentations.</p>
             </div>
           </div>
 
@@ -241,9 +241,7 @@ export default function AgencySettingsPage() {
               <strong style={{ color: brandPreview.accent }}>Readable accent text</strong>
             </div>
             <p>
-              ReDream protects contrast automatically. Your original brand colours
-              stay available for logos and highlights, while text and controls use
-              a readable version when needed.
+              Text and controls use accessible contrast. Logos and highlights keep your original colours.
             </p>
           </div>
 

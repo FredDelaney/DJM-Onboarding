@@ -8,6 +8,14 @@ const migration = readFileSync(
   'supabase/migrations/20261013200134_player_profile_versions_and_source_refs_v1.sql',
   'utf8',
 );
+const visibilitySql = readFileSync(
+  'supabase/migrations/20261009061051_public_profile_visibility_boundary.sql',
+  'utf8',
+);
+const visibilityFunction = visibilitySql.match(
+  /create or replace function private\.visible_public_player_profile\([\s\S]*?\$visibility\$;/i,
+)?.[0];
+assert.ok(visibilityFunction);
 const tenant = '10000000-0000-4000-8000-000000000001';
 const otherTenant = '10000000-0000-4000-8000-000000000002';
 const player = '20000000-0000-4000-8000-000000000001';
@@ -15,8 +23,10 @@ const club = '30000000-0000-4000-8000-000000000001';
 const otherClub = '30000000-0000-4000-8000-000000000002';
 const user = '40000000-0000-4000-8000-000000000001';
 const version = '50000000-0000-4000-8000-000000000001';
+const hiddenVersion = '50000000-0000-4000-8000-000000000002';
 const versionToken = '60000000-0000-4000-8000-000000000001';
 const legacyToken = '60000000-0000-4000-8000-000000000002';
+const hiddenToken = '60000000-0000-4000-8000-000000000003';
 const deal = '90000000-0000-4000-8000-000000000001';
 const need = 'a0000000-0000-4000-8000-000000000001';
 
@@ -86,6 +96,7 @@ before(async () => {
     create function public.track_club_share_view(uuid) returns boolean
       language sql as $$ select true $$;
   `);
+  await db.exec(visibilityFunction);
   await db.exec(migration);
   await db.query('insert into auth.users(id) values ($1)', [user]);
   await db.query("insert into djm_os.tell_djm_settings(id,is_live) values (1,true)");
@@ -123,7 +134,7 @@ before(async () => {
       version, tenant, player, club,
       JSON.stringify({
         display_name: 'Club profile', primary_position: 'ST',
-        key_stats: [{ label: 'Goals', value: '7' }],
+        key_stats: [{ label: 'Goals', value: '7' }], hidden_sections: [],
       }),
       JSON.stringify([{ source_ref: 'career-entry-id:goals' }]), user,
     ],
@@ -158,6 +169,23 @@ test('versioned links keep approved presentation while old links use General', a
   )).rows[0].data;
   assert.equal(versioned.profile.display_name, 'Club profile');
   assert.equal(legacy.profile.display_name, 'General changed');
+});
+
+test('versioned and legacy links both enforce hidden-section visibility', async () => {
+  await db.query("update public.player_public_profiles set why_review='Private general note', hidden_sections=array['why_review']::text[] where player_id=$1", [player]);
+  const legacy = (await db.query<{ data: any }>('select public.get_club_share($1) as data', [legacyToken])).rows[0].data;
+  assert.equal(legacy.profile.why_review, null);
+  await db.query(`insert into public.player_profile_versions(
+    id,tenant_id,player_id,profile_kind,organisation_id,status,presentation,stat_sources,
+    master_player_updated_at,master_data_fingerprint,created_by,approved_by,approved_at
+  ) select $1,tenant_id,player_id,profile_kind,organisation_id,status,
+    jsonb_set(presentation,'{hidden_sections}','["stats"]'::jsonb),stat_sources,
+    master_player_updated_at,master_data_fingerprint,created_by,approved_by,approved_at
+  from public.player_profile_versions where id=$2`, [hiddenVersion, version]);
+  await db.query('insert into public.club_share_links(id,token,player_id,organisation_id,profile_version_id) values (gen_random_uuid(),$1,$2,$3,$4)', [hiddenToken, player, club, hiddenVersion]);
+  const versioned = (await db.query<{ data: any }>('select public.get_club_share($1) as data', [hiddenToken])).rows[0].data;
+  assert.deepEqual(versioned.profile.key_stats, []);
+  await db.query('update public.player_public_profiles set hidden_sections=array[]::text[] where player_id=$1', [player]);
 });
 
 test('approved versions and sent target bindings cannot be changed', async () => {

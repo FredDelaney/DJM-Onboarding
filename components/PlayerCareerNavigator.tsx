@@ -25,7 +25,7 @@ export default function PlayerCareerNavigator({ current }: { current: 'week' | '
     <nav className="player-career-navigator" aria-label="My career areas">
       <div className="player-career-navigator-head">
         <div><span>MY PROFESSIONAL SYSTEM</span><strong>Everything that helps you perform, prepare and decide.</strong></div>
-        <small>Private to you and your agency unless you approve a club-facing record.</small>
+        <small>Private to you and your agency. Club sharing needs approval.</small>
       </div>
       <div className="player-career-lanes">
         {lanes.map((lane) => {

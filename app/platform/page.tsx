@@ -795,8 +795,8 @@ export default function PlatformPage() {
         label: 'Trial still proving value',
         copy:
           days === null
-            ? 'First working value is not recorded yet. Keep the commercial decision tied to evidence, not login activity.'
-            : `${days} day${days === 1 ? '' : 's'} remain and first working value is not recorded yet. Keep the commercial decision tied to evidence, not login activity.`,
+            ? 'First working value is not set yet. Keep the commercial decision tied to evidence, not login activity.'
+            : `${days} day${days === 1 ? '' : 's'} remain and first working value is not set yet. Keep the commercial decision tied to evidence, not login activity.`,
       };
     }
 
@@ -1225,7 +1225,7 @@ export default function PlatformPage() {
         </div>
         <div>
           <strong>Opening ReDream</strong>
-          <span>Loading the ReDream Systems control plane</span>
+          <span>Loading agencies and revenue.</span>
         </div>
       </main>
     );
@@ -1236,9 +1236,9 @@ export default function PlatformPage() {
       <main className={styles.deniedPage}>
         <div className={styles.deniedCard}>
           <ShieldCheck size={26} />
-          <p className={styles.eyebrow}>PRIVATE CONTROL PLANE</p>
+          <p className={styles.eyebrow}>REDREAM ADMIN</p>
           <h1>ReDream operator access required</h1>
-          <p>This control plane is separate from agency administration and is only available to authorised ReDream Systems operators.</p>
+          <p>Only authorised ReDream operators can open this area.</p>
           <button type="button" onClick={() => void signOut()}>
             Sign in with another account
           </button>
@@ -1263,7 +1263,7 @@ export default function PlatformPage() {
   }
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-interface="calm">
       <header className={styles.topbar}>
         <div className={styles.brandBlock}>
           <img
@@ -1305,9 +1305,9 @@ export default function PlatformPage() {
               </b>
             </div>
 
-            <h1>Know what blocks launch, value and revenue before the agency asks.</h1>
+            <h1>Agencies and revenue.</h1>
             <p className={styles.heroCopy}>
-              ReDream separates launch readiness, working value and commercial intervention so you always know who should act next.
+              See agency status, launch issues and who needs follow-up.
             </p>
 
             <div className={styles.heroPills} aria-label="Portfolio snapshot">
@@ -1474,7 +1474,7 @@ export default function PlatformPage() {
                 <div className={styles.clearState}>
                   <ShieldCheck size={21} />
                   <strong>No urgent agency action</strong>
-                  <span>The portfolio has no external agency currently below the action threshold.</span>
+                  <span>No external agency is below the action threshold.</span>
                 </div>
               ) : null}
             </div>
@@ -1516,7 +1516,7 @@ export default function PlatformPage() {
               <Activity size={16} />
               <div>
                 <strong>{summary.due_now || 0} due now · {summary.waiting_on_agency || 0} deliberately waiting</strong>
-                <span>Ranked from explicit follow-ups, trial deadlines, owner-invite timing and observed activation progress.</span>
+                <span>Ranked by follow-ups, trial deadlines, invite timing and activation.</span>
               </div>
             </div>
           </article>
@@ -1787,8 +1787,7 @@ export default function PlatformPage() {
                   <div className={styles.commercialSubhead}>
                     <span>Signed commercial terms</span>
                     <small>
-                      Direct onboarding requires real contract evidence because
-                      go-live is blocked until contracted MRR is recorded.
+                      Add contract evidence and contracted MRR before go-live.
                     </small>
                   </div>
                   <div className={styles.conversionFields}>
@@ -2074,9 +2073,7 @@ export default function PlatformPage() {
                       <div className={styles.commercialSubhead}>
                         <span>Convert trial</span>
                         <small>
-                          Record the agreed contract and move the customer from
-                          Trial to Onboarding. Go-live remains a separate
-                          evidence-guarded action.
+                          Record the contract and move from Trial to Onboarding. Go-live is separate and requires readiness checks.
                         </small>
                       </div>
 
@@ -2150,8 +2147,7 @@ export default function PlatformPage() {
                               : ''}
                           </span>
                           <small>
-                            This records contracted MRR and the contract date.
-                            It does not mark the agency live.
+                            Saves contracted MRR and the contract date. Go-live is separate and requires readiness checks.
                           </small>
                         </div>
                       ) : null}
@@ -2184,8 +2180,7 @@ export default function PlatformPage() {
                       <div className={styles.commercialSubhead}>
                         <span>Commercial contract</span>
                         <small>
-                          Record or correct contract evidence without changing
-                          the plan, lifecycle stage or go-live state.
+                          Update contract evidence. Plan, stage and go-live stay unchanged.
                         </small>
                       </div>
 
@@ -2299,9 +2294,7 @@ export default function PlatformPage() {
                         <div className={styles.commercialSubhead}>
                           <span>Contract term</span>
                           <small>
-                            Record the signed term end date so ReDream can
-                            surface renewal work at the right time. No end date
-                            is guessed automatically.
+                            Add the signed term end date. No end date is guessed automatically.
                           </small>
                         </div>
 
@@ -2360,8 +2353,7 @@ export default function PlatformPage() {
                         !currentContractTermEnd &&
                         !detailContractTermEnd ? (
                           <small className={styles.contractTermWarning}>
-                            This annual commitment has no term end date, so
-                            renewal timing cannot yet be tracked.
+                            Add a term end date to track renewal timing.
                           </small>
                         ) : null}
 
@@ -2369,12 +2361,11 @@ export default function PlatformPage() {
                           <div className={styles.contractTermConfirm}>
                             <strong>Confirm contract term change</strong>
                             <span>
-                              {currentContractTermEnd || 'Not recorded'} to{' '}
-                              {detailContractTermEnd || 'Not recorded'}
+                              {currentContractTermEnd || 'Not set'} to{' '}
+                              {detailContractTermEnd || 'Not set'}
                             </span>
                             <small>
-                              This changes renewal evidence only. It does not
-                              change MRR, plan, billing state or lifecycle.
+                              Updates renewal evidence only. MRR, plan, billing and stage stay unchanged.
                             </small>
                           </div>
                         ) : null}
@@ -2410,9 +2401,7 @@ export default function PlatformPage() {
                   <div className={styles.commercialSubhead}>
                     <span>Plan control</span>
                     <small>
-                      Changing plan changes entitlements. It does not convert
-                      the lifecycle stage by itself. Every change requires
-                      explicit review and confirmation.
+                      Plan changes update limits and features. Stage stays unchanged. Review and confirm.
                     </small>
                   </div>
 

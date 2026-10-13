@@ -131,15 +131,15 @@ export default function Home() {
     [ctx.player, ctx.privateInfo, ctx.latestCheckin, data],
   );
 
-  if (ctx.loading) return <LoadingScreen />;
+  if (ctx.loading || ctx.error) return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
 
   if (!ctx.player) {
     return (
       <PlayerShell>
         <main className="ux-player-page ux-player-empty">
           <section className="ux-player-card">
-            <h1>Your profile is being prepared.</h1>
-            <p>There is nothing you need to do yet.</p>
+            <h1>Profile in progress</h1>
+            <p>Nothing needed yet.</p>
           </section>
         </main>
       </PlayerShell>
@@ -171,7 +171,7 @@ export default function Home() {
     ? {
         eyebrow: 'YOUR AGENCY NEEDS ONE THING',
         title: ctx.openRequests[0].title || 'Your agency needs an update',
-        detail: ctx.openRequests[0].message || 'Open the request and send your agency what is needed.',
+        detail: ctx.openRequests[0].message || 'Open the request and reply.',
         href: '/inbox',
         cta: 'Open your inbox',
       }
@@ -187,14 +187,14 @@ export default function Home() {
         ? {
             eyebrow: 'YOUR AGENCY NEEDS ONE THING',
             title: 'Weekly check-in due',
-            detail: 'Tell your agency how you are, what has changed and whether you need anything.',
+            detail: 'Share your weekly update.',
             href: '/check-in',
             cta: 'Check in',
           }
         : {
             eyebrow: "YOU'RE ALL GOOD",
-            title: 'Your agency has everything we need right now.',
-            detail: 'We will only ask you when something actually needs your attention.',
+            title: 'You are up to date.',
+            detail: 'Nothing needed today.',
             href: '/inbox',
             cta: 'Open your inbox',
           };
@@ -258,7 +258,7 @@ export default function Home() {
             <p>
               {lastCheckin
                 ? humanStatus(lastCheckin.availability_status)
-                : 'Your agency will ask only for information we cannot collect automatically.'}
+                : 'Send your update.'}
             </p>
           </Link>
 
@@ -268,7 +268,7 @@ export default function Home() {
             <strong>{data.latestAgencyUpdate?.title || 'Your private agency line'}</strong>
             <p>
               {data.latestAgencyUpdate?.message ||
-                'Messages, requests and meaningful representation updates live here.'}
+                'Messages from your agency.'}
             </p>
           </Link>
 
@@ -276,7 +276,7 @@ export default function Home() {
             <span className="ux-kicker">MY PROFILE</span>
             <UserRound size={20} />
             <strong>{profileState}</strong>
-            <p>Career, club profile and secure files are all under Me.</p>
+            <p>Your details, footage and files.</p>
           </Link>
         </section>
 
@@ -286,8 +286,8 @@ export default function Home() {
             <h2>Your club profile.</h2>
             <p>
               {data.publicProfile?.published
-                ? 'Your approved profile is live. You can preview the exact club-facing version.'
-                : 'Your agency is building one clean, verified profile from your current information.'}
+                ? 'Your profile is live.'
+                : 'Your club profile is being prepared.'}
             </p>
           </div>
           <Link href="/cv" className="ux-secondary-button">

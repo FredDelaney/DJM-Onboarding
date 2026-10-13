@@ -137,7 +137,7 @@ const FALLBACK: Sandbox = {
       career_strategy_gate: {
         state: 'review_strategy_overdue',
         reason:
-          'The strategy review date has passed, so the pursuit needs a current player-strategy check.',
+          'The strategy review date has passed, so this player opportunity needs a current strategy check.',
         player_confirmation: 'confirmed',
         next_action: {
           instruction: 'Review the strategy with the player before escalating external activity.',
@@ -153,11 +153,11 @@ const FALLBACK: Sandbox = {
       career_strategy_gate: {
         state: 'hold_strategy_missing',
         reason:
-          'The football pursuit exists, but no human-owned career strategy is recorded for the player.',
+          'The player opportunity exists, but no human-owned career strategy is set for the player.',
         player_confirmation: 'missing',
         next_action: {
           instruction:
-            'Agree the player career strategy before treating this pursuit as career-approved external action.',
+            'Agree the player career strategy before treating this opportunity as approved external action.',
           requires_human_input: true,
         },
       },
@@ -315,8 +315,8 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
       title: `${money(revenue.expected_commission, revenue.currency)} is recorded across ${revenue.active_deals || 0} active deals.`,
       summary:
         deal?.evidence?.primary_blocker ||
-        'ReDream keeps recorded commission exposure tied to the operational blocker rather than showing revenue in isolation.',
-      action: deal?.recommended_action || 'Resolve the highest-value recorded blocker first.',
+        'ReDream connects expected commission to the issue holding the deal back, instead of showing revenue on its own.',
+      action: deal?.recommended_action || 'Resolve the highest-value blocker first.',
       evidence: [
         ['Expected commission', money(revenue.expected_commission, revenue.currency)],
         ['Weighted exposure', money(revenue.weighted_commission, revenue.currency)],
@@ -326,7 +326,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
       chain: [
         ['Revenue', money(revenue.expected_commission, revenue.currency)],
         ['Deal', deal?.title || 'Active deal'],
-        ['Blocker', deal?.evidence?.primary_blocker || 'Recorded blocker'],
+        ['Blocker', deal?.evidence?.primary_blocker || 'Current blocker'],
         ['Access', relationship?.best_route?.person_name || 'Relationship route'],
         ['Next move', deal?.recommended_action || 'Review'],
       ],
@@ -350,7 +350,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
       evidence: [
         ['Direct access', direct.route_score ? `${direct.route_score}/100` : 'Not scored'],
         ['Warm introduction', intro.introduction_score ? `${intro.introduction_score}/100` : 'Not scored'],
-        ['Direct contact', direct.person_name || 'Not recorded'],
+        ['Direct contact', direct.person_name || 'Not set'],
         ['Commercial exposure', money(exposure.expected_commission, exposure.currency)],
       ],
       chain: [
@@ -367,7 +367,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
     const gate = career?.career_strategy_gate || {};
     return {
       eyebrow: 'PLAYER CAREER CONTROL',
-      title: `${career?.player?.name || 'The player'} is a football pursuit, but ReDream will not treat it as career-approved external action yet.`,
+      title: `${career?.player?.name || 'The player'} has an opportunity, but ReDream will not treat it as career-approved external action yet.`,
       summary:
         gate.reason ||
         'A strong player-club fit does not override the player-owned career strategy gate.',
@@ -375,16 +375,16 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
         gate.next_action?.instruction ||
         'Resolve the player strategy gate before escalating external activity.',
       evidence: [
-        ['Player', career?.player?.name || 'Recorded player'],
-        ['Club need', career?.need?.title || 'Recorded need'],
-        ['Pursuit readiness', career?.readiness_score ? `${career.readiness_score}/100` : 'Recorded'],
+        ['Player', career?.player?.name || 'Player'],
+        ['Club need', career?.need?.title || 'Club need'],
+        ['Opportunity readiness', career?.readiness_score ? `${career.readiness_score}/100` : 'Recorded'],
         ['Career gate', human(gate.state) || 'Human review'],
       ],
       chain: [
         ['Player', career?.player?.name || 'Player'],
         ['Career strategy', human(gate.state) || 'Review'],
         ['Club need', career?.need?.title || 'Need'],
-        ['Pursuit', career?.readiness_score ? `${career.readiness_score}/100 readiness` : 'Recorded'],
+        ['Opportunity', career?.readiness_score ? `${career.readiness_score}/100 readiness` : 'Not scored'],
         ['Control', 'Human career decision'],
       ],
     };
@@ -395,7 +395,7 @@ function buildAnswer(key: QuestionKey, data: Sandbox) {
     title: `${deal?.title || 'The highest-priority situation'} needs the agent first.`,
     summary:
       deal?.why_now ||
-      'ReDream ranks the recorded situation using urgency, commercial context and evidence rather than a generic task list.',
+      'ReDream ranks what needs attention using urgency, commercial context and known information, instead of giving you a generic task list.',
     action: deal?.recommended_action || 'Review the highest-priority next move.',
     evidence: [
       ['Attention score', String(deal?.priority_score || '–')],
@@ -481,9 +481,9 @@ export default function ReDreamDecisionLayer() {
         <div>
           <span className={styles.statusDot} data-mode={mode} />
           <BrainCircuit size={17} />
-          <strong>AGENCY DECISION LAYER</strong>
+          <strong>AGENCY OVERVIEW</strong>
         </div>
-        <span>{mode === 'live' ? 'Live synthetic ReDream state' : mode === 'loading' ? 'Connecting…' : 'Cached synthetic state'}</span>
+        <span>{'Interactive demo'}</span>
       </div>
 
       <div className={styles.questionBar}>
@@ -533,7 +533,7 @@ export default function ReDreamDecisionLayer() {
       <div className={styles.impactBlock}>
         <div className={styles.blockHead}>
           <GitBranch size={17} />
-          <span><strong>CONNECTED IMPACT</strong><small>One question crosses the agency graph instead of stopping in one screen.</small></span>
+          <span><strong>CONNECTED IMPACT</strong><small>One question can connect the whole agency.</small></span>
         </div>
         <div className={styles.impactRail}>
           {answer.chain.map(([label, value], index) => (
@@ -548,7 +548,7 @@ export default function ReDreamDecisionLayer() {
       <div className={styles.autonomyBlock}>
         <div className={styles.blockHead}>
           <ShieldCheck size={17} />
-          <span><strong>ONE QUEUE. THREE CONTROL LANES.</strong><small>Autonomy is routed by the action, not hidden behind an “AI” button.</small></span>
+          <span><strong>YOU STAY IN CONTROL</strong><small>Review important changes before they happen.</small></span>
         </div>
         <div className={styles.laneGrid}>
           {laneCards.map((lane) => {
@@ -563,8 +563,8 @@ export default function ReDreamDecisionLayer() {
                   <b>{items.length}</b>
                 </div>
                 <div className={styles.laneExample}>
-                  <span>{example?.title || 'No current item in this lane'}</span>
-                  <small>{example?.recommended_action || example?.why_now || 'ReDream keeps the lane clear until the recorded state requires it.'}</small>
+                  <span>{example?.title || 'Nothing here yet'}</span>
+                  <small>{example?.recommended_action || example?.why_now || 'No action recorded.'}</small>
                 </div>
               </article>
             );
@@ -574,7 +574,7 @@ export default function ReDreamDecisionLayer() {
 
       <div className={styles.truthLine}>
         <Check size={15} />
-        <span><strong>Not chatbot theatre.</strong> These answers are assembled from ReDream read models running on an isolated synthetic agency. The public experience cannot mutate the agency or send an external action.</span>
+        <span><strong>Example agency.</strong> Synthetic demo data only. Nothing can be changed or sent.</span>
       </div>
     </section>
   );

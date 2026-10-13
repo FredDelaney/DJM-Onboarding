@@ -1,0 +1,64 @@
+# Page coverage, 12 October 2026
+
+All 60 permanent page entry files reviewed against the existing copy pass and this visual pass. Redirects retain their destination and tenant context. Shared component refinements cover core agency views, profiles, work drawers, settings and player surfaces. Browser validation exercises real components with synthetic intercepted backends at 320, 390, 768 and 1440px, plus workflow checks. Production verification checks releases and entry routes, without sending customer messages. Operator and compatibility routes also receive source/build review.
+
+- app/(djm-os)/brain/benchmarks/import/page.tsx: Compatibility redirect
+- app/(djm-os)/brain/data/page.tsx: Compatibility redirect
+- app/(djm-os)/brain/page.tsx: Compatibility redirect
+- app/(djm-os)/brain/performance/page.tsx: Compatibility redirect
+- app/(djm-os)/deals/page.tsx: Compatibility redirect
+- app/(djm-os)/djm/page.tsx: Compatibility redirect
+- app/(djm-os)/market/deals/[id]/page.tsx: Compatibility redirect
+- app/(djm-os)/market/page.tsx: Compatibility redirect
+- app/(djm-os)/network/clubs/[id]/page.tsx: Compatibility redirect
+- app/(djm-os)/network/contacts/[id]/page.tsx: Compatibility redirect
+- app/(djm-os)/network/page.tsx: Compatibility redirect
+- app/(djm-os)/opportunities/[id]/page.tsx: Compatibility redirect
+- app/(djm-os)/opportunities/page.tsx: Compatibility redirect
+- app/(djm-os)/recruitment/[id]/page.tsx: Compatibility redirect
+- app/(djm-os)/recruitment/page.tsx: Compatibility redirect
+- app/(djm-os)/scout/page.tsx: Compatibility redirect
+- app/(djm-os)/settings/agency/page.tsx: Page or workspace entry
+- app/(djm-os)/settings/billing/page.tsx: Page or workspace entry
+- app/(djm-os)/settings/connections/page.tsx: Page or workspace entry
+- app/(djm-os)/settings/page.tsx: Page or workspace entry
+- app/(djm-os)/settings/player-experience/page.tsx: Page or workspace entry
+- app/(djm-os)/settings/preferences/page.tsx: Page or workspace entry
+- app/(djm-os)/settings/profile/page.tsx: Page or workspace entry
+- app/(djm-os)/settings/security/page.tsx: Page or workspace entry
+- app/(djm-os)/settings/team/page.tsx: Page or workspace entry
+- app/(djm-os)/tell/page.tsx: Page or workspace entry
+- app/(redream-public)/product/page.tsx: Page or workspace entry
+- app/(redream-public)/security/page.tsx: Page or workspace entry
+- app/(redream-public)/support/page.tsx: Page or workspace entry
+- app/(redream-public)/switch/page.tsx: Page or workspace entry
+- app/activate/[tenantSlug]/page.tsx: Page or workspace entry
+- app/admin/page.tsx: Compatibility redirect
+- app/admin/players/[id]/compare/page.tsx: Compatibility redirect
+- app/admin/players/[id]/page.tsx: Page or workspace entry
+- app/agency/page.tsx: Page or workspace entry
+- app/career/page.tsx: Page or workspace entry
+- app/check-in/page.tsx: Page or workspace entry
+- app/connections/page.tsx: Page or workspace entry
+- app/cv/page.tsx: Page or workspace entry
+- app/documents/page.tsx: Page or workspace entry
+- app/forgot-password/page.tsx: Page or workspace entry
+- app/home/page.tsx: Page or workspace entry
+- app/inbox/page.tsx: Page or workspace entry
+- app/join/[token]/page.tsx: Page or workspace entry
+- app/launch/page.tsx: Page or workspace entry
+- app/onboarding/page.tsx: Page or workspace entry
+- app/p/[slug]/page.tsx: Page or workspace entry
+- app/page.tsx: Page or workspace entry
+- app/platform/join/[token]/page.tsx: Page or workspace entry
+- app/platform/page.tsx: Page or workspace entry
+- app/platform/sign-in/page.tsx: Page or workspace entry
+- app/player-workspaces/page.tsx: Page or workspace entry
+- app/privacy/page.tsx: Page or workspace entry
+- app/profile/page.tsx: Page or workspace entry
+- app/reset-password/page.tsx: Page or workspace entry
+- app/s/[token]/page.tsx: Page or workspace entry
+- app/sign-in/page.tsx: Page or workspace entry
+- app/workspace/[tenantSlug]/capture/page.tsx: Page or workspace entry
+- app/workspace/[tenantSlug]/page.tsx: Page or workspace entry
+- app/workspace/join/[token]/page.tsx: Page or workspace entry

@@ -230,7 +230,8 @@ test('global mic inherits stable context from player club contact recruitment an
 
 test('scout voice notes create or reuse Recruitment targets and dated scouting reports', () => {
   assert.match(worker, /log_scout_observation/);
-  assert.match(worker, /redream_ai_apply_scout_observation/);
+  assert.match(worker, /redream_ai_stage_action/);
+  assert.match(migration, /djm_tell_apply_scout_observation/);
   assert.match(migration, /djm_os\.scouting_prospects/);
   assert.match(migration, /djm_os\.scouting_reports/);
   assert.match(migration, /recruitment_stage,recruitment_priority/);
@@ -307,7 +308,7 @@ test('older background receipts cannot overwrite the capture the user opened', (
 test('recording and unsafe save guard against accidental navigation', () => {
   assert.match(capture, /beforeunload/);
   assert.match(capture, /document\.addEventListener\('click', guardLinks, true\)/);
-  assert.match(capture, /Finish the voice note before leaving this screen/);
+  assert.match(capture, /Finish the voice note first/);
   assert.match(launcher, /Finish saving before opening full screen/);
   assert.match(launcher, /disabled=\{unsafeToClose\}/);
 });
@@ -417,7 +418,7 @@ test('partial or failed captures can retry only their unfinished work from the p
   assert.match(migration, /v_capture\.status not in \('partial','failed'\)/);
   assert.match(capture, /Retry failed updates/);
   assert.match(capture, /redream_ai_retry_capture/);
-  assert.match(capture, /ReDream reuses the saved transcript and plan/);
+  assert.match(capture, /saved transcript and plan are reused/);
 });
 
 test('receipt polling spans the durable one-minute cron fallback without fan-out on reconnect', () => {

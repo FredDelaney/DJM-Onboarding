@@ -199,7 +199,7 @@ export default function AgencyMemoryDrawer({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Provenance-backed memory
+              Agency history
             </span>
 
             <button
@@ -219,8 +219,7 @@ export default function AgencyMemoryDrawer({
             What changed. What was decided. What ReDream has actually learned.
           </h2>
           <p className={styles.subhead}>
-            A traceable operating memory built from recorded evidence,
-            explicit actions and bounded learning.
+            Your agency’s recorded information, actions and outcomes.
           </p>
         </header>
 
@@ -419,7 +418,7 @@ export default function AgencyMemoryDrawer({
                     <Network size={17} />
                     <div>
                       <strong>
-                        You have no recorded Autopilot action history yet.
+                        You have no Autopilot history yet.
                       </strong>
                       <span>
                         This ledger is user-scoped. Agency-wide movement
@@ -496,7 +495,7 @@ export default function AgencyMemoryDrawer({
                   <CircleAlert size={17} />
                   <div>
                     <strong>
-                      No decision-grade operating pattern is available yet.
+                      There is not enough history yet to show a reliable pattern.
                     </strong>
                     <span>
                       ReDream prefers no recommendation to a confident-looking

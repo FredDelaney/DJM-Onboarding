@@ -69,7 +69,7 @@ test('disconnecting a custom primary falls back to a verified ReDream domain', (
   );
   assert.match(ops, /action\s*===\s*"disable_custom_domain"/);
   assert.match(domainCard, /Disconnect/);
-  assert.match(domainCard, /ReDream address remains available/);
+  assert.match(domainCard, /Your ReDream address stays available/);
 });
 
 test('domain lifecycle RPCs stay behind the service-role boundary', () => {

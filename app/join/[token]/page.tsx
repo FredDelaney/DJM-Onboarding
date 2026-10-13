@@ -377,9 +377,9 @@ export default function Join() {
 
           <form onSubmit={submit} className="stack">
             <div className="field">
-              <label className="label">Create password</label>
+              <label htmlFor="invite-field-1" className="label">Create password</label>
 
-              <input
+              <input id="invite-field-1"
                 className="input"
                 type="password"
                 autoComplete="new-password"

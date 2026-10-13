@@ -13,11 +13,11 @@ test('authenticated control system defines five semantic roles', () => {
   }
 });
 
-test('primary and secondary mobile controls share geometry and cannot stack', () => {
+test('primary and secondary mobile controls share geometry and wrap full labels', () => {
   assert.match(final, /data-ui-button="primary"[\s\S]*data-ui-button="secondary"[\s\S]*flex-direction: row !important/);
   assert.match(final, /min-height: var\(--ui-control-h\) !important/);
   assert.match(final, /border-radius: var\(--ui-control-radius\) !important/);
-  assert.match(final, /white-space: nowrap !important/);
+  assert.match(final, /white-space: normal !important/);
 });
 
 test('icon and nav controls are mathematically centred', () => {
@@ -64,11 +64,12 @@ test('recognised standard Agency button classes cannot bypass the shared control
   }
 });
 
-test('dark hero controls explicitly opt into inverse tone', () => {
+test('hero controls use tones that match their backgrounds', () => {
   const profile = readFileSync('components/AgencyPlayerProfile.tsx','utf8');
   const pursuit = readFileSync('components/AgencyPursuitRoom.tsx','utf8');
-  assert.match(profile, /data-ui-button="primary" data-ui-tone="inverse"/);
-  assert.match(profile, /data-ui-button="secondary" data-ui-tone="inverse"/);
+  assert.match(profile, /data-ui-button="primary"/);
+  assert.doesNotMatch(profile, /data-ui-tone="inverse"/);
+  assert.match(profile, /data-ui-button="secondary"/);
   assert.match(pursuit, /data-ui-button="primary" data-ui-tone="inverse"[\s\S]*heroAction/);
 });
 

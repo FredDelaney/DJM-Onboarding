@@ -221,7 +221,7 @@ summary:focus-visible {
 .ux-secondary-button {
   min-height: 42px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 820;
   letter-spacing: -.005em;
   box-shadow: none;
@@ -368,7 +368,7 @@ summary:focus-visible {
 .ux-simple-form label,
 .ux-form-wide label {
   color: #526e80;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 780;
 }
 
@@ -377,7 +377,7 @@ summary:focus-visible {
 .ux-simple-form textarea,
 .ux-filter-row select {
   min-height: 43px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* =========================================================
@@ -414,19 +414,19 @@ summary:focus-visible {
 .ux-surface-head p,
 .ux-panel-heading p {
   color: #748793;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ux-surface-head > a,
 .ux-surface-head > button {
   color: #41647a;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .ux-eyebrow {
   margin-bottom: 5px;
   color: #8a6e18;
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: .12em;
 }
 
@@ -496,7 +496,7 @@ summary:focus-visible {
 .ux-compare-topbar .ux-subtitle {
   margin-top: 8px;
   color: rgba(221, 233, 240, .7);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ux-signal-strip {
@@ -622,16 +622,16 @@ summary:focus-visible {
 }
 
 .ux-player-main strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ux-player-main p {
-  font-size: 9.5px;
+  font-size: 12px;
 }
 
 .ux-player-main small,
 .ux-player-meta span {
-  font-size: 8px;
+  font-size: 12px;
 }
 
 /* =========================================================
@@ -757,7 +757,7 @@ details {
 
 .ux-player-hero-copy p {
   color: rgba(220, 232, 239, .72);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ux-player-primary-action {
@@ -773,7 +773,7 @@ details {
 
 .ux-player-primary-action > span {
   color: #e4c055;
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .ux-player-primary-action > strong {
@@ -782,7 +782,7 @@ details {
 
 .ux-player-primary-action > p {
   color: rgba(220, 232, 239, .72);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .ux-player-three {
@@ -803,12 +803,12 @@ details {
 }
 
 .ux-player-summary-card strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ux-player-summary-card p {
   color: #6c808d;
-  font-size: 8.5px;
+  font-size: 12px;
 }
 
 .ux-player-club-card {
@@ -820,7 +820,7 @@ details {
 }
 
 .ux-player-club-card p {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .ux-player-season-fold {
@@ -941,7 +941,7 @@ details {
   .ux-staff-home-hero p:not(.ux-eyebrow),
   .ux-settings-hero p:not(.ux-eyebrow),
   .ux-compare-topbar .ux-subtitle {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .ux-signal-strip {
@@ -2318,7 +2318,7 @@ details {
 
 .djm-os-root[data-djm-page="settings"] .ux-settings-card strong {
   color: #173a52;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -2326,13 +2326,13 @@ details {
   max-width: 760px;
   margin: 2px 0 0;
   color: #687e8c;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .djm-os-root[data-djm-page="settings"] .ux-settings-card small {
   color: #93a0a9;
-  font-size: 7.5px;
+  font-size: 12px;
 }
 
 .djm-os-root[data-djm-page="settings"] .ux-settings-card > span {
@@ -2340,7 +2340,7 @@ details {
   align-items: center;
   gap: 6px;
   color: #47687c;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   white-space: nowrap;
 }
@@ -2366,7 +2366,7 @@ details {
 .djm-os-root[data-djm-page="settings"] .ux-settings-principle > p {
   margin: 0;
   color: #71848f;
-  font-size: 8.5px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2429,7 +2429,7 @@ details {
 
 .ux-player-summary-card .ux-kicker {
   color: #937514;
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .ux-player-summary-card svg {
@@ -2437,12 +2437,12 @@ details {
 }
 
 .ux-player-summary-card strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ux-player-summary-card p {
   color: #71848f;
-  font-size: 8.5px;
+  font-size: 12px;
 }
 
 .ux-player-club-card {
@@ -2499,7 +2499,7 @@ details {
   max-width: 560px;
   margin: 0;
   color: #71848f;
-  font-size: 9.5px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2548,7 +2548,7 @@ details {
 .djm-note-composer .section-kicker,
 .djm-updates-head .section-kicker {
   color: #8d7017;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: .12em;
 }
@@ -2630,7 +2630,7 @@ details {
   max-width: 670px;
   margin: 0;
   color: #6f8290;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2639,25 +2639,25 @@ details {
   border-radius: 999px;
   background: #fbf4dd;
   color: #7e6312;
-  font-size: 6.5px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: .08em;
 }
 
 .djm-request-date {
   color: #8797a1;
-  font-size: 7.5px;
+  font-size: 12px;
 }
 
 .djm-request-open {
-  min-height: 32px;
+  min-height: 44px;
   margin-top: 10px;
   padding: 0;
   border: 0;
   background: transparent;
   color: #315b75;
   font: inherit;
-  font-size: 8.5px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -2700,17 +2700,17 @@ details {
 
 .djm-history-row strong {
   color: #173a52;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .djm-history-row span {
   color: #71848f;
-  font-size: 8.5px;
+  font-size: 12px;
 }
 
 .djm-history-row small {
   color: #96a2aa;
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .djm-updates-foot {
@@ -2718,15 +2718,19 @@ details {
   padding: 13px 2px;
   border-top: 1px solid #dfe7eb;
   color: #7b8c97;
-  font-size: 8.5px;
+  font-size: 12px;
 }
 
 .djm-updates-foot button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 0;
   background: transparent;
   color: #315b75;
   font: inherit;
-  font-size: 8.5px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -2762,7 +2766,7 @@ details {
   max-width: 600px;
   margin: 0;
   color: #71848f;
-  font-size: 9.5px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2790,7 +2794,7 @@ details {
 
 .profile-21-status-main span:not(.profile-21-percent) {
   color: #71848f;
-  font-size: 8.5px;
+  font-size: 12px;
 }
 
 .profile-21-percent {
@@ -2816,7 +2820,7 @@ details {
   padding-top: 8px;
   border-top: 1px solid #edf1f3;
   color: #81919b;
-  font-size: 7.5px;
+  font-size: 12px;
 }
 
 .profile-21-status-foot a {
@@ -2868,17 +2872,17 @@ details {
 
 .profile-21-row-copy strong {
   color: #173a52;
-  font-size: 10.5px;
+  font-size: 12px;
 }
 
 .profile-21-row-copy span {
   color: #647a88;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .profile-21-row-copy small {
   color: #93a0a9;
-  font-size: 7.5px;
+  font-size: 12px;
 }
 
 .profile-21-private {
@@ -2899,12 +2903,12 @@ details {
 
 .profile-21-private strong {
   color: #173a52;
-  font-size: 9.5px;
+  font-size: 12px;
 }
 
 .profile-21-private span {
   color: #71848f;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 

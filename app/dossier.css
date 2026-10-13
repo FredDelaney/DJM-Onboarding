@@ -107,7 +107,7 @@
       .48
     );
 
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1;
 
   font-weight: 750;
@@ -197,7 +197,7 @@
       .48
     );
 
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
 
   font-weight: 800;
@@ -314,7 +314,7 @@
       .72
     );
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -441,7 +441,7 @@
 
 .dossier-pitch-note span {
   color: #667888;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .13em;
 }
@@ -512,7 +512,7 @@
 
   color: #7c8087;
 
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
 
   font-weight: 800;
@@ -595,7 +595,7 @@
 .dossier-section-head > span {
   color: #8a8d93;
 
-  font-size: 11px;
+  font-size: 12px;
 }
 
 
@@ -647,7 +647,7 @@
 .dossier-contact-mini > span {
   color: #81858c;
 
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 
   letter-spacing: .1em;
@@ -769,7 +769,7 @@
 
   color: #777b82;
 
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 680;
 }
 
@@ -798,7 +798,7 @@
 .dossier-performance-labels span {
   color: #8a8d93;
 
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 
   letter-spacing: .09em;
@@ -849,7 +849,7 @@
 
   color: #74787f;
 
-  font-size: 10px;
+  font-size: 12px;
 
   white-space: nowrap;
 
@@ -891,7 +891,7 @@
 
   color: #878b91;
 
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .dossier-performance-value {
@@ -933,7 +933,7 @@
 
   color: #9a9da2;
 
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -979,7 +979,7 @@
 
   color: #8a8d93;
 
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 
   letter-spacing: .09em;
@@ -1020,7 +1020,7 @@
 
   color: #767a81;
 
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .dossier-career-club small {
@@ -1030,7 +1030,7 @@
 
   color: #8b8e94;
 
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .dossier-career-club small a {
@@ -1139,7 +1139,7 @@
 
   color: #85888e;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .dossier-video-card.is-primary
@@ -1209,7 +1209,7 @@
 
   color: #85888e;
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 
@@ -1244,7 +1244,7 @@
   color:
     var(--navy);
 
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 720;
 }
 
@@ -1281,7 +1281,7 @@
       .48
     );
 
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 
   letter-spacing: .13em;
@@ -1381,7 +1381,7 @@
 
 .dossier-footer strong,
 .dossier-footer span {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 
@@ -1470,7 +1470,7 @@
   color:
     var(--muted);
 
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .player-dossier-status {
@@ -1493,7 +1493,7 @@
   color:
     var(--navy) !important;
 
-  font-size: 10px !important;
+  font-size: 12px !important;
   font-weight: 750;
 }
 
@@ -1595,7 +1595,7 @@
   }
 
   .dossier-eyebrow {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .dossier-name {
@@ -1621,7 +1621,7 @@
   .dossier-hero-facts {
     gap: 4px 10px;
     margin-top: 9px;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .dossier-headline {
@@ -1653,7 +1653,7 @@
   }
 
   .dossier-hero-badges span {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .dossier-hero-actions {
@@ -1676,7 +1676,7 @@
       10px
       11px;
 
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .dossier-hero-btn:last-child:nth-child(odd) {
@@ -1826,7 +1826,7 @@
 
     align-self: center;
 
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .dossier-notable-grid {
@@ -1851,7 +1851,7 @@
   }
 
   .dossier-career-season {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .dossier-career-club {
@@ -1870,7 +1870,7 @@
     background:
       #f4f5f7;
 
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .dossier-video-grid,
@@ -1956,7 +1956,7 @@
   }
 
   .dossier-hero-btn {
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 
@@ -1982,7 +1982,7 @@
   display: block;
   margin-bottom: 8px;
   color: #697a89;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .15em;
 }
@@ -1998,7 +1998,7 @@
 .dossier-player-profile-head > small {
   max-width: 330px;
   color: #84919c;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
   text-align: right;
 }
@@ -2081,7 +2081,7 @@
   border-radius: 50%;
   background: #fff;
   color: #061f3a;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 900;
   box-shadow: 0 5px 15px rgba(0, 0, 0, .22);
 }
@@ -2101,7 +2101,7 @@
 
 .dossier-role-card > span {
   color: #788793;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .13em;
 }
@@ -2146,7 +2146,7 @@
 
 .dossier-role-facts span {
   color: #8a98a4;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .07em;
   text-transform: uppercase;
@@ -2172,7 +2172,7 @@
   align-items: center;
   gap: 7px;
   color: #748491;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -2192,7 +2192,7 @@
 .dossier-chart-note {
   margin: 12px 0 2px;
   color: #84919c;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2264,7 +2264,7 @@
 .dossier-evaluation-head span {
   display: block;
   color: #7c8087;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 820;
   letter-spacing: .12em;
 }
@@ -2281,7 +2281,7 @@
 .dossier-evaluation-head small {
   max-width: 280px;
   color: #8a9096;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.4;
   text-align: right;
 }
@@ -2359,7 +2359,7 @@
 
 .dossier-evaluation-copy span {
   color: #89939c;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 820;
   letter-spacing: .1em;
 }
@@ -2382,13 +2382,11 @@
 }
 
 .dossier-evaluation-copy small {
-  overflow: hidden;
   margin-top: 5px;
   color: #78838d;
-  font-size: 10px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .dossier-evaluation-card.is-video .dossier-evaluation-copy small {
@@ -2453,7 +2451,7 @@
   }
 
   .dossier-evaluation-copy small {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .dossier-evaluation-open {
@@ -2547,7 +2545,7 @@
 
 .dossier-quick-stats-head span {
   color: color-mix(in srgb, var(--yellow) 72%, #fff);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .13em;
 }
@@ -2562,7 +2560,7 @@
 .dossier-quick-stats-head small {
   margin-top: 6px;
   color: rgba(255, 255, 255, .52);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .dossier-quick-stats-grid {
@@ -2600,7 +2598,7 @@
   margin-top: 7px;
   overflow: hidden;
   color: #7f8b95;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 760;
   letter-spacing: .035em;
   text-overflow: ellipsis;
@@ -2653,6 +2651,6 @@
 
   .dossier-quick-stat span {
     margin-top: 5px;
-    font-size: 8px;
+    font-size: 12px;
   }
 }

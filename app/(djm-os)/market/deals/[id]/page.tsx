@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
+import { legacyWorkspaceRecordHref } from '@/lib/legacy-workspace-route';
 
-export default function LegacyRouteRedirect() {
-  redirect('/agency?view=deals');
+export default async function LegacyRouteRedirect({params}:{params:Promise<{id:string}>}) {
+  redirect(legacyWorkspaceRecordHref('deal',(await params).id));
 }

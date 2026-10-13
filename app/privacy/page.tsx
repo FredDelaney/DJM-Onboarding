@@ -11,6 +11,7 @@ import ReDreamPublicPrivacy from './ReDreamPublicPrivacy';
 export const metadata = {
   title: 'Privacy | ReDream',
   description: 'Privacy information for your agency workspace.',
+  alternates: { canonical: '/privacy' },
 };
 
 export default async function PrivacyPage() {

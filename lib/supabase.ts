@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@supabase/supabase-js';
+import { createPasswordAuthFetch } from './password-auth-fetch';
 
 const url =
   process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,6 +19,7 @@ export const supabase = createClient(
   url,
   key,
   {
+    global: { fetch: createPasswordAuthFetch((input, init) => fetch(input, init)) },
     auth: {
       persistSession: true,
       autoRefreshToken: true,

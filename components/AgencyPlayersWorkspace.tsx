@@ -28,6 +28,7 @@ import EntityActionsMenu from '@/components/EntityActionsMenu';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile } from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
+import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
 import styles from './AgencyPlayersWorkspace.module.css';
 
 type Invoke = <T,>(
@@ -36,11 +37,16 @@ type Invoke = <T,>(
 ) => Promise<T>;
 
 type Props = {
+  stateScope?: string;
+  canManageRecords?: boolean;
+  canCreateRecords?: boolean;
   data: any;
   basePath: string;
   invoke: Invoke;
   rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
   onRefresh: () => Promise<void>;
+  onLoadMore?: () => Promise<void>;
+  directoryRefreshing?: boolean;
   onOpenAction: (request: AgencyActionRequest) => void;
 };
 
@@ -83,9 +89,9 @@ const ageFromDob = (value: unknown) => {
 
 const nextBirthday = (value: unknown) => {
   const raw = String(value || '');
-  if (!raw) return 'Birthday not recorded';
+  if (!raw) return 'Birthday not set';
   const dob = new Date(`${raw}T12:00:00`);
-  if (Number.isNaN(dob.getTime())) return 'Birthday not recorded';
+  if (Number.isNaN(dob.getTime())) return 'Birthday not set';
   const now = new Date();
   const next = new Date(now.getFullYear(), dob.getMonth(), dob.getDate(), 12);
   if (next < now) next.setFullYear(now.getFullYear() + 1);
@@ -141,6 +147,7 @@ function Empty({
 }
 
 function PlayerDrawer({
+  cacheScope = '',
   playerId,
   summary,
   basePath,
@@ -150,6 +157,7 @@ function PlayerDrawer({
   onClose,
   onOpenAction,
 }: {
+  cacheScope?: string;
   playerId: string;
   summary?: any;
   basePath: string;
@@ -180,7 +188,7 @@ function PlayerDrawer({
   useEffect(() => {
     let active = true;
 
-    void prefetchPlayerProfile(playerId, invoke).catch(() => undefined);
+    void prefetchPlayerProfile(playerId, invoke, cacheScope).catch(() => undefined);
 
     void invoke<any>('player_workspace', { player_id: playerId })
       .then((response) => {
@@ -193,7 +201,7 @@ function PlayerDrawer({
         if (active) setBusy(false);
       });
     return () => { active = false; };
-  }, [invoke, playerId]);
+  }, [invoke, playerId, cacheScope]);
 
   const identity = detail?.identity || {};
   const service = detail?.service || {};
@@ -227,12 +235,12 @@ function PlayerDrawer({
       payload: { player_id: playerId },
       facts: [
         { label: 'Player status', value: human(service?.service_control?.state || 'Recorded') },
-        { label: 'Next move', value: nextMove?.instruction || identity.next_action || 'Not recorded' },
-        { label: 'Contract timing', value: identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'No expiry recorded' },
-        { label: 'Market activity', value: human(service?.market_coverage?.state || 'Not recorded') },
+        { label: 'Next move', value: nextMove?.instruction || identity.next_action || 'Not set' },
+        { label: 'Contract timing', value: identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'No expiry set' },
+        { label: 'Market activity', value: human(service?.market_coverage?.state || 'Not set') },
       ],
       successCondition: control?.success_condition || nextMove?.success_condition ||
-        'The recorded player action is completed and the next step is current.',
+        'The next step is current.',
     });
   };
 
@@ -249,7 +257,7 @@ function PlayerDrawer({
         {busy ? (
           <div className={styles.drawerState}>
             <LoaderCircle size={20} className={styles.spin} />
-            <div><strong>Opening player</strong><span>Loading the current agency record.</span></div>
+            <div><strong>Opening player</strong><span>Loading details.</span></div>
           </div>
         ) : null}
 
@@ -269,7 +277,7 @@ function PlayerDrawer({
                 <h2>{playerName}</h2>
                 <span>
                   {[identity.primary_position, identity.current_club, identity.current_country]
-                    .filter(Boolean).join(' · ') || 'Football details not fully recorded'}
+                    .filter(Boolean).join(' · ') || 'Add position, club or country'}
                 </span>
               </div>
               <div className={styles.playerHeroManage}>
@@ -338,24 +346,24 @@ function PlayerDrawer({
                 <div className={styles.detailStack}>
                   <section className={styles.detailHero}>
                     <p>NEXT MOVE</p>
-                    <h3>{service?.next_service_move?.instruction || identity.next_action || 'No next action recorded'}</h3>
-                    <span>{identity.next_action_due ? relativeDate(identity.next_action_due) : 'No due date recorded'}</span>
+                    <h3>{service?.next_service_move?.instruction || identity.next_action || 'No next action yet'}</h3>
+                    <span>{identity.next_action_due ? relativeDate(identity.next_action_due) : 'No due date set'}</span>
                   </section>
                   <div className={styles.factGrid}>
-                    <div><span>Birthday</span><strong>{nextBirthday(identity.date_of_birth)}</strong><small>{identity.date_of_birth || 'Date not recorded'}</small></div>
-                    <div><span>Playing contract</span><strong>{identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'Not recorded'}</strong><small>{human(identity.contract_status || 'Status not recorded')}</small></div>
-                    <div><span>Agency agreement</span><strong>{representation?.end_date ? relativeDate(representation.end_date) : representation ? 'No end date recorded' : 'Not recorded'}</strong><small>{representation ? human(representation.agreement_type) : 'Representation agreement not recorded'}</small></div>
-                    <div><span>Opportunities</span><strong>{opportunities.filter((item: any) => !['won','lost','paused'].includes(String(item?.stage || ''))).length + deals.filter((deal: any) => deal?.status === 'active').length}</strong><small>Active recorded routes</small></div>
+                    <div><span>Birthday</span><strong>{nextBirthday(identity.date_of_birth)}</strong><small>{identity.date_of_birth || 'Date not set'}</small></div>
+                    <div><span>Playing contract</span><strong>{identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'Not set'}</strong><small>{human(identity.contract_status || 'Status not set')}</small></div>
+                    <div><span>Agency agreement</span><strong>{representation?.end_date ? relativeDate(representation.end_date) : representation ? 'No end date set' : 'Not set'}</strong><small>{representation ? human(representation.agreement_type) : 'No representation agreement'}</small></div>
+                    <div><span>Opportunities</span><strong>{opportunities.filter((item: any) => !['won','lost','paused'].includes(String(item?.stage || ''))).length + deals.filter((deal: any) => deal?.status === 'active').length}</strong><small>Active opportunities</small></div>
                   </div>
                   <section className={styles.recentActivity}>
                     <span>Latest activity</span>
                     {activity[0] ? (
                       <div>
                         <strong>{human(activity[0]?.event_type || 'Agency activity')}</strong>
-                        <small>{activity[0]?.occurred_at ? relativeDate(activity[0].occurred_at) : 'Date not recorded'}</small>
+                        <small>{activity[0]?.occurred_at ? relativeDate(activity[0].occurred_at) : 'Date not set'}</small>
                       </div>
                     ) : (
-                      <strong>No recent activity recorded</strong>
+                      <strong>No recent activity</strong>
                     )}
                   </section>
                 </div>
@@ -392,13 +400,13 @@ function PlayerDrawer({
                     {[...opportunities, ...deals].map((item: any) => (
                       <article className={styles.row} key={`${item.id}:${item.stage}`}>
                         <div><strong>{item.club_name || item.title || 'Opportunity'}</strong>
-                          <span>{item.summary || item.next_action || item.primary_blocker || 'Recorded opportunity'}</span>
+                          <span>{item.summary || item.next_action || item.primary_blocker || 'Opportunity'}</span>
                           <small>{human(item.stage || item.status || 'Recorded')}</small></div>
                       </article>
                     ))}
                     {!opportunities.length && !deals.length ? (
-                      <Empty icon={Target} title="No active opportunities recorded"
-                        copy="Player-club routes and live deals will appear here when they are created." />
+                      <Empty icon={Target} title="No active opportunities"
+                        copy="Routes and deals will appear here." />
                     ) : null}
                   </div>
                 </section>
@@ -407,8 +415,8 @@ function PlayerDrawer({
               {tab === 'career' ? (
                 <section className={styles.detailSection}>
                   <p>CAREER PLAN</p>
-                  <h3>{career?.strategy?.objective || 'No career objective recorded'}</h3>
-                  <span className={styles.sectionCopy}>{career?.next_strategy_action?.instruction || 'No career-plan action recorded'}</span>
+                  <h3>{career?.strategy?.objective || 'No career objective yet'}</h3>
+                  <span className={styles.sectionCopy}>{career?.next_strategy_action?.instruction || 'No career-plan action yet'}</span>
                   {career?.next_strategy_action?.instruction ? (
                     <button type="button" data-ui-button="primary"
               className={styles.primaryButton} onClick={() =>
@@ -420,7 +428,7 @@ function PlayerDrawer({
                         label: 'Review career plan',
                         action: 'career_strategy_action_prepare',
                         payload: { player_id: playerId },
-                        successCondition: 'The player-owned career plan is current and usable for market decisions.',
+                        successCondition: 'The career plan is current.',
                       })
                     }><Target size={14} /> Review career plan</button>
                   ) : null}
@@ -431,26 +439,26 @@ function PlayerDrawer({
                 <div className={styles.detailStack}>
                   <section className={styles.detailSection}>
                     <p>PLAYING CONTRACT</p>
-                    <h3>{identity.current_club || 'Current club not recorded'}</h3>
+                    <h3>{identity.current_club || 'Current club not set'}</h3>
                     <div className={styles.factGrid}>
-                      <div><span>Status</span><strong>{human(identity.contract_status || 'Not recorded')}</strong></div>
-                      <div><span>Expiry</span><strong>{identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'Not recorded'}</strong></div>
+                      <div><span>Status</span><strong>{human(identity.contract_status || 'Not set')}</strong></div>
+                      <div><span>Expiry</span><strong>{identity.contract_expiry ? relativeDate(identity.contract_expiry) : 'Not set'}</strong></div>
                     </div>
                   </section>
                   <section className={styles.detailSection}>
                     <p>AGENCY AGREEMENTS</p>
-                    <h3>Representation records</h3>
+                    <h3>Representation</h3>
                     <div className={styles.rows}>
                       {agreements.map((item: any) => (
                         <article className={styles.row} key={item.id}>
                           <div><strong>{item.title || human(item.agreement_type || 'Agreement')}</strong>
                             <span>{human(item.status || 'Recorded')}</span>
-                            <small>{item.end_date ? `Ends ${relativeDate(item.end_date)}` : 'No end date recorded'}</small></div>
+                            <small>{item.end_date ? `Ends ${relativeDate(item.end_date)}` : 'No end date set'}</small></div>
                         </article>
                       ))}
                       {!agreements.length ? (
-                        <Empty icon={ShieldCheck} title="Representation agreement not recorded"
-                          copy="This means no active agreement record is stored here. It is not a legal conclusion about representation authority." />
+                        <Empty icon={ShieldCheck} title="No agreement recorded"
+                          copy="No active agreement is recorded here." />
                       ) : null}
                     </div>
                   </section>
@@ -459,16 +467,16 @@ function PlayerDrawer({
 
               {tab === 'activity' ? (
                 <section className={styles.detailSection}>
-                  <p>ACTIVITY</p><h3>Recorded agency activity</h3>
+                  <p>ACTIVITY</p><h3>Agency activity</h3>
                   <div className={styles.rows}>
                     {activity.map((item: any, index: number) => (
                       <article className={styles.row} key={`${item.event_type}:${index}`}>
                         <div><strong>{human(item.event_type || 'Agency activity')}</strong>
-                          <span>{item.occurred_at ? relativeDate(item.occurred_at) : 'Date not recorded'}</span></div>
+                          <span>{item.occurred_at ? relativeDate(item.occurred_at) : 'Date not set'}</span></div>
                       </article>
                     ))}
-                    {!activity.length ? <Empty icon={CalendarDays} title="No player activity recorded yet"
-                      copy="Relevant agency events will appear here without exposing private event payloads." /> : null}
+                    {!activity.length ? <Empty icon={CalendarDays} title="No player activity yet"
+                      copy="Agency activity will appear here." /> : null}
                   </div>
                 </section>
               ) : null}
@@ -482,11 +490,11 @@ function PlayerDrawer({
                         <FileText size={15} />
                         <div><strong>{item.title || 'Player document'}</strong>
                           <span>{human(item.document_type || 'Document')}</span>
-                          <small>{item.expires_at ? `Expires ${relativeDate(item.expires_at)}` : 'No expiry recorded'}</small></div>
+                          <small>{item.expires_at ? `Expires ${relativeDate(item.expires_at)}` : 'No expiry set'}</small></div>
                       </article>
                     ))}
-                    {!documents.length ? <Empty icon={FileText} title="No player files recorded"
-                      copy="File metadata appears here. Private storage paths are not exposed in this workspace." /> : null}
+                    {!documents.length ? <Empty icon={FileText} title="No player files yet"
+                      copy="Player files will appear here." /> : null}
                   </div>
                 </section>
               ) : null}
@@ -499,26 +507,46 @@ function PlayerDrawer({
 }
 
 export default function AgencyPlayersWorkspace({
+  stateScope = '',
+  canManageRecords = true,
+  canCreateRecords = true,
   data,
   basePath,
   invoke,
   rpc,
   onRefresh,
   onOpenAction,
+  onLoadMore,
+  directoryRefreshing = false,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [section, setSection] = useState<'players'|'recruitment'>(
     searchParams.get('tab') === 'recruitment' ? 'recruitment' : 'players',
   );
-  const [search, setSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState('all');
+  const memory=useWorkspaceListMemory(stateScope,section,{search:'',stage:'all'});
+  const search=memory.state.search,stageFilter=memory.state.stage;
+  const setSearch=(value:string)=>memory.update({search:value});
+  const setStageFilter=(value:string)=>memory.update({stage:value});
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
+  const [pageBusy, setPageBusy] = useState(false);
+  const [pageError, setPageError] = useState('');
+  const paging = useRef(false);
+  const loadNextPage = async () => {
+    if (!onLoadMore || paging.current || directoryRefreshing) return;
+    paging.current = true;
+    setPageBusy(true);
+    setPageError('');
+    try { await onLoadMore(); }
+    catch (error) { setPageError(friendlyError(error)); }
+    finally { paging.current = false; setPageBusy(false); }
+  };
 
   const reloadArchives = useCallback(async () => {
+    if (!canManageRecords) { setArchiveItems([]); return; }
     const result = await rpc<any>('redream_entity_archives');
     setArchiveItems(Array.isArray(result?.items) ? result.items : []);
-  }, [rpc]);
+  }, [rpc,canManageRecords]);
 
   const refreshEntities = useCallback(async () => {
     await Promise.all([onRefresh(), reloadArchives()]);
@@ -603,8 +631,9 @@ export default function AgencyPlayersWorkspace({
   };
 
   const openPlayer = (id: string) => {
+    rememberListPosition(stateScope,section);
     setPlayerId(id);
-    void prefetchPlayerProfile(id, invoke).catch(() => undefined);
+    void prefetchPlayerProfile(id, invoke, stateScope).catch(() => undefined);
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
     params.set('player', id);
@@ -615,7 +644,8 @@ export default function AgencyPlayersWorkspace({
   };
 
   const openPlayerProfile = (id: string) => {
-    void prefetchPlayerProfile(id, invoke).catch(() => undefined);
+    rememberListPosition(stateScope,section);
+    void prefetchPlayerProfile(id, invoke, stateScope).catch(() => undefined);
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
     params.set('player', id);
@@ -636,6 +666,7 @@ export default function AgencyPlayersWorkspace({
   };
 
   const openTarget = (id: string) => {
+    rememberListPosition(stateScope,section);
     setTargetId(id);
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
@@ -654,6 +685,8 @@ export default function AgencyPlayersWorkspace({
     params.delete('target');
     router.replace(`${basePath}?${params.toString()}`);
   };
+
+  useRestoreListPosition(stateScope,section,memory.ready&&!playerId&&!targetId);
 
   useEffect(() => {
     setInteraction('');
@@ -777,7 +810,7 @@ export default function AgencyPlayersWorkspace({
               className={styles.closeButton} onClick={closeTarget} aria-label="Back to Recruitment">
               <ArrowLeft size={18} />
             </button>
-            {targetDetail?.target ? (
+            {targetDetail?.target && canManageRecords ? (
               <EntityActionsMenu
                 kind="recruitment_target"
                 entityId={targetId}
@@ -799,15 +832,15 @@ export default function AgencyPlayersWorkspace({
               />
             ) : null}
           </div>
-          {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the recorded relationship.</span></div></div>:null}
+          {targetBusy?<div className={styles.drawerState}><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the latest recruitment details.</span></div></div>:null}
           {targetError?<div className={styles.drawerState}><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span><button type="button" data-ui-button="secondary"
               className={styles.secondaryButton} onClick={()=>setTargetReload(value=>value+1)}>Try again</button></div></div>:null}
           {!targetBusy&&!targetError&&targetDetail?(
             <div className={styles.drawerBody}>
               <header className={styles.recruitHero}><div className={styles.recruitmentMark}>{initials(targetDetail.target?.full_name||'')||'P'}</div>
-                <div><p>RECRUITMENT</p><h2>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span></div></header>
+                <div><p>RECRUITMENT</p><h2>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Add more player details'}</span></div></header>
               <section className={styles.detailSection}><p>CURRENT STAGE</p><h3>{PIPELINE.find(([key])=>key===targetDetail.target?.ui_stage)?.[1]||human(targetDetail.target?.ui_stage)}</h3>
-                <span className={styles.sectionCopy}>{targetDetail.target?.next_action_at?`Next follow-up ${relativeDate(targetDetail.target.next_action_at)}`:'No next follow-up recorded'}</span>
+                <span className={styles.sectionCopy}>{targetDetail.target?.next_action_at?`Next follow-up ${relativeDate(targetDetail.target.next_action_at)}`:'No next follow-up yet'}</span>
                 <div className={styles.actionRow}>
                   {nextMajorStage(targetDetail.target?.raw_stage)?(<button type="button" data-ui-button="primary"
               className={styles.primaryButton} onClick={()=>void changeStage()}><ArrowRight size={14}/> Move to {nextMajorStage(targetDetail.target?.raw_stage)?.[1]}</button>):null}
@@ -817,8 +850,8 @@ export default function AgencyPlayersWorkspace({
               </section>
               <section className={styles.detailSection}><p>CONTACT</p><h3>Log what happened</h3>
                 <div className={styles.interactionForm}>
-                  <select value={interactionChannel} onChange={(e)=>setInteractionChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="email">Email</option><option value="phone">Phone</option><option value="meeting">Meeting</option><option value="other">Other</option></select>
-                  <textarea rows={3} value={interaction} onChange={(e)=>setInteraction(e.target.value)} placeholder="Short factual note"/>
+                  <select aria-label="Interaction channel" value={interactionChannel} onChange={(e)=>setInteractionChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="email">Email</option><option value="phone">Phone</option><option value="meeting">Meeting</option><option value="other">Other</option></select>
+                  <textarea aria-label="Interaction note" rows={3} value={interaction} onChange={(e)=>setInteraction(e.target.value)} placeholder="Short factual note"/>
                   <button type="button" data-ui-button="primary"
               className={styles.primaryButton} disabled={!interaction.trim()} onClick={()=>void logInteraction()}><CheckCircle2 size={14}/> Save interaction</button>
                 </div>
@@ -826,7 +859,7 @@ export default function AgencyPlayersWorkspace({
               <section className={styles.detailSection}><p>HISTORY</p><h3>Recruitment interactions</h3>
                 <div className={styles.rows}>
                   {(targetDetail.interactions||[]).map((item:any)=>(<article className={styles.row} key={item.id}><div><strong>{human(item.channel)} · {human(item.direction)}</strong><span>{item.summary}</span><small>{relativeDate(item.occurred_at)}</small></div></article>))}
-                  {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction recorded" copy="Log the first real conversation here. Contact timestamps are never invented."/>:null}
+                  {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction yet" copy="Log the first real conversation. Timestamps are never invented."/>:null}
                 </div>
               </section>
             </div>
@@ -839,6 +872,7 @@ export default function AgencyPlayersWorkspace({
   if (playerId) {
     return (
       <PlayerDrawer
+        cacheScope={stateScope}
         playerId={playerId}
         summary={players.find(
           (item: any) => String(item?.player_id || '') === playerId,
@@ -858,15 +892,15 @@ export default function AgencyPlayersWorkspace({
       <section className={styles.toolbar}>
         <div className={styles.sectionTabs}>
           <button type="button" className={section==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('players')}>
-            Our Players <b>{players.length}</b>
+            Our Players <b>{data?.directory?.total ?? players.length}</b>
           </button>
           <button type="button" className={section==='recruitment'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('recruitment')}>
             Recruitment <b>{targets.length}</b>
           </button>
         </div>
-        <label className={styles.search}><Search size={15}/><input value={search} onChange={(e)=>setSearch(e.target.value)}
+        <label className={styles.search}><Search size={15}/><input aria-label={section==='players'?'Search players':'Search recruitment'} value={search} onChange={(e)=>setSearch(e.target.value)}
           placeholder={section==='players'?'Search players':'Search recruitment'} /></label>
-        {section==='recruitment'?(
+        {section==='recruitment' && canCreateRecords?(
           <button type="button" data-ui-button="secondary"
               className={styles.primaryButton} onClick={openRecruitmentCreate}><Plus size={14}/> Add target</button>
         ):null}
@@ -887,21 +921,22 @@ export default function AgencyPlayersWorkspace({
                 role="button"
                 aria-label={`Open ${name}`}
                 tabIndex={0}
-                onClick={() => openPlayer(String(item.player_id))}
+                onClick={() => openPlayerProfile(String(item.player_id))}
                 onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    openPlayer(String(item.player_id));
+                    openPlayerProfile(String(item.player_id));
                   }
                 }}
               >
                 <div className={styles.playerCardTop}>
                   <Avatar name={name} path={identity.profile_photo_path}/>
                   <div className={styles.playerIdentity}><h3>{name}</h3>
-                    <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Football details not fully recorded'}</span>
-                    <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not fully recorded'}</small></div>
+                    <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Add position, club or country'}</span>
+                    <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not set'}</small></div>
                   <div className={styles.playerCardEnd}>
-                    <EntityActionsMenu
+                    {!item.access?.restricted ? <>                    {canManageRecords ? <EntityActionsMenu
                       kind="player"
                       entityId={String(item.player_id)}
                       label={name}
@@ -916,49 +951,53 @@ export default function AgencyPlayersWorkspace({
                         { key: 'current_country', label: 'Current country', value: identity.current_country },
                         { key: 'contract_expiry', label: 'Contract expiry', value: identity.contract_expiry || '', type: 'date' },
                       ]}
-                    />
-                    <button
-                      type="button"
-                      className={styles.profileShortcut}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openPlayerProfile(String(item.player_id));
-                      }}
-                      aria-label={`Open ${name} Player Profile`}
-                    >
-                      <UserRound size={14} />
-                      Profile
-                    </button>
-                    <span className={attention?styles.attentionPill:styles.calmPill}>{attention?'Needs action':'Current'}</span>
+                    /> : null}
+</> : null}
+                    <span className={attention?styles.attentionPill:styles.calmPill}>{item.access?.restricted?'Assigned player':attention?'Needs action':'Current'}</span>
                   </div>
                 </div>
+                {item.access?.restricted ? <p className={styles.sectionCopy}>Assigned player. Contract details require admin access.</p> : <>
                 <div className={styles.mobilePlayerMeta}>
                   <span>
                     <CalendarDays size={12} />
-                    <b>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Contract not recorded'}</b>
+                    <b>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Contract not set'}</b>
                   </span>
                   <span>
                     <Target size={12} />
                     <b>{Number(item.active_opportunities||0)} active {Number(item.active_opportunities||0)===1?'opportunity':'opportunities'}</b>
                   </span>
                 </div>
-                <div className={`${styles.mobileNextAction} ${attention?styles.mobileNextActionAttention:''}`}>
+                {attention || identity.next_action ? <div className={`${styles.mobileNextAction} ${attention?styles.mobileNextActionAttention:''}`}>
                   <div className={styles.mobileNextActionHead}>
                     <span className={attention?styles.mobileStatusDot:styles.mobileStatusDotCalm} />
                     <span>Next action</span>
                     <small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date'}</small>
                   </div>
                   <div className={styles.mobileNextActionBody}>
-                    <strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong>
+                    <strong>{service?.next_service_move?.instruction||identity.next_action||'No next action yet'}</strong>
                     <ChevronRight size={15} />
                   </div>
-                </div>
+                </div> : null}
                 <div className={styles.playerFacts}>
-                  <div><span>Next action</span><strong>{service?.next_service_move?.instruction||identity.next_action||'No next action recorded'}</strong><small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date recorded'}</small></div>
-                  <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong><small>Active recorded routes</small></div>
-                  <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not recorded'}</strong><small>{human(identity.contract_status||'Status not recorded')}</small></div>
-                  <div><span>Agency agreement</span><strong>{item?.representation?.recorded?(item.representation.end_date?relativeDate(item.representation.end_date):'No end date'):'Not recorded'}</strong><small>{item?.representation?.recorded?human(item.representation.agreement_type):'Representation agreement not recorded'}</small></div>
+                  <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not set'}</strong></div>
+                  <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong></div>
                 </div>
+                </>}
+                {!item.access?.restricted ? <div className={styles.profileShortcutRow}>
+                  <button
+                    type="button"
+                    data-ui-button="secondary"
+                    className={styles.profileShortcut}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openPlayer(String(item.player_id));
+                    }}
+                    aria-label={`Open ${name} work view`}
+                  >
+                    <UserRound size={14} />
+                    Work view
+                  </button>
+                </div> : null}
                 {attention?(
                   <div className={styles.playerCardActions}>
                     <button type="button" data-ui-button="primary"
@@ -976,11 +1015,11 @@ export default function AgencyPlayersWorkspace({
                         payload:{player_id:item.player_id},
                         facts:[
                           {label:'Player status',value:human(service.state||'Recorded')},
-                          {label:'Next move',value:move?.instruction||identity.next_action||'Not recorded'},
-                          {label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'No expiry recorded'},
-                          {label:'Market activity',value:human(service?.market_coverage?.state||'Not recorded')},
+                          {label:'Next move',value:move?.instruction||identity.next_action||'Not set'},
+                          {label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'No expiry set'},
+                          {label:'Market activity',value:human(service?.market_coverage?.state||'Not set')},
                         ],
-                        successCondition:'The recorded player action is completed and the next step is current.',
+                        successCondition:'The next step is current.',
                       });
                     }}><ArrowRight size={14}/>{service?.next_control_fix?.instruction?'Fix this':'Prepare next move'}</button>
                   </div>
@@ -988,7 +1027,17 @@ export default function AgencyPlayersWorkspace({
               </article>
             );
           })}
-          {!filteredPlayers.length?<Empty icon={Users} title="No players recorded yet" copy="Add the first represented player and their current position will appear here."/>:null}
+          {data?.directory?.has_more ? (
+            <div className={styles.pagination}>
+              <p>{players.length} of {data.directory.total} players loaded.{search ? ' This filter applies to loaded players. Use Find to search every player.' : ''}</p>
+              {pageError ? <p role="alert">{pageError}</p> : null}
+              <button type="button" data-ui-button="secondary" className={styles.secondaryButton} disabled={pageBusy || directoryRefreshing} onClick={()=>void loadNextPage()}>
+                {pageBusy ? <LoaderCircle size={15} className={styles.spin}/> : <Plus size={15}/>}
+                {directoryRefreshing ? 'Refreshing players...' : pageBusy ? 'Loading players...' : pageError ? 'Retry loading players' : 'Load more players'}
+              </button>
+            </div>
+          ) : null}
+          {!filteredPlayers.length?<Empty icon={Users} title={search?'No players match this search':data?.directory?.access?.scope==='assigned'?'No assigned players yet':'No players yet'} copy={search?'Try another name, club or position.':data?.directory?.access?.scope==='assigned'?'Ask an agency administrator to assign the players you should work with.':'Add the first represented player and their current position will appear here.'}/>:null}
         </section>
       ):(
         <div className={styles.recruitmentLayout}>
@@ -999,7 +1048,7 @@ export default function AgencyPlayersWorkspace({
               onChange={(event) => setStageFilter(event.target.value)}
             >
               <option value="all">All ({targets.length})</option>
-              {PIPELINE.map(([key, label]) => (
+              {PIPELINE.filter(([key]) => key === stageFilter || Number(stageCounts[key] || 0) > 0).map(([key, label]) => (
                 <option value={key} key={key}>
                   {label} ({stageCounts[key] || 0})
                 </option>
@@ -1009,7 +1058,7 @@ export default function AgencyPlayersWorkspace({
 
           <section className={styles.stageFilters}>
             <button type="button" className={stageFilter==='all'?styles.stageFilterActive:styles.stageFilter} onClick={()=>setStageFilter('all')}>All <span>{targets.length}</span></button>
-            {PIPELINE.map(([key,label])=>(
+            {PIPELINE.filter(([key]) => key === stageFilter || Number(stageCounts[key] || 0) > 0).map(([key,label])=>(
               <button type="button" key={key} className={stageFilter===key?styles.stageFilterActive:styles.stageFilter} onClick={()=>setStageFilter(key)}>
                 {label}<span>{stageCounts[key]||0}</span>
               </button>
@@ -1021,11 +1070,11 @@ export default function AgencyPlayersWorkspace({
                 <button type="button" className={styles.recruitmentRow} onClick={()=>openTarget(String(item.id))}>
                 <div className={styles.recruitmentMark}>{initials(item.full_name||'')||'P'}</div>
                 <div className={styles.recruitmentCopy}><div className={styles.recruitmentTitle}><strong>{item.full_name}</strong>{item.follow_up_overdue?<span className={styles.overduePill}>Follow-up overdue</span>:null}</div>
-                  <span>{[item.primary_position,item.current_club,item.current_country].filter(Boolean).join(' · ')||'Player details not fully recorded'}</span>
-                  <small>{item.last_interaction?.summary||(item.next_action_at?`Next follow-up ${relativeDate(item.next_action_at)}`:'No next follow-up recorded')}</small></div>
+                  <span>{[item.primary_position,item.current_club,item.current_country].filter(Boolean).join(' · ')||'Add more player details'}</span>
+                  <small>{item.last_interaction?.summary||(item.next_action_at?`Next follow-up ${relativeDate(item.next_action_at)}`:'No next follow-up yet')}</small></div>
                 <div className={styles.recruitmentStage}><span>{PIPELINE.find(([key])=>key===item.ui_stage)?.[1]||human(item.ui_stage)}</span><ChevronRight size={15}/></div>
                 </button>
-                <EntityActionsMenu
+                {canManageRecords ? <EntityActionsMenu
                   kind="recruitment_target"
                   entityId={String(item.id)}
                   label={item.full_name || 'Recruitment target'}
@@ -1040,10 +1089,10 @@ export default function AgencyPlayersWorkspace({
                     { key: 'contract_expiry', label: 'Contract expiry', value: item.contract_expiry || '', type: 'date' },
                     { key: 'transfermarkt_url', label: 'Transfermarkt', value: item.transfermarkt_url, type: 'url' },
                   ]}
-                />
+                /> : null}
               </div>
             ))}
-            {!filteredTargets.length?<Empty icon={Target} title="No recruitment targets here" copy="Add a target or change the stage filter to see the current recruitment pipeline."/>:null}
+            {!filteredTargets.length?<Empty icon={Target} title="No recruitment targets here" copy="Add a target or change the filter."/>:null}
           </section>
         </div>
       )}
@@ -1053,7 +1102,7 @@ export default function AgencyPlayersWorkspace({
       {createOpen?(
         <div className={styles.modalBackdrop} onClick={(e)=>{if(e.target===e.currentTarget&&!createBusy)closeRecruitmentCreate();}}>
           <section className={styles.createModal} role="dialog" aria-modal="true">
-            <div className={styles.modalHead}><div><p>RECRUITMENT</p><h3>Add target</h3><span>Start with the facts you know. The record can improve later.</span></div>
+            <div className={styles.modalHead}><div><p>RECRUITMENT</p><h3>Add target</h3><span>Start with what you know. You can add more later.</span></div>
               <button type="button" data-ui-button="icon"
               className={styles.closeButton} onClick={closeRecruitmentCreate} disabled={createBusy}><X size={17}/></button></div>
             {createError?<div className={styles.inlineError}><CircleAlert size={16}/><span>{createError}</span></div>:null}

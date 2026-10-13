@@ -99,7 +99,7 @@ export async function resolveSignedInDestination(
   if (data?.length) {
     return {
       kind: 'player',
-      href: '/home',
+      href: options.runtimeTenantId ? '/home' : '/player-workspaces',
     };
   }
 

@@ -31,7 +31,7 @@ test('Deal War Room uses the existing decision engine', () => {
   assert.match(drawer, /deal_control_fix_prepare/);
   assert.match(drawer, /deal_next_move_prepare/);
   assert.match(drawer, /negotiation_next_step_prepare/);
-  assert.match(drawer, /not transfer probability or predicted outcome/);
+  assert.match(drawer, /no transfer probability is estimated/);
 });
 
 test('Player intelligence leads with recorded actions instead of an internal score', () => {
@@ -39,6 +39,6 @@ test('Player intelligence leads with recorded actions instead of an internal sco
   assert.match(drawer, /NEXT PLAYER CONTROL/);
   assert.match(drawer, /control gaps/);
   assert.match(drawer, /No active market process/);
-  assert.match(drawer, /Career plan not recorded/);
+  assert.match(drawer, /Career plan not set/);
   assert.match(drawer, /Recorded service/);
 });

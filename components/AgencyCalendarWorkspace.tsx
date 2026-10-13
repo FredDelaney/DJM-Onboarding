@@ -2,6 +2,7 @@
 
 import {
   ChevronRight,
+  ChevronLeft,
   BriefcaseBusiness,
   CakeSlice,
   CalendarDays,
@@ -16,33 +17,28 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { calendarDateKey, monthDays, shiftMonth } from '@/lib/calendar/dates';
 import { useSearchParams } from 'next/navigation';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
+import WorkResponsibilityControl from './WorkResponsibilityControl';
+import {workRefFor,workHref} from '@/lib/work-responsibility';
 import styles from './AgencyCalendarWorkspace.module.css';
+import AgencyCalendarTaskForm from './AgencyCalendarTaskForm';
+import AgencyCalendarTaskRow from './AgencyCalendarTaskRow';
+import {sourceLabels} from '@/lib/calendar/useCalendarSources';
+import AgencyCalendarToday from './AgencyCalendarToday';
+import { useCalendarSources } from '@/lib/calendar/useCalendarSources';
+import { normaliseCalendarEvents, filterCalendarEvents, groupCalendarEvents, todayProjection, birthdayGreeting, type CalendarEvent } from '@/lib/calendar/events';
+import { parseCalendarPreferences, calendarLayers, type CalendarLayer } from '@/lib/calendar/preferences';
+import type { CalendarTask, TaskInput, TaskAction } from '@/lib/calendar/tasks';
+
+const CalendarMonth = dynamic(() => import('./AgencyCalendarMonth'), { ssr: false, loading: () => <p role="status">Loading month...</p> });
 
 type Horizon = 7 | 30 | 90;
 
-type AgendaItem = {
-  key: string;
-  kind: 'meeting' | 'follow_up' | 'birthday' | 'deadline';
-  dateAt: string;
-  dateOnly?: boolean;
-  state?: string;
-  title: string;
-  detail: string;
-  category: string;
-  playerId?: string;
-  clubNeedId?: string;
-  entityType?: string;
-  entityId?: string;
-  personId?: string;
-  organisationId?: string;
-  meetingId?: string;
-  meetingUrl?: string;
-  source?: string;
-  deadlineType?: string;
-};
+type AgendaItem = CalendarEvent;
 
 const list = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
@@ -65,31 +61,6 @@ const parseDate = (value: unknown, dateOnly = false) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const categoryForDeadline = (value: unknown) => {
-  switch (String(value || '')) {
-    case 'contract_expiry':
-      return 'Playing contract';
-    case 'representation_record_end':
-      return 'Agency agreement';
-    case 'document_expiry':
-      return 'Player document';
-    case 'player_next_action':
-      return 'Player action';
-    case 'deal_next_action':
-      return 'Deal';
-    case 'club_need_expiry':
-      return 'Club need';
-    case 'player_request_due':
-      return 'Player request';
-    case 'career_strategy_review':
-      return 'Career review';
-    case 'target_window_end':
-      return 'Move window';
-    default:
-      return 'Agency date';
-  }
-};
-
 type Rpc = <T = any>(
   name: string,
   args?: Record<string, unknown>,
@@ -100,15 +71,54 @@ export default function AgencyCalendarWorkspace({
   basePath,
   rpc,
   onRecordMeetingOutcome,
+  preferenceKey,
+  tenantId,
+  userId,
 }: {
   data: any;
+  tenantId: string;
+  userId: string;
+  preferenceKey?: string;
   basePath: string;
   rpc: Rpc;
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const search = useSearchParams();
+  const requestedTaskId=String(search.get('task')||'').trim();
+  const openedTask=useRef('');
   const requestedMeetingId = String(search.get('meeting') || '').trim();
+  const [clientReady, setClientReady] = useState(false);
   const [horizon, setHorizon] = useState<Horizon>(30);
+  const [view, setView] = useState<'month' | 'agenda'>('month');
+  const [selectedDate, setSelectedDate] = useState(() => /^\d{4}-\d{2}-\d{2}$/.test(search.get('date')||'')&&!Number.isNaN(new Date((search.get('date')||'')+'T12:00:00').getTime())?search.get('date')!:calendarDateKey(new Date()));
+  const [preferences,setPreferences]=useState(()=>parseCalendarPreferences(null));
+  const birthdayFilters=preferences.birthdays;
+  const [prefScope,setPrefScope]=useState('');
+  const [refreshDates,setRefreshDates]=useState(0);
+  const [showDone,setShowDone]=useState(false),[showArchived,setShowArchived]=useState(false);
+  const [taskForm,setTaskForm]=useState<{scope:string;task?:CalendarTask}|null>(null);
+  const [greeting,setGreeting]=useState('');
+  const [now,setNow]=useState(()=>new Date());
+  const dayStrip=useRef<HTMLDivElement>(null);
+  const month=selectedDate.slice(0,7),today=calendarDateKey(now);
+  const days=useMemo(()=>monthDays(`${month}-01`),[month]);
+  const rangeEnd=useMemo(()=>{if(view==='month')return shiftMonth(`${month}-01`,1);const end=new Date(`${selectedDate}T12:00:00`);end.setDate(end.getDate()+horizon+1);return calendarDateKey(end)>shiftMonth(`${month}-01`,1)?calendarDateKey(end):shiftMonth(`${month}-01`,1);},[month,selectedDate,horizon,view]);
+  const source=useCalendarSources(rpc,tenantId,userId,`${month}-01`,rangeEnd,today,birthdayFilters.contacts,showDone,showArchived,refreshDates);
+  const scopeRef=useRef(source.scope);scopeRef.current=source.scope;
+   useEffect(()=>{if(!requestedTaskId||openedTask.current===source.scope+requestedTaskId)return;const task=[...source.tasks,...source.undated,...source.overdue].find(task=>task.id===requestedTaskId);if(task?.can_edit){openedTask.current=source.scope+requestedTaskId;setTaskForm({scope:source.scope,task});}},[requestedTaskId,source.scope,source.tasks,source.undated,source.overdue]);
+  useEffect(()=>{setClientReady(true);},[]);
+  useEffect(()=>{let saved=null;try{saved=preferenceKey?localStorage.getItem(`redream:calendar:${preferenceKey}`):null;}catch{}const value=parseCalendarPreferences(saved);setPreferences(value);setView(value.view);setPrefScope(preferenceKey||'');setTaskForm(null);setGreeting('');setShowDone(false);setShowArchived(false);},[preferenceKey]);
+  useEffect(()=>{if(!preferenceKey||prefScope!==preferenceKey)return;try{localStorage.setItem(`redream:calendar:${preferenceKey}`,JSON.stringify({...preferences,view}));}catch{}},[preferences,view,preferenceKey,prefScope]);
+  useEffect(()=>{dayStrip.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({block:'nearest',inline:'center',behavior:'auto'});},[selectedDate]);
+  useEffect(()=>{const refresh=()=>setRefreshDates(n=>n+1),clock=()=>setNow(new Date());const timer=window.setInterval(clock,30000);window.addEventListener('redream:birthdays-updated',refresh);window.addEventListener('redream:responsibilities-updated',refresh);document.addEventListener('visibilitychange',clock);return()=>{clearInterval(timer);window.removeEventListener('redream:birthdays-updated',refresh);window.removeEventListener('redream:responsibilities-updated',refresh);document.removeEventListener('visibilitychange',clock);};},[]);
+  const datesBusy=source.busy,datesError=source.errors.map(e=>e.message).join(' ');
+  const sharedFollowUps=source.sharedWork.filter((work:any)=>work.work_kind!=='calendar_task').map((work:any)=>({...work,task_id:work.work_id,...work.context}));
+   const existingFollowUps=source.dates?.follow_ups?.items||[];
+   const sourceData={...source.dates,follow_ups:{items:[...existingFollowUps,...sharedFollowUps.filter((work:any)=>!existingFollowUps.some((item:any)=>(item.work_kind||'task')===work.work_kind&&(item.work_id||item.task_id)===work.work_id))]}},birthdayData=source.birthdays;
+  async function runTaskWrite(name:string,args:Record<string,unknown>){const scope=source.scope;try{const result=await rpc<any>(name,args);if(scopeRef.current!==scope)return;if(!result?.task)throw new Error('Task could not be confirmed.');source.confirmTask(result.task);setRefreshDates(n=>n+1);}catch(error){if(scopeRef.current===scope&&/task_owner_inactive|task_revision_conflict/.test(String((error as any)?.message||error)))setRefreshDates(n=>n+1);throw error;}}
+  async function saveTask(input:TaskInput,task?:CalendarTask){await runTaskWrite(task?'redream_calendar_task_update_v1':'redream_calendar_task_create_v1',task?{p_task_id:task.id,p_expected_revision:task.revision,p_action:'edit',p_input:input,p_tenant_id:tenantId}:{p_input:input,p_tenant_id:tenantId});}
+  async function taskAction(action:TaskAction,task:CalendarTask){await runTaskWrite('redream_calendar_task_update_v1',{p_task_id:task.id,p_expected_revision:task.revision,p_action:action,p_input:{},p_tenant_id:tenantId});}
+  async function copyBirthday(){const draft=birthdayGreeting();try{await navigator.clipboard.writeText(draft);setGreeting('Copied: '+draft);}catch{setGreeting(draft);}}
   const [meetingBrief, setMeetingBrief] = useState<any>(null);
   const [openedMeetingId, setOpenedMeetingId] = useState('');
   const [meetingBriefBusy, setMeetingBriefBusy] = useState(false);
@@ -122,213 +132,15 @@ export default function AgencyCalendarWorkspace({
     setMeetingBriefBusy(false);
   };
 
-  const agenda = useMemo(() => {
-    const deadlines = list(data?.operations?.deadlines?.items).map(
-      (item: any): AgendaItem => ({
-        key: `deadline:${item?.deadline_type || 'date'}:${item?.entity_id || item?.title}`,
-        kind: 'deadline',
-        dateAt: item?.deadline_at,
-        dateOnly: Boolean(item?.date_only),
-        state: item?.deadline_state,
-        title: item?.title || 'Agency date',
-        detail:
-          item?.next_action?.instruction ||
-          categoryForDeadline(item?.deadline_type),
-        category: categoryForDeadline(item?.deadline_type),
-        playerId: item?.context?.player_id
-          ? String(item.context.player_id)
-          : undefined,
-        clubNeedId: item?.context?.club_need_id
-          ? String(item.context.club_need_id)
-          : undefined,
-        entityType: item?.entity_type,
-        entityId: item?.entity_id
-          ? String(item.entity_id)
-          : undefined,
-        deadlineType: item?.deadline_type,
-      }),
-    );
-
-    const birthdays = list(
-      data?.operations?.important_dates?.birthdays?.items,
-    ).map(
-      (item: any): AgendaItem => ({
-        key: `birthday:${item?.item_id || item?.player_id}`,
-        kind: 'birthday',
-        dateAt: item?.date_at,
-        dateOnly: true,
-        state: item?.date_state,
-        title: item?.title || `${item?.player_name || 'Player'} birthday`,
-        detail: item?.turns_age
-          ? `Turns ${item.turns_age}`
-          : 'Player birthday',
-        category: 'Birthday',
-        playerId: item?.player_id
-          ? String(item.player_id)
-          : undefined,
-      }),
-    );
-
-    const meetings = list(data?.meetings?.items).map(
-      (item: any): AgendaItem => ({
-        key: `meeting:${item?.meeting_id}`,
-        kind: 'meeting',
-        dateAt: item?.starts_at,
-        title: item?.title || 'Meeting',
-        detail:
-          [item?.person_name, item?.organisation_name]
-            .filter(Boolean)
-            .join(' · ') || 'Agency meeting',
-        category: 'Meeting',
-        meetingId: item?.meeting_id
-          ? String(item.meeting_id)
-          : undefined,
-        personId: item?.person_id
-          ? String(item.person_id)
-          : undefined,
-        organisationId: item?.organisation_id
-          ? String(item.organisation_id)
-          : undefined,
-        meetingUrl: item?.meeting_url || undefined,
-      }),
-    );
-
-    const followUps = list(data?.follow_ups?.items).map(
-      (item: any): AgendaItem => ({
-        key: `follow-up:${item?.task_id}`,
-        kind: 'follow_up',
-        dateAt: item?.due_at,
-        title: item?.title || 'Follow-up',
-        detail:
-          [
-            item?.player_name,
-            item?.club_name,
-            item?.person_name,
-            item?.organisation_name,
-          ]
-            .filter(Boolean)
-            .join(' · ') || 'Your follow-up',
-        category: 'Follow-up',
-        playerId: item?.player_id
-          ? String(item.player_id)
-          : undefined,
-        clubNeedId: item?.club_need_id
-          ? String(item.club_need_id)
-          : undefined,
-        personId: item?.person_id
-          ? String(item.person_id)
-          : undefined,
-        organisationId: item?.organisation_id
-          ? String(item.organisation_id)
-          : undefined,
-        source: item?.source || undefined,
-      }),
-    );
-
-    const preferred = new Map<string, AgendaItem>();
-
-    [...deadlines, ...birthdays, ...meetings, ...followUps].forEach(
-      (item) => {
-        let dedupeKey = item.key;
-
-        if (
-          item.kind === 'deadline' &&
-          item.deadlineType === 'deal_next_action' &&
-          item.entityId
-        ) {
-          dedupeKey = `deal:${item.entityId}`;
-        }
-
-        const dealFollowUp = item.source?.match(
-          /^redream:deal_followup:(.+)$/,
-        )?.[1];
-
-        if (item.kind === 'follow_up' && dealFollowUp) {
-          dedupeKey = `deal:${dealFollowUp}`;
-        }
-
-        const existing = preferred.get(dedupeKey);
-        if (!existing || item.kind === 'follow_up') {
-          preferred.set(dedupeKey, item);
-        }
-      },
-    );
-
-    const now = Date.now();
-    const max = now + horizon * 24 * 60 * 60 * 1000;
-
-    return [...preferred.values()]
-      .filter((item) => {
-        const date = parseDate(item.dateAt, item.dateOnly);
-        if (!date) return false;
-        return item.state === 'overdue' || date.getTime() <= max;
-      })
-      .sort((a, b) => {
-        const aDate = parseDate(a.dateAt, a.dateOnly);
-        const bDate = parseDate(b.dateAt, b.dateOnly);
-        return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
-      });
-  }, [data, horizon]);
-
-  const groups = useMemo(() => {
-    const now = new Date();
-    const todayKey = [
-      now.getFullYear(),
-      String(now.getMonth() + 1).padStart(2, '0'),
-      String(now.getDate()).padStart(2, '0'),
-    ].join('-');
-
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowKey = [
-      tomorrow.getFullYear(),
-      String(tomorrow.getMonth() + 1).padStart(2, '0'),
-      String(tomorrow.getDate()).padStart(2, '0'),
-    ].join('-');
-
-    const grouped = new Map<string, { label: string; items: AgendaItem[] }>();
-
-    agenda.forEach((item) => {
-      const date = parseDate(item.dateAt, item.dateOnly);
-      if (!date) return;
-
-      const dateKey = [
-        date.getFullYear(),
-        String(date.getMonth() + 1).padStart(2, '0'),
-        String(date.getDate()).padStart(2, '0'),
-      ].join('-');
-
-      const overdue =
-        item.state === 'overdue' ||
-        (!item.dateOnly && date.getTime() < Date.now());
-
-      const key = overdue ? 'overdue' : dateKey;
-      const label = overdue
-        ? 'Overdue'
-        : dateKey === todayKey
-          ? 'Today'
-          : dateKey === tomorrowKey
-            ? 'Tomorrow'
-            : new Intl.DateTimeFormat('en-GB', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-              }).format(date);
-
-      const current = grouped.get(key) || { label, items: [] };
-      current.items.push(item);
-      grouped.set(key, current);
-    });
-
-    return [...grouped.entries()].map(([key, value]) => ({
-      key,
-      ...value,
-    }));
-  }, [agenda]);
-
+  const agenda=useMemo(()=>filterCalendarEvents(normaliseCalendarEvents(sourceData,birthdayData,[...source.tasks,...source.overdue]),preferences),[sourceData,birthdayData,source.tasks,source.overdue,preferences]);
+  const groups=useMemo(()=>groupCalendarEvents(agenda,selectedDate,view,horizon,now),[agenda,selectedDate,view,horizon,now]);
+  const todayEvents=filterCalendarEvents(normaliseCalendarEvents({...source.todayDates,follow_ups:{items:[...(source.todayDates?.follow_ups?.items||[]),...sharedFollowUps]}},{items:[]},[...source.todayTasks,...source.overdue]),preferences);
+  const todaySummary=todayProjection(todayEvents,now);
+  const undated=source.undated.filter(task=>preferences.layers[task.visibility]);
+  const sharedUndated=source.sharedWork.filter((work:any)=>work.work_kind!=='calendar_task'&&!work.due_at);
   const formatWhen = (item: AgendaItem) => {
     const date = parseDate(item.dateAt, item.dateOnly);
-    if (!date) return 'Date not recorded';
+    if (!date) return 'Date not set';
 
     if (item.dateOnly) {
       return new Intl.DateTimeFormat('en-GB', {
@@ -385,7 +197,7 @@ export default function AgencyCalendarWorkspace({
       setMeetingBriefError(
         error instanceof Error
           ? error.message
-          : 'Could not load meeting preparation.',
+          : 'Meeting brief could not load.',
       );
     } finally {
       if (request === meetingRequest.current) setMeetingBriefBusy(false);
@@ -440,14 +252,14 @@ export default function AgencyCalendarWorkspace({
     if (item.playerId) {
       return {
         label: 'Open player',
-        href: `${basePath}?view=players&player=${encodeURIComponent(item.playerId)}`,
+        href: workHref({context:{player_id:item.playerId}},basePath),
       };
     }
 
     if (item.entityType === 'deal') {
       return {
         label: 'Open deal',
-        href: `${basePath}?view=opportunities&tab=deals`,
+        href: item.entityId ? workHref({context:{deal_room_id:item.entityId}},basePath) : `${basePath}?view=opportunities&tab=deals`,
       };
     }
 
@@ -461,7 +273,7 @@ export default function AgencyCalendarWorkspace({
     if (item.clubNeedId || item.entityType === 'club_need') {
       return {
         label: 'Open need',
-        href: `${basePath}?view=opportunities&tab=needs`,
+        href: item.clubNeedId || item.entityId ? workHref({context:{club_need_id:item.clubNeedId || item.entityId}},basePath) : `${basePath}?view=opportunities&tab=needs`,
       };
     }
 
@@ -471,6 +283,8 @@ export default function AgencyCalendarWorkspace({
         href: `${basePath}?view=network&person=${encodeURIComponent(item.personId)}`,
       };
     }
+
+    if (item.birthdayCategory === 'staff') return { label: 'Open team', href: '/settings/team' };
 
     if (item.organisationId) {
       return {
@@ -492,31 +306,65 @@ export default function AgencyCalendarWorkspace({
     };
   };
 
+  if (!clientReady) {
+    return (
+      <div className={styles.calendarBoot} role="status" aria-live="polite">
+        <LoaderCircle size={18} className={styles.calendarBootSpinner} />
+        <span>Loading calendar...</span>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.workspace}>
-      <section className={styles.controls}>
-        <div className={styles.range} aria-label="Calendar range">
-          {([7, 30, 90] as Horizon[]).map((days) => (
-            <button
-              key={days}
-              type="button"
-              className={
-                horizon === days ? styles.rangeActive : styles.rangeButton
-              }
-              aria-pressed={horizon === days}
-              onClick={() => setHorizon(days)}
-            >
-              {days} days
-            </button>
-          ))}
+      <AgencyCalendarToday projection={todaySummary} partial={source.partial} sources={source.sources} onSelectToday={()=>{setSelectedDate(today);setView('agenda');}}/>
+      <section className={styles.calendarControls} aria-label="Calendar controls">
+        <div className={styles.calendarHeading}>
+          <h2>{new Intl.DateTimeFormat('en-GB',{month:'long',year:'numeric'}).format(new Date(`${selectedDate}T12:00:00`))}</h2>
+          <div className={styles.dateNavigation}>
+            <button type="button" aria-label="Previous month" onClick={()=>setSelectedDate(shiftMonth(selectedDate,-1))}><ChevronLeft size={18}/></button>
+            <button type="button" onClick={()=>setSelectedDate(today)}>Today</button>
+            <button type="button" aria-label="Next month" onClick={()=>setSelectedDate(shiftMonth(selectedDate,1))}><ChevronRight size={18}/></button>
+          </div>
         </div>
-
-        <span className={styles.count}>
-          {agenda.length} coming up
-        </span>
+        <div className={styles.controlTools}><details className={styles.jumpDisclosure}><summary>Jump to date</summary><label className={styles.dateJump}>Jump to date<input type="date" value={selectedDate} onChange={event=>{if(event.target.value)setSelectedDate(event.target.value);}}/></label></details><button type="button" data-ui-button="secondary" className={styles.addTask} onClick={()=>setTaskForm({scope:source.scope})}>Add task</button></div>
+        <div className={styles.viewSwitch} role="group" aria-label="Calendar view" onKeyDown={event=>{
+          if (event.key==='ArrowLeft' || event.key==='ArrowRight') { event.preventDefault(); setView(event.key==='ArrowLeft'?'month':'agenda'); }
+        }}>
+          <span className={styles.viewIndicator} style={{transform:view==='agenda'?'translateX(100%)':'translateX(0)'}} aria-hidden="true"/>
+          <button type="button" aria-pressed={view==='month'} onClick={()=>setView('month')}>Month</button>
+          <button type="button" aria-pressed={view==='agenda'} onClick={()=>setView('agenda')}>Agenda</button>
+        </div>
+        {view==='agenda'?<div className={styles.dateStrip} ref={dayStrip} role="group" aria-label="Choose a day">
+          {days.map(date=><button key={date} type="button" className={date===selectedDate?styles.stripSelected:styles.stripDay}
+            aria-label={new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(`${date}T12:00:00`)).replaceAll(',', '')}
+            aria-current={date===today?'date':undefined} aria-pressed={date===selectedDate} onClick={()=>setSelectedDate(date)}>
+            <small>{new Intl.DateTimeFormat('en-GB',{weekday:'short'}).format(new Date(`${date}T12:00:00`))}</small><strong>{Number(date.slice(-2))}</strong>
+            <span className={styles.dateDot} data-has-events={agenda.some(item=>calendarDateKey(item.dateAt,Boolean(item.dateOnly))===date)} aria-hidden="true"/>
+          </button>)}
+        </div>:null}
+        <details className={styles.calendarFilters}><summary>Show in calendar</summary><div className={styles.layerFilters}>
+          {calendarLayers.map(layer=><label key={layer}><input type="checkbox" checked={preferences.layers[layer]} onChange={e=>setPreferences(p=>({...p,layers:{...p.layers,[layer]:e.target.checked}}))}/>{({personal:'My tasks',company:'Company tasks',meetings:'Meetings',followUps:'Follow-ups',agencyDates:'Agency dates',birthdays:'Birthdays'} as Record<CalendarLayer,string>)[layer]}</label>)}
+          <label><input type="checkbox" checked={showDone} onChange={e=>setShowDone(e.target.checked)}/>Show completed tasks</label><label><input type="checkbox" checked={showArchived} onChange={e=>setShowArchived(e.target.checked)}/>Show archived tasks</label>
+        </div><fieldset className={styles.birthdayFilters}><legend><CakeSlice size={16}/>Birthdays</legend>
+          {([['players','Signed players'],['contacts','Club contacts'],['staff','Our team']] as const).map(([key,label])=><label key={key}>
+            <input type="checkbox" checked={birthdayFilters[key]} onChange={event=>setPreferences(current=>({...current,birthdays:{...current.birthdays,[key]:event.target.checked}}))}/>{label}
+          </label>)}
+        </fieldset>
+        <p className={styles.birthdayHint}>Add contact birthdays in Network and your birthday in <Link href="/settings/profile">My profile</Link>.</p>
+        </details>
       </section>
-
-      <section className={styles.agenda}>
+      {greeting?<div className={styles.greeting} role="status"><span>{greeting}</span><button onClick={()=>setGreeting('')}>Dismiss</button></div>:null}
+      {source.errors.map(error=><div key={error.name} className={styles.datesError} role="alert">{error.message}<button type="button" onClick={()=>source.retry(error.name)}>Retry {error.name==='tasks'?'tasks':sourceLabels[error.name]}</button></div>)}
+      {datesBusy ? <p className={styles.loadingDates} role="status">Updating dates...</p> : null}
+      <div className={view==='month'?styles.calendarBody:styles.agendaBody}>
+        {view==='month'?<CalendarMonth date={selectedDate} items={agenda} onSelect={setSelectedDate}/>:null}
+        <div className={styles.dayPanel}>
+        <section className={styles.controls}>
+          {view==='agenda' ? <div className={styles.range} aria-label="Calendar range">{([7, 30, 90] as Horizon[]).map(days=><button key={days} type="button" className={horizon===days?styles.rangeActive:styles.rangeButton} aria-pressed={horizon===days} onClick={()=>setHorizon(days)}>{days} days</button>)}</div> : <h3 className={styles.selectedDayTitle}>{selectedDate===today?'Today':new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'short'}).format(new Date(`${selectedDate}T12:00:00`))}</h3>}
+          <span className={styles.count}>{groups.reduce((sum,group)=>sum+group.items.length,0)} events</span>
+        </section>
+      <section className={view==='month'?`${styles.agenda} ${styles.monthAgenda}`:styles.agenda}>
         {groups.map((group) => (
           <div className={styles.dayGroup} key={group.key}>
             <div
@@ -533,6 +381,7 @@ export default function AgencyCalendarWorkspace({
               {group.items.map((item) => {
                 const action = actionFor(item);
 
+                if(item.task)return <div key={item.key} className={styles.taskWithDate}><span className={styles.taskDate}>{item.dateOnly?'All day':formatWhen(item)}</span><AgencyCalendarTaskRow task={item.task} onEdit={task=>setTaskForm({scope:source.scope,task})} onAction={taskAction}/></div>;
                 return (
                   <article
                     className={
@@ -560,7 +409,9 @@ export default function AgencyCalendarWorkspace({
 
                       <strong>{item.title}</strong>
                       <small>{item.detail}</small>
+                      {workRefFor({work_kind:item.workKind,work_id:item.workId})?<WorkResponsibilityControl key={source.scope+item.key} work={workRefFor({work_kind:item.workKind,work_id:item.workId})!} tenantId={tenantId} rpc={rpc}/>:null}
                     </div>
+                    {item.kind==='birthday'?<button type="button" className={styles.birthdayCopy} onClick={()=>void copyBirthday()}>Copy greeting</button>:null}
 
                     {'prepareMeeting' in action &&
                     action.prepareMeeting ? (
@@ -606,14 +457,26 @@ export default function AgencyCalendarWorkspace({
         {!groups.length ? (
           <div className={styles.empty}>
             <CalendarDays size={20} />
-            <strong>Nothing coming up</strong>
+            <strong>{datesBusy ? 'Loading dates' : datesError ? 'Calendar partly unavailable' : view==='month' ? 'Nothing scheduled for this day' : 'Nothing scheduled in this range'}</strong>
             <span>
-              Meetings, follow-ups and recorded agency dates will appear here.
+              Meetings, follow-ups and important agency dates will appear here.
             </span>
           </div>
         ) : null}
       </section>
-
+        </div>
+      </div>
+      <details className={styles.noDate} open={search.get('undated')==='1'||undefined}><summary>No date</summary>
+        {undated.map(task=><AgencyCalendarTaskRow key={task.id} task={task} onEdit={task=>setTaskForm({scope:source.scope,task})} onAction={taskAction}/>)}
+        {sharedUndated.map((work:any)=><article className={styles.taskRow} id={'work-'+work.work_id} key={work.work_kind+':'+work.work_id}>
+          <div className={styles.taskCopy}><strong>{work.title}</strong>
+            {workRefFor(work)?<WorkResponsibilityControl key={source.scope+work.work_kind+work.work_id} work={workRefFor(work)!} tenantId={tenantId} rpc={rpc}/>:null}
+          </div>
+          {Object.values(work.context||{}).some(Boolean)?<Link className={styles.agendaAction} href={workHref(work,basePath)}>Review<ChevronRight size={17}/></Link>:null}
+        </article>)}
+        {!undated.length&&!sharedUndated.length?<p>No unscheduled tasks.</p>:null}
+      </details>
+      {taskForm?.scope===source.scope?<AgencyCalendarTaskForm key={taskForm.task?.id||'new'} task={taskForm.task} selectedDate={selectedDate} userId={userId} assignees={source.assignees} onSave={saveTask} onClose={()=>setTaskForm(null)}/>:null}
       {meetingBrief ? (
         <MeetingBriefDrawer
           brief={meetingBrief}
@@ -692,7 +555,7 @@ function MeetingBriefDrawer({
         hour: '2-digit',
         minute: '2-digit',
       }).format(startsAt)
-    : 'Time not recorded';
+    : 'Time not set';
   const meetingStarted = Boolean(
     startsAt &&
       startsAt.getTime() <= Date.now() &&
@@ -739,7 +602,7 @@ function MeetingBriefDrawer({
         {busy ? (
           <div className={styles.briefLoading}>
             <LoaderCircle size={16} />
-            Loading what matters for this meeting
+            Loading meeting details
           </div>
         ) : null}
 
@@ -779,8 +642,8 @@ function MeetingBriefDrawer({
 
             <BriefSection
               icon={<MessageCircleMore size={14} />}
-              eyebrow="RECENT CONVERSATIONS"
-              empty="No recorded conversation with this contact yet."
+              eyebrow={brief?.access?.restricted ? "YOUR RECENT CONVERSATIONS" : "RECENT CONVERSATIONS"}
+              empty="No conversation recorded."
               items={recent.map((item: any) => ({
                 key: item?.interaction_id,
                 title: item?.summary || 'Interaction recorded',
@@ -800,8 +663,8 @@ function MeetingBriefDrawer({
 
             <BriefSection
               icon={<Clock3 size={14} />}
-              eyebrow="OPEN FOLLOW-UPS"
-              empty="No open follow-up with this contact."
+              eyebrow={brief?.access?.restricted ? "YOUR OPEN FOLLOW-UPS" : "OPEN FOLLOW-UPS"}
+              empty="No open follow-up."
               items={followUps.map((item: any) => ({
                 key: item?.task_id,
                 title: item?.title || 'Follow up',
@@ -814,10 +677,11 @@ function MeetingBriefDrawer({
                   : 'No due date',
               }))}
             />
+{!brief?.access?.restricted ? <>
             <BriefSection
               icon={<Target size={14} />}
               eyebrow="CLUB NEEDS"
-              empty="No active club need is recorded."
+              empty="No active club need."
               items={needs.map((item: any) => ({
                 key: item?.club_need_id,
                 title: item?.title || item?.position || 'Club need',
@@ -835,8 +699,8 @@ function MeetingBriefDrawer({
               eyebrow="LIVE BUSINESS"
               empty={
                 pursuits.length
-                  ? 'No active deal room yet. Live pursuits are shown below.'
-                  : 'No active deal or pursuit is recorded with this club.'
+                  ? 'No active deal. Opportunities are below.'
+                  : 'No active deal or pursuit.'
               }
               items={deals.map((item: any) => ({
                 key: item?.deal_room_id,
@@ -874,8 +738,10 @@ function MeetingBriefDrawer({
               />
             ) : null}
 
+
+</> : null}
             <p className={styles.briefTruth}>
-              This is recorded agency context, not a prediction of meeting or deal outcome.
+              {brief?.access?.restricted ? "Your activity only. Commercial context requires admin access." : "This is known agency context, not a prediction of the meeting or deal outcome."}
             </p>
           </div>
         ) : null}

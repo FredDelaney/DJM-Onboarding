@@ -32,7 +32,7 @@ const modes = [
     eyebrow: 'MARKET',
     title: 'Turn club demand into a route, owner and next move.',
     copy:
-      'Market Pursuit keeps a club request with suitable players and people you know. Access Intelligence helps you understand who could make the introduction.',
+      'Player Opportunities keeps a club request with suitable players and people you know. Relationship Intelligence helps you understand who could make the introduction.',
     icon: Target,
   },
   {
@@ -65,7 +65,7 @@ function Workspace({ mode }: { mode: ModeKey }) {
             <strong>Left winger · Belgium</strong>
             <small>Under 23 · left-footed · permanent or loan</small>
           </div>
-          <span className={styles.liveState}>Pursuit open</span>
+          <span className={styles.liveState}>Opportunity open</span>
         </div>
 
         <div className={styles.marketColumns}>
@@ -112,7 +112,7 @@ function Workspace({ mode }: { mode: ModeKey }) {
         </div>
         <div className={styles.dealTimeline}>
           <div className={styles.timelineItem}><span>01</span><div><strong>Offer received</strong><small>420k + bonuses</small></div></div>
-          <div className={styles.timelineItem}><span>02</span><div><strong>Guardrails checked</strong><small>Player salary and sell-on priorities recorded</small></div></div>
+          <div className={styles.timelineItem}><span>02</span><div><strong>Priorities checked</strong><small>Player salary and sell-on priorities confirmed</small></div></div>
           <div className={styles.timelineItem}><span>03</span><div><strong>Counter prepared</strong><small>Human approval required</small></div></div>
         </div>
         <div className={styles.moneyBar}><CircleDollarSign size={16} /><span><strong>Closeout & Collection</strong><small>Commission stays connected after agreement</small></span></div>

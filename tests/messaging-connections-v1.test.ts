@@ -314,7 +314,7 @@ test(
     );
     assert.match(
       messagingUi,
-      /does not give ReDream[\s\S]*every conversation/,
+      /Only enabled chats are saved to Agency Memory/,
     );
     assert.match(
       messagingUi,

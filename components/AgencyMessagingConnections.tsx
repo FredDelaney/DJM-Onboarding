@@ -894,10 +894,7 @@ export default function AgencyMessagingConnections({
           styles.sectionCopy
         }
       >
-        Connecting an account does not give ReDream every conversation.
-        Instagram is normally for your players. WhatsApp is normally for
-        club and football contacts. Turn on only the conversations that
-        matter, then confirm the person or player before ReDream uses the context.
+        Only enabled chats are saved to Agency Memory. Choose each conversation and confirm its contact or player first.
       </p>
 
       {loading ? (

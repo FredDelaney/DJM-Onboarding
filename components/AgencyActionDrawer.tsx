@@ -637,6 +637,7 @@ export default function AgencyActionDrawer({
   }, [request.key]);
 
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
     const previous =
       document.body.style.overflow;
 
@@ -646,6 +647,9 @@ export default function AgencyActionDrawer({
     return () => {
       document.body.style.overflow =
         previous;
+      queueMicrotask(() => {
+        if (opener?.isConnected) opener.focus();
+      });
     };
   }, []);
 
@@ -655,8 +659,10 @@ export default function AgencyActionDrawer({
     ) => {
       if (
         event.key === 'Escape' &&
-        !busy
+        !busy &&
+        !event.defaultPrevented
       ) {
+        event.preventDefault();
         onClose();
       }
     };
@@ -776,7 +782,7 @@ export default function AgencyActionDrawer({
 
         <section className={`${styles.why} ${reviewOnly ? styles.reviewWhy : ''}`}>
           <span>{reviewOnly ? 'WHY THIS MATTERS' : 'WHY NOW'}</span>
-          <p>{request.instruction}</p>
+          <p>{actionType === 'consolidate_duplicate_tasks' ? 'These reminders may refer to the same work. Check their dates and linked records before deciding which ones to keep.' : request.instruction}</p>
         </section>
 
         {!reviewOnly && request.facts?.length ? (
@@ -1467,10 +1473,10 @@ export default function AgencyActionDrawer({
                 DECISION REQUIRED
               </p>
               <h3>
-                Your judgement is required.
+                {actionType === 'consolidate_duplicate_tasks' ? 'Check similar reminders' : 'Your judgement is required.'}
               </h3>
               <p>
-                {result?.reason ||
+                {actionType === 'consolidate_duplicate_tasks' ? 'No reminders have been merged or completed. Review the original records before making a change.' : result?.reason ||
                   result?.rationale ||
                   'This step needs your judgement or an action outside the workspace.'}
               </p>

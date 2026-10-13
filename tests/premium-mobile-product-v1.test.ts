@@ -31,8 +31,8 @@ test('home uses readable priority cards and full-row actions', () => {
 test('players use readable identity-first cards and 44px controls', () => {
   assert.match(players, /\.sectionTab,[\s\S]*\.sectionTabActive[\s\S]*min-height: 44px[\s\S]*font-size: 13px/);
   assert.match(players, /\.playerIdentity h3[\s\S]*font-size: 15px/);
-  assert.match(players, /\.playerIdentity span[\s\S]*font-size: 11px/);
-  assert.match(players, /\.playerTab,[\s\S]*\.playerTabActive[\s\S]*min-height: 44px[\s\S]*font-size: 11px/);
+  assert.match(players, /\.playerIdentity span[\s\S]*font-size: 12px/);
+  assert.match(players, /\.playerTab,[\s\S]*\.playerTabActive[\s\S]*min-height: 44px[\s\S]*font-size: 12px/);
 });
 
 test('network cards use readable hierarchy and one strong mobile action', () => {

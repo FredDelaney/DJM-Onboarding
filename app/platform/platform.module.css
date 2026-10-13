@@ -2632,3 +2632,10 @@
     display: none;
   }
 }
+
+/* Operator view uses the same calm hierarchy as agency workspaces. */
+.page { background: #f5f5f7; }
+.hero { background: #111827; box-shadow: none; }
+.hero h1 { font-size: clamp(30px,4vw,46px); font-weight: 600; line-height: 1.1; }
+.heroCopy { max-width: 520px; }
+.metric, .agendaPanel, .portfolioPanel, .customersSection { box-shadow: none; border-color: #e5e5e7; }

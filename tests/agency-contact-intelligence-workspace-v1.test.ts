@@ -84,7 +84,7 @@ test('Contact Intelligence exposes Transfermarkt and explicit employment verific
 
   assert.match(
     drawer,
-    /never changes someone's[\s\S]*club or role without[\s\S]*human confirmation/,
+    /Confirm club or role changes before updating this contact/,
   );
 });
 

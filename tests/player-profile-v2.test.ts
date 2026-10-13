@@ -30,9 +30,10 @@ test('Player Profile is part of the current Players workspace', () => {
 });
 
 test('Player Profile manager uses simple required states instead of scores', () => {
-  assert.match(manager, /Ready to publish/);
+  assert.match(manager, /Next move/);
+  assert.match(manager, /Publish Player Profile/);
   assert.match(manager, /missingRequiredCount/);
-  assert.match(manager, /required .* missing/);
+  assert.match(manager, /primaryRequiredCheck/);
   assert.match(manager, /OPTIONAL IMPROVEMENTS/);
   assert.match(manager, /Improve before you send it/);
   assert.doesNotMatch(manager, /Profile readiness/);
@@ -104,11 +105,14 @@ test('visible product language says Player Profile rather than dossier', () => {
 
 
 test('current stats stay live without same-season double counting', () => {
-  assert.match(agencyOs, /eligible\.sort/);
+  assert.match(agencyOs, /selectCurrentSeasonEvidence\(trusted,player\)/);
+  assert.match(publicEdge, /selectCurrentSeasonEvidence\(trusted,player\)/);
   assert.match(agencyOs, /auto_stats_meta/);
   assert.doesNotMatch(agencyOs, /known\.reduce/);
-  assert.match(manager, /Checked today/);
-  assert.match(manager, /Cross-checked/);
+  assert.match(manager, /AgencyPlayerDataPanel/);
+  const panel = read('components/AgencyPlayerDataPanel.tsx');
+  assert.match(panel, /Source reviewed/);
+  assert.match(panel, /Source updated/);
 });
 
 test('published Player Profile reads current trusted stats instead of freezing publish-time numbers', () => {

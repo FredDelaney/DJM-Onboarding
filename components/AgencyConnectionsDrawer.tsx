@@ -884,11 +884,7 @@ export default function AgencyConnectionsDrawer({
             size={16}
           />
           <span>
-            Refresh tokens are
-            encrypted in Supabase
-            Vault. They are never
-            exposed to the browser
-            or another agency.
+            Your connection credentials are encrypted and kept private to your agency.
           </span>
         </footer>
       </section>

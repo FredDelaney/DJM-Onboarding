@@ -5,7 +5,7 @@ import { LoadingScreen, PlayerShell, usePlayerContext } from '@/components/Playe
 
 export default function PlayerConnectionsPage() {
   const ctx = usePlayerContext();
-  if (ctx.loading) return <LoadingScreen />;
+  if (ctx.loading || ctx.error) return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
 
   return (
     <PlayerShell inboxCount={ctx.openRequests.length}>
@@ -13,7 +13,7 @@ export default function PlayerConnectionsPage() {
         <section className="ux-player-page-heading">
           <span className="ux-kicker">MY WORKSPACE</span>
           <h1>Connections</h1>
-          <p>Security, calendar and reminders in one place.</p>
+          <p>Security, calendar and reminders.</p>
         </section>
         <ConnectionsPanel
           userId={String(ctx.user?.id || '')}

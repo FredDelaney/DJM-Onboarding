@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import SettingsWorkspace from '@/components/SettingsWorkspace';
+import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { useAdmin } from '@/components/AdminShell';
 import {
   friendlyError,
@@ -74,6 +75,7 @@ export default function TeamSettingsPage() {
   const [lastInviteLink, setLastInviteLink] = useState('');
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] = useState('');
+  const [memberToRemove, setMemberToRemove] = useState<TeamMember | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -249,19 +251,6 @@ export default function TeamSettingsPage() {
       return;
     }
 
-    const name =
-      member.display_name ||
-      member.email ||
-      'this team member';
-
-    if (
-      !window.confirm(
-        `Remove ${name} from this agency workspace?`,
-      )
-    ) {
-      return;
-    }
-
     setActionBusy(`member:${member.user_id}`);
     setError('');
 
@@ -273,6 +262,7 @@ export default function TeamSettingsPage() {
       });
 
       setMessage('Team member removed from this agency.');
+      setMemberToRemove(null);
       await load();
     } catch (removeError) {
       setError(friendlyError(removeError));
@@ -369,8 +359,7 @@ export default function TeamSettingsPage() {
           <div>
             <strong>Owner or admin access required.</strong>
             <p>
-              Your role is scoped to this agency. Team access is
-              managed independently for every ReDream customer.
+              Ask this agency's owner or admin to manage team access.
             </p>
           </div>
         </div>
@@ -395,10 +384,9 @@ export default function TeamSettingsPage() {
             <div className="ux-surface-head">
               <div>
                 <p className="ux-eyebrow">AGENCY TEAM</p>
-                <h2>Who can operate this agency?</h2>
+                <h2>Invite a teammate</h2>
                 <p>
-                  Access comes from this agency membership only.
-                  No global ReDream role grants access to another agency.
+                  These roles apply only to this agency workspace.
                 </p>
               </div>
               <UserPlus size={20} />
@@ -441,7 +429,7 @@ export default function TeamSettingsPage() {
                 type="submit"
                 disabled={actionBusy === 'invite'}
               >
-                Create secure invitation
+                Create invitation
               </button>
             </form>
 
@@ -537,9 +525,7 @@ export default function TeamSettingsPage() {
                       {!protectedMember ? (
                         <button
                           type="button"
-                          onClick={() =>
-                            void removeMember(member)
-                          }
+                          onClick={() => setMemberToRemove(member)}
                           aria-label={`Remove ${
                             member.display_name ||
                             member.email ||
@@ -618,9 +604,7 @@ export default function TeamSettingsPage() {
                 </p>
                 <h2>Player assignments</h2>
                 <p>
-                  Scout access can remain limited to specific
-                  player records while the agency membership stays
-                  tenant-native.
+                  Choose which players each scout can access.
                 </p>
               </div>
               <ShieldCheck size={20} />
@@ -756,6 +740,15 @@ export default function TeamSettingsPage() {
           </section>
         </div>
       ) : null}
+      <ConfirmActionDialog
+        open={Boolean(memberToRemove)}
+        title={`Remove ${memberToRemove?.display_name || memberToRemove?.email || 'this team member'}?`}
+        description="They will lose workspace access. Historical activity stays intact."
+        confirmLabel="Remove team member"
+        busy={Boolean(memberToRemove && actionBusy === `member:${memberToRemove.user_id}`)}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={() => memberToRemove ? removeMember(memberToRemove) : undefined}
+      />
     </SettingsWorkspace>
   );
 }

@@ -210,11 +210,15 @@ test(
     );
     assert.match(
       workspace,
-      /meetingAftercare\.items\.slice\(0, 4\)/,
+      /data\?\.meeting_aftercare\?\.items/,
     );
     assert.match(
       workspace,
-      /meetingAftercareItems\.slice\(0, remainingAttentionSlots\)/,
+      /data\.meeting_aftercare\.items\.slice\(0, 5\)/,
+    );
+    assert.match(
+      workspace,
+      /category: 'Needs action now'/,
     );
   },
 );

@@ -1,0 +1,30 @@
+.field { position: relative; min-width: 0; display: grid; gap: 8px; }
+.label { color: #424245; font-size: 13px; font-weight: 500; }
+.selection { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 4px 9px 4px 5px; border: 0; border-radius: 18px; background: #f0f2f5; color: #353538; font: inherit; font-size: 13px; cursor: pointer; }
+.avatar { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #e1e7ee; color: #475669; font-size: 10px; font-weight: 600; }
+.chip > svg { color: #6e6e73; }
+.menu { position: static; min-width: 0; }
+.menu > summary { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px; list-style: none; cursor: pointer; color: #0066cc; font-size: 13px; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary[aria-disabled="true"] { opacity: .5; cursor: default; }
+.popover { position: absolute; top: calc(100% + 4px); left: 0; right: auto; z-index: 30; box-sizing: border-box; width: min(280px, 100%); padding: 8px; border: 1px solid #e5e5e7; border-radius: 14px; background: #fff; box-shadow: 0 8px 28px #00000016; }
+.search { display: flex !important; align-items: center; gap: 8px !important; padding: 0 10px; border-radius: 8px; background: #f5f5f7; color: #6e6e73; }
+.search input { width: 100%; min-width: 0; height: 40px; min-height: 40px !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; color: #1d1d1f; font: inherit; font-size: 16px; }
+.options { max-height: 220px; overflow-y: auto; padding-top: 5px; }
+.option { display: flex !important; align-items: center; gap: 10px !important; min-height: 44px; padding: 0 8px; border-radius: 8px; cursor: pointer; color: #1d1d1f; font-size: 14px !important; font-weight: 400 !important; }
+.option:hover { background: #f5f5f7; }
+.option input { width: 17px !important; height: 17px !important; min-height: 17px !important; padding: 0 !important; accent-color: #0071e3; flex-shrink: 0; }
+.option span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.option svg { color: #0071e3; }
+.options p { padding: 8px; margin: 0; color: #6e6e73; font-size: 13px; }
+.done { width: 100%; min-height: 40px; margin-top: 4px; border: 0 !important; background: #f5f5f7; color: #0066cc; font: inherit; font-size: 13px; border-radius: 8px; cursor: pointer; }
+@media (max-width: 680px) { .chip { min-height: 44px; } .popover { right: auto; left: 0; } }
+
+/* World-class product pass v11: small identity chips and a contained picker. */
+.selection{gap:5px}.chip{min-height:44px;padding:3px 8px 3px 4px;border-radius:17px;background:#f5f5f7;font-size:13px}.avatar{width:22px;height:22px;font-size:9px}.menu>summary{min-height:44px;padding:0 6px;font-size:13px}
+.menu[open]{flex-basis:100%}
+.popover{position:static;width:100%;margin-top:5px;border-radius:14px;box-shadow:none}
+.search input{height:44px;min-height:44px!important}
+.done{min-height:44px}
+.chip:focus-visible,.menu>summary:focus-visible,.done:focus-visible{outline:3px solid #0071e3;outline-offset:2px}

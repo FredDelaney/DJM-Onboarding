@@ -17,7 +17,7 @@ test('Business is a management-only entry point to the existing owner command ce
   assert.match(workspace, /const canSeeBusiness = \['owner', 'admin'\]/);
   assert.match(
     workspace,
-    /item\.key !== 'business' \|\| canSeeBusiness/,
+    /!\['business','opportunities'\]\.includes\(item\.key\) \|\| canSeeBusiness/,
   );
 });
 
@@ -45,21 +45,21 @@ test('Owner Command Centre keeps revenue service ownership and collection separa
   assert.match(owner, /TEAM/);
   assert.match(owner, /PLAYER SERVICE/);
   assert.match(owner, /Open receivables/);
-  assert.match(owner, /LAST 30 DAYS/);
+  assert.match(owner, /last 30 days/);
 });
 
 test('Commercial exposure remains evidence-led and multi-currency safe', () => {
   assert.match(
     owner,
-    /not guaranteed revenue/,
+    /Revenue is not guaranteed/,
   );
   assert.match(
     owner,
-    /Currencies remain separate/,
+    /Totals are shown separately for each currency/,
   );
   assert.match(
     owner,
-    /does not invent an FX conversion/,
+    /No exchange-rate conversion is applied/,
   );
 });
 
@@ -87,11 +87,11 @@ test('Owner service gaps remain directly actionable through guarded player actio
 test('Owner Command Centre does not invent a composite agency score or staff utilisation percentage', () => {
   assert.match(
     owner,
-    /does not calculate a fake utilisation percentage/,
+    /No utilisation percentage is estimated/,
   );
   assert.match(
     owner,
-    /does not turn them into one opaque agency score/,
+    /Operations, commercial exposure and platform activity are shown separately/,
   );
   assert.doesNotMatch(
     owner,

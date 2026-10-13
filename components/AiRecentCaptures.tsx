@@ -5,7 +5,9 @@ import { useAiWorkspace } from './useAiWorkspace';
 import { AlertTriangle, CheckCircle2, LoaderCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { platformRpc } from '@/lib/platform-client';
+import JourneyStatus from '@/components/JourneyStatus';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import { platformRpc, friendlyError } from '@/lib/platform-client';
 import styles from './AiRecentCaptures.module.css';
 
 type RecentCapture = {
@@ -58,23 +60,32 @@ export default function AiRecentCaptures({
   const currentWorkspace = useRef(workspaceSlug);
   currentWorkspace.current = workspaceSlug;
   const firstLoadRef = useRef(true);
+  const loadGeneration = useRef(0);
+  const [error,setError] = useState('');
 
   const load = useCallback(async (initial = false) => {
+    const generation = ++loadGeneration.current;
+    setError('');
+    if (initial) setItems([]);
     if (initial) setInitialLoading(true);
     else setRefreshing(true);
-
+    const controller = new AbortController();
     try {
-      const result = await platformRpc<RecentCapture[]>('redream_ai_recent_captures', {
+      const result = await readWithDeadline(platformRpc<RecentCapture[]>('redream_ai_recent_captures', {
         p_limit: 8,
-      }, workspaceSlug);
-      if (currentWorkspace.current !== workspaceSlug) return;
-      setItems(Array.isArray(result) ? result : []);
-    } catch {
-      if (currentWorkspace.current !== workspaceSlug) return;
-      if (initial) setItems([]);
+      }, workspaceSlug, controller.signal));
+      if (generation !== loadGeneration.current || currentWorkspace.current !== workspaceSlug) return;
+      if (!Array.isArray(result)) throw new Error('Recent updates could not be confirmed. Please try again.');
+      setItems(result);
+    } catch (loadError) {
+      if (generation !== loadGeneration.current || currentWorkspace.current !== workspaceSlug) return;
+      setError(friendlyError(loadError));
     } finally {
-      if (initial) setInitialLoading(false);
-      else setRefreshing(false);
+      controller.abort();
+      if (generation === loadGeneration.current) {
+        setInitialLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [workspaceSlug]);
 
@@ -87,6 +98,7 @@ export default function AiRecentCaptures({
     const initial = firstLoadRef.current;
     firstLoadRef.current = false;
     void load(initial);
+    return () => { ++loadGeneration.current; };
   }, [load, refreshKey]);
 
   return (
@@ -94,20 +106,21 @@ export default function AiRecentCaptures({
       <div className={styles.head}>
         <div>
           <strong>Recent</strong>
-          <span>Your last Capture updates and their real status.</span>
         </div>
         <button
           type="button"
           className={styles.refresh}
           onClick={() => void load(false)}
-          disabled={refreshing}
+          disabled={refreshing || initialLoading}
         >
           {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
-      {initialLoading && !items.length ? (
-        <div className={styles.empty}>Checking your recent captures...</div>
+      {error ? <JourneyStatus kind="error" title="Could not load recent updates" description={error} onRetry={() => void load(false)}/> : null}
+
+      {(initialLoading || refreshing) && !items.length ? (
+        <div className={styles.empty}>Checking your recent updates...</div>
       ) : items.length ? (
         <div className={styles.list} aria-busy={refreshing}>
           {items.map((item) => {
@@ -132,7 +145,7 @@ export default function AiRecentCaptures({
                 onClick={() => onOpen(item.id)}
               >
                 <div className={styles.copy}>
-                  <strong>{item.summary || 'Capture update'}</strong>
+                  <strong>{item.summary || 'ReDream update'}</strong>
                   <span>{timeLabel(item.created_at)}</span>
                 </div>
                 <div className={styles.right}>
@@ -157,11 +170,11 @@ export default function AiRecentCaptures({
             );
           })}
         </div>
-      ) : (
+      ) : !error ? (
         <div className={styles.empty}>
-          Your Capture history will appear here after the first capture.
+          No updates yet.
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

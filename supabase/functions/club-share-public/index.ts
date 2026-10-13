@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { visiblePublicPlayerProfile } from "../_shared/public-profile-visibility.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -49,7 +50,7 @@ Deno.serve(async (req: Request) => {
     });
     if (trackingError) console.error("club-share-public track", trackingError.message);
 
-    return reply({ data });
+    return reply({ data: { ...data, profile: visiblePublicPlayerProfile(data.profile) } });
   } catch (error) {
     console.error("club-share-public", error);
     return reply({ error: "Unable to load club share" }, 500);

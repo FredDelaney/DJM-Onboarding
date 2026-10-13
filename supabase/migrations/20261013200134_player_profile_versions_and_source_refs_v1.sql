@@ -401,7 +401,7 @@ as $function$
       'website_url', b.website_url,
       'phone', b.phone
     ),
-    'profile', case when s.profile_version_id is null then
+    'profile', private.visible_public_player_profile(case when s.profile_version_id is null then
       jsonb_build_object(
         'display_name', pp.display_name,
         'headline', pp.headline,
@@ -464,7 +464,7 @@ as $function$
         'verified_at', v.presentation -> 'verified_at',
         'section_order', v.presentation -> 'section_order'
       )
-    end,
+    end),
     'documents', coalesce((
       select jsonb_agg(
         jsonb_build_object(

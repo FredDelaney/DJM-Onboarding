@@ -15,12 +15,14 @@ import {
   useState,
 } from 'react';
 
+import AgencyBirthdayEditor from '@/components/AgencyBirthdayEditor';
 import SettingsWorkspace from '@/components/SettingsWorkspace';
 import { useAdmin } from '@/components/AdminShell';
 import styles from '@/components/AccountSettings.module.css';
 import {
   friendlyError,
   platformInvoke,
+  platformRpc,
 } from '@/lib/platform-client';
 import { publicFile, supabase } from '@/lib/supabase';
 
@@ -231,7 +233,7 @@ export default function ProfileSettingsPage() {
           <div className={styles.panelHead}>
             <div>
               <h2>Profile photo</h2>
-              <p>Used across ownership, team handoffs and your account menu.</p>
+              <p>Shown beside your name.</p>
             </div>
             <Camera size={19} />
           </div>
@@ -340,6 +342,7 @@ export default function ProfileSettingsPage() {
             </button>
           </div>
         </form>
+        {tenantId && userId && ['owner','admin','agent','scout','operations'].includes(String(auth.workspace?.role || auth.profile?.tenant_role || '')) ? <AgencyBirthdayEditor entityKind="staff" entityId={userId} tenantId={tenantId} rpc={platformRpc} /> : null}
       </div>
     </SettingsWorkspace>
   );

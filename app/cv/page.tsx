@@ -1,9 +1,5 @@
 'use client';
 
-import {
-  useEffect,
-  useState,
-} from 'react';
 
 import {
   Eye,
@@ -24,55 +20,37 @@ import {
   supabase,
 } from '@/lib/supabase';
 
+import JourneyStatus from '@/components/JourneyStatus';
+import {usePlayerPageRead} from '@/lib/use-player-page-read';
+
+const readPresentation = async (playerId: string) => {
+  const {data,error} = await supabase.from('player_public_profiles').select('*').eq('player_id', playerId).maybeSingle();
+  if (error) throw error;
+  return data || null;
+};
+
 export default function CV() {
   const ctx =
     usePlayerContext();
 
-  const [
-    pub,
-    setPub,
-  ] =
-    useState<any>(
-      undefined,
-    );
+  const pageRead = usePlayerPageRead(ctx.player?.id, readPresentation);
+  const pub = pageRead.data;
 
-  useEffect(() => {
-    if (!ctx.player) {
-      return;
-    }
-
-    supabase
-      .from(
-        'player_public_profiles',
-      )
-      .select('*')
-      .eq(
-        'player_id',
-        ctx.player.id,
-      )
-      .maybeSingle()
-      .then(
-        ({ data }) =>
-          setPub(
-            data ||
-              null,
-          ),
-      );
-  }, [
-    ctx.player?.id,
-  ]);
-
-  if (
-    ctx.loading ||
-    pub === undefined
-  ) {
-    return (
-      <LoadingScreen />
-    );
+  if (ctx.loading || ctx.error) {
+    return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
   }
 
   if (!ctx.player) {
-    return null;
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile."/></main></PlayerShell>;
+  }
+
+  if (pageRead.loading || pageRead.error) {
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus
+      kind={pageRead.error ? 'error' : 'loading'}
+      title={pageRead.error ? 'Your presentation could not load' : 'Loading your presentation'}
+      description={pageRead.error || 'Loading your club profile.'}
+      onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
+    /></main></PlayerShell>;
   }
 
   if (!pub) {
@@ -94,10 +72,7 @@ export default function CV() {
           </h1>
 
           <p className="page-intro">
-            Your Player Profile appears here
-            once your agency has prepared
-            the verified
-            presentation.
+            It will appear here after your agency prepares and verifies it.
           </p>
 
           <div className="card pad-lg player-dossier-empty-card">
@@ -112,13 +87,7 @@ export default function CV() {
               </strong>
 
               <span>
-                Salary expectations,
-                passports, personal
-                contact information,
-                check-ins and private
-                documents are not
-                automatically included
-                in your Player Profile.
+                Pay, passports, personal contacts, check-ins and private files are not automatically shared.
               </span>
             </div>
           </div>

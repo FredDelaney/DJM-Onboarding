@@ -216,7 +216,7 @@ export default function EntityActionsMenu({
               <div className={styles.menu}>
                 <button type="button" onClick={() => open('edit')}>
                   <span className={styles.menuIcon}><Pencil size={17} /></span>
-                  <span><strong>Edit</strong><small>Change the recorded details.</small></span>
+                  <span><strong>Edit</strong><small>Change the details.</small></span>
                 </button>
                 <button type="button" onClick={() => open('archive')}>
                   <span className={styles.menuIcon}><Archive size={17} /></span>
@@ -331,7 +331,7 @@ export default function EntityActionsMenu({
                         </div>
                       ))
                     ) : (
-                      <div><strong>Linked records</strong><em>None recorded</em></div>
+                      <div><strong>Linked records</strong><em>None</em></div>
                     )}
                   </div>
                 ) : null}

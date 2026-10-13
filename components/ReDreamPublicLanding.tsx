@@ -31,7 +31,7 @@ const structuredData = {
   operatingSystem: 'Web',
   url: 'https://redreamsystems.com/',
   description:
-    'ReDream helps football agencies keep players, club requests, relationships, follow-ups and deals connected so the team knows what needs attention and what to do next.',
+    'ReDream keeps players, club requests, relationships and deals connected, with the next move clear.',
   offers: {
     '@type': 'AggregateOffer',
     lowPrice: '149',
@@ -43,7 +43,7 @@ const structuredData = {
 
 export default function ReDreamPublicLanding() {
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-interface="calm">
       <ReDreamFunnelTracker />
       <script
         type="application/ld+json"
@@ -56,7 +56,7 @@ export default function ReDreamPublicLanding() {
         <div className={styles.nav}>
           <Link href="/" className={styles.brand} aria-label="ReDream Systems">
             <img
-              src="/brand/redream-lockup-light.png"
+              src="/brand/redream-lockup-dark.png"
               alt="ReDream Systems"
               className={styles.brandLogo}
             />
@@ -68,7 +68,7 @@ export default function ReDreamPublicLanding() {
             <Link href="/security">Security</Link>
             <Link href="/switch">Switch</Link>
             <a href="#pricing">Pricing</a>
-            <Link href="/platform/sign-in">Sign in</Link>
+            <Link href="/sign-in">Sign in</Link>
           </nav>
 
           <ReDreamDemoRequestButton
@@ -87,10 +87,10 @@ export default function ReDreamPublicLanding() {
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>SOFTWARE FOR FOOTBALL AGENCIES</p>
             <h1>
-              Run your agency without relying on memory.
+              Your agency. Connected.
             </h1>
             <p className={styles.heroLead}>
-              ReDream keeps your players, club requests, contacts and deals connected. It shows your team what needs attention and what to do next.
+              Players, clubs, contacts and deals in one place. Keep the next move clear.
             </p>
 
             <div className={styles.heroActions}>
@@ -114,10 +114,10 @@ export default function ReDreamPublicLanding() {
 
           <div className={styles.heroVisual} aria-label="ReDream turns scattered agency work into one clear next move">
             <div className={styles.heroInputs}>
-              <div><MessageSquareText size={17} /><span><small>WHATSAPP</small><strong>Club needs a left-footed CB</strong></span></div>
+              <div><MessageSquareText size={17} /><span><small>CLUB MESSAGE</small><strong>Club needs a left-footed CB</strong></span></div>
               <div><UsersRound size={17} /><span><small>PLAYER</small><strong>Daniel Costa is available</strong></span></div>
               <div><Network size={17} /><span><small>RELATIONSHIP</small><strong>You have a warm route</strong></span></div>
-              <div><BellRing size={17} /><span><small>FOLLOW-UP</small><strong>Nothing gets forgotten</strong></span></div>
+              <div><BellRing size={17} /><span><small>FOLLOW-UP</small><strong>Follow-ups stay visible</strong></span></div>
             </div>
 
             <div className={styles.heroArrow}><ArrowRight size={19} /></div>
@@ -125,7 +125,7 @@ export default function ReDreamPublicLanding() {
             <div className={styles.heroAnswer}>
               <span>NEXT MOVE</span>
               <strong>Send Daniel's clips and confirm availability.</strong>
-              <small>ReDream keeps the opportunity moving.</small>
+              <small>Keep it moving.</small>
             </div>
           </div>
         </div>
@@ -134,14 +134,14 @@ export default function ReDreamPublicLanding() {
       <section className={styles.storySection} id="how-it-works">
         <div className={styles.sectionIntro}>
           <p>SEE REDREAM WORK</p>
-          <h2>One club request. One clear next move.</h2>
+          <h2>One request. A clear next move.</h2>
           <span>
-            ReDream turns scattered information into something your team can act on.
+            Turn a club request into your next action.
           </span>
         </div>
         <ReDreamSimpleStory />
         <div className={styles.deepLink}>
-          <span>Want to see the technology underneath?</span>
+          <span>See how it works.</span>
           <Link href="/product">Explore the full product <ArrowRight size={15} /></Link>
         </div>
       </section>
@@ -155,7 +155,7 @@ export default function ReDreamPublicLanding() {
         <div className={styles.changeGrid}>
           <article data-tone="problem">
             <span>Today</span>
-            <h3>Too much depends on people remembering.</h3>
+            <h3>Too much to remember.</h3>
             <ul>
               <li>Club requests arrive everywhere.</li>
               <li>Relationships live in people's heads.</li>
@@ -165,7 +165,7 @@ export default function ReDreamPublicLanding() {
 
           <article data-tone="value">
             <span>With ReDream</span>
-            <h3>The important work stays connected.</h3>
+            <h3>Keep the work connected.</h3>
             <ul>
               <li>Requests connect to the right players.</li>
               <li>Players connect to the best route into the club.</li>
@@ -205,21 +205,21 @@ export default function ReDreamPublicLanding() {
       <section className={styles.controlSection} id="control">
         <div>
           <p>YOU STAY IN CONTROL</p>
-          <h2>ReDream helps with the work. You make the decisions.</h2>
+          <h2>You stay in control.</h2>
         </div>
 
         <div className={styles.controlGrid}>
           <article>
             <CheckCircle2 size={18} />
-            <span><strong>ReDream can help</strong><small>Organise information, connect the dots, prepare next steps and remind your team what is due.</small></span>
+            <span><strong>ReDream can help</strong><small>Connect information and keep work moving.</small></span>
           </article>
           <article>
             <ShieldCheck size={18} />
-            <span><strong>You approve important actions</strong><small>Important communication stays controlled by your agency.</small></span>
+            <span><strong>You approve important actions</strong><small>Important communication stays with you.</small></span>
           </article>
           <article>
             <UsersRound size={18} />
-            <span><strong>You own the judgement</strong><small>Negotiations and player career decisions stay with the agent.</small></span>
+            <span><strong>You own the judgement</strong><small>Negotiations and career decisions stay with your agency.</small></span>
           </article>
         </div>
       </section>
@@ -227,7 +227,7 @@ export default function ReDreamPublicLanding() {
       <section className={styles.commercialSection} id="pricing">
         <div className={styles.sectionIntro}>
           <p>PLANS FOR YOUR AGENCY</p>
-          <h2>Start small. Prove the value first.</h2>
+          <h2>Start with one player.</h2>
           <span>
             Start with one player, club request or live deal. See how ReDream works with your agency before moving everything across.
           </span>
@@ -249,7 +249,7 @@ export default function ReDreamPublicLanding() {
             <CircleDollarSign size={18} />
             <span>
               <strong>See the value before a full rollout.</strong>
-              <small>Bring one real situation. ReDream should make the next move clearer immediately.</small>
+              <small>Bring one real situation. The next move should be clearer immediately.</small>
             </span>
           </div>
           <ReDreamDemoRequestButton className={styles.darkButton} label="Run ReDream on my agency" trackingKey="pricing_demo" />
@@ -259,7 +259,7 @@ export default function ReDreamPublicLanding() {
       <section className={styles.finalCta} id="final-cta">
         <div>
           <p>TRY IT WITH SOMETHING REAL</p>
-          <h2>A player. A club request. A relationship. A live deal.</h2>
+          <h2>Bring one real situation.</h2>
           <span>
             Bring us one real situation from your agency. We will show you how ReDream connects it and what the next move could be.
           </span>
@@ -281,7 +281,8 @@ export default function ReDreamPublicLanding() {
           <Link href="/security">Security</Link>
           <Link href="/switch">Switch</Link>
           <Link href="/privacy">Privacy</Link>
-          <Link href="/platform/sign-in">Sign in</Link>
+          <Link href="/support">Support</Link>
+          <Link href="/sign-in">Sign in</Link>
         </div>
       </footer>
     </main>

@@ -21,7 +21,7 @@ test('player cards use real football identity and recorded dates',()=>{
   assert.match(players,/profile_photo_path/);
   assert.match(players,/Playing contract/);
   assert.match(players,/Agency agreement/);
-  assert.match(players,/Representation agreement not recorded/);
+  assert.match(players,/No representation agreement/);
   assert.doesNotMatch(players,/last meaningful player contact/i);
 });
 

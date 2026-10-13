@@ -110,7 +110,7 @@ const STEP_COPY: Record<
   first_opportunity: {
     eyebrow: 'FIRST LIVE OPPORTUNITY',
     title: 'Add something live.',
-    copy: 'Capture a real club need or player route you are already working on.',
+    copy: 'Add a real club need or player opportunity you are already working on.',
   },
   owner_setup_complete: {
     eyebrow: 'OWNER SETUP COMPLETE',

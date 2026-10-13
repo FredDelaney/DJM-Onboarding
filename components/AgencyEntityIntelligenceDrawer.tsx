@@ -16,6 +16,9 @@ import { useEffect, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import { hasRecordedNumber } from '@/lib/recorded-number';
+
 import styles from './AgencyEntityIntelligenceDrawer.module.css';
 
 export type AgencyIntelligenceRequest = {
@@ -37,6 +40,7 @@ const human = (value: unknown) =>
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const numeric = (value: unknown, fallback = '-') => {
+  if (!hasRecordedNumber(value)) return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed)
     ? String(Math.round(parsed))
@@ -115,6 +119,7 @@ export default function AgencyEntityIntelligenceDrawer({
   presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] = useState(true);
+  const [retry,setRetry]=useState(0);
   const [error, setError] = useState('');
   const [data, setData] = useState<Record<string, any>>({});
 
@@ -154,12 +159,13 @@ export default function AgencyEntityIntelligenceDrawer({
             });
           }
         } else {
-          const response = await invoke('deal_war_room', {
+          const response = await readWithDeadline(invoke('deal_war_room', {
             deal_room_id: request.entityId,
-          });
-
+          }));
+          const warRoom = unwrap(response);
+          if (active && (!warRoom?.deal || warRoom?.available === false)) throw new Error('This deal is unavailable.');
           if (active) {
-            setData({ warRoom: unwrap(response) });
+            setData({ warRoom });
           }
         }
       } catch (loadError) {
@@ -174,7 +180,7 @@ export default function AgencyEntityIntelligenceDrawer({
     return () => {
       active = false;
     };
-  }, [invoke, request.entityId, request.kind]);
+  }, [invoke, request.entityId, request.kind, retry]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -213,7 +219,7 @@ export default function AgencyEntityIntelligenceDrawer({
     alignment.next_strategy_action?.instruction ||
     service.next_service_move?.instruction ||
     player.next_action ||
-    'No immediate player-service action is recorded.';
+    'No next action recorded.';
   const marketDeals = Number(service.market_coverage?.active_deals || 0);
   const marketOpportunities = Number(
     service.market_coverage?.active_player_opportunities || 0,
@@ -258,7 +264,7 @@ export default function AgencyEntityIntelligenceDrawer({
       <aside className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`} role={pageMode ? 'region' : 'dialog'} aria-modal={pageMode ? undefined : true}>
         <header className={styles.header}>
           <div className={styles.topline}>
-            <span className={styles.live}><i />Live agency evidence</span>
+            <span className={styles.live}><i />Agency record</span>
             <button type="button" onClick={onClose} aria-label={pageMode ? 'Back' : 'Close'}>
               {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
             </button>
@@ -271,8 +277,8 @@ export default function AgencyEntityIntelligenceDrawer({
                 : <BriefcaseBusiness size={18} />}
             </div>
             <div>
-              <p>{request.kind === 'player' ? 'PLAYER INTELLIGENCE' : 'DEAL WAR ROOM'}</p>
-              <h2>{request.title}</h2>
+              <p>{request.kind === 'player' ? 'PLAYER' : 'DEAL'}</p>
+              <h2>{request.kind==='deal' ? deal.title || request.title : request.title}</h2>
               {request.context ? <span>{request.context}</span> : null}
             </div>
           </div>
@@ -282,18 +288,19 @@ export default function AgencyEntityIntelligenceDrawer({
           <div className={styles.state}>
             <LoaderCircle size={20} className={styles.spin} />
             <div>
-              <strong>Building the current operating picture</strong>
-              <span>Pulling the latest recorded agency evidence.</span>
+              <strong>Loading the latest details</strong>
+              <span>Loading...</span>
             </div>
           </div>
         ) : null}
 
         {error ? (
-          <div className={styles.state}>
+          <div className={styles.state} role="alert">
             <CircleAlert size={19} />
             <div>
               <strong>Intelligence unavailable</strong>
               <span>{error}</span>
+              <button type="button" className="btn" onClick={()=>setRetry(value=>value+1)}>Try again</button>
             </div>
           </div>
         ) : null}
@@ -318,20 +325,20 @@ export default function AgencyEntityIntelligenceDrawer({
                 value={marketActivity ? `${marketActivity} active record${marketActivity === 1 ? '' : 's'}` : 'No active market process'}
                 detail={marketActivity
                   ? `${marketDeals} deal${marketDeals === 1 ? '' : 's'} · ${marketOpportunities} opportunit${marketOpportunities === 1 ? 'y' : 'ies'} · ${marketMatches} match${marketMatches === 1 ? '' : 'es'}`
-                  : 'No recorded active deals, opportunities or market matches.'}
+                  : 'No active deals, opportunities or matches recorded.'}
               />
               <Fact
                 label="Career plan"
-                value={strategyMissing ? 'Not recorded' : human(alignment.alignment_state || 'current')}
+                value={strategyMissing ? 'Not set' : human(alignment.alignment_state || 'current')}
                 detail={strategyMissing
-                  ? 'Objective, target markets and next checkpoint still need to be agreed.'
+                  ? 'Career plan still needs agreement.'
                   : alignment.review_due_at
                     ? `Review ${relativeDate(alignment.review_due_at)}`
-                    : 'Career strategy is recorded.'}
+                    : 'Career plan recorded.'}
               />
               <Fact
                 label="Contract"
-                value={human(player.contract_status || 'Not recorded')}
+                value={human(player.contract_status || 'Not set')}
                 detail={
                   player.contract_expiry
                     ? `Expires ${relativeDate(player.contract_expiry)}`
@@ -345,18 +352,18 @@ export default function AgencyEntityIntelligenceDrawer({
                   : 'No service activity recorded'}
                 detail={recordedMarketProcesses
                   ? `${recordedMarketProcesses} club process${recordedMarketProcesses === 1 ? '' : 'es'} opened in this window.`
-                  : 'No club process opened in the current proof window.'}
+                  : 'No recent club process.'}
               />
             </div>
 
             <section className={styles.panel}>
               <p>CAREER PLAN</p>
-              <h3>{alignment.strategy?.objective || 'Career plan not recorded'}</h3>
+              <h3>{alignment.strategy?.objective || 'Career plan not set'}</h3>
               {alignment.strategy ? (
                 <div className={styles.grid}>
                   <Fact
                     label="Next checkpoint"
-                    value={alignment.strategy?.next_checkpoint || 'Not recorded'}
+                    value={alignment.strategy?.next_checkpoint || 'Not set'}
                   />
                   <Fact
                     label="Target markets"
@@ -364,17 +371,17 @@ export default function AgencyEntityIntelligenceDrawer({
                   />
                   <Fact
                     label="Alignment"
-                    value={human(alignment.alignment_state || 'not recorded')}
+                    value={human(alignment.alignment_state || 'not set')}
                   />
                   <Fact
                     label="Market state"
-                    value={human(alignment.market_coverage?.state || 'not recorded')}
+                    value={human(alignment.market_coverage?.state || 'not set')}
                   />
                 </div>
               ) : (
                 <div className={styles.planEmpty}>
-                  <strong>Define this with the player.</strong>
-                  <span>Record the objective, target markets and next checkpoint once they are agreed.</span>
+                  <strong>Agree this with the player.</strong>
+                  <span>Add the objective, markets and next checkpoint.</span>
                 </div>
               )}
             </section>
@@ -397,7 +404,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { player_id: request.entityId },
                       context: human(serviceControl.state),
                       successCondition:
-                        'The recorded player-control gap is resolved.',
+                        'Player issue resolved.',
                     });
                   }}
                 >
@@ -422,7 +429,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { player_id: request.entityId },
                       context: human(alignment.alignment_state),
                       successCondition:
-                        'The player-owned career plan is current and usable for market decisions.',
+                        'Career plan is current.',
                     })
                   }
                 >
@@ -448,7 +455,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       context: human(serviceControl.state),
                       successCondition:
                         service.next_service_move.success_condition ||
-                        'The player action is completed and the next step is recorded.',
+                        'Player action complete.',
                     })
                   }
                 >
@@ -473,7 +480,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
 
             <p className={styles.truth}>
-              Player Intelligence shows recorded agency evidence and the next control to resolve. It does not infer player intent, satisfaction or transfer outcomes.
+              Based on recorded agency information. Player intent, satisfaction and transfer outcomes are not inferred.
             </p>
           </div>
         ) : null}
@@ -482,83 +489,84 @@ export default function AgencyEntityIntelligenceDrawer({
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
-                <p>CURRENT CONTROL POSITION</p>
+                <p>DEAL STATUS</p>
                 <h3>{human(control.state || momentum.state || 'recorded')}</h3>
                 <span>
                   {nextMove.instruction ||
                     deal.next_decision ||
-                    'Review the live deal and define the next decision.'}
+                    'Review the deal and decide.'}
                 </span>
               </div>
-              <div className={styles.score}>
+              {hasRecordedNumber(control.score) ? <div className={styles.score}>
                 <strong>{numeric(control.score)}</strong>
                 <span>deal control</span>
-              </div>
+              </div> : null}
             </section>
 
             <div className={styles.grid}>
               <Fact
                 label="Stage"
-                value={human(deal.stage || 'not recorded')}
-                detail={deal.primary_blocker || 'No blocker recorded'}
+                value={human(deal.stage || 'not set')}
+                detail={deal.primary_blocker || 'No blocker'}
               />
               <Fact
                 label="Momentum"
-                value={human(momentum.state || 'not recorded')}
+                value={human(momentum.state || 'not set')}
                 detail={
-                  momentum.score !== undefined
+                  hasRecordedNumber(momentum.score)
                     ? `${numeric(momentum.score)} momentum score`
                     : null
                 }
               />
               <Fact
                 label="Decision pressure"
-                value={human(pressure.state || 'not recorded')}
+                value={human(pressure.state || 'not set')}
                 detail={
-                  pressure.observed_days_in_stage !== undefined
+                  hasRecordedNumber(pressure.observed_days_in_stage)
                     ? `${numeric(pressure.observed_days_in_stage)} observed days in stage`
                     : null
                 }
               />
               <Fact
                 label="Negotiation"
-                value={human(negotiation.state || 'not recorded')}
+                value={human(negotiation.state || 'not set')}
                 detail={
-                  negotiation.score !== undefined
+                  hasRecordedNumber(negotiation.score)
                     ? `${numeric(negotiation.score)} preparation score`
                     : null
                 }
               />
             </div>
 
-            <section className={styles.panel}>
-              <p>ACCESS + ADVANTAGE</p>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Contact routes and deal context</summary>
+
               <h3>
                 {bestIntro.recommended_action ||
-                  'No stronger recorded access move is available.'}
+                  'No stronger route recorded.'}
               </h3>
               <div className={styles.grid}>
                 <Fact
                   label="Direct access"
                   value={
-                    access.direct_score !== undefined
+                    hasRecordedNumber(access.direct_score)
                       ? `${numeric(access.direct_score)}/100`
-                      : 'Not recorded'
+                      : 'Not set'
                   }
                 />
                 <Fact
                   label="Introduction"
                   value={
-                    access.introduction_score !== undefined
+                    hasRecordedNumber(access.introduction_score)
                       ? `${numeric(access.introduction_score)}/100`
-                      : 'Not recorded'
+                      : 'Not set'
                   }
                 />
                 <Fact
                   label="Operating advantage"
-                  value={human(advantage.state || 'not recorded')}
+                  value={human(advantage.state || 'not set')}
                   detail={
-                    advantage.score !== undefined
+                    hasRecordedNumber(advantage.score)
                       ? `${numeric(advantage.score)} operating score`
                       : null
                   }
@@ -568,7 +576,7 @@ export default function AgencyEntityIntelligenceDrawer({
                   value={compact(advantage.exposures)}
                 />
               </div>
-            </section>
+            </details>
 
             <div className={styles.actions}>
               {controlFix.instruction ? (
@@ -585,7 +593,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { deal_room_id: request.entityId },
                       context: human(control.state),
                       successCondition:
-                        'The recorded deal-control gap is resolved.',
+                        'Nothing needs attention.',
                     })
                   }
                 >
@@ -608,7 +616,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       payload: { deal_room_id: request.entityId },
                       context: human(deal.stage),
                       successCondition:
-                        'A decision-producing next move is recorded against the live deal.',
+                        'The next move is recorded.',
                     })
                   }
                 >
@@ -660,7 +668,7 @@ export default function AgencyEntityIntelligenceDrawer({
                       context: human(negotiation.state),
                       successCondition:
                         negotiation.next_step.success_condition ||
-                        'The blocking preparation gap is resolved or explicitly recorded.',
+                        'The preparation gap is resolved or recorded.',
                     })
                   }
                 >
@@ -671,7 +679,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
 
             <p className={styles.truth}>
-              Deal War Room supports judgement from recorded evidence. Scores describe control, preparation and observed movement, not transfer probability or predicted outcome.
+              Recorded preparation and activity; no transfer probability is estimated.
             </p>
           </div>
         ) : null}

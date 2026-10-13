@@ -9,24 +9,28 @@
     "build": "next build",
     "start": "next start",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/*.test.ts",
-    "typecheck": "next typegen && tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tests/fixtures/player-entry/tsconfig.json && tsc --noEmit -p tests/fixtures/platform-polish/tsconfig.json",
     "precheck": "npm run check:no-em-dash",
     "check": "npm test && npm run typecheck && npm run build",
-    "check:no-em-dash": "node scripts/check-no-em-dash.mjs"
+    "check:no-em-dash": "node scripts/check-no-em-dash.mjs",
+    "check:browser": "node scripts/customer-journey-browser-qa.mjs && node scripts/workspace-flow-browser-fixture.mjs scripts/workspace-find-flow-qa.mjs scripts/profile-header-contrast-qa.mjs scripts/populated-profile-browser-qa.mjs && node scripts/calendar-browser-fixture.mjs scripts/home-responsibility-layout-qa.mjs scripts/home-review-context-qa.mjs scripts/player-review-context-qa.mjs scripts/player-data-workflow-qa.mjs scripts/reminder-review-context-qa.mjs scripts/agency-command-recovery-qa.mjs scripts/calendar-mobile-recovery-qa.mjs scripts/calendar-workspace-browser-qa.mjs scripts/responsibility-browser-qa.mjs scripts/pursuit-continuity-browser-qa.mjs && node scripts/deep-journey-browser-fixture.mjs && node scripts/player-entry-browser-qa.mjs && node scripts/platform-polish-browser-qa.mjs"
   },
   "dependencies": {
+    "@fullcalendar/react": "7.1.0",
     "@react-pdf/renderer": "4.5.1",
     "@supabase/supabase-js": "2.112.4",
     "lucide-react": "^0.468.0",
-    "next": "16.3.3",
+    "next": "16.3.8",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "temporal-polyfill": "1.0.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14",
     "@types/node": "^22",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
+    "playwright": "1.63.0",
     "typescript": "^5.8.3"
   },
   "overrides": {

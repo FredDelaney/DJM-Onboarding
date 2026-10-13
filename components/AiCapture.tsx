@@ -7,6 +7,7 @@ import { pollCaptureReceipt } from '@/lib/capture-polling';
 import { flushAiQueue, uploadAiCaptureOnce } from '@/lib/ai-upload-queue';
 
 import { pendingAiWorkspace } from '@/lib/ai-workspace';
+import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { useAiWorkspaceContext } from './useAiWorkspace';
 
 import {
@@ -16,6 +17,7 @@ import {
   FileText,
   LoaderCircle,
   Mic,
+  Plus,
   RotateCcw,
   Send,
   Square,
@@ -74,8 +76,15 @@ type Receipt = {
     id: string;
     action_type: string;
     status: string;
+    confidence?: number | null;
     evidence?: string | null;
+    proposed_payload?: Record<string, any>;
+    resolved_payload?: Record<string, any>;
+    target_type?: string | null;
+    target_id?: string | null;
+    verification?: Record<string, any>;
     undo_supported?: boolean;
+    error_message?: string | null;
   }>;
   questions?: Array<{
     id: string;
@@ -117,6 +126,91 @@ function actionLabel(type: string) {
   }[type] || type.replaceAll('_', ' ');
 }
 
+function proposedPayload(action: NonNullable<Receipt['actions']>[number]) {
+  return action?.resolved_payload || action?.proposed_payload || {};
+}
+
+function moneyValue(payload: Record<string, any>) {
+  const raw = String(
+    payload.transfer_budget_raw || payload.salary_budget_raw || '',
+  ).trim();
+  if (raw) return raw;
+  const amount = payload.transfer_budget ?? payload.salary_budget;
+  if (amount == null || amount === '') return '';
+  const numeric = Number(amount);
+  if (!Number.isFinite(numeric)) return String(amount);
+  const currency = String(payload.currency || '').trim();
+  const prefix = currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'USD' ? '$' : currency ? `${currency} ` : '';
+  if (Math.abs(numeric) >= 1_000_000) return `${prefix}${(numeric / 1_000_000).toLocaleString('en-GB', { maximumFractionDigits: 2 })}m`;
+  if (Math.abs(numeric) >= 1_000) return `${prefix}${(numeric / 1_000).toLocaleString('en-GB', { maximumFractionDigits: 1 })}k`;
+  return `${prefix}${numeric.toLocaleString('en-GB')}`;
+}
+
+function dueValue(value: unknown) {
+  if (!value) return '';
+  const date = new Date(String(value));
+  if (!Number.isFinite(date.getTime())) return String(value);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const dayKey = (item: Date) =>
+    [item.getFullYear(), item.getMonth(), item.getDate()].join('-');
+  if (dayKey(date) === dayKey(today)) return 'Today';
+  if (dayKey(date) === dayKey(tomorrow)) return 'Tomorrow';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function previewRows(actions: Receipt['actions'] = []) {
+  const rows: Array<{ label: string; value: string }> = [];
+  const add = (label: string, value: unknown) => {
+    const text = String(value ?? '').trim();
+    if (!text || rows.some(row => row.label === label && row.value === text)) return;
+    rows.push({ label, value: text });
+  };
+
+  actions
+    .filter(action => ['pending', 'applied', 'undone'].includes(action.status))
+    .forEach(action => {
+      const payload = proposedPayload(action);
+      if (action.action_type === 'upsert_club_need') {
+        add('Club need', payload.club_name);
+        add('Position', payload.position);
+        if (payload.preferred_foot) add('Preferred foot', payload.preferred_foot);
+        if (payload.max_age != null && payload.min_age == null) {
+          const max = Number(payload.max_age);
+          add('Age', Number.isFinite(max) && max === 22 ? 'U23' : `Up to ${payload.max_age}`);
+        } else if (payload.min_age != null || payload.max_age != null) {
+          add('Age', [payload.min_age, payload.max_age].filter((value: any) => value != null).join(' to '));
+        }
+        add('Budget', moneyValue(payload));
+      }
+      if (action.action_type === 'suggest_player') {
+        add('Suggested player', payload.player_name);
+      }
+      if (action.action_type === 'create_task') {
+        add('Next action', payload.title);
+        add('Owner', payload.owner_display_name || payload.owner_name || 'You');
+        add('Due', dueValue(payload.due_at));
+      }
+      if (action.action_type === 'log_interaction') {
+        add('Relationship event', payload.summary || 'Conversation logged');
+      }
+      if (action.action_type === 'add_claim') {
+        add('Intelligence', payload.claim_value);
+      }
+      if (action.action_type === 'log_scout_observation') {
+        add('Scouting note', payload.player_name);
+      }
+    });
+
+  return rows.slice(0, 12);
+}
+
 export default function AiCapture({
   context,
   compact = false,
@@ -150,6 +244,9 @@ export default function AiCapture({
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [answering, setAnswering] = useState<string | null>(null);
   const [deletingCapture, setDeletingCapture] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [approvingCapture, setApprovingCapture] = useState(false);
+  const [editingCapture, setEditingCapture] = useState(false);
 
   const recordingRequestRef = useRef(false);
   const lifecycleRef = useRef(0);
@@ -192,8 +289,21 @@ export default function AiCapture({
   ]);
 
   useEffect(() => {
-    onUnsafeToCloseChange?.(recording || busy || Boolean(unsavedDraft));
-  }, [busy, onUnsafeToCloseChange, recording, unsavedDraft]);
+    onUnsafeToCloseChange?.(
+      recording ||
+      busy ||
+      approvingCapture ||
+      editingCapture ||
+      Boolean(unsavedDraft),
+    );
+  }, [
+    approvingCapture,
+    busy,
+    editingCapture,
+    onUnsafeToCloseChange,
+    recording,
+    unsavedDraft,
+  ]);
 
   useEffect(() => {
     displayCaptureRef.current = null;
@@ -251,7 +361,7 @@ export default function AiCapture({
               return null;
             }
             if (displayCaptureRef.current === captureId) {
-              setStatus(transcriptReady ? 'Transcript ready. Doing it now...' : 'Transcribing...');
+              setStatus(transcriptReady ? 'Transcript ready. Preparing suggestions...' : 'Transcribing...');
             }
             return attempt >= 40 ? BACKGROUND_POLL_MS : transcriptReady ? ACTIVE_POLL_MS : TRANSCRIBING_POLL_MS;
           },
@@ -259,13 +369,13 @@ export default function AiCapture({
             if (displayCaptureRef.current !== captureId) return;
             setReceipt(null);
             setStatus('');
-            setError('This update is not available in this workspace. Check your agency access and try again.');
+            setError('This update is unavailable here. Check your access.');
           },
           exhausted: () => {
             if (displayCaptureRef.current !== captureId) return;
             setStatus(verified
-              ? 'Safely saved. ReDream is still processing this in the background. You can close this screen.'
-              : 'Unable to check this update right now. Reopen Capture when connected.');
+              ? 'Note saved. Processing continues. You can close this screen.'
+              : 'Could not check this update. Try again when connected.');
           },
         });
       } finally {
@@ -279,7 +389,7 @@ export default function AiCapture({
   useEffect(() => {
     if (!resumeCaptureId) return;
     rememberActiveAiCapture(resumeCaptureId, workspaceSlug, workspace);
-    setStatus('Checking this Capture update...');
+    setStatus('Checking...');
     void pollReceipt(resumeCaptureId, true);
   }, [pollReceipt, resumeCaptureId, workspaceSlug]);
 
@@ -312,7 +422,7 @@ export default function AiCapture({
 
         const result: any = await platformInvoke('redream-ai-capture', form, session!.access_token);
         if (!result?.capture_id) {
-          throw new Error('Your update could not be confirmed. Please try again.');
+          throw new Error('Could not confirm the update. Try again.');
         }
 
         rememberActiveAiCapture(result.capture_id, pendingWorkspace, pending.workspace);
@@ -331,7 +441,7 @@ export default function AiCapture({
     try {
       const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false));
       uploadedAny = result.uploaded > 0;
-      if (result.failed > 0 && mountedRef.current) setError('Some saved notes could not upload. They remain on this phone; check your connection and original account. Older notes without an account need recovery.');
+      if (result.failed > 0 && mountedRef.current) setError('Some notes did not upload. They are safe on this phone. Reconnect with the original account.');
     } catch {
       return; // Local storage is unavailable; existing pending data is untouched.
     }
@@ -386,8 +496,8 @@ export default function AiCapture({
       event.stopPropagation();
       setError(
         recording
-          ? 'Finish the voice note before leaving this screen.'
-          : 'ReDream is still securing this note. Wait until it says safely saved.',
+          ? 'Finish the voice note first.'
+          : 'Wait until the note is saved.',
       );
     };
 
@@ -423,14 +533,14 @@ export default function AiCapture({
     });
     setBusy(false);
     if (result.state === 'unsaved') {
-      setStatus('Not saved yet. Keep this screen open, reconnect and try saving again.');
-      setError(result.error ? friendlyError(result.error) : 'This browser could not store the note.');
+      setStatus('Not saved. Keep this screen open and try again.');
+      setError(result.error ? friendlyError(result.error) : 'Could not store the note.');
       return;
     }
     setUnsavedDraft(null);
     setText('');
     if (result.state === 'queued') {
-      setStatus('Saved on this phone. ReDream will retry automatically when connected.');
+      setStatus('Saved on this phone. It will retry when connected.');
       if (result.error) setError(friendlyError(result.error));
     }
   };
@@ -475,7 +585,7 @@ export default function AiCapture({
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Sign in before recording a note.');
+      if (!session) throw new Error('Sign in to record.');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -548,7 +658,7 @@ export default function AiCapture({
 
     setBusy(true);
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setBusy(false); setError('Sign in before saving a note.'); return; }
+    if (!session) { setBusy(false); setError('Sign in to save.'); return; }
     const id = crypto.randomUUID();
     const pending: PendingAiCapture = {
       id,
@@ -582,7 +692,7 @@ export default function AiCapture({
       }, workspaceSlug);
 
       if (result?.capture_id) {
-        setStatus('Got it. ReDream is finishing the update...');
+        setStatus('Got it. Preparing suggestions...');
         try {
           await platformInvoke('redream-ai-process', {
             capture_id: result.capture_id,
@@ -617,7 +727,7 @@ export default function AiCapture({
     if (!captureId) return;
 
     setError('');
-    setStatus('Retrying the unfinished updates...');
+    setStatus('Retrying...');
     try {
       const result: any = await platformRpc('redream_ai_retry_capture', {
         p_capture_id: captureId,
@@ -639,16 +749,64 @@ export default function AiCapture({
     }
   };
 
+  const approveCapture = async () => {
+    const captureId = receipt?.capture?.id;
+    if (!captureId || approvingCapture) return;
+
+    setApprovingCapture(true);
+    setError('');
+    setStatus('Applying approved updates...');
+    try {
+      const result: any = await platformRpc(
+        'redream_ai_approve_capture',
+        { p_capture_id: captureId },
+        workspaceSlug,
+      );
+      const next = result?.receipt || result;
+      if (next?.capture) {
+        setReceipt(next);
+        setStatus('');
+        onCompleted?.(next);
+      } else {
+        void pollReceipt(captureId, true);
+      }
+    } catch (approvalError) {
+      setStatus('');
+      setError(friendlyError(approvalError));
+    } finally {
+      setApprovingCapture(false);
+    }
+  };
+
+  const editCapture = async () => {
+    const captureId = receipt?.capture?.id;
+    const transcript = String(receipt?.capture?.transcript_text || '').trim();
+    if (!captureId || !transcript || editingCapture) return;
+
+    setEditingCapture(true);
+    setError('');
+    try {
+      await platformRpc(
+        'redream_ai_delete_capture',
+        { p_capture_id: captureId },
+        workspaceSlug,
+      );
+      forgetActiveAiCapture(captureId);
+      displayCaptureRef.current = null;
+      setReceipt(null);
+      setMode('text');
+      setText(transcript);
+      setStatus('Edit the note, then send it again.');
+    } catch (editError) {
+      setError(friendlyError(editError));
+    } finally {
+      setEditingCapture(false);
+    }
+  };
+
   const deleteCapture = async () => {
     const captureId = receipt?.capture?.id;
     if (!captureId || deletingCapture) return;
-
-    const ok = window.confirm(
-      'Delete this Capture update? This removes the unresolved capture from ReDream. ' +
-        'It cannot delete an update that has already applied changes unless those changes are undone first.',
-    );
-
-    if (!ok) return;
 
     setDeletingCapture(true);
     setError('');
@@ -661,7 +819,8 @@ export default function AiCapture({
       forgetActiveAiCapture(captureId);
       displayCaptureRef.current = null;
       setReceipt(null);
-      setStatus('Capture update deleted.');
+      setStatus('Update deleted.');
+      setDeleteConfirmOpen(false);
       onCompleted?.({
         capture: {
           id: captureId,
@@ -673,6 +832,14 @@ export default function AiCapture({
     } finally {
       setDeletingCapture(false);
     }
+  };
+
+  const startAnotherUpdate = () => {
+    displayCaptureRef.current = null;
+    setReceipt(null);
+    setStatus('');
+    setError('');
+    setText('');
   };
 
   const terminalStatus = receipt?.capture?.status || '';
@@ -688,6 +855,18 @@ export default function AiCapture({
   const hasAppliedActions = (receipt?.actions || []).some(
     (action) => action.status === 'applied',
   );
+  const hasPendingActions = (receipt?.actions || []).some(
+    (action) => action.status === 'pending',
+  );
+  const unresolvedQuestions = (receipt?.questions || []).filter(
+    (item) => item.status !== 'resolved',
+  );
+  const proposedRows = previewRows(receipt?.actions || []);
+  const canApprove = hasPendingActions && unresolvedQuestions.length === 0;
+  const canEditProposal =
+    hasPendingActions &&
+    !hasAppliedActions &&
+    Boolean(receipt?.capture?.transcript_text);
   const canDeleteCapture =
     [
       'needs_input',
@@ -698,8 +877,10 @@ export default function AiCapture({
     ].includes(terminalStatus) && !hasAppliedActions;
 
   return (
+    <>
     <div className={`${styles.shell} ${compact ? styles.compact : ''}`}>
-      <section className={styles.hero}>
+      {!receipt?.capture ? (
+        <section className={styles.hero}>
         {context?.label ? (
           <div className={styles.context}>
             <Check size={12} />
@@ -710,8 +891,7 @@ export default function AiCapture({
         <div className={styles.prompt}>
           <strong>Tell ReDream</strong>
           <span>
-            Say what happened. ReDream will update the right places and only ask
-            when your judgement is needed.
+            Say or type an update. Review and approve the changes before they are saved.
           </span>
         </div>
 
@@ -748,6 +928,7 @@ export default function AiCapture({
         ) : (
           <div className={styles.textPanel}>
             <textarea
+              aria-label="Your update"
               autoFocus
               disabled={busy || Boolean(unsavedDraft)}
               value={text}
@@ -763,7 +944,7 @@ export default function AiCapture({
               disabled={busy || Boolean(unsavedDraft) || !text.trim()}
             >
               <Send size={14} />
-              {busy ? 'Saving...' : 'Capture'}
+              {busy ? 'Saving...' : 'Send to ReDream'}
             </button>
           </div>
         )}
@@ -780,6 +961,8 @@ export default function AiCapture({
           </button>
         </div>
       </section>
+
+      ) : null}
 
       {status ? (
         <div
@@ -811,7 +994,7 @@ export default function AiCapture({
 
       {unsavedDraft && !busy ? (
         <div className={styles.status}>
-          <span>Your note is still in this screen. It will be lost if the browser closes before saving.</span>
+          <span>Keep this screen open until the note is saved.</span>
           <button type="button" className={styles.primary} onClick={() => void persistDraft(unsavedDraft)}>
             Try saving again
           </button>
@@ -826,11 +1009,13 @@ export default function AiCapture({
                 {receipt.capture.summary || 'ReDream captured your update'}
               </strong>
               <span>
-                {needsAttention
-                  ? 'The safe parts are saved. ReDream only needs help with the items below.'
-                  : verifiedComplete
-                    ? 'Everything below was written back and verified.'
-                    : 'ReDream is finishing this capture. Nothing else is needed from you right now.'}
+                {hasPendingActions
+                  ? 'Review the changes below.'
+                  : needsAttention
+                    ? 'ReDream has not guessed. Resolve the items below or edit the note.'
+                    : verifiedComplete
+                      ? 'Approved changes saved. Undo is available where supported.'
+                      : 'ReDream is finishing the interpretation. You do not need to do anything yet.'}
               </span>
             </div>
             <div
@@ -849,6 +1034,56 @@ export default function AiCapture({
             </div>
           </div>
 
+          {proposedRows.length ? (
+            <div className={styles.preview}>
+              <div className={styles.previewHead}>
+                <div>
+                  <strong>{hasPendingActions ? 'Proposed changes' : 'What ReDream understood'}</strong>
+                </div>
+              </div>
+              <div className={styles.previewGrid}>
+                {proposedRows.map(row => (
+                  <div className={styles.previewField} key={`${row.label}:${row.value}`}>
+                    <span>{row.label}</span>
+                    <strong>{row.value}</strong>
+                  </div>
+                ))}
+              </div>
+              {hasPendingActions ? (
+                <div className={styles.approvalBar}>
+                  <div>
+                    <strong>Review before saving</strong>
+                    <span>Nothing changes until you approve.</span>
+                  </div>
+                  <div className={styles.approvalActions}>
+                    <button
+                      type="button"
+                      className={styles.secondary}
+                      onClick={() => void editCapture()}
+                      disabled={!canEditProposal || approvingCapture || editingCapture}
+                    >
+                      <Type size={14} />
+                      {editingCapture ? 'Opening...' : 'Edit'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.primary}
+                      onClick={() => void approveCapture()}
+                      disabled={!canApprove || approvingCapture || editingCapture}
+                    >
+                      {approvingCapture ? (
+                        <LoaderCircle size={14} />
+                      ) : (
+                        <CheckCircle2 size={14} />
+                      )}
+                      {approvingCapture ? 'Saving...' : 'Approve & save'}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {['partial', 'failed'].includes(terminalStatus) ? (
             <div className={styles.retryRow}>
               <button
@@ -859,7 +1094,7 @@ export default function AiCapture({
                 <RotateCcw size={12} />
                 Retry failed updates
               </button>
-              <span>ReDream reuses the saved transcript and plan. It does not create duplicates.</span>
+              <span>The saved transcript and plan are reused. No duplicate is created.</span>
             </div>
           ) : null}
 
@@ -868,7 +1103,7 @@ export default function AiCapture({
               <button
                 type="button"
                 className={styles.retryButton}
-                onClick={() => void deleteCapture()}
+                onClick={() => setDeleteConfirmOpen(true)}
                 disabled={deletingCapture}
               >
                 <Trash2 size={12} />
@@ -878,13 +1113,9 @@ export default function AiCapture({
             </div>
           ) : null}
 
-          {(receipt.questions || []).filter(
-            (item) => item.status !== 'resolved',
-          ).length ? (
+          {unresolvedQuestions.length ? (
             <div className={styles.questions}>
-              {(receipt.questions || [])
-                .filter((item) => item.status !== 'resolved')
-                .map((question) => (
+              {unresolvedQuestions.map((question) => (
                   <div className={styles.question} key={question.id}>
                     <strong>{question.prompt}</strong>
                     {question.reason ? <p>{question.reason}</p> : null}
@@ -915,13 +1146,21 @@ export default function AiCapture({
                   <CheckCircle2 size={15} />
                 ) : action.status === 'undone' ? (
                   <RotateCcw size={15} />
+                ) : action.status === 'pending' ? (
+                  <FileText size={15} />
                 ) : (
                   <AlertTriangle size={15} />
                 )}
                 <div className={styles.actionCopy}>
-                  <strong>{actionLabel(action.action_type)}</strong>
-                  <span>
-                    {action.evidence || action.status.replaceAll('_', ' ')}
+                  <strong>
+                    {action.status === 'pending'
+                      ? actionLabel(action.action_type).replace('updated', 'proposed').replace('created', 'proposed').replace('logged', 'proposed')
+                      : actionLabel(action.action_type)}
+                  </strong>
+                  <span className={styles.provenance}>
+                    {action.evidence
+                      ? `From your words: “${action.evidence}”`
+                      : action.status.replaceAll('_', ' ')}
                   </span>
                 </div>
                 {action.status === 'applied' && action.undo_supported ? (
@@ -937,6 +1176,23 @@ export default function AiCapture({
               </div>
             ))}
           </div>
+
+          {verifiedComplete ? (
+            <div className={styles.completeActions}>
+              <div>
+                <strong>Update complete</strong>
+                <span>Changes saved. Ready for the next update.</span>
+              </div>
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={startAnotherUpdate}
+              >
+                <Plus size={14} />
+                Capture another update
+              </button>
+            </div>
+          ) : null}
 
           {receipt.capture.transcript_text ? (
             <details className={styles.details} open={!TERMINAL.has(receipt.capture.status)}>
@@ -962,5 +1218,15 @@ export default function AiCapture({
         </div>
       ) : null}
     </div>
+      <ConfirmActionDialog
+        open={deleteConfirmOpen}
+        title="Delete this ReDream update?"
+        description="This removes the unresolved update. Undo applied changes first."
+        confirmLabel="Delete update"
+        busy={deletingCapture}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={deleteCapture}
+      />
+    </>
   );
 }

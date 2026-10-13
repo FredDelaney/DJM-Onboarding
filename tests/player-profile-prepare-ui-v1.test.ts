@@ -43,6 +43,7 @@ test('review is read-only and a club share uses only an approved version for its
 test('published source-selected statistics remain the public General snapshot', () => {
   assert.match(publicEdge, /select\("key_stats,selected_stat_refs"\)/);
   assert.match(publicEdge, /customStats\|\|selectedSourceStats\?profileResult\.data\.key_stats:auto\.stats/);
+  assert.match(profile, /key_stats: \[\], selected_stat_refs: \[\]/);
 });
 
 test('mobile preparation keeps actions and controls tappable without a parallel profile renderer', () => {

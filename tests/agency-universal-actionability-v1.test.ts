@@ -26,7 +26,7 @@ test('Universal Actionability has one tenant-native action drawer', () => {
 
 test('Home never surfaces Needs You work as a passive label', () => {
   assert.match(workspace, /onOpenAction\(command\)/);
-  assert.match(workspace, /actionFor\(command\)/);
+  assert.match(workspace, /actionFor\(item\.payload\)/);
   assert.doesNotMatch(
     workspace,
     /<span className=\{styles\.needsInput\}>\s*\{command\.actionability/,
@@ -124,7 +124,7 @@ test('Relationship plays can be prepared beside the relationship evidence', () =
 test('aggregate warnings point to actionable rows instead of becoming dead ends', () => {
   assert.match(
     workspace,
-    /Player service exceptions are surfaced on the cards above/,
+    /The players who need action are shown above/,
   );
   assert.match(
     workspace,
@@ -248,7 +248,7 @@ test('Market search actions expose the recorded club brief before creating work'
   );
   assert.match(
     workspace,
-    /At least one credible candidate route is recorded against this club need/,
+    /At least one credible player is linked to this club need/,
   );
   assert.match(
     workspace,
@@ -271,7 +271,7 @@ test('Market career actions expose career control without presenting readiness a
   );
   assert.match(
     workspace,
-    /The player-owned career strategy is current before the pursuit progresses externally/,
+    /The player-owned career strategy is current before the opportunity progresses externally/,
   );
 });
 
@@ -325,7 +325,7 @@ test('Deal actions distinguish internal introduction preparation from external s
   );
   assert.match(
     workspace,
-    /const commissionValue =[\s\S]*hasExpectedCommission && deal\.currency[\s\S]*Commission not recorded/,
+    /const commissionValue =[\s\S]*hasExpectedCommission && deal\.currency[\s\S]*Commission not set/,
   );
   assert.match(
     workspace,

@@ -40,7 +40,7 @@ const money = (
   currency = 'EUR',
 ) => {
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return 'Not recorded';
+  if (!Number.isFinite(amount)) return 'Not set';
 
   try {
     return new Intl.NumberFormat('en-GB', {
@@ -259,7 +259,7 @@ export default function AgencyDealCloseoutDrawer({
     if (status === 'confirmed') {
       if (!closeoutStage) {
         setError(
-          'A confirmed closeout is only available once the deal is recorded at contracting or won.',
+          'Closeout is available once the deal reaches contracting or won.',
         );
         return;
       }
@@ -428,7 +428,7 @@ export default function AgencyDealCloseoutDrawer({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Human-recorded commercial truth
+              Confirmed commercial details
             </span>
 
             <button
@@ -488,7 +488,7 @@ export default function AgencyDealCloseoutDrawer({
             <section className={styles.hero}>
               <div>
                 <p>CLOSEOUT POSITION</p>
-                <h3>{human(closeout?.state || 'not recorded')}</h3>
+                <h3>{human(closeout?.state || 'not set')}</h3>
                 <span>
                   {closeout?.next_action?.instruction ||
                     'Review the factual closeout record and collection position.'}
@@ -510,8 +510,8 @@ export default function AgencyDealCloseoutDrawer({
             <div className={styles.grid}>
               <Fact
                 label="Deal stage"
-                value={human(deal.stage || 'not recorded')}
-                detail={human(deal.status || 'not recorded')}
+                value={human(deal.stage || 'not set')}
+                detail={human(deal.status || 'not set')}
               />
               <Fact
                 label="Closeout record"
@@ -735,7 +735,7 @@ export default function AgencyDealCloseoutDrawer({
                 <ReceiptText size={17} />
                 <div>
                   <p>COMMISSION COLLECTION</p>
-                  <h3>Turn an agreed entitlement into a receivable only when a human records it</h3>
+                  <h3>Create a receivable only after a human records it</h3>
                 </div>
               </div>
 
@@ -764,7 +764,7 @@ export default function AgencyDealCloseoutDrawer({
 
                           <p>
                             {item.payer || 'Payer not labelled'} · due{' '}
-                            {item.due_date || 'not recorded'}
+                            {item.due_date || 'not set'}
                           </p>
 
                           <small>

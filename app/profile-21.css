@@ -83,7 +83,7 @@
   display: block;
   margin-top: 5px;
   color: rgba(255,255,255,.61);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -114,7 +114,7 @@
 
 .profile-21-status-foot > span {
   color: rgba(255,255,255,.55);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .profile-21-status-foot a {
@@ -122,7 +122,7 @@
   align-items: center;
   gap: 5px;
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -182,7 +182,7 @@
   overflow: hidden;
   margin-top: 4px;
   color: #555b62;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -190,7 +190,7 @@
 
 .profile-21-row-copy small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .profile-21-row > svg {
@@ -221,7 +221,7 @@
   display: block;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -341,7 +341,7 @@
   display: block;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -351,7 +351,7 @@
   padding: 12px 13px;
   background: #fff9dd;
   color: #5b5100;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 680;
   line-height: 1.45;
 }
@@ -386,7 +386,7 @@
 .profile-media-add p {
   margin: 7px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -441,7 +441,7 @@
   display: block;
   margin-top: 4px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .profile-media-empty {
@@ -465,7 +465,7 @@
 .profile-media-empty span {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -481,7 +481,7 @@
   align-items: center;
   gap: 4px;
   color: var(--navy);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 740;
 }
 
@@ -529,7 +529,7 @@
   }
 
   .profile-21-row-copy span {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .profile-editor-backdrop {

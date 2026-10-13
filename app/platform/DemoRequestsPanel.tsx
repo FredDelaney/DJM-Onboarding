@@ -377,7 +377,7 @@ export default function DemoRequestsPanel({
         <div>
           <p>MARKETING + SALES</p>
           <h2>Growth command centre</h2>
-          <span>See what the website is producing, where people drop out, which sources create customers and what to do with each lead next.</span>
+          <span>See traffic, drop-off, sources and the next lead action.</span>
         </div>
         <strong>{open.length}</strong>
       </div>
@@ -428,7 +428,7 @@ export default function DemoRequestsPanel({
             <div><span>FIRST CONTACT</span><strong>{summary?.speed?.avg_contact_hours == null ? 'No data' : `${Number(summary.speed.avg_contact_hours).toFixed(1)}h`}</strong></div>
             <div><span>TO CUSTOMER</span><strong>{summary?.speed?.avg_customer_days == null ? 'No data' : `${Number(summary.speed.avg_customer_days).toFixed(1)}d`}</strong></div>
           </div>
-          <p>These are measured from real lead and customer timestamps. They are not predictions.</p>
+          <p>Measured from real lead and customer timestamps.</p>
         </article>
       </div>
 
@@ -452,7 +452,7 @@ export default function DemoRequestsPanel({
               <b>{revenueLabel(row.mrr_by_currency)}</b>
             </div>
           ))}
-          {!attribution.length ? <div className={styles.attributionEmpty}>No attributable traffic yet. UTM-tagged campaigns and direct/referral visits will appear here automatically.</div> : null}
+          {!attribution.length ? <div className={styles.attributionEmpty}>No attributable traffic yet. Campaign and referral traffic will appear here.</div> : null}
         </div>
       </div>
 
@@ -518,7 +518,7 @@ export default function DemoRequestsPanel({
             </article>
           );
         })}
-        {!requests.length ? <div className={styles.empty}><Mail size={22} /><strong>No demo requests yet</strong><span>The marketing funnel can fill before the first identifiable enquiry. Lead-level intelligence starts only after a visitor submits their details.</span></div> : null}
+        {!requests.length ? <div className={styles.empty}><Mail size={22} /><strong>No demo requests yet</strong><span>The funnel can fill before the first enquiry. Lead detail starts after someone submits their details.</span></div> : null}
       </div>
 
       {selectedLead ? (
@@ -594,7 +594,7 @@ export default function DemoRequestsPanel({
               <div className={styles.drawerSectionTitle}><div><p>SALES HISTORY</p><strong>What changed after the enquiry</strong></div><span>{selectedLead.sales_history?.length || 0} events</span></div>
               <div className={styles.timeline}>
                 {(selectedLead.sales_history || []).map((event, index) => <div key={`${event.created_at || 'sale'}-${index}`}><span className={`${styles.timelineDot} ${styles.salesDot}`} /><div><strong>{historyLabel(event)}</strong><small>{when(event.created_at)}{event.next_action ? ` · ${event.next_action}` : ''}</small></div></div>)}
-                {!selectedLead.sales_history?.length ? <div className={styles.timelineEmpty}>Sales changes recorded from this release onward will appear here automatically.</div> : null}
+                {!selectedLead.sales_history?.length ? <div className={styles.timelineEmpty}>New sales changes will appear here.</div> : null}
               </div>
             </div>
 

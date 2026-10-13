@@ -26,6 +26,7 @@ import {
 import {
   optionalNonNegativeInteger,
 } from '@/lib/validation';
+import {writeWithDeadline} from '@/lib/write-with-deadline';
 
 const value = (input: any) =>
   input === null ||
@@ -65,7 +66,12 @@ export default function CheckIn() {
   const [error, setError] =
     useState('');
 
-  const currentWeek = weekStartISO();
+  // Keep retries on the draft's original week, even across Sunday midnight.
+  const [draftScope,setDraftScope] = useState(()=>({playerId:ctx.player?.id,week:weekStartISO()}));
+  if (draftScope.playerId !== ctx.player?.id) {
+    setDraftScope({playerId:ctx.player?.id,week:weekStartISO()});
+  }
+  const currentWeek = draftScope.week;
 
   const existing =
     ctx.latestCheckin?.week_start ===
@@ -120,14 +126,14 @@ export default function CheckIn() {
     }
   }, [existing?.id]);
 
-  if (ctx.loading) {
-    return <LoadingScreen />;
+  if (ctx.loading || ctx.error) {
+    return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
   }
 
   const submit = async (
     quick = false,
   ) => {
-    if (!ctx.player) return;
+    if (!ctx.player || busy) return;
 
     setBusy(true);
     setError('');
@@ -234,22 +240,21 @@ export default function CheckIn() {
         new Date().toISOString(),
     };
 
-    const query = existing
-      ? supabase
-          .from('weekly_checkins')
-          .update(payload)
-          .eq('id', existing.id)
-      : supabase
-          .from('weekly_checkins')
-          .insert(payload);
-
-    const {
-      error: submitError,
-    } = await query;
+    const outcome = await writeWithDeadline(signal=>
+      supabase.from('weekly_checkins')
+        .upsert(payload,{onConflict:'player_id,week_start'})
+        .select('id').abortSignal(signal).single(),
+    );
+    if (outcome.status === 'unknown') {
+      setError('Could not confirm your update. Your draft is still here. Try again.');
+      setBusy(false);
+      return;
+    }
+    const submitError = outcome.result.error;
 
     if (submitError) {
       setError(
-        'We couldn’t send your update. Please try again.',
+        submitError.code ? 'Could not send your update. Your draft is still here. Try again.' : 'Could not confirm your update. Your draft is still here. Try again.',
       );
       setBusy(false);
       return;
@@ -295,6 +300,7 @@ export default function CheckIn() {
       }
     >
       <main className="narrow player-shell checkin-21 checkin-premium">
+        <fieldset disabled={busy} style={{border:0,minWidth:0,margin:0,padding:0}}>
         {error && (
           <div
             className="check-alert"
@@ -312,7 +318,7 @@ export default function CheckIn() {
             How’s your week?
           </h1>
           <p className="page-intro">
-            This is not admin. It is the quickest way to keep your agent current on what actually matters.
+            What changed, and what do you need?
           </p>
         </div>
 
@@ -369,7 +375,7 @@ export default function CheckIn() {
               Are you available to train and play?
             </h2>
             <p className="check-help">
-              This is only your football availability. Your club or move situation is separate below.
+              Your club and move situation are separate below.
             </p>
 
             <div className="choice-grid">
@@ -525,7 +531,7 @@ export default function CheckIn() {
                   Add this week’s match numbers
                 </h2>
                 <p className="check-help">
-                  Only if you want them in your private season log. Your agency verifies club-facing stats separately.
+                  Private season log only. Your agency verifies club statistics separately.
                 </p>
               </div>
               {details ? (
@@ -631,6 +637,7 @@ export default function CheckIn() {
             <ArrowRight size={17} />
           </button>
         </div>
+        </fieldset>
       </main>
     </PlayerShell>
   );

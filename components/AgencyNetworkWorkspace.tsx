@@ -24,6 +24,7 @@ import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
 
+import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
 import styles from './AgencyNetworkWorkspace.module.css';
 
 const AgencyContactIntelligenceDrawer = dynamic(
@@ -203,6 +204,9 @@ function Empty({
 }
 
 export default function AgencyNetworkWorkspace({
+  stateScope = '',
+  canManageRecords = true,
+  canCreateRecords = true,
   data,
   basePath,
   rpc,
@@ -211,6 +215,9 @@ export default function AgencyNetworkWorkspace({
   onOpenAction,
   onOpenClubAccount,
 }: {
+  stateScope?: string;
+  canManageRecords?: boolean;
+  canCreateRecords?: boolean;
   data: any;
   basePath: string;
   rpc: Rpc;
@@ -219,18 +226,23 @@ export default function AgencyNetworkWorkspace({
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenClubAccount: (request: AgencyClubAccountRequest) => void;
 }) {
-  const [view, setView] = useState<NetworkView>('clubs');
-  const [focus, setFocus] =
-    useState<NetworkFocus>('all');
-  const [search, setSearch] = useState('');
+  const restricted = !canManageRecords || Boolean(data?.access?.restricted);
+  const memory=useWorkspaceListMemory(stateScope,'network',{view:'clubs',focus:'all',search:''});
+  const view=(memory.state.view==='people'?'people':'clubs') as NetworkView;
+  const focus=(!restricted && ['all','attention','warm','strong','cooling'].includes(memory.state.focus)?memory.state.focus:'all') as NetworkFocus;
+  const search=memory.state.search;
+  const setView=(value:NetworkView)=>memory.update({view:value});
+  const setFocus=(value:NetworkFocus)=>memory.update({focus:value});
+  const setSearch=(value:string)=>memory.update({search:value});
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const searchParams = useSearchParams();
 
   const reloadArchives = useCallback(async () => {
+    if (restricted) { setArchiveItems([]); return; }
     const result = await rpc<any>('redream_entity_archives');
     setArchiveItems(Array.isArray(result?.items) ? result.items : []);
-  }, [rpc]);
+  }, [rpc,restricted]);
 
   const refreshEntities = useCallback(async () => {
     await Promise.all([onRefresh(), reloadArchives()]);
@@ -375,10 +387,6 @@ export default function AgencyNetworkWorkspace({
     });
   }, [focus, people, searchValue]);
 
-  const strongestRoutes = people.filter(
-    (item: any) => number(item?.relationship?.route_score) > 0,
-  ).length;
-
   const followUps = number(
     peopleSummary?.contacts_with_open_follow_up,
   );
@@ -424,7 +432,7 @@ export default function AgencyNetworkWorkspace({
       return;
     }
     const match = people.find((item: any) => personId(item) === requestedPersonId);
-    setSelectedContact(match || null);
+    setSelectedContact(match || {person_id: requestedPersonId});
   }, [people, requestedPersonId]);
 
   useEffect(() => {
@@ -434,9 +442,13 @@ export default function AgencyNetworkWorkspace({
         String(club?.organisation_id || '') === requestedClubId,
     );
     if (match) onOpenClubAccount(clubRequestFor(match));
+    else onOpenClubAccount(clubRequestFor({organisation_id: requestedClubId}));
   }, [clubRequestFor, clubs, onOpenClubAccount, requestedClubId, requestedPersonId]);
 
+  useRestoreListPosition(stateScope,'network',memory.ready&&!requestedPersonId&&!requestedClubId);
+
   const openPerson = (item: any) => {
+    rememberListPosition(stateScope,'network');
     const id = personId(item);
     if (!id) return;
     setSelectedContact(item);
@@ -456,6 +468,7 @@ export default function AgencyNetworkWorkspace({
   };
 
   const openClub = (club: any) => {
+    rememberListPosition(stateScope,'network');
     const id = String(club?.organisation_id || '').trim();
     if (!id) return;
 
@@ -520,143 +533,89 @@ export default function AgencyNetworkWorkspace({
 
   return (
     <div className={styles.workspace}>
-      <section className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>NETWORK</p>
-          <h2>Know the person. Know the club. Know the next move.</h2>
-          <p>
-            ReDream keeps the relationship context underneath so the agency
-            can see who matters, what is happening and the best route forward.
-          </p>
+      {restricted ? <p className={styles.scopeNotice}>Shared network. Commercial details are for admins.</p> : null}
+
+      <section className={styles.networkOverview} aria-label="Network overview">
+        <div className={styles.networkCounts}>
+          <span><strong>{clubSummary?.relevant_clubs ?? clubs.length}</strong> clubs</span>
+          <span><strong>{peopleSummary?.club_contacts ?? people.length}</strong> people</span>
+          {!restricted ? <span><strong>{followUps}</strong> follow-ups</span> : null}
         </div>
 
-        <div className={styles.heroSummary}>
-          <div>
-            <strong>
-              {clubSummary?.relevant_clubs ?? clubs.length}
-            </strong>
-            <span>clubs</span>
-          </div>
-          <div>
-            <strong>
-              {peopleSummary?.club_contacts ?? people.length}
-            </strong>
-            <span>people</span>
-          </div>
-          <div>
-            <strong>{followUps}</strong>
-            <span>follow-ups</span>
-          </div>
-        </div>
-      </section>
+        {!restricted ? (
+          <details className={styles.focusDisclosure}>
+            <summary>
+              <span>Relationship signals</span>
+              <small>{attentionClubs || coolingPeople ? 'Needs review' : 'Review when needed'}</small>
+              <ChevronRight size={15} />
+            </summary>
+            <div className={styles.intelligence}>
+              <div className={styles.intelligenceHead}>
+                <strong>Where to focus</strong>
+                {focus !== 'all' ? (
+                  <button
+                    type="button"
+                    data-ui-button="tertiary"
+                    className={styles.clearFocus}
+                    onClick={() => setFocus('all')}
+                  >
+                    Show all network
+                  </button>
+                ) : null}
+              </div>
 
-      <section
-        className={styles.intelligence}
-        aria-label="Network focus"
-      >
-        <div className={styles.intelligenceHead}>
-          <div>
-            <p className={styles.eyebrow}>
-              WHERE TO FOCUS
-            </p>
-            <strong>
-              Use recorded relationship evidence to decide the next move.
-            </strong>
-          </div>
+              <div className={styles.intelligenceGrid}>
+                <button
+                  type="button"
+                  className={focus === 'attention' ? styles.intelligenceActive : styles.intelligenceCard}
+                  onClick={() => selectFocus('attention')}
+                >
+                  <CircleAlert size={17} />
+                  <span>Needs attention</span>
+                  <strong>{attentionClubs}</strong>
+                  <small>Due actions or weak routes.</small>
+                </button>
 
-          {focus !== 'all' ? (
-            <button
-              type="button"
-              data-ui-button="tertiary"
-              className={styles.clearFocus}
-              onClick={() => setFocus('all')}
-            >
-              Show all network
-            </button>
-          ) : null}
-        </div>
+                <button
+                  type="button"
+                  className={focus === 'warm' ? styles.intelligenceActive : styles.intelligenceCard}
+                  onClick={() => selectFocus('warm')}
+                >
+                  <GitBranch size={17} />
+                  <span>Warm routes</span>
+                  <strong>{warmRouteClubs}</strong>
+                  <small>A warmer route is available.</small>
+                </button>
 
-        <div className={styles.intelligenceGrid}>
-          <button
-            type="button"
-            className={
-              focus === 'attention'
-                ? styles.intelligenceActive
-                : styles.intelligenceCard
-            }
-            onClick={() =>
-              selectFocus('attention')
-            }
-          >
-            <CircleAlert size={17} />
-            <span>NEEDS ATTENTION</span>
-            <strong>{attentionClubs}</strong>
-            <small>
-              Live clubs with a due deal action or weak recorded access.
-            </small>
-          </button>
+                <button
+                  type="button"
+                  className={focus === 'strong' ? styles.intelligenceActive : styles.intelligenceCard}
+                  onClick={() => selectFocus('strong')}
+                >
+                  <Route size={17} />
+                  <span>Strong routes</span>
+                  <strong>{strongPeople}</strong>
+                  <small>Strong direct relationships.</small>
+                </button>
 
-          <button
-            type="button"
-            className={
-              focus === 'warm'
-                ? styles.intelligenceActive
-                : styles.intelligenceCard
-            }
-            onClick={() =>
-              selectFocus('warm')
-            }
-          >
-            <GitBranch size={17} />
-            <span>WARM ROUTES</span>
-            <strong>{warmRouteClubs}</strong>
-            <small>
-              Clubs where a recorded introduction route is stronger than direct access.
-            </small>
-          </button>
+                <button
+                  type="button"
+                  className={focus === 'cooling' ? styles.intelligenceActive : styles.intelligenceCard}
+                  onClick={() => selectFocus('cooling')}
+                >
+                  <TimerReset size={17} />
+                  <span>Going quiet</span>
+                  <strong>{coolingPeople}</strong>
+                  <small>No activity for 45+ days.</small>
+                </button>
+              </div>
 
-          <button
-            type="button"
-            className={
-              focus === 'strong'
-                ? styles.intelligenceActive
-                : styles.intelligenceCard
-            }
-            onClick={() =>
-              selectFocus('strong')
-            }
-          >
-            <Route size={17} />
-            <span>STRONG ROUTES</span>
-            <strong>{strongPeople}</strong>
-            <small>
-              People with a strong recorded direct agency route.
-            </small>
-          </button>
-
-          <button
-            type="button"
-            className={
-              focus === 'cooling'
-                ? styles.intelligenceActive
-                : styles.intelligenceCard
-            }
-            onClick={() =>
-              selectFocus('cooling')
-            }
-          >
-            <TimerReset size={17} />
-            <span>GOING QUIET</span>
-            <strong>{coolingPeople}</strong>
-            <small>
-              Recorded relationships with no captured activity for more than 45 days.
-            </small>
-          </button>
-        </div>
-
-        <p className={styles.intelligenceTruth}>
-          These signals use recorded activity, follow-up, direct relationship evidence and current club work. They are not predictions of influence, response or deal success.
-        </p>
+              <p className={styles.intelligenceTruth}>
+                Based on recorded activity and follow-ups. These signals do not predict responses or deal success.
+              </p>
+            </div>
+          </details>
+        ) : null}
       </section>
 
       <section className={styles.toolbar}>
@@ -696,8 +655,8 @@ export default function AgencyNetworkWorkspace({
               onChange={(event) => setSearch(event.target.value)}
               placeholder={
                 view === 'clubs'
-                  ? 'Search club, country or league'
-                  : 'Search person, club, role or country'
+                  ? 'Search clubs'
+                  : 'Search people'
               }
               aria-label="Search Network"
             />
@@ -708,7 +667,7 @@ export default function AgencyNetworkWorkspace({
             ) : null}
           </label>
 
-          {!requestedClubId ? (
+          {!requestedClubId && canCreateRecords ? (
             <button
               type="button"
               data-ui-button="secondary"
@@ -719,21 +678,6 @@ export default function AgencyNetworkWorkspace({
               {view === 'clubs' ? 'Add club' : 'Add contact'}
             </button>
           ) : null}
-        </div>
-      </section>
-
-      <section className={styles.signalBar}>
-        <div>
-          <span>Recorded routes</span>
-          <strong>{strongestRoutes}</strong>
-        </div>
-        <div>
-          <span>Open follow-ups</span>
-          <strong>{followUps}</strong>
-        </div>
-        <div>
-          <span>Network principle</span>
-          <strong>One relationship, one next move</strong>
         </div>
       </section>
 
@@ -759,14 +703,14 @@ export default function AgencyNetworkWorkspace({
 
             const routeName = useWarmRoute
               ? access?.introduction_via || 'Warm introduction'
-              : access?.best_direct_contact || 'No recorded contact';
+              : access?.best_direct_contact || 'No contact yet';
 
             const routeDetail = useWarmRoute
               ? access?.introduction_target
                 ? `Introduction to ${access.introduction_target}`
-                : 'Warm route recorded'
+                : 'Warm introduction available'
               : access?.best_direct_role ||
-                human(access?.direct_state || 'route not recorded');
+                (access?.direct_state ? human(access.direct_state) : 'No route recorded');
 
             const directPerson =
               clubPeople.find(
@@ -784,7 +728,7 @@ export default function AgencyNetworkWorkspace({
                 ? `${routeOwner} → ${routeName}`
                 : routeName;
 
-            const clubSignal =
+            const clubSignal = restricted ? 'Club identity' :
               clubNeedsAttention(club)
                 ? 'Needs attention'
                 : clubHasWarmRoute(club)
@@ -795,7 +739,7 @@ export default function AgencyNetworkWorkspace({
                       ? 'Going quiet'
                       : human(
                           club?.account_state ||
-                            'relationship recorded',
+                            'relationship',
                         );
 
             const playType = String(topPlay?.play_type || '');
@@ -819,7 +763,7 @@ export default function AgencyNetworkWorkspace({
 
             return (
               <article
-                className={styles.clubCard}
+                className={`${styles.clubCard} ${styles.calmClub}`}
                 key={club?.organisation_id || clubName}
               >
                 <div className={styles.entityTop}>
@@ -835,10 +779,10 @@ export default function AgencyNetworkWorkspace({
                     <p>
                       {[club?.city, club?.country, club?.league_name]
                         .filter(Boolean)
-                        .join(' · ') || 'Club context recorded'}
+                        .join(' · ') || 'Club details'}
                     </p>
                   </div>
-                  <EntityActionsMenu
+                  {!restricted ? <EntityActionsMenu
                     kind="club"
                     entityId={String(club?.organisation_id || '')}
                     label={clubName}
@@ -850,49 +794,54 @@ export default function AgencyNetworkWorkspace({
                       { key: 'city', label: 'City', value: club?.city },
                       { key: 'website_url', label: 'Website', value: club?.website_url, type: 'url' },
                     ]}
-                  />
+                  /> : null}
                 </div>
 
+{!restricted ? <>
                 <div className={styles.primaryFact}>
-                  <span>BEST ROUTE</span>
+                  <span>Contact</span>
                   <strong>{routeDisplay}</strong>
                   <small>{routeDetail}</small>
                 </div>
 
-                <div className={styles.clubContext}>
-                  <div>
-                    <span>WHAT THEY NEED</span>
-                    <strong>
-                      {number(demand?.active_needs)} active need
-                      {number(demand?.active_needs) === 1 ? '' : 's'}
-                    </strong>
-                    <small>
-                      {number(demand?.confirmed_needs)} confirmed
-                    </small>
-                  </div>
+                {number(demand?.active_needs) > 0 || number(commercial?.active_deals) > 0 ? (
+                  <div className={styles.clubContext}>
+                    {number(demand?.active_needs) > 0 ? (
+                      <div>
+                        <span>Club needs</span>
+                        <strong>
+                          {number(demand?.active_needs)} active
+                        </strong>
+                        {number(demand?.confirmed_needs) > 0 ? (
+                          <small>{number(demand?.confirmed_needs)} confirmed</small>
+                        ) : null}
+                      </div>
+                    ) : null}
 
-                  <div>
-                    <span>LIVE OPPORTUNITIES</span>
-                    <strong>
-                      {number(commercial?.active_deals)} active
-                    </strong>
-                    <small>
-                      {number(commercial?.deals_needing_action)} need action
-                    </small>
-                  </div>
-                </div>
-
-                <div className={styles.peopleBlock}>
-                  <div className={styles.sectionLabel}>
-                    <span>PEOPLE WE KNOW</span>
-                    {clubPeople.length > keyPeople.length ? (
-                      <small>
-                        +{clubPeople.length - keyPeople.length} more
-                      </small>
+                    {number(commercial?.active_deals) > 0 ? (
+                      <div>
+                        <span>Opportunities</span>
+                        <strong>{number(commercial?.active_deals)} active</strong>
+                        {number(commercial?.deals_needing_action) > 0 ? (
+                          <small>{number(commercial?.deals_needing_action)} need action</small>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
+                ) : null}
 
-                  {keyPeople.length ? (
+
+</> : null}
+                {keyPeople.length || playLabel ? <details className={styles.clubDetails}><summary>Relationship details</summary>
+                {keyPeople.length ? (
+                  <div className={styles.peopleBlock}>
+                    <div className={styles.sectionLabel}>
+                      <span>People we know</span>
+                      {clubPeople.length > keyPeople.length ? (
+                        <small>+{clubPeople.length - keyPeople.length} more</small>
+                      ) : null}
+                    </div>
+
                     <div className={styles.peopleList}>
                       {keyPeople.map((item: any) => {
                         const person = item?.person || {};
@@ -906,18 +855,12 @@ export default function AgencyNetworkWorkspace({
                             onClick={() => openPerson(item)}
                           >
                             <span className={styles.personAvatar}>
-                              {initials(
-                                person?.full_name || 'Person',
-                              ) || 'P'}
+                              {initials(person?.full_name || 'Person') || 'P'}
                             </span>
 
                             <span className={styles.personIdentity}>
-                              <strong>
-                                {person?.full_name || 'Club contact'}
-                              </strong>
-                              <small>
-                                {employment?.role_title || 'Club contact'}
-                              </small>
+                              <strong>{person?.full_name || 'Club contact'}</strong>
+                              <small>{employment?.role_title || 'Club contact'}</small>
                             </span>
 
                             <ChevronRight size={16} />
@@ -925,19 +868,17 @@ export default function AgencyNetworkWorkspace({
                         );
                       })}
                     </div>
-                  ) : (
-                    <p className={styles.muted}>
-                      No person is linked to this club yet.
-                    </p>
-                  )}
-                </div>
+                  </div>
+                ) : null}
 
                 {playLabel ? (
                   <div className={styles.nextMove}>
-                    <span>NEXT MOVE</span>
+                    <span>Suggested next step</span>
                     <strong>{playLabel}</strong>
                   </div>
                 ) : null}
+
+                </details> : null}
 
                 <div
                   className={
@@ -970,7 +911,7 @@ export default function AgencyNetworkWorkspace({
                           title: topPlay?.title || clubName,
                           instruction:
                             playLabel ||
-                            'Prepare the strongest recorded relationship route.',
+                            'Use the strongest route.',
                           label: primaryActionLabel,
                           action: 'play_prepare',
                           payload: {
@@ -998,7 +939,7 @@ export default function AgencyNetworkWorkspace({
                             },
                           ],
                           successCondition:
-                            'The next relationship action is prepared from recorded agency information. Nothing is sent externally without a person confirming it.',
+                            'Based on recorded information. Nothing is sent without approval.',
                           confirmationLabel: primaryActionLabel,
                           fallbackHref:
                             playType === 'pitch_now' ||
@@ -1037,8 +978,8 @@ export default function AgencyNetworkWorkspace({
               }
               copy={
                 search
-                  ? 'Try another club, country or league.'
-                  : 'Clubs appear here as people, opportunities and agency work are connected.'
+                  ? 'Try another search.'
+                  : 'Connected clubs will appear here.'
               }
             />
           ) : null}
@@ -1057,11 +998,11 @@ export default function AgencyNetworkWorkspace({
               person?.full_name || person?.preferred_name || 'Club contact';
 
             const clubName =
-              employment?.organisation_name || 'Club not recorded';
+              employment?.organisation_name || 'Club not set';
 
             const lastInteraction = activity?.last_interaction_at
               ? relativeDate(activity.last_interaction_at)
-              : 'Not recorded';
+              : 'Not set';
 
             const nextFollowUp = work?.next_task_due
               ? relativeDate(work.next_task_due)
@@ -1078,7 +1019,7 @@ export default function AgencyNetworkWorkspace({
                     ? 'Strong route'
                     : human(
                         item?.operating_state ||
-                          'relationship recorded',
+                          'relationship',
                       );
 
             return (
@@ -1093,7 +1034,7 @@ export default function AgencyNetworkWorkspace({
 
                   <div className={styles.identity}>
                     <p className={styles.eyebrow}>
-                      {personSignal}
+                      {restricted ? 'Contact identity' : personSignal}
                     </p>
                     <h3>{fullName}</h3>
                     <p>
@@ -1102,7 +1043,7 @@ export default function AgencyNetworkWorkspace({
                         .join(' · ')}
                     </p>
                   </div>
-                  <EntityActionsMenu
+                  {!restricted ? <EntityActionsMenu
                     kind="club_contact"
                     entityId={personId(item)}
                     label={fullName}
@@ -1115,16 +1056,17 @@ export default function AgencyNetworkWorkspace({
                       { key: 'country', label: 'Country', value: person?.country },
                       { key: 'city', label: 'City', value: person?.city },
                     ]}
-                  />
+                  /> : null}
                 </div>
 
+{!restricted ? <>
                 <div className={styles.relationshipSummary}>
                   <div>
                     <span>RELATIONSHIP OWNER</span>
                     <strong>{relationship?.owner_name || 'Unassigned'}</strong>
                   </div>
                   <small className={styles.relationshipState}>
-                    {human(relationship?.route_state || 'route not recorded')}
+                    {human(relationship?.route_state || 'route not set')}
                   </small>
                 </div>
 
@@ -1157,6 +1099,8 @@ export default function AgencyNetworkWorkspace({
                   </div>
                 </div>
 
+
+</> : null}
                 {number(clubContext?.confirmed_needs) > 0 ? (
                   <div className={styles.nextMove}>
                     <span>CURRENT SIGNAL</span>
@@ -1198,12 +1142,12 @@ export default function AgencyNetworkWorkspace({
               title={
                 search
                   ? 'No people match this search'
-                  : 'No people recorded yet'
+                  : 'No people yet'
               }
               copy={
                 search
-                  ? 'Search by person, club, role, country or city.'
-                  : 'Decision-makers and relationship routes appear here as they are captured.'
+                  ? 'Try another search.'
+                  : 'Contacts and routes will appear here.'
               }
             />
           ) : null}
