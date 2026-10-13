@@ -1,5 +1,5 @@
 'use client';
-import type {ComponentType} from 'react';
+import {useCallback,type ComponentType} from 'react';
 import {useSearchParams} from 'next/navigation';
 import {TenantRuntimeProvider} from '@/components/TenantRuntimeProvider';
 import {UNRESOLVED_TENANT_RUNTIME} from '@/lib/tenant-runtime';
@@ -39,16 +39,27 @@ const noop=()=>{};
 const refresh=async()=>{};
 const invoke=async(action:string)=> {
  if(action==='club_account')return {club:{club:{id:'club',name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],deals:[]}};
- if(action==='deal_war_room')return {war_room:{available:true,deal:{id:'deal',title:'Example transfer',stage:'open'},next_control_fix:{},control:{}}};
+ if(action==='deal_war_room')return {war_room:{available:true,deal:{id:'deal',title:'Example transfer',stage:'open',next_action_text:'Confirm the trial dates'},next_control_fix:{},control:{},momentum:{movement:{last_forward_movement_at:'2026-10-08T10:00:00Z'}}}};
  if(action==='player_review_pack')return {review_pack:{value_proof:{},meeting_focus:{},career_alignment:{}}};
  if(action==='player_service_statement')return {statement:{privacy_contract:{excluded:[]}}};
  if(action==='player_value_proof_history')return {history:{snapshots:[]}};
  if(action==='player_value_proof_delta')return {delta:{}};
  return {};
 };
-const rpc=async()=>({person:{id:'contact',full_name:'Example Director'},reach:{},employment:{organisation_name:'Example FC'},relationship_memory:{state:'recorded',best_route:{},routes:[]}});
+const rpc=async()=>({person:{id:'contact',full_name:'Example Director',country:'NZ',city:'Wellington'},reach:{},employment:{organisation_name:'Example FC'},relationship_memory:{state:'recorded',best_route:{},routes:[]}});
 export default function Page(){
  const params=useSearchParams(),suite=params.get('suite')||'agency',screen=params.get('screen')||'home';
+ const readScenario=params.get('read')||'';
+ const fixtureInvoke=useCallback(async(action:string)=>{
+  if(readScenario==='failed')throw new Error('Fixture record read failed');
+  if(readScenario==='delayed')await new Promise(resolve=>setTimeout(resolve,1200));
+  return invoke(action);
+ },[readScenario]);
+ const fixtureRpc=useCallback(async()=>{
+  if(readScenario==='failed')throw new Error('Fixture record read failed');
+  if(readScenario==='delayed')await new Promise(resolve=>setTimeout(resolve,1200));
+  return rpc();
+ },[readScenario]);
  const Component=suite==='player'?playerPages[screen]:settingsPages[screen];
  let content;
  if(['marketing','account','presentation','capture','recruitment'].includes(suite))content=<RemainingSurfaces suite={suite} screen={screen}/>;
@@ -57,9 +68,9 @@ export default function Page(){
  else if(suite==='agency')content=<AgencyOperatingWorkspace/>;
  else if(suite==='player'||suite==='settings')content=Component?<Component/>:<p>Unknown fixture screen</p>;
  else content=<div className={styles.root}><main className={styles.main} style={{gridColumn:'1 / -1'}}>
-  {screen==='deal'?<AgencyEntityIntelligenceDrawer presentation={params.get('drawer')==='1'?'drawer':'page'} request={{key:'deal',kind:'deal',entityId:'deal',title:'Example transfer'}} invoke={invoke as any} onClose={noop} onOpenAction={noop} onOpenCloseout={noop} onOpenNegotiation={noop} onOpenPlayerReview={noop}/>:null}
-  {screen==='club'?<AgencyClubAccountDrawer presentation="page" request={{key:'club',organisationId:'club',title:'Example FC'}} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onClose={noop} onOpenAction={noop} onOpenDeal={noop} onOpenMarket={noop} onOpenPursuit={noop} onOpenPlayer={noop}/>:null}
-  {screen==='contact'?<AgencyContactIntelligenceDrawer presentation="page" contact={{person_id:'contact',person:{full_name:'Example Director'}}} rpc={rpc as any} onClose={noop} onRefresh={refresh} onOpenClub={noop}/>:null}
+  {screen==='deal'?<AgencyEntityIntelligenceDrawer presentation={params.get('drawer')==='1'?'drawer':'page'} rpc={rpc as any} canManageRecords={params.get('readonly')!=='1'} onRefresh={refresh} request={{key:'deal',kind:'deal',entityId:'deal',title:'Example transfer'}} invoke={invoke as any} onClose={noop} onOpenAction={noop} onOpenCloseout={noop} onOpenNegotiation={noop} onOpenPlayerReview={noop}/>:null}
+  {screen==='club'?<AgencyClubAccountDrawer presentation="page" request={{key:'club',organisationId:'club',title:'Example FC'}} invoke={fixtureInvoke as any} rpc={rpc as any} onRefresh={refresh} onClose={noop} onOpenAction={noop} onOpenDeal={noop} onOpenMarket={noop} onOpenPursuit={noop} onOpenPlayer={noop}/>:null}
+  {screen==='contact'?<AgencyContactIntelligenceDrawer presentation="page" contact={{person_id:'contact',person:{full_name:'Example Director'}}} rpc={fixtureRpc as any} onClose={noop} onRefresh={refresh} onOpenClub={noop}/>:null}
   {screen==='negotiation'?<AgencyNegotiationCommandRoom presentation="page" request={{key:'negotiation',dealRoomId:'deal',title:'Example transfer'}} role="owner" invoke={invoke as any} onClose={noop} onOpenAction={noop} onApplied={refresh}/>:null}
   {screen==='review'?<AgencyPlayerServiceReviewDrawer presentation="page" request={{key:'review',playerId:'player',title:'Example Player'}} invoke={invoke as any} onClose={noop} onOpenAction={noop} onApplied={refresh}/>:null}
   {screen==='business'?<AgencyOwnerCommandCentre presentation="page" data={{}} onClose={noop} onOpenDeal={noop} onOpenAction={noop} onOpenHandoff={noop}/>:null}

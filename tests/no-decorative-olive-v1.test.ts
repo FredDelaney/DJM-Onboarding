@@ -5,7 +5,7 @@ import test from 'node:test';
 const files = [
   'components/AgencyPursuitRoom.module.css',
   'components/AgencyActionDrawer.module.css',
-  'app/djm-os-ux-overhaul.css',
+  'app/product.css',
 ];
 const source = files.map((file) => readFileSync(file, 'utf8')).join('\n');
 const forbidden = [

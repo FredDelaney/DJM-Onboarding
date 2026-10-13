@@ -7,6 +7,8 @@ import AgencyClubAccountDrawer from '@/components/AgencyClubAccountDrawer';
 import AgencyEntityIntelligenceDrawer from '@/components/AgencyEntityIntelligenceDrawer';
 import {supabase} from '@/lib/supabase';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
+import AgencyMobileNavigation from '@/components/AgencyMobileNavigation';
+import PeopleViewSwitcher from '@/components/PeopleViewSwitcher';
 import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
 import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
@@ -92,17 +94,20 @@ export default function Page(){
   return {};
  },[data,scenario]);
  const navigate=(view:string)=>{const next=new URLSearchParams(params.toString());next.set('view',view);for(const key of ['player','profile','person','record','tab'])next.delete(key);window.history.pushState(null,'',base+'?'+next);};
+ const navigateHref=(_view:string,href:string)=>{const next=new URL(href,location.origin);for(const key of ['user','scenario','tenant','role','width'])if(params.has(key))next.searchParams.set(key,params.get(key)!);window.history.pushState(null,'',next.pathname+next.search);};
  const refresh=useCallback(async()=>{},[]);
  const loadMore=async()=>{reads.current.pages=(reads.current.pages||0)+1;if(scenario==='page-failure'&&reads.current.pages===1)throw new Error('Next page unavailable');setLoaded(value=>Math.min(250,value+100));};
  const pageData={...data,directory:{items:data.directory.items.filter(player=>player.player_id!=='qa-player-248').slice(0,loaded),total:250,next_offset:loaded,has_more:loaded<250}};
  const runtime={...UNRESOLVED_TENANT_RUNTIME,resolved:true,tenant_id:'fixture-tenant-'+tenant,slug:'qa-find-flow',branding:{...UNRESOLVED_TENANT_RUNTIME.branding,display_name:'Example Agency'}};
- if(params.get('coordinator')==='1')return <TenantRuntimeProvider runtime={runtime}><AgencyOperatingWorkspace/></TenantRuntimeProvider>;
+ const [coordinator]=useState(()=>params.get('coordinator')==='1');
+ if(coordinator)return <TenantRuntimeProvider runtime={runtime}><AgencyOperatingWorkspace/></TenantRuntimeProvider>;
  return <TenantRuntimeProvider runtime={runtime}><div className={styles.root} data-qa-ready={ready}>
   <aside className={styles.sidebar}><div className={styles.brand}>Example Agency</div><nav className={styles.nav} aria-label="Agency workspace">
    {['home','players','opportunities','network','calendar'].map(item=><Link key={item} href={base+'?view='+item} onClick={event=>{event.preventDefault();navigate(item);}}>{item==='opportunities'?<><span className={styles.navDesktopLabel}>Opportunities</span><span className={styles.navMobileLabel}>Market</span></>:<span>{item[0].toUpperCase()+item.slice(1)}</span>}</Link>)}
    <WorkspaceSearch compact className={styles.findButton} tenantId={runtime.tenant_id} userId={'fixture-user-'+user} cacheScope={scope} basePath={base} invoke={invoke as any} rpc={rpc as any} seed={{view,data}} onCreate={setCreated}/>
   </nav></aside>
   <main className={styles.main}>
+   {['players','network'].includes(view)?<PeopleViewSwitcher basePath={base} view={view} onNavigate={navigateHref}/>:null}
    <div style={{display:'flex',gap:10,marginBottom:16}}><button type="button" data-qa-switch onClick={()=>{const next=new URLSearchParams(params.toString());next.set('user',user==='a'?'b':'a');window.history.replaceState(null,'',base+'?'+next);}}>Switch account</button><button type="button" data-qa-dialog onClick={()=>setOtherDialog(true)}>Open other dialog</button></div>
    <div key={scope+':'+view+':'+playerId+':'+(params.get('tab')||'')}>
     {view==='players'?(params.get('profile')==='1'&&playerId?<AgencyPlayerProfile playerId={playerId} cacheScope={scope} backHref={base+'?view=players'} workHref={base+'?view=players&player='+playerId} role={fixtureRole} fallbackAgency={{}} invoke={invoke as any} onOpenAction={()=>{}} onOpenIntelligence={()=>{}}/>:<AgencyPlayersWorkspace stateScope={scope} data={pageData} basePath={base} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onLoadMore={loadMore} onOpenAction={()=>{}}/>):null}
@@ -116,5 +121,6 @@ export default function Page(){
    {otherDialog?<section role="dialog" aria-modal="true" aria-label="Other dialog"><button type="button" onClick={()=>setOtherDialog(false)}>Close other dialog</button></section>:null}
    <output data-qa-reads hidden>{JSON.stringify(reads.current)}</output>
   </main>
+  <AgencyMobileNavigation basePath={base} view={view} canSeeBusiness search={{tenantId:runtime.tenant_id,userId:'fixture-user-'+user,cacheScope:scope,basePath:base,invoke:invoke as any,rpc:rpc as any,seed:{view,data},onCreate:setCreated}} onNavigate={navigateHref} onWarm={()=>{}} onConnections={()=>{}} onCaptureCompleted={refresh}/>
  </div></TenantRuntimeProvider>;
 }

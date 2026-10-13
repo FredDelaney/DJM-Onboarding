@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {verifyDailyMobileNavigation,verifyInPlaceCaptureCompletion,verifyDealRecordCapture,verifyDealHistoryAndCrossView} from './daily-mobile-journey-qa.mjs';
+import {verifyCaptureFollowupJourney} from './capture-followup-journey-qa.mjs';
 import {spawn} from 'node:child_process';
 import {chromium} from 'playwright';
 import {mkdir,cp,rm,access,writeFile,readFile} from 'node:fs/promises';
@@ -8,10 +10,11 @@ const routeDir=new URL('../app/workspace/qa-platform-polish/',import.meta.url);
 const nextEnv=new URL('../next-env.d.ts',import.meta.url),nextEnvBefore=await readFile(nextEnv,'utf8');
 try{await access(routeDir);throw new Error('Refusing to replace an existing route');}catch(error){if(error.code!=='ENOENT')throw error;}
 const port=process.env.PLATFORM_POLISH_QA_PORT||'3117',root='http://127.0.0.1:'+port;
-const env={...process.env,NEXT_PUBLIC_REDREAM_ENVIRONMENT:'qa',NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'example'};
+const env={...process.env,PLATFORM_POLISH_FIXTURE:'1',NEXT_PUBLIC_REDREAM_ENVIRONMENT:'qa',NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'example'};
 let server,browser;
 const report=[],failures=[],errors=[];
 try{
+ if(process.env.PLATFORM_POLISH_SCREENSHOT_DIR)await mkdir(process.env.PLATFORM_POLISH_SCREENSHOT_DIR,{recursive:true});
  await mkdir(routeDir,{recursive:true});await cp(new URL('../tests/fixtures/platform-polish/page.tsx',import.meta.url),new URL('page.tsx',routeDir));
 const dynamicDir=new URL('[slug]/[token]/[tenantSlug]/',routeDir);
 await mkdir(dynamicDir,{recursive:true});await cp(new URL('../tests/fixtures/platform-polish/page.tsx',import.meta.url),new URL('page.tsx',dynamicDir));
@@ -29,12 +32,18 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
  const session={access_token:token,refresh_token:'fixture-refresh',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
  const screens={agency:['home','players','opportunities','network','calendar','business'],player:['home','profile','inbox','career','check-in','cv','documents','connections'],settings:['settings','profile','preferences','security','team','agency','billing','connections','player-experience'],detail:['deal','club','contact','negotiation','review','business'],marketing:['home','product','security','support','switch'],account:['sign-in','forgot','reset','player-invite','staff-invite','onboarding-1','onboarding-2','onboarding-3','onboarding-4'],presentation:['profile','share'],capture:['voice','text','review','complete'],recruitment:['list','detail'],setup:['branding','privacy','first_player','first_relationship','first_opportunity','owner_setup_complete'],misc:['privacy','workspaces']};
  const selectedSuites=process.env.PLATFORM_POLISH_SUITES?.split(',');
+ const selectedScreens=process.env.PLATFORM_POLISH_SCREENS?.split(',');
+ const widths=process.env.PLATFORM_POLISH_WIDTHS?process.env.PLATFORM_POLISH_WIDTHS.split(',').map(Number):[320,390,768,1440];
  const fixturePath='/workspace/qa-platform-polish/example-player/00000000-0000-4000-8000-000000000081/qa-platform-polish';
  const publicProfile={display_name:'Example Club Player',primary_position:'CM',current_club:'Example FC',headline:'Central midfielder',nationalities:['NZ'],key_stats:[{label:'Appearances',value:'18'},{label:'Minutes',value:'1250'}],career_history:[{club:'Example FC',season:'2025/26',appearances:18,minutes:1250}],videos:[{title:'Example highlights',url:'https://example.test/highlights',video_type:'highlight',featured:true}],transfermarkt_url:'https://www.transfermarkt.com/example/profil/spieler/1',verified_at:'2026-10-07T00:00:00Z'};
  for(const [suite,names] of Object.entries(screens)){
   if(selectedSuites&&!selectedSuites.includes(suite))continue;
-  const state={screen:'',publicMode:'healthy',release:null};
-  const context=await browser.newContext({viewport:{width:390,height:844}});
+  const state={screen:'',publicMode:'healthy',release:null,approved:false,taskDone:false,approvals:0,completions:0};
+  const taskId='00000000-0000-4000-8000-000000000094',clubId='00000000-0000-4000-8000-000000000095';
+  const dealA='00000000-0000-4000-8000-000000000096',dealB='00000000-0000-4000-8000-000000000097';
+  const dueAt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00Z';
+  const receipt=captureId=>{const applied=state.screen==='complete'||state.approved;return {capture:{id:captureId,status:applied?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up today.'},actions:[{id:'action',action_type:'create_task',status:applied?'applied':'pending',evidence:'Follow up today',proposed_payload:{title:'Follow up with Example FC',owner_name:'Jesse',due_at:dueAt},resolved_payload:applied?{organisation_id:clubId}:undefined,target_type:applied?'task':undefined,target_id:applied?taskId:undefined,undo_supported:true}]};};
+  const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   await context.addInitScript(({session,suite})=>{if(location.hostname!=='127.0.0.1')return;const screen=new URL(location.href).searchParams.get('screen')||'';if(suite==='account'&&screen!=='reset'&&!screen.startsWith('onboarding-'))localStorage.removeItem('sb-example-auth-token');else localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},{session,suite});
   await context.route('https://example.supabase.co/**',async route=>{
    const req=route.request(),url=new URL(req.url()),path=url.pathname,body=req.postDataJSON()||{};
@@ -61,17 +70,24 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     if(suite==='player'){status=403;data={error:'Agency staff access required'};}
     else if(body.action==='tenants')data={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-platform-polish',role:'owner',display_name:'Example Agency'}]};
     else if(body.action==='players_workspace')data={players:{items:[{player_id:'player',identity:{name:'Example Player',current_club:'Example FC',primary_position:'Centre back'},service:{}}],total:1,has_more:false}};
-    else if(body.action==='home_focus')data={home:{attention:{judgement:[{command_id:'example-follow-up',source_type:'task',source_id:'60000000-0000-4000-8000-000000000001',title:'Confirm the trial dates',why_now:'The club is waiting for availability.',recommended_action:'Agree a week with the sporting director.',owner_name:'Jesse',priority_score:90},{command_id:'example-player',source_type:'task',source_id:'60000000-0000-4000-8000-000000000002',title:'Review the club shortlist',why_now:'Your player has new options to consider.',recommended_action:'Choose the two strongest routes.',owner_name:'Dapo',priority_score:80}]}}};
+    else if(body.action==='home_focus')data={home:{attention:{confirm:state.approved&&!state.taskDone?[{command_id:'capture-follow-up',source_type:'task',source_id:taskId,title:'Follow up with Example FC',owner_name:'Jesse',priority_score:99,actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[],judgement:[{command_id:'example-follow-up',source_type:'task',source_id:'60000000-0000-4000-8000-000000000001',title:'Confirm the trial dates',why_now:'The club is waiting for availability.',recommended_action:'Agree a week with the sporting director.',owner_name:'Jesse',priority_score:90},{command_id:'example-player',source_type:'task',source_id:'60000000-0000-4000-8000-000000000002',title:'Review the club shortlist',why_now:'Your player has new options to consider.',recommended_action:'Choose the two strongest routes.',owner_name:'Dapo',priority_score:80}]}}};
+    else if(body.action==='club_account')data={club:{club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],commercial:{deals:[{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}}};
+    else if(body.action==='deal_war_room')data={war_room:{available:true,deal:{id:body.deal_room_id,title:body.deal_room_id===dealB?'Example transfer B':'Example transfer A',stage:'open'},control:{},next_control_fix:{}}};
+    else if(body.action==='action_prepare'&&state.approved)data={proposal:{proposal_id:'capture-follow-up-proposal',title:'Complete: Follow up with Example FC',status:'proposed',executable:true}};
+    else if(body.action==='action_execute'&&state.approved){state.completions++;state.taskDone=true;data={ok:true};}
     else if(body.action==='recruitment_board')data={recruitment:{items:[]}};
     else data={home:{},items:[]};
    }else if(path.includes('/rest/v1/rpc/')){
-    if(path.endsWith('/redream_work_responsibility_v1'))data={user_ids:['10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002'],people:[{user_id:'10000000-0000-4000-8000-000000000001',display_name:'Jesse'},{user_id:'10000000-0000-4000-8000-000000000002',display_name:'Dapo'}],revision:1};
+    if(path.endsWith('/redream_work_responsibility_v1')&&state.approved)data={user_ids:['10000000-0000-4000-8000-000000000001'],people:[{user_id:'10000000-0000-4000-8000-000000000001',display_name:'Jesse'}],revision:1};
+    else if(path.endsWith('/redream_work_responsibility_v1'))data={user_ids:['10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002'],people:[{user_id:'10000000-0000-4000-8000-000000000001',display_name:'Jesse'},{user_id:'10000000-0000-4000-8000-000000000002',display_name:'Dapo'}],revision:1};
     else if(path.endsWith('/redream_ai_current_access'))data={enabled:true,workspace_slug:'qa-platform-polish',max_audio_seconds:240};
     else if(path.endsWith('/redream_ai_recent_captures'))data=[{id:'00000000-0000-4000-8000-000000000092',status:'needs_review',summary:'Example club update',created_at:'2026-10-08T10:00:00Z',action_count:1,question_count:0}];
-    else if(path.endsWith('/redream_ai_receipt'))data={capture:{id:body.p_capture_id,status:state.screen==='complete'?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up on Friday.'},actions:[{id:'action',action_type:'create_task',status:state.screen==='complete'?'applied':'pending',evidence:'Follow up on Friday',proposed_payload:{title:'Follow up with Example FC'},undo_supported:true}]};
+    else if(path.endsWith('/redream_ai_receipt'))data=receipt(body.p_capture_id);
+    else if(path.endsWith('/redream_ai_approve_capture')){state.approvals++;state.approved=true;data={receipt:receipt(body.p_capture_id)};}
+    else if(path.endsWith('/redream_calendar_range'))data={follow_ups:{items:state.approved&&!state.taskDone?[{task_id:taskId,title:'Follow up with Example FC',due_at:dueAt,organisation_id:clubId,organisation_name:'Example FC',source:'tell_djm:fixture'}]:[]}};
     else if(path.endsWith('/redream_autopilot_relationships'))data={accounts:{clubs:[{organisation_id:'club',name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};
     else if(path.endsWith('/redream_autopilot_market'))data={demand:{items:[]},pursuits:{items:[]}};
-    else if(path.endsWith('/redream_autopilot_deals'))data={portfolio:{deals:[]}};
+    else if(path.endsWith('/redream_autopilot_deals'))data={portfolio:{deals:[{deal_room_id:dealA,title:'Example transfer A',stage:'open'},{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}};
     else data={items:[],accounts:{clubs:[]},contacts:{items:[]}};
    }else if(path.includes('/rest/v1/profiles'))data={id:user.id,full_name:'Example Player',role:suite==='player'?'player':'admin',tenant_role:'owner'};
    else if(path.includes('/rest/v1/players'))data=[{id:'player',tenant_id:'00000000-0000-0000-0000-000000000081',user_id:user.id,first_name:'Example',last_name:'Player',preferred_name:'Example',nationalities:[],secondary_positions:[],primary_position:'CM',current_club:'Example FC',onboarding_status:'verified'}];
@@ -84,11 +100,11 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
    await route.fulfill({status,contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(data)});
   });
   const page=await context.newPage();page.on('pageerror',error=>errors.push(suite+': '+error.message));
-  for(const screen of names){
-   for(const width of [320,390,768,1440]){
+  for(const screen of names.filter(name=>!selectedScreens||selectedScreens.includes(name))){
+   for(const width of widths){
     await page.setViewportSize({width,height:900});
-    state.screen=screen;
-    const remaining=['marketing','account','presentation','capture','recruitment'].includes(suite);
+    state.screen=screen;state.approved=false;state.taskDone=false;state.approvals=0;state.completions=0;
+    const remaining=['agency','marketing','account','presentation','capture','recruitment'].includes(suite);
     const query=new URLSearchParams({suite,screen,view:suite==='recruitment'?'players':screen});
     if(suite==='recruitment'){query.set('tab','recruitment');if(screen==='detail')query.set('target','00000000-0000-4000-8000-000000000091');}
     if(suite==='capture'&&['review','complete'].includes(screen))query.set('capture','00000000-0000-4000-8000-000000000092');
@@ -145,6 +161,12 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      const careerStacked=!(careerCopy&&careerPanel)||careerPanel.getBoundingClientRect().top>=careerCopy.getBoundingClientRect().bottom-1;
      return {reviewHeroContrast,careerStacked,overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),networkToolbarOverlap,primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
     });
+    if(suite==='agency'&&screen==='home'&&width<=680)await verifyDailyMobileNavigation(page);
+    if(suite==='agency'&&screen==='home'&&[390,768,1440].includes(width)){
+     state.approved=false;state.taskDone=false;state.approvals=0;state.completions=0;
+     await verifyInPlaceCaptureCompletion(page,url,width===390);
+    }
+    if(suite==='agency'&&screen==='opportunities'&&width===390){await verifyDealRecordCapture(page,url,dealA,dealB);await verifyDealHistoryAndCrossView(page,url,dealA,dealB);}
     report.push({suite,screen,width,...metrics});
     if(metrics.networkToolbarOverlap)failures.push('Network tabs overlap search at '+width);
     if(suite==='detail'&&screen==='review'&&(!metrics.reviewHeroContrast.length||metrics.reviewHeroContrast.some(item=>item.ratio<4.5)))failures.push('Service-review summary has unreadable contrast at '+width);
@@ -197,6 +219,27 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       assert.equal(await disclosure.evaluate(node=>node.open),false,suite+'/'+screen+' detail must close with keyboard');
      }
     }
+    if(suite==='capture'&&screen==='review'&&width===390)await verifyCaptureFollowupJourney(page,()=>({approvals:state.approvals,completions:state.completions,dueAt}));
+    if(suite==='detail'&&['club','contact','deal'].includes(screen)&&width===390){
+     const label=screen==='club'?'Example FC':screen==='contact'?'Example Director':'Example transfer';
+     const edit=page.getByRole('button',{name:'Edit '+label,exact:true});await edit.click();
+     const editor=page.getByRole('dialog',{name:'Manage '+label,exact:true});await editor.waitFor();
+     const field=editor.getByLabel(screen==='club'?'Club name':screen==='contact'?'Full name':'Deal title',{exact:true});
+     assert.equal(await field.inputValue(),label,'Direct edit opens the existing record');
+     assert.equal(await field.evaluate(node=>node===document.activeElement),true,'Record edit receives focus');
+     await field.fill('Temporary draft');await page.keyboard.press('Escape');await editor.waitFor({state:'hidden'});
+     assert.equal(await edit.evaluate(node=>node===document.activeElement),true,'Record edit returns focus');
+     await edit.click();await editor.waitFor();assert.equal(await field.inputValue(),label,'Cancelled drafts do not change the record');
+     await editor.getByRole('button',{name:'Cancel',exact:true}).click();await editor.waitFor({state:'hidden'});
+     assert.equal(await page.evaluate(()=>document.body.style.overflow),'','Page records restore document scrolling after editing');
+     if(screen==='contact'||screen==='club'){
+      const identity=page.locator(screen==='contact'?'[class*="headerIdentity"]':'[class*="headerTop"] > div:first-child').first();
+      const controls=page.locator('[class*="headerControls"]').first();
+      const a=await identity.boundingBox(),b=await controls.boundingBox();
+      assert.ok(a.width>270,'The record identity gets the full phone width');
+      assert.ok(b.y>=a.y+a.height-1,'Record controls use a separate row on phones');
+     }
+    }
     if(suite==='agency'&&screen==='network'&&width===390) {
      await page.getByText('Relationship signals',{exact:true}).click();
      await page.getByRole('button',{name:/Needs attention/}).click();
@@ -239,16 +282,38 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
    }
   }
   if(suite==='detail'){
+   for(const screen of ['club','contact']){
+    const label=screen==='club'?'Example FC':'Example Director';
+    await page.goto(root+'/workspace/qa-platform-polish?suite=detail&screen='+screen+'&read=delayed');
+    await page.getByText(screen==='club'?'Loading club':'Loading relationship context',{exact:true}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Edit '+label,exact:true}).count(),0,'Record editing waits for its complete read');
+    const edit=page.getByRole('button',{name:'Edit '+label,exact:true});await edit.waitFor();await edit.click();
+    const editor=page.getByRole('dialog',{name:'Manage '+label,exact:true});await editor.waitFor();
+    assert.equal(await editor.getByLabel('Country',{exact:true}).inputValue(),'NZ','Editing retains metadata loaded from the current record');
+    await editor.getByRole('button',{name:'Cancel',exact:true}).click();
+    await page.goto(root+'/workspace/qa-platform-polish?suite=detail&screen='+screen+'&read=failed');
+    await page.getByRole('alert').first().waitFor();
+    assert.equal(await page.getByRole('button',{name:'Edit '+label,exact:true}).count(),0,'An unconfirmed record cannot be edited');
+   }
    await page.setViewportSize({width:390,height:600});
    await page.goto(root+'/workspace/qa-platform-polish?suite=detail&screen=deal');
    await page.getByRole('heading',{name:'Example transfer',exact:true}).waitFor();
+   await page.getByRole('button',{name:'Edit Example transfer',exact:true}).waitFor();
+   assert.equal(await page.evaluate(()=>document.body.style.overflow),'','A page record allows document scrolling');
+   await page.getByRole('heading',{name:'Confirm the trial dates',exact:true}).waitFor();
+   await page.getByText('Forward movement recorded',{exact:true}).waitFor();
+   assert.equal(await page.getByRole('region',{name:'Latest activity',exact:true}).locator('time').textContent(),'8 Oct 2026','Activity shows the recorded date rather than a due-date warning');
    const scroller=page.locator('[role="region"]').locator('..');
    await page.mouse.move(190,400);await page.mouse.wheel(0,700);
    await page.waitForFunction(()=>{const region=document.querySelector('[role="region"]');return region?.parentElement?.scrollTop>0;});
    assert.ok(await scroller.evaluate(node=>node.scrollTop>0),'Deal detail content cannot scroll');
    await page.goto(root+'/workspace/qa-platform-polish?suite=detail&screen=deal&drawer=1');
    await page.getByRole('heading',{name:'Example transfer',exact:true}).waitFor();
+   await page.waitForFunction(()=>document.body.style.overflow==='hidden');
    assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden','Drawer should still lock document scroll');
+   await page.goto(root+'/workspace/qa-platform-polish?suite=detail&screen=deal&readonly=1');
+   await page.getByRole('heading',{name:'Confirm the trial dates',exact:true}).waitFor();
+   assert.equal(await page.getByRole('button',{name:'Edit Example transfer',exact:true}).count(),0,'A read-only record never exposes editing');
   }
   await context.close();
  }
@@ -257,10 +322,11 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
  assert.deepEqual(failures,[],'Screen polish regressions');
  console.log('Platform polish browser QA passed: '+report.length+' screen/viewport combinations');
 }finally{
- await browser?.close();
+ try { await browser?.close(); } finally {
  try{if(server?.pid)process.kill(-server.pid,'SIGTERM');}catch{}
  await rm(routeDir,{recursive:true,force:true});
  await rm(new URL('../.next/dev/types/',import.meta.url),{recursive:true,force:true});
  await rm(new URL('../.next/types/',import.meta.url),{recursive:true,force:true});
  await writeFile(nextEnv,nextEnvBefore);
+ }
 }

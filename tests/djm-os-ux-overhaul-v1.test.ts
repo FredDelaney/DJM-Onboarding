@@ -59,8 +59,8 @@ test('staff navigation uses the shared V2 operating views', () => {
 });
 
 test('mobile staff navigation and full-bleed heroes stay inside the viewport', () => {
-  const responsive = read('app/responsive-polish.css');
-  const overhaul = read('app/djm-os-ux-overhaul.css');
+  const responsive = read('app/product.css');
+  const overhaul = read('app/product.css');
   assert.match(responsive, /@media \(max-width: 960px\)[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto;/);
   assert.match(responsive, /@media \(max-width: 960px\)[\s\S]*grid-column: 1 \/ -1;[\s\S]*overflow-x: auto;/);
   assert.match(responsive, /\.djm-os-product-nav,[\s\S]*min-width: 0;[\s\S]*max-width: 100%;/);

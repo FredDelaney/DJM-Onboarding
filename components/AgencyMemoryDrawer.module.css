@@ -539,6 +539,7 @@
 .pageShell {
   position: fixed;
   inset: 0;
+  bottom: var(--workspace-mobile-navigation-inset, 0px);
   z-index: 88;
   min-width: 0;
   overflow-y: auto;

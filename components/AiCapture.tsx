@@ -9,6 +9,8 @@ import { flushAiQueue, uploadAiCaptureOnce } from '@/lib/ai-upload-queue';
 import { pendingAiWorkspace } from '@/lib/ai-workspace';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { useAiWorkspaceContext } from './useAiWorkspace';
+import Link from 'next/link';
+import {captureOutcomeLinks} from '@/lib/capture-outcome-links';
 
 import {
   AlertTriangle,
@@ -216,6 +218,7 @@ export default function AiCapture({
   compact = false,
   onCompleted,
   onUnsafeToCloseChange,
+  onNavigate,
   resumeCaptureId,
   maxAudioSeconds = DEFAULT_MAX_SECONDS,
   resolvedWorkspaceSlug,
@@ -225,6 +228,7 @@ export default function AiCapture({
   compact?: boolean;
   onCompleted?: (receipt: Receipt) => void;
   onUnsafeToCloseChange?: (unsafe: boolean) => void;
+  onNavigate?: () => void;
   resumeCaptureId?: string | null;
   maxAudioSeconds?: number;
   resolvedWorkspaceSlug?: string | null;
@@ -1183,6 +1187,7 @@ export default function AiCapture({
                 <strong>Update complete</strong>
                 <span>Changes saved. Ready for the next update.</span>
               </div>
+              {captureOutcomeLinks(receipt.actions||[],workspaceSlug).map(link=><Link key={link.href} href={link.href} className={styles.secondary} onNavigate={onNavigate}>{link.label}</Link>)}
               <button
                 type="button"
                 className={styles.secondary}

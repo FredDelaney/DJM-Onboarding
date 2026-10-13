@@ -3,6 +3,9 @@
 import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
 import AiLauncher from '@/components/AiLauncher';
+import AgencyMobileNavigation from './AgencyMobileNavigation';
+import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery} from '@/lib/workspace-record-navigation';
+import PeopleViewSwitcher from './PeopleViewSwitcher';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
@@ -398,20 +401,21 @@ export default function AgencyOperatingWorkspace() {
   const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
     useState('');
   const previousViewRef = useRef<View>(view);
+  const recordRouteQuery = search.toString();
 
   useEffect(() => {
+    setIntelligenceRequest(current => workspaceIntelligenceRequestFromQuery(recordRouteQuery, current, ['owner','admin'].includes(String(workspace?.role || ''))));
     if (previousViewRef.current === view) return;
     previousViewRef.current = view;
 
     setActionRequest(null);
-    setIntelligenceRequest(null);
     setPursuitRequest(null);
     setClubAccountRequest(null);
     setNegotiationRequest(null);
     setPlayerServiceReviewRequest(null);
     setDealCloseoutRequest(null);
     setCreateKind(null);
-  }, [view]);
+  }, [view, recordRouteQuery, workspace?.role]);
 
   const workspaceName =
     workspace?.display_name ||
@@ -622,9 +626,17 @@ export default function AgencyOperatingWorkspace() {
 
   const navigateWorkspaceView = useCallback(
     (targetView: View, href: string) => {
-      if (targetView === view || typeof window === 'undefined') return;
+      if (typeof window === 'undefined' || href === window.location.pathname + window.location.search) return;
 
-      void warmView(targetView);
+      setActionRequest(null);
+      setIntelligenceRequest(null);
+      setPursuitRequest(null);
+      setClubAccountRequest(null);
+      setNegotiationRequest(null);
+      setPlayerServiceReviewRequest(null);
+      setDealCloseoutRequest(null);
+      setCreateKind(null);
+      if (targetView !== view) void warmView(targetView);
       window.history.pushState(
         { redreamView: targetView },
         '',
@@ -968,6 +980,20 @@ export default function AgencyOperatingWorkspace() {
     workspace?.tenant_id,
     sessionUserId,
   ]);
+
+  const handleCaptureCompleted = useCallback(() => { void loadView(); }, [loadView]);
+  const openIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
+    setIntelligenceRequest(request);
+    const href = workspaceIntelligenceHref(basePath, window.location.search, request);
+    if (href && href !== window.location.pathname + window.location.search) {
+      window.history.pushState(null, '', href);
+    }
+  }, [basePath]);
+  const closeIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
+    const href = workspaceIntelligenceListHref(basePath, window.location.search, request);
+    if (href) window.history.replaceState(null, '', href);
+    setIntelligenceRequest(current => current?.kind === request.kind && current.entityId === request.entityId ? null : current);
+  }, [basePath]);
 
   useEffect(() => {
     let active = true;
@@ -1395,7 +1421,7 @@ export default function AgencyOperatingWorkspace() {
   }
 
   return (
-    <div className={styles.root} style={theme} data-interface="calm">
+    <div className={styles.root} style={theme} data-interface="calm" data-mobile-workspace data-people-directory={['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?'true':undefined}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
@@ -1475,7 +1501,7 @@ export default function AgencyOperatingWorkspace() {
             </div>
           </div>
           <div className={styles.desktopHeadActions}>
-            <AiLauncher />
+            <AiLauncher onCaptureCompleted={handleCaptureCompleted} />
             {createAction ? (
               <button
                 type="button"
@@ -1551,6 +1577,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
         </header>
 
+        {['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?<PeopleViewSwitcher basePath={basePath} view={view} onNavigate={navigateWorkspaceView}/>:null}
         {createAction && !inlineEntityWorkspaceOpen ? (
           <div className={styles.mobileContextAction}>
             <button
@@ -1652,7 +1679,7 @@ export default function AgencyOperatingWorkspace() {
                   invoke={(action, body) => invoke<any>(action, body)}
                   onOpenAction={(request) => setActionRequest(request)}
                   onOpenIntelligence={(playerId, title, context) =>
-                    setIntelligenceRequest({
+                    openIntelligenceRequest({
                       key: `player-360:${playerId}`,
                       kind: 'player',
                       entityId: playerId,
@@ -1690,7 +1717,7 @@ export default function AgencyOperatingWorkspace() {
                   setActionRequest(request)
                 }
                 onOpenPursuit={setPursuitRequest}
-                onOpenIntelligence={setIntelligenceRequest}
+                onOpenIntelligence={openIntelligenceRequest}
               />
             ) : null}
             {view === 'network' ? (
@@ -1734,9 +1761,9 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
       </main>
 
-      <div className={styles.mobileTell}>
-        <AiLauncher />
-      </div>
+      <AgencyMobileNavigation basePath={basePath} view={view} canSeeBusiness={canSeeBusiness} onCaptureCompleted={handleCaptureCompleted}
+        search={{tenantId:workspace.tenant_id,userId:sessionUserId,basePath,cacheScope:stateScope,invoke,rpc,seed:{view,data},onCreate:setCreateKind}}
+        onNavigate={navigateWorkspaceView} onWarm={target=>void warmView(target)} onConnections={()=>setConnectionsOpen(true)}/>
 
       {connectionsOpen ? (
         <AgencyConnectionsDrawer
@@ -1814,8 +1841,11 @@ export default function AgencyOperatingWorkspace() {
           key={intelligenceRequest.key}
           request={intelligenceRequest}
           presentation="page"
+          rpc={rpc}
+          canManageRecords={canSeeBusiness}
+          onRefresh={loadView}
           invoke={(action, body) => invoke<any>(action, body)}
-          onClose={() => setIntelligenceRequest(null)}
+          onClose={() => closeIntelligenceRequest(intelligenceRequest)}
           onOpenAction={(request) => {
             setActionRequest(request);
           }}
@@ -1863,7 +1893,7 @@ export default function AgencyOperatingWorkspace() {
           }}
           onOpenDeal={(dealRoomId, title, context) => {
             setPursuitRequest(null);
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,
@@ -1925,7 +1955,7 @@ export default function AgencyOperatingWorkspace() {
           }}
           onOpenDeal={(dealRoomId, title, context) => {
             closeClubAccount();
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,
@@ -1990,7 +2020,7 @@ export default function AgencyOperatingWorkspace() {
           onClose={() => setOwnerCommandOpen(false)}
           onOpenDeal={(dealRoomId, title, context) => {
             setOwnerCommandOpen(false);
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,
@@ -2771,7 +2801,7 @@ function Home({
           </article>)}
           {!queue.length && allState === 'ready' && !assignedLoading && !assignedError ? <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
             copy={restricted ? "Your work is up to date." : "Check your players or capture a new update."}
-            action={<div className={styles.emptyStateActions}><AiLauncher/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
+            action={<div className={styles.emptyStateActions}><AiLauncher onCaptureCompleted={onRetry}/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
         </div>
       </section>
     </div>
