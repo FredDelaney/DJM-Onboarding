@@ -115,7 +115,7 @@ test('published Player Profile reads current trusted stats instead of freezing p
   assert.match(publicEdge, /career_entries/);
   assert.match(publicEdge, /player_cv_settings/);
   assert.match(publicEdge, /currentStats/);
-  assert.match(publicEdge, /customStats\?profileResult\.data\.key_stats:auto\.stats/);
+  assert.match(publicEdge, /customStats\|\|selectedSourceStats\?profileResult\.data\.key_stats:auto\.stats/);
   assert.match(publicEdge, /stats_meta/);
 });
 

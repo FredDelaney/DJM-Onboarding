@@ -372,6 +372,10 @@ export const dossierHeadlineStats = (
       }))
       .filter((item) => item.label && item.value);
 
+  // An agent-curated selection is intentional. Do not append other career
+  // numbers that were not chosen for this presentation.
+  if (manual.length) return manual.slice(0, limit);
+
   const output = [...manual];
   const seen = new Set(output.map((item) => key(item.label)));
   const career = dossierCareer(profile);

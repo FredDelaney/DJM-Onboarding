@@ -7,6 +7,7 @@ import {
   headlineSeasonRows,
   resolveHeadlineSeason,
 } from '../lib/football-season-stats.ts';
+import { dossierHeadlineStats } from '../lib/dossier.ts';
 
 const jamesRows = [
   {
@@ -64,6 +65,13 @@ test('cross-year rows never join a calendar year without explicit evidence class
   const totals = aggregateFootballStats(headlineSeasonRows(unclassified, '2026'));
   assert.equal(totals.appearances, 9);
   assert.equal(totals.minutes, 777);
+});
+
+test('an agent-selected profile statistic is not mixed with unselected career totals', () => {
+  assert.deepEqual(dossierHeadlineStats({
+    key_stats: [{ label: 'Goals', value: '7' }],
+    career_timeline: [{ season_label: '2026', club_name: 'Club', appearances: 20, goals: 7 }],
+  }), [{ label: 'Goals', value: '7' }]);
 });
 
 test('dossier and stats panel use the shared full-period rule and six totals', () => {

@@ -10,7 +10,7 @@ const cors={
 };
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
 const norm=(value:unknown)=>String(value||"").trim().toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
-const trustedProviders=new Set(["thesportsdb","api_football","wyscout","sportmonks","public_web_evidence","public_web_verified"]);
+const trustedProviders=new Set(["thesportsdb","api_football","wyscout","sportmonks","public_web_verified"]);
 const clubMatch=(rowClub:unknown,currentClub:unknown)=>{const row=norm(rowClub),current=norm(currentClub);if(!current)return true;if(!row)return false;return row===current||row.includes(current)||current.includes(row);};
 const leagueMatch=(rowLeague:unknown,currentLeague:unknown)=>{const row=norm(rowLeague),current=norm(currentLeague);if(!current)return true;if(!row)return false;if(row===current||row.includes(current)||current.includes(row))return true;const stop=new Set(["the","men","mens","dettol","premier"]),a=new Set(row.split(" ").filter(token=>token.length>1&&!stop.has(token))),b=new Set(current.split(" ").filter(token=>token.length>1&&!stop.has(token))),hit=[...a].filter(token=>b.has(token)).length;return hit>=2;};
 function currentStats(career:any[],player:any,latestCheck:any){
@@ -52,18 +52,19 @@ Deno.serve(async(req:Request)=>{
 
     const[contextResult,settingsResult,careerResult,refreshResult]=await Promise.all([
       admin.rpc("platform_server_player_profile_context",{p_tenant_id:player.tenant_id,p_player_id:player.id}),
-      admin.from("player_cv_settings").select("key_stats").eq("player_id",player.id).maybeSingle(),
+      admin.from("player_cv_settings").select("key_stats,selected_stat_refs").eq("player_id",player.id).maybeSingle(),
       admin.from("career_entries").select("season_label,club_name,league,appearances,starts,minutes,goals,assists,source_name,source_url,source_reviewed_at,source_provider,source_synced_at").eq("player_id",player.id),
       admin.from("player_source_refreshes").select("provider,status,fresh_at,source_url").eq("player_id",player.id).eq("provider","openai_web_stats").eq("status","applied").order("fresh_at",{ascending:false}).limit(1).maybeSingle(),
     ]);
     if(contextResult.error||settingsResult.error||careerResult.error)throw contextResult.error||settingsResult.error||careerResult.error;if(refreshResult.error)console.warn("public player-profile stat freshness unavailable",refreshResult.error);
 
     const customStats=Array.isArray(settingsResult.data?.key_stats)&&settingsResult.data.key_stats.length>0;
+    const selectedSourceStats=Array.isArray(settingsResult.data?.selected_stat_refs)&&settingsResult.data.selected_stat_refs.length>0;
     const auto=currentStats(careerResult.data||[],player,refreshResult.data||null);
-    const profile={...profileResult.data,key_stats:customStats?profileResult.data.key_stats:auto.stats};
+    const profile={...profileResult.data,key_stats:customStats||selectedSourceStats?profileResult.data.key_stats:auto.stats};
     const context=contextResult.data&&typeof contextResult.data==="object"?contextResult.data:{};
 
-    return reply({data:{profile,agency:context.branding||null,stats_meta:customStats?null:auto.meta}});
+    return reply({data:{profile,agency:context.branding||null,stats_meta:customStats||selectedSourceStats?null:auto.meta}});
   }catch(error){
     console.error("player-profile-public",error);
     return reply({error:"Unable to load Player Profile"},500);
