@@ -221,12 +221,17 @@ export async function selectPlayerProfilePresentation(
       }),
       signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    console.warn("player-profile AI request failed", error instanceof Error ? error.message : String(error));
     return fallback(input, "model_error");
   } finally {
     clearTimeout(timer);
   }
-  if (!response.ok) return fallback(input, "model_error");
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    console.warn("player-profile AI response failed", response.status, detail.slice(0, 400));
+    return fallback(input, "model_error");
+  }
   let raw: unknown;
   try { raw = JSON.parse(outputText(await response.json()) || ""); }
   catch { return fallback(input, "invalid_model_output"); }
