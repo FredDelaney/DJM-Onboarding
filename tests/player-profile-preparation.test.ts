@@ -82,6 +82,21 @@ test('unreviewed AI and unsourced rows cannot provide profile facts', () => {
   assert.ok(result.suggestions.some((item) => item.code === 'missing_current_stats'));
 });
 
+test('cross-checked AI web evidence becomes eligible without treating raw AI output as a fact', () => {
+  const result = preparePlayerProfileEvidence({
+    player,
+    career: [{
+      ...currentRow,
+      id: 'cross-checked-web',
+      source_provider: 'public_web_evidence',
+      source_acceptance_method: 'ai_web_current_season_cross_checked_monotonic',
+      source_reviewed_at: null,
+    }],
+  });
+  assert.ok(result.statCandidates.some((stat) => stat.ref === 'cross-checked-web:goals'));
+  assert.equal(result.statCandidates[0]?.source.provenance, 'verified');
+});
+
 test('tracked competition allows a generic parent club to use the matching reserve row', () => {
   const result = preparePlayerProfileEvidence({
     player: {
