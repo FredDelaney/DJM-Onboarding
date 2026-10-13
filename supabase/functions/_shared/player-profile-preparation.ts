@@ -1,5 +1,6 @@
 // This module selects recorded evidence for a profile draft. It does not write player data
 // or treat a model's proposed number as evidence. Callers must load rows for one tenant.
+import { matchesCurrentSeasonContext } from "./football-data/player-data-workflow.ts";
 
 export type PlayerProfileStatField =
   | "appearances"
@@ -23,6 +24,7 @@ export type PlayerProfileCareerRow = {
   source_url?: string | null;
   source_reviewed_at?: string | null;
   source_synced_at?: string | null;
+  source_acceptance_method?: string | null;
 };
 
 export type PlayerProfileVideoRow = {
@@ -36,6 +38,7 @@ export type PlayerProfileEvidenceInput = {
   player: {
     primary_position?: string | null;
     current_club?: string | null;
+    current_league?: string | null;
     current_season_label?: string | null;
     transfermarkt_url?: string | null;
   };
@@ -171,8 +174,12 @@ function sourceFor(row: PlayerProfileCareerRow): PlayerProfileStatCandidate["sou
   const syncedAt = dateStamp(row.source_synced_at) === null ? null : clean(row.source_synced_at);
   const provider = clean(row.source_provider).toLowerCase().replace(/[^a-z0-9]+/g, "_") || null;
   const url = safeUrl(row.source_url);
-  // Public-web AI extraction is not an approved fact until an operator reviews it.
-  const connected = Boolean(provider && connectedProviders.has(provider) && syncedAt && url);
+  // AI web evidence becomes profile-eligible only when the stats worker already
+  // cross-checked it against independent sources. Raw/unreviewed AI rows remain excluded.
+  const crossCheckedWeb = provider === "public_web_evidence" &&
+    clean(row.source_acceptance_method) === "ai_web_current_season_cross_checked_monotonic" &&
+    Boolean(syncedAt && url);
+  const connected = Boolean(provider && connectedProviders.has(provider) && syncedAt && url) || crossCheckedWeb;
   if (!reviewedAt && !connected) return null;
   return {
     provenance: connected || (reviewedAt && url && provider !== "manual") ? "verified" : "manual",
@@ -211,7 +218,12 @@ function prepareCore(input: PlayerProfileEvidenceInput): PreparedCore {
       : Boolean(effectiveYear && rowYear === effectiveYear);
     const isPrevious = Boolean(previousYear && rowYear === previousYear);
     if (!isCurrent && !isPrevious) continue;
-    if (isCurrent && currentClub && normalise(row.club_name) !== currentClub) continue;
+    if (isCurrent && currentClub) {
+      const trackedContext = Boolean(currentSeason && clean(input.player.current_league));
+      if (trackedContext) {
+        if (!matchesCurrentSeasonContext(row, input.player)) continue;
+      } else if (normalise(row.club_name) !== currentClub) continue;
+    }
     const source = sourceFor(row);
     if (!source) continue;
     const seasonScope = isPrevious ? "previous" : currentSeason ? "current" : "recent";

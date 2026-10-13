@@ -73,6 +73,15 @@ test("AI fallback advances cumulative current-season figures without reducing tr
   assert.match(aiWorker, /source_synced_at:\s*now/);
   assert.match(aiWorker, /two independent supporting sources/);
   assert.match(aiWorker, /complete\(existing\)&&fresh\(existing\)&&!force/);
+  assert.match(aiWorker, /OPENAI_STATS_MODEL.*gpt-6-luna/);
+});
+
+test("cross-checked web stats can safely fill missing season and competition context", () => {
+  assert.match(aiWorker, /resolvedContext/);
+  assert.match(aiWorker, /current_season_label:p\.current_season_label\|\|clean\(c\.season_label\)/);
+  assert.match(aiWorker, /current_league:p\.current_league\|\|clean\(c\.league\)/);
+  assert.match(aiWorker, /review_required_at:contextNow/);
+  assert.match(aiWorker, /Review before verifying/);
 });
 
 

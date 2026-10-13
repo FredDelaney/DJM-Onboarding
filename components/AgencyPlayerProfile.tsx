@@ -95,6 +95,7 @@ type ProfileStat = {
   label: string;
   value: string | number;
   seasonLabel?: string | null;
+  seasonScope?: 'current' | 'previous' | 'recent' | null;
   competition?: string | null;
   source?: { name?: string | null; status?: string | null } | null;
 };
@@ -986,20 +987,72 @@ export default function AgencyPlayerProfile({
     setError('');
     setProfileReview(null);
     try {
-      const response = await invoke<any>('player_profile_prepare', {
+      const requestPreparation = () => invoke<any>('player_profile_prepare', {
         player_id: playerId,
         kind: prepareKind,
         ...(prepareKind === 'club'
           ? { organisation_id: prepareClub, deal_room_id: prepareDeal || null }
           : {}),
       });
+      const readStats = (value: any): ProfileStat[] => Array.isArray(value?.evidence?.stats)
+        ? value.evidence.stats.filter((item: ProfileStat) => item?.ref && item?.label)
+        : [];
+
+      let response = await requestPreparation();
+      let stats = readStats(response);
+      const hasCurrentStats = stats.some((item) => item.seasonScope === 'current');
+      const canRefreshStats = Boolean(player.current_club);
+
+      if (!hasCurrentStats && canRefreshStats) {
+        setActionBusy('prepare-stats');
+        const refreshRequestId = crypto.randomUUID();
+        const started = await invoke<any>('player_data_refresh', {
+          player_id: playerId,
+          request_id: refreshRequestId,
+        });
+        let job = started?.job || null;
+
+        for (
+          let attempt = 0;
+          attempt < 24 &&
+          job &&
+          ['queued', 'running'].includes(String(job.status));
+          attempt += 1
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          const status = await invoke<any>('player_data_status', {
+            player_id: playerId,
+          });
+          job = status?.job || job;
+        }
+
+        if (job?.status === 'applied') {
+          response = await requestPreparation();
+          stats = readStats(response);
+          void load(true, true);
+        } else if (job?.status === 'failed') {
+          setNotice(
+            text(job?.summary?.message) ||
+              'Current statistics could not be verified from reliable sources. The profile will use only recorded evidence.',
+          );
+        } else if (
+          job &&
+          ['queued', 'running'].includes(String(job.status))
+        ) {
+          setNotice(
+            'Current statistics are still being checked. The profile will use the evidence already recorded for now.',
+          );
+        }
+      } else if (!hasCurrentStats && !canRefreshStats) {
+        setNotice(
+          'Add the current club to find current statistics automatically.',
+        );
+      }
+
       const incoming = response?.proposal;
       if (!incoming || !text(incoming.source_fingerprint)) {
         throw new Error('The profile could not be prepared. Try again.');
       }
-      const stats: ProfileStat[] = Array.isArray(response?.evidence?.stats)
-        ? response.evidence.stats.filter((item: ProfileStat) => item?.ref && item?.label)
-        : [];
       const videos: ProfileVideo[] = Array.isArray(response?.evidence?.videos)
         ? response.evidence.videos.filter((item: ProfileVideo) => item?.id && item?.url)
         : [];
@@ -2130,8 +2183,10 @@ export default function AgencyPlayerProfile({
                   onClick={() => void prepareProfile()}
                   disabled={Boolean(actionBusy) || (prepareKind === 'club' && !prepareClub)}
                 >
-                  {actionBusy === 'prepare' ? <LoaderCircle className={styles.spin} size={15} /> : <Sparkles size={15} />}
-                  Prepare {prepareKind === 'club' ? 'for club' : 'general profile'}
+                  {['prepare', 'prepare-stats'].includes(actionBusy) ? <LoaderCircle className={styles.spin} size={15} /> : <Sparkles size={15} />}
+                  {actionBusy === 'prepare-stats'
+                    ? 'Finding current statistics...'
+                    : `Prepare ${prepareKind === 'club' ? 'for club' : 'general profile'}`}
                 </button>
               </div>
             </div>
