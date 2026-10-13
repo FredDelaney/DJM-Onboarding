@@ -8,16 +8,7 @@ import './ux-smooth.css';
 import './player-premium.css';
 import './player-nav-contrast-fix.css';
 import './(djm-os)/djm-os.css';
-import './workspace-nav.css';
-import './responsive-polish.css';
-import './iphone-qa.css';
-import './djm-os-ux-overhaul.css';
-import './djm-global-beauty.css';
-import './staff-mobile-layout-fix.css';
-import './djm-os-v3.css';
-import './tenant-theme.css';
-import './interface.css';
-import './calm-product.css';
+import './product.css';
 
 import type {
   Metadata,

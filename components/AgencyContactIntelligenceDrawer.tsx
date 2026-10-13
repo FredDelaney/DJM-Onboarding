@@ -33,6 +33,7 @@ import AgencyBirthdayEditor from '@/components/AgencyBirthdayEditor';
 import AgencyRelationshipActions from '@/components/AgencyRelationshipActions';
 import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import RecordActivitySummary from './RecordActivitySummary';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
 
@@ -698,9 +699,9 @@ export default function AgencyContactIntelligenceDrawer({
                 <span>
                   Owner {clean(summaryRelationship?.owner_name) || 'unassigned'}
                 </span>
-                <span>
-                  Relationship strength {summaryRelationship?.route_score != null ? Number(summaryRelationship.route_score) : 'not set'}
-                </span>
+                {summaryRelationship?.route_score != null ? (
+                  <span>Relationship strength {Number(summaryRelationship.route_score)}</span>
+                ) : null}
                 <span>
                   {summaryActivity?.last_interaction_at
                     ? `Last contact ${relativeDate(summaryActivity.last_interaction_at)}`
@@ -712,6 +713,7 @@ export default function AgencyContactIntelligenceDrawer({
 
           <div className={styles.headerControls}>
             {!restricted ? <EntityActionsMenu
+                  showEdit
               kind="club_contact"
               entityId={clean(contact?.person_id)}
               label={name}
@@ -780,7 +782,7 @@ export default function AgencyContactIntelligenceDrawer({
             {restricted ? <p className={styles.section}>Shared contact. Commercial details are for admins.</p> : null}
             <section className={styles.nextMove} aria-label="Next relationship action">
               <div>
-                <span>NEXT MOVE</span>
+                <span>Next action</span>
                 <strong>{nextMove.title}</strong>
                 <small>{nextMove.detail}</small>
               </div>
@@ -823,6 +825,7 @@ export default function AgencyContactIntelligenceDrawer({
               ) : null}
             </section>
 
+            <RecordActivitySummary summary={summaryActivity?.last_interaction_at?'Last contact':null} when={summaryActivity?.last_interaction_at?relativeDate(summaryActivity.last_interaction_at):null}/>
             <section
               className={
                 styles.section

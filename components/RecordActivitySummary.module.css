@@ -1,0 +1,22 @@
+.root {
+  display: grid;
+  gap: 5px;
+  padding: 16px 18px;
+  border: 1px solid var(--interface-line, #e5e5e7);
+  border-radius: 14px;
+  background: var(--interface-surface, #fff);
+  color: var(--interface-ink, #1d1d1f);
+  min-width: 0;
+}
+.root > span,
+.root > small {
+  color: var(--interface-muted, #6e6e73);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.root > strong {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}

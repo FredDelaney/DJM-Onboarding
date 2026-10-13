@@ -34,6 +34,8 @@
   justify-content: space-between;
 }
 
+.headerControls { display: flex; align-items: center; gap: 6px; }
+
 .live {
   display: inline-flex;
   align-items: center;
@@ -51,7 +53,7 @@
   box-shadow: 0 0 0 3px rgba(45, 155, 106, 0.1);
 }
 
-.topline button {
+.headerControls > button {
   width: 44px;
   height: 44px;
   display: grid;

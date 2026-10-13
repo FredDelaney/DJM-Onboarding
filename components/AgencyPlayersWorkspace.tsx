@@ -25,6 +25,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import RecordActivitySummary from './RecordActivitySummary';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile } from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
@@ -148,6 +149,7 @@ function Empty({
 
 function PlayerDrawer({
   cacheScope = '',
+  canManageRecords,
   playerId,
   summary,
   basePath,
@@ -158,6 +160,7 @@ function PlayerDrawer({
   onOpenAction,
 }: {
   cacheScope?: string;
+  canManageRecords:boolean;
   playerId: string;
   summary?: any;
   basePath: string;
@@ -281,7 +284,8 @@ function PlayerDrawer({
                 </span>
               </div>
               <div className={styles.playerHeroManage}>
-                <EntityActionsMenu
+                {canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted?<EntityActionsMenu
+                  showEdit
                   kind="player"
                   entityId={playerId}
                   label={playerName}
@@ -304,7 +308,7 @@ function PlayerDrawer({
                     { key: 'current_country', label: 'Current country', value: identity.current_country },
                     { key: 'contract_expiry', label: 'Contract expiry', value: identity.contract_expiry || '', type: 'date' },
                   ]}
-                />
+                />:null}
               </div>
               <div className={styles.heroActions}>
                 <Link
@@ -345,7 +349,7 @@ function PlayerDrawer({
               {tab === 'overview' ? (
                 <div className={styles.detailStack}>
                   <section className={styles.detailHero}>
-                    <p>NEXT MOVE</p>
+                    <p>Next action</p>
                     <h3>{service?.next_service_move?.instruction || identity.next_action || 'No next action yet'}</h3>
                     <span>{identity.next_action_due ? relativeDate(identity.next_action_due) : 'No due date set'}</span>
                   </section>
@@ -355,17 +359,7 @@ function PlayerDrawer({
                     <div><span>Agency agreement</span><strong>{representation?.end_date ? relativeDate(representation.end_date) : representation ? 'No end date set' : 'Not set'}</strong><small>{representation ? human(representation.agreement_type) : 'No representation agreement'}</small></div>
                     <div><span>Opportunities</span><strong>{opportunities.filter((item: any) => !['won','lost','paused'].includes(String(item?.stage || ''))).length + deals.filter((deal: any) => deal?.status === 'active').length}</strong><small>Active opportunities</small></div>
                   </div>
-                  <section className={styles.recentActivity}>
-                    <span>Latest activity</span>
-                    {activity[0] ? (
-                      <div>
-                        <strong>{human(activity[0]?.event_type || 'Agency activity')}</strong>
-                        <small>{activity[0]?.occurred_at ? relativeDate(activity[0].occurred_at) : 'Date not set'}</small>
-                      </div>
-                    ) : (
-                      <strong>No recent activity</strong>
-                    )}
-                  </section>
+                  <RecordActivitySummary summary={activity[0]?human(activity[0]?.event_type||'Agency activity'):null} when={activity[0]?.occurred_at?relativeDate(activity[0].occurred_at):null}/>
                 </div>
               ) : null}
 
@@ -872,6 +866,7 @@ export default function AgencyPlayersWorkspace({
   if (playerId) {
     return (
       <PlayerDrawer
+        canManageRecords={canManageRecords}
         cacheScope={stateScope}
         playerId={playerId}
         summary={players.find(
@@ -890,7 +885,7 @@ export default function AgencyPlayersWorkspace({
   return (
     <div className={styles.workspace}>
       <section className={styles.toolbar}>
-        <div className={styles.sectionTabs}>
+        <div className={styles.sectionTabs} data-people-internal-tabs>
           <button type="button" className={section==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('players')}>
             Our Players <b>{data?.directory?.total ?? players.length}</b>
           </button>

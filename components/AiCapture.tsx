@@ -9,6 +9,8 @@ import { flushAiQueue, uploadAiCaptureOnce } from '@/lib/ai-upload-queue';
 import { pendingAiWorkspace } from '@/lib/ai-workspace';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { useAiWorkspaceContext } from './useAiWorkspace';
+import Link from 'next/link';
+import {captureOutcomeLinks} from '@/lib/capture-outcome-links';
 
 import {
   AlertTriangle,
@@ -1183,6 +1185,7 @@ export default function AiCapture({
                 <strong>Update complete</strong>
                 <span>Changes saved. Ready for the next update.</span>
               </div>
+              {captureOutcomeLinks(receipt.actions||[],workspaceSlug).map(link=><Link key={link.href} href={link.href} className={styles.secondary}>{link.label}</Link>)}
               <button
                 type="button"
                 className={styles.secondary}

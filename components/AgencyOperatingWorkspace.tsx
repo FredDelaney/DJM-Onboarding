@@ -3,6 +3,8 @@
 import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
 import AiLauncher from '@/components/AiLauncher';
+import AgencyMobileNavigation from './AgencyMobileNavigation';
+import PeopleViewSwitcher from './PeopleViewSwitcher';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
@@ -622,9 +624,17 @@ export default function AgencyOperatingWorkspace() {
 
   const navigateWorkspaceView = useCallback(
     (targetView: View, href: string) => {
-      if (targetView === view || typeof window === 'undefined') return;
+      if (typeof window === 'undefined' || href === window.location.pathname + window.location.search) return;
 
-      void warmView(targetView);
+      setActionRequest(null);
+      setIntelligenceRequest(null);
+      setPursuitRequest(null);
+      setClubAccountRequest(null);
+      setNegotiationRequest(null);
+      setPlayerServiceReviewRequest(null);
+      setDealCloseoutRequest(null);
+      setCreateKind(null);
+      if (targetView !== view) void warmView(targetView);
       window.history.pushState(
         { redreamView: targetView },
         '',
@@ -1395,7 +1405,7 @@ export default function AgencyOperatingWorkspace() {
   }
 
   return (
-    <div className={styles.root} style={theme} data-interface="calm">
+    <div className={styles.root} style={theme} data-interface="calm" data-people-directory={['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?'true':undefined}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
@@ -1551,6 +1561,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
         </header>
 
+        {['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?<PeopleViewSwitcher basePath={basePath} view={view} onNavigate={navigateWorkspaceView}/>:null}
         {createAction && !inlineEntityWorkspaceOpen ? (
           <div className={styles.mobileContextAction}>
             <button
@@ -1734,9 +1745,9 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
       </main>
 
-      <div className={styles.mobileTell}>
-        <AiLauncher />
-      </div>
+      <AgencyMobileNavigation basePath={basePath} view={view} canSeeBusiness={canSeeBusiness}
+        search={{tenantId:workspace.tenant_id,userId:sessionUserId,basePath,cacheScope:stateScope,invoke,rpc,seed:{view,data},onCreate:setCreateKind}}
+        onNavigate={navigateWorkspaceView} onWarm={target=>void warmView(target)} onConnections={()=>setConnectionsOpen(true)}/>
 
       {connectionsOpen ? (
         <AgencyConnectionsDrawer
@@ -1814,6 +1825,9 @@ export default function AgencyOperatingWorkspace() {
           key={intelligenceRequest.key}
           request={intelligenceRequest}
           presentation="page"
+          rpc={rpc}
+          canManageRecords={canSeeBusiness}
+          onRefresh={loadView}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setIntelligenceRequest(null)}
           onOpenAction={(request) => {

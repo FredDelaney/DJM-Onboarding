@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const globalBeauty = readFileSync('app/djm-global-beauty.css', 'utf8');
+const globalBeauty = readFileSync('app/product.css', 'utf8');
 
 test('authenticated mobile surfaces do not use decorative background haze', () => {
   assert.match(globalBeauty, /Platform-wide mobile surface flattening v1/);

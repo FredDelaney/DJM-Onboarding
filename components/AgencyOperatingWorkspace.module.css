@@ -5022,3 +5022,11 @@
  .focusCopy>details:not(.focusDetails){justify-self:end}
  .focusCopy>details[open]{justify-self:stretch}
 }
+
+/* Five daily destinations replace the crowded legacy mobile footer. */
+@media(max-width:680px){
+ .root .sidebar{display:none;}
+ .root{padding-bottom:calc(78px + env(safe-area-inset-bottom));}
+ .root[data-people-directory] [data-people-internal-tabs]{display:none;}
+ .root[data-people-directory] [data-people-toolbar]{grid-template-columns:1fr;}
+}

@@ -15,6 +15,8 @@ import {
 import { useEffect, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
+import EntityActionsMenu from '@/components/EntityActionsMenu';
+import RecordActivitySummary from '@/components/RecordActivitySummary';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { hasRecordedNumber } from '@/lib/recorded-number';
@@ -33,6 +35,8 @@ type Invoke = (
   action: string,
   body?: Record<string, unknown>,
 ) => Promise<any>;
+
+type Rpc = <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
 
 const human = (value: unknown) =>
   String(value || '')
@@ -96,6 +100,9 @@ export default function AgencyEntityIntelligenceDrawer({
   onOpenNegotiation,
   onOpenPlayerReview,
   presentation = 'drawer',
+  rpc,
+  canManageRecords = false,
+  onRefresh,
 }: {
   request: AgencyIntelligenceRequest;
   invoke: Invoke;
@@ -117,11 +124,15 @@ export default function AgencyEntityIntelligenceDrawer({
     context?: string | null,
   ) => void;
   presentation?: 'drawer' | 'page';
+  rpc?: Rpc;
+  canManageRecords?: boolean;
+  onRefresh?: () => Promise<void> | void;
 }) {
   const [busy, setBusy] = useState(true);
   const [retry,setRetry]=useState(0);
   const [error, setError] = useState('');
   const [data, setData] = useState<Record<string, any>>({});
+  const pageMode = presentation === 'page';
 
   useEffect(() => {
     let active = true;
@@ -183,6 +194,7 @@ export default function AgencyEntityIntelligenceDrawer({
   }, [invoke, request.entityId, request.kind, retry]);
 
   useEffect(() => {
+    if (pageMode) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -196,7 +208,7 @@ export default function AgencyEntityIntelligenceDrawer({
       document.body.style.overflow = previous;
       window.removeEventListener('keydown', keydown);
     };
-  }, [onClose]);
+  }, [onClose, pageMode]);
 
   const service = data.service || {};
   const player = service.player || {};
@@ -252,7 +264,32 @@ export default function AgencyEntityIntelligenceDrawer({
   const nextMove = warRoom.next_best_move || {};
   const controlFix = warRoom.next_control_fix || {};
 
-  const pageMode = presentation === 'page';
+  const primaryDealAction = controlFix.instruction
+    ? {
+        key: `war-room-control:${request.entityId}`,
+        eyebrow: 'DEAL CONTROL',
+        title: request.title,
+        instruction: controlFix.instruction,
+        label: 'Fix deal control',
+        action: 'deal_control_fix_prepare',
+        payload: { deal_room_id: request.entityId },
+        context: human(control.state),
+        successCondition: 'Nothing needs attention.',
+      }
+    : nextMove.instruction
+      ? {
+          key: `war-room-next:${request.entityId}`,
+          eyebrow: 'DEAL NEXT MOVE',
+          title: request.title,
+          instruction: nextMove.instruction,
+          label: 'Prepare next move',
+          action: 'deal_next_move_prepare',
+          payload: { deal_room_id: request.entityId },
+          context: human(deal.stage),
+          successCondition: 'The next move is recorded.',
+        }
+      : null;
+  const lastForwardMovement = momentum.movement?.last_forward_movement_at;
 
   return (
     <div
@@ -265,9 +302,29 @@ export default function AgencyEntityIntelligenceDrawer({
         <header className={styles.header}>
           <div className={styles.topline}>
             <span className={styles.live}><i />Agency record</span>
-            <button type="button" onClick={onClose} aria-label={pageMode ? 'Back' : 'Close'}>
-              {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
-            </button>
+            <div className={styles.headerControls}>
+              {request.kind === 'deal' && rpc && canManageRecords && !busy && !error ? (
+                <EntityActionsMenu
+                  showEdit
+                  kind="deal_room"
+                  entityId={request.entityId}
+                  label={deal.title || request.title}
+                  rpc={rpc}
+                  fields={[
+                    { key: 'title', label: 'Deal title', value: deal.title || request.title },
+                    { key: 'next_action_text', label: 'Next action', value: deal.next_action_text || '', type: 'textarea' },
+                  ]}
+                  onChanged={async (change) => {
+                    if (change === 'edit') setRetry(value => value + 1);
+                    else onClose();
+                    await onRefresh?.();
+                  }}
+                />
+              ) : null}
+              <button type="button" onClick={onClose} aria-label={pageMode ? 'Back' : 'Close'}>
+                {pageMode ? <ArrowLeft size={18} /> : <X size={18} />}
+              </button>
+            </div>
           </div>
 
           <div className={styles.title}>
@@ -489,19 +546,27 @@ export default function AgencyEntityIntelligenceDrawer({
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
-                <p>DEAL STATUS</p>
-                <h3>{human(control.state || momentum.state || 'recorded')}</h3>
-                <span>
-                  {nextMove.instruction ||
-                    deal.next_decision ||
-                    'Review the deal and decide.'}
-                </span>
+                <p>Next action</p>
+                <h3>{primaryDealAction?.instruction || deal.next_action_text || deal.next_decision || 'No next action recorded.'}</h3>
+                <span>{human(control.state || momentum.state || 'recorded')}{deal.next_action_at ? ` · Due ${relativeDate(deal.next_action_at)}` : ''}</span>
+                {primaryDealAction ? (
+                  <div className={styles.actions}>
+                    <button type="button" onClick={() => onOpenAction(primaryDealAction)}>
+                      <ArrowRight size={15} />{primaryDealAction.label}
+                    </button>
+                  </div>
+                ) : null}
               </div>
               {hasRecordedNumber(control.score) ? <div className={styles.score}>
                 <strong>{numeric(control.score)}</strong>
                 <span>deal control</span>
               </div> : null}
             </section>
+
+            <RecordActivitySummary
+              summary={lastForwardMovement ? 'Forward movement recorded' : 'No forward movement recorded'}
+              when={lastForwardMovement ? relativeDate(lastForwardMovement) : null}
+            />
 
             <div className={styles.grid}>
               <Fact
@@ -579,52 +644,6 @@ export default function AgencyEntityIntelligenceDrawer({
             </details>
 
             <div className={styles.actions}>
-              {controlFix.instruction ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onOpenAction({
-                      key: `war-room-control:${request.entityId}`,
-                      eyebrow: 'DEAL CONTROL',
-                      title: request.title,
-                      instruction: controlFix.instruction,
-                      label: 'Fix deal control',
-                      action: 'deal_control_fix_prepare',
-                      payload: { deal_room_id: request.entityId },
-                      context: human(control.state),
-                      successCondition:
-                        'Nothing needs attention.',
-                    })
-                  }
-                >
-                  <CheckCircle2 size={15} />
-                  Fix deal control
-                </button>
-              ) : null}
-
-              {nextMove.instruction ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onOpenAction({
-                      key: `war-room-next:${request.entityId}`,
-                      eyebrow: 'DEAL NEXT MOVE',
-                      title: request.title,
-                      instruction: nextMove.instruction,
-                      label: 'Prepare next move',
-                      action: 'deal_next_move_prepare',
-                      payload: { deal_room_id: request.entityId },
-                      context: human(deal.stage),
-                      successCondition:
-                        'The next move is recorded.',
-                    })
-                  }
-                >
-                  <ArrowRight size={15} />
-                  Prepare next move
-                </button>
-              ) : null}
-
               <button
                 type="button"
                 onClick={() =>

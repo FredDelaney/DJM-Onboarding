@@ -9,7 +9,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { friendlyError } from '@/lib/platform-client';
@@ -43,6 +43,7 @@ type Props = {
   fields: EntityEditField[];
   onChanged: (change: EntityChange) => Promise<void> | void;
   className?: string;
+  showEdit?: boolean;
 };
 
 export type EntityChange = 'edit' | 'archive' | 'delete';
@@ -69,6 +70,7 @@ export default function EntityActionsMenu({
   fields,
   onChanged,
   className = '',
+  showEdit = false,
 }: Props) {
   const initialDraft = useMemo(
     () => Object.fromEntries(
@@ -81,6 +83,15 @@ export default function EntityActionsMenu({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<any>(null);
+  const dialog=useRef<HTMLElement>(null);
+  useEffect(()=>{
+    if(!mode)return;
+    const previous=document.activeElement as HTMLElement|null,overflow=document.body.style.overflow;
+    const siblings=Array.from(document.body.children).filter((node):node is HTMLElement=>node instanceof HTMLElement&&!node.contains(dialog.current));
+    const inert=siblings.map(node=>node.inert);siblings.forEach(node=>{node.inert=true;});document.body.style.overflow='hidden';
+    dialog.current?.querySelector<HTMLElement>(mode==='edit'?'input,textarea':'button')?.focus();
+    return()=>{siblings.forEach((node,index)=>{node.inert=inert[index];});document.body.style.overflow=overflow;if(previous?.isConnected)previous.focus();};
+  },[Boolean(mode)]);
 
   const open = (
     next: Exclude<Mode, null>,
@@ -172,6 +183,7 @@ export default function EntityActionsMenu({
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
     >
+      {showEdit?<button type="button" className={styles.edit} onClick={event=>open('edit',event)} aria-label={'Edit '+label}><Pencil size={15}/><span>Edit</span></button>:null}
       <button
         type="button"
         className={styles.trigger}
@@ -191,7 +203,17 @@ export default function EntityActionsMenu({
           }}
         >
           <section
+            ref={dialog}
             className={styles.sheet}
+            onKeyDown={event=>{
+              if(event.key==='Escape'){event.stopPropagation();if(!busy)close();}
+              if(event.key==='Tab'){
+                const controls=Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]')||[]).filter(node=>node.getClientRects().length);
+                const first=controls[0],last=controls.at(-1);
+                if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+                else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+              }
+            }}
             role="dialog"
             aria-modal="true"
             aria-label={`Manage ${label}`}

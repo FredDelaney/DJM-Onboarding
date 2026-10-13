@@ -216,7 +216,7 @@ test('only full-access users get one-tap creation of a genuinely new club', () =
 
 test('global mic inherits stable context from player club contact recruitment and opportunity routes', () => {
   assert.match(launcher, /usePathname/);
-  assert.match(launcher, /contextFromRoute/);
+  assert.match(launcher, /contextFromWorkspaceRoute/);
   assert.match(contextLib, /\/admin\/players/);
   assert.match(contextLib, /\/network\/clubs/);
   assert.match(contextLib, /\/network\/contacts/);
@@ -381,7 +381,7 @@ test('Tell DJM launch switch defaults off until backend deployment and smoke tes
 
 test('Tell DJM is feature-gated so frontend deployment cannot expose a broken backend', () => {
   assert.match(launcher, /redream_ai_current_access/);
-  assert.match(launcher, /if \(!access\?\.enabled\) return null/);
+  assert.match(launcher, /if \(!access\?\.enabled\)[\s\S]*if\(!navigation\)return null/);
   assert.match(fullPage, /redream_ai_current_access/);
   assert.match(fullPage, /Capture is not enabled yet/);
   assert.match(capture, /maxAudioSeconds/);

@@ -27,8 +27,8 @@ test('mobile primary navigation stays focused on five everyday destinations', ()
 test('mobile header keeps account identity and moves Tell ReDream to one persistent control', () => {
   assert.match(shell, /desktopHeadActions/);
   assert.match(shell, /mobileHeadActions/);
-  assert.match(shell, /mobileTell/);
-  assert.match(shellCss, /\.mobileTell[\s\S]*position:\s*fixed/);
+  assert.match(shell, /AgencyMobileNavigation/);
+  assert.match(readFileSync('components/AgencyMobileNavigation.module.css','utf8'), /position:fixed/);
 });
 
 test('Home shows one bounded five-item queue on mobile', () => {

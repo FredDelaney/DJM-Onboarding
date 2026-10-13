@@ -10,7 +10,7 @@ import {
 } from '../lib/tenant-brand-style.ts';
 
 const layout = readFileSync('app/layout.tsx', 'utf8');
-const tenantTheme = readFileSync('app/tenant-theme.css', 'utf8');
+const tenantTheme = readFileSync('app/product.css', 'utf8');
 const agencyWorkspace = readFileSync('components/AgencyOperatingWorkspace.tsx', 'utf8');
 const playerProfile = readFileSync('components/AgencyPlayerProfile.tsx', 'utf8');
 const launch = readFileSync('app/launch/page.tsx', 'utf8');

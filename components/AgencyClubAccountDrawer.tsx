@@ -26,6 +26,7 @@ import {
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import RecordActivitySummary from './RecordActivitySummary';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import {
   friendlyError,
@@ -612,6 +613,7 @@ export default function AgencyClubAccountDrawer({
 
             <div className={styles.headerControls}>
               <EntityActionsMenu
+                  showEdit
                 kind="club"
                 entityId={request.organisationId}
                 label={club.name || request.title}
@@ -696,7 +698,7 @@ export default function AgencyClubAccountDrawer({
             >
               <div>
                 <span>
-                  NEXT MOVE
+                  Next action
                 </span>
 
                 <strong>
@@ -726,6 +728,7 @@ export default function AgencyClubAccountDrawer({
               </button>
             </section>
 
+            <RecordActivitySummary summary={interactions[0]?clean(interactions[0].summary)||'Conversation added':null} when={interactions[0]?.occurred_at?relativeDate(interactions[0].occurred_at):null}/>
             <section
               className={
                 styles.quickFacts

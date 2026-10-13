@@ -22,7 +22,7 @@ const brand =
   read('components/Brand.tsx');
 
 const theme =
-  read('app/tenant-theme.css');
+  read('app/product.css');
 
 const edge =
   read(
