@@ -30,7 +30,7 @@ export function workspaceMobileNavigation(
     {
       label: "More",
       active:
-        recruitment || ["calendar", "opportunities", "business"].includes(view),
+        recruitment || ["calendar", "opportunities", "business", "settings"].includes(view),
     },
   ];
 }

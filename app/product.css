@@ -1775,8 +1775,8 @@ summary:focus-visible {
   border-bottom: 1px solid rgba(255, 255, 255, .08);
   background: rgba(5, 24, 40, .955);
   box-shadow: 0 8px 28px rgba(4, 18, 30, .08);
-  backdrop-filter: blur(20px) saturate(125%);
   -webkit-backdrop-filter: blur(20px) saturate(125%);
+  backdrop-filter: blur(20px) saturate(125%);
 }
 
 .djm-os-header-inner {
@@ -2403,8 +2403,8 @@ summary:focus-visible {
 
 .ux-modal-backdrop {
   background: rgba(5, 20, 34, .48) !important;
-  backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
 }
 
 details {
@@ -2469,8 +2469,8 @@ details {
   border-radius: 14px;
   background: rgba(5, 24, 40, .34);
   box-shadow: none;
-  backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .ux-player-primary-action > span {
@@ -2544,8 +2544,8 @@ details {
   border-top: 1px solid rgba(12, 48, 72, .09) !important;
   background: rgba(255, 255, 255, .93) !important;
   box-shadow: 0 -10px 35px rgba(7, 29, 49, .06) !important;
-  backdrop-filter: blur(20px) saturate(130%);
   -webkit-backdrop-filter: blur(20px) saturate(130%);
+  backdrop-filter: blur(20px) saturate(130%);
 }
 
 .ux-player-mobile-nav .nav-item {
@@ -2726,8 +2726,8 @@ details {
     border-top: 1px solid rgba(255, 255, 255, .16);
     border-radius: 0;
     background: transparent;
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   .ux-player-primary-action .ux-primary-button {
@@ -2908,8 +2908,8 @@ details {
   font-size: 9px;
   font-weight: 800;
   cursor: pointer;
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .djm-home-v2-refresh:hover {
@@ -4616,8 +4616,8 @@ details {
 
 .profile-editor-backdrop {
   background: rgba(5,20,34,.5);
-  backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .profile-editor-sheet {
@@ -4849,8 +4849,8 @@ details {
     background: linear-gradient(180deg, rgba(5,24,40,.995), rgba(7,29,49,.988)) !important;
     border-bottom: 0 !important;
     box-shadow: none !important;
-    backdrop-filter: blur(22px) saturate(122%) !important;
     -webkit-backdrop-filter: blur(22px) saturate(122%) !important;
+    backdrop-filter: blur(22px) saturate(122%) !important;
   }
 
   .ux-staff-header .djm-os-header-inner {
@@ -4915,7 +4915,7 @@ details {
     overflow: visible !important;
   }
 
-  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"],
+  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell ReDream"],
   .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
@@ -4937,7 +4937,7 @@ details {
     transition: transform .14s ease, background .14s ease, border-color .14s ease, opacity .14s ease !important;
   }
 
-  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"] {
+  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell ReDream"] {
     color: #e7c55a !important;
     background: rgba(255,255,255,.045) !important;
     border: 1px solid rgba(216,174,50,.28) !important;
@@ -4963,7 +4963,7 @@ details {
     color: rgba(239,245,248,.54) !important;
   }
 
-  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"] > span,
+  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell ReDream"] > span,
   .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger > span,
   .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger > span,
   .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger > kbd {
@@ -5001,8 +5001,8 @@ details {
     border-top: 1px solid rgba(255,255,255,.045) !important;
     border-bottom: 1px solid rgba(255,255,255,.075) !important;
     box-shadow: 0 12px 26px -24px rgba(3,17,29,.92) !important;
-    backdrop-filter: blur(22px) saturate(122%) !important;
     -webkit-backdrop-filter: blur(22px) saturate(122%) !important;
+    backdrop-filter: blur(22px) saturate(122%) !important;
   }
 
   .djm-mobile-workspace-nav .djm-os-product-link {
@@ -5172,7 +5172,7 @@ details {
     gap: 3px !important;
   }
 
-  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell DJM"],
+  .ux-staff-header .djm-os-header-actions > button[aria-label="Tell ReDream"],
   .ux-staff-header .djm-os-header-actions > .djm-os-capture-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-search-trigger,
   .ux-staff-header .djm-os-header-actions > .djm-os-icon-button {
@@ -5967,8 +5967,8 @@ details {
   .ux-staff-header,
   .djm-os-header,
   .player-workspace-header {
-    backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
     filter: none !important;
     box-shadow: none !important;
   }
@@ -6017,8 +6017,8 @@ details {
   background: var(--tenant-primary, #061f3a);
   color: var(--tenant-on-primary, #fff);
   box-shadow: 0 4px 16px rgba(4, 19, 35, 0.08);
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .djm-os-header-inner {
@@ -6779,6 +6779,9 @@ input[type="file"]:disabled::file-selector-button { opacity: .5; cursor: not-all
 
 /* The player workspace shares the agency's light, readable navigation. */
 .ux-player-root .player-workspace-header {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  filter: none !important;
   background: #fff !important;
   color: #1d1d1f;
   border-bottom: 1px solid #e5e5e7;

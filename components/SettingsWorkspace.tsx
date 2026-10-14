@@ -25,6 +25,7 @@ import {
 
 import AccountMenu from '@/components/AccountMenu';
 import AiLauncher from '@/components/AiLauncher';
+import AgencyMobileNavigation from '@/components/AgencyMobileNavigation';
 import { useAdmin } from '@/components/AdminShell';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
@@ -81,6 +82,9 @@ export default function SettingsWorkspace({
     auth.workspace?.portal_name ||
     runtime.branding.display_name ||
     'Agency workspace';
+  const basePath = auth.workspace?.slug
+    ? `/workspace/${encodeURIComponent(auth.workspace.slug)}`
+    : '/agency';
   const navigation = MAIN_NAV.filter(
     (item) => item.key !== 'business' || canManageAgency,
   );
@@ -235,9 +239,16 @@ export default function SettingsWorkspace({
         </div>
       </main>
 
-      <div className={shellStyles.mobileTell}>
-        <AiLauncher />
-      </div>
+      <AgencyMobileNavigation
+        basePath={basePath}
+        view="settings"
+        canSeeBusiness={canManageAgency}
+        search={{tenantId: auth.workspace.tenant_id, userId: auth.user.id, basePath}}
+        onNavigate={(_view, href) => router.push(href)}
+        onWarm={(view) => router.prefetch(view === 'home' ? basePath : `${basePath}?view=${view}`)}
+        onConnections={() => router.push('/settings/connections')}
+        onCaptureCompleted={() => void auth.refresh()}
+      />
     </div>
   );
 }
