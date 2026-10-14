@@ -38,6 +38,10 @@ export type PlayerContextResearchResult = {
 };
 
 const clean = (value: unknown, max = 180) => String(value ?? "").trim().slice(0, max);
+const cleanClub = (value: unknown) => clean(value, 160)
+  .replace(/\s*[—–-]\s*(?:senior\s*)?\(?first team\)?\s*$/i, "")
+  .replace(/\s*\((?:senior|first team)\)\s*$/i, "")
+  .trim();
 const safeUrl = (value: unknown) => {
   try {
     const url = new URL(clean(value, 600));
@@ -146,7 +150,7 @@ export async function researchPlayerContext(
   };
   const prompt = [
     "Research the exact football player's CURRENT playing context using live web search.",
-    "Identify the exact current squad, not merely the parent club. Distinguish first team from Reserves, II, B, academy, U23 and U21.",
+    "Identify the exact current squad, not merely the parent club. Distinguish first team from Reserves, II, B, academy, U23 and U21. Return only the canonical team name in current_club; do not append labels such as Senior or first team.",
     "Identify the domestic league/competition the current squad plays in, the country, the current season label and primary position.",
     "Return a Transfermarkt player profile URL and a useful current statistics/profile URL only when the exact player is clearly matched.",
     "Do not infer an answer from a same-name player. Use name, date of birth, club history and supplied links to prove identity.",
@@ -205,15 +209,21 @@ export async function researchPlayerContext(
 
   const fields: Partial<Record<PlayerContextField, string>> = {};
   for (const key of ["current_club", "current_league", "current_country", "current_season_label", "primary_position"] as const) {
-    const value = clean(parsed?.[key], 160);
+    const value = key === "current_club" ? cleanClub(parsed?.[key]) : clean(parsed?.[key], 160);
     if (value) fields[key] = value;
   }
 
   const surfaced = new Set(sources.map((source) => sourceKey(source.url)).filter(Boolean));
-  for (const key of ["transfermarkt_url", "stats_url"] as const) {
-    const value = safeUrl(parsed?.[key]);
-    if (value && surfaced.has(sourceKey(value))) fields[key] = value;
+  const transfermarkt = safeUrl(parsed?.transfermarkt_url);
+  if (transfermarkt && surfaced.has(sourceKey(transfermarkt))) {
+    const url = new URL(transfermarkt);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host.startsWith("transfermarkt.") || host.includes(".transfermarkt.")) {
+      fields.transfermarkt_url = `https://www.transfermarkt.com${url.pathname}`;
+    }
   }
+  const statsUrl = safeUrl(parsed?.stats_url);
+  if (statsUrl && surfaced.has(sourceKey(statsUrl))) fields.stats_url = statsUrl;
 
   return {
     ok: Boolean(Object.keys(fields).length),
