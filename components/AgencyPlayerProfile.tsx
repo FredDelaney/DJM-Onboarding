@@ -984,8 +984,45 @@ export default function AgencyPlayerProfile({
     if (!canEdit || actionBusy || (prepareKind === 'club' && !prepareClub)) return;
     setActionBusy('prepare');
     setError('');
+    setNotice('');
     setProfileReview(null);
     try {
+      const playerContext = bundle?.player || {};
+      const statMeta = bundle?.auto_stats_meta || {};
+      const checkedAt = text(statMeta.checked_at || statMeta.data_updated_at);
+      const checkedMs = checkedAt ? Date.parse(checkedAt) : 0;
+      const currentStatsFresh = Boolean(
+        recordedStats.length &&
+        Number.isFinite(checkedMs) &&
+        Date.now() - checkedMs <= 20 * 60 * 60 * 1000,
+      );
+      const canRefreshStats = Boolean(
+        playerContext.current_season_label &&
+        playerContext.current_club &&
+        playerContext.current_league,
+      );
+
+      if (canRefreshStats && !currentStatsFresh) {
+        const requestId = crypto.randomUUID();
+        const started = await invoke<any>('player_data_refresh', {
+          player_id: playerId,
+          request_id: requestId,
+        });
+        let job = started?.job || null;
+        for (let attempt = 0; attempt < 32 && ['queued', 'running'].includes(String(job?.status || '')); attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          const status = await invoke<any>('player_data_status', { player_id: playerId });
+          job = status?.job || job;
+        }
+        if (job && ['queued', 'running'].includes(String(job.status || ''))) {
+          setNotice('The current-statistics check is still running. The profile will use the recorded evidence available now.');
+        } else if (job?.status === 'failed') {
+          setNotice('The current-statistics check needs attention. The profile will use the recorded evidence available now.');
+        } else {
+          await load(true, true);
+        }
+      }
+
       const response = await invoke<any>('player_profile_prepare', {
         player_id: playerId,
         kind: prepareKind,
@@ -2131,7 +2168,9 @@ export default function AgencyPlayerProfile({
                   disabled={Boolean(actionBusy) || (prepareKind === 'club' && !prepareClub)}
                 >
                   {actionBusy === 'prepare' ? <LoaderCircle className={styles.spin} size={15} /> : <Sparkles size={15} />}
-                  Prepare {prepareKind === 'club' ? 'for club' : 'general profile'}
+                  {actionBusy === 'prepare'
+                    ? 'Preparing profile...'
+                    : `Prepare ${prepareKind === 'club' ? 'for club' : 'general profile'}`}
                 </button>
               </div>
             </div>

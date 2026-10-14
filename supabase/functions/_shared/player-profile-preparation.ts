@@ -1,5 +1,6 @@
 // This module selects recorded evidence for a profile draft. It does not write player data
 // or treat a model's proposed number as evidence. Callers must load rows for one tenant.
+import { matchesCurrentSeasonContext } from "./football-data/player-data-workflow.ts";
 
 export type PlayerProfileStatField =
   | "appearances"
@@ -36,6 +37,7 @@ export type PlayerProfileEvidenceInput = {
   player: {
     primary_position?: string | null;
     current_club?: string | null;
+    current_league?: string | null;
     current_season_label?: string | null;
     transfermarkt_url?: string | null;
   };
@@ -211,7 +213,12 @@ function prepareCore(input: PlayerProfileEvidenceInput): PreparedCore {
       : Boolean(effectiveYear && rowYear === effectiveYear);
     const isPrevious = Boolean(previousYear && rowYear === previousYear);
     if (!isCurrent && !isPrevious) continue;
-    if (isCurrent && currentClub && normalise(row.club_name) !== currentClub) continue;
+    if (isCurrent && currentClub) {
+      const trackedContext = Boolean(currentSeason && clean(input.player.current_league));
+      if (trackedContext) {
+        if (!matchesCurrentSeasonContext(row, input.player)) continue;
+      } else if (normalise(row.club_name) !== currentClub) continue;
+    }
     const source = sourceFor(row);
     if (!source) continue;
     const seasonScope = isPrevious ? "previous" : currentSeason ? "current" : "recent";

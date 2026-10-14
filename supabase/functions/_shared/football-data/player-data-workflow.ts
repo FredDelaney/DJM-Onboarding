@@ -9,6 +9,25 @@ export type SeasonDraft = {
 const text = (value: unknown) => String(value ?? '').trim();
 const norm = (value: unknown) => text(value).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const clubKey = (value: unknown) => norm(value).replace(/\b(fc|football club)\b/g, '').replace(/\b(reserves?|b|2)\b/g, 'ii').replace(/\s+/g, ' ').trim();
+const squadPattern = /\b(reserves?|ii|2|b|academy|u23|u21)\b/;
+const clubBase = (value: unknown) => norm(value)
+ .replace(/\b(fc|football club|reserves?|ii|2|b|academy|u23|u21)\b/g, '')
+ .replace(/\s+/g, ' ').trim();
+const squadKind = (value: unknown) => squadPattern.test(norm(value)) ? 'reserve' : 'senior';
+const clubMatches = (rowClub: unknown, currentClub: unknown) => {
+ const row = clubKey(rowClub), current = clubKey(currentClub);
+ if (!row || !current) return false;
+ if (row === current) return true;
+ const rowBase = clubBase(rowClub), currentBase = clubBase(currentClub);
+ if (!rowBase || rowBase !== currentBase) return false;
+ return !squadPattern.test(norm(currentClub)) || squadKind(rowClub) === squadKind(currentClub);
+};
+const leagueMatches = (rowLeague: unknown, currentLeague: unknown) => {
+ const row = norm(rowLeague);
+ const options = text(currentLeague).split(/[\/|;,]+|\bor\b/i).map(norm).filter(Boolean);
+ if (!row || !options.length) return false;
+ return options.some(option => row === option || (option.length >= 8 && (row.includes(option) || option.includes(row))));
+};
 const seasonKey = (value: unknown) => {
  const label = text(value).replace(/\s/g, '').replaceAll('/', '-');
  const match = label.match(/^((?:19|20)\d{2})-(\d{2}|\d{4})$/);
@@ -17,8 +36,11 @@ const seasonKey = (value: unknown) => {
 };
 const timestamp = (value: unknown) => { const ms = Date.parse(text(value)); return Number.isFinite(ms) ? ms : 0; };
 export function matchesCurrentSeasonContext(row: any, player: any): boolean {
- const season = seasonKey(player?.current_season_label), club = clubKey(player?.current_club), league = norm(player?.current_league);
- return Boolean(season && club && league && seasonKey(row?.season_label) === season && clubKey(row?.club_name) === club && norm(row?.league) === league);
+ const season = seasonKey(player?.current_season_label);
+ const hasRequiredContext = Boolean(season && text(player?.current_club) && text(player?.current_league));
+ return Boolean(hasRequiredContext && seasonKey(row?.season_label) === season &&
+   clubMatches(row?.club_name, player?.current_club) &&
+   leagueMatches(row?.league, player?.current_league));
 }
 export function selectCurrentSeasonEvidence(rows: any[], player: any): any | null {
  return [...rows].filter(row =>
