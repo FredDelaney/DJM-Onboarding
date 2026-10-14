@@ -1616,7 +1616,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {error ? (
-          <div role="alert">
+          <div>
             <ErrorBox text={error} />
             <button type="button" data-ui-button="secondary"
               className={styles.secondaryButton}
@@ -2088,7 +2088,7 @@ export default function AgencyOperatingWorkspace() {
               Nothing changes until you confirm. The latest recorded
               information will be checked again first.
             </p>
-            {proposalError ? <div role="alert"><ErrorBox text={proposalError} /></div> : null}
+            {proposalError ? <div><ErrorBox text={proposalError} /></div> : null}
             <div className={styles.modalActions}>
               <button
                 type="button"
