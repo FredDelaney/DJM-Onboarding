@@ -12,6 +12,9 @@ test('preparation stays in the existing Player Profile and supports general or a
   assert.match(profile, /aria-pressed=\{prepareKind === 'general'\}/);
   assert.match(profile, /aria-pressed=\{prepareKind === 'club'\}/);
   assert.match(profile, /player_profile_prepare/);
+  assert.match(profile, /player_data_refresh/);
+  assert.match(profile, /player_data_status/);
+  assert.match(profile, /20 \* 60 \* 60 \* 1000/);
   assert.match(profile, /organisation_id: prepareClub/);
   assert.match(profile, /deal_room_id: prepareDeal \|\| null/);
 });

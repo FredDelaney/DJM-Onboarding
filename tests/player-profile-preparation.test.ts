@@ -82,6 +82,27 @@ test('unreviewed AI and unsourced rows cannot provide profile facts', () => {
   assert.ok(result.suggestions.some((item) => item.code === 'missing_current_stats'));
 });
 
+test('tracked competition allows a generic parent club to use the matching reserve row', () => {
+  const result = preparePlayerProfileEvidence({
+    player: {
+      ...player,
+      current_club: 'Wellington Phoenix',
+      current_league: 'Central League/National League',
+      current_season_label: '2026',
+    },
+    career: [{
+      ...currentRow,
+      id: 'phoenix-reserves',
+      season_label: '2026',
+      club_name: 'Wellington Phoenix FC Reserves',
+      league: 'Central League',
+      appearances: 17,
+    }],
+  });
+  assert.ok(result.statCandidates.some((stat) => stat.ref === 'phoenix-reserves:appearances'));
+  assert.equal(result.suggestions.some((item) => item.code === 'missing_current_stats'), false);
+});
+
 test('operator-reviewed manual rows retain manual provenance and exact zero values', () => {
   const result = preparePlayerProfileEvidence({
     player,
