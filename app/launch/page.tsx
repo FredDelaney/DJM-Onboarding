@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ArrowRight,
   Check,
@@ -9,6 +8,7 @@ import {
   LogOut,
   ShieldCheck,
 } from 'lucide-react';
+
 import {
   CSSProperties,
   FormEvent,
@@ -805,7 +805,7 @@ export default function AgencyLaunchPage() {
               required
             />
           </Field>
-          {error ? <div className={styles.error}>{error}</div> : null}
+          {error ? <div className={styles.error} role="alert" aria-atomic="true">{error}</div> : null}
           <Primary busy={busy === 'sign-in'} label="Open owner workspace" />
         </form>
       </main>
@@ -886,8 +886,8 @@ export default function AgencyLaunchPage() {
             <p>{stepCopy.copy}</p>
           </div>
 
-          {notice ? <div className={styles.notice}>{notice}</div> : null}
-          {error ? <div className={styles.error}>{error}</div> : null}
+          {notice ? <div className={styles.notice} role="status" aria-atomic="true">{notice}</div> : null}
+          {error ? <div className={styles.error} role="alert" aria-atomic="true">{error}</div> : null}
 
           <section className={styles.workCard}>{activeForm}</section>
 

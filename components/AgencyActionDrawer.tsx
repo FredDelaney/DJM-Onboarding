@@ -1601,7 +1601,7 @@ export default function AgencyActionDrawer({
         ) : null}
 
         {error ? (
-          <section className={styles.error}>
+          <section className={styles.error} role="alert" aria-atomic="true">
             <CircleAlert size={16} />
 
             <div>

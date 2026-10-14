@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,6 +14,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+
 import {
   useCallback,
   useEffect,
@@ -398,19 +398,19 @@ export default function AgencyTeamHandoffDrawer({
         </header>
 
         {error ? (
-          <div className={styles.error}>
+          <div className={styles.error} role="alert" aria-atomic="true">
             <CircleAlert size={15} />
             <span>{error}</span>
           </div>
         ) : null}
 
         {loading ? (
-          <div className={styles.loading}>
+          <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
             <LoaderCircle size={18} />
             <span>Loading recorded ownership</span>
           </div>
         ) : step === 'success' ? (
-          <div className={styles.success}>
+          <div className={styles.success} role="status" aria-atomic="true">
             <CheckCircle2 size={28} />
             <h3>Responsibility moved</h3>
             <p>

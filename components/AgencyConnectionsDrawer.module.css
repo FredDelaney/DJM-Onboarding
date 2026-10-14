@@ -277,20 +277,20 @@
 }
 
 .error {
-  background: #fff1ef;
-  color: #9b4e43;
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .success {
-  background: #eef7f0;
-  color: #4d7458;
+  background: var(--interface-success-bg);
+  color: var(--interface-success);
 }
 
 .loading {
   justify-content: center;
   min-height: 140px;
   align-items: center;
-  color: #75858f;
+  color: var(--interface-muted);
 }
 
 .messagingSection {

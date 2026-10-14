@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Archive,
   AlertTriangle,
@@ -9,11 +8,13 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { friendlyError } from '@/lib/platform-client';
 import styles from './EntityActionsMenu.module.css';
+import JourneyStatus from './JourneyStatus';
 
 export type EntityActionKind =
   | 'club_need'
@@ -297,7 +298,7 @@ export default function EntityActionsMenu({
                     </label>
                   ))}
                 </div>
-                {error ? <p className={styles.error}>{error}</p> : null}
+                {error ? <JourneyStatus compact kind="error" description={error}/> : null}
                 <div className={styles.actions}>
                   <button type="button" className={styles.secondary} onClick={close}>Cancel</button>
                   <button type="submit" className={styles.primary} disabled={busy}>
@@ -314,7 +315,7 @@ export default function EntityActionsMenu({
                 <p>
                   It will disappear from active work, but its underlying history stays intact.
                 </p>
-                {error ? <p className={styles.error}>{error}</p> : null}
+                {error ? <JourneyStatus compact kind="error" description={error}/> : null}
                 <div className={styles.actions}>
                   <button type="button" className={styles.secondary} onClick={close}>Keep active</button>
                   <button type="button" className={styles.primary} disabled={busy} onClick={() => void archiveEntity()}>
@@ -363,7 +364,7 @@ export default function EntityActionsMenu({
                     Only a workspace owner or admin can permanently delete this record.
                   </p>
                 ) : null}
-                {error ? <p className={styles.error}>{error}</p> : null}
+                {error ? <JourneyStatus compact kind="error" description={error}/> : null}
 
                 <div className={styles.actions}>
                   <button type="button" className={styles.secondary} onClick={close}>Cancel</button>

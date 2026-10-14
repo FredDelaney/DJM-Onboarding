@@ -14,8 +14,8 @@ test('Connections presents only capabilities that are actually live', () => {
 
 test('Connections exposes clear accessible interaction state', () => {
   assert.match(source, /aria-pressed=\{preferences\.reminder_intensity === value\}/);
-  assert.match(source, /className=\{styles\.error\} role="alert"/);
-  assert.match(source, /className=\{styles\.success\} role="status"/);
+  assert.match(source, /JourneyStatus compact kind="error" description=\{error\}/);
+  assert.match(source, /JourneyStatus compact kind="success" description=\{message\}/);
 });
 
 test('Connections keeps the finished DJM security language', () => {

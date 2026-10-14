@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,6 +13,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
+
 import {
   FormEvent,
   useCallback,
@@ -751,7 +751,7 @@ export default function AgencyContactIntelligenceDrawer({
           <div
             className={
               styles.loading
-            }
+            } role="status" aria-busy="true" aria-atomic="true"
           >
             <LoaderCircle
               size={20}

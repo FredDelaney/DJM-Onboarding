@@ -86,8 +86,8 @@
 
 .error {
   border-color: #efdfdb;
-  background: #fff7f5;
-  color: #92594b;
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .success,
@@ -99,8 +99,8 @@
 
 .success {
   border-color: #dcebe4;
-  background: #f7fbf9;
-  color: #4f7764;
+  background: var(--interface-success-bg);
+  color: var(--interface-success);
 }
 
 .loading svg,

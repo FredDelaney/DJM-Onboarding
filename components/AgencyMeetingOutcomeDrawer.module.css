@@ -263,11 +263,11 @@
 .error {
   margin-top: 12px;
   padding: 10px 11px;
-  border: 1px solid #efdfdb;
-  border-radius: 10px;
-  background: #fff7f5;
-  color: #92594b;
-  font-size: 8px;
+  border: 1px solid var(--interface-danger-line);
+  border-radius: var(--interface-feedback-radius);
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
+  font-size: var(--interface-feedback-font-size);
   line-height: 1.45;
 }
 

@@ -1,17 +1,6 @@
 'use client';
+import {ArrowLeft,ArrowRight,CalendarClock,CheckCircle2,CircleAlert,History,LoaderCircle,Target,X} from 'lucide-react';
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  CalendarClock,
-  CheckCircle2,
-  CircleAlert,
-  History,
-  LoaderCircle,
-  ShieldCheck,
-  Target,
-  X,
-} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
@@ -372,7 +361,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         </header>
 
         {busy ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LoaderCircle size={18} className={styles.spin} />
             <div>
               <strong>Preparing the player review</strong>

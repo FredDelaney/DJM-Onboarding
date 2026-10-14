@@ -1,31 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  ArrowRight,
-  BarChart3,
-  Check,
-  ChevronDown,
-  Clock3,
-  Copy,
-  Download,
-  Eye,
-  ExternalLink,
-  FileText,
-  Link2,
-  LoaderCircle,
-  Mail,
-  MessageCircleMore,
-  Pencil,
-  Play,
-  RefreshCw,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
-  X,
-} from 'lucide-react';
+import {ArrowLeft,ArrowRight,BarChart3,Check,ChevronDown,Clock3,Copy,Download,Eye,ExternalLink,Link2,LoaderCircle,Mail,MessageCircleMore,Pencil,Play,RefreshCw,Send,ShieldCheck,Sparkles,Trash2,X} from 'lucide-react';
 import {
   useCallback,
   useEffect,
@@ -1784,7 +1760,7 @@ export default function AgencyPlayerProfile({
 
   if (loading && !bundle) {
     return (
-      <section className={styles.loading}>
+      <section className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
         <LoaderCircle className={styles.spin} size={22} />
         Loading Player Profile...
       </section>
@@ -1860,13 +1836,13 @@ export default function AgencyPlayerProfile({
       </div>
 
       {error ? (
-        <div className={styles.error}>
+        <div className={styles.error} role="alert" aria-atomic="true">
           {error}
         </div>
       ) : null}
 
       {notice ? (
-        <div className={styles.notice}>
+        <div className={styles.notice} role="status" aria-atomic="true">
           <Check size={15} />
           {notice}
         </div>
@@ -2974,7 +2950,7 @@ export default function AgencyPlayerProfile({
 
             <div className={styles.form}>
               {transfermarktError ? (
-                <div className={styles.error}>{transfermarktError}</div>
+                <div className={styles.error} role="alert" aria-atomic="true">{transfermarktError}</div>
               ) : null}
               <label>
                 <span>Transfermarkt player URL</span>
@@ -3060,7 +3036,7 @@ export default function AgencyPlayerProfile({
 
             <div className={styles.form}>
               {verifyError ? (
-                <div className={styles.error}>
+                <div className={styles.error} role="alert" aria-atomic="true">
                   {verifyError}
                 </div>
               ) : null}

@@ -1616,7 +1616,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {error ? (
-          <div role="alert">
+          <div>
             <ErrorBox text={error} />
             <button type="button" data-ui-button="secondary"
               className={styles.secondaryButton}
@@ -1628,7 +1628,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {busy && !data ? (
-          <section className={styles.loadingCard}>
+          <section className={styles.loadingCard} role="status" aria-busy="true" aria-atomic="true">
             <LoaderCircle size={20} className={styles.spin} />
             Loading current agency position...
           </section>
@@ -2088,7 +2088,7 @@ export default function AgencyOperatingWorkspace() {
               Nothing changes until you confirm. The latest recorded
               information will be checked again first.
             </p>
-            {proposalError ? <div role="alert"><ErrorBox text={proposalError} /></div> : null}
+            {proposalError ? <div><ErrorBox text={proposalError} /></div> : null}
             <div className={styles.modalActions}>
               <button
                 type="button"
@@ -2136,7 +2136,7 @@ function Loading({
 
 function ErrorBox({ text }: { text: string }) {
   return (
-    <div className={styles.error}>
+    <div className={styles.error} role="alert" aria-atomic="true">
       <CircleAlert size={16} />
       <span>{text}</span>
     </div>

@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 
 const css = readFileSync('components/AgencyOperatingWorkspace.module.css','utf8');
-const final = css.slice(css.lastIndexOf('ReDream authenticated control system v2'));
+const final = css.slice(css.lastIndexOf('Authenticated mobile control system v1'));
 const componentFiles = readdirSync('components').filter((name) => /^Agency.*\.tsx$/.test(name));
 const allAgency = componentFiles.map((name) => readFileSync(`components/${name}`,'utf8')).join('\n');
 
@@ -15,8 +15,8 @@ test('authenticated control system defines five semantic roles', () => {
 
 test('primary and secondary mobile controls share geometry and wrap full labels', () => {
   assert.match(final, /data-ui-button="primary"[\s\S]*data-ui-button="secondary"[\s\S]*flex-direction: row !important/);
-  assert.match(final, /min-height: var\(--ui-control-h\) !important/);
-  assert.match(final, /border-radius: var\(--ui-control-radius\) !important/);
+  assert.match(final, /min-height: var\(--interface-control-height\) !important/);
+  assert.match(final, /border-radius: var\(--interface-control-radius\) !important/);
   assert.match(final, /white-space: normal !important/);
 });
 
@@ -31,15 +31,15 @@ test('semantic controls are used broadly across authenticated Agency components'
 });
 
 test('control palette standardises light and inverse surfaces', () => {
-  const palette = css.slice(css.lastIndexOf('ReDream authenticated control palette v3'));
-  assert.match(palette, /data-ui-button="primary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: #0b2d49 !important/);
-  assert.match(palette, /data-ui-button="secondary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: #f1f4f6 !important/);
-  assert.match(palette, /data-ui-tone="inverse"\]\[data-ui-button="primary"\][\s\S]*background: #fff !important/);
+  const palette = css.slice(css.lastIndexOf('Shared control palette.'));
+  assert.match(palette, /data-ui-button="primary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: var\(--interface-blue\) !important/);
+  assert.match(palette, /data-ui-button="secondary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: var\(--interface-soft\) !important/);
+  assert.match(palette, /data-ui-tone="inverse"\]\[data-ui-button="primary"\][\s\S]*background: var\(--interface-surface\) !important/);
   assert.match(palette, /data-ui-tone="inverse"\]\[data-ui-button="secondary"\][\s\S]*background: rgba\(255,255,255,.08\) !important/);
 });
 
 test('controls expose consistent focus and pressed states', () => {
-  const palette = css.slice(css.lastIndexOf('ReDream authenticated control palette v3'));
+  const palette = css.slice(css.lastIndexOf('Shared control palette.'));
   assert.match(palette, /data-ui-button\]:focus-visible[\s\S]*outline: 3px solid/);
   assert.match(palette, /data-ui-button\]:active:not\(:disabled\)[\s\S]*translateY\(1px\)/);
 });

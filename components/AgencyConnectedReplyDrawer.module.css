@@ -134,8 +134,8 @@
   justify-content: center;
   gap: 8px;
   margin-top: 11px;
-  color: #738590;
-  font-size: 8.5px;
+  color: var(--interface-muted);
+  font-size: var(--interface-feedback-font-size);
 }
 
 .loading svg,
@@ -259,9 +259,9 @@
   margin-top: 11px;
   padding: 10px 11px;
   border-color: #efdfdb;
-  background: #fff7f5;
-  color: #92594b;
-  font-size: 8px;
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
+  font-size: var(--interface-feedback-font-size);
   line-height: 1.45;
 }
 

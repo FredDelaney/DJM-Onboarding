@@ -203,18 +203,18 @@
 }
 
 .notice {
-  background: #f3f6f8;
-  color: #53616d;
+  background: var(--interface-info-bg);
+  color: var(--interface-info);
 }
 
 .success {
-  background: #eef8f1;
-  color: #376447;
+  background: var(--interface-success-bg);
+  color: var(--interface-success);
 }
 
 .error {
-  background: #fff1ef;
-  color: #963d34;
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 .avatarEditor {
   display: grid;

@@ -21,7 +21,8 @@ test('recent activity no longer uses boxed speech icons', () => {
   assert.match(css, /Home icon language v6/);
 });
 
-test('secondary priority CTAs are lighter than the hero action', () => {
-  assert.match(css, /\.attentionCard:not\(\.attentionCardPrimary\) \.compactButton[\s\S]*width: 36px/);
-  assert.match(css, /background: #eef4f8/);
+test('daily priority actions use the same quiet control hierarchy', () => {
+  assert.match(css, /\.focusAction \.compactButton[\s\S]*min-height:\s*44px/);
+  assert.match(css, /\.focusAction \.compactButton[\s\S]*background:\s*transparent/);
+  assert.match(css, /data-ui-button="primary"[\s\S]*background: var\(--interface-blue\)/);
 });

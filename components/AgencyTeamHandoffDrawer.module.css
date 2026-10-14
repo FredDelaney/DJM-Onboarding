@@ -89,8 +89,8 @@
 
 .error {
   border-color: #efdfdb;
-  background: #fff7f5;
-  color: #93594b;
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .loading {

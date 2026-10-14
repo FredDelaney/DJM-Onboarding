@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ArrowLeft,
   CheckCircle2,
@@ -9,6 +8,7 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { friendlyError, relativeDate } from '@/lib/platform-client';
@@ -224,7 +224,7 @@ export default function AgencyMemoryDrawer({
         </header>
 
         {busy ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LoaderCircle size={18} className={styles.spin} />
             <div>
               <strong>Loading agency memory</strong>

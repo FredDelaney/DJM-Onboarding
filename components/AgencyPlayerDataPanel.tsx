@@ -1,6 +1,7 @@
 'use client';
+import JourneyStatus from './JourneyStatus';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Check,Clock3,ExternalLink,LoaderCircle,Pencil,RefreshCw,ShieldCheck} from 'lucide-react';
+import {Clock3,ExternalLink,LoaderCircle,Pencil,RefreshCw,ShieldCheck} from 'lucide-react';
 import {friendlyError,compactDateTime} from '@/lib/platform-client';
 import {PLAYER_STAT_FIELDS,selectCurrentSeasonEvidence,seasonDraft,validateSeasonDraft,safeSourceUrl,matchesCurrentSeasonContext,type SeasonDraft} from '@/lib/player-data-workflow';
 import styles from './AgencyPlayerDataPanel.module.css';
@@ -101,10 +102,10 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    {sourceUrl?<a href={sourceUrl} target="_blank" rel="noreferrer">Open source <ExternalLink size={12}/></a>:null}
   </div>
   {!contextReady?<p className={styles.guidance}>Add the current season, club and competition. History is preserved.</p>:!row?<p className={styles.guidance}>No statistics match this selection.</p>:missing.length?<p className={styles.guidance}>Not set: {missing.join(', ')}. Unknown figures stay blank when you edit.</p>:null}
-  {pending(job)?<div className={styles.status} role="status"><LoaderCircle size={15} className={styles.spin}/><div><strong>Checking current-season sources</strong><span>You can keep using the profile while this finishes.</span></div></div>:job?.summary?.message?<div className={job.status==='failed'?styles.warning:styles.status} role="status"><div><strong>{!currentJobContext?'Previous source check':job.status==='failed'?'Update needs attention':'Source check finished'}</strong><span>{currentJobContext?job.summary.message:'This check was for a previous season, club or competition. Update the current statistics to check the new context.'}</span>{currentJobContext&&job.summary.checked_at?<small>Checked {compactDateTime(job.summary.checked_at)}</small>:null}</div></div>:null}
-  {error?<div className={styles.error} role="alert"><span>{error}</span><button type="button" data-ui-button="secondary" onClick={()=>void reload()} disabled={checking||saving}>{checking?'Checking...':'Reload player data'}</button></div>:null}
-  {notice?<div className={styles.status} role="status"><Check size={15}/>{notice}</div>:null}
-  {hasCustomStats?<div className={styles.warning}><div><strong>The club profile uses custom headline statistics</strong><span>Published profiles use these figures once you switch to current statistics.</span></div>{canEdit&&onUseRecordedStats?<button type="button" data-ui-button="secondary" disabled={busy||blocked||editing} onClick={()=>void onUseRecordedStats().catch(failure=>setError(friendlyError(failure)))}>Use current statistics</button>:null}</div>:null}
+  {pending(job)?<JourneyStatus compact kind="loading" title="Checking current-season sources" description="You can keep using the profile while this finishes."/>:job?.summary?.message?<JourneyStatus compact kind={!currentJobContext?'info':job.status==='failed'?'warning':'success'} title={!currentJobContext?'Previous source check':job.status==='failed'?'Update needs attention':'Source check finished'} description={currentJobContext?job.summary.message:'This check was for a previous season, club or competition. Update the current statistics to check the new context.'}>{currentJobContext&&job.summary.checked_at?<small>Checked {compactDateTime(job.summary.checked_at)}</small>:null}</JourneyStatus>:null}
+  {error?<JourneyStatus compact kind="error" description={error} onRetry={()=>void reload()} retryBusy={checking} retryDisabled={saving} retryLabel="Reload player data"/>:null}
+  {notice?<JourneyStatus compact kind="success" description={notice}/>:null}
+  {hasCustomStats?<JourneyStatus compact kind="warning" title="The club profile uses custom headline statistics" description="Published profiles use these figures once you switch to current statistics.">{canEdit&&onUseRecordedStats?<button type="button" data-ui-button="secondary" disabled={busy||blocked||editing} onClick={()=>void onUseRecordedStats().catch(failure=>setError(friendlyError(failure)))}>Use current statistics</button>:null}</JourneyStatus>:null}
   {!editing?<div className={styles.actions}>
    {canEdit?<button type="button" data-ui-button="secondary" onClick={openEditor} disabled={busy||blocked||uncertain}><Pencil size={14}/>{row?'Edit current statistics':'Add season statistics'}</button>:null}
    {pending(job)||uncertain?<button type="button" data-ui-button="secondary" onClick={()=>void readStatus()} disabled={checking}>{checking?'Checking...':'Check progress'}</button>:null}

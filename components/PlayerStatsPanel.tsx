@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
+
 import { compactDateTime, friendlyError } from '@/lib/platform-client';
 import {
   aggregateFootballStats,
@@ -304,14 +305,14 @@ export default function PlayerStatsPanel({
       </header>
 
       {error ? (
-        <div className={styles.error}>
+        <div className={styles.error} role="alert" aria-atomic="true">
           <AlertCircle size={16} />
           {error}
         </div>
       ) : null}
 
       {message ? (
-        <div className={styles.success}>
+        <div className={styles.success} role="status" aria-atomic="true">
           <CheckCircle2 size={16} />
           {message}
         </div>
