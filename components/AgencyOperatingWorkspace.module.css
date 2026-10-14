@@ -4889,7 +4889,7 @@
   .findButton { color: #6e6e73; }
 }
 @media (max-width: 680px) {
-  .main { padding-top: 18px; }
+  .main { padding-top: calc(18px + env(safe-area-inset-top, 0px)); }
   .pageHead { margin-bottom: 18px; }
   .pageHead h1 { font-size: 22px; }
   .sidebar { background: #fff; backdrop-filter: none; }

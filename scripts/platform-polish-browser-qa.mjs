@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {verifyMobileChrome} from './mobile-workspace-chrome-qa.mjs';
 import {verifyDailyMobileNavigation,verifyInPlaceCaptureCompletion,verifyDealRecordCapture,verifyDealHistoryAndCrossView} from './daily-mobile-journey-qa.mjs';
 import {verifyCaptureFollowupJourney} from './capture-followup-journey-qa.mjs';
 import {spawn} from 'node:child_process';
@@ -167,6 +168,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      await verifyInPlaceCaptureCompletion(page,url,width===390);
     }
     if(suite==='agency'&&screen==='opportunities'&&width===390){await verifyDealRecordCapture(page,url,dealA,dealB);await verifyDealHistoryAndCrossView(page,url,dealA,dealB);}
+    await verifyMobileChrome(page,suite,screen,width);
     report.push({suite,screen,width,...metrics});
     if(metrics.networkToolbarOverlap)failures.push('Network tabs overlap search at '+width);
     if(suite==='detail'&&screen==='review'&&(!metrics.reviewHeroContrast.length||metrics.reviewHeroContrast.some(item=>item.ratio<4.5)))failures.push('Service-review summary has unreadable contrast at '+width);
