@@ -39,7 +39,7 @@ export type PlayerContextResearchResult = {
 
 const clean = (value: unknown, max = 180) => String(value ?? "").trim().slice(0, max);
 const cleanClub = (value: unknown) => clean(value, 160)
-  .replace(/\s*[—–-]\s*(?:senior\s*)?\(?first team\)?\s*$/i, "")
+  .replace(/\s*[\u2014\u2013-]\s*(?:senior\s*)?\(?first team\)?\s*$/i, "")
   .replace(/\s*\((?:senior|first team)\)\s*$/i, "")
   .trim();
 const safeUrl = (value: unknown) => {
