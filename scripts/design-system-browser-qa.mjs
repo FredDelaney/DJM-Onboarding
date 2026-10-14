@@ -1,3 +1,4 @@
+import {startLoopbackHttpsFixture} from './loopback-https-fixture.mjs';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {chromium,webkit} from 'playwright';
@@ -5,18 +6,25 @@ import {mkdir,cp,rm,access,readFile,writeFile} from 'node:fs/promises';
 const route=new URL('../app/workspace/qa-design-system/',import.meta.url);
 const nextEnv=new URL('../next-env.d.ts',import.meta.url),before=await readFile(nextEnv,'utf8');
 try{await access(route);throw new Error('Refusing to replace existing fixture route');}catch(e){if(e.code!=='ENOENT')throw e;}
-const port=process.env.DESIGN_QA_PORT||'3129',base='http://127.0.0.1:'+port+'/workspace/qa-design-system';
+const port=process.env.DESIGN_QA_PORT||'3129';let base;
 const env={...process.env,NEXT_PUBLIC_REDREAM_ENVIRONMENT:'qa',NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'example'};
-const failures=[],errors=[];let server,browser;
+const failures=[],errors=[];let server,browser,httpsFixture;
 const check=async(name,fn)=>{try{await fn();console.log('PASS',name);}catch(e){failures.push(name+': '+e.message);console.log('FAIL',name,e.message);}};
 try{
  await mkdir(route,{recursive:true});await cp(new URL('../tests/fixtures/design-system/page.tsx',import.meta.url),new URL('page.tsx',route));
  const build=spawn('npm',['run','build'],{env,stdio:'inherit'});await new Promise((resolve,reject)=>{build.once('error',reject);build.once('exit',c=>c===0?resolve():reject(new Error('Fixture build failed '+c)));});
  server=spawn('npm',['run','start','--','--hostname','127.0.0.1','--port',port],{env,stdio:'inherit',detached:true});
+ let ready=false;
+ for(let i=0;i<80;i++){try{const response=await fetch('http://127.0.0.1:'+port+'/robots.txt',{signal:AbortSignal.timeout(1000)});await response.text();if(response.ok){ready=true;break;}}catch{}await new Promise(resolve=>setTimeout(resolve,250));}
+ assert.ok(ready,'The loopback Next server must be ready');
+ httpsFixture=await startLoopbackHttpsFixture(Number(port));base=httpsFixture.origin+'/workspace/qa-design-system';
  browser=await (process.env.DESIGN_QA_BROWSER==='webkit'?webkit:chromium).launch(process.env.DESIGN_QA_BROWSER==='webkit'?{}:{executablePath:process.env.CALENDAR_CHROMIUM});
- const page=await browser.newPage({viewport:{width:390,height:844}});page.on('pageerror',e=>errors.push(e.message));
+ const page=await browser.newPage({viewport:{width:390,height:844},ignoreHTTPSErrors:true});page.on('pageerror',e=>errors.push(e.message));
+ if(process.env.DESIGN_QA_DIAGNOSTICS)page.on('requestfailed',request=>console.log('ASSET_FAILURE',JSON.stringify({url:request.url(),resource:request.resourceType(),error:request.failure()?.errorText})));
+
  for(let i=0;i<80;i++){try{await page.goto(base);break;}catch{await new Promise(r=>setTimeout(r,250));}}
  await page.getByRole('heading',{name:'Interface checks'}).waitFor();
+ const policy=await page.request.get(base);assert.match(policy.headers()['content-security-policy']||'',/upgrade-insecure-requests/,'The production security policy stays enabled');
  if(!process.env.DESIGN_QA_ONLY||process.env.DESIGN_QA_ONLY==='feedback')for(const width of [320,390,768,1440]){
   await page.setViewportSize({width,height:844});await page.goto(base);
   await check('feedback semantics and shared tokens '+width,async()=>{
@@ -59,6 +67,6 @@ try{
  }
  assert.deepEqual(errors,[]);assert.deepEqual(failures,[]);console.log('Design-system browser QA passed');
 }finally{
- if(browser)await browser.close();if(server?.pid){try{process.kill(-server.pid,'SIGTERM');}catch{}}
+ if(browser)await browser.close();if(httpsFixture)await httpsFixture.close();if(server?.pid){try{process.kill(-server.pid,'SIGTERM');}catch{}}
  await rm(route,{recursive:true,force:true});await writeFile(nextEnv,before);
 }
