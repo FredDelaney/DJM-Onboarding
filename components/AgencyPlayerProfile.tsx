@@ -99,6 +99,20 @@ type ProfileStat = {
   source?: { name?: string | null; status?: string | null } | null;
 };
 type ProfileVideo = { id: string; title: string; url: string };
+type PlayerContextProposal = {
+  fields: Partial<{
+    current_club: string;
+    current_league: string;
+    current_country: string;
+    current_season_label: string;
+    primary_position: string;
+    transfermarkt_url: string;
+    stats_url: string;
+  }>;
+  confidence: number;
+  reason: string;
+  sources: { title?: string; url: string }[];
+};
 type ProfileProposal = {
   kind: ProfileKind;
   headline: string;
@@ -513,6 +527,7 @@ export default function AgencyPlayerProfile({
   const [preparedVersionId, setPreparedVersionId] = useState('');
   const [preparedSaved, setPreparedSaved] = useState(false);
   const [aiAvailable, setAiAvailable] = useState(false);
+  const [contextProposal, setContextProposal] = useState<PlayerContextProposal | null>(null);
   const [profileReview, setProfileReview] = useState<ProfileReview | null>(null);
   const [improveSection, setImproveSection] = useState<'headline' | 'why_review' | null>(null);
   const [improveStyle, setImproveStyle] = useState<ImprovementStyle>('clearer');
@@ -980,6 +995,47 @@ export default function AgencyPlayerProfile({
     setImprovement(null);
   };
 
+  const adoptPreparedProfile = (response: any) => {
+    const incoming = response?.proposal;
+    if (!incoming || !text(incoming.source_fingerprint)) {
+      throw new Error('The profile could not be prepared. Try again.');
+    }
+    const stats: ProfileStat[] = Array.isArray(response?.evidence?.stats)
+      ? response.evidence.stats.filter((item: ProfileStat) => item?.ref && item?.label)
+      : [];
+    const videos: ProfileVideo[] = Array.isArray(response?.evidence?.videos)
+      ? response.evidence.videos.filter((item: ProfileVideo) => item?.id && item?.url)
+      : [];
+    const availableRefs = new Set(stats.map((item) => item.ref));
+    const selectedRefs = Array.isArray(incoming.selected_stat_refs)
+      ? incoming.selected_stat_refs.filter((ref: unknown) =>
+          typeof ref === 'string' && availableRefs.has(ref))
+      : [];
+    const videoId = text(incoming.selected_video_id);
+    setEvidenceStats(stats);
+    setEvidenceVideos(videos);
+    setAiAvailable(response?.ai_available === true);
+    setImproveSection(null);
+    setProposal({
+      kind: prepareKind,
+      headline: text(incoming.headline),
+      why_review: text(incoming.why_review),
+      selected_stat_refs: selectedRefs.slice(0, 6),
+      selected_video_id: videos.some((video) => video.id === videoId) ? videoId : null,
+      hidden_sections: Array.isArray(incoming.hidden_sections)
+        ? incoming.hidden_sections.filter((value: unknown) => typeof value === 'string')
+        : form.hidden_sections,
+      source_fingerprint: text(incoming.source_fingerprint),
+      club_name: text(incoming.club_name) || null,
+      club_requirement: incoming.club_requirement && typeof incoming.club_requirement === 'object'
+        ? { title: text(incoming.club_requirement.title) || null, position: text(incoming.club_requirement.position) || null }
+        : null,
+    });
+    setPreparedSaved(false);
+    setPreparedVersionId('');
+    setImprovement(null);
+  };
+
   const prepareProfile = async () => {
     if (!canEdit || actionBusy || (prepareKind === 'club' && !prepareClub)) return;
     setActionBusy('prepare');
@@ -1002,6 +1058,23 @@ export default function AgencyPlayerProfile({
         playerContext.current_league,
       );
 
+      if (!canRefreshStats) {
+        const researched = await invoke<any>('player_context_research', { player_id: playerId });
+        const fields = researched?.proposal?.fields || {};
+        if (researched?.proposal && Object.keys(fields).length) {
+          setContextProposal({
+            fields,
+            confidence: Number(researched.proposal.confidence || 0),
+            reason: text(researched.proposal.reason),
+            sources: Array.isArray(researched.proposal.sources) ? researched.proposal.sources : [],
+          });
+          setNotice('ReDream found missing current player details. Review them before they are saved.');
+          return;
+        }
+        throw new Error('ReDream could not confidently identify the missing current club, competition and season. Review the player details and try again.');
+      }
+
+      setContextProposal(null);
       if (canRefreshStats && !currentStatsFresh) {
         const requestId = crypto.randomUUID();
         const started = await invoke<any>('player_data_refresh', {
@@ -1030,51 +1103,51 @@ export default function AgencyPlayerProfile({
           ? { organisation_id: prepareClub, deal_room_id: prepareDeal || null }
           : {}),
       });
-      const incoming = response?.proposal;
-      if (!incoming || !text(incoming.source_fingerprint)) {
-        throw new Error('The profile could not be prepared. Try again.');
-      }
-      const stats: ProfileStat[] = Array.isArray(response?.evidence?.stats)
-        ? response.evidence.stats.filter((item: ProfileStat) => item?.ref && item?.label)
-        : [];
-      const videos: ProfileVideo[] = Array.isArray(response?.evidence?.videos)
-        ? response.evidence.videos.filter((item: ProfileVideo) => item?.id && item?.url)
-        : [];
-      const availableRefs = new Set(stats.map((item) => item.ref));
-      const selectedRefs = Array.isArray(incoming.selected_stat_refs)
-        ? incoming.selected_stat_refs.filter((ref: unknown) =>
-            typeof ref === 'string' && availableRefs.has(ref))
-        : [];
-      const videoId = text(incoming.selected_video_id);
-      setEvidenceStats(stats);
-      setEvidenceVideos(videos);
-      setAiAvailable(response?.ai_available === true);
-      setImproveSection(null);
-      setProposal({
-        kind: prepareKind,
-        headline: text(incoming.headline),
-        why_review: text(incoming.why_review),
-        selected_stat_refs: selectedRefs.slice(0, 6),
-        selected_video_id: videos.some((video) => video.id === videoId)
-          ? videoId
-          : null,
-        hidden_sections: Array.isArray(incoming.hidden_sections)
-          ? incoming.hidden_sections.filter((value: unknown) => typeof value === 'string')
-          : form.hidden_sections,
-        source_fingerprint: text(incoming.source_fingerprint),
-        club_name: text(incoming.club_name) || null,
-        club_requirement: incoming.club_requirement && typeof incoming.club_requirement === 'object'
-          ? {
-              title: text(incoming.club_requirement.title) || null,
-              position: text(incoming.club_requirement.position) || null,
-            }
-          : null,
-      });
-      setPreparedSaved(false);
-      setPreparedVersionId('');
-      setImprovement(null);
+      adoptPreparedProfile(response);
     } catch (prepareError) {
       setError(friendlyError(prepareError));
+    } finally {
+      setActionBusy('');
+    }
+  };
+
+  const applyPlayerContextAndContinue = async () => {
+    if (!contextProposal || actionBusy) return;
+    setActionBusy('context-apply');
+    setError('');
+    setNotice('');
+    try {
+      await invoke<any>('player_context_apply', {
+        player_id: playerId,
+        fields: contextProposal.fields,
+        sources: contextProposal.sources,
+      });
+      const nextContext = { ...(bundle?.player || {}), ...contextProposal.fields };
+      const canRefresh = Boolean(nextContext.current_season_label && nextContext.current_club && nextContext.current_league);
+      if (canRefresh) {
+        const started = await invoke<any>('player_data_refresh', {
+          player_id: playerId,
+          request_id: crypto.randomUUID(),
+        });
+        let job = started?.job || null;
+        for (let attempt = 0; attempt < 32 && ['queued', 'running'].includes(String(job?.status || '')); attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          job = (await invoke<any>('player_data_status', { player_id: playerId }))?.job || job;
+        }
+      }
+      await load(true, true);
+      const response = await invoke<any>('player_profile_prepare', {
+        player_id: playerId,
+        kind: prepareKind,
+        ...(prepareKind === 'club'
+          ? { organisation_id: prepareClub, deal_room_id: prepareDeal || null }
+          : {}),
+      });
+      adoptPreparedProfile(response);
+      setContextProposal(null);
+      setNotice('Current player details saved and the profile was prepared with the latest sourced statistics available.');
+    } catch (contextError) {
+      setError(friendlyError(contextError));
     } finally {
       setActionBusy('');
     }
@@ -2159,6 +2232,39 @@ export default function AgencyPlayerProfile({
                   </label>
                 </div>
               ) : null}
+              {contextProposal ? (
+                <div className={styles.prepareKnownNeed}>
+                  <strong>Current player details found</strong>
+                  {contextProposal.fields.current_club ? <p>Club: {contextProposal.fields.current_club}</p> : null}
+                  {contextProposal.fields.current_league ? <p>Competition: {contextProposal.fields.current_league}</p> : null}
+                  {contextProposal.fields.current_country ? <p>Country: {contextProposal.fields.current_country}</p> : null}
+                  {contextProposal.fields.current_season_label ? <p>Season: {contextProposal.fields.current_season_label}</p> : null}
+                  {contextProposal.fields.primary_position ? <p>Position: {contextProposal.fields.primary_position}</p> : null}
+                  <p>Confidence: {Math.round(contextProposal.confidence * 100)}%</p>
+                  {contextProposal.reason ? <p>{contextProposal.reason}</p> : null}
+                  {contextProposal.sources.length ? (
+                    <p>
+                      Sources: {contextProposal.sources.slice(0, 3).map((source, index) => (
+                        <span key={source.url}>
+                          {index ? ' · ' : ''}
+                          <a href={source.url} target="_blank" rel="noreferrer">{source.title || new URL(source.url).hostname}</a>
+                        </span>
+                      ))}
+                    </p>
+                  ) : null}
+                  <div className={styles.prepareFooter}>
+                    <button type="button" data-ui-button="primary" className={styles.primaryAction}
+                      onClick={() => void applyPlayerContextAndContinue()} disabled={Boolean(actionBusy)}>
+                      {actionBusy === 'context-apply' ? <LoaderCircle className={styles.spin} size={15} /> : <Check size={15} />}
+                      Apply & continue
+                    </button>
+                    <button type="button" data-ui-button="secondary" className={styles.secondaryAction}
+                      onClick={() => setContextProposal(null)} disabled={Boolean(actionBusy)}>
+                      Not now
+                    </button>
+                  </div>
+                </div>
+              ) : (
               <div className={styles.prepareFooter}>
                 <button
                   type="button"
@@ -2173,6 +2279,7 @@ export default function AgencyPlayerProfile({
                     : `Prepare ${prepareKind === 'club' ? 'for club' : 'general profile'}`}
                 </button>
               </div>
+              )}
             </div>
           ) : (
             <div className={styles.prepareBody}>

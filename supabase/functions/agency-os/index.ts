@@ -3,6 +3,7 @@ import { createSupabaseContext } from "npm:@supabase/server@1.6.0";
 import { preparePlayerProfileEvidence, reviewPlayerProfileEvidence } from "../_shared/player-profile-preparation.ts";
 import { selectPlayerProfilePresentation } from "../_shared/player-profile-ai.ts";
 import { suggestPlayerProfileTextImprovement } from "../_shared/player-profile-text-improvement.ts";
+import { researchPlayerContext } from "../_shared/player-context-ai.ts";
 import { refreshOutcome, safeSourceUrl, selectCurrentSeasonEvidence } from "../_shared/football-data/player-data-workflow.ts";
 
 import {restrictedPlayerProfile,restrictedClubAccount} from "../_shared/staff-read-contract.ts";
@@ -106,7 +107,7 @@ export default {fetch:async(req:Request)=>{
       "deal_receivables","deal_receivable_save","receivable_payment_record","deal_closeout","deal_closeout_save"
     ]);
     const footballReads=new Set(["player_data_status"]);
-    const footballWrites=new Set(["player_data_save","player_data_refresh","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
+    const footballWrites=new Set(["player_data_save","player_data_refresh","player_context_research","player_context_apply","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
     if(!ownerAdmin()&&!staffActions.has(action)&&!footballReads.has(action)&&!footballWrites.has(action)&&!(role==="operations"&&operationsActions.has(action))){
       return deny("Agency administrator access required");
     }
@@ -512,6 +513,46 @@ export default {fetch:async(req:Request)=>{
       });
     }
 
+
+    if(action==="player_context_research"||action==="player_context_apply"){
+      if(!operator())return deny("Agency operator access required");
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const player=await profilePlayer(pid);if(!player)return json({error:"Player not found in this agency"},404);
+      if(action==="player_context_research"){
+        const apiKey=Deno.env.get("OPENAI_API_KEY");
+        if(!apiKey)return json({error:"Player research is temporarily unavailable"},503);
+        const {data:career,error:careerError}=await ctx.supabaseAdmin.from("career_entries")
+          .select("club_name,league,season_label").eq("player_id",pid).order("start_date",{ascending:false}).limit(6);
+        if(careerError)throw careerError;
+        const researched=await researchPlayerContext({player,career:career||[]},{apiKey,model:Deno.env.get("REDREAM_PROFILE_MODEL")||"gpt-6-luna",timeoutMs:25000});
+        if(!researched.ok)return json({ok:false,proposal:null,reason:researched.reason,confidence:researched.confidence,sources:researched.sources},200);
+        const fillable=["current_club","current_league","current_country","current_season_label","primary_position","transfermarkt_url","stats_url"] as const;
+        const fields:Record<string,string>={};
+        for(const key of fillable){
+          if(!id((player as any)[key])&&id((researched.fields as any)[key]))fields[key]=id((researched.fields as any)[key]);
+        }
+        return json({ok:true,proposal:{fields,confidence:researched.confidence,reason:researched.reason,sources:researched.sources,model:researched.model}});
+      }
+      const incoming=obj(body?.fields),allowed=["current_club","current_league","current_country","current_season_label","primary_position","transfermarkt_url","stats_url"];
+      const patch:Record<string,string>={};
+      const before:Record<string,unknown>={};
+      for(const key of allowed){
+        const value=id(incoming[key]).slice(0,key.endsWith("_url")?600:160);
+        if(!value||id((player as any)[key]))continue;
+        if(key.endsWith("_url")){
+          let safe=false;try{const u=new URL(value);safe=u.protocol==="https:"||u.protocol==="http:";}catch{}
+          if(!safe)continue;
+        }
+        before[key]=(player as any)[key]??null;patch[key]=value;
+      }
+      if(!Object.keys(patch).length)return json({ok:true,applied_fields:[],player});
+      patch.updated_at=new Date().toISOString();
+      const {data:updated,error:updateError}=await ctx.supabaseAdmin.from("players").update(patch).eq("id",pid).eq("tenant_id",tenantId)
+        .select("id,current_club,current_league,current_country,current_season_label,primary_position,transfermarkt_url,stats_url,updated_at").single();
+      if(updateError)throw updateError;
+      await profileAudit("player_context.ai_applied",pid,before,updated,{applied_fields:Object.keys(patch).filter(key=>key!=="updated_at"),sources:Array.isArray(body?.sources)?body.sources.slice(0,8):[]});
+      return json({ok:true,applied_fields:Object.keys(patch).filter(key=>key!=="updated_at"),player:updated});
+    }
 
     if(action==="player_data_status"||action==="player_data_refresh"||action==="player_data_save"){
       if(action!=="player_data_status"&&!operator())return deny("Agency operator access required");

@@ -14,13 +14,16 @@ test('preparation stays in the existing Player Profile and supports general or a
   assert.match(profile, /player_profile_prepare/);
   assert.match(profile, /player_data_refresh/);
   assert.match(profile, /player_data_status/);
+  assert.match(profile, /player_context_research/);
+  assert.match(profile, /player_context_apply/);
+  assert.match(profile, /Apply & continue/);
   assert.match(profile, /20 \* 60 \* 60 \* 1000/);
   assert.match(profile, /organisation_id: prepareClub/);
   assert.match(profile, /deal_room_id: prepareDeal \|\| null/);
 });
 
 test('the agent edits presentation while statistics and video stay bound to returned evidence', () => {
-  const prepare = profile.slice(profile.indexOf('const prepareProfile ='), profile.indexOf('const reviewProfile ='));
+  const prepare = profile.slice(profile.indexOf('const adoptPreparedProfile ='), profile.indexOf('const reviewProfile ='));
   const save = profile.slice(profile.indexOf('const savePreparedProfile ='), profile.indexOf('const publishProfile ='));
   assert.match(prepare, /availableRefs\.has\(ref\)/);
   assert.match(prepare, /videos\.some\(\(video\) => video\.id === videoId\)/);
