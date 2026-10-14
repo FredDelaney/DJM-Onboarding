@@ -1068,10 +1068,10 @@ export default function AgencyPlayerProfile({
             reason: text(researched.proposal.reason),
             sources: Array.isArray(researched.proposal.sources) ? researched.proposal.sources : [],
           });
-          setNotice('ReDream found missing current player details. Review them before they are saved.');
+          setNotice('AI found missing current player details. Review them before they are saved.');
           return;
         }
-        throw new Error('ReDream could not confidently identify the missing current club, competition and season. Review the player details and try again.');
+        throw new Error('AI could not confidently identify the missing current club, competition and season. Review the player details and try again.');
       }
 
       setContextProposal(null);
