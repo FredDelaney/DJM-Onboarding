@@ -1,5 +1,4 @@
 'use client';
-
 import {
   CheckCircle2,
   CircleAlert,
@@ -9,6 +8,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+
 import { ChangeEvent, useMemo, useState } from 'react';
 
 import {
@@ -314,7 +314,7 @@ export default function AgencyRosterMigrationPanel({
         ) : null}
 
         {error ? (
-          <div className={styles.error}>
+          <div className={styles.error} role="alert" aria-atomic="true">
             <CircleAlert size={15} />
             <span>{error}</span>
           </div>
@@ -394,7 +394,7 @@ export default function AgencyRosterMigrationPanel({
             ) : null}
 
             {applied ? (
-              <div className={styles.success}>
+              <div className={styles.success} role="status" aria-atomic="true">
                 <CheckCircle2 size={17} />
                 <div>
                   <strong>Roster imported</strong>

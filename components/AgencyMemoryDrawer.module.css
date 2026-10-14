@@ -97,9 +97,9 @@
   display: flex;
   gap: 11px;
   align-items: flex-start;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid var(--interface-info-line);
+  border-radius: var(--interface-feedback-radius);
+  background: var(--interface-info-bg);
 }
 
 .notice strong,
@@ -121,12 +121,12 @@
 
 .error {
   border-color: #f0d9d9;
-  background: #fffafa;
+  background: var(--interface-danger-bg);
 }
 
 .success {
   border-color: #d8ece2;
-  background: #f8fdf9;
+  background: var(--interface-success-bg);
 }
 
 .spin {

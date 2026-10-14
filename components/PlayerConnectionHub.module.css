@@ -197,8 +197,8 @@
 }
 
 .error {
-  background: #fff0ef;
-  color: #8b332f;
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .message {

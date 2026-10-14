@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
+const mobileNavigation = readFileSync('components/AgencyMobileNavigation.module.css', 'utf8');
 const shell = readFileSync('components/AgencyOperatingWorkspace.module.css', 'utf8');
 const players = readFileSync('components/AgencyPlayersWorkspace.module.css', 'utf8');
 const network = readFileSync('components/AgencyNetworkWorkspace.module.css', 'utf8');
@@ -16,9 +17,10 @@ test('premium mobile pass covers every primary workspace', () => {
 });
 
 test('primary mobile navigation and context actions remain comfortably tappable', () => {
-  assert.match(shell, /\.nav a[\s\S]*min-height: 48px[\s\S]*font-size: 10px/);
-  assert.match(shell, /mobileContextAction \.createButton[\s\S]*min-height: 44px[\s\S]*font-size: 13px/);
-  assert.match(shell, /\.mobileTell button[\s\S]*width: 54px[\s\S]*height: 54px/);
+  assert.match(mobileNavigation, /min-height: 54px/);
+  assert.match(mobileNavigation, /font-size: 12px/);
+  assert.match(mobileNavigation, /\.bar \.capture svg[\s\S]*width: 23px[\s\S]*height: 23px/);
+  assert.match(shell, /data-ui-button="secondary"[\s\S]*min-height: var\(--interface-control-height\) !important/);
 });
 
 test('home uses readable priority cards and full-row actions', () => {

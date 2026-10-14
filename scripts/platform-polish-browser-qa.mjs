@@ -1,3 +1,4 @@
+import {captureCascade,finishCascade} from './css-cascade-snapshot.mjs';
 import assert from 'node:assert/strict';
 import {verifyMobileChrome} from './mobile-workspace-chrome-qa.mjs';
 import {verifyDailyMobileNavigation,verifyInPlaceCaptureCompletion,verifyDealRecordCapture,verifyDealHistoryAndCrossView} from './daily-mobile-journey-qa.mjs';
@@ -13,7 +14,7 @@ try{await access(routeDir);throw new Error('Refusing to replace an existing rout
 const port=process.env.PLATFORM_POLISH_QA_PORT||'3117',root='http://127.0.0.1:'+port;
 const env={...process.env,PLATFORM_POLISH_FIXTURE:'1',NEXT_PUBLIC_REDREAM_ENVIRONMENT:'qa',NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'example'};
 let server,browser;
-const report=[],failures=[],errors=[];
+const report=[],failures=[],errors=[],cascade={};
 try{
  if(process.env.PLATFORM_POLISH_SCREENSHOT_DIR)await mkdir(process.env.PLATFORM_POLISH_SCREENSHOT_DIR,{recursive:true});
  await mkdir(routeDir,{recursive:true});await cp(new URL('../tests/fixtures/platform-polish/page.tsx',import.meta.url),new URL('page.tsx',routeDir));
@@ -162,7 +163,8 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      const careerStacked=!(careerCopy&&careerPanel)||careerPanel.getBoundingClientRect().top>=careerCopy.getBoundingClientRect().bottom-1;
      return {reviewHeroContrast,careerStacked,overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),networkToolbarOverlap,primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
     });
-    if(suite==='agency'&&screen==='home'&&width<=680)await verifyDailyMobileNavigation(page);
+    if(process.env.CSS_CASCADE_SNAPSHOT||process.env.CSS_CASCADE_COMPARE)cascade[suite+'/'+screen+'/'+width]=await captureCascade(page);
+     if(suite==='agency'&&screen==='home'&&width<=680)await verifyDailyMobileNavigation(page);
     if(suite==='agency'&&screen==='home'&&[390,768,1440].includes(width)){
      state.approved=false;state.taskDone=false;state.approvals=0;state.completions=0;
      await verifyInPlaceCaptureCompletion(page,url,width===390);
@@ -323,6 +325,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
  assert.deepEqual(errors,[],'Browser errors');
  assert.deepEqual(failures,[],'Screen polish regressions');
  console.log('Platform polish browser QA passed: '+report.length+' screen/viewport combinations');
+ await finishCascade(cascade);
 }finally{
  try { await browser?.close(); } finally {
  try{if(server?.pid)process.kill(-server.pid,'SIGTERM');}catch{}

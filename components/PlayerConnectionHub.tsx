@@ -19,6 +19,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+
 import { compactDateTime, platformInvoke, friendlyError } from "@/lib/platform-client";
 import {
   isTransfermarktUrl,
@@ -354,7 +355,7 @@ export default function PlayerConnectionHub({
         </div>
       </div>
 
-      {error ? <div className={styles.error}>{error}</div> : null}
+      {error ? <div className={styles.error} role="alert" aria-atomic="true">{error}</div> : null}
       {message ? <div className={styles.message}>{message}</div> : null}
 
       <div className={styles.statusRow}>

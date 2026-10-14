@@ -158,13 +158,13 @@
 }
 
 .error {
-  background: #fff1f0;
-  color: #93352e;
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .success {
-  background: #eff8f2;
-  color: #29623a;
+  background: var(--interface-success-bg);
+  color: var(--interface-success);
 }
 
 .success div {

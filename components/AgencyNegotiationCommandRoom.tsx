@@ -1,17 +1,6 @@
 'use client';
+import {ArrowLeft,ArrowRight,CheckCircle2,CircleAlert,LoaderCircle,Network,ShieldCheck,Target,X} from 'lucide-react';
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  CircleAlert,
-  LoaderCircle,
-  Network,
-  ShieldCheck,
-  Target,
-  Users,
-  X,
-} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
@@ -659,7 +648,7 @@ export default function AgencyNegotiationCommandRoom({
         </header>
 
         {busy ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LoaderCircle
               size={18}
               className={styles.spin}

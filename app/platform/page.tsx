@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Activity,
   AlertTriangle,
@@ -24,6 +23,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+
 import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -1370,7 +1370,7 @@ export default function PlatformPage() {
         ) : null}
 
         {notice ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <Check size={16} />
             <span>{notice}</span>
             <button type="button" onClick={() => setNotice('')} aria-label="Dismiss message">

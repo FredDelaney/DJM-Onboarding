@@ -1,11 +1,11 @@
 'use client';
-
 import {
   ArrowRight,
   CheckCircle2,
   LoaderCircle,
   X,
 } from 'lucide-react';
+
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -249,7 +249,7 @@ export default function ReDreamDemoRequestButton({
             </div>
 
             {submittedEmail ? (
-              <div className={styles.success}>
+              <div className={styles.success} role="status" aria-atomic="true">
                 <CheckCircle2 size={28} />
                 <p>REQUEST RECEIVED</p>
                 <h3>We have your situation.</h3>

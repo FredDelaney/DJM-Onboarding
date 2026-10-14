@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,6 +15,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+
 import {
   useCallback,
   useEffect,
@@ -554,7 +554,7 @@ export default function AgencyClubAccountDrawer({
     return <div className={pageMode?styles.pageShell:styles.backdrop} onMouseDown={event=>{if(!pageMode&&event.target===event.currentTarget)onClose();}}>
       <aside className={styles.drawer} role={pageMode?'region':'dialog'} aria-modal={pageMode?undefined:true} aria-label={'Club details for '+(club.name||request.title)}>
         <header className={styles.header}><div className={styles.headerTop}><div><p className={styles.eyebrow}>CLUB</p><h2>{club.name||request.title}</h2><p>{[club.city,club.country,club.league_name].filter(Boolean).join(' · ')}</p></div><button type="button" className="btn" onClick={onClose} aria-label={pageMode?'Back':'Close'}><X size={18}/></button></div></header>
-        <section className={styles.notice}><p>Club details are shared. Commercial details are for admins.</p></section>
+        <section className={styles.notice} role="status" aria-atomic="true"><p>Club details are shared. Commercial details are for admins.</p></section>
       </aside>
     </div>;
   }
@@ -652,7 +652,7 @@ export default function AgencyClubAccountDrawer({
           <div
             className={
               styles.notice
-            }
+            } role="status" aria-atomic="true"
           >
             <LoaderCircle
               size={18}

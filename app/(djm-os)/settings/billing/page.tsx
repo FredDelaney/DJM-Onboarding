@@ -1,5 +1,4 @@
 'use client';
-
 import {
   CheckCircle2,
   CreditCard,
@@ -8,6 +7,8 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+import JourneyStatus from '@/components/JourneyStatus';
+
 import {
   FormEvent,
   useCallback,
@@ -209,7 +210,7 @@ export default function BillingSettingsPage() {
         description="Plan, usage, invoices and payment for the agency."
       >
         <div className={styles.stack}>
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <CreditCard size={16} />
             Plan and billing controls are available to the agency owner.
           </div>
@@ -248,16 +249,16 @@ export default function BillingSettingsPage() {
           </div>
         </section>
 
-        {error ? <div className={styles.error}>{error}</div> : null}
+        {error ? <JourneyStatus compact kind="error" description={error}/> : null}
         {message ? (
-          <div className={styles.success}>
+          <div className={styles.success} role="status" aria-atomic="true">
             <CheckCircle2 size={16} />
             {message}
           </div>
         ) : null}
 
         {account?.pending_plan_change ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <div>
               <strong>
                 {String(account.pending_plan_change.requested_plan_key || '').toUpperCase()} plan change pending
@@ -409,12 +410,12 @@ export default function BillingSettingsPage() {
             </div>
 
             {internalBilling ? (
-              <div className={styles.notice}>
+              <div className={styles.notice} role="status" aria-atomic="true">
                 <CheckCircle2 size={16} />
                 This is an internal or founding ReDream account. No payment method is required.
               </div>
             ) : !paymentPortalAvailable ? (
-              <div className={styles.notice}>
+              <div className={styles.notice} role="status" aria-atomic="true">
                 <ReceiptText size={16} />
                 <div><strong>Online billing is not enabled for this agency yet.</strong><p>Contact ReDream for payment arrangements or invoices.</p><a href="mailto:team@redreamsystems.com?subject=Billing%20support">Contact billing support</a></div>
               </div>

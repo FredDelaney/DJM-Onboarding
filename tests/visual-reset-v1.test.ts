@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
+const mobileNavigation = readFileSync('components/AgencyMobileNavigation.module.css','utf8');
 const shell = readFileSync('components/AgencyOperatingWorkspace.module.css','utf8');
 const players = readFileSync('components/AgencyPlayersWorkspace.module.css','utf8');
 const opportunities = readFileSync('components/AgencyOpportunitiesWorkspace.module.css','utf8');
@@ -12,17 +13,16 @@ const profileView = readFileSync('components/AgencyPlayerProfile.tsx','utf8');
 
 test('mobile shell is content-first with compact page heading', () => {
   assert.match(shell, /ReDream visual reset v1/);
-  assert.match(shell, /\.pageHead h1[\s\S]*font-size: 18px/);
+  assert.match(shell, /\.pageHead h1[\s\S]*font-size: 22px/);
   assert.match(shell, /\.pageDescription[\s\S]*display: none/);
-  assert.match(shell, /\.root[\s\S]*background: #fff/);
+  assert.match(shell, /\.root[\s\S]*background: var\(--interface-canvas\)/);
 });
 
-test('mobile navigation floats separately from Tell ReDream without overpowering content', () => {
-  assert.match(shell, /\.sidebar[\s\S]*inset:[\s\S]*auto 80px/);
-  assert.match(shell, /border-radius: 22px/);
-  assert.match(shell, /backdrop-filter: blur\(18px\)/);
-  assert.match(shell, /\.nav a[\s\S]*font-size: 10px/);
-  assert.match(shell, /\.mobileTell button[\s\S]*width: 54px/);
+test('mobile navigation integrates Tell ReDream into a quiet shared bar', () => {
+  assert.match(mobileNavigation, /inset: auto 0 0/);
+  assert.match(mobileNavigation, /background: var\(--interface-surface, #fff\)/);
+  assert.doesNotMatch(mobileNavigation, /backdrop-filter/);
+  assert.match(mobileNavigation, /\.bar \.capture svg[\s\S]*width: 23px/);
 });
 
 test('player list is a scan surface rather than a mini detail page', () => {

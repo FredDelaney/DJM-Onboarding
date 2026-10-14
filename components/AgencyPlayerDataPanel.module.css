@@ -19,8 +19,7 @@
 .guidance{margin:0;color:#637082;font-size:12px;line-height:1.6}
 .status,.warning,.error{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.5;background:#f1f6f8;color:#2d5262}
 .status>div,.warning>div{display:grid;gap:4px}.status svg{flex-shrink:0;margin-top:2px}
-.status small{font-size:11px}.warning{background:#faf5eb;color:#72531e;flex-wrap:wrap;justify-content:space-between}
-.error{background:#fff3f1;color:#9d3c31;flex-wrap:wrap;justify-content:space-between}
+.status small{font-size:11px}
 .actions{display:flex;flex-wrap:wrap;gap:8px}.form{display:grid;gap:18px;border-top:1px solid #e7ebef;padding-top:18px}
 .formHeading h4{font-size:15px;margin:0 0 6px}.formHeading p{font-size:12px;color:#617083;margin:0;line-height:1.6}
 .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.statFields{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}

@@ -80,10 +80,10 @@
   gap: 10px;
   align-items: flex-start;
   padding: 14px;
-  border: 1px solid #e2e5e8;
-  border-radius: 13px;
-  background: #fff;
-  color: #59616b;
+  border: 1px solid var(--interface-info-line);
+  border-radius: var(--interface-feedback-radius);
+  background: var(--interface-info-bg);
+  color: var(--interface-info);
 }
 
 .notice > div {
@@ -104,7 +104,7 @@
 
 .error {
   border-color: #f0cccc;
-  background: #fff7f7;
+  background: var(--interface-danger-bg);
 }
 
 .spin {

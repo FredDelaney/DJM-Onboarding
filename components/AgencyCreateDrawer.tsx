@@ -1,5 +1,4 @@
 'use client';
-
 import {
   BriefcaseBusiness,
   ChevronDown,
@@ -11,6 +10,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+
 import {
   FormEvent,
   useEffect,
@@ -333,7 +333,7 @@ export default function AgencyCreateDrawer({
 
         <form className={styles.form} onSubmit={submit}>
           {error ? (
-            <div className={styles.error}>{error}</div>
+            <div className={styles.error} role="alert" aria-atomic="true">{error}</div>
           ) : null}
 
           {kind === 'player' ? (
@@ -522,14 +522,14 @@ export default function AgencyCreateDrawer({
           {kind === 'deal' ? (
             <>
               {loadingOptions ? (
-                <div className={styles.loading}>
+                <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
                   <LoaderCircle size={17} className={styles.spin} />
                   Loading your players
                 </div>
               ) : null}
 
               {!loadingOptions && !players.length ? (
-                <div className={styles.notice}>
+                <div className={styles.notice} role="status" aria-atomic="true">
                   Add a player first. Every deal must belong to a real player in this agency.
                 </div>
               ) : null}

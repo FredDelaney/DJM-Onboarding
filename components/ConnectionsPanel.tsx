@@ -1,21 +1,8 @@
 'use client';
+import JourneyStatus from '@/components/JourneyStatus';
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import {
-  Bell,
-  CalendarDays,
-  Check,
-  Clipboard,
-  ExternalLink,
-  Fingerprint,
-  KeyRound,
-  Mail,
-  RefreshCw,
-  RotateCcw,
-  ShieldCheck,
-  Smartphone,
-  SunMedium,
-} from 'lucide-react';
+import {Bell,CalendarDays,Clipboard,ExternalLink,Fingerprint,KeyRound,Mail,RefreshCw,RotateCcw,ShieldCheck,Smartphone,SunMedium} from 'lucide-react';
 
 import { getAuthCapabilities } from '@/lib/auth-capabilities';
 import { disableWebPush, enableWebPush, getPushReadiness, type PushReadiness } from '@/lib/push';
@@ -305,7 +292,7 @@ export default function ConnectionsPanel({
 
   if (loading) {
     return (
-      <div className={styles.loading}>
+      <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
         <RefreshCw size={18} className={styles.spin} /> Connecting your ReDream account...
       </div>
     );
@@ -313,8 +300,8 @@ export default function ConnectionsPanel({
 
   return (
     <div className={styles.wrap}>
-      {error ? <div className={styles.error} role="alert">{error}</div> : null}
-      {message ? <div className={styles.success} role="status"><Check size={16} />{message}</div> : null}
+      {error ? <JourneyStatus compact kind="error" description={error}/> : null}
+      {message ? <JourneyStatus compact kind="success" description={message}/> : null}
 
       {showSecurity ? (
       <section className={`${styles.card} ${styles.securityCard}`}>

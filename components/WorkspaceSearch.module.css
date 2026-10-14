@@ -22,7 +22,7 @@
 .kind{display:flex;align-items:center;gap:4px;font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#7c8a9c}
 .arrow{position:absolute;right:14px;top:calc(50% - 8px);color:#6a7d94}
 .footer{display:flex;justify-content:space-between;gap:10px;padding:11px 22px;border-top:1px solid #e9edf2;font-size:10px;color:#8290a2}
-.error{display:flex;align-items:center;gap:12px;margin:2px 16px 10px;padding:10px 12px;border-radius:10px;background:#fff5ed;color:#8b502e;font-size:11px}
+.error{display:flex;align-items:center;gap:12px;margin:2px 16px 10px;padding:10px 12px;border-radius:var(--interface-feedback-radius);background:var(--interface-danger-bg);color:var(--interface-danger);font-size:var(--interface-feedback-font-size)}
 .error span{flex:1}.error button{min-height:44px;flex-shrink:0;padding:8px 10px;border:1px solid #e8cdb9;border-radius:9px;background:#fff;color:inherit;font:inherit;font-weight:650;cursor:pointer}
 .empty{padding:28px 16px;color:#65758a}.empty strong{font-size:14px}.empty p{margin:7px 0;font-size:12px}
 .spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}

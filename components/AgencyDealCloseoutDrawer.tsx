@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,6 +9,7 @@ import {
   ReceiptText,
   X,
 } from 'lucide-react';
+
 import { useCallback, useEffect, useState } from 'react';
 
 import { friendlyError, relativeDate } from '@/lib/platform-client';
@@ -452,7 +452,7 @@ export default function AgencyDealCloseoutDrawer({
         </header>
 
         {busy ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LoaderCircle size={18} className={styles.spin} />
             <div>
               <strong>Loading closeout control</strong>

@@ -1,5 +1,4 @@
 'use client';
-
 import {
   CalendarDays,
   ContactRound,
@@ -11,6 +10,7 @@ import {
   Unplug,
   X,
 } from 'lucide-react';
+
 import {
   useCallback,
   useEffect,
@@ -504,7 +504,7 @@ export default function AgencyConnectionsDrawer({
           <div
             className={
               styles.loading
-            }
+            } role="status" aria-busy="true" aria-atomic="true"
           >
             <LoaderCircle
               size={18}

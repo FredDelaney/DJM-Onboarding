@@ -685,10 +685,10 @@
   align-items:start;
   gap:10px;
   padding:13px;
-  border:1px solid #efcccc;
-  border-radius:12px;
-  background:#fff5f5;
-  color:#873b3b
+  border:1px solid var(--interface-danger-line);
+  border-radius:var(--interface-feedback-radius);
+  background:var(--interface-danger-bg);
+  color:var(--interface-danger)
 }
 
 .error>div{
@@ -1215,7 +1215,7 @@
 .error {
   gap: 10px;
   padding: 14px;
-  border-radius: 11px;
+  border-radius: var(--interface-feedback-radius);
 }
 
 .error strong,

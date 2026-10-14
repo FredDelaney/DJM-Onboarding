@@ -155,9 +155,9 @@
 }
 
 .error {
-  border: 1px solid #f0d2ce;
-  background: #fff3f1;
-  color: #963b33;
+  border: 1px solid var(--interface-danger-line);
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .notice,
@@ -176,8 +176,8 @@
   align-items: center;
   gap: 8px;
   border: 1px solid #e2e5e8;
-  background: #fff;
-  color: #69727c;
+  background: var(--interface-soft);
+  color: var(--interface-muted);
 }
 
 .actions {

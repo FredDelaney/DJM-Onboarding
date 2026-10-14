@@ -1628,7 +1628,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {busy && !data ? (
-          <section className={styles.loadingCard}>
+          <section className={styles.loadingCard} role="status" aria-busy="true" aria-atomic="true">
             <LoaderCircle size={20} className={styles.spin} />
             Loading current agency position...
           </section>
@@ -2136,7 +2136,7 @@ function Loading({
 
 function ErrorBox({ text }: { text: string }) {
   return (
-    <div className={styles.error}>
+    <div className={styles.error} role="alert" aria-atomic="true">
       <CircleAlert size={16} />
       <span>{text}</span>
     </div>

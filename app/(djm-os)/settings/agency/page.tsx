@@ -1,10 +1,12 @@
 'use client';
-
 import {
   CheckCircle2,
   LockKeyhole,
   Save,
 } from 'lucide-react';
+import JourneyStatus from '@/components/JourneyStatus';
+
+
 import {
   FormEvent,
   useCallback,
@@ -124,15 +126,15 @@ export default function AgencySettingsPage() {
       <div className={styles.stack}>
 
         {!canEdit ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LockKeyhole size={16} />
             Agency identity is owner-controlled. You can review it here, but only
             an owner can change these details.
           </div>
         ) : null}
-        {error ? <div className={styles.error}>{error}</div> : null}
+        {error ? <JourneyStatus compact kind="error" description={error}/> : null}
         {message ? (
-          <div className={styles.success}>
+          <div className={styles.success} role="status" aria-atomic="true">
             <CheckCircle2 size={16} />
             {message}
           </div>

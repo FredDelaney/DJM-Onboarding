@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Check,
   Clipboard,
@@ -8,6 +7,7 @@ import {
   ShieldCheck,
   X,
 } from 'lucide-react';
+
 import {
   useCallback,
   useEffect,
@@ -304,14 +304,14 @@ export default function AgencyConnectedReplyDrawer({
           </section>
 
           {loading ? (
-            <div className={styles.loading}>
+            <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
               <LoaderCircle size={17} />
               Loading reply context
             </div>
           ) : null}
 
           {generating ? (
-            <div className={styles.loading}>
+            <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
               <LoaderCircle size={17} />
               Preparing a grounded reply
             </div>

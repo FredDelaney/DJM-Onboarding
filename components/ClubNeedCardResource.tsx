@@ -131,7 +131,7 @@ export function ClubNeedIdentity({ need }: { need: NeedLike }) {
             />
           </label>
 
-          {error ? <p className={styles.error}>{error}</p> : null}
+          {error ? <p className={styles.error} role="alert" aria-atomic="true">{error}</p> : null}
 
           <div className={styles.formActions}>
             <button
@@ -384,7 +384,7 @@ export function ClubNeedContactControl({ need }: { need: NeedLike }) {
             to this club, and attaches them to this specific recruitment need.
           </p>
 
-          {error ? <p className={styles.error}>{error}</p> : null}
+          {error ? <p className={styles.error} role="alert" aria-atomic="true">{error}</p> : null}
 
           <div className={styles.formActions}>
             <button
