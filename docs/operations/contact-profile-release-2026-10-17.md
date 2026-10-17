@@ -36,8 +36,18 @@ The data-panel refresh flag is read through a ref, and asynchronous reload resul
 - The contact helper preserves the raw empty-string baseline for optimistic concurrency; its unit regression was demonstrated failing before the correction and passing afterwards.
 - `npm run build` passed with Next.js 16.3.8. All 49 static-page generation tasks completed; the production route list contains no test fixture routes.
 - `npm run check:bundles` passed: the agency workspace entry is 141,776 gzip bytes against a 150,000-byte budget, across nine chunks.
-- Deployment results are recorded below after completion.
+
+## Production release
+
+- Deployment `dpl_AWM5CNpASQyW5XdW6tEQJTxTmY7R` reached READY and owns `app.djmsports.com`, confirmed by a fresh domain lookup. It was built from 390 source-file references, using the normal `npm run build` and the existing production environment.
+- Release runtime-source fingerprint: `948062f8fbe77fe1ac25d172b4c4a4743bf90a0a79227a03b97ca9613974fa3f` (SHA-256 of sorted path/SHA-1 pairs).
+- All 257 source hashes exposed by the truncated deployment file-tree response match the submitted source. The response omits deeper paths and some component entries, so this is a partial independent comparison.
+- The live `/`, `/sign-in`, `/home`, `/workspace/djm`, `/settings` and `/career` documents and all initial JavaScript/CSS assets returned HTTP 200. Live initial scripts contain the production Supabase project and no fixture backend URL. These unauthenticated checks do not assert successful signed-in customer workflows.
+- The actual live sign-in page rendered at 390 and 1440 pixels, with visible email/password fields, no horizontal overflow and no browser page errors. The local headless browser required its proxy-certificate exception; the separate HTTP/asset audit used the runtime's trusted TLS configuration. No account was used or form submitted.
+- No error/fatal runtime logs were returned for this deployment in the queried 30-minute window immediately after the smoke check. This is a narrow observation, not an uptime guarantee.
 
 ## Limits and handover
 
-Browser journeys use synthetic records. A signed-in check on Jesse's real iPhone has not been performed. GitHub writes are unavailable, and the Mac's remote connection is offline. Preserve this complete release source and do not deploy old main over it. The final source archive and Git history must be retained in the persistent `release-restore-20261017-c` build workspace before handover.
+Browser journeys use synthetic records. A signed-in check on Jesse's real iPhone has not been performed. GitHub writes are unavailable, and the Mac's remote connection is offline. Preserve this complete release source and do not deploy old main over it.
+
+The verified source is committed locally as `398df803f089d875752d25a0abcd01b9f98fae20`. A source archive and complete Git-history bundle were created and the bundle was verified. Automatic approval review rejected uploading either archive to the separate temporary Vercel workspace, because that copy of private source/history was not explicitly authorised. No retry or alternative transfer to that destination was made. The workspace was stopped. The normal production source deployment remains authorised and proceeded through the existing project; the complete archive and history are available locally for download.
