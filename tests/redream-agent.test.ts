@@ -7,8 +7,9 @@ import { restrictedPlayerProfile } from '../supabase/functions/_shared/staff-rea
 const source = readFileSync('supabase/functions/redream-agent/index.ts', 'utf8').replace(/^import .*;\n/gm, '');
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 
-function setup({ role = 'owner', workspace = 'djm', records = [], tables = {}, output = null } : any = {}) {
+function setup({ role = 'owner', workspace = 'djm', records = [], tables = {}, output = null, saved = null, configStatus = 200 } : any = {}) {
   const calls: any[] = [];
+  const httpCalls: any[] = [];
   let modelInput: any;
   const admin = {
     rpc: async (name: string, args: any) => {
@@ -41,13 +42,19 @@ function setup({ role = 'owner', workspace = 'djm', records = [], tables = {}, o
   const handler = new Function('exports', 'createSupabaseContext', 'Deno', 'fetch', 'console', 'restrictedPlayerProfile', compiled + '\nreturn exports.default;')(
     {}, async () => ({ data: { userClaims: { sub: 'user-a' }, supabaseAdmin: admin } }),
     { env: { get: (key: string) => key === 'OPENAI_API_KEY' ? 'test-key' : undefined } },
-    async (_url: string, options: any) => {
+    async (url: string, options: any) => {
+      httpCalls.push({ url, options });
+      if (url.includes('/v1/agents/')) return Response.json(saved || {
+        id: 'agent_edd2cf2599d3452e94e74c6e22dce7935f1a5c93d3d54eb098',
+        instructions: 'Saved agency operating policy.', model: 'gpt-6.1-sol', reasoning: { effort: 'high' },
+        tools: [{ type: 'web_search', mode: 'live', context_size: 'medium' }], text: { verbosity: 'medium' },
+      }, { status: configStatus });
       modelInput = JSON.parse(options.body);
       return Response.json(output || { output: [{ content: [{ type: 'output_text', text: JSON.stringify({ answer: 'Recorded evidence only.', basis: 'internal', needs_clarification: false, clarification_question: null, next_action: null }) }] }] });
     }, { error() {} }, restrictedPlayerProfile,
   );
   return {
-    calls, input: () => JSON.parse(modelInput.input[0].content[0].text),
+    calls, httpCalls, model: () => modelInput, input: () => JSON.parse(modelInput.input[0].content[0].text),
     request: (body: any) => handler.fetch(new Request('https://example.test', { method: 'POST', body: JSON.stringify(body) })),
   };
 }
@@ -104,4 +111,29 @@ test('public sources include the citations actually attached to an answer', asyn
   }] }] } });
   const answer = await (await app.request({ query: 'Research Kota.', workspace_slug: 'djm' })).json();
   assert.deepEqual(answer.sources, [{ title: 'Official source', url: 'https://example.org/player' }]);
+});
+
+test('questions use the saved OpenAI agent instructions and model settings', async () => {
+  const app = setup();
+  const response = await app.request({ query: 'What is recorded?', workspace_slug: 'djm' });
+  assert.equal(response.status, 200);
+  assert.ok(app.model().instructions.includes('Saved agency operating policy.'));
+  assert.equal(app.model().model, 'gpt-6.1-sol');
+  assert.equal(app.model().reasoning.effort, 'high');
+  assert.ok(app.httpCalls[0].url.endsWith('/v1/agents/agent_edd2cf2599d3452e94e74c6e22dce7935f1a5c93d3d54eb098'));
+  assert.equal(app.httpCalls[0].options.headers['OpenAI-Beta'], 'agents=v1');
+  assert.equal((await response.json()).agent_id, 'agent_edd2cf2599d3452e94e74c6e22dce7935f1a5c93d3d54eb098');
+});
+
+test('turning web search off in the saved agent removes web tools from the request', async () => {
+  const app = setup({ saved: { id: 'saved-agent', model: 'gpt-6.1-sol', instructions: 'Saved policy', reasoning: { effort: 'high' }, tools: [] } });
+  await app.request({ query: 'What is recorded?', workspace_slug: 'djm' });
+  assert.deepEqual(app.model().tools, []);
+});
+
+test('a missing or inaccessible saved agent fails clearly without silently using a different configuration', async () => {
+  const app = setup({ configStatus: 403 });
+  const response = await app.request({ query: 'What is recorded?', workspace_slug: 'djm' });
+  assert.equal(response.status, 503);
+  assert.equal(app.httpCalls.some((call: any) => call.url.endsWith('/responses')), false);
 });

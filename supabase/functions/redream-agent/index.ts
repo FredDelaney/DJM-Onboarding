@@ -361,10 +361,39 @@ export default {
 
       const apiKey = Deno.env.get("OPENAI_API_KEY");
       if (!apiKey) return json({ error: "ReDream intelligence is temporarily unavailable" }, 503);
-      const model = clean(Deno.env.get("REDREAM_AGENT_MODEL"), 100) || "gpt-6.1-sol";
+      const agentId = clean(Deno.env.get("REDREAM_OPENAI_AGENT_ID"), 100)
+        || "agent_edd2cf2599d3452e94e74c6e22dce7935f1a5c93d3d54eb098";
+      const definitionController = new AbortController();
+      const definitionTimer = setTimeout(() => definitionController.abort(), 8000);
+      let saved: Record<string, any>;
+      try {
+        const definition = await fetch(`https://api.openai.com/v1/agents/${encodeURIComponent(agentId)}`, {
+          headers: { Authorization: `Bearer ${apiKey}`, "OpenAI-Beta": "agents=v1" },
+          signal: definitionController.signal,
+        });
+        if (!definition.ok) {
+          console.error("redream-agent saved definition", definition.status);
+          return json({ error: "ReDream cannot access its saved OpenAI agent. Ask your administrator to check the connection." }, 503);
+        }
+        saved = obj(await definition.json());
+        if (!clean(saved.model, 100) || !clean(saved.instructions, 100)) {
+          return json({ error: "The saved ReDream agent needs a model and instructions." }, 503);
+        }
+      } finally { clearTimeout(definitionTimer); }
+      const model = clean(saved.model, 100);
+      const web = (Array.isArray(saved.tools) ? saved.tools : []).find((tool: any) => tool?.type === "web_search");
+      const webTool = web ? {
+        type: "web_search",
+        search_context_size: ["low", "medium", "high"].includes(web.context_size) ? web.context_size : "medium",
+        external_web_access: web.mode !== "offline",
+        ...(Array.isArray(web.allowed_domains) && web.allowed_domains.length ? { filters: { allowed_domains: web.allowed_domains } } : {}),
+      } : null;
+      const effort = clean(saved.reasoning?.effort, 20);
+      const verbosity = clean(saved.text?.verbosity, 20);
 
       const prompt = {
         question: query,
+        read_only: true,
         current_page_context: context,
         redream_internal_data: internal,
         workspace: {
@@ -387,11 +416,13 @@ export default {
           body: JSON.stringify({
             model,
             store: false,
-            reasoning: { effort: "high" },
+            ...(["low", "medium", "high", "xhigh", "max", "none", "minimal"].includes(effort) ? { reasoning: { effort } } : {}),
             max_output_tokens: 6000,
-            tools: [{ type: "web_search", search_context_size: "medium" }],
-            include: ["web_search_call.action.sources"],
+            tools: webTool ? [webTool] : [],
+            ...(webTool ? { include: ["web_search_call.action.sources"] } : {}),
             instructions: [
+              saved.instructions,
+              "APPLICATION REQUEST CONTRACT: the following constraints always apply inside ReDream.",
               "You are ReDream, the operating intelligence behind a professional football agency.",
               "Answer the user's question, do not behave like a generic chatbot.",
               "Always use supplied ReDream internal data before public research. Internal data describes what the agency currently knows and must not be replaced by web assumptions.",
@@ -415,6 +446,7 @@ export default {
               content: [{ type: "input_text", text: JSON.stringify(prompt) }],
             }],
             text: {
+              ...(["low", "medium", "high"].includes(verbosity) ? { verbosity } : {}),
               format: {
                 type: "json_schema",
                 name: "redream_agent_answer",
@@ -464,6 +496,8 @@ export default {
           subtitle: item.subtitle || null,
         })),
         model,
+        agent_id: agentId,
+        agent_configuration_source: "openai_saved_agent",
       });
     } catch (error) {
       console.error("redream-agent", error);
