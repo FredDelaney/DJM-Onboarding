@@ -802,3 +802,93 @@
  .drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){font-size:16px!important}
  .actions button,.footer button{min-height:44px}
 }
+
+
+/* ReDream connections polish 2026-10-17 */
+.providerCopy > span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.4;
+}
+
+.connected,
+.attention,
+.notConnected {
+  padding: 3px 7px;
+  font-size: 10px;
+  letter-spacing: .035em;
+}
+
+.messagingSection {
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.sectionIntro h3 {
+  font-size: 18px;
+}
+
+.sectionCopy {
+  max-width: 520px;
+  color: #71818b;
+  font-size: 12px;
+}
+
+.messagingProviders {
+  gap: 12px;
+}
+
+.messagingProvider {
+  gap: 13px;
+  padding: 16px;
+  border-color: #e4e9ec;
+  border-radius: 18px;
+  box-shadow: 0 18px 44px -40px rgba(16, 42, 59, .6);
+}
+
+.messagingProvider .providerIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: #f2f6f8;
+}
+
+.messagingProvider > .primary {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.messagingActions .primary,
+.messagingActions .secondary {
+  min-height: 40px;
+  border-radius: 11px;
+}
+
+@media (max-width: 620px) {
+  .provider,
+  .messagingProvider {
+    border-radius: 18px;
+  }
+
+  .provider {
+    gap: 13px;
+    padding: 16px;
+  }
+
+  .messagingProvider {
+    padding: 16px;
+  }
+
+  .messagingProvider > .primary {
+    min-height: 50px;
+    border-radius: 13px;
+  }
+
+  .providerTitle {
+    flex-wrap: wrap;
+    row-gap: 5px;
+  }
+}

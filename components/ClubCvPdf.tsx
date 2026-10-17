@@ -141,7 +141,7 @@ const styles =
       flexDirection: 'row',
       alignItems: 'flex-end',
       flex: 1,
-      paddingTop: 24,
+      paddingTop: 20,
     },
 
     heroCopy: {
@@ -533,11 +533,11 @@ const styles =
     /* PAGE TWO */
 
     pageTwoHeader: {
-      height: 92,
+      height: 82,
       backgroundColor: NAVY,
       paddingHorizontal: 34,
       paddingTop: 25,
-      paddingBottom: 21,
+      paddingBottom: 18,
     },
 
     pageTwoTop: {
@@ -563,7 +563,7 @@ const styles =
     pageTwoBody: {
       paddingHorizontal: 34,
       paddingTop: 24,
-      paddingBottom: 42,
+      paddingBottom: 38,
     },
 
     pageTitle: {
@@ -607,8 +607,8 @@ const styles =
 
     careerRow: {
       flexDirection: 'row',
-      minHeight: 43,
-      paddingVertical: 7,
+      minHeight: 38,
+      paddingVertical: 6,
       borderBottomWidth: 1,
       borderBottomColor: LINE,
     },
@@ -653,7 +653,7 @@ const styles =
 
     pageTwoColumns: {
       flexDirection: 'row',
-      marginTop: 20,
+      marginTop: 15,
     },
 
     column: {
@@ -728,10 +728,10 @@ const styles =
     },
 
     contact: {
-      marginTop: 20,
-      borderRadius: 10,
-      padding: 16,
-      backgroundColor: NAVY,
+      marginTop: 16,
+      paddingTop: 11,
+      borderTopWidth: 1,
+      borderTopColor: LINE,
       flexDirection: 'row',
       justifyContent:
         'space-between',
@@ -739,16 +739,16 @@ const styles =
     },
 
     contactKicker: {
-      color: '#93a4b4',
+      color: MUTED,
       fontSize: 6.4,
       fontWeight: 700,
       letterSpacing: .7,
     },
 
     contactTitle: {
-      color: WHITE,
-      marginTop: 5,
-      fontSize: 13,
+      color: NAVY,
+      marginTop: 3,
+      fontSize: 8.4,
       fontWeight: 700,
     },
 
@@ -762,11 +762,7 @@ const styles =
 
     contactEmail: {
       color: NAVY,
-      backgroundColor: YELLOW,
-      borderRadius: 12,
-      paddingVertical: 7,
-      paddingHorizontal: 10,
-      fontSize: 7.2,
+      fontSize: 7.4,
       fontWeight: 700,
       textDecoration: 'none',
     },
@@ -959,7 +955,7 @@ export function ClubCvPdfDocument({
   const career =
     dossierCareer(
       profile,
-    ).slice(0, 9);
+    ).slice(0, 5);
 
   const notable =
     dossierList(
@@ -1071,6 +1067,7 @@ export function ClubCvPdfDocument({
 
   const showPageTwo =
     career.length > 0 ||
+    performance.rows.length > 0 ||
     notable.length > 0 ||
     videos.length > 0 ||
     sources.length > 0;
@@ -1248,7 +1245,7 @@ export function ClubCvPdfDocument({
                   )}
               </View>
 
-              {primaryVideo && (
+              {primaryVideo && !hidden(profile, 'videos') && (
                 <Link
                   src={primaryVideo}
                   style={[styles.heroSourceLink, brandStyles.accentText]}
@@ -1443,6 +1440,117 @@ export function ClubCvPdfDocument({
             </View>
           )}
 
+          {profile?.career_summary &&
+            !hidden(
+              profile,
+              'summary',
+            ) && (
+              <View
+                style={
+                  styles.section
+                }
+                wrap={false}
+              >
+                <Text
+                  style={
+                    styles.kicker
+                  }
+                >
+                  PLAYER SNAPSHOT
+                </Text>
+
+                <Text
+                  style={
+                    styles.summary
+                  }
+                >
+                  {clip(
+                    profile.career_summary,
+                    300,
+                  )}
+                </Text>
+              </View>
+            )}
+        </View>
+
+        <View
+          style={
+            styles.footer
+          }
+          fixed
+        >
+          <Text
+            style={
+              styles.footerText
+            }
+          >
+            {agencyName.toUpperCase()}
+          </Text>
+
+          <Text
+            style={
+              styles.footerText
+            }
+          >
+            CONFIDENTIAL CLUB PRESENTATION
+          </Text>
+        </View>
+      </Page>
+
+      {showPageTwo && (
+        <Page
+          size="A4"
+          style={styles.page}
+        >
+          <View
+            style={[styles.pageTwoHeader, brandStyles.hero]}
+          >
+            <View
+              style={
+                styles.pageTwoTop
+              }
+            >
+              <View>
+                <Text
+                  style={
+                    styles.pageTwoName
+                  }
+                >
+                  {clip(
+                    name,
+                    42,
+                  )}
+                </Text>
+
+                <Text
+                  style={
+                    styles.pageTwoMeta
+                  }
+                >
+                  {[
+                    profile?.primary_position,
+                    profile?.current_club,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+              </View>
+
+              <Text
+                style={
+                  styles.heroVerified
+                }
+              >
+                PLAYER PROFILE
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={
+              styles.pageTwoBody
+            }
+          >
           {(detailStats.length > 0 ||
             performance.rows.length > 0) &&
             !hidden(
@@ -1614,117 +1722,7 @@ export function ClubCvPdfDocument({
               </View>
             )}
 
-          {profile?.career_summary &&
-            !hidden(
-              profile,
-              'summary',
-            ) && (
-              <View
-                style={
-                  styles.section
-                }
-                wrap={false}
-              >
-                <Text
-                  style={
-                    styles.kicker
-                  }
-                >
-                  PLAYER SNAPSHOT
-                </Text>
 
-                <Text
-                  style={
-                    styles.summary
-                  }
-                >
-                  {clip(
-                    profile.career_summary,
-                    300,
-                  )}
-                </Text>
-              </View>
-            )}
-        </View>
-
-        <View
-          style={
-            styles.footer
-          }
-          fixed
-        >
-          <Text
-            style={
-              styles.footerText
-            }
-          >
-            {agencyName.toUpperCase()}
-          </Text>
-
-          <Text
-            style={
-              styles.footerText
-            }
-          >
-            CONFIDENTIAL CLUB PRESENTATION
-          </Text>
-        </View>
-      </Page>
-
-      {showPageTwo && (
-        <Page
-          size="A4"
-          style={styles.page}
-        >
-          <View
-            style={[styles.pageTwoHeader, brandStyles.hero]}
-          >
-            <View
-              style={
-                styles.pageTwoTop
-              }
-            >
-              <View>
-                <Text
-                  style={
-                    styles.pageTwoName
-                  }
-                >
-                  {clip(
-                    name,
-                    42,
-                  )}
-                </Text>
-
-                <Text
-                  style={
-                    styles.pageTwoMeta
-                  }
-                >
-                  {[
-                    profile?.primary_position,
-                    profile?.current_club,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Text>
-              </View>
-
-              <Text
-                style={
-                  styles.heroVerified
-                }
-              >
-                PLAYER PROFILE
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={
-              styles.pageTwoBody
-            }
-          >
             {career.length >
               0 &&
               !hidden(
@@ -1745,7 +1743,7 @@ export function ClubCvPdfDocument({
                   <Text
                     style={[styles.pageTitle, brandStyles.primaryText]}
                   >
-                    Season by season.
+                    Recent career record.
                   </Text>
 
                   <View
@@ -2037,50 +2035,28 @@ export function ClubCvPdfDocument({
             )}
 
             <View
-              style={[styles.contact, brandStyles.hero]}
+              style={styles.contact}
               wrap={false}
             >
               <View>
                 <Text
-                  style={
-                    styles.contactKicker
-                  }
+                  style={styles.contactKicker}
                 >
-                  {agencyName.toUpperCase()}
+                  CONTACT {agencyShortName.toUpperCase()}
                 </Text>
 
                 <Text
-                  style={
-                    styles.contactTitle
-                  }
+                  style={styles.contactTitle}
                 >
-                  Discuss {clip(
-                    name,
-                    28,
-                  )} with {agencyShortName}.
-                </Text>
-
-                <Text
-                  style={
-                    styles.contactCopy
-                  }
-                >
-                  For current
-                  availability,
-                  contractual
-                  information,
-                  financial parameters,
-                  full-match footage or
-                  a direct player
-                  discussion.
+                  Discuss {clip(name, 28)} with the agency.
                 </Text>
               </View>
 
               <Link
                 src={`mailto:${email}`}
-                style={[styles.contactEmail, brandStyles.contactEmail]}
+                style={[styles.contactEmail, brandStyles.primaryText]}
               >
-                Contact {agencyShortName}
+                {email}
               </Link>
             </View>
           </View>

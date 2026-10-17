@@ -52,13 +52,13 @@ const PROVIDERS: Array<{
     key: 'google',
     name: 'Google',
     description:
-      'Google Calendar, contacts and Gmail when this is an agency mailbox.',
+      'Calendar, contacts and optional Gmail for agency work.',
   },
   {
     key: 'microsoft',
     name: 'Microsoft',
     description:
-      'Outlook Calendar, contacts and email for your agency work.',
+      'Calendar, contacts and optional Outlook for agency work.',
   },
 ];
 
@@ -185,6 +185,11 @@ export default function AgencyConnectionsDrawer({
         'connection_provider',
       );
 
+    const reason =
+      params.get(
+        'connection_reason',
+      );
+
     const providerLabel =
       provider === 'microsoft'
         ? 'Microsoft'
@@ -203,9 +208,18 @@ export default function AgencyConnectionsDrawer({
     } else if (
       status === 'error'
     ) {
-      setError(
-        `${providerLabel} connection did not complete. Nothing was changed.`,
-      );
+      const reasonMessage =
+        provider === 'instagram'
+          ? reason === 'cancelled'
+            ? 'Instagram connection cancelled. Nothing changed.'
+            : reason === 'professional_required'
+              ? 'Instagram needs a Business or Creator account. Change the account type in Instagram, then try again.'
+              : reason === 'permission_denied'
+                ? 'Instagram needs access to your professional inbox. Approve the requested permissions, then try again.'
+                : 'Instagram could not finish connecting. Make sure the account is Business or Creator, then try again.'
+          : providerLabel + ' connection did not complete. Nothing was changed.';
+
+      setError(reasonMessage);
     }
 
     if (
@@ -218,6 +232,9 @@ export default function AgencyConnectionsDrawer({
       );
       params.delete(
         'connection_provider',
+      );
+      params.delete(
+        'connection_reason',
       );
       params.delete(
         'connections',
@@ -660,7 +677,7 @@ export default function AgencyConnectionsDrawer({
                           <small>
                             {emailAccessChanged
                               ? 'Choose Update access to apply this change.'
-                              : 'Optional. Use this only for an agency mailbox you use with clubs and football contacts. ReDream keeps only recent emails involving people already in Network.'}
+                              : 'Optional for an agency mailbox you use with clubs and football contacts. ReDream keeps only recent emails with people already in Network.'}
                           </small>
                         </span>
                       </div>
