@@ -12,16 +12,20 @@ try {
   for(let attempt=0;attempt<60;attempt++){try{await page.goto(root+'?view=players&player=qa-player-0&profile=1&scenario='+scenario+'&role='+role);break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}}
   await page.getByRole('heading',{name:'José Silva',exact:true}).waitFor();
  }
- for(const width of [320,390,768,1440]){
+ const widths=process.env.PROFILE_QA_WIDTHS?.split(',').map(Number)||[320,390,768,1440];
+ for(const width of widths){
   await open(width);
   await page.getByRole('region',{name:'Player data',exact:true}).waitFor();
   const hero=page.locator('section').filter({has:page.getByRole('heading',{name:'José Silva',exact:true})});
   const edit=hero.getByRole('button',{name:'Edit profile',exact:true});
   assert.equal(await edit.isVisible(),true,'Editing must be directly discoverable at '+width);
-  const facts=page.locator('[class*="__facts"] strong');
+  const facts=page.locator('[class*="AgencyPlayerProfile"][class*="facts"] strong');
   assert.equal(await facts.evaluateAll(nodes=>nodes.every(node=>node.scrollWidth<=node.clientWidth+1)),true,'Long profile facts must remain readable at '+width);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'No horizontal page overflow at '+width);
   if(dir)await page.screenshot({path:dir+'/profile-'+width+'.png',fullPage:true});
+  const tools=hero.locator('details').filter({has:page.getByRole('button',{name:'Edit Transfermarkt',exact:true,includeHidden:true})});
+  await tools.locator('summary').click();await tools.getByRole('button',{name:'Edit Transfermarkt',exact:true}).waitFor();
+  await tools.locator('summary').press('Escape');assert.equal(await tools.evaluate(node=>node.open),false,'Secondary profile tools remain available without crowding the hero');
   await edit.click();
   const dialog=page.getByRole('dialog',{name:'Edit Player Profile',exact:true});await dialog.waitFor();
   assert.equal(await dialog.getByRole('button',{name:'Story',exact:true}).getAttribute('aria-pressed'),'true');
@@ -77,6 +81,11 @@ try {
  await progressive.getByRole('button',{name:'Save',exact:true}).click();
  await progressive.getByRole('status').filter({hasText:'Player Profile saved.'}).waitFor();
  await page.keyboard.press('Escape');
+  for(const label of [/^Club links/,/^Activity/]){
+   const summary=page.locator('summary').filter({hasText:label}).first();
+   if(await summary.count()&&!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();
+  }
+ await page.getByRole('button',{name:/^Older links/}).click();
  await page.getByText('Late loaded club recruitment',{exact:true}).waitFor();
  await page.getByText('Progressive detail arrived during Save.',{exact:true}).waitFor();
  await open(390,'populated-save-failure');
@@ -89,5 +98,5 @@ try {
  await page.keyboard.press('Escape');
  await open(390,'populated','scout');
  assert.equal(await page.getByRole('button',{name:'Edit profile',exact:true}).count(),0,'Assigned read-only users must not get editing controls');
- console.log('Populated profile, long facts, direct editing, retained drafts, saved visibility, recovery and keyboard focus passed at four widths.');
+ console.log('Populated profile, long facts, direct editing, retained drafts, saved visibility, recovery and keyboard focus passed at widths '+widths.join(', ')+'.');
 } finally {await browser.close();}

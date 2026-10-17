@@ -4119,9 +4119,8 @@
   border-radius: 12px; list-style: none; cursor: pointer; font-size: 13px; font-weight: 600;
 }
 .workspaceTools > summary::-webkit-details-marker { display: none; }
-.workspaceTools > summary::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid; border-bottom: 1.5px solid; transform: rotate(45deg); margin-top: -3px; }
 .workspaceToolsMenu {
-  position: absolute; right: 0; top: calc(100% + 8px); min-width: 210px; display: grid; gap: 4px;
+  display: grid; gap: 4px;
   padding: 8px; border: 1px solid #e5e5e7; border-radius: 16px; background: #fff; box-shadow: 0 12px 40px #1d1d1f14;
 }
 .workspaceToolsMenu button { width: 100%; min-height: 44px; justify-content: flex-start; text-align: left; }

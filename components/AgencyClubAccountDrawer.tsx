@@ -27,6 +27,7 @@ import {
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import RecordActivitySummary from './RecordActivitySummary';
+import RecordDetails from './RecordDetails';
 import {recordEditReady} from '@/lib/record-edit-readiness';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import {
@@ -173,12 +174,14 @@ export default function AgencyClubAccountDrawer({
 
   const readSequence = useRef(0);
   const load = useCallback(
-    async () => {
+    async (options?: { recordRefresh?: boolean }) => {
       const sequence = ++readSequence.current;
       const current = () => sequence === readSequence.current;
-      setBusy(true);
-      setError('');
-      setLoadedOrganisationId('');
+      if (!options?.recordRefresh) {
+        setBusy(true);
+        setError('');
+        setLoadedOrganisationId('');
+      }
 
       try {
         const response = await readWithDeadline(invoke(
@@ -200,11 +203,12 @@ export default function AgencyClubAccountDrawer({
         setLoadedOrganisationId(request.organisationId);
       } catch (loadError) {
         if (!current()) return;
+        if (options?.recordRefresh) throw loadError;
         setError(
           friendlyError(loadError),
         );
       } finally {
-        if (current()) setBusy(false);
+        if (current() && !options?.recordRefresh) setBusy(false);
       }
     },
     [
@@ -625,7 +629,7 @@ export default function AgencyClubAccountDrawer({
                 rpc={rpc}
                 onChanged={async (change) => {
                   await onRefresh();
-                  if (change === 'edit') await load();
+                  if (change === 'edit') await load({ recordRefresh: true });
                   else onClose();
                 }}
                 fields={[
@@ -734,6 +738,7 @@ export default function AgencyClubAccountDrawer({
             </section>
 
             <RecordActivitySummary summary={interactions[0]?clean(interactions[0].summary)||'Conversation added':null} when={interactions[0]?.occurred_at||null}/>
+            <RecordDetails title="Club overview">
             <section
               className={
                 styles.quickFacts
@@ -794,17 +799,14 @@ export default function AgencyClubAccountDrawer({
                 } to keep`}
               />
             </section>
+            </RecordDetails>
 
+            <RecordDetails title="Club contacts" count={directRoutes.length} open={Boolean(directRoutes.length || introRoutes.length)}>
             <section
               className={
                 styles.section
               }
             >
-              <SectionHead
-                icon={Users}
-                label="PEOPLE WE KNOW"
-                title="Club contacts"
-              />
 
               {directRoutes.length ? (
                 <div
@@ -938,7 +940,9 @@ export default function AgencyClubAccountDrawer({
                 </div>
               ) : null}
             </section>
+            </RecordDetails>
 
+            <RecordDetails title="Club needs" count={needs.length} open={Boolean(needs.length)}>
             <section
               className={
                 styles.section
@@ -1053,19 +1057,14 @@ export default function AgencyClubAccountDrawer({
                 />
               )}
             </section>
+            </RecordDetails>
 
+            <RecordDetails title="Conversations" count={interactions.length}>
             <section
               className={
                 styles.section
               }
             >
-              <SectionHead
-                icon={
-                  MessageCircleMore
-                }
-                label="RECENT CONVERSATIONS"
-                title="What we know"
-              />
 
               {interactions.length ? (
                 <div
@@ -1149,19 +1148,14 @@ export default function AgencyClubAccountDrawer({
                 />
               )}
             </section>
+            </RecordDetails>
 
+            <RecordDetails title="Promises and follow-up" count={promiseRows.length + followUps.length} open={Boolean(promiseRows.length || followUps.length)}>
             <section
               className={
                 styles.section
               }
             >
-              <SectionHead
-                icon={
-                  CheckCircle2
-                }
-                label="NEXT STEP"
-                title="Promises and follow-up"
-              />
 
               <div
                 className={
@@ -1201,19 +1195,14 @@ export default function AgencyClubAccountDrawer({
                 />
               </div>
             </section>
+            </RecordDetails>
 
+            <RecordDetails title="Live opportunities" count={deals.length + pursuits.length} open={Boolean(deals.length || pursuits.length)}>
             <section
               className={
                 styles.section
               }
             >
-              <SectionHead
-                icon={
-                  BriefcaseBusiness
-                }
-                label="LIVE OPPORTUNITIES"
-                title="Live opportunities"
-              />
 
               {deals.length ||
               pursuits.length ? (
@@ -1464,6 +1453,7 @@ export default function AgencyClubAccountDrawer({
                 />
               )}
             </section>
+            </RecordDetails>
 
             <p
               className={

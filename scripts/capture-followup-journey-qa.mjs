@@ -53,35 +53,32 @@ export async function verifyCaptureFollowupJourney(page, counts) {
     .getByRole("link", { name: "Today", exact: true })
     .click();
   const complete = page.getByRole("button", {
-    name: "Complete follow-up",
+    name: "Complete " + title,
     exact: true,
   });
-  await complete.click();
-  const confirmation = page.getByRole("dialog", {
-    name: "Complete: " + title,
+  const homeRow = page.locator('article').filter({ hasText: title });
+  await homeRow.getByRole('button', { name: 'Update', exact: true }).click();
+  const editor = page.getByRole("dialog", {
+    name: "Update task",
     exact: true,
   });
-  await confirmation.waitFor();
+  await editor.waitFor();
   assert.equal(counts().completions, 0, "Opening completion never applies it");
-  await confirmation
-    .getByRole("button", { name: "Cancel", exact: true })
+  await editor
+    .getByRole("button", { name: "Close task editor", exact: true })
     .click();
-  await confirmation.waitFor({ state: "hidden" });
+  await editor.waitFor({ state: "hidden" });
   assert.equal(
     counts().completions,
     0,
     "Cancelling completion never applies it",
   );
   await complete.click();
-  await confirmation.waitFor();
-  await confirmation
-    .getByRole("button", { name: "Confirm", exact: true })
-    .click();
-  await confirmation.waitFor({ state: "hidden" });
+  await page.getByRole('button', { name: 'Undo completion of ' + title, exact: true }).waitFor();
   await complete.waitFor({ state: "hidden" });
   assert.equal(
     counts().completions,
     1,
-    "The confirmed follow-up completes exactly once",
+    "The direct follow-up completion applies exactly once and offers Undo",
   );
 }

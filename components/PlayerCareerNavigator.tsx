@@ -5,10 +5,12 @@ import {
   CalendarRange,
   ChartNoAxesCombined,
   Compass,
+  ChevronDown,
   FileCheck2,
   FolderLock,
   MessageCircleQuestion,
 } from 'lucide-react';
+import styles from './PlayerCareerNavigator.module.css';
 
 const lanes = [
   { href: '/home#week', label: 'Week', detail: 'Your next useful action', icon: CalendarRange },
@@ -22,17 +24,15 @@ const lanes = [
 
 export default function PlayerCareerNavigator({ current }: { current: 'week' | 'career' }) {
   return (
-    <nav className="player-career-navigator" aria-label="My career areas">
-      <div className="player-career-navigator-head">
-        <div><span>MY PROFESSIONAL SYSTEM</span><strong>Everything that helps you perform, prepare and decide.</strong></div>
-        <small>Private to you and your agency. Club sharing needs approval.</small>
-      </div>
-      <div className="player-career-lanes">
+    <nav className={'player-career-navigator '+styles.navigator} aria-label="My career areas">
+      <details className={'interface-details '+styles.disclosure}>
+      <summary><span>Career tools</span><ChevronDown size={18} aria-hidden="true"/></summary>
+      <div className={styles.lanes}>
         {lanes.map((lane) => {
           const Icon = lane.icon;
           const active = current === 'week' ? lane.label === 'Week' : lane.label === 'Career';
           return (
-            <Link href={lane.href} key={lane.label} className={active ? 'is-active' : ''} aria-current={active ? 'location' : undefined}>
+            <Link href={lane.href} key={lane.label} aria-current={active ? 'location' : undefined}>
               <Icon size={17} />
               <span><strong>{lane.label}</strong><small>{lane.detail}</small></span>
               <ArrowUpRight size={13} />
@@ -40,6 +40,8 @@ export default function PlayerCareerNavigator({ current }: { current: 'week' | '
           );
         })}
       </div>
+      <p className={styles.privacy}>Private to you and your agency. Club sharing needs approval.</p>
+      </details>
     </nav>
   );
 }

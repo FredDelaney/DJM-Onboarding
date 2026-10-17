@@ -15,11 +15,11 @@ test('club opens as a simple football relationship workspace', async () => {
 
   assert.match(source, /CLUB/);
   assert.match(source, /NEXT MOVE/);
-  assert.match(source, /PEOPLE WE KNOW/);
+  assert.match(source, /Club contacts/);
   assert.match(source, /WHAT THEY NEED/);
-  assert.match(source, /RECENT CONVERSATIONS/);
-  assert.match(source, /NEXT STEP/);
-  assert.match(source, /LIVE OPPORTUNITIES/);
+  assert.match(source, /Conversations/);
+  assert.match(source, /Promises and follow-up/);
+  assert.match(source, /Live opportunities/);
 
   assert.doesNotMatch(
     source,

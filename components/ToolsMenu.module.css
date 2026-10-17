@@ -1,0 +1,11 @@
+.panel[popover] {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  box-sizing: border-box;
+  width: min(260px, calc(100vw - 16px));
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.panel[popover]:not(:popover-open) { display: none; }

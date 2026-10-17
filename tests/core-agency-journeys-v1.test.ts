@@ -11,7 +11,6 @@ test('Player Profile turns the first required blocker into the primary action', 
   assert.match(player, /canPublishFromHero \? \(/);
   assert.match(player, /runProfileCheck\(primaryRequiredCheck\)/);
   assert.match(player, /Next move/);
-  assert.match(player, /More\s*<ChevronDown/);
 });
 
 test('Pursuit Room exposes one executable next move across the full route', () => {

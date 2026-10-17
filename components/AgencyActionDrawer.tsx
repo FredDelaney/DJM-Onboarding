@@ -263,9 +263,10 @@ export default function AgencyActionDrawer({
     'confirm_strategy_with_player';
 
   const showCareerApproval =
-    strategyActionType ===
+    !showCareerStrategyForm &&
+    !showCareerConfirmation &&
+    (strategyActionType ===
       'complete_strategy_approval' ||
-    (!showCareerConfirmation &&
       allowedNextSteps.includes(
         'approve_career_strategy',
       ));
@@ -460,17 +461,27 @@ export default function AgencyActionDrawer({
       inputs.career_next_checkpoint || '',
     ).trim();
 
+    const preferredPathway = String(
+      inputs.career_preferred_pathway || '',
+    ).trim();
+
+    const fallbackPathway = String(
+      inputs.career_fallback_pathway || '',
+    ).trim();
+
     const reviewDueAt = String(
       inputs.career_review_due_at || '',
     ).trim();
 
     if (
       !objective ||
+      !preferredPathway ||
+      !fallbackPathway ||
       !nextCheckpoint ||
       !reviewDueAt
     ) {
       setError(
-        'Career objective, next checkpoint and review date are required.',
+        'Add the career objective, preferred route, fallback route, next checkpoint and review date.',
       );
       return;
     }
@@ -485,7 +496,10 @@ export default function AgencyActionDrawer({
           player_id: playerId,
           review_due_at: reviewDueAt,
           strategy: {
+            ...result?.career_strategy?.strategy?.strategy,
             objective,
+            preferred_pathway: preferredPathway,
+            fallback_pathway: fallbackPathway,
             next_checkpoint:
               nextCheckpoint,
             target_markets: commaList(
@@ -1027,6 +1041,36 @@ export default function AgencyActionDrawer({
                     }))
                   }
                   placeholder="What is the player trying to achieve?"
+                />
+              </label>
+
+              <label>
+                <span>Preferred route</span>
+                <input
+                  type="text"
+                  value={inputs.career_preferred_pathway || ''}
+                  onChange={(event) =>
+                    setInputs((current) => ({
+                      ...current,
+                      career_preferred_pathway: event.target.value,
+                    }))
+                  }
+                  placeholder="How should the player reach that objective?"
+                />
+              </label>
+
+              <label>
+                <span>Fallback route</span>
+                <input
+                  type="text"
+                  value={inputs.career_fallback_pathway || ''}
+                  onChange={(event) =>
+                    setInputs((current) => ({
+                      ...current,
+                      career_fallback_pathway: event.target.value,
+                    }))
+                  }
+                  placeholder="What is the alternative if that route is unavailable?"
                 />
               </label>
 

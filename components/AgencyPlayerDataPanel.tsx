@@ -10,17 +10,18 @@ type Invoke=<T=any>(action:string,body?:Record<string,unknown>)=>Promise<T>;
 type Job={id:string;status:string;requested_at?:string;context?:{season_label:string;club_name:string;league:string};summary?:{message?:string;checked_at?:string|null;changed_fields?:string[]}};
 const labels={appearances:'Apps',starts:'Starts',minutes:'Minutes',goals:'Goals',assists:'Assists'};
 const pending=(job:Job|null)=>Boolean(job&&['queued','running'].includes(job.status));
-const number=(value:unknown)=>value==null||value===''||!Number.isFinite(Number(value))?'Unknown':Number(value).toLocaleString('en-GB');
+const number=(value:unknown)=>value==null||value===''||!Number.isFinite(Number(value))?'-':Number(value).toLocaleString('en-GB');
 async function bounded<T>(promise:Promise<T>):Promise<T>{
  let timer:ReturnType<typeof setTimeout>|undefined;
  try{return await Promise.race([promise,new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('The request is taking longer than expected. Check progress to recover.')),12000);})]);}
  finally{clearTimeout(timer);}
 }
-export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onChanged,onReview,hasCustomStats=false,onUseRecordedStats,blocked=false}:{
+export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onChanged,onReview,hasCustomStats=false,onUseRecordedStats,blocked=false,statusVersion=0,managedRefresh=false}:{
  player:any;career:any[];canEdit:boolean;invoke:Invoke;onChanged:()=>Promise<boolean|void>;onReview:()=>void;
- hasCustomStats?:boolean;onUseRecordedStats?:()=>Promise<void>;blocked?:boolean;
+ hasCustomStats?:boolean;onUseRecordedStats?:()=>Promise<void>;blocked?:boolean;statusVersion?:number;managedRefresh?:boolean;
 }){
  const playerId=String(player.id);
+ const managedRefreshRef=useRef(managedRefresh);managedRefreshRef.current=managedRefresh;
  const row=useMemo(()=>selectCurrentSeasonEvidence(career,player),[career,player]);
  const [job,setJob]=useState<Job|null>(null),[starting,setStarting]=useState(false),[checking,setChecking]=useState(false);
  const [editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[draft,setDraft]=useState<SeasonDraft>(()=>seasonDraft(player,row));
@@ -37,14 +38,14 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    const next=response?.job||null;
    const finished=pending(jobRef.current)&&next&&!pending(next);
    setCurrentJob(next);setUncertain(false);setError('');
-   if(finished){requestId.current=null;const reloaded=await onChanged();if(alive.current&&reloaded===false)setError('Update finished, but player data could not reload. Try again.');}
+   if(finished){requestId.current=null;if(!managedRefreshRef.current){const reloaded=await onChanged();if(alive.current&&generation===statusGeneration.current&&reloaded===false)setError('Update finished, but player data could not reload. Try again.');}}
   }catch(failure){if(alive.current&&generation===statusGeneration.current){setUncertain(true);setError(friendlyError(failure));}}
   finally{if(alive.current&&generation===statusGeneration.current)setChecking(false);}
  },[invoke,onChanged,playerId]);
  useEffect(()=>{
   alive.current=true;void readStatus();
   return()=>{alive.current=false;++statusGeneration.current;};
- },[readStatus]);
+ },[readStatus,statusVersion]);
  useEffect(()=>{
   if(!pending(job)||uncertain)return;
   const timer=setTimeout(()=>void readStatus(),2500);
@@ -95,17 +96,26 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
     {starting?'Starting update...':pending(job)?'Updating statistics...':'Update statistics'}
    </button>:null}
   </header>
-  <div className={styles.stats} aria-label="Season statistics">{PLAYER_STAT_FIELDS.map(key=><div key={key}><span>{labels[key]}</span><strong className={row?.[key]==null||row?.[key]===''?styles.unknown:undefined}>{number(row?.[key])}</strong></div>)}</div>
+  <div className={styles.stats} aria-label="Season statistics">{PLAYER_STAT_FIELDS.map(key=><div key={key}><span>{labels[key]}</span><strong aria-label={row?.[key]==null||row?.[key]===''?labels[key]+' not available':undefined} className={row?.[key]==null||row?.[key]===''?styles.unknown:undefined}>{number(row?.[key])}</strong></div>)}</div>
+  {pending(job)?<JourneyStatus compact kind="loading" title="Checking current-season sources" description="You can keep using the profile while this finishes."/>:job?.summary?.message&&(job.status==='failed'||!currentJobContext)?<JourneyStatus compact kind="warning" title={!currentJobContext?'Season details changed':'Update needs attention'} description={currentJobContext?job.summary.message:'Update the statistics to check the current season and club.'}/>:null}
+  <details className={styles.history}>
+   <summary>Sources and history</summary>
   <div className={styles.provenance}>
    <span><ShieldCheck size={14}/>{row?.source_name||'Source not set'}</span>
    {sourceDate?<span><Clock3 size={14}/>{row?.source_reviewed_at?'Source reviewed':'Source updated'} {compactDateTime(sourceDate)}</span>:<span>Source date not set</span>}
    {sourceUrl?<a href={sourceUrl} target="_blank" rel="noreferrer">Open source <ExternalLink size={12}/></a>:null}
   </div>
   {!contextReady?<p className={styles.guidance}>Add the current season, club and competition. History is preserved.</p>:!row?<p className={styles.guidance}>No statistics match this selection.</p>:missing.length?<p className={styles.guidance}>Not set: {missing.join(', ')}. Unknown figures stay blank when you edit.</p>:null}
-  {pending(job)?<JourneyStatus compact kind="loading" title="Checking current-season sources" description="You can keep using the profile while this finishes."/>:job?.summary?.message?<JourneyStatus compact kind={!currentJobContext?'info':job.status==='failed'?'warning':'success'} title={!currentJobContext?'Previous source check':job.status==='failed'?'Update needs attention':'Source check finished'} description={currentJobContext?job.summary.message:'This check was for a previous season, club or competition. Update the current statistics to check the new context.'}>{currentJobContext&&job.summary.checked_at?<small>Checked {compactDateTime(job.summary.checked_at)}</small>:null}</JourneyStatus>:null}
+  {!pending(job)&&currentJobContext&&job?.status!=='failed'&&job?.summary?.message?<JourneyStatus compact kind="success" title="Source check finished" description={job.summary.message}>{job.summary.checked_at?<small>Checked {compactDateTime(job.summary.checked_at)}</small>:null}</JourneyStatus>:null}
+  {career.length?<div className={styles.historyRows}>{career.map(entry=><article key={entry.id}>
+   <div><strong>{entry.season_label||'Season not set'} · {entry.club_name||'Club not set'}</strong><span>{entry.league||'Competition not set'}</span></div>
+   <p>{PLAYER_STAT_FIELDS.filter(key=>entry[key]!=null).map(key=>number(entry[key])+' '+labels[key].toLowerCase()).join(' · ')||'No figures recorded'}</p>
+   <small>{entry.source_name||'Source not set'}{safeSourceUrl(entry.source_url)?<a href={safeSourceUrl(entry.source_url)!} target="_blank" rel="noreferrer">Open source <ExternalLink size={11}/></a>:null}</small>
+  </article>)}</div>:null}
+  </details>
   {error?<JourneyStatus compact kind="error" description={error} onRetry={()=>void reload()} retryBusy={checking} retryDisabled={saving} retryLabel="Reload player data"/>:null}
   {notice?<JourneyStatus compact kind="success" description={notice}/>:null}
-  {hasCustomStats?<JourneyStatus compact kind="warning" title="The club profile uses custom headline statistics" description="Published profiles use these figures once you switch to current statistics.">{canEdit&&onUseRecordedStats?<button type="button" data-ui-button="secondary" disabled={busy||blocked||editing} onClick={()=>void onUseRecordedStats().catch(failure=>setError(friendlyError(failure)))}>Use current statistics</button>:null}</JourneyStatus>:null}
+  {hasCustomStats?<div className={styles.customStats}><span>The club profile uses custom headline statistics.</span>{canEdit&&onUseRecordedStats?<button type="button" data-ui-button="secondary" disabled={busy||blocked||editing} onClick={()=>void onUseRecordedStats().catch(failure=>setError(friendlyError(failure)))}>Use current statistics</button>:null}</div>:null}
   {!editing?<div className={styles.actions}>
    {canEdit?<button type="button" data-ui-button="secondary" onClick={openEditor} disabled={busy||blocked||uncertain}><Pencil size={14}/>{row?'Edit current statistics':'Add season statistics'}</button>:null}
    {pending(job)||uncertain?<button type="button" data-ui-button="secondary" onClick={()=>void readStatus()} disabled={checking}>{checking?'Checking...':'Check progress'}</button>:null}
@@ -118,10 +128,5 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    <label className={styles.confirm}><input type="checkbox" checked={draft.source_confirmed} onChange={event=>field('source_confirmed',event.target.checked)}/>I checked these figures against the linked source.</label>
    <div className={styles.actions}><button type="submit" data-ui-button="primary" disabled={saving||pending(job)}>{saving?'Saving...':'Save reviewed statistics'}</button><button type="button" data-ui-button="secondary" onClick={()=>{setEditing(false);setError('');}} disabled={saving}>Cancel editing</button></div>
   </form>}
-  {career.length?<details className={styles.history}><summary>Season history · {career.length} records</summary><div className={styles.historyRows}>{career.map(entry=><article key={entry.id}>
-   <div><strong>{entry.season_label||'Season not set'} · {entry.club_name||'Club not set'}</strong><span>{entry.league||'Competition not set'}</span></div>
-   <p>{PLAYER_STAT_FIELDS.filter(key=>entry[key]!=null).map(key=>number(entry[key])+' '+labels[key].toLowerCase()).join(' · ')||'No figures recorded'}</p>
-   <small>{entry.source_name||'Source not set'}{safeSourceUrl(entry.source_url)?<a href={safeSourceUrl(entry.source_url)!} target="_blank" rel="noreferrer">Open source <ExternalLink size={11}/></a>:null}</small>
-  </article>)}</div></details>:null}
  </section>;
 }

@@ -70,6 +70,8 @@ export default {fetch:async(req:Request)=>{
   const {data:ctx,error:contextError}=await createSupabaseContext(req,{auth:"user"});
   if(contextError||!ctx) return json({error:contextError?.message||"Unauthorized"},contextError?.status||401);
   try{
+    // Await returned route promises so RPC failures reach the JSON/CORS error handler.
+    return await (async()=>{
     const claims=(ctx.userClaims||{}) as Record<string,unknown>;
     const userId=String(claims.id||claims.sub||"");
     if(!userId) return json({error:"Authenticated user identity missing"},401);
@@ -1149,7 +1151,21 @@ export default {fetch:async(req:Request)=>{
       if(action==="player_value_proof_capture") return result("result","platform_server_capture_player_value_proof",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId,p_window_days:clamp(body?.window_days,1,366,30)});
       if(action==="career_strategy") return result("career_strategy","platform_server_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p});
       if(action==="career_alignment") return result("career_alignment","platform_server_player_career_alignment",{p_tenant_id:tenantId,p_player_id:p});
-      if(action==="career_strategy_action_prepare") return result("proposal","platform_server_prepare_career_strategy_action",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId});
+      if(action==="career_strategy_action_prepare"){
+        const prepared=obj(await rpc("platform_server_prepare_career_strategy_action",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId}));
+        if(!["define_career_strategy","confirm_strategy_with_player","complete_strategy_approval"].includes(id(prepared.strategy_action_type)))return json({ok:true,tenant:workspace,proposal:prepared});
+        const career=obj(await rpc("platform_server_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p}));
+        const recorded=obj(career.strategy),strategy=obj(recorded.strategy);
+        const missing=["objective","preferred_pathway","fallback_pathway","next_checkpoint"].filter(key=>!id(strategy[key]));
+        const nextType=!id(recorded.id)||missing.length?"define_career_strategy":career.confirmation_state!=="confirmed"?"confirm_strategy_with_player":"complete_strategy_approval";
+        return json({ok:true,tenant:workspace,proposal:{...prepared,
+          strategy_action_type:nextType,
+          instruction:nextType==="define_career_strategy"?"Complete the career plan before recording player confirmation.":nextType==="confirm_strategy_with_player"?"Record the player's confirmation of this saved plan.":"Review and approve the confirmed career plan.",
+          allowed_next_steps:[nextType==="define_career_strategy"?"save_career_strategy":nextType==="confirm_strategy_with_player"?"record_player_confirmation":"approve_career_strategy"],
+          career_strategy:career,
+          suggested_input:{career_objective:id(strategy.objective),career_preferred_pathway:id(strategy.preferred_pathway),career_fallback_pathway:id(strategy.fallback_pathway),career_next_checkpoint:id(strategy.next_checkpoint),career_review_due_at:id(recorded.review_due_at),career_target_markets:Array.isArray(strategy.target_markets)?strategy.target_markets.join(", "):"",career_avoid_markets:Array.isArray(strategy.avoid_markets)?strategy.avoid_markets.join(", "):"",career_notes:id(strategy.notes)}
+        }});
+      }
       if(action==="career_strategy_confirm"){const m=id(body?.confirmation_method);if(!m)return json({error:"confirmation_method is required"},400);return result("career_strategy","platform_server_confirm_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId,p_method:m});}
       if(action==="career_strategy_approve") return result("career_strategy","platform_server_approve_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId});
       return result("career_strategy","platform_server_archive_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId});
@@ -1191,9 +1207,10 @@ export default {fetch:async(req:Request)=>{
       const data=await rpc("platform_server_seed_demo_story",{p_tenant_id:tenantId});await rpc("platform_server_reconcile_commitments",{p_tenant_id:tenantId});await rpc("platform_server_refresh_agency_pulse",{p_tenant_id:tenantId});return json({ok:true,result:data});
     }
     return json({error:"Unknown action"},400);
+    })();
   }catch(error){
     const message=error instanceof Error?error.message:String(obj(error).message||"");
-    if(obj(error).code==="42501"||["workspace_access_denied","agency_staff_access_required","active_tenant_staff_required","proposal_access_denied","agency_admin_access_required"].includes(message)){
+    if(obj(error).code==="42501"||["workspace_access_denied","agency_staff_access_required","active_tenant_staff_required","proposal_access_denied","agency_admin_access_required","owner_or_admin_required","agency_operator_access_required"].includes(message)){
       return json({error:"You do not have permission to perform this action.",code:"workspace_access_denied"},403);
     }
     const conflicts:Record<string,string>={
@@ -1203,9 +1220,15 @@ export default {fetch:async(req:Request)=>{
       player_stats_refresh_running:"A statistics update is running. Wait for it to finish before saving corrections.",
       player_stats_row_exists:"A season record already exists. Reload recorded data and edit that record.",
       refresh_request_conflict:"This update request belongs to another record. Reload the player profile.",
+      player_confirmation_required_before_approval:"Record the player's confirmation before approving this career plan.",
+      draft_career_strategy_not_found:"This career plan changed. Reload it before approving.",
     };
     if(Object.hasOwn(conflicts,message)) return json({error:conflicts[message],code:message},409);
     const inputErrors:Record<string,string>={
+      career_strategy_incomplete_for_approval:"Add the career objective, preferred route, fallback route and next checkpoint before approving. Reopen the career plan to complete it.",
+      career_objective_required:"Add a career objective before saving the plan.",
+      career_next_checkpoint_required:"Add the next checkpoint before saving the plan.",
+      future_review_due_at_required:"Choose a review date of today or later before saving the plan.",
       current_season_context_required:"Add the current season, club and competition before updating statistics.",
       reviewed_stats_source_required:"Add a valid source link and confirm you checked the figures.",
       invalid_player_stats:"Statistics must be whole numbers of 0 or more.",

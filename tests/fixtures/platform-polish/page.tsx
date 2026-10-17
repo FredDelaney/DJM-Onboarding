@@ -51,11 +51,14 @@ export default function Page(){
  const params=useSearchParams(),suite=params.get('suite')||'agency',screen=params.get('screen')||'home';
  const readScenario=params.get('read')||'';
  const fixtureInvoke=useCallback(async(action:string)=>{
+  if(readScenario==='post-save-failed'&&(window as any).__recordRefreshWrites&&!((window as any).__recordRefreshAllow))throw new Error('Saved record refresh unavailable');
   if(readScenario==='failed')throw new Error('Fixture record read failed');
   if(readScenario==='delayed')await new Promise(resolve=>setTimeout(resolve,1200));
   return invoke(action);
  },[readScenario]);
- const fixtureRpc=useCallback(async()=>{
+ const fixtureRpc=useCallback(async(method:string)=>{
+  if(method==='redream_entity_patch'){(window as any).__recordRefreshWrites=((window as any).__recordRefreshWrites||0)+1;return {ok:true};}
+  if(readScenario==='post-save-failed'&&(window as any).__recordRefreshWrites&&!((window as any).__recordRefreshAllow))throw new Error('Saved record refresh unavailable');
   if(readScenario==='failed')throw new Error('Fixture record read failed');
   if(readScenario==='delayed')await new Promise(resolve=>setTimeout(resolve,1200));
   return rpc();
@@ -68,8 +71,8 @@ export default function Page(){
  else if(suite==='agency')content=<AgencyOperatingWorkspace/>;
  else if(suite==='player'||suite==='settings')content=Component?<Component/>:<p>Unknown fixture screen</p>;
  else content=<div className={styles.root}><main className={styles.main} style={{gridColumn:'1 / -1'}}>
-  {screen==='deal'?<AgencyEntityIntelligenceDrawer presentation={params.get('drawer')==='1'?'drawer':'page'} rpc={rpc as any} canManageRecords={params.get('readonly')!=='1'} onRefresh={refresh} request={{key:'deal',kind:'deal',entityId:'deal',title:'Example transfer'}} invoke={invoke as any} onClose={noop} onOpenAction={noop} onOpenCloseout={noop} onOpenNegotiation={noop} onOpenPlayerReview={noop}/>:null}
-  {screen==='club'?<AgencyClubAccountDrawer presentation="page" request={{key:'club',organisationId:'club',title:'Example FC'}} invoke={fixtureInvoke as any} rpc={rpc as any} onRefresh={refresh} onClose={noop} onOpenAction={noop} onOpenDeal={noop} onOpenMarket={noop} onOpenPursuit={noop} onOpenPlayer={noop}/>:null}
+  {screen==='deal'?<AgencyEntityIntelligenceDrawer presentation={params.get('drawer')==='1'?'drawer':'page'} rpc={fixtureRpc as any} canManageRecords={params.get('readonly')!=='1'} onRefresh={refresh} request={{key:'deal',kind:'deal',entityId:'deal',title:'Example transfer'}} invoke={fixtureInvoke as any} onClose={noop} onOpenAction={noop} onOpenCloseout={noop} onOpenNegotiation={noop} onOpenPlayerReview={noop}/>:null}
+  {screen==='club'?<AgencyClubAccountDrawer presentation="page" request={{key:'club',organisationId:'club',title:'Example FC'}} invoke={fixtureInvoke as any} rpc={fixtureRpc as any} onRefresh={refresh} onClose={noop} onOpenAction={noop} onOpenDeal={noop} onOpenMarket={noop} onOpenPursuit={noop} onOpenPlayer={noop}/>:null}
   {screen==='contact'?<AgencyContactIntelligenceDrawer presentation="page" contact={{person_id:'contact',person:{full_name:'Example Director'}}} rpc={fixtureRpc as any} onClose={noop} onRefresh={refresh} onOpenClub={noop}/>:null}
   {screen==='negotiation'?<AgencyNegotiationCommandRoom presentation="page" request={{key:'negotiation',dealRoomId:'deal',title:'Example transfer'}} role="owner" invoke={invoke as any} onClose={noop} onOpenAction={noop} onApplied={refresh}/>:null}
   {screen==='review'?<AgencyPlayerServiceReviewDrawer presentation="page" request={{key:'review',playerId:'player',title:'Example Player'}} invoke={invoke as any} onClose={noop} onOpenAction={noop} onApplied={refresh}/>:null}

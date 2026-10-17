@@ -55,6 +55,5 @@ test('player profile leads with identity instead of admin readiness', () => {
   assert.match(profile, /\.readinessGrid[\s\S]*display: none/);
   assert.match(profile, /\.heroIdentity[\s\S]*text-align: center/);
   assert.match(profileView, /<h3>Player overview<\/h3>/);
-  assert.match(profileView, /<h3>Evidence<\/h3>/);
   assert.match(profileView, /<h3>Recent activity<\/h3>/);
 });

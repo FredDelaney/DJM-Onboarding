@@ -65,7 +65,7 @@ try{
  await page.locator('[data-qa-dialog]').click();await page.keyboard.press('Control+k');
  assert.equal(await page.getByRole('dialog',{name:'Find in this agency',exact:true}).count(),0,'Search opened over another dialog');
  await page.getByRole('button',{name:'Close other dialog'}).click();
- await page.getByRole('textbox',{name:'Search players',exact:true}).fill('Example');
+ await page.getByRole('searchbox',{name:'Search players',exact:true}).fill('Example');
  const card=page.getByRole('button',{name:'Open Example Player 5',exact:true});await card.scrollIntoViewIfNeeded();
  const before=await page.evaluate(()=>window.scrollY);assert.ok(before>100);
  await card.click();await page.getByRole('region',{name:'Player data',exact:true}).waitFor();
@@ -73,17 +73,17 @@ try{
  assert.equal(await page.getByRole('link',{name:'Work view',exact:true}).count(),1);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Profile overflow');
  await page.getByRole('link',{name:'Back to players',exact:true}).click();
- await page.getByRole('textbox',{name:'Search players',exact:true}).waitFor();
+ await page.getByRole('searchbox',{name:'Search players',exact:true}).waitFor();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search players"]')?.value==='Example');
  await page.waitForFunction(top=>Math.abs(window.scrollY-top)<5,before);
  await navigate('network');
- await contacts();await page.getByRole('textbox',{name:'Search Network'}).fill('Director');
+ await contacts();await page.getByRole('searchbox',{name:'Search Network'}).fill('Director');
  await navigate('home');
  await navigate('network','Contacts');
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
  await page.getByRole('heading',{name:'Dapo Director',exact:true}).waitFor();
  assert.equal(await page.getByRole('heading',{name:'Example FC',exact:true}).count(),0,'Returning to Network must preserve the People view');
- await page.reload();await page.getByRole('textbox',{name:'Search Network'}).waitFor();
+ await page.reload();await page.getByRole('searchbox',{name:'Search Network'}).waitFor();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
  await page.locator('[data-qa-switch]').click();await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='');
  dialog=await choose('jose');await dialog.getByText('No matching records',{exact:true}).waitFor();
@@ -96,7 +96,7 @@ try{
  await box(dialog).fill('Example Player 248');await dialog.getByText('No matching records',{exact:true}).waitFor();await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
  await page.getByRole('button',{name:'Load more players',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Load more players',exact:true}).count(),0);
- await page.getByRole('textbox',{name:'Search players',exact:true}).fill('Example Player 249');await page.getByRole('button',{name:'Open Example Player 249',exact:true}).waitFor();
+ await page.getByRole('searchbox',{name:'Search players',exact:true}).fill('Example Player 249');await page.getByRole('button',{name:'Open Example Player 249',exact:true}).waitFor();
  await visit('?scenario=page-failure');await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByRole('alert').filter({hasText:'Next page unavailable'}).waitFor();await page.getByRole('button',{name:'Retry loading players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
  await visit('?scenario=stale');dialog=await choose('jose');await page.waitForTimeout(300);await box(dialog).fill('Dapo');await dialog.getByRole('option',{name:/Dapo Director/}).waitFor();await page.waitForTimeout(850);assert.equal(await dialog.getByRole('option',{name:/José Silva/}).count(),0);await page.keyboard.press('Escape');
  await visit('?scenario=hung');dialog=await choose('jose');await dialog.getByRole('alert').filter({hasText:'took too long'}).waitFor({timeout:15000});await dialog.getByRole('button',{name:'Try again',exact:true}).click();await dialog.getByRole('option',{name:/José Silva/}).waitFor();
@@ -163,7 +163,7 @@ try{
  await page.getByRole('button',{name:'Open Coordinator Player 0',exact:true}).waitFor();
  await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
  const coordinatorView=async view=>page.evaluate(({url,view})=>{const next=new URL(url);next.searchParams.set('view',view);window.history.pushState(null,'',next.pathname+next.search);},{url:page.url(),view});
- await coordinatorView('network');await page.getByRole('textbox',{name:'Search Network',exact:true}).waitFor();
+ await coordinatorView('network');await page.getByRole('searchbox',{name:'Search Network',exact:true}).waitFor();
  slowRefresh=true;await coordinatorView('players');await refreshRead;
  const refreshing=page.getByRole('button',{name:'Refreshing players...',exact:true});await refreshing.waitFor();assert.equal(await refreshing.isDisabled(),true);
  releaseRefresh();await page.getByRole('button',{name:'Load more players',exact:true}).waitFor();await page.getByText(/^200 of 250 players loaded\./).waitFor();
