@@ -76,6 +76,15 @@
   padding: 10px 14px 14px;
 }
 
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  margin: 0;
+  color: #566f7f;
+  font-size: 14px;
+}
+
 .full {
   display: block;
   margin: 10px auto 2px;

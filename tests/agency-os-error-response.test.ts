@@ -52,3 +52,63 @@ test('only known conflict codes are translated; inherited object keys remain gen
   assert.equal(response.status,500);
   assert.deepEqual(await response.json(),{error:'Agency OS request failed'});
 });
+
+test('an incomplete career approval returns actionable JSON with CORS instead of rejecting the request', async () => {
+  (globalThis as any).agencyErrorTestContext = {data:{userClaims:{sub:'actor'},supabaseAdmin:{rpc:async(name:string) =>
+    name === 'platform_server_user_workspaces'
+      ? {data:[{tenant_id:'tenant',role:'owner',is_primary:true}],error:null}
+      : {data:null,error:{message:'career_strategy_incomplete_for_approval',code:'P0001',details:null,hint:null}}
+  }},error:null};
+  const response = await handler.fetch(new Request('https://example.com', {method:'POST',body:JSON.stringify({action:'career_strategy_approve',tenant_id:'tenant',player_id:'player'})}));
+  assert.equal(response.status,400);
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'),'*');
+  const body = await response.json();
+  assert.equal(body.code,'career_strategy_incomplete_for_approval');
+  assert.match(body.error,/preferred.*fallback/i);
+});
+
+test('a career approval awaiting player confirmation returns a recoverable conflict', async () => {
+  (globalThis as any).agencyErrorTestContext = {data:{userClaims:{sub:'actor'},supabaseAdmin:{rpc:async(name:string) =>
+    name === 'platform_server_user_workspaces'
+      ? {data:[{tenant_id:'tenant',role:'owner',is_primary:true}],error:null}
+      : {data:null,error:{message:'player_confirmation_required_before_approval',code:'P0001',details:null,hint:null}}
+  }},error:null};
+  const response = await handler.fetch(new Request('https://example.com', {method:'POST',body:JSON.stringify({action:'career_strategy_approve',tenant_id:'tenant',player_id:'player'})}));
+  assert.equal(response.status,409);
+  const body = await response.json();
+  assert.equal(body.code,'player_confirmation_required_before_approval');
+  assert.match(body.error,/record.*player.*confirmation/i);
+});
+
+for (const fixture of [
+  {name:'incomplete draft',confirmation:'unconfirmed',strategy:{objective:'Earn a first-team role',next_checkpoint:'Speak with the coach',notes:'Keep these notes',player_priorities:{playing_time:5}},expected:'define_career_strategy',steps:['save_career_strategy']},
+  {name:'complete unconfirmed draft',confirmation:'unconfirmed',strategy:{objective:'Earn a first-team role',preferred_pathway:'Progress at the current club',fallback_pathway:'Review a loan',next_checkpoint:'Speak with the coach'},expected:'confirm_strategy_with_player',steps:['record_player_confirmation']},
+  {name:'complete confirmed draft',confirmation:'confirmed',strategy:{objective:'Earn a first-team role',preferred_pathway:'Progress at the current club',fallback_pathway:'Review a loan',next_checkpoint:'Speak with the coach'},expected:'complete_strategy_approval',steps:['approve_career_strategy']},
+]) {
+  test(`career preparation routes a ${fixture.name} from the saved record`, async () => {
+    (globalThis as any).agencyErrorTestContext = {data:{userClaims:{sub:'actor'},supabaseAdmin:{rpc:async(name:string) => {
+      if(name==='platform_server_user_workspaces')return {data:[{tenant_id:'tenant',role:'owner',is_primary:true}],error:null};
+      if(name==='platform_server_prepare_career_strategy_action')return {data:{status:'needs_human_input',player_id:'player',strategy_action_type:'complete_strategy_approval',allowed_next_steps:['record_player_confirmation','approve_career_strategy']},error:null};
+      if(name==='platform_server_player_career_strategy')return {data:{state:'draft',confirmation_state:fixture.confirmation,strategy:{id:'strategy',strategy:fixture.strategy,review_due_at:'2026-10-21'}},error:null};
+      throw new Error(`Unexpected RPC: ${name}`);
+    }}},error:null};
+    const response=await handler.fetch(new Request('https://example.com',{method:'POST',body:JSON.stringify({action:'career_strategy_action_prepare',tenant_id:'tenant',player_id:'player'})}));
+    assert.equal(response.status,200);
+    const {proposal}=await response.json();
+    assert.equal(proposal.strategy_action_type,fixture.expected);
+    assert.deepEqual(proposal.allowed_next_steps,fixture.steps);
+    assert.deepEqual(proposal.career_strategy.strategy.strategy,fixture.strategy);
+    assert.equal(proposal.suggested_input.career_objective,'Earn a first-team role');
+  });
+}
+
+test('a successful asynchronous career approval still returns the saved response', async () => {
+  (globalThis as any).agencyErrorTestContext={data:{userClaims:{sub:'actor'},supabaseAdmin:{rpc:async(name:string)=>
+    name==='platform_server_user_workspaces'
+      ? {data:[{tenant_id:'tenant',role:'owner',is_primary:true}],error:null}
+      : {data:{state:'approved',confirmation_state:'confirmed'},error:null}
+  }},error:null};
+  const response=await handler.fetch(new Request('https://example.com',{method:'POST',body:JSON.stringify({action:'career_strategy_approve',tenant_id:'tenant',player_id:'player'})}));
+  assert.equal(response.status,200);
+  assert.deepEqual((await response.json()).career_strategy,{state:'approved',confirmation_state:'confirmed'});
+});

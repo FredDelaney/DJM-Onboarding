@@ -12,11 +12,12 @@ import {
   Target,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import RecordActivitySummary from '@/components/RecordActivitySummary';
+import RecordDetails from '@/components/RecordDetails';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { hasRecordedNumber } from '@/lib/recorded-number';
@@ -134,12 +135,11 @@ export default function AgencyEntityIntelligenceDrawer({
   const [data, setData] = useState<Record<string, any>>({});
   const pageMode = presentation === 'page';
 
-  useEffect(() => {
-    let active = true;
-
-    const load = async () => {
-      setBusy(true);
-      setError('');
+  const readSequence = useRef(0);
+  const load = useCallback(async (options?: { recordRefresh?: boolean }) => {
+      const sequence = ++readSequence.current;
+      const current = () => sequence === readSequence.current;
+      if (!options?.recordRefresh) { setBusy(true); setError(''); }
 
       try {
         if (request.kind === 'player') {
@@ -162,7 +162,7 @@ export default function AgencyEntityIntelligenceDrawer({
             };
           }
 
-          if (active) {
+          if (current()) {
             setData({
               service: intelligence?.service || {},
               alignment: intelligence?.alignment || {},
@@ -174,24 +174,22 @@ export default function AgencyEntityIntelligenceDrawer({
             deal_room_id: request.entityId,
           }));
           const warRoom = unwrap(response);
-          if (active && (!warRoom?.deal || warRoom?.available === false)) throw new Error('This deal is unavailable.');
-          if (active) {
+          if (current() && (!warRoom?.deal || warRoom?.available === false)) throw new Error('This deal is unavailable.');
+          if (current()) {
             setData({ warRoom });
           }
         }
       } catch (loadError) {
-        if (active) setError(friendlyError(loadError));
+        if (current() && options?.recordRefresh) throw loadError;
+        if (current()) setError(friendlyError(loadError));
       } finally {
-        if (active) setBusy(false);
+        if (current() && !options?.recordRefresh) setBusy(false);
       }
-    };
-
+  }, [invoke, request.entityId, request.kind]);
+  useEffect(() => {
     void load();
-
-    return () => {
-      active = false;
-    };
-  }, [invoke, request.entityId, request.kind, retry]);
+    return () => { readSequence.current++; };
+  }, [load, retry]);
 
   useEffect(() => {
     if (pageMode) return;
@@ -315,9 +313,9 @@ export default function AgencyEntityIntelligenceDrawer({
                     { key: 'next_action_text', label: 'Next action', value: deal.next_action_text || '', type: 'textarea' },
                   ]}
                   onChanged={async (change) => {
-                    if (change === 'edit') setRetry(value => value + 1);
-                    else onClose();
                     await onRefresh?.();
+                    if (change === 'edit') await load({ recordRefresh: true });
+                    else onClose();
                   }}
                 />
               ) : null}
@@ -548,7 +546,7 @@ export default function AgencyEntityIntelligenceDrawer({
               <div>
                 <p>Next action</p>
                 <h3>{primaryDealAction?.instruction || deal.next_action_text || deal.next_decision || 'No next action recorded.'}</h3>
-                <span>{human(control.state || momentum.state || 'recorded')}{deal.next_action_at ? ` · Due ${relativeDate(deal.next_action_at)}` : ''}</span>
+                <span>{[human(deal.stage), human(control.state || momentum.state || 'recorded')].filter(Boolean).join(' · ')}{deal.next_action_at ? ` · Due ${relativeDate(deal.next_action_at)}` : ''}</span>
                 {primaryDealAction ? (
                   <div className={styles.actions}>
                     <button type="button" onClick={() => onOpenAction(primaryDealAction)}>
@@ -568,6 +566,7 @@ export default function AgencyEntityIntelligenceDrawer({
               when={lastForwardMovement || null}
             />
 
+            <RecordDetails title="Deal details">
             <div className={styles.grid}>
               <Fact
                 label="Stage"
@@ -602,6 +601,7 @@ export default function AgencyEntityIntelligenceDrawer({
                 }
               />
             </div>
+            </RecordDetails>
 
             <details className={styles.panel + ' interface-details'}>
               <summary>Contact routes and deal context</summary>

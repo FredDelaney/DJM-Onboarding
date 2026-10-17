@@ -4,7 +4,6 @@ import {
   ChevronRight,
   BriefcaseBusiness,
   MessageCircleMore,
-  Search,
   Target,
   Users,
 } from 'lucide-react';
@@ -16,6 +15,7 @@ import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelli
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import WorkspaceListSearch from './WorkspaceListSearch';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
@@ -160,6 +160,7 @@ export default function AgencyOpportunitiesWorkspace({
   basePath,
   onRetry,
   onRefresh,
+  onRecordRefresh,
   rpc,
   onOpenAction,
   onOpenPursuit,
@@ -171,6 +172,7 @@ export default function AgencyOpportunitiesWorkspace({
   basePath: string;
   onRetry?: () => void;
   onRefresh: () => Promise<void>;
+  onRecordRefresh?: () => Promise<void>;
   rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenPursuit: (request: AgencyPursuitRequest) => void;
@@ -227,8 +229,8 @@ export default function AgencyOpportunitiesWorkspace({
   }, [rpc]);
 
   const refreshEntities = useCallback(async () => {
-    await Promise.all([onRefresh(), reloadArchives()]);
-  }, [onRefresh, reloadArchives]);
+    await Promise.all([(onRecordRefresh || onRefresh)(), reloadArchives()]);
+  }, [onRefresh, onRecordRefresh, reloadArchives]);
 
   useEffect(() => {
     void reloadArchives().catch(() => undefined);
@@ -625,29 +627,7 @@ export default function AgencyOpportunitiesWorkspace({
           </button>
         </div>
 
-        <label className={styles.search}>
-          <Search size={15} />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={
-              view === 'needs'
-                ? 'Search club or need'
-                : view === 'routes'
-                  ? 'Search player or club'
-                  : 'Search live deals'
-            }
-            aria-label="Search opportunities"
-          />
-          {search ? (
-            <button data-ui-button="tertiary"
-              type="button"
-              onClick={() => setSearch('')}
-            >
-              Clear
-            </button>
-          ) : null}
-        </label>
+        <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='needs'?'Search club or need':view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/>
       </section>
 
       {exactBusy?<p role="status">Opening...</p>:null}

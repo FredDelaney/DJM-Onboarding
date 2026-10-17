@@ -33,7 +33,10 @@ import AgencyBirthdayEditor from '@/components/AgencyBirthdayEditor';
 import AgencyRelationshipActions from '@/components/AgencyRelationshipActions';
 import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import RecordContactActions from '@/components/RecordContactActions';
+import {contactLinks,contactPatch,normaliseContact} from '@/lib/record-contact-details';
 import RecordActivitySummary from './RecordActivitySummary';
+import RecordDetails from './RecordDetails';
 import {recordEditReady} from '@/lib/record-edit-readiness';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
@@ -48,8 +51,10 @@ type Props = {
   rpc: Rpc;
   onClose: () => void;
   onRefresh: () => Promise<void>;
+  onRecordRefresh?: () => Promise<void>;
   onOpenClub: (clubName: string) => void;
   presentation?: 'drawer' | 'page';
+  scope?: string;
 };
 
 const clean = (value: unknown) =>
@@ -99,8 +104,10 @@ export default function AgencyContactIntelligenceDrawer({
   rpc,
   onClose,
   onRefresh,
+  onRecordRefresh,
   onOpenClub,
   presentation = 'drawer',
+  scope = '',
 }: Props) {
   const [detail, setDetail] =
     useState<any>(null);
@@ -170,7 +177,7 @@ export default function AgencyContactIntelligenceDrawer({
 
   const readSequence = useRef(0);
   const [loadedPersonId, setLoadedPersonId] = useState('');
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: { recordRefresh?: boolean }) => {
     const sequence = ++readSequence.current;
     const current = () => sequence === readSequence.current;
     const personId = clean(
@@ -179,9 +186,11 @@ export default function AgencyContactIntelligenceDrawer({
 
     if (!personId) return;
 
-    setBusy(true);
-    setError('');
-    setLoadedPersonId('');
+    if (!options?.recordRefresh) {
+      setBusy(true);
+      setError('');
+      setLoadedPersonId('');
+    }
 
     try {
       const result = await readWithDeadline(rpc<any>(
@@ -228,9 +237,10 @@ export default function AgencyContactIntelligenceDrawer({
         ),
       );
     } catch (loadError) {
+      if (current() && options?.recordRefresh) throw loadError;
       if (current()) setError(friendlyError(loadError));
     } finally {
-      if (current()) setBusy(false);
+      if (current() && !options?.recordRefresh) setBusy(false);
     }
   }, [contact?.person_id, rpc]);
 
@@ -345,44 +355,26 @@ export default function AgencyContactIntelligenceDrawer({
 
     if (!personId) return;
 
-    const values = [
-      ['email', email],
-      ['whatsapp', whatsapp],
-      ['phone', phone],
-    ].filter(
-      ([, value]) =>
-        clean(value),
-    );
-
-    if (!values.length) {
-      setError(
-        'Add a contact detail.',
-      );
-      return;
-    }
-
     setSaving('reach');
     setError('');
 
     try {
-      let latest = detail;
-
-      for (const [
-        channel,
-        value,
-      ] of values) {
-        latest =
-          await rpc<any>(
+      const change=contactPatch({email:emailValue||null,whatsapp:clean(reach?.whatsapp?.value)||null},{email,whatsapp});
+      if(Object.keys(change.patch).length) await rpc('redream_record_contact_details_v1',{p_kind:'contact',p_record_id:personId,p_patch:change.patch,p_expected:change.expected});
+      const updated=normaliseContact({email,whatsapp});
+      const verifyValues=markReachVerified?(['email','whatsapp'] as const).filter(channel=>updated[channel]).map(channel=>[channel,updated[channel]!] as const):[];
+      for(const [channel,value] of verifyValues) await rpc('redream_relationship_save_contact_method',{p_person_id:personId,p_channel:channel,p_value:value,p_is_primary:true,p_mark_verified:true});
+      if(clean(phone)&&(clean(phone)!==phoneValue||markReachVerified)) await rpc<any>(
             'redream_relationship_save_contact_method',
             {
               p_person_id:
                 personId,
 
               p_channel:
-                channel,
+                'phone',
 
               p_value:
-                clean(value),
+                clean(phone),
 
               p_is_primary:
                 true,
@@ -391,9 +383,7 @@ export default function AgencyContactIntelligenceDrawer({
                 markReachVerified,
             },
           );
-      }
-
-      setDetail(latest);
+      await load({recordRefresh:true});
       setEditingReach(false);
       setMarkReachVerified(false);
 
@@ -581,12 +571,12 @@ export default function AgencyContactIntelligenceDrawer({
             }
           : null,
 
-        emailValue
+        contactLinks({email:emailValue,whatsapp:null}).email
           ? {
               key: 'email',
               label: 'Email',
               href:
-                `mailto:${emailValue}`,
+                contactLinks({email:emailValue,whatsapp:null}).email!,
               icon: Mail,
               external: false,
             }
@@ -723,8 +713,8 @@ export default function AgencyContactIntelligenceDrawer({
               label={name}
               rpc={rpc}
               onChanged={async (change) => {
-                await onRefresh();
-                if (change === 'edit') await load();
+                await (onRecordRefresh || onRefresh)();
+                if (change === 'edit') await load({ recordRefresh: true });
                 else onClose();
               }}
               fields={[
@@ -784,6 +774,8 @@ export default function AgencyContactIntelligenceDrawer({
             }
           >
             {restricted ? <p className={styles.section}>Shared contact. Commercial details are for admins.</p> : null}
+            {!restricted?<RecordContactActions kind="contact" recordId={clean(contact?.person_id)} name={name} scope={scope} rpc={rpc} blocked={editingReach||Boolean(saving)} refreshKey={`${emailValue}:${clean(reach?.whatsapp?.value)}`}
+              onSaved={next=>{setDetail((current:any)=>({...current,reach:{...current?.reach,email:next.email?{value:next.email}:null,whatsapp:next.whatsapp?{value:next.whatsapp}:null}}));setEmail(next.email||'');setWhatsapp(next.whatsapp||'');}}/>:null}
             <section className={styles.nextMove} aria-label="Next relationship action">
               <div>
                 <span>Next action</span>
@@ -1092,6 +1084,7 @@ export default function AgencyContactIntelligenceDrawer({
               ) : null}
             </section>
 
+            <RecordDetails title="Employment details" open={employmentNeedsConfirmation}>
             <section
               className={
                 styles.section
@@ -1249,9 +1242,10 @@ export default function AgencyContactIntelligenceDrawer({
                   styles.truth
                 }
               >
-                Confirm club or role changes before updating this contact.
+                  Confirm club or role changes before updating this contact.
               </p>
             </section>
+            </RecordDetails>
 
             <AgencyRelationshipActions
               personId={clean(contact?.person_id)}

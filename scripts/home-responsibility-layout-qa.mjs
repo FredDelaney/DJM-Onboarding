@@ -24,7 +24,7 @@ try {
  await row.getByLabel('Change responsible people',{exact:true}).filter({hasText:'Jesse Edge'}).waitFor();
  for(const width of [320,390,430,768,1440]){
   await page.setViewportSize({width,height:844});
-  const action=row.getByRole('button',{name:'Review',exact:true});
+  const action=row.getByRole('button',{name:'Update',exact:true});
   assert.ok(await action.evaluate(node=>parseFloat(getComputedStyle(node).fontSize)>=12),'Home actions must show a readable label at '+width);
   await row.getByLabel('Change responsible people',{exact:true}).click();
   await row.getByLabel('Choose responsible people',{exact:true}).click();

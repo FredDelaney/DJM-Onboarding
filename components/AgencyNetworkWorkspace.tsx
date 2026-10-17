@@ -10,7 +10,6 @@ import {
   Network,
   Plus,
   Route,
-  Search,
   TimerReset,
   Users,
 } from 'lucide-react';
@@ -20,6 +19,7 @@ import { useSearchParams } from 'next/navigation';
 
 
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import WorkspaceListSearch from './WorkspaceListSearch';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
@@ -211,6 +211,7 @@ export default function AgencyNetworkWorkspace({
   basePath,
   rpc,
   onRefresh,
+  onRecordRefresh,
   onCreate,
   onOpenAction,
   onOpenClubAccount,
@@ -222,6 +223,7 @@ export default function AgencyNetworkWorkspace({
   basePath: string;
   rpc: Rpc;
   onRefresh: () => Promise<void>;
+  onRecordRefresh?: () => Promise<void>;
   onCreate: (kind: 'club' | 'contact') => void;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenClubAccount: (request: AgencyClubAccountRequest) => void;
@@ -256,8 +258,8 @@ export default function AgencyNetworkWorkspace({
   }, [rpc,restricted]);
 
   const refreshEntities = useCallback(async () => {
-    await Promise.all([onRefresh(), reloadArchives()]);
-  }, [onRefresh, reloadArchives]);
+    await Promise.all([(onRecordRefresh || onRefresh)(), reloadArchives()]);
+  }, [onRefresh, onRecordRefresh, reloadArchives]);
 
   useEffect(() => {
     void reloadArchives().catch(() => undefined);
@@ -534,9 +536,11 @@ export default function AgencyNetworkWorkspace({
         key={requestedPersonId}
         contact={selectedContact}
         rpc={rpc}
+        scope={stateScope}
         presentation="page"
         onClose={closePerson}
         onRefresh={onRefresh}
+        onRecordRefresh={onRecordRefresh || onRefresh}
         onOpenClub={(clubName) => openClubFromPerson(clubName)}
       />
     );
@@ -659,24 +663,7 @@ export default function AgencyNetworkWorkspace({
         </div>
 
         <div className={styles.toolbarTools}>
-          <label className={styles.search}>
-            <Search size={15} />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={
-                view === 'clubs'
-                  ? 'Search clubs'
-                  : 'Search people'
-              }
-              aria-label="Search Network"
-            />
-            {search ? (
-              <button data-ui-button="tertiary" type="button" onClick={() => setSearch('')}>
-                Clear
-              </button>
-            ) : null}
-          </label>
+          <WorkspaceListSearch className={styles.search} label="Search Network" placeholder={view==='clubs'?'Search clubs':'Search people'} value={search} onChange={setSearch}/>
 
           {!requestedClubId && canCreateRecords ? (
             <button

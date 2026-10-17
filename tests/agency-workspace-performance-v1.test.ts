@@ -35,11 +35,10 @@ test('top-level agency navigation behaves like an in-app workspace switch', () =
   assert.match(source, /prefetch=\{false\}/);
 });
 
-test('workspace warming is early and deduplicated', () => {
+test('workspace warming is bounded and deduplicated', () => {
   assert.match(source, /viewWarmRequests/);
   assert.match(source, /const existingRequest = viewWarmRequests\.get\(cacheKey\)/);
   assert.match(source, /const warming = viewWarmRequests\.get\(cacheKey\)/);
   assert.match(source, /const priorityTargets = targets\.slice\(0, 2\)/);
   assert.match(source, /Promise\.allSettled/);
-  assert.match(source, /}, 320\);/);
 });

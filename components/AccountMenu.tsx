@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import {
   Bell,
   CreditCard,
@@ -102,6 +103,7 @@ export default function AccountMenu({
   onSignOut: () => void | Promise<void>;
 }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname() || '/agency';
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileIdentity>({});
@@ -137,22 +139,29 @@ export default function AccountMenu({
   useEffect(() => {
     if (!open) return;
 
-    const close = (event: MouseEvent) => {
+    const close = (event: Event) => {
       if (
         rootRef.current &&
-        !rootRef.current.contains(event.target as Node)
+        !rootRef.current.contains(event.target as Node) &&
+        !menuRef.current?.contains(event.target as Node)
       ) {
         setOpen(false);
       }
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        setOpen(false);
+        rootRef.current?.querySelector('button')?.focus({preventScroll: true});
+      }
     };
 
     document.addEventListener('mousedown', close);
+    document.addEventListener('focusin', close);
     document.addEventListener('keydown', escape);
+    menuRef.current?.querySelector<HTMLElement>('a[href],button')?.focus({preventScroll: true});
     return () => {
       document.removeEventListener('mousedown', close);
+      document.removeEventListener('focusin', close);
       document.removeEventListener('keydown', escape);
     };
   }, [open]);
@@ -201,14 +210,24 @@ export default function AccountMenu({
       </button>
 
       {open ? (
-        <>
+        <AccountMenuLayer onClose={() => setOpen(false)}>
           <button
             type="button"
             className={styles.backdrop}
+            tabIndex={-1}
             aria-label="Close account menu"
             onClick={() => setOpen(false)}
           />
-          <div className={styles.menu} role="menu">
+          <div ref={menuRef} className={styles.menu} role="menu" onKeyDown={event => {
+            const first = menuRef.current?.querySelector('a[href],button');
+            if (event.key === 'Tab' && event.shiftKey && event.target === first) {
+              event.preventDefault();
+              setOpen(false);
+              rootRef.current?.querySelector('button')?.focus({preventScroll: true});
+            }
+          }} onClick={event => {
+            if ((event.target as HTMLElement).closest('a[href]')) setOpen(false);
+          }}>
           <div className={styles.identity}>
             <span className={styles.heroAvatar}>
               {avatarUrl ? <img src={avatarUrl} alt="" /> : initials(name)}
@@ -253,10 +272,26 @@ export default function AccountMenu({
             </button>
           </div>
         </div>
-        </>
+        </AccountMenuLayer>
       ) : null}
     </div>
   );
+}
+
+function AccountMenuLayer({children, onClose}: {children: React.ReactNode; onClose: () => void}) {
+  const [mobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 680px)').matches);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 680px)');
+    media.addEventListener('change', onClose);
+    return () => media.removeEventListener('change', onClose);
+  }, [onClose]);
+  useEffect(() => {
+    if (!mobile) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {document.body.style.overflow = previous;};
+  }, [mobile]);
+  return mobile ? createPortal(children, document.body) : children;
 }
 
 function MenuLink({
