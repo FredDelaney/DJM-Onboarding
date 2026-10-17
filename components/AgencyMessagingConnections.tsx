@@ -83,13 +83,13 @@ const PROVIDERS: Array<{
     key: 'whatsapp',
     name: 'WhatsApp Business',
     description:
-      'Best for club and football contacts. Choose only the business conversations ReDream should remember.',
+      'Best for club and football contacts. Requires WhatsApp Business.',
   },
   {
     key: 'instagram',
     name: 'Instagram',
     description:
-      'Best for player conversations. Choose the player DMs ReDream should remember.',
+      'Best for player conversations. Requires a Business or Creator account.',
   },
 ];
 
@@ -142,7 +142,7 @@ async function loadFacebookSdk(
             if (!window.FB) {
               reject(
                 new Error(
-                  'Meta connection could not load.',
+                  'Could not open Meta. Check that your browser allows pop-ups, then try again.',
                 ),
               );
             }
@@ -165,7 +165,7 @@ async function loadFacebookSdk(
         script.onerror = () =>
           reject(
             new Error(
-              'Meta connection could not load.',
+              'Could not open Meta. Check that your browser allows pop-ups, then try again.',
             ),
           );
         document.head.appendChild(
@@ -177,7 +177,7 @@ async function loadFacebookSdk(
 
   if (!window.FB) {
     throw new Error(
-      'Meta connection could not load.',
+      'Could not open Meta. Check that your browser allows pop-ups, then try again.',
     );
   }
 
@@ -686,7 +686,7 @@ export default function AgencyMessagingConnections({
           !config.config_id
         ) {
           throw new Error(
-            'WhatsApp connection needs Meta app setup first.',
+            'WhatsApp is temporarily unavailable. Try again shortly.',
           );
         }
 
@@ -894,7 +894,7 @@ export default function AgencyMessagingConnections({
           styles.sectionCopy
         }
       >
-        Only enabled chats are saved to Agency Memory. Choose each conversation and confirm its contact or player first.
+        Only enabled chats are saved to Agency Memory. Connect once, then choose the conversations ReDream may remember.
       </p>
 
       {loading ? (
@@ -909,8 +909,7 @@ export default function AgencyMessagingConnections({
               styles.spin
             }
           />
-          Checking messaging
-          accounts...
+          Checking connections...
         </div>
       ) : (
         <div
@@ -1133,15 +1132,7 @@ export default function AgencyMessagingConnections({
                               styles.noThreads
                             }
                           >
-                            New
-                            conversations
-                            will appear
-                            here. Nothing
-                            is saved to
-                            Agency Memory
-                            until you
-                            switch a chat
-                            on.
+                            No conversations yet. Nothing is saved to Agency Memory until you switch a chat on.
                           </div>
                         )}
                       </div>
@@ -1187,7 +1178,9 @@ export default function AgencyMessagingConnections({
 
                         {ready[
                           provider.key
-                        ] ? (
+                        ] &&
+                        health !==
+                          'connected' ? (
                           <button
                             type="button"
                             className={
@@ -1282,10 +1275,16 @@ export default function AgencyMessagingConnections({
                           size={14}
                         />
                       )}
-                      Connect{' '}
-                      {providerName(
-                        provider.key,
-                      )}
+                      {working
+                        ? 'Opening ' +
+                          providerName(
+                            provider.key,
+                          ) +
+                          '...'
+                        : 'Connect ' +
+                          providerName(
+                            provider.key,
+                          )}
                     </button>
                   ) : (
                     <button
@@ -1299,7 +1298,7 @@ export default function AgencyMessagingConnections({
                       <ShieldCheck
                         size={14}
                       />
-                      Setup in progress
+                      Not available yet
                     </button>
                   )}
                 </article>
