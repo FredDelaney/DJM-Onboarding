@@ -45,6 +45,8 @@ The frontend was restored on the complete production source at local commit `134
 
 Local branch: `codex/redream-agent-release-20261017`. Implementation commits include `580c4cc`, `ae848d8`, `207d7b4` and `06ecc71`.
 
-GitHub connector writes returned 403. A subsequent ordinary Git push was blocked by automatic approval review because explicit approval for transferring private repository source/history to GitHub was missing. Do not retry or work around that rejection without new explicit approval. The live OpenAI/Supabase connection does not depend on this source-sync step. The Mac was last observed Offline in Remote Desktop Commander.
+Jesse explicitly approved pushing the completed release branch to `FredDelaney/DJM-Onboarding` on 17 October 2026 at 19:35 Europe/Rome. This supersedes the earlier automatic-approval block for that exact transfer. No further permission question is needed for this branch/repository sync.
+
+The authorised terminal push then failed because no GitHub credentials are configured. The connected GitHub branch-creation call returned 403, `Resource not accessible by integration`. OpenAI's current GitHub app documentation confirms that the ChatGPT connection is read-only; do not suggest changing its ChatGPT permission mode as a fix for provider authentication. Repository metadata reports the repository is public and the connected user has push permissions, which do not confer write access on the read-only integration. The Mac was checked again and remained Offline in Remote Desktop Commander. Continue through an authenticated Git environment when available. The live OpenAI/Supabase connection does not depend on this source-sync step.
 
 Signed-in desktop browser verification is complete for the question flow; a real iPhone check remains outside these tests.
