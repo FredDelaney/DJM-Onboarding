@@ -68,6 +68,12 @@ type FacebookSdk = {
   ) => void;
 };
 
+type WhatsAppConfig = {
+  app_id: string;
+  config_id: string;
+  graph_version: string;
+};
+
 declare global {
   interface Window {
     FB?: FacebookSdk;
@@ -191,17 +197,10 @@ async function loadFacebookSdk(
   return window.FB;
 }
 
-async function whatsappSignup(
-  appId: string,
+function whatsappSignup(
+  sdk: FacebookSdk,
   configId: string,
-  version: string,
 ) {
-  const sdk =
-    await loadFacebookSdk(
-      appId,
-      version,
-    );
-
   let removeListener =
     () => {};
 
@@ -305,30 +304,30 @@ async function whatsappSignup(
       },
     );
 
-  try {
-    const [
-      authorizationCode,
-      sessionInfo,
-    ] = await Promise.all([
-      timeout(
-        code,
-        120000,
-        'WhatsApp connection timed out.',
-      ),
-      timeout(
-        session,
-        120000,
-        'WhatsApp setup details were not returned.',
-      ),
-    ]);
-
-    return {
-      code: authorizationCode,
-      ...sessionInfo,
-    };
-  } finally {
-    removeListener();
-  }
+  return Promise.all([
+    timeout(
+      code,
+      120000,
+      'WhatsApp connection timed out.',
+    ),
+    timeout(
+      session,
+      120000,
+      'WhatsApp setup details were not returned.',
+    ),
+  ])
+    .then(
+      ([
+        authorizationCode,
+        sessionInfo,
+      ]) => ({
+        code: authorizationCode,
+        ...sessionInfo,
+      }),
+    )
+    .finally(() => {
+      removeListener();
+    });
 }
 
 export default function AgencyMessagingConnections({
@@ -376,6 +375,14 @@ export default function AgencyMessagingConnections({
       whatsapp: false,
       instagram: false,
     });
+
+  const [
+    whatsappConfig,
+    setWhatsAppConfig,
+  ] =
+    useState<WhatsAppConfig | null>(
+      null,
+    );
 
   const byProvider =
     useMemo(
@@ -463,11 +470,66 @@ export default function AgencyMessagingConnections({
               },
             );
 
+          let whatsappReady = false;
+
+          if (config?.whatsapp_ready) {
+            try {
+              const whatsapp =
+                await platformInvoke<{
+                  ready?: boolean;
+                  app_id?: string | null;
+                  config_id?: string | null;
+                  graph_version?: string | null;
+                }>(
+                  'redream-meta-connect',
+                  {
+                    action:
+                      'whatsapp_config',
+                    workspace_slug:
+                      workspaceSlug,
+                  },
+                );
+
+              if (
+                whatsapp?.ready &&
+                whatsapp.app_id &&
+                whatsapp.config_id
+              ) {
+                const graphVersion =
+                  whatsapp.graph_version ||
+                  'v26.0';
+
+                await loadFacebookSdk(
+                  whatsapp.app_id,
+                  graphVersion,
+                );
+
+                setWhatsAppConfig({
+                  app_id:
+                    whatsapp.app_id,
+                  config_id:
+                    whatsapp.config_id,
+                  graph_version:
+                    graphVersion,
+                });
+                whatsappReady = true;
+              } else {
+                setWhatsAppConfig(null);
+              }
+            } catch {
+              setWhatsAppConfig(
+                null,
+              );
+            }
+          } else {
+            setWhatsAppConfig(
+              null,
+            );
+          }
+
           setReady({
             whatsapp:
-              Boolean(
-                config?.whatsapp_ready,
-              ),
+              whatsappReady,
             instagram:
               Boolean(
                 config?.instagram_ready,
@@ -664,38 +726,19 @@ export default function AgencyMessagingConnections({
       );
 
       try {
-        const config =
-          await platformInvoke<{
-            ready?: boolean;
-            app_id?: string;
-            config_id?: string;
-            graph_version?: string;
-          }>(
-            'redream-meta-connect',
-            {
-              action:
-                'whatsapp_config',
-              workspace_slug:
-                workspaceSlug,
-            },
-          );
-
         if (
-          !config?.ready ||
-          !config.app_id ||
-          !config.config_id
+          !whatsappConfig ||
+          !window.FB
         ) {
           throw new Error(
-            'WhatsApp is temporarily unavailable. Try again shortly.',
+            'WhatsApp is still preparing. Refresh this page, then try again.',
           );
         }
 
         const signup =
           await whatsappSignup(
-            config.app_id,
-            config.config_id,
-            config.graph_version ||
-              'v26.0',
+            window.FB,
+            whatsappConfig.config_id,
           );
 
         const result =
