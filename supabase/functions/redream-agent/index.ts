@@ -119,153 +119,31 @@ const answerSchema = {
   required: ["answer", "basis", "needs_clarification", "clarification_question", "next_action"],
 };
 
+function ownTasks(value: unknown, tenantId: string, userId: string) {
+  return (Array.isArray(value) ? value : [])
+    .filter((task: any) => task.tenant_id === tenantId && task.owner_user_id === userId)
+    .slice(0, 12);
+}
+
 async function recordDetail(admin: any, tenantId: string, userId: string, role: string, record: any) {
-  const id = clean(record?.id, 80);
-  const kind = clean(record?.kind, 40);
-  if (!id || !kind) return null;
-
-  if (kind === "player") {
-    const playerResult = await admin
-      .from("players")
-      .select("id,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,verification_status,verified_at,agency_priority,next_action,next_action_due,current_season_label,transfermarkt_market_value,transfermarkt_market_value_currency,transfermarkt_value_verified_at")
-      .eq("tenant_id", tenantId)
-      .eq("id", id)
-      .maybeSingle();
-    if (playerResult.error || !playerResult.data) return null;
-
-    const [careerResult, taskResult] = await Promise.all([
-      admin.from("career_entries")
-        .select("club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,source_name,source_url,source_reviewed_at,source_provider,source_synced_at")
-        .eq("player_id", id)
-        .order("start_date", { ascending: false })
-        .limit(8),
-      admin.schema("djm_os").from("tasks")
-        .select("id,title,due_at,status,priority,source,created_at,updated_at")
-        .eq("tenant_id", tenantId)
-        .eq("player_id", id)
-        .eq("owner_user_id", userId)
-        .order("due_at", { ascending: true, nullsFirst: false })
-        .limit(8),
-    ]);
-
-    if (!["owner", "admin"].includes(role)) {
-      const restricted = restrictedPlayerProfile({ player: playerResult.data, career: careerResult.data || [] });
-      return { kind, summary: record, player: restricted.player, career: restricted.career, my_tasks: taskResult.data || [] };
+  const { data, error } = await admin.rpc("platform_server_redream_agent_context", {
+    p_tenant_id: tenantId, p_user_id: userId, p_kind: record.kind, p_id: record.id,
+  });
+  if (error) throw error;
+  if (!data) return null;
+  const detail = obj(data);
+  const kind = clean(record.kind, 40);
+  const myTasks = ownTasks(detail.my_tasks, tenantId, userId);
+  if (!["owner", "admin"].includes(role)) {
+    if (kind === "player") {
+      const restricted = restrictedPlayerProfile(detail);
+      return { kind, summary: record, player: restricted.player, career: restricted.career, my_tasks: myTasks };
     }
-
-    return {
-      kind,
-      summary: record,
-      player: playerResult.data,
-      career: careerResult.data || [],
-      my_tasks: taskResult.data || [],
-    };
+    if (kind === "club") return { kind, summary: record, club: detail.club };
+    if (kind === "contact") return { kind, summary: record, contact: detail.contact };
+    if (kind !== "recruitment") return null;
   }
-
-  if (kind === "recruitment") {
-    const result = await admin.schema("djm_os").from("scouting_prospects")
-      .select("id,full_name,date_of_birth,nationality,current_club,current_country,current_league,current_season_label,primary_position,secondary_positions,preferred_foot,contract_expiry,market_value,market_value_currency,transfermarkt_url,wyscout_url,stats_url,agent_status,agent_name,availability_status,source,source_confidence,last_verified_at,notes,recruitment_stage,recruitment_priority,first_contact_at,last_contact_at,next_action_at,recruitment_notes,whatsapp,email,phone")
-      .eq("tenant_id", tenantId).eq("id", id).maybeSingle();
-    return result.data ? { kind, summary: record, recruitment: result.data } : null;
-  }
-
-  if (kind === "club") {
-    const clubResult = await admin.schema("djm_os").from("organisations")
-      .select("id,name,country,city,website_url,linkedin_url,instagram_url,transfermarkt_url,league_name,last_verified_at")
-      .eq("tenant_id", tenantId).eq("id", id).maybeSingle();
-    if (!clubResult.data) return null;
-
-    if (!["owner", "admin"].includes(role)) {
-      return { kind, summary: record, club: clubResult.data };
-    }
-
-    const [interactionResult, taskResult, needResult] = await Promise.all([
-      admin.schema("djm_os").from("interactions")
-        .select("id,occurred_at,channel,direction,person_id,summary,source_type,confidence")
-        .eq("tenant_id", tenantId).eq("organisation_id", id)
-        .order("occurred_at", { ascending: false }).limit(8),
-      admin.schema("djm_os").from("tasks")
-        .select("id,title,due_at,status,priority,source,person_id,player_id")
-        .eq("tenant_id", tenantId).eq("organisation_id", id).eq("owner_user_id", userId)
-        .order("due_at", { ascending: true, nullsFirst: false }).limit(8),
-      ["owner","admin"].includes(role)
-        ? admin.schema("djm_os").from("club_needs")
-          .select("id,title,position,preferred_foot,min_age,max_age,transfer_type,transfer_budget,salary_budget,currency,status,confidence,confirmed_at,expires_at,priority,need_type,updated_at")
-          .eq("tenant_id", tenantId).eq("organisation_id", id).is("archived_at", null)
-          .order("updated_at", { ascending: false }).limit(8)
-        : Promise.resolve({ data: [] }),
-    ]);
-
-    return {
-      kind,
-      summary: record,
-      club: clubResult.data,
-      recent_interactions: interactionResult.data || [],
-      my_tasks: taskResult.data || [],
-      needs: needResult.data || [],
-    };
-  }
-
-  if (kind === "contact") {
-    const personResult = await admin.schema("djm_os").from("people")
-      .select("id,full_name,preferred_name,country,city,linkedin_url,instagram_url,last_verified_at")
-      .eq("tenant_id", tenantId).eq("id", id).maybeSingle();
-    if (!personResult.data) return null;
-
-    if (!["owner", "admin"].includes(role)) {
-      return { kind, summary: record, contact: personResult.data };
-    }
-
-    const [employmentResult, interactionResult, taskResult] = await Promise.all([
-      admin.schema("djm_os").from("employments")
-        .select("organisation_id,role_title,is_current,started_on,ended_on,updated_at")
-        .eq("tenant_id", tenantId).eq("person_id", id)
-        .order("is_current", { ascending: false }).order("updated_at", { ascending: false }).limit(6),
-      admin.schema("djm_os").from("interactions")
-        .select("id,occurred_at,channel,direction,organisation_id,summary,source_type,confidence")
-        .eq("tenant_id", tenantId).eq("person_id", id)
-        .order("occurred_at", { ascending: false }).limit(8),
-      admin.schema("djm_os").from("tasks")
-        .select("id,title,due_at,status,priority,source,organisation_id,player_id")
-        .eq("tenant_id", tenantId).eq("person_id", id).eq("owner_user_id", userId)
-        .order("due_at", { ascending: true, nullsFirst: false }).limit(8),
-    ]);
-
-    const orgIds = [...new Set((employmentResult.data || []).map((item: any) => item.organisation_id).filter(Boolean))];
-    let organisations: any[] = [];
-    if (orgIds.length) {
-      const orgResult = await admin.schema("djm_os").from("organisations")
-        .select("id,name,country,league_name")
-        .eq("tenant_id", tenantId).in("id", orgIds);
-      organisations = orgResult.data || [];
-    }
-
-    return {
-      kind,
-      summary: record,
-      contact: personResult.data,
-      employments: employmentResult.data || [],
-      organisations,
-      recent_interactions: interactionResult.data || [],
-      my_tasks: taskResult.data || [],
-    };
-  }
-
-  if (kind === "opportunity" && ["owner","admin"].includes(role)) {
-    const result = await admin.schema("djm_os").from("club_needs")
-      .select("id,organisation_id,source_person_id,owner_user_id,title,position,preferred_foot,min_age,max_age,transfer_type,transfer_budget,salary_budget,currency,salary_period,registration_notes,profile_notes,status,confidence,confirmed_at,expires_at,priority,need_type,prediction_probability,playing_style,updated_at")
-      .eq("tenant_id", tenantId).eq("id", id).maybeSingle();
-    return result.data ? { kind, summary: record, opportunity: result.data } : null;
-  }
-
-  if (kind === "deal" && ["owner","admin"].includes(role)) {
-    const result = await admin.schema("djm_os").from("deal_rooms")
-      .select("id,title,organisation_id,source_person_id,player_id,prospect_id,club_need_id,owner_user_id,stage,status,expected_commission,currency,probability,primary_blocker,next_decision,next_action_at,last_meaningful_at,outcome_reason,next_action_text,model_probability,manual_probability,probability_source,pitch_status,transfer_fee,player_salary,salary_period,financial_notes,updated_at")
-      .eq("tenant_id", tenantId).eq("id", id).maybeSingle();
-    return result.data ? { kind, summary: record, deal: result.data } : null;
-  }
-
-  return { kind, summary: record };
+  return { ...detail, kind, summary: record, ...(detail.my_tasks ? { my_tasks: myTasks } : {}) };
 }
 
 export default {
@@ -348,15 +226,12 @@ export default {
 
       const taskLanguage = /\b(task|tasks|follow\s*up|today|overdue|next action|priority|priorities|to do|todo)\b/i.test(query);
       if (taskLanguage) {
-        const taskResult = await ctx.supabaseAdmin.schema("djm_os").from("tasks")
-          .select("id,title,task_type,person_id,organisation_id,player_id,club_need_id,due_at,status,priority,source,created_at,updated_at")
-          .eq("tenant_id", tenantId)
-          .eq("owner_user_id", userId)
-          .neq("status", "completed")
-          .order("due_at", { ascending: true, nullsFirst: false })
-          .limit(12);
+        const taskResult = await ctx.supabaseAdmin.rpc("platform_server_redream_agent_context", {
+          p_tenant_id: tenantId, p_user_id: userId, p_kind: "tasks", p_id: null,
+        });
         if (taskResult.error) throw taskResult.error;
-        if ((taskResult.data || []).length) internal.push({ kind: "my_open_tasks", tasks: taskResult.data });
+        const tasks = ownTasks(taskResult.data?.tasks, tenantId, userId);
+        if (tasks.length) internal.push({ kind: "my_open_tasks", tasks });
       }
 
       const apiKey = Deno.env.get("OPENAI_API_KEY");
