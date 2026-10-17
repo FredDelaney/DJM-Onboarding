@@ -53,3 +53,28 @@ test('club PDF keeps the verified two-page safeguards', () => {
   assert.match(pdf, /PERFORMANCE DETAIL/);
   assert.match(pdf, /CONTACT \{agencyShortName\.toUpperCase\(\)\}/);
 });
+
+
+test('WhatsApp starts Meta directly from the user tap', () => {
+  assert.match(messaging, /type WhatsAppConfig/);
+  assert.match(messaging, /config\?\.whatsapp/);
+  assert.match(messaging, /await loadFacebookSdk/);
+  assert.match(
+    messaging,
+    /await whatsappSignup\(\s*window\.FB,\s*whatsappConfig\.config_id/,
+  );
+  assert.doesNotMatch(
+    messaging,
+    /const config =\s*await platformInvoke<[\s\S]*action:\s*'whatsapp_config'[\s\S]*const signup/,
+  );
+});
+
+test('WhatsApp login is invoked before any async wait can lose the mobile tap', () => {
+  const signupStart = messaging.indexOf('function whatsappSignup(');
+  const signupEnd = messaging.indexOf('export default function AgencyMessagingConnections', signupStart);
+  const signup = messaging.slice(signupStart, signupEnd);
+
+  assert.match(signup, /sdk\.login\(/);
+  assert.doesNotMatch(signup, /await loadFacebookSdk/);
+  assert.match(signup, /return Promise\.all/);
+});
