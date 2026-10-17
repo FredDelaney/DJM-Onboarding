@@ -18,3 +18,15 @@
 .sources { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid #e9eef1; }
 .sources > span { display: flex; align-items: center; gap: 6px; color: #718693; font-size: 12px; }
 @media (max-width: 640px) { .answer { padding: 16px; } .records a,.sources a { min-height: 44px; } }
+
+.conversationBar { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #627a8b; font-size: 12px; }
+.conversationBar button,.suggestions button { min-height: 44px; padding: 8px 12px; border: 1px solid #d8e2e7; border-radius: 12px; background: #fff; color: #325f79; font: inherit; font-size: 13px; cursor: pointer; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel button:focus-visible,.disclosure summary:focus-visible { outline: 3px solid #a1bed0; outline-offset: 3px; }
+.panel button:disabled { opacity: .5; cursor: default; }
+.question { margin: 0; padding-bottom: 12px; border-bottom: 1px solid #e9eef1; color: #627a8b; font-size: 13px; overflow-wrap: anywhere; }
+.disclosure { min-width: 0; color: #233d50; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.disclosure summary { cursor: pointer; padding: 10px 0; font-weight: 500; }
+.disclosure ul { margin: 8px 0; padding-left: 20px; }
+.disclosure li + li { margin-top: 10px; }
+.disclosure p + p { margin-top: 12px; }

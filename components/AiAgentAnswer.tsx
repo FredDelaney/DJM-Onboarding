@@ -12,6 +12,8 @@ import styles from './AiAgentAnswer.module.css';
 
 type Answer = {
   ok: boolean;
+  evidence?: string[];
+  uncertainties?: string[];
   answer: string;
   basis: 'internal' | 'public' | 'mixed' | 'insufficient';
   clarification_question?: string | null;
@@ -48,15 +50,23 @@ function AnswerText({ text }: { text: string }) {
   })}</>;
 }
 
-export default function AiAgentAnswer({ workspaceSlug, context, onBusyChange, onNavigate }: {
+type AgentProps = {
   workspaceSlug: string;
   context?: EntityContext;
   onBusyChange: (busy: boolean) => void;
   onNavigate?: () => void;
-}) {
+};
+
+export default function AiAgentAnswer(props: AgentProps) {
+  return <AgentConversation key={JSON.stringify([props.workspaceSlug, props.context || {}])} {...props} />;
+}
+
+function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate }: AgentProps) {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [error, setError] = useState('');
   const generation = useRef(0);
   const inFlight = useRef(false);
@@ -68,7 +78,7 @@ export default function AiAgentAnswer({ workspaceSlug, context, onBusyChange, on
       if (userId !== undefined && userId !== nextId) {
         generation.current++;
         inFlight.current = false;
-        setAnswer(null); setQuestion(''); setError(''); setBusy(false);
+        setAnswer(null); setHistory([]); setQuestion(''); setError(''); setBusy(false);
         onBusyChange(false);
       }
       userId = nextId;
@@ -82,16 +92,22 @@ export default function AiAgentAnswer({ workspaceSlug, context, onBusyChange, on
 
   async function ask() {
     if (inFlight.current || !question.trim()) return;
+    const submitted = question.trim();
     const request = ++generation.current;
     inFlight.current = true;
-    setBusy(true); onBusyChange(true); setError(''); setAnswer(null);
+    setBusy(true); onBusyChange(true); setError('');
     try {
       const result = await readWithDeadline(platformInvoke<Answer>('redream-agent', {
-        query: question.trim(), workspace_slug: workspaceSlug, context: context || {},
+        query: submitted, workspace_slug: workspaceSlug, context: context || {}, history,
       }), 55_000);
       if (generation.current !== request) return;
       if (!result?.ok || typeof result.answer !== 'string' || !result.answer.trim()) throw new Error('ReDream could not answer that. Please try again.');
       setAnswer(result);
+      setHistory(previous => [...previous,
+        { role: 'user' as const, content: submitted },
+        { role: 'assistant' as const, content: [result.answer, ...(result.evidence || []), ...(result.uncertainties || []), result.next_action].filter(Boolean).join('\n').slice(0, 2000) },
+      ].slice(-6));
+      setQuestion('');
     } catch (failure) {
       if (generation.current === request) setError(friendlyError(failure));
     } finally {
@@ -110,22 +126,41 @@ export default function AiAgentAnswer({ workspaceSlug, context, onBusyChange, on
     return url ? [{ ...source, url }] : [];
   });
 
+  const suggest = (text: string) => { setQuestion(text); inputRef.current?.focus(); };
   return <div className={styles.panel}>
+    {history.length ? <div className={styles.conversationBar}>
+      <span>Follow-up questions keep this conversation</span>
+      <button type="button" disabled={busy} onClick={() => { setHistory([]); setAnswer(null); setQuestion(''); setError(''); inputRef.current?.focus(); }}>New conversation</button>
+    </div> : null}
+    {history.length > 2 ? <details className={styles.disclosure}><summary>Earlier in this conversation</summary>
+      {history.slice(0, -2).map((turn, i) => <p className={styles.copy} key={i}><strong>{turn.role === 'user' ? 'You' : 'ReDream'}</strong><br /><AnswerText text={turn.content} /></p>)}
+    </details> : null}
     <form className={styles.form} onSubmit={event => { event.preventDefault(); void ask(); }}>
-      <textarea aria-label="Your question" placeholder="What do we know about Kota?" value={question}
+      <textarea ref={inputRef} aria-label="Your question" placeholder={answer ? "Ask a follow-up..." : "Ask about a player, club or your next action..."} value={question}
         maxLength={2000} disabled={busy} onChange={event => setQuestion(event.target.value)} />
       <button type="submit" disabled={busy || !question.trim()}>
         {busy ? <LoaderCircle size={16} aria-hidden="true" /> : <ArrowUpRight size={16} aria-hidden="true" />}
         {busy ? 'Thinking...' : 'Ask ReDream'}
       </button>
     </form>
+    {!history.length ? <div className={styles.suggestions}>
+      <button type="button" disabled={busy} onClick={() => suggest(context?.player_id || context?.player_name ? 'Review this player’s next move. Separate recorded facts, realistic options and the key missing information.' : 'What are my priorities today? Explain what needs action first and why.')}>{context?.player_id || context?.player_name ? 'Review next move' : 'My priorities'}</button>
+      <button type="button" disabled={busy} onClick={() => suggest('What do we know about this record, what is out of date and what should we verify next?')}>Find the gaps</button>
+    </div> : null}
     {busy ? <div role="status" className={styles.muted}>Thinking...</div> : null}
     {error ? <p role="alert" className={styles.error}>{error}</p> : null}
     {answer ? <section className={styles.answer} aria-label="ReDream answer" aria-live="polite">
+      {history.length ? <p className={styles.question}>{history[history.length - 2].content}</p> : null}
       <div className={styles.basis}><BookOpen size={13} aria-hidden="true" />{basis}</div>
       <p className={styles.copy}><AnswerText text={answer.answer} /></p>
       {answer.clarification_question && !answer.answer.includes(answer.clarification_question)
         ? <p className={styles.next}>{answer.clarification_question}</p> : null}
+      {answer.evidence?.length ? <details className={styles.disclosure}><summary>Evidence · {answer.evidence.length}</summary>
+        <ul>{answer.evidence.map((item, index) => <li key={index}><AnswerText text={item} /></li>)}</ul>
+      </details> : null}
+      {answer.uncertainties?.length ? <details className={styles.disclosure}><summary>Missing information and blockers · {answer.uncertainties.length}</summary>
+        <ul>{answer.uncertainties.map((item, index) => <li key={index}><AnswerText text={item} /></li>)}</ul>
+      </details> : null}
       {answer.next_action ? <div className={styles.next}><span>Next action</span><p>{answer.next_action}</p></div> : null}
       {(answer.internal_matches || []).length ? <div className={styles.records}>
         {(answer.internal_matches || []).map(record => {
@@ -139,6 +174,10 @@ export default function AiAgentAnswer({ workspaceSlug, context, onBusyChange, on
         <span><Globe size={12} aria-hidden="true" />Public sources</span>
         {sources.map(source => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.title}<ArrowUpRight size={12} aria-hidden="true" /></a>)}
       </div> : null}
+      <div className={styles.suggestions}>
+        <button type="button" disabled={busy} onClick={() => suggest('Which options are most realistic? Explain the evidence, likely role and main blockers for each. Do not invent club interest.')}>Assess the options</button>
+        <button type="button" disabled={busy} onClick={() => suggest('Draft a short approach for the strongest supported option. Ask who it is for if the recipient is unclear. Keep private agency information out.')}>Draft an approach</button>
+      </div>
     </section> : null}
   </div>;
 }
