@@ -1,45 +1,50 @@
 # ReDream questions, 17 October 2026
 
-Jesse requested continuing the OpenAI agent work from the earlier chat. The saved ReDream Brain v1 backend was recovered from staging `redream-agent` v2. The frontend checkout from that chat was unavailable. Its question interface was restored within the current Tell ReDream flow, based on the complete production release at local commit `1346bab`, preserving the contact, photo, CV, Home and workspace changes already live.
+## Current release
 
-## Behaviour
+Tell ReDream has an **Ask a question** option in both its sheet and full page. The live endpoint retrieves the saved OpenAI ReDream agent configuration on each question, then answers from authorised agency records and optional public research. Answers distinguish recorded information, public evidence and missing information, show source links and offer a next action. Questions do not create captures or update agency records. Voice and typed updates retain their review and approval flow.
 
-Tell ReDream now has an **Ask a question** option in both its sheet and full page. Questions call a read-only endpoint with the selected workspace and record context. Answers distinguish internal records and public research, show public source links and internal record links, and offer a next action. Questions do not create captures or modify agency records. Voice and typed updates retain the existing review, approval and save path.
+Production `redream-agent` v5 and staging v6 are ACTIVE with JWT verification. Their identical bundle hash is `d641d483fdd5aefc2ff84a97984dd3be94b54f9364847d378caa17c9b0918d34`. A production source readback matches both submitted files exactly. The frontend remains the previously verified Vercel release `dpl_EAzrKgxh2B8qQbYDGQ5kejtFSLNW`, assigned to `app.djmsports.com`. No frontend redeployment was needed for the final backend corrections.
 
-The endpoint uses the existing server-side OpenAI connection with `gpt-6.1-sol`, High reasoning and optional web search through the Responses API. It does **not** connect, change or reuse the separate saved OpenAI Agents API dashboard session `sess_0b1b44d77e96c490006ad37c9996508195a9753d042b541ec8`. No database credential was given to that hosted agent.
+## Saved OpenAI configuration
 
-## Review corrections
+The saved agent is `agent_edd2cf2599d3452e94e74c6e22dce7935f1a5c93d3d54eb098`, project `proj_7SHUdup16llWEbPwNEMNOEOb`. Dashboard sign-in and inspection confirmed `gpt-6.1-sol`, High reasoning, Medium verbosity and live web search. Subagents, functions and external integrations are disabled. No saved-agent settings were changed.
 
-- Explicit inaccessible workspaces return 403 rather than falling back to a sole membership.
-- Assigned staff receive the established football-only player projection; contract, commercial and private next-action fields remain excluded.
-- Non-admin club and contact retrieval omits relationship history. Search remains authorised through the existing tenant/user search RPC.
-- Personal tasks are filtered by tenant and owner. Commercial opportunities and deals remain admin-only.
-- Incomplete model responses fail clearly. Public sources include both tool sources and actual URL citation annotations.
-- Account/workspace changes discard old results. Failed questions retain their text for retry. Public URLs are restricted to HTTP(S), and internal links require a recognised record type and valid UUID.
+The server reuses the saved instructions, model, reasoning, verbosity and web-search settings in a scoped Responses API request using the existing server-side key. The application enforces its read-only and structured-answer contract. Inaccessible saved configuration produces a clear error, with no silent fallback. `REDREAM_OPENAI_AGENT_ID` can override the inspected default ID.
+
+This uses the saved configuration, not the managed Agents runtime, hosted sandbox or earlier dashboard session `sess_0b1b44d77e96c490006ad37c9996508195a9753d042b541ec8`. No database credential is passed to the model or hosted agent. Responses use `store: false`.
+
+## Retrieval and privacy
+
+The first real task question exposed PGRST106 because the original handler accessed private `djm_os` tables through PostgREST. The first promotion was rolled back while correcting it. The final handler uses `platform_server_redream_agent_context` from the additive `20261017173500_redream_agent_context.sql` migration. No private schema was added to the exposed API schemas.
+
+The reader is service-only and validates active staff membership for the requested tenant. It uses explicit field allowlists, checks player assignments, reserves commercial records and relationship history for administrators, and filters tasks by tenant and owner. The handler also applies the established restricted player projection and task-owner filter. Browser roles cannot invoke the reader or its private projection helper. Archived records and completed/cancelled/archived tasks are excluded. Results are bounded. Legacy staging interaction tables without `player_id` are supported.
+
+Other verified protections:
+
+- An explicit inaccessible workspace returns 403 rather than falling back to another membership.
+- Retrieval errors stop the answer instead of presenting partial evidence as complete agency memory.
+- Natural requests such as “Check Dylan Gardiner” retain the player name when constructing searches. Possessive endings and leading request verbs no longer prevent a match.
+- Citations used in the answer take priority over other search results in the public-source list.
+- Public URLs accept HTTP(S) only. Internal links require a known record kind and valid UUID.
+- Account/workspace changes discard old results. Failed questions retain their text for retry.
 
 ## Verification
 
-- 1,752 unit/database tests passed with zero failures.
-- Six endpoint tests exercise real handler code against controlled database/OpenAI boundaries. Workspace fallback, restricted fields, relationship history, incomplete responses and citation extraction were demonstrated failing before correction.
-- Real React browser checks passed for questions, context, inline/public sources, unsafe-link rejection, retry, workspace switching and layouts at 320, 390, 768 and 1440 pixels. The missing question control was demonstrated failing before implementation.
-- Existing capture lazy-loading, opening, closing and focus recovery checks passed.
-- Final typecheck, no-em-dash guard, production build, bundle budget and diff checks passed. Local builds use dummy public backend settings; the deployment uses the project's existing production environment.
-- Staging backend v3 deployed successfully with JWT verification, and an unauthenticated request returned 401. Production backend v1 deployed with identical bundle hash `10787b359304d60c131cc6823e1cb76ce314ca7b27ce7433f5c01fb72ede13f6` and JWT verification.
+- All 1,767 tests pass, including 13 endpoint tests and eight database-context checks (the parent test plus seven scenarios).
+- Regressions were demonstrated failing before correction for inaccessible private schemas, legacy schema differences, natural name searches and citation priority.
+- Database checks cover tenant membership, assignment, private fields, commercial access, task ownership, lifecycle, result bounds and browser-role denial. Equivalent production and staging smoke checks confirm the reader returns the expected shapes and denies browser roles.
+- Final typecheck, no-em-dash and diff checks pass. The earlier frontend release passed production build, bundle budget, real React question/retry/source checks at 320, 390, 768 and 1440 pixels, and existing capture lazy-loading/focus checks.
+- A real signed-in production question returned a player record, recorded career evidence, owned follow-ups and an internal record link. The answer flagged duplicated season rows rather than adding their statistics together.
+- The final combined public research question returned the stored player record, conversation summaries and relevant owned follow-ups alongside inline official source links. It distinguished recorded contract information and reported claims from current public evidence. The public-source list began with the three official pages cited in the answer. Internal player, club and contact links were present. No records were changed.
+- The production unauthenticated endpoint returns 401. No synthetic data or record changes were needed for the signed-in checks.
 
-## Release and limits
+## Source and remaining access
 
-The runtime source manifest contains 392 files, fingerprint `097a59ce2ed3833db86ec173be8378ac36552864f3c173aec1f17dc1ac0391ed`. Vercel deployment `dpl_EAzrKgxh2B8qQbYDGQ5kejtFSLNW` reached READY in the existing `djm-player` production project. A fresh deployment lookup confirms `app.djmsports.com` is assigned to this release. It was submitted from local implementation commit `580c4cc39530e0dc67cfa15df9fa387ec28c1954`.
+The frontend was restored on the complete production source at local commit `1346bab`, preserving the already-live contact, photo, CV, Home and workspace changes. The runtime manifest contains 392 files, fingerprint `097a59ce2ed3833db86ec173be8378ac36552864f3c173aec1f17dc1ac0391ed`. Do not deploy older GitHub main over this complete release.
 
-Live `/tell` and `/workspace/djm/capture` documents and all their initial scripts and styles returned HTTP 200. A fresh readback of both production backend files matches the deployed source exactly, and its unauthenticated request returns 401. The 257 source hashes visible in Vercel's truncated file-tree response match the submitted manifest. That response omits the new interface files; a direct read confirms the new component exists, but its content is truncated by the connector. These are partial source and unauthenticated smoke checks, not a signed-in answer test. The queried 30-minute error/fatal log window for this deployment returned no records immediately after the smoke check.
+Local branch: `codex/redream-agent-release-20261017`. Implementation commits include `580c4cc`, `ae848d8`, `207d7b4` and `06ecc71`.
 
-Browser tests use synthetic records. A signed-in question against real DJM records and a real iPhone has not been exercised. GitHub branch creation still returns 403, Resource not accessible by integration; the Mac is offline in Remote Desktop Commander. Preserve this complete local release branch, and do not deploy the older GitHub main over the current production source. The cloud browser reaches OpenAI's sign-in form, so the separate saved-agent dashboard work requires account access before it can continue.
+GitHub connector writes returned 403. A subsequent ordinary Git push was blocked by automatic approval review because explicit approval for transferring private repository source/history to GitHub was missing. Do not retry or work around that rejection without new explicit approval. The live OpenAI/Supabase connection does not depend on this source-sync step. The Mac was last observed Offline in Remote Desktop Commander.
 
-## Saved-agent connection staged after OpenAI sign-in
-
-OpenAI dashboard sign-in was completed and the saved ReDream agent was inspected: `agent_edd2cf2599d3452e94e74c6e22dce7935f1a5c93d3d54eb098`, project `proj_7SHUdup16llWEbPwNEMNOEOb`. Its current settings are `gpt-6.1-sol`, High reasoning, Medium verbosity and live web search. Subagents, functions and external integrations are disabled. No saved-agent settings were changed.
-
-Staging `redream-agent` v4 now retrieves that saved definition for each question using the existing server-side OpenAI key, then applies its instructions, model, reasoning, verbosity and web-search settings to the scoped Responses request. The application still enforces read-only behaviour, tenant permissions and its structured answer contract. This reuses the saved configuration, not the hosted Agents session or sandbox. If the key cannot read the agent, the endpoint returns a clear 503 rather than silently using a different configuration. `REDREAM_OPENAI_AGENT_ID` can override the inspected default ID.
-
-All 1,755 tests pass, including nine endpoint tests. The new checks cover saved configuration inheritance, disabling web search and denied saved-agent access. The no-em-dash and diff guards pass. Staging v4 is ACTIVE with JWT verification and bundle hash `414a6ded09e31c4a18478692d9b0565dc98de9b79da3f05f940446acc4660229`.
-
-This follow-up has not been promoted to production. The existing production v1 remains live while a real signed-in connection check is pending. The secure ReDream app sign-in request timed out; a subsequent fresh app page still shows its sign-in link. A manual sign-in in this conversation's cloud browser is needed to continue the real app check. The Mac still reports Offline. Do not treat OpenAI dashboard sign-in, synthetic tests or a successful deployment as evidence that the server-side key can access the saved agent.
+Signed-in desktop browser verification is complete for the question flow; a real iPhone check remains outside these tests.
