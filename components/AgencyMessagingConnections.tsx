@@ -461,12 +461,6 @@ export default function AgencyMessagingConnections({
             await platformInvoke<{
               whatsapp_ready?: boolean;
               instagram_ready?: boolean;
-              whatsapp?: {
-                ready?: boolean;
-                app_id?: string | null;
-                config_id?: string | null;
-                graph_version?: string | null;
-              };
             }>(
               'redream-meta-connect',
               {
@@ -476,47 +470,58 @@ export default function AgencyMessagingConnections({
               },
             );
 
-          const whatsapp =
-            config?.whatsapp;
+          let whatsappReady = false;
 
-          let whatsappReady =
-            Boolean(
-              config?.whatsapp_ready,
-            );
-
-          if (
-            whatsappReady &&
-            whatsapp?.ready &&
-            whatsapp.app_id &&
-            whatsapp.config_id
-          ) {
+          if (config?.whatsapp_ready) {
             try {
-              const graphVersion =
-                whatsapp.graph_version ||
-                'v26.0';
+              const whatsapp =
+                await platformInvoke<{
+                  ready?: boolean;
+                  app_id?: string | null;
+                  config_id?: string | null;
+                  graph_version?: string | null;
+                }>(
+                  'redream-meta-connect',
+                  {
+                    action:
+                      'whatsapp_config',
+                    workspace_slug:
+                      workspaceSlug,
+                  },
+                );
 
-              await loadFacebookSdk(
-                whatsapp.app_id,
-                graphVersion,
-              );
+              if (
+                whatsapp?.ready &&
+                whatsapp.app_id &&
+                whatsapp.config_id
+              ) {
+                const graphVersion =
+                  whatsapp.graph_version ||
+                  'v26.0';
 
-              setWhatsAppConfig({
-                app_id:
+                await loadFacebookSdk(
                   whatsapp.app_id,
-                config_id:
-                  whatsapp.config_id,
-                graph_version:
                   graphVersion,
-              });
+                );
+
+                setWhatsAppConfig({
+                  app_id:
+                    whatsapp.app_id,
+                  config_id:
+                    whatsapp.config_id,
+                  graph_version:
+                    graphVersion,
+                });
+                whatsappReady = true;
+              } else {
+                setWhatsAppConfig(null);
+              }
             } catch {
-              whatsappReady =
-                false;
               setWhatsAppConfig(
                 null,
               );
             }
           } else {
-            whatsappReady = false;
             setWhatsAppConfig(
               null,
             );

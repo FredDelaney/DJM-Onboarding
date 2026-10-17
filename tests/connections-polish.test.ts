@@ -10,6 +10,10 @@ const messaging = readFileSync(
   'components/AgencyMessagingConnections.tsx',
   'utf8',
 );
+const metaConnect = readFileSync(
+  'supabase/functions/redream-meta-connect/index.ts',
+  'utf8',
+);
 const css = readFileSync(
   'components/AgencyConnectionsDrawer.module.css',
   'utf8',
@@ -56,16 +60,26 @@ test('club PDF keeps the verified two-page safeguards', () => {
 
 
 test('WhatsApp starts Meta directly from the user tap', () => {
+  const load = messaging.slice(
+    messaging.indexOf('const load ='),
+    messaging.indexOf('useEffect(() => {'),
+  );
+  const connect = messaging.slice(
+    messaging.indexOf('const connectWhatsApp ='),
+    messaging.indexOf('const connect ='),
+  );
+
   assert.match(messaging, /type WhatsAppConfig/);
-  assert.match(messaging, /config\?\.whatsapp/);
-  assert.match(messaging, /await loadFacebookSdk/);
+  assert.match(metaConnect, /action === "whatsapp_config"/);
+  assert.match(load, /action:\s*'whatsapp_config'/);
+  assert.match(load, /await loadFacebookSdk/);
   assert.match(
-    messaging,
+    connect,
     /await whatsappSignup\(\s*window\.FB,\s*whatsappConfig\.config_id/,
   );
   assert.doesNotMatch(
-    messaging,
-    /const config =\s*await platformInvoke<[\s\S]*action:\s*'whatsapp_config'[\s\S]*const signup/,
+    connect.slice(0, connect.indexOf('await whatsappSignup(')),
+    /await platformInvoke/,
   );
 });
 
