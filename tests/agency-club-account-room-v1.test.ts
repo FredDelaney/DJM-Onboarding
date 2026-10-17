@@ -96,7 +96,7 @@ test('Club keeps direct relationships and warm introduction evidence distinct', 
 test('Club connects relationship context directly to opportunities and deals', () => {
   assert.match(
     club,
-    /LIVE OPPORTUNITIES/,
+    /Live opportunities/,
   );
 
   assert.match(

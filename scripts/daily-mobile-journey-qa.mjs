@@ -8,7 +8,7 @@ export async function verifyInPlaceCaptureCompletion(page, url, mobile = true) {
   if (mobile) await nav.getByRole("link", { name: "Today", exact: true }).waitFor();
   await page.getByText("Confirm the trial dates", { exact: true }).waitFor();
   const complete = page.getByRole("button", {
-    name: "Complete follow-up",
+    name: "Complete Follow up with Example FC",
     exact: true,
   });
   assert.equal(

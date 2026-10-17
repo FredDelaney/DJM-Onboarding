@@ -12,7 +12,6 @@ import {
   FileText,
   LoaderCircle,
   Plus,
-  Search,
   ShieldCheck,
   Target,
   UserRound,
@@ -25,9 +24,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import RecordContactActions from '@/components/RecordContactActions';
+import WorkspaceListSearch from './WorkspaceListSearch';
 import RecordActivitySummary from './RecordActivitySummary';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile } from '@/lib/player-profile-cache';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import { publicFile } from '@/lib/supabase';
 import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
 import styles from './AgencyPlayersWorkspace.module.css';
@@ -41,6 +43,8 @@ type Props = {
   stateScope?: string;
   canManageRecords?: boolean;
   canCreateRecords?: boolean;
+  onCreatePlayer?: () => void;
+  onRecordRefresh?: () => Promise<void>;
   data: any;
   basePath: string;
   invoke: Invoke;
@@ -330,6 +334,7 @@ function PlayerDrawer({
               </div>
             </header>
 
+            {canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted?<RecordContactActions kind="player" recordId={playerId} name={playerName} scope={cacheScope} rpc={rpc}/>:null}
             <nav className={styles.playerTabs}>
               {['overview','opportunities','career','more'].map((key) => {
                 const moreActive =
@@ -504,6 +509,8 @@ export default function AgencyPlayersWorkspace({
   stateScope = '',
   canManageRecords = true,
   canCreateRecords = true,
+  onCreatePlayer,
+  onRecordRefresh,
   data,
   basePath,
   invoke,
@@ -543,8 +550,8 @@ export default function AgencyPlayersWorkspace({
   }, [rpc,canManageRecords]);
 
   const refreshEntities = useCallback(async () => {
-    await Promise.all([onRefresh(), reloadArchives()]);
-  }, [onRefresh, reloadArchives]);
+    await Promise.all([(onRecordRefresh || onRefresh)(), reloadArchives()]);
+  }, [onRefresh, onRecordRefresh, reloadArchives]);
 
   useEffect(() => {
     void reloadArchives().catch(() => undefined);
@@ -737,7 +744,8 @@ export default function AgencyPlayersWorkspace({
   const refreshTarget=async()=>{
     if (!targetId) return;
     const request = targetRequest.current;
-    const response:any=await invoke('recruitment_target',{prospect_id:targetId});
+    const response:any=await readWithDeadline(invoke('recruitment_target',{prospect_id:targetId}));
+    if (!response?.recruitment?.target) throw new Error('This recruitment target is unavailable.');
     if (request === targetRequest.current) setTargetRecord({ id: targetId, detail: response?.recruitment || null });
   };
 
@@ -811,8 +819,8 @@ export default function AgencyPlayersWorkspace({
                 label={targetDetail.target.full_name || 'Recruitment target'}
                 rpc={rpc}
                 onChanged={async (change) => {
-                  await onRefresh();
-                  if (change === 'edit') setTargetReload((value) => value + 1);
+                  await (onRecordRefresh || onRefresh)();
+                  if (change === 'edit') await refreshTarget();
                   else closeTarget();
                 }}
                 fields={[
@@ -831,6 +839,7 @@ export default function AgencyPlayersWorkspace({
               className={styles.secondaryButton} onClick={()=>setTargetReload(value=>value+1)}>Try again</button></div></div>:null}
           {!targetBusy&&!targetError&&targetDetail?(
             <div className={styles.drawerBody}>
+              {canManageRecords?<RecordContactActions kind="recruitment_target" recordId={targetId} name={targetDetail.target?.full_name||'Recruitment player'} scope={stateScope} rpc={rpc}/>:null}
               <header className={styles.recruitHero}><div className={styles.recruitmentMark}>{initials(targetDetail.target?.full_name||'')||'P'}</div>
                 <div><p>RECRUITMENT</p><h2>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Add more player details'}</span></div></header>
               <section className={styles.detailSection}><p>CURRENT STAGE</p><h3>{PIPELINE.find(([key])=>key===targetDetail.target?.ui_stage)?.[1]||human(targetDetail.target?.ui_stage)}</h3>
@@ -875,7 +884,7 @@ export default function AgencyPlayersWorkspace({
         basePath={basePath}
         invoke={invoke}
         rpc={rpc}
-        onRefresh={onRefresh}
+        onRefresh={onRecordRefresh || onRefresh}
         onClose={closePlayer}
         onOpenAction={onOpenAction}
       />
@@ -893,12 +902,14 @@ export default function AgencyPlayersWorkspace({
             Recruitment <b>{targets.length}</b>
           </button>
         </div>
-        <label className={styles.search}><Search size={15}/><input aria-label={section==='players'?'Search players':'Search recruitment'} value={search} onChange={(e)=>setSearch(e.target.value)}
-          placeholder={section==='players'?'Search players':'Search recruitment'} /></label>
+        <div className={styles.listControls}>
+        <WorkspaceListSearch className={styles.search} label={section==='players'?'Search players':'Search recruitment'} placeholder={section==='players'?'Search players':'Search recruitment'} value={search} onChange={setSearch}/>
+        {section==='players' && canCreateRecords && onCreatePlayer ? <button type="button" data-ui-button="secondary" className={styles.primaryButton} onClick={onCreatePlayer}><Plus size={14}/> Add player</button> : null}
         {section==='recruitment' && canCreateRecords?(
           <button type="button" data-ui-button="secondary"
               className={styles.primaryButton} onClick={openRecruitmentCreate}><Plus size={14}/> Add target</button>
         ):null}
+        </div>
       </section>
 
       {section==='players'?(

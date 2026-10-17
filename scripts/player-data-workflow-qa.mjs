@@ -24,9 +24,10 @@ try{
   const panel=await visit();
   assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
   assert.equal(await stats(panel).getByText('0',{exact:true}).count(),1);
-  assert.equal(await stats(panel).getByText('Unknown',{exact:true}).count(),1);
+  assert.equal(await stats(panel).getByLabel('Assists not available',{exact:true}).count(),1);
   assert.equal(await stats(panel).getByText('30',{exact:true}).count(),0);
-  assert.ok(await panel.getByRole('link',{name:'Open source',exact:true}).getAttribute('href')==='https://league.example/player');
+  await panel.locator('summary').click();
+  assert.ok(await panel.getByRole('link',{name:'Open source',exact:true}).first().getAttribute('href')==='https://league.example/player');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Profile overflow at '+width+': '+overflow);
   const targets=await panel.getByRole('button').evaluateAll(buttons=>buttons.map(button=>button.getBoundingClientRect().height));
@@ -79,7 +80,7 @@ try{
  await page.screenshot({path:join(screenshotDir,'mobile-editor.png'),fullPage:true});
  panel=await visit('missing');
  assert.ok(await panel.getByRole('button',{name:'Update statistics',exact:true}).isDisabled());
- assert.equal(await stats(panel).getByText('Unknown',{exact:true}).count(),5);
+ assert.equal(await stats(panel).locator('[aria-label$="not available"]').count(),5);
  await panel.getByRole('button',{name:'Add season statistics',exact:true}).click();
  await panel.getByRole('form',{name:'Edit current-season statistics'}).waitFor();
  panel=await visit('scout');assert.equal(await panel.getByRole('button').count(),0);
@@ -93,7 +94,7 @@ try{
  await panel.getByRole('alert').waitFor({state:'detached'});
  assert.ok(await panel.getByRole('button',{name:'Update statistics',exact:true}).isEnabled());
  panel=await visit('custom');
- await panel.getByText('The club profile uses custom headline statistics',{exact:true}).waitFor();
+ await panel.getByText('The club profile uses custom headline statistics.',{exact:true}).waitFor();
  await panel.getByRole('button',{name:'Update statistics',exact:true}).click();
  await stats(panel).getByText('9',{exact:true}).waitFor({timeout:15000});
  await panel.getByRole('button',{name:'Review current player data',exact:true}).click();

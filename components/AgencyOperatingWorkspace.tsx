@@ -1,7 +1,8 @@
 'use client';
 
 import WorkResponsibilityControl from './WorkResponsibilityControl';
-import {workRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
+import {workRefFor,homeWorkRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
+import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWorkControl';
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
 import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery} from '@/lib/workspace-record-navigation';
@@ -44,6 +45,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import ToolsMenu from './ToolsMenu';
 
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
 import {
@@ -60,20 +62,28 @@ import type { AgencyDealCloseoutRequest } from '@/components/AgencyDealCloseoutD
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
 import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
-import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
 import { readWithDeadline } from '@/lib/read-with-deadline';
-import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
-import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
-import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 
 import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
+import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
+function WorkspaceSectionLoading() {
+  return <section className={styles.loadingCard} role="status" aria-busy="true">
+    <LoaderCircle size={20} className={styles.spin} />
+    Opening workspace...
+  </section>;
+}
+
+const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'), {loading: WorkspaceSectionLoading});
+const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: WorkspaceSectionLoading});
+const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: WorkspaceSectionLoading});
+const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: WorkspaceSectionLoading});
 const AgencyCreateDrawer = dynamic(() => import('@/components/AgencyCreateDrawer'));
 const AgencyRosterMigrationPanel = dynamic(() => import('@/components/AgencyRosterMigrationPanel'));
 const AgencyActionDrawer = dynamic(() => import('@/components/AgencyActionDrawer'));
@@ -94,6 +104,21 @@ const AgencyMeetingOutcomeDrawer = dynamic(() => import('@/components/AgencyMeet
 const AgencyTeamHandoffDrawer = dynamic(() => import('@/components/AgencyTeamHandoffDrawer'));
 
 type View = 'home' | 'players' | 'opportunities' | 'network' | 'calendar' | 'business';
+
+function preloadWorkspaceView(view: View, showPlayerProfile = false) {
+  // Start the visible destination alongside its reads, or on navigation intent.
+  // Background data warming must not download every hidden page's code.
+  let request: Promise<unknown> | undefined;
+  if (view === 'players') request = showPlayerProfile
+    ? import('@/components/AgencyPlayerProfile')
+    : import('@/components/AgencyPlayersWorkspace');
+  else if (view === 'network') request = import('@/components/AgencyNetworkWorkspace');
+  else if (view === 'opportunities') request = import('@/components/AgencyOpportunitiesWorkspace');
+  else if (view === 'calendar') request = import('@/components/AgencyCalendarWorkspace');
+  void request?.catch(() => {
+    // The rendered destination retains its normal module loading/error path.
+  });
+}
 
 type ViewCacheEntry = {
   data: any;
@@ -493,6 +518,7 @@ export default function AgencyOperatingWorkspace() {
     async <T,>(
       name: string,
       args: Record<string, unknown> = {},
+      signal?: AbortSignal,
     ): Promise<T> => {
       if (!workspace?.slug) {
         throw new Error('Agency workspace is not resolved.');
@@ -502,13 +528,14 @@ export default function AgencyOperatingWorkspace() {
         name,
         args,
         workspace.slug,
+        signal,
       );
     },
     [workspace?.slug],
   );
 
   const warmView = useCallback(
-    async (targetView: View) => {
+    async (targetView: View, preloadCode = true) => {
       if (
         !workspace?.tenant_id ||
         !workspace?.slug ||
@@ -517,6 +544,8 @@ export default function AgencyOperatingWorkspace() {
       ) {
         return;
       }
+
+      if (preloadCode) preloadWorkspaceView(targetView);
 
       const cacheKey = [
         workspace.tenant_id,
@@ -693,7 +722,7 @@ export default function AgencyOperatingWorkspace() {
     }
   }, [targetSlug, sessionUserId]);
 
-  const loadView = useCallback(async () => {
+  const loadView = useCallback(async (options?: { rejectOnError?: boolean }) => {
     if (!workspace?.tenant_id) return;
 
     const requestId = ++loadSequenceRef.current;
@@ -779,7 +808,7 @@ export default function AgencyOperatingWorkspace() {
           });
         }
 
-        commit({ ...(latestData || {}), home, home_reads: { operations: 'loading', connected_work: 'loading', meeting_aftercare: 'loading' } });
+        commit({ ...(latestData || {}), home, home_reads: { operations: 'loading', connected_work: 'loading', meeting_aftercare: 'loading' }, home_read_version: requestId });
         if (isCurrent()) setBusy(false);
 
         void Promise.allSettled([
@@ -962,6 +991,7 @@ export default function AgencyOperatingWorkspace() {
       }
     } catch (loadError) {
       if (isCurrent()) setError(friendlyError(loadError));
+      if (options?.rejectOnError) throw loadError;
     } finally {
       if (isCurrent()) {
         directoryRefreshRef.current = false;
@@ -981,6 +1011,9 @@ export default function AgencyOperatingWorkspace() {
     sessionUserId,
   ]);
 
+  // Editors must distinguish a confirmed write from a failed list refresh.
+  // Ordinary navigation/refresh keeps its existing page-level error handling.
+  const refreshRecords = useCallback(() => loadView({ rejectOnError: true }), [loadView]);
   const handleCaptureCompleted = useCallback(() => { void loadView(); }, [loadView]);
   const openIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
     setIntelligenceRequest(request);
@@ -1058,6 +1091,11 @@ export default function AgencyOperatingWorkspace() {
   }, [resolveWorkspace, sessionReady, signedIn]);
 
   useEffect(() => {
+    if (!signedIn || !workspace?.tenant_id || restrictedView) return;
+    preloadWorkspaceView(view, showPlayerProfile);
+  }, [view, showPlayerProfile, signedIn, workspace?.tenant_id, restrictedView]);
+
+  useEffect(() => {
     if (workspace?.tenant_id) void loadView();
     return () => { loadSequenceRef.current++; };
   }, [loadView, workspace?.tenant_id]);
@@ -1071,7 +1109,6 @@ export default function AgencyOperatingWorkspace() {
       return;
     }
 
-    let cancelled = false;
     const targets: View[] = [
       'home',
       'players',
@@ -1080,29 +1117,23 @@ export default function AgencyOperatingWorkspace() {
       'calendar',
     ].filter((targetView) => targetView !== view) as View[];
 
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const priorityTargets = targets.slice(0, 2);
-        const remainingTargets = targets.slice(2);
+    return scheduleWorkspaceWarming(async (canContinue) => {
+      if (!canContinue()) return;
+      const priorityTargets = targets.slice(0, 2);
+      const remainingTargets = targets.slice(2);
 
-        await Promise.allSettled(
-          priorityTargets.map((targetView) => warmView(targetView)),
+      await Promise.allSettled(
+        priorityTargets.map((targetView) => warmView(targetView, false)),
+      );
+
+      for (const targetView of remainingTargets) {
+        if (!canContinue()) return;
+        await warmView(targetView, false);
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 60),
         );
-
-        for (const targetView of remainingTargets) {
-          if (cancelled) return;
-          await warmView(targetView);
-          await new Promise((resolve) =>
-            window.setTimeout(resolve, 60),
-          );
-        }
-      })();
-    }, 320);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
+      }
+    });
   }, [
     busy,
     inlineEntityWorkspaceOpen,
@@ -1502,7 +1533,7 @@ export default function AgencyOperatingWorkspace() {
           </div>
           <div className={styles.desktopHeadActions}>
             <AiLauncher onCaptureCompleted={handleCaptureCompleted} />
-            {createAction ? (
+            {createAction && view !== 'players' ? (
               <button
                 type="button"
                 data-ui-button="secondary"
@@ -1513,19 +1544,7 @@ export default function AgencyOperatingWorkspace() {
                 {createAction.label}
               </button>
             ) : null}
-            <details className={styles.workspaceTools}
-              onClick={event => {
-                if ((event.target as HTMLElement).closest('button')) event.currentTarget.open = false;
-              }}
-              onKeyDown={event => {
-                if (event.key === 'Escape') {
-                  event.preventDefault();
-                  event.currentTarget.open = false;
-                  event.currentTarget.querySelector('summary')?.focus();
-                }
-              }}>
-              <summary data-ui-button="secondary">More</summary>
-              <div className={styles.workspaceToolsMenu}>
+            <ToolsMenu className={styles.workspaceTools} menuClassName={styles.workspaceToolsMenu} label="Workspace tools">
                 <button
                   type="button"
                   data-ui-button="tertiary"
@@ -1562,8 +1581,7 @@ export default function AgencyOperatingWorkspace() {
                   />
                   Refresh
                 </button>
-              </div>
-            </details>
+            </ToolsMenu>
             <AccountMenu
               workspace={workspace}
               onSignOut={signOut}
@@ -1578,7 +1596,7 @@ export default function AgencyOperatingWorkspace() {
         </header>
 
         {['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?<PeopleViewSwitcher basePath={basePath} view={view} onNavigate={navigateWorkspaceView}/>:null}
-        {createAction && !inlineEntityWorkspaceOpen ? (
+        {createAction && !inlineEntityWorkspaceOpen && view !== 'players' ? (
           <div className={styles.mobileContextAction}>
             <button
               type="button"
@@ -1677,6 +1695,7 @@ export default function AgencyOperatingWorkspace() {
                   role={String(workspace?.role || '')}
                   fallbackAgency={runtime.branding}
                   invoke={(action, body) => invoke<any>(action, body)}
+                  rpc={rpc}
                   onOpenAction={(request) => setActionRequest(request)}
                   onOpenIntelligence={(playerId, title, context) =>
                     openIntelligenceRequest({
@@ -1693,9 +1712,11 @@ export default function AgencyOperatingWorkspace() {
                   stateScope={stateScope}
                   canManageRecords={canSeeBusiness}
                   canCreateRecords={canCreateRecords}
+                  onCreatePlayer={() => setCreateKind('player')}
+                  onRecordRefresh={refreshRecords}
                   data={data}
                   basePath={basePath}
-                  invoke={(action, body) => invoke<any>(action, body)}
+                  invoke={invoke}
                   rpc={rpc}
                   onRefresh={loadView}
                   onLoadMore={loadMorePlayers}
@@ -1706,6 +1727,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'opportunities' && canSeeBusiness ? (
               <AgencyOpportunitiesWorkspace
+                onRecordRefresh={refreshRecords}
                 key={stateScope}
                 invoke={invoke}
                 onRetry={() => void loadView()}
@@ -1722,6 +1744,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'network' ? (
               <AgencyNetworkWorkspace
+                onRecordRefresh={refreshRecords}
                 key={stateScope}
                 stateScope={stateScope}
                 canManageRecords={canSeeBusiness}
@@ -1814,11 +1837,10 @@ export default function AgencyOperatingWorkspace() {
         <AgencyCreateDrawer
           key={`create:${createKind}`}
           kind={createKind}
+          theme={theme}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setCreateKind(null)}
-          onCreated={async () => {
-            await loadView();
-          }}
+          onCreated={refreshRecords}
         />
       ) : null}
 
@@ -1843,8 +1865,8 @@ export default function AgencyOperatingWorkspace() {
           presentation="page"
           rpc={rpc}
           canManageRecords={canSeeBusiness}
-          onRefresh={loadView}
-          invoke={(action, body) => invoke<any>(action, body)}
+          onRefresh={refreshRecords}
+          invoke={invoke}
           onClose={() => closeIntelligenceRequest(intelligenceRequest)}
           onOpenAction={(request) => {
             setActionRequest(request);
@@ -1946,9 +1968,9 @@ export default function AgencyOperatingWorkspace() {
           key={clubAccountRequest.key}
           request={clubAccountRequest}
           presentation="page"
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           rpc={rpc}
-          onRefresh={loadView}
+          onRefresh={refreshRecords}
           onClose={closeClubAccount}
           onOpenAction={(request) => {
             setActionRequest(request);
@@ -2240,16 +2262,22 @@ function Home({
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const restricted = Boolean(data?.home?.access?.restricted);
+  const homeWork = useHomeWork(rpc,tenantId,userId);
+  const retryHome=useRef(onRetry);retryHome.current=onRetry;
   const assignedScope=tenantId+':'+userId;
   const [assignedLoading,setAssignedLoading]=useState(true);
   const [assignedWork,setAssignedWork]=useState<{scope:string;items:any[]}>({scope:'',items:[]});
   const [assignedError,setAssignedError]=useState('');
   useEffect(()=>{
     let alive=true,request=0;
-    const load=()=>{const token=++request;setAssignedError('');setAssignedLoading(true);void readWithDeadline(readAssignedWorkPages(rpc,tenantId).then(items=>({items}))).then(value=>{if(alive&&token===request){if(!Array.isArray(value?.items)){setAssignedError('Could not confirm your assigned tasks.');}else setAssignedWork({scope:assignedScope,items:value.items});setAssignedLoading(false);}},()=>{if(alive&&token===request){setAssignedError('Could not load your assigned tasks.');setAssignedLoading(false);}});};
-    load();window.addEventListener('redream:responsibilities-updated',load);
-    return()=>{alive=false;window.removeEventListener('redream:responsibilities-updated',load);};
-  },[rpc,tenantId,assignedScope]);
+    // Keep local confirmations until both the Home/operations feed and assignments refresh.
+    // Only reconcile captured values, never an edit which completed during this read.
+    const confirmedOverrides=typeof data?.home_read_version==='number'&&data?.home_reads?.operations==='ready'?homeWork.overrides:{};
+    const load=()=>{const token=++request;setAssignedError('');setAssignedLoading(true);void readWithDeadline(readAssignedWorkPages(rpc,tenantId).then(items=>({items}))).then(value=>{if(alive&&token===request){if(!Array.isArray(value?.items)){setAssignedError('Could not confirm your assigned tasks.');}else {setAssignedWork({scope:assignedScope,items:value.items});homeWork.reconcile(confirmedOverrides);}setAssignedLoading(false);}},()=>{if(alive&&token===request){setAssignedError('Could not load your assigned tasks.');setAssignedLoading(false);}});};
+    const reload=()=>{retryHome.current();};
+    load();window.addEventListener('redream:responsibilities-updated',reload);
+    return()=>{alive=false;window.removeEventListener('redream:responsibilities-updated',reload);};
+  },[rpc,tenantId,assignedScope,data?.home_read_version,data?.home_reads?.operations]);
 
   const [greeting, setGreeting] = useState('Good to see you.');
 
@@ -2597,7 +2625,9 @@ function Home({
       score:
         categoryScore[category] +
         Math.min(9_000, Math.max(0, Number(command?.priority_score || 0))),
-      title: review?.title || command?.title || human(command?.command_type || 'Agency action'),
+      title: review?.title || (command?.command_type === 'Player follow-up due' && command?.evidence?.next_action
+        ? `${command.title}: ${command.evidence.next_action}`
+        : command?.title) || human(command?.command_type || 'Agency action'),
       why,
       recommendation,
       owner: ownerFor(command),
@@ -2701,14 +2731,27 @@ function Home({
     const date=work.due_at?new Date(work.date_only?String(work.due_at).slice(0,10)+'T12:00:00':work.due_at):null;
     if(date&&(Number.isNaN(date.getTime())||date.getTime()>now.getTime()+7*86400000))continue;
     const key=work.work_kind+':'+work.work_id;
-    if(queueCandidates.some(item=>{const ref=workRefFor(item.payload);return ref?.kind+':'+ref?.id===key;}))continue;
+    if(queueCandidates.some(item=>{const ref=homeWorkRefFor(item.payload)||workRefFor(item.payload);return ref?.kind+':'+ref?.id===key;}))continue;
     queueCandidates.push({id:'assigned:'+key,category:!date||date<=endOfToday?'Needs action now':'Upcoming risk',score:!date?15000:date<now?47500:date<=endOfToday?46500:30500,title:work.title,why:'This work is assigned to you.',recommendation:'',owner:work.responsible_people?.map((person:any)=>person.display_name).join(', ')||'',deadline:date?dateLabel(work.due_at):'No date',kind:'day',payload:work});
   }
 
   const queue = queueCandidates
+    .map(item=>{
+      const ref=homeWorkRefFor(item.payload),saved=ref?homeWork.overrides[ref.kind+':'+ref.id]:null;
+      if(!saved)return item;
+      const effectiveDue=saved.due_at||saved.due_on;
+      const dateOnly=ref!.kind==='player_next_action'||(ref!.kind==='calendar_task'&&!saved.due_at);
+      const date=effectiveDue?new Date(dateOnly?String(effectiveDue).slice(0,10)+'T12:00:00':effectiveDue):null;
+      const category:QueueCategory=!date||date<=endOfToday?'Needs action now':'Upcoming risk';
+      return {...item,title:saved.display_title,deadline:date?dateLabel(effectiveDue):'No date',category,score:!date?15000:date<now?47500:date<=endOfToday?46500:30500,payload:{...item.payload,due_at:effectiveDue,deadline_at:effectiveDue,date_only:dateOnly,home_saved_status:saved.status}};
+    })
+    .filter(item=>item.payload?.home_saved_status!=='done')
     .filter(
       (item, index, source) =>
-        source.findIndex(candidate => candidate.id === item.id) === index,
+        source.findIndex(candidate => {
+          const a=homeWorkRefFor(candidate.payload),b=homeWorkRefFor(item.payload);
+          return a&&b?a.kind===b.kind&&a.id===b.id:candidate.id===item.id;
+        }) === index,
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
@@ -2770,6 +2813,7 @@ function Home({
         <div><p>{greeting}</p><h2>Your day</h2></div>
         <Link className={styles.focusCalendarLink} href={`${basePath}?view=calendar`}>Calendar<ChevronRight size={16}/></Link>
       </header>
+      <HomeWorkFeedback controller={homeWork}/>
       <section className={styles.focusPanel} aria-label="Today priorities">
         <div className={styles.focusHeading}><h3>{restricted ? 'Your work' : 'Needs your attention'}</h3>
           <span>{queue.length ? `${queue.length} items` : allState !== 'ready' || assignedLoading ? 'Updating' : assignedError ? 'Unavailable' : 'All clear'}</span></div>
@@ -2778,7 +2822,12 @@ function Home({
         {assignedLoading&&!queue.length?<p className={styles.homeReadNotice} role="status">Loading your tasks...</p>:null}
         {assignedError?<p className={styles.homeReadNotice} role="alert">{assignedError}</p>:null}
         <div className={styles.focusList}>
-          {queue.map(item => <article className={styles.focusRow} key={item.id}>
+          {queue.map(item => {
+            const ref=homeWorkRefFor(item.payload);
+            if(ref)return <HomeWorkRow key={item.id} entry={{ref,title:item.title,payload:item.payload}} deadline={item.deadline} waiting={item.category==='Waiting on someone'} controller={homeWork} relatedAction={item.kind==='command'&&item.payload?.reply_interaction_id?queueAction(item):null}>
+              {ref.kind!=='calendar_task'?<WorkResponsibilityControl key={assignedScope+item.id} work={ref} tenantId={tenantId} rpc={rpc}/>:null}
+            </HomeWorkRow>;
+            return <article className={styles.focusRow} key={item.id}>
             <div className={styles.focusCopy}>
               <div className={styles.focusMeta}>
                 <span className={item.category === 'Needs action now' ? styles.focusUrgency : undefined}>
@@ -2798,12 +2847,13 @@ function Home({
               {workRefFor(item.payload)?<WorkResponsibilityControl key={assignedScope+item.id} work={workRefFor(item.payload)!} tenantId={tenantId} rpc={rpc}/>:null}
             </div>
             <div className={styles.focusAction}>{queueAction(item)}</div>
-          </article>)}
+          </article>;})}
           {!queue.length && allState === 'ready' && !assignedLoading && !assignedError ? <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
             copy={restricted ? "Your work is up to date." : "Check your players or capture a new update."}
             action={<div className={styles.emptyStateActions}><AiLauncher onCaptureCompleted={onRetry}/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
         </div>
       </section>
+      <HomeWorkEditor controller={homeWork}/>
     </div>
   );
 }

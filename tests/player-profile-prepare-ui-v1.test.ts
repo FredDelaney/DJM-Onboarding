@@ -8,7 +8,7 @@ const publicEdge = readFileSync('supabase/functions/player-profile-public/index.
 const agencyEdge = readFileSync('supabase/functions/agency-os/index.ts', 'utf8');
 
 test('preparation stays in the existing Player Profile and supports general or a known club', () => {
-  assert.match(profile, /Prepare Profile/);
+  assert.match(profile, /Complete with AI/);
   assert.match(profile, /aria-pressed=\{prepareKind === 'general'\}/);
   assert.match(profile, /aria-pressed=\{prepareKind === 'club'\}/);
   assert.match(profile, /player_profile_prepare/);

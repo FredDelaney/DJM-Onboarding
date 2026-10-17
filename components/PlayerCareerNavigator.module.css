@@ -1,0 +1,16 @@
+.navigator.navigator { overflow: hidden; margin: 18px 0 24px; border: 1px solid #e5e5e7; border-radius: 16px; background: #fff; box-shadow: none; }
+.disclosure.disclosure { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 14px 18px; box-sizing: border-box; color: #1d1d1f; font-size: 15px; font-weight: 500; cursor: pointer; list-style: none; }
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure > summary::after { display: none; }
+.disclosure > summary > svg { color: #6e6e73; }
+.disclosure[open] > summary > svg { transform: rotate(180deg); }
+.disclosure > summary:focus-visible, .lanes > a:focus-visible { outline: 2px solid #0071e3; outline-offset: -4px; }
+.lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; border-top: 1px solid #e5e5e7; background: #efeff1; }
+.lanes > a { display: grid; grid-template-columns: 20px minmax(0, 1fr) 14px; align-items: center; gap: 12px; min-width: 0; min-height: 76px; padding: 14px 18px; box-sizing: border-box; background: #fff; color: #6e6e73; text-decoration: none; }
+.lanes > a:hover, .lanes > a[aria-current] { background: #f5f5f7; }
+.lanes > a > span { display: grid; min-width: 0; gap: 4px; }
+.lanes strong { color: #1d1d1f; font-size: 14px; font-weight: 500; }
+.lanes small { color: #6e6e73; font-size: 12px; line-height: 1.45; }
+.privacy { margin: 0; padding: 14px 18px; border-top: 1px solid #e5e5e7; color: #6e6e73; font-size: 12px; line-height: 1.5; }
+@media (max-width: 760px) { .lanes { grid-template-columns: 1fr; } .lanes > a { min-height: 68px; } }

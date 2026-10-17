@@ -376,3 +376,6 @@
 
 /* Quiet typography and surfaces for this work view. */
 .primary, .secondary { font-weight: 500; box-shadow: none; }
+
+.shell:not(.compact) .prompt strong { color: #f3f6f8; }
+.shell:not(.compact) .prompt span { color: #a9bdcb; }

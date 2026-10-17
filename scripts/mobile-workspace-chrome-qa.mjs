@@ -36,7 +36,8 @@ export async function verifyMobileChrome(page, suite, screen, width) {
       if(rule.cssRules)bind(rule.cssRules);
     }};
     for(const sheet of document.styleSheets){try{bind(sheet.cssRules);}catch{}}
-    const header=document.querySelector('.player-workspace-header, [class*=AgencyOperatingWorkspace][class*=__pageHead]');
+    const header=document.querySelector('.player-workspace-header, [class*=AgencyOperatingWorkspace][class*=pageHead]');
+    if(!header)throw new Error('The workspace header is missing');
     const controls=[...header.querySelectorAll('a,button')].filter(n=>n.getClientRects().length&&getComputedStyle(n).visibility!=='hidden');
     const result={visible:header.getBoundingClientRect().height>0&&controls.length>=2,top:Math.min(...controls.map(n=>n.getBoundingClientRect().top)),backdrop:getComputedStyle(header).backdropFilter,background:getComputedStyle(header).backgroundImage};
     for(const [style,property,value,priority] of saved)style.setProperty(property,value,priority);

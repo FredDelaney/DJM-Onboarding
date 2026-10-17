@@ -37,3 +37,19 @@ test('assigned work reads all result pages without hiding later reminders',async
  const items=await (responsibility as any).readAssignedWorkPages(rpc,'agency');
  assert.deepEqual(items.map((item:any)=>item.work_id),['first','later']);assert.deepEqual(calls,[null,200]);
 });
+
+test('Home completion recognises canonical follow-ups and keeps reviews and grouped tasks separate',()=>{
+ const identify=(responsibility as any).homeWorkRefFor;
+ assert.equal(typeof identify,'function');
+ assert.deepEqual(identify({command_type:'Player follow-up due',source_type:'player',source_id:id}),{kind:'player_next_action',id});
+ assert.deepEqual(identify({work_kind:'player_next_action',work_id:id}),{kind:'player_next_action',id});
+ assert.deepEqual(identify({work_kind:'calendar_task',work_id:id}),{kind:'calendar_task',id});
+ assert.deepEqual(identify({source_type:'task',source_id:id,title:'Call the club',evidence:{task_count:1}}),{kind:'task',id});
+ for(const value of [
+  {command_type:'Player review required',source_type:'player',source_id:id},
+  {source_type:'task',source_id:id,title:'Review James Mitchell data'},
+  {source_type:'task',source_id:id,title:'Call the club',evidence:{task_count:2}},
+  {work_kind:'contract_expiry',work_id:id},
+  {source_type:'task',source_id:'invalid'},
+ ])assert.equal(identify(value),null);
+});

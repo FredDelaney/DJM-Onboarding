@@ -49,6 +49,7 @@ import {
 } from '@/lib/ai-offline';
 
 import styles from './AiCapture.module.css';
+import AiAgentAnswer from './AiAgentAnswer';
 
 type Context = {
   label?: string | null;
@@ -234,7 +235,8 @@ export default function AiCapture({
   resolvedWorkspaceSlug?: string | null;
   initialText?: string;
 }) {
-  const [mode, setMode] = useState<'voice' | 'text'>('voice');
+  const [mode, setMode] = useState<'voice' | 'text' | 'ask'>('voice');
+  const [agentBusy, setAgentBusy] = useState(false);
   const requestedWorkspace = useAiWorkspaceContext();
   const workspace = { ...requestedWorkspace, workspaceSlug: requestedWorkspace.workspaceSlug ?? resolvedWorkspaceSlug ?? 'unresolved' };
   const workspaceSlug = workspace.workspaceSlug;
@@ -274,6 +276,7 @@ export default function AiCapture({
       appliedInitialTextRef.current === sharedText ||
       recording ||
       busy ||
+      agentBusy ||
       unsavedDraft
     ) {
       return;
@@ -286,6 +289,7 @@ export default function AiCapture({
     setStatus('');
     setError('');
   }, [
+    agentBusy,
     busy,
     initialText,
     recording,
@@ -296,12 +300,14 @@ export default function AiCapture({
     onUnsafeToCloseChange?.(
       recording ||
       busy ||
+      agentBusy ||
       approvingCapture ||
       editingCapture ||
       Boolean(unsavedDraft),
     );
   }, [
     approvingCapture,
+    agentBusy,
     busy,
     editingCapture,
     onUnsafeToCloseChange,
@@ -895,7 +901,7 @@ export default function AiCapture({
         <div className={styles.prompt}>
           <strong>Tell ReDream</strong>
           <span>
-            Say or type an update. Review and approve the changes before they are saved.
+            {mode === 'ask' ? 'Ask about your records or research your next move.' : 'Say or type an update. Review and approve the changes before they are saved.'}
           </span>
         </div>
 
@@ -929,7 +935,7 @@ export default function AiCapture({
               </>
             ) : null}
           </>
-        ) : (
+        ) : mode === 'text' ? (
           <div className={styles.textPanel}>
             <textarea
               aria-label="Your update"
@@ -951,18 +957,32 @@ export default function AiCapture({
               {busy ? 'Saving...' : 'Send to ReDream'}
             </button>
           </div>
-        )}
+        ) : null}
+
+        <div hidden={mode !== 'ask'} style={{ width: '100%', maxWidth: 560 }}>
+          <AiAgentAnswer
+            key={[workspaceSlug, context?.player_id, context?.prospect_id, context?.person_id, context?.organisation_id, context?.opportunity_id].join(':')}
+            workspaceSlug={workspaceSlug}
+            context={context}
+            onBusyChange={setAgentBusy}
+            onNavigate={onNavigate}
+          />
+        </div>
 
         <div className={styles.actions}>
           <button
             type="button"
             className={styles.secondary}
             onClick={() => setMode(mode === 'voice' ? 'text' : 'voice')}
-            disabled={recording || busy || Boolean(unsavedDraft)}
+            disabled={recording || busy || agentBusy || Boolean(unsavedDraft)}
           >
             {mode === 'voice' ? <Type size={14} /> : <Mic size={14} />}
             {mode === 'voice' ? 'Type instead' : 'Use voice'}
           </button>
+          {mode !== 'ask' ? <button type="button" className={styles.secondary}
+            onClick={() => setMode('ask')} disabled={recording || busy || Boolean(unsavedDraft)}>
+            Ask a question
+          </button> : null}
         </div>
       </section>
 
@@ -1216,7 +1236,7 @@ export default function AiCapture({
         </section>
       ) : null}
 
-      {!compact ? (
+      {!compact && mode !== 'ask' ? (
         <div className={styles.status}>
           <Check size={14} />
           Raw voice is private and scheduled for deletion after 7 days.

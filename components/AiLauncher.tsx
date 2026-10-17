@@ -3,12 +3,12 @@
 import { useAiWorkspace } from './useAiWorkspace';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { Mic, X } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import AiCapture from '@/components/AiCapture';
 import { platformRpc } from '@/lib/platform-client';
 import {
   contextFromWorkspaceRoute,
@@ -18,6 +18,16 @@ import {
   type EntityContext,
 } from '@/lib/entity-context';
 import styles from './AiLauncher.module.css';
+
+const AiCapture = dynamic(() => import('@/components/AiCapture'), {
+  loading: () => <p className={styles.loading} role="status">Opening Tell ReDream...</p>,
+});
+
+const preloadCapture = () => {
+  void import('@/components/AiCapture').catch(() => {
+    // Opening the dialog retains the normal module loading and error path.
+  });
+};
 
 type AiAccess = {
   workspace_slug?: string;
@@ -250,6 +260,9 @@ export default function AiLauncher({navigation=false,className,onCaptureComplete
         className={navigation?className:styles.trigger}
         ref={trigger}
         aria-haspopup="dialog" aria-expanded={open}
+        onPointerEnter={preloadCapture}
+        onPointerDown={preloadCapture}
+        onFocus={preloadCapture}
         onClick={() => setOpen(true)}
         aria-label="Tell ReDream"
         title="Tell ReDream"

@@ -5,6 +5,7 @@ import {ArrowLeft,ArrowRight,BarChart3,Check,ChevronDown,Clock3,Copy,Download,Ey
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -13,6 +14,9 @@ import {
 import PublicProfile from '@/components/PublicProfile';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AgencyPlayerDataPanel from '@/components/AgencyPlayerDataPanel';
+import ToolsMenu from '@/components/ToolsMenu';
+import PlayerProfilePhoto from '@/components/PlayerProfilePhoto';
+import RecordContactActions from '@/components/RecordContactActions';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
   friendlyError,
@@ -25,6 +29,7 @@ import {
 } from '@/lib/player-profile-cache';
 import { publicFile } from '@/lib/supabase';
 import { safeSourceUrl } from '@/lib/player-data-workflow';
+import {readWithDeadline} from '@/lib/read-with-deadline';
 import { tenantBrandTokens } from '@/lib/tenant-brand-style';
 
 import styles from './AgencyPlayerProfile.module.css';
@@ -42,6 +47,7 @@ type Props = {
   role: string;
   fallbackAgency: Record<string, any>;
   invoke: AgencyInvoke;
+  rpc?: <T = any>(name: string, args?: Record<string, unknown>) => Promise<T>;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenIntelligence: (
     playerId: string,
@@ -427,6 +433,7 @@ export default function AgencyPlayerProfile({
   role,
   fallbackAgency,
   invoke,
+  rpc,
   onOpenAction,
   onOpenIntelligence,
 }: Props) {
@@ -457,6 +464,13 @@ export default function AgencyPlayerProfile({
       if (event.target instanceof Node && !editorDialog.current?.contains(event.target)) focusFirst();
     };
     const recoverFocus = (event: KeyboardEvent) => {
+      // Disabling Save can move focus to the document while a write finishes.
+      // Escape still belongs to this modal; the current button preserves its busy guard.
+      if (event.key === 'Escape' && !editorDialog.current?.contains(document.activeElement)) {
+        const close = editorDialog.current?.querySelector<HTMLButtonElement>('button[aria-label="Close"]');
+        if (close && !close.disabled) { event.preventDefault(); close.click(); }
+        return;
+      }
       if (event.key === 'Tab' && !editorDialog.current?.contains(document.activeElement)) {
         event.preventDefault(); focusFirst();
       }
@@ -491,9 +505,11 @@ export default function AgencyPlayerProfile({
   const [shareResultUrl, setShareResultUrl] = useState('');
   const [shareResultMessage, setShareResultMessage] = useState('');
   const [shareVersionId, setShareVersionId] = useState('');
+  const [showOlderLinks, setShowOlderLinks] = useState(false);
   const [versions, setVersions] = useState<ProfileVersion[]>([]);
   const [versionsBusy, setVersionsBusy] = useState(false);
   const [prepareOpen, setPrepareOpen] = useState(false);
+  const preparationId = useId();
   const [prepareKind, setPrepareKind] = useState<ProfileKind>('general');
   const [prepareClub, setPrepareClub] = useState('');
   const [prepareDeal, setPrepareDeal] = useState('');
@@ -504,6 +520,14 @@ export default function AgencyPlayerProfile({
   const [preparedSaved, setPreparedSaved] = useState(false);
   const [aiAvailable, setAiAvailable] = useState(false);
   const [contextProposal, setContextProposal] = useState<PlayerContextProposal | null>(null);
+  const [preparationStep, setPreparationStep] = useState('');
+  const [statisticsStatusVersion, setStatisticsStatusVersion] = useState(0);
+  const preparationRun = useRef(0), preparationBusy = useRef(false);
+  useEffect(() => {
+    preparationBusy.current = false;
+    setActionBusy(''); setPreparationStep(''); setPrepareOpen(false); setProposal(null); setContextProposal(null);
+    return () => {++preparationRun.current;};
+  }, [playerId, cacheScope]);
   const [profileReview, setProfileReview] = useState<ProfileReview | null>(null);
   const [improveSection, setImproveSection] = useState<'headline' | 'why_review' | null>(null);
   const [improveStyle, setImproveStyle] = useState<ImprovementStyle>('clearer');
@@ -531,15 +555,15 @@ export default function AgencyPlayerProfile({
 
       try {
         profile = fresh
-          ? (await invoke<any>('player_profile_core', {
+          ? (await readWithDeadline(invoke<any>('player_profile_core', {
               player_id: playerId,
-            }))?.profile || null
-          : await prefetchPlayerProfile(playerId, invoke, cacheScope);
+            })))?.profile || null
+          : await readWithDeadline(prefetchPlayerProfile(playerId, invoke, cacheScope));
       } catch {
         profile =
-          (await invoke<any>('player_profile', {
+          (await readWithDeadline(invoke<any>('player_profile', {
             player_id: playerId,
-          }))?.profile || null;
+          })))?.profile || null;
       }
 
       if (!profile) {
@@ -588,7 +612,7 @@ export default function AgencyPlayerProfile({
     return () => { ++loadGeneration.current; };
   }, [load]);
 
-  const reloadRecordedData = useCallback(() => load(true), [load]);
+  const reloadRecordedData = useCallback(() => load(true, true), [load]);
 
   const player = bundle?.player || {};
   const agency = {
@@ -605,6 +629,8 @@ export default function AgencyPlayerProfile({
   const shares = Array.isArray(bundle?.shares)
     ? bundle.shares
     : [];
+  const liveShares = shares.filter((share: any) => ['Ready', 'Opened'].includes(shareStatus(share)));
+  const olderShares = shares.filter((share: any) => ['Revoked', 'Expired'].includes(shareStatus(share)));
   const clubs = Array.isArray(bundle?.clubs)
     ? bundle.clubs
     : [];
@@ -697,6 +723,11 @@ export default function AgencyPlayerProfile({
 
   const recordedStats = Array.isArray(bundle?.auto_key_stats) ? bundle.auto_key_stats : [];
   const recordedStatsSource = safeSourceUrl(bundle?.auto_stats_meta?.source_url);
+  const automaticClubStats=!form.selected_stat_refs.length&&!parseKeyStats(form.key_stats_text).length;
+  const clubStatSourceUrls=automaticClubStats?(recordedStatsSource?[recordedStatsSource]:[]):form.selected_stat_refs.length?[...new Set(form.selected_stat_refs.map(ref=>{
+    const separator=ref.lastIndexOf(':');
+    return safeSourceUrl(career.find((row:any)=>String(row.id)===ref.slice(0,separator))?.source_url);
+  }).filter((url):url is string=>Boolean(url)))]:[];
 
   const checks: ProfileCheck[] = [
     {
@@ -867,12 +898,13 @@ export default function AgencyPlayerProfile({
     try {
       await invoke('player_profile_save', {
         player_id: playerId,
-        settings: { ...(bundle?.settings || {}), key_stats: [], selected_stat_refs: [] },
+        settings: { key_stats: [], selected_stat_refs: [] },
       });
-      if (!(await load(true))) {
-        throw new Error('Statistics updated, but the profile could not reload. Try again.');
-      }
+      setForm(current => ({...current, key_stats_text: '', selected_stat_refs: []}));
+      setBundle((current: any) => current ? {...current, settings: {...current.settings, key_stats: [], selected_stat_refs: []}} : current);
       setNotice('Statistics updated. Publish when ready.');
+    } catch (cause) {
+      setError(friendlyError(cause));
     } finally {
       setActionBusy('');
     }
@@ -941,8 +973,14 @@ export default function AgencyPlayerProfile({
     setPreviewOpen(true);
   };
 
-  const openPrepare = () => {
+  const openPrepare = (start = false) => {
     if (!canEdit) return;
+    if (start && !proposal && !contextProposal) {
+      setPrepareKind('general');
+      setPrepareOpen(true);
+      void prepareProfile('general');
+    }
+    requestAnimationFrame(() => document.getElementById('player-profile-prepare')?.scrollIntoView({behavior: 'smooth', block: 'start'}));
     if (prepareOpen) {
       document.getElementById('player-profile-prepare')?.scrollIntoView({
         behavior: 'smooth',
@@ -971,7 +1009,7 @@ export default function AgencyPlayerProfile({
     setImprovement(null);
   };
 
-  const adoptPreparedProfile = (response: any) => {
+  const adoptPreparedProfile = (response: any, kind: ProfileKind = prepareKind) => {
     const incoming = response?.proposal;
     if (!incoming || !text(incoming.source_fingerprint)) {
       throw new Error('The profile could not be prepared. Try again.');
@@ -993,7 +1031,7 @@ export default function AgencyPlayerProfile({
     setAiAvailable(response?.ai_available === true);
     setImproveSection(null);
     setProposal({
-      kind: prepareKind,
+      kind,
       headline: text(incoming.headline),
       why_review: text(incoming.why_review),
       selected_stat_refs: selectedRefs.slice(0, 6),
@@ -1012,8 +1050,31 @@ export default function AgencyPlayerProfile({
     setImprovement(null);
   };
 
-  const prepareProfile = async () => {
-    if (!canEdit || actionBusy || (prepareKind === 'club' && !prepareClub)) return;
+  const refreshPreparationStats = async (current: () => boolean) => {
+    setPreparationStep('Checking current-season statistics...');
+    const started = await readWithDeadline(invoke<any>('player_data_refresh', {player_id: playerId, request_id: crypto.randomUUID()}));
+    if (!current()) return false;
+    setStatisticsStatusVersion(value => value + 1);
+    let job = started?.job || null;
+    if (!job?.id || !job?.status) throw new Error('The statistics check could not be confirmed. Check its progress before trying again.');
+    for (let attempt = 0; attempt < 32 && ['queued', 'running'].includes(String(job.status)); attempt++) {
+      if (!current()) return false;
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      if (!current()) return false;
+      job = (await readWithDeadline(invoke<any>('player_data_status', {player_id: playerId})))?.job || job;
+    }
+    if (!current()) return false;
+    setStatisticsStatusVersion(value => value + 1);
+    if (['queued', 'running'].includes(String(job.status))) setNotice('Statistics are still updating. This draft uses the recorded evidence available now.');
+    else if (job.status === 'failed') setNotice('Statistics could not refresh. This draft uses the recorded evidence available now.');
+    else if (await load(true, true) === false) throw new Error('Statistics were checked, but the player record could not reload. Try again.');
+    return current();
+  };
+
+  const prepareProfile = async (kind: ProfileKind = prepareKind) => {
+    if (!canEdit || actionBusy || preparationBusy.current || (kind === 'club' && !prepareClub)) return;
+    preparationBusy.current = true;
+    const run = ++preparationRun.current, current = () => run === preparationRun.current;
     setActionBusy('prepare');
     setError('');
     setNotice('');
@@ -1034,8 +1095,10 @@ export default function AgencyPlayerProfile({
         playerContext.current_league,
       );
 
-      if (!canRefreshStats) {
-        const researched = await invoke<any>('player_context_research', { player_id: playerId });
+      if (!canRefreshStats || !playerContext.primary_position || !playerContext.current_country) {
+        setPreparationStep('Finding missing player details...');
+        const researched = await readWithDeadline(invoke<any>('player_context_research', { player_id: playerId }), 35000);
+        if (!current()) return;
         const fields = researched?.proposal?.fields || {};
         if (researched?.proposal && Object.keys(fields).length) {
           setContextProposal({
@@ -1044,88 +1107,71 @@ export default function AgencyPlayerProfile({
             reason: text(researched.proposal.reason),
             sources: Array.isArray(researched.proposal.sources) ? researched.proposal.sources : [],
           });
-          setNotice('AI found missing current player details. Review them before they are saved.');
           return;
         }
-        throw new Error('AI could not confidently identify the missing current club, competition and season. Review the player details and try again.');
+        if (!canRefreshStats) throw new Error('AI could not confidently identify the missing current club, competition and season. Review the player details and try again.');
       }
 
       setContextProposal(null);
       if (canRefreshStats && !currentStatsFresh) {
-        const requestId = crypto.randomUUID();
-        const started = await invoke<any>('player_data_refresh', {
-          player_id: playerId,
-          request_id: requestId,
-        });
-        let job = started?.job || null;
-        for (let attempt = 0; attempt < 32 && ['queued', 'running'].includes(String(job?.status || '')); attempt += 1) {
-          await new Promise((resolve) => setTimeout(resolve, 2500));
-          const status = await invoke<any>('player_data_status', { player_id: playerId });
-          job = status?.job || job;
-        }
-        if (job && ['queued', 'running'].includes(String(job.status || ''))) {
-          setNotice('The current-statistics check is still running. The profile will use the recorded evidence available now.');
-        } else if (job?.status === 'failed') {
-          setNotice('The current-statistics check needs attention. The profile will use the recorded evidence available now.');
-        } else {
-          await load(true, true);
-        }
+        if (!await refreshPreparationStats(current)) return;
       }
 
-      const response = await invoke<any>('player_profile_prepare', {
+      setPreparationStep('Preparing your editable profile...');
+      const response = await readWithDeadline(invoke<any>('player_profile_prepare', {
         player_id: playerId,
-        kind: prepareKind,
-        ...(prepareKind === 'club'
+        kind,
+        ...(kind === 'club'
           ? { organisation_id: prepareClub, deal_room_id: prepareDeal || null }
           : {}),
-      });
-      adoptPreparedProfile(response);
+      }), 35000);
+      if (current()) adoptPreparedProfile(response, kind);
     } catch (prepareError) {
-      setError(friendlyError(prepareError));
+      if (current()) setError(friendlyError(prepareError));
     } finally {
-      setActionBusy('');
+      if (current()) {preparationBusy.current = false; setActionBusy(''); setPreparationStep('');}
     }
   };
 
   const applyPlayerContextAndContinue = async () => {
-    if (!contextProposal || actionBusy) return;
+    if (!contextProposal || actionBusy || preparationBusy.current) return;
+    preparationBusy.current = true;
+    const run = ++preparationRun.current, current = () => run === preparationRun.current;
     setActionBusy('context-apply');
     setError('');
     setNotice('');
     try {
-      await invoke<any>('player_context_apply', {
+      setPreparationStep('Saving reviewed player details...');
+      await readWithDeadline(invoke<any>('player_context_apply', {
         player_id: playerId,
         fields: contextProposal.fields,
         sources: contextProposal.sources,
-      });
+      }), 35000);
+      if (!current()) return;
+      if (await load(true, true) === false) throw new Error('Player details were saved, but could not reload. Try again.');
+      if (!current()) return;
       const nextContext = { ...(bundle?.player || {}), ...contextProposal.fields };
       const canRefresh = Boolean(nextContext.current_season_label && nextContext.current_club && nextContext.current_league);
       if (canRefresh) {
-        const started = await invoke<any>('player_data_refresh', {
-          player_id: playerId,
-          request_id: crypto.randomUUID(),
-        });
-        let job = started?.job || null;
-        for (let attempt = 0; attempt < 32 && ['queued', 'running'].includes(String(job?.status || '')); attempt += 1) {
-          await new Promise((resolve) => setTimeout(resolve, 2500));
-          job = (await invoke<any>('player_data_status', { player_id: playerId }))?.job || job;
-        }
+        if (!await refreshPreparationStats(current)) return;
       }
-      await load(true, true);
-      const response = await invoke<any>('player_profile_prepare', {
+      if (!current()) return;
+      setPreparationStep('Preparing your editable profile...');
+      const response = await readWithDeadline(invoke<any>('player_profile_prepare', {
         player_id: playerId,
         kind: prepareKind,
         ...(prepareKind === 'club'
           ? { organisation_id: prepareClub, deal_room_id: prepareDeal || null }
           : {}),
-      });
+      }), 35000);
+      if (!current()) return;
       adoptPreparedProfile(response);
       setContextProposal(null);
-      setNotice('Current player details saved and the profile was prepared with the latest sourced statistics available.');
+      setNotice('Player details saved. Review the prepared draft before saving it.');
     } catch (contextError) {
-      setError(friendlyError(contextError));
+      if (current()) setError(friendlyError(contextError));
     } finally {
-      setActionBusy('');
+      if (current()) {preparationBusy.current = false; setActionBusy(''); setPreparationStep('');}
     }
   };
 
@@ -1861,21 +1907,9 @@ export default function AgencyPlayerProfile({
 
       <section className={styles.hero}>
         <div className={styles.heroIdentity}>
-          <div className={styles.photo}>
-            {photo ? (
-              <img src={photo} alt="" />
-            ) : (
-              <span>
-                {name
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((part: string) => part[0])
-                  .join('')
-                  .toUpperCase()}
-              </span>
-            )}
-          </div>
+          <PlayerProfilePhoto key={`${cacheScope}:${playerId}`} playerId={playerId} name={name} path={player.profile_photo_path}
+            canEdit={canEdit} blocked={Boolean(actionBusy)} className={styles.photo} invoke={invoke}
+            onSaved={path => {setBundle((current: any) => current ? {...current, player: {...current.player, profile_photo_path: path}} : current);setNotice('Player photo updated. Publish when ready.');}}/>
 
           <div className={styles.heroCopy}>
             <div className={styles.eyebrow}>
@@ -1927,6 +1961,8 @@ export default function AgencyPlayerProfile({
             </div>
           </div>
         </div>
+
+        {rpc && ['owner','admin'].includes(role) && !bundle?.access?.restricted ? <RecordContactActions kind="player" recordId={playerId} name={name} scope={cacheScope} rpc={rpc}/> : null}
 
         {(draftProfile.primary_video_url ||
           player.transfermarkt_url ||
@@ -2042,23 +2078,11 @@ export default function AgencyPlayerProfile({
               type="button"
               data-ui-button="secondary"
               className={styles.secondaryAction}
-              onClick={openPrepare}
+              onClick={() => openPrepare(true)}
               disabled={Boolean(actionBusy)}
             >
               <Sparkles size={15} />
-              Prepare Profile
-            </button>
-          ) : null}
-
-          {canEdit && !player.transfermarkt_url ? (
-            <button
-              type="button"
-              data-ui-button="secondary"
-              className={styles.secondaryAction}
-              onClick={openTransfermarkt}
-            >
-              <Link2 size={15} />
-              Add Transfermarkt
+              Complete with AI
             </button>
           ) : null}
 
@@ -2070,15 +2094,7 @@ export default function AgencyPlayerProfile({
             </button>
           ) : null}
 
-          <details
-            className={styles.profileTools}
-            onClick={event=>{if((event.target as HTMLElement).closest('button'))event.currentTarget.open=false;}}
-            onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();}}}
-          >
-            <summary data-ui-button="secondary" className={styles.secondaryAction}>
-              More <ChevronDown size={15}/>
-            </summary>
-            <div className={styles.toolMenu}>
+          <ToolsMenu className={styles.profileTools} triggerClassName={styles.secondaryAction} menuClassName={styles.toolMenu} label="Player profile tools">
               <button
                 type="button"
                 data-ui-button="secondary"
@@ -2088,7 +2104,9 @@ export default function AgencyPlayerProfile({
                 <Eye size={15} />
                 Preview
               </button>
-              {player.transfermarkt_url && canEdit ? (
+              {canEdit ? <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => openVerify('verification')}><Pencil size={15}/>Edit player details</button> : null}
+              {canEdit && !proposal && !contextProposal ? <button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={Boolean(actionBusy)} onClick={() => {setPrepareKind('club'); openPrepare();}}><Sparkles size={15}/>Prepare for a club</button> : null}
+              {canEdit ? (
                 <button
                   type="button"
                   data-ui-button="secondary"
@@ -2096,7 +2114,7 @@ export default function AgencyPlayerProfile({
                   onClick={openTransfermarkt}
                 >
                   <Link2 size={15} />
-                  Edit Transfermarkt
+                  {player.transfermarkt_url ? 'Edit Transfermarkt' : 'Add Transfermarkt'}
                 </button>
               ) : null}
               {verificationOnly && canEdit ? (
@@ -2121,8 +2139,7 @@ export default function AgencyPlayerProfile({
                 Download PDF
               </button>
 
-            </div>
-          </details>
+          </ToolsMenu>
         </div>
       </section>
 
@@ -2131,7 +2148,8 @@ export default function AgencyPlayerProfile({
           <header className={styles.prepareHead}>
             <div>
               <span className={styles.eyebrow}>PREPARE PROFILE</span>
-              <h3>{proposal ? (proposal.kind === 'club' ? `For ${proposal.club_name || 'a club'}` : 'General profile') : 'Choose the presentation'}</h3>
+              <h3>{proposal ? (proposal.kind === 'club' ? `For ${proposal.club_name || 'a club'}` : 'General profile') : contextProposal ? 'Review player details' : 'Complete with AI'}</h3>
+              {preparationStep ? <p className={styles.preparationProgress} role="status"><LoaderCircle size={15} className={styles.spin}/>{preparationStep}</p> : null}
             </div>
             <button
               type="button"
@@ -2154,7 +2172,6 @@ export default function AgencyPlayerProfile({
                   disabled={Boolean(actionBusy)}
                 >
                   <strong>General</strong>
-                  <span>The strongest overall view of this player.</span>
                 </button>
                 <button
                   type="button"
@@ -2163,7 +2180,6 @@ export default function AgencyPlayerProfile({
                   disabled={Boolean(actionBusy)}
                 >
                   <strong>For a Club</strong>
-                  <span>Focus on a club you already know.</span>
                 </button>
               </div>
               {prepareKind === 'club' ? (
@@ -2211,16 +2227,13 @@ export default function AgencyPlayerProfile({
               {contextProposal ? (
                 <div className={styles.prepareKnownNeed}>
                   <strong>Current player details found</strong>
-                  {contextProposal.fields.current_club ? <p>Club: {contextProposal.fields.current_club}</p> : null}
-                  {contextProposal.fields.current_league ? <p>Competition: {contextProposal.fields.current_league}</p> : null}
-                  {contextProposal.fields.current_country ? <p>Country: {contextProposal.fields.current_country}</p> : null}
-                  {contextProposal.fields.current_season_label ? <p>Season: {contextProposal.fields.current_season_label}</p> : null}
-                  {contextProposal.fields.primary_position ? <p>Position: {contextProposal.fields.primary_position}</p> : null}
+                  <div className={styles.prepareFields}>{Object.entries(contextProposal.fields).map(([key, value]) => <label key={key}><span>{({current_club:'Current club',current_league:'Competition',current_country:'Country',current_season_label:'Season',primary_position:'Position',transfermarkt_url:'Transfermarkt URL',stats_url:'Statistics URL'} as Record<string,string>)[key]}</span><input value={value || ''} disabled={Boolean(actionBusy)} onChange={event=>setContextProposal(current=>current?{...current,fields:{...current.fields,[key]:event.target.value}}:current)} /></label>)}</div>
+                  <details className={styles.profileDetails}><summary>Research sources</summary>
                   <p>Confidence: {Math.round(contextProposal.confidence * 100)}%</p>
                   {contextProposal.reason ? <p>{contextProposal.reason}</p> : null}
                   {contextProposal.sources.length ? (
                     <p>
-                      Sources: {contextProposal.sources.slice(0, 3).map((source, index) => (
+                      Sources: {contextProposal.sources.filter(source=>safeSourceUrl(source.url)).slice(0, 3).map((source, index) => (
                         <span key={source.url}>
                           {index ? ' · ' : ''}
                           <a href={source.url} target="_blank" rel="noreferrer">{source.title || new URL(source.url).hostname}</a>
@@ -2228,6 +2241,7 @@ export default function AgencyPlayerProfile({
                       ))}
                     </p>
                   ) : null}
+                  </details>
                   <div className={styles.prepareFooter}>
                     <button type="button" data-ui-button="primary" className={styles.primaryAction}
                       onClick={() => void applyPlayerContextAndContinue()} disabled={Boolean(actionBusy)}>
@@ -2268,7 +2282,7 @@ export default function AgencyPlayerProfile({
                 </p>
               ) : null}
               <div className={styles.prepareFields}>
-                <label>
+                <label htmlFor={preparationId + '-headline'}>
                   <span className={styles.prepareFieldLabel}>
                     Headline
                     {aiAvailable ? <button type="button" onClick={() => {
@@ -2278,12 +2292,13 @@ export default function AgencyPlayerProfile({
                     }}><Sparkles size={13} /> Improve</button> : null}
                   </span>
                   <input
+                    id={preparationId + '-headline'}
                     value={proposal.headline}
                     onChange={(event) => editProposal({ headline: event.target.value })}
                     maxLength={220}
                   />
                 </label>
-                <label>
+                <label htmlFor={preparationId + '-introduction'}>
                   <span className={styles.prepareFieldLabel}>
                     Why this player?
                     {aiAvailable ? <button type="button" onClick={() => {
@@ -2293,6 +2308,7 @@ export default function AgencyPlayerProfile({
                     }}><Sparkles size={13} /> Improve</button> : null}
                   </span>
                   <textarea
+                    id={preparationId + '-introduction'}
                     rows={3}
                     value={proposal.why_review}
                     onChange={(event) => editProposal({ why_review: event.target.value })}
@@ -2466,6 +2482,17 @@ export default function AgencyPlayerProfile({
           )}
         </section>
       ) : null}
+      <section className={`${styles.card} ${styles.clubStats}`} aria-label="Club profile stats">
+        <div className={styles.clubStatsHead}><div><h3>Club profile stats</h3><p>{!draftProfile.key_stats.length ? 'No stats included yet' : form.selected_stat_refs.length ? 'Selected stats in use' : automaticClubStats ? 'Latest stats in use' : 'Custom stats in use'}</p></div>
+          {canEdit ? <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => void useRecordedStats()} disabled={Boolean(actionBusy) || !recordedStats.length || (!form.key_stats_text.trim() && !form.selected_stat_refs.length)}><RefreshCw size={14}/>Use latest stats</button> : null}
+        </div>
+        {draftProfile.key_stats.length?<div className={styles.keyStats}>{draftProfile.key_stats.slice(0,6).map((stat: any,index: number) => <div key={`${stat.label}:${index}`}><strong>{stat.value}</strong><span>{stat.label}</span></div>)}</div>:null}
+        {!draftProfile.key_stats.length ? <p>Add reviewed season statistics below.</p> : null}
+        <div className={styles.clubStatsFooter}>{clubStatSourceUrls.map((url,index)=><a key={url} href={url} target="_blank" rel="noreferrer">{clubStatSourceUrls.length>1?`Source ${index+1}`:'View source'} <ExternalLink size={12}/></a>)}
+          {canEdit ? <button type="button" data-ui-button="tertiary" onClick={() => {openEditor();setEditorSection('presentation');}}>Edit stats</button> : null}
+          <span>Included in the CV. Publish to update the shared profile.</span>
+        </div>
+      </section>
       <AgencyPlayerDataPanel
         key={playerId}
         player={player}
@@ -2477,9 +2504,13 @@ export default function AgencyPlayerProfile({
         hasCustomStats={Boolean(bundle?.settings?.key_stats?.length)}
         onUseRecordedStats={useRecordedStats}
         blocked={Boolean(actionBusy) || editOpen || verifyOpen}
+        statusVersion={statisticsStatusVersion}
+        managedRefresh={actionBusy === 'prepare' || actionBusy === 'context-apply'}
       />
 
       {guidedRequiredChecks.length || missingOptionalChecks.length ? (
+        <details className={styles.profileDetails} open={guidedRequiredChecks.length ? true : undefined}>
+        <summary>{guidedRequiredChecks.length ? 'Required before publishing' : 'Profile checklist'}<span>{guidedRequiredChecks.length || missingOptionalChecks.length}</span></summary>
         <section className={styles.fixGuide}>
           <div className={styles.fixGuideHead}>
             <div>
@@ -2584,9 +2615,10 @@ export default function AgencyPlayerProfile({
             )}
           </div>
         </section>
+        </details>
       ) : null}
 
-      <div className={styles.columns}>
+      <div className={styles.overview}>
         <section className={styles.card}>
           <div className={styles.cardHead}>
             <div>
@@ -2604,84 +2636,16 @@ export default function AgencyPlayerProfile({
             </button>
           </div>
 
-          <div className={styles.facts}>
-            <div>
-              <span>Position</span>
-              <strong>{player.primary_position || 'Not set'}</strong>
-            </div>
-            <div>
-              <span>Current club</span>
-              <strong>{player.current_club || 'Not set'}</strong>
-            </div>
-            <div>
-              <span>Contract</span>
-              <strong>
-                {human(player.contract_status) || 'Not set'}
-              </strong>
-            </div>
-            <div>
-              <span>Nationality</span>
-              <strong>
-                {Array.isArray(player.nationalities)
-                  ? player.nationalities.join(' · ') || 'Not set'
-                  : 'Not set'}
-              </strong>
-            </div>
-          </div>
-
           <div className={styles.story}>
-            <span>Profile headline</span>
-            <strong>
-              {form.intro_line ||
-                draftProfile.headline ||
-                'Generated from current player details'}
-            </strong>
-
-            <span>Why this player</span>
-            <p>
-              {form.why_review ||
-                'Optional. Add a short factual agency view when it helps a club understand the player quickly.'}
-            </p>
+            {form.intro_line ? <strong>{form.intro_line}</strong> : null}
+            {form.why_review ? <p>{form.why_review}</p> : <p>Complete with AI to prepare an editable introduction from the recorded evidence.</p>}
+            {!draftProfile.primary_video_url && canEdit ? <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => openEditorAt('video')}><Play size={15}/>Add player footage</button> : null}
           </div>
-        </section>
-
-        <section className={styles.card}>
-          <div className={styles.cardHead}>
-            <div>
-              <span className={styles.eyebrow}>PROOF</span>
-              <h3>Evidence</h3>
-            </div>
-            <RefreshCw size={17} />
-          </div>
-
-          <div className={styles.proofStats}>
-            <div>
-              <strong>{career.length}</strong>
-              <span>career records</span>
-            </div>
-            <div>
-              <strong>{videos.length}</strong>
-              <span>videos</span>
-            </div>
-            <div>
-              <strong>{secondaryReady ? documents.length : '…'}</strong>
-              <span>documents</span>
-            </div>
-          </div>
-
-          {parseKeyStats(form.key_stats_text).length ? (
-            <div className={styles.keyStats}>
-              {(draftProfile.key_stats || []).slice(0, 6).map((item: any, index: number) => (
-                <div key={`${item.label}-${index}`}><span>{item.label}</span><strong>{item.value}</strong></div>
-              ))}
-              <p>Custom club statistics. Current figures and sources are above.</p>
-            </div>
-          ) : (
-            <div className={styles.keyStats}><p>The club profile uses the current-season statistics above.</p></div>
-          )}
         </section>
       </div>
 
+      <details className={styles.profileDetails} open={communicationFollowups.length ? true : undefined}>
+      <summary>Activity<span>{communicationItems.length || communicationFollowups.length || ''}</span></summary>
       <section className={styles.card}>
         <div className={styles.cardHead}>
           <div>
@@ -2802,7 +2766,10 @@ export default function AgencyPlayerProfile({
           </div>
         ) : null}
       </section>
+      </details>
 
+      <details className={styles.profileDetails} open={liveShares.length ? true : undefined}>
+      <summary>Club links<span>{liveShares.length ? `${liveShares.length} active` : ''}</span></summary>
       <section className={styles.card}>
         <div className={styles.cardHead}>
           <div>
@@ -2824,7 +2791,8 @@ export default function AgencyPlayerProfile({
         </div>
 
         <div className={styles.shareList}>
-          {shares.slice(0, 12).map((share: any) => (
+          {olderShares.length ? <button type="button" data-ui-button="tertiary" className={styles.quietButton} aria-expanded={showOlderLinks} onClick={() => setShowOlderLinks(value => !value)}>{showOlderLinks ? 'Hide older links' : `Older links (${olderShares.length})`}</button> : null}
+          {[...liveShares, ...(showOlderLinks ? olderShares : [])].map((share: any) => (
             <div className={styles.shareRow} key={share.id}>
               <div className={styles.shareState}>
                 <i
@@ -2851,7 +2819,7 @@ export default function AgencyPlayerProfile({
               </div>
 
               <div className={styles.shareActions}>
-                {share.active && !share.revoked_at ? (
+                {['Ready', 'Opened'].includes(shareStatus(share)) ? (
                   <button
                     type="button"
                     data-ui-button="icon"
@@ -2863,7 +2831,7 @@ export default function AgencyPlayerProfile({
                   </button>
                 ) : null}
 
-                {share.active && !share.revoked_at && canEdit ? (
+                {['Ready', 'Opened'].includes(shareStatus(share)) && canEdit ? (
                   <button
                     type="button"
                     data-ui-button="icon"
@@ -2898,6 +2866,7 @@ export default function AgencyPlayerProfile({
           ) : null}
         </div>
       </section>
+      </details>
 
       {published?.published && canEdit ? (
         <div className={styles.bottomActions}>

@@ -6,6 +6,13 @@ export function workRefFor(value: any): WorkRef | null {
   const id = String(value?.work_id || value?.task_id || (value?.source_type === 'task' ? value?.source_id : value?.entity_id) || '');
   return (kind === 'task' || kinds.has(kind)) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? {kind,id} : null;
 }
+export function homeWorkRefFor(value: any): WorkRef | null {
+  if (value?.command_type === 'Player review required' || /^review\b.*\b(data|statistics|player record)\b/i.test(String(value?.title || '')) || Number(value?.evidence?.task_count || 1) > 1) return null;
+  const followUp = value?.source_type === 'player' && value?.command_type === 'Player follow-up due';
+  const kind = followUp ? 'player_next_action' : value?.work_kind || value?.deadline_type || (value?.source_type === 'task' || value?.task_id ? 'task' : '');
+  const id = String(value?.work_id || value?.task_id || value?.source_id || value?.entity_id || '');
+  return ['task','player_next_action','calendar_task'].includes(kind) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? {kind,id} : null;
+}
 export function workHref(value:any,basePath:string):string {
   if(value?.work_kind==='calendar_task')return basePath+'?view=calendar&task='+encodeURIComponent(value.work_id)+(value.due_at?'&date='+encodeURIComponent(String(value.due_at).slice(0,10)):'');
   const context=value?.context||{};

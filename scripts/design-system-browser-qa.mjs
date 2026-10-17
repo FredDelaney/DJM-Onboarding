@@ -54,7 +54,7 @@ try{
    await page.goto(base+'?screen=editor');await page.getByRole('button',{name:'Edit Example Club',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Manage Example Club',exact:true});
    await dialog.getByLabel('Club name').fill('Updated Club');mode='pending';await dialog.getByRole('button',{name:'Save changes',exact:true}).click();
    await page.waitForFunction(()=>document.querySelector('button[type=submit]')?.disabled===true);assert.equal(await dialog.isVisible(),true);
-   await dialog.getByRole('button',{name:'Close',exact:true}).click();assert.equal(await dialog.isVisible(),true);assert.equal(await dialog.getByLabel('Club name').inputValue(),'Updated Club');
+   assert.equal(await dialog.getByRole('button',{name:'Close',exact:true}).isDisabled(),true);assert.equal(await dialog.isVisible(),true);assert.equal(await dialog.getByLabel('Club name').inputValue(),'Updated Club');
    for(let i=0;i<20&&!release;i++)await page.waitForTimeout(50);mode='success';release();await page.getByText('Current name: Updated Club',{exact:true}).waitFor();
    await dialog.waitFor({state:'hidden',timeout:2500});assert.equal(writes,1);
   });

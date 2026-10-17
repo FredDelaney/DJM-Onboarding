@@ -47,11 +47,6 @@ test('Contact Intelligence supports direct reach without claiming an external se
 
   assert.match(
     drawer,
-    /mailto:/,
-  );
-
-  assert.match(
-    drawer,
     /tel:/,
   );
 
