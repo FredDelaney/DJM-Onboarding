@@ -7,7 +7,7 @@ import { restrictedPlayerProfile } from '../supabase/functions/_shared/staff-rea
 const source = readFileSync('supabase/functions/redream-agent/index.ts', 'utf8').replace(/^import .*;\n/gm, '');
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 
-function setup({ role = 'owner', workspace = 'djm', records = [], details = {}, output = null, saved = null, configStatus = 200, contextError = null } : any = {}) {
+function setup({ role = 'owner', workspace = 'djm', records = [], details = {}, output = null, saved = null, configStatus = 200, contextError = null, searchFor = null } : any = {}) {
   const calls: any[] = [];
   const httpCalls: any[] = [];
   let modelInput: any;
@@ -15,7 +15,7 @@ function setup({ role = 'owner', workspace = 'djm', records = [], details = {}, 
     rpc: async (name: string, args: any) => {
       calls.push({ name, args });
       if (name === 'platform_server_user_workspaces') return { data: [{ tenant_id: 'tenant-a', slug: workspace, role, is_primary: true }], error: null };
-      if (name === 'platform_server_workspace_search') return { data: { items: records }, error: null };
+      if (name === 'platform_server_workspace_search') return { data: { items: searchFor ? searchFor(args.p_query) : records }, error: null };
       assert.equal(name, 'platform_server_redream_agent_context');
       return { data: details[args.p_kind] || {}, error: contextError };
     },
@@ -134,4 +134,25 @@ test('a failed record read does not produce an answer from partial agency eviden
   const app = setup({ records: [{ kind: 'player', id: 'p1', title: 'Dylan' }], contextError: { code: 'PGRST106' } });
   assert.equal((await app.request({ query: 'What do we know about Dylan?', workspace_slug: 'djm' })).status, 500);
   assert.equal(app.httpCalls.length, 0);
+});
+
+test('natural research requests still retrieve the named internal player before public research', async () => {
+  const record = { kind: 'player', id: 'p1', title: 'Dylan Gardiner' };
+  for (const query of ["Check Dylan Gardiner's current club against the official website. Separate public evidence from ReDream's records.", 'Please review Dylan Gardiner and recommend one next action.']) {
+    const app = setup({ searchFor: (term: string) => term === 'Dylan Gardiner' ? [record] : [], details: { player: { player: { id: 'p1', current_club: 'Recorded FC' } } } });
+    await app.request({ query, workspace_slug: 'djm' });
+    assert.equal(app.input().redream_internal_data[0]?.player.current_club, 'Recorded FC');
+    assert.equal(app.calls.find(call => call.name === 'platform_server_workspace_search').args.p_query, 'Dylan Gardiner');
+  }
+});
+
+test('public source lists prioritise the citations used in the answer over other search results', async () => {
+  const app = setup({ output: { output: [
+    { type: 'web_search_call', action: { sources: Array.from({ length: 10 }, (_, i) => ({ title: 'Search result', url: `https://example.org/search-${i}` })) } },
+    { content: [{ type: 'output_text', text: JSON.stringify({ answer: 'Official evidence.', basis: 'public', needs_clarification: false }),
+      annotations: [{ type: 'url_citation', title: 'Official match preview', url: 'https://example.org/official-preview' }] }] },
+  ] } });
+  const answer = await (await app.request({ query: 'Research Dylan.', workspace_slug: 'djm' })).json();
+  assert.equal(answer.sources[0].url, 'https://example.org/official-preview');
+  assert.equal(answer.sources.length, 8);
 });

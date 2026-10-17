@@ -28,7 +28,8 @@ const stopWords = new Set([
   "latest","like","look","more","most","much","need","now","our","please","really","recommend","research",
   "should","show","tell","that","the","their","them","then","there","these","they","this","those","through",
   "today","update","want","what","when","where","which","who","why","with","would","you","your","redream",
-  "player","players","club","clubs","contact","contacts","task","tasks","opportunity","opportunities"
+  "player","players","club","clubs","contact","contacts","task","tasks","opportunity","opportunities",
+  "check","use","separate","compare","assess","review","evaluate","explain","summarise","summarize","provide","verify","outline","consider","identify","explore","plan"
 ]);
 
 function searchTerms(query: string, context: Record<string, any>) {
@@ -47,10 +48,14 @@ function searchTerms(query: string, context: Record<string, any>) {
 
   const titleCase = query.match(/\b[A-Z][A-Za-zÀ-ÖØ-öø-ÿ'’-]*(?:\s+[A-Z][A-Za-zÀ-ÖØ-öø-ÿ'’-]*){0,3}\b/g) || [];
   for (const item of titleCase) {
-    if (!item.split(/\s+/).every((word) => stopWords.has(word.toLowerCase()))) add(item);
+    const words = item.replace(/[’']s\b/gi, "").split(/\s+/);
+    while (words.length && stopWords.has(words[0].toLowerCase())) words.shift();
+    while (words.length && stopWords.has(words[words.length - 1].toLowerCase())) words.pop();
+    if (words.length) add(words.join(" "));
   }
 
   const tokens = query
+    .replace(/[’']s\b/gi, "")
     .replace(/[^\p{L}\p{N}'’-]+/gu, " ")
     .split(/\s+/)
     .map((item) => item.trim())
@@ -99,6 +104,8 @@ function webSources(payload: any) {
         if (citation?.type === "url_citation") push(citation);
       }
     }
+  }
+  for (const item of payload?.output || []) {
     if (item?.type === "web_search_call") {
       for (const source of item?.action?.sources || []) push(source);
     }
