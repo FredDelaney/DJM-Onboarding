@@ -134,6 +134,9 @@ verify_jwt = true
 [functions.redream-ai-capture]
 verify_jwt = true
 
+[functions.redream-agent]
+verify_jwt = true
+
 [functions.redream-ai-process]
 verify_jwt = false
 
