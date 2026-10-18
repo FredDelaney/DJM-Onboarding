@@ -56,6 +56,8 @@ import {
   updateDocumentField,
 } from "@/lib/document-workflow";
 import AgencyDocumentDetails from "./AgencyDocumentDetails";
+import AgencyDocumentAssist from "./AgencyDocumentAssist";
+import { applyDocumentSuggestions } from "@/lib/document-assist";
 import AgencyDocumentPreview from "./AgencyDocumentPreview";
 import DocumentExportButtons from "./DocumentExportButtons";
 import styles from "./AgencyDocumentStudio.module.css";
@@ -70,6 +72,7 @@ export type DocumentRequest = <T = any>(
   action: string,
   doc?: AgencyDocument,
   payload?: Record<string, unknown>,
+  signal?: AbortSignal,
 ) => Promise<T>;
 type Activity = {
   kind: string;
@@ -105,8 +108,42 @@ export default function AgencyDocumentStudio({
     [signedOut, setSignedOut] = useState(false),
     [attempt, setAttempt] = useState(0);
   const request = useCallback<DocumentRequest>(
-    (action, doc, payload = {}) =>
-      readWithDeadline(
+    async (action, doc, payload = {}, signal) => {
+      if (action === "assist") {
+        const { data, error } = await supabase.functions.invoke(
+          "redream-document-assist",
+          {
+            body: { ...payload, workspace_slug: workspaceSlug },
+            signal,
+            timeout: 40_000,
+          },
+        );
+        if (error) {
+          const failure = await error.context
+            ?.clone?.()
+            .json()
+            .catch(() => null);
+          throw new Error(
+            failure?.error ||
+              "ReDream assistance could not connect. Please try again, or keep editing manually.",
+          );
+        }
+        return data;
+      }
+      if (action === "capture_list" || action === "capture_read")
+        return readWithDeadline(
+          platformRpc(
+            action === "capture_list"
+              ? "redream_ai_recent_captures"
+              : "redream_ai_receipt",
+            action === "capture_list"
+              ? { p_limit: 8 }
+              : { p_capture_id: payload.capture_id },
+            workspaceSlug,
+            signal,
+          ),
+        );
+      return readWithDeadline(
         platformRpc(
           "redream_documents",
           {
@@ -117,8 +154,10 @@ export default function AgencyDocumentStudio({
             p_payload: payload,
           },
           workspaceSlug,
+          signal,
         ),
-      ),
+      );
+    },
     [workspaceSlug],
   );
   useEffect(() => {
@@ -764,6 +803,25 @@ export function DocumentStudioEditor({
                 ))}
               </nav>
               <div className={styles.fieldScroller}>
+                <div hidden={tab !== "details" && tab !== "content"}>
+                  <AgencyDocumentAssist
+                    key={doc.id}
+                    doc={doc}
+                    request={request}
+                    disabled={!!busy || !!doc.paid_at}
+                    onApply={(suggestions, fingerprint) =>
+                      setDoc((current) =>
+                        current
+                          ? applyDocumentSuggestions(
+                              current,
+                              suggestions,
+                              fingerprint,
+                            )
+                          : current,
+                      )
+                    }
+                  />
+                </div>
                 <fieldset
                   disabled={!!busy || (!!doc.paid_at && tab !== "activity")}
                   className={styles.editorFields}

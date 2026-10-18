@@ -1,5 +1,6 @@
 import { mixBrandColour, readableBrandInk } from "./tenant-brand-style.ts";
 import type { DocumentKind } from "./agency-documents.ts";
+import type { AgencyDocument } from "./agency-documents.ts";
 
 /** One letterhead palette for the browser and both published formats. */
 export function documentTheme(brand: { primary: string; accent: string }) {
@@ -25,4 +26,10 @@ export function documentBriefColumns(kind: DocumentKind, count: number) {
     : kind === "scouting_report" && count > 4
       ? 3
       : 2;
+}
+
+/** A short personal priority belongs on the pitch cover; long briefs stay in the chapter. */
+export function documentCoverLead(doc: AgencyDocument) {
+  const priority = doc.content.fields.purpose?.trim() || "";
+  return doc.kind === "agency_pitch" && priority.length <= 220 ? priority : "";
 }

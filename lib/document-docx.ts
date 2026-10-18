@@ -28,6 +28,7 @@ import {
 } from "./agency-documents";
 import {
   documentBriefColumns,
+  documentCoverLead,
   documentTheme,
   isDocumentSigningBlock,
 } from "./document-presentation";
@@ -91,6 +92,13 @@ export async function createDocumentWord(
       }),
     );
   const brief = documentBrief(doc);
+  if (documentCoverLead(doc))
+    children.push(
+      new Paragraph({
+        children: [text(documentCoverLead(doc), 28, false, "52645E")],
+        spacing: { before: 180, after: 260, line: 380 },
+      }),
+    );
   if (brief.length) {
     const columns = documentBriefColumns(kind, brief.length);
     const none = { style: BorderStyle.NONE };

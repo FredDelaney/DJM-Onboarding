@@ -57,6 +57,24 @@ Details, Content, Branding and Review form a guided path. Review items open the 
 
 This refinement uses the existing document schema and RPCs. It requires no new migration, integration or configuration. Existing saved drafts are not rewritten. Existing review, revision, payment-lock, owner/admin and immutable-share protections remain in force.
 
+## ReDream document assistance
+
+`Prepare with ReDream` is optional in Details and Content. A user can write a brief or explicitly copy the transcript of an accessible Tell ReDream capture. The existing `redream_ai_recent_captures` and `redream_ai_receipt` RPCs enforce the selected workspace and capture permissions. Import does not approve capture actions or create roster records. The brief stays in the editor session and is not included in the document snapshot or telemetry.
+
+`redream-document-assist` validates the authenticated actor with the existing workspace reader, permits document owners/admins only, and authorizes `ai_assistant` usage before a single bounded model request through the shared router. It records tokens, estimated cost, latency and outcome without document wording. Provider response storage is disabled. The function does not read the document library, search tenant data or write documents, captures, people, payments or shares.
+
+Suggestions are reviewed before use. Existing values are unselected by default. Applying selected suggestions changes only the exact current draft, resets its review and leaves save/share explicit. Stale replies cannot overwrite a changed draft. Contract/mandate clauses, invoice line amounts, legal jurisdiction, bank instructions and payment links remain manual. Narrative help is limited to supplied pitch/report sections. Field suggestions require an exact excerpt from the brief. No linked site is fetched or researched.
+
+### Deployment manifest
+
+- New Edge Function: `supabase/functions/redream-document-assist/index.ts`.
+- Shared dependencies: `_shared/document-assist.ts` and the existing `_shared/ai-router.ts`.
+- JWT verification: `true` in `supabase/config.toml`, plus the function's authenticated-context and workspace checks.
+- Existing configuration: `OPENAI_API_KEY` and the existing `REDREAM_AI_*` model/pricing settings. No new secret, package, database migration or data backfill.
+- Release order: deploy the Edge Function to staging, validate an authorized owner/admin request and deny/usage paths, then release the web change. Repeat the validated function-before-web order for production only when authorized. The editor remains available if AI is unconfigured or unavailable.
+
+Local tests mock the model response and never spend tenant AI credits. A hosted provider smoke test is a separate release gate; local success does not confirm provider credentials or entitlement in a deployed environment.
+
 ## Validation
 
 Domain/database regression tests:
