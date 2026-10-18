@@ -19,6 +19,7 @@ import {
   type AgencyDocument,
 } from "@/lib/agency-documents";
 import {
+  documentBriefColumns,
   documentTheme,
   isDocumentSigningBlock,
 } from "@/lib/document-presentation";
@@ -241,7 +242,14 @@ export default function AgencyDocumentPdf({
           style={[
             styles.briefItem,
             kind === "scouting_report"
-              ? { width: "25%", paddingRight: 12, marginBottom: 4 }
+              ? {
+                  width:
+                    documentBriefColumns(kind, brief.length) === 3
+                      ? "33.333%"
+                      : "50%",
+                  paddingRight: 12,
+                  marginBottom: 4,
+                }
               : isPitch
                 ? { width: "33.333%" }
                 : {},

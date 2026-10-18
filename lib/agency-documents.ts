@@ -92,6 +92,8 @@ export function documentBrief(
     ],
     scouting_report: [
       ["player_name", "Player"],
+      ["player_club", "Current club"],
+      ["position", "Position"],
       ["recipient_name", "Prepared for"],
       ["report_date", "Report date"],
       ["author", "Prepared by"],
@@ -256,7 +258,7 @@ export const DOCUMENT_TEMPLATES: Record<
       ],
       [
         "Our next conversation",
-        "[[Propose a personal next step.]]\n\n{{agency_email}}\n{{agency_phone}}",
+        "[[Propose a personal next step, who will be there and what you will discuss.]]",
       ],
     ],
   },
@@ -320,7 +322,7 @@ export const DOCUMENT_TEMPLATES: Record<
       { key: "author", label: "Scout or report author", required: true },
     ],
     sections: [
-      ["Player overview", "{{player_name}}\n{{position}} · {{player_club}}"],
+      ["Player overview", "{{player_name}}"],
       [
         "Current evidence",
         "[[Use approved player information, or add your sourced observations here.]]",
@@ -445,10 +447,24 @@ export function resolveDocumentText(
     agency_email: content.brand.email,
     agency_phone: content.brand.phone,
   };
-  return text.replace(
-    /\{\{([a-z_]+)\}\}/g,
-    (_, key: string) => fields[key]?.trim() || `[${key.replaceAll("_", " ")}]`,
-  );
+  return text.replace(/\{\{([a-z_]+)\}\}/g, (_, key: string) => {
+    const value = fields[key]?.trim();
+    if (!value) return `[${key.replaceAll("_", " ")}]`;
+    if (/(?:_date|_dob)$/.test(key) && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const date = new Date(value + "T12:00:00Z");
+      if (
+        Number.isFinite(date.getTime()) &&
+        date.toISOString().slice(0, 10) === value
+      )
+        return date.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          timeZone: "UTC",
+        });
+    }
+    return value;
+  });
 }
 function scaled(value: string, places: number): number | null {
   if (!new RegExp(`^\\d{1,9}(?:\\.\\d{1,${places}})?$`).test(value.trim()))
@@ -534,6 +550,12 @@ export function documentIssues(doc: AgencyDocument): string[] {
   )
     issues.push("Complete the highlighted template text");
   if (!doc.content.sections.length) issues.push("Add document content");
+  if (
+    doc.content.sections.some(
+      (section) => !section.title.trim() || !section.body.trim(),
+    )
+  )
+    issues.push("Complete empty section headings and wording");
   if (doc.kind === "invoice") {
     if (
       !invoiceTotals(doc.content).valid ||
@@ -675,6 +697,7 @@ export function copyAgencyDocument(
       "excluded_income",
       "player_club",
       "position",
+      "purpose",
       "recipient_name",
       "recipient_address",
       "recipient_email",
@@ -684,6 +707,16 @@ export function copyAgencyDocument(
     ])
       delete content.fields[key];
     content.sources = [];
+    if (source.kind === "scouting_report" && !source.is_template) {
+      // Observations about one player are not reusable agency template wording.
+      content.sections = content.sections.map((section) => ({
+        ...section,
+        body:
+          section.id === "section-0"
+            ? DOCUMENT_TEMPLATES.scouting_report.sections[0][1]
+            : "[[Add sourced observations for this player and the receiving club.]]",
+      }));
+    }
   }
   if (source.kind === "invoice") {
     content.fields.invoice_number = "";

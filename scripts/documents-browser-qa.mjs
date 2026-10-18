@@ -18,6 +18,33 @@ try {
     }),
     errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  const setTitle = async (value) => {
+    await page.getByRole("button", { name: "Details", exact: true }).click();
+    const field = page.getByLabel("Document title", { exact: true });
+    if (!(await field.isVisible()))
+      await page.getByText("Document name", { exact: true }).click();
+    await field.fill(value);
+  };
+  const showPlayerImport = async () => {
+    await page
+      .getByText("Copy details from an existing workspace player", {
+        exact: true,
+      })
+      .click();
+  };
+  const setWording = async (index, value) => {
+    const field = page.getByRole("textbox", {
+      name: `Section ${index + 1} wording`,
+      exact: true,
+    });
+    if (!(await field.isVisible()))
+      await page
+        .getByLabel(`Section ${index + 1}`, { exact: true })
+        .locator("summary")
+        .click();
+    await field.fill(value);
+  };
+
   for (let i = 0; i < 60; i++) {
     try {
       await page.goto(root.href);
@@ -44,6 +71,105 @@ try {
     );
     await page.getByRole("button", { name: "Library", exact: true }).click();
   }
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const [label, nameLabel] of [
+    ["Player contract", "Player full legal name"],
+    ["Mandate", "Player name"],
+    ["Player pitch", "Target player"],
+    ["Invoice", "Bill to"],
+    ["Scouting report", "Player name"],
+  ]) {
+    await page
+      .getByRole("button", { name: new RegExp(label + ".*Create document") })
+      .click();
+    if (label !== "Invoice") {
+      assert.equal(
+        await page
+          .getByRole("combobox", { name: "Player to fill" })
+          .isVisible(),
+        false,
+        "Roster import is optional and collapsed",
+      );
+      await page
+        .getByText("This document does not add or change a roster player.", {
+          exact: true,
+        })
+        .waitFor();
+    }
+    await page.getByLabel(nameLabel, { exact: false }).fill("New Prospect");
+    assert.equal(
+      await page.getByLabel("Document title", { exact: true }).inputValue(),
+      label + " for New Prospect",
+    );
+    if (label === "Invoice") {
+      await page.getByLabel("Issue date", { exact: false }).fill("2026-10-18");
+      await page.getByRole("button", { name: "14 days", exact: true }).click();
+      assert.equal(
+        await page.getByLabel("Due date", { exact: false }).inputValue(),
+        "2026-11-01",
+      );
+      await page
+        .getByLabel("Invoice number", { exact: false })
+        .fill("QA-2026-001");
+      assert.equal(
+        await page
+          .getByLabel("Payment reference", { exact: true })
+          .inputValue(),
+        "QA-2026-001",
+      );
+      await page
+        .getByLabel("Service 1", { exact: true })
+        .fill("Agreed services");
+      await page.getByLabel("Unit price", { exact: true }).fill("100");
+      await page
+        .getByLabel("Invoice estimate", { exact: true })
+        .getByText("€100.00", { exact: true })
+        .last()
+        .waitFor();
+      assert.ok(
+        await page.getByLabel("Bank details", { exact: true }).isVisible(),
+      );
+    }
+    assert.ok(
+      await page
+        .getByRole("button", {
+          name: "Share",
+          exact: true,
+          includeHidden: true,
+        })
+        .isDisabled(),
+    );
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+      label + " prospect editor fits a phone",
+    );
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({
+      path: `${output}/prospect-${label.replaceAll(" ", "-").toLowerCase()}-390.png`,
+      fullPage: true,
+    });
+    if (label === "Player contract") {
+      await page.getByRole("button", { name: "Review", exact: true }).click();
+      await page
+        .getByRole("button", {
+          name: "Add agent notice address and email",
+          exact: true,
+        })
+        .click();
+      assert.equal(
+        await page.evaluate(() => document.activeElement.id),
+        "document-field-agent_notice_contact",
+        "Review opens advanced terms and focuses the missing field",
+      );
+    }
+    await page.getByRole("button", { name: "Library", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "Unsaved document changes" })
+      .getByRole("button", { name: "Discard changes", exact: true })
+      .click();
+  }
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     assert.ok(
@@ -61,9 +187,8 @@ try {
   await page
     .getByRole("button", { name: /Scouting report.*Create document/ })
     .click();
-  await page
-    .getByLabel("Document title", { exact: true })
-    .fill("Alex Bennett | Club briefing");
+  await setTitle("Alex Bennett | Club briefing");
+  await showPlayerImport();
   await page
     .getByRole("combobox", { name: "Player to fill" })
     .selectOption("player-a");
@@ -80,18 +205,20 @@ try {
     .getByLabel("Scout or report author", { exact: false })
     .fill("Sam Taylor");
   await page.getByRole("button", { name: "Content", exact: true }).click();
-  const wordings = page.getByRole("textbox", { name: /^Section \d+ wording$/ });
-  await wordings.first().waitFor();
+  const wordings = page.getByRole("textbox", {
+    name: /^Section \d+ wording$/,
+    includeHidden: true,
+  });
+  await wordings.first().waitFor({ state: "attached" });
   for (let i = 0; i < (await wordings.count()); i++) {
     const value = await wordings.nth(i).inputValue();
     if (value.includes("[["))
-      await wordings
-        .nth(i)
-        .fill(
-          "Observed in the full-match review on 14 October 2026. A further live observation is recommended.",
-        );
+      await setWording(
+        i,
+        "Observed in the full-match review on 14 October 2026. A further live observation is recommended.",
+      );
   }
-  await page.getByRole("button", { name: "Details", exact: true }).click();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
   await page.getByRole("checkbox", { name: /I have reviewed/ }).check();
   await page
     .getByText("Ready for your recipient", { exact: true })
@@ -114,6 +241,8 @@ try {
     .getByRole("definition");
   assert.deepEqual(await reportBrief.allTextContents(), [
     "Alex Bennett",
+    "Harbour FC",
+    "CM",
     "Harbour FC",
     "18 Oct 2026",
     "Sam Taylor",
@@ -185,7 +314,7 @@ try {
     /\/workspace\/qa-agency\/documents\/view\/[a-f0-9]{64}$/,
   );
   await dialog.getByRole("button", { name: "Close document dialog" }).click();
-  await page.getByLabel("Document title", { exact: true }).fill("Unsaved edit");
+  await setTitle("Unsaved edit");
   await page.getByRole("button", { name: "Library", exact: true }).click();
   const discard = page.getByRole("dialog", {
     name: "Unsaved document changes",
@@ -231,9 +360,8 @@ try {
   await page
     .getByRole("button", { name: /Player pitch.*Create document/ })
     .click();
-  await page
-    .getByLabel("Document title", { exact: true })
-    .fill("Alex Bennett | A future together");
+  await setTitle("Alex Bennett | A future together");
+  await showPlayerImport();
   await page
     .getByRole("combobox", { name: "Player to fill" })
     .selectOption("player-a");
@@ -244,7 +372,7 @@ try {
     .getByLabel(/The player.s priorities/)
     .fill("Consistent first-team football and a clear development plan");
   await page.getByRole("button", { name: "Content", exact: true }).click();
-  await wordings.first().waitFor();
+  await wordings.first().waitFor({ state: "attached" });
   const pitchWording = [
     "{{player_name}}, your priority is {{purpose}}.\n\nWe would start with a conversation about your current role, the support you need and the decisions ahead. Together, we would agree what good representation should look like for you.",
     "One point of contact. A clear plan. Regular conversations.\n\nWe would agree the scope of support before you sign, including contract preparation, career planning and the practical details that let you focus on football.",
@@ -253,8 +381,8 @@ try {
     "Let us begin with your questions.\n\nA private conversation gives us the chance to understand what matters to you and explain how we work. No promise of a transfer, just a clear discussion about the support you want.\n\n{{agency_email}}",
   ];
   for (let i = 0; i < pitchWording.length; i++)
-    await wordings.nth(i).fill(pitchWording[i]);
-  await page.getByRole("button", { name: "Details", exact: true }).click();
+    await setWording(i, pitchWording[i]);
+  await page.getByRole("button", { name: "Review", exact: true }).click();
   await page.getByRole("checkbox", { name: /I have reviewed/ }).check();
   await page.getByText("Ready for your recipient", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
@@ -315,9 +443,7 @@ try {
   await page
     .getByRole("button", { name: /Player contract.*Create document/ })
     .click();
-  await page
-    .getByLabel("Document title", { exact: true })
-    .fill("Retain this draft");
+  await setTitle("Retain this draft");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page
     .getByRole("alert")

@@ -1,4 +1,5 @@
 import { mixBrandColour, readableBrandInk } from "./tenant-brand-style.ts";
+import type { DocumentKind } from "./agency-documents.ts";
 
 /** One letterhead palette for the browser and both published formats. */
 export function documentTheme(brand: { primary: string; accent: string }) {
@@ -16,4 +17,12 @@ export function documentTheme(brand: { primary: string; accent: string }) {
 /** Keep short signing blocks intact without preventing long clauses from flowing. */
 export function isDocumentSigningBlock(body: string) {
   return body.length < 1500 && /Signature\s*:/i.test(body);
+}
+/** Keep the opening facts balanced in preview and both exported formats. */
+export function documentBriefColumns(kind: DocumentKind, count: number) {
+  return kind === "agency_pitch"
+    ? 3
+    : kind === "scouting_report" && count > 4
+      ? 3
+      : 2;
 }

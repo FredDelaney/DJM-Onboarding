@@ -26,7 +26,11 @@ import {
   safeDocumentUrl,
   type AgencyDocument,
 } from "./agency-documents";
-import { documentTheme, isDocumentSigningBlock } from "./document-presentation";
+import {
+  documentBriefColumns,
+  documentTheme,
+  isDocumentSigningBlock,
+} from "./document-presentation";
 
 export async function createDocumentWord(
   doc: AgencyDocument,
@@ -88,7 +92,7 @@ export async function createDocumentWord(
     );
   const brief = documentBrief(doc);
   if (brief.length) {
-    const columns = isPitch ? 3 : kind === "scouting_report" ? 4 : 2;
+    const columns = documentBriefColumns(kind, brief.length);
     const none = { style: BorderStyle.NONE };
     children.push(
       new Table({

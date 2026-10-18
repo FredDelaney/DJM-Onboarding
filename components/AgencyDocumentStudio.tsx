@@ -17,6 +17,11 @@ import {
   ChevronRight,
   Copy,
   FileText,
+  FileSignature,
+  Handshake,
+  Presentation,
+  ReceiptText,
+  ClipboardList,
   LayoutTemplate,
   Link2,
   LoaderCircle,
@@ -45,6 +50,12 @@ import {
   type DocumentPlayer,
   type DocumentSettings,
 } from "@/lib/agency-documents";
+import {
+  documentIssueTarget,
+  documentSectionPrompt,
+  updateDocumentField,
+} from "@/lib/document-workflow";
+import AgencyDocumentDetails from "./AgencyDocumentDetails";
 import AgencyDocumentPreview from "./AgencyDocumentPreview";
 import DocumentExportButtons from "./DocumentExportButtons";
 import styles from "./AgencyDocumentStudio.module.css";
@@ -74,6 +85,13 @@ const eventLabels: Record<string, string> = {
   opened: "Document link opened",
   sent_manually: "Sent (manually recorded)",
   paid_manually: "Payment (manually recorded)",
+};
+const documentIcons = {
+  player_contract: FileSignature,
+  mandate: Handshake,
+  agency_pitch: Presentation,
+  invoice: ReceiptText,
+  scouting_report: ClipboardList,
 };
 
 export default function AgencyDocumentStudio({
@@ -215,6 +233,7 @@ export function DocumentStudioEditor({
     [activity, setActivity] = useState<Activity[]>([]),
     [shareUrl, setShareUrl] = useState(""),
     [note, setNote] = useState(""),
+    [focusId, setFocusId] = useState(""),
     [dialogMode, setDialogMode] = useState("");
   const dialog = useRef<HTMLDialogElement>(null),
     pending = useRef<(() => void) | null>(null),
@@ -232,6 +251,20 @@ export function DocumentStudioEditor({
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+  useEffect(() => {
+    if (!focusId) return;
+    const field = document.getElementById(focusId);
+    if (field) {
+      let parent = field.parentElement;
+      while (parent) {
+        if (parent instanceof HTMLDetailsElement) parent.open = true;
+        parent = parent.parentElement;
+      }
+      field.focus();
+      field.scrollIntoView({ block: "nearest" });
+    }
+    setFocusId("");
+  }, [focusId, tab]);
   const brand = documentBrand(initialData.brand),
     theme = tenantBrandCssVariables({
       primary: brand.primary,
@@ -271,10 +304,7 @@ export function DocumentStudioEditor({
       content: { ...change(current.content), reviewed: false },
     }));
   const setField = (key: string, value: string) =>
-    content((current) => ({
-      ...current,
-      fields: { ...current.fields, [key]: value },
-    }));
+    edit((current) => updateDocumentField(current, key, value));
   const refresh = async () => {
     const latest = await request<DocumentStudioData>("list");
     if (mounted.current) setLibrary(latest.documents);
@@ -371,10 +401,20 @@ export function DocumentStudioEditor({
       select(
         copyAgencyDocument(template, "from_template", initialData.settings),
       );
+      setNotice(
+        "Template loaded. Add this recipient's details and check any personalised wording.",
+      );
     });
   const asTemplate = () => {
     if (!doc) return;
-    navigate(() => select(copyAgencyDocument(doc, "template")));
+    navigate(() => {
+      select(copyAgencyDocument(doc, "template"));
+      setNotice(
+        doc.kind === "scouting_report"
+          ? "Layout and branding kept. Player observations and sources cleared for this reusable template."
+          : "Personal fields cleared. Check any personalised wording before saving the template.",
+      );
+    });
   };
   const duplicate = () => {
     if (!doc) return;
@@ -413,6 +453,7 @@ export function DocumentStudioEditor({
       {label}
       {multiline ? (
         <textarea
+          id={`document-brand-${key}`}
           value={doc!.content.brand[key]}
           onChange={(event) =>
             content((c) => ({
@@ -424,6 +465,7 @@ export function DocumentStudioEditor({
         />
       ) : (
         <input
+          id={`document-brand-${key}`}
           type={key === "primary" || key === "accent" ? "color" : "text"}
           value={doc!.content.brand[key]}
           onChange={(event) =>
@@ -472,9 +514,9 @@ export function DocumentStudioEditor({
                 <em>a better document.</em>
               </h1>
               <p>
-                From a first conversation to a signed agreement.
+                For the players you want to work with.
                 <br />
-                Create it once. Make it yours.
+                No roster entry needed. Every page in your agency's identity.
               </p>
             </div>
             <div className={styles.libraryArtwork} aria-hidden>
@@ -495,27 +537,30 @@ export function DocumentStudioEditor({
             <span>Five starting points. Every word editable.</span>
           </div>
           <div className={styles.templateGrid}>
-            {DOCUMENT_KINDS.map((kind, index) => (
-              <button
-                data-ui-button="secondary"
-                type="button"
-                key={kind}
-                onClick={() => create(kind)}
-                className={styles.templateTile}
-              >
-                <span className={styles.templateNumber}>
-                  0{index + 1}
-                  <FileText size={19} />
-                </span>
-                <small>{DOCUMENT_TEMPLATES[kind].category}</small>
-                <strong>{DOCUMENT_TEMPLATES[kind].label}</strong>
-                <p>{DOCUMENT_TEMPLATES[kind].description}</p>
-                <span className={styles.templateStart}>
-                  Create document
-                  <ArrowRight size={16} />
-                </span>
-              </button>
-            ))}
+            {DOCUMENT_KINDS.map((kind, index) => {
+              const Icon = documentIcons[kind];
+              return (
+                <button
+                  data-ui-button="secondary"
+                  type="button"
+                  key={kind}
+                  onClick={() => create(kind)}
+                  className={styles.templateTile}
+                >
+                  <span className={styles.templateNumber}>
+                    0{index + 1}
+                    <Icon size={19} />
+                  </span>
+                  <small>{DOCUMENT_TEMPLATES[kind].category}</small>
+                  <strong>{DOCUMENT_TEMPLATES[kind].label}</strong>
+                  <p>{DOCUMENT_TEMPLATES[kind].description}</p>
+                  <span className={styles.templateStart}>
+                    Create document
+                    <ArrowRight size={16} />
+                  </span>
+                </button>
+              );
+            })}
           </div>
           {library.some((item) => item.is_template) ? (
             <section className={styles.savedTemplates}>
@@ -700,6 +745,7 @@ export function DocumentStudioEditor({
                   "details",
                   "content",
                   "brand",
+                  "review",
                   ...(doc.revision ? ["activity"] : []),
                 ].map((value) => (
                   <button
@@ -724,195 +770,173 @@ export function DocumentStudioEditor({
                 >
                   {tab === "details" ? (
                     <>
-                      <label>
-                        Document title
-                        <input
-                          maxLength={180}
-                          value={doc.title}
-                          onChange={(event) =>
-                            edit((current) => ({
-                              ...current,
-                              title: event.target.value,
-                              content: { ...current.content, reviewed: false },
-                            }))
-                          }
-                        />
-                      </label>
-                      {doc.kind !== "invoice" ? (
-                        <div className={styles.autofill}>
-                          <span>
-                            <ShieldCheck size={16} />
-                            Start with saved player information
-                          </span>
-                          <select
-                            aria-label="Player to fill"
-                            value={playerId}
-                            onChange={(event) =>
-                              setPlayerId(event.target.value)
-                            }
+                      <AgencyDocumentDetails
+                        doc={doc}
+                        players={initialData.players}
+                        playerId={playerId}
+                        onPlayerId={setPlayerId}
+                        onField={setField}
+                        onContent={content}
+                        onTitle={(value) =>
+                          edit((current) => ({
+                            ...current,
+                            title: value,
+                            content: { ...current.content, reviewed: false },
+                          }))
+                        }
+                        onImport={() => {
+                          const player = initialData.players.find(
+                            (item) => item.id === playerId,
+                          );
+                          if (!player) return;
+                          edit((current) => ({
+                            ...fillDocumentPlayer(current, player),
+                            title: updateDocumentField(
+                              current,
+                              "player_name",
+                              player.name,
+                            ).title,
+                          }));
+                          setNotice(
+                            doc.kind === "scouting_report"
+                              ? "Published profile details copied. Review the evidence for this report."
+                              : "Player details copied into this document. Your roster is unchanged.",
+                          );
+                        }}
+                      >
+                        {doc.kind === "invoice" ? (
+                          <section
+                            className={styles.lineEditor}
+                            id="document-line-items"
+                            tabIndex={-1}
                           >
-                            <option value="">Choose a player</option>
-                            {initialData.players.map((player) => (
-                              <option key={player.id} value={player.id}>
-                                {player.name}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            data-ui-button="secondary"
-                            type="button"
-                            disabled={!playerId}
-                            onClick={() => {
-                              const player = initialData.players.find(
-                                (item) => item.id === playerId,
-                              );
-                              if (player) {
-                                edit((current) =>
-                                  fillDocumentPlayer(current, player),
-                                );
-                                setNotice(
-                                  doc.kind === "scouting_report"
-                                    ? "Approved profile details added. Review the report before sharing."
-                                    : "Player details filled. Review the terms for this player.",
-                                );
-                              }
-                            }}
-                          >
-                            Fill player details
-                            <ArrowRight size={15} />
-                          </button>
-                          <small>
-                            {doc.kind === "scouting_report"
-                              ? "Uses the approved public profile. Private player notes are excluded."
-                              : "You can change every field below."}
-                          </small>
-                        </div>
-                      ) : null}
-                      {DOCUMENT_TEMPLATES[doc.kind].fields.map((field) => (
-                        <label key={field.key}>
-                          {field.label}
-                          {field.required ? (
-                            <span className={styles.required}> *</span>
-                          ) : null}
-                          {field.type === "textarea" ? (
-                            <textarea
-                              rows={3}
-                              value={doc.content.fields[field.key] || ""}
-                              onChange={(event) =>
-                                setField(field.key, event.target.value)
-                              }
-                              placeholder={field.placeholder}
-                            />
-                          ) : (
-                            <input
-                              type={field.type || "text"}
-                              value={doc.content.fields[field.key] || ""}
-                              onChange={(event) =>
-                                setField(field.key, event.target.value)
-                              }
-                              placeholder={field.placeholder}
-                            />
-                          )}
-                        </label>
-                      ))}
-                      {doc.kind === "invoice" ? (
-                        <section className={styles.lineEditor}>
-                          <h3>Services</h3>
-                          {doc.content.lines.map((line, index) => (
-                            <div key={line.id}>
-                              <label>
-                                Service {index + 1}
-                                <textarea
-                                  rows={2}
-                                  value={line.description}
-                                  onChange={(event) =>
+                            <h3>Services</h3>
+                            {doc.content.lines.map((line, index) => (
+                              <div key={line.id}>
+                                <label>
+                                  Service {index + 1}
+                                  <textarea
+                                    rows={2}
+                                    value={line.description}
+                                    onChange={(event) =>
+                                      content((c) => ({
+                                        ...c,
+                                        lines: c.lines.map((item) =>
+                                          item.id === line.id
+                                            ? {
+                                                ...item,
+                                                description: event.target.value,
+                                              }
+                                            : item,
+                                        ),
+                                      }))
+                                    }
+                                  />
+                                </label>
+                                <div className={styles.twoColumns}>
+                                  {(["quantity", "unitPrice"] as const).map(
+                                    (key) => (
+                                      <label key={key}>
+                                        {key === "quantity"
+                                          ? "Quantity"
+                                          : "Unit price"}
+                                        <input
+                                          inputMode="decimal"
+                                          value={line[key]}
+                                          onChange={(event) =>
+                                            content((c) => ({
+                                              ...c,
+                                              lines: c.lines.map((item) =>
+                                                item.id === line.id
+                                                  ? {
+                                                      ...item,
+                                                      [key]: event.target.value,
+                                                    }
+                                                  : item,
+                                              ),
+                                            }))
+                                          }
+                                        />
+                                      </label>
+                                    ),
+                                  )}
+                                </div>
+                                <button
+                                  data-ui-button="tertiary"
+                                  type="button"
+                                  className={styles.textButton}
+                                  disabled={doc.content.lines.length === 1}
+                                  onClick={() =>
                                     content((c) => ({
                                       ...c,
-                                      lines: c.lines.map((item) =>
-                                        item.id === line.id
-                                          ? {
-                                              ...item,
-                                              description: event.target.value,
-                                            }
-                                          : item,
+                                      lines: c.lines.filter(
+                                        (item) => item.id !== line.id,
                                       ),
                                     }))
                                   }
-                                />
-                              </label>
-                              <div className={styles.twoColumns}>
-                                {(["quantity", "unitPrice"] as const).map(
-                                  (key) => (
-                                    <label key={key}>
-                                      {key === "quantity"
-                                        ? "Quantity"
-                                        : "Unit price"}
-                                      <input
-                                        inputMode="decimal"
-                                        value={line[key]}
-                                        onChange={(event) =>
-                                          content((c) => ({
-                                            ...c,
-                                            lines: c.lines.map((item) =>
-                                              item.id === line.id
-                                                ? {
-                                                    ...item,
-                                                    [key]: event.target.value,
-                                                  }
-                                                : item,
-                                            ),
-                                          }))
-                                        }
-                                      />
-                                    </label>
-                                  ),
-                                )}
+                                >
+                                  <Trash2 size={14} />
+                                  Remove service
+                                </button>
                               </div>
-                              <button
-                                data-ui-button="tertiary"
-                                type="button"
-                                className={styles.textButton}
-                                disabled={doc.content.lines.length === 1}
-                                onClick={() =>
-                                  content((c) => ({
-                                    ...c,
-                                    lines: c.lines.filter(
-                                      (item) => item.id !== line.id,
-                                    ),
-                                  }))
-                                }
-                              >
-                                <Trash2 size={14} />
-                                Remove service
-                              </button>
-                            </div>
-                          ))}
-                          <button
-                            data-ui-button="secondary"
-                            type="button"
-                            disabled={doc.content.lines.length >= 30}
-                            onClick={() =>
-                              content((c) => ({
-                                ...c,
-                                lines: [
-                                  ...c.lines,
-                                  {
-                                    id: crypto.randomUUID(),
-                                    description: "",
-                                    quantity: "1",
-                                    unitPrice: "",
-                                  },
-                                ],
-                              }))
-                            }
-                          >
-                            <Plus size={16} />
-                            Add service
-                          </button>
-                        </section>
-                      ) : null}
+                            ))}
+                            <button
+                              data-ui-button="secondary"
+                              type="button"
+                              disabled={doc.content.lines.length >= 30}
+                              onClick={() =>
+                                content((c) => ({
+                                  ...c,
+                                  lines: [
+                                    ...c.lines,
+                                    {
+                                      id: crypto.randomUUID(),
+                                      description: "",
+                                      quantity: "1",
+                                      unitPrice: "",
+                                    },
+                                  ],
+                                }))
+                              }
+                            >
+                              <Plus size={16} />
+                              Add service
+                            </button>
+                          </section>
+                        ) : null}
+                      </AgencyDocumentDetails>
+                      <button
+                        data-ui-button="primary"
+                        type="button"
+                        className={styles.continueButton}
+                        onClick={() => setTab("content")}
+                      >
+                        Continue to wording
+                        <ArrowRight size={16} />
+                      </button>
+                    </>
+                  ) : null}
+                  {tab === "review" ? (
+                    <>
+                      <div className={styles.purposeNote}>
+                        <span className={styles.eyebrow}>
+                          Before it leaves your agency
+                        </span>
+                        <h3>Review for this recipient</h3>
+                        <p>
+                          {doc.content.fields.player_name ||
+                            doc.content.fields.recipient_name ||
+                            "Add the recipient's details first."}
+                        </p>
+                      </div>
+                      <p className={styles.hint}>
+                        Check the wording, your agency identity and the exported
+                        document. A share link contains a fixed version; later
+                        edits need a new link.
+                      </p>
                       <label className={styles.reviewCheck}>
                         <input
+                          id="document-review-confirm"
                           type="checkbox"
                           checked={doc.content.reviewed}
                           onChange={(event) =>
@@ -932,13 +956,29 @@ export function DocumentStudioEditor({
                         </span>
                       </label>
                       {issues.length ? (
-                        <details className={styles.checklist}>
+                        <details className={styles.checklist} open>
                           <summary>
                             {issues.length} things to check before sharing
                           </summary>
                           <ul>
                             {issues.map((issue) => (
-                              <li key={issue}>{issue}</li>
+                              <li key={issue}>
+                                <button
+                                  data-ui-button="tertiary"
+                                  type="button"
+                                  onClick={() => {
+                                    const target = documentIssueTarget(
+                                      doc,
+                                      issue,
+                                    );
+                                    setTab(target.tab);
+                                    setFocusId(target.id);
+                                  }}
+                                >
+                                  {issue}
+                                  <ArrowRight size={13} />
+                                </button>
+                              </li>
                             ))}
                           </ul>
                         </details>
@@ -952,108 +992,141 @@ export function DocumentStudioEditor({
                   ) : null}
                   {tab === "content" ? (
                     <>
+                      <h3 id="document-sections" tabIndex={-1}>
+                        {doc.kind === "agency_pitch"
+                          ? "Your player pitch chapters"
+                          : doc.kind === "scouting_report"
+                            ? "Your football assessment"
+                            : doc.kind === "invoice"
+                              ? "Services and payment wording"
+                              : "Agreement wording"}
+                      </h3>
                       <p className={styles.hint}>
-                        Edit the wording and order. Variables such as{" "}
+                        Work through one section at a time. Variables such as{" "}
                         {"{{player_name}}"} update from Details.
                       </p>
                       {doc.content.sections.map((section, index) => (
-                        <div className={styles.sectionEditor} key={section.id}>
-                          <div className={styles.sectionEditorHead}>
-                            <span>Section {index + 1}</span>
-                            <button
-                              data-ui-button="icon"
-                              type="button"
-                              aria-label={`Move section ${index + 1} up`}
-                              disabled={index === 0}
-                              onClick={() => sectionMove(index, -1)}
-                            >
-                              <ArrowUp size={15} />
-                            </button>
-                            <button
-                              data-ui-button="icon"
-                              type="button"
-                              aria-label={`Move section ${index + 1} down`}
-                              disabled={
-                                index === doc.content.sections.length - 1
-                              }
-                              onClick={() => sectionMove(index, 1)}
-                            >
-                              <ArrowDown size={15} />
-                            </button>
-                            <button
-                              data-ui-button="icon"
-                              type="button"
-                              aria-label={`Remove section ${index + 1}`}
-                              onClick={() =>
-                                content((c) => ({
-                                  ...c,
-                                  sections: c.sections.filter(
-                                    (item) => item.id !== section.id,
-                                  ),
-                                }))
-                              }
-                            >
-                              <Trash2 size={15} />
-                            </button>
+                        <details
+                          className={styles.sectionEditor}
+                          key={section.id}
+                          aria-label={`Section ${index + 1}`}
+                        >
+                          <summary>
+                            <span>{String(index + 1).padStart(2, "0")}</span>
+                            <strong>
+                              {section.title.replaceAll(
+                                "{{player_name}}",
+                                doc.content.fields.player_name || "the player",
+                              )}
+                            </strong>
+                            <small>
+                              {section.body.includes("[[")
+                                ? "Add wording"
+                                : "Review wording"}
+                            </small>
+                          </summary>
+                          <div className={styles.sectionEditorBody}>
+                            <p className={styles.hint}>
+                              {documentSectionPrompt(doc, section.title)}
+                            </p>
+                            <div className={styles.sectionEditorHead}>
+                              <span>Section {index + 1}</span>
+                              <button
+                                data-ui-button="icon"
+                                type="button"
+                                aria-label={`Move section ${index + 1} up`}
+                                disabled={index === 0}
+                                onClick={() => sectionMove(index, -1)}
+                              >
+                                <ArrowUp size={15} />
+                              </button>
+                              <button
+                                data-ui-button="icon"
+                                type="button"
+                                aria-label={`Move section ${index + 1} down`}
+                                disabled={
+                                  index === doc.content.sections.length - 1
+                                }
+                                onClick={() => sectionMove(index, 1)}
+                              >
+                                <ArrowDown size={15} />
+                              </button>
+                              <button
+                                data-ui-button="icon"
+                                type="button"
+                                aria-label={`Remove section ${index + 1}`}
+                                onClick={() =>
+                                  content((c) => ({
+                                    ...c,
+                                    sections: c.sections.filter(
+                                      (item) => item.id !== section.id,
+                                    ),
+                                  }))
+                                }
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                            <label>
+                              Heading
+                              <input
+                                aria-label={`Section ${index + 1} heading`}
+                                value={section.title}
+                                maxLength={200}
+                                onChange={(event) =>
+                                  content((c) => ({
+                                    ...c,
+                                    sections: c.sections.map((item) =>
+                                      item.id === section.id
+                                        ? { ...item, title: event.target.value }
+                                        : item,
+                                    ),
+                                  }))
+                                }
+                              />
+                            </label>
+                            <label>
+                              Wording
+                              <textarea
+                                aria-label={`Section ${index + 1} wording`}
+                                id={`document-section-${section.id}`}
+                                rows={7}
+                                value={section.body}
+                                maxLength={20000}
+                                onChange={(event) =>
+                                  content((c) => ({
+                                    ...c,
+                                    sections: c.sections.map((item) =>
+                                      item.id === section.id
+                                        ? { ...item, body: event.target.value }
+                                        : item,
+                                    ),
+                                  }))
+                                }
+                              />
+                            </label>
+                            <label className={styles.checkbox}>
+                              <input
+                                type="checkbox"
+                                checked={!!section.pageBreak}
+                                onChange={(event) =>
+                                  content((c) => ({
+                                    ...c,
+                                    sections: c.sections.map((item) =>
+                                      item.id === section.id
+                                        ? {
+                                            ...item,
+                                            pageBreak: event.target.checked,
+                                          }
+                                        : item,
+                                    ),
+                                  }))
+                                }
+                              />
+                              Start on a new page
+                            </label>
                           </div>
-                          <label>
-                            Heading
-                            <input
-                              aria-label={`Section ${index + 1} heading`}
-                              value={section.title}
-                              maxLength={200}
-                              onChange={(event) =>
-                                content((c) => ({
-                                  ...c,
-                                  sections: c.sections.map((item) =>
-                                    item.id === section.id
-                                      ? { ...item, title: event.target.value }
-                                      : item,
-                                  ),
-                                }))
-                              }
-                            />
-                          </label>
-                          <label>
-                            Wording
-                            <textarea
-                              aria-label={`Section ${index + 1} wording`}
-                              rows={7}
-                              value={section.body}
-                              maxLength={20000}
-                              onChange={(event) =>
-                                content((c) => ({
-                                  ...c,
-                                  sections: c.sections.map((item) =>
-                                    item.id === section.id
-                                      ? { ...item, body: event.target.value }
-                                      : item,
-                                  ),
-                                }))
-                              }
-                            />
-                          </label>
-                          <label className={styles.checkbox}>
-                            <input
-                              type="checkbox"
-                              checked={!!section.pageBreak}
-                              onChange={(event) =>
-                                content((c) => ({
-                                  ...c,
-                                  sections: c.sections.map((item) =>
-                                    item.id === section.id
-                                      ? {
-                                          ...item,
-                                          pageBreak: event.target.checked,
-                                        }
-                                      : item,
-                                  ),
-                                }))
-                              }
-                            />
-                            Start on a new page
-                          </label>
-                        </div>
+                        </details>
                       ))}
                       <button
                         data-ui-button="secondary"
@@ -1092,15 +1165,20 @@ export function DocumentStudioEditor({
                           ))}
                         </p>
                       </details>
-                      <h3>Sources</h3>
+                      <h3 id="document-sources" tabIndex={-1}>
+                        Sources and evidence
+                      </h3>
                       <p className={styles.hint}>
-                        Add the evidence behind a report or claim.
+                        Name the match, date, timecodes or published record
+                        behind each claim. Missing evidence should remain
+                        explicit.
                       </p>
                       {doc.content.sources.map((source, index) => (
                         <div key={index} className={styles.sourceEditor}>
                           <label>
                             Source description
                             <input
+                              placeholder="Match review, official record or verified reference"
                               value={source.label}
                               onChange={(event) =>
                                 content((c) => ({
@@ -1125,6 +1203,29 @@ export function DocumentStudioEditor({
                                   sources: c.sources.map((item, i) =>
                                     i === index
                                       ? { ...item, url: event.target.value }
+                                      : item,
+                                  ),
+                                }))
+                              }
+                            />
+                          </label>
+                          <label>
+                            Source checked on
+                            <input
+                              type="date"
+                              value={source.capturedAt?.slice(0, 10) || ""}
+                              onChange={(event) =>
+                                content((c) => ({
+                                  ...c,
+                                  sources: c.sources.map((item, i) =>
+                                    i === index
+                                      ? {
+                                          ...item,
+                                          capturedAt: event.target.value
+                                            ? event.target.value +
+                                              "T12:00:00.000Z"
+                                            : "",
+                                        }
                                       : item,
                                   ),
                                 }))
@@ -1168,6 +1269,15 @@ export function DocumentStudioEditor({
                         <Plus size={16} />
                         Add source
                       </button>
+                      <button
+                        data-ui-button="primary"
+                        type="button"
+                        className={styles.continueButton}
+                        onClick={() => setTab("brand")}
+                      >
+                        Continue to branding
+                        <ArrowRight size={16} />
+                      </button>
                     </>
                   ) : null}
                   {tab === "brand" ? (
@@ -1196,6 +1306,15 @@ export function DocumentStudioEditor({
                       {doc.kind === "invoice"
                         ? brandField("bankDetails", "Bank details", true)
                         : null}
+                      <button
+                        data-ui-button="primary"
+                        type="button"
+                        className={styles.continueButton}
+                        onClick={() => setTab("review")}
+                      >
+                        Review and share
+                        <ArrowRight size={16} />
+                      </button>
                     </>
                   ) : null}
                   {tab === "activity" ? (
@@ -1272,7 +1391,21 @@ export function DocumentStudioEditor({
                   ) : null}
                 </fieldset>
               </div>
-              <div className={styles.controlFooter}>
+              <div
+                className={styles.controlFooter}
+                data-review={tab === "review"}
+              >
+                <button
+                  data-ui-button="tertiary"
+                  type="button"
+                  className={styles.reviewShortcut}
+                  onClick={() => setTab("review")}
+                >
+                  <ShieldCheck size={15} />
+                  {issues.length
+                    ? `${issues.length} checks before sharing`
+                    : "Review complete"}
+                </button>
                 <DocumentExportButtons doc={doc} onError={setError} />
                 <button
                   data-ui-button="secondary"
