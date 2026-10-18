@@ -1,10 +1,5 @@
 export type WorkspaceSection =
-  | "home"
-  | "players"
-  | "network"
-  | "calendar"
-  | "opportunities"
-  | "business";
+  "home" | "players" | "network" | "calendar" | "opportunities" | "business";
 export type WorkspaceDestination = {
   label: string;
   href?: string;
@@ -30,13 +25,15 @@ export function workspaceMobileNavigation(
     {
       label: "More",
       active:
-        recruitment || ["calendar", "opportunities", "business", "settings"].includes(view),
+        recruitment ||
+        ["calendar", "opportunities", "business", "settings"].includes(view),
     },
   ];
 }
 export function workspaceMoreLinks(
   basePath: string,
   canSeeBusiness: boolean,
+  workspaceSlug?: string,
 ): WorkspaceDestination[] {
   return [
     { label: "Calendar", href: basePath + "?view=calendar", view: "calendar" },
@@ -56,6 +53,12 @@ export function workspaceMoreLinks(
             label: "Business",
             href: basePath + "?view=business",
             view: "business" as const,
+          },
+          {
+            label: "Documents",
+            href: workspaceSlug
+              ? "/workspace/" + encodeURIComponent(workspaceSlug) + "/documents"
+              : basePath + "/documents",
           },
         ]
       : []),

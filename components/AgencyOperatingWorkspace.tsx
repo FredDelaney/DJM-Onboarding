@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   CircleAlert,
   Coins,
+  FileText,
   LoaderCircle,
   Home as HomeIcon,
   LogOut,
@@ -1545,6 +1546,7 @@ export default function AgencyOperatingWorkspace() {
               </button>
             ) : null}
             <ToolsMenu className={styles.workspaceTools} menuClassName={styles.workspaceToolsMenu} label="Workspace tools">
+                {canSeeBusiness ? <Link href={'/workspace/' + encodeURIComponent(workspace.slug) + '/documents'}><FileText size={15}/>Documents</Link> : null}
                 <button
                   type="button"
                   data-ui-button="tertiary"
@@ -1784,7 +1786,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
       </main>
 
-      <AgencyMobileNavigation basePath={basePath} view={view} canSeeBusiness={canSeeBusiness} onCaptureCompleted={handleCaptureCompleted}
+      <AgencyMobileNavigation basePath={basePath} workspaceSlug={workspace.slug} view={view} canSeeBusiness={canSeeBusiness} onCaptureCompleted={handleCaptureCompleted}
         search={{tenantId:workspace.tenant_id,userId:sessionUserId,basePath,cacheScope:stateScope,invoke,rpc,seed:{view,data},onCreate:setCreateKind}}
         onNavigate={navigateWorkspaceView} onWarm={target=>void warmView(target)} onConnections={()=>setConnectionsOpen(true)}/>
 
