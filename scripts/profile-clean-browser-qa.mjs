@@ -96,6 +96,22 @@ try {
           await page.getByText('Update needs attention', {exact: true}).waitFor({timeout: 2000});
         }
         await headline.fill('My reviewed player headline');
+        let typedOverview;
+        if (scenario === 'prepare') {
+          const overview = page.getByRole('textbox', {name: 'Why this player?', exact: true});
+          await overview.fill('x'.repeat(1200));
+          await overview.press('Space');
+          await overview.press('Enter');
+          assert.equal(await overview.inputValue(), 'x'.repeat(1200) + ' \n', 'A full AI draft must not block spaces or Enter');
+          await overview.fill('');
+          await overview.pressSequentially('A left footed  defender.');
+          await overview.press('Enter');
+          await overview.press('Enter');
+          await overview.pressSequentially('A clear role in possession.');
+          typedOverview = 'A left footed  defender.\n\nA clear role in possession.';
+          assert.equal(await overview.inputValue(), typedOverview);
+        }
+
         if (scenario === 'prepare') {
           await page.getByRole('button', {name: 'Close profile preparation', exact: true}).click();
           await page.locator('summary').filter({hasText: /^More/}).click();
@@ -108,6 +124,7 @@ try {
         await page.getByRole('button', {name: 'Save profile', exact: true}).click();
         for (let i = 0; i < 40 && !saved; i++) await page.waitForTimeout(50);
         assert.equal(saved?.intro_line, 'My reviewed player headline', 'Saved presentation uses the user edit');
+        if (typedOverview) assert.equal(saved?.why_review, typedOverview, 'AI draft saves the exact typed spaces and paragraphs');
         assert.deepEqual(saved?.selected_stat_refs, ['season:appearances']);
         assert.equal(calls.filter(c => c.action.includes('publish')).length, 0, 'Saving a prepared draft never publishes it');
         if (scenario === 'queued') {

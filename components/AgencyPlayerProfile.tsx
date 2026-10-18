@@ -277,8 +277,8 @@ const formFromProfile = (profile: any): ProfileForm => {
   const settings = profile?.settings || {};
   return {
     intro_line: text(settings.intro_line),
-    why_review: text(settings.why_review),
-    career_summary: text(settings.career_summary),
+    why_review: String(settings.why_review ?? ''),
+    career_summary: String(settings.career_summary ?? ''),
     key_stats_text: Array.isArray(settings.key_stats)
       ? settings.key_stats
           .filter((item: any) => item?.label && item?.value)
@@ -916,6 +916,10 @@ export default function AgencyPlayerProfile({
   ) => {
     if (!canEdit || actionBusy) return false;
     const nextForm = { ...form, ...overrides };
+    if (nextForm.why_review.length > 1200 || nextForm.career_summary.length > 1200) {
+      setError('Keep the overview and career summary to 1,200 characters each. Your full draft is still here.');
+      return false;
+    }
     setActionBusy('save');
     setError('');
     if (showNotice) setNotice('');
@@ -1255,6 +1259,10 @@ export default function AgencyPlayerProfile({
 
   const savePreparedProfile = async () => {
     if (!proposal || !canEdit || actionBusy) return;
+    if (proposal.why_review.length > 1200) {
+      setError('Keep the overview to 1,200 characters. Your full draft is still here.');
+      return;
+    }
     if (proposal.kind === 'general') {
       const saved = await saveSettings(false, {
         intro_line: proposal.headline,
@@ -2309,11 +2317,18 @@ export default function AgencyPlayerProfile({
                   </span>
                   <textarea
                     id={preparationId + '-introduction'}
-                    rows={3}
+                    rows={6}
+                    aria-label="Why this player?"
+                    aria-describedby={preparationId + '-introduction-help'}
+                    aria-invalid={proposal.why_review.length > 1200}
+                    className={styles.storyInput}
                     value={proposal.why_review}
                     onChange={(event) => editProposal({ why_review: event.target.value })}
-                    maxLength={1200}
                   />
+                  <small id={preparationId + '-introduction-help'} className={styles.storyHelp}>
+                    <span>Enter starts a new paragraph.</span>
+                    <span>{proposal.why_review.length.toLocaleString('en-GB')} / 1,200</span>
+                  </small>
                 </label>
               </div>
               {aiAvailable && improveSection ? (
@@ -3257,25 +3272,41 @@ export default function AgencyPlayerProfile({
               <label>
                 <span>Why this player?</span>
                 <textarea
-                  rows={4}
+                  rows={7}
+                  aria-label="Why this player?"
+                  aria-describedby={preparationId + '-overview-help'}
+                  aria-invalid={form.why_review.length > 1200}
+                  className={styles.storyInput}
                   value={form.why_review}
                   onChange={(event) =>
                     setField('why_review', event.target.value)
                   }
-                  placeholder="A short club-ready view of the player."
+                  placeholder="Describe the player’s role, strengths and current situation."
                 />
+                <small id={preparationId + '-overview-help'} className={styles.storyHelp}>
+                  <span>Enter starts a new paragraph. Paragraphs carry into the PDF.</span>
+                  <span>{form.why_review.length.toLocaleString('en-GB')} / 1,200</span>
+                </small>
               </label>
 
               <label>
                 <span>Career summary</span>
                 <textarea
-                  rows={3}
+                  rows={5}
+                  aria-label="Career summary"
+                  aria-describedby={preparationId + '-summary-help'}
+                  aria-invalid={form.career_summary.length > 1200}
+                  className={styles.storyInput}
                   value={form.career_summary}
                   onChange={(event) =>
                     setField('career_summary', event.target.value)
                   }
                   placeholder="Optional. Use only when the career story benefits from context."
                 />
+                <small id={preparationId + '-summary-help'} className={styles.storyHelp}>
+                  <span>Optional career context.</span>
+                  <span>{form.career_summary.length.toLocaleString('en-GB')} / 1,200</span>
+                </small>
               </label>
 
               </div>
