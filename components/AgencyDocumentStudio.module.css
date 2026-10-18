@@ -955,6 +955,212 @@ details.fieldGroup .formField {
   max-height: 45px;
   object-fit: contain;
 }
+.assist {
+  margin: 22px 24px 2px;
+  border: 1px solid var(--tenant-border, #dce5df);
+  border-radius: 12px;
+  background: var(--tenant-primary-soft, #f6f9f6);
+  color: var(--tenant-primary, #23483f);
+}
+.assist > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  cursor: pointer;
+  list-style: none;
+}
+.assist > summary::-webkit-details-marker {
+  display: none;
+}
+.assist > summary > span {
+  flex: 1;
+  min-width: 0;
+}
+.assist > summary strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.assist > summary small {
+  display: block;
+  margin-top: 5px;
+  color: #60716b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.assist[open] > summary > svg:last-child {
+  transform: rotate(90deg);
+}
+.assistBody {
+  padding: 0 18px 20px;
+}
+.assistBody > p {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0 0 16px;
+  color: #53655e;
+}
+.assistFields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.assistFields > label {
+  font-size: 12px;
+}
+.assistFields textarea,
+.assistFields select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ccd8d0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  color: #263b35;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.assistFields textarea:focus-visible,
+.assistFields select:focus-visible {
+  outline: 2px solid var(--tenant-primary, #23483f);
+  outline-offset: 2px;
+}
+.assistFields > small {
+  color: #65756e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.assistFields button {
+  min-height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.assistNoteButton {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  justify-content: flex-start !important;
+  padding-left: 0 !important;
+}
+.assistFields .assistGenerate,
+.assistSuggestions .assistFields > button {
+  background: var(--tenant-primary, #23483f);
+  color: var(--tenant-on-primary, #fff);
+  border: 0;
+}
+.assistFields button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.studio .assistFields button[data-ui-button="primary"]:not(:disabled):hover {
+  background: var(--tenant-primary, #23483f);
+  color: var(--tenant-on-primary, #fff);
+  filter: brightness(0.94);
+}
+.assistScope {
+  display: grid;
+  gap: 8px;
+}
+.assistNotes {
+  border-top: 1px solid #dce5df;
+  border-bottom: 1px solid #dce5df;
+  padding: 10px 0;
+}
+.assistNotes > span {
+  font-size: 11px;
+  color: #65756e;
+}
+.assistNotes button {
+  width: 100%;
+  justify-content: space-between;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #e1e8e2;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.assistBody .assistError {
+  color: #8d382e;
+}
+.assistSuggestions {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #d4ded7;
+}
+.assistSuggestions h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.assistSuggestions > p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #65756e;
+}
+.assistFields .assistSuggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid #dce5df;
+  cursor: pointer;
+}
+.assistSuggestion > input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--tenant-primary, #23483f);
+}
+.assistSuggestion > span {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+.assistSuggestion strong {
+  font-size: 12px;
+}
+.assistSuggestion span,
+.assistSuggestion q {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+.assistSuggestion q,
+.assistSuggestion small {
+  color: #65756e;
+  font-size: 11px;
+}
+.assistQuestions h4 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 12px 0;
+}
+.assistQuestions ul {
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0 0 8px;
+}
 .paperBody {
   padding: 42px 45px;
 }
@@ -973,6 +1179,13 @@ details.fieldGroup .formField {
   color: var(--doc-primary);
   margin: 14px 0 22px;
   overflow-wrap: anywhere;
+}
+.pitchCover .coverLead {
+  font-size: 18px;
+  line-height: 1.6;
+  max-width: 540px;
+  color: #52645e;
+  margin-top: 10px;
 }
 .draftStamp {
   display: inline-block;

@@ -20,6 +20,7 @@ import {
 } from "@/lib/agency-documents";
 import {
   documentBriefColumns,
+  documentCoverLead,
   documentTheme,
   isDocumentSigningBlock,
 } from "@/lib/document-presentation";
@@ -286,6 +287,19 @@ export default function AgencyDocumentPdf({
           </Text>
           {!content.reviewed ? (
             <Text style={styles.draft}>DRAFT FOR REVIEW</Text>
+          ) : null}
+          {documentCoverLead(doc) ? (
+            <Text
+              style={{
+                fontSize: 14,
+                lineHeight: 1.5,
+                maxWidth: 600,
+                marginTop: 12,
+                color: "#52645e",
+              }}
+            >
+              {documentCoverLead(doc)}
+            </Text>
           ) : null}
           {briefing}
         </Page>

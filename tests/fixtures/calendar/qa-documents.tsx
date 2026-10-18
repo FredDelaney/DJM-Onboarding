@@ -223,6 +223,49 @@ export default function DocumentFixture({
   const request = useCallback<DocumentRequest>(
     async (action, doc, payload = {}) => {
       await new Promise((resolve) => setTimeout(resolve, 120));
+      if (action === "capture_list")
+        return [
+          { id: "capture-one", summary: "A development plan for Milo" },
+        ] as any;
+      if (action === "capture_read")
+        return {
+          capture: {
+            id: "capture-one",
+            transcript_text:
+              "Prospect Milo Carter plays for Harbour FC. His priority is a clear development plan. We observed his central-midfield role on 18 October.",
+          },
+        } as any;
+      if (action === "assist") {
+        const scenario = new URLSearchParams(window.location.search).get(
+          "scenario",
+        );
+        if (scenario === "assist-failed" && !failed.current) {
+          failed.current = true;
+          throw new Error(
+            "ReDream could not prepare suggestions. Your draft is unchanged. Please try again.",
+          );
+        }
+        if (scenario === "assist-slow")
+          await new Promise((resolve) => setTimeout(resolve, 900));
+        return {
+          suggestions: {
+            fields: [
+              {
+                key: doc?.kind === "invoice" ? "recipient_name" : "player_name",
+                value: doc?.kind === "invoice" ? "Harbour FC" : "Milo Carter",
+                quote: doc?.kind === "invoice" ? "Harbour FC" : "Milo Carter",
+              },
+            ],
+            sections: Array.isArray(payload.sections)
+              ? payload.sections.map((section: any) => ({
+                  id: section.id,
+                  body: "Milo Carter's priority is a clear development plan. A further full-match review is the proposed next step.",
+                }))
+              : [],
+            questions: ["Who will lead the next conversation?"],
+          },
+        } as any;
+      }
       if (action === "list")
         return {
           ...initial,

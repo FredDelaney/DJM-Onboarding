@@ -12,11 +12,13 @@ const browser = await chromium.launch({
   executablePath: process.env.CALENDAR_CHROMIUM,
   args: ["--no-sandbox", "--disable-dev-shm-usage"],
 });
+let failurePage;
 try {
   const page = await browser.newPage({
       viewport: { width: 1440, height: 1000 },
     }),
     errors = [];
+  failurePage = page;
   page.on("pageerror", (error) => errors.push(error.message));
   const setTitle = async (value) => {
     await page.getByRole("button", { name: "Details", exact: true }).click();
@@ -44,6 +46,138 @@ try {
         .click();
     await field.fill(value);
   };
+
+  for (let i = 0; i < 60; i++) {
+    try {
+      await page.goto(root.href);
+      break;
+    } catch (error) {
+      if (i === 59) throw error;
+      await page.waitForTimeout(250);
+    }
+  }
+  // AI is optional, never mutates the draft until selected, and cannot apply a stale reply.
+  for (const scenario of ["", "assist-failed", "assist-slow"]) {
+    await page.goto(
+      new URL(`/qa-documents${scenario ? `?scenario=${scenario}` : ""}`, root)
+        .href,
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page
+      .getByRole("button", { name: /Player pitch.*Create document/ })
+      .click();
+    await page.getByText("Prepare with ReDream", { exact: true }).click();
+    await page
+      .getByRole("button", { name: "Use a Tell ReDream note", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "A development plan for Milo" })
+      .click();
+    await page
+      .getByRole("status")
+      .filter({ hasText: "Note copied." })
+      .waitFor();
+    assert.match(
+      await page.getByLabel("Your brief", { exact: true }).inputValue(),
+      /Milo Carter/,
+    );
+    assert.equal(
+      await page.getByRole("textbox", { name: /^Target player/ }).inputValue(),
+      "",
+    );
+    await page
+      .getByRole("button", { name: "Prepare suggestions", exact: true })
+      .click();
+    if (scenario === "assist-slow") {
+      await page
+        .getByRole("textbox", { name: /^Target player/ })
+        .fill("Another prospect");
+      await page
+        .getByRole("alert")
+        .filter({ hasText: "The document changed" })
+        .waitFor();
+      assert.equal(
+        await page
+          .getByRole("textbox", { name: /^Target player/ })
+          .inputValue(),
+        "Another prospect",
+      );
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Apply selected suggestions" })
+          .count(),
+        0,
+      );
+    } else {
+      if (scenario === "assist-failed") {
+        await page
+          .getByRole("alert")
+          .filter({ hasText: "could not prepare" })
+          .waitFor();
+        assert.equal(
+          await page
+            .getByRole("textbox", { name: /^Target player/ })
+            .inputValue(),
+          "",
+        );
+        await page.getByRole("button", { name: "Try preparing again" }).click();
+      }
+      await page.getByRole("heading", { name: "Choose what to use" }).waitFor();
+      assert.equal(
+        await page
+          .getByRole("textbox", { name: /^Target player/ })
+          .inputValue(),
+        "",
+      );
+      assert.ok(
+        await page
+          .getByRole("button", {
+            name: "Share",
+            exact: true,
+            includeHidden: true,
+          })
+          .isDisabled(),
+      );
+      await page.screenshot({
+        path: `${output}/redream-suggestions-390${scenario}.png`,
+        fullPage: true,
+      });
+      await page
+        .getByRole("button", { name: "Apply selected suggestions" })
+        .click();
+      assert.equal(
+        await page
+          .getByRole("textbox", { name: /^Target player/ })
+          .inputValue(),
+        "Milo Carter",
+      );
+      await page.getByRole("button", { name: "Content", exact: true }).click();
+      await page
+        .getByRole("heading", { name: "Your player pitch chapters" })
+        .waitFor();
+      const first = page.getByRole("textbox", {
+        name: "Section 1 wording",
+        exact: true,
+      });
+      await page
+        .getByLabel("Section 1", { exact: true })
+        .locator("summary")
+        .click();
+      assert.match(await first.inputValue(), /clear development plan/);
+      await page.getByRole("button", { name: "Branding", exact: true }).click();
+      await page.getByRole("button", { name: "Details", exact: true }).click();
+      assert.match(
+        await page.getByLabel("Your brief", { exact: true }).inputValue(),
+        /Milo Carter/,
+      );
+    }
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      ),
+      false,
+    );
+  }
 
   for (let i = 0; i < 60; i++) {
     try {
@@ -541,6 +675,12 @@ try {
   console.log(
     "Documents: four viewport widths, five templates, recipient briefs, player pitch cover/chapters, editable Word/PDF exports, draft recovery, snapshot sharing and manual invoice payment passed.",
   );
+} catch (error) {
+  await failurePage?.screenshot({
+    path: `${output}/failure.png`,
+    fullPage: true,
+  });
+  throw error;
 } finally {
   await browser.close();
 }

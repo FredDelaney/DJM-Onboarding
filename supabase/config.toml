@@ -166,3 +166,6 @@ verify_jwt = false
 
 [functions.redream-connected-reply-draft]
 verify_jwt = true
+
+[functions.redream-document-assist]
+verify_jwt = true

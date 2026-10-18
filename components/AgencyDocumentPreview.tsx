@@ -13,6 +13,7 @@ import {
 } from "@/lib/agency-documents";
 import {
   documentBriefColumns,
+  documentCoverLead,
   documentTheme,
 } from "@/lib/document-presentation";
 import styles from "./AgencyDocumentStudio.module.css";
@@ -70,6 +71,9 @@ export default function AgencyDocumentPreview({
           <h1>{doc.title || "Untitled document"}</h1>
           {documentIssues(doc).length > 0 ? (
             <span className={styles.draftStamp}>Draft for review</span>
+          ) : null}
+          {documentCoverLead(doc) ? (
+            <p className={styles.coverLead}>{documentCoverLead(doc)}</p>
           ) : null}
           {brief.length ? (
             <dl
