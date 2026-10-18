@@ -76,11 +76,14 @@ const styles =
       color: INK,
       fontFamily: 'Helvetica',
       fontSize: 9.5,
+      paddingTop: 24,
+      paddingBottom: 44,
     },
 
     /* PAGE ONE */
 
     hero: {
+      marginTop: -24,
       height: 250,
       backgroundColor: NAVY,
       paddingTop: 27,
@@ -252,7 +255,7 @@ const styles =
     body: {
       paddingHorizontal: 34,
       paddingTop: 22,
-      paddingBottom: 28,
+      paddingBottom: 0,
     },
 
     facts: {
@@ -533,6 +536,7 @@ const styles =
     /* PAGE TWO */
 
     pageTwoHeader: {
+      marginTop: -24,
       height: 82,
       backgroundColor: NAVY,
       paddingHorizontal: 34,
@@ -1066,6 +1070,7 @@ export function ClubCvPdfDocument({
   );
 
   const showPageTwo =
+    Boolean(profile?.career_summary && !hidden(profile, 'summary')) ||
     career.length > 0 ||
     performance.rows.length > 0 ||
     notable.length > 0 ||
@@ -1381,7 +1386,7 @@ export function ClubCvPdfDocument({
 
           {(positionSpots.length > 0 ||
             !hidden(profile, 'why_review')) && (
-            <View style={styles.playerProfile} wrap={false}>
+            <View style={styles.playerProfile}>
               <View style={styles.playerProfileCopy}>
                 <Text style={styles.kicker}>PLAYER PROFILE</Text>
                 <Text style={[styles.roleTitle, brandStyles.primaryText]}>
@@ -1402,16 +1407,12 @@ export function ClubCvPdfDocument({
                   )}
                 </Text>
 
-                {!hidden(profile, 'why_review') ? (
-                  <Text style={styles.playerOverview}>
-                    {clip(
-                      profile?.why_review ||
-                        profile?.headline ||
-                        `${agencyName} can provide the player profile, current availability and full-match footage.`,
-                      330,
-                    )}
+                {!hidden(profile, 'why_review') && (
+                  <Text style={styles.playerOverview} orphans={3} widows={3}>
+                    {profile?.why_review || profile?.headline ||
+                      `${agencyName} can provide the player profile, current availability and full-match footage.`}
                   </Text>
-                ) : null}
+                )}
               </View>
 
               {positionSpots.length > 0 ? (
@@ -1440,37 +1441,7 @@ export function ClubCvPdfDocument({
             </View>
           )}
 
-          {profile?.career_summary &&
-            !hidden(
-              profile,
-              'summary',
-            ) && (
-              <View
-                style={
-                  styles.section
-                }
-                wrap={false}
-              >
-                <Text
-                  style={
-                    styles.kicker
-                  }
-                >
-                  PLAYER SNAPSHOT
-                </Text>
 
-                <Text
-                  style={
-                    styles.summary
-                  }
-                >
-                  {clip(
-                    profile.career_summary,
-                    300,
-                  )}
-                </Text>
-              </View>
-            )}
         </View>
 
         <View
@@ -1551,6 +1522,36 @@ export function ClubCvPdfDocument({
               styles.pageTwoBody
             }
           >
+          {profile?.career_summary &&
+            !hidden(
+              profile,
+              'summary',
+            ) && (
+              <View
+                style={
+                  styles.section
+                }
+              >
+                <Text
+                  style={
+                    styles.kicker
+                  }
+                  minPresenceAhead={36}
+                >
+                  PLAYER SNAPSHOT
+                </Text>
+
+                <Text
+                  style={
+                    styles.summary
+                  }
+                  orphans={3}
+                  widows={3}
+                >
+                  {profile.career_summary}
+                </Text>
+              </View>
+            )}
           {(detailStats.length > 0 ||
             performance.rows.length > 0) &&
             !hidden(
