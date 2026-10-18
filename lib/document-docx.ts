@@ -2,6 +2,7 @@ import {
   AlignmentType,
   BorderStyle,
   Document,
+  ExternalHyperlink,
   Footer,
   Header,
   HeadingLevel,
@@ -25,7 +26,7 @@ import {
   safeDocumentUrl,
   type AgencyDocument,
 } from "./agency-documents";
-import { readableBrandInk } from "./tenant-brand-style";
+import { documentTheme, isDocumentSigningBlock } from "./document-presentation";
 
 export async function createDocumentWord(
   doc: AgencyDocument,
@@ -33,12 +34,18 @@ export async function createDocumentWord(
 ): Promise<Blob> {
   const { content, kind } = doc,
     { brand } = content,
-    primary = readableBrandInk(brand.primary).replace("#", ""),
+    theme = documentTheme(brand),
+    primary = theme.primary.slice(1),
     muted = "60717A",
     isPitch = kind === "agency_pitch";
   const text = (value: string, size = 22, bold = false, color = "263740") =>
     new TextRun({ text: value, size, bold, color, font: "Arial" });
-  const para = (value: string, before = 0) =>
+  const para = (
+    value: string,
+    before = 0,
+    keepNext = false,
+    keepLines = false,
+  ) =>
     new Paragraph({
       children: value.split("\n").map(
         (line, index) =>
@@ -55,6 +62,8 @@ export async function createDocumentWord(
         after: isPitch ? 240 : 170,
         line: isPitch ? 360 : 310,
       },
+      keepNext,
+      keepLines,
       ...(isPitch ? { indent: { right: 1800 } } : {}),
     });
   const children: (Paragraph | Table)[] = [
@@ -146,6 +155,8 @@ export async function createDocumentWord(
       currency = content.fields.currency || "EUR";
     const row = (values: string[], head = false) =>
       new TableRow({
+        tableHeader: head,
+        cantSplit: true,
         children: values.map(
           (value, index) =>
             new TableCell({
@@ -243,9 +254,14 @@ export async function createDocumentWord(
         spacing: { before: isPitch ? 0 : 240, after: isPitch ? 340 : 150 },
       }),
     );
-    resolveDocumentText(section.body, content)
-      .split(/\n{2,}/)
-      .forEach((line) => children.push(para(line)));
+    const body = resolveDocumentText(section.body, content);
+    const paragraphs = body.split(/\n{2,}/);
+    const signing = isDocumentSigningBlock(body);
+    paragraphs.forEach((line, index) =>
+      children.push(
+        para(line, 0, signing && index < paragraphs.length - 1, signing),
+      ),
+    );
   });
   if (kind === "invoice") {
     if (brand.bankDetails)
@@ -257,36 +273,77 @@ export async function createDocumentWord(
         para(brand.bankDetails),
       );
     const link = safeDocumentUrl(content.fields.payment_url);
-    if (link) children.push(para(`Pay online: ${link}`));
+    if (link)
+      children.push(
+        new Paragraph({
+          children: [
+            new ExternalHyperlink({
+              link,
+              children: [text(`Pay online: ${link}`, 22, false, primary)],
+            }),
+          ],
+          spacing: { after: 170 },
+        }),
+      );
   }
   if (content.sources.length)
     children.push(
       new Paragraph({ text: "Sources", heading: HeadingLevel.HEADING_1 }),
-      ...content.sources.map((source) =>
-        para(
-          `${source.label}${safeDocumentUrl(source.url) ? " · " + source.url : ""} · Added ${source.capturedAt.slice(0, 10)}`,
-        ),
+      ...content.sources.map(
+        (source) =>
+          new Paragraph({
+            children: [
+              safeDocumentUrl(source.url)
+                ? new ExternalHyperlink({
+                    link: safeDocumentUrl(source.url),
+                    children: [text(source.label, 18, false, primary)],
+                  })
+                : text(source.label, 18),
+              text(
+                ` · Added ${source.capturedAt.slice(0, 10)}`,
+                18,
+                false,
+                muted,
+              ),
+              ...(safeDocumentUrl(source.url)
+                ? [
+                    new TextRun({
+                      text: source.url,
+                      break: 1,
+                      size: 16,
+                      color: muted,
+                    }),
+                  ]
+                : []),
+            ],
+            spacing: { after: 170 },
+          }),
       ),
     );
-  if (brand.address || brand.registration || brand.phone || brand.website)
+  if (
+    ["player_contract", "mandate", "invoice"].includes(kind) &&
+    (brand.address || brand.registration)
+  )
     children.push(
       new Paragraph({
         text: "Agency details",
         heading: HeadingLevel.HEADING_1,
       }),
       para(
-        [
-          brand.legalName || brand.name,
-          brand.address,
-          brand.registration,
-          brand.phone,
-          brand.website,
-        ]
+        [brand.legalName || brand.name, brand.address, brand.registration]
           .filter(Boolean)
           .join("\n"),
+        0,
+        false,
+        true,
       ),
     );
-  const contact = [brand.legalName || brand.name, brand.email]
+  const contact = [
+    brand.legalName || brand.name,
+    brand.email,
+    brand.phone,
+    brand.website,
+  ]
     .filter(Boolean)
     .join(" · ");
   const file = new Document({
@@ -334,29 +391,87 @@ export async function createDocumentWord(
               kind === "agency_pitch"
                 ? { width: 16838, height: 11906 }
                 : { width: 11906, height: 16838 },
-            margin: { top: 1200, bottom: 1200, left: 1100, right: 1100 },
+            margin: {
+              top: 1500,
+              bottom: 1200,
+              left: 1100,
+              right: 1100,
+              header: 350,
+            },
           },
         },
         headers: {
           default: new Header({
             children: [
-              new Paragraph({
-                children: [
-                  ...(logo
-                    ? [
-                        new ImageRun({
-                          type: "png",
-                          data: logo.bytes,
-                          transformation: {
-                            width: logo.width,
-                            height: logo.height,
-                          },
-                        }),
-                      ]
-                    : []),
-                  text(brand.name, 24, true, primary),
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                columnWidths: logo
+                  ? [isPitch ? 12438 : 7506, 2200]
+                  : [isPitch ? 14638 : 9706],
+                borders: {
+                  top: { style: BorderStyle.NONE },
+                  bottom: {
+                    style: BorderStyle.SINGLE,
+                    color: theme.accent.slice(1),
+                    size: 12,
+                  },
+                  left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE },
+                  insideHorizontal: { style: BorderStyle.NONE },
+                  insideVertical: { style: BorderStyle.NONE },
+                },
+                rows: [
+                  new TableRow({
+                    cantSplit: true,
+                    children: [
+                      new TableCell({
+                        shading: { fill: theme.surface.slice(1) },
+                        verticalAlign: "center",
+                        margins: {
+                          top: 100,
+                          bottom: 100,
+                          left: 160,
+                          right: 160,
+                        },
+                        children: [
+                          new Paragraph({
+                            children: [text(brand.name, 26, true, primary)],
+                            spacing: { before: 0, after: 0 },
+                          }),
+                        ],
+                      }),
+                      ...(logo
+                        ? [
+                            new TableCell({
+                              shading: { fill: theme.surface.slice(1) },
+                              margins: {
+                                top: 100,
+                                bottom: 100,
+                                left: 160,
+                                right: 160,
+                              },
+                              children: [
+                                new Paragraph({
+                                  alignment: AlignmentType.RIGHT,
+                                  children: [
+                                    new ImageRun({
+                                      type: "png",
+                                      data: logo.bytes,
+                                      transformation: {
+                                        width: logo.width,
+                                        height: logo.height,
+                                      },
+                                    }),
+                                  ],
+                                  spacing: { before: 0, after: 0 },
+                                }),
+                              ],
+                            }),
+                          ]
+                        : []),
+                    ],
+                  }),
                 ],
-                spacing: { after: 180 },
               }),
             ],
           }),

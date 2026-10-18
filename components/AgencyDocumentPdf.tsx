@@ -6,6 +6,7 @@ import {
   Image,
   Link,
   StyleSheet,
+  Font,
 } from "@react-pdf/renderer";
 import {
   DOCUMENT_TEMPLATES,
@@ -17,13 +18,30 @@ import {
   safeDocumentUrl,
   type AgencyDocument,
 } from "@/lib/agency-documents";
-import { readableBrandInk } from "@/lib/tenant-brand-style";
+import {
+  documentTheme,
+  isDocumentSigningBlock,
+} from "@/lib/document-presentation";
+// Self-hosted static fonts preserve extended Latin, Greek and Cyrillic names.
+// This module is loaded only when the user chooses PDF export.
+Font.register({
+  family: "AgencyDocumentSans",
+  fonts: [
+    { src: "/fonts/agency-documents/NotoSans-Regular.ttf", fontWeight: 400 },
+    { src: "/fonts/agency-documents/NotoSans-Bold.ttf", fontWeight: 700 },
+  ],
+});
+Font.register({
+  family: "AgencyDocumentSerif",
+  src: "/fonts/agency-documents/NotoSerif-Regular.ttf",
+});
+const keepWordWhole = (word: string) => [word];
 const styles = StyleSheet.create({
   page: {
     paddingTop: 116,
-    paddingBottom: 76,
+    paddingBottom: 84,
     paddingHorizontal: 48,
-    fontFamily: "Helvetica",
+    fontFamily: "AgencyDocumentSans",
     fontSize: 10.5,
     color: "#263740",
   },
@@ -40,7 +58,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   logo: { width: 84, height: 38, objectFit: "contain" },
-  brand: { fontSize: 16, fontFamily: "Helvetica-Bold", maxWidth: 360 },
+  brand: {
+    fontSize: 16,
+    fontFamily: "AgencyDocumentSans",
+    fontWeight: 700,
+    maxWidth: 360,
+  },
   category: {
     fontSize: 8,
     letterSpacing: 1.4,
@@ -48,13 +71,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontFamily: "Times-Roman",
+    fontFamily: "AgencyDocumentSerif",
     fontSize: 32,
     lineHeight: 1.12,
     marginBottom: 18,
   },
   heading: {
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "AgencyDocumentSans",
+    fontWeight: 700,
     fontSize: 14,
     marginBottom: 6,
     marginTop: 14,
@@ -63,6 +87,7 @@ const styles = StyleSheet.create({
   // Keep fontSize beside lineHeight: this renderer resolves line spacing before
   // inheriting the Page's smaller font, otherwise it uses its 18pt default.
   body: { fontSize: 10.5, marginBottom: 8, lineHeight: 1.45 },
+  reportBody: { fontSize: 10.5, marginBottom: 6, lineHeight: 1.4 },
   footer: {
     position: "absolute",
     bottom: 25,
@@ -73,19 +98,22 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: "#DCE3E5",
     paddingTop: 10,
-    height: 40,
+    paddingRight: 60,
+    height: 48,
   },
   row: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
     borderBottomColor: "#DCE3E5",
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
-  cell: { width: "20%", paddingRight: 8, fontSize: 9 },
-  description: { width: "40%" },
+  cell: { width: "21%", paddingRight: 8, fontSize: 9, textAlign: "right" },
+  description: { width: "46%", textAlign: "left" },
+  quantity: { width: "12%" },
   total: {
     fontSize: 22,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "AgencyDocumentSans",
+    fontWeight: 700,
     marginTop: 15,
     marginBottom: 20,
   },
@@ -103,7 +131,7 @@ const styles = StyleSheet.create({
   briefLabel: { fontSize: 8, color: "#60717A", marginBottom: 4 },
   briefValue: { fontSize: 10.5, lineHeight: 1.4 },
   pitchTitle: {
-    fontFamily: "Times-Roman",
+    fontFamily: "AgencyDocumentSerif",
     fontSize: 48,
     lineHeight: 1.1,
     marginTop: 12,
@@ -118,7 +146,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pitchHeading: {
-    fontFamily: "Times-Roman",
+    fontFamily: "AgencyDocumentSerif",
     fontSize: 34,
     lineHeight: 1.15,
     marginBottom: 22,
@@ -138,9 +166,15 @@ export default function AgencyDocumentPdf({
     { brand } = content,
     totals = invoiceTotals(content),
     currency = content.fields.currency || "EUR",
-    primary = readableBrandInk(brand.primary),
+    theme = documentTheme(brand),
+    primary = theme.primary,
     brief = documentBrief(doc),
     isPitch = kind === "agency_pitch";
+  const bodyStyle = isPitch
+    ? styles.pitchBody
+    : kind === "scouting_report"
+      ? styles.reportBody
+      : styles.body;
   const furniture = (
     <>
       <View
@@ -148,18 +182,33 @@ export default function AgencyDocumentPdf({
         style={[
           styles.header,
           {
-            backgroundColor: "#F3F5F5",
+            backgroundColor: theme.surface,
             borderBottomWidth: 3,
-            borderBottomColor: brand.accent,
+            borderBottomColor: theme.accent,
           },
         ]}
       >
-        <Text style={[styles.brand, { color: primary }]}>{brand.name}</Text>
+        <Text
+          hyphenationCallback={keepWordWhole}
+          style={[
+            styles.brand,
+            {
+              color: primary,
+              fontSize:
+                brand.name.length > 90 ? 9 : brand.name.length > 55 ? 12 : 16,
+            },
+          ]}
+        >
+          {brand.name}
+        </Text>
         {logo ? <Image style={styles.logo} src={logo} /> : null}
       </View>
       <View fixed style={styles.footer}>
         <Text style={{ fontSize: 7.5, lineHeight: 1.3 }}>
-          {[brand.legalName || brand.name, brand.email]
+          {brand.legalName || brand.name}
+        </Text>
+        <Text style={{ fontSize: 7.5, lineHeight: 1.3 }}>
+          {[brand.email, brand.phone, brand.website]
             .filter(Boolean)
             .join(" · ")}
         </Text>
@@ -178,22 +227,35 @@ export default function AgencyDocumentPdf({
     </>
   );
   const briefing = brief.length ? (
-    <View style={styles.brief}>
+    <View
+      style={[
+        styles.brief,
+        kind === "scouting_report"
+          ? { marginTop: 0, paddingTop: 10, marginBottom: 6 }
+          : {},
+      ]}
+    >
       {brief.map(({ label, value }) => (
         <View
           key={label}
           style={[
             styles.briefItem,
             kind === "scouting_report"
-              ? { width: "25%", paddingRight: 12 }
+              ? { width: "25%", paddingRight: 12, marginBottom: 4 }
               : isPitch
                 ? { width: "33.333%" }
                 : {},
           ]}
-          wrap={false}
         >
-          <Text style={styles.briefLabel}>{label}</Text>
-          <Text style={[styles.briefValue, { color: primary }]}>{value}</Text>
+          <Text style={styles.briefLabel} minPresenceAhead={22}>
+            {label}
+          </Text>
+          <Text
+            style={[styles.briefValue, { color: primary }]}
+            hyphenationCallback={keepWordWhole}
+          >
+            {value}
+          </Text>
         </View>
       ))}
     </View>
@@ -208,7 +270,10 @@ export default function AgencyDocumentPdf({
         >
           {furniture}
           <Text style={styles.category}>PLAYER PITCH</Text>
-          <Text style={[styles.pitchTitle, { color: primary }]}>
+          <Text
+            style={[styles.pitchTitle, { color: primary }]}
+            hyphenationCallback={keepWordWhole}
+          >
             {doc.title}
           </Text>
           {!content.reviewed ? (
@@ -220,7 +285,10 @@ export default function AgencyDocumentPdf({
       <Page
         size="A4"
         orientation={isPitch ? "landscape" : "portrait"}
-        style={styles.page}
+        style={[
+          styles.page,
+          kind === "scouting_report" ? { paddingTop: 104 } : {},
+        ]}
       >
         {furniture}
         {!isPitch ? (
@@ -228,7 +296,18 @@ export default function AgencyDocumentPdf({
             <Text style={styles.category}>
               {DOCUMENT_TEMPLATES[kind].label.toUpperCase()}
             </Text>
-            <Text style={[styles.title, { color: primary }]}>{doc.title}</Text>
+            <Text
+              style={[
+                styles.title,
+                { color: primary },
+                kind === "scouting_report"
+                  ? { fontSize: 28, marginBottom: 14 }
+                  : {},
+              ]}
+              hyphenationCallback={keepWordWhole}
+            >
+              {doc.title}
+            </Text>
             {!content.reviewed ? (
               <Text style={styles.draft}>DRAFT FOR REVIEW</Text>
             ) : null}
@@ -248,34 +327,49 @@ export default function AgencyDocumentPdf({
               {"\n"}
               {content.fields.recipient_address}
             </Text>
-            <View style={[styles.row, { backgroundColor: "#F3F5F5" }]}>
-              {["Description", "Quantity", "Unit price", "Amount"].map(
-                (label, index) => (
-                  <Text
-                    key={label}
-                    style={[styles.cell, index === 0 ? styles.description : {}]}
-                  >
-                    {label}
-                  </Text>
-                ),
-              )}
-            </View>
-            {content.lines.map((line, index) => (
-              <View key={line.id} style={styles.row} wrap={false}>
-                <Text style={[styles.cell, styles.description]}>
-                  {line.description || "[service]"}
-                </Text>
-                <Text style={styles.cell}>{line.quantity}</Text>
-                <Text style={styles.cell}>
-                  {documentPrice(line.unitPrice, currency)}
-                </Text>
-                <Text style={styles.cell}>
-                  {totals.valid
-                    ? documentMoney(totals.amounts[index], currency)
-                    : "[amount]"}
-                </Text>
+            <View>
+              <View
+                fixed
+                style={[styles.row, { backgroundColor: theme.surface }]}
+              >
+                {["Description", "Quantity", "Unit price", "Amount"].map(
+                  (label, index) => (
+                    <Text
+                      key={label}
+                      style={[
+                        styles.cell,
+                        index === 0
+                          ? styles.description
+                          : index === 1
+                            ? styles.quantity
+                            : {},
+                        { fontWeight: 700 },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  ),
+                )}
               </View>
-            ))}
+              {content.lines.map((line, index) => (
+                <View key={line.id} style={styles.row} wrap={false}>
+                  <Text style={[styles.cell, styles.description]}>
+                    {line.description || "[service]"}
+                  </Text>
+                  <Text style={[styles.cell, styles.quantity]}>
+                    {line.quantity}
+                  </Text>
+                  <Text style={styles.cell}>
+                    {documentPrice(line.unitPrice, currency)}
+                  </Text>
+                  <Text style={styles.cell}>
+                    {totals.valid
+                      ? documentMoney(totals.amounts[index], currency)
+                      : "[amount]"}
+                  </Text>
+                </View>
+              ))}
+            </View>
             <Text style={styles.body}>
               Subtotal{" "}
               {totals.valid
@@ -292,38 +386,68 @@ export default function AgencyDocumentPdf({
             </Text>
           </View>
         ) : null}
-        {content.sections.map((section, index) => (
-          <View
-            key={section.id}
-            break={!!section.pageBreak && (!isPitch || index > 0)}
-          >
-            {isPitch ? (
-              <Text style={styles.pitchNumber}>
-                {String(index + 1).padStart(2, "0")} /{" "}
-                {String(content.sections.length).padStart(2, "0")}
+        {content.sections.map((section, index) => {
+          const title = resolveDocumentText(section.title, content);
+          const body = resolveDocumentText(section.body, content);
+          const paragraphs = body.split(/\n{2,}/);
+          const keepLead =
+            paragraphs[0].length < (isPitch ? 400 : 800) &&
+            (!isPitch || title.length < 80);
+          const heading = (
+            <>
+              {isPitch ? (
+                <Text style={styles.pitchNumber}>
+                  {String(index + 1).padStart(2, "0")} /{" "}
+                  {String(content.sections.length).padStart(2, "0")}
+                </Text>
+              ) : null}
+              <Text
+                style={[
+                  isPitch ? styles.pitchHeading : styles.heading,
+                  kind === "scouting_report"
+                    ? { marginTop: 8, marginBottom: 4, fontSize: 13 }
+                    : {},
+                  { color: primary },
+                ]}
+                hyphenationCallback={keepWordWhole}
+                minPresenceAhead={isPitch ? 100 : 80}
+              >
+                {title}
               </Text>
-            ) : null}
-            <Text
-              style={[
-                isPitch ? styles.pitchHeading : styles.heading,
-                kind === "scouting_report" ? { marginTop: 10 } : {},
-                { color: primary },
-              ]}
-              minPresenceAhead={isPitch ? 100 : 45}
-            >
-              {resolveDocumentText(section.title, content)}
+            </>
+          );
+          const first = (
+            <Text style={bodyStyle} orphans={3} widows={3}>
+              {paragraphs[0]}
             </Text>
-            <Text
-              style={isPitch ? styles.pitchBody : styles.body}
-              orphans={3}
-              widows={3}
+          );
+          return (
+            <View
+              key={section.id}
+              break={!!section.pageBreak && (!isPitch || index > 0)}
+              wrap={!isDocumentSigningBlock(body)}
             >
-              {resolveDocumentText(section.body, content)}
-            </Text>
-          </View>
-        ))}
+              {keepLead ? (
+                <View wrap={false}>
+                  {heading}
+                  {first}
+                </View>
+              ) : (
+                <>
+                  {heading}
+                  {first}
+                </>
+              )}
+              {paragraphs.slice(1).map((paragraph, i) => (
+                <Text key={i} style={bodyStyle} orphans={3} widows={3}>
+                  {paragraph}
+                </Text>
+              ))}
+            </View>
+          );
+        })}
         {kind === "invoice" && brand.bankDetails ? (
-          <View>
+          <View wrap={false}>
             <Text style={styles.heading}>Bank details</Text>
             <Text style={styles.body}>{brand.bankDetails}</Text>
           </View>
@@ -337,20 +461,50 @@ export default function AgencyDocumentPdf({
           </Link>
         ) : null}
         {content.sources.length ? (
-          <View>
-            <Text style={styles.heading} minPresenceAhead={35}>
+          <View
+            wrap={
+              !(
+                content.sources.length <= 3 &&
+                content.sources.reduce(
+                  (sum, source) =>
+                    sum + source.label.length + source.url.length,
+                  0,
+                ) < 1000
+              )
+            }
+          >
+            <Text
+              style={[
+                styles.heading,
+                kind === "scouting_report"
+                  ? { fontSize: 13, marginTop: 8, marginBottom: 4 }
+                  : {},
+              ]}
+              minPresenceAhead={35}
+            >
               Sources
             </Text>
             {content.sources.map((source, index) => (
               <Text key={index} style={styles.source}>
-                {source.label} · Added {source.capturedAt.slice(0, 10)}
+                {safeDocumentUrl(source.url) ? (
+                  <Link
+                    src={safeDocumentUrl(source.url)}
+                    style={{ color: primary }}
+                  >
+                    {source.label}
+                  </Link>
+                ) : (
+                  source.label
+                )}{" "}
+                · Added {source.capturedAt.slice(0, 10)}
                 {safeDocumentUrl(source.url) ? `\n${source.url}` : ""}
               </Text>
             ))}
           </View>
         ) : null}
-        {brand.address || brand.registration || brand.phone || brand.website ? (
-          <View>
+        {["player_contract", "mandate", "invoice"].includes(kind) &&
+        (brand.address || brand.registration) ? (
+          <View wrap={false}>
             <Text style={styles.heading} minPresenceAhead={35}>
               Agency details
             </Text>
@@ -359,8 +513,6 @@ export default function AgencyDocumentPdf({
                 brand.legalName || brand.name,
                 brand.address,
                 brand.registration,
-                brand.phone,
-                brand.website,
               ]
                 .filter(Boolean)
                 .join("\n")}

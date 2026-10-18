@@ -1180,6 +1180,10 @@ export function DocumentStudioEditor({
                       {brandField("name", "Agency display name")}
                       {brandField("legalName", "Legal entity name")}
                       {brandField("logoUrl", "Logo URL")}
+                      <p className={styles.hint}>
+                        Use your workspace logo or a platform-hosted image, with
+                        a version designed for a light background.
+                      </p>
                       <div className={styles.twoColumns}>
                         {brandField("primary", "Primary colour")}
                         {brandField("accent", "Accent colour")}

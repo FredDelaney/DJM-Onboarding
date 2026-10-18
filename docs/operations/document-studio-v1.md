@@ -10,6 +10,8 @@ The agency owner or admin opens **Documents** from mobile More or desktop worksp
 - Editable Word `.docx` output and text-based PDF output. The studio remains the editable source; PDF is a published layout, not a Word-style editing format.
 - Recipient briefs display the relevant player, recipient, author and dates consistently in preview, Word and PDF. Empty fields stay absent; birth dates appear only on representation contracts.
 - Player pitches use a dedicated landscape cover followed by numbered chapters. The chapter wording and page breaks remain editable, and long content flows onto additional pages.
+- Preview, Word and PDF share one tenant letterhead palette, including logo, readable brand ink, a soft brand surface and the tenant accent. Word embeds the logo; both published formats carry agency contact details.
+- PDF embeds self-hosted, licensed static fonts to preserve extended Latin names. The font files and upstream revision are recorded under `public/fonts/agency-documents/`. The initial workspace bundle does not load these assets.
 - Exact decimal invoice amounts, tax, payment links, unique invoice numbers per agency and manual delivery/payment records with a required reference.
 - Published player-profile facts and selected statistics can fill scouting reports. Hidden profile sections and private operational records are excluded. A changed report player resets the previous player’s observations and evidence.
 - Cloud drafts with revision checks, retained unsaved content on errors, and explicit review before creating a recipient link.
@@ -20,6 +22,8 @@ The agency owner or admin opens **Documents** from mobile More or desktop worksp
 Contract and mandate bodies begin with clearly marked spaces for agency-approved wording. The product does not certify legal compliance, execute electronic signatures or invent clauses. The review checkbox records an operator’s review, not professional certification.
 
 The first report preparation step reuses published player facts already in the platform. It does not run new web research or generate scouting claims with an LLM. Source entries remain editable and all material wording requires review.
+
+Use an agency logo from tenant storage or a safe local asset, designed for a light background. Images follow the existing platform image policy. Custom typeface uploads, right-to-left layouts and CJK font coverage are not included in this version.
 
 An HTTPS Wise/Revolut/other payment link is a recipient action. There is no payment-provider settlement webhook, bank reconciliation, email delivery confirmation or automated sending in this version. Manual records are labelled accordingly. An open event does not mark an invoice as delivered or paid.
 
@@ -54,6 +58,14 @@ The existing temporary-fixture browser runner exercises all five starting points
 ```sh
 CALENDAR_QA_PORT=3213 node scripts/calendar-browser-fixture.mjs scripts/documents-browser-qa.mjs
 ```
+
+The complete collection check exports every type for two synthetic agency brands, including logos and a light primary colour. It checks mobile widths, agreement draft protection, Word letterhead colours, embedded logos, real PDF Unicode mappings for accented names, clickable payment/evidence links, and a 30-line invoice:
+
+```sh
+CALENDAR_QA_PORT=3213 node scripts/calendar-browser-fixture.mjs scripts/document-collection-browser-qa.mjs
+```
+
+Before publishing an exporter change, render every generated Word/PDF page. Check clause headings with their opening text, complete signing blocks, source lists, repeated invoice column headings, footer clearance and the final payment details. Test fixtures are layout samples; contract/mandate examples remain unapproved drafts.
 
 It is also included in `npm run check:browser`. Fixtures use synthetic records; their routes are removed afterwards. Export samples/screenshots are written under `/tmp/redream-document-qa` for visual inspection. Run `npm run check` for the full unit/database, TypeScript, build and bundle checks.
 

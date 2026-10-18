@@ -16,6 +16,34 @@ import {
   safeDocumentLogoUrl,
 } from "../lib/agency-documents.ts";
 import { workspaceMoreLinks } from "../lib/workspace-mobile-navigation.ts";
+import {
+  documentTheme,
+  isDocumentSigningBlock,
+} from "../lib/document-presentation.ts";
+import { brandContrastRatio } from "../lib/tenant-brand-style.ts";
+
+test("document formats share a tenant palette with readable ink and unchanged decorative accent", () => {
+  for (const primary of ["#23483F", "#E3C672", "#FFFFFF", "#FF00BB"]) {
+    const theme = documentTheme({ primary, accent: "#175e70" });
+    assert.equal(theme.accent, "#175E70");
+    assert.ok(brandContrastRatio(theme.primary, theme.surface) >= 4.5);
+    assert.ok(brandContrastRatio(theme.primary, "#FFFFFF") >= 4.5);
+  }
+  assert.equal(
+    documentTheme({ primary: "invalid", accent: "invalid" }).accent,
+    "#AF9367",
+  );
+  assert.ok(
+    isDocumentSigningBlock(
+      "Player\nSignature: ________\n\nAgency\nSignature: ________",
+    ),
+  );
+  assert.equal(
+    isDocumentSigningBlock("A normal representation clause."),
+    false,
+  );
+  assert.equal(isDocumentSigningBlock("Signature: " + "a".repeat(2000)), false);
+});
 
 test("five independent editable templates use the selected agency branding", () => {
   const brand = documentBrand({

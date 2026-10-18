@@ -11,7 +11,7 @@ import {
   safeDocumentLogoUrl,
   type AgencyDocument,
 } from "@/lib/agency-documents";
-import { readableBrandInk } from "@/lib/tenant-brand-style";
+import { documentTheme } from "@/lib/document-presentation";
 import styles from "./AgencyDocumentStudio.module.css";
 export default function AgencyDocumentPreview({
   doc,
@@ -24,6 +24,7 @@ export default function AgencyDocumentPreview({
     currency = fields.currency || "EUR";
   const logo = safeDocumentLogoUrl(brand.logoUrl);
   const brief = documentBrief(doc);
+  const theme = documentTheme(brand);
   const render = (value: string) =>
     resolveDocumentText(value, content)
       .split(/(\[\[[\s\S]*?\]\]|\[[a-z_ ]+\])/g)
@@ -35,10 +36,9 @@ export default function AgencyDocumentPreview({
       className={`${styles.paper} ${kind === "agency_pitch" ? styles.pitchPaper : ""}`}
       style={
         {
-          "--doc-primary": readableBrandInk(brand.primary),
-          "--doc-accent": /^#[\da-f]{6}$/i.test(brand.accent)
-            ? brand.accent
-            : "#AF9367",
+          "--doc-primary": theme.primary,
+          "--doc-accent": theme.accent,
+          "--doc-surface": theme.surface,
         } as CSSProperties
       }
       aria-label="Document preview"
