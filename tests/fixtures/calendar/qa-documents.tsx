@@ -96,6 +96,18 @@ function reviewCollection(
       start_date: "2026-10-18",
       end_date: "2027-10-17",
       commission: "Fee terms supplied by the agency for approval.",
+      agent_name: "Alex Morgan",
+      agent_licence: "LAYOUT-ONLY-001",
+      commercial_commission: "15%",
+      excluded_income: "None",
+      agent_notice_contact: `10 Example Square, London; ${selectedBrand.email}`,
+      player_notice_contact: "11 Example Road, London; player@example.test",
+      data_protection_law:
+        "the data protection legislation agreed by the parties",
+      dispute_resolution:
+        "the arbitration procedure and tribunal agreed by the parties",
+      governing_law: "the agreed jurisdiction",
+      enforcement_courts: "the agreed courts",
       principal_name: "Harbour Football Club",
       principal_type: "Club",
       territory:
@@ -110,6 +122,7 @@ function reviewCollection(
       report_date: "2026-10-18",
       author: "Sam Taylor",
     };
+    if (kind === "player_contract") doc.content.fields.commission = "8%";
     const notes = [
       "This is a layout-review sample. The agency’s approved wording belongs in this section. Names, dates and references are filled from the document details so the final version can be checked as a whole.",
       "A longer paragraph is included to check the reading experience across more than one line. It should remain comfortable to scan, with a clear heading and enough space between paragraphs. All final wording must be reviewed for the intended recipient.",

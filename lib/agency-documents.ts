@@ -1,3 +1,8 @@
+import {
+  REPRESENTATION_CONTRACT_FIELDS,
+  REPRESENTATION_CONTRACT_SECTIONS,
+} from "./representation-contract-template.ts";
+
 export const DOCUMENT_KINDS = [
   "player_contract",
   "mandate",
@@ -159,48 +164,8 @@ export const DOCUMENT_TEMPLATES: Record<
     label: "Player contract",
     description: "A clear beginning to your representation.",
     category: "Representation",
-    fields: [
-      { key: "player_name", label: "Player name", required: true },
-      { key: "player_dob", label: "Date of birth", type: "date" },
-      { key: "start_date", label: "Start date", type: "date", required: true },
-      { key: "end_date", label: "End date", type: "date", required: true },
-      {
-        key: "commission",
-        label: "Agreed fees and commission",
-        type: "textarea",
-        required: true,
-      },
-    ],
-    sections: [
-      [
-        "Parties",
-        "This draft is prepared for {{player_name}} and {{agency_legal_name}}.",
-      ],
-      [
-        "Representation and scope",
-        "[[Add your approved representation clause, including the agreed services and scope of authority.]]",
-      ],
-      [
-        "Term",
-        "Proposed term: {{start_date}} to {{end_date}}.\n[[Add the agreed renewal and notice provisions.]]",
-      ],
-      [
-        "Fees and commission",
-        "{{commission}}\n[[Add your approved payment, tax and commission provisions.]]",
-      ],
-      [
-        "Responsibilities",
-        "[[Add the responsibilities agreed with this player.]]",
-      ],
-      [
-        "Ending the agreement and disputes",
-        "[[Add your approved termination, governing-law and dispute provisions.]]",
-      ],
-      [
-        "Signatures",
-        "Player: {{player_name}}\nSignature: ____________________  Date: __________\n\nFor {{agency_legal_name}}\nName: _______________________\nSignature: ____________________  Date: __________",
-      ],
-    ],
+    fields: REPRESENTATION_CONTRACT_FIELDS,
+    sections: REPRESENTATION_CONTRACT_SECTIONS,
   },
   mandate: {
     label: "Mandate",
@@ -556,6 +521,13 @@ export function documentIssues(doc: AgencyDocument): string[] {
     .map((s) => resolveDocumentText(s.title + "\n" + s.body, doc.content))
     .join("\n");
   if (
+    doc.content.sections.some((section) =>
+      Array.from(
+        (section.title + "\n" + section.body).matchAll(/\{\{[a-z_]+\}\}/g),
+      ).some(([variable]) =>
+        resolveDocumentText(variable, doc.content).startsWith("["),
+      ),
+    ) ||
     /\[\[|\{\{|\[(?:player|agency|recipient|start|end|reference)[^\]]*\]/.test(
       text,
     )
@@ -616,8 +588,11 @@ export function fillDocumentPlayer(
       reviewed: false,
     };
   delete content.fields.player_dob;
-  if (doc.kind === "player_contract")
+  if (doc.kind === "player_contract") {
     content.fields.player_dob = player.dob || "";
+    delete content.fields.player_notice_contact;
+    delete content.fields.excluded_income;
+  }
   if (doc.kind === "scouting_report") {
     const stats = Array.isArray(profile.key_stats)
       ? profile.key_stats.slice(0, 12).flatMap((stat: unknown) => {
@@ -696,6 +671,8 @@ export function copyAgencyDocument(
     for (const key of [
       "player_name",
       "player_dob",
+      "player_notice_contact",
+      "excluded_income",
       "player_club",
       "position",
       "recipient_name",

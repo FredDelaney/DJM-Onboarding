@@ -319,7 +319,10 @@ try {
     .getByLabel("Document title", { exact: true })
     .fill("Retain this draft");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await page.getByRole("alert").waitFor();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: /The save failed|The document could not open/ })
+    .waitFor();
   assert.equal(
     await page.getByLabel("Document title", { exact: true }).inputValue(),
     "Retain this draft",
@@ -389,7 +392,10 @@ try {
     "Previewing a link is not counted as an open",
   );
   await page.getByRole("button", { name: "View document" }).click();
-  await page.getByRole("alert").waitFor();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: /The save failed|The document could not open/ })
+    .waitFor();
   await page.getByRole("button", { name: "View document" }).click();
   await page.getByRole("article", { name: "Document preview" }).waitFor();
   assert.equal(recipientRequests, 2);

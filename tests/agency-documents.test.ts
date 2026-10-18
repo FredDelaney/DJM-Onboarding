@@ -249,6 +249,54 @@ test("review does not hide unfinished clauses or missing variables", () => {
   ];
   assert.deepEqual(documentIssues(doc), []);
 });
+test("representation wording uses editable tenant/player terms and clears personal notice details for another player", () => {
+  const doc = newAgencyDocument(
+    "player_contract",
+    documentBrand({ display_name: "Agency A", legal_name: "Agency A Ltd" }),
+  );
+  assert.equal(doc.content.sections.length, 14);
+  assert.match(
+    doc.content.sections.map((s) => s.body).join("\n"),
+    /not automatically liable for the shortfall/,
+  );
+  assert.match(
+    doc.content.sections.map((s) => s.body).join("\n"),
+    /expressly approve in writing/,
+  );
+  assert.match(doc.content.sections.at(-1)!.body, /Parent or legal guardian/);
+  assert.equal(doc.content.fields.commission, undefined);
+  assert.equal(doc.content.fields.agent_licence, undefined);
+  for (const field of DOCUMENT_TEMPLATES.player_contract.fields.filter(
+    (f) => f.required,
+  ))
+    doc.content.fields[field.key] = "Agreed";
+  doc.content.reviewed = true;
+  assert.deepEqual(documentIssues(doc), []);
+  const text = doc.content.sections
+    .map((s) => resolveDocumentText(s.body, doc.content))
+    .join("\n");
+  assert.match(text, /Agency A Ltd/);
+  assert.doesNotMatch(text, /\{\{|\[\[/);
+  const next = fillDocumentPlayer(doc, {
+    id: "another",
+    name: "Another player",
+  });
+  assert.equal(next.content.fields.player_notice_contact, undefined);
+  assert.equal(next.content.fields.excluded_income, undefined);
+  assert.equal(next.content.reviewed, false);
+  const template = copyAgencyDocument(doc, "template");
+  assert.equal(template.content.fields.player_notice_contact, undefined);
+  assert.equal(template.content.fields.excluded_income, undefined);
+  assert.equal(template.content.fields.agent_licence, "Agreed");
+  doc.content.sections.push({
+    id: "missing",
+    title: "Schedule",
+    body: "{{custom_schedule}}",
+  });
+  assert.ok(
+    documentIssues(doc).includes("Complete the highlighted template text"),
+  );
+});
 test("a new copy never inherits payment activity, invoice numbers or review approval", () => {
   const paid = newAgencyDocument(
     "invoice",

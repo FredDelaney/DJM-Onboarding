@@ -4,6 +4,8 @@ import { before, after, test } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import {
   documentBrand,
+  DOCUMENT_TEMPLATES,
+  resolveDocumentText,
   newAgencyDocument,
   type AgencyDocument,
 } from "../lib/agency-documents.ts";
@@ -80,6 +82,12 @@ before(async () => {
   await db.exec(
     readFileSync(
       "supabase/migrations/20261018095925_agency_document_studio_v1.sql",
+      "utf8",
+    ),
+  );
+  await db.exec(
+    readFileSync(
+      "supabase/migrations/20261018153045_agency_document_representation_fields.sql",
       "utf8",
     ),
   );
@@ -325,4 +333,72 @@ test("raw tables and privileged document APIs remain closed to anonymous callers
   );
   assert.equal(result.rows.length, 3);
   assert.ok(result.rows.every((row) => row.rls));
+});
+test("reviewed representation snapshots retain contract variables without carrying them into club reports", async () => {
+  await actor(owner);
+  const contract = newAgencyDocument(
+    "player_contract",
+    documentBrand({ display_name: "Agency A", legal_name: "Agency A Ltd" }),
+  );
+  for (const field of DOCUMENT_TEMPLATES.player_contract.fields.filter(
+    (f) => f.required,
+  ))
+    contract.content.fields[field.key] = "Agreed";
+  Object.assign(contract.content.fields, {
+    player_name: "Test Player",
+    agent_name: "Test Agent",
+    agent_licence: "TEST-LICENCE",
+    commission: "8%",
+    commercial_commission: "15%",
+    player_notice_contact: "Private contract notice address",
+    excluded_income: "None",
+    start_date: "2026-10-18",
+    end_date: "2027-10-17",
+    unrelated_private_field: "Never send",
+  });
+  contract.content.reviewed = true;
+  let record = await save(contract);
+  record.content.fields.agent_licence = "";
+  record = await save(record);
+  await assert.rejects(call("share", record), /document variables/);
+  record.content.fields.agent_licence = "TEST-LICENCE";
+  record = await save(record);
+  const link = await call("share", record);
+  await actor(null, "anon");
+  assert.equal(await open("agency-b", link.token), null);
+  const snapshot = await open("agency-a", link.token);
+  const fields = snapshot.content.fields;
+  assert.equal(fields.agent_licence, "TEST-LICENCE");
+  assert.equal(fields.player_notice_contact, "Private contract notice address");
+  assert.equal(fields.unrelated_private_field, undefined);
+  const text = snapshot.content.sections
+    .map((section: any) => resolveDocumentText(section.body, snapshot.content))
+    .join("\n");
+  assert.match(text, /8%/);
+  assert.match(text, /15%/);
+  assert.doesNotMatch(text, /\{\{|\[agent|\[player/);
+  await actor(owner);
+  const report = newAgencyDocument("scouting_report", contract.content.brand);
+  report.content.fields = {
+    ...contract.content.fields,
+    recipient_name: "Club",
+    report_date: "2026-10-18",
+    author: "Scout",
+  };
+  report.content.sections = [
+    {
+      id: "one",
+      title: "Overview",
+      body: "Reviewed information for {{player_name}}.",
+    },
+  ];
+  report.content.reviewed = true;
+  const savedReport = await save(report);
+  const reportLink = await call("share", savedReport);
+  await actor(null, "anon");
+  const reportSnapshot = await open("agency-a", reportLink.token);
+  assert.doesNotMatch(
+    JSON.stringify(reportSnapshot),
+    /TEST-LICENCE|Private contract notice address|commercial_commission|governing_law/,
+  );
 });

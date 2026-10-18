@@ -19,7 +19,7 @@ The agency owner or admin opens **Documents** from mobile More or desktop worksp
 
 ## Deliberate boundaries
 
-Contract and mandate bodies begin with clearly marked spaces for agency-approved wording. The product does not certify legal compliance, execute electronic signatures or invent clauses. The review checkbox records an operator’s review, not professional certification.
+The player representation draft uses the owner-supplied reference wording for appointment, exclusivity, remuneration, approval, obligations, termination and general terms. Player identity, licensed agent, fees, exclusions, notices and jurisdiction choices are editable variables. The supplied player's personal identifiers and signatures are not stored in the template. Mandates still begin with clearly marked spaces for agency-approved wording. The product does not certify legal compliance or execute electronic signatures. The review checkbox records an operator’s review, not professional certification.
 
 The first report preparation step reuses published player facts already in the platform. It does not run new web research or generate scouting claims with an LLM. Source entries remain editable and all material wording requires review.
 
@@ -37,7 +37,7 @@ Recipient snapshots omit unused variable fields, internal actor information and 
 
 ## Deployment manifest
 
-1. Review and apply only `supabase/migrations/20261018095925_agency_document_studio_v1.sql` to staging.
+1. Review and apply `supabase/migrations/20261018095925_agency_document_studio_v1.sql`, then `supabase/migrations/20261018153045_agency_document_representation_fields.sql`, to staging. The second migration extends only the private contract snapshot field projection; other document kinds retain their existing boundaries.
 2. Deploy the web branch containing the Documents route and its lazily loaded exporters. No new Edge Function or secret is required.
 3. Run authenticated owner/admin, denied staff/player, second-tenant, source-visibility and recipient-link canaries on staging before any production rollout.
 
