@@ -21,6 +21,151 @@ import {
   isDocumentSigningBlock,
 } from "../lib/document-presentation.ts";
 import { brandContrastRatio } from "../lib/tenant-brand-style.ts";
+import {
+  DOCUMENT_GUIDES,
+  documentIssueTarget,
+  invoiceDueDate,
+  updateDocumentField,
+} from "../lib/document-workflow.ts";
+
+test("each document guides every existing field without requiring a roster player", () => {
+  for (const kind of DOCUMENT_KINDS) {
+    const keys = DOCUMENT_GUIDES[kind].groups.flatMap((group) => group.keys);
+    if (kind !== "invoice") keys.push("player_name");
+    assert.deepEqual(
+      [...keys].sort(),
+      DOCUMENT_TEMPLATES[kind].fields.map((field) => field.key).sort(),
+    );
+    assert.equal(
+      DOCUMENT_GUIDES[kind].prompts.length,
+      DOCUMENT_TEMPLATES[kind].sections.length,
+    );
+    const doc = updateDocumentField(
+      newAgencyDocument(kind, documentBrand()),
+      kind === "invoice" ? "recipient_name" : "player_name",
+      "New Prospect",
+    );
+    assert.equal(
+      doc.title,
+      `${DOCUMENT_TEMPLATES[kind].label} for New Prospect`,
+    );
+    assert.equal("player_id" in doc.content.fields, false);
+    assert.equal(doc.content.reviewed, false);
+  }
+});
+
+test("recipient names suggest titles while custom titles and invoice references stay in control", () => {
+  let doc = newAgencyDocument("agency_pitch", documentBrand());
+  doc = updateDocumentField(doc, "player_name", "Alex");
+  doc = updateDocumentField(doc, "player_name", "Alex Bennett");
+  assert.equal(doc.title, "Player pitch for Alex Bennett");
+  doc.title = "A personal plan";
+  assert.equal(
+    updateDocumentField(doc, "player_name", "Another prospect").title,
+    "A personal plan",
+  );
+  let invoice = newAgencyDocument("invoice", documentBrand());
+  invoice = updateDocumentField(invoice, "invoice_number", "INV-001");
+  assert.equal(invoice.content.fields.reference, "INV-001");
+  invoice = updateDocumentField(invoice, "invoice_number", "INV-002");
+  assert.equal(invoice.content.fields.reference, "INV-002");
+  invoice.content.fields.reference = "Agreed club reference";
+  assert.equal(
+    updateDocumentField(invoice, "invoice_number", "INV-003").content.fields
+      .reference,
+    "Agreed club reference",
+  );
+  assert.equal(
+    updateDocumentField(invoice, "currency", "gbp").content.fields.currency,
+    "GBP",
+  );
+});
+
+test("payment shortcuts use calendar dates and review actions lead to the relevant input", () => {
+  assert.equal(invoiceDueDate("2026-12-20", 14), "2027-01-03");
+  assert.equal(invoiceDueDate("2028-02-28", 7), "2028-03-06");
+  assert.equal(invoiceDueDate("2026-02-31", 14), "");
+  assert.equal(invoiceDueDate("", 30), "");
+  const report = newAgencyDocument("scouting_report", documentBrand());
+  assert.deepEqual(documentIssueTarget(report, "Add player name"), {
+    tab: "details",
+    id: "document-field-player_name",
+  });
+  assert.deepEqual(
+    documentIssueTarget(report, "Review the document for its recipient"),
+    { tab: "review", id: "document-review-confirm" },
+  );
+  report.content.fields.player_name = "Prospect";
+  assert.deepEqual(
+    documentIssueTarget(report, "Complete the highlighted template text"),
+    { tab: "content", id: "document-section-section-1" },
+  );
+});
+
+test("agency templates clear the previous player's pitch priorities and scouting observations", () => {
+  const report = newAgencyDocument("scouting_report", documentBrand());
+  report.content.fields.player_name = "Previous player";
+  report.content.sections[2].body = "Previous player's private evaluation";
+  report.content.sources = [
+    { label: "Previous match", url: "", capturedAt: "2026-10-18" },
+  ];
+  const template = copyAgencyDocument(report, "template");
+  assert.equal(template.content.fields.player_name, undefined);
+  assert.deepEqual(template.content.sources, []);
+  assert.ok(
+    template.content.sections.every(
+      (section) => !section.body.includes("Previous"),
+    ),
+  );
+  template.content.sections[2].body =
+    "[[Add the observed role and explain its relevance to the club.]]";
+  assert.equal(
+    copyAgencyDocument(template, "from_template").content.sections[2].body,
+    template.content.sections[2].body,
+    "A clean agency template retains its reusable guidance",
+  );
+  assert.equal(
+    documentIssues(template).includes("Complete the highlighted template text"),
+    true,
+  );
+  const pitch = newAgencyDocument("agency_pitch", documentBrand());
+  pitch.content.fields.purpose = "Previous player's private priorities";
+  assert.equal(
+    copyAgencyDocument(pitch, "from_template").content.fields.purpose,
+    undefined,
+  );
+});
+
+test("unknown optional football details stay absent and exported dates read naturally", () => {
+  const report = newAgencyDocument("scouting_report", documentBrand());
+  report.content.fields.player_name = "Prospect";
+  assert.equal(
+    resolveDocumentText(report.content.sections[0].body, report.content),
+    "Prospect",
+  );
+  assert.equal(
+    resolveDocumentText("{{report_date}}", report.content),
+    new Date(
+      report.content.fields.report_date + "T12:00:00Z",
+    ).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    }),
+  );
+  report.content.fields.report_date = "2026-02-31";
+  assert.equal(
+    resolveDocumentText("{{report_date}}", report.content),
+    "2026-02-31",
+  );
+  report.content.sections.push({ id: "empty", title: "", body: "" });
+  assert.ok(
+    documentIssues(report).includes(
+      "Complete empty section headings and wording",
+    ),
+  );
+});
 
 test("document formats share a tenant palette with readable ink and unchanged decorative accent", () => {
   for (const primary of ["#23483F", "#E3C672", "#FFFFFF", "#FF00BB"]) {

@@ -11,7 +11,10 @@ import {
   safeDocumentLogoUrl,
   type AgencyDocument,
 } from "@/lib/agency-documents";
-import { documentTheme } from "@/lib/document-presentation";
+import {
+  documentBriefColumns,
+  documentTheme,
+} from "@/lib/document-presentation";
 import styles from "./AgencyDocumentStudio.module.css";
 export default function AgencyDocumentPreview({
   doc,
@@ -71,6 +74,11 @@ export default function AgencyDocumentPreview({
           {brief.length ? (
             <dl
               className={`${styles.documentBrief} ${kind === "scouting_report" ? styles.reportBrief : ""}`}
+              style={
+                {
+                  "--brief-columns": documentBriefColumns(kind, brief.length),
+                } as CSSProperties
+              }
               aria-label="Document brief"
             >
               {brief.map(({ label, value }) => (

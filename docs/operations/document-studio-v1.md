@@ -43,6 +43,20 @@ Recipient snapshots omit unused variable fields, internal actor information and 
 
 The implementation work does not apply this migration or deploy the application.
 
+## Prospect workflow refinement
+
+The refined editor starts with the recipient's name. Contracts, mandates, player pitches and reports can be prepared for someone outside the roster. Copying from a workspace player is an optional disclosure; it copies document details and never creates, assigns or changes a roster player.
+
+- **Player contract:** groups identity, licensed agent, term/fees and advanced notices/jurisdiction. The owner-supplied representation wording is unchanged. Clauses can be reviewed individually.
+- **Mandate:** separates the granting party, named clubs/territories, duration and commission arrangement. Approved authority wording remains required.
+- **Player pitch:** starts with the prospective player's priorities and offers chapter-specific writing guidance. Agency promises and career outcomes are never invented.
+- **Invoice:** groups the billing entity, dates, services and payment instructions; shows live decimal totals; offers 7/14/30-day date shortcuts; suggests the invoice number as the reference while preserving a manually chosen reference.
+- **Scouting report:** supports any prospect, optional published-profile copying, source descriptions/check dates, and known club/position in the recipient brief. Unknown optional football fields no longer create unresolved default-body variables. Saving a report as a template clears player observations and sources, while using a clean agency template preserves its reusable guidance.
+
+Details, Content, Branding and Review form a guided path. Review items open the relevant step, disclose advanced fields when needed and focus the missing input. Mobile editing uses a compact review shortcut; exports and sharing are available in Review. Titles are suggested from the recipient until manually customised. Date variables read consistently in preview, Word and PDF without changing stored calendar dates.
+
+This refinement uses the existing document schema and RPCs. It requires no new migration, integration or configuration. Existing saved drafts are not rewritten. Existing review, revision, payment-lock, owner/admin and immutable-share protections remain in force.
+
 ## Validation
 
 Domain/database regression tests:
