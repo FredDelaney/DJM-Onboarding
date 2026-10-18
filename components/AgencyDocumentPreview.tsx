@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import {
   DOCUMENT_TEMPLATES,
   documentIssues,
+  documentBrief,
   documentMoney,
   documentPrice,
   invoiceTotals,
@@ -22,6 +23,7 @@ export default function AgencyDocumentPreview({
     totals = invoiceTotals(content),
     currency = fields.currency || "EUR";
   const logo = safeDocumentLogoUrl(brand.logoUrl);
+  const brief = documentBrief(doc);
   const render = (value: string) =>
     resolveDocumentText(value, content)
       .split(/(\[\[[\s\S]*?\]\]|\[[a-z_ ]+\])/g)
@@ -54,13 +56,32 @@ export default function AgencyDocumentPreview({
         ) : null}
       </header>
       <div className={styles.paperBody}>
-        <span className={styles.paperCategory}>
-          {DOCUMENT_TEMPLATES[kind].label}
-        </span>
-        <h1>{doc.title || "Untitled document"}</h1>
-        {documentIssues(doc).length > 0 ? (
-          <span className={styles.draftStamp}>Draft for review</span>
-        ) : null}
+        <div
+          className={
+            kind === "agency_pitch" ? styles.pitchCover : styles.documentIntro
+          }
+        >
+          <span className={styles.paperCategory}>
+            {DOCUMENT_TEMPLATES[kind].label}
+          </span>
+          <h1>{doc.title || "Untitled document"}</h1>
+          {documentIssues(doc).length > 0 ? (
+            <span className={styles.draftStamp}>Draft for review</span>
+          ) : null}
+          {brief.length ? (
+            <dl
+              className={`${styles.documentBrief} ${kind === "scouting_report" ? styles.reportBrief : ""}`}
+              aria-label="Document brief"
+            >
+              {brief.map(({ label, value }) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+        </div>
         {kind === "invoice" ? (
           <div className={styles.invoicePreview}>
             <div className={styles.invoiceMeta}>
@@ -133,10 +154,17 @@ export default function AgencyDocumentPreview({
         {content.sections.map((section, index) => (
           <section
             key={section.id}
-            className={section.pageBreak ? styles.pageBreak : undefined}
+            className={
+              section.pageBreak || (kind === "agency_pitch" && index === 0)
+                ? styles.pageBreak
+                : undefined
+            }
           >
             <span className={styles.sectionNumber}>
               {String(index + 1).padStart(2, "0")}
+              {kind === "agency_pitch"
+                ? ` / ${String(content.sections.length).padStart(2, "0")}`
+                : ""}
             </span>
             <h2>{render(section.title)}</h2>
             <p>{render(section.body)}</p>

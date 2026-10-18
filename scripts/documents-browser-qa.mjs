@@ -75,6 +75,7 @@ try {
     "Alex Bennett",
   );
   await page.getByLabel("Prepared for", { exact: false }).fill("Harbour FC");
+  await page.getByLabel("Report date", { exact: false }).fill("2026-10-18");
   await page
     .getByLabel("Scout or report author", { exact: false })
     .fill("Sam Taylor");
@@ -108,6 +109,15 @@ try {
     });
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.getByText("Draft saved", { exact: true }).waitFor();
+  const reportBrief = page
+    .getByRole("article", { name: "Document preview" })
+    .getByRole("definition");
+  assert.deepEqual(await reportBrief.allTextContents(), [
+    "Alex Bennett",
+    "Harbour FC",
+    "18 Oct 2026",
+    "Sam Taylor",
+  ]);
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     assert.ok(
@@ -152,8 +162,17 @@ try {
       });
       assert.match(xml, /Alex Bennett/);
       assert.match(xml, /Observed in the full-match review/);
+      assert.match(xml, /Prepared for/);
+      assert.match(xml, /Sam Taylor/);
       assert.doesNotMatch(xml, /\{\{player_name\}\}/);
-    } else assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
+    } else {
+      assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
+      assert.equal(
+        (bytes.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length,
+        1,
+        "The concise report keeps its sources on the same page",
+      );
+    }
   }
   await page.getByRole("button", { name: "Share", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Share document" });
@@ -207,6 +226,90 @@ try {
     await page.getByRole("button", { name: label, exact: true }).click();
     const download = await pending;
     await download.saveAs(`${output}/agency-invoice.${extension}`);
+  }
+  await page.getByRole("button", { name: "Library", exact: true }).click();
+  await page
+    .getByRole("button", { name: /Player pitch.*Create document/ })
+    .click();
+  await page
+    .getByLabel("Document title", { exact: true })
+    .fill("Alex Bennett | A future together");
+  await page
+    .getByRole("combobox", { name: "Player to fill" })
+    .selectOption("player-a");
+  await page
+    .getByRole("button", { name: "Fill player details", exact: true })
+    .click();
+  await page
+    .getByLabel(/The player.s priorities/)
+    .fill("Consistent first-team football and a clear development plan");
+  await page.getByRole("button", { name: "Content", exact: true }).click();
+  await wordings.first().waitFor();
+  const pitchWording = [
+    "{{player_name}}, your priority is {{purpose}}.\n\nWe would start with a conversation about your current role, the support you need and the decisions ahead. Together, we would agree what good representation should look like for you.",
+    "One point of contact. A clear plan. Regular conversations.\n\nWe would agree the scope of support before you sign, including contract preparation, career planning and the practical details that let you focus on football.",
+    "The next move should serve your football.\n\nWe would review playing opportunities, the role on offer and the environment around you. Each conversation would begin with your priorities and a shared understanding of the evidence.",
+    "You should know who is representing you.\n\nMeet the people responsible for your day-to-day support, ask how decisions are made and agree how often we will speak. The relationship should feel personal, clear and accountable.",
+    "Let us begin with your questions.\n\nA private conversation gives us the chance to understand what matters to you and explain how we work. No promise of a transfer, just a clear discussion about the support you want.\n\n{{agency_email}}",
+  ];
+  for (let i = 0; i < pitchWording.length; i++)
+    await wordings.nth(i).fill(pitchWording[i]);
+  await page.getByRole("button", { name: "Details", exact: true }).click();
+  await page.getByRole("checkbox", { name: /I have reviewed/ }).check();
+  await page.getByText("Ready for your recipient", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await page.getByText("Draft saved", { exact: true }).waitFor();
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    if (width <= 760)
+      await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const pitch = page.getByRole("article", { name: "Document preview" });
+    await pitch.getByText("Prepared for", { exact: true }).waitFor();
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+      `Pitch fits ${width}`,
+    );
+    assert.equal(await pitch.getByText("01 / 05", { exact: true }).count(), 1);
+    if (width !== 320)
+      await page.screenshot({
+        path: `${output}/pitch-${width}.png`,
+        fullPage: true,
+      });
+    if (width <= 760)
+      await page.getByRole("button", { name: "Edit", exact: true }).click();
+  }
+  for (const [label, extension] of [
+    ["Word", "docx"],
+    ["PDF", "pdf"],
+  ]) {
+    const pending = page.waitForEvent("download");
+    await page.getByRole("button", { name: label, exact: true }).click();
+    const download = await pending;
+    const path = `${output}/player-pitch.${extension}`;
+    await download.saveAs(path);
+    if (extension === "docx") {
+      const xml = execFileSync("unzip", ["-p", path, "word/document.xml"], {
+        encoding: "utf8",
+      });
+      assert.match(xml, /Prepared for/);
+      assert.match(xml, /Alex Bennett/);
+      assert.match(xml, /05 \/ 05/);
+      assert.equal(
+        (xml.match(/<w:pageBreakBefore\/>/g) || []).length,
+        5,
+        "Cover and five editable chapters",
+      );
+      assert.doesNotMatch(xml, /\{\{player_name\}\}/);
+    } else {
+      const bytes = await readFile(path);
+      assert.equal(
+        (bytes.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length,
+        6,
+        "Cover and five landscape PDF chapters",
+      );
+    }
   }
   await page.goto(root.href + "?scenario=save-failed");
   await page
@@ -304,7 +407,7 @@ try {
   await page.getByRole("heading", { name: "Your agency documents" }).waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Documents: four viewport widths, five templates, player fill, editable content, Word/PDF exports, draft recovery, snapshot sharing and manual invoice payment passed.",
+    "Documents: four viewport widths, five templates, recipient briefs, player pitch cover/chapters, editable Word/PDF exports, draft recovery, snapshot sharing and manual invoice payment passed.",
   );
 } finally {
   await browser.close();

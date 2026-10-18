@@ -17,6 +17,7 @@ import {
 } from "docx";
 import {
   DOCUMENT_TEMPLATES,
+  documentBrief,
   documentMoney,
   documentPrice,
   invoiceTotals,
@@ -33,36 +34,40 @@ export async function createDocumentWord(
   const { content, kind } = doc,
     { brand } = content,
     primary = readableBrandInk(brand.primary).replace("#", ""),
-    muted = "60717A";
+    muted = "60717A",
+    isPitch = kind === "agency_pitch";
   const text = (value: string, size = 22, bold = false, color = "263740") =>
     new TextRun({ text: value, size, bold, color, font: "Arial" });
-  const para = (value: string) =>
+  const para = (value: string, before = 0) =>
     new Paragraph({
-      children: value
-        .split("\n")
-        .map(
-          (line, index) =>
-            new TextRun({
-              text: line,
-              break: index ? 1 : undefined,
-              font: "Arial",
-              size: 22,
-              color: "263740",
-            }),
-        ),
-      spacing: { after: 170, line: 310 },
+      children: value.split("\n").map(
+        (line, index) =>
+          new TextRun({
+            text: line,
+            break: index ? 1 : undefined,
+            font: "Arial",
+            size: isPitch ? 32 : 22,
+            color: "263740",
+          }),
+      ),
+      spacing: {
+        before,
+        after: isPitch ? 240 : 170,
+        line: isPitch ? 360 : 310,
+      },
+      ...(isPitch ? { indent: { right: 1800 } } : {}),
     });
   const children: (Paragraph | Table)[] = [
-    new Paragraph({
-      text: doc.title,
-      heading: HeadingLevel.TITLE,
-      spacing: { before: 300, after: 160 },
-    }),
     new Paragraph({
       children: [
         text(DOCUMENT_TEMPLATES[kind].label.toUpperCase(), 18, true, muted),
       ],
-      spacing: { after: 300 },
+      spacing: { before: isPitch ? 1000 : 200, after: 200 },
+    }),
+    new Paragraph({
+      text: doc.title,
+      heading: HeadingLevel.TITLE,
+      spacing: { after: isPitch ? 500 : 260 },
     }),
   ];
   if (!content.reviewed)
@@ -72,6 +77,62 @@ export async function createDocumentWord(
         spacing: { after: 260 },
       }),
     );
+  const brief = documentBrief(doc);
+  if (brief.length) {
+    const columns = isPitch ? 3 : kind === "scouting_report" ? 4 : 2;
+    const none = { style: BorderStyle.NONE };
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: Array(columns).fill(
+          Math.floor((isPitch ? 14638 : 9706) / columns),
+        ),
+        borders: {
+          top: none,
+          bottom: none,
+          left: none,
+          right: none,
+          insideHorizontal: none,
+          insideVertical: none,
+        },
+        rows: Array.from(
+          { length: Math.ceil(brief.length / columns) },
+          (_, row) =>
+            new TableRow({
+              children: Array.from({ length: columns }, (_, column) => {
+                const item = brief[row * columns + column];
+                return new TableCell({
+                  width: { size: 100 / columns, type: WidthType.PERCENTAGE },
+                  margins: { top: 120, bottom: 180, left: 0, right: 200 },
+                  children: item
+                    ? [
+                        new Paragraph({
+                          children: [text(item.label, 16, false, muted)],
+                          spacing: { after: 80 },
+                        }),
+                        new Paragraph({
+                          children: item.value.split("\n").map(
+                            (line, index) =>
+                              new TextRun({
+                                text: line,
+                                break: index ? 1 : undefined,
+                                size: isPitch ? 26 : 21,
+                                color: primary,
+                                font: "Arial",
+                              }),
+                          ),
+                          spacing: { after: 80 },
+                        }),
+                      ]
+                    : [new Paragraph("")],
+                });
+              }),
+            }),
+        ),
+      }),
+      new Paragraph({ spacing: { after: 100 } }),
+    );
+  }
   if (kind === "invoice") {
     children.push(
       para(`Invoice ${content.fields.invoice_number || "[invoice number]"}`),
@@ -86,12 +147,18 @@ export async function createDocumentWord(
     const row = (values: string[], head = false) =>
       new TableRow({
         children: values.map(
-          (value) =>
+          (value, index) =>
             new TableCell({
+              width: {
+                size: [46, 12, 21, 21][index],
+                type: WidthType.PERCENTAGE,
+              },
               children: [
                 new Paragraph({
                   children: [text(value, 20, head, head ? "FFFFFF" : "263740")],
                   spacing: { before: 100, after: 100 },
+                  alignment:
+                    index === 0 ? AlignmentType.LEFT : AlignmentType.RIGHT,
                 }),
               ],
               shading: { fill: head ? primary : "F3F5F5" },
@@ -102,6 +169,7 @@ export async function createDocumentWord(
     children.push(
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: [4465, 1165, 2038, 2038],
         rows: [
           row(["Description", "Quantity", "Unit price", "Amount"], true),
           ...content.lines.map((line, index) =>
@@ -132,6 +200,7 @@ export async function createDocumentWord(
     children.push(
       para(
         `Subtotal  ${totals.valid ? documentMoney(totals.subtotal, currency) : "[amount]"}`,
+        160,
       ),
       para(
         `Tax (${content.fields.tax_rate || "0"}%)  ${totals.valid ? documentMoney(totals.tax, currency) : "[amount]"}`,
@@ -149,13 +218,29 @@ export async function createDocumentWord(
       }),
     );
   }
-  content.sections.forEach((section) => {
+  content.sections.forEach((section, index) => {
+    if (isPitch)
+      children.push(
+        new Paragraph({
+          children: [
+            text(
+              `${String(index + 1).padStart(2, "0")} / ${String(content.sections.length).padStart(2, "0")}`,
+              18,
+              false,
+              muted,
+            ),
+          ],
+          pageBreakBefore: index === 0 || !!section.pageBreak,
+          keepNext: true,
+          spacing: { before: 400, after: 220 },
+        }),
+      );
     children.push(
       new Paragraph({
         text: resolveDocumentText(section.title, content),
         heading: HeadingLevel.HEADING_1,
-        pageBreakBefore: !!section.pageBreak,
-        spacing: { before: 240, after: 150 },
+        pageBreakBefore: !isPitch && !!section.pageBreak,
+        spacing: { before: isPitch ? 0 : 240, after: isPitch ? 340 : 150 },
       }),
     );
     resolveDocumentText(section.body, content)
@@ -218,7 +303,12 @@ export async function createDocumentWord(
           name: "Title",
           basedOn: "Normal",
           next: "Normal",
-          run: { font: "Georgia", size: 58, bold: false, color: primary },
+          run: {
+            font: "Georgia",
+            size: isPitch ? 92 : 58,
+            bold: false,
+            color: primary,
+          },
           paragraph: { spacing: { after: 220 } },
         },
         {
@@ -226,7 +316,12 @@ export async function createDocumentWord(
           name: "Heading 1",
           basedOn: "Normal",
           next: "Normal",
-          run: { size: 28, bold: true, color: primary },
+          run: {
+            font: isPitch ? "Georgia" : "Arial",
+            size: isPitch ? 64 : 28,
+            bold: !isPitch,
+            color: primary,
+          },
           paragraph: { keepNext: true },
         },
       ],

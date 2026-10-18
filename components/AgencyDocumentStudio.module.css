@@ -764,7 +764,8 @@
   color: #6b7b7e;
   text-transform: uppercase;
 }
-.paperBody > h1 {
+.documentIntro > h1,
+.pitchCover > h1 {
   font:
     38px/1.1 Georgia,
     serif;
@@ -781,6 +782,31 @@
   font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+.documentBrief {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 28px;
+  margin: 26px 0 30px;
+  padding: 20px 0;
+  border-top: 1px solid #e3e8e2;
+  border-bottom: 1px solid #e3e8e2;
+}
+.documentBrief dt {
+  font-size: 9px;
+  color: #6b7b7e;
+  margin-bottom: 5px;
+}
+.documentBrief dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--doc-primary);
+}
+.reportBrief {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .paperBody > section {
   margin-top: 28px;
@@ -847,21 +873,38 @@
   margin-top: 36px;
   border-top: 1px dashed #cdd8cf;
 }
-.pitchPaper .paperBody > section {
-  min-height: 235px;
+.pitchCover {
+  min-height: 370px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 0 36px;
+}
+.pitchCover .documentBrief {
+  margin-bottom: 0;
+  border-bottom: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.pitchPaper .paperBody > .pageBreak {
+  min-height: 310px;
+  border-top-style: solid;
+  padding-top: 36px;
 }
 .pitchPaper .paperBody h2 {
   font:
-    27px/1.15 Georgia,
+    34px/1.15 Georgia,
     serif;
-  max-width: 430px;
+  max-width: 560px;
+  margin: 14px 0 20px;
 }
 .pitchPaper .paperBody p {
-  max-width: 500px;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.7;
 }
-.pitchPaper .paperBody > h1 {
-  font-size: 44px;
-  max-width: 450px;
+.pitchCover > h1 {
+  font-size: 50px;
+  max-width: 590px;
 }
 .invoicePreview {
   margin-top: 24px;
@@ -1300,8 +1343,27 @@
   .paperHeader img {
     max-width: 80px;
   }
-  .paperBody > h1 {
+  .documentIntro > h1,
+  .pitchCover > h1 {
     font-size: 32px;
+  }
+  .documentBrief {
+    gap: 16px;
+  }
+  .reportBrief {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pitchCover {
+    min-height: 320px;
+  }
+  .pitchCover .documentBrief {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pitchPaper .paperBody h2 {
+    font-size: 28px;
+  }
+  .pitchPaper .paperBody p {
+    font-size: 14px;
   }
   .paperBody p {
     font-size: 12px;

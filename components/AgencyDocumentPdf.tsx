@@ -9,6 +9,7 @@ import {
 } from "@react-pdf/renderer";
 import {
   DOCUMENT_TEMPLATES,
+  documentBrief,
   documentMoney,
   documentPrice,
   invoiceTotals,
@@ -89,6 +90,41 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   draft: { fontSize: 9, color: "#8A5B20", marginBottom: 12 },
+  brief: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    marginBottom: 14,
+    paddingTop: 14,
+    borderTopWidth: 0.5,
+    borderTopColor: "#DCE3E5",
+  },
+  briefItem: { width: "50%", paddingRight: 20, marginBottom: 12 },
+  briefLabel: { fontSize: 8, color: "#60717A", marginBottom: 4 },
+  briefValue: { fontSize: 10.5, lineHeight: 1.4 },
+  pitchTitle: {
+    fontFamily: "Times-Roman",
+    fontSize: 48,
+    lineHeight: 1.1,
+    marginTop: 12,
+    marginBottom: 28,
+    maxWidth: 630,
+  },
+  pitchNumber: {
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: "#60717A",
+    marginTop: 14,
+    marginBottom: 12,
+  },
+  pitchHeading: {
+    fontFamily: "Times-Roman",
+    fontSize: 34,
+    lineHeight: 1.15,
+    marginBottom: 22,
+    maxWidth: 650,
+  },
+  pitchBody: { fontSize: 16, lineHeight: 1.5, marginBottom: 16, maxWidth: 590 },
   source: { fontSize: 8, color: "#60717A", marginBottom: 5, lineHeight: 1.4 },
 });
 export default function AgencyDocumentPdf({
@@ -102,54 +138,102 @@ export default function AgencyDocumentPdf({
     { brand } = content,
     totals = invoiceTotals(content),
     currency = content.fields.currency || "EUR",
-    primary = readableBrandInk(brand.primary);
+    primary = readableBrandInk(brand.primary),
+    brief = documentBrief(doc),
+    isPitch = kind === "agency_pitch";
+  const furniture = (
+    <>
+      <View
+        fixed
+        style={[
+          styles.header,
+          {
+            backgroundColor: "#F3F5F5",
+            borderBottomWidth: 3,
+            borderBottomColor: brand.accent,
+          },
+        ]}
+      >
+        <Text style={[styles.brand, { color: primary }]}>{brand.name}</Text>
+        {logo ? <Image style={styles.logo} src={logo} /> : null}
+      </View>
+      <View fixed style={styles.footer}>
+        <Text style={{ fontSize: 7.5, lineHeight: 1.3 }}>
+          {[brand.legalName || brand.name, brand.email]
+            .filter(Boolean)
+            .join(" · ")}
+        </Text>
+      </View>
+      <Text
+        fixed
+        style={{
+          position: "absolute",
+          bottom: 25,
+          right: 48,
+          fontSize: 7.5,
+          color: "#60717A",
+        }}
+        render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`}
+      />
+    </>
+  );
+  const briefing = brief.length ? (
+    <View style={styles.brief}>
+      {brief.map(({ label, value }) => (
+        <View
+          key={label}
+          style={[
+            styles.briefItem,
+            kind === "scouting_report"
+              ? { width: "25%", paddingRight: 12 }
+              : isPitch
+                ? { width: "33.333%" }
+                : {},
+          ]}
+          wrap={false}
+        >
+          <Text style={styles.briefLabel}>{label}</Text>
+          <Text style={[styles.briefValue, { color: primary }]}>{value}</Text>
+        </View>
+      ))}
+    </View>
+  ) : null;
   return (
     <Document title={doc.title} author={brand.name} creator={brand.name}>
+      {isPitch ? (
+        <Page
+          size="A4"
+          orientation="landscape"
+          style={[styles.page, { paddingTop: 150 }]}
+        >
+          {furniture}
+          <Text style={styles.category}>PLAYER PITCH</Text>
+          <Text style={[styles.pitchTitle, { color: primary }]}>
+            {doc.title}
+          </Text>
+          {!content.reviewed ? (
+            <Text style={styles.draft}>DRAFT FOR REVIEW</Text>
+          ) : null}
+          {briefing}
+        </Page>
+      ) : null}
       <Page
         size="A4"
-        orientation={kind === "agency_pitch" ? "landscape" : "portrait"}
+        orientation={isPitch ? "landscape" : "portrait"}
         style={styles.page}
       >
-        <View
-          fixed
-          style={[
-            styles.header,
-            {
-              backgroundColor: "#F3F5F5",
-              borderBottomWidth: 3,
-              borderBottomColor: brand.accent,
-            },
-          ]}
-        >
-          <Text style={[styles.brand, { color: primary }]}>{brand.name}</Text>
-          {logo ? <Image style={styles.logo} src={logo} /> : null}
-        </View>
-        <View fixed style={styles.footer}>
-          <Text style={{ fontSize: 7.5, lineHeight: 1.3 }}>
-            {[brand.legalName || brand.name, brand.email]
-              .filter(Boolean)
-              .join(" · ")}
-          </Text>
-        </View>
-        <Text
-          fixed
-          style={{
-            position: "absolute",
-            bottom: 25,
-            right: 48,
-            fontSize: 7.5,
-            color: "#60717A",
-          }}
-          render={({ pageNumber, totalPages }) =>
-            `${pageNumber} / ${totalPages}`
-          }
-        />
-        <Text style={styles.category}>
-          {DOCUMENT_TEMPLATES[kind].label.toUpperCase()}
-        </Text>
-        <Text style={[styles.title, { color: primary }]}>{doc.title}</Text>
-        {!content.reviewed ? (
-          <Text style={styles.draft}>DRAFT FOR REVIEW</Text>
+        {furniture}
+        {!isPitch ? (
+          <>
+            <Text style={styles.category}>
+              {DOCUMENT_TEMPLATES[kind].label.toUpperCase()}
+            </Text>
+            <Text style={[styles.title, { color: primary }]}>{doc.title}</Text>
+            {!content.reviewed ? (
+              <Text style={styles.draft}>DRAFT FOR REVIEW</Text>
+            ) : null}
+            {briefing}
+          </>
         ) : null}
         {kind === "invoice" ? (
           <View>
@@ -208,15 +292,32 @@ export default function AgencyDocumentPdf({
             </Text>
           </View>
         ) : null}
-        {content.sections.map((section) => (
-          <View key={section.id} break={!!section.pageBreak}>
+        {content.sections.map((section, index) => (
+          <View
+            key={section.id}
+            break={!!section.pageBreak && (!isPitch || index > 0)}
+          >
+            {isPitch ? (
+              <Text style={styles.pitchNumber}>
+                {String(index + 1).padStart(2, "0")} /{" "}
+                {String(content.sections.length).padStart(2, "0")}
+              </Text>
+            ) : null}
             <Text
-              style={[styles.heading, { color: primary }]}
-              minPresenceAhead={45}
+              style={[
+                isPitch ? styles.pitchHeading : styles.heading,
+                kind === "scouting_report" ? { marginTop: 10 } : {},
+                { color: primary },
+              ]}
+              minPresenceAhead={isPitch ? 100 : 45}
             >
               {resolveDocumentText(section.title, content)}
             </Text>
-            <Text style={styles.body} orphans={3} widows={3}>
+            <Text
+              style={isPitch ? styles.pitchBody : styles.body}
+              orphans={3}
+              widows={3}
+            >
               {resolveDocumentText(section.body, content)}
             </Text>
           </View>

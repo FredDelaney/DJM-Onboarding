@@ -4,6 +4,7 @@ import {
   DOCUMENT_KINDS,
   DOCUMENT_TEMPLATES,
   documentBrand,
+  documentBrief,
   copyAgencyDocument,
   documentDate,
   documentIssues,
@@ -69,6 +70,41 @@ test("new documents use the agency currency and calendar date", () => {
   );
   assert.equal(invoice.content.fields.currency, "GBP");
   assert.equal(invoice.content.fields.issue_date, "2026-10-18");
+});
+test("recipient briefs show only the relevant document fields without guessing missing details", () => {
+  const report = newAgencyDocument("scouting_report", documentBrand());
+  report.content.fields = {
+    player_name: "Alex Bennett",
+    recipient_name: "Harbour FC",
+    report_date: "2026-10-18",
+    author: "Sam Taylor",
+    player_dob: "2000-01-01",
+    commission: "Private terms",
+    extra_internal_field: "Never display",
+  };
+  assert.deepEqual(documentBrief(report), [
+    { label: "Player", value: "Alex Bennett" },
+    { label: "Prepared for", value: "Harbour FC" },
+    { label: "Report date", value: "18 Oct 2026" },
+    { label: "Prepared by", value: "Sam Taylor" },
+  ]);
+  const pitch = newAgencyDocument("agency_pitch", documentBrand());
+  assert.deepEqual(documentBrief(pitch), []);
+  pitch.content.fields = report.content.fields;
+  assert.deepEqual(documentBrief(pitch), [
+    { label: "Prepared for", value: "Alex Bennett" },
+  ]);
+  const contract = newAgencyDocument("player_contract", documentBrand());
+  contract.content.fields = {
+    player_name: "Alex",
+    player_dob: "2000-01-01",
+    start_date: "2026-02-31",
+  };
+  assert.deepEqual(documentBrief(contract), [
+    { label: "Player", value: "Alex" },
+    { label: "Date of birth", value: "1 Jan 2000" },
+    { label: "Starts", value: "2026-02-31" },
+  ]);
 });
 test("invoice money uses rounded minor units and rejects invalid or missing amounts", () => {
   const doc = newAgencyDocument("invoice", documentBrand());

@@ -8,6 +8,8 @@ The agency owner or admin opens **Documents** from mobile More or desktop worksp
 - Agency-owned reusable templates, editable variable fields, editable/reorderable sections, page breaks and live preview.
 - Agency name, legal entity, logo, colours, contact/address/registration and invoice banking details. New invoices use the configured agency currency and calendar timezone.
 - Editable Word `.docx` output and text-based PDF output. The studio remains the editable source; PDF is a published layout, not a Word-style editing format.
+- Recipient briefs display the relevant player, recipient, author and dates consistently in preview, Word and PDF. Empty fields stay absent; birth dates appear only on representation contracts.
+- Player pitches use a dedicated landscape cover followed by numbered chapters. The chapter wording and page breaks remain editable, and long content flows onto additional pages.
 - Exact decimal invoice amounts, tax, payment links, unique invoice numbers per agency and manual delivery/payment records with a required reference.
 - Published player-profile facts and selected statistics can fill scouting reports. Hidden profile sections and private operational records are excluded. A changed report player resets the previous player’s observations and evidence.
 - Cloud drafts with revision checks, retained unsaved content on errors, and explicit review before creating a recipient link.
@@ -47,7 +49,7 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types -
 
 The database tests execute the full new migration in PGlite with real membership predicates and the existing public-profile visibility projection. They cover denied access, cross-tenant writes, stale revisions, snapshot redaction/immutability, token expiry/revocation, invoice numbering, manual payment and paid-invoice protection.
 
-The existing temporary-fixture browser runner exercises all five starting points, four viewport widths, editing/autofill, draft recovery, Word/PDF downloads, sharing, recipient retry/open and manual invoice payment:
+The existing temporary-fixture browser runner exercises all five starting points, four viewport widths, editing/autofill, draft recovery, recipient briefs, Word/PDF downloads, pitch covers/chapters, sharing, recipient retry/open and manual invoice payment. It checks that the concise sample report retains its sources on one page and that the pitch exports a cover and five chapters:
 
 ```sh
 CALENDAR_QA_PORT=3213 node scripts/calendar-browser-fixture.mjs scripts/documents-browser-qa.mjs

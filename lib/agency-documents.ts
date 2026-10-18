@@ -61,6 +61,63 @@ export type DocumentPlayer = {
   profile?: Record<string, any> | null;
 };
 export type DocumentSettings = { default_currency?: string; timezone?: string };
+/** The same recipient-facing brief is used by preview, Word and PDF. */
+export function documentBrief(
+  doc: AgencyDocument,
+): { label: string; value: string }[] {
+  const fields = doc.content.fields;
+  const layouts: Record<DocumentKind, [string, string][]> = {
+    player_contract: [
+      ["player_name", "Player"],
+      ["player_dob", "Date of birth"],
+      ["start_date", "Starts"],
+      ["end_date", "Expires"],
+    ],
+    mandate: [
+      ["player_name", "Player"],
+      ["principal_name", "Mandated by"],
+      ["territory", "Clubs and territories"],
+      ["start_date", "Valid from"],
+      ["end_date", "Expires"],
+    ],
+    agency_pitch: [
+      ["player_name", "Prepared for"],
+      ["player_club", "Current club"],
+      ["position", "Position"],
+    ],
+    scouting_report: [
+      ["player_name", "Player"],
+      ["recipient_name", "Prepared for"],
+      ["report_date", "Report date"],
+      ["author", "Prepared by"],
+    ],
+    invoice: [],
+  };
+  return layouts[doc.kind].flatMap(([key, label]) => {
+    const value = fields[key]?.trim();
+    if (!value) return [];
+    // Calendar dates have no timezone. Never shift them to the previous day.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value) && /(?:date|dob)$/.test(key)) {
+      const date = new Date(value + "T12:00:00Z");
+      if (
+        Number.isFinite(date.getTime()) &&
+        date.toISOString().slice(0, 10) === value
+      )
+        return [
+          {
+            label,
+            value: date.toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              timeZone: "UTC",
+            }),
+          },
+        ];
+    }
+    return [{ label, value }];
+  });
+}
 export function documentDate(now = new Date(), timezone?: string): string {
   let parts: Intl.DateTimeFormatPart[];
   try {
@@ -664,7 +721,7 @@ export function copyAgencyDocument(
     kind: source.kind,
     title:
       mode === "duplicate"
-        ? source.title.slice(0,175) + " copy"
+        ? source.title.slice(0, 175) + " copy"
         : mode === "template"
           ? `${DOCUMENT_TEMPLATES[source.kind].label} template`
           : DOCUMENT_TEMPLATES[source.kind].label,
