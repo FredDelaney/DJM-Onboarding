@@ -31,6 +31,12 @@ try{
  await discard.getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(await dialog.getByLabel('Club name',{exact:true}).inputValue(),'Updated Club');
  for(const width of [320,390,768,1440]){
   await page.setViewportSize({width,height:width===390?460:844});
+  // visualViewport resize is applied through React state after the browser resize.
+  // Wait for the actual layout, keeping the reachability assertion unchanged.
+  await page.waitForFunction(button=>{
+   const box=button.getBoundingClientRect();
+   return box.height>=44&&box.y>=0&&box.bottom<=innerHeight+1;
+  },await save.elementHandle(),{timeout:5000});
   const box=await save.boundingBox();assert.ok(box&&box.height>=44&&box.y>=0&&box.y+box.height<=(width===390?460:844)+1,'Save remains reachable at '+width);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal scroll at '+width);
  }

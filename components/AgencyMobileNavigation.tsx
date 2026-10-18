@@ -12,6 +12,7 @@ import {
   CalendarDays,
   ChevronRight,
   Coins,
+  FileText,
   Home,
   MoreHorizontal,
   PlugZap,
@@ -31,6 +32,7 @@ import styles from "./AgencyMobileNavigation.module.css";
 
 type Props = {
   basePath: string;
+  workspaceSlug?: string;
   view: string;
   canSeeBusiness: boolean;
   search: ComponentProps<typeof WorkspaceSearch>;
@@ -41,6 +43,7 @@ type Props = {
 };
 export default function AgencyMobileNavigation({
   basePath,
+  workspaceSlug,
   view,
   canSeeBusiness,
   search,
@@ -77,7 +80,7 @@ export default function AgencyMobileNavigation({
       view,
       params.get("tab") || undefined,
     ),
-    links = workspaceMoreLinks(basePath, canSeeBusiness);
+    links = workspaceMoreLinks(basePath, canSeeBusiness, workspaceSlug);
   const navigate = (
     event: MouseEvent<HTMLAnchorElement>,
     target: WorkspaceSection,
@@ -114,7 +117,11 @@ export default function AgencyMobileNavigation({
           triggerLabel="Search"
           className={styles.search}
         />
-        <AiLauncher navigation className={styles.capture} onCaptureCompleted={onCaptureCompleted} />
+        <AiLauncher
+          navigation
+          className={styles.capture}
+          onCaptureCompleted={onCaptureCompleted}
+        />
         <Link
           href={destinations[3].href!}
           aria-current={destinations[3].active ? "page" : undefined}
@@ -171,17 +178,27 @@ export default function AgencyMobileNavigation({
             const Icon =
               item.view === "calendar"
                 ? CalendarDays
-                : item.view === "business"
-                  ? Coins
-                  : item.view === "opportunities"
-                    ? Target
-                    : Users;
+                : item.label === "Documents"
+                  ? FileText
+                  : item.view === "business"
+                    ? Coins
+                    : item.view === "opportunities"
+                      ? Target
+                      : Users;
             return (
               <Link
                 key={item.label}
                 href={item.href!}
-                onPointerDown={() => onWarm(item.view!)}
-                onClick={(event) => navigate(event, item.view!, item.href!)}
+                onPointerDown={() => {
+                  if (item.view) onWarm(item.view);
+                }}
+                onClick={(event) => {
+                  if (item.view) navigate(event, item.view, item.href!);
+                  else {
+                    sheet.current?.close();
+                    setMoreOpen(false);
+                  }
+                }}
               >
                 <Icon size={20} />
                 <span>{item.label}</span>
