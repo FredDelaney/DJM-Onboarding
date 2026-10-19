@@ -1,4 +1,5 @@
 'use client';
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import {useCallback,useEffect,useId,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import Link from 'next/link';
@@ -62,11 +63,11 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
  },[close,enabled,open]);
  useEffect(()=>{
   if(!open)return;
-  const previous=opener.current,overflow=document.body.style.overflow;
+  const previous=opener.current,releaseScroll = lockPageScroll();
   const siblings=[...document.body.children].filter((node):node is HTMLElement=>node instanceof HTMLElement&&node!==overlay.current);
-  const inert=siblings.map(node=>node.inert);
-  siblings.forEach(node=>{node.inert=true;});document.body.style.overflow='hidden';input.current?.focus();
-  return()=>{siblings.forEach((node,index)=>{node.inert=inert[index];});document.body.style.overflow=overflow;if(previous?.isConnected)previous.focus();};
+  const releaseBackground = isolateElements(siblings);
+  input.current?.focus();
+  return()=>{releaseBackground();releaseScroll();if(previous?.isConnected)previous.focus();};
  },[open]);
  useEffect(()=>{
   const version=++generation.current;

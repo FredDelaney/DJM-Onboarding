@@ -1,5 +1,6 @@
 'use client';
 
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
@@ -287,9 +288,9 @@ function AccountMenuLayer({children, onClose}: {children: React.ReactNode; onClo
   }, [onClose]);
   useEffect(() => {
     if (!mobile) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {document.body.style.overflow = previous;};
+    const releaseScroll = lockPageScroll();
+
+    return () => {releaseScroll();};
   }, [mobile]);
   return mobile ? createPortal(children, document.body) : children;
 }

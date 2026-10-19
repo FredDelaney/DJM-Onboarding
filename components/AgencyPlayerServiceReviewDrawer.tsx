@@ -1,4 +1,5 @@
 'use client';
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import {ArrowLeft,ArrowRight,CalendarClock,CheckCircle2,CircleAlert,History,LoaderCircle,Target,X} from 'lucide-react';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -148,8 +149,7 @@ export default function AgencyPlayerServiceReviewDrawer({
   useEffect(() => {
     if (pageMode) return;
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
 
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !captureBusy) onClose();
@@ -158,7 +158,7 @@ export default function AgencyPlayerServiceReviewDrawer({
     window.addEventListener('keydown', keydown);
 
     return () => {
-      document.body.style.overflow = previous;
+      releaseScroll();
       window.removeEventListener('keydown', keydown);
     };
   }, [captureBusy, onClose, pageMode]);

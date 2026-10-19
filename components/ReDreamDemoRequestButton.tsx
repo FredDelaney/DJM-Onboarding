@@ -1,4 +1,5 @@
 'use client';
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import {
   ArrowRight,
   CheckCircle2,
@@ -62,8 +63,7 @@ export default function ReDreamDemoRequestButton({
   useEffect(() => {
     if (!open) return;
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
 
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !submitting) setOpen(false);
@@ -72,7 +72,7 @@ export default function ReDreamDemoRequestButton({
     window.addEventListener('keydown', keydown);
 
     return () => {
-      document.body.style.overflow = previous;
+      releaseScroll();
       window.removeEventListener('keydown', keydown);
     };
   }, [open, submitting]);

@@ -1,4 +1,5 @@
 'use client';
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import { useEffect,useRef,useState } from 'react';
 import {createPortal} from 'react-dom';
 import { X } from 'lucide-react';
@@ -15,15 +16,15 @@ export default function AgencyCalendarTaskForm({task,selectedDate,userId,assigne
  const [mounted,setMounted]=useState(false);const [viewport,setViewport]=useState<{top:number;height:number}|null>(null);const backdrop=useRef<HTMLDivElement>(null);
  const initial=useRef(JSON.stringify([title,notes,visibility,responsible,date,time,zone]));const dirty=JSON.stringify([title,notes,visibility,responsible,date,time,zone])!==initial.current;
  const close=()=>{if(busy)return;if(dirty){setDiscardOpen(true);return;}onClose();};
- useEffect(()=>{setMounted(true);alive.current=true;const previous=document.activeElement as HTMLElement|null;dialog.current?.querySelector<HTMLInputElement>('input')?.focus();const old=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{alive.current=false;document.body.style.overflow=old;queueMicrotask(()=>{if(previous?.isConnected)previous.focus();});};},[]);
+ useEffect(()=>{setMounted(true);alive.current=true;const previous=document.activeElement as HTMLElement|null;dialog.current?.querySelector<HTMLInputElement>('input')?.focus();const releaseScroll = lockPageScroll();return()=>{alive.current=false;releaseScroll();queueMicrotask(()=>{if(previous?.isConnected)previous.focus();});};},[]);
  useEffect(()=>{
   if(!mounted)return;
   const siblings=[...document.body.children].filter((el):el is HTMLElement=>el instanceof HTMLElement&&el!==backdrop.current);
-  const inert=siblings.map(el=>el.inert);siblings.forEach(el=>{el.inert=true;});
+  const releaseBackground = isolateElements(siblings);
   dialog.current?.querySelector<HTMLInputElement>('input')?.focus();
   const update=()=>{const view=window.visualViewport;if(view)setViewport({top:view.offsetTop,height:view.height});};
   update();window.visualViewport?.addEventListener('resize',update);window.visualViewport?.addEventListener('scroll',update);
-  return()=>{siblings.forEach((el,i)=>{el.inert=inert[i];});window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);};
+  return()=>{releaseBackground();window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);};
  },[mounted]);
  async function submit(event:React.FormEvent){event.preventDefault();if(busy)return;setError('');
   if(!title.trim()||title.trim().length>200||notes.length>2000){setError('Title up to 200 characters. Notes up to 2,000.');return;}

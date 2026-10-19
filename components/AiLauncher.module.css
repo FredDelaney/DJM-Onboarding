@@ -299,3 +299,30 @@
     font-size: 11px;
   }
 }
+
+/* Keep the sheet and its close action within the visible screen when typing. */
+.overlay {
+  height: 100dvh;
+  min-height: 0;
+  grid-template-rows: minmax(0, auto);
+}
+.modal {
+  min-height: 0;
+  max-height: 100%;
+}
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f7f9fa;
+  padding-bottom: 10px;
+}
+.overlay[data-compact='true'] {
+  padding-top: max(8px, env(safe-area-inset-top));
+}
+@media (min-width: 761px) {
+  .modal { max-height: min(760px, 100%); }
+}
+@media (max-width: 760px) {
+  .modal { max-height: min(560px, 100%); }
+}

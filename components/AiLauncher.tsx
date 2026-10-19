@@ -1,6 +1,8 @@
 'use client';
 
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import { useAiWorkspace } from './useAiWorkspace';
+import { useVisualViewport } from './useVisualViewport';
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -78,6 +80,7 @@ const cachedAiRouteContext = (
 
 export default function AiLauncher({navigation=false,className,onCaptureCompleted}:{navigation?:boolean;className?:string;onCaptureCompleted?:()=>void}={}) {
   const [open, setOpen] = useState(false);
+  const viewport = useVisualViewport(open);
   const [unsafeToClose, setUnsafeToClose] = useState(false);
   const [mounted, setMounted] = useState(false);
   const workspaceSlug = useAiWorkspace();
@@ -174,15 +177,15 @@ export default function AiLauncher({navigation=false,className,onCaptureComplete
 
   useEffect(() => {
     if (!open || !mounted) return;
-    const previousOverflow = document.body.style.overflow;
+    const releaseScroll = lockPageScroll();
     const previousFocus=trigger.current;
     const siblings=Array.from(document.body.children).filter((node):node is HTMLElement=>node instanceof HTMLElement&&!node.contains(captureDialog.current));
-    const previousInert=siblings.map(node=>node.inert);siblings.forEach(node=>{node.inert=true;});
-    document.body.style.overflow = 'hidden';
+    const releaseBackground = isolateElements(siblings);
+
     captureDialog.current?.querySelector<HTMLButtonElement>('button')?.focus();
     return () => {
-      siblings.forEach((node,index)=>{node.inert=previousInert[index];});
-      document.body.style.overflow = previousOverflow;
+      releaseBackground();
+      releaseScroll();
       if(previousFocus?.isConnected)previousFocus.focus();
     };
   }, [open, mounted]);
@@ -197,6 +200,8 @@ export default function AiLauncher({navigation=false,className,onCaptureComplete
       ? createPortal(
           <div
             className={styles.overlay}
+            data-compact={viewport ? viewport.height < 500 : undefined}
+            style={viewport ? {top: viewport.top, height: viewport.height, bottom: 'auto'} : undefined}
             onClick={(event) => {
               if (event.target !== event.currentTarget || unsafeToClose) return;
               setOpen(false);

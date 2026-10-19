@@ -1,4 +1,5 @@
 'use client';
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -192,8 +193,7 @@ export default function AgencyDealCloseoutDrawer({
   useEffect(() => {
     if (pageMode) return;
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
 
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !actionBusy) {
@@ -205,7 +205,7 @@ export default function AgencyDealCloseoutDrawer({
     window.addEventListener('keydown', keydown);
 
     return () => {
-      document.body.style.overflow = previous;
+      releaseScroll();
       window.removeEventListener('keydown', keydown);
     };
   }, [actionBusy, onClose, pageMode, paymentTarget]);

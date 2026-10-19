@@ -25,7 +25,9 @@ try {
     await overview.pressSequentially('Creates space for team mates.');
     const typed = 'Left footed  defender \n\nCreates space for team mates.';
     assert.equal(await overview.inputValue(), typed, 'Spaces and blank paragraphs survive each keystroke');
-    await overview.press('Home');
+    // Home scrolls without moving the caret on macOS. Set the intended edit
+    // position explicitly, then keep real keystrokes to catch controlled-input jumps.
+    await overview.evaluate((node,position)=>node.setSelectionRange(position,position),typed.indexOf('Creates'));
     await overview.pressSequentially('Also ');
     const revised = typed.replace('Creates', 'Also Creates');
     assert.equal(await overview.inputValue(), revised, 'Editing in the middle keeps the caret in place');

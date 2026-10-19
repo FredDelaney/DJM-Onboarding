@@ -1,4 +1,5 @@
 "use client";
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -69,10 +70,10 @@ export default function AgencyMobileNavigation({
   }, []);
   useEffect(() => {
     if (!moreOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const releaseScroll = lockPageScroll();
+
     return () => {
-      document.body.style.overflow = previous;
+      releaseScroll();
     };
   }, [moreOpen]);
   const destinations = workspaceMobileNavigation(

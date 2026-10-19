@@ -13,8 +13,8 @@ test('shared confirmation is accessible and restores keyboard control',()=>{
   const dialog=read('components/ConfirmActionDialog.tsx');
   assert.match(dialog,/role="alertdialog"/);
   assert.match(dialog,/aria-modal="true"/);
-  assert.match(dialog,/event\.key==='Escape'/);
-  assert.match(dialog,/event\.key!=='Tab'/);
+  assert.match(dialog,/event\.key\s*===\s*['"]Escape['"]/);
+  assert.match(dialog,/event\.key\s*!==\s*['"]Tab['"]/);
   assert.match(dialog,/previous\?\.isConnected/);
 });
 

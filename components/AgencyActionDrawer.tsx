@@ -1,5 +1,6 @@
 'use client';
 
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -652,15 +653,11 @@ export default function AgencyActionDrawer({
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    const previous =
-      document.body.style.overflow;
+    const releaseScroll = lockPageScroll();
 
-    document.body.style.overflow =
-      'hidden';
 
     return () => {
-      document.body.style.overflow =
-        previous;
+      releaseScroll();
       queueMicrotask(() => {
         if (opener?.isConnected) opener.focus();
       });

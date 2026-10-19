@@ -235,7 +235,7 @@ function PlayerDrawer({
       eyebrow: 'PLAYER',
       title: playerName,
       instruction: control?.instruction || nextMove?.instruction,
-      label: control?.instruction ? 'Fix this' : 'Prepare next move',
+      label: control?.instruction ? 'Review next step' : 'Prepare next move',
       action: control?.instruction
         ? 'player_control_fix_prepare'
         : 'player_service_move_prepare',
@@ -920,6 +920,8 @@ export default function AgencyPlayersWorkspace({
             const name=identity.name||'Player';
             const age=ageFromDob(identity.date_of_birth);
             const attention=Boolean(service?.next_control_fix?.instruction||service?.next_service_move?.instruction);
+            const nextInstruction=service?.next_control_fix?.instruction||service?.next_service_move?.instruction||identity.next_action;
+            const nextInstructionDue=nextInstruction===identity.next_action?identity.next_action_due:null;
             return(
               <article
                 className={styles.playerCard}
@@ -977,10 +979,10 @@ export default function AgencyPlayersWorkspace({
                   <div className={styles.mobileNextActionHead}>
                     <span className={attention?styles.mobileStatusDot:styles.mobileStatusDotCalm} />
                     <span>Next action</span>
-                    <small>{identity.next_action_due?relativeDate(identity.next_action_due):'No due date'}</small>
+                    <small>{nextInstructionDue?relativeDate(nextInstructionDue):'No due date'}</small>
                   </div>
                   <div className={styles.mobileNextActionBody}>
-                    <strong>{service?.next_service_move?.instruction||identity.next_action||'No next action yet'}</strong>
+                    <strong>{nextInstruction||'No next action yet'}</strong>
                     <ChevronRight size={15} />
                   </div>
                 </div> : null}
@@ -1016,7 +1018,7 @@ export default function AgencyPlayersWorkspace({
                         eyebrow:'PLAYER',
                         title:name,
                         instruction:control?.instruction||move?.instruction,
-                        label:control?.instruction?'Fix this':'Prepare next move',
+                        label:control?.instruction?'Review next step':'Prepare next move',
                         action:control?.instruction?'player_control_fix_prepare':'player_service_move_prepare',
                         payload:{player_id:item.player_id},
                         facts:[
@@ -1027,7 +1029,7 @@ export default function AgencyPlayersWorkspace({
                         ],
                         successCondition:'The next step is current.',
                       });
-                    }}><ArrowRight size={14}/>{service?.next_control_fix?.instruction?'Fix this':'Prepare next move'}</button>
+                    }}><ArrowRight size={14}/>{service?.next_control_fix?.instruction?'Review next step':'Prepare next move'}</button>
                   </div>
                 ):null}
               </article>

@@ -1,5 +1,6 @@
 'use client';
 
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import {useEffect,useId,useRef,useState,type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {Check,CheckCircle2,LoaderCircle,Pencil,X} from 'lucide-react';
@@ -148,14 +149,14 @@ function EditorPanel({editor,controller}:{editor:Editor;controller:Controller}) 
  const initial=useRef(JSON.stringify([title,date,note,next,nextTitle,nextDate]));
  const dirty=JSON.stringify([title,date,note,next,nextTitle,nextDate])!==initial.current,busy=Boolean(controller.busy);
  const close=()=>{if(busy)return;if(dirty)setDiscard(true);else controller.close();};
- useEffect(()=>{setMounted(true);alive.current=true;const previous=document.activeElement as HTMLElement|null,old=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{alive.current=false;document.body.style.overflow=old;queueMicrotask(()=>{if(previous?.isConnected)previous.focus();});};},[]);
+ useEffect(()=>{setMounted(true);alive.current=true;const previous=document.activeElement as HTMLElement|null,releaseScroll = lockPageScroll();return()=>{alive.current=false;releaseScroll();queueMicrotask(()=>{if(previous?.isConnected)previous.focus();});};},[]);
  useEffect(()=>{
   if(!mounted)return;
-  const siblings=[...document.body.children].filter((node):node is HTMLElement=>node instanceof HTMLElement&&node!==backdrop.current),inert=siblings.map(node=>node.inert);
-  siblings.forEach(node=>{node.inert=true;});dialog.current?.querySelector<HTMLInputElement>('input')?.focus();
+  const siblings=[...document.body.children].filter((node):node is HTMLElement=>node instanceof HTMLElement&&node!==backdrop.current),releaseBackground = isolateElements(siblings);
+  dialog.current?.querySelector<HTMLInputElement>('input')?.focus();
   const resize=()=>{const view=window.visualViewport;if(view)setViewport({top:view.offsetTop,height:view.height});};
   resize();window.visualViewport?.addEventListener('resize',resize);window.visualViewport?.addEventListener('scroll',resize);
-  return()=>{siblings.forEach((node,index)=>{node.inert=inert[index];});window.visualViewport?.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('scroll',resize);};
+  return()=>{releaseBackground();window.visualViewport?.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('scroll',resize);};
  },[mounted]);
  async function submit(action:'update'|'complete') {
   if(busy)return;setError('');

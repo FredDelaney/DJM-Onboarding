@@ -1,4 +1,5 @@
 'use client';
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import {
   ArrowLeft,
   ArrowRight,
@@ -224,11 +225,8 @@ export default function AgencyClubAccountDrawer({
 
   useEffect(() => {
     if (presentation === 'page') return;
-    const previous =
-      document.body.style.overflow;
+    const releaseScroll = lockPageScroll();
 
-    document.body.style.overflow =
-      'hidden';
 
     const keydown = (
       event: KeyboardEvent,
@@ -244,8 +242,7 @@ export default function AgencyClubAccountDrawer({
     );
 
     return () => {
-      document.body.style.overflow =
-        previous;
+      releaseScroll();
 
       window.removeEventListener(
         'keydown',

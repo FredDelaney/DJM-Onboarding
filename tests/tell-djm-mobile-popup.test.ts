@@ -23,6 +23,6 @@ test('Tell DJM mobile popup respects the dynamic viewport and iPhone safe areas'
 });
 
 test('Tell DJM locks background scrolling while the popup is open', () => {
-  assert.match(launcher, /document\.body\.style\.overflow = 'hidden'/);
-  assert.match(launcher, /document\.body\.style\.overflow = previousOverflow/);
+  assert.match(launcher, /const releaseScroll = lockPageScroll\(\)/);
+  assert.match(launcher, /releaseScroll\(\)/);
 });

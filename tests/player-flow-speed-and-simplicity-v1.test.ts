@@ -129,11 +129,11 @@ test('Opportunities loads the visible tab before hidden opportunity data', () =>
   assert.match(shell, /const opportunitiesSection =/);
   assert.match(
     shell,
-    /opportunitiesSection === 'deals'[\s\S]*await rpc<any>\('redream_autopilot_deals'/,
+    /opportunitiesSection === 'deals'[\s\S]*await readWithDeadline\(rpc<any>\('redream_autopilot_deals'/,
   );
   assert.match(
     shell,
-    /else \{[\s\S]*await rpc<any>\('redream_autopilot_market'/,
+    /else \{[\s\S]*await readWithDeadline\(rpc<any>\('redream_autopilot_market'/,
   );
   assert.match(
     shell,

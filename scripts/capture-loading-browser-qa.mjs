@@ -38,6 +38,21 @@ try {
   release();
   await trigger.click();
   await dialog.getByRole('button', {name: 'Start recording', exact: true}).waitFor();
+  // Simulate a phone keyboard/zoomed visual viewport without touching real permissions.
+  await page.evaluate(() => {
+    const viewport = window.visualViewport;
+    Object.defineProperty(viewport, 'height', {configurable: true, value: 310});
+    Object.defineProperty(viewport, 'offsetTop', {configurable: true, value: 90});
+    viewport.dispatchEvent(new Event('resize'));
+  });
+  await page.waitForFunction(() => {
+    const dialog = document.querySelector('[role="dialog"]');
+    const box = dialog?.getBoundingClientRect();
+    return box && box.top >= 90 && box.bottom <= 401;
+  });
+  await dialog.evaluate(node => {node.scrollTop = node.scrollHeight;});
+  const closeBox = await close.boundingBox();
+  assert.ok(closeBox && closeBox.y >= 90 && closeBox.y + closeBox.height <= 400, 'Close stays reachable above the keyboard while the sheet scrolls');
   await page.keyboard.press('Escape');
   await dialog.waitFor({state: 'hidden'});
   assert.ok(await trigger.evaluate(node => node === document.activeElement));

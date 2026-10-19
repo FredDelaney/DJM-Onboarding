@@ -43,7 +43,7 @@ test('player cards do not duplicate opening with a separate Open button', () => 
     /<UserRound size=\{14\}\/> Open/,
   );
   assert.match(players, /\{attention\?\([\s\S]*styles\.playerCardActions/);
-  assert.match(players, /Fix this/);
+  assert.match(players, /Review next step/);
   assert.match(players, /Prepare next move/);
 });
 

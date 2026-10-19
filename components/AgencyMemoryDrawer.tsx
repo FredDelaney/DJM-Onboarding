@@ -1,4 +1,5 @@
 'use client';
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -112,8 +113,7 @@ export default function AgencyMemoryDrawer({
   useEffect(() => {
     if (pageMode) return;
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
 
     const keydown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || undoBusy) return;
@@ -124,7 +124,7 @@ export default function AgencyMemoryDrawer({
     window.addEventListener('keydown', keydown);
 
     return () => {
-      document.body.style.overflow = previous;
+      releaseScroll();
       window.removeEventListener('keydown', keydown);
     };
   }, [onClose, pageMode, undoBusy, undoTarget]);
