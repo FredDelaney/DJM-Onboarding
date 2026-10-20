@@ -1,8 +1,9 @@
 'use client';
 import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import {ArrowLeft,ArrowRight,CheckCircle2,CircleAlert,LoaderCircle,Network,ShieldCheck,Target,X} from 'lucide-react';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
@@ -42,6 +43,7 @@ const money = (
   value: unknown,
   currency = 'EUR',
 ) => {
+  if (!hasRecordedNumber(value)) return 'Not set';
   const amount = Number(value);
 
   if (!Number.isFinite(amount)) {
@@ -111,6 +113,10 @@ export default function AgencyNegotiationCommandRoom({
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
+  const [readError, setReadError] = useState('');
+  const readSequence = useRef(0);
+  const targetOutcomeInput = useRef<HTMLTextAreaElement>(null);
+  const briefSection = useRef<HTMLDetailsElement>(null);
   const [message, setMessage] = useState('');
 
   const [brief, setBrief] = useState<any>(null);
@@ -182,7 +188,10 @@ export default function AgencyNegotiationCommandRoom({
   }, []);
 
   const load = useCallback(async () => {
+    const requestId = ++readSequence.current;
+    const current = () => readSequence.current === requestId;
     setBusy(true);
+    setReadError('');
     setError('');
 
     try {
@@ -194,7 +203,7 @@ export default function AgencyNegotiationCommandRoom({
         pressureResult,
         guardrailResult,
         originResult,
-      ] = await Promise.all([
+      ] = await readWithDeadline(Promise.all([
         invoke('negotiation_brief', {
           deal_room_id: request.dealRoomId,
         }),
@@ -216,7 +225,8 @@ export default function AgencyNegotiationCommandRoom({
         invoke('deal_origin', {
           deal_room_id: request.dealRoomId,
         }),
-      ]);
+      ]));
+      if (!current()) return;
 
       const nextGuardrails =
         guardrailResult?.guardrails || null;
@@ -231,9 +241,9 @@ export default function AgencyNegotiationCommandRoom({
 
       applyGuardrailFields(nextGuardrails);
     } catch (loadError) {
-      setError(friendlyError(loadError));
+      if (current()) setReadError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }, [
     applyGuardrailFields,
@@ -243,6 +253,7 @@ export default function AgencyNegotiationCommandRoom({
 
   useEffect(() => {
     void load();
+    return () => { readSequence.current++; };
   }, [load]);
 
   useEffect(() => {
@@ -524,9 +535,8 @@ export default function AgencyNegotiationCommandRoom({
       nextStep.step_type ===
       'set_negotiation_guardrails'
     ) {
-      setMessage(
-        'Set the private limits before advancing.',
-      );
+      targetOutcomeInput.current?.focus({preventScroll: true});
+      targetOutcomeInput.current?.scrollIntoView({block: 'center'});
       return;
     }
 
@@ -534,9 +544,10 @@ export default function AgencyNegotiationCommandRoom({
       nextStep.step_type ===
       'prepare_negotiation_brief'
     ) {
-      setMessage(
-        'Ready for review. Unset positions stay unset.',
-      );
+      if (briefSection.current) briefSection.current.open = true;
+      const summary = briefSection.current?.querySelector('summary');
+      summary?.focus({preventScroll: true});
+      summary?.scrollIntoView({block: 'center'});
       return;
     }
 
@@ -633,7 +644,7 @@ export default function AgencyNegotiationCommandRoom({
           </div>
 
           <p className={styles.eyebrow}>
-            NEGOTIATION COMMAND ROOM
+            NEGOTIATION
           </p>
 
           <h2>{request.title}</h2>
@@ -661,9 +672,20 @@ export default function AgencyNegotiationCommandRoom({
           </div>
         ) : null}
 
+        {readError ? (
+          <div className={styles.notice + ' ' + styles.error} role="alert">
+            <CircleAlert size={18} />
+            <div>
+              <strong>Could not load negotiation details</strong>
+              <span>{readError}</span>
+              <button type="button" data-ui-button="secondary" className="btn" disabled={busy} onClick={() => void load()}>Try again</button>
+            </div>
+          </div>
+        ) : null}
+
         {error ? (
           <div
-            className={`${styles.notice} ${styles.error}`}
+            className={`${styles.notice} ${styles.error}`} role="alert"
           >
             <CircleAlert size={18} />
             <div>
@@ -677,7 +699,7 @@ export default function AgencyNegotiationCommandRoom({
 
         {message ? (
           <div
-            className={`${styles.notice} ${styles.success}`}
+            className={`${styles.notice} ${styles.success}`} role="status"
           >
             <CheckCircle2 size={18} />
             <div>
@@ -687,7 +709,7 @@ export default function AgencyNegotiationCommandRoom({
           </div>
         ) : null}
 
-        {!busy ? (
+        {!busy && !readError ? (
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
@@ -778,7 +800,7 @@ export default function AgencyNegotiationCommandRoom({
                 <div>
                   <p>PREPARATION SEQUENCE</p>
                   <h3>
-                    Resolve these items first
+                    {list(sequence?.steps).length ? 'Resolve these items first' : 'No preparation steps recorded'}
                   </h3>
                 </div>
               </div>
@@ -827,7 +849,7 @@ export default function AgencyNegotiationCommandRoom({
                   <ArrowRight size={15} />
                   {nextStep.step_type ===
                   'set_negotiation_guardrails'
-                    ? 'Record guardrails below'
+                    ? (canEdit ? 'Record guardrails below' : 'Review guardrails below')
                     : nextStep.step_type ===
                         'prepare_negotiation_brief'
                       ? 'Review negotiation brief'
@@ -836,7 +858,7 @@ export default function AgencyNegotiationCommandRoom({
               ) : null}
 
               <p className={styles.truth}>
-                After completing a task, check that the underlying issue is resolved.
+                {list(sequence?.steps).length ? 'After completing a task, check that the underlying issue is resolved.' : 'Preparation steps will appear here once recorded.'}
               </p>
             </section>
 
@@ -926,6 +948,7 @@ export default function AgencyNegotiationCommandRoom({
                 <label className={styles.full}>
                   <span>Target outcome</span>
                   <textarea
+                    ref={targetOutcomeInput}
                     value={targetOutcome}
                     onChange={(event) =>
                       setTargetOutcome(
@@ -1198,7 +1221,7 @@ export default function AgencyNegotiationCommandRoom({
               </p>
             </section>
 
-            <details className={styles.panel + ' interface-details'}>
+            <details ref={briefSection} className={styles.panel + ' interface-details'}>
               <summary>Recorded facts and open questions</summary>
 
               <div className={styles.grid}>

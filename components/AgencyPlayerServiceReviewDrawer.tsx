@@ -1,8 +1,9 @@
 'use client';
 import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import {ArrowLeft,ArrowRight,CalendarClock,CheckCircle2,CircleAlert,History,LoaderCircle,Target,X} from 'lucide-react';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
@@ -95,6 +96,8 @@ export default function AgencyPlayerServiceReviewDrawer({
   const [busy, setBusy] = useState(true);
   const [captureBusy, setCaptureBusy] = useState(false);
   const [error, setError] = useState('');
+  const [readError, setReadError] = useState('');
+  const readSequence = useRef(0);
   const [message, setMessage] = useState('');
 
   const [reviewPack, setReviewPack] = useState<any>(null);
@@ -104,7 +107,10 @@ export default function AgencyPlayerServiceReviewDrawer({
   const pageMode = presentation === 'page';
 
   const load = useCallback(async () => {
+    const requestId = ++readSequence.current;
+    const current = () => readSequence.current === requestId;
     setBusy(true);
+    setReadError('');
     setError('');
 
     try {
@@ -113,7 +119,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         statementResult,
         historyResult,
         deltaResult,
-      ] = await Promise.all([
+      ] = await readWithDeadline(Promise.all([
         invoke('player_review_pack', {
           player_id: request.playerId,
           proof_window_days: 30,
@@ -129,21 +135,23 @@ export default function AgencyPlayerServiceReviewDrawer({
         invoke('player_value_proof_delta', {
           player_id: request.playerId,
         }),
-      ]);
+      ]));
+      if (!current()) return;
 
       setReviewPack(packResult?.review_pack || null);
       setStatement(statementResult?.statement || null);
       setHistory(historyResult?.history || null);
       setDelta(deltaResult?.delta || null);
     } catch (loadError) {
-      setError(friendlyError(loadError));
+      if (current()) setReadError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }, [invoke, request.playerId]);
 
   useEffect(() => {
     void load();
+    return () => { readSequence.current++; };
   }, [load]);
 
   useEffect(() => {
@@ -372,8 +380,19 @@ export default function AgencyPlayerServiceReviewDrawer({
           </div>
         ) : null}
 
+        {readError ? (
+          <div className={styles.notice + ' ' + styles.error} role="alert">
+            <CircleAlert size={18} />
+            <div>
+              <strong>Could not load the player review</strong>
+              <span>{readError}</span>
+              <button type="button" data-ui-button="secondary" className="btn" disabled={busy} onClick={() => void load()}>Try again</button>
+            </div>
+          </div>
+        ) : null}
+
         {error ? (
-          <div className={`${styles.notice} ${styles.error}`}>
+          <div className={`${styles.notice} ${styles.error}`} role="alert">
             <CircleAlert size={18} />
             <div>
               <strong>Player review needs attention</strong>
@@ -383,7 +402,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         ) : null}
 
         {message ? (
-          <div className={`${styles.notice} ${styles.success}`}>
+          <div className={`${styles.notice} ${styles.success}`} role="status">
             <CheckCircle2 size={18} />
             <div>
               <strong>Recorded</strong>
@@ -392,7 +411,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           </div>
         ) : null}
 
-        {!busy && !error ? (
+        {!busy && !readError ? (
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>

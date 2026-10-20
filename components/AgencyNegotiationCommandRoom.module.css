@@ -707,3 +707,34 @@
   .pagePanel .grid > .fact:nth-child(even) { border-left: 1px solid #efeff1; }
   .pagePanel .grid > .fact:nth-child(n+3) { border-top: 1px solid #efeff1; }
 }
+
+/* Keep the selected record and return action visible inside long detail pages. */
+.pagePanel { max-height: none; }
+.pagePanel .header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #fff;
+}
+.pagePanel .header h2 { overflow-wrap: anywhere; }
+.pagePanel .header::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: -2px;
+  right: -2px;
+  height: 32px;
+  background: #f5f5f7;
+  pointer-events: none;
+}
+@media (max-height: 600px) {
+  .pagePanel .header { padding-block: 12px; }
+  .pagePanel .header .topline { margin-bottom: 8px; }
+  .pagePanel .header .subhead { display: none; }
+  .pagePanel .header h2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+}

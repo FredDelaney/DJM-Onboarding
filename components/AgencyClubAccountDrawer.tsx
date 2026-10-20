@@ -1,5 +1,6 @@
 'use client';
 import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { hasRecordedNumber } from '@/lib/recorded-number';
 import {
   ArrowLeft,
   ArrowRight,
@@ -77,6 +78,7 @@ const money = (
   value: unknown,
   currency = 'EUR',
 ) => {
+  if (!hasRecordedNumber(value)) return 'Not set';
   const amount = Number(value);
 
   if (!Number.isFinite(amount)) {
@@ -441,7 +443,7 @@ export default function AgencyClubAccountDrawer({
     clean(
       bestIntro?.recommended_action,
     ) ||
-    'Review the strongest route first.';
+    'No next step recorded. Open Opportunities to review this club.';
 
   const nextMoveLabel =
     String(

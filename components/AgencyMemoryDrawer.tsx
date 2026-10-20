@@ -1,5 +1,6 @@
 'use client';
 import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import styles from './AgencyMemoryDrawer.module.css';
@@ -74,6 +75,8 @@ export default function AgencyMemoryDrawer({
   const [busy, setBusy] = useState(true);
   const [undoBusy, setUndoBusy] = useState(false);
   const [error, setError] = useState('');
+  const [readError, setReadError] = useState('');
+  const readSequence = useRef(0);
   const [message, setMessage] = useState('');
   const [brief, setBrief] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -82,32 +85,37 @@ export default function AgencyMemoryDrawer({
   const pageMode = presentation === 'page';
 
   const load = useCallback(async () => {
+    const requestId = ++readSequence.current;
+    const current = () => readSequence.current === requestId;
     setBusy(true);
+    setReadError('');
     setError('');
 
     try {
       const [briefResult, historyResult, learningResult] =
-        await Promise.all([
+        await readWithDeadline(Promise.all([
           invoke('brief', {
             window_hours: 168,
             decision_limit: 12,
           }),
           invoke('action_history', { limit: 30 }),
           invoke('learning_center'),
-        ]);
+        ]));
+      if (!current()) return;
 
       setBrief(briefResult?.brief || null);
       setHistory(list(historyResult?.actions));
       setLearning(learningResult?.learning || null);
     } catch (loadError) {
-      setError(friendlyError(loadError));
+      if (current()) setReadError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }, [invoke]);
 
   useEffect(() => {
     void load();
+    return () => { readSequence.current++; };
   }, [load]);
 
   useEffect(() => {
@@ -216,7 +224,7 @@ export default function AgencyMemoryDrawer({
 
           <p className={styles.eyebrow}>AGENCY MEMORY</p>
           <h2>
-            What changed. What was decided. What ReDream has actually learned.
+            Activity and decisions
           </h2>
           <p className={styles.subhead}>
             Your agency’s recorded information, actions and outcomes.
@@ -235,8 +243,19 @@ export default function AgencyMemoryDrawer({
           </div>
         ) : null}
 
+        {readError ? (
+          <div className={styles.notice + ' ' + styles.error} role="alert">
+            <CircleAlert size={18} />
+            <div>
+              <strong>Could not load agency history</strong>
+              <span>{readError}</span>
+              <button type="button" data-ui-button="secondary" className="btn" disabled={busy} onClick={() => void load()}>Try again</button>
+            </div>
+          </div>
+        ) : null}
+
         {error ? (
-          <div className={`${styles.notice} ${styles.error}`}>
+          <div className={`${styles.notice} ${styles.error}`} role="alert">
             <CircleAlert size={18} />
             <div>
               <strong>Agency Memory needs attention</strong>
@@ -246,7 +265,7 @@ export default function AgencyMemoryDrawer({
         ) : null}
 
         {message ? (
-          <div className={`${styles.notice} ${styles.success}`}>
+          <div className={`${styles.notice} ${styles.success}`} role="status">
             <CheckCircle2 size={18} />
             <div>
               <strong>Recorded</strong>
@@ -255,13 +274,13 @@ export default function AgencyMemoryDrawer({
           </div>
         ) : null}
 
-        {!busy ? (
+        {!busy && !readError ? (
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
                 <p>OPERATING MEMORY</p>
                 <h3>
-                  {brief?.headline || 'Agency movement is recorded.'}
+                  {brief?.headline || (movement.length || history.length ? 'Recent agency activity' : 'No activity recorded yet')}
                 </h3>
                 <span>
                   {brief?.subheadline ||
