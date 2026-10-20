@@ -29,8 +29,11 @@ New database migrations, in order:
 
 1. `20261020162412_tell_redream_task_updates.sql`
 2. `20261020164842_close_resolved_capture_reviews.sql`
+3. `20261020172347_restore_missing_tell_undo_dependency.sql`
 
 The first adds narrowly granted task-context, action-state, task-update and dismissal APIs, extends approval and Undo while preserving the deployed email/ownership behaviour, and keeps dismissed actions final. The second closes only resolved `tell_djm_action_review` rows through a private trigger. There is no new data table or raw browser table grant.
+
+The third restores the existing production internal Undo helper only where it is absent. It leaves existing definitions untouched and grants no browser/API execution. The live staging canary found this historical dependency missing when undoing an ordinary note; regression coverage now executes the real helper for notes and created follow-ups instead of stubbing it.
 
 Functions:
 

@@ -24,7 +24,8 @@ before(async () => {
     create table djm_os.team_members(user_id uuid,display_name text,is_active boolean);
     create table djm_os.captures(id uuid primary key default gen_random_uuid(),tenant_id uuid,submitted_by uuid,transcript_text text,status text,completed_at timestamptz,receipt_json jsonb,person_id uuid,organisation_id uuid,player_id uuid,processing_version text default 'tell_djm_v1');
     create table platform.calendar_tasks(id uuid primary key default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,title text,status text,due_on date,due_time time,time_zone text,due_at timestamptz,archived_at timestamptz,revision integer default 1,updated_at timestamptz default now());
-    create table djm_os.tasks(id uuid primary key default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,title text,status text,due_at timestamptz,completed_at timestamptz,updated_at timestamptz,person_id uuid,organisation_id uuid,player_id uuid,interaction_id uuid);
+    create table djm_os.tasks(id uuid primary key default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,title text,status text,due_at timestamptz,completed_at timestamptz,updated_at timestamptz,person_id uuid,organisation_id uuid,player_id uuid,interaction_id uuid,source text);
+    create table djm_os.interactions(id uuid primary key default gen_random_uuid(),tenant_id uuid,source_type text);
     create table djm_os.people(id uuid,tenant_id uuid,full_name text);
     create table djm_os.organisations(id uuid,tenant_id uuid,name text);
     create table public.players(id uuid,tenant_id uuid,first_name text,last_name text);
@@ -45,10 +46,10 @@ before(async () => {
       return jsonb_build_object('status','applied','target_id',tid); end$$;
     create function public.redream_ai_apply_scout_observation(uuid,text,integer,numeric,text,jsonb) returns jsonb language sql as $$select '{}'::jsonb$$;
     create function public.redream_ai_complete_email_thread_task(uuid,text,integer,numeric,text,jsonb) returns jsonb language sql as $$select '{}'::jsonb$$;
-    create function public.redream_ai_undo_action_core_pre_email(uuid) returns jsonb language sql as $$select '{}'::jsonb$$;
   `);
   await db.exec(readFileSync('supabase/migrations/20261020162412_tell_redream_task_updates.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261020164842_close_resolved_capture_reviews.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261020172347_restore_missing_tell_undo_dependency.sql','utf8'));
   await db.query("insert into platform.tenant_memberships values($1,$2,'active','agent'),($1,$3,'active','agent'),($4,$2,'active','agent')",[tenant,user,other,foreign]);
   await db.query("insert into djm_os.tell_djm_permissions values($1,$2,true,'full')",[tenant,user]);
   await db.query("insert into djm_os.team_members values($1,'Example Agent',true),($2,'Example Colleague',true)",[user,other]);
@@ -74,6 +75,23 @@ test('completion, duplicate retry and Undo use the existing action ledger', asyn
   assert.equal(await value('status from djm_os.tasks where id=$1',[t.id]),'open');
   assert.equal((await value('public.redream_ai_undo_action($1)',[result.action_id])).duplicate,true);
   assert.equal((await apply('complete',payload(t))).status,'undone');
+});
+
+test('restored internal Undo handles ordinary notes and follow-ups without exposing its helper', async () => {
+  const note=(await db.query<any>("insert into djm_os.interactions(tenant_id,source_type) values($1,'tell_djm') returning id",[tenant])).rows[0];
+  const followup=await task();
+  for(const [key,type,target] of [['undo-note','log_interaction',note.id],['undo-followup','create_task',followup.id]]){
+    await db.query("update djm_os.tasks set source='tell_djm:'||$1||':'||$2,updated_at=now() where id=$3",[capture,key,followup.id]);
+    const a=(await db.query<any>("insert into djm_os.tell_djm_actions(tenant_id,capture_id,action_hash,action_type,status,target_id,undo_supported,applied_at) values($1,$2,$3,$4,'applied',$5,true,now()) returning id",[tenant,capture,key,type,target])).rows[0];
+    assert.equal((await value('public.redream_ai_undo_action($1)',[a.id])).undone,true);
+    assert.equal(await value('status from djm_os.tell_djm_actions where id=$1',[a.id]),'undone');
+  }
+  assert.equal(await value('count(*)::integer from djm_os.interactions where id=$1',[note.id]),0);
+  assert.equal(await value('count(*)::integer from djm_os.tasks where id=$1',[followup.id]),0);
+  assert.equal(await value("has_function_privilege('authenticated','public.redream_ai_undo_action_core_pre_email(uuid)','execute')"),false);
+  const before=await value("pg_get_functiondef('public.redream_ai_undo_action_core_pre_email(uuid)'::regprocedure)");
+  await db.exec(readFileSync('supabase/migrations/20261020172347_restore_missing_tell_undo_dependency.sql','utf8'));
+  assert.equal(await value("pg_get_functiondef('public.redream_ai_undo_action_core_pre_email(uuid)'::regprocedure)"),before);
 });
 test('a stale proposal and another person or workspace task cannot mutate', async () => {
   const t=await task(); await db.query("update djm_os.tasks set title='New objective' where id=$1",[t.id]);
