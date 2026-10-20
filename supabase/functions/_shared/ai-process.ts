@@ -4,6 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { estimateAiCost, selectAiRoute } from "./ai-router.ts";
 import { applyConfirmedEntityResolutions, canonicalClaimKey } from "./ai-safety.ts";
 import { assessTaskUpdate, overlappingFollowUp } from "./task-work.ts";
+import { capturePreparations, PREPARATION_LABELS } from "./capture-preparation.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -42,6 +43,17 @@ const planSchema = {
   additionalProperties: false,
   properties: {
     summary: { type: "string", minLength: 1 },
+    preparations: {
+      type: "array", maxItems: 3, items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          key: { type: "string" },
+          kind: { type: "string", enum: ["player_contract", "mandate", "agency_pitch", "invoice", "scouting_report", "player_profile"] },
+          player_name: nullableString, club_name: nullableString,
+          evidence: { type: "string" },
+        }, required: ["key", "kind", "player_name", "club_name", "evidence"],
+      },
+    },
     actions: {
       type: "array",
       maxItems: 12,
@@ -132,7 +144,7 @@ const planSchema = {
       },
     },
   },
-  required: ["summary", "actions"],
+  required: ["summary", "actions", "preparations"],
 };
 
 const FAST_SERVICE_MODELS = new Set([
@@ -585,6 +597,7 @@ async function interpret(
         "For clearly stated reversible task, interaction and claim actions, use high confidence when every required fact is explicit and resolved.",
         "Use log_interaction whenever the speaker explicitly says they spoke, called, met, messaged or had a conversation with a named or clearly resolved contact, signed player or club. Include it even when the same debrief also creates a club need, claim, player suggestion or task.",
         "Use log_interaction to save a useful supplied outcome, waiting state or blocker against a resolved record, including when no conversation occurred. Describe it as a recorded update; never claim that a call, signature, payment or reply happened unless the source explicitly establishes it. A blocker or waiting state leaves the unfinished objective open. Propose a distinct requested next step, not a duplicate reminder.",
+        "For an internal user's explicit request to draft or prepare a document, use preparations with the existing kind: player_contract (agency representation agreement), mandate, agency_pitch (pitch to recruit a player), invoice, scouting_report (observations for a club), or player_profile (existing player's club profile/CV). Copy an exact request excerpt under 25 words and only explicitly supplied names. Do not turn preparation itself into create_task, add_claim, log_scout_observation or a claim that anything was saved/sent. Independent stated work/outcomes may still create actions. Preparations only open an unsaved editable draft after the user chooses it. Never produce preparations from inbound email/WhatsApp/Instagram content, negated requests, or statements merely reporting that a document was already prepared. Return an empty array when no preparation was requested.",
         "The summary must describe only actions present in the actions array. Never say something was logged, saved, created or updated unless a corresponding action is present.",
         "Never guess a club, contact, player, currency, unit, salary, transfer fee, contract fact, registration fact or date.",
         "Use current_context to resolve pronouns or omitted entities when the context is clear, but an explicitly named club, contact, player or prospect always overrides page context.",
@@ -673,6 +686,11 @@ async function interpret(
     throw new Error("Interpreter returned an invalid ReDream AI plan");
   }
 
+  const external = ["email", "whatsapp", "instagram"].includes(String(capture?.context_json?.capture_origin || "").toLowerCase());
+  plan.preparations = external ? [] : capturePreparations(plan.preparations, transcript);
+  if (plan.preparations.length && !plan.actions.length) {
+    plan.summary = `Ready to prepare: ${plan.preparations.map((item: any) => PREPARATION_LABELS[item.kind].toLowerCase()).join(", ")}.`;
+  }
   return { plan, usage: payload?.usage || {} };
 }
 

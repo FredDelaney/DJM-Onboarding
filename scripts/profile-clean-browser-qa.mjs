@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 const browser = await chromium.launch({executablePath: process.env.CALENDAR_CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage']});
 const failures = [];
 try {
-  for (const scenario of process.env.PROFILE_CLEAN_SCENARIOS?.split(',') || ['compact', 'prepare', 'queued', 'fresh', 'context', 'context-failed', 'context-timeout', 'failure', 'links', 'layout']) {
+  for (const scenario of process.env.PROFILE_CLEAN_SCENARIOS?.split(',') || ['brief', 'compact', 'prepare', 'queued', 'fresh', 'context', 'context-failed', 'context-timeout', 'failure', 'links', 'layout']) {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
     const calls = [], errors = []; page.on('pageerror', error => errors.push(error.message));
     let refreshed = false, saved = null, failed = scenario === 'failure', delayApply = scenario === 'context-timeout', releaseApply, statusReads = 0;
@@ -21,6 +21,7 @@ try {
         if (scenario === 'links') data.shares.unshift(...Array.from({length: 12}, (_, i) => ({id: 'active-' + i, club_name: 'Current club ' + i, active: true, expires_at: '2099-01-01T00:00:00Z', view_count: 0})));
         value = {profile: data};
       }
+      else if (action === 'redream_ai_receipt') value = {capture: {id: '30000000-0000-4000-8000-000000000001', transcript_text: 'Prepare Example Player club profile. He played 17 senior matches. Private medical note.'}, preparations: [{key: 'profile_1', kind: 'player_profile', player_name: 'Example Player', club_name: null, evidence: 'Prepare Example Player club profile.'}]};
       else if (action === 'player_data_status') value = {job: {id: 'stats-check', status: refreshed && scenario === 'queued' && ++statusReads < 3 ? 'running' : refreshed && scenario === 'context-failed' ? 'failed' : 'applied', summary: {message: refreshed && scenario === 'context-failed' ? 'Reliable new figures could not be confirmed.' : 'Source check completed. Recorded figures were retained where no reliable change was found.', checked_at: '2026-10-15T12:00:00Z'}}};
       else if (action === 'player_data_refresh') {refreshed = true; value = {job: {id: 'stats-check', status: 'queued'}};}
       else if (action === 'player_context_research') value = {proposal: {fields: {current_club: 'Suggested FC'}, confidence: 0.96, reason: 'The competition profile confirms the current squad.', sources: [{title: 'Official player page', url: 'https://example.test/player'}]}};
@@ -37,12 +38,26 @@ try {
     });
     try {
       const url = new URL('/qa-profile-clean', process.env.CALENDAR_QA_URL || 'http://127.0.0.1:3113');
+      if(scenario==='brief'){url.searchParams.set('capture','30000000-0000-4000-8000-000000000001');url.searchParams.set('preparation','profile_1');}
       const initialStatus = page.waitForResponse(response => response.request().postDataJSON()?.action === 'player_data_status');
       for (let i = 0; i < 60; i++) {try {await page.goto(url.href); break;} catch (error) {if (i === 59) throw error; await page.waitForTimeout(250);}}
       await page.getByRole('heading', {name: 'Example Player', exact: true}).waitFor();
       await initialStatus;
       await page.getByText('Source check finished', {exact: true}).waitFor({state: 'attached'});
-      if (scenario === 'compact') {
+      if (scenario === 'brief') {
+        const panel=page.getByRole('region',{name:'Tell ReDream preparation'});
+        const brief=panel.getByRole('textbox',{name:'Review your brief'});
+        await brief.waitFor();assert.match(await brief.inputValue(),/Private medical note/);
+        await panel.getByRole('button',{name:'Open profile preparation',exact:true}).click();
+        await page.getByRole('button',{name:'Prepare general profile',exact:true}).click();
+        const introduction=page.getByRole('textbox',{name:'Why this player?',exact:true});
+        await introduction.waitFor();assert.ok(!(await introduction.inputValue()).includes('Private medical'));
+        await brief.fill('He played 17 senior matches.');
+        await panel.getByRole('button',{name:'Use reviewed brief as introduction',exact:true}).click();
+        assert.equal(await introduction.inputValue(),'He played 17 senior matches.');
+        assert.equal(calls.filter(call=>['player_profile_save','player_profile_version_save','player_profile_publish','profile_share_create'].includes(call.action)).length,0);
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      } else if (scenario === 'compact') {
         if (process.env.PROFILE_CLEAN_SCREENSHOT_DIR) {await mkdir(process.env.PROFILE_CLEAN_SCREENSHOT_DIR, {recursive: true}); await page.screenshot({path: process.env.PROFILE_CLEAN_SCREENSHOT_DIR + '/clean-profile-390.png', fullPage: true});}
         assert.equal(await page.getByText('Source check finished', {exact: true}).isVisible().catch(() => false), false, 'A completed old check does not occupy the default profile');
         assert.equal(await page.getByText('No conversations linked to this player yet.', {exact: true}).isVisible().catch(() => false), false, 'Empty activity does not occupy a separate card');
