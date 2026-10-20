@@ -57,7 +57,7 @@ try{
   await captureError.getByRole('button',{name:'Try again',exact:true}).click();
   await page.getByPlaceholder('Spoke to Chris at Wellington. They need a striker...',{exact:true}).waitFor();
   assert.equal(await captureError.count(),0);
-  assert.ok(await page.getByText('Say or type an update. Review and approve the changes before they are saved.',{exact:true}).evaluate(node=>parseFloat(getComputedStyle(node).fontSize)>=14),'Capture instruction too small');
+  assert.ok(await page.getByText('Clear task completions save with Undo. Review other changes before saving.',{exact:true}).evaluate(node=>parseFloat(getComputedStyle(node).fontSize)>=14),'Capture instruction too small');
   assert.equal(await page.getByRole('textbox',{name:'Your update',exact:true}).count(),1);
   if(width===390)await page.screenshot({path:join(artifactDir,'capture-mobile.png')});
   assert.equal(await page.getByPlaceholder('Spoke to Chris at Wellington. They need a striker...',{exact:true}).inputValue(),'Call the sporting director','Retry lost the shared update');
