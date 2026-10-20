@@ -49,6 +49,8 @@ Focused domain, actual PostgreSQL/PGlite and worker-handler tests cover objectiv
 
 Browser fixtures cover the invitation journey, truthful mixed-action receipts, reviewed choices, failed-action retry, dismissal, Undo, Ask-to-task handoff, provider states and stale workspace reads. Widths include 320, 390, 768 and 1440 pixels. All writes use synthetic intercepted APIs. The established profile/document/overlay and core-workspace suites remain in CI. These are simulated mobile checks, not physical iPhone/Safari acceptance.
 
+Session regressions also hold an edit response across sign-out to verify that it cannot restore the previous user's transcript. Signing out invalidates capture requests and stops recording. Duplicate typed submissions are synchronously guarded. A successful idempotent Undo response refreshes the known capture even when the response omits its capture ID.
+
 The first hosted staging database canary verified completion, duplicate retry, context scope, API grants and Undo in a rolled-back synthetic transaction. Staging security advisors reported no new notices. Hosted function/provider requests and final deployment identities must be verified in the release report; a successful build alone is insufficient.
 
 The actual reported Alex invitation is not identifiable from the brief. Its exact historical failure is not claimed reproduced; the concrete disabled-button and load-recovery problems were reproduced with synthetic invitations. Individual provider account reconnection, real email delivery and physical-device permission flows remain account/device acceptance checks.

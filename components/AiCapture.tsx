@@ -274,8 +274,11 @@ export default function AiCapture({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [approvingCapture, setApprovingCapture] = useState(false);
   const [editingCapture, setEditingCapture] = useState(false);
+  const actionInFlight = useRef(false);
+  const [actionBusy, setActionBusy] = useState(false);
 
   const recordingRequestRef = useRef(false);
+  const textRequestRef = useRef(false);
   const lifecycleRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -310,7 +313,18 @@ export default function AiCapture({
       const key=userId&&workspaceSlug&&workspaceSlug!=='unresolved'?aiTextDraftKey(userId,workspaceSlug,typedContext):null;
       if(key===typedKey.current&&!changedUser)return;
       typedKey.current=key;
-      if(changedUser){setText('');setReceipt(null);setError('');typedEdited.current=false;}
+      if(changedUser){
+        lifecycleRef.current++;setText('');setReceipt(null);setError('');setStatus('');typedEdited.current=false;
+        setUnsavedDraft(null);setBusy(false);setApprovingCapture(false);setEditingCapture(false);setDeletingCapture(false);setAnswering(null);
+        textRequestRef.current=false;actionInFlight.current=false;setActionBusy(false);
+        recordingRequestRef.current=false;displayCaptureRef.current=null;
+        pollingRef.current.forEach(controller=>controller.abort());pollingRef.current.clear();
+        const recorder=recorderRef.current;
+        if(recorder){recorder.onstop=null;if(recorder.state!=='inactive')recorder.stop();}
+        streamRef.current?.getTracks().forEach(track=>track.stop());
+        if(timerRef.current!==null)window.clearInterval(timerRef.current);
+        timerRef.current=null;chunksRef.current=[];setRecording(false);
+      }
       if(!key)return;
       try{
         if(!changedUser&&(typedEdited.current||initialText.trim())){writeAiTextDraft(sessionStorage,key,currentText.current||initialText.trim());return;}
@@ -586,6 +600,7 @@ export default function AiCapture({
   useEffect(() => () => stopTracks(), []);
 
   const persistDraft = async (pending: PendingAiCapture) => {
+    const generation=lifecycleRef.current;
     setUnsavedDraft(pending);
     setBusy(true);
     setError('');
@@ -596,6 +611,7 @@ export default function AiCapture({
       upload: uploadPending,
       online: () => navigator.onLine,
     });
+    if(generation!==lifecycleRef.current||!mountedRef.current)return;
     setBusy(false);
     if (result.state === 'unsaved') {
       setStatus('Not saved. Keep this screen open and try again.');
@@ -679,6 +695,7 @@ export default function AiCapture({
       };
 
       recorder.onstop = () => {
+        if(lifecycle!==lifecycleRef.current||!mountedRef.current){stopTracks();return;}
         const duration = Math.max(
           1,
           Math.round((Date.now() - startedAtRef.current) / 1000),
@@ -709,8 +726,7 @@ export default function AiCapture({
       setRecording(false);
       if (mountedRef.current) setError(friendlyError(recordError));
     } finally {
-      recordingRequestRef.current = false;
-      if (mountedRef.current) setBusy(false);
+      if(lifecycle===lifecycleRef.current){recordingRequestRef.current = false;if (mountedRef.current) setBusy(false);}
     }
   };
 
@@ -720,10 +736,14 @@ export default function AiCapture({
   };
 
   const submitText = async () => {
-    if (!text.trim() || busy || unsavedDraft) return;
+    if (!text.trim() || busy || unsavedDraft || textRequestRef.current) return;
+    textRequestRef.current=true;
+    const generation=lifecycleRef.current;
 
     setBusy(true);
-    const { data: { session } } = await supabase.auth.getSession();
+    try {
+    const { data: { session } } = await readWithDeadline(supabase.auth.getSession());
+    if(generation!==lifecycleRef.current||!mountedRef.current)return;
     if (!session) { setBusy(false); setError('Sign in to save.'); return; }
     const id = crypto.randomUUID();
     const pending: PendingAiCapture = {
@@ -743,12 +763,15 @@ export default function AiCapture({
     };
 
     await persistDraft(pending);
+    }catch(error){if(generation===lifecycleRef.current)setError(friendlyError(error));}
+    finally{if(generation===lifecycleRef.current){textRequestRef.current=false;setBusy(false);}}
   };
 
   const answerQuestion = async (
     questionId: string,
     candidate: Record<string, any>,
   ) => {
+    const generation=lifecycleRef.current;
     setAnswering(questionId);
     setError('');
     try {
@@ -757,6 +780,7 @@ export default function AiCapture({
         p_value: candidate,
       }, workspaceSlug);
 
+      if(generation!==lifecycleRef.current||!mountedRef.current)return;
       if (result?.capture_id) {
         setStatus('Got it. Preparing suggestions...');
         try {
@@ -770,14 +794,12 @@ export default function AiCapture({
         void pollReceipt(result.capture_id);
       }
     } catch (questionError) {
-      setError(friendlyError(questionError));
+      if(generation===lifecycleRef.current)setError(friendlyError(questionError));
     } finally {
-      setAnswering(null);
+      if(generation===lifecycleRef.current)setAnswering(null);
     }
   };
 
-  const actionInFlight = useRef(false);
-  const [actionBusy, setActionBusy] = useState(false);
   const dismissAction = async (actionId: string) => {
     if (actionInFlight.current) return;
     actionInFlight.current = true;
@@ -790,7 +812,7 @@ export default function AiCapture({
     } catch (error) {
       if (generation === lifecycleRef.current) setError(friendlyError(error));
     } finally {
-      actionInFlight.current = false; setActionBusy(false);
+      if(generation===lifecycleRef.current){actionInFlight.current = false; setActionBusy(false);}
     }
   };
   const undoAction = async (actionId: string) => {
@@ -804,12 +826,12 @@ export default function AiCapture({
         p_action_id: actionId,
       }, workspaceSlug));
       if (generation !== lifecycleRef.current || !mountedRef.current) return;
-      if (next?.capture_id) void pollReceipt(next.capture_id);
+      const captureId=next?.capture_id||receipt?.capture?.id;
+      if (captureId) void pollReceipt(captureId);
     } catch (undoError) {
-      setError(friendlyError(undoError));
+      if(generation===lifecycleRef.current)setError(friendlyError(undoError));
     } finally {
-      actionInFlight.current = false;
-      setActionBusy(false);
+      if(generation===lifecycleRef.current){actionInFlight.current = false;setActionBusy(false);}
     }
   };
 
@@ -817,12 +839,14 @@ export default function AiCapture({
     const captureId = receipt?.capture?.id;
     if (!captureId) return;
 
+    const generation=lifecycleRef.current;
     setError('');
     setStatus('Retrying...');
     try {
       const result: any = await platformRpc('redream_ai_retry_capture', {
         p_capture_id: captureId,
       }, workspaceSlug);
+      if(generation!==lifecycleRef.current||!mountedRef.current)return;
       if (result?.capture_id) {
         rememberActiveAiCapture(result.capture_id, workspaceSlug, workspace);
         try {
@@ -835,6 +859,7 @@ export default function AiCapture({
         void pollReceipt(result.capture_id);
       }
     } catch (retryError) {
+      if(generation!==lifecycleRef.current)return;
       setStatus('');
       setError(friendlyError(retryError));
     }
@@ -869,8 +894,7 @@ export default function AiCapture({
       setStatus('');
       setError(friendlyError(approvalError));
     } finally {
-      actionInFlight.current = false;
-      setApprovingCapture(false);
+      if(generation===lifecycleRef.current){actionInFlight.current = false;setApprovingCapture(false);}
     }
   };
 
@@ -878,6 +902,7 @@ export default function AiCapture({
     const captureId = receipt?.capture?.id;
     const transcript = String(receipt?.capture?.transcript_text || '').trim();
     if (!captureId || !transcript || editingCapture) return;
+    const generation=lifecycleRef.current;
 
     setEditingCapture(true);
     setError('');
@@ -887,6 +912,7 @@ export default function AiCapture({
         { p_capture_id: captureId },
         workspaceSlug,
       );
+      if(generation!==lifecycleRef.current||!mountedRef.current)return;
       forgetActiveAiCapture(captureId);
       displayCaptureRef.current = null;
       setReceipt(null);
@@ -894,9 +920,9 @@ export default function AiCapture({
       changeTypedText(transcript);
       setStatus('Edit the note, then send it again.');
     } catch (editError) {
-      setError(friendlyError(editError));
+      if(generation===lifecycleRef.current)setError(friendlyError(editError));
     } finally {
-      setEditingCapture(false);
+      if(generation===lifecycleRef.current)setEditingCapture(false);
     }
   };
 
@@ -904,6 +930,7 @@ export default function AiCapture({
     const captureId = receipt?.capture?.id;
     if (!captureId || deletingCapture) return;
 
+    const generation=lifecycleRef.current;
     setDeletingCapture(true);
     setError('');
 
@@ -912,6 +939,7 @@ export default function AiCapture({
         p_capture_id: captureId,
       }, workspaceSlug);
 
+      if(generation!==lifecycleRef.current||!mountedRef.current)return;
       forgetActiveAiCapture(captureId);
       displayCaptureRef.current = null;
       setReceipt(null);
@@ -924,9 +952,9 @@ export default function AiCapture({
         },
       });
     } catch (deleteError) {
-      setError(friendlyError(deleteError));
+      if(generation===lifecycleRef.current)setError(friendlyError(deleteError));
     } finally {
-      setDeletingCapture(false);
+      if(generation===lifecycleRef.current)setDeletingCapture(false);
     }
   };
 
