@@ -130,7 +130,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      if(screen==='voice')await page.getByRole('button',{name:'Type instead',exact:true}).waitFor();
      else if(screen==='text')await page.getByRole('textbox',{name:'Your update',exact:true}).waitFor();
      else if(screen==='review')await page.getByRole('button',{name:'Approve & save',exact:true}).waitFor();
-     else await page.getByText('Approved changes saved.',{exact:false}).waitFor();
+     else await page.getByText('Follow-up created',{exact:true}).waitFor();
     }
     if(suite==='setup') {
      if(screen==='owner_setup_complete')await page.getByText('Owner setup complete',{exact:true}).waitFor();

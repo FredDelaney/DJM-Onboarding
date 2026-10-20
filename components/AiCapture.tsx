@@ -1336,10 +1336,6 @@ export default function AiCapture({
           </div> : null}
           {verifiedComplete ? (
             <div className={styles.completeActions}>
-              <div>
-                <strong>Update complete</strong>
-                <span>{hasAppliedActions ? 'Changes saved. Ready for the next update.' : 'Ready for the next update.'}</span>
-              </div>
               <button
                 type="button"
                 className={styles.secondary}
