@@ -152,7 +152,7 @@ test("the existing one-call interpreter returns source-grounded preparation meta
               {
                 type: "output_text",
                 text: JSON.stringify({
-                  summary: "Review your preparation",
+                  summary: "Prepared and shared the player pitch",
                   actions: [],
                   preparations: [intent],
                 }),
@@ -171,6 +171,7 @@ test("the existing one-call interpreter returns source-grounded preparation meta
     notes,
   );
   assert.equal(calls, 1);
+  assert.equal(result.plan.summary, "Ready to prepare: player pitch.");
   assert.equal(result.plan.actions.length, 0);
   assert.deepEqual(JSON.parse(JSON.stringify(result.plan.preparations)), [
     intent,

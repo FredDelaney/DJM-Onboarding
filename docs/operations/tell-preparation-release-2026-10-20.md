@@ -24,3 +24,7 @@ Validate staging before production. Merge only the exact reviewed head with succ
 Automated tests mock model requests and use isolated PostgreSQL/PGlite. Coverage includes six intent kinds, source grounding, malformed/duplicate/negated requests, unmentioned identities, inbound-message exclusion, identifier-only workspace links, unique exact player matching, denied cross-tenant/unauthorised/disabled-Tell reads, preserved invoker security and zero automatic action writes.
 
 Browser fixtures exercise all five document drafts, an explicit suggestion/application, the real profile preparation editor, private notes versus recipient text, no automatic save/share, recoverable reads, a genuine Tell receipt entrypoint and 320/390/768/1440 pixel layouts. Existing Word/PDF renderers and templates are reused. These viewport checks do not claim physical iPhone/Safari acceptance.
+
+## Hosted staging acceptance
+
+The authorised synthetic Northstar note produced both `agency_pitch` and `player_profile` preparations in one 2,953 ms interpretation, with zero action rows. The real document link opened Northstar's existing editor, prefilled the explicitly supplied prospect name and retained the full private note in the assistance brief. No document or roster row was created. The canary exposed a model summary claiming drafts were already prepared; preparation-only summaries are now composed from the validated intent labels and cannot claim a save or share. This correction is covered by a mocked-model regression with deliberately false model summary text.

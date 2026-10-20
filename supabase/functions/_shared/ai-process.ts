@@ -4,7 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { estimateAiCost, selectAiRoute } from "./ai-router.ts";
 import { applyConfirmedEntityResolutions, canonicalClaimKey } from "./ai-safety.ts";
 import { assessTaskUpdate, overlappingFollowUp } from "./task-work.ts";
-import { capturePreparations } from "./capture-preparation.ts";
+import { capturePreparations, PREPARATION_LABELS } from "./capture-preparation.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -688,6 +688,9 @@ async function interpret(
 
   const external = ["email", "whatsapp", "instagram"].includes(String(capture?.context_json?.capture_origin || "").toLowerCase());
   plan.preparations = external ? [] : capturePreparations(plan.preparations, transcript);
+  if (plan.preparations.length && !plan.actions.length) {
+    plan.summary = `Ready to prepare: ${plan.preparations.map((item: any) => PREPARATION_LABELS[item.kind].toLowerCase()).join(", ")}.`;
+  }
   return { plan, usage: payload?.usage || {} };
 }
 
