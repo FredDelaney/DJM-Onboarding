@@ -379,3 +379,16 @@
 
 .shell:not(.compact) .prompt strong { color: #f3f6f8; }
 .shell:not(.compact) .prompt span { color: #a9bdcb; }
+
+.provenance > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.provenance > summary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

@@ -55,13 +55,14 @@ type AgentProps = {
   context?: EntityContext;
   onBusyChange: (busy: boolean) => void;
   onNavigate?: () => void;
+  onPrepareAction?: (text: string) => void;
 };
 
 export default function AiAgentAnswer(props: AgentProps) {
   return <AgentConversation key={JSON.stringify([props.workspaceSlug, props.context || {}])} {...props} />;
 }
 
-function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate }: AgentProps) {
+function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, onPrepareAction }: AgentProps) {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [busy, setBusy] = useState(false);
@@ -161,7 +162,9 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate }:
       {answer.uncertainties?.length ? <details className={styles.disclosure}><summary>Missing information and blockers · {answer.uncertainties.length}</summary>
         <ul>{answer.uncertainties.map((item, index) => <li key={index}><AnswerText text={item} /></li>)}</ul>
       </details> : null}
-      {answer.next_action ? <div className={styles.next}><span>Next action</span><p>{answer.next_action}</p></div> : null}
+      {answer.next_action ? <div className={styles.next}><span>Next action</span><p>{answer.next_action}</p>
+        {onPrepareAction ? <button type="button" className="btn btn-outline" onClick={() => onPrepareAction(`Create a task for me: ${answer.next_action}`)}>Review as a task</button> : null}
+      </div> : null}
       {(answer.internal_matches || []).length ? <div className={styles.records}>
         {(answer.internal_matches || []).map(record => {
           const href = recordHref(record.kind, record.id, workspaceSlug);

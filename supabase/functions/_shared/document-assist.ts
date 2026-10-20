@@ -107,6 +107,7 @@ export const documentAssistInstructions = [
   "Use ONLY the supplied brief and existing document. Do not retrieve or invent facts, sources, statistics, ratings, credentials, promises, services, authority, fees, approvals, dates or payment details.",
   "A named player may be an unsigned prospect. Never imply existing agency representation unless explicitly established by the brief.",
   "For each field suggestion quote the exact supporting words from notes in quote. Omit unsupported fields and do not repeat unchanged fields. Normalize explicitly supplied dates to YYYY-MM-DD; ask about ambiguous dates.",
+  "Use only the exact field keys in allowed_field_keys. Do not invent, rename or translate a key. A field's supporting quote must be copied verbatim from notes, including capitalisation and punctuation.",
   "For contracts, mandates and invoices suggest allowed fields only. Never rewrite their clauses, terms, tax treatment, invoice lines, bank instructions or payment links. Do not offer legal advice.",
   "For a pitch or scouting report, draft only the supplied sections. Preserve their IDs. Use brief, plain paragraphs with useful line breaks and specific headings supplied in the input. No markdown, HTML, hype or invented claims.",
   "For reports, retain source context, observation date and uncertainty; distinguish observed facts from interpretation. Do not turn an internal negotiation, medical or private note into recipient-facing wording. Ask if safe wording needs more evidence.",
@@ -144,6 +145,25 @@ export const documentAssistSchema = {
     questions: { type: "array", items: { type: "string" } },
   },
 };
+
+export function documentAssistSchemaFor(input: AssistInput) {
+  return {
+    ...documentAssistSchema,
+    properties: {
+      ...documentAssistSchema.properties,
+      fields: {
+        ...documentAssistSchema.properties.fields,
+        items: {
+          ...documentAssistSchema.properties.fields.items,
+          properties: {
+            ...documentAssistSchema.properties.fields.items.properties,
+            key: { type: 'string', enum: assistFields[input.kind] },
+          },
+        },
+      },
+    },
+  };
+}
 export function validateDocumentSuggestions(
   value: unknown,
   input: AssistInput,

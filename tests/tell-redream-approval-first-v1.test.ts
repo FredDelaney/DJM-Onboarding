@@ -58,7 +58,7 @@ test('Edit returns the original note without committing staged changes', () => {
   assert.match(capture, /const editCapture = async/);
   assert.match(capture, /redream_ai_delete_capture/);
   assert.match(capture, /setMode\('text'\)/);
-  assert.match(capture, /setText\(transcript\)/);
+  assert.match(capture, /changeTypedText\(transcript\)/);
   assert.match(capture, /editingCapture \? 'Opening\.\.\.' : 'Edit'/);
 });
 

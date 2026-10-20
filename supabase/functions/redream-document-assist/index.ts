@@ -4,7 +4,8 @@ import { estimateAiCost, selectAiRoute } from "../_shared/ai-router.ts";
 import {
   documentAssistInput,
   documentAssistInstructions,
-  documentAssistSchema,
+  assistFields,
+  documentAssistSchemaFor,
   validateDocumentSuggestions,
 } from "../_shared/document-assist.ts";
 
@@ -45,6 +46,8 @@ export default {
       cachedTokens = 0;
     let route: ReturnType<typeof selectAiRoute> | null = null;
     let kind = "";
+    let phase = 'authorise';
+    let providerStatus: number | null = null;
     const rpc = async (name: string, args: Record<string, unknown>) => {
       const result = await ctx.supabaseAdmin.rpc(name, args);
       if (result.error) throw result.error;
@@ -74,8 +77,8 @@ export default {
         p_source_fingerprint: null,
         p_external_request_id: requestId,
         p_idempotency_key: requestId,
-        p_error_code: status === "success" ? null : "document_assist_failed",
-        p_metadata: { document_kind: kind, route_tier: route.tier },
+        p_error_code: status === "succeeded" ? null : "document_assist_failed",
+        p_metadata: { document_kind: kind, route_tier: route.tier, failure_stage: status === 'succeeded' ? null : phase },
       });
       recorded = true;
     };
@@ -125,7 +128,7 @@ export default {
           },
           503,
         );
-      const prompt = JSON.stringify(input);
+      const prompt = JSON.stringify({ ...input, allowed_field_keys: assistFields[input.kind] });
       route = selectAiRoute("data_cleanup", { text: prompt });
       const maxOutputTokens = 2800;
       estimate = Math.ceil(
@@ -151,6 +154,7 @@ export default {
           402,
         );
       attempted = true;
+      phase = 'provider';
       const response = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
         headers: {
@@ -171,12 +175,13 @@ export default {
               type: "json_schema",
               name: "redream_document_suggestions",
               strict: true,
-              schema: documentAssistSchema,
+              schema: documentAssistSchemaFor(input),
             },
           },
         }),
         signal: AbortSignal.timeout(30_000),
       });
+      providerStatus = response.status;
       if (!response.ok) throw new Error("Provider request failed");
       const payload = await response.json();
       inputTokens = Number(payload.usage?.input_tokens || 0);
@@ -190,13 +195,18 @@ export default {
             item.content || [],
         )
         .find((part: { type: string }) => part.type === "output_text")?.text;
+      phase = 'validate_suggestions';
       const suggestions = validateDocumentSuggestions(
         JSON.parse(output || ""),
         input,
       );
-      await record("success");
+      phase = 'record_usage';
+      await record("succeeded");
       return json({ suggestions, external_action: false });
-    } catch {
+    } catch (error) {
+      const validationReasons = ['Invalid suggestions','Too many suggestions','Unsupported field suggestion','Invalid date suggestion','Unsupported section suggestion','Duplicate suggestions'];
+      console.error(JSON.stringify({ operation:'document_assist_failed',request_id:requestId,stage:phase,http_status:providerStatus,
+        reason:error instanceof Error && validationReasons.includes(error.message) ? error.message : 'request_failed' }));
       if (attempted && !recorded) {
         try {
           await record("failed");

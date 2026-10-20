@@ -11,6 +11,8 @@ import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { useAiWorkspaceContext } from './useAiWorkspace';
 import Link from 'next/link';
 import {captureOutcomeLinks} from '@/lib/capture-outcome-links';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import { aiTextDraftKey, readAiTextDraft, writeAiTextDraft } from '@/lib/ai-text-draft';
 
 import {
   AlertTriangle,
@@ -120,13 +122,26 @@ function formatTimer(seconds: number) {
 
 function actionLabel(type: string) {
   return {
-    log_interaction: 'Conversation logged',
+    log_interaction: 'Note saved',
     upsert_club_need: 'Club need updated',
     create_task: 'Follow-up created',
     add_claim: 'Intelligence saved',
     suggest_player: 'Player added as an option',
     exclude_player: 'Player excluded from need',
   }[type] || type.replaceAll('_', ' ');
+}
+
+function receiptActionLabel(action: NonNullable<Receipt['actions']>[number]) {
+  const payload = proposedPayload(action);
+  const title = payload.task_title || payload.title || '';
+  if (action.action_type === 'update_task') {
+    const verb = action.status === 'applied'
+      ? { complete: 'Completed', reopen: 'Reopened', reschedule: 'Rescheduled' }[String(payload.operation)] || 'Updated'
+      : { complete: 'Complete', reopen: 'Reopen', reschedule: 'Reschedule' }[String(payload.operation)] || 'Update';
+    return `${action.status === 'undone' ? 'Undone: ' : action.status === 'failed' ? 'Failed: ' : ''}${verb}: ${title}`;
+  }
+  if (action.status === 'applied') return actionLabel(action.action_type);
+  return `${action.status === 'pending' ? 'Proposed' : action.status === 'undone' ? 'Undone' : action.status === 'failed' ? 'Failed' : 'Needs attention'}: ${title || action.action_type.replaceAll('_', ' ')}`;
 }
 
 function proposedPayload(action: NonNullable<Receipt['actions']>[number]) {
@@ -197,8 +212,14 @@ function previewRows(actions: Receipt['actions'] = []) {
       }
       if (action.action_type === 'create_task') {
         add('Next action', payload.title);
-        add('Owner', payload.owner_display_name || payload.owner_name || 'You');
+        add('Owner', payload.responsible_display_names?.join(' + ') || payload.owner_display_name || payload.owner_name || 'You');
         add('Due', dueValue(payload.due_at));
+      }
+      if (action.action_type === 'update_task') {
+        add('Task', payload.task_title);
+        add('Change', { complete: 'Mark complete', reopen: 'Reopen', reschedule: 'Move due date' }[String(payload.operation)]);
+        add('Owner', payload.owner_display_name || 'You');
+        if (payload.operation === 'reschedule') add('Due', dueValue(payload.due_at));
       }
       if (action.action_type === 'log_interaction') {
         add('Relationship event', payload.summary || 'Conversation logged');
@@ -253,8 +274,11 @@ export default function AiCapture({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [approvingCapture, setApprovingCapture] = useState(false);
   const [editingCapture, setEditingCapture] = useState(false);
+  const actionInFlight = useRef(false);
+  const [actionBusy, setActionBusy] = useState(false);
 
   const recordingRequestRef = useRef(false);
+  const textRequestRef = useRef(false);
   const lifecycleRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -267,6 +291,51 @@ export default function AiCapture({
   activeWorkspaceRef.current = workspaceSlug;
   const displayCaptureRef = useRef<string | null>(null);
   const appliedInitialTextRef = useRef('');
+  const typedKey = useRef<string | null>(null);
+  const typedOwner = useRef<string | null | undefined>(undefined);
+  const typedEdited = useRef(false);
+  const currentText = useRef(text);
+  currentText.current = text;
+  const typedContext = JSON.stringify([context?.organisation_id,context?.person_id,context?.player_id,context?.prospect_id,context?.opportunity_id,context?.club_need_id,context?.label]);
+  const changeTypedText = (next:string) => {
+    typedEdited.current = true;
+    currentText.current = next;
+    setText(next);
+    if(typedKey.current)try{writeAiTextDraft(sessionStorage,typedKey.current,next);}catch{}
+  };
+  useEffect(() => {
+    let active=true,authEpoch=0;
+    typedKey.current=null;typedEdited.current=false;setText(initialText.trim());
+    const scope=(userId:string|null) => {
+      if(!active)return;
+      const changedUser=typedOwner.current!==undefined&&typedOwner.current!==userId;
+      typedOwner.current=userId;
+      const key=userId&&workspaceSlug&&workspaceSlug!=='unresolved'?aiTextDraftKey(userId,workspaceSlug,typedContext):null;
+      if(key===typedKey.current&&!changedUser)return;
+      typedKey.current=key;
+      if(changedUser){
+        lifecycleRef.current++;setText('');setReceipt(null);setError('');setStatus('');typedEdited.current=false;
+        setUnsavedDraft(null);setBusy(false);setApprovingCapture(false);setEditingCapture(false);setDeletingCapture(false);setAnswering(null);
+        textRequestRef.current=false;actionInFlight.current=false;setActionBusy(false);
+        recordingRequestRef.current=false;displayCaptureRef.current=null;
+        pollingRef.current.forEach(controller=>controller.abort());pollingRef.current.clear();
+        const recorder=recorderRef.current;
+        if(recorder){recorder.onstop=null;if(recorder.state!=='inactive')recorder.stop();}
+        streamRef.current?.getTracks().forEach(track=>track.stop());
+        if(timerRef.current!==null)window.clearInterval(timerRef.current);
+        timerRef.current=null;chunksRef.current=[];setRecording(false);
+      }
+      if(!key)return;
+      try{
+        if(!changedUser&&(typedEdited.current||initialText.trim())){writeAiTextDraft(sessionStorage,key,currentText.current||initialText.trim());return;}
+        const saved=readAiTextDraft(sessionStorage,key);setText(saved);if(saved){setMode('text');setStatus('Unsent note restored.');}
+      }catch{}
+    };
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{++authEpoch;scope(session?.user.id||null);});
+    const epoch=authEpoch;
+    void readWithDeadline(supabase.auth.getSession()).then(({data})=>{if(epoch===authEpoch)scope(data.session?.user.id||null);}).catch(()=>undefined);
+    return()=>{active=false;subscription.unsubscribe();};
+  },[workspaceSlug,typedContext,initialText]);
 
   useEffect(() => {
     const sharedText = initialText.trim();
@@ -344,7 +413,7 @@ export default function AiCapture({
 
   const pollReceipt = useCallback(
     async (captureId: string, focus = true) => {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || activeWorkspaceRef.current !== workspaceSlug) return;
       if (focus) displayCaptureRef.current = captureId;
       if (pollingRef.current.has(captureId)) return;
       const controller = new AbortController();
@@ -451,7 +520,7 @@ export default function AiCapture({
     try {
       const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false));
       uploadedAny = result.uploaded > 0;
-      if (result.failed > 0 && mountedRef.current) setError('Some notes did not upload. They are safe on this phone. Reconnect with the original account.');
+      if (result.failed > 0 && mountedRef.current) setError('Some notes could not upload. They are saved on this phone and will retry. Check your connection and account.');
     } catch {
       return; // Local storage is unavailable; existing pending data is untouched.
     }
@@ -531,6 +600,7 @@ export default function AiCapture({
   useEffect(() => () => stopTracks(), []);
 
   const persistDraft = async (pending: PendingAiCapture) => {
+    const generation=lifecycleRef.current;
     setUnsavedDraft(pending);
     setBusy(true);
     setError('');
@@ -541,6 +611,7 @@ export default function AiCapture({
       upload: uploadPending,
       online: () => navigator.onLine,
     });
+    if(generation!==lifecycleRef.current||!mountedRef.current)return;
     setBusy(false);
     if (result.state === 'unsaved') {
       setStatus('Not saved. Keep this screen open and try again.');
@@ -548,6 +619,7 @@ export default function AiCapture({
       return;
     }
     setUnsavedDraft(null);
+    if(typedKey.current)try{writeAiTextDraft(sessionStorage,typedKey.current,'');}catch{}
     setText('');
     if (result.state === 'queued') {
       setStatus('Saved on this phone. It will retry when connected.');
@@ -623,6 +695,7 @@ export default function AiCapture({
       };
 
       recorder.onstop = () => {
+        if(lifecycle!==lifecycleRef.current||!mountedRef.current){stopTracks();return;}
         const duration = Math.max(
           1,
           Math.round((Date.now() - startedAtRef.current) / 1000),
@@ -653,8 +726,7 @@ export default function AiCapture({
       setRecording(false);
       if (mountedRef.current) setError(friendlyError(recordError));
     } finally {
-      recordingRequestRef.current = false;
-      if (mountedRef.current) setBusy(false);
+      if(lifecycle===lifecycleRef.current){recordingRequestRef.current = false;if (mountedRef.current) setBusy(false);}
     }
   };
 
@@ -664,10 +736,14 @@ export default function AiCapture({
   };
 
   const submitText = async () => {
-    if (!text.trim() || busy || unsavedDraft) return;
+    if (!text.trim() || busy || unsavedDraft || textRequestRef.current) return;
+    textRequestRef.current=true;
+    const generation=lifecycleRef.current;
 
     setBusy(true);
-    const { data: { session } } = await supabase.auth.getSession();
+    try {
+    const { data: { session } } = await readWithDeadline(supabase.auth.getSession());
+    if(generation!==lifecycleRef.current||!mountedRef.current)return;
     if (!session) { setBusy(false); setError('Sign in to save.'); return; }
     const id = crypto.randomUUID();
     const pending: PendingAiCapture = {
@@ -687,12 +763,15 @@ export default function AiCapture({
     };
 
     await persistDraft(pending);
+    }catch(error){if(generation===lifecycleRef.current)setError(friendlyError(error));}
+    finally{if(generation===lifecycleRef.current){textRequestRef.current=false;setBusy(false);}}
   };
 
   const answerQuestion = async (
     questionId: string,
     candidate: Record<string, any>,
   ) => {
+    const generation=lifecycleRef.current;
     setAnswering(questionId);
     setError('');
     try {
@@ -701,6 +780,7 @@ export default function AiCapture({
         p_value: candidate,
       }, workspaceSlug);
 
+      if(generation!==lifecycleRef.current||!mountedRef.current)return;
       if (result?.capture_id) {
         setStatus('Got it. Preparing suggestions...');
         try {
@@ -714,21 +794,44 @@ export default function AiCapture({
         void pollReceipt(result.capture_id);
       }
     } catch (questionError) {
-      setError(friendlyError(questionError));
+      if(generation===lifecycleRef.current)setError(friendlyError(questionError));
     } finally {
-      setAnswering(null);
+      if(generation===lifecycleRef.current)setAnswering(null);
     }
   };
 
+  const dismissAction = async (actionId: string) => {
+    if (actionInFlight.current) return;
+    actionInFlight.current = true;
+    setActionBusy(true);
+    const generation = lifecycleRef.current;
+    try {
+      const next = await readWithDeadline(platformRpc<Receipt>('redream_ai_dismiss_action', { p_action_id: actionId }, workspaceSlug));
+      if (generation !== lifecycleRef.current || !mountedRef.current) return;
+      setReceipt(next); setError(''); onCompleted?.(next);
+    } catch (error) {
+      if (generation === lifecycleRef.current) setError(friendlyError(error));
+    } finally {
+      if(generation===lifecycleRef.current){actionInFlight.current = false; setActionBusy(false);}
+    }
+  };
   const undoAction = async (actionId: string) => {
+    if (actionInFlight.current) return;
+    actionInFlight.current = true;
+    setActionBusy(true);
+    const generation = lifecycleRef.current;
     setError('');
     try {
-      const next: any = await platformRpc('redream_ai_undo_action', {
+      const next: any = await readWithDeadline(platformRpc('redream_ai_undo_action', {
         p_action_id: actionId,
-      }, workspaceSlug);
-      if (next?.capture_id) void pollReceipt(next.capture_id);
+      }, workspaceSlug));
+      if (generation !== lifecycleRef.current || !mountedRef.current) return;
+      const captureId=next?.capture_id||receipt?.capture?.id;
+      if (captureId) void pollReceipt(captureId);
     } catch (undoError) {
-      setError(friendlyError(undoError));
+      if(generation===lifecycleRef.current)setError(friendlyError(undoError));
+    } finally {
+      if(generation===lifecycleRef.current){actionInFlight.current = false;setActionBusy(false);}
     }
   };
 
@@ -736,12 +839,14 @@ export default function AiCapture({
     const captureId = receipt?.capture?.id;
     if (!captureId) return;
 
+    const generation=lifecycleRef.current;
     setError('');
     setStatus('Retrying...');
     try {
       const result: any = await platformRpc('redream_ai_retry_capture', {
         p_capture_id: captureId,
       }, workspaceSlug);
+      if(generation!==lifecycleRef.current||!mountedRef.current)return;
       if (result?.capture_id) {
         rememberActiveAiCapture(result.capture_id, workspaceSlug, workspace);
         try {
@@ -754,6 +859,7 @@ export default function AiCapture({
         void pollReceipt(result.capture_id);
       }
     } catch (retryError) {
+      if(generation!==lifecycleRef.current)return;
       setStatus('');
       setError(friendlyError(retryError));
     }
@@ -761,17 +867,20 @@ export default function AiCapture({
 
   const approveCapture = async () => {
     const captureId = receipt?.capture?.id;
-    if (!captureId || approvingCapture) return;
+    if (!captureId || approvingCapture || actionInFlight.current) return;
+    actionInFlight.current = true;
+    const generation = lifecycleRef.current;
 
     setApprovingCapture(true);
     setError('');
     setStatus('Applying approved updates...');
     try {
-      const result: any = await platformRpc(
+      const result: any = await readWithDeadline(platformRpc(
         'redream_ai_approve_capture',
         { p_capture_id: captureId },
         workspaceSlug,
-      );
+      ));
+      if (generation !== lifecycleRef.current || !mountedRef.current) return;
       const next = result?.receipt || result;
       if (next?.capture) {
         setReceipt(next);
@@ -781,10 +890,11 @@ export default function AiCapture({
         void pollReceipt(captureId, true);
       }
     } catch (approvalError) {
+      if (generation !== lifecycleRef.current || !mountedRef.current) return;
       setStatus('');
       setError(friendlyError(approvalError));
     } finally {
-      setApprovingCapture(false);
+      if(generation===lifecycleRef.current){actionInFlight.current = false;setApprovingCapture(false);}
     }
   };
 
@@ -792,6 +902,7 @@ export default function AiCapture({
     const captureId = receipt?.capture?.id;
     const transcript = String(receipt?.capture?.transcript_text || '').trim();
     if (!captureId || !transcript || editingCapture) return;
+    const generation=lifecycleRef.current;
 
     setEditingCapture(true);
     setError('');
@@ -801,16 +912,17 @@ export default function AiCapture({
         { p_capture_id: captureId },
         workspaceSlug,
       );
+      if(generation!==lifecycleRef.current||!mountedRef.current)return;
       forgetActiveAiCapture(captureId);
       displayCaptureRef.current = null;
       setReceipt(null);
       setMode('text');
-      setText(transcript);
+      changeTypedText(transcript);
       setStatus('Edit the note, then send it again.');
     } catch (editError) {
-      setError(friendlyError(editError));
+      if(generation===lifecycleRef.current)setError(friendlyError(editError));
     } finally {
-      setEditingCapture(false);
+      if(generation===lifecycleRef.current)setEditingCapture(false);
     }
   };
 
@@ -818,6 +930,7 @@ export default function AiCapture({
     const captureId = receipt?.capture?.id;
     if (!captureId || deletingCapture) return;
 
+    const generation=lifecycleRef.current;
     setDeletingCapture(true);
     setError('');
 
@@ -826,6 +939,7 @@ export default function AiCapture({
         p_capture_id: captureId,
       }, workspaceSlug);
 
+      if(generation!==lifecycleRef.current||!mountedRef.current)return;
       forgetActiveAiCapture(captureId);
       displayCaptureRef.current = null;
       setReceipt(null);
@@ -838,9 +952,9 @@ export default function AiCapture({
         },
       });
     } catch (deleteError) {
-      setError(friendlyError(deleteError));
+      if(generation===lifecycleRef.current)setError(friendlyError(deleteError));
     } finally {
-      setDeletingCapture(false);
+      if(generation===lifecycleRef.current)setDeletingCapture(false);
     }
   };
 
@@ -872,9 +986,11 @@ export default function AiCapture({
     (item) => item.status !== 'resolved',
   );
   const proposedRows = previewRows(receipt?.actions || []);
-  const canApprove = hasPendingActions && unresolvedQuestions.length === 0;
+  const hasFailedActions = (receipt?.actions || []).some(action => action.status === 'failed');
+  const hasReviewActions = (receipt?.actions || []).some(action => action.status === 'needs_review');
+  const canApprove = (hasPendingActions || hasFailedActions) && unresolvedQuestions.length === 0;
   const canEditProposal =
-    hasPendingActions &&
+    (hasPendingActions || hasReviewActions || hasFailedActions) &&
     !hasAppliedActions &&
     Boolean(receipt?.capture?.transcript_text);
   const canDeleteCapture =
@@ -901,7 +1017,7 @@ export default function AiCapture({
         <div className={styles.prompt}>
           <strong>Tell ReDream</strong>
           <span>
-            {mode === 'ask' ? 'Ask about your records or research your next move.' : 'Say or type an update. Review and approve the changes before they are saved.'}
+            {mode === 'ask' ? 'Ask about your records or research your next move.' : 'Clear task completions save with Undo. Review other changes before saving.'}
           </span>
         </div>
 
@@ -943,7 +1059,7 @@ export default function AiCapture({
               disabled={busy || Boolean(unsavedDraft)}
               value={text}
               onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                setText(event.target.value)
+                changeTypedText(event.target.value)
               }
               placeholder="Spoke to Chris at Wellington. They need a striker..."
             />
@@ -966,6 +1082,7 @@ export default function AiCapture({
             context={context}
             onBusyChange={setAgentBusy}
             onNavigate={onNavigate}
+            onPrepareAction={proposal => { changeTypedText(text.trim() ? `${text.trim()}\n\n${proposal}` : proposal); setMode('text'); setStatus('Review the task wording, then send it to ReDream.'); }}
           />
         </div>
 
@@ -1030,7 +1147,7 @@ export default function AiCapture({
           <div className={styles.receiptHead}>
             <div>
               <strong>
-                {receipt.capture.summary || 'ReDream captured your update'}
+                {hasPendingActions ? 'Review proposed changes' : verifiedComplete ? 'Update complete' : 'Your update'}
               </strong>
               <span>
                 {hasPendingActions
@@ -1038,7 +1155,7 @@ export default function AiCapture({
                   : needsAttention
                     ? 'ReDream has not guessed. Resolve the items below or edit the note.'
                     : verifiedComplete
-                      ? 'Approved changes saved. Undo is available where supported.'
+                      ? hasAppliedActions ? 'Changes saved. Undo is available where supported.' : 'Review complete. No changes were saved.'
                       : 'ReDream is finishing the interpretation. You do not need to do anything yet.'}
               </span>
             </div>
@@ -1077,7 +1194,7 @@ export default function AiCapture({
                 <div className={styles.approvalBar}>
                   <div>
                     <strong>Review before saving</strong>
-                    <span>Nothing changes until you approve.</span>
+                    <span>{hasAppliedActions ? 'Saved changes are listed below. Approve the remaining proposals.' : 'Proposed changes wait for your approval.'}</span>
                   </div>
                   <div className={styles.approvalActions}>
                     <button
@@ -1108,7 +1225,14 @@ export default function AiCapture({
             </div>
           ) : null}
 
-          {['partial', 'failed'].includes(terminalStatus) ? (
+          {hasFailedActions && !hasPendingActions ? (
+            <div className={styles.retryRow}>
+              <button type="button" className={styles.primary} disabled={!canApprove || approvingCapture} onClick={() => void approveCapture()}>
+                {approvingCapture ? 'Saving...' : 'Retry approved changes'}
+              </button>
+              <span>Saved actions are kept. Only failed actions are retried.</span>
+            </div>
+          ) : ['partial', 'failed'].includes(terminalStatus) ? (
             <div className={styles.retryRow}>
               <button
                 type="button"
@@ -1121,6 +1245,11 @@ export default function AiCapture({
               <span>The saved transcript and plan are reused. No duplicate is created.</span>
             </div>
           ) : null}
+
+          {canEditProposal && !hasPendingActions ? <div className={styles.retryRow}>
+            <button type="button" className={styles.secondary} disabled={editingCapture} onClick={() => void editCapture()}>Edit original note</button>
+            <span>Clarify the person or unfinished work, then send it again.</span>
+          </div> : null}
 
           {canDeleteCapture ? (
             <div className={styles.retryRow}>
@@ -1164,7 +1293,7 @@ export default function AiCapture({
           ) : null}
 
           <div className={styles.actionList}>
-            {(receipt.actions || []).map((action) => (
+            {(receipt.actions || []).filter(action => action.status !== 'superseded').map((action) => (
               <div className={styles.actionRow} key={action.id}>
                 {action.status === 'applied' ? (
                   <CheckCircle2 size={15} />
@@ -1177,20 +1306,21 @@ export default function AiCapture({
                 )}
                 <div className={styles.actionCopy}>
                   <strong>
-                    {action.status === 'pending'
-                      ? actionLabel(action.action_type).replace('updated', 'proposed').replace('created', 'proposed').replace('logged', 'proposed')
-                      : actionLabel(action.action_type)}
+                    {receiptActionLabel(action)}
                   </strong>
-                  <span className={styles.provenance}>
+                  <details className={styles.provenance}><summary>Details</summary><span>
                     {action.evidence
                       ? `From your words: “${action.evidence}”`
                       : action.status.replaceAll('_', ' ')}
-                  </span>
+                  </span></details>
+                  {action.error_message || proposedPayload(action)._review_reason ? <span role="status">{action.error_message || proposedPayload(action)._review_reason}</span> : null}
                 </div>
+                {['needs_review', 'failed', 'pending'].includes(action.status) ? <button type="button" className={styles.smallButton} disabled={actionBusy || approvingCapture} onClick={() => void dismissAction(action.id)}>Leave unchanged</button> : null}
                 {action.status === 'applied' && action.undo_supported ? (
                   <button
                     type="button"
                     className={styles.smallButton}
+                    disabled={actionBusy}
                     onClick={() => void undoAction(action.id)}
                   >
                     <RotateCcw size={11} />
@@ -1201,13 +1331,11 @@ export default function AiCapture({
             ))}
           </div>
 
+          {hasAppliedActions ? <div className={styles.completeActions}>
+            {captureOutcomeLinks(receipt.actions||[],workspaceSlug).map(link=><Link key={link.href} href={link.href} className={styles.secondary} onNavigate={onNavigate}>{link.label}</Link>)}
+          </div> : null}
           {verifiedComplete ? (
             <div className={styles.completeActions}>
-              <div>
-                <strong>Update complete</strong>
-                <span>Changes saved. Ready for the next update.</span>
-              </div>
-              {captureOutcomeLinks(receipt.actions||[],workspaceSlug).map(link=><Link key={link.href} href={link.href} className={styles.secondary} onNavigate={onNavigate}>{link.label}</Link>)}
               <button
                 type="button"
                 className={styles.secondary}

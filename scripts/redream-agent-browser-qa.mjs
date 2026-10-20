@@ -4,6 +4,14 @@ import { chromium } from 'playwright';
 const browser = await chromium.launch({ executablePath: process.env.CALENDAR_CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await page.addInitScript(()=>{
+    if(location.hostname!=='127.0.0.1')return;
+    if(sessionStorage.getItem('qa-auth-initialised'))return;
+    sessionStorage.setItem('qa-auth-initialised','1');
+    const user={id:'10000000-0000-4000-8000-000000000001',email:'synthetic@example.test',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{}};
+    const token='eyJhbGciOiJIUzI1NiJ9.'+btoa(JSON.stringify({sub:user.id,exp:Math.floor(Date.now()/1000)+3600}))+'.fixture';
+    localStorage.setItem('sb-example-auth-token',JSON.stringify({access_token:token,refresh_token:'fixture-refresh',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user}));
+  });
   page.setDefaultTimeout(15000);
   const requests = [], errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -34,6 +42,10 @@ try {
   assert.equal(requests.length, 1);
   assert.equal(requests[0].workspace_slug, 'djm');
   assert.equal(requests[0].context.player_name, 'Example Player');
+  await page.getByRole('button',{name:'Review as a task',exact:true}).click();
+  assert.equal(await page.getByRole('textbox',{name:'Your update',exact:true}).inputValue(),'Create a task for me: Confirm his contract end date.');
+  assert.equal(requests.length,1,'Preparing a proposal does not submit or approve it');
+  await page.getByRole('button',{name:'Ask a question',exact:true}).click();
   await page.getByText('ReDream + public sources', { exact: true }).waitFor();
   await page.getByText('Confirm his contract end date.', { exact: true }).waitFor();
   assert.equal(await page.getByRole('link', { name: 'Official club', exact: true }).getAttribute('href'), 'https://example.org/example-player');
@@ -66,6 +78,18 @@ try {
   await page.getByRole('button', { name: 'Ask a question', exact: true }).click();
   assert.equal(await page.getByText('Example Player has ten recorded appearances.', { exact: false }).count(), 0, 'Old response cannot cross a workspace change');
   assert.equal(requests.length, 4, 'Questions never create a capture or save a record');
+  await page.getByRole('button',{name:'Switch test workspace',exact:true}).click();
+  await page.getByRole('textbox',{name:'Your update',exact:true}).waitFor();
+  await page.getByRole('textbox',{name:'Your update',exact:true}).fill('Synthetic unsent note for the current workspace.');
+  await page.reload();
+  await page.getByRole('textbox',{name:'Your update',exact:true}).waitFor();
+  assert.equal(await page.getByRole('textbox',{name:'Your update',exact:true}).inputValue(),'Synthetic unsent note for the current workspace.');
+  await page.getByRole('button',{name:'Switch test workspace',exact:true}).click();
+  await page.getByRole('button',{name:'Type instead',exact:true}).click();
+  assert.equal(await page.getByRole('textbox',{name:'Your update',exact:true}).inputValue(),'','An unsent draft cannot cross workspaces');
+  await page.getByRole('textbox',{name:'Your update',exact:true}).fill('Another private unsent note.');
+  await page.getByRole('button',{name:'Sign out test account',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('textarea[aria-label="Your update"]')?.value==='');
   assert.deepEqual(errors, []);
   console.log('ReDream questions: context, sources, safe links, retry, workspace isolation and four responsive widths passed.');
 } finally { await browser.close(); }

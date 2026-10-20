@@ -3,6 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { estimateAiCost, selectAiRoute } from "./ai-router.ts";
 import { applyConfirmedEntityResolutions, canonicalClaimKey } from "./ai-safety.ts";
+import { assessTaskUpdate, overlappingFollowUp } from "./task-work.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +47,12 @@ const planSchema = {
       maxItems: 12,
       items: {
         anyOf: [
+          actionBranch("update_task", {
+            operation: { type: "string", enum: ["complete", "reopen", "reschedule"] },
+            task_ids: { type: "array", items: { type: "string" }, maxItems: 6 },
+            objective_satisfied: { type: "boolean" },
+            due_at: nullableString,
+          }),
           actionBranch("create_task", {
             title: nullableString,
             due_at: nullableString,
@@ -497,6 +504,7 @@ async function transcribe(
     ...(vocabulary?.prospects || []),
     ...(vocabulary?.clubs || []),
     ...(vocabulary?.contacts || []),
+    ...(vocabulary?.team_members || []),
   ];
   const keywords = dedupe([
     ...contextNames,
@@ -576,11 +584,14 @@ async function interpret(
         "Never treat an external sender statement as an agency commitment.",
         "For clearly stated reversible task, interaction and claim actions, use high confidence when every required fact is explicit and resolved.",
         "Use log_interaction whenever the speaker explicitly says they spoke, called, met, messaged or had a conversation with a named or clearly resolved contact, signed player or club. Include it even when the same debrief also creates a club need, claim, player suggestion or task.",
+        "Use log_interaction to save a useful supplied outcome, waiting state or blocker against a resolved record, including when no conversation occurred. Describe it as a recorded update; never claim that a call, signature, payment or reply happened unless the source explicitly establishes it. A blocker or waiting state leaves the unfinished objective open. Propose a distinct requested next step, not a duplicate reminder.",
         "The summary must describe only actions present in the actions array. Never say something was logged, saved, created or updated unless a corresponding action is present.",
         "Never guess a club, contact, player, currency, unit, salary, transfer fee, contract fact, registration fact or date.",
         "Use current_context to resolve pronouns or omitted entities when the context is clear, but an explicitly named club, contact, player or prospect always overrides page context.",
         "Do not produce player scores, rankings, future projections or comparisons.",
         "The action key must be short and unique inside this capture, for example need_1 or task_1.",
+        "Use update_task to complete, reopen or reschedule existing work from authorised_tasks only. Compare the actual objective, named person, player/club, owner and status, not shared keywords. Copy all plausible task ids if ambiguous; never invent an id. objective_satisfied is true only when the actual objective is fulfilled or explicitly marked done by its owner. A conversation does not prove a signature, payment, acceptance or reply. Tried calling is not a conversation; need to call is future work. Evidence must quote only the relevant clause. Completed work may also log_interaction and propose a distinct create_task follow-up. Blocked work remains unfinished: save the stated blocker and propose obtaining what is missing. Sent profile does not complete waiting for feedback. Reopen and reschedule require an explicit instruction, and reschedule does not change calendar events. Preserve the existing due time unless a different time is explicitly requested. Do not create a duplicate of an existing follow-up with the same objective, owner, records and date. A clarification must preserve the original update.",
+        "Check every authorised open task against the reported work before extracting new follow-ups. When the speaker reports fulfilling its objective, include update_task even without an explicit request to tick it off. For example, task 'Speak to James about profile availability' plus 'I spoke to James about profile availability. Send him the profile tomorrow' requires THREE independent actions: complete the existing conversation task, log its stated outcome, and propose the new profile follow-up. Do not let log_interaction or create_task replace the completed-task action. Keep tasks for a signature, payment or later response unfinished unless that exact objective is established.",
         "Use canonical football positions only: GK, RB, LB, CB, RCB, LCB, 6, 8, 10, RW, LW, Winger, ST.",
         "Use upsert_club_need only when a club requirement is confirmed or explicitly described as a predicted scouting need.",
         "Use add_claim for softer intelligence, reported contract information, player preferences, scout observations and anything that should remain sourced and unverified.",
@@ -620,6 +631,7 @@ async function interpret(
                 capture_created_at: capture.created_at,
                 timezone: capture.timezone || "Europe/Rome",
                 current_context: capture.context_json || {},
+                authorised_tasks: capture.task_work_context?.tasks || [],
                 transcript,
               }),
             },
@@ -947,6 +959,17 @@ function financialMagnitudeCandidates(field: "salary_budget" | "transfer_budget"
   return candidates;
 }
 
+
+function taskOwnerFieldKey(actionKey: string, spokenName: string) {
+  const slug = normaliseEvidence(spokenName).replace(/\s+/g, "-") || "owner";
+  return `team_member:${actionKey}:${slug}`;
+}
+
+function taskIncludesSpeaker(action: any) {
+  const evidence = String(action?.evidence || "");
+  return /\bmyself\b|\bfor\s+me\b|\bme\s+(?:and|&)\b|\b(?:and|&)\s+me\b/i.test(evidence);
+}
+
 async function forceReviewAction(
   admin: any,
   capture: any,
@@ -1027,6 +1050,10 @@ async function getPlan(
   }
 
   const aiRoute = selectAiRoute('ai_capture', { text: transcript });
+  const { data: taskContext, error: taskContextError } = await admin.rpc("redream_ai_task_context", { p_capture_id: capture.capture_id });
+  if (taskContextError) throw taskContextError;
+  capture.task_work_context = taskContext;
+  capture.timezone = taskContext?.timezone || capture.timezone;
   const interpretationStarted = performance.now();
   const { plan, usage } = await interpret(
     openAiKey,
@@ -1038,6 +1065,9 @@ async function getPlan(
   timings.interpretation_ms = Math.round(
     performance.now() - interpretationStarted,
   );
+  // Persist the authorised snapshots with the plan so retries do not reinterpret
+  // changed tasks, repeat model calls, or silently adopt a newer revision.
+  plan.task_context = taskContext;
 
   const inputTokens = Number(usage?.input_tokens || 0);
   const outputTokens = Number(usage?.output_tokens || 0);
@@ -1255,6 +1285,10 @@ async function processOne(
     }
 
     const actionKeys = new Set<string>();
+    const { data: actionStates, error: statesError } = await admin.rpc("redream_ai_capture_action_states", { p_capture_id: capture.capture_id });
+    if (statesError) throw statesError;
+    const finalHashes = new Set((Array.isArray(actionStates) ? actionStates : [])
+      .filter(item => ["applied", "undone", "superseded"].includes(item.status)).map(item => item.hash));
     const needActions = plan.actions.filter((item: any) => item?.type === "upsert_club_need");
     const orderedActions = plan.actions
       .map((action: any, originalIndex: number) => ({ action, originalIndex }))
@@ -1280,6 +1314,7 @@ async function processOne(
         throw new Error("Interpreter returned duplicate or empty action keys");
       }
       actionKeys.add(actionKey);
+      if (finalHashes.has(await sha256({ capture_id: capture.capture_id, key: actionKey, type: action.type }))) continue;
 
       if (!evidenceIsGrounded(transcript, action.evidence)) {
         await forceReviewAction(
@@ -1290,6 +1325,41 @@ async function processOne(
           index,
           "The AI evidence excerpt could not be found verbatim in the source transcript.",
         );
+        continue;
+      }
+
+      if (action.type === "update_task") {
+        if (!approvalFirst) {
+          await forceReviewAction(admin, capture, action, actionKey, index, "Task changes require an agency update.");
+          continue;
+        }
+        const assessment = assessTaskUpdate(action, transcript, plan.task_context?.tasks || [], String(capture.submitted_by));
+        const fieldKey = `task:${actionKey}`;
+        const selection = resolutionFor(capture, fieldKey);
+        if (selection?.kind === "review" || !assessment.candidates.length) {
+          await forceReviewAction(admin, capture, action, actionKey, index, assessment.reason || "Review this task change.");
+          continue;
+        }
+        const selected = selection?.kind === "task" ? assessment.candidates.find(task => task.id === selection.task_id) : null;
+        if (!selected && assessment.candidates.length > 1) {
+          await recordQuestion(admin, capture.capture_id, fieldKey, "Which task did you mean?",
+            "Choose the work this update fulfils. Other tasks stay unchanged.",
+            [...assessment.candidates.map(task => ({ kind: "task", task_id: task.id, label: `${task.title}${task.due_at ? ` · ${task.due_at.slice(0, 10)}` : ""}` })), reviewCandidate()],
+            { action_key: actionKey });
+          continue;
+        }
+        const task = selected || assessment.candidates[0];
+        const payload = { ...action, task_id: task.id, task_title: task.title, expected_updated_at: task.updated_at,
+          expected_status: task.status, task_kind: task.task_kind || 'task', owner_user_id: task.owner_user_id, owner_display_name: "You",
+          person_id: task.person_id || null, player_id: task.player_id || null, organisation_id: task.organisation_id || null,
+          _automatic: assessment.automatic && !selection };
+        const hash = await sha256({ capture_id: capture.capture_id, key: actionKey, type: action.type });
+        const { error } = await admin.rpc(payload._automatic ? "redream_ai_update_task" : "redream_ai_stage_action", {
+          p_capture_id: capture.capture_id, p_action_hash: hash, p_action_index: index,
+          ...(payload._automatic ? {} : { p_action_type: "update_task" }),
+          p_confidence: action.confidence, p_evidence: action.evidence, p_payload: payload,
+        });
+        if (error) throw error;
         continue;
       }
 
@@ -1415,26 +1485,90 @@ async function processOne(
 
       if (
         approvalFirst &&
-        action.type === "create_task" &&
-        action.owner_name
+        action.type === "create_task"
       ) {
-        const { data: ownerResolution, error: ownerError } = await admin.rpc(
-          "redream_ai_resolve_team_member",
-          {
-            p_capture_id: capture.capture_id,
-            p_spoken_name: action.owner_name,
-          },
-        );
-        if (ownerError) throw ownerError;
-        if (ownerResolution?.resolved && ownerResolution?.user_id) {
-          action.owner_user_id = String(ownerResolution.user_id);
-          action.owner_display_name =
-            ownerResolution.display_name || action.owner_name;
+        const spokenOwner = String(action.owner_name || "").trim();
+        const includesSelf = taskIncludesSpeaker(action);
+        const responsibleUserIds: string[] = [];
+        const responsibleDisplayNames: string[] = [];
+        const addResponsible = (userId: string, label: string) => {
+          const id = String(userId || "").trim();
+          if (!id || responsibleUserIds.includes(id)) return;
+          responsibleUserIds.push(id);
+          responsibleDisplayNames.push(label || "Team member");
+        };
+
+        if (includesSelf || !spokenOwner) {
+          addResponsible(String(capture.submitted_by), "You");
+        }
+
+        if (spokenOwner) {
+          const ownerFieldKey = taskOwnerFieldKey(actionKey, spokenOwner);
+          const selectedOwner = resolutionFor(capture, ownerFieldKey);
+          let ownerResolution: any = null;
+
+          if (selectedOwner?.kind === "review") {
+            forceReviewReason =
+              `Task owner ${spokenOwner} was left for review.`;
+            blocked = true;
+          } else if (
+            selectedOwner?.kind === "team_member" &&
+            selectedOwner?.user_id
+          ) {
+            ownerResolution = {
+              resolved: true,
+              user_id: String(selectedOwner.user_id),
+              display_name: selectedOwner.label || spokenOwner,
+              matched_by: "user",
+            };
+          } else {
+            const { data, error } = await admin.rpc(
+              "redream_ai_resolve_team_member",
+              {
+                p_capture_id: capture.capture_id,
+                p_spoken_name: spokenOwner,
+              },
+            );
+            if (error) throw error;
+            ownerResolution = data;
+          }
+
+          if (!blocked && ownerResolution?.resolved && ownerResolution?.user_id) {
+            const ownerUserId = String(ownerResolution.user_id);
+            const ownerDisplayName =
+              ownerResolution.display_name || spokenOwner;
+            action.owner_user_id = includesSelf
+              ? String(capture.submitted_by)
+              : ownerUserId;
+            action.owner_display_name = ownerDisplayName;
+            addResponsible(ownerUserId, ownerDisplayName);
+          } else if (!blocked) {
+            const candidates = Array.isArray(ownerResolution?.candidates)
+              && ownerResolution.candidates.length
+              ? [...ownerResolution.candidates, reviewCandidate()]
+              : [reviewCandidate()];
+            await recordQuestion(
+              admin,
+              capture.capture_id,
+              ownerFieldKey,
+              `Who did you mean by "${spokenOwner}"?`,
+              "Choose the active agency team member responsible for this task.",
+              candidates,
+              { spoken_name: spokenOwner, action_key: actionKey },
+            );
+            blocked = true;
+          }
         } else {
-          forceReviewReason =
-            forceReviewReason ||
-            `Task owner ${action.owner_name} was not uniquely matched to an active agency user.`;
-          blocked = true;
+          action.owner_user_id = String(capture.submitted_by);
+          action.owner_display_name = "You";
+        }
+
+        if (!blocked) {
+          if (!responsibleUserIds.length) {
+            addResponsible(String(capture.submitted_by), "You");
+          }
+          action.responsible_user_ids = responsibleUserIds;
+          action.responsible_display_names = responsibleDisplayNames;
         }
       }
 
@@ -1617,6 +1751,11 @@ async function processOne(
             person_id: contact.omitted ? null : contact.id,
             player_id: player.id,
           };
+
+      if (action.type === "create_task" && overlappingFollowUp(resolvedPayload, plan.task_context?.tasks || [])) {
+        // Existing work is still open. Do not create a second reminder for it.
+        continue;
+      }
 
       if (approvalFirst) {
         const { data: staged, error: stageError } = await admin.rpc(

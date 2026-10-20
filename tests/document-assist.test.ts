@@ -7,6 +7,7 @@ import {
   documentAssistInput,
   documentAssistInstructions,
   documentAssistSchema,
+  documentAssistSchemaFor,
   validateDocumentSuggestions,
 } from "../supabase/functions/_shared/document-assist.ts";
 import {
@@ -49,6 +50,13 @@ test("all five assistants allow existing document fields while keeping clauses, 
   assert.throws(() =>
     documentAssistInput({ kind: "mandate", notes: "x".repeat(8001) }),
   );
+});
+test('each model request constrains field keys to the selected document kind',async()=>{
+  const app=setup();await app.request({kind:'agency_pitch'});
+  const request=app.requests[0].body;
+  assert.deepEqual(request.text.format.schema.properties.fields.items.properties.key.enum,assistFields.agency_pitch);
+  assert.deepEqual(JSON.parse(request.input[0].content[0].text).allowed_field_keys,assistFields.agency_pitch);
+  assert.ok(!request.text.format.schema.properties.fields.items.properties.key.enum.includes('current_club'));
 });
 test("unsupported facts, duplicate fields, invalid dates and changed legal clauses are rejected", () => {
   const input = prepareDocumentAssist(
@@ -147,6 +155,8 @@ function setup({
     "documentAssistInput",
     "documentAssistInstructions",
     "documentAssistSchema",
+    "documentAssistSchemaFor",
+    "assistFields",
     "validateDocumentSuggestions",
     compiled + "\nreturn exports.default;",
   )(
@@ -167,10 +177,12 @@ function setup({
                     };
                   if (name === "platform_server_authorize_usage")
                     return { data: { allowed } };
-                  if (name === "platform_server_record_ai_usage")
+                  if (name === "platform_server_record_ai_usage") {
+                    assert.ok(['succeeded','failed','cancelled','blocked','cached'].includes(args.p_status),'Use the deployed usage-ledger status contract');
                     return failUsage
                       ? { error: new Error("usage unavailable") }
                       : { data: true };
+                  }
                   throw new Error("Unexpected RPC: " + name);
                 },
               },
@@ -195,6 +207,8 @@ function setup({
     documentAssistInput,
     documentAssistInstructions,
     documentAssistSchema,
+    documentAssistSchemaFor,
+    assistFields,
     validateDocumentSuggestions,
   );
   return {
@@ -267,7 +281,7 @@ test("suggestions use the configured router, bounded provider call, strict outpu
     (call) => call.name === "platform_server_record_ai_usage",
   )!.args;
   assert.equal(telemetry.p_tenant_id, "tenant-a");
-  assert.equal(telemetry.p_status, "success");
+  assert.equal(telemetry.p_status, "succeeded");
   assert.equal(telemetry.p_input_tokens, 100);
   assert.ok(!JSON.stringify(telemetry).includes("Ravi Singh"));
   assert.ok(

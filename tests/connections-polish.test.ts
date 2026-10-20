@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { providerConnectionState } from '../lib/provider-connection-state.ts';
+
+test('saved connection rows use their actual status and recovery action', () => {
+  assert.equal(providerConnectionState({ status: 'connected' }).ready,true);
+  for(const status of ['expired','revoked','disconnected','missing_permissions','pending_verification','error']) {
+    const state=providerConnectionState({status}); assert.equal(state.ready,false); assert.equal(state.reconnect,true);
+  }
+  assert.equal(providerConnectionState({status:'active',last_error:'Sync failed'}).label,'Sync failed');
+  assert.equal(providerConnectionState({}).ready,false);
+  assert.equal(providerConnectionState().label,'Not connected');
+});
 
 const drawer = readFileSync(
   'components/AgencyConnectionsDrawer.tsx',
