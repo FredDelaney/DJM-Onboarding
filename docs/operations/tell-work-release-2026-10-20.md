@@ -41,6 +41,8 @@ Functions:
 
 The real document-assistance canary exposed a status-contract defect: the function sent `success` to the usage ledger, which accepts `succeeded`. This release corrects the status, constrains model field keys per document type, and records failure-stage diagnostics without document wording. A subsequent authorised staging request produced four sourced suggestions and missing-information questions, with a successful 3,676 ms usage event. No document or roster row was saved by that request.
 
+The real Tell canary also identified stale staging intake CORS headers: `x-region` was absent. Staging intake was synchronised with the existing canonical source; production already permits that header. The preserved local note then uploaded successfully. Its first interpretation missed an owned conversation task, so the existing prompt now explicitly checks completed objectives alongside new follow-ups in the same model call. A second interpretation of the edited synthetic note completed the exact owned task, staged its recorded outcome and a separate due-tomorrow follow-up, and saved both after approval. No external message was sent. Queue errors no longer assert that every failure requires the original account.
+
 Order: migrations, worker functions, document-assistance function, then frontend. Validate staging before the corresponding production steps. Merge only the exact PR head with successful `verify` and `browser_journeys` checks. Confirm the merged SHA, READY states and serving aliases afterwards. No secrets or Supabase project configuration changes are required.
 
 ## Validation

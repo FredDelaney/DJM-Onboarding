@@ -56,3 +56,23 @@ test('worker retries skip saved, undone and explicitly dismissed action hashes',
     assert.equal(calls.filter(c=>['redream_ai_update_task','redream_ai_stage_action','redream_ai_apply_action'].includes(c.name)).length,0,status);
   }
 });
+
+test('fresh interpretation receives owned objectives and checks completion alongside new follow-ups',async()=>{
+  const exports:any={};let requests=0;
+  vm.runInNewContext(source+'\nexports.interpret=interpret;',{
+    exports,require:()=>({}),AbortSignal,Response,
+    fetch:async(_url:string,options:any)=>{
+      requests++;
+      const body=JSON.parse(options.body);
+      const input=JSON.parse(body.input[0].content[0].text);
+      assert.deepEqual(input.authorised_tasks,[task]);
+      assert.equal(input.transcript,action.evidence);
+      assert.match(body.instructions,/Check every authorised open task/);
+      assert.match(body.instructions,/Do not let log_interaction or create_task replace the completed-task action/);
+      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({summary:'Review completed work and follow-up',actions:[action]})}]}],usage:{input_tokens:1,output_tokens:1}});
+    },
+  });
+  const result=await exports.interpret('fixture','fixture-model','none',{task_work_context:{tasks:[task]},context_json:{},created_at:'2026-10-20T09:00:00Z'},action.evidence);
+  assert.equal(requests,1);
+  assert.equal(result.plan.actions[0].type,'update_task');
+});

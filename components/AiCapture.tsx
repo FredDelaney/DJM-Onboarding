@@ -520,7 +520,7 @@ export default function AiCapture({
     try {
       const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false));
       uploadedAny = result.uploaded > 0;
-      if (result.failed > 0 && mountedRef.current) setError('Some notes did not upload. They are safe on this phone. Reconnect with the original account.');
+      if (result.failed > 0 && mountedRef.current) setError('Some notes could not upload. They are saved on this phone and will retry. Check your connection and account.');
     } catch {
       return; // Local storage is unavailable; existing pending data is untouched.
     }
