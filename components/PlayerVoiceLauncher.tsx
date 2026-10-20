@@ -1,4 +1,5 @@
 'use client';
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import { AlertTriangle, CheckCircle2, LoaderCircle, Mic, Square, X } from 'lucide-react';
 
 import { createPortal } from 'react-dom';
@@ -58,10 +59,10 @@ export default function PlayerVoiceLauncher() {
 
   useEffect(() => {
     if (!open || !mounted) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
+
     return () => {
-      document.body.style.overflow = previousOverflow;
+      releaseScroll();
     };
   }, [mounted, open]);
 

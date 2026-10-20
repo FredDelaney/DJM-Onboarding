@@ -4123,7 +4123,7 @@
   display: grid; gap: 4px;
   padding: 8px; border: 1px solid #e5e5e7; border-radius: 16px; background: #fff; box-shadow: 0 12px 40px #1d1d1f14;
 }
-.workspaceToolsMenu button { width: 100%; min-height: 44px; justify-content: flex-start; text-align: left; }
+.workspaceToolsMenu button, .workspaceToolsMenu a { width: 100%; min-height: 44px; justify-content: flex-start; text-align: left; }
 @media (min-width: 681px) {
   .root { grid-template-columns: 220px minmax(0, 1fr); }
   .sidebar { border-right: 1px solid #e5e5e7; background: #fff; color: #1d1d1f; }
@@ -4259,4 +4259,18 @@
  .root[data-mobile-workspace]{--workspace-mobile-navigation-inset:calc(65px + env(safe-area-inset-bottom));}
  .root[data-people-directory] [data-people-internal-tabs]{display:none;}
  .root[data-people-directory] [data-people-toolbar]{grid-template-columns:1fr;}
+}
+
+/* A short, contextual status keeps navigation clear without a blank full-page card. */
+.viewLoading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 112px;
+  padding: 24px;
+  border: 1px solid var(--ui-line, #e4e9ec);
+  border-radius: 16px;
+  background: var(--ui-surface, #fff);
+  color: var(--ui-text-muted, #637381);
+  font-size: 14px;
 }

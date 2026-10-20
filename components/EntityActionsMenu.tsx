@@ -1,4 +1,5 @@
 'use client';
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import {
   Archive,
   AlertTriangle,
@@ -97,12 +98,12 @@ export default function EntityActionsMenu({
   const isOpen = Boolean(mode);
   useEffect(()=>{
     if(!isOpen)return;
-    const previous=document.activeElement as HTMLElement|null,overflow=document.body.style.overflow;
+    const previous=document.activeElement as HTMLElement|null,releaseScroll = lockPageScroll();
     const siblings=Array.from(document.body.children).filter((node):node is HTMLElement=>node instanceof HTMLElement&&!node.contains(dialog.current));
-    const inert=siblings.map(node=>node.inert);siblings.forEach(node=>{node.inert=true;});document.body.style.overflow='hidden';
+    const releaseBackground = isolateElements(siblings);
     const update=()=>{const view=window.visualViewport;if(view)setViewport({top:view.offsetTop,height:view.height});};
     update();window.visualViewport?.addEventListener('resize',update);window.visualViewport?.addEventListener('scroll',update);
-    return()=>{previewRequest.current++;siblings.forEach((node,index)=>{node.inert=inert[index];});document.body.style.overflow=overflow;window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);if(previous?.isConnected)previous.focus();};
+    return()=>{previewRequest.current++;releaseBackground();releaseScroll();window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);if(previous?.isConnected)previous.focus();};
   },[isOpen]);
   useEffect(()=>{if(mode)dialog.current?.querySelector<HTMLElement>(mode==='edit'?'input,textarea':'button')?.focus();},[mode]);
 

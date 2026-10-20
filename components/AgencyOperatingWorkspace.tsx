@@ -1,5 +1,6 @@
 'use client';
 
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,homeWorkRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
 import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWorkControl';
@@ -74,17 +75,17 @@ import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
-function WorkspaceSectionLoading() {
-  return <section className={styles.loadingCard} role="status" aria-busy="true">
-    <LoaderCircle size={20} className={styles.spin} />
-    Opening workspace...
+function WorkspaceSectionLoading({label = 'workspace'}: {label?: string}) {
+  return <section className={styles.viewLoading} role="status" aria-busy="true" aria-atomic="true">
+    <LoaderCircle size={18} className={styles.spin} />
+    <span>Loading {label}...</span>
   </section>;
 }
 
-const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'), {loading: WorkspaceSectionLoading});
-const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: WorkspaceSectionLoading});
-const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: WorkspaceSectionLoading});
-const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: WorkspaceSectionLoading});
+const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'), {loading: () => <WorkspaceSectionLoading label="players"/>});
+const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: () => <WorkspaceSectionLoading label="Network"/>});
+const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
+const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
 const AgencyCreateDrawer = dynamic(() => import('@/components/AgencyCreateDrawer'));
 const AgencyRosterMigrationPanel = dynamic(() => import('@/components/AgencyRosterMigrationPanel'));
 const AgencyActionDrawer = dynamic(() => import('@/components/AgencyActionDrawer'));
@@ -378,17 +379,16 @@ export default function AgencyOperatingWorkspace() {
   useEffect(() => {
     if (!proposal || !signedIn || !workspace?.tenant_id) return;
     const previous = confirmationOpener.current || document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
+    const releaseScroll = lockPageScroll();
     const siblings = [...document.body.children].filter(
       (element): element is HTMLElement => element instanceof HTMLElement && element !== confirmationBackdrop.current,
     );
-    const inert = siblings.map(element => element.inert);
-    siblings.forEach(element => { element.inert = true; });
-    document.body.style.overflow = 'hidden';
+    const releaseBackground = isolateElements(siblings);
+
     confirmationDialog.current?.querySelector<HTMLButtonElement>('button')?.focus();
     return () => {
-      siblings.forEach((element, index) => { element.inert = inert[index]; });
-      document.body.style.overflow = overflow;
+      releaseBackground();
+      releaseScroll();
       if (previous?.isConnected) previous.focus();
     };
   }, [proposal, signedIn, workspace?.tenant_id]);
@@ -467,7 +467,7 @@ export default function AgencyOperatingWorkspace() {
     search.get('tab') !== 'recruitment'
       ? { kind: 'player', label: 'Add player' }
       : view === 'opportunities' && canSeeBusiness
-        ? { kind: 'club_need', label: 'Add opportunity' }
+        ? { kind: 'club_need', label: 'Add club need' }
         : null;
 
   const theme = tenantBrandCssVariables({
@@ -570,14 +570,14 @@ export default function AgencyOperatingWorkspace() {
             let home: any = null;
 
             try {
-              const focus = await invoke<any>('home_focus', {
+              const focus = await readWithDeadline(invoke<any>('home_focus', {
                 limit: 8,
-              });
+              }), 3000);
               home = focus?.home || {};
             } catch {
-              home = await rpc<any>('redream_autopilot_home', {
+              home = await readWithDeadline(rpc<any>('redream_autopilot_home', {
                 p_limit: 8,
-              });
+              }), 3000);
             }
 
             writeViewCache(cacheKey, { home });
@@ -585,10 +585,10 @@ export default function AgencyOperatingWorkspace() {
           }
 
           if (targetView === 'players') {
-            const directory = await invoke<any>(
+            const directory = await readWithDeadline(invoke<any>(
               'players_workspace',
               { limit: 100 },
-            );
+            ), 3000);
 
             writeViewCache(cacheKey, {
               directory: directory?.players || {},
@@ -597,10 +597,10 @@ export default function AgencyOperatingWorkspace() {
           }
 
           if (targetView === 'opportunities') {
-            const market = await rpc<any>(
+            const market = await readWithDeadline(rpc<any>(
               'redream_autopilot_market',
               { p_limit: 100 },
-            );
+            ), 3000);
 
             writeViewCache(cacheKey, {
               market,
@@ -612,10 +612,10 @@ export default function AgencyOperatingWorkspace() {
           if (targetView === 'network') {
             writeViewCache(
               cacheKey,
-              await rpc<any>('redream_autopilot_relationships', {
+              await readWithDeadline(rpc<any>('redream_autopilot_relationships', {
                 p_limit: 100,
                 p_contact_limit: 250,
-              }),
+              }), 3000),
             );
             return;
           }
@@ -623,10 +623,10 @@ export default function AgencyOperatingWorkspace() {
           if (targetView === 'calendar') {
             writeViewCache(
               cacheKey,
-              await rpc<any>('redream_autopilot_calendar', {
+              await readWithDeadline(rpc<any>('redream_autopilot_calendar', {
                 p_horizon_days: 90,
                 p_limit: 100,
-              }),
+              }), 3000),
             );
           }
         } catch {
@@ -801,12 +801,12 @@ export default function AgencyOperatingWorkspace() {
       if (view === 'home') {
         let home: any = null;
         try {
-          const focus = await invoke<any>('home_focus', { limit: 8 });
+          const focus = await readWithDeadline(invoke<any>('home_focus', { limit: 8 }));
           home = focus?.home || {};
         } catch {
-          home = await rpc<any>('redream_autopilot_home', {
+          home = await readWithDeadline(rpc<any>('redream_autopilot_home', {
             p_limit: 8,
-          });
+          }));
         }
 
         commit({ ...(latestData || {}), home, home_reads: { operations: 'loading', connected_work: 'loading', meeting_aftercare: 'loading' }, home_read_version: requestId });
@@ -814,23 +814,23 @@ export default function AgencyOperatingWorkspace() {
 
         void Promise.allSettled([
           ['owner','admin'].includes(String(workspace.role))
-            ? rpc<any>('redream_autopilot_operations', {p_horizon_days:90,p_limit:20})
+            ? readWithDeadline(rpc<any>('redream_autopilot_operations', {p_horizon_days:90,p_limit:20}))
             : Promise.resolve({access:{restricted:true}}),
-          rpc<any>('redream_connected_work', {
+          readWithDeadline(rpc<any>('redream_connected_work', {
             p_limit: 6,
-          }),
-          rpc<any>('redream_meeting_aftercare', {
+          })),
+          readWithDeadline(rpc<any>('redream_meeting_aftercare', {
             p_limit: 12,
-          }),
+          })),
         ]).then((reads) => {
           if (!isCurrent()) return;
           merge(settleHomeReads(latestData || {}, reads));
         });
       } else if (view === 'players') {
         if (playersSection === 'recruitment') {
-          const recruitment = await invoke<any>('recruitment_board', {
+          const recruitment = await readWithDeadline(invoke<any>('recruitment_board', {
             limit: 250,
-          });
+          }));
 
           merge({
             recruitment: recruitment?.recruitment || {},
@@ -852,9 +852,9 @@ export default function AgencyOperatingWorkspace() {
         }
       } else if (view === 'opportunities') {
         if (opportunitiesSection === 'deals') {
-          const deals = await rpc<any>('redream_autopilot_deals', {
+          const deals = await readWithDeadline(rpc<any>('redream_autopilot_deals', {
             p_limit: 100,
-          });
+          }));
 
           commit({
             ...(latestData || {}),
@@ -866,12 +866,12 @@ export default function AgencyOperatingWorkspace() {
           if (isCurrent()) setBusy(false);
 
           void Promise.allSettled([
-            rpc<any>('redream_autopilot_market', {
+            readWithDeadline(rpc<any>('redream_autopilot_market', {
               p_limit: 100,
-            }),
-            rpc<any>('redream_opportunity_connected_context', {
+            })),
+            readWithDeadline(rpc<any>('redream_opportunity_connected_context', {
               p_limit: 100,
-            }),
+            })),
           ]).then((reads) => {
             if (!isCurrent()) return;
             merge({
@@ -887,9 +887,9 @@ export default function AgencyOperatingWorkspace() {
             });
           });
         } else {
-          const market = await rpc<any>('redream_autopilot_market', {
+          const market = await readWithDeadline(rpc<any>('redream_autopilot_market', {
             p_limit: 100,
-          });
+          }));
 
           commit({
             ...(latestData || {}),
@@ -901,12 +901,12 @@ export default function AgencyOperatingWorkspace() {
           if (isCurrent()) setBusy(false);
 
           void Promise.allSettled([
-            rpc<any>('redream_autopilot_deals', {
+            readWithDeadline(rpc<any>('redream_autopilot_deals', {
               p_limit: 100,
-            }),
-            rpc<any>('redream_opportunity_connected_context', {
+            })),
+            readWithDeadline(rpc<any>('redream_opportunity_connected_context', {
               p_limit: 100,
-            }),
+            })),
           ]).then((reads) => {
             if (!isCurrent()) return;
             merge({
@@ -924,17 +924,17 @@ export default function AgencyOperatingWorkspace() {
         }
       } else if (view === 'network') {
         commit(
-          await rpc<any>('redream_autopilot_relationships', {
+          await readWithDeadline(rpc<any>('redream_autopilot_relationships', {
             p_limit: 100,
             p_contact_limit: 250,
-          }),
+          })),
         );
       } else if (view === 'calendar') {
         commit(
-          await rpc<any>('redream_autopilot_calendar', {
+          await readWithDeadline(rpc<any>('redream_autopilot_calendar', {
             p_horizon_days: 90,
             p_limit: 100,
-          }),
+          })),
         );
       } else if (view === 'business') {
         if (
@@ -949,7 +949,7 @@ export default function AgencyOperatingWorkspace() {
             );
           }
         } else {
-          const control = await invoke<any>('agency_control_centre');
+          const control = await readWithDeadline(invoke<any>('agency_control_centre'));
           commit({
             owner_business: {
               control: control?.control_centre || null,
@@ -963,14 +963,14 @@ export default function AgencyOperatingWorkspace() {
           if (isCurrent()) setBusy(false);
 
           void Promise.allSettled([
-            invoke<any>('agency_roi_proof', {
+            readWithDeadline(invoke<any>('agency_roi_proof', {
               window_days: 30,
-            }),
-            invoke<any>('receivables_command', {
+            })),
+            readWithDeadline(invoke<any>('receivables_command', {
               horizon_days: 90,
               limit: 100,
-            }),
-            invoke<any>('team_capacity'),
+            })),
+            readWithDeadline(invoke<any>('team_capacity')),
           ]).then((results) => {
             if (!isCurrent()) return;
             const value = (index: number, key: string) =>
@@ -1546,7 +1546,7 @@ export default function AgencyOperatingWorkspace() {
               </button>
             ) : null}
             <ToolsMenu className={styles.workspaceTools} menuClassName={styles.workspaceToolsMenu} label="Workspace tools">
-                {canSeeBusiness ? <Link href={'/workspace/' + encodeURIComponent(workspace.slug) + '/documents'}><FileText size={15}/>Documents</Link> : null}
+                {canSeeBusiness ? <Link data-ui-button="tertiary" className={styles.refresh} href={'/workspace/' + encodeURIComponent(workspace.slug) + '/documents'}><FileText size={15}/>Documents</Link> : null}
                 <button
                   type="button"
                   data-ui-button="tertiary"
@@ -1648,10 +1648,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {busy && !data ? (
-          <section className={styles.loadingCard} role="status" aria-busy="true" aria-atomic="true">
-            <LoaderCircle size={20} className={styles.spin} />
-            Loading current agency position...
-          </section>
+          <WorkspaceSectionLoading label={view === 'players' && playersSection === 'recruitment' ? 'recruitment' : view === 'home' ? 'your day' : view}/>
         ) : null}
 
         {data ? (
@@ -1936,7 +1933,7 @@ export default function AgencyOperatingWorkspace() {
           key={playerServiceReviewRequest.key}
           request={playerServiceReviewRequest}
           presentation="page"
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           onClose={() => setPlayerServiceReviewRequest(null)}
           onOpenAction={(request) => {
             setPlayerServiceReviewRequest(null);
@@ -1954,7 +1951,7 @@ export default function AgencyOperatingWorkspace() {
           request={negotiationRequest}
           presentation="page"
           role={String(workspace?.role || '')}
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           onClose={() => setNegotiationRequest(null)}
           onOpenAction={(request) => {
             setActionRequest(request);
@@ -2018,7 +2015,7 @@ export default function AgencyOperatingWorkspace() {
           request={dealCloseoutRequest}
           presentation="page"
           role={String(workspace?.role || '')}
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           onClose={() => setDealCloseoutRequest(null)}
           onApplied={async () => {
             await loadView();
@@ -2029,7 +2026,7 @@ export default function AgencyOperatingWorkspace() {
       {memoryOpen ? (
         <AgencyMemoryDrawer
           presentation="page"
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           onClose={() => setMemoryOpen(false)}
           onApplied={async () => {
             await loadView();

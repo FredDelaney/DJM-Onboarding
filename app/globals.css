@@ -73,6 +73,11 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Native modal sheets must hold the page still just like portal-based drawers. */
+html:has(dialog:modal) {
+  overflow: hidden;
+}
+
 body {
   margin: 0;
 

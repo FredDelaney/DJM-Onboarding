@@ -1,5 +1,6 @@
 'use client';
 
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import {
   ArrowLeft,
   ArrowRight,
@@ -193,8 +194,7 @@ export default function AgencyEntityIntelligenceDrawer({
 
   useEffect(() => {
     if (pageMode) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
 
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -203,7 +203,7 @@ export default function AgencyEntityIntelligenceDrawer({
     window.addEventListener('keydown', keydown);
 
     return () => {
-      document.body.style.overflow = previous;
+      releaseScroll();
       window.removeEventListener('keydown', keydown);
     };
   }, [onClose, pageMode]);

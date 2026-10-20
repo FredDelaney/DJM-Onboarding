@@ -1,5 +1,6 @@
 'use client';
 
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,BarChart3,Check,ChevronDown,Clock3,Copy,Download,Eye,ExternalLink,Link2,LoaderCircle,Mail,MessageCircleMore,Pencil,Play,RefreshCw,Send,ShieldCheck,Sparkles,Trash2,X} from 'lucide-react';
 import {
@@ -455,8 +456,8 @@ export default function AgencyPlayerProfile({
   useEffect(() => {
     if (!editOpen) return;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
+
     const focusFirst = () => {
       Array.from(editorDialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled)') || []).find(node => node.getClientRects().length > 0)?.focus();
     };
@@ -479,7 +480,7 @@ export default function AgencyPlayerProfile({
     document.addEventListener('keydown', recoverFocus);
     Array.from(editorDialog.current?.querySelectorAll<HTMLElement>('input, textarea') || []).find(node => node.getClientRects().length > 0)?.focus();
     return () => {
-      document.body.style.overflow = overflow;
+      releaseScroll();
       document.removeEventListener('focusin', containFocus);
       document.removeEventListener('keydown', recoverFocus);
       queueMicrotask(() => { if (opener?.isConnected) opener.focus(); });

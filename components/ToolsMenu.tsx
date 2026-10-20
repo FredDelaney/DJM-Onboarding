@@ -56,11 +56,13 @@ export default function ToolsMenu({children, className, triggerClassName = '', m
       position();
       menu.querySelector<HTMLElement>('button:not(:disabled),a[href]')?.focus({preventScroll: true});
     };
-    const popoverToggle = () => {if (!menu.matches(':popover-open')) details.open = false;};
+    // The queued toggle event can arrive after a user reopens the disclosure.
+    // Synchronise dismissal before the native popover closes instead.
+    const popoverClose = (event: Event) => {if ((event as ToggleEvent).newState === 'closed') details.open = false;};
     const outside = (event: Event) => {if (details.open && event.target instanceof Node && !details.contains(event.target)) close();};
     const scroll = (event: Event) => {if (!(event.target instanceof Node) || !menu.contains(event.target)) position();};
     details.addEventListener('toggle', toggle);
-    menu.addEventListener('toggle', popoverToggle);
+    menu.addEventListener('beforetoggle', popoverClose);
     document.addEventListener('pointerdown', outside);
     document.addEventListener('focusin', outside);
     window.addEventListener('resize', position);
@@ -72,7 +74,7 @@ export default function ToolsMenu({children, className, triggerClassName = '', m
     return () => {
       observer.disconnect();
       details.removeEventListener('toggle', toggle);
-      menu.removeEventListener('toggle', popoverToggle);
+      menu.removeEventListener('beforetoggle', popoverClose);
       document.removeEventListener('pointerdown', outside);
       document.removeEventListener('focusin', outside);
       window.removeEventListener('resize', position);

@@ -1,4 +1,5 @@
 'use client';
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import {
   BriefcaseBusiness,
   CheckCircle2,
@@ -162,18 +163,17 @@ export default function AgencyCreateDrawer({
 
   useEffect(() => {
     active.current = true;
-    const previous = document.body.style.overflow;
+    const releaseScroll = lockPageScroll();
     if (!dialog.current?.contains(document.activeElement)) opener.current = document.activeElement as HTMLElement | null;
     const siblings = [...document.body.children].filter((node): node is HTMLElement => node instanceof HTMLElement && !node.contains(backdrop.current));
-    const inertBefore = siblings.map(node => node.inert);
-    siblings.forEach(node => {node.inert = true;});
-    document.body.style.overflow = 'hidden';
+    const releaseBackground = isolateElements(siblings);
+
     (dialog.current?.querySelector<HTMLElement>('input:not(:disabled),textarea:not(:disabled),select:not(:disabled)') || dialog.current?.querySelector<HTMLElement>('button:not(:disabled)'))?.focus();
 
     return () => {
       active.current = false;
-      siblings.forEach((node, index) => {node.inert = inertBefore[index];});
-      document.body.style.overflow = previous;
+      releaseBackground();
+      releaseScroll();
       queueMicrotask(() => {if (!active.current && opener.current?.isConnected) opener.current.focus();});
     };
   }, []);

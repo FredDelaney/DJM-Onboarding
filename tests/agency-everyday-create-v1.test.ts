@@ -51,7 +51,7 @@ const clubCreateMigration = readFileSync(
 
 test('every daily data area has one obvious real create action', () => {
   assert.match(workspace, /label: 'Add player'/);
-  assert.match(workspace, /kind: 'club_need', label: 'Add opportunity'/);
+  assert.match(workspace, /kind: 'club_need', label: 'Add club need'/);
   assert.doesNotMatch(workspace, /label: 'Add deal'/);
   assert.match(network, /view === 'clubs' \? 'Add club' : 'Add contact'/);
   assert.match(network, /onCreate\(view === 'clubs' \? 'club' : 'contact'\)/);

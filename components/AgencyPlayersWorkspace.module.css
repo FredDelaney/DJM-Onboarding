@@ -1965,3 +1965,22 @@
     min-height: 44px; padding: 0; font-weight: 500;
   }
 }
+
+/* Keep action timing distinct from its label at every width. */
+.mobileNextActionHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.mobileNextActionHead small {
+  color: #6e6e73;
+  font-size: 12px;
+}
+@media (min-width: 1100px) {
+  .playerCardTop { grid-column: 1; grid-row: 1; }
+  .playerCard .mobileNextAction { grid-column: 2; grid-row: 1; }
+  .playerFacts { grid-column: 3; grid-row: 1; grid-template-columns: 1fr; }
+  .profileShortcutRow { grid-column: 1; grid-row: 2; justify-content: flex-start; }
+  .playerCardActions { grid-column: 2 / -1; grid-row: 2; margin-top: 0; }
+}
