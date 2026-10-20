@@ -4,6 +4,7 @@ import {
   FormEvent,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -23,6 +24,7 @@ import {
   isStrongPassword,
 } from '@/lib/password';
 import { supabase } from '@/lib/supabase';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 
 const cleanColour = (
   value: unknown,
@@ -77,13 +79,21 @@ export default function StaffInvitePage() {
   const [message, setMessage] =
     useState('');
 
+  const [loadError, setLoadError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const submitting = useRef(false);
+
   const [sessionEmail, setSessionEmail] =
     useState('');
 
   useEffect(() => {
     let active = true;
 
+    setLoading(true);
+    setLoadError('');
+    setInvite(null);
     (async () => {
+      try {
       if (!token) {
         if (active) {
           setLoading(false);
@@ -92,10 +102,11 @@ export default function StaffInvitePage() {
       }
 
       const [{ data, error }, sessionResult] =
-        await Promise.all([
+        await readWithDeadline(Promise.all([
           supabase.functions.invoke(
             'agency-staff-invite-public',
             {
+              timeout: 12000,
               body: {
                 action: 'preflight',
                 token,
@@ -103,7 +114,9 @@ export default function StaffInvitePage() {
             },
           ),
           supabase.auth.getSession(),
-        ]);
+        ]));
+
+      if (error || data?.error || sessionResult.error) throw new Error("We could not open your invitation. Please try again.");
 
       if (!active) return;
 
@@ -122,13 +135,17 @@ export default function StaffInvitePage() {
           .toLowerCase(),
       );
 
-      setLoading(false);
+      } catch {
+        if (active) setLoadError('We could not open your invitation. Please try again.');
+      } finally {
+        if (active) setLoading(false);
+      }
     })();
 
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [token, loadAttempt]);
 
   const inviteEmail = String(
     invite?.email || '',
@@ -151,6 +168,9 @@ export default function StaffInvitePage() {
       branding.short_name ||
         agencyName,
     ).trim() || agencyName;
+
+  const workspacePath = /^[a-z0-9][a-z0-9-]*$/.test(String(invite?.tenant?.slug || ''))
+    ? `/workspace/${invite.tenant.slug}` : '/workspaces';
 
   const roleLabel = humanRole(
     String(invite?.role || ''),
@@ -191,8 +211,9 @@ export default function StaffInvitePage() {
   } as React.CSSProperties;
 
   const activateExisting = async () => {
-    if (!token) return;
-
+    if (!token || submitting.current) return;
+    submitting.current = true;
+    submitting.current = true;
     setBusy(true);
     setMessage('');
 
@@ -204,6 +225,7 @@ export default function StaffInvitePage() {
         await supabase.functions.invoke(
           'agency-staff-invite',
           {
+            timeout: 12000,
             body: { token },
           },
         );
@@ -213,13 +235,14 @@ export default function StaffInvitePage() {
         throw new Error(data.error);
       }
 
-      router.replace('/agency');
+      router.replace(workspacePath);
     } catch (error: any) {
       setMessage(
         error?.message ||
           'Unable to activate agency access.',
       );
       setBusy(false);
+      submitting.current = false;
     }
   };
 
@@ -231,11 +254,12 @@ export default function StaffInvitePage() {
     if (
       !token ||
       !inviteEmail ||
-      !passwordReady
+      !passwordReady || submitting.current
     ) {
       return;
     }
 
+    submitting.current = true;
     setBusy(true);
     setMessage('');
 
@@ -247,6 +271,7 @@ export default function StaffInvitePage() {
         await supabase.functions.invoke(
           'agency-staff-invite-public',
           {
+            timeout: 12000,
             body: {
               action: 'register',
               token,
@@ -265,6 +290,7 @@ export default function StaffInvitePage() {
           'An account already exists for this email. Sign in to accept the invitation.',
         );
         setBusy(false);
+        submitting.current = false;
         return;
       }
 
@@ -275,24 +301,25 @@ export default function StaffInvitePage() {
       const {
         error: signInError,
       } =
-        await supabase.auth.signInWithPassword(
+        await readWithDeadline(supabase.auth.signInWithPassword(
           {
             email: inviteEmail,
             password,
           },
-        );
+        ));
 
       if (signInError) {
         throw signInError;
       }
 
-      router.replace('/agency');
+      router.replace(workspacePath);
     } catch (error: any) {
       setMessage(
         error?.message ||
           'Unable to create your account.',
       );
       setBusy(false);
+      submitting.current = false;
     }
   };
 
@@ -301,10 +328,11 @@ export default function StaffInvitePage() {
   ) => {
     event.preventDefault();
 
-    if (!token || !inviteEmail) {
+    if (!token || !inviteEmail || submitting.current) {
       return;
     }
 
+    submitting.current = true;
     setBusy(true);
     setMessage('');
 
@@ -312,12 +340,12 @@ export default function StaffInvitePage() {
       const {
         error: signInError,
       } =
-        await supabase.auth.signInWithPassword(
+        await readWithDeadline(supabase.auth.signInWithPassword(
           {
             email: inviteEmail,
             password,
           },
-        );
+        ));
 
       if (signInError) {
         throw signInError;
@@ -330,6 +358,7 @@ export default function StaffInvitePage() {
         await supabase.functions.invoke(
           'agency-staff-invite',
           {
+            timeout: 12000,
             body: { token },
           },
         );
@@ -339,21 +368,23 @@ export default function StaffInvitePage() {
         throw new Error(data.error);
       }
 
-      router.replace('/agency');
+      router.replace(workspacePath);
     } catch (error: any) {
       setMessage(
         error?.message ||
           'Unable to accept the invitation.',
       );
       setBusy(false);
+      submitting.current = false;
     }
   };
 
   const signOutForInvite = async () => {
-    await supabase.auth.signOut();
-    setSessionEmail('');
-    setMode('sign-in');
-    setMessage('');
+    try {
+      const { error } = await readWithDeadline(supabase.auth.signOut());
+      if (error) throw error;
+      setSessionEmail(''); setMode('sign-in'); setMessage('');
+    } catch { setMessage('We could not sign you out. Try again.'); }
   };
 
   if (loading) {
@@ -378,14 +409,9 @@ export default function StaffInvitePage() {
           }}
         >
           <ShieldCheck size={28} />
-          <h2>
-            This invitation is no longer
-            active.
-          </h2>
-          <p className="muted">
-            Ask the agency for a new team
-            invitation.
-          </p>
+          <h2>{loadError ? 'Invitation unavailable' : 'This invitation is no longer active.'}</h2>
+          <p className="muted" role={loadError ? 'alert' : undefined}>{loadError || 'Ask the agency for a new team invitation.'}</p>
+          {loadError ? <button type="button" className="btn btn-navy" onClick={() => setLoadAttempt(value => value + 1)}>Retry</button> : null}
         </div>
       </div>
     );
@@ -673,7 +699,11 @@ export default function StaffInvitePage() {
                 </div>
               ) : null}
 
+              <p id="staff-invite-ready" className="small muted" aria-live="polite">
+                {fullName.trim().length < 2 ? 'Enter your full name to continue.' : !passwordReady ? 'Meet each password requirement above to join.' : 'Ready to join the agency.'}
+              </p>
               <button
+                aria-describedby="staff-invite-ready"
                 className="btn btn-navy btn-block"
                 disabled={
                   busy ||

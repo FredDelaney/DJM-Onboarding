@@ -15,6 +15,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -27,6 +28,8 @@ import {
 import AgencyMessagingConnections from './AgencyMessagingConnections';
 import AgencyProviderContactLinks from './AgencyProviderContactLinks';
 import styles from './AgencyConnectionsDrawer.module.css';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import { providerConnectionState } from '@/lib/provider-connection-state';
 
 type Provider =
   | 'google'
@@ -75,6 +78,8 @@ export default function AgencyConnectionsDrawer({
 }) {
   const [connections, setConnections] =
     useState<Connection[]>([]);
+  const [readError, setReadError] = useState('');
+  const loadGeneration = useRef(0);
   const [emailAccess, setEmailAccess] =
     useState<Record<Provider, boolean>>({
       google: false,
@@ -108,18 +113,23 @@ export default function AgencyConnectionsDrawer({
   const load =
     useCallback(
       async () => {
+        const generation = ++loadGeneration.current;
         setLoading(true);
-        setError('');
+        setReadError('');
+        const controller = new AbortController();
 
         try {
           const result =
-            await platformRpc<{
+            await readWithDeadline(platformRpc<{
               connections?: Connection[];
             }>(
               'redream_provider_connections',
               {},
               workspaceSlug,
-            );
+              controller.signal,
+            ));
+          if (generation !== loadGeneration.current) return;
+          if (!Array.isArray(result?.connections)) throw new Error('Connection status could not be confirmed. Please try again.');
 
           const next =
             Array.isArray(
@@ -153,20 +163,24 @@ export default function AgencyConnectionsDrawer({
               false,
           });
         } catch (loadError) {
-          setError(
+          if (generation !== loadGeneration.current) return;
+          setReadError(
             friendlyError(
               loadError,
             ),
           );
         } finally {
-          setLoading(false);
+          controller.abort();
+          if (generation === loadGeneration.current) setLoading(false);
         }
       },
       [workspaceSlug],
     );
 
   useEffect(() => {
+    setConnections([]);
     void load();
+    return () => { ++loadGeneration.current; };
   }, [load]);
 
   useEffect(() => {
@@ -203,7 +217,7 @@ export default function AgencyConnectionsDrawer({
       status === 'connected'
     ) {
       setMessage(
-        `${providerLabel} connected.`,
+        `${providerLabel} setup returned. Check its status below.`,
       );
     } else if (
       status === 'error'
@@ -531,7 +545,7 @@ export default function AgencyConnectionsDrawer({
             />
             Checking connections...
           </div>
-        ) : (
+        ) : readError ? <div className={styles.error} role="alert">{readError} <button type="button" data-ui-button="secondary" className={styles.secondary} onClick={() => void load()}>Retry</button></div> : (
           <div
             className={
               styles.providers
@@ -543,6 +557,7 @@ export default function AgencyConnectionsDrawer({
                   byProvider.get(
                     provider.key,
                   );
+                const connectionState = providerConnectionState(connected);
 
                 const working =
                   busy.endsWith(
@@ -598,14 +613,12 @@ export default function AgencyConnectionsDrawer({
 
                           <span
                             className={
-                              connected
+                              connectionState.ready
                                 ? styles.connected
                                 : styles.notConnected
                             }
                           >
-                            {connected
-                              ? 'Connected'
-                              : 'Not connected'}
+                            {connectionState.label}
                           </span>
                         </div>
 
@@ -728,7 +741,7 @@ export default function AgencyConnectionsDrawer({
                               styles.primary
                             }
                             onClick={() =>
-                              emailAccessChanged
+                              emailAccessChanged || connectionState.reconnect
                                 ? void connect(provider.key)
                                 : void syncProvider(provider.key)
                             }
@@ -746,10 +759,10 @@ export default function AgencyConnectionsDrawer({
                             ) : (
                               <RefreshCw size={14} />
                             )}
-                            {emailAccessChanged ? 'Update access' : 'Sync now'}
+                            {connectionState.reconnect ? 'Reconnect' : emailAccessChanged ? 'Update access' : 'Sync now'}
                           </button>
 
-                          {!emailAccessChanged ? (
+                          {!emailAccessChanged && !connectionState.reconnect ? (
                             <button
                               type="button"
                               data-ui-button="secondary"
@@ -828,7 +841,7 @@ export default function AgencyConnectionsDrawer({
           </div>
         )}
 
-        <AgencyProviderContactLinks
+        {!loading && !readError ? <AgencyProviderContactLinks
           workspaceSlug={workspaceSlug}
           onStatus={(kind, nextMessage) => {
             if (kind === 'success') {
@@ -839,7 +852,7 @@ export default function AgencyConnectionsDrawer({
               setError(nextMessage);
             }
           }}
-        />
+        /> : null}
 
         <AgencyMessagingConnections
           workspaceSlug={workspaceSlug}

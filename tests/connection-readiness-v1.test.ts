@@ -34,7 +34,7 @@ test('email capability changes require explicit OAuth update before sync resumes
     connections,
     /emailAccessChanged \? 'Update access' : 'Sync now'/,
   );
-  assert.match(connections, /!emailAccessChanged \? \(/);
+  assert.match(connections, /!emailAccessChanged && !connectionState\.reconnect \? \(/);
 });
 
 test('messaging reports selected and unresolved identity counts to Connections', () => {
