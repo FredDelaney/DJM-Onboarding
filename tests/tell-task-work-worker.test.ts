@@ -5,6 +5,7 @@ import test from 'node:test';
 import ts from 'typescript';
 import * as safety from '../supabase/functions/_shared/ai-safety.ts';
 import * as work from '../supabase/functions/_shared/task-work.ts';
+import * as preparation from '../supabase/functions/_shared/capture-preparation.ts';
 
 const source=ts.transpileModule(readFileSync('supabase/functions/_shared/ai-process.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 const task={id:'task-a',title:'Speak to James about Dylan availability',status:'open',owner_user_id:'user-a',updated_at:'2026-10-20T09:00:00Z',person_name:'James Smith',player_name:'Dylan Example'};
@@ -18,7 +19,7 @@ async function run(actions:any[],tasks:any[]=[task],resolutions:any[]=[],states:
     return {data,error:null};
   }};
   const exports:any={};
-  vm.runInNewContext(source,{exports,require:(name:string)=>name.includes('supabase-js')?{createClient:()=>admin}:name.includes('task-work')?work:name.includes('ai-safety')?safety:{},
+  vm.runInNewContext(source,{exports,require:(name:string)=>name.includes('supabase-js')?{createClient:()=>admin}:name.includes('capture-preparation')?preparation:name.includes('task-work')?work:name.includes('ai-safety')?safety:{},
     Deno:{env:{get:()=> 'fixture-only'}},Request,Response,AbortSignal,crypto,performance,TextEncoder,console:{info(){},warn(){},error(){}},fetch:()=>{throw new Error('A reused plan must not call the AI provider');}});
   const response=await exports.handleAiProcess(new Request('https://example.test/process',{method:'POST',headers:{Authorization:'Bearer fixture'},body:JSON.stringify({capture_id:'capture-a'})}));
   assert.equal(response.status,200); const result=await response.json();
@@ -60,7 +61,7 @@ test('worker retries skip saved, undone and explicitly dismissed action hashes',
 test('fresh interpretation receives owned objectives and checks completion alongside new follow-ups',async()=>{
   const exports:any={};let requests=0;
   vm.runInNewContext(source+'\nexports.interpret=interpret;',{
-    exports,require:()=>({}),AbortSignal,Response,
+    exports,require:(name:string)=>name.includes('capture-preparation')?preparation:{},AbortSignal,Response,
     fetch:async(_url:string,options:any)=>{
       requests++;
       const body=JSON.parse(options.body);

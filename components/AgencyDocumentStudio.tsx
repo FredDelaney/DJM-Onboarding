@@ -56,6 +56,8 @@ import {
   updateDocumentField,
 } from "@/lib/document-workflow";
 import AgencyDocumentDetails from "./AgencyDocumentDetails";
+import CapturePreparationBrief, { BriefSource, type PreparationBrief } from "./CapturePreparationBrief";
+import { preparationLink, preparationHref, preparationPlayer, type PreparationLink } from "@/lib/capture-preparation";
 import AgencyDocumentAssist from "./AgencyDocumentAssist";
 import { applyDocumentSuggestions } from "@/lib/document-assist";
 import AgencyDocumentPreview from "./AgencyDocumentPreview";
@@ -98,10 +100,12 @@ const documentIcons = {
 };
 
 export default function AgencyDocumentStudio({
-  workspaceSlug,
+  workspaceSlug, sourceCapture = "", sourcePreparation = "",
 }: {
-  workspaceSlug: string;
+  workspaceSlug: string; sourceCapture?: string; sourcePreparation?: string;
 }) {
+  const handoff = preparationLink(sourceCapture, sourcePreparation);
+  const signInNext = handoff ? preparationHref(workspaceSlug, handoff) : null;
   const [data, setData] = useState<DocumentStudioData | null>(null),
     [error, setError] = useState(""),
     [identity, setIdentity] = useState(""),
@@ -212,7 +216,7 @@ export default function AgencyDocumentStudio({
         <h1>Your agency documents</h1>
         <p>Sign in to open your workspace documents.</p>
         <Link
-          href={`/sign-in?next=${encodeURIComponent(`/workspace/${workspaceSlug}/documents`)}`}
+          href={`/sign-in?next=${encodeURIComponent(signInNext || `/workspace/${workspaceSlug}/documents`)}`}
         >
           Sign in
         </Link>
@@ -246,6 +250,7 @@ export default function AgencyDocumentStudio({
       workspaceSlug={workspaceSlug}
       initialData={data}
       request={request}
+      preparation={handoff}
     />
   );
 }
@@ -253,12 +258,14 @@ export default function AgencyDocumentStudio({
 export function DocumentStudioEditor({
   workspaceSlug,
   initialData,
-  request,
+  request, preparation = null,
 }: {
+  preparation?: PreparationLink | null;
   workspaceSlug: string;
   initialData: DocumentStudioData;
   request: DocumentRequest;
 }) {
+  const [sourceBrief, setSourceBrief] = useState<{ document: string; notes: string; capture: string; preparation: string } | null>(null);
   const [library, setLibrary] = useState(initialData.documents),
     [doc, setDoc] = useState<AgencyDocument | null>(null),
     [baseline, setBaseline] = useState(""),
@@ -542,6 +549,16 @@ export function DocumentStudioEditor({
           Private workspace
         </span>
       </header>
+      {preparation && (!sourceBrief || sourceBrief.document !== doc?.id || sourceBrief.capture !== preparation.capture || sourceBrief.preparation !== preparation.preparation) ? <CapturePreparationBrief link={preparation} read={(capture, signal) => request("capture_read", undefined, { capture_id: capture }, signal)}>
+        {brief => <DocumentPreparationStart brief={brief} players={initialData.players} workspaceSlug={workspaceSlug} link={preparation} onOpen={() => navigate(() => {
+          if (brief.intent.kind === "player_profile") return;
+          const draft = newAgencyDocument(brief.intent.kind, brand, new Date(), initialData.settings);
+          // Only a grounded name is copied. The full private note stays in the AI brief, never recipient copy.
+          const next = brief.intent.player_name && DOCUMENT_TEMPLATES[draft.kind].fields.some(field => field.key === "player_name") ? updateDocumentField(draft, "player_name", brief.intent.player_name) : draft;
+          select(next);
+          setSourceBrief({ document: next.id, notes: brief.notes, ...preparation });
+        })}/>}
+      </CapturePreparationBrief> : null}
       {!doc ? (
         <div className={styles.library}>
           <div className={styles.libraryHeading}>
@@ -806,6 +823,7 @@ export function DocumentStudioEditor({
                 <div hidden={tab !== "details" && tab !== "content"}>
                   <AgencyDocumentAssist
                     key={doc.id}
+                    initialNotes={sourceBrief?.document === doc.id ? sourceBrief.notes : undefined}
                     doc={doc}
                     request={request}
                     disabled={!!busy || !!doc.paid_at}
@@ -1686,4 +1704,18 @@ export function DocumentStudioEditor({
       </dialog>
     </main>
   );
+}
+
+function DocumentPreparationStart({ brief, players, workspaceSlug, link, onOpen }: {
+  brief: PreparationBrief; players: DocumentPlayer[]; workspaceSlug: string; link: PreparationLink; onOpen: () => void;
+}) {
+  const [selected, setSelected] = useState(() => preparationPlayer(players, brief.intent.player_name));
+  const profile = brief.intent.kind === "player_profile";
+  const href = selected && players.some(player => player.id === selected) ? preparationHref(workspaceSlug, link, selected) : null;
+  return <>
+    <p>{profile ? "Choose the player whose profile you want to prepare. Review the supplied notes alongside their recorded football evidence." : "Open an editable draft in your agency's branding. Your note will be waiting in Prepare with ReDream."}</p>
+    <BriefSource notes={brief.notes}/>
+    {profile ? <><label htmlFor="preparation-player">Player{brief.intent.player_name ? ` · ${brief.intent.player_name}` : ""}</label><select id="preparation-player" value={selected} onChange={event => setSelected(event.target.value)}><option value="">Choose a workspace player</option>{players.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}</select>{href ? <Link data-ui-button="primary" href={href}>Open profile preparation<ArrowRight size={16}/></Link> : <p>Select an existing player. This does not add anyone to your roster.</p>}</> : <button type="button" data-ui-button="primary" onClick={onOpen}>Open editable draft<ArrowRight size={16}/></button>}
+    <p>Nothing is saved or shared until you choose.</p>
+  </>;
 }

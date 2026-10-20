@@ -10,6 +10,7 @@ import { pendingAiWorkspace } from '@/lib/ai-workspace';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { useAiWorkspaceContext } from './useAiWorkspace';
 import Link from 'next/link';
+import { capturePreparations, preparationHref, PREPARATION_LABELS } from '@/lib/capture-preparation';
 import {captureOutcomeLinks} from '@/lib/capture-outcome-links';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { aiTextDraftKey, readAiTextDraft, writeAiTextDraft } from '@/lib/ai-text-draft';
@@ -70,6 +71,7 @@ type Context = {
 };
 
 type Receipt = {
+  preparations?: unknown;
   capture?: {
     id: string;
     status: string;
@@ -974,6 +976,7 @@ export default function AiCapture({
     'failed',
     'budget_blocked',
   ].includes(terminalStatus);
+  const preparations = capturePreparations(receipt?.preparations, receipt?.capture?.transcript_text || '');
   const verifiedComplete = terminalStatus === 'done';
   const inFlight = Boolean(terminalStatus) && !TERMINAL.has(terminalStatus);
   const hasAppliedActions = (receipt?.actions || []).some(
@@ -1147,7 +1150,7 @@ export default function AiCapture({
           <div className={styles.receiptHead}>
             <div>
               <strong>
-                {hasPendingActions ? 'Review proposed changes' : verifiedComplete ? 'Update complete' : 'Your update'}
+                {hasPendingActions ? 'Review proposed changes' : verifiedComplete ? preparations.length && !hasAppliedActions ? 'Your preparation' : 'Update complete' : 'Your update'}
               </strong>
               <span>
                 {hasPendingActions
@@ -1155,7 +1158,7 @@ export default function AiCapture({
                   : needsAttention
                     ? 'ReDream has not guessed. Resolve the items below or edit the note.'
                     : verifiedComplete
-                      ? hasAppliedActions ? 'Changes saved. Undo is available where supported.' : 'Review complete. No changes were saved.'
+                      ? hasAppliedActions ? 'Changes saved. Undo is available where supported.' : preparations.length ? 'Your brief is ready. Open a draft to review and edit it.' : 'Review complete. No changes were saved.'
                       : 'ReDream is finishing the interpretation. You do not need to do anything yet.'}
               </span>
             </div>
@@ -1175,6 +1178,18 @@ export default function AiCapture({
             </div>
           </div>
 
+          {preparations.length && TERMINAL.has(terminalStatus) ? (
+            <div className={styles.preparations}>
+              <strong>Ready to prepare</strong>
+              {preparations.map(intent => {
+                const href = preparationHref(workspaceSlug, { capture: receipt.capture!.id, preparation: intent.key });
+                return href ? <Link key={intent.key} href={href} onClick={onNavigate}>
+                  <FileText size={19} /><span><strong>{PREPARATION_LABELS[intent.kind]}</strong><small>{intent.player_name || intent.club_name || 'From your brief'}</small></span><span aria-hidden>→</span>
+                </Link> : null;
+              })}
+              <small>Review and edit before saving or sharing.</small>
+            </div>
+          ) : null}
           {proposedRows.length ? (
             <div className={styles.preview}>
               <div className={styles.previewHead}>

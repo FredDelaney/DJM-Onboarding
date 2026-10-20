@@ -14,6 +14,7 @@ import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { preparationLink } from '@/lib/capture-preparation';
 import {
   ArrowRight,
   ChevronRight,
@@ -1688,6 +1689,7 @@ export default function AgencyOperatingWorkspace() {
                 <AgencyPlayerProfile
                   key={`player-profile:${selectedPlayerId}`}
                   playerId={selectedPlayerId}
+                  preparation={preparationLink(search.get("capture"), search.get("preparation"))}
                   backHref={`${basePath}?view=players`}
                   cacheScope={stateScope}
                   workHref={`${basePath}?view=players&player=${encodeURIComponent(selectedPlayerId)}`}

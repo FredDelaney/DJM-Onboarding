@@ -36,14 +36,15 @@ export default function AgencyDocumentAssist({
   doc,
   request,
   onApply,
-  disabled,
+  disabled, initialNotes,
 }: {
+  initialNotes?: string;
   doc: AgencyDocument;
   request: DocumentRequest;
   onApply: (suggestions: DocumentSuggestions, fingerprint: string) => void;
   disabled: boolean;
 }) {
-  const [notes, setNotes] = useState(""),
+  const [notes, setNotes] = useState(initialNotes || ""),
     [sectionId, setSectionId] = useState(""),
     [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
@@ -195,7 +196,7 @@ export default function AgencyDocumentAssist({
     },
   };
   return (
-    <details className={styles.assist}>
+    <details className={styles.assist} open={initialNotes ? true : undefined}>
       <summary>
         <Sparkles size={17} />
         <span>

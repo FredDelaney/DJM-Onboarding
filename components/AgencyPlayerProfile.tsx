@@ -12,6 +12,8 @@ import {
   useState,
 } from 'react';
 
+import CapturePreparationBrief from '@/components/CapturePreparationBrief';
+import { type PreparationLink } from '@/lib/capture-preparation';
 import PublicProfile from '@/components/PublicProfile';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AgencyPlayerDataPanel from '@/components/AgencyPlayerDataPanel';
@@ -42,6 +44,7 @@ type AgencyInvoke = <T = any>(
 
 type Props = {
   playerId: string;
+  preparation?: PreparationLink | null;
   backHref: string;
   workHref?: string;
   cacheScope?: string;
@@ -427,7 +430,7 @@ const shareStatus = (share: any) => {
 };
 
 export default function AgencyPlayerProfile({
-  playerId,
+  playerId, preparation,
   backHref,
   workHref,
   cacheScope = '',
@@ -2152,6 +2155,14 @@ export default function AgencyPlayerProfile({
         </div>
       </section>
 
+      {preparation && rpc && canEdit ? <CapturePreparationBrief key={`${cacheScope}:${playerId}:${preparation.capture}:${preparation.preparation}`} link={preparation} read={(capture, signal) => readWithDeadline(rpc('redream_ai_receipt', { p_capture_id: capture }))}>
+        {brief => brief.intent.kind === 'player_profile' ? <ProfilePreparationSource notes={brief.notes} disabled={Boolean(actionBusy)} ready={Boolean(proposal)} onPrepare={() => openPrepare()} onUse={notes => {
+          if (!proposal) return;
+          editProposal({ why_review: notes });
+          setPrepareOpen(true);
+          setNotice('Brief copied to the editable introduction. Check the facts and remove private details before saving or sharing.');
+        }}/> : <p>This brief is for a document. Open the source note to continue.</p>}
+      </CapturePreparationBrief> : null}
       {prepareOpen && canEdit ? (
         <section id="player-profile-prepare" className={styles.preparePanel} aria-label="Prepare Player Profile">
           <header className={styles.prepareHead}>
@@ -3820,4 +3831,16 @@ export default function AgencyPlayerProfile({
       ) : null}
     </div>
   );
+}
+
+function ProfilePreparationSource({ notes, disabled, ready, onPrepare, onUse }: {
+  notes: string; disabled: boolean; ready: boolean; onPrepare: () => void; onUse: (value: string) => void;
+}) {
+  const [brief, setBrief] = useState(notes);
+  return <>
+    <p>Private working notes. Keep only the factual wording you want a club to see before copying it into the introduction.</p>
+    <label htmlFor="profile-source-brief">Review your brief<textarea id="profile-source-brief" rows={5} value={brief} onChange={event => setBrief(event.target.value)} disabled={disabled}/></label>
+    {!ready ? <button type="button" data-ui-button="primary" onClick={onPrepare} disabled={disabled}>Open profile preparation</button> : <button type="button" data-ui-button="secondary" onClick={() => onUse(brief.trim())} disabled={disabled || !brief.trim() || brief.trim().length > 1200}>Use reviewed brief as introduction</button>}
+    <p>{brief.trim().length > 1200 ? 'Shorten the brief to 1,200 characters before using it as the introduction. ' : ''}Profile preparation uses recorded stats and video. Saving and sharing stay separate.</p>
+  </>;
 }

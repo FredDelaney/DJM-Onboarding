@@ -5,10 +5,12 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 export default async function DocumentsPage({
-  params,
+  params, searchParams,
 }: {
   params: Promise<{ tenantSlug: string }>;
+  searchParams: Promise<{ capture?: string | string[]; preparation?: string | string[] }>;
 }) {
   const { tenantSlug } = await params;
-  return <AgencyDocumentStudio workspaceSlug={tenantSlug} />;
+  const query = await searchParams;
+  return <AgencyDocumentStudio workspaceSlug={tenantSlug} sourceCapture={typeof query.capture === "string" ? query.capture : ""} sourcePreparation={typeof query.preparation === "string" ? query.preparation : ""} />;
 }

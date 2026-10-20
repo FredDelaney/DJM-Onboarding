@@ -1,4 +1,5 @@
-import { useCallback, useRef } from "react";
+import { preparationLink, type PreparationLink } from "@/lib/capture-preparation";
+import { useCallback, useRef, useEffect, useState } from "react";
 import {
   DocumentStudioEditor,
   type DocumentRequest,
@@ -178,6 +179,11 @@ export default function DocumentFixture({
   reviewBrand?: string;
   longInvoice?: boolean;
 }) {
+  const [handoff, setHandoff] = useState<PreparationLink | null>(null);
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    setHandoff(preparationLink(query.get("capture"), query.get("preparation")));
+  }, []);
   const selectedBrand = reviewBrand
     ? documentBrand({
         ...reviewBrands[reviewBrand as keyof typeof reviewBrands],
@@ -221,12 +227,20 @@ export default function DocumentFixture({
     ],
   }).current;
   const request = useCallback<DocumentRequest>(
-    async (action, doc, payload = {}) => {
+    async (action, doc, payload = {}, signal) => {
       await new Promise((resolve) => setTimeout(resolve, 120));
+      if (signal?.aborted) throw new Error("Request cancelled");
       if (action === "capture_list")
         return [
           { id: "capture-one", summary: "A development plan for Milo" },
         ] as any;
+      window.dispatchEvent(new CustomEvent("qa-document-request", { detail: action }));
+      if (action === "capture_read" && payload.capture_id === "30000000-0000-4000-8000-000000000001") {
+        const query = new URLSearchParams(window.location.search);
+        if (query.get("scenario") === "brief-retry" && !failed.current) { failed.current = true; throw new Error("Fixture timeout"); }
+        const notes = "Prepare a document for Prospect Milo Carter. His priority is a clear development plan. Private: internal negotiations remain confidential.";
+        return { capture: { id: payload.capture_id, transcript_text: notes }, preparations: [{ key: "prepare_1", kind: query.get("kind") || "agency_pitch", player_name: "Milo Carter", club_name: null, evidence: "Prepare a document for Prospect Milo Carter." }] } as any;
+      }
       if (action === "capture_read")
         return {
           capture: {
@@ -345,6 +359,7 @@ export default function DocumentFixture({
       initialData={initial}
       workspaceSlug="qa-agency"
       request={request}
+      preparation={handoff}
     />
   );
 }
