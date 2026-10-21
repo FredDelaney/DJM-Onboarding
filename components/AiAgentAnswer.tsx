@@ -3,15 +3,21 @@
 import Link from 'next/link';
 import { ArrowUpRight, BookOpen, Globe, LoaderCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { platformInvoke, friendlyError } from '@/lib/platform-client';
+import { platformInvoke, platformRpc, friendlyError } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { supabase } from '@/lib/supabase';
 import type { EntityContext } from '@/lib/entity-context';
 import { UUID_PATTERN } from '@/lib/entity-context';
+import AgencyWorkBrief from './AgencyWorkBrief';
+import {
+  isWorkQuestion, workBriefRequest, workBriefError, briefConversationText,
+  type WorkBrief, type WorkRecord,
+} from '@/lib/agency-work-brief';
 import styles from './AiAgentAnswer.module.css';
 
 type Answer = {
   ok: boolean;
+  work_brief?: WorkBrief;
   evidence?: string[];
   uncertainties?: string[];
   answer: string;
@@ -71,6 +77,8 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, o
   const [error, setError] = useState('');
   const generation = useRef(0);
   const inFlight = useRef(false);
+  const lastQuestion = useRef('');
+  const lastSelected = useRef<WorkRecord | undefined>(undefined);
 
   useEffect(() => {
     let userId: string | null | undefined;
@@ -78,6 +86,7 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, o
       const nextId = session?.user.id || null;
       if (userId !== undefined && userId !== nextId) {
         generation.current++;
+        lastQuestion.current = ''; lastSelected.current = undefined;
         inFlight.current = false;
         setAnswer(null); setHistory([]); setQuestion(''); setError(''); setBusy(false);
         onBusyChange(false);
@@ -91,26 +100,41 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, o
     };
   }, [onBusyChange]);
 
-  async function ask() {
-    if (inFlight.current || !question.trim()) return;
-    const submitted = question.trim();
+  async function ask(selected?: WorkRecord, refresh = false) {
+    const submitted = selected || refresh ? lastQuestion.current : question.trim();
+    if (inFlight.current || !submitted) return;
+    lastQuestion.current = submitted;
+    lastSelected.current = selected;
     const request = ++generation.current;
     inFlight.current = true;
-    setBusy(true); onBusyChange(true); setError('');
+    setBusy(true); onBusyChange(true); setError(''); setAnswer(null);
     try {
-      const result = await readWithDeadline(platformInvoke<Answer>('redream-agent', {
+      let result: Answer;
+      if (selected || isWorkQuestion(submitted)) {
+        const brief = await readWithDeadline(platformRpc<WorkBrief>(
+          'redream_agency_work_brief_v1', workBriefRequest(submitted, context, selected), workspaceSlug,
+        ), 12_000);
+        if (!brief || !['choose', 'brief'].includes(brief.mode) || (brief.mode === 'brief' && !Array.isArray(brief.tasks))) {
+          throw new Error('Your work could not be confirmed. Please try again.');
+        }
+        result = {
+          ok: true, answer: brief.mode === 'choose' ? 'Choose the right agency record to continue.' : 'Recorded work, ownership and context.',
+          basis: 'internal', work_brief: brief,
+        };
+      } else result = await readWithDeadline(platformInvoke<Answer>('redream-agent', {
         query: submitted, workspace_slug: workspaceSlug, context: context || {}, history,
       }), 55_000);
       if (generation.current !== request) return;
       if (!result?.ok || typeof result.answer !== 'string' || !result.answer.trim()) throw new Error('ReDream could not answer that. Please try again.');
       setAnswer(result);
+      if (refresh) return;
       setHistory(previous => [...previous,
         { role: 'user' as const, content: submitted },
-        { role: 'assistant' as const, content: [result.answer, ...(result.evidence || []), ...(result.uncertainties || []), result.next_action].filter(Boolean).join('\n').slice(0, 2000) },
+        { role: 'assistant' as const, content: result.work_brief ? briefConversationText(result.work_brief) : [result.answer, ...(result.evidence || []), ...(result.uncertainties || []), result.next_action].filter(Boolean).join('\n').slice(0, 2000) },
       ].slice(-6));
       setQuestion('');
     } catch (failure) {
-      if (generation.current === request) setError(friendlyError(failure));
+      if (generation.current === request) setError(selected || isWorkQuestion(submitted) ? workBriefError(failure) : friendlyError(failure));
     } finally {
       if (generation.current === request) {
         inFlight.current = false;
@@ -131,7 +155,7 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, o
   return <div className={styles.panel}>
     {history.length ? <div className={styles.conversationBar}>
       <span>Follow-up questions keep this conversation</span>
-      <button type="button" disabled={busy} onClick={() => { setHistory([]); setAnswer(null); setQuestion(''); setError(''); inputRef.current?.focus(); }}>New conversation</button>
+      <button type="button" disabled={busy} onClick={() => { setHistory([]); setAnswer(null); setQuestion(''); setError(''); lastQuestion.current=''; lastSelected.current=undefined; inputRef.current?.focus(); }}>New conversation</button>
     </div> : null}
     {history.length > 2 ? <details className={styles.disclosure}><summary>Earlier in this conversation</summary>
       {history.slice(0, -2).map((turn, i) => <p className={styles.copy} key={i}><strong>{turn.role === 'user' ? 'You' : 'ReDream'}</strong><br /><AnswerText text={turn.content} /></p>)}
@@ -145,15 +169,23 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, o
       </button>
     </form>
     {!history.length ? <div className={styles.suggestions}>
+      <button type="button" disabled={busy} onClick={() => suggest('What do I still need to do for this record?')}>My work</button>
+      <button type="button" disabled={busy} onClick={() => suggest('What was recorded for this record?')}>Recorded context</button>
       <button type="button" disabled={busy} onClick={() => suggest(context?.player_id || context?.player_name ? 'Review this player’s next move. Separate recorded facts, realistic options and the key missing information.' : 'What are my priorities today? Explain what needs action first and why.')}>{context?.player_id || context?.player_name ? 'Review next move' : 'My priorities'}</button>
       <button type="button" disabled={busy} onClick={() => suggest('What do we know about this record, what is out of date and what should we verify next?')}>Find the gaps</button>
     </div> : null}
     {busy ? <div role="status" className={styles.muted}>Thinking...</div> : null}
-    {error ? <p role="alert" className={styles.error}>{error}</p> : null}
+    {error ? <div role="alert" className={styles.error}><p>{error}</p><button type="button" className="btn btn-outline" disabled={busy} onClick={()=>void ask(lastSelected.current,true)}>Retry</button></div> : null}
     {answer ? <section className={styles.answer} aria-label="ReDream answer" aria-live="polite">
       {history.length ? <p className={styles.question}>{history[history.length - 2].content}</p> : null}
       <div className={styles.basis}><BookOpen size={13} aria-hidden="true" />{basis}</div>
-      <p className={styles.copy}><AnswerText text={answer.answer} /></p>
+      {answer.work_brief ? <AgencyWorkBrief
+        key={JSON.stringify([answer.work_brief.record, answer.work_brief.search, answer.work_brief.as_of])}
+        brief={answer.work_brief} showNotes={/\b(?:agree|agreed|recorded|notes)\b/i.test(lastQuestion.current)}
+        workspaceSlug={workspaceSlug} busy={busy} onSelect={record => void ask(record)}
+        onRefresh={() => void ask(answer.work_brief?.record || undefined, true)}
+        onPrepare={onPrepareAction} onNavigate={onNavigate}
+      /> : <p className={styles.copy}><AnswerText text={answer.answer} /></p>}
       {answer.clarification_question && !answer.answer.includes(answer.clarification_question)
         ? <p className={styles.next}>{answer.clarification_question}</p> : null}
       {answer.evidence?.length ? <details className={styles.disclosure}><summary>Evidence · {answer.evidence.length}</summary>
@@ -177,10 +209,10 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, o
         <span><Globe size={12} aria-hidden="true" />Public sources</span>
         {sources.map(source => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.title}<ArrowUpRight size={12} aria-hidden="true" /></a>)}
       </div> : null}
-      <div className={styles.suggestions}>
+      {!answer.work_brief ? <div className={styles.suggestions}>
         <button type="button" disabled={busy} onClick={() => suggest('Which options are most realistic? Explain the evidence, likely role and main blockers for each. Do not invent club interest.')}>Assess the options</button>
         <button type="button" disabled={busy} onClick={() => suggest('Draft a short approach for the strongest supported option. Ask who it is for if the recipient is unclear. Keep private agency information out.')}>Draft an approach</button>
-      </div>
+      </div> : null}
     </section> : null}
   </div>;
 }

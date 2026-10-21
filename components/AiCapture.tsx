@@ -1085,7 +1085,7 @@ export default function AiCapture({
             context={context}
             onBusyChange={setAgentBusy}
             onNavigate={onNavigate}
-            onPrepareAction={proposal => { changeTypedText(text.trim() ? `${text.trim()}\n\n${proposal}` : proposal); setMode('text'); setStatus('Review the task wording, then send it to ReDream.'); }}
+            onPrepareAction={proposal => { changeTypedText(text.trim() ? `${text.trim()}\n\n${proposal}` : proposal); setMode('text'); setStatus('Review your update, then send it to ReDream.'); }}
           />
         </div>
 
