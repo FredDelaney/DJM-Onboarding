@@ -151,6 +151,7 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, o
     return url ? [{ ...source, url }] : [];
   });
 
+  const hasRecordContext = Boolean(context?.player_id || context?.player_name || context?.person_id || context?.person_name || context?.organisation_id || context?.organisation_name || context?.prospect_id || context?.prospect_name);
   const suggest = (text: string) => { setQuestion(text); inputRef.current?.focus(); };
   return <div className={styles.panel}>
     {history.length ? <div className={styles.conversationBar}>
@@ -169,8 +170,8 @@ function AgentConversation({ workspaceSlug, context, onBusyChange, onNavigate, o
       </button>
     </form>
     {!history.length ? <div className={styles.suggestions}>
-      <button type="button" disabled={busy} onClick={() => suggest('What do I still need to do for this record?')}>My work</button>
-      <button type="button" disabled={busy} onClick={() => suggest('What was recorded for this record?')}>Recorded context</button>
+      <button type="button" disabled={busy} onClick={() => suggest(hasRecordContext ? 'What do I still need to do for this record?' : 'Show my work')}>My work</button>
+      <button type="button" disabled={busy} onClick={() => suggest(hasRecordContext ? 'What was recorded for this record?' : 'What did we agree with ')}>Recorded context</button>
       <button type="button" disabled={busy} onClick={() => suggest(context?.player_id || context?.player_name ? 'Review this player’s next move. Separate recorded facts, realistic options and the key missing information.' : 'What are my priorities today? Explain what needs action first and why.')}>{context?.player_id || context?.player_name ? 'Review next move' : 'My priorities'}</button>
       <button type="button" disabled={busy} onClick={() => suggest('What do we know about this record, what is out of date and what should we verify next?')}>Find the gaps</button>
     </div> : null}

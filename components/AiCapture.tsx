@@ -1100,7 +1100,7 @@ export default function AiCapture({
             {mode === 'voice' ? 'Type instead' : 'Use voice'}
           </button>
           {mode !== 'ask' ? <button type="button" className={styles.secondary}
-            onClick={() => setMode('ask')} disabled={recording || busy || Boolean(unsavedDraft)}>
+            onClick={() => { setMode('ask'); setStatus(current => current === 'Review your update, then send it to ReDream.' ? '' : current); }} disabled={recording || busy || Boolean(unsavedDraft)}>
             Ask a question
           </button> : null}
         </div>

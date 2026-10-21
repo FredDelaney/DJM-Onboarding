@@ -186,12 +186,26 @@ export function workBriefError(error: unknown) {
 }
 
 export function briefConversationText(brief: WorkBrief) {
-  if (brief.mode === 'choose') return 'Record selection still needed. No work or agreement has been confirmed.';
+  if (brief.mode === 'choose')
+    return 'Record selection still needed. No work or agreement has been confirmed.';
   return [
     `Read-only work brief for ${brief.record?.title || 'my priorities'}, checked ${brief.as_of}.`,
-    ...(brief.tasks || []).slice(0, 6).map(task => `Open: ${task.title}; owner: ${task.owner_name}; due: ${task.due_at || task.due_on || 'not recorded'}.`),
-    ...(brief.notes || []).slice(0, 2).map(note => `Recorded context, requiring confirmation: ${note.summary}`),
-    ...(brief.blockers || []).slice(0, 2).map(item => `Recorded blocker: ${item.blocker || item.next_decision}`),
+    ...(brief.tasks || [])
+      .slice(0, 6)
+      .map(
+        (task) =>
+          `Open: ${task.title}; owner: ${task.owner_name}; due: ${task.due_at || task.due_on || 'not recorded'}.`,
+      ),
+    ...(brief.notes || [])
+      .slice(0, 2)
+      .map(
+        (note) => `Recorded context, requiring confirmation: ${note.summary}`,
+      ),
+    ...(brief.blockers || [])
+      .slice(0, 2)
+      .map((item) => `Recorded blocker: ${item.blocker || item.next_decision}`),
     'No task was changed and no follow-up was saved or sent.',
-  ].join('\n').slice(0, 2000);
+  ]
+    .join('\n')
+    .slice(0, 2000);
 }

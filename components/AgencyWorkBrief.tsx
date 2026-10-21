@@ -124,9 +124,11 @@ export default function AgencyWorkBrief({
       <div className={styles.work}>
         {!tasks.length ? (
           <p className={styles.empty}>
-            {brief.record
-              ? 'No open work linked to this record is assigned to you.'
-              : 'No open work is recorded for you.'}
+            {brief.limited
+              ? 'No items in this limited selection. Open Calendar or the record to review the rest.'
+              : brief.record
+                ? 'No open work linked to this record is assigned to you.'
+                : 'No open work is recorded for you.'}
           </p>
         ) : (
           (showAll ? tasks : tasks.slice(0, 5)).map((task) => {

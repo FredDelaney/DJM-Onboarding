@@ -15,7 +15,7 @@ try{
  tasks:Array.from({length:6},(_,i)=>({kind:i===1?'calendar_task':'task',id:`11111111-1111-4111-8111-11111111111${i}`,title:i?'Review the recorded club response with the recruitment team':'Call the club about Dylan’s next move',status:'open',due_at:i===2?null:'2026-10-20T10:30:00Z',due_on:i===2?'2026-10-21':null,date_only:i===2,overdue:i!==2,owner_user_id:actor,owner_name:'You',shared:true,people:[{user_id:actor,display_name:'You'},{user_id:id,display_name:'Alexandra Example-With-A-Long-Surname'}],context:{player_id:id}})),
  notes:[{id,summary:'Reported conversation: request club feedback before agreeing terms.',occurred_at:'2026-10-20T10:00:00Z',source_type:'reported',confidence:0.4}],
  blockers:[{id,title:'Recorded club conversation',blocker:'Waiting for the sporting director to confirm a meeting.',next_decision:'Review whether a meeting is useful.'}]};
- const calls=[],unexpected=[],errors=[];let fail=false,hold=false,release;
+ const calls=[],unexpected=[],errors=[];let fail=false,hold=false,limited=false,release;
  page.on('pageerror',error=>errors.push(error.message));
  await page.route('https://example.supabase.co/**',async route=>{
  const req=route.request(),path=new URL(req.url()).pathname;
@@ -23,7 +23,7 @@ try{
  const args=req.postDataJSON();calls.push({args,workspace:req.headers()['x-redream-workspace']});
  if(hold)await new Promise(resolve=>release=resolve);
  if(fail)return route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({code:'42501',message:'record_access_denied'})});
- return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(args.p_id?brief:{mode:'choose',search:args.p_search,candidates:[record,{...record,id:'22222222-2222-4222-8222-222222222222',title:'Dylan Second'}],as_of:brief.as_of})});
+ return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(args.p_id?brief:args.p_search==null?{...brief,record:null,...(limited?{tasks:[],limited:true}:{})}:{mode:'choose',search:args.p_search,candidates:[record,{...record,id:'22222222-2222-4222-8222-222222222222',title:'Dylan Second'}],as_of:brief.as_of})});
  }
  if(path.includes('/functions/v1/'))unexpected.push(path);
  return route.fulfill({status:200,contentType:'application/json',body:'[]'});
@@ -52,6 +52,7 @@ try{
  assert.match(await update.inputValue(),/about Dylan Example\. Recorded context: Reported conversation/);assert.match(await update.inputValue(),/Next action and due date: $/);
  assert.deepEqual(unexpected,[],'A work question and reviewed handoff never call a model, capture or mutation');
  await page.getByRole('button',{name:'Ask a question',exact:true}).click();
+ assert.equal(await page.getByText('Review your update, then send it to ReDream.',{exact:true}).count(),0,'Tell review instructions do not linger in Ask');
  fail=true;await panel.getByRole('button',{name:'Refresh work brief'}).click();
  await page.getByRole('alert').getByText('This record is unavailable in this workspace. Check access or choose another record.').waitFor();
  assert.equal(await panel.count(),0,'An old brief does not remain presented as current after a failed refresh');
@@ -70,6 +71,16 @@ try{
  while(!release)await page.waitForTimeout(10);
  await page.getByRole('button',{name:'Switch test workspace',exact:true}).click();release();
  await page.getByRole('button',{name:'Ask a question',exact:true}).click();assert.equal(await panel.count(),0);
+ hold=false;
+ await page.getByRole('button',{name:'Clear test record context',exact:true}).click();
+ await page.getByRole('button',{name:'My work',exact:true}).click();
+ assert.equal(await page.getByRole('textbox',{name:'Your question',exact:true}).inputValue(),'Show my work');
+ await page.getByRole('button',{name:'Ask ReDream',exact:true}).click();
+ await page.getByRole('heading',{name:'My priorities',exact:true}).waitFor();
+ limited=true;await panel.getByRole('button',{name:'Refresh work brief'}).click();
+ await panel.getByText('No items in this limited selection. Open Calendar or the record to review the rest.',{exact:true}).waitFor();
+ assert.equal(await panel.getByText('No open work is recorded for you.',{exact:true}).count(),0,'A truncated result cannot assert that no work exists');
+ assert.equal(calls.at(-1).args.p_search,null);assert.equal(calls.at(-1).workspace,'northstar');
  assert.deepEqual(unexpected,[]);assert.deepEqual(errors,[]);
  console.log('Agency work brief: ambiguity, exact scope, shared ownership, source links, notes, mobile widths, editable handoff, retry, bounded deadlines and stale-workspace protection passed.');
 }finally{await browser.close();}
