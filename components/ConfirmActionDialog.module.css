@@ -1,4 +1,4 @@
-.backdrop{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(15,23,32,.32);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.backdrop{position:fixed;inset:0;max-height:100dvh;z-index:12000;display:grid;place-items:center;padding:18px;background:rgba(15,23,32,.32);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 .dialog{width:min(430px,calc(100vw - 24px));max-height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;box-sizing:border-box;padding:22px;border:1px solid #e5e5e7;border-radius:22px;background:#fff;box-shadow:0 24px 80px rgba(0,0,0,.15);color:#1d1d1f}
 .icon{width:50px;height:50px;display:grid;place-items:center;margin-bottom:15px;border-radius:15px;background:#fff0ef;color:#a13c38}
 .warning .icon{background:#fff8e8;color:#815d16}
