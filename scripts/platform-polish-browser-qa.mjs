@@ -375,6 +375,26 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
   }
   await context.close();
  }
+ // Development permits JS eval, which previously concealed the PDF renderer's
+ // WebAssembly requirement. Exercise the real exporter under production headers.
+ if(!development){
+  const exportContext=await browser.newContext();
+  try{
+   const exportPage=await exportContext.newPage();
+   const response=await exportPage.goto(root+'/workspace/qa-platform-polish?suite=documents');
+   await exportPage.getByRole('button',{name:/Harbour FC \| Agency services/}).click();
+   const pending=exportPage.waitForEvent('download',{timeout:15000});
+   await exportPage.getByRole('button',{name:'PDF',exact:true}).click();
+   let download;
+   try{download=await pending;}catch(error){throw new Error('Production PDF export failed: '+(await exportPage.getByRole('alert').allTextContents()).join(' '),{cause:error});}
+   const bytes=await readFile(await download.path());
+   assert.equal(bytes.subarray(0,5).toString(),'%PDF-','Production PDF export must download an actual PDF');
+   assert.ok(bytes.length>1000);
+   const scriptPolicy=response.headers()['content-security-policy'].split(';').find(value=>value.trim().startsWith('script-src ')).trim().split(/\s+/);
+   assert.ok(!scriptPolicy.includes("'unsafe-eval'"),'Production must continue blocking JavaScript eval');
+   console.log('Production CSP: real document PDF download passed; JavaScript eval remains disallowed');
+  }finally{await exportContext.close();}
+ }
  await writeFile(process.env.PLATFORM_POLISH_REPORT||join(tmpdir(),'platform-polish-report.json'),JSON.stringify({report,failures,errors},null,2));
  assert.deepEqual(errors,[],'Browser errors');
  assert.deepEqual(failures,[],'Screen polish regressions');
