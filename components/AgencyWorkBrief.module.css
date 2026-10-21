@@ -1,0 +1,239 @@
+.brief {
+  min-width: 0;
+  color: var(--text, #233d50);
+}
+.brief header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.brief header span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #71818b;
+}
+.brief h3 {
+  margin: 7px 0 0;
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+.brief button,
+.brief a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #dce4e7;
+  border-radius: 9px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.brief button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.brief :is(a, button, summary):focus-visible {
+  outline: 3px solid #8aa9bc;
+  outline-offset: 3px;
+}
+.brief header button {
+  padding: 10px;
+  flex: none;
+}
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e4e9eb;
+  font-size: 13px;
+}
+.summary small {
+  width: 100%;
+  color: #71818b;
+  font-size: 11px;
+}
+.work article {
+  padding: 17px 0;
+  border-bottom: 1px solid #e4e9eb;
+}
+.taskTitle {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.taskTitle strong {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.overdue {
+  flex: none;
+  padding: 4px 7px;
+  background: #fbf0e8;
+  border-radius: 5px;
+  color: #8c4c27;
+  font-size: 10px;
+}
+.meta {
+  display: flex;
+  gap: 7px 18px;
+  flex-wrap: wrap;
+  margin: 9px 0;
+  color: #71818b;
+  font-size: 12px;
+}
+.meta span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.people {
+  display: block;
+  margin-bottom: 8px;
+  color: #71818b;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.actions a,
+.actions button {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.empty,
+.scope {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #71818b;
+}
+.scope {
+  margin: 16px 0;
+  font-size: 12px;
+}
+.more {
+  margin-top: 12px;
+}
+.evidence {
+  margin-top: 18px;
+  border-bottom: 1px solid #e4e9eb;
+}
+.evidence summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.evidence summary span {
+  margin-left: auto;
+  font-size: 12px;
+  color: #71818b;
+}
+.evidence article {
+  padding: 16px 0;
+  border-top: 1px solid #edf0f1;
+}
+.evidence article strong {
+  font-size: 14px;
+}
+.evidence article small {
+  display: block;
+  margin-bottom: 6px;
+  color: #71818b;
+  font-size: 11px;
+}
+.evidence article p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.evidence article button {
+  margin-left: 6px;
+}
+.brief footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  padding-top: 16px;
+}
+.brief footer button {
+  background: var(--tenant-primary, #233d50);
+  color: var(--tenant-on-primary, #fff);
+  border-color: transparent;
+}
+.choices {
+  display: grid;
+  gap: 8px;
+}
+.choices button {
+  text-align: left;
+  justify-content: space-between;
+  min-height: 64px;
+}
+.choices strong,
+.choices small {
+  display: block;
+}
+.choices small {
+  text-transform: capitalize;
+  margin-top: 4px;
+  color: #71818b;
+}
+.brief > p {
+  line-height: 1.6;
+  font-size: 14px;
+}
+@media (max-width: 420px) {
+  .taskTitle {
+    display: block;
+  }
+  .overdue {
+    display: inline-block;
+    margin-top: 5px;
+  }
+  .brief footer > * {
+    width: 100%;
+  }
+  .evidence article button {
+    margin: 8px 0 0;
+  }
+  .meta {
+    gap: 8px 12px;
+  }
+}
+
+.brief header > div {
+  min-width: 0;
+}
+.brief h3,
+.choices strong {
+  overflow-wrap: anywhere;
+}
+.meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.meta svg {
+  flex: none;
+}
