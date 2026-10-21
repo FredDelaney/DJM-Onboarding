@@ -11,7 +11,7 @@ try {
     await page.route('https://example.supabase.co/**', async route => {
       const {action, body = {}} = route.request().postDataJSON(); calls.push({action, body});
       let value = {}, status = 200;
-      if (action === 'club_account') value = {club: {club: {organisation_id: 'club-fixture', name: 'Example FC'}, access: {}, demand: {items: []}, relationship_activity: {recent: []}, open_work: {tasks: [], commitments: []}, commercial: {deals: []}, pursuits: []}};
+      if (action === 'club_account') value = {club: {club: {organisation_id: 'club-fixture', name: 'Example FC'}, access: {}, demand: {items: [{club_need_id:'need-outside-summary',title:'Recorded centre-back need'}]}, relationship_activity: {recent: []}, open_work: {tasks: [], commitments: []}, commercial: {deals: []}, pursuits: []}};
       else if (action === 'redream_relationship_person' || action === 'redream_relationship_confirm_employment') value = person;
       else if (action === 'redream_birthday_record') value = {birthday: null};
       else if (action === 'deal_war_room') value = {war_room: {deal: {id: 'deal-fixture', stage: 'negotiation', next_action_text: 'Review the recorded club terms'}, decision_pressure: {state: 'monitor', observed_days_in_stage: 12}}};
@@ -30,6 +30,8 @@ try {
       if (kind === 'club') {
         await page.getByRole('button', {name: 'Open Opportunities', exact: true}).click();
         await page.getByText('Opportunities opened', {exact: true}).waitFor();
+        await page.getByRole('button', {name: 'Work need', exact: true}).click();
+        await page.getByText('Need opened: need-outside-summary', {exact: true}).waitFor();
       } else if (kind === 'contact') {
         const confirmed = page.waitForResponse(response => response.request().postDataJSON()?.action === 'redream_relationship_confirm_employment');
         await page.getByRole('button', {name: 'Confirm still at Example FC', exact: true}).click();

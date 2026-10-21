@@ -21,7 +21,7 @@ export default function Page({kind}: {kind: string}) {
   }, []);
   return <main className={styles.root} data-interface="calm" style={{display: 'block', padding: 16}}>
     <p role="status" style={{position: 'fixed', zIndex: 200, bottom: 0}}>{opened}</p>
-    {kind === 'club' ? <AgencyClubAccountDrawer request={{key: 'club', organisationId: 'club-fixture', title: 'Example FC'}} invoke={call} rpc={call as any} onRefresh={refresh} onClose={noop} onOpenAction={noop} onOpenDeal={noop} onOpenMarket={() => setOpened('Opportunities opened')} onOpenPursuit={noop} onOpenPlayer={noop} presentation="page"/> : null}
+    {kind === 'club' ? <AgencyClubAccountDrawer request={{key: 'club', organisationId: 'club-fixture', title: 'Example FC'}} invoke={call} rpc={call as any} onRefresh={refresh} onClose={noop} onOpenAction={noop} onOpenDeal={noop} onOpenMarket={needId => setOpened(needId ? 'Need opened: ' + needId : 'Opportunities opened')} onOpenPursuit={noop} onOpenPlayer={noop} presentation="page"/> : null}
     {kind === 'contact' ? <AgencyContactIntelligenceDrawer contact={{person_id: 'person-fixture'}} rpc={call as any} onClose={noop} onRefresh={refresh} onOpenClub={noop} presentation="page"/> : null}
     {kind === 'deal' ? <AgencyEntityIntelligenceDrawer request={{key: 'deal', kind: 'deal', entityId: 'deal-fixture', title: 'Example transfer'}} invoke={call} onClose={noop} onOpenAction={noop} onOpenCloseout={noop} onOpenNegotiation={() => setOpened('Negotiation opened')} onOpenPlayerReview={noop} presentation="page"/> : null}
   </main>;

@@ -19,11 +19,13 @@ import {
   useParams,
   useRouter,
 } from 'next/navigation';
+import Link from 'next/link';
 
 import {
   isStrongPassword,
 } from '@/lib/password';
 import { supabase } from '@/lib/supabase';
+import { readStaffInviteResult } from '@/lib/staff-invite-result';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 
 const cleanColour = (
@@ -213,7 +215,6 @@ export default function StaffInvitePage() {
   const activateExisting = async () => {
     if (!token || submitting.current) return;
     submitting.current = true;
-    submitting.current = true;
     setBusy(true);
     setMessage('');
 
@@ -230,10 +231,7 @@ export default function StaffInvitePage() {
           },
         );
 
-      if (error) throw error;
-      if (data?.error) {
-        throw new Error(data.error);
-      }
+      await readStaffInviteResult({data,error});
 
       router.replace(workspacePath);
     } catch (error: any) {
@@ -282,9 +280,9 @@ export default function StaffInvitePage() {
           },
         );
 
-      if (error) throw error;
+      const result = await readStaffInviteResult({data,error});
 
-      if (data?.account_exists) {
+      if (result.account_exists) {
         setMode('sign-in');
         setMessage(
           'An account already exists for this email. Sign in to accept the invitation.',
@@ -292,10 +290,6 @@ export default function StaffInvitePage() {
         setBusy(false);
         submitting.current = false;
         return;
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
       }
 
       const {
@@ -363,10 +357,7 @@ export default function StaffInvitePage() {
           },
         );
 
-      if (error) throw error;
-      if (data?.error) {
-        throw new Error(data.error);
-      }
+      await readStaffInviteResult({data,error});
 
       router.replace(workspacePath);
     } catch (error: any) {
@@ -380,11 +371,14 @@ export default function StaffInvitePage() {
   };
 
   const signOutForInvite = async () => {
+    if (submitting.current) return;
+    submitting.current = true; setBusy(true); setMessage('');
     try {
       const { error } = await readWithDeadline(supabase.auth.signOut());
       if (error) throw error;
       setSessionEmail(''); setMode('sign-in'); setMessage('');
     } catch { setMessage('We could not sign you out. Try again.'); }
+    finally { submitting.current = false; setBusy(false); }
   };
 
   if (loading) {
@@ -412,6 +406,7 @@ export default function StaffInvitePage() {
           <h2>{loadError ? 'Invitation unavailable' : 'This invitation is no longer active.'}</h2>
           <p className="muted" role={loadError ? 'alert' : undefined}>{loadError || 'Ask the agency for a new team invitation.'}</p>
           {loadError ? <button type="button" className="btn btn-navy" onClick={() => setLoadAttempt(value => value + 1)}>Retry</button> : null}
+          <Link className="btn btn-outline" href="/sign-in">Go to sign in</Link>
         </div>
       </div>
     );
@@ -490,7 +485,7 @@ export default function StaffInvitePage() {
                 </p>
 
                 {message ? (
-                  <div className="join-message">
+                  <div className="join-message" role="alert">
                     {message}
                   </div>
                 ) : null}
@@ -526,12 +521,12 @@ export default function StaffInvitePage() {
                   {inviteEmail}.
                 </p>
 
+                {message ? <div className="join-message" role="alert">{message}</div> : null}
                 <button
                   type="button"
                   className="btn btn-navy btn-block"
-                  onClick={() =>
-                    void signOutForInvite()
-                  }
+                  disabled={busy}
+                  onClick={() => void signOutForInvite()}
                 >
                   <LogOut size={16} />
                   Sign out and continue
@@ -694,7 +689,7 @@ export default function StaffInvitePage() {
               </div>
 
               {message ? (
-                <div className="join-message">
+                <div className="join-message" role="alert">
                   {message}
                 </div>
               ) : null}
@@ -782,7 +777,7 @@ export default function StaffInvitePage() {
               </div>
 
               {message ? (
-                <div className="join-message">
+                <div className="join-message" role="alert">
                   {message}
                 </div>
               ) : null}

@@ -1,6 +1,6 @@
 // Real workspace coordinator with read-only network faults; no live data or credentials.
 import assert from 'node:assert/strict';
-import {mkdir} from 'node:fs/promises';
+import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
 const root=process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow';
@@ -23,8 +23,9 @@ try {
   let result={};
   if(path.includes('/auth/v1/user'))result=user;
   else if(path.includes('/auth/v1/token'))result=session;
-  else if(name==='tenants')result={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-find-flow',role:'owner',display_name:'Example Agency'}]};
+  else if(name==='tenants')result={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-find-flow',role:'owner',display_name:'Selected Fixture Agency',short_name:'Selected Agency'}]};
   else if(name==='home_focus')result={home:{commands:[]}};
+  else if(name==='redream_autopilot_operations')result={deadlines:{items:[{entity_type:'club_need',entity_id:'00000000-0000-4000-8000-000000000091',deadline_type:'club_need_expiry',title:'Recorded club need expires',deadline_at:new Date(Date.now()-86400000).toISOString()}]}};
   else if(name==='players_workspace')result={players:{items:[{player_id:'fixture-player',identity:{name:'Example Player',primary_position:'Centre back',current_club:'Example FC',next_action:'An unrelated saved task',next_action_due:'2020-01-01',contract_expiry:'2027-06-30'},service:{next_control_fix:{instruction:'Review the representation plan'},next_service_move:{instruction:'Agree the next career step with the player'}}}],total:1,has_more:false}};
   else if(name==='redream_autopilot_relationships')result={accounts:{clubs:[{organisation_id:'current',name:'Current Club',country:'NZ'}]},contacts:{items:[]}};
   else if(name==='redream_ai_current_access')result={enabled:false};
@@ -43,14 +44,17 @@ try {
   ['view=players&tab=recruitment',['recruitment_board']],
   ['view=business',['agency_control_centre']],
   ['view=home',['home_focus','redream_autopilot_home']],
- ]) {
+ ].filter(([query])=>!process.env.WORKSPACE_LOADING_CASE||query==='view='+process.env.WORKSPACE_LOADING_CASE)) {
   stalled=new Set(names);const pending=new Promise(resolve=>{started=resolve;});
-  await visit(query);await waitForRead(pending);
+  await visit(query);await waitForRead(pending);const readStarted=performance.now();
   await page.getByRole('alert').filter({hasText:'took too long'}).waitFor({timeout:30000});
+  if(query==='view=home'){const elapsed=Math.round(performance.now()-readStarted);await writeFile(process.env.HOME_LOADING_REPORT||'/tmp/redream-home-loading-timing.json',JSON.stringify({elapsed_ms:elapsed,environment:'local Chromium, intercepted stalled reads',budget_ms:16500}));assert.ok(elapsed<16500,'Home must reach recovery within one 12-second read budget plus browser overhead; observed '+elapsed+'ms');}
   assert.equal(await page.getByText('Loading current agency position...',{exact:true}).count(),0);
   stalled.clear();const recovered=page.waitForResponse(response=>response.url().endsWith('/'+names[0])||response.request().postDataJSON()?.action===names[0]);
   await page.getByRole('button',{name:'Try again',exact:true}).click();await recovered;
   await page.getByRole('alert').filter({hasText:'took too long'}).waitFor({state:'hidden'});
+  assert.equal(await page.getByRole('link',{name:'Selected Fixture Agency workspace',exact:true,includeHidden:true}).count(),2,'Both desktop and mobile brand links use the authorised selected agency');
+  if(query==='view=home')await page.locator('a[href$="&tab=needs&record=00000000-0000-4000-8000-000000000091"]').waitFor();
   if(query==='view=network')await page.getByRole('heading',{name:'Current Club',exact:true}).waitFor();
   for(const route of held.splice(0))await route.fulfill({contentType:'application/json',body:JSON.stringify({accounts:{clubs:[{organisation_id:'old',name:'Old Club'}]},contacts:{items:[]}})});
   assert.equal(await page.getByRole('heading',{name:'Old Club',exact:true}).count(),0,'Expired reads cannot replace the recovered view');

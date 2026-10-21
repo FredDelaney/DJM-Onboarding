@@ -80,6 +80,9 @@ try{
  await page.screenshot({path:join(screenshotDir,'mobile-editor.png'),fullPage:true});
  panel=await visit('missing');
  assert.ok(await panel.getByRole('button',{name:'Update statistics',exact:true}).isDisabled());
+ const contextHint=panel.getByText('Add the current season, club, competition to update statistics. Use Add season statistics below.',{exact:true});
+ assert.ok(await contextHint.isVisible(),'Missing details must be explained before opening Sources and history');
+ assert.equal(await panel.getByRole('button',{name:'Update statistics',exact:true}).getAttribute('aria-describedby'),await contextHint.getAttribute('id'));
  assert.equal(await stats(panel).locator('[aria-label$="not available"]').count(),5);
  await panel.getByRole('button',{name:'Add season statistics',exact:true}).click();
  await panel.getByRole('form',{name:'Edit current-season statistics'}).waitFor();
