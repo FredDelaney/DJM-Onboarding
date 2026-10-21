@@ -82,8 +82,12 @@ try{
  assert.equal(await page.getByRole('dialog',{name:'Add task',exact:true}).count(),1,'Escape must dismiss only the confirmation');
  assert.equal(await page.getByLabel('Title',{exact:true}).inputValue(),'Unsaved draft');
  await closeTask().click();await discard().waitFor();
+ // Browser viewport measurements can lag an orientation/keyboard resize. The
+ // confirmation must remain reachable even before the next measurement arrives.
+ await page.evaluate(()=>Object.defineProperty(window.visualViewport,'height',{configurable:true,value:window.visualViewport.height}));
  await page.setViewportSize({width:320,height:480});
  const bounds=await discard().boundingBox();assert.ok(bounds.x>=0&&bounds.x+bounds.width<=320&&bounds.y>=0&&bounds.y+bounds.height<=480,'Confirmation must fit a small mobile viewport');
+ await page.evaluate(()=>delete window.visualViewport.height);
  await discard().getByRole('button',{name:'Discard changes',exact:true}).click();
  await page.getByRole('dialog',{name:'Add task',exact:true}).waitFor({state:'hidden'});
  assert.equal(await page.evaluate(()=>document.body.style.overflow),'','Closing nested dialogs must restore scrolling');

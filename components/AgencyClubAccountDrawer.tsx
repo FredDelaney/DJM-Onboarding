@@ -156,7 +156,7 @@ export default function AgencyClubAccountDrawer({
     title: string,
     context?: string | null,
   ) => void;
-  onOpenMarket: () => void;
+  onOpenMarket: (needId?: string) => void;
   onOpenPursuit: (
     request: AgencyPursuitRequest,
   ) => void;
@@ -1036,9 +1036,7 @@ export default function AgencyClubAccountDrawer({
 
                           <button data-ui-button="primary"
                             type="button"
-                            onClick={
-                              onOpenMarket
-                            }
+                            onClick={() => onOpenMarket(String(need?.club_need_id || ''))}
                           >
                             Work need
                             <ArrowRight

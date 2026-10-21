@@ -232,8 +232,14 @@ Deno.serve(async (req: Request) => {
           email,
           password,
           email_confirm: true,
+          app_metadata: {
+            invitation_kind: "agency_staff",
+            staff_invite_id: invite.invite_id,
+            invited_tenant_id: invite.tenant.id,
+          },
           user_metadata: {
             full_name: fullName,
+            staff_invite_token: token,
             invitation_kind:
               "agency_staff",
             invited_tenant_id:
@@ -259,6 +265,14 @@ Deno.serve(async (req: Request) => {
 
       createdUserId =
         userData.user.id;
+
+      // Auth's INSERT trigger needs the invitation capability before app
+      // metadata is applied. Remove it before completing membership or login.
+      const { error: metadataError } = await admin.auth.admin.updateUserById(
+        createdUserId,
+        { user_metadata: { staff_invite_token: null } },
+      );
+      if (metadataError) throw metadataError;
 
       const {
         data: completion,

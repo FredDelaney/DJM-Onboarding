@@ -1,6 +1,6 @@
 'use client';
 import JourneyStatus from './JourneyStatus';
-import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useId,useMemo,useRef,useState} from 'react';
 import {Clock3,ExternalLink,LoaderCircle,Pencil,RefreshCw,ShieldCheck} from 'lucide-react';
 import {friendlyError,compactDateTime} from '@/lib/platform-client';
 import {PLAYER_STAT_FIELDS,selectCurrentSeasonEvidence,seasonDraft,validateSeasonDraft,safeSourceUrl,matchesCurrentSeasonContext,type SeasonDraft} from '@/lib/player-data-workflow';
@@ -84,18 +84,21 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
  const sourceUrl=safeSourceUrl(row?.source_url);
  const sourceDate=row?.source_reviewed_at||row?.source_synced_at;
  const missing=PLAYER_STAT_FIELDS.filter(key=>row?.[key]==null||row?.[key]==='').map(key=>labels[key].toLowerCase());
- const contextReady=Boolean(player.current_season_label&&player.current_club&&player.current_league);
+ const missingContext=[!player.current_season_label?'current season':null,!player.current_club?'club':null,!player.current_league?'competition':null].filter(Boolean);
+ const contextReady=missingContext.length===0;
+ const contextHintId=useId();
  const busy=starting||saving||pending(job);
  const currentJobContext=!job?.context||matchesCurrentSeasonContext(job.context,player);
  const field=(key:keyof SeasonDraft,value:string|boolean)=>setDraft(current=>({...current,[key]:value}));
  return <section className={styles.panel} aria-label="Player data">
   <header className={styles.header}>
    <div><span className={styles.kicker}>PLAYER DATA</span><h3>Current-season statistics</h3><p>{[player.current_season_label,player.current_club,player.current_league].filter(Boolean).join(' · ')||'Add the season, club and competition to start.'}</p></div>
-   {canEdit?<button type="button" data-ui-button="secondary" className={styles.update} onClick={()=>void startRefresh()} disabled={busy||editing||blocked||!contextReady||uncertain}>
+   {canEdit?<button type="button" data-ui-button="secondary" className={styles.update} onClick={()=>void startRefresh()} disabled={busy||editing||blocked||!contextReady||uncertain} aria-describedby={!contextReady?contextHintId:undefined}>
     {busy?<LoaderCircle size={15} className={styles.spin}/>:<RefreshCw size={15}/>}
     {starting?'Starting update...':pending(job)?'Updating statistics...':'Update statistics'}
    </button>:null}
   </header>
+  {canEdit&&!contextReady?<p id={contextHintId} className={styles.guidance}>Add the {missingContext.join(', ')} to update statistics. Use Add season statistics below.</p>:null}
   <div className={styles.stats} aria-label="Season statistics">{PLAYER_STAT_FIELDS.map(key=><div key={key}><span>{labels[key]}</span><strong aria-label={row?.[key]==null||row?.[key]===''?labels[key]+' not available':undefined} className={row?.[key]==null||row?.[key]===''?styles.unknown:undefined}>{number(row?.[key])}</strong></div>)}</div>
   {pending(job)?<JourneyStatus compact kind="loading" title="Checking current-season sources" description="You can keep using the profile while this finishes."/>:job?.summary?.message&&(job.status==='failed'||!currentJobContext)?<JourneyStatus compact kind="warning" title={!currentJobContext?'Season details changed':'Update needs attention'} description={currentJobContext?job.summary.message:'Update the statistics to check the current season and club.'}/>:null}
   <details className={styles.history}>
@@ -105,7 +108,7 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    {sourceDate?<span><Clock3 size={14}/>{row?.source_reviewed_at?'Source reviewed':'Source updated'} {compactDateTime(sourceDate)}</span>:<span>Source date not set</span>}
    {sourceUrl?<a href={sourceUrl} target="_blank" rel="noreferrer">Open source <ExternalLink size={12}/></a>:null}
   </div>
-  {!contextReady?<p className={styles.guidance}>Add the current season, club and competition. History is preserved.</p>:!row?<p className={styles.guidance}>No statistics match this selection.</p>:missing.length?<p className={styles.guidance}>Not set: {missing.join(', ')}. Unknown figures stay blank when you edit.</p>:null}
+  {contextReady&&!row?<p className={styles.guidance}>No statistics match this selection.</p>:row&&missing.length?<p className={styles.guidance}>Not set: {missing.join(', ')}. Unknown figures stay blank when you edit.</p>:null}
   {!pending(job)&&currentJobContext&&job?.status!=='failed'&&job?.summary?.message?<JourneyStatus compact kind="success" title="Source check finished" description={job.summary.message}>{job.summary.checked_at?<small>Checked {compactDateTime(job.summary.checked_at)}</small>:null}</JourneyStatus>:null}
   {career.length?<div className={styles.historyRows}>{career.map(entry=><article key={entry.id}>
    <div><strong>{entry.season_label||'Season not set'} · {entry.club_name||'Club not set'}</strong><span>{entry.league||'Competition not set'}</span></div>

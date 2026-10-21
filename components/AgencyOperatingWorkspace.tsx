@@ -71,6 +71,8 @@ import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 
+import { brandingForWorkspace } from '@/lib/workspace-branding';
+import { readHomePosition } from '@/lib/read-home-position';
 import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
 import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
@@ -157,6 +159,7 @@ type Workspace = {
   is_primary?: boolean;
   synthetic_demo?: boolean;
   display_name?: string | null;
+  logo_asset?: string | null;
   short_name?: string | null;
   portal_name?: string | null;
   primary_color?: string | null;
@@ -444,9 +447,10 @@ export default function AgencyOperatingWorkspace() {
     setCreateKind(null);
   }, [view, recordRouteQuery, workspace?.role]);
 
+  const agencyBranding = brandingForWorkspace(runtime, workspace);
   const workspaceName =
     workspace?.display_name ||
-    runtime.branding.display_name ||
+    agencyBranding.display_name ||
     'Agency workspace';
   const viewPresentation = VIEW_PRESENTATION[view];
   const stateScope = workspace?.tenant_id && sessionUserId
@@ -474,11 +478,11 @@ export default function AgencyOperatingWorkspace() {
   const theme = tenantBrandCssVariables({
     primary:
       workspace?.primary_color ||
-      runtime.branding.primary_color,
-    secondary: runtime.branding.secondary_color,
+      agencyBranding.primary_color,
+    secondary: agencyBranding.secondary_color,
     accent:
       workspace?.accent_color ||
-      runtime.branding.accent_color,
+      agencyBranding.accent_color,
   });
 
   const invoke = useCallback(
@@ -568,18 +572,11 @@ export default function AgencyOperatingWorkspace() {
       const request = (async () => {
         try {
           if (targetView === 'home') {
-            let home: any = null;
-
-            try {
-              const focus = await readWithDeadline(invoke<any>('home_focus', {
-                limit: 8,
-              }), 3000);
-              home = focus?.home || {};
-            } catch {
-              home = await readWithDeadline(rpc<any>('redream_autopilot_home', {
-                p_limit: 8,
-              }), 3000);
-            }
+            const home = await readHomePosition(
+              () => invoke<any>('home_focus', {limit:8}),
+              () => rpc<any>('redream_autopilot_home', {p_limit:8}),
+              3000,
+            );
 
             writeViewCache(cacheKey, { home });
             return;
@@ -800,15 +797,10 @@ export default function AgencyOperatingWorkspace() {
 
     try {
       if (view === 'home') {
-        let home: any = null;
-        try {
-          const focus = await readWithDeadline(invoke<any>('home_focus', { limit: 8 }));
-          home = focus?.home || {};
-        } catch {
-          home = await readWithDeadline(rpc<any>('redream_autopilot_home', {
-            p_limit: 8,
-          }));
-        }
+        const home = await readHomePosition(
+          () => invoke<any>('home_focus', {limit:8}),
+          () => rpc<any>('redream_autopilot_home', {p_limit:8}),
+        );
 
         commit({ ...(latestData || {}), home, home_reads: { operations: 'loading', connected_work: 'loading', meeting_aftercare: 'loading' }, home_read_version: requestId });
         if (isCurrent()) setBusy(false);
@@ -1458,6 +1450,7 @@ export default function AgencyOperatingWorkspace() {
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
+            branding={agencyBranding}
             href={basePath}
           />
         </div>
@@ -1524,7 +1517,7 @@ export default function AgencyOperatingWorkspace() {
       <main className={styles.main}>
         <header className={`${styles.pageHead} ${inlineEntityWorkspaceOpen ? styles.pageHeadHidden : ''}`}>
           <div className={styles.mobileTenantBrand}>
-            <TenantWorkspaceBrand href={basePath} compact />
+            <TenantWorkspaceBrand branding={agencyBranding} href={basePath} compact />
           </div>
           <div className={styles.pageHeadCopy}>
             <div className={styles.pageHeadTitleLine}>
@@ -1694,7 +1687,7 @@ export default function AgencyOperatingWorkspace() {
                   cacheScope={stateScope}
                   workHref={`${basePath}?view=players&player=${encodeURIComponent(selectedPlayerId)}`}
                   role={String(workspace?.role || '')}
-                  fallbackAgency={runtime.branding}
+                  fallbackAgency={agencyBranding}
                   invoke={(action, body) => invoke<any>(action, body)}
                   rpc={rpc}
                   onOpenAction={(request) => setActionRequest(request)}
@@ -1986,12 +1979,12 @@ export default function AgencyOperatingWorkspace() {
               context,
             });
           }}
-          onOpenMarket={() => {
+          onOpenMarket={(needId) => {
             setClubAccountRequest(null);
             window.history.pushState(
               null,
               '',
-              `${basePath}?view=opportunities`,
+              `${basePath}?view=opportunities${needId ? '&tab=needs&record=' + encodeURIComponent(needId) : ''}`,
             );
           }}
           onOpenPursuit={(request) => {
@@ -2422,7 +2415,7 @@ function Home({
     }
 
     const clubNeedId = String(
-      item?.context?.club_need_id || item?.club_need_id || '',
+      item?.context?.club_need_id || item?.club_need_id || (item?.entity_type === 'club_need' ? item?.entity_id : '') || '',
     ).trim();
     const entityType = String(item?.entity_type || '');
 
@@ -2433,7 +2426,7 @@ function Home({
       return `${basePath}?view=opportunities&tab=routes`;
     }
     if (clubNeedId || entityType === 'club_need') {
-      return `${basePath}?view=opportunities&tab=needs`;
+      return `${basePath}?view=opportunities&tab=needs${clubNeedId ? '&record=' + encodeURIComponent(clubNeedId) : ''}`;
     }
 
     const personId = String(

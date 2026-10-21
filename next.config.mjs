@@ -3,7 +3,9 @@ const isDevelopment =
 
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''}`,
+  // The PDF layout engine compiles WebAssembly. Keep JavaScript eval restricted
+  // to development; wasm-unsafe-eval permits WASM without JavaScript eval.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDevelopment ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data: https://*.supabase.co",
   "font-src 'self' data:",
