@@ -165,9 +165,9 @@ export default function AgencyConnectionsDrawer({
         } catch (loadError) {
           if (generation !== loadGeneration.current) return;
           setReadError(
-            friendlyError(
-              loadError,
-            ),
+            (loadError as {code?:string})?.code === 'PGRST202'
+              ? 'Connections could not load. Try again later.'
+              : friendlyError(loadError),
           );
         } finally {
           controller.abort();

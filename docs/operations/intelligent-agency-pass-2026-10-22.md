@@ -1,6 +1,6 @@
 # Connected agency reliability review, 22 October 2026
 
-Base: `ee90b1712644f85663042921e793ddc5b02262eb` (merged PR 249). Work is isolated in `codex/intelligent-agency-pass`. No hosted schema, customer data, secrets or configuration was changed during this review. No deployment or external message was sent. The existing unsaved staging document was preserved.
+Base: `ee90b1712644f85663042921e793ddc5b02262eb` (merged PR 249). Work is isolated in `codex/intelligent-agency-pass`. No hosted schema, customer data, secrets or configuration was changed during this review. No manual deployment or external message was sent. Pull-request previews use the existing integration. The existing unsaved staging document was preserved.
 
 ## Audit and implemented repairs
 
@@ -47,10 +47,10 @@ Run that SQL through an authorised database connection against the intended proj
 
 Observed before applying this release:
 
-- **Staging `ltvmopvarlnidiozvpow`:** 20 existing missing RPC contracts and three missing canonical links (`captures.prospect_id`, `interactions.player_id`, `interactions.prospect_id`), plus this release's new photo RPC. The migration repairs those three links and supplies the photo RPC; it does not install the unrelated missing provider foundation.
+- **Staging `ltvmopvarlnidiozvpow`:** 31 existing missing RPC contracts and three missing canonical links (`captures.prospect_id`, `interactions.player_id`, `interactions.prospect_id`), plus this release's new photo RPC. The migration repairs those three links and supplies the photo RPC; it does not install the unrelated missing provider foundation.
 - **Production `xogoigaaskmuspiehkba`:** 11 existing missing RPC contracts, plus this release's new photo RPC. No missing selected columns and no exposed `platform_server_*` execution grants were returned by this focused check. Production lacks the `agency-launch` worker too; source/catalog parity is not established by the frontend build.
 
-Staging missing contracts group into provider OAuth/calendar/contact/email sync, connected reply/history/player activity, semantic email-task completion, and profile verification/publication writers. The profile writers are in existing migrations `20261002104000_player_profile_verification_writer_v1.sql` and `20261002105500_player_profile_publish_snapshot_writer_v1.sql`. The provider foundation starts at `20260926122729_redream_provider_connections_v1.sql`, followed by calendar/contact sync and the email/identity/history migrations. These require a separate reviewed reconciliation with the current staging schema; replaying that whole historical range would overwrite already newer functions and is unsafe.
+Staging missing contracts group into provider OAuth/calendar/contact/email sync, connected reply/history/player activity, semantic email-task completion, team handoff, and profile verification/publication writers. A live staging Connections read also returned the missing `redream_provider_connections()` contract; its UI now uses a plain retry message instead of showing raw database internals. The profile writers are in existing migrations `20261002104000_player_profile_verification_writer_v1.sql` and `20261002105500_player_profile_publish_snapshot_writer_v1.sql`. The provider foundation starts at `20260926122729_redream_provider_connections_v1.sql`, followed by calendar/contact sync and the email/identity/history migrations. These require a separate reviewed reconciliation with the current staging schema; replaying that whole historical range would overwrite already newer functions and is unsafe.
 
 Production's existing missing RPC calls are:
 
@@ -86,10 +86,17 @@ Local validation is deliberately separated from hosted acceptance. No live AI/pr
 
 Final local results:
 
-- `npm run check`: passed, including the repository lint equivalent (`check:no-em-dash`), 1,944 unit/database/worker/renderer tests, all typecheck projects, production build and bundle check.
-- `npm run check:browser`: passed the full critical suite. The final photo/workspace test was then rerun with long-name non-overlap, full Retry hit-testing, confirmed verification, a wrong-player response, retry without re-upload and a held new-player request; all passed at the relevant 320/390/768/1440 widths.
-- Workspace entry gzip: **146,988 / 150,000 bytes**.
+- `npm run check`: passed, including the repository lint equivalent (`check:no-em-dash`), 1,945 unit/database/worker/renderer tests on Next.js 16.4.2, all typecheck projects, production build and bundle check.
+- `npm run check:browser`: passed the full critical suite before the framework security patch. The required `browser_journeys` check on the final patched PR head is the full-suite acceptance for Next.js 16.4.2; verify that exact head before merging. The final photo/workspace test was then rerun with long-name non-overlap, full Retry hit-testing, confirmed verification, a wrong-player response, retry without re-upload and a held new-player request; all passed at the relevant 320/390/768/1440 widths.
+- The final Connections browser regression also passed: a missing schema contract hides setup controls, shows a plain retry message, exposes no raw function error and preserves the existing expired-permission/workspace recovery paths.
+- Workspace entry gzip: **143,747 / 150,000 bytes** on Next.js 16.4.2.
 - Actual branded club PDF: both pages rendered and inspected; long-story pagination/footer tests and the real chart-to-career spacing test passed. Singular career-stat wording is verified through the renderer.
 - Read-only catalog preflight executed against both hosted projects; the compatibility review items above remain. No new migration or worker was deployed.
 
 Verdict: code changes are ready for review. **Not cleared for production promotion** until the hosted compatibility gaps relevant to this release are reconciled and the new migration/workers pass a real staging canary. Browser fixtures and mocked model/provider responses establish code behaviour, not live model accuracy, OAuth/Meta account acceptance or physical iPhone/Safari behaviour.
+
+## Framework security gate
+
+The first PR verification job failed its existing production dependency audit: Next.js 16.3.8 is covered by the newly indexed upstream advisories [image optimisation](https://github.com/advisories/GHSA-2464-fhr4-w9xw), [Server Actions denial of service](https://github.com/advisories/GHSA-p3m5-59mp-jv5r) and [typed-array cache deserialisation](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr). Next.js is pinned to 16.4.2 with its matching lockfile; `sharp` resolves to 0.35.5. `npm audit --omit=dev --audit-level=high` returns zero vulnerabilities. No audit gate was disabled.
+
+The new native-module checksum happened to contain the product category token, exposing a false positive in the existing language test. The guard now omits only opaque lockfile `integrity` values, and a regression proves readable lockfile metadata and other JSON are still checked. The product language assertion remains in place.

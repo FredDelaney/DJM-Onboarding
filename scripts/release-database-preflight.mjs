@@ -8,7 +8,7 @@ export function releaseDatabasePreflight(files){
  const callers=new Map();
  for(const [path,source] of files){
   // Direct calls and the existing declarative route table are both contracts.
-  const patterns=[/\brpc(?:<[^>]*>)?\(\s*["']([a-z][a-z0-9_]+)["']\s*(?=[,)])/g,/\bfn\s*:\s*["']([a-z][a-z0-9_]+)["']\s*(?=[,}])/g];
+  const patterns=[/\b(?:rpc|platformRpc)(?:<[^>]*>)?\(\s*["']([a-z][a-z0-9_]+)["']\s*(?=[,)])/g,/\bfn\s*:\s*["']([a-z][a-z0-9_]+)["']\s*(?=[,}])/g];
   for(const pattern of patterns)for(const match of source.matchAll(pattern)){
    const paths=callers.get(match[1])||new Set();paths.add(path);callers.set(match[1],paths);
   }

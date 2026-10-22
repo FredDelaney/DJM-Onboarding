@@ -12,6 +12,7 @@ try{
    const requestMode=mode;
    if(requestMode==='held')await new Promise(resolve=>{release=resolve;});
    if(requestMode==='failed'){status=503;data={message:'Connection status is temporarily unavailable.'};}
+   else if(requestMode==='missing_schema'){status=404;data={code:'PGRST202',message:'Could not find the function public.redream_provider_connections in the schema cache'};}
    else data={connections:[{provider:'google',status:requestMode==='held'?'connected':requestMode,email:'synthetic@example.test',capabilities:['calendar','contacts']}]};
   }
   await route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
@@ -20,6 +21,10 @@ try{
  for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(error){if(i===59)throw error;await page.waitForTimeout(250);}}
  await page.getByRole('alert').filter({hasText:'Connection status is temporarily unavailable.'}).waitFor();
  assert.equal(await page.getByText('Google',{exact:true}).count(),0,'A failed provider read hides its setup controls until status is confirmed');
+ mode='missing_schema';await page.getByRole('button',{name:'Retry',exact:true}).click();
+ await page.getByRole('alert').filter({hasText:'Connections could not load. Try again later.'}).waitFor();
+ assert.equal(await page.getByText(/Could not find the function/).count(),0,'A missing backend contract does not expose database internals');
+ assert.equal(await page.getByText('Google',{exact:true}).count(),0,'Unavailable reads do not claim a provider is disconnected');
  mode='expired';await page.getByRole('button',{name:'Retry',exact:true}).click();
  const google=page.locator('article').filter({has:page.getByText('Google',{exact:true})});
  await google.getByText('Expired',{exact:true}).waitFor();
