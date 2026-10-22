@@ -7,6 +7,7 @@ const rpc:CalendarRpc=async<T,>(name:string,args:any={}):Promise<T>=>{
  const key='qa-player-team:'+args.p_player_id;
  if(name==='redream_calendar_task_assignees_v1')return {items:members} as T;
  if(name!=='redream_player_staff_tags_v1')throw new Error('unexpected RPC');
+ if(new URLSearchParams(location.search).has('missing'))throw Object.assign(new Error('Could not find the function public.redream_player_staff_tags_v1 in the schema cache'),{code:'PGRST202'});
  const saved=JSON.parse(sessionStorage.getItem(key)||JSON.stringify({player_id:args.p_player_id,all_staff:false,user_ids:[members[0].user_id],people:[members[0]],revision:0,can_edit:true}));
  if(args.p_input){
   if((window as any).teamConflict)throw new Error('player_tags_conflict');

@@ -44,11 +44,14 @@ try {
  await page.getByRole('region',{name:'Player team'}).getByText('Alex Walker',{exact:true}).waitFor();
  await page.waitForTimeout(900);
  assert.equal(await page.getByRole('region',{name:'Player team'}).getByText('All staff',{exact:true}).count(),0,'An old player read cannot replace the new player team');
+ await page.goto(new URL('/qa-player-team?missing=1',root).href);
+ await page.getByRole('region',{name:'Player team'}).waitFor({state:'hidden'});
+ assert.equal(await page.getByRole('alert').count(),0,'Unavailable tagging must not add a broken editor to existing profiles');
  await page.close();
  // Exercise the real Home coordinator with irrelevant high-priority records ahead of relevant work.
  const home=await browser.newPage({viewport:{width:390,height:844}});
  const player='30000000-0000-4000-8000-000000000001',other='30000000-0000-4000-8000-000000000002';
- let fail=false,delay=false;
+ let fail=false,delay=false,missing=false;
  await home.route('https://example.supabase.co/**',async route=>{
   const body=route.request().postDataJSON()||{},path=new URL(route.request().url()).pathname;
   let result={};
@@ -59,6 +62,7 @@ try {
    {command_id:'player:follow-up',source_type:'player',source_id:player,command_type:'Player follow-up due',title:'Player follow-up',evidence:{next_action:'Confirm availability'},priority_score:75},
   ]}}};
   else if(path.endsWith('/redream_home_relevance_v1')){
+   if(missing){await route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({code:'PGRST202',message:'Could not find the function public.redream_home_relevance_v1 in the schema cache'})});return;}
    if(fail){await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Temporary failure'})});return;}
    result={editable_indices:[],visible_indices:body.p_items.map((item,index)=>body.p_agency_overview||item.source_id===player?index:-1).filter(index=>index>=0)};
    if(delay&&body.p_agency_overview)await new Promise(resolve=>setTimeout(resolve,700));
@@ -90,6 +94,10 @@ try {
  await home.getByText('Australian player update',{exact:true}).waitFor();
  await home.screenshot({path:output+'/personal-home-mobile.png',fullPage:true});
  assert.ok(await home.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ missing=true;await home.reload();
+ await home.getByText('Staff tagging is not enabled yet. Showing your existing Home feed.',{exact:true}).waitFor();
+ await home.getByText('Unrelated player update',{exact:true}).waitFor();
+ assert.equal(await home.getByRole('button',{name:'My work',exact:true}).count(),0,'The compatibility feed must not claim to be personalised');
  assert.deepEqual(errors,[]);
  console.log('Player teams: multi-select, All staff, persistence, conflicts, stale selection and mobile passed. Home: personal filtering, manager overview, retry and stale-response protection passed.');
 }finally{await browser.close();}

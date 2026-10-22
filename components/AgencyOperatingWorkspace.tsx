@@ -2821,8 +2821,8 @@ function Home({
         <div><p>{greeting}</p><h2>Your day</h2></div>
         <Link className={styles.focusCalendarLink} href={`${basePath}?view=calendar`}>Calendar<ChevronRight size={16}/></Link>
       </header>
-      {!restricted?<div className={styles.homeScope} role="group" aria-label="Home view"><button type="button" aria-pressed={!agencyOverview} onClick={()=>setAgencyOverview(false)}>My work</button><button type="button" aria-pressed={agencyOverview} onClick={()=>setAgencyOverview(true)}>Agency overview</button></div>:null}
-      <p className={styles.homeScopeHint}>{agencyOverview?'Agency updates, with your personal tasks kept private.':'Your tagged players and assigned tasks. Task assignments take priority.'}</p>
+      {!restricted&&relevance.personalisationReady?<div className={styles.homeScope} role="group" aria-label="Home view"><button type="button" aria-pressed={!agencyOverview} onClick={()=>setAgencyOverview(false)}>My work</button><button type="button" aria-pressed={agencyOverview} onClick={()=>setAgencyOverview(true)}>Agency overview</button></div>:null}
+      <p className={styles.homeScopeHint}>{!relevance.personalisationReady?'Staff tagging is not enabled yet. Showing your existing Home feed.':agencyOverview?'Agency updates, with your personal tasks kept private.':'Your tagged players and assigned tasks. Task assignments take priority.'}</p>
       <HomeWorkFeedback controller={homeWork}/>
       <section className={styles.focusPanel} aria-label="Today priorities">
         <div className={styles.focusHeading}><h3>{restricted ? 'Your work' : 'Needs your attention'}</h3>

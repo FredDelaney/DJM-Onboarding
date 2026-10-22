@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Users } from 'lucide-react';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import {isMissingStaffAssignmentRpc} from '@/lib/staff-assignment-capability';
 import type { Assignee, CalendarRpc } from '@/lib/calendar/tasks';
 import ResponsiblePeoplePicker from './ResponsiblePeoplePicker';
 import styles from './PlayerStaffControl.module.css';
@@ -16,6 +17,7 @@ export default function PlayerStaffControl({playerId,scope,rpc}:{playerId:string
  const key=scope+':'+playerId;
  const current=useRef(key);current.current=key;
  const sequence=useRef(0);
+ const [unavailable,setUnavailable]=useState<string|null>(null);
  const [saved,setSaved]=useState<{key:string;value:Tags}|null>(null);
  const [editing,setEditing]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [members,setMembers]=useState<Assignee[]>([]),[ids,setIds]=useState<string[]>([]),[all,setAll]=useState(false),[teamReady,setTeamReady]=useState(false);
@@ -26,8 +28,11 @@ export default function PlayerStaffControl({playerId,scope,rpc}:{playerId:string
    const result=await readWithDeadline(rpc<Tags>('redream_player_staff_tags_v1',{p_player_id:playerId}));
    if(current.current!==key||request!==sequence.current)return;
    if(!confirmed(result,playerId))throw new Error('unconfirmed');
-   setSaved({key,value:result});setIds(result.user_ids);setAll(result.all_staff);
-  }catch{if(current.current===key&&request===sequence.current)setError('Could not load the player team.');}
+   setUnavailable(null);setSaved({key,value:result});setIds(result.user_ids);setAll(result.all_staff);
+  }catch(error){if(current.current===key&&request===sequence.current){
+   if(isMissingStaffAssignmentRpc(error,'redream_player_staff_tags_v1'))setUnavailable(key);
+   else setError('Could not load the player team.');
+  }}
  },[key,playerId,rpc]);
  useEffect(()=>{setSaved(null);setEditing(false);setBusy(false);setNotice('');setTeamReady(false);void load();return()=>{sequence.current++;};},[load]);
  async function edit(){
@@ -54,6 +59,7 @@ export default function PlayerStaffControl({playerId,scope,rpc}:{playerId:string
    setError(message.includes('player_tags_conflict')?'The player team changed. Reload it before saving again.':message.includes('task_owner_inactive')?'Choose active agency staff.':message.includes('denied')?'You no longer have permission to change this team.':'Could not confirm the save. Reload the team to check.');
   }}finally{if(current.current===key&&request===sequence.current)setBusy(false);}
  }
+ if(unavailable===key)return null;
  return <section className={styles.team} aria-label="Player team">
   <div className={styles.header}><div><h3><Users size={15} aria-hidden="true"/>Player team</h3>
    <p>Tagged staff receive this player’s updates and reminders on Home. Player access stays the same.</p></div>
