@@ -6,10 +6,10 @@ import type { Assignee } from '@/lib/calendar/tasks';
 import styles from './ResponsiblePeoplePicker.module.css';
 
 export default function ResponsiblePeoplePicker({
-  members, selected, onChange, disabled = false, knownPeople = [],
+  members, selected, onChange, disabled = false, knownPeople = [], label = 'Responsible',
 }: {
   members: Assignee[]; selected: string[]; onChange: (ids: string[]) => void;
-  disabled?: boolean; knownPeople?: Assignee[];
+  disabled?: boolean; knownPeople?: Assignee[]; label?: string;
 }) {
   const id = useId();
   const menu = useRef<HTMLDetailsElement>(null);
@@ -20,7 +20,7 @@ export default function ResponsiblePeoplePicker({
   const close = () => { if (menu.current) menu.current.open = false; trigger.current?.focus(); };
 
   return <div className={styles.field} role="group" aria-labelledby={id}>
-    <span id={id} className={styles.label}>Responsible</span>
+    <span id={id} className={styles.label}>{label}</span>
     <div className={styles.selection}>
       {selected.map(userId => {
         const person = people.find(member => member.user_id === userId);
@@ -41,9 +41,12 @@ export default function ResponsiblePeoplePicker({
           <label className={styles.search}><Search size={15} aria-hidden="true" /><input aria-label="Search agency members"
             value={query} placeholder="Find someone" disabled={disabled} onChange={event => setQuery(event.target.value)} /></label>
           <div className={styles.options}>
+            {members.length > 0 ? <button type="button" className={styles.selectAll} disabled={disabled || members.filter(member => member.active !== false).length > 50}
+              onClick={() => onChange([...new Set(members.filter(member => member.active !== false).map(member => member.user_id))])}>All staff</button> : null}
+            {members.filter(member => member.active !== false).length > 50 ? <p>Choose up to 50 people for one task.</p> : null}
             {members.filter(member => member.display_name.toLowerCase().includes(query.toLowerCase())).map(member =>
               <label key={member.user_id} className={styles.option}>
-                <input type="checkbox" checked={selected.includes(member.user_id)} disabled={disabled} onChange={() => toggle(member.user_id)} />
+                <input type="checkbox" checked={selected.includes(member.user_id)} disabled={disabled || member.active === false} onChange={() => toggle(member.user_id)} />
                 <span>{member.display_name}</span>{selected.includes(member.user_id) ? <Check size={16} aria-hidden="true" /> : null}
               </label>)}
             {!members.length ? <p>Agency members are unavailable. Try again shortly.</p> : !members.some(member => member.display_name.toLowerCase().includes(query.toLowerCase())) ? <p>No matching members.</p> : null}

@@ -16,6 +16,7 @@ try{
  activePage=page;
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.route('https://example.supabase.co/**',async route=>{
+  if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
   const body=route.request().postDataJSON()||{},path=new URL(route.request().url()).pathname;
   let response={};
   if(body.action==='tenants')response={tenants:[{tenant_id:'qa-tenant',slug:'qa',role:'owner',display_name:'QA agency'}]};

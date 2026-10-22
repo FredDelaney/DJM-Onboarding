@@ -27,6 +27,7 @@ import EntityActionsMenu from '@/components/EntityActionsMenu';
 import RecordContactActions from '@/components/RecordContactActions';
 import WorkspaceListSearch from './WorkspaceListSearch';
 import RecordActivitySummary from './RecordActivitySummary';
+import PlayerStaffControl from './PlayerStaffControl';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile } from '@/lib/player-profile-cache';
 import { readWithDeadline } from '@/lib/read-with-deadline';
@@ -353,6 +354,7 @@ function PlayerDrawer({
             <div className={styles.drawerBody}>
               {tab === 'overview' ? (
                 <div className={styles.detailStack}>
+                  <PlayerStaffControl key={cacheScope+playerId} playerId={playerId} scope={cacheScope} rpc={rpc}/>
                   <section className={styles.detailHero}>
                     <p>Next action</p>
                     <h3>{service?.next_service_move?.instruction || identity.next_action || 'No next action yet'}</h3>

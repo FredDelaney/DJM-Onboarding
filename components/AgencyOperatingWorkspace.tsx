@@ -3,6 +3,8 @@
 import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,homeWorkRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
+import {homeRelevanceReference} from '@/lib/home-relevance';
+import {useHomeRelevance} from './useHomeRelevance';
 import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWorkControl';
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
@@ -2256,6 +2258,7 @@ function Home({
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const restricted = Boolean(data?.home?.access?.restricted);
+  const [agencyOverview,setAgencyOverview]=useState(false);
   const homeWork = useHomeWork(rpc,tenantId,userId);
   const retryHome=useRef(onRetry);retryHome.current=onRetry;
   const assignedScope=tenantId+':'+userId;
@@ -2556,6 +2559,7 @@ function Home({
     deadline: string;
     kind: 'command' | 'meeting_aftercare' | 'day';
     payload: any;
+    canEdit?: boolean;
   };
 
   const categoryScore: Record<QueueCategory, number> = {
@@ -2729,7 +2733,10 @@ function Home({
     queueCandidates.push({id:'assigned:'+key,category:!date||date<=endOfToday?'Needs action now':'Upcoming risk',score:!date?15000:date<now?47500:date<=endOfToday?46500:30500,title:work.title,why:'This work is assigned to you.',recommendation:'',owner:work.responsible_people?.map((person:any)=>person.display_name).join(', ')||'',deadline:date?dateLabel(work.due_at):'No date',kind:'day',payload:work});
   }
 
+  const relevance=useHomeRelevance(rpc,assignedScope,tenantId,JSON.stringify(queueCandidates.map(item=>homeRelevanceReference(item.payload))),agencyOverview,data?.home_read_version);
   const queue = queueCandidates
+    .map((item,index)=>({...item,canEdit:relevance.editable.has(index),visible:relevance.visible.has(index)}))
+    .filter(item=>item.visible)
     .map(item=>{
       const ref=homeWorkRefFor(item.payload),saved=ref?homeWork.overrides[ref.kind+':'+ref.id]:null;
       if(!saved)return item;
@@ -2765,6 +2772,13 @@ function Home({
     .filter((item) => item.count > 0);
 
   const queueAction = (item: QueueItem) => {
+    const ref=homeWorkRefFor(item.payload)||workRefFor(item.payload);
+    if(ref&&item.canEdit===false){
+      const related={...item.payload,work_kind:ref.kind,work_id:ref.id,context:{...item.payload?.context}};
+      const playerId=item.payload?.player_id||(item.payload?.source_type==='player'?item.payload.source_id:'');
+      if(playerId)related.context.player_id=playerId;
+      return <Link className={styles.compactButton} href={workHref(related,basePath)}>Review<ChevronRight size={16}/></Link>;
+    }
     if (item.kind === 'command') return actionFor(item.payload);
     if (item.kind === 'meeting_aftercare') {
       return (
@@ -2807,18 +2821,22 @@ function Home({
         <div><p>{greeting}</p><h2>Your day</h2></div>
         <Link className={styles.focusCalendarLink} href={`${basePath}?view=calendar`}>Calendar<ChevronRight size={16}/></Link>
       </header>
+      {!restricted&&relevance.personalisationReady?<div className={styles.homeScope} role="group" aria-label="Home view"><button type="button" aria-pressed={!agencyOverview} onClick={()=>setAgencyOverview(false)}>My work</button><button type="button" aria-pressed={agencyOverview} onClick={()=>setAgencyOverview(true)}>Agency overview</button></div>:null}
+      <p className={styles.homeScopeHint}>{!relevance.personalisationReady?'Staff tagging is not enabled yet. Showing your existing Home feed.':agencyOverview?'Agency updates, with your personal tasks kept private.':'Your tagged players and assigned tasks. Task assignments take priority.'}</p>
       <HomeWorkFeedback controller={homeWork}/>
       <section className={styles.focusPanel} aria-label="Today priorities">
         <div className={styles.focusHeading}><h3>{restricted ? 'Your work' : 'Needs your attention'}</h3>
-          <span>{queue.length ? `${queue.length} items` : allState !== 'ready' || assignedLoading ? 'Updating' : assignedError ? 'Unavailable' : 'All clear'}</span></div>
+          <span>{queue.length ? `${queue.length} item${queue.length===1?'':'s'}` : allState !== 'ready' || assignedLoading || relevance.loading ? 'Updating' : assignedError || relevance.error ? 'Unavailable' : 'All clear'}</span></div>
         {restricted ? <p className={styles.homeReadNotice}>Your work only. Commercial records require admin access.</p> : null}
         {readNotice(allState)}
         {assignedLoading&&!queue.length?<p className={styles.homeReadNotice} role="status">Loading your tasks...</p>:null}
         {assignedError?<p className={styles.homeReadNotice} role="alert">{assignedError}</p>:null}
+        {relevance.loading&&!queue.length?<p className={styles.homeReadNotice} role="status">Checking your updates...</p>:null}
+        {relevance.error?<div className={styles.homeReadNotice} role="alert">{relevance.error}<button type="button" onClick={relevance.retry}>Retry updates</button></div>:null}
         <div className={styles.focusList}>
           {queue.map(item => {
             const ref=homeWorkRefFor(item.payload);
-            if(ref)return <HomeWorkRow key={item.id} entry={{ref,title:item.title,payload:item.payload}} deadline={item.deadline} waiting={item.category==='Waiting on someone'} controller={homeWork} relatedAction={item.kind==='command'&&item.payload?.reply_interaction_id?queueAction(item):null}>
+            if(ref&&item.canEdit)return <HomeWorkRow key={item.id} entry={{ref,title:item.title,payload:item.payload}} deadline={item.deadline} waiting={item.category==='Waiting on someone'} controller={homeWork} relatedAction={item.kind==='command'&&item.payload?.reply_interaction_id?queueAction(item):null}>
               {ref.kind!=='calendar_task'?<WorkResponsibilityControl key={assignedScope+item.id} work={ref} tenantId={tenantId} rpc={rpc}/>:null}
             </HomeWorkRow>;
             return <article className={styles.focusRow} key={item.id}>
@@ -2838,11 +2856,11 @@ function Home({
                 <p>{item.why}</p>{meaningfulRecommendation(item)?<p>{item.recommendation}</p>:null}
                 {item.owner && item.owner !== 'You' ? <p>Responsible: {item.owner}</p>:null}
               </details>
-              {workRefFor(item.payload)?<WorkResponsibilityControl key={assignedScope+item.id} work={workRefFor(item.payload)!} tenantId={tenantId} rpc={rpc}/>:null}
+              {item.canEdit&&workRefFor(item.payload)?<WorkResponsibilityControl key={assignedScope+item.id} work={workRefFor(item.payload)!} tenantId={tenantId} rpc={rpc}/>:null}
             </div>
             <div className={styles.focusAction}>{queueAction(item)}</div>
           </article>;})}
-          {!queue.length && allState === 'ready' && !assignedLoading && !assignedError ? <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
+          {!queue.length && allState === 'ready' && !assignedLoading && !assignedError && !relevance.loading && !relevance.error ? <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
             copy={restricted ? "Your work is up to date." : "Check your players or capture a new update."}
             action={<div className={styles.emptyStateActions}><AiLauncher onCaptureCompleted={onRetry}/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
         </div>

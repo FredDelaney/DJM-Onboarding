@@ -7,6 +7,7 @@ try {
     await page.addInitScript(value => {Object.defineProperty(navigator, 'connection', {configurable: true, value: Object.assign(new EventTarget(), value)});}, connection);
     const warming = [];
     await page.route('https://example.supabase.co/**', route => {
+     if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
       const body = route.request().postDataJSON() || {}, path = new URL(route.request().url()).pathname;
       let data = {};
       if (body.action === 'tenants') data = {tenants: [{tenant_id: 'qa-tenant', slug: 'qa', role: 'owner', display_name: 'QA agency'}]};

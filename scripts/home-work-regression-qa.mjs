@@ -10,6 +10,7 @@ try{
   let work={work_kind:kind,work_id:id,title:'Call the player',display_title:'Call the player',due_on:'2026-10-16',due_at:kind==='calendar_task'?null:'2026-10-16',note:'',status:'open',state:{revision:1,status:'open'}};
   let before,delayHome=false,homeReads=0;
   await page.route('https://example.supabase.co/**',async route=>{
+   if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
    const body=route.request().postDataJSON()||{},path=new URL(route.request().url()).pathname;
    let value={};
    if(body.action==='tenants')value={tenants:[{tenant_id:'qa-tenant',slug:'qa',role:'owner',display_name:'QA agency'}]};

@@ -48,6 +48,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   await context.addInitScript(({session,suite})=>{if(location.hostname!=='127.0.0.1')return;const screen=new URL(location.href).searchParams.get('screen')||'';if(suite==='account'&&screen!=='reset'&&!screen.startsWith('onboarding-'))localStorage.removeItem('sb-example-auth-token');else localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},{session,suite});
   await context.route('https://example.supabase.co/**',async route=>{
+   if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
    const req=route.request(),url=new URL(req.url()),path=url.pathname,body=req.postDataJSON()||{};
    if(['PATCH','PUT','DELETE'].includes(req.method())||(req.method()==='POST'&&path.includes('/rest/v1/')&&!path.includes('/rest/v1/rpc/'))){
     errors.push('Unexpected write '+req.method()+' '+path);
