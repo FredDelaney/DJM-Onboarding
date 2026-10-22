@@ -66,3 +66,9 @@ test('a storage server error leaves the upload outcome unconfirmed',async()=>{
 test('a named storage access code still respects the confirmed HTTP 403 denial',async()=>{
  assert.deepEqual(await saveProfilePhoto(draft(),async()=>({data:null,error:{status:403,statusCode:'AccessDenied'}}),async()=>saved,5,5),{status:'failed',stage:'upload'});
 });
+
+test('a confirmed attachment conflict retains the recovery instruction without uploading again',async()=>{
+ const selected=draft();let uploads=0;
+ const result=await saveProfilePhoto(selected,async()=>{uploads++;return saved;},async()=>({data:null,error:{code:'conflict',message:'The player photo changed. Reopen the player.'}}));
+ assert.equal(result.status,'failed');assert.equal(result.status==='failed'&&result.message,'The player photo changed. Reopen the player.');assert.equal(uploads,1);assert.equal(selected.uploaded,true);
+});

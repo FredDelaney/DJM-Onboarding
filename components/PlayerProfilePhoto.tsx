@@ -7,9 +7,10 @@ import {readWithDeadline} from '@/lib/read-with-deadline';
 import {friendlyError} from '@/lib/platform-client';
 import styles from './PlayerProfilePhoto.module.css';
 
-type Props={playerId:string;name:string;path?:string|null;canEdit:boolean;blocked?:boolean;className?:string;invoke:(action:string,body?:Record<string,unknown>)=>Promise<any>;onSaved:(path:string)=>void};
+type PhotoConfirmation={id:string;profile_photo_path:string;verification_status?:string;verified_at?:string|null;review_required_at?:string|null;review_reason?:string|null};
+type Props={playerId:string;name:string;path?:string|null;canEdit:boolean;blocked?:boolean;className?:string;invoke:(action:string,body?:Record<string,unknown>)=>Promise<any>;onSaved:(path:string,confirmation:PhotoConfirmation)=>void};
 export default function PlayerProfilePhoto({playerId,name,path,canEdit,blocked=false,className='',invoke,onSaved}:Props){
- const input=useRef<HTMLInputElement>(null),busyRef=useRef(false),alive=useRef(true),draft=useRef<(PhotoDraft&{file:File;token:string})|null>(null);
+ const input=useRef<HTMLInputElement>(null),busyRef=useRef(false),alive=useRef(true),draft=useRef<(PhotoDraft&{file:File;token:string;expected_photo_path:string|null})|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[retry,setRetry]=useState(false);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
  const save=async(file?:File)=>{
@@ -25,16 +26,17 @@ export default function PlayerProfilePhoto({playerId,name,path,canEdit,blocked=f
     const response=await readWithDeadline(invoke('player_profile_photo_begin',{player_id:playerId,content_type:file.type,size:file.size}));
     if(!alive.current)return;
     if(!response?.upload?.path||!response.upload.token)throw new Error('Photo upload could not be prepared. Choose the photo again.');
-    draft.current={path:response.upload.path,token:response.upload.token,file,uploaded:false};
+    draft.current={path:response.upload.path,token:response.upload.token,expected_photo_path:response.upload.expected_photo_path??null,file,uploaded:false};
    }
    const item=draft.current;if(!item)return;
+   let confirmation:PhotoConfirmation|null=null;
    const outcome=await saveProfilePhoto(item,
     ()=>supabase.storage.from('player-public').uploadToSignedUrl(item.path,item.token,item.file,{contentType:item.file.type}),
-    async()=>{if(!alive.current)return {data:null,error:{code:'cancelled'}};try{const result=await invoke('player_profile_photo_attach',{player_id:playerId,path:item.path});return {data:result?.player,error:null};}catch(cause){return {data:null,error:{message:friendlyError(cause)}};}}
+    async()=>{if(!alive.current)return {data:null,error:{code:'cancelled'}};try{const result=await invoke('player_profile_photo_attach',{player_id:playerId,path:item.path,expected_photo_path:item.expected_photo_path});if(result?.player?.id!==playerId||result.player.profile_photo_path!==item.path)return {data:null,error:{code:'unconfirmed',message:'The photo could not be confirmed. Retry the same photo.'}};confirmation=result.player;return {data:confirmation,error:null};}catch(cause){return {data:null,error:{message:friendlyError(cause)}};}}
    );
    if(!alive.current)return;
-   if(outcome.status!=='saved'){setRetry(true);throw new Error(outcome.status==='unknown'?'The photo could not be confirmed. Check and retry the same photo.':'The photo could not be saved. Try again.');}
-   onSaved(item.path);draft.current=null;
+   if(outcome.status!=='saved'){setRetry(true);throw new Error(outcome.message||(outcome.status==='unknown'?'The photo could not be confirmed. Check and retry the same photo.':'The photo could not be saved. Try again.'));}
+   onSaved(item.path,confirmation!);draft.current=null;
   }catch(cause){if(alive.current){setError(friendlyError(cause));setRetry(Boolean(draft.current));}}
   finally{busyRef.current=false;if(alive.current)setBusy(false);}
  };

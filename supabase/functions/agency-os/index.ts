@@ -109,7 +109,7 @@ export default {fetch:async(req:Request)=>{
       "deal_receivables","deal_receivable_save","receivable_payment_record","deal_closeout","deal_closeout_save"
     ]);
     const footballReads=new Set(["player_data_status"]);
-    const footballWrites=new Set(["player_data_save","player_data_refresh","player_context_research","player_context_apply","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
+    const footballWrites=new Set(["player_profile_photo_begin","player_profile_photo_attach","player_data_save","player_data_refresh","player_context_research","player_context_apply","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
     if(!ownerAdmin()&&!staffActions.has(action)&&!footballReads.has(action)&&!footballWrites.has(action)&&!(role==="operations"&&operationsActions.has(action))){
       return deny("Agency administrator access required");
     }
@@ -816,6 +816,24 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,player:verification.player||await profilePlayer(pid)});
     }
 
+    if(action==="player_profile_photo_begin"||action==="player_profile_photo_attach"){
+      const pid=playerId(),player=await profilePlayer(pid);
+      if(!player||player.archived_at||["retired","inactive"].includes(String(player.football_status||"").toLowerCase()))return json({error:"Player not found in this agency"},404);
+      if(action==="player_profile_photo_begin"){
+        const extensions:Record<string,string>={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"};
+        const type=id(body?.content_type),size=Number(body?.size);
+        if(!Object.hasOwn(extensions,type)||!Number.isInteger(size)||size<1||size>8*1024*1024)return json({error:"Use a JPG, PNG or WebP image smaller than 8 MB"},400);
+        const path=`agency/${tenantId}/players/${pid}/${userId}/${crypto.randomUUID()}.${extensions[type]}`;
+        const {data,error}=await ctx.supabaseAdmin.storage.from("player-public").createSignedUploadUrl(path);
+        if(error)throw error;
+        if(!data?.token)return json({error:"The photo upload could not be prepared. Try again"},503);
+        return json({ok:true,upload:{path,token:data.token,expected_photo_path:player.profile_photo_path||null}});
+      }
+      return json({ok:true,player:await rpc("platform_server_attach_player_photo",{
+        p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId,p_path:id(body?.path),p_expected_photo_path:body?.expected_photo_path??null
+      })});
+    }
+
     if(action==="player_profile_transfermarkt_save"){
       if(!operator())return deny("Agency operator access required");
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
@@ -1214,6 +1232,7 @@ export default {fetch:async(req:Request)=>{
       return json({error:"You do not have permission to perform this action.",code:"workspace_access_denied"},403);
     }
     const conflicts:Record<string,string>={
+      player_photo_revision_conflict:"The player photo changed. Reopen the player before choosing a replacement.",
       proposal_expired:"This approval has expired. Cancel and open the action again to review a fresh approval.",
       command_no_longer_actionable:"This action is no longer available. Refresh the workspace to see the latest work.",
       player_stats_revision_conflict:"These statistics changed while you were editing. Your draft is retained. Reload recorded data before saving.",
@@ -1226,6 +1245,8 @@ export default {fetch:async(req:Request)=>{
     if(Object.hasOwn(conflicts,message)) return json({error:conflicts[message],code:message},409);
     const inputErrors:Record<string,string>={
       career_strategy_incomplete_for_approval:"Add the career objective, preferred route, fallback route and next checkpoint before approving. Reopen the career plan to complete it.",
+      player_photo_path_invalid:"Choose a photo uploaded for this player.",
+      player_photo_upload_incomplete:"The photo upload is incomplete. Retry the same photo.",
       career_objective_required:"Add a career objective before saving the plan.",
       career_next_checkpoint_required:"Add the next checkpoint before saving the plan.",
       future_review_due_at_required:"Choose a review date of today or later before saving the plan.",

@@ -46,7 +46,7 @@ try {
  assert.equal(await page.getByRole('region',{name:'Player team'}).getByText('All staff',{exact:true}).count(),0,'An old player read cannot replace the new player team');
  await page.goto(new URL('/qa-player-team?missing=1',root).href);
  await page.getByRole('region',{name:'Player team'}).waitFor({state:'hidden'});
- assert.equal(await page.getByRole('alert').count(),0,'Unavailable tagging must not add a broken editor to existing profiles');
+ assert.equal(await page.getByRole('alert').count(),0,'Unavailable tagging must not add a broken editor to existing profiles: '+JSON.stringify(await page.getByRole('alert').allTextContents()));
  await page.close();
  // Exercise the real Home coordinator with irrelevant high-priority records ahead of relevant work.
  const home=await browser.newPage({viewport:{width:390,height:844}});

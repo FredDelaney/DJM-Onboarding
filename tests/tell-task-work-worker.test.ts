@@ -77,3 +77,17 @@ test('fresh interpretation receives owned objectives and checks completion along
   assert.equal(requests,1);
   assert.equal(result.plan.actions[0].type,'update_task');
 });
+
+test('shared work is proposed with the real owner and never completed automatically',async()=>{
+ const calls=await run([action],[{...task,owner_user_id:'colleague',shared_with_you:true,owner_display_name:'Example Colleague'}]);
+ assert.equal(calls.filter(c=>c.name==='redream_ai_update_task').length,0);
+ const staged=calls.find(c=>c.name==='redream_ai_stage_action');
+ assert.equal(staged?.args.p_payload.owner_display_name,'Example Colleague');
+ assert.equal(staged?.args.p_payload._automatic,false);
+});
+
+test('the same people with an unsupported objective subject are staged rather than completed',async()=>{
+ const calls=await run([action],[{...task,title:'Speak to James about Dylan trial'}]);
+ assert.equal(calls.filter(c=>c.name==='redream_ai_update_task').length,0);
+ assert.equal(calls.filter(c=>c.name==='redream_ai_stage_action'&&c.args.p_action_type==='update_task').length,1);
+});
