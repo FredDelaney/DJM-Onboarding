@@ -28,3 +28,7 @@
 .search input{height:44px;min-height:44px!important}
 .done{min-height:44px}
 .chip:focus-visible,.menu>summary:focus-visible,.done:focus-visible{outline:3px solid #0071e3;outline-offset:2px}
+
+.selectAll { display:block; width:100%; min-height:44px; padding:0 8px; text-align:left; border:0; border-bottom:1px solid #e5e5e7; background:transparent; color:var(--tenant-primary,#0066cc); font:inherit; font-size:14px; cursor:pointer; }
+.selectAll:disabled { opacity:.5; cursor:default; }
+.selectAll:focus-visible { outline:3px solid #0071e3; outline-offset:-3px; }

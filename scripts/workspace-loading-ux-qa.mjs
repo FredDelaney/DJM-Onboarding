@@ -17,6 +17,7 @@ try {
  },session);
  let stalled=new Set(),started;
  await page.route('https://example.supabase.co/**',async route=>{
+  if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
   const path=new URL(route.request().url()).pathname,body=route.request().postDataJSON()||{};
   const name=body.action||path.split('/').pop();reads.push(name);
   if(stalled.has(name)){held.push(route);started?.();return;}

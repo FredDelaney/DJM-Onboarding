@@ -19,6 +19,7 @@ import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AgencyPlayerDataPanel from '@/components/AgencyPlayerDataPanel';
 import ToolsMenu from '@/components/ToolsMenu';
 import PlayerProfilePhoto from '@/components/PlayerProfilePhoto';
+import PlayerStaffControl from '@/components/PlayerStaffControl';
 import RecordContactActions from '@/components/RecordContactActions';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
@@ -2154,6 +2155,8 @@ export default function AgencyPlayerProfile({
           </ToolsMenu>
         </div>
       </section>
+
+      {rpc ? <PlayerStaffControl key={cacheScope+playerId} playerId={playerId} scope={cacheScope || ''} rpc={rpc}/> : null}
 
       {preparation && rpc && canEdit ? <CapturePreparationBrief key={`${cacheScope}:${playerId}:${preparation.capture}:${preparation.preparation}`} link={preparation} read={(capture, signal) => readWithDeadline(rpc('redream_ai_receipt', { p_capture_id: capture }))}>
         {brief => brief.intent.kind === 'player_profile' ? <ProfilePreparationSource notes={brief.notes} disabled={Boolean(actionBusy)} ready={Boolean(proposal)} onPrepare={() => openPrepare()} onUse={notes => {

@@ -10,6 +10,7 @@ try {
   const dylan='30000000-0000-4000-8000-000000000001';
   const capture='40000000-0000-4000-8000-000000000001';
   await page.route('https://example.supabase.co/**',async route=>{
+   if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
     const action=route.request().postDataJSON()?.action;
     let body={};
     if(action==='tenants')body={tenants:[{tenant_id:'qa-tenant',slug:'qa',role:'owner',display_name:'QA agency'}]};

@@ -6,6 +6,7 @@ const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIU
 try {
   const page=await browser.newPage({viewport:{width:390,height:844}});
   await page.route('https://example.supabase.co/**',async route=>{
+   if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
     const action=route.request().postDataJSON()?.action;
     let status=200,body={};
     if(action==='tenants')body={tenants:[{tenant_id:'qa-tenant',slug:'qa',role:'owner',display_name:'QA agency',primary_color:'#12364c'}]};
