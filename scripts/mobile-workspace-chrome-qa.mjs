@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 export async function verifyMobileChrome(page, suite, screen, width) {
   if (width > 680 || !['agency', 'settings', 'player'].includes(suite)) return;
   const issues = [];
+  const headerSelector='.player-workspace-header, header[class*="_pageHead"]';
+  await page.locator(headerSelector).waitFor({state:'visible'});
   if (suite !== 'player') {
     const nav = page.getByRole('navigation', {name: 'Mobile workspace', exact: true});
     if (!await nav.isVisible()) issues.push('shared mobile navigation is missing');
@@ -22,7 +24,7 @@ export async function verifyMobileChrome(page, suite, screen, width) {
       assert.equal(await capture.evaluate(n=>document.activeElement===n), true);
     }
   }
-  const geometry = await page.evaluate(() => {
+  const geometry = await page.evaluate(headerSelector => {
     window.scrollTo({top:0,behavior:'instant'});
     const saved=[];
     const bind=rules=>{for(const rule of rules){
@@ -36,13 +38,13 @@ export async function verifyMobileChrome(page, suite, screen, width) {
       if(rule.cssRules)bind(rule.cssRules);
     }};
     for(const sheet of document.styleSheets){try{bind(sheet.cssRules);}catch{}}
-    const header=document.querySelector('.player-workspace-header, [class*=AgencyOperatingWorkspace][class*=pageHead]');
-    if(!header)throw new Error('The workspace header is missing');
+    const header=document.querySelector(headerSelector);
+    if(!header)throw new Error('The workspace header is missing: '+JSON.stringify([...document.querySelectorAll('header')].map(node=>({className:node.className,text:node.textContent?.slice(0,80)}))));
     const controls=[...header.querySelectorAll('a,button')].filter(n=>n.getClientRects().length&&getComputedStyle(n).visibility!=='hidden');
     const result={visible:header.getBoundingClientRect().height>0&&controls.length>=2,top:Math.min(...controls.map(n=>n.getBoundingClientRect().top)),backdrop:getComputedStyle(header).backdropFilter,background:getComputedStyle(header).backgroundImage};
     for(const [style,property,value,priority] of saved)style.setProperty(property,value,priority);
     return result;
-  });
+  },headerSelector);
   if(!geometry.visible)issues.push('workspace identity/account controls are missing');
   if(geometry.background!=='none')issues.push('decorative header gradient remains');
   if(geometry.top<47)issues.push('logo/account controls overlap the 47px iPhone safe area: '+geometry.top);

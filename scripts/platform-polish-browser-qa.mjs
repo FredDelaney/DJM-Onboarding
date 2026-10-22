@@ -156,7 +156,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      const header=document.querySelector('.player-workspace-header'),tabs=document.querySelector('.player-workspace-tabs');
      const smallControls=[...document.querySelectorAll('button,input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,summary')].filter(visible).filter(n=>n.getBoundingClientRect().height<43.5).map(n=>({text:(n.getAttribute('aria-label')||n.textContent||n.getAttribute('placeholder')||n.tagName).trim().slice(0,65),height:Math.round(n.getBoundingClientRect().height)}));
      const missingLabels=[...document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea')].filter(visible).filter(n=>!n.labels?.length&&!n.getAttribute('aria-label')&&!n.getAttribute('aria-labelledby')).map(n=>n.getAttribute('placeholder')||n.name||n.tagName);
-     const networkTabs=document.querySelector('[class*=AgencyNetworkWorkspace][class*=tabs]'),networkSearch=document.querySelector('[class*=AgencyNetworkWorkspace][class*=search]');
+     const networkTabs=document.querySelector('[data-people-internal-tabs]'),networkSearch=document.querySelector('[aria-label="Search Network"]');
      const networkToolbarOverlap=!!(networkTabs&&networkSearch&&visible(networkSearch)&&[...networkTabs.querySelectorAll('button')].filter(visible).some(button=>{const a=button.getBoundingClientRect(),b=networkSearch.getBoundingClientRect();return a.right>b.left+1&&a.left<b.right-1&&a.bottom>b.top+1&&a.top<b.bottom-1;}));
      const primaryNav=document.querySelector('nav[aria-label="Primary"]');
      const navLinks=[...primaryNav?.querySelectorAll('a')||[]];
@@ -192,7 +192,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      assert.ok(a.x<b.x,'Player search precedes Add, consistently with Network at '+width+': '+JSON.stringify({search:a,add:b,styles:await search.evaluate(node=>({input:getComputedStyle(node).order,field:getComputedStyle(node.parentElement).order,parent:getComputedStyle(node.parentElement.parentElement).display,direction:getComputedStyle(node.parentElement.parentElement).flexDirection}))}));
      assert.equal(await add.count(),1,'The roster has one Add player action');
     }
-    if(suite==='agency'&&screen==='home')assert.doesNotMatch(await page.locator('[class*=HomeWorkControl][class*=meta]').allTextContents().then(values=>values.join('\n')),/Waiting\s*Waiting/i,'Home status labels never repeat');
+    if(suite==='agency'&&screen==='home')assert.doesNotMatch(await page.getByRole('article').filter({has:page.getByRole('button',{name:/^Complete /})}).locator('[class*="_meta"]').allTextContents().then(values=>values.join('\n')),/Waiting\s*Waiting/i,'Home status labels never repeat');
     if(suite==='player'&&screen==='career'){
      const tools=page.getByRole('navigation',{name:'My career areas',exact:true});
      assert.equal(await tools.locator('details').evaluate(node=>node.open),false,'Optional career tools start collapsed');
