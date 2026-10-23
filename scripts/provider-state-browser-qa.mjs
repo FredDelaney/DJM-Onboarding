@@ -5,12 +5,12 @@ let page;
 try{
  page=await browser.newPage({viewport:{width:390,height:600}});const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- let mode='failed',release;
+ let mode='failed',release,notifyHeld;
  await page.route('https://example.supabase.co/**',async route=>{
   const path=new URL(route.request().url()).pathname;let data={},status=200;
   if(path.endsWith('/redream_provider_connections')){
    const requestMode=mode;
-   if(requestMode==='held')await new Promise(resolve=>{release=resolve;});
+   if(requestMode==='held')await new Promise(resolve=>{release=resolve;notifyHeld();});
    if(requestMode==='failed'){status=503;data={message:'Connection status is temporarily unavailable.'};}
    else if(requestMode==='missing_schema'){status=404;data={code:'PGRST202',message:'Could not find the function public.redream_provider_connections in the schema cache'};}
    else data={connections:[{provider:'google',status:requestMode==='held'?'connected':requestMode,email:'synthetic@example.test',capabilities:['calendar','contacts']}]};
@@ -34,7 +34,8 @@ try{
   await page.setViewportSize({width,height:600});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`No connection overflow at ${width}`);
  }
- mode='held';await page.reload();await page.getByRole('status').filter({hasText:'Checking connections...'}).waitFor();
+ const heldStarted=new Promise(resolve=>{notifyHeld=resolve;});
+ mode='held';await page.reload();await page.getByRole('status').filter({hasText:'Checking connections...'}).waitFor();await heldStarted;
  mode='missing_permissions';await page.getByRole('button',{name:'Switch test workspace',exact:true}).click();
  await google.getByText('Missing permissions',{exact:true}).waitFor();release();
  await page.waitForTimeout(100);
