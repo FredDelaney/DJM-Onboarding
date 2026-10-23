@@ -4,6 +4,7 @@ import { preparePlayerProfileEvidence, reviewPlayerProfileEvidence } from "../_s
 import { selectPlayerProfilePresentation } from "../_shared/player-profile-ai.ts";
 import { suggestPlayerProfileTextImprovement } from "../_shared/player-profile-text-improvement.ts";
 import { researchPlayerContext } from "../_shared/player-context-ai.ts";
+import { withProfileStatEvidence } from "../_shared/profile-stat-evidence.ts";
 import { refreshOutcome, safeSourceUrl, selectCurrentSeasonEvidence } from "../_shared/football-data/player-data-workflow.ts";
 
 import {restrictedPlayerProfile,restrictedClubAccount} from "../_shared/staff-read-contract.ts";
@@ -25,7 +26,7 @@ const profileStatsFromRefs=(refs:string[],candidates:any[])=>{
   const byRef=new Map(candidates.map((candidate:any)=>[candidate.ref,candidate]));
   const selected=refs.map(ref=>byRef.get(ref)).filter(Boolean) as any[];
   return{
-    keyStats:selected.map(candidate=>({label:candidate.label,value:String(candidate.value)})),
+    keyStats:selected.map(candidate=>withProfileStatEvidence({label:candidate.label,value:String(candidate.value)}, {season_label:candidate.seasonLabel,club_name:candidate.club,league:candidate.competition,source_name:candidate.source.name,source_provider:candidate.source.provider,source_reviewed_at:candidate.source.reviewedAt,source_synced_at:candidate.source.syncedAt})),
     sources:selected.map(candidate=>({source_ref:candidate.ref,value:candidate.value,season:candidate.seasonLabel,competition:candidate.competition,club:candidate.club,provenance:candidate.source.provenance,provider:candidate.source.provider,source_name:candidate.source.name,source_url:candidate.source.url,reviewed_at:candidate.source.reviewedAt,synced_at:candidate.source.syncedAt,selected_by:"agent_approved"}))
   };
 };
@@ -54,9 +55,10 @@ const profileAutoStats=(career:any[],player:any,latestCheck:any=null)=>{
   const rowChecked=row.source_reviewed_at||row.source_synced_at||null;
   const latest=latestCheck?.source_url&&latestCheck.source_url===row.source_url?latestCheck.fresh_at:null;
   const checkedAt=[rowChecked,latest].filter(Boolean).sort((a,b)=>Date.parse(String(b))-Date.parse(String(a)))[0]||null;
-  return{stats,meta:{row_id:row.id,season_label:row.season_label||null,club_name:row.club_name||null,league:row.league||null,
+  const meta={row_id:row.id,season_label:row.season_label||null,club_name:row.club_name||null,league:row.league||null,
     provider:row.source_provider||null,source_name:row.source_name||null,source_url:safeSourceUrl(row.source_url),
-    data_updated_at:rowChecked,checked_at:checkedAt,automated:Boolean(!row.source_reviewed_at&&row.source_synced_at)}};
+    data_updated_at:rowChecked,checked_at:checkedAt,automated:Boolean(!row.source_reviewed_at&&row.source_synced_at)};
+  return{stats:stats.map(stat=>withProfileStatEvidence(stat,meta)),meta};
 };
 
 const feedbackTypes=new Set(["shown","accepted","dismissed","snoozed","completed","not_relevant"]);

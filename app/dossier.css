@@ -2517,6 +2517,8 @@
 }
 
 .dossier-quick-stats-head {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -2552,7 +2554,7 @@
 
 .dossier-quick-stats-head small {
   margin-top: 6px;
-  color: rgba(255, 255, 255, .52);
+  color: rgba(255, 255, 255, .82);
   font-size: 12px;
 }
 
@@ -2596,6 +2598,14 @@
   letter-spacing: .035em;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.dossier-stat-context {
+  display: block;
+  margin-top: 6px;
+  color: #596674;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 
