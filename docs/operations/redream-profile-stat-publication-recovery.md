@@ -1,6 +1,6 @@
 # Preserve approved profile statistics during publication
 
-Status: locally reproduced and repaired; CI and hosted repair acceptance remain open. PLY-02 follow-up to PRs 253 and 254. Production is unchanged.
+Status: locally reproduced and repaired; exact migration applied to staging. Full save-and-publish acceptance requires the separate settings-trigger follow-up. PLY-02 follow-up to PRs 253 and 254. Production is unchanged.
 
 ## Actual failure
 
@@ -17,6 +17,8 @@ The migration changes only the verified trigger's headline-stat assignment. The 
 Reviewed-career projection and source-link/market sanitization still run. Publisher membership, verification, player lock, snapshot allowlist, privacy projection, tenant triggers, function owner, search path and grants are retained. The migration refuses unknown body/configuration/ACL drift. It performs no backfill, republishing, stored-stat rewrite or customer-data mutation.
 
 ## Evidence and staging gate
+
+Canonical migration version `20261023191512` is installed on staging only. Source SHA256 `f929a1bf681102f1766ca92f33faba8460aed24f2728063275b5a4aaabc115e1`, installed function-body MD5 `92d954ee6e7a5de21b633517d4127abd`; owner, search path and ACL remain unchanged. Installation does not rewrite the synthetic 55-appearance snapshot or any customer row. Security findings are unchanged excluding observation timestamps. The subsequent normal editor save exposed a second existing normalizer that materializes automatic choices as custom totals; see `redream-profile-stat-settings-recovery.md`. Neither the automatic endpoint alone nor the first migration constitutes full publication acceptance.
 
 Thirteen actual PostgreSQL publication/reconciliation tests pass, including four added cases: reproduce the 55-appearance error; preserve automatic/historical/custom/empty snapshots and source privacy; retain approved figures through metadata and actual career-refresh updates while rejecting invented raw totals; deny browser/wrong-tenant contexts and preserve server-only publisher access; and refuse trigger drift without changing owner/grants.
 
