@@ -1,5 +1,7 @@
 # Player Profile and connected-work staging follow-up, 23 October 2026
 
+Subsequent production authorisation, catalog comparison and reviewed release scope: [23 October release manifest](intelligent-agency-release-2026-10-23.md). The production boundary below records the outcome of this earlier staging pass.
+
 Target: **DJM Platform Staging**, `ltvmopvarlnidiozvpow`. Production `xogoigaaskmuspiehkba` is untouched. Continue draft PR 250; do not promote it to production while the remaining hosted contracts are unresolved.
 
 ## Profile repair applied

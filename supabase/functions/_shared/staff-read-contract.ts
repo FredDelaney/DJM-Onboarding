@@ -3,7 +3,7 @@ const pick = (value: any, fields: string[]) => Object.fromEntries(fields.filter(
 export const restrictedPlayerProfile = (profile: any) => ({
  access:{scope:'assigned',restricted:true},
  player:pick(profile?.player,['id','first_name','last_name','preferred_name','date_of_birth','nationalities','height_cm','preferred_foot','primary_position','secondary_positions','current_club','current_league','current_country','football_status','transfermarkt_url','wyscout_url','stats_url','profile_photo_path','verification_status','verified_at','current_season_label']),
- career:(Array.isArray(profile?.career)?profile.career:[]).map((row:any)=>pick(row,['id','player_id','club_name','country','league','season_label','start_date','end_date','appearances','starts','minutes','goals','assists','is_international','sort_order','source_name','source_url','source_reviewed_at','source_provider','source_synced_at','updated_at'])),
+ career:(Array.isArray(profile?.career)?profile.career:[]).map((row:any)=>pick(row,['id','player_id','club_name','country','league','season_label','start_date','end_date','appearances','starts','minutes','goals','assists','is_international','sort_order','source_name','source_url','source_reviewed_at','source_provider','source_synced_at','source_acceptance_method','updated_at'])),
  videos:(Array.isArray(profile?.videos)?profile.videos:[]).map((row:any)=>pick(row,['id','title','url','video_type','featured','sort_order'])),
  settings:{},published:null,documents:[],shares:[],deals:[],clubs:[],branding:{},
  communication:{summary:{},items:[],open_followups:[]},
