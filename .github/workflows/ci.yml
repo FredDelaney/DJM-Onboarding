@@ -61,5 +61,6 @@ jobs:
             /tmp/platform-polish-report.json
             /tmp/redream-platform-programme/roster
             /tmp/redream-platform-programme/home
+            /tmp/redream-platform-programme/club-stats
           retention-days: 7
           if-no-files-found: ignore

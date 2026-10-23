@@ -1,6 +1,6 @@
 # ReDream owner branding contract recovery
 
-Status: prepared locally; production unchanged. This is an OPS-01 follow-up to PR 251, not an expansion of its two-migration manifest.
+Status: migration applied and existing writer canary-validated on staging; production unchanged. This is an OPS-01 follow-up to PR 251, not an expansion of its two-migration manifest.
 
 ## Verified impact
 
@@ -36,6 +36,8 @@ The migration reuses the canonical owner-membership guard, branding validation, 
 
 ## Validation and release gate
 
-Six real PostgreSQL tests verify browser denial even with an owner's UUID; successful server/owner saves; other-agency/role/revoked-owner denial; atomic input-validation failure; accurate before/after audit evidence; preservation of other agency branding/assets; staging replay without writes; and unknown configuration/grant refusal. Fourteen existing account/launch checks also pass.
+Six real PostgreSQL tests verify browser denial even with an owner's UUID; successful server/owner saves; other-agency/role/suspended-owner denial; atomic input-validation failure; accurate before/after audit evidence; preservation of other agency branding/assets; staging replay without writes; and unknown configuration/grant refusal. Membership fixtures enforce the canonical role/status checks. Fourteen existing account/launch checks also pass.
 
 After full checks/review, preserve canonical ledger version `20261023143715` during staging-first application. Confirm the working staging writer and customer rows are unchanged, and test actual owner-save/recovery only with an isolated staging fixture. Production installation and any customer-facing promotion require their explicit release gate. No customer branding save is authorised as a production smoke test.
+
+Staging result: canonical version `20261023143715` is recorded. The existing writer retains OID `26209`, body hash, owner, empty search path and exact ACL. The rollback-only canary saved normalized branding for a newly created synthetic agency, verified its audit event, rejected browser/cross-agency callers and preserved the other agency. Every canary write was rolled back; actual branding-row hashes are unchanged. Production still lacks this contract and has not been modified.

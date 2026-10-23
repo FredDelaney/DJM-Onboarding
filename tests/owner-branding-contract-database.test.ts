@@ -18,6 +18,10 @@ before(async()=>{
   await db.exec(`create schema platform; create role anon; create role authenticated; create role service_role bypassrls;
     create table platform.tenants(id uuid primary key,status text);
     create table platform.tenant_memberships(tenant_id uuid,user_id uuid,role text,status text);`);
+  const membershipChecks = read('20260904133549_create_tenants_and_memberships.sql')
+    .match(/constraint tenant_memberships_(?:role|status)_check\s+check \([^\n]+\)/g);
+  assert.equal(membershipChecks?.length, 2);
+  for (const check of membershipChecks!) await db.exec('alter table platform.tenant_memberships add '+check);
   for (const [file,table] of [
     ['20260904133625_create_branding_and_domains.sql','tenant_branding'],
     ['20260904135421_create_audit_and_idempotency.sql','audit_events'],
@@ -27,7 +31,7 @@ before(async()=>{
     await db.exec('alter table platform.'+table+' enable row level security');
   }
   await db.query("insert into platform.tenants values ($1,'active'),($2,'active')",[tenant(1),tenant(2)]);
-  await db.query("insert into platform.tenant_memberships values ($1,$3,'owner','active'),($2,$4,'owner','active'),($1,$5,'admin','active'),($1,$6,'owner','revoked')",[tenant(1),tenant(2),user(1),user(2),user(3),user(4)]);
+  await db.query("insert into platform.tenant_memberships values ($1,$3,'owner','active'),($2,$4,'owner','active'),($1,$5,'admin','active'),($1,$6,'owner','suspended')",[tenant(1),tenant(2),user(1),user(2),user(3),user(4)]);
   assert.equal(await scalar('to_regprocedure($1)::text',[signature]),null,'Reproduce the live missing dependency before restoring it');
   await db.exec(migration);
 });
@@ -62,7 +66,7 @@ test('owner save normalises editable branding, retains other agency assets and r
   assert.equal(audit.action,'platform.owner.branding_updated');assert.deepEqual(audit.before_state,before);assert.deepEqual(audit.after_state,result);
 });
 
-test('cross-agency owners, admins and revoked owners cannot change branding or create audit events',async()=>{
+test('cross-agency owners, admins and suspended owners cannot change branding or create audit events',async()=>{
   const before=await scalar('jsonb_agg(to_jsonb(b) order by tenant_id) from platform.tenant_branding b');
   for (const id of [user(2),user(3),user(4),null]) {
     const values=args();values[1]=id as any;

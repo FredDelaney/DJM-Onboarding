@@ -15,6 +15,7 @@ import {
   dossierCareer,
   dossierCareerStatLine,
   dossierHeadlineStats,
+  dossierHeadlineStatContext,
   dossierList,
   dossierNationality,
   dossierPerformance,
@@ -447,6 +448,7 @@ const styles =
       flex: 1,
       paddingLeft: 8,
     },
+    statSolo: {flex: 1},
 
     statValue: {
       color: NAVY,
@@ -461,6 +463,8 @@ const styles =
       fontSize: 6.8,
       fontWeight: 700,
     },
+    statContext: {color: MUTED, marginTop: 5, fontSize: 6.8, lineHeight: 1.4},
+    statEvidence: {color: MUTED, marginTop: 3, marginBottom: 8, fontSize: 7.2, lineHeight: 1.4},
 
     performanceWrap: {
       marginTop: 12,
@@ -941,6 +945,7 @@ export function ClubCvPdfDocument({
 
   const quickStats =
     stats.slice(0, 4);
+  const statContext = dossierHeadlineStatContext(profile);
 
   const detailStats =
     stats.slice(4);
@@ -1354,15 +1359,16 @@ export function ClubCvPdfDocument({
                 wrap={false}
               >
                 <Text style={styles.kicker}>
-                  CURRENT OUTPUT
+                  HEADLINE FIGURES
                 </Text>
+                <Text style={styles.statEvidence}>{statContext.period}{' · '}{statContext.source}{' · '}{statContext.date}</Text>
 
                 <View style={styles.statBand}>
                   {quickStats.map((item, index) => (
                     <View
                       key={index}
                       style={
-                        index === 0
+                        quickStats.length === 1 ? styles.statSolo : index === 0
                           ? styles.statFirst
                           : index === quickStats.length - 1
                             ? styles.statLast
@@ -1378,6 +1384,7 @@ export function ClubCvPdfDocument({
                       <Text style={styles.statLabel}>
                         {clip(item.label, 22).toUpperCase()}
                       </Text>
+                      {statContext.notes[index] ? <Text style={styles.statContext}>{statContext.notes[index]}</Text> : null}
                     </View>
                   ))}
                 </View>
@@ -1571,6 +1578,7 @@ export function ClubCvPdfDocument({
                 >
                   PERFORMANCE DETAIL
                 </Text>
+                <Text style={styles.statEvidence}>{statContext.period}{' · '}{statContext.source}{' · '}{statContext.date}</Text>
 
                 {detailStats.length > 0 ? (
                   <View
@@ -1588,7 +1596,7 @@ export function ClubCvPdfDocument({
                             index
                           }
                           style={
-                            index ===
+                            detailStats.length === 1 ? styles.statSolo : index ===
                             0
                               ? styles.statFirst
                               : index ===
@@ -1617,6 +1625,7 @@ export function ClubCvPdfDocument({
                               22,
                             ).toUpperCase()}
                           </Text>
+                          {statContext.notes[index+4] ? <Text style={styles.statContext}>{statContext.notes[index+4]}</Text> : null}
                         </View>
                       ),
                     )}
