@@ -31,9 +31,9 @@ No arbitrary completion percentage. A code commit, mocked provider test or deskt
 
 - Initial programme registration: validated. All 46 delivery items and 17 UI surfaces are retained below.
 - Existing PR 250 hardening remains the baseline; it must not be undone or rebuilt.
-- First active product item: DAY-01. Inspect current player service summaries, distinguish genuine work from setup guidance, preserve all existing action/permission routes and verify with focused browser scenarios.
-- Next product items: PLY-02 statistics scope clarity, DAY-02 Home priority quality, then the TELL-05 whole working loop.
-- Pending gates: focused tests, TypeScript, actual affected-screen checks and first reviewable commit/PR.
+- DAY-01 roster increment is implemented: meaningful service moves and actual recorded work take precedence over generic setup. One explicit next-step control replaces duplicate buttons; quiet setup and real deadlines are distinct. Work-view/Home propagation and hosted acceptance remain open.
+- Next exact action: PLY-02, clarify the existing club headline-stat mode, source/season context and intentional custom overrides without changing any saved statistics. Then DAY-02 Home priority quality and TELL-05 whole-loop acceptance.
+- Local checkpoint: 1,965 tests pass, TypeScript passes and the new actual-component roster check passes at 320/390/768/1440. Full CI, review and hosted acceptance are pending; the whole programme remains active.
 - Production: no new programme changes deployed. Prior release permission does not silently authorise unrelated destructive actions or external sends.
 
 ## Full execution register
@@ -42,7 +42,7 @@ No arbitrary completion percentage. A code commit, mocked provider test or deskt
 | --- | --- | --- | --- | --- |
 | GOV-01 | validated | None | Track the complete agreed programme | This committed plan, explicit UI matrix and AGENTS resume pointer retain every workstream. |
 | GOV-02 | active | GOV-01 | Verify and reuse existing capabilities | Record gaps and existing evidence per item before implementation; completed hardening is retained. |
-| DAY-01 | active | GOV-02 | Truthful player priorities | Specific existing actions, overdue work and setup gaps are distinguishable; a missing optional action is not an urgent warning. |
+| DAY-01 | implemented | GOV-02 | Truthful player priorities | Specific existing actions, overdue work and setup gaps are distinguishable; a missing optional action is not an urgent warning. |
 | DAY-02 | todo | DAY-01 | Useful personal Home | Assigned work, material deadlines and low-priority reviews have clear priority and reasons; preserve current staff visibility. |
 | DAY-03 | todo | DAY-02, TELL-02 | Consistent completion and ownership | Completion, reassignment, snooze and Undo reconcile across Home, Calendar, player/contact and capture receipts. |
 | PLY-01 | todo | GOV-02 | Player and prospect lifecycle | Discovery, recruitment, representation and ongoing management use existing models; prospects never become signed players accidentally. |
@@ -94,7 +94,7 @@ For each row inspect the relevant shared primitives and record accepted evidence
 | ID | Page / workflow | State | Evidence / remaining |
 | --- | --- | --- | --- |
 | UI-01 | Home / agency overview | todo | Full required state coverage not yet recorded for this programme. |
-| UI-02 | Players roster | todo | Full required state coverage not yet recorded for this programme. |
+| UI-02 | Players roster | active | DAY-01 fixture: specific/setup/private/undated/future work, action routes, four widths, 44px targets and card-internal clipping passed. Full state matrix, keyboard/contrast and physical-device acceptance remain open. |
 | UI-03 | Recruitment list / detail / creation | todo | Full required state coverage not yet recorded for this programme. |
 | UI-04 | Player Profile / preview / sharing | todo | Full required state coverage not yet recorded for this programme. |
 | UI-05 | Player work view / intelligence / team | todo | Full required state coverage not yet recorded for this programme. |
@@ -123,6 +123,8 @@ For each row inspect the relevant shared primitives and record accepted evidence
 ## Evidence log
 
 - GOV-01: full brief, 46 uniquely identified delivery items, 17 UI surfaces, dependency references and AGENTS continuation pointer recorded. `git diff --check` passes. GOV-02 and DAY-01 remain active; no product improvement claimed complete.
+
+- DAY-01 roster increment: `npm test` passes 1,965/1,965; `npm run typecheck` passes. `node scripts/calendar-browser-fixture.mjs scripts/player-priorities-browser-qa.mjs` passes four widths, existing control/service routes, work-view navigation, restricted-data exclusion and masked card-overflow checks. Visual inspection caught and fixed mobile width plus margin clipping; page-level overflow alone was insufficient. The browser check is wired into CI and its synthetic screenshots are included in the existing CI artifact. No API, database or production data change. Full CI/release and the remaining UI matrix are not accepted by these local results.
 
 ## Complete agreed product and UI requirements
 

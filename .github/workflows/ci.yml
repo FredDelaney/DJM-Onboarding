@@ -59,5 +59,6 @@ jobs:
           path: |
             /tmp/platform-polish-screenshots
             /tmp/platform-polish-report.json
+            /tmp/redream-platform-programme/roster
           retention-days: 7
           if-no-files-found: ignore
