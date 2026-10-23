@@ -80,7 +80,7 @@ Frontend rollback uses the previous READY deployment; the additive migration and
 
 ## Validation
 
-Baseline: 1,926 unit tests passed. The first full browser run failed on the new tagging compatibility assertion; a focused repeat passed. Its failure message now reports the actual alerts for diagnosis rather than suppressing them. The subsequent full browser suite passed without weakening that assertion. The final changed photo/workspace journey was rerun after the last UI fix and passed.
+Baseline: 1,926 unit tests passed. The first full browser run intermittently failed on the tagging compatibility assertion. A later CI failure reported an empty alert; a rendered-page diagnostic confirmed it was Next.js's `__next-route-announcer__`, outside the application main, with no application error. The assertion now checks the actual profile main and additionally verifies that unavailable tagging cannot offer an unusable editor. Tagging persistence, conflicts, stale selection, permissions and recovery checks remain. The final changed photo/workspace journey was rerun after the last UI fix and passed.
 
 Local validation is deliberately separated from hosted acceptance. No live AI/provider call, external message, physical iPhone/Safari upload or customer data mutation was used to make a passing claim. Staging profile publication/provider linking cannot be accepted while the catalog gaps above remain.
 
