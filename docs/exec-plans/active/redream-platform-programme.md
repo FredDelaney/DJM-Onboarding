@@ -2,7 +2,7 @@
 
 Owner: Codex, requested by Jesse Edge on 23 October 2026.
 Status: active. The whole programme remains open.
-Working branch: `codex/redream-platform-programme`.
+Current working branch: `codex/redream-agency-branding-contract`, stacked on `codex/redream-platform-programme` (PR 251).
 Baseline: merged production PR 250, `09831dadc94621fb43e9d56265c9bd2d4a8a2bcd`.
 
 ## Start here on every continuation
@@ -35,9 +35,12 @@ No arbitrary completion percentage. A code commit, mocked provider test or deskt
 - PLY-02 staff-profile increment is implemented: automatic and selected figures show their actual period, club, source and checked/reviewed/updated date; custom figures never inherit automatic source or freshness. Cross-CV/public-output acceptance remains open.
 - DAY-02 Home increment is implemented: server-authorised player-data flags have an expandable review group and no longer consume all five business priorities. Actual overdue/today deadlines take precedence over keyword categories; undated commands do not claim Today. Failed assignment reads have a direct Retry action. Existing completion, Undo, responsibilities and permissions are preserved.
 - OPS-02 and a scoped OPS-04 observation-boundary repair are prepared locally: canonical entity tenancy, active staff ownership, repeat-call protection, unresolved-record reporting and restrictive observation RLS. The original cron failure and global-team exposure are reproduced in real PostgreSQL before the repairs; nine regression cases pass afterward. Hosted migration application/cron acceptance remains open.
-- Next exact action: run the full pull-request CI and review the prepared migration manifest in `docs/operations/redream-platform-programme-first-delivery.md`. Continue OPS-01 contract/call-site reconciliation and PLY-02 CV/public-output context while hosted checks run. Do not mark the programme complete or deploy production based on local tests.
+- First delivery: PR 251, head `64fd15d`. Its verification job passes; full browser CI is still running. Exact first-delivery manifest: `docs/operations/redream-platform-programme-first-delivery.md`.
+- OPS-01 branding follow-up is prepared: all 11 missing contracts were reconciled against actual deployed worker sources. The missing branding writer is called by deployed `agency-os` 43; the four other deployed workers do not yet reference their source-version missing contracts, and launch/adoption/public-sandbox workers are absent. This is one proven broken live dependency, not 11 proven live failures. The follow-up restores only the canonical branding writer and preserves the working staging definition exactly. Details and its separate one-migration manifest: `docs/operations/redream-owner-branding-contract-recovery.md`.
+- Next exact action: finish PR 251 browser CI; complete the branding follow-up's checks/review. Then validate these prepared migrations on staging through their recorded gates, continue PLY-02 CV/public-output context and TELL-05 whole-loop acceptance. Do not mark the programme complete or deploy production based on local tests.
 - Local checkpoint: the final full suite passes 1,978/1,978, including nine focused PostgreSQL regression cases. All TypeScript projects, production build and bundle limits pass. Roster/profile/Home browser evidence is recorded below. Full CI, review and hosted acceptance are pending; the whole programme remains active.
 - Production: no new programme changes deployed. Prior release permission does not silently authorise unrelated destructive actions or external sends.
+- Acceptance participant: Jesse Edge confirmed he will be the DJM staff participant. DJM is the only real agency currently available. Existing staging tenant fixtures can prove technical isolation; real independent-agency acceptance remains explicitly pending, not satisfied by a fixture.
 
 ## Full execution register
 
@@ -69,7 +72,7 @@ No arbitrary completion percentage. A code commit, mocked provider test or deskt
 | DOC-06 | todo | DOC-01, DOC-02, DOC-03, DOC-04, DOC-05 | Shared document UX | Subject selection, AI assistance, template editing, preview, Word/PDF, long text and missing fields work consistently. |
 | DOC-07 | todo | DOC-06, TELL-02 | Connected document lifecycle | Approved facts and Tell context reduce repeated entry; documents link to the right person/player/club/opportunity and follow-up. |
 | DOC-08 | todo | DOC-06 | Honest external event tracking | Delivery/open/signature/payment claims use verified provider evidence or explicit manual labels; external actions require approval. |
-| OPS-01 | todo | GOV-02 | Recorded backend contract reconciliation | Review all 11 recorded absent contracts against deployed call sites; repair required flows with scoped reviewed changes, not permissive wrappers. |
+| OPS-01 | active | GOV-02 | Recorded backend contract reconciliation | All 11 are mapped to actual deployed versions; the proven live branding dependency has a locally tested canonical restoration. Hosted recovery and remaining future-worker contracts stay open. Repair required flows with scoped reviewed changes, not permissive wrappers. |
 | OPS-02 | implemented | GOV-02, OPS-04 source boundary | Background change-review repair | Locally reproduced and repaired with the real guard; hosted execution remains open. Fix queue_change_review_items without cross-tenant routing or blanket bypass. |
 | OPS-03 | todo | GOV-02 | Observed timeout follow-up | Investigate the recorded server network timeout; distinguish reproducible application failures from isolated transport errors and verify recovery. |
 | OPS-04 | active | GOV-02 | Security findings review | Observation-table global-team RLS is locally repaired and allow/deny tested; hosted acceptance and the other security-definer, GraphQL and password-protection findings remain open. |
@@ -87,7 +90,7 @@ No arbitrary completion percentage. A code commit, mocked provider test or deskt
 | UX-06 | todo | UX-01 | Mobile and accessibility | 320/390/768/1440 widths, text zoom, contrast, names, keyboard, safe areas and physical iPhone/Safari acceptance are recorded honestly. |
 | UX-07 | todo | UX-05 | Measured speed | Establish and compare complete-job timings, cold/warm loading and bundle limits; measure rather than claim speed from a screenshot. |
 | VAL-01 | todo | DAY-03, TELL-05, DOC-07 | Five real working cases | New player joining, club request, conversation-to-work, contract deadline and invoice follow-through have end-to-end evidence. |
-| VAL-02 | todo | SAS-04, UX-06, VAL-01 | Independent agency acceptance | Another agency and mobile staff use the existing product; record time, repeated entry, corrections, missed follow-ups and recurring use. |
+| VAL-02 | todo | SAS-04, UX-06, VAL-01 | Independent agency acceptance | Jesse Edge is the DJM staff/iPhone participant; only DJM is currently available. A real second agency remains an external dependency. Record time, repeated entry, corrections, missed follow-ups and recurring use. |
 | RELSE-01 | todo | All other programme acceptance items | Final programme acceptance | All required product and UI rows have current evidence, checks pass and deployment/production acceptance follows current user authorisation. |
 
 ## UI coverage matrix: required throughout the programme
@@ -136,6 +139,8 @@ For each row inspect the relevant shared primitives and record accepted evidence
 - OPS-02 read-only baseline: staging and production use the same legacy job body (`md5(prosrc) = bca01cd5fed1c6854f2fe394f09111ab`), the same tenant guard and service-role-only execute access. Staging has no low-confidence pending observation; production has one pending prospect observation whose canonical prospect exists with a tenant. The legacy insert sets no tenant and no prospect context, so cron has no trusted fallback. No hosted writes or cron invocation were performed. Prepare the repair locally with the actual guard, allow/deny and repeat-call coverage before any release decision.
 
 - OPS-02 / OPS-04 repair: `tests/change-review-tenant-database.test.ts` passes nine actual PostgreSQL cases; the final `npm test` passes 1,978/1,978. It reproduces SQLSTATE 23514 for a prospect and the old cross-agency observation read, then proves canonical multi-agency review tenancy, valid current staff ownership, zero duplicate open reviews, source-evidence preservation, unresolved-record retention without primary-tenant fallback, source-table CRUD allow/deny, independent-agency staff without global DJM membership, revoked/read-only/anonymous denial, retained tenant-trigger checks and unchanged cron execute grants. Both migrations refuse unexpected definition/policy/grant drift. No other table policy, tenant trigger, schedule or customer row is changed. Hosted staging/production remain unchanged; production rollout requires its actual release gate. The remaining OPS-04 findings remain open.
+
+- OPS-01 branding follow-up: production catalog read confirms all 11 contracts absent. Actual downloaded production `dispatch-player-push` 19, `dispatch-djm-email` 15, `accept-player-invite` 22 and `weekly-player-refresh` 20 contain none of their respective missing source-version RPC references. Current deployed `agency-os` 43 does call the missing branding writer. Staging has the canonical writer body (`57f28fb8730e57ef89babec7ff8c2d23`), owner/service-role-only execute and empty search path. The new migration restores only an absent writer, preserves a matching existing one and rejects unexpected body/config/grant drift. Six real PostgreSQL regression cases plus 14 existing account/launch checks pass (20/20), and all TypeScript projects pass; hosted customer branding has not been mutated. The other ten contracts and full fresh-agency onboarding remain open.
 
 ## Complete agreed product and UI requirements
 
