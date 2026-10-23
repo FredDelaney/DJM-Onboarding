@@ -4,6 +4,14 @@
   display:grid;
   gap:18px;
 }
+.clubStats .statContext {
+  margin: 8px 0 0;
+  color: #596674;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.statContext strong { font-weight: 600; }
 .topbar{
   display:flex;
   align-items:center;

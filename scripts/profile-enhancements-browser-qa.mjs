@@ -5,7 +5,7 @@ const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIU
 try {
  const page=await browser.newPage({viewport:{width:390,height:844}}),calls=[],errors=[];
  page.on('pageerror',error=>errors.push(error.message));
- let photo=null,settings={intro_line:'Reviewed player headline',key_stats:[{label:'Apps',value:'10'}]},uploads=0,verification='verified',attachUnconfirmed=false;
+ let photo=null,settings={intro_line:'Reviewed player headline',key_stats:[{label:'Apps',value:'10'}]},career=[],uploads=0,verification='verified',attachUnconfirmed=false;
  let otherRequested;const requestedOther=new Promise(resolve=>{otherRequested=resolve;});let releaseOther;
  const workName='Example Player With A Longer Name';
  await page.route('https://example.supabase.co/**',async route=>{
@@ -13,7 +13,7 @@ try {
   if(route.request().method()==='GET')return route.fulfill({status:200,body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64'),contentType:'image/png'});
   const {action,body={}}=route.request().postDataJSON();calls.push({action,body});
   let result={};
-  if(['player_profile','player_profile_core'].includes(action))result={profile:{player:{id:'fixture-profile',first_name:'Example',last_name:'Player',primary_position:'Centre back',current_club:'Example FC',current_country:'NZ',current_season_label:'2026',profile_photo_path:photo,verification_status:verification,verified_at:verification==='verified'?'2026-10-20T09:00:00Z':null},settings,published:{published:false},career:[],videos:[],shares:[],deals:[],clubs:[],documents:[],secondary_ready:true,auto_key_stats:[{label:'Apps',value:24},{label:'Goals',value:0}],auto_stats_meta:{source_name:'Official competition',source_url:'https://example.test/stats'},branding:{support_email:'agent@example.test'}}};
+  if(['player_profile','player_profile_core'].includes(action))result={profile:{player:{id:'fixture-profile',first_name:'Example',last_name:'Player',primary_position:'Centre back',current_club:'Example FC',current_country:'NZ',current_season_label:'2026',profile_photo_path:photo,verification_status:verification,verified_at:verification==='verified'?'2026-10-20T09:00:00Z':null},settings,published:{published:false},career,videos:[],shares:[],deals:[],clubs:[],documents:[],secondary_ready:true,auto_key_stats:[{label:'Apps',value:24},{label:'Goals',value:0}],auto_stats_meta:{season_label:'2026',club_name:'Example FC',league:'Example League',checked_at:'2026-10-20T12:00:00Z',source_name:'Official competition',source_url:'https://example.test/stats'},branding:{support_email:'agent@example.test'}}};
   else if(action==='player_workspace'){const other=body.player_id==='fixture-other';if(other){otherRequested();await new Promise(resolve=>{releaseOther=resolve;});}result={player:{identity:{name:other?'Other Player':workName,primary_position:'Centre back',current_club:'Example FC',profile_photo_path:other?null:photo},profile:{},service:{}}};}
   else if(action==='player_data_status')result={job:null};
   else if(action==='player_profile_photo_begin'){result={upload:{path:'agency/fixture/player/profile.png',token:'fixture-token',expected_photo_path:photo}};}
@@ -35,14 +35,35 @@ try {
  assert.equal(uploads,1);assert.equal(calls.filter(c=>c.action==='player_profile_photo_attach').length,1);
  const stats=page.getByRole('region',{name:'Club profile stats',exact:true});
  await stats.getByText('Custom stats in use',{exact:true}).waitFor();
+ await stats.getByText('Custom figures, separate from current-season updates. Check their period and source before sharing.',{exact:true}).waitFor();
+ assert.equal(await stats.getByText(/Official competition/).count(),0,'Custom figures never inherit the automatic source or freshness');
  assert.equal(await stats.getByRole('link',{name:'View source',exact:true}).count(),0,'Custom stats do not claim the automatic source');
  await stats.getByRole('button',{name:'Use latest stats',exact:true}).click();
- await stats.getByText('Latest stats in use',{exact:true}).waitFor();
+ await stats.getByText('Current-season stats in use',{exact:true}).waitFor();
+ await stats.getByText('2026 · Example FC · Example League',{exact:true}).waitFor();
+ assert.match(await stats.innerText(),/Official competition/);
+ assert.match(await stats.innerText(),/Checked/);
  const save=calls.find(c=>c.action==='player_profile_save');
  assert.deepEqual(save.body.settings,{key_stats:[],selected_stat_refs:[]},'Using current stats writes only the stat selection');
  assert.equal(settings.intro_line,'Reviewed player headline');
  assert.ok((await stats.innerText()).includes('24'));assert.ok((await stats.innerText()).includes('0'));
  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Fits '+width);}
+ // Selected evidence can intentionally cover several seasons; label each without claiming the automatic source.
+ career=[
+  {id:'past',season_label:'2025',club_name:'Former FC',league:'Historical League',appearances:33,starts:31,source_name:'Historical source',source_reviewed_at:'2026-01-20T12:00:00Z'},
+  {id:'current',season_label:'2026',club_name:'Example FC',league:'Example League',goals:0,source_name:'Current source',source_synced_at:'2026-10-20T12:00:00Z'},
+  {id:'unsupported',season_label:'2024',club_name:'Other FC',league:'Other League',made_up:99,source_name:'Unused source'},
+ ];
+ settings={...settings,key_stats:[],selected_stat_refs:['past:appearances','past:starts','current:goals','unsupported:made_up']};
+ await page.reload();
+ await stats.getByText('Selected stats in use',{exact:true}).waitFor();
+ assert.equal(await stats.getByText('2025 · Former FC · Historical League',{exact:true}).count(),1,'A selected period is shown once for several selected fields');
+ await stats.getByText('2026 · Example FC · Example League',{exact:true}).waitFor();
+ assert.match(await stats.innerText(),/Historical source/);
+ assert.match(await stats.innerText(),/Current source/);
+ assert.equal(await stats.getByText(/Unused source|Official competition/).count(),0,'Only the selected supported evidence is attributed');
+ assert.match(await stats.innerText(),/Reviewed/);
+ assert.match(await stats.innerText(),/Updated/);
  // The primary work view reuses the same upload path and shows the confirmed photo immediately.
  photo=null;
  await page.goto(new URL('/qa-player-photo?view=players&player=fixture-profile',url).href);

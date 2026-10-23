@@ -32,6 +32,7 @@ import PlayerProfilePhoto from './PlayerProfilePhoto';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile, invalidatePlayerProfile } from '@/lib/player-profile-cache';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import { playerRosterPriority } from '@/lib/player-roster-priority';
 import { publicFile } from '@/lib/supabase';
 import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
 import styles from './AgencyPlayersWorkspace.module.css';
@@ -930,9 +931,36 @@ export default function AgencyPlayersWorkspace({
             const service=item?.service||{};
             const name=identity.name||'Player';
             const age=ageFromDob(identity.date_of_birth);
-            const attention=Boolean(service?.next_control_fix?.instruction||service?.next_service_move?.instruction);
-            const nextInstruction=service?.next_control_fix?.instruction||service?.next_service_move?.instruction||identity.next_action;
-            const nextInstructionDue=nextInstruction===identity.next_action?identity.next_action_due:null;
+            const priority=playerRosterPriority(item);
+            const attention=priority.tone==='attention';
+            const nextInstruction=priority.instruction;
+            const openPriority=()=>{
+              if(priority.kind==='work'){
+                openPlayer(String(item.player_id));
+                return;
+              }
+              const control=service?.next_control_fix;
+              const move=service?.next_service_move;
+              const isControl=priority.kind==='control';
+              const directive=isControl?control:move;
+              if(!directive?.instruction||!priority.actionLabel)return;
+              onOpenAction({
+                key:`player:${item.player_id}`,
+                eyebrow:'PLAYER',
+                title:name,
+                instruction:directive.instruction,
+                label:priority.actionLabel,
+                action:isControl?'player_control_fix_prepare':'player_service_move_prepare',
+                payload:{player_id:item.player_id},
+                facts:[
+                  {label:'Player status',value:human(service.state||'Recorded')},
+                  {label:'Next move',value:move?.instruction||identity.next_action||'Not set'},
+                  {label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'No expiry set'},
+                  {label:'Market activity',value:human(service?.market_coverage?.state||'Not set')},
+                ],
+                successCondition:directive.success_condition||'The next step is current.',
+              });
+            };
             return(
               <article
                 className={styles.playerCard}
@@ -972,7 +1000,7 @@ export default function AgencyPlayersWorkspace({
                       ]}
                     /> : null}
 </> : null}
-                    <span className={attention?styles.attentionPill:styles.calmPill}>{item.access?.restricted?'Assigned player':attention?'Needs action':'Current'}</span>
+                    <span className={attention?styles.attentionPill:`${styles.calmPill} ${styles.setupPill}`}>{priority.badge}</span>
                   </div>
                 </div>
                 {item.access?.restricted ? <p className={styles.sectionCopy}>Assigned player. Contract details require admin access.</p> : <>
@@ -986,17 +1014,20 @@ export default function AgencyPlayersWorkspace({
                     <b>{Number(item.active_opportunities||0)} active {Number(item.active_opportunities||0)===1?'opportunity':'opportunities'}</b>
                   </span>
                 </div>
-                {attention || identity.next_action ? <div className={`${styles.mobileNextAction} ${attention?styles.mobileNextActionAttention:''}`}>
-                  <div className={styles.mobileNextActionHead}>
+                {nextInstruction && priority.actionLabel ? <button type="button"
+                  className={`${styles.mobileNextAction} ${attention?styles.mobileNextActionAttention:styles.setupNextAction}`}
+                  aria-label={`${priority.actionLabel} for ${name}`}
+                  onClick={event=>{event.stopPropagation();openPriority();}}>
+                  <span className={styles.mobileNextActionHead}>
                     <span className={attention?styles.mobileStatusDot:styles.mobileStatusDotCalm} />
-                    <span>Next action</span>
-                    <small>{nextInstructionDue?relativeDate(nextInstructionDue):'No due date'}</small>
-                  </div>
-                  <div className={styles.mobileNextActionBody}>
+                    <span>{priority.heading}</span>
+                    {priority.dueAt?<small>{priority.badge==='Due today'?'Today':relativeDate(priority.dueAt)}</small>:null}
+                  </span>
+                  <span className={styles.mobileNextActionBody}>
                     <strong>{nextInstruction||'No next action yet'}</strong>
                     <ChevronRight size={15} />
-                  </div>
-                </div> : null}
+                  </span>
+                </button> : null}
                 <div className={styles.playerFacts}>
                   <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not set'}</strong></div>
                   <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong></div>
@@ -1017,32 +1048,6 @@ export default function AgencyPlayersWorkspace({
                     Work view
                   </button>
                 </div> : null}
-                {attention?(
-                  <div className={styles.playerCardActions}>
-                    <button type="button" data-ui-button="primary"
-              className={styles.primaryButton} onClick={(event)=>{
-                      event.stopPropagation();
-                      const control=service?.next_control_fix;
-                      const move=service?.next_service_move;
-                      onOpenAction({
-                        key:`player:${item.player_id}`,
-                        eyebrow:'PLAYER',
-                        title:name,
-                        instruction:control?.instruction||move?.instruction,
-                        label:control?.instruction?'Review next step':'Prepare next move',
-                        action:control?.instruction?'player_control_fix_prepare':'player_service_move_prepare',
-                        payload:{player_id:item.player_id},
-                        facts:[
-                          {label:'Player status',value:human(service.state||'Recorded')},
-                          {label:'Next move',value:move?.instruction||identity.next_action||'Not set'},
-                          {label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'No expiry set'},
-                          {label:'Market activity',value:human(service?.market_coverage?.state||'Not set')},
-                        ],
-                        successCondition:'The next step is current.',
-                      });
-                    }}><ArrowRight size={14}/>{service?.next_control_fix?.instruction?'Review next step':'Prepare next move'}</button>
-                  </div>
-                ):null}
               </article>
             );
           })}

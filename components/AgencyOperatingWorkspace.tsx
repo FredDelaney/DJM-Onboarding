@@ -76,6 +76,7 @@ import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 import { brandingForWorkspace } from '@/lib/workspace-branding';
 import { readHomePosition } from '@/lib/read-home-position';
 import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
+import { homeCommandCategory, isHomePlayerDataReview, type HomeQueueCategory } from '@/lib/home-priority';
 import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
 import styles from './AgencyOperatingWorkspace.module.css';
@@ -2348,8 +2349,7 @@ function Home({
       (a: any, b: any) =>
         Number(b?.priority_score || 0) -
         Number(a?.priority_score || 0),
-    )
-    .slice(0, 10);
+    );
 
   const deadlines = Array.isArray(operations?.deadlines?.items)
     ? operations.deadlines.items
@@ -2542,12 +2542,7 @@ function Home({
     );
   };
 
-  type QueueCategory =
-    | 'Needs action now'
-    | 'Waiting on someone'
-    | 'Upcoming risk'
-    | 'Opportunity detected'
-    | 'FYI';
+  type QueueCategory = HomeQueueCategory;
   type QueueItem = {
     id: string;
     category: QueueCategory;
@@ -2569,31 +2564,6 @@ function Home({
     'Opportunity detected': 20_000,
     FYI: 10_000,
   };
-  const textFor = (value: any) =>
-    [
-      value?.title,
-      value?.command_type,
-      value?.why_now,
-      value?.recommended_action,
-      value?.evidence?.reason,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-  const waitingPattern =
-    /\b(waiting|awaiting|pending response|reply from|response from|chasing|with the club|with the player)\b/i;
-  const riskPattern =
-    /\b(risk|contract|expiry|expires|renew|renewal|deadline|window|overdue|registration)\b/i;
-  const opportunityPattern =
-    /\b(opportunity|club need|player match|pitch|send player|recruit|route|interest|looking for|requirement)\b/i;
-
-  const commandCategory = (command: any): QueueCategory => {
-    const text = textFor(command);
-    if (waitingPattern.test(text)) return 'Waiting on someone';
-    if (riskPattern.test(text)) return 'Upcoming risk';
-    if (opportunityPattern.test(text)) return 'Opportunity detected';
-    return 'Needs action now';
-  };
   const ownerFor = (command: any) =>
     command?.owner_name ||
     command?.assignee_name ||
@@ -2606,7 +2576,7 @@ function Home({
   const queueCandidates: QueueItem[] = [];
 
   priority.forEach((command: any, index: number) => {
-    const category = commandCategory(command);
+    const category = homeCommandCategory(command, now);
     const review = reviewPlayerId(command) ? reviewCopy(command) : null;
     const why =
       review?.reason ||
@@ -2629,7 +2599,7 @@ function Home({
       why,
       recommendation,
       owner: ownerFor(command),
-      deadline: dateLabel(command?.due_at, category === 'Waiting on someone' ? 'Waiting' : 'Today'),
+      deadline: isHomePlayerDataReview(command) ? 'Data review' : dateLabel(command?.due_at, category === 'Waiting on someone' ? 'Waiting' : 'No date'),
       kind: 'command',
       payload: command,
     });
@@ -2734,7 +2704,7 @@ function Home({
   }
 
   const relevance=useHomeRelevance(rpc,assignedScope,tenantId,JSON.stringify(queueCandidates.map(item=>homeRelevanceReference(item.payload))),agencyOverview,data?.home_read_version);
-  const queue = queueCandidates
+  const visibleItems = queueCandidates
     .map((item,index)=>({...item,canEdit:relevance.editable.has(index),visible:relevance.visible.has(index)}))
     .filter(item=>item.visible)
     .map(item=>{
@@ -2753,7 +2723,12 @@ function Home({
           const a=homeWorkRefFor(candidate.payload),b=homeWorkRefFor(item.payload);
           return a&&b?a.kind===b.kind&&a.id===b.id:candidate.id===item.id;
         }) === index,
-    )
+    );
+  // Group only after the server has confirmed personal visibility. Never count or
+  // reveal another colleague's reviews, and never let review flags consume all five slots.
+  const dataReviews = visibleItems.filter(item => item.kind === 'command' && isHomePlayerDataReview(item.payload));
+  const queue = visibleItems
+    .filter(item => !(item.kind === 'command' && isHomePlayerDataReview(item.payload)))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
   const queueSummary = (
@@ -2815,6 +2790,31 @@ function Home({
     item.recommendation && !/^(Open the item|Decide the next move|Review the player|Open the meeting)/i.test(item.recommendation)
       && item.recommendation.trim() !== item.why.trim();
 
+  const renderQueueItem = (item: QueueItem) => {
+    const ref=homeWorkRefFor(item.payload);
+    if(ref&&item.canEdit)return <HomeWorkRow key={item.id} entry={{ref,title:item.title,payload:item.payload}} deadline={item.deadline} waiting={item.category==='Waiting on someone'} controller={homeWork} relatedAction={item.kind==='command'&&item.payload?.reply_interaction_id?queueAction(item):null}>
+      {ref.kind!=='calendar_task'?<WorkResponsibilityControl key={assignedScope+item.id} work={ref} tenantId={tenantId} rpc={rpc}/>:null}
+    </HomeWorkRow>;
+    return <article className={styles.focusRow} key={item.id}>
+      <div className={styles.focusCopy}>
+        <div className={styles.focusMeta}>
+          <span className={item.category === 'Needs action now' ? styles.focusUrgency : undefined}>
+            {item.category === 'Needs action now' ? item.deadline.replace(/^Overdue\s+(.*overdue)$/i, '$1') : categoryLabel[item.category]}
+          </span>
+          {item.category !== 'Needs action now' && item.deadline !== categoryLabel[item.category]
+            ? <small>{item.deadline.replace(/^Overdue\s+(.*overdue)$/i, '$1')}</small> : null}
+        </div>
+        <strong>{item.title}</strong>
+        <details className={styles.focusDetails}><summary>Details</summary>
+          <p>{item.why}</p>{meaningfulRecommendation(item)?<p>{item.recommendation}</p>:null}
+          {item.owner && item.owner !== 'You' ? <p>Responsible: {item.owner}</p>:null}
+        </details>
+        {item.canEdit&&workRefFor(item.payload)?<WorkResponsibilityControl key={assignedScope+item.id} work={workRefFor(item.payload)!} tenantId={tenantId} rpc={rpc}/>:null}
+      </div>
+      <div className={styles.focusAction}>{queueAction(item)}</div>
+    </article>;
+  };
+
   return (
     <div className={styles.focusHome}>
       <header className={styles.focusWelcome}>
@@ -2826,45 +2826,25 @@ function Home({
       <HomeWorkFeedback controller={homeWork}/>
       <section className={styles.focusPanel} aria-label="Today priorities">
         <div className={styles.focusHeading}><h3>{restricted ? 'Your work' : 'Needs your attention'}</h3>
-          <span>{queue.length ? `${queue.length} item${queue.length===1?'':'s'}` : allState !== 'ready' || assignedLoading || relevance.loading ? 'Updating' : assignedError || relevance.error ? 'Unavailable' : 'All clear'}</span></div>
+          <span>{queue.length ? `${queue.length} item${queue.length===1?'':'s'}` : allState !== 'ready' || assignedLoading || relevance.loading ? 'Updating' : assignedError || relevance.error ? 'Unavailable' : dataReviews.length ? 'Reviews below' : 'All clear'}</span></div>
         {restricted ? <p className={styles.homeReadNotice}>Your work only. Commercial records require admin access.</p> : null}
         {readNotice(allState)}
         {assignedLoading&&!queue.length?<p className={styles.homeReadNotice} role="status">Loading your tasks...</p>:null}
-        {assignedError?<p className={styles.homeReadNotice} role="alert">{assignedError}</p>:null}
+        {assignedError?<div className={styles.homeReadNotice} role="alert">{assignedError}<button type="button" className={styles.compactButton} onClick={onRetry}>Retry tasks</button></div>:null}
         {relevance.loading&&!queue.length?<p className={styles.homeReadNotice} role="status">Checking your updates...</p>:null}
         {relevance.error?<div className={styles.homeReadNotice} role="alert">{relevance.error}<button type="button" onClick={relevance.retry}>Retry updates</button></div>:null}
         <div className={styles.focusList}>
-          {queue.map(item => {
-            const ref=homeWorkRefFor(item.payload);
-            if(ref&&item.canEdit)return <HomeWorkRow key={item.id} entry={{ref,title:item.title,payload:item.payload}} deadline={item.deadline} waiting={item.category==='Waiting on someone'} controller={homeWork} relatedAction={item.kind==='command'&&item.payload?.reply_interaction_id?queueAction(item):null}>
-              {ref.kind!=='calendar_task'?<WorkResponsibilityControl key={assignedScope+item.id} work={ref} tenantId={tenantId} rpc={rpc}/>:null}
-            </HomeWorkRow>;
-            return <article className={styles.focusRow} key={item.id}>
-            <div className={styles.focusCopy}>
-              <div className={styles.focusMeta}>
-                <span className={item.category === 'Needs action now' ? styles.focusUrgency : undefined}>
-                  {item.category === 'Needs action now'
-                    ? item.deadline.replace(/^Overdue\s+(.*overdue)$/i, '$1')
-                    : categoryLabel[item.category]}
-                </span>
-                {item.category !== 'Needs action now' && item.deadline !== categoryLabel[item.category]
-                  ? <small>{item.deadline.replace(/^Overdue\s+(.*overdue)$/i, '$1')}</small>
-                  : null}
-              </div>
-              <strong>{item.title}</strong>
-              <details className={styles.focusDetails}><summary>Details</summary>
-                <p>{item.why}</p>{meaningfulRecommendation(item)?<p>{item.recommendation}</p>:null}
-                {item.owner && item.owner !== 'You' ? <p>Responsible: {item.owner}</p>:null}
-              </details>
-              {item.canEdit&&workRefFor(item.payload)?<WorkResponsibilityControl key={assignedScope+item.id} work={workRefFor(item.payload)!} tenantId={tenantId} rpc={rpc}/>:null}
-            </div>
-            <div className={styles.focusAction}>{queueAction(item)}</div>
-          </article>;})}
-          {!queue.length && allState === 'ready' && !assignedLoading && !assignedError && !relevance.loading && !relevance.error ? <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
+          {queue.map(renderQueueItem)}
+          {!queue.length && allState === 'ready' && !assignedLoading && !assignedError && !relevance.loading && !relevance.error ? dataReviews.length ? <p className={styles.homeReadNotice}>No other priorities right now. Player data reviews are below.</p> : <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
             copy={restricted ? "Your work is up to date." : "Check your players or capture a new update."}
             action={<div className={styles.emptyStateActions}><AiLauncher onCaptureCompleted={onRetry}/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
         </div>
       </section>
+      {dataReviews.length ? <details className={`${styles.focusPanel} ${styles.homeReviewGroup}`}>
+        <summary><span>Player data to review</span><span>{dataReviews.length}</span></summary>
+        <p>Recorded changes and verification checks. Review these before sharing a profile.</p>
+        <div className={styles.focusList}>{dataReviews.map(renderQueueItem)}</div>
+      </details> : null}
       <HomeWorkEditor controller={homeWork}/>
     </div>
   );
