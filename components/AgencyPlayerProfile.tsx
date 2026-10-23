@@ -25,6 +25,7 @@ import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
   friendlyError,
   relativeDate,
+  compactDateTime,
 } from '@/lib/platform-client';
 import {
   getCachedPlayerProfile,
@@ -729,10 +730,25 @@ export default function AgencyPlayerProfile({
   const recordedStats = Array.isArray(bundle?.auto_key_stats) ? bundle.auto_key_stats : [];
   const recordedStatsSource = safeSourceUrl(bundle?.auto_stats_meta?.source_url);
   const automaticClubStats=!form.selected_stat_refs.length&&!parseKeyStats(form.key_stats_text).length;
-  const clubStatSourceUrls=automaticClubStats?(recordedStatsSource?[recordedStatsSource]:[]):form.selected_stat_refs.length?[...new Set(form.selected_stat_refs.map(ref=>{
+  const selectedClubStatRows=[...new Map(form.selected_stat_refs.flatMap(ref=>{
     const separator=ref.lastIndexOf(':');
-    return safeSourceUrl(career.find((row:any)=>String(row.id)===ref.slice(0,separator))?.source_url);
-  }).filter((url):url is string=>Boolean(url)))]:[];
+    const field=ref.slice(separator+1);
+    if(separator<1||!['appearances','starts','minutes','goals','assists'].includes(field))return [];
+    const row=career.find((item:any)=>String(item.id)===ref.slice(0,separator));
+    if(!row||row[field]===null||row[field]===undefined||row[field]==='')return [];
+    return row?[[String(row.id),row] as const]:[];
+  })).values()];
+  const clubStatSourceUrls=automaticClubStats?(recordedStatsSource?[recordedStatsSource]:[]):
+    [...new Set(selectedClubStatRows.map(row=>safeSourceUrl(row.source_url)).filter((url):url is string=>Boolean(url)))];
+  const clubStatContexts=(automaticClubStats?[bundle?.auto_stats_meta||{}]:selectedClubStatRows).map((row:any)=>{
+    const date=row.checked_at||row.source_reviewed_at||row.source_synced_at||row.data_updated_at;
+    return {
+      scope:[row.season_label,row.club_name,row.league].filter(Boolean).join(' · ')||'Period not recorded',
+      source:row.source_name||row.source_provider||row.provider||'Source not recorded',
+      date:date&&Number.isFinite(Date.parse(String(date)))?String(date):null,
+      dateLabel:row.checked_at?'Checked':row.source_reviewed_at?'Reviewed':'Updated',
+    };
+  });
 
   const checks: ProfileCheck[] = [
     {
@@ -2513,9 +2529,14 @@ export default function AgencyPlayerProfile({
         </section>
       ) : null}
       <section className={`${styles.card} ${styles.clubStats}`} aria-label="Club profile stats">
-        <div className={styles.clubStatsHead}><div><h3>Club profile stats</h3><p>{!draftProfile.key_stats.length ? 'No stats included yet' : form.selected_stat_refs.length ? 'Selected stats in use' : automaticClubStats ? 'Latest stats in use' : 'Custom stats in use'}</p></div>
+        <div className={styles.clubStatsHead}><div><h3>Club profile stats</h3><p>{!draftProfile.key_stats.length ? 'No stats included yet' : form.selected_stat_refs.length ? 'Selected stats in use' : automaticClubStats ? 'Current-season stats in use' : 'Custom stats in use'}</p></div>
           {canEdit ? <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => void useRecordedStats()} disabled={Boolean(actionBusy) || !recordedStats.length || (!form.key_stats_text.trim() && !form.selected_stat_refs.length)}><RefreshCw size={14}/>Use latest stats</button> : null}
         </div>
+        {draftProfile.key_stats.length ? automaticClubStats||form.selected_stat_refs.length ? clubStatContexts.map((context,index)=>(
+          <p className={styles.statContext} key={`${context.scope}:${index}`}>
+            <strong>{context.scope}</strong> · {context.source} · {context.date?`${context.dateLabel} ${compactDateTime(context.date)}`:'Source date not recorded'}
+          </p>
+        )):<p className={styles.statContext}>Custom figures, separate from current-season updates. Check their period and source before sharing.</p>:null}
         {draftProfile.key_stats.length?<div className={styles.keyStats}>{draftProfile.key_stats.slice(0,6).map((stat: any,index: number) => <div key={`${stat.label}:${index}`}><strong>{stat.value}</strong><span>{stat.label}</span></div>)}</div>:null}
         {!draftProfile.key_stats.length ? <p>Add reviewed season statistics below.</p> : null}
         <div className={styles.clubStatsFooter}>{clubStatSourceUrls.map((url,index)=><a key={url} href={url} target="_blank" rel="noreferrer">{clubStatSourceUrls.length>1?`Source ${index+1}`:'View source'} <ExternalLink size={12}/></a>)}

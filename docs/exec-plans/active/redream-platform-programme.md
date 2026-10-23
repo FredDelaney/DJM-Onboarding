@@ -32,8 +32,9 @@ No arbitrary completion percentage. A code commit, mocked provider test or deskt
 - Initial programme registration: validated. All 46 delivery items and 17 UI surfaces are retained below.
 - Existing PR 250 hardening remains the baseline; it must not be undone or rebuilt.
 - DAY-01 roster increment is implemented: meaningful service moves and actual recorded work take precedence over generic setup. One explicit next-step control replaces duplicate buttons; quiet setup and real deadlines are distinct. Work-view/Home propagation and hosted acceptance remain open.
-- Next exact action: PLY-02, clarify the existing club headline-stat mode, source/season context and intentional custom overrides without changing any saved statistics. Then DAY-02 Home priority quality and TELL-05 whole-loop acceptance.
-- Local checkpoint: 1,965 tests pass, TypeScript passes and the new actual-component roster check passes at 320/390/768/1440. Full CI, review and hosted acceptance are pending; the whole programme remains active.
+- PLY-02 staff-profile increment is implemented: automatic and selected figures show their actual period, club, source and checked/reviewed/updated date; custom figures never inherit automatic source or freshness. Cross-CV/public-output acceptance remains open.
+- Next exact action: DAY-02, keep routine player-data reviews available without letting them crowd out assigned work and material deadlines. Then OPS-02 scheduled review repair and TELL-05 whole-loop acceptance.
+- Local checkpoint: all 1,965 tests, TypeScript, production build and bundle limits pass. Actual-component roster checks pass at 320/390/768/1440; existing profile browser checks also cover selected historical evidence, custom scope and real zero values. Full CI, review and hosted acceptance are pending; the whole programme remains active.
 - Production: no new programme changes deployed. Prior release permission does not silently authorise unrelated destructive actions or external sends.
 
 ## Full execution register
@@ -46,7 +47,7 @@ No arbitrary completion percentage. A code commit, mocked provider test or deskt
 | DAY-02 | todo | DAY-01 | Useful personal Home | Assigned work, material deadlines and low-priority reviews have clear priority and reasons; preserve current staff visibility. |
 | DAY-03 | todo | DAY-02, TELL-02 | Consistent completion and ownership | Completion, reassignment, snooze and Undo reconcile across Home, Calendar, player/contact and capture receipts. |
 | PLY-01 | todo | GOV-02 | Player and prospect lifecycle | Discovery, recruitment, representation and ongoing management use existing models; prospects never become signed players accidentally. |
-| PLY-02 | todo | GOV-02 | Understandable football statistics | Period, club, source, freshness and custom scope are clear; zero stays zero and deliberate overrides survive. |
+| PLY-02 | implemented | GOV-02 | Understandable football statistics | Staff-profile context is implemented; cross-CV/public-output and hosted acceptance remain open. Period, club, source, freshness and custom scope are clear; zero stays zero and deliberate overrides survive. |
 | PLY-03 | todo | PLY-02 | Efficient sourced review | Material changes have a specific accept/edit/reject path and resolve across surfaces; unsupported data remains missing. |
 | PLY-04 | todo | PLY-02, PLY-03 | Club-ready player dossier | Identity, verified football context, real video, sources, missing essentials, preview and existing sharing form one clear flow. |
 | PLY-05 | todo | PLY-01 | Useful private player experience | Career actions, appropriate agency updates and resources improve the existing player portal without exposing internal strategy. |
@@ -85,7 +86,7 @@ No arbitrary completion percentage. A code commit, mocked provider test or deskt
 | UX-07 | todo | UX-05 | Measured speed | Establish and compare complete-job timings, cold/warm loading and bundle limits; measure rather than claim speed from a screenshot. |
 | VAL-01 | todo | DAY-03, TELL-05, DOC-07 | Five real working cases | New player joining, club request, conversation-to-work, contract deadline and invoice follow-through have end-to-end evidence. |
 | VAL-02 | todo | SAS-04, UX-06, VAL-01 | Independent agency acceptance | Another agency and mobile staff use the existing product; record time, repeated entry, corrections, missed follow-ups and recurring use. |
-| RELSE-01 | todo | All programme acceptance items | Final programme acceptance | All required product and UI rows have current evidence, checks pass and deployment/production acceptance follows current user authorisation. |
+| RELSE-01 | todo | All other programme acceptance items | Final programme acceptance | All required product and UI rows have current evidence, checks pass and deployment/production acceptance follows current user authorisation. |
 
 ## UI coverage matrix: required throughout the programme
 
@@ -96,7 +97,7 @@ For each row inspect the relevant shared primitives and record accepted evidence
 | UI-01 | Home / agency overview | todo | Full required state coverage not yet recorded for this programme. |
 | UI-02 | Players roster | active | DAY-01 fixture: specific/setup/private/undated/future work, action routes, four widths, 44px targets and card-internal clipping passed. Full state matrix, keyboard/contrast and physical-device acceptance remain open. |
 | UI-03 | Recruitment list / detail / creation | todo | Full required state coverage not yet recorded for this programme. |
-| UI-04 | Player Profile / preview / sharing | todo | Full required state coverage not yet recorded for this programme. |
+| UI-04 | Player Profile / preview / sharing | active | Staff-profile stats browser checks cover custom, automatic and selected multi-period evidence, sources, timestamps and zero values. Four widths, photo switching/retry and existing controls pass. Remaining state matrix, CV/public-output and physical-device acceptance stay open. |
 | UI-05 | Player work view / intelligence / team | todo | Full required state coverage not yet recorded for this programme. |
 | UI-06 | Opportunities / club needs / routes / outcomes | todo | Full required state coverage not yet recorded for this programme. |
 | UI-07 | Network list / search | todo | Full required state coverage not yet recorded for this programme. |
@@ -125,6 +126,8 @@ For each row inspect the relevant shared primitives and record accepted evidence
 - GOV-01: full brief, 46 uniquely identified delivery items, 17 UI surfaces, dependency references and AGENTS continuation pointer recorded. `git diff --check` passes. GOV-02 and DAY-01 remain active; no product improvement claimed complete.
 
 - DAY-01 roster increment: `npm test` passes 1,965/1,965; `npm run typecheck` passes. `node scripts/calendar-browser-fixture.mjs scripts/player-priorities-browser-qa.mjs` passes four widths, existing control/service routes, work-view navigation, restricted-data exclusion and masked card-overflow checks. Visual inspection caught and fixed mobile width plus margin clipping; page-level overflow alone was insufficient. The browser check is wired into CI and its synthetic screenshots are included in the existing CI artifact. No API, database or production data change. Full CI/release and the remaining UI matrix are not accepted by these local results.
+
+- PLY-02 staff-profile increment: `npm run check` passes all 1,965 tests, every TypeScript project, production build and bundle limit (workspace gzip 143,744 / 150,000 bytes). `node scripts/calendar-browser-fixture.mjs scripts/profile-enhancements-browser-qa.mjs` passes automatic context, deliberately selected historical/current rows, deduplicated periods, correct source attribution, real zero values and custom-scope guidance. Existing photo upload, stale-player, unconfirmed-save recovery and four-width assertions also pass. Uses only existing stored metadata; no saved statistics, publication semantics, schema or customer data changed. Evidence is local; the wider PLY-02 and UI-04 acceptance remains open.
 
 ## Complete agreed product and UI requirements
 
