@@ -27,7 +27,7 @@ try {
   else if(name==='tenants')result={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-find-flow',role:'owner',display_name:'Selected Fixture Agency',short_name:'Selected Agency'}]};
   else if(name==='home_focus')result={home:{commands:[]}};
   else if(name==='redream_autopilot_operations')result={deadlines:{items:[{entity_type:'club_need',entity_id:'00000000-0000-4000-8000-000000000091',deadline_type:'club_need_expiry',title:'Recorded club need expires',deadline_at:new Date(Date.now()-86400000).toISOString()}]}};
-  else if(name==='players_workspace')result={players:{items:[{player_id:'fixture-player',identity:{name:'Example Player',primary_position:'Centre back',current_club:'Example FC',next_action:'An unrelated saved task',next_action_due:'2020-01-01',contract_expiry:'2027-06-30'},service:{next_control_fix:{instruction:'Review the representation plan'},next_service_move:{instruction:'Agree the next career step with the player'}}}],total:1,has_more:false}};
+  else if(name==='players_workspace')result={players:{items:[{player_id:'fixture-player',identity:{name:'Example Player',primary_position:'Centre back',current_club:'Example FC',next_action:'Call the club about the trial',next_action_due:'2020-01-01',contract_expiry:'2027-06-30'},service:{next_control_fix:{fix_type:'set_player_next_action',instruction:'Review the representation plan'},next_service_move:{move_type:'maintain_player_plan',instruction:'Agree the next career step with the player'}}}],total:1,has_more:false}};
   else if(name==='redream_autopilot_relationships')result={accounts:{clubs:[{organisation_id:'current',name:'Current Club',country:'NZ'}]},contacts:{items:[]}};
   else if(name==='redream_ai_current_access')result={enabled:false};
   else result={items:[],accounts:{clubs:[]},contacts:{items:[]}};
@@ -73,11 +73,13 @@ try {
  assert.equal(await page.getByRole('heading',{name:'Old Club',exact:true}).count(),0,'Timed out warming cannot poison the view cache');
  await visit('view=players');
  const player=page.getByRole('button',{name:'Open Example Player',exact:true});await player.waitFor();
- await player.getByText('Review the representation plan',{exact:true}).waitFor();
- assert.equal(await player.getByText('Agree the next career step with the player',{exact:true}).count(),0,'Visible next step must match the action the button prepares');
- const review=player.getByRole('button',{name:'Review next step',exact:true});await review.waitFor();
+ await player.getByText('Call the club about the trial',{exact:true}).waitFor();
+ assert.equal(await player.getByText('Review the representation plan',{exact:true}).count(),0,'Generic setup cannot mask actual overdue work');
+ assert.equal(await player.getByText('Agree the next career step with the player',{exact:true}).count(),0,'Routine planning cannot mask actual overdue work');
+ const review=player.getByRole('button',{name:'Open next action for Example Player',exact:true});await review.waitFor();
  const bounds=await player.boundingBox();assert.ok(bounds.height<220,'Desktop roster keeps the next step and work view together without a third empty row');
- const label=player.getByText('Next action',{exact:true}),timing=player.getByText('No due date',{exact:true});
+ const label=review.getByText('Next action',{exact:true}),timing=review.locator('small');
+ assert.equal(await player.getByText('No due date',{exact:true}).count(),0,'The recorded due date must not disappear');
  const labelBox=await label.boundingBox(),timingBox=await timing.boundingBox();
  assert.ok(timingBox.x>=labelBox.x+labelBox.width+4 || timingBox.y>=labelBox.y+labelBox.height,'Next action and its timing must remain visually distinct');
  await mkdir('/tmp/redream-ux-pass',{recursive:true});await page.screenshot({path:'/tmp/redream-ux-pass/players-desktop.png'});
@@ -91,6 +93,10 @@ try {
  assert.ok((await work.boundingBox()).height>=44,'Mobile work view remains easy to tap');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Roster has no horizontal overflow');
  await page.screenshot({path:'/tmp/redream-ux-pass/players-mobile.png'});
+ await review.click();
+ await page.waitForURL(url=>url.searchParams.get('player')==='fixture-player');
+ assert.equal(new URL(page.url()).searchParams.has('profile'),false,'Recorded work opens its existing work view');
+ assert.equal(reads.includes('action_prepare'),false,'Opening recorded work never prepares an unrelated setup write');
  assert.deepEqual(errors,[],'No browser runtime failures');
  console.log('PASS: Home, Network, Calendar, Opportunities, Recruitment and Business deadlines, retry, late response rejection and stalled warming recovery.');
 }catch(error){console.error('Failed URL:',page?.url(),'Recent reads:',reads.slice(-20));await mkdir('/tmp/redream-ux-pass',{recursive:true});await page?.screenshot({path:'/tmp/redream-ux-pass/loading-failure.png'});throw error;}finally{await browser.close();}
