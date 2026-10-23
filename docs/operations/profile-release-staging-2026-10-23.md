@@ -49,7 +49,11 @@ The existing staging session opened Home and the Northstar player detail success
 
 Publication proof: `/tmp/redream-staging-acceptance/profile-published.png`. The QA profile was subsequently unpublished and its player archived; Northstar returned to **4 active players** and staging returned to **1 auth identity**. This browser canary retains its normal audit history and archived QA record, unlike the fully rolled-back SQL fixtures.
 
-The live photo-file selection is **not accepted yet**. Chrome's extension upload helper requires its local-file URL permission; the native picker did not complete the selection. No browser permission was changed. The user was asked to enable the extension setting or leave that canary pending. Signed-upload HTTP/database fixtures passed, but they do not substitute for the outstanding real browser upload. No live model call or physical iPhone/Safari test was performed in this follow-up.
+The live signed-in photo upload **passed** after the user enabled Chrome's extension file-URL permission. The existing repository icon was uploaded only to the clearly labelled synthetic QA player. The UI confirmed **Player photo updated**, the saved image rendered at 512 x 512 after reload, and Storage recorded a 25,469-byte PNG at the tenant/player/actor-scoped path. Exactly one matching `player.photo_updated` audit event was recorded. The canonical player changed from verified to reviewing, cleared `verified_at`, and required review before publication.
+
+The older frontend on the stable staging alias briefly retained its verified badge until reload; after reload it showed **Player data needs review** and **Draft Verification needed**. PR 250 already merges the attachment response's verification fields into the profile state immediately and reloads the canonical bundle, so no additional production code change was needed. Photo replacement and immediate badge behaviour on the PR frontend were not newly accepted by this hosted canary.
+
+Photo proof: `/tmp/redream-staging-acceptance/photo-saved-review-required.png`. The QA player was archived again after testing and remained unpublished. Northstar again has **4 active players**, and staging has **1 auth identity**. Its synthetic image and audit history remain with the archived QA record. No real player photo was changed. No live model call or physical iPhone/Safari test was performed in this follow-up.
 
 ## Remaining release boundary
 
