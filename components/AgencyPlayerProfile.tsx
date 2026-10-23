@@ -1,6 +1,7 @@
 'use client';
 
-import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
+import { createPortal } from 'react-dom';
 import { withProfileStatEvidence } from '@/supabase/functions/_shared/profile-stat-evidence';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,BarChart3,Check,ChevronDown,Clock3,Copy,Download,Eye,ExternalLink,Link2,LoaderCircle,Mail,MessageCircleMore,Pencil,Play,RefreshCw,Send,ShieldCheck,Sparkles,Trash2,X} from 'lucide-react';
@@ -498,6 +499,46 @@ export default function AgencyPlayerProfile({
     useState<VerifyPlayerForm>(emptyVerifyForm);
   const [verifyError, setVerifyError] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const previewDialog = useRef<HTMLDivElement>(null);
+  const previewClose = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!previewOpen) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const releaseScroll = lockPageScroll();
+    const releaseBackground = isolateElements(Array.from(document.body.children).filter(
+      (node): node is HTMLElement => node instanceof HTMLElement && !node.contains(previewDialog.current),
+    ));
+    const focusClose = () => previewClose.current?.focus({preventScroll: true});
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !previewDialog.current?.contains(event.target)) focusClose();
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopPropagation(); setPreviewOpen(false); return;
+      }
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(previewDialog.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+      ) || []).filter(node => node.getClientRects().length > 0);
+      const first = controls[0], last = controls.at(-1);
+      if (!previewDialog.current?.contains(document.activeElement)) {
+        event.preventDefault(); (event.shiftKey ? last : first)?.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus();
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', key, true);
+    focusClose();
+    return () => {
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', key, true);
+      releaseBackground(); releaseScroll();
+      queueMicrotask(() => { if (opener?.isConnected && !opener.closest('[inert]')) opener.focus({preventScroll: true}); });
+    };
+  }, [previewOpen]);
   const [shareOpen, setShareOpen] = useState(false);
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
@@ -543,6 +584,9 @@ export default function AgencyPlayerProfile({
     status: 'suggested' | 'unchanged';
   } | null>(null);
   const [previewProfile, setPreviewProfile] = useState<any>(null);
+  useEffect(() => {
+    setPreviewOpen(false); setPreviewProfile(null);
+  }, [playerId, cacheScope]);
   const [previewLabel, setPreviewLabel] = useState('PLAYER PROFILE PREVIEW');
   const [transfermarktOpen, setTransfermarktOpen] = useState(false);
   const [transfermarktUrl, setTransfermarktUrl] = useState('');
@@ -2932,9 +2976,10 @@ export default function AgencyPlayerProfile({
         </div>
       ) : null}
 
-      {transfermarktOpen ? (
+      {transfermarktOpen ? createPortal(
         <div
           className={styles.modalBackdrop}
+          style={theme}
           onClick={(event) => {
             if (event.target === event.currentTarget && !actionBusy) {
               setTransfermarktOpen(false);
@@ -3010,12 +3055,13 @@ export default function AgencyPlayerProfile({
               </button>
             </footer>
           </section>
-        </div>
+        </div>, document.body,
       ) : null}
 
-      {verifyOpen ? (
+      {verifyOpen ? createPortal(
         <div
           className={`${styles.modalBackdrop} ${styles.verifyBackdrop}`}
+          style={theme}
           onClick={(event) => {
             if (event.target === event.currentTarget && !actionBusy) {
               setVerifyOpen(false);
@@ -3232,12 +3278,13 @@ export default function AgencyPlayerProfile({
               </button>
             </footer>
           </section>
-        </div>
+        </div>, document.body,
       ) : null}
 
-      {editOpen ? (
+      {editOpen ? createPortal(
         <div
           className={styles.modalBackdrop}
+          style={theme}
           onClick={(event) => {
             if (event.target === event.currentTarget) closeEditor();
           }}
@@ -3558,12 +3605,13 @@ export default function AgencyPlayerProfile({
               </button>
             </footer>
           </section>
-        </div>
+        </div>, document.body,
       ) : null}
 
-      {shareOpen ? (
+      {shareOpen ? createPortal(
         <div
           className={styles.modalBackdrop}
+          style={theme}
           onClick={(event) => {
             if (
               event.target === event.currentTarget &&
@@ -3824,11 +3872,11 @@ export default function AgencyPlayerProfile({
               ) : null}
             </footer>
           </section>
-        </div>
+        </div>, document.body,
       ) : null}
 
-      {previewOpen ? (
-        <div className={styles.previewBackdrop}>
+      {previewOpen ? createPortal(
+        <div ref={previewDialog} className={styles.previewBackdrop} role="dialog" aria-modal="true" aria-label="Player Profile preview">
           <div className={styles.previewBar}>
             <div>
               <span>{previewLabel}</span>
@@ -3836,6 +3884,7 @@ export default function AgencyPlayerProfile({
             </div>
 
             <button data-ui-button="secondary"
+              ref={previewClose}
               type="button"
               onClick={() => setPreviewOpen(false)}
             >
@@ -3850,7 +3899,7 @@ export default function AgencyPlayerProfile({
               agency={agency}
             />
           </div>
-        </div>
+        </div>, document.body,
       ) : null}
     </div>
   );
