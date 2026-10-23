@@ -1,5 +1,7 @@
 # Connected agency reliability review, 22 October 2026
 
+**23 October staging follow-up:** the profile writer repair and connected-work/photo migration are now applied on staging, with the three reviewed workers deployed and database/browser publication canaries verified. See [the current staging manifest](profile-release-staging-2026-10-23.md) for versions, validation, cleanup and remaining release blockers. The observations below describe the original pre-deployment review.
+
 Base: `ee90b1712644f85663042921e793ddc5b02262eb` (merged PR 249). Work is isolated in `codex/intelligent-agency-pass`. No hosted schema, customer data, secrets or configuration was changed during this review. No manual deployment or external message was sent. Pull-request previews use the existing integration. The existing unsaved staging document was preserved.
 
 ## Audit and implemented repairs

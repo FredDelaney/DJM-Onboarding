@@ -25,16 +25,38 @@ The source file version matches the actual staging migration ledger. The initial
 
 Both SQL fixtures include their own transaction and rollback. Do not remove the rollback or use customer records as fixtures.
 
-## Connected-work rollout
+## Connected-work rollout applied
 
 The previously reviewed migration is `20261022191532_connected_work_and_player_photo_reliability.sql`. Its staging candidate compiled and passed the owned/shared-task canary. The exact existing staging worker differences were checked before promotion: the photo handlers, task approval/subject checks and a semantically equivalent Unicode escape in the player-context helper. No unrelated runtime changes were found.
 
+The migration was applied with its canonical `20261022191532` ledger version in the same transaction as the DDL. The transaction locked the migration ledger, refused an existing version, recorded the exact source, and notified PostgREST to reload its cache. No historical ledger entries were edited. This avoids assigning a different generated timestamp to the already-committed release file.
+
+Both database canaries passed again after installation. Existing task/action fingerprints match before and after migration and the rollback canary; synthetic accounts, invitations and temporary tenants were rolled back. The original profile/player/membership and policy/grant fingerprints also matched across the profile repair. Security advisor findings remain unchanged, excluding observation timestamps.
+
 Release targets retain their current JWT settings:
 
-| Function | JWT verification |
-| --- | --- |
-| `agency-os` | enabled |
-| `redream-ai-process` | disabled; existing internal checks retained |
-| `djm-tell-process` | disabled; same canonical shared handler |
+| Function | Deployed version | JWT verification | Bundle SHA-256 |
+| --- | --- | --- | --- |
+| `agency-os` | 54 | enabled | `915a3090789d1601cdefb3e1c6bb0cf0db71e2a882819a4db5afa8424b648d61` |
+| `redream-ai-process` | 15 | disabled; existing internal checks retained | `cf4f981019c01568b20b6c1233f89161c1651f581217dc7d2deb0273d627ad05` |
+| `djm-tell-process` | 25 | disabled; same canonical shared handler | `6f627ad32754f191f968ec33247c419e4aa56ad1ac2ee7b1bde01851b474cedc` |
+
+Each worker was downloaded after deployment and every file in its dependency closure matched the committed source (7, 6 and 6 files respectively, ignoring trailing newlines). Source commit: `dd4625a`. All three live endpoints returned **401** for unauthenticated requests.
+
+## Signed-in browser acceptance and cleanup
+
+The existing staging session opened Home and the Northstar player detail successfully. A clearly named synthetic QA player was created only in Northstar, which is explicitly marked as a synthetic test tenant. Its real signed-in **Verify & publish** action succeeded, showing **Profile is live** and **Live Data verified**. **Unpublish Player Profile** then succeeded, showing **Profile unpublished**. No club message or share link was sent.
+
+Publication proof: `/tmp/redream-staging-acceptance/profile-published.png`. The QA profile was subsequently unpublished and its player archived; Northstar returned to **4 active players** and staging returned to **1 auth identity**. This browser canary retains its normal audit history and archived QA record, unlike the fully rolled-back SQL fixtures.
+
+The live photo-file selection is **not accepted yet**. Chrome's extension upload helper requires its local-file URL permission; the native picker did not complete the selection. No browser permission was changed. The user was asked to enable the extension setting or leave that canary pending. Signed-upload HTTP/database fixtures passed, but they do not substitute for the outstanding real browser upload. No live model call or physical iPhone/Safari test was performed in this follow-up.
+
+## Remaining release boundary
+
+The refreshed staging catalog preflight now reports **29 older missing RPC contracts**, with **zero missing selected columns** and the new photo writer present. These are provider connection/sync/email, connected chat identity/history/reply, player connected activity, semantic email-task completion and team handoff contracts. Their underlying provider tables are missing too; copying function names or replaying the historical range cannot safely reconcile them.
+
+No frontend source changed in this follow-up. The existing required browser suite passed on frontend commit `3f49970`, including 236 screen/viewport combinations and design-system checks. The new profile/database test file and migration are covered by the full 1,952-test local check, with the renamed migration path confirmed by a further 28 focused passing tests. GitHub checks on the updated PR head must still be checked before merging.
+
+**Not cleared for production promotion.** Keep PR 250 in draft until the relevant hosted compatibility gaps and outstanding browser/model canaries are resolved. The completed staging database/worker rollout is not production acceptance.
 
 The provider/OAuth/email/history foundation and team-handoff reconciliation remain separate. Do not replay the historical provider range, run `db push --include-all`, or execute the excluded `20260930142119_restore_redream_relationship_person_entrypoint.sql`.
