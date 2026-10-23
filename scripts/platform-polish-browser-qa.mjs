@@ -127,6 +127,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     for(let i=0;i<60;i++){try{await page.goto(url);break;}catch(error){if(i===59)throw error;await page.waitForTimeout(250);}}
     await page.locator('h1:visible,h2:visible').first().waitFor({timeout:30000});
     if(suite==='presentation')await page.getByRole('heading',{name:'Example Club Player',exact:true}).waitFor();
+    if(suite==='detail'&&screen==='review')await page.getByText('MEETING POSITION',{exact:true}).waitFor();
     if(suite==='capture'){
      if(screen==='voice')await page.getByRole('button',{name:'Type instead',exact:true}).waitFor();
      else if(screen==='text')await page.getByRole('textbox',{name:'Your update',exact:true}).waitFor();
@@ -156,7 +157,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      const header=document.querySelector('.player-workspace-header'),tabs=document.querySelector('.player-workspace-tabs');
      const smallControls=[...document.querySelectorAll('button,input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,summary')].filter(visible).filter(n=>n.getBoundingClientRect().height<43.5).map(n=>({text:(n.getAttribute('aria-label')||n.textContent||n.getAttribute('placeholder')||n.tagName).trim().slice(0,65),height:Math.round(n.getBoundingClientRect().height)}));
      const missingLabels=[...document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea')].filter(visible).filter(n=>!n.labels?.length&&!n.getAttribute('aria-label')&&!n.getAttribute('aria-labelledby')).map(n=>n.getAttribute('placeholder')||n.name||n.tagName);
-     const networkTabs=document.querySelector('[class*=AgencyNetworkWorkspace][class*=tabs]'),networkSearch=document.querySelector('[class*=AgencyNetworkWorkspace][class*=search]');
+     const networkTabs=document.querySelector('[data-people-internal-tabs]'),networkSearch=document.querySelector('[aria-label="Search Network"]');
      const networkToolbarOverlap=!!(networkTabs&&networkSearch&&visible(networkSearch)&&[...networkTabs.querySelectorAll('button')].filter(visible).some(button=>{const a=button.getBoundingClientRect(),b=networkSearch.getBoundingClientRect();return a.right>b.left+1&&a.left<b.right-1&&a.bottom>b.top+1&&a.top<b.bottom-1;}));
      const primaryNav=document.querySelector('nav[aria-label="Primary"]');
      const navLinks=[...primaryNav?.querySelectorAll('a')||[]];
@@ -164,7 +165,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      const navWrap=document.querySelector('[class*="navWrap"]'),heroHeading=document.querySelector('h1');
      const navigationOverlap=!!(navWrap&&heroHeading&&visible(heroHeading)&&navWrap.getBoundingClientRect().bottom>heroHeading.getBoundingClientRect().top);
      const smallText=[...document.querySelectorAll('p,small,label,[class*="receiptHead"] span,[class*="previewHead"] span,[class*="provenance"],[class*="approvalBar"] span,[class*="completeActions"] span')].filter(visible).filter(n=>parseFloat(getComputedStyle(n).fontSize)<12).map(n=>({text:n.textContent.trim().slice(0,65),size:getComputedStyle(n).fontSize}));
-     const reviewHero=[...document.querySelectorAll('section')].find(n=>n.className.includes('hero')&&n.className.includes('AgencyPlayerServiceReviewDrawer'));
+     const reviewHero=document.querySelector('[aria-label="Player Service Review"] section[class*="_hero"]');
      const reviewHeroContrast=reviewHero?[...reviewHero.querySelectorAll(':scope > div > span')].map(n=>{
       const fg=getComputedStyle(n).color.match(/[\d.]+/g).map(Number),bg=getComputedStyle(reviewHero).backgroundColor.match(/[\d.]+/g).map(Number),alpha=fg[3]??1;
       const luminance=values=>values.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((total,v,i)=>total+v*[.2126,.7152,.0722][i],0);
@@ -192,7 +193,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      assert.ok(a.x<b.x,'Player search precedes Add, consistently with Network at '+width+': '+JSON.stringify({search:a,add:b,styles:await search.evaluate(node=>({input:getComputedStyle(node).order,field:getComputedStyle(node.parentElement).order,parent:getComputedStyle(node.parentElement.parentElement).display,direction:getComputedStyle(node.parentElement.parentElement).flexDirection}))}));
      assert.equal(await add.count(),1,'The roster has one Add player action');
     }
-    if(suite==='agency'&&screen==='home')assert.doesNotMatch(await page.locator('[class*=HomeWorkControl][class*=meta]').allTextContents().then(values=>values.join('\n')),/Waiting\s*Waiting/i,'Home status labels never repeat');
+    if(suite==='agency'&&screen==='home')assert.doesNotMatch(await page.getByRole('article').filter({has:page.getByRole('button',{name:/^Complete /})}).locator('[class*="_meta"]').allTextContents().then(values=>values.join('\n')),/Waiting\s*Waiting/i,'Home status labels never repeat');
     if(suite==='player'&&screen==='career'){
      const tools=page.getByRole('navigation',{name:'My career areas',exact:true});
      assert.equal(await tools.locator('details').evaluate(node=>node.open),false,'Optional career tools start collapsed');
@@ -204,7 +205,10 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     }
     report.push({suite,screen,width,...metrics});
     if(metrics.networkToolbarOverlap)failures.push('Network tabs overlap search at '+width);
-    if(suite==='detail'&&screen==='review'&&(!metrics.reviewHeroContrast.length||metrics.reviewHeroContrast.some(item=>item.ratio<4.5)))failures.push('Service-review summary has unreadable contrast at '+width);
+    if(suite==='detail'&&screen==='review'){
+     if(!metrics.reviewHeroContrast.length)failures.push('Service-review summary is missing at '+width);
+     else if(metrics.reviewHeroContrast.some(item=>item.ratio<4.5))failures.push('Service-review summary has unreadable contrast at '+width);
+    }
     if(suite==='player'&&screen==='career'&&width<=1000&&!metrics.careerStacked)failures.push('Career title and actions must have a full row above readiness at '+width);
     if(metrics.overflow>1)console.log('Overflow elements',suite,screen,width,await page.evaluate(()=>[...document.querySelectorAll('*')].map(node=>({tag:node.tagName,class:typeof node.className==='string'?node.className:'',right:node.getBoundingClientRect().right,width:node.getBoundingClientRect().width})).filter(node=>node.width>0&&node.right>innerWidth+1).slice(-15)));
     if(metrics.overflow>1)failures.push(suite+'/'+screen+' overflows at '+width+' ('+metrics.overflow+'px)');

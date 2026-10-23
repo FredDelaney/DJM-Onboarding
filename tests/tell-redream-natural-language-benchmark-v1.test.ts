@@ -27,7 +27,7 @@ test('benchmark covers the high-value universal-capture behaviours', () => {
     'create_task',
   ]);
   assert.equal(byId.b01.expect.owner, 'Jesse Edge');
-  assert.equal(byId.b03.expect.player, 'Kota');
+  assert.equal(byId.b03.expect.player, 'Dylan');
   assert.equal(byId.b03.expect.contact, null);
   assert.deepEqual(byId.b06.expect.forbid_actions, ['upsert_club_need']);
   assert.equal(byId.b07.expect.task_status, 'needs_review');

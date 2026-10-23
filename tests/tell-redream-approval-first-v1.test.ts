@@ -105,7 +105,7 @@ test('player self-statements prefer the signed player identity over a duplicate 
   assert.match(worker, /claimType === "player_transfer_preference"/);
   assert.match(worker, /next\.player_name = next\.contact_name/);
   assert.match(worker, /if \(playerName && contactName && playerName === contactName\)/);
-  assert.match(worker, /Kota told me he wants Denmark means player_name Kota, not contact_name Kota/);
+  assert.match(worker, /Dylan told me he wants Denmark means player_name Dylan, not contact_name Dylan/);
   assert.match(worker, /preferSignedPlayerReference\([\s\S]*enrichNeedDependentAction/);
 });
 

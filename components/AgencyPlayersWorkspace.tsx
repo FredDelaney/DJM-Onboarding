@@ -28,8 +28,9 @@ import RecordContactActions from '@/components/RecordContactActions';
 import WorkspaceListSearch from './WorkspaceListSearch';
 import RecordActivitySummary from './RecordActivitySummary';
 import PlayerStaffControl from './PlayerStaffControl';
+import PlayerProfilePhoto from './PlayerProfilePhoto';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
-import { prefetchPlayerProfile } from '@/lib/player-profile-cache';
+import { prefetchPlayerProfile, invalidatePlayerProfile } from '@/lib/player-profile-cache';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { publicFile } from '@/lib/supabase';
 import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
@@ -255,11 +256,36 @@ function PlayerDrawer({
   return (
     <div className={styles.playerPage}>
       <aside className={`${styles.drawer} ${styles.playerPagePanel}`} role="region" aria-label={`${playerName} player workspace`}>
-        <div className={styles.drawerTop}>
+        <div className={`${styles.drawerTop} ${styles.drawerTopManaged}`}>
           <button type="button" data-ui-button="icon"
               className={styles.closeButton} onClick={onClose} aria-label="Back to Players">
             <ArrowLeft size={18} />
           </button>
+          {!busy&&!error&&detail&&canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted?<EntityActionsMenu
+            showEdit
+            kind="player"
+            entityId={playerId}
+            label={playerName}
+            rpc={rpc}
+            onChanged={async (change) => {
+              await onRefresh();
+              if (change === 'edit') {
+                const response = await invoke<any>('player_workspace', { player_id: playerId });
+                setDetail(response?.player || null);
+              } else {
+                onClose();
+              }
+            }}
+            fields={[
+              { key: 'first_name', label: 'First name', value: identity.first_name },
+              { key: 'last_name', label: 'Last name', value: identity.last_name },
+              { key: 'preferred_name', label: 'Preferred name', value: identity.preferred_name },
+              { key: 'primary_position', label: 'Primary position', value: identity.primary_position },
+              { key: 'current_club', label: 'Current club', value: identity.current_club },
+              { key: 'current_country', label: 'Current country', value: identity.current_country },
+              { key: 'contract_expiry', label: 'Contract expiry', value: identity.contract_expiry || '', type: 'date' },
+            ]}
+          />:null}
         </div>
 
         {busy ? (
@@ -279,7 +305,15 @@ function PlayerDrawer({
         {!busy && !error && detail ? (
           <>
             <header className={styles.playerHero}>
-              <Avatar name={playerName} path={identity.profile_photo_path} large />
+              <PlayerProfilePhoto key={`${cacheScope}:${playerId}`} playerId={playerId} name={playerName}
+                path={identity.profile_photo_path} className={styles.avatarLarge}
+                canEdit={canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted}
+                invoke={invoke} onSaved={path=>{
+                  invalidatePlayerProfile(playerId,cacheScope);
+                  setDetail((current:any)=>current?{...current,identity:{...current.identity,profile_photo_path:path}}:current);
+                  void onRefresh().catch(()=>undefined);
+                }}/>
+
               <div className={styles.playerHeroCopy}>
                 <p>PLAYER</p>
                 <h2>{playerName}</h2>
@@ -288,33 +322,7 @@ function PlayerDrawer({
                     .filter(Boolean).join(' · ') || 'Add position, club or country'}
                 </span>
               </div>
-              <div className={styles.playerHeroManage}>
-                {canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted?<EntityActionsMenu
-                  showEdit
-                  kind="player"
-                  entityId={playerId}
-                  label={playerName}
-                  rpc={rpc}
-                  onChanged={async (change) => {
-                    await onRefresh();
-                    if (change === 'edit') {
-                      const response = await invoke<any>('player_workspace', { player_id: playerId });
-                      setDetail(response?.player || null);
-                    } else {
-                      onClose();
-                    }
-                  }}
-                  fields={[
-                    { key: 'first_name', label: 'First name', value: identity.first_name },
-                    { key: 'last_name', label: 'Last name', value: identity.last_name },
-                    { key: 'preferred_name', label: 'Preferred name', value: identity.preferred_name },
-                    { key: 'primary_position', label: 'Primary position', value: identity.primary_position },
-                    { key: 'current_club', label: 'Current club', value: identity.current_club },
-                    { key: 'current_country', label: 'Current country', value: identity.current_country },
-                    { key: 'contract_expiry', label: 'Contract expiry', value: identity.contract_expiry || '', type: 'date' },
-                  ]}
-                />:null}
-              </div>
+
               <div className={styles.heroActions}>
                 <Link
                   className={styles.secondaryButton}
@@ -877,6 +885,7 @@ export default function AgencyPlayersWorkspace({
   if (playerId) {
     return (
       <PlayerDrawer
+        key={`${stateScope}:${playerId}`}
         canManageRecords={canManageRecords}
         cacheScope={stateScope}
         playerId={playerId}

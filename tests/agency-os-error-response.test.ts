@@ -112,3 +112,32 @@ test('a successful asynchronous career approval still returns the saved response
   assert.equal(response.status,200);
   assert.deepEqual((await response.json()).career_strategy,{state:'approved',confirmation_state:'confirmed'});
 });
+
+const photoPlayer={id:'player',tenant_id:'tenant',profile_photo_path:'previous.png',football_status:'active'};
+const photoCall=async(action:string,body:Record<string,unknown>={})=>handler.fetch(new Request('https://example.test',{method:'POST',body:JSON.stringify({action,tenant_id:'tenant',player_id:'player',...body})}));
+function photoContext(role='owner',player:any=photoPlayer,access:any={can_edit:true}){
+ const calls:any[]=[];
+ (globalThis as any).agencyErrorTestContext={data:{userClaims:{sub:'actor'},supabaseAdmin:{
+  rpc:async(name:string,args:any)=>{calls.push({name,args});return {data:name==='platform_server_user_workspaces'?[{tenant_id:'tenant',role,is_primary:true}]:{id:'player',profile_photo_path:args.p_path},error:null};},
+  from:(table:string)=>{const query:any={select:()=>query,eq:()=>query,maybeSingle:async()=>({data:table==='players'?player:access,error:null})};return query;},
+  storage:{from:(bucket:string)=>({createSignedUploadUrl:async(path:string)=>{calls.push({bucket,path});return {data:{token:'signed-token'},error:null};}})}
+ }},error:null};return calls;
+}
+test('real photo handler issues a scoped signed upload, retains expected state and confirms through the database',async()=>{
+ const calls=photoContext();const response=await photoCall('player_profile_photo_begin',{content_type:'image/png',size:100});
+ assert.equal(response.status,200);const {upload}=await response.json();
+ assert.match(upload.path,/^agency\/tenant\/players\/player\/actor\/[0-9a-f-]+\.png$/);
+ assert.equal(upload.expected_photo_path,'previous.png');assert.equal(upload.token,'signed-token');
+ const attached=await photoCall('player_profile_photo_attach',{path:upload.path,expected_photo_path:upload.expected_photo_path});
+ assert.equal(attached.status,200);assert.equal((await attached.json()).player.profile_photo_path,upload.path);
+ assert.deepEqual(calls.find(x=>x.name==='platform_server_attach_player_photo').args,{p_tenant_id:'tenant',p_player_id:'player',p_actor_user_id:'actor',p_path:upload.path,p_expected_photo_path:'previous.png'});
+});
+test('photo preparation rejects unsupported files and unavailable or read-only players before issuing a token',async()=>{
+ for(const fields of [{content_type:'image/svg+xml',size:100},{content_type:'image/png',size:0},{content_type:'image/png',size:8388609}]){
+  const calls=photoContext();assert.equal((await photoCall('player_profile_photo_begin',fields)).status,400);assert.ok(!calls.some(x=>x.bucket));
+ }
+ for(const [role,player,access,status] of [['agent',photoPlayer,{can_edit:false},403],['scout',photoPlayer,{can_edit:true},403],['owner',null,null,404],['owner',{...photoPlayer,archived_at:'2026-10-01'},null,404]] as const){
+  const calls=photoContext(role,player,access);assert.equal((await photoCall('player_profile_photo_begin',{content_type:'image/png',size:100})).status,status);assert.ok(!calls.some(x=>x.bucket));
+ }
+ const calls=photoContext('agent');assert.equal((await photoCall('player_profile_photo_begin',{content_type:'image/webp',size:100})).status,200);assert.ok(calls.some(x=>x.bucket));
+});

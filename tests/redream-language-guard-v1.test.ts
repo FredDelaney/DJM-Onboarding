@@ -23,6 +23,14 @@ const searchableExtensions = new Set([
   '.webmanifest',
 ]);
 
+// Registry integrity digests are opaque bytes, not product language. A patched
+// native dependency happened to contain the category token inside its checksum.
+function categoryText(file:string,source:string){
+  return (file==='package-lock.json'
+    ? JSON.stringify(JSON.parse(source),(key,value)=>key==='integrity'?undefined:value)
+    : source).toLowerCase();
+}
+
 test('ReDream language stays inside its own operating-system category', () => {
   const files = execFileSync(
     'git',
@@ -34,7 +42,7 @@ test('ReDream language stays inside its own operating-system category', () => {
     .filter((file) => searchableExtensions.has(path.extname(file)));
 
   const offenders = files.filter((file) => {
-    const source = fs.readFileSync(file, 'utf8').toLowerCase();
+    const source = categoryText(file,fs.readFileSync(file, 'utf8'));
     return source.includes(forbidden);
   });
 
@@ -43,4 +51,12 @@ test('ReDream language stays inside its own operating-system category', () => {
     [],
     `Forbidden category language found in: ${offenders.join(', ')}`,
   );
+});
+
+test('only lockfile checksums are ignored; readable copy and other JSON stay guarded',()=>{
+  const checksum=JSON.stringify({packages:{example:{integrity:'sha512-'+forbidden}}});
+  assert.equal(categoryText('package-lock.json',checksum).includes(forbidden),false);
+  assert.equal(categoryText('product.json',checksum).includes(forbidden),true);
+  const metadata=JSON.stringify({packages:{example:{integrity:'sha512-'+forbidden,description:forbidden}}});
+  assert.equal(categoryText('package-lock.json',metadata).includes(forbidden),true);
 });

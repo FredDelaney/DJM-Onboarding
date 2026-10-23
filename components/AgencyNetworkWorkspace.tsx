@@ -561,7 +561,7 @@ export default function AgencyNetworkWorkspace({
           <details className={styles.focusDisclosure}>
             <summary>
               <span>Relationship signals</span>
-              <small>{attentionClubs || coolingPeople ? 'Needs review' : 'Review when needed'}</small>
+              <small>{attentionClubs || coolingPeople ? 'Needs attention' : 'Relationship overview'}</small>
               <ChevronRight size={15} />
             </summary>
             <div className={styles.intelligence}>

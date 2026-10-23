@@ -22,13 +22,17 @@ before(async () => {
     create table platform.tenant_memberships(tenant_id uuid,user_id uuid,status text,role text);
     create table djm_os.tell_djm_permissions(tenant_id uuid,user_id uuid,is_enabled boolean,permission_scope text);
     create table djm_os.team_members(user_id uuid,display_name text,is_active boolean);
-    create table djm_os.captures(id uuid primary key default gen_random_uuid(),tenant_id uuid,submitted_by uuid,transcript_text text,status text,completed_at timestamptz,receipt_json jsonb,person_id uuid,organisation_id uuid,player_id uuid,processing_version text default 'tell_djm_v1');
-    create table platform.calendar_tasks(id uuid primary key default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,title text,status text,due_on date,due_time time,time_zone text,due_at timestamptz,archived_at timestamptz,revision integer default 1,updated_at timestamptz default now());
+    create table djm_os.captures(id uuid primary key default gen_random_uuid(),tenant_id uuid,submitted_by uuid,transcript_text text,status text,completed_at timestamptz,receipt_json jsonb,person_id uuid,organisation_id uuid,player_id uuid,created_at timestamptz default now(),processing_version text default 'tell_djm_v1');
+    create table platform.calendar_tasks(id uuid primary key default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,title text,status text,due_on date,due_time time,time_zone text,due_at timestamptz,archived_at timestamptz,visibility text default 'company',responsible_user_ids uuid[] default '{}',revision integer default 1,updated_at timestamptz default now());
     create table djm_os.tasks(id uuid primary key default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,title text,status text,due_at timestamptz,completed_at timestamptz,updated_at timestamptz,person_id uuid,organisation_id uuid,player_id uuid,interaction_id uuid,source text);
-    create table djm_os.interactions(id uuid primary key default gen_random_uuid(),tenant_id uuid,source_type text);
+    create table djm_os.interactions(id uuid primary key default gen_random_uuid(),tenant_id uuid,source_type text,occurred_at timestamptz);
+    create table djm_os.scouting_prospects(id uuid primary key,tenant_id uuid);
     create table djm_os.people(id uuid,tenant_id uuid,full_name text);
     create table djm_os.organisations(id uuid,tenant_id uuid,name text);
-    create table public.players(id uuid,tenant_id uuid,first_name text,last_name text);
+    create table public.players(id uuid primary key,tenant_id uuid,first_name text,last_name text,profile_photo_path text,archived_at timestamptz,football_status text,updated_at timestamptz);
+    create schema storage; create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,metadata jsonb);
+    create table public.staff_player_access(player_id uuid,staff_user_id uuid,can_edit boolean);
+    create table platform.audit_events(tenant_id uuid,actor_user_id uuid,actor_kind text,action text,entity_type text,entity_id text,before_state jsonb,after_state jsonb,metadata jsonb);
     create table djm_os.tell_djm_actions(id uuid primary key default gen_random_uuid(),tenant_id uuid,capture_id uuid,action_hash text,action_index integer,action_type text,status text,confidence numeric,evidence text,proposed_payload jsonb,resolved_payload jsonb,target_type text,target_id uuid,before_json jsonb,after_json jsonb,verification_json jsonb,undo_supported boolean,error_message text,applied_at timestamptz,undone_at timestamptz,updated_at timestamptz,created_at timestamptz default now(),unique(capture_id,action_hash));
     create table djm_os.tell_djm_questions(capture_id uuid,status text);
     create table djm_os.review_items(tenant_id uuid,capture_id uuid,review_type text,status text,resolved_at timestamptz);
@@ -50,6 +54,7 @@ before(async () => {
   await db.exec(readFileSync('supabase/migrations/20261020162412_tell_redream_task_updates.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261020164842_close_resolved_capture_reviews.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261020172347_restore_missing_tell_undo_dependency.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261022191532_connected_work_and_player_photo_reliability.sql','utf8'));
   await db.query("insert into platform.tenant_memberships values($1,$2,'active','agent'),($1,$3,'active','agent'),($4,$2,'active','agent')",[tenant,user,other,foreign]);
   await db.query("insert into djm_os.tell_djm_permissions values($1,$2,true,'full')",[tenant,user]);
   await db.query("insert into djm_os.team_members values($1,'Example Agent',true),($2,'Example Colleague',true)",[user,other]);
@@ -168,4 +173,102 @@ test('dismissal persists through retries and closes only the resolved capture ac
   assert.equal(await value("status from djm_os.review_items where review_type='tell_djm_action_review'"),'resolved');
   assert.equal(await value("status from djm_os.review_items where review_type='other_review'"),'open');
   assert.equal(await value("count(*)::integer from djm_os.events where event_type='REDREAM_AI_ACTION_DISMISSED'"),1);
+});
+
+const share = (id:string) => db.query("insert into platform.work_responsibilities(tenant_id,work_kind,work_id,responsible_user_ids) values($1,'task',$2,$3)",[tenant,id,[user,other]]);
+const propose = async (t:any,key:string,extra={}) => {
+ const p=payload(t,{_automatic:false,...extra});
+ await db.query("insert into djm_os.tell_djm_actions(tenant_id,capture_id,action_hash,action_type,status,resolved_payload,action_index,confidence,evidence) values($1,$2,$3,'update_task','pending',$4,0,0.99,'I spoke to James about Dylan availability')",[tenant,capture,key,p]);
+ return p;
+};
+test('shared work is visible, reviewed, auditable and reversible without changing ownership',async()=>{
+ const t=await task(other);await share(t.id);
+ const context=await value('public.redream_ai_task_context($1)',[capture]);
+ const visible=context.tasks.find((x:any)=>x.id===t.id);
+ assert.equal(visible.shared_with_you,true);assert.equal(visible.owner_display_name,'Example Colleague');
+ await assert.rejects(()=>apply('shared-auto',payload(t,{_automatic:true})),/Review and approve/);
+ await assert.rejects(()=>apply('shared-direct',payload(t)),/Review and approve/);
+ const p=await propose(t,'shared-reviewed');const result=await apply('shared-reviewed',p);
+ assert.equal(await value('status from djm_os.tasks where id=$1',[t.id]),'completed');
+ assert.equal(await value('owner_user_id from djm_os.tasks where id=$1',[t.id]),other);
+ await value('public.redream_ai_undo_action($1)',[result.action_id]);
+ assert.equal(await value('status from djm_os.tasks where id=$1',[t.id]),'open');
+});
+test('revoked shared responsibility blocks approval and Undo even when a plan was already saved',async()=>{
+ const t=await task(other);await share(t.id);const p=await propose(t,'shared-revoked');
+ await db.query('delete from platform.work_responsibilities where work_id=$1',[t.id]);
+ await assert.rejects(()=>apply('shared-revoked',p),/explicitly shared/);
+ await share(t.id);const result=await apply('shared-revoked',p);
+ await db.query('delete from platform.work_responsibilities where work_id=$1',[t.id]);
+ await assert.rejects(()=>value('public.redream_ai_undo_action($1)',[result.action_id]),/changed after/);
+});
+test('shared calendar work respects private visibility, archives and tenant boundaries',async()=>{
+ const create=async(visibility:string,workspace=tenant)=>(await db.query<any>("insert into platform.calendar_tasks(tenant_id,owner_user_id,title,status,responsible_user_ids,visibility) values($1,$2,'Speak to James about Dylan availability','open',$3,$4) returning *",[workspace,other,[user,other],visibility])).rows[0];
+ const shared=await create('company'),hidden=await create('private'),cross=await create('company',foreign),archived=await create('company');
+ await db.query('update platform.calendar_tasks set archived_at=now() where id=$1',[archived.id]);
+ const context=await value('public.redream_ai_task_context($1)',[capture]);
+ assert.ok(context.tasks.some((x:any)=>x.id===shared.id));
+ for(const t of [hidden,cross,archived]){
+  assert.ok(!context.tasks.some((x:any)=>x.id===t.id));
+  await assert.rejects(()=>apply('calendar-denied-'+t.id,payload(t,{task_kind:'calendar_task'})),/available|shared/);
+ }
+ const p=await propose(shared,'calendar-shared',{task_kind:'calendar_task'});const result=await apply('calendar-shared',p);
+ assert.equal(await value('status from platform.calendar_tasks where id=$1',[shared.id]),'done');
+ await value('public.redream_ai_undo_action($1)',[result.action_id]);
+ assert.equal(await value('status from platform.calendar_tasks where id=$1',[shared.id]),'open');
+});
+test('inactive agency membership cannot retain shared-task access',async()=>{
+ const t=await task(other);await share(t.id);
+ await db.query("update platform.tenant_memberships set status='inactive' where tenant_id=$1 and user_id=$2",[tenant,user]);
+ try{await assert.rejects(()=>value('public.redream_ai_task_context($1)',[capture]),/access denied/);await assert.rejects(()=>apply('inactive',payload(t)),/access denied/);}
+ finally{await db.query("update platform.tenant_memberships set status='active' where tenant_id=$1 and user_id=$2",[tenant,user]);}
+});
+
+test('forward migration can run twice without rewriting existing tasks or actions',async()=>{
+ const before=await value("jsonb_build_object('tasks',(select count(*) from djm_os.tasks),'actions',(select count(*) from djm_os.tell_djm_actions))");
+ await db.exec(readFileSync('supabase/migrations/20261022191532_connected_work_and_player_photo_reliability.sql','utf8'));
+ assert.deepEqual(await value("jsonb_build_object('tasks',(select count(*) from djm_os.tasks),'actions',(select count(*) from djm_os.tell_djm_actions))"),before);
+});
+
+test('photo attachment verifies stored bytes metadata, scope, permissions, revision and retry idempotence',async()=>{
+ const security=readFileSync('supabase/migrations/20260924214500_tenant_parity_player_security_v1.sql','utf8');
+ const trigger=security.slice(security.indexOf('create or replace function private.protect_player_admin_fields()'),security.indexOf('create or replace function private.platform_server_ensure_team_member'));
+ const fields=[...new Set([...trigger.matchAll(/(?:old|new)\.([a-z_]+)/g)].map(match=>match[1]))];
+ for(const field of fields){
+  const type=field==='user_id'?'uuid':field.endsWith('_at')?'timestamptz':'text';
+  await db.exec(`alter table public.players add column if not exists ${field} ${type}`);
+ }
+ await db.exec(`create function private.user_is_tenant_admin(t uuid,u uuid default auth.uid()) returns boolean language sql stable as $$select exists(select 1 from platform.tenant_memberships where tenant_id=t and user_id=u and status='active' and role in ('owner','admin'))$$;`);
+ await db.exec(trigger);
+ await db.exec('create trigger guard_player_photo_update before update on public.players for each row execute function private.protect_player_admin_fields()');
+ const pid='30000000-0000-4000-8000-000000000001';
+ const path=`agency/${tenant}/players/${pid}/${user}/40000000-0000-4000-8000-000000000001.png`;
+ await db.query("insert into public.players(id,tenant_id,football_status,verification_status) values($1,$2,'active','verified')",[pid,tenant]);
+ await db.query('insert into public.staff_player_access values($1,$2,true)',[pid,user]);
+ const attach=(photo=path,expected:string|null=null,workspace=tenant)=>value('public.platform_server_attach_player_photo($1,$2,$3,$4,$5)',[workspace,pid,user,photo,expected]);
+ await assert.rejects(()=>attach(),/upload_incomplete/);
+ await db.query("insert into storage.objects(bucket_id,name,metadata) values('player-public',$1,jsonb_build_object('mimetype','image/png','size',100))",[path]);
+ assert.equal((await attach()).profile_photo_path,path);assert.equal((await attach()).profile_photo_path,path);
+ assert.equal(await value('verification_status from public.players where id=$1',[pid]),'reviewing','A changed photo still invalidates the existing verified profile through the real player trigger');
+ assert.equal(await value("count(*)::integer from platform.audit_events where action='player.photo_updated'"),1);
+ await assert.rejects(()=>attach(path.replace(user,other),path),/path_invalid/);
+ await assert.rejects(()=>attach(path,null,foreign),/edit access/);
+ const next=path.replace('000000000001.png','000000000002.png');
+ await db.query("insert into storage.objects(bucket_id,name,metadata) values('player-public',$1,jsonb_build_object('mimetype','image/png','size',100))",[next]);
+ await assert.rejects(()=>attach(next),/revision_conflict/);
+ await db.query("update storage.objects set metadata=jsonb_build_object('mimetype','image/svg+xml','size',100) where name=$1",[next]);
+ await assert.rejects(()=>attach(next,path),/upload_incomplete/);
+ await db.query('update public.staff_player_access set can_edit=false where player_id=$1',[pid]);
+ await assert.rejects(()=>attach(path),/edit access/);
+ await db.exec('grant usage on schema public to authenticated;set role authenticated');
+ try{await assert.rejects(()=>attach(path),/permission denied/);}finally{await db.exec('reset role');}
+});
+
+test('staging link repair keeps existing records and enforces canonical player/prospect references',async()=>{
+ const prospect='30000000-0000-4000-8000-000000000002';
+ await db.query('insert into djm_os.scouting_prospects values($1,$2)',[prospect,tenant]);
+ await db.query('update djm_os.captures set prospect_id=$1 where id=$2',[prospect,capture]);
+ assert.equal(await value('prospect_id from djm_os.captures where id=$1',[capture]),prospect);
+ await db.query("insert into djm_os.interactions(tenant_id,source_type,prospect_id) values($1,'tell_djm',$2)",[tenant,prospect]);
+ await assert.rejects(()=>db.query("insert into djm_os.interactions(tenant_id,player_id) values($1,gen_random_uuid())",[tenant]),/foreign key/);
 });

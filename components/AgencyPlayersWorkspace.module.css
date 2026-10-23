@@ -922,8 +922,7 @@
   .playerFacts strong{display:-webkit-box;overflow:hidden;color:#39424b;font-size:12px;line-height:1.35;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}
   .playerFacts small{color:#9aa2aa;font-size:12px}
   .profileShortcut{min-height:34px;padding:0 10px;border-color:#e4e8ec;background:#f8fafb;font-size:12px}
-  .playerPagePanel .playerHero{position:relative;overflow:hidden;grid-template-columns:64px minmax(0,1fr);gap:14px;padding:17px;border:0;border-radius:19px;background:radial-gradient(circle at 90% -10%,rgba(245,233,0,.16),transparent 170px),linear-gradient(145deg,#061f3a,#0a2b4b);color:#fff}
-  .playerPagePanel .playerHero::after{content:"";position:absolute;width:130px;height:130px;right:-54px;bottom:-70px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none}
+  .playerPagePanel .playerHero{position:relative;overflow:visible;z-index:1;grid-template-columns:64px minmax(0,1fr);gap:14px;padding:17px;border:0;border-radius:19px;background:radial-gradient(circle at 90% -10%,rgba(245,233,0,.16),transparent 170px),linear-gradient(145deg,#061f3a,#0a2b4b);color:#fff}
   .playerPagePanel .avatarLarge{width:64px;height:64px;border:1px solid rgba(255,255,255,.13);border-radius:17px;background:rgba(255,255,255,.08);color:#fff}
   .playerPagePanel .playerHeroCopy p{color:#f5e900;font-size:12px}
   .playerPagePanel .playerHeroCopy h2{color:#fff;font-size:25px}
@@ -1626,13 +1625,6 @@
 }
 
 /* Shared entity management in player workspaces v1 */
-.playerHeroManage {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 3;
-}
-
 .playerHero {
   position: relative;
 }
@@ -1742,13 +1734,6 @@
 
 .playerPagePanel .drawerTopManaged {
   justify-content: space-between;
-}
-
-@media (max-width: 680px) {
-  .playerHeroManage {
-    top: 10px;
-    right: 10px;
-  }
 }
 
 @media (max-width: 680px) {
@@ -1984,3 +1969,7 @@
   .profileShortcutRow { grid-column: 1; grid-row: 2; justify-content: flex-start; }
   .playerCardActions { grid-column: 2 / -1; grid-row: 2; margin-top: 0; }
 }
+
+/* Keep full player identity visible beside the photo, including long names. */
+.playerHeroCopy { min-width: 0; }
+.playerHeroCopy h2 { overflow-wrap: anywhere; }

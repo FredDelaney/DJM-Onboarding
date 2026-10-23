@@ -35,10 +35,10 @@
     },
     {
       "id": "b03",
-      "input": "Kota told me he wants to stay in Scandinavia next season and would prefer Denmark or Sweden. Call him next Tuesday to go through options.",
+      "input": "Dylan told me he wants to stay in Scandinavia next season and would prefer Denmark or Sweden. Call him next Tuesday to go through options.",
       "expect": {
         "actions": ["add_claim", "create_task"],
-        "player": "Kota",
+        "player": "Dylan",
         "contact": null,
         "claim_contains": ["Scandinavia", "Denmark", "Sweden"],
         "due_local": "2026-10-13"

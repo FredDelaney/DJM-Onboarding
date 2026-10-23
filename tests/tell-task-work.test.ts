@@ -8,7 +8,7 @@ test('a completed conversation fulfils the actual owned conversation task', () =
   assert.equal(assessTaskUpdate(completion, `${completion.evidence}. He wants a profile tomorrow.`, [task], 'user-a').automatic, true);
 });
 test('explicit completion can use the same conservative automatic path', () => {
-  const action = { ...completion, evidence: 'Mark my call with James about Dylan as done' };
+  const action = { ...completion, evidence: 'Mark my call with James about Dylan availability as done' };
   assert.equal(assessTaskUpdate(action, action.evidence, [task], 'user-a').automatic, true);
 });
 for (const evidence of ['I need to speak to James about Dylan', 'I tried calling James about Dylan', "I didn't speak to James about Dylan", "I haven't spoken to James about Dylan", 'I will speak to James about Dylan', 'I could not speak to James about Dylan']) {
@@ -61,4 +61,24 @@ test('exact overlapping follow-ups are reused without conflating dates, records 
   for (const changed of [{ due_at: '2026-10-23T09:00:00Z' }, { person_id: 'other' }, { owner_user_id: 'other' }]) {
     assert.equal(overlappingFollowUp({ ...existing, ...changed }, [existing]), undefined);
   }
+});
+
+test('explicit shared responsibility is a candidate but always needs review',()=>{
+ const shared={...task,owner_user_id:'colleague',shared_with_you:true};
+ const result=assessTaskUpdate(completion,completion.evidence,[shared],'user-a');
+ assert.equal(result.candidates.length,1);assert.equal(result.automatic,false);
+ assert.equal(assessTaskUpdate(completion,completion.evidence,[{...shared,shared_with_you:false}],'user-a').candidates.length,0);
+});
+
+test('same people with a different task subject never causes automatic completion',()=>{
+ const result=assessTaskUpdate(completion,completion.evidence,[{...task,title:'Speak to James about Dylan trial'}],'user-a');
+ assert.equal(result.candidates.length,1,'A semantic interpretation can still be reviewed');assert.equal(result.automatic,false);
+ const vague={...completion,evidence:'Mark my call with James about Dylan as done'};
+ assert.equal(assessTaskUpdate(vague,vague.evidence,[task],'user-a').automatic,false);
+});
+test('ordinary subject paraphrases retain the supported automatic path',()=>{
+ const available={...completion,evidence:'I spoke to James about when Dylan is available'};
+ assert.equal(assessTaskUpdate(available,available.evidence,[task],'user-a').automatic,true);
+ const sent={...completion,evidence:'I emailed Dylan dossier to James'};
+ assert.equal(assessTaskUpdate(sent,sent.evidence,[{...task,title:'Send Dylan profile to James'}],'user-a').automatic,true);
 });

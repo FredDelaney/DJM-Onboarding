@@ -76,3 +76,20 @@ test('a standalone career summary is exported even without supporting records', 
     assert.ok(text.includes(summary));
   });
 });
+
+test('career heading has deliberate space after the performance chart in the rendered PDF',async()=>{
+ await withDocument(async build=>{
+  let layout:any;
+  const document=cloneElement(build({profile:{...base,why_review:'Recorded fixture facts.',career_summary:'Career overview.',career_timeline:[{season:'2026',club_name:'Example FC',appearances:24,minutes:1800},{season:'2025',club_name:'Example United',appearances:20,minutes:1600,goals:1}]},agency:{display_name:'Example Agency'}}),{onRender:(result:any)=>{layout=result._INTERNAL__LAYOUT__DATA_;}});
+  const stream=await pdf(document).toBuffer();for await(const _chunk of stream){}
+  const texts:Array<{text:string;y:number;bottom:number}>=[];
+  for(const page of layout.children){
+   const walk=(node:any,top:number)=>{const y=top+(node.box?.top||0);if(node.type==='TEXT'&&node.lines?.length)texts.push({text:node.lines.map((line:any)=>line.string||'').join(''),y,bottom:y+node.box.height});for(const child of node.children||[])walk(child,y);};walk(page,0);
+  }
+  assert.ok(texts.some(x=>/\b1 goal\b/.test(x.text)),'Singular career statistics read correctly in the actual export');
+  assert.ok(!texts.some(x=>/\b1 goals\b/.test(x.text)));
+  const heading=texts.find(x=>x.text==='CAREER RECORD'),chartValue=texts.find(x=>/1,600\s*mins/.test(x.text));
+  assert.ok(heading&&chartValue,'Actual rendered career and performance sections are present');
+  assert.ok(heading.y-chartValue.bottom>=24,'The career heading is separated from the performance chart rather than touching its edge');
+ });
+});

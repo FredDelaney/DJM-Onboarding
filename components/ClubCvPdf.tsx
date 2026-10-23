@@ -1731,6 +1731,7 @@ export function ClubCvPdfDocument({
                 'career',
               ) && (
                 <View
+                  style={styles.section}
                   wrap={false}
                 >
                   <Text

@@ -100,6 +100,11 @@ test('assigned editors retain football updates; cross-tenant and archived target
     }
   }
 });
+test('assigned football evidence retains acceptance provenance without private career data',()=>{
+  const profile=restrictedPlayerProfile({career:[{id:'career',club_name:'Recorded Club',source_provider:'manual',source_acceptance_method:'operator_confirmation',internal_notes:'SECRET_INTERNAL',commission:1000}]});
+  assert.deepEqual(profile.career,[{id:'career',club_name:'Recorded Club',source_provider:'manual',source_acceptance_method:'operator_confirmation'}]);
+  assert.doesNotMatch(JSON.stringify(profile),/SECRET_INTERNAL|commission/);
+});
 test('restricted club identity is read without loading commercial context',async()=>{
   const f=fixture('agency-os','scout');
   const r=await f.call('club_account');

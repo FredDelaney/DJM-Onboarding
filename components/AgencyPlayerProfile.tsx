@@ -1922,7 +1922,7 @@ export default function AgencyPlayerProfile({
         <div className={styles.heroIdentity}>
           <PlayerProfilePhoto key={`${cacheScope}:${playerId}`} playerId={playerId} name={name} path={player.profile_photo_path}
             canEdit={canEdit} blocked={Boolean(actionBusy)} className={styles.photo} invoke={invoke}
-            onSaved={path => {setBundle((current: any) => current ? {...current, player: {...current.player, profile_photo_path: path}} : current);setNotice('Player photo updated. Publish when ready.');}}/>
+            onSaved={(path,confirmation) => {setBundle((current: any) => current ? {...current, player: {...current.player,...confirmation,profile_photo_path:path}} : current);setNotice('Player photo updated. Review the profile before publishing.');void load(true,true);}}/>
 
           <div className={styles.heroCopy}>
             <div className={styles.eyebrow}>
