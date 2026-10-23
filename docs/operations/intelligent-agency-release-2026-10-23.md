@@ -16,8 +16,9 @@ Apply only these exact reviewed migrations, preserving their canonical ledger ve
 
 1. `20261022191532_connected_work_and_player_photo_reliability.sql`
 2. `20261023075343_restore_profile_release_writers_v1.sql`
+3. `20261023092411_lock_profile_publication_player_v1.sql`
 
-Production already has both profile writers. The second migration deliberately preserves existing writers and their guards. The existing production task context/update/Undo bodies match their canonical 20 October parent migration. Retain current data, table grants and RLS policies. Bound lock acquisition and apply each migration with its canonical ledger entry in the same transaction; refuse an existing entry rather than replaying it.
+Production already has both profile writers. The second migration deliberately preserves existing writers and their guards. The third upgrades only the reviewed publisher body to lock the canonical player until snapshot publication finishes, preventing concurrent photo/football changes from publishing stale verification. It preserves the already-locked staging implementation, retains existing execute grants and refuses unknown writer drift. A real database regression verifies the old read lacks the lock and the repaired publication holds it. The existing production task context/update/Undo bodies match their canonical 20 October parent migration. Retain current data, table grants and RLS policies. Bound lock acquisition and apply each migration with its canonical ledger entry in the same transaction; refuse an existing entry rather than replaying it.
 
 Deploy only `agency-os`, `redream-ai-process` and compatibility `djm-tell-process`, with their exact recursive source dependencies from the reviewed commit. Keep JWT verification enabled for `agency-os` and disabled for the two processing workers, which retain their internal authentication checks.
 
@@ -35,7 +36,7 @@ This is acceptance of the changed photo, profile and owned/shared task workflows
 
 - Focused regression tests, typecheck, full CI verification and browser journeys must pass on the final reviewed source. Never bypass required checks or branch protections.
 - Accept the actual staging frontend photo upload/replacement and immediate verification-state update, plus one live Tell processing canary. Preserve approval, ownership, duplicate/revocation and Undo database coverage.
-- Apply the two production migrations only after staging acceptance, then verify their actual function contracts, privileges, ledger and advisor delta before deploying workers.
+- Apply the three production migrations only after staging acceptance, then verify their actual function contracts, privileges, ledger and advisor delta before deploying workers.
 - Download all three deployed workers and compare their recursive files to the reviewed source; check unauthenticated requests still return 401.
 - Merge the tested head, verify the resulting production deployment commit/aliases and perform read-only signed-in production smoke checks. Do not mutate customer records for acceptance.
 

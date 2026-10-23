@@ -5,6 +5,8 @@ import {PGlite} from '@electric-sql/pglite';
 
 const db=new PGlite();
 const migration=readFileSync('supabase/migrations/20261023075343_restore_profile_release_writers_v1.sql','utf8');
+const lockMigration=readFileSync('supabase/migrations/20261023092411_lock_profile_publication_player_v1.sql','utf8');
+const previousPublisher=readFileSync('supabase/migrations/20261002105500_player_profile_publish_snapshot_writer_v1.sql','utf8').match(/create or replace function public\.platform_server_publish_player_profile_snapshot[\s\S]*?\bas (\$\w*\$)[\s\S]*?\1;/i)![0];
 const parent=readFileSync('supabase/migrations/20260924214500_tenant_parity_player_security_v1.sql','utf8');
 const tenant='20000000-0000-4000-8000-000000000001',foreign='20000000-0000-4000-8000-000000000002';
 const owner='10000000-0000-4000-8000-000000000001',agent='10000000-0000-4000-8000-000000000002',outsider='10000000-0000-4000-8000-000000000003';
@@ -149,6 +151,30 @@ test('repeat application preserves existing records and newer writer implementat
  returns jsonb language sql security definer set search_path='' as $$select '{"newer_writer":true}'::jsonb$$;`);
  const newer=await value('pg_get_functiondef($1::regprocedure)',[publication]);
  await db.exec(migration);assert.equal(await value('pg_get_functiondef($1::regprocedure)',[publication]),newer);
+});
+
+test('the existing production publisher gains a player lock without rewriting data or privileges',async()=>{
+ await db.exec(previousPublisher);await verify();
+ const playerLocked=()=>value("exists(select 1 from pg_locks where relation='public.players'::regclass and mode='RowShareLock' and granted)");
+ await db.exec('begin');
+ try{await publish();assert.equal(await playerLocked(),false,'The previous publisher did not lock verified facts');}finally{await db.exec('rollback');}
+ const before=await records();await db.exec(lockMigration);assert.deepEqual(await records(),before);
+ const locked=await value('pg_get_functiondef($1::regprocedure)',[publication]);
+ await db.exec(lockMigration);assert.equal(await value('pg_get_functiondef($1::regprocedure)',[publication]),locked);
+ assert.equal(await value("has_function_privilege('authenticated',$1,'execute')",[publication]),false);
+ assert.equal(await value("has_function_privilege('service_role',$1,'execute')",[publication]),true);
+ await db.exec('begin');
+ try{assert.equal((await publish()).profile.published,true);assert.equal(await playerLocked(),true,'Publication must lock the player until its snapshot transaction finishes');}finally{await db.exec('rollback');}
+});
+
+test('publication lock repair accepts the locked writer and refuses unknown implementation drift',async()=>{
+ await db.exec(lockMigration);
+ await db.exec(`create or replace function public.platform_server_publish_player_profile_snapshot(p_tenant_id uuid,p_player_id uuid,p_actor_user_id uuid,p_snapshot jsonb)
+ returns jsonb language sql security definer set search_path='' as $$select '{"newer_writer":true}'::jsonb$$;`);
+ const newer=await value('pg_get_functiondef($1::regprocedure)',[publication]);
+ await db.exec('begin');
+ try{await assert.rejects(()=>db.exec(lockMigration),/profile_publish_writer_drift/);}finally{await db.exec('rollback');}
+ assert.equal(await value('pg_get_functiondef($1::regprocedure)',[publication]),newer);
 });
 
 test('unknown guard drift aborts the transaction before any partial reconciliation is committed',async()=>{
