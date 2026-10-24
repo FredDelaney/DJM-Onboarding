@@ -1,6 +1,6 @@
 # Player Profile editor, public link and PDF recovery
 
-Status: focused staging acceptance passes. PR 256 product head `28bcc0791d4ae05f5551a5aee82328cc5489cb29` passes verify; full browser CI remains on its existing job. Production is unchanged. This is a PLY-02 / PLY-04 increment, not complete programme acceptance.
+Status: focused staging acceptance and full product-head CI pass. PR 256 code revision `28bcc0791d4ae05f5551a5aee82328cc5489cb29` passes verify and browser journeys. Subsequent checkpoint commits change documentation only. Production is unchanged. This is a PLY-02 / PLY-04 increment, not complete programme acceptance.
 
 ## Problems and resulting behavior
 
@@ -23,7 +23,7 @@ The final full `npm run check` passes 2,003 tests, all TypeScript projects, prod
 
 The expanded existing profile browser check passes at 320/390/768/1440, including photo/save recovery, selected-to-custom replacement and all three PDF downloads. Each PDF is asserted to contain the 300px raster logo from an SVG with the actual problematic CSS font stack. The first CSP-blocked fixture only tested fallback and was corrected before logo acceptance. No new framework/dependency was introduced.
 
-PR 254 and PR 255 pass full CI. PR 256 product-head verify job `120824662926` passes; browser job `120824663133`, run `40077667261`, is still observed rather than restarted. No in-progress CI job is claimed passed.
+PR 254 and PR 255 pass full CI. PR 256 product-head verify job `120824662926` and browser job `120824663133`, run `40077667261`, pass. GitHub's authoritative run read confirms verify completed at 08:23:59 UTC and browser journeys at 08:44:55 UTC on 24 October; the earlier diagnostics response remained cached as in progress. The checkpoint was published after the actual job completed, without canceling/restarting it. Documentation-only follow-up checks remain distinct from this accepted code revision.
 
 ## Actual staging working loop
 
@@ -43,7 +43,7 @@ Normal UI unpublication returns `{data:null}` to unauthenticated callers and sho
 
 The canary player `ade1f219-6996-45bb-ae53-e33595faec8c` was unpublished and removed with exact ID/tenant/name/no-user checks, external-record guards and before/after baseline verification. Its profile, settings, career rows and staff tags are absent. The original seven players match full-row hash `6e9392dc6b3dc877bfb90c47aeedbb93`. Its original creation activity event and audit records are deliberately retained; no claim of zero audit footprint is made. The unverified fixture was fully rolled back. The removed public slug still returns `{data:null}`. Security findings are unchanged excluding observation timestamps.
 
-Evidence is under `/tmp/redream-platform-programme/hosted-club-stat-pdfs/`, `staging-public-custom-390.png`, `staging-public-unpublished-390.png` and the guarded canary scripts/results. Complete final CI, then continue PLY-03 sourced review and the whole agency loop in the authoritative programme plan. Do not promote production without the concrete reviewed release gate, or mark remaining provider/device/role/document/token-share work accepted by this canary.
+Evidence is under `/tmp/redream-platform-programme/hosted-club-stat-pdfs/`, `staging-public-custom-390.png`, `staging-public-unpublished-390.png` and the guarded canary scripts/results. Continue PLY-03 sourced review and the whole agency loop in the authoritative programme plan, while observing documentation-checkpoint CI separately. Do not promote production without the concrete reviewed release gate, or mark remaining provider/device/role/document/token-share work accepted by this canary.
 
 ## Database rollback
 
