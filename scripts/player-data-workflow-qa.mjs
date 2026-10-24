@@ -61,6 +61,13 @@ try{
  assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
  assert.equal(await panel.getByText(/^Checked /).count(),0,'Failure cannot display a new successful check');
  assert.ok(await panel.getByRole('button',{name:'Update statistics',exact:true}).isEnabled());
+ panel=await visit('rejected-repeat');
+ await panel.getByRole('button',{name:'Update statistics',exact:true}).click();
+ await panel.getByRole('button',{name:'Update statistics',exact:true}).waitFor({state:'visible',timeout:15000});
+ await panel.locator('summary').click();
+ await panel.getByText('This suggestion was already rejected. Recorded statistics are unchanged.',{exact:true}).waitFor({timeout:15000});
+ assert.equal(await panel.getByRole('region',{name:'Review suggested statistics'}).count(),0);
+ assert.equal(await panel.getByText(/^Checked /).count(),0);assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
  panel=await visit('manual');
  await panel.getByRole('button',{name:'Edit current statistics',exact:true}).click();
  let form=panel.getByRole('form',{name:'Edit current-season statistics'});

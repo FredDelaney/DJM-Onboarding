@@ -32,7 +32,9 @@ export default function Page({scenario}:{scenario:string}){
   const persist=()=>sessionStorage.setItem('qa-player-data-'+scenario,JSON.stringify(s));
   const finish=()=>{
    if(!s.job||!['queued','running'].includes(s.job.status)||Date.now()<s.completeAt)return;
-   if(scenario==='failed'){
+   if(scenario==='rejected-repeat'){
+    s.job={...s.job,status:'rejected',summary:{message:'This suggestion was already rejected. Recorded statistics are unchanged.',checked_at:null,changed_fields:[]}};
+   }else if(scenario==='failed'){
     s.job={...s.job,status:'failed',summary:{message:'The update could not confirm reliable new statistics. Recorded figures are still available.',checked_at:null}};
    }else{
     s.review={id:'review-'+scenario,status:'needs_review',row_id:s.career[0].id,expected_updated_at:s.career[0].updated_at,

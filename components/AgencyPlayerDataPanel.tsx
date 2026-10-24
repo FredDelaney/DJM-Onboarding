@@ -160,6 +160,7 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
   </div>
   {contextReady&&!row?<p className={styles.guidance}>No statistics match this selection.</p>:row&&missing.length?<p className={styles.guidance}>Not set: {missing.join(', ')}. Unknown figures stay blank when you edit.</p>:null}
   {!pending(job)&&currentJobContext&&job?.status==='applied'&&job?.summary?.message?<JourneyStatus compact kind="success" title="Source check finished" description={job.summary.message}>{job.summary.checked_at?<small>Checked {compactDateTime(job.summary.checked_at)}</small>:null}</JourneyStatus>:null}
+  {currentJobContext&&job?.status==='rejected'&&job.summary?.message?<p className={styles.guidance}>{job.summary.message}</p>:null}
   {career.length?<div className={styles.historyRows}>{career.map(entry=><article key={entry.id}>
    <div><strong>{entry.season_label||'Season not set'} · {entry.club_name||'Club not set'}</strong><span>{entry.league||'Competition not set'}</span></div>
    <p>{PLAYER_STAT_FIELDS.filter(key=>entry[key]!=null).map(key=>number(entry[key])+' '+labels[key].toLowerCase()).join(' · ')||'No figures recorded'}</p>

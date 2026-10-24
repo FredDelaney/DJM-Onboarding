@@ -141,3 +141,9 @@ test('scouts cannot receive pending proposals or submit decisions',async()=>{
  role='scout';assert.equal((await handler.fetch(request('player_data_review',{review_id:'review',decision:'accept'}))).status,403);
  const r=await handler.fetch(request('player_data_status'));assert.equal((await r.json()).review,null);assert.ok(!calls.some(c=>c.name==='platform_server_player_stats_review_status'||c.name==='platform_server_review_player_stats'));
 });
+
+test('repeat rejected evidence is retained as rejected with no freshness claim',async()=>{
+ globalThis.fetch=async()=>new Response(JSON.stringify({refresh_ok:true,ai:{review_id:'review',review_status:'rejected'}}));
+ await handler.fetch(request());await Promise.all(background);
+ const final=writes.find(write=>write.value.status==='rejected');assert.ok(final);assert.equal(final.value.fresh_at,null);assert.deepEqual(final.value.summary.changed_fields,[]);
+});
