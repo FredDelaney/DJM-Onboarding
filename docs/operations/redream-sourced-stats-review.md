@@ -19,7 +19,7 @@ The existing `djm_os.review_items` queue is populated/resolved in the same trans
 3. `agency-os/index.ts` plus its existing relative dependencies; retain JWT authentication. The new review write uses the existing football assignment/edit gate. Scouts/non-editors do not receive proposal DTOs. Deploy the same shared workflow module as the worker.
 4. Frontend built from the reviewed exact commit to staging project `prj_uMBOnfwXjmglJXpJblkGqNrDWAmK`; inspect READY/source/project before assigning only `redream-systems-staging-jesseedge10-8415s-projects.vercel.app`. No production alias or project changes. Public profile worker is unchanged.
 
-Rollout status: both migrations are installed on staging under canonical versions. Worker 13 and agency-os 57 are ACTIVE; retrieved file contents exactly match reviewed bundles and JWT remains enabled. Frontend source `ebb7e612deefec04a1db4cf2462ef5442d644754` is READY as `dpl_ETr2dV4B5f9X8JA8E867niyzc4YY` and assigned only to the canonical staging alias. The final repeated-rejection freshness follow-up is validated locally but not yet deployed. Production is unchanged.
+Rollout status: both migrations are installed on staging under canonical versions. Worker 14 and agency-os 58 are ACTIVE; retrieved file contents exactly match reviewed bundles and JWT remains enabled. Final code source `ab01dd45d8ba5f766cb254793244e9a759166a81` is READY as `dpl_HLvLJv8xayYWNm4UPgN2viGKQc2n`, URL `redream-systems-staging-ayrtq5v2j-jesseedge10-8415s-projects.vercel.app`, and is assigned only to the canonical staging alias. The alias was re-read to verify project/source/READY state. This includes the repeated-rejection freshness follow-up. Worker unauthenticated requests remain HTTP 401. Production is unchanged.
 
 | Migration | Source SHA-256 | Exact applied wrapper MD5 |
 | --- | --- | --- |
@@ -40,7 +40,7 @@ Unpublish any canary before removal. Remove only exact QA ID/tenant/name/no-user
 
 ## Recovery
 
-Previous frontend: deployment `dpl_HPmFJBAcHXzDmeQrTN7n7cwjqEaK`, code `28bcc0791d4ae05f5551a5aee82328cc5489cb29`. If reverting the UI, keep guarded proposal records intact and preserve the approval-first backend. Do not restore the old automatic-writing worker as an unreviewed rollback. Prefer a scoped fix forward; proposals can remain pending without changing customer facts. Do not drop guards, clear ledgers, republish or rewrite customer rows to recover. A rollback must retain actual function definitions and ACLs and must not replay historical migrations.
+Immediate previous frontend: `dpl_ETr2dV4B5f9X8JA8E867niyzc4YY`, code `ebb7e612deefec04a1db4cf2462ef5442d644754`, which has the same comparison/decision UI before the rejected-check history message. Earlier PR 256 baseline: `dpl_HPmFJBAcHXzDmeQrTN7n7cwjqEaK`, code `28bcc0791d4ae05f5551a5aee82328cc5489cb29`. If reverting the UI, keep guarded proposal records intact and preserve the approval-first backend. Do not restore the old automatic-writing worker as an unreviewed rollback. Prefer a scoped fix forward; proposals can remain pending without changing customer facts. Do not drop guards, clear ledgers, republish or rewrite customer rows to recover. A rollback must retain actual function definitions and ACLs and must not replay historical migrations.
 
 ## Completed isolated fixture and cleanup
 
@@ -49,3 +49,7 @@ Northstar D1 player `6864e942-bcf4-4dcb-9ffe-936a97a2bdaa`, review `cb4e5945-e04
 Guarded cleanup removed this exact disposable player, profile, career/proposal rows and only its three resolved QA review-work rows. All seven original players match `6e9392dc6b3dc877bfb90c47aeedbb93`. The creation event and three decision audits are retained. The final browser roster has the original four Northstar players; the removed slug remains unavailable. Rollback-only installed-RPC assertions also proved stale baseline denial, idempotent acceptance, source projection without the private sentinel, queue resolution and publication separation. No production data or configuration changed.
 
 Mobile comparison proof: `/tmp/redream-platform-programme/staging-sourced-review-390.png`. Scripts and logs: `/tmp/redream-platform-programme/sourced-review-*`. The final follow-up also records repeated identical rejected evidence as `rejected` with no fresh timestamp; a successful research response must not relabel rejected figures as fresh canonical evidence.
+
+## Remaining programme work
+
+Exact-head GitHub CI is pending; no merge or production release is implied. PLY-03 remains active for other material-change types and cross-surface resolution. Next inspect the deployed personal Home command contract and reuse the existing low-priority review group for pending statistics suggestions, with canonical tenant/assignment scope and direct profile review links. Ordinary task completion must never accept, verify or publish a player. Continue TELL-05 whole-loop acceptance afterwards. Physical iPhone/Safari, independent real agency, provider and the rest of the 46-item/17-surface matrix remain open in the authoritative plan.
