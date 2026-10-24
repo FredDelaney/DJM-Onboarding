@@ -36,3 +36,8 @@ test('sourced suggestions stay in the quiet review group and are never deadlines
  assert.equal(isHomeStatisticsReview(c),true);assert.equal(isHomePlayerDataReview(c),true);assert.equal(homeCommandCategory(c,now),'FYI');
  assert.equal(isHomeStatisticsReview({...c,source_type:'task'}),false);
 });
+
+test('material detail suggestions stay in the quiet review group even with contract words or an old check date',()=>{
+ const card={source_type:'player',command_type:'Player details suggested',title:'Check contract expiry',due_at:'2020-01-01'};
+ assert.equal(isHomePlayerDataReview(card),true);assert.equal(homeCommandCategory(card),'FYI');
+});

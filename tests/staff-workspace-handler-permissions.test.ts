@@ -125,13 +125,13 @@ test('market tenant-wide commercial and pitch routes require administrators',asy
   }
 });
 
-test('assigned editors receive only an explicit statistics capability, with all private profile controls restricted',async()=>{
+test('assigned editors receive explicit football review capabilities, with all private profile controls restricted',async()=>{
  for(const role of ['agent','operations','scout'])for(const canEdit of [true,false]){
   const f=fixture('agency-os',role,canEdit,true);
   const r=await f.call('player_profile_core',{can_edit_statistics:true});assert.equal(r.status,200);
-  assert.equal(r.body.profile.access.restricted,true);assert.equal(r.body.profile.access.can_edit_statistics,role!=='scout'&&canEdit);
+  assert.equal(r.body.profile.access.restricted,true);assert.equal(r.body.profile.access.can_edit_statistics,role!=='scout'&&canEdit);assert.equal(r.body.profile.access.can_review_player_details,role!=='scout'&&canEdit);
   assert.doesNotMatch(JSON.stringify(r.body),/SECRET_COMMERCIAL/);
-  const detail=await f.call('player_profile_detail');assert.equal(detail.body.detail.access.can_edit_statistics,role!=='scout'&&canEdit);
+  const detail=await f.call('player_profile_detail');assert.equal(detail.body.detail.access.can_edit_statistics,role!=='scout'&&canEdit);assert.equal(detail.body.detail.access.can_review_player_details,role!=='scout'&&canEdit);
   assert.deepEqual(detail.body.detail.documents,[]);assert.deepEqual(detail.body.detail.shares,[]);
  }
 });

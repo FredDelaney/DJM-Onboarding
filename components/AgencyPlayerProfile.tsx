@@ -19,6 +19,7 @@ import { type PreparationLink } from '@/lib/capture-preparation';
 import PublicProfile from '@/components/PublicProfile';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AgencyPlayerDataPanel from '@/components/AgencyPlayerDataPanel';
+import AgencyPlayerDetailsReview from '@/components/AgencyPlayerDetailsReview';
 import ToolsMenu from '@/components/ToolsMenu';
 import PlayerProfilePhoto from '@/components/PlayerProfilePhoto';
 import PlayerStaffControl from '@/components/PlayerStaffControl';
@@ -89,20 +90,7 @@ type ProfileStat = {
   source?: { name?: string | null; status?: string | null } | null;
 };
 type ProfileVideo = { id: string; title: string; url: string };
-type PlayerContextProposal = {
-  fields: Partial<{
-    current_club: string;
-    current_league: string;
-    current_country: string;
-    current_season_label: string;
-    primary_position: string;
-    transfermarkt_url: string;
-    stats_url: string;
-  }>;
-  confidence: number;
-  reason: string;
-  sources: { title?: string; url: string }[];
-};
+type PlayerContextProposal = {id:string};
 type ProfileProposal = {
   kind: ProfileKind;
   headline: string;
@@ -566,6 +554,9 @@ export default function AgencyPlayerProfile({
   const [preparedSaved, setPreparedSaved] = useState(false);
   const [aiAvailable, setAiAvailable] = useState(false);
   const [contextProposal, setContextProposal] = useState<PlayerContextProposal | null>(null);
+  const contextRequestId=useRef<string|null>(null);
+  const [detailsDraft,setDetailsDraft]=useState(false);
+  const [recordRefreshNeeded,setRecordRefreshNeeded]=useState(false),[recordReloadBusy,setRecordReloadBusy]=useState(false);
   const [preparationStep, setPreparationStep] = useState('');
   const [statisticsStatusVersion, setStatisticsStatusVersion] = useState(0);
   const preparationRun = useRef(0), preparationBusy = useRef(false);
@@ -661,7 +652,11 @@ export default function AgencyPlayerProfile({
     return () => { ++loadGeneration.current; };
   }, [load]);
 
-  const reloadRecordedData = useCallback(() => load(true, true), [load]);
+  const reloadRecordedData = useCallback(async() => {
+    setRecordReloadBusy(true);const expected=loadGeneration.current+1;
+    try{const ok=await load(true,true);if(loadGeneration.current===expected)setRecordRefreshNeeded(ok===false);return ok;}
+    finally{setRecordReloadBusy(false);}
+  }, [load]);
 
   const player = bundle?.player || {};
   const agency = {
@@ -941,6 +936,7 @@ export default function AgencyPlayerProfile({
   const canEdit = !bundle?.access?.restricted && ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
+  const canReviewDetails = canEdit || (bundle?.access?.can_review_player_details === true && ['agent','operations'].includes(role));
   const canEditStatistics = canEdit || (bundle?.access?.can_edit_statistics === true && ['agent','operations'].includes(role));
   const primaryRequiredCheck = guidedRequiredChecks[0] || null;
   const primaryMoveBlocked =
@@ -1043,7 +1039,8 @@ export default function AgencyPlayerProfile({
   };
 
   const openPrepare = (start = false) => {
-    if (!canEdit) return;
+    if (!canEdit||recordRefreshNeeded) return;
+    if(detailsDraft){setNotice('Save or clear your player-details choices before preparing a profile.');document.getElementById('player-details')?.focus();document.getElementById('player-details')?.scrollIntoView({behavior:'instant',block:'start'});return;}
     if (start && !proposal && !contextProposal) {
       setPrepareKind('general');
       setPrepareOpen(true);
@@ -1167,18 +1164,16 @@ export default function AgencyPlayerProfile({
 
       if (!canRefreshStats || !playerContext.primary_position || !playerContext.current_country) {
         setPreparationStep('Finding missing player details...');
-        const researched = await readWithDeadline(invoke<any>('player_context_research', { player_id: playerId }), 35000);
+        contextRequestId.current ||= crypto.randomUUID();
+        const researched = await readWithDeadline(invoke<any>('player_context_research', { player_id: playerId,request_id:contextRequestId.current }), 35000);
         if (!current()) return;
-        const fields = researched?.proposal?.fields || {};
-        if (researched?.proposal && Object.keys(fields).length) {
-          setContextProposal({
-            fields,
-            confidence: Number(researched.proposal.confidence || 0),
-            reason: text(researched.proposal.reason),
-            sources: Array.isArray(researched.proposal.sources) ? researched.proposal.sources : [],
-          });
+        const savedReview=researched?.review;
+        if(savedReview?.id&&['running','needs_review'].includes(savedReview.status)){
+          setContextProposal({id:savedReview.id});setPrepareOpen(false);
+          window.location.hash='player-details';
           return;
         }
+        contextRequestId.current=null;
         if (!canRefreshStats) throw new Error('AI could not confidently identify the missing current club, competition and season. Review the player details and try again.');
       }
 
@@ -1203,46 +1198,10 @@ export default function AgencyPlayerProfile({
     }
   };
 
-  const applyPlayerContextAndContinue = async () => {
-    if (!contextProposal || actionBusy || preparationBusy.current) return;
-    preparationBusy.current = true;
-    const run = ++preparationRun.current, current = () => run === preparationRun.current;
-    setActionBusy('context-apply');
-    setError('');
-    setNotice('');
-    try {
-      setPreparationStep('Saving reviewed player details...');
-      await readWithDeadline(invoke<any>('player_context_apply', {
-        player_id: playerId,
-        fields: contextProposal.fields,
-        sources: contextProposal.sources,
-      }), 35000);
-      if (!current()) return;
-      if (await load(true, true) === false) throw new Error('Player details were saved, but could not reload. Try again.');
-      if (!current()) return;
-      const nextContext = { ...(bundle?.player || {}), ...contextProposal.fields };
-      const canRefresh = Boolean(nextContext.current_season_label && nextContext.current_club && nextContext.current_league);
-      if (canRefresh) {
-        if (!await refreshPreparationStats(current)) return;
-      }
-      if (!current()) return;
-      setPreparationStep('Preparing your editable profile...');
-      const response = await readWithDeadline(invoke<any>('player_profile_prepare', {
-        player_id: playerId,
-        kind: prepareKind,
-        ...(prepareKind === 'club'
-          ? { organisation_id: prepareClub, deal_room_id: prepareDeal || null }
-          : {}),
-      }), 35000);
-      if (!current()) return;
-      adoptPreparedProfile(response);
-      setContextProposal(null);
-      setNotice('Player details saved. Review the prepared draft before saving it.');
-    } catch (contextError) {
-      if (current()) setError(friendlyError(contextError));
-    } finally {
-      if (current()) {preparationBusy.current = false; setActionBusy(''); setPreparationStep('');}
-    }
+  const applyPlayerContextAndContinue = () => {
+    if(actionBusy||preparationBusy.current)return;
+    setContextProposal(null);contextRequestId.current=null;setPrepareOpen(true);
+    void prepareProfile(prepareKind);
   };
 
   const improveProfileText = async () => {
@@ -1686,7 +1645,7 @@ export default function AgencyPlayerProfile({
   };
 
   const openShareComposer = () => {
-    if (!canEdit) return;
+    if (!canEdit||recordRefreshNeeded) return;
 
     setShareResultUrl('');
     setShareResultMessage('');
@@ -1757,6 +1716,7 @@ export default function AgencyPlayerProfile({
     }));
 
   const openVerify = (focus: 'verification' | 'position' | 'contract-status' | 'contract-expiry' = 'verification') => {
+    if(recordRefreshNeeded)return;
     setVerifyForm(verifyFormFromPlayer(player));
     setVerifyFocus(focus);
     setVerifyError('');
@@ -1917,6 +1877,11 @@ export default function AgencyPlayerProfile({
     '--profile-on-accent': brand.onAccent,
   } as React.CSSProperties;
 
+  const recordRefreshBanner=recordRefreshNeeded?<section className={styles.card+' '+styles.reviewBanner} aria-label="Player refresh required">
+    <div><h3>Reload player details</h3><p>Showing the last loaded information. Reload before verifying, sharing or publishing.</p></div>
+    <button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={recordReloadBusy} onClick={()=>void reloadRecordedData()}>{recordReloadBusy?'Reloading...':'Reload player details'}</button>
+  </section>:null;
+
   if (bundle?.access?.restricted) {
     return <div className={styles.root} style={theme}>
       <div className={styles.topbar}><Link href={backHref} className={styles.back} aria-label="Back to players"><ArrowLeft size={15}/>Players</Link></div>
@@ -1925,9 +1890,11 @@ export default function AgencyPlayerProfile({
         <p>Review football information here. Contract and sharing controls are for admins.</p>
       </section>
       {error?<p className={styles.error} role="alert">{error}</p>:null}
+      {recordRefreshBanner}
       <PublicProfile profile={draftProfile} agency={agency}/>
+      {canReviewDetails?<AgencyPlayerDetailsReview key={'details-'+playerId} player={player} invoke={invoke} onChanged={reloadRecordedData} blocked={Boolean(actionBusy)||recordRefreshNeeded} onDraftChange={setDetailsDraft}/>:null}
       <AgencyPlayerDataPanel key={playerId} player={player} career={career} canEdit={canEditStatistics} canVerify={false}
-        invoke={invoke} onChanged={reloadRecordedData} onReview={()=>{}} blocked={Boolean(actionBusy)}/>
+        invoke={invoke} onChanged={reloadRecordedData} onReview={()=>{}} blocked={Boolean(actionBusy)||recordRefreshNeeded}/>
     </div>;
   }
 
@@ -1981,6 +1948,7 @@ export default function AgencyPlayerProfile({
         </section>
       ) : null}
 
+      {recordRefreshBanner}
       <section className={styles.hero}>
         <div className={styles.heroIdentity}>
           <PlayerProfilePhoto key={`${cacheScope}:${playerId}`} playerId={playerId} name={name} path={player.profile_photo_path}
@@ -2020,17 +1988,17 @@ export default function AgencyPlayerProfile({
             <div className={styles.statusRow}>
               <span
                 className={
-                  published?.published
+                  published?.published&&!recordRefreshNeeded
                     ? styles.liveStatus
                     : styles.draftStatus
                 }
               >
                 <ShieldCheck size={13} />
-                {published?.published ? 'Live' : 'Draft'}
+                {recordRefreshNeeded?'Refresh needed':published?.published ? 'Live' : 'Draft'}
               </span>
 
               <span>
-                {player.verification_status === 'verified'
+                {recordRefreshNeeded?'Showing last loaded data':player.verification_status === 'verified'
                   ? 'Data verified'
                   : 'Verification needed'}
               </span>
@@ -2077,7 +2045,7 @@ export default function AgencyPlayerProfile({
             <div>
               <span>Next move</span>
               <strong>
-                {published?.published
+                {recordRefreshNeeded?'Reload player details':published?.published
                   ? 'Share with a club'
                   : verificationOnly
                     ? 'Verify and publish'
@@ -2089,7 +2057,7 @@ export default function AgencyPlayerProfile({
           </div>
 
           <p>
-            {published?.published
+            {recordRefreshNeeded?'Reload the player to confirm its current information.':published?.published
               ? missingShareHighlights.length
                 ? `Before sharing: ${missingShareHighlights
                     .slice(0, 2)
@@ -2111,7 +2079,7 @@ export default function AgencyPlayerProfile({
               data-ui-button="primary"
               className={styles.primaryAction}
               onClick={openShareComposer}
-              disabled={!canEdit || Boolean(actionBusy)}
+              disabled={!canEdit || recordRefreshNeeded || Boolean(actionBusy)}
             >
               <Send size={16} />
               Share Player Profile
@@ -2127,7 +2095,7 @@ export default function AgencyPlayerProfile({
                   confirmCurrentData: verificationOnly,
                 })
               }
-              disabled={!canEdit || Boolean(actionBusy)}
+              disabled={!canEdit || recordRefreshNeeded || Boolean(actionBusy)}
             >
               {actionBusy === 'publish' ? (
                 <LoaderCircle className={styles.spin} size={16} />
@@ -2142,7 +2110,7 @@ export default function AgencyPlayerProfile({
               data-ui-button="primary"
               className={styles.primaryAction}
               onClick={() => runProfileCheck(primaryRequiredCheck)}
-              disabled={!canEdit || primaryMoveBlocked || Boolean(actionBusy)}
+              disabled={!canEdit || recordRefreshNeeded || primaryMoveBlocked || Boolean(actionBusy)}
             >
               <ArrowRight size={16} />
               {primaryMoveBlocked ? 'Owner or admin required' : primaryRequiredCheck.actionLabel}
@@ -2312,33 +2280,9 @@ export default function AgencyPlayerProfile({
               ) : null}
               {contextProposal ? (
                 <div className={styles.prepareKnownNeed}>
-                  <strong>Current player details found</strong>
-                  <div className={styles.prepareFields}>{Object.entries(contextProposal.fields).map(([key, value]) => <label key={key}><span>{({current_club:'Current club',current_league:'Competition',current_country:'Country',current_season_label:'Season',primary_position:'Position',transfermarkt_url:'Transfermarkt URL',stats_url:'Statistics URL'} as Record<string,string>)[key]}</span><input value={value || ''} disabled={Boolean(actionBusy)} onChange={event=>setContextProposal(current=>current?{...current,fields:{...current.fields,[key]:event.target.value}}:current)} /></label>)}</div>
-                  <details className={styles.profileDetails}><summary>Research sources</summary>
-                  <p>Confidence: {Math.round(contextProposal.confidence * 100)}%</p>
-                  {contextProposal.reason ? <p>{contextProposal.reason}</p> : null}
-                  {contextProposal.sources.length ? (
-                    <p>
-                      Sources: {contextProposal.sources.filter(source=>safeSourceUrl(source.url)).slice(0, 3).map((source, index) => (
-                        <span key={source.url}>
-                          {index ? ' · ' : ''}
-                          <a href={source.url} target="_blank" rel="noreferrer">{source.title || new URL(source.url).hostname}</a>
-                        </span>
-                      ))}
-                    </p>
-                  ) : null}
-                  </details>
-                  <div className={styles.prepareFooter}>
-                    <button type="button" data-ui-button="primary" className={styles.primaryAction}
-                      onClick={() => void applyPlayerContextAndContinue()} disabled={Boolean(actionBusy)}>
-                      {actionBusy === 'context-apply' ? <LoaderCircle className={styles.spin} size={15} /> : <Check size={15} />}
-                      Apply & continue
-                    </button>
-                    <button type="button" data-ui-button="secondary" className={styles.secondaryAction}
-                      onClick={() => setContextProposal(null)} disabled={Boolean(actionBusy)}>
-                      Not now
-                    </button>
-                  </div>
+                  <strong>Review the saved player details</strong>
+                  <p>Compare the source suggestions with the recorded profile before continuing.</p>
+                  <Link className={styles.secondaryAction} href="#player-details" onClick={()=>setPrepareOpen(false)}>Review player details</Link>
                 </div>
               ) : (
               <div className={styles.prepareFooter}>
@@ -2591,6 +2535,8 @@ export default function AgencyPlayerProfile({
           <span>Included in the CV. Publish to update the shared profile.</span>
         </div>
       </section>
+      {canReviewDetails?<AgencyPlayerDetailsReview key={'details-'+playerId} player={player} invoke={invoke} onChanged={reloadRecordedData} blocked={Boolean(actionBusy)||recordRefreshNeeded} statusVersion={contextProposal?.id||''} onDraftChange={setDetailsDraft}
+        onContinue={contextProposal&&player.current_club&&player.current_league&&player.current_season_label&&player.primary_position&&player.current_country?applyPlayerContextAndContinue:undefined}/>:null}
       <AgencyPlayerDataPanel
         key={playerId}
         player={player}
@@ -2602,7 +2548,7 @@ export default function AgencyPlayerProfile({
         onReview={() => openVerify('verification')}
         hasCustomStats={Boolean(bundle?.settings?.key_stats?.length)}
         onUseRecordedStats={useRecordedStats}
-        blocked={Boolean(actionBusy) || editOpen || verifyOpen}
+        blocked={Boolean(actionBusy) || recordRefreshNeeded || editOpen || verifyOpen}
         statusVersion={statisticsStatusVersion}
         managedRefresh={actionBusy === 'prepare' || actionBusy === 'context-apply'}
       />

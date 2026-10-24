@@ -650,14 +650,14 @@ export default {fetch:async(req:Request)=>{
       if(assignment.error)throw assignment.error;
       if(!assignment.data)return deny("This player is not assigned to your account");
       const statisticsEditor=operator()&&assignment.data.can_edit===true&&!["retired","inactive"].includes(String(player.football_status||"").toLowerCase());
-      if(action==="player_profile_detail")return json({ok:true,tenant:workspace,detail:{access:{scope:"assigned",restricted:true,can_edit_statistics:statisticsEditor},documents:[],shares:[],deals:[],clubs:[],communication:{summary:{},items:[],open_followups:[]},secondary_ready:true}});
+      if(action==="player_profile_detail")return json({ok:true,tenant:workspace,detail:{access:{scope:"assigned",restricted:true,can_edit_statistics:statisticsEditor,can_review_player_details:statisticsEditor},documents:[],shares:[],deals:[],clubs:[],communication:{summary:{},items:[],open_followups:[]},secondary_ready:true}});
       const [careerResult,videosResult]=await Promise.all([
         ctx.supabaseAdmin.from("career_entries").select("id,player_id,club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,is_international,sort_order,source_name,source_url,source_reviewed_at,source_provider,source_synced_at,updated_at").eq("player_id",pid).order("sort_order").order("start_date",{ascending:false}),
         ctx.supabaseAdmin.from("player_videos").select("id,title,url,video_type,featured,sort_order").eq("player_id",pid).order("featured",{ascending:false}).order("sort_order")
       ]);
       if(careerResult.error)throw careerResult.error;if(videosResult.error)throw videosResult.error;
       const stats=profileAutoStats(careerResult.data||[],player);
-      return json({ok:true,tenant:workspace,profile:{...restrictedPlayerProfile({player,career:careerResult.data||[],videos:videosResult.data||[],auto_key_stats:stats.stats,auto_stats_meta:stats.meta}),access:{scope:"assigned",restricted:true,can_edit_statistics:statisticsEditor}}});
+      return json({ok:true,tenant:workspace,profile:{...restrictedPlayerProfile({player,career:careerResult.data||[],videos:videosResult.data||[],auto_key_stats:stats.stats,auto_stats_meta:stats.meta}),access:{scope:"assigned",restricted:true,can_edit_statistics:statisticsEditor,can_review_player_details:statisticsEditor}}});
     }
 
     if(action==="player_profile_core"){
