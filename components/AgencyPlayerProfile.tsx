@@ -3399,14 +3399,16 @@ export default function AgencyPlayerProfile({
                   rows={4}
                   aria-label="Custom key numbers"
                   value={form.key_stats_text}
-                  onChange={(event) =>
-                    setField('key_stats_text', event.target.value)
-                  }
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setForm(current => ({...current, key_stats_text: value, selected_stat_refs: []}));
+                  }}
                   placeholder={'Goals: 8\nAssists: 6'}
                 />
                 <small>
-                  Optional. Leave blank and reviewed current-season numbers are
-                  used automatically.
+                  {form.selected_stat_refs.length
+                    ? 'Selected source statistics are in use. Enter custom key numbers to replace them.'
+                    : 'Optional. Leave blank and reviewed current-season numbers are used automatically.'}
                 </small>
               </label>
 

@@ -112,6 +112,16 @@ try {
   assert.match(await tiles.nth(2).innerText(),/2026.*Example FC.*Current source.*Updated 20 Oct 2026/s);
   assert.equal(await figures.getByText(/Official competition|Unused source/).count(),0);
  });
+ // Typing a custom value is an explicit replacement for any selected evidence.
+ await stats.getByRole('button',{name:'Edit stats',exact:true}).click();
+ await page.getByText('Selected source statistics are in use. Enter custom key numbers to replace them.',{exact:true}).waitFor();
+ await page.getByLabel('Custom key numbers',{exact:true}).fill('Apps: 7');
+ await page.getByRole('button',{name:'Save',exact:true}).click();
+ await stats.getByText('Custom stats in use',{exact:true}).waitFor();
+ assert.deepEqual(settings.selected_stat_refs,[],'A previous source selection cannot silently override new custom input');
+ assert.deepEqual(settings.key_stats,[{label:'Apps',value:'7'}]);
+ await stats.getByText('7',{exact:true}).waitFor();
+ assert.equal(await stats.getByText(/Historical source|Current source/).count(),0,'Custom input never retains historical attribution');
  // The primary work view reuses the same upload path and shows the confirmed photo immediately.
  photo=null;
  await page.goto(new URL('/qa-player-photo?view=players&player=fixture-profile',url).href);
