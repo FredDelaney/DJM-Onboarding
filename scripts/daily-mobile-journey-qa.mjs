@@ -120,6 +120,11 @@ export async function verifyDailyMobileNavigation(page) {
   await page.waitForFunction(
     () => new URLSearchParams(location.search).get("network") === "people",
   );
+  // History restoration can update the URL before React commits its category.
+  await categories
+    .getByRole("link", { name: "Contacts", exact: true })
+    .and(page.locator('[aria-current="page"]'))
+    .waitFor();
   assert.equal(
     await categories
       .getByRole("link", { name: "Contacts", exact: true })
