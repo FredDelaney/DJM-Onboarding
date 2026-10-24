@@ -185,3 +185,21 @@ test('a preparation retry retains the persisted suggestion id after an unconfirm
  contextReview={id:job.id,status:'applied',fields:[{id:'80000000-0000-4000-8000-000000000001',field:'current_club',suggested:'Saved FC',decision:'accepted',applied_value:'Corrected FC'}]};
  const response=await handler.fetch(request('player_context_apply',{review_id:job.id,fields:{current_club:'Corrected FC'}}));assert.equal(response.status,200);assert.deepEqual(calls.find(c=>c.name==='platform_server_review_player_details')?.args.p_decisions,[{id:'80000000-0000-4000-8000-000000000001',decision:'edit',value:'Corrected FC'}]);
 });
+
+
+test('plain PostgreSQL review conflicts return recoverable user messages without database details',async()=>{
+ const admin=(globalThis as any).playerDataHttpContext.data.supabaseAdmin;
+ const rpc=admin.rpc;
+ for(const [action,message,code] of [
+  ['player_data_review','player_stats_context_changed','player_stats_context_changed'],
+  ['player_data_review','player_stats_review_already_resolved','player_stats_review_already_resolved'],
+  ['player_context_review','Player details changed. Check the record again.','player_details_review_conflict'],
+  ['player_context_review','Player identity changed. Check the record again.','player_details_review_conflict'],
+  ['player_context_review','This detail was already reviewed. Reload the record.','player_details_review_conflict']
+ ]){
+  admin.rpc=async(name:string,args:any)=>name==='platform_server_review_player_stats'||name==='platform_server_review_player_details'?{data:null,error:{code:'P0001',message,details:'private database detail'}}:rpc(name,args);
+  const response=await handler.fetch(request(action,{review_id:job.id,decision:'accept',decisions:[{id:'field',decision:'accept'}]}));
+  assert.equal(response.status,409);const result=await response.json();assert.equal(result.code,code);
+  assert.match(result.error,/Reload|Check|Reload/);assert.ok(!JSON.stringify(result).includes('private database detail'));assert.notEqual(result.error,'Agency OS request failed');
+ }
+});

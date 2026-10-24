@@ -1260,6 +1260,8 @@ export default {fetch:async(req:Request)=>{
       player_photo_revision_conflict:"The player photo changed. Reopen the player before choosing a replacement.",
       proposal_expired:"This approval has expired. Cancel and open the action again to review a fresh approval.",
       command_no_longer_actionable:"This action is no longer available. Refresh the workspace to see the latest work.",
+      player_stats_context_changed:"The player’s club, season or competition changed. Reload player data, then reject this older suggestion before checking new sources.",
+      player_stats_review_already_resolved:"This suggestion was already reviewed. Reload player data to see the saved result.",
       player_stats_revision_conflict:"These statistics changed while you were editing. Your draft is retained. Reload recorded data before saving.",
       player_stats_refresh_running:"A statistics update is running. Wait for it to finish before saving corrections.",
       player_stats_row_exists:"A season record already exists. Reload recorded data and edit that record.",
@@ -1268,6 +1270,8 @@ export default {fetch:async(req:Request)=>{
       draft_career_strategy_not_found:"This career plan changed. Reload it before approving.",
     };
     if(Object.hasOwn(conflicts,message)) return json({error:conflicts[message],code:message},409);
+    const detailsConflicts=["Player details changed. Check the record again.","Player identity changed. Check the record again.","This detail was already reviewed. Reload the record."];
+    if(detailsConflicts.includes(message))return json({error:message,code:"player_details_review_conflict"},409);
     const inputErrors:Record<string,string>={
       career_strategy_incomplete_for_approval:"Add the career objective, preferred route, fallback route and next checkpoint before approving. Reopen the career plan to complete it.",
       player_photo_path_invalid:"Choose a photo uploaded for this player.",
