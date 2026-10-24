@@ -111,7 +111,7 @@ export default {fetch:async(req:Request)=>{
       "deal_receivables","deal_receivable_save","receivable_payment_record","deal_closeout","deal_closeout_save"
     ]);
     const footballReads=new Set(["player_data_status"]);
-    const footballWrites=new Set(["player_profile_photo_begin","player_profile_photo_attach","player_data_save","player_data_refresh","player_context_research","player_context_apply","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
+    const footballWrites=new Set(["player_profile_photo_begin","player_profile_photo_attach","player_data_save","player_data_review","player_data_refresh","player_context_research","player_context_apply","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
     if(!ownerAdmin()&&!staffActions.has(action)&&!footballReads.has(action)&&!footballWrites.has(action)&&!(role==="operations"&&operationsActions.has(action))){
       return deny("Agency administrator access required");
     }
@@ -123,6 +123,7 @@ export default {fetch:async(req:Request)=>{
       if(error)throw error;
       return data;
     };
+    let canReviewPlayerStats=ownerAdmin();
     if(!ownerAdmin()&&(footballReads.has(action)||footballWrites.has(action))){
       const pid=playerId();
       if(!pid)return json({error:"player_id is required"},400);
@@ -131,6 +132,7 @@ export default {fetch:async(req:Request)=>{
       const access=await ctx.supabaseAdmin.from("staff_player_access").select("player_id,can_edit")
         .eq("player_id",pid).eq("staff_user_id",userId).maybeSingle();
       if(access.error)throw access.error;
+      canReviewPlayerStats=operator()&&access.data?.can_edit===true;
       if(!access.data||(footballWrites.has(action)&&access.data.can_edit!==true))return deny("Assigned player edit access required");
     }
     const profileContext=async(pid:string)=>{
@@ -558,12 +560,23 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,applied_fields:Object.keys(patch).filter(key=>key!=="updated_at"),player:updated});
     }
 
-    if(action==="player_data_status"||action==="player_data_refresh"||action==="player_data_save"){
+    if(action==="player_data_status"||action==="player_data_refresh"||action==="player_data_save"||action==="player_data_review"){
       if(action!=="player_data_status"&&!operator())return deny("Agency operator access required");
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
       const player=await profilePlayer(pid);if(!player)return json({error:"Player not found in this agency"},404);
       if(action==="player_data_status"){
-        return json({ok:true,job:await rpc("platform_server_player_stats_refresh_status",{p_tenant_id:tenantId,p_player_id:pid})});
+        const [job,review]=await Promise.all([
+          rpc("platform_server_player_stats_refresh_status",{p_tenant_id:tenantId,p_player_id:pid}),
+          canReviewPlayerStats?rpc("platform_server_player_stats_review_status",{p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId}):Promise.resolve(null)
+        ]);
+        return json({ok:true,job,review});
+      }
+      if(action==="player_data_review"){
+        const reviewed=await rpc("platform_server_review_player_stats",{
+          p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId,p_review_id:id(body?.review_id),
+          p_decision:id(body?.decision),p_values:body?.decision==="edit"?obj(body?.values):null
+        });
+        return json(obj(reviewed));
       }
       if(action==="player_data_save"){
         const saved=await rpc("platform_server_save_current_player_stats",{
@@ -589,7 +602,7 @@ export default {fetch:async(req:Request)=>{
             if(!secret)throw new Error("Statistics worker is unavailable");
             const response=await fetch(url+"/functions/v1/refresh-player-stats-ai-worker",{
               method:"POST",headers:{Authorization:"Bearer "+service,apikey:service,"x-djm-cron":String(secret),"Content-Type":"application/json"},
-              body:JSON.stringify({player_id:pid}),signal:AbortSignal.timeout(80000)
+              body:JSON.stringify({player_id:pid,review_request_id:jobId}),signal:AbortSignal.timeout(80000)
             });
             const payload=await response.json().catch(()=>({}));
             const completedAt=new Date().toISOString();

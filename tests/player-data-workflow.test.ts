@@ -75,3 +75,13 @@ test('only plain http and https source links are rendered', () => {
  for(const value of ['javascript:alert(1)','data:text/html,test','https://user:secret@league.example','file:///tmp/x']) assert.equal(safeSourceUrl(value),null);
  assert.equal(safeSourceUrl('https://league.example/player'),'https://league.example/player');
 });
+
+test('a sourced pending suggestion never claims applied figures or canonical freshness',()=>{
+ const outcome=refreshOutcome({refresh_ok:true,ai:{review_id:'review',review_status:'needs_review',proposed_fields:['appearances']}},'2026-10-24T12:00:00Z');
+ assert.equal(outcome.status,'needs_review');assert.equal(outcome.checked_at,null);assert.deepEqual(outcome.changed_fields,[]);assert.match(outcome.message,/not changed/);
+});
+
+test('repeat rejected research never becomes canonical freshness evidence',()=>{
+ const result=refreshOutcome({refresh_ok:true,ai:{review_id:'rejected-review',review_status:'rejected'}},'2026-10-24T12:00:00Z');
+ assert.equal(result.status,'rejected');assert.equal(result.checked_at,null);assert.deepEqual(result.changed_fields,[]);assert.match(result.message,/already rejected/);
+});
