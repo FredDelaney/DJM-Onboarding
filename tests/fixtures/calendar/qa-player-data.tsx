@@ -19,7 +19,7 @@ const initial=(scenario:string)=>({
  ],videos:[],documents:[],shares:[],deals:[],clubs:[],branding:{support_email:'agency@example.test'},secondary_ready:true,
  auto_key_stats:[{label:'Apps',value:'8'},{label:'Starts',value:'5'},{label:'Minutes',value:'450'},{label:'Goals',value:'0'}],
  auto_stats_meta:{source_url:'https://league.example/player'},
- job:null as any,completeAt:0,refreshes:0,saves:0,verifications:0,publishes:0,statusReads:0
+ review:null as any,reviewDecisions:0,job:null as any,completeAt:0,refreshes:0,saves:0,verifications:0,publishes:0,statusReads:0
 });
 export default function Page({scenario}:{scenario:string}){
  const state=useRef<any>(null);
@@ -35,15 +35,15 @@ export default function Page({scenario}:{scenario:string}){
    if(scenario==='failed'){
     s.job={...s.job,status:'failed',summary:{message:'The update could not confirm reliable new statistics. Recorded figures are still available.',checked_at:null}};
    }else{
-    s.career[0]={...s.career[0],appearances:9,minutes:540,source_synced_at:new Date().toISOString(),source_reviewed_at:null,source_provider:'public_web_evidence',updated_at:new Date().toISOString()};
-    s.auto_key_stats[0].value='9';s.auto_key_stats[2].value='540';
-    s.player={...s.player,verification_status:'reviewing',verified_at:null,review_required_at:new Date().toISOString(),review_reason:'Career statistics changed'};
-    s.published.published=false;
-    s.job={...s.job,status:'applied',summary:{message:'Statistics updated. Review the recorded figures before verifying the player.',checked_at:new Date().toISOString(),changed_fields:['appearances','minutes']}};
+    s.review={id:'review-'+scenario,status:'needs_review',row_id:s.career[0].id,expected_updated_at:s.career[0].updated_at,
+     checked_at:new Date().toISOString(),context:{season_label:'2026/27',club_name:'Example Reserves',league:'Regional League',country:'NZ'},
+     before:{appearances:8,starts:5,minutes:450,goals:0,assists:null},proposed:{appearances:9,starts:5,minutes:540,goals:0,assists:null},
+     sources:[{url:'https://league.example/player',title:'Official league'},{url:'https://club.example/stats',title:'Club season record'}]};
+    s.job={...s.job,status:'needs_review',summary:{message:'New figures are ready to review. Recorded statistics have not changed.',checked_at:null,changed_fields:[]}};
    }
    persist();
   };
-  if(action==='player_data_status'){s.statusReads++;persist();if(scenario==='offline'&&!sessionStorage.getItem('qa-player-data-connection-restored'))throw new Error('The connection was interrupted. Check progress to recover.');finish();return {job:structuredClone(s.job)};}
+  if(action==='player_data_status'){s.statusReads++;persist();if(scenario==='offline'&&!sessionStorage.getItem('qa-player-data-connection-restored'))throw new Error('The connection was interrupted. Check progress to recover.');finish();return {job:structuredClone(s.job),review:scenario==='scout'?null:structuredClone(s.review)};}
   if(action==='player_data_refresh'){
    if(!s.job||!['queued','running'].includes(s.job.status)){
     s.refreshes++;s.completeAt=Date.now()+4000;
@@ -51,6 +51,22 @@ export default function Page({scenario}:{scenario:string}){
     persist();
    }
    return {job:structuredClone(s.job)};
+  }
+  if(action==='player_data_review'){
+   s.reviewDecisions++;
+   if(scenario==='review-conflict'){persist();throw new Error('player_stats_revision_conflict');}
+   if(body.review_id!==s.review?.id)throw new Error('Wrong review');
+   if(body.decision!=='reject'){
+    const values=body.decision==='edit'?body.values:s.review.proposed;
+    const entry={...s.career[0],...values,updated_at:new Date().toISOString(),source_reviewed_at:new Date().toISOString()};
+    for(const key of ['appearances','starts','minutes','goals','assists'])entry[key]=values[key]===''||values[key]==null?null:Number(values[key]);
+    s.career[0]=entry;s.auto_key_stats[0].value=String(entry.appearances);s.auto_key_stats[2].value=String(entry.minutes);
+    s.player={...s.player,verification_status:'reviewing',verified_at:null,review_required_at:new Date().toISOString(),review_reason:'Career statistics changed'};
+    s.published.published=false;
+   }
+   s.review={...s.review,status:body.decision==='reject'?'rejected':'accepted'};persist();
+   if(scenario==='review-unconfirmed')throw new Error('The connection was interrupted. Reload player data before trying again.');
+   return {ok:true,review_id:s.review.id,status:s.review.status};
   }
   if(action==='player_data_save'){
    if(scenario==='conflict')throw new Error('Recorded statistics changed while you were editing. Reload the data and review your corrections.');

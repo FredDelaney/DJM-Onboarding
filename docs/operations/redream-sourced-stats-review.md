@@ -1,0 +1,32 @@
+# Approval-first sourced statistics review
+
+Scope: PLY-03 of the authoritative ReDream programme. Branch `codex/redream-sourced-player-review`, stacked on PR 256. Production remains unchanged. No provider credentials, schedules, authentication configuration or legacy migrations change.
+
+## Behaviour
+
+The previous deployed statistics worker v12 wrote new career figures before an agent could review them. Its source matched the repository exactly (entry SHA-256 `3b73429fd7e8880fa48ca805b720268e0b403053f84fa08942c59aa05a8b04df`). The actual career trigger then requested verification and unpublished the profile.
+
+The worker now stages suggestions in `player_source_refreshes` with provider `agency_stats_proposal_v1` and status `needs_review`. The server captures actual recorded figures, the row revision, player/season context, supported proposed values and two surfaced independent source hosts. Unknowns remain unknown; zero is retained. No canonical statistics, player verification or publication changes while pending or rejected. One pending review is retained per player; identical rejected evidence is not reopened. Stale research conflicts rather than taking a newer baseline after research.
+
+The existing profile statistics panel presents recorded/suggested figures, actual period/club/competition, check time and sources. Accept, edit and reject use a server-only transaction with trusted actor/tenant and existing assignment enforcement. Editing reuses the existing form, fixes the proposal context and requires explicit source confirmation. Accept/edit retain the existing career verification/unpublication controls; they never verify or publish the player automatically or relabel a parent club as its reserve side. Resolved receipts are repeat-safe; uncertain responses recover by reading status without repeating the decision. Conflicts preserve the draft.
+
+The existing `djm_os.review_items` queue is populated/resolved in the same transaction. A new source proposal is protected from browser insert/update/delete/truncate and has an additional restrictive tenant/operator read policy; older refresh workflows keep their existing policy. Server responses project only review fields, never career notes, commercial data, model prompts or audit internals. Whole Home/Calendar propagation and other material-change types are not accepted by these tests.
+
+## Exact staging rollout manifest
+
+1. Migration only: `20261024114808_approval_first_player_stats_review_v1.sql`. New helper/guard functions, two guarded triggers, a narrow restrictive policy/index, and three service-only RPCs. No backfill, canonical-row rewrite or migration replay. Confirm new names are absent, active schema contracts and security/performance baseline, then apply only this reviewed source with bounded lock/statement timeouts. Normalize a generated migration ledger version only after matching the exact applied source and confirming the canonical version is absent.
+2. `refresh-player-stats-ai-worker/index.ts` plus its shared `football-data/player-data-workflow.ts`; retain current JWT and cron-secret authentication. Database RPCs must exist first. Preserve actual previous source as rollback evidence.
+3. `agency-os/index.ts` plus its existing relative dependencies; retain JWT authentication. The new review write uses the existing football assignment/edit gate. Scouts/non-editors do not receive proposal DTOs. Deploy the same shared workflow module as the worker.
+4. Frontend built from the reviewed exact commit to staging project `prj_uMBOnfwXjmglJXpJblkGqNrDWAmK`; inspect READY/source/project before assigning only `redream-systems-staging-jesseedge10-8415s-projects.vercel.app`. No production alias or project changes. Public profile worker is unchanged.
+
+Rollout status: **not applied yet**. Local PostgreSQL and actual HTTP/browser checks pass. Full `npm run check` passes 2,022 tests, all TypeScript projects, production build and bundle limits (workspace gzip 143,988 / 150,000). GitHub CI and hosted canary remain pending.
+
+## Acceptance and cleanup
+
+Use an isolated, explicitly labelled Northstar staging player created by the real agency writer. Record original player hashes and expected fixture dependencies. Prove the real installed RPCs preserve canonical/public data while pending/rejected, enforce actor/tenant/browser grants, and reject stale baseline/context. Browser-test actual proposal comparison, edit/source confirmation, accept/reject, verification separation and responsive layout. Reuse synthetic source evidence only with explicit QA labels; a seeded proposal does not prove a paid provider lookup. No real club or email sends.
+
+Unpublish any canary before removal. Remove only exact QA ID/tenant/name/no-user fixtures with dependency guards and compare baseline hashes. Preserve audit records; never claim zero footprint. Required physical iPhone, independent-agency and external-provider acceptance remains open.
+
+## Recovery
+
+Previous frontend: deployment `dpl_HPmFJBAcHXzDmeQrTN7n7cwjqEaK`, code `28bcc0791d4ae05f5551a5aee82328cc5489cb29`. If reverting the UI, keep guarded proposal records intact and preserve the approval-first backend. Do not restore the old automatic-writing worker as an unreviewed rollback. Prefer a scoped fix forward; proposals can remain pending without changing customer facts. Do not drop guards, clear ledgers, republish or rewrite customer rows to recover. A rollback must retain actual function definitions and ACLs and must not replay historical migrations.

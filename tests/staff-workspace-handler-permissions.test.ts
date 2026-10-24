@@ -81,7 +81,7 @@ test('profile publication, contract verification and private CV settings require
   }
 });
 test('football writes require trusted assignment and can_edit before any mutation',async()=>{
-  for(const role of ['agent','operations']) for(const [assigned,canEdit] of [[true,false],[false,true]]) for(const action of ['player_profile_transfermarkt_save','player_profile_video_add','player_profile_video_remove','player_data_save','player_data_refresh']){
+  for(const role of ['agent','operations']) for(const [assigned,canEdit] of [[true,false],[false,true]]) for(const action of ['player_profile_transfermarkt_save','player_profile_video_add','player_profile_video_remove','player_data_save','player_data_review','player_data_refresh']){
     const f=fixture('agency-os',role,canEdit,assigned);
     assert.equal((await f.call(action,{url:'https://www.transfermarkt.com/example/profil/spieler/123',video_id:'video',staff_user_id:'owner',can_edit:true})).status,403,role+':'+action);
     assert.equal(f.calls.filter(c=>c.name.startsWith('write:')||c.name.startsWith('platform_server_')&&c.name!=='platform_server_user_workspaces').length,0);
