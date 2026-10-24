@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
 import { createRequire } from 'node:module';
 const require=createRequire(import.meta.url);
 const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright`:'playwright');
-const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
+const launchBrowser=()=>chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
+const browser=await launchBrowser();
 try{
  const page=await browser.newPage({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
  await page.clock.setFixedTime(new Date('2026-10-06T10:00:00Z'));
@@ -147,5 +149,48 @@ try{
  await page.setViewportSize({width:390,height:950});await page.getByRole('button',{name:'Month',exact:true}).click();
  const dateButton=page.locator('[aria-label="Month calendar"] button').first();const target=await dateButton.boundingBox();assert.ok(target.width>=44&&target.height>=44,'Month date touch target must be 44px');
  await page.screenshot({path:process.env.CALENDAR_QA_SCREENSHOT||'/tmp/calendar-workspace-mobile.png',fullPage:true});
- console.log('Calendar create, company assignment, complete/reopen, archive/restore, undated and 12 viewport checks passed.');
+ await mkdir('/tmp/redream-platform-programme/calendar',{recursive:true});
+ await browser.close();
+ for(const zone of ['Europe/Rome','America/Los_Angeles']){
+  const recordedBrowser=await launchBrowser();
+  try{
+  const recorded=await recordedBrowser.newPage({viewport:{width:390,height:844},timezoneId:zone});
+  recorded.on('pageerror',error=>pageErrors.push(error.message));
+  await recorded.clock.setFixedTime(new Date('2026-11-28T20:00:00Z'));
+  await recorded.goto((process.env.CALENDAR_QA_URL||'http://127.0.0.1:3101/qa-calendar')+'?recordedDates');
+  // The server-rendered initial selection uses the server clock. Navigate with
+  // the real control so this case is deterministic regardless of today's month.
+  await recorded.locator('summary').filter({hasText:'Jump to date'}).click();
+  await recorded.getByLabel('Jump to date',{exact:true}).fill('2026-11-28');
+  await recorded.locator('summary').filter({hasText:'Jump to date'}).click();
+  const month=recorded.locator('[aria-label="Month calendar"]');
+  for(const width of [320,390,768,1440]){
+   await recorded.setViewportSize({width,height:844});
+   await recorded.locator('summary').filter({hasText:'Jump to date'}).click();
+   const jumpBounds=await recorded.locator('details[open] > label').filter({hasText:'Jump to date'}).boundingBox();
+   assert.ok(jumpBounds&&jumpBounds.x>=0&&jumpBounds.x+jumpBounds.width<=width,'Date picker fits viewport at '+width);
+   await recorded.locator('summary').filter({hasText:'Jump to date'}).click();
+   await recorded.getByRole('button',{name:'Month',exact:true}).click();
+   await month.getByRole('button',{name:'Saturday, 28 November 2026',exact:true}).click();
+   const marker=month.locator('[title="Recorded contract expiry"]');
+   await marker.waitFor();
+   assert.equal(await marker.evaluate(node=>node.closest('[data-date]')?.getAttribute('data-date')),'2026-11-28','Month marker retains the recorded date in '+zone);
+   const contract=recorded.getByRole('article').filter({hasText:'Recorded contract expiry'});
+   await contract.waitFor();assert.ok(await contract.getByText('28 Nov',{exact:true}).isVisible(),'Playing contract keeps its recorded day in '+zone);
+   for(const [day,title]of [['Sunday, 29 November 2026','Recorded agency agreement'],['Monday, 30 November 2026','Recorded document expiry']]){
+    await month.getByRole('button',{name:day,exact:true}).click();
+    await recorded.getByRole('article').filter({hasText:title}).waitFor();
+   }
+   await month.getByRole('button',{name:'Saturday, 28 November 2026',exact:true}).click();
+   if(width===390)await recorded.screenshot({path:'/tmp/redream-platform-programme/calendar/recorded-dates-'+zone.replaceAll('/','-')+'-390.png',fullPage:false});
+   await recorded.getByRole('button',{name:'Agenda',exact:true}).click();
+   for(const title of ['Recorded contract expiry','Recorded agency agreement','Recorded document expiry'])await recorded.getByRole('article').filter({hasText:title}).waitFor();
+   assert.equal(await recorded.getByRole('article').filter({hasText:'Shared unscheduled follow-up'}).count(),0,'Undated shared work stays in No date, not an overdue agenda row');
+   await recorded.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth,undefined,{timeout:5000});
+   assert.ok(await recorded.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Recorded dates overflow at '+zone+' '+width);
+  }
+  }finally{await recordedBrowser.close();}
+ }
+ assert.deepEqual(pageErrors,[]);
+ console.log('Calendar create, company assignment, complete/reopen, archive/restore, undated and 12 viewport checks passed. Recorded timestamp dates also pass Month/Agenda at four widths in Europe/Rome and America/Los_Angeles.');
 }finally{await browser.close();}

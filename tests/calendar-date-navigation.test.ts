@@ -19,3 +19,14 @@ test('malformed saved settings fall back without enabling contact birthdays', ()
   assert.deepEqual(calendarPreferences('{broken'), { players: true, contacts: false, staff: true });
   assert.deepEqual(calendarPreferences('{"contacts":true,"staff":false}'), { players: true, contacts: true, staff: false });
 });
+
+test('recorded all-day timestamps retain their date across browser timezones',()=>{
+ const previous=process.env.TZ;
+ try{
+  for(const zone of ['Europe/Rome','America/Los_Angeles']){
+   process.env.TZ=zone;
+   assert.equal(calendarDateKey('2026-11-28T00:00:00+00:00',true),'2026-11-28');
+   if(zone==='America/Los_Angeles')assert.equal(calendarDateKey('2026-11-28T00:00:00+00:00'),'2026-11-27','Timed instants still use local time');
+  }
+ }finally{if(previous===undefined)delete process.env.TZ;else process.env.TZ=previous;}
+});

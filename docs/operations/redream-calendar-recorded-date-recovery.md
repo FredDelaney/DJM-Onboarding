@@ -1,0 +1,23 @@
+# Calendar recorded-date recovery
+
+Scope: PLY-03 / UI-09. Frontend only, stacked on PR 259 at `9a11378172cfc186cc2a3e7e3ac0c9b3b5f2e3d4`. Preserve every broader programme gate.
+
+## Reproduced failure and narrow repair
+
+The actual Northstar Calendar reader returns Marcus Bell's unchanged contract expiry as `2026-11-28T00:00:00+00:00`, with `date_only=true`. The existing event normalizer appended another time before validating it, silently discarding the invalid date. This is not evidence of tenant-header loss: the installed SDK retains that header in a focused transport probe.
+
+Preserve all-day recorded dates as `YYYY-MM-DD` at the existing normalization boundary. Keep timed instants, permissions, source links, filtering, task controls and normal Calendar rendering unchanged. The real-component test also exposed FullCalendar hiding our interactive date-number buttons under a decorative `aria-hidden` wrapper. The existing cell mount hook now removes that attribute only from the custom button wrapper; accessible date selection is tested through roles, rather than bypassing the hidden controls. Two additional test-discovered Calendar defects are repaired narrowly: a missing follow-up date no longer becomes 1 January 1970/false overdue work, and the existing date picker anchors to its right edge at tablet width, preserving its popup within the viewport. No migration, data mutation, worker, secret, provider, schedule, configuration or production rollout belongs to this increment.
+
+## Local validation
+
+The old source fails the exact transport-shape regression: only the timed meeting survives, instead of six events. A separate regression detects a date shifting to the previous day in America/Los_Angeles. The repaired 15-test focused Calendar set passes both zones. The existing real-component harness now includes contract, agency-agreement and document-expiry timestamps in Month/Agenda at 320/390/768/1440px, plus its original task/recovery checks. Both existing Calendar browser suites pass, including task creation/assignment, complete/reopen/archive/restore, undated work, drafts, stale revisions, nested-dialog focus/scroll recovery and stalled reads. All new four-width/two-zone checks pass, including accessible date selection, actual month-marker date, correct day rows, Agenda, undated exclusion and open-popup bounds. Screenshots were visually inspected. Final `npm run check` passes 2,080 tests, every TypeScript project, production build and bundle budget (144,096 / 150,000 gzip bytes). Hosted acceptance and exact-head CI remain pending.
+
+Local evidence: `/tmp/redream-platform-programme/calendar-date-before.log`, `calendar-date-after.log`, `calendar-recorded-dates-browser.log`, `calendar-final-check.log`; screenshots in `calendar/`.
+
+## Exact staging target and recovery
+
+Frontend only: Vercel project `prj_uMBOnfwXjmglJXpJblkGqNrDWAmK`, team `jesseedge10-8415s-projects`, existing canonical staging alias `redream-systems-staging-jesseedge10-8415s-projects.vercel.app`. Build the exact reviewed Git SHA, inspect READY/project/SHA, then assign only that alias. Keep draft; no merge or production deployment.
+
+Immediate rollback: `dpl_Bb6ZrEQgQjLnpjBNxmxudP8JbbR3`, product `be01d770c9625d3eeb765ece9fc1191dd7fa60c4`. Existing agency-os 61/statistics 14/public 9 and installed migrations remain as recorded in `redream-player-details-review.md`. Never replay the excluded September migration or installed history.
+
+Read-only hosted acceptance must use existing Marcus Bell (`25be93d4-7dff-4086-94d9-5ffd3f6d6b0f`) under Northstar owner context: correct 28 November marker/day row and Agenda, same-tenant player handoff, mobile/desktop bounds and scrolling. Recheck original seven-player hash `6e9392dc6b3dc877bfb90c47aeedbb93`. No F1 recreation is needed. Actual ordinary-staff, provider, physical iPhone/Safari and independent-agency acceptance remain open.
