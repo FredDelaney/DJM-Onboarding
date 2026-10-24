@@ -1,6 +1,6 @@
 # Preserve approved profile statistics during publication
 
-Status: locally reproduced and repaired; exact migration applied to staging. Full save-and-publish acceptance requires the separate settings-trigger follow-up. PLY-02 follow-up to PRs 253 and 254. Production is unchanged.
+Status: full CI passes and exact migration is installed on staging. Full automatic/historical/custom save/publication/public/PDF acceptance now passes with the separate PR 256 settings/frontend follow-up. PLY-02 follow-up to PRs 253 and 254. Production is unchanged; do not replay the installed migration.
 
 ## Actual failure
 
@@ -25,6 +25,8 @@ Thirteen actual PostgreSQL publication/reconciliation tests pass, including four
 `npm run check` passes all 1,997 tests, TypeScript projects, production build and bundle limits (143,963 / 150,000 gzip bytes). CI/review remains required. For controlled staging acceptance, verify the exact reviewed function/source/ACL first, apply only this migration with bounded locks and its canonical ledger version, then repeat the existing isolated player's normal UI publication. Compare the actual returned/stored snapshot, public automatic/selected/custom responses, branded web preview and rendered PDF files. Exercise actual unpublished/unverified denial and complete fixture cleanup. Do not infer acceptance from the automatic public endpoint alone.
 
 The profile-dialog frontend is PR 254's separate deployment. Its exact CI/build/alias gate remains unchanged. Production promotion requires explicit authorization and the complete reviewed release manifest; no production canary or publication is included.
+
+The remaining controlled staging steps above have now passed with PR 256's source `28bcc07`, including actual stored/public values, normal UI publication, all six pages of downloaded PDFs, unpublished public denial, rollback-only unverified server-writer denial and exact fixture cleanup. The seven original player rows and security findings remain unchanged. Current manifest and remaining final CI/device/provider/role/share gates are in `redream-profile-stat-settings-recovery.md` and the programme plan.
 
 ## Rollback
 
