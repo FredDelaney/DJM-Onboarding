@@ -17,6 +17,7 @@ before(async()=>{
  create table public.career_entries(id uuid primary key default gen_random_uuid(),player_id uuid,season_label text,club_name text,league text,country text,appearances int,starts int,minutes int,goals int,assists int,source_name text,source_url text,source_provider text,source_acceptance_method text,source_reviewed_at timestamptz,source_synced_at timestamptz,updated_at timestamptz default now());
  create table public.player_public_profiles(player_id uuid,published boolean,career_timeline jsonb);
  create table public.player_source_refreshes(id uuid primary key default gen_random_uuid(),player_id uuid,source text,provider text,mode text,capability text,status text,requested_by uuid,requested_at timestamptz default now(),started_at timestamptz,completed_at timestamptz,summary jsonb default '{}',raw_snapshot jsonb default '{}',error_text text,updated_at timestamptz default now(),source_url text,facts_discovered int default 0,review_required int default 0,accepted_count int default 0,rejected_count int default 0,payload_hash text);
+ create table public.staff_player_access(player_id uuid,staff_user_id uuid,can_edit boolean);
  create table djm_os.team_members(user_id uuid,is_active boolean);
  create table djm_os.review_items(id uuid default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,review_type text,title text,detail text,player_id uuid,confidence numeric,payload jsonb,status text default 'open',resolved_at timestamptz);
  create table platform.audit_events(tenant_id uuid,actor_user_id uuid,actor_kind text,action text,entity_type text,entity_id text,before_state jsonb,after_state jsonb,metadata jsonb);
@@ -31,6 +32,8 @@ before(async()=>{
  await db.exec('create trigger career_review after insert or update on public.career_entries for each row execute function private.career_change_requires_review()');
  if(existsSync(path))await db.exec(readFileSync(path,'utf8'));
  await db.exec(readFileSync('supabase/migrations/20261024114808_approval_first_player_stats_review_v1.sql','utf8'));
+ await db.exec(readFileSync('supabase/migrations/20261024120738_scope_stats_review_policy_without_platform_grants_v1.sql','utf8'));
+ await db.query('insert into public.staff_player_access values($1,$2,true)',[player,actor]);
 });
 after(()=>db.close());
 beforeEach(()=>db.exec(`delete from djm_os.review_items;delete from public.player_source_refreshes;delete from public.career_entries;delete from platform.audit_events;update public.players set verification_status='verified',verified_at=now(),review_reason=null,review_required_at=null;update public.player_public_profiles set published=true;`));
@@ -204,9 +207,12 @@ test('proposal RPCs are service-only and browser ledger tampering including dele
 
 test('proposal browser reads require canonical tenancy, active operators and cannot use legacy admin access across agencies',async()=>{
  const row=await verifiedBaseline();const p=await proposal(row);
- await db.exec("grant usage on schema public,auth,platform to authenticated;grant select on public.players,platform.tenant_memberships,platform.tenants to authenticated;grant select on public.player_source_refreshes to authenticated;alter table public.player_source_refreshes enable row level security;create policy legacy_admin_fixture on public.player_source_refreshes for select to authenticated using(true);set role authenticated;");
+ await db.exec("grant usage on schema public,private,auth to authenticated;revoke all on schema platform from authenticated;revoke all on platform.tenant_memberships,platform.tenants from authenticated;grant select on public.player_source_refreshes to authenticated;alter table public.player_source_refreshes enable row level security;create policy legacy_admin_fixture on public.player_source_refreshes for select to authenticated using(true);set role authenticated;");
  try{
   await db.query("select set_config('test.uid',$1,false)",[actor]);assert.equal((await db.query('select count(*)::int as count from public.player_source_refreshes where id=$1',[p.review_id])).rows[0].count,1);
+  await db.exec('reset role');await db.query('update public.staff_player_access set can_edit=false where staff_user_id=$1',[actor]);await db.exec('set role authenticated');
+  assert.equal((await db.query('select count(*)::int as count from public.player_source_refreshes where id=$1',[p.review_id])).rows[0].count,0);
+  await db.exec('reset role');await db.query('update public.staff_player_access set can_edit=true where staff_user_id=$1',[actor]);await db.exec('set role authenticated');
   for(const user of [scout,'90000000-0000-4000-8000-000000000009']){await db.query("select set_config('test.uid',$1,false)",[user]);assert.equal((await db.query('select count(*)::int as count from public.player_source_refreshes where id=$1',[p.review_id])).rows[0].count,0);}
  }finally{await db.exec('reset role;alter table public.player_source_refreshes disable row level security;drop policy legacy_admin_fixture on public.player_source_refreshes');}
 });
