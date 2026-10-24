@@ -1,6 +1,6 @@
 # Preserve approved profile statistics during publication
 
-Status: locally reproduced and repaired; CI and hosted repair acceptance remain open. PLY-02 follow-up to PRs 253 and 254. Production is unchanged.
+Status: full CI passes and exact migration is installed on staging. Full automatic/historical/custom save/publication/public/PDF acceptance now passes with the separate PR 256 settings/frontend follow-up. PLY-02 follow-up to PRs 253 and 254. Production is unchanged; do not replay the installed migration.
 
 ## Actual failure
 
@@ -18,11 +18,15 @@ Reviewed-career projection and source-link/market sanitization still run. Publis
 
 ## Evidence and staging gate
 
+Canonical migration version `20261023191512` is installed on staging only. Source SHA256 `f929a1bf681102f1766ca92f33faba8460aed24f2728063275b5a4aaabc115e1`, installed function-body MD5 `92d954ee6e7a5de21b633517d4127abd`; owner, search path and ACL remain unchanged. Installation does not rewrite the synthetic 55-appearance snapshot or any customer row. Security findings are unchanged excluding observation timestamps. The subsequent normal editor save exposed a second existing normalizer that materializes automatic choices as custom totals; see `redream-profile-stat-settings-recovery.md`. Neither the automatic endpoint alone nor the first migration constitutes full publication acceptance.
+
 Thirteen actual PostgreSQL publication/reconciliation tests pass, including four added cases: reproduce the 55-appearance error; preserve automatic/historical/custom/empty snapshots and source privacy; retain approved figures through metadata and actual career-refresh updates while rejecting invented raw totals; deny browser/wrong-tenant contexts and preserve server-only publisher access; and refuse trigger drift without changing owner/grants.
 
 `npm run check` passes all 1,997 tests, TypeScript projects, production build and bundle limits (143,963 / 150,000 gzip bytes). CI/review remains required. For controlled staging acceptance, verify the exact reviewed function/source/ACL first, apply only this migration with bounded locks and its canonical ledger version, then repeat the existing isolated player's normal UI publication. Compare the actual returned/stored snapshot, public automatic/selected/custom responses, branded web preview and rendered PDF files. Exercise actual unpublished/unverified denial and complete fixture cleanup. Do not infer acceptance from the automatic public endpoint alone.
 
 The profile-dialog frontend is PR 254's separate deployment. Its exact CI/build/alias gate remains unchanged. Production promotion requires explicit authorization and the complete reviewed release manifest; no production canary or publication is included.
+
+The remaining controlled staging steps above have now passed with PR 256's source `28bcc07`, including actual stored/public values, normal UI publication, all six pages of downloaded PDFs, unpublished public denial, rollback-only unverified server-writer denial and exact fixture cleanup. The seven original player rows and security findings remain unchanged. Current manifest and remaining final CI/device/provider/role/share gates are in `redream-profile-stat-settings-recovery.md` and the programme plan.
 
 ## Rollback
 

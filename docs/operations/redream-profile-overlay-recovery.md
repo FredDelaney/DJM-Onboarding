@@ -1,6 +1,6 @@
 # Player Profile overlay recovery
 
-Status: locally validated; CI and hosted frontend acceptance remain open. UX-03/UX-04 increment stacked on PR 253.
+Status: full CI and focused hosted mobile preview/editor checks pass. The wider overlay/device matrix remains open. UX-03/UX-04 increment stacked on PR 253.
 
 ## Defect and result
 
@@ -18,6 +18,10 @@ Existing populated-profile browser checks pass all four widths, including editin
 
 ## Deployment manifest and remaining acceptance
 
+PR 254 head `151ba22cdab2ab3c012e8d72fc7b33733ac58af8` passes verify and browser CI. Its exact staging deployment `dpl_845i7uFoKSgkbFgZTrS8xAg4YaoE` is READY and assigned only to `redream-systems-staging-jesseedge10-8415s-projects.vercel.app`. At 390x844 the signed-in preview fills the viewport, independently scrolls, retains the toolbar and 44px Close, and restores the opener focus/background position after Escape. The editor and its save/publish footer fit the same viewport without horizontal overflow. Actual screenshot `/tmp/redream-platform-programme/staging-preview-fixed-390.png` was inspected. Production is unchanged.
+
 Deploy only the reviewed frontend revision to the existing ReDream staging project after CI. No additional migration or worker deployment belongs to this increment. The previous staging build/alias target from PR 253 remains the rollback target; its database/worker manifests are unchanged and must not be reapplied.
 
 Before accepting the repair on staging, open a long player profile after scrolling, check the preview toolbar/content/Close and editor footer at desktop and mobile widths, verify focus/scroll recovery and tenant branding, and continue the outstanding automatic/selected/custom publication/public-read/PDF canary. Dedicated provider, physical iPhone and independent-agency acceptance remain separate programme gates. Other product overlays remain in the full UI matrix; this profile increment does not accept them automatically. Production promotion requires its explicit release gate.
+
+Current follow-up checkpoint: the actual automatic/historical/custom public/PDF canary is now complete and cleaned up on staging product head `28bcc07`, including the shared-host route, branded SVG-logo export and selected-to-custom editor transition. The overlay source remains included unchanged. Current exact deployment/rollback and remaining final CI/device/full-matrix gates are in `redream-profile-stat-settings-recovery.md`; the older deployment IDs above record this increment's own rollout, not the current canonical alias.

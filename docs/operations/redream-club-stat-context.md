@@ -1,6 +1,6 @@
 # ReDream club-profile statistic context
 
-Status: local/full CI pass; exact frontend and workers deployed to staging. Hosted publication/PDF canary and production acceptance remain open. This PLY-02 increment is stacked on PR 252 and does not expand either earlier migration manifest.
+Status: local/full CI pass; exact frontend and workers deployed to staging. Hosted publication/PDF acceptance now passes with the separate repairs in PRs 254-256; production/device/independent-agency acceptance remains open. This PR's original scope still does not expand either earlier migration manifest.
 
 ## Result
 
@@ -39,3 +39,5 @@ Signed-in Northstar Home cold-loads successfully and its actual player-review di
 The signed-in preview exposes a pre-existing overlay defect: its fixed surface is confined inside the workspace, and its toolbar can be off-screen after opening from a scrolled profile. This is retained as UX-03's next repair, not accepted as visually complete by the content/branding check.
 
 The actual publication canary also exposed a required database follow-up: the legacy career-timeline trigger rewrites the approved snapshot's 24 reserve appearances to 55 combined appearances and removes its evidence metadata. The automatic public endpoint masks that stored error by selecting 24 again. The no-migration manifest above describes this PR's code scope, not completion of hosted publication acceptance. The separate required repair is recorded in `redream-profile-stat-publication-recovery.md`; publication remains unaccepted until its real trigger-path tests and hosted canary pass.
+
+Current checkpoint: both exact stat repairs are installed on staging, the dialog/shared-host/export/custom-transition frontend is READY at product head `28bcc07`, and actual automatic/historical/custom UI save, stored/public values, all six pages of real downloaded PDFs and public unpublication denial pass. The unverified service-writer canary passes and rolls back; the published canary is removed with all seven original players unchanged. Final CI and wider programme gates remain tracked. See `redream-profile-stat-settings-recovery.md` for the current exact deployment, evidence and cleanup. Do not replay installed migrations.

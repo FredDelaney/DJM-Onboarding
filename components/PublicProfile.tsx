@@ -394,12 +394,9 @@ export default function PublicProfile({
           filename:
             `${profile.display_name || 'Player'}-${agencyShortName}-Player-Profile.pdf`,
         });
-      } catch (
-        error: any
-      ) {
+      } catch {
         setNotice(
-          error?.message ||
-            'The Player Profile PDF could not be created.',
+          'The Player Profile PDF could not be created. Try again.',
         );
       } finally {
         setPdfBusy(false);
