@@ -941,6 +941,7 @@ export default function AgencyPlayerProfile({
   const canEdit = !bundle?.access?.restricted && ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
+  const canEditStatistics = canEdit || (bundle?.access?.can_edit_statistics === true && ['agent','operations'].includes(role));
   const primaryRequiredCheck = guidedRequiredChecks[0] || null;
   const primaryMoveBlocked =
     primaryRequiredCheck?.action === 'agency-settings' &&
@@ -1925,6 +1926,8 @@ export default function AgencyPlayerProfile({
       </section>
       {error?<p className={styles.error} role="alert">{error}</p>:null}
       <PublicProfile profile={draftProfile} agency={agency}/>
+      <AgencyPlayerDataPanel key={playerId} player={player} career={career} canEdit={canEditStatistics} canVerify={false}
+        invoke={invoke} onChanged={reloadRecordedData} onReview={()=>{}} blocked={Boolean(actionBusy)}/>
     </div>;
   }
 
@@ -2592,7 +2595,8 @@ export default function AgencyPlayerProfile({
         key={playerId}
         player={player}
         career={career}
-        canEdit={canEdit}
+        canEdit={canEditStatistics}
+        canVerify={canEdit}
         invoke={invoke}
         onChanged={reloadRecordedData}
         onReview={() => openVerify('verification')}

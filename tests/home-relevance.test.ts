@@ -1,3 +1,4 @@
+import {homeWorkRefFor,workRefFor} from '../lib/work-responsibility.ts';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {homeRelevanceReference,readHomeRelevance} from '../lib/home-relevance.ts';
@@ -27,4 +28,10 @@ test('denials, outages and missing underlying objects never fall back to the old
   await assert.rejects(()=>readHomeRelevance(async()=>{throw error;},[{}],'agency',false),error);
  }
  assert.equal(isMissingStaffAssignmentRpc({code:'PGRST202',message:'Could not find public.redream_player_staff_tags_v1'},'redream_player_staff_tags_v1'),true);
+});
+
+test('a sourced review uses its canonical player reference and never becomes a completable task',()=>{
+ const review={source_type:'player',source_id:player,player_id:player,command_type:'Player statistics suggested',work_kind:'task',work_id:player,title:'Private display',evidence:{stats_review_id:'review',proposed:{appearances:9}}};
+ assert.equal(homeWorkRefFor(review),null);assert.equal(workRefFor(review),null);
+ const ref=homeRelevanceReference({...review,work_kind:undefined,work_id:undefined});assert.deepEqual(ref,{source_type:'player',source_id:player,player_id:player});
 });

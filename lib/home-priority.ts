@@ -17,8 +17,12 @@ type HomeCommand = {
 
 // A review flag's due_at is its review timestamp, not a promised business deadline.
 // Real reminder tasks remain in the actionable queue with their existing controls.
+export function isHomeStatisticsReview(command: HomeCommand): boolean {
+  return command.source_type === 'player' && command.command_type === 'Player statistics suggested';
+}
+
 export function isHomePlayerDataReview(command: HomeCommand): boolean {
-  return command.source_type === 'player' && command.command_type === 'Player review required';
+  return command.source_type === 'player' && (command.command_type === 'Player review required' || isHomeStatisticsReview(command));
 }
 
 export function homeCommandCategory(command: HomeCommand, now = new Date()): HomeQueueCategory {

@@ -8,11 +8,12 @@ try {
   const page=await browser.newPage({viewport:{width:390,height:844}});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   let prepares=0;
-  let pendingReview=true;
+  let pendingReview=true,pendingStats=true;
   let dense=false,relevanceFailure=false,assignedFailure=false;
   const dylan='30000000-0000-4000-8000-000000000001';
   const privatePlayer='30000000-0000-4000-8000-000000000099';
   const capture='40000000-0000-4000-8000-000000000001';
+  const statsCommand={command_id:'player_stats_review:proposal',command_type:'Player statistics suggested',source_type:'player',player_id:dylan,source_id:dylan,title:'Dylan',priority_score:40,due_at:null,evidence:{stats_review_id:'proposal'},actionability:{mode:'review_only',cta:'Review suggested figures'}};
   await page.route('https://example.supabase.co/**',async route=>{
    if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1')){
     const visible=(route.request().postDataJSON()?.p_items||[]).flatMap((item,index)=>item.player_id===privatePlayer||item.source_id===privatePlayer?[]:[index]);
@@ -33,6 +34,7 @@ try {
       {command_id:'contract:due',command_type:'Contract decision approaching',source_type:'player',player_id:dylan,source_id:dylan,title:'Confirm contract extension',due_at:'2020-01-01T00:00:00Z',priority_score:1},
       {command_id:'capture:undated',source_type:'capture',source_id:capture,title:'Clarify the trial location',priority_score:1},
     ]}}};
+    if(action==='home_focus'&&pendingStats)body.home.attention.judgement.push(statsCommand,{...statsCommand,command_id:'player_stats_review:private',player_id:privatePlayer,source_id:privatePlayer,title:'Private statistics suggestion'});
     if(action==='action_prepare'){prepares++;body={proposal:{proposal_id:'fake',title:'Create player action: Dylan',executable:true}};}
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   });
@@ -48,6 +50,10 @@ try {
   await page.getByText('Career statistics changed',{exact:true}).waitFor();
   assert.equal(await page.getByText('Review the player record and resolve the flagged issue.',{exact:true}).count(),0,'Generic reminder must not duplicate the same player review card');
   assert.equal(await page.getByRole('link',{name:'Answer question',exact:true}).getAttribute('href'),'/workspace/qa/capture?capture='+capture);
+  const statisticsLink=page.getByRole('link',{name:'Review suggested figures',exact:true});
+  assert.equal(await statisticsLink.getAttribute('href'),'/agency?view=players&player='+dylan+'&profile=1#player-data');
+  assert.equal(await page.locator('article').filter({has:statisticsLink}).getByRole('button').count(),0,'Suggestions have no ordinary task-completion controls');
+  assert.equal(await page.getByText('Private statistics suggestion',{exact:true}).count(),0);
   assert.equal(prepares,0,'Opening Home must not prepare writes for data reviews');
   for(const width of [320,390,430,768]) {
     await page.setViewportSize({width,height:844});
@@ -55,6 +61,9 @@ try {
     assert.ok(await review.isVisible());
     assert.ok(await review.evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=12),'Action labels must be readable, not hidden behind an arrow at '+width);
   }
+  pendingStats=false;
+  await page.goto(url.href);await page.getByText('Arrange a call with Dejan',{exact:true}).waitFor();
+  assert.equal(await page.getByRole('link',{name:'Review suggested figures',exact:true}).count(),0,'A resolved suggestion disappears without completing the separate verification or reminder');
   pendingReview=false;
   await page.goto(url.href);
   await page.getByText('Arrange a call with Dejan',{exact:true}).waitFor();
@@ -62,7 +71,7 @@ try {
   await page.getByRole('button',{name:'Mark reminder done',exact:true}).click();
   await page.getByRole('dialog').waitFor();
   assert.equal(prepares,1,'Only explicit reminder completion prepares a write');
-  dense=true;
+  dense=true;pendingStats=true;
   await page.goto(url.href);
   const priorities=page.getByRole('region',{name:'Today priorities',exact:true});
   await priorities.getByText('Confirm contract extension',{exact:true}).waitFor();
@@ -72,7 +81,7 @@ try {
   assert.equal(await page.getByText('Private colleague player',{exact:true}).count(),0,'Unassigned private reviews are absent, including collapsed content');
   const summary=page.locator('summary').filter({hasText:'Player data to review'});
   const group=summary.locator('..');
-  assert.equal((await summary.innerText()).trim().replace(/\s+/g,' '),'Player data to review 12','The count includes only server-authorised reviews');
+  assert.equal((await summary.innerText()).trim().replace(/\s+/g,' '),'Player data to review 13','The count includes only server-authorised reviews');
   assert.equal(await group.getByRole('link',{name:'Review player data',exact:true}).count(),0,'Routine reviews start collapsed');
   await summary.focus();await page.keyboard.press('Enter');
   assert.equal(await group.getByRole('link',{name:'Review player data',exact:true}).count(),12,'All reviews remain reachable through the existing actions');

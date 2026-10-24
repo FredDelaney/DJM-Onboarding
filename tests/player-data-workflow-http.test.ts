@@ -39,7 +39,7 @@ beforeEach(()=>{
  (globalThis as any).Deno={env:{get:(key:string)=>key==='SUPABASE_URL'?'https://example.supabase.co':'fake-service'}};
  (globalThis as any).EdgeRuntime={waitUntil:(promise:Promise<any>)=>background.push(promise)};
  (globalThis as any).playerDataHttpContext={data:{userClaims:{sub:'actor',email:'agent@example.test'},supabaseAdmin:{
-  rpc:async(name:string,args:any)=>{calls.push({name,args});return {data:name==='platform_server_user_workspaces'?[{tenant_id:'tenant',role,is_primary:true}]:name==='get_push_scheduler_secret'?'fake-cron':name==='platform_server_request_player_stats_refresh'?{dispatch,job}:name==='platform_server_player_stats_refresh_status'?job:{ok:true,row:{}},error:null};},
+  rpc:async(name:string,args:any)=>{calls.push({name,args});return {data:name==='platform_server_user_workspaces'?[{tenant_id:'tenant',role,is_primary:true}]:name==='platform_server_personal_home_commands'?{commands:[{command_id:'player_stats_review:review',source_type:'player',player_id:'player',command_type:'Player statistics suggested',actionability:{mode:'review_only',cta:'Review suggested figures'}}],player_reviews_has_more:true}:name==='get_push_scheduler_secret'?'fake-cron':name==='platform_server_request_player_stats_refresh'?{dispatch,job}:name==='platform_server_player_stats_refresh_status'?job:{ok:true,row:{}},error:null};},
   from:(table:string)=>{
    const query:any={select:()=>query,eq:()=>query,in:()=>query,order:()=>query,limit:()=>query,maybeSingle:async()=>({data:table==='staff_player_access'?{player_id:'player',can_edit:true}:table==='players'?(allowed?{...player}:null):table==='player_public_profiles'?(published?{player_id:player.id,key_stats:[],hidden_sections:[],hide_market_value:true}:null):table==='player_cv_settings'?cvSettings:null,error:null}),update:(value:any)=>{writes.push({table,value});return query;},then:(resolve:any)=>Promise.resolve({data:table==='career_entries'?structuredClone(careerRows):[],error:null}).then(resolve)};
    return query;
@@ -146,4 +146,10 @@ test('repeat rejected evidence is retained as rejected with no freshness claim',
  globalThis.fetch=async()=>new Response(JSON.stringify({refresh_ok:true,ai:{review_id:'review',review_status:'rejected'}}));
  await handler.fetch(request());await Promise.all(background);
  const final=writes.find(write=>write.value.status==='rejected');assert.ok(final);assert.equal(final.value.fresh_at,null);assert.deepEqual(final.value.summary.changed_fields,[]);
+});
+
+test('Home keeps sourced reviews read-only, scopes the trusted actor and exposes bounded-review guidance',async()=>{
+ const response=await handler.fetch(request('home_focus',{user_id:'spoofed',p_user_id:'spoofed'}));assert.equal(response.status,200);
+ const body=await response.json();assert.equal(body.home.attention.player_reviews_has_more,true);assert.equal(body.home.attention.delegable.length,0);assert.equal(body.home.attention.confirm.length,0);assert.equal(body.home.attention.judgement[0].command_type,'Player statistics suggested');
+ const call=calls.find(c=>c.name==='platform_server_personal_home_commands');assert.equal(call.args.p_user_id,'actor');assert.equal(call.args.p_tenant_id,'tenant');assert.equal(background.length,0);assert.equal(writes.length,0);
 });

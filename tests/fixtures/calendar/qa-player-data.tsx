@@ -4,6 +4,7 @@ import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
 // Real profile and data panel. Only the API transport is replaced, with a
 // session-persistent ledger so reload recovery exercises the real UI effects.
 const initial=(scenario:string)=>({
+ access:scenario==='staff-editor'?{restricted:true,can_edit_statistics:true}:undefined,
  player:{id:'qa-data-'+scenario,first_name:'Dylan',last_name:'Gardiner',primary_position:'Centre back',
   current_club:scenario==='missing'?'':'Example FC II',current_league:scenario==='missing'?'':'Regional League',
   current_country:'NZ',current_season_label:scenario==='missing'?'':'2026/27',
@@ -92,7 +93,7 @@ export default function Page({scenario}:{scenario:string}){
   }
   throw new Error('Unexpected fixture action: '+action);
  },[scenario]);
- return <AgencyPlayerProfile playerId={'qa-data-'+scenario} backHref="/qa-command" role={scenario==='scout'?'scout':'owner'}
+ return <AgencyPlayerProfile playerId={'qa-data-'+scenario} backHref="/qa-command" role={scenario==='scout'?'scout':scenario==='staff-editor'?'agent':'owner'}
   fallbackAgency={{support_email:'agency@example.test'}} invoke={invoke} onOpenAction={()=>{}} onOpenIntelligence={()=>{}}/>;
 }
 export const getServerSideProps=async({query}:any)=>({props:{scenario:String(query.scenario||'normal')}});

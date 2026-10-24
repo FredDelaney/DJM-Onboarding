@@ -24,21 +24,27 @@ async function bounded<T>(promise:Promise<T>):Promise<T>{
  try{return await Promise.race([promise,new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('The request is taking longer than expected. Check progress to recover.')),12000);})]);}
  finally{clearTimeout(timer);}
 }
-export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onChanged,onReview,hasCustomStats=false,onUseRecordedStats,blocked=false,statusVersion=0,managedRefresh=false}:{
- player:any;career:any[];canEdit:boolean;invoke:Invoke;onChanged:()=>Promise<boolean|void>;onReview:()=>void;
+export default function AgencyPlayerDataPanel({player,career,canEdit,canVerify=canEdit,invoke,onChanged,onReview,hasCustomStats=false,onUseRecordedStats,blocked=false,statusVersion=0,managedRefresh=false}:{
+ player:any;career:any[];canEdit:boolean;canVerify?:boolean;invoke:Invoke;onChanged:()=>Promise<boolean|void>;onReview:()=>void;
  hasCustomStats?:boolean;onUseRecordedStats?:()=>Promise<void>;blocked?:boolean;statusVersion?:number;managedRefresh?:boolean;
 }){
  const playerId=String(player.id);
  const managedRefreshRef=useRef(managedRefresh);managedRefreshRef.current=managedRefresh;
  const row=useMemo(()=>selectCurrentSeasonEvidence(career,player),[career,player]);
  const [job,setJob]=useState<Job|null>(null),[starting,setStarting]=useState(false),[checking,setChecking]=useState(false);
+ const [statusReady,setStatusReady]=useState(false);
  const [review,setReview]=useState<StatsReview|null>(null),[reviewEditor,setReviewEditor]=useState<string|null>(null);
  const reviewRef=useRef<StatsReview|null>(null),reviewEditorRef=useRef<string|null>(null);
  reviewEditorRef.current=reviewEditor;
  const [editing,setEditing]=useState(false),[saving,setSaving]=useState(false),[draft,setDraft]=useState<SeasonDraft>(()=>seasonDraft(player,row));
  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[uncertain,setUncertain]=useState(false);
  const alive=useRef(true),jobRef=useRef<Job|null>(null),requestId=useRef<string|null>(null),mutation=useRef(false),statusGeneration=useRef(0);
- const formRef=useRef<HTMLFormElement>(null);
+ const formRef=useRef<HTMLFormElement>(null),panelRef=useRef<HTMLElement>(null),anchored=useRef(false);
+ useEffect(()=>{
+  if(anchored.current||!statusReady||window.location.hash!=='#player-data')return;
+  anchored.current=true;
+  panelRef.current?.focus({preventScroll:true});panelRef.current?.scrollIntoView({behavior:'instant',block:'start'});
+ },[statusReady]);
  const setCurrentJob=(value:Job|null)=>{jobRef.current=value;setJob(value);};
  const readStatus=useCallback(async()=>{
   const generation=++statusGeneration.current;
@@ -48,18 +54,20 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    if(!alive.current||generation!==statusGeneration.current)return;
    const next=response?.job||null;
    const nextReview=response?.review||null;
+   const initiallyResolved=!reviewRef.current&&nextReview&&['accepted','rejected'].includes(nextReview.status);
    const resolved=reviewRef.current?.status==='needs_review'&&nextReview?.id===reviewRef.current.id&&['accepted','rejected'].includes(nextReview.status);
    reviewRef.current=nextReview;setReview(nextReview);
+   if(initiallyResolved&&window.location.hash==='#player-data')setNotice('This statistics update has already been reviewed. Recorded figures are shown above.');
    if(resolved){
     if(reviewEditorRef.current===nextReview.id){setEditing(false);setReviewEditor(null);}
-    setNotice(nextReview.status==='rejected'?'Suggested update rejected. Recorded statistics are unchanged.':'Reviewed statistics saved. Review before verifying.');
+    setNotice(nextReview.status==='rejected'?'Suggested update rejected. Recorded statistics are unchanged.':(canVerify?'Reviewed statistics saved. Review before verifying.':'Reviewed statistics saved. An agency admin must verify before publishing.'));
    }
    const finished=pending(jobRef.current)&&next&&!pending(next);
    setCurrentJob(next);setUncertain(false);setError('');
    if(finished||resolved){requestId.current=null;if(!managedRefreshRef.current){const reloaded=await onChanged();if(alive.current&&generation===statusGeneration.current&&reloaded===false)setError('Update finished, but player data could not reload. Try again.');}}
   }catch(failure){if(alive.current&&generation===statusGeneration.current){setUncertain(true);setError(friendlyError(failure));}}
-  finally{if(alive.current&&generation===statusGeneration.current)setChecking(false);}
- },[invoke,onChanged,playerId]);
+  finally{if(alive.current&&generation===statusGeneration.current){setChecking(false);setStatusReady(true);}}
+ },[invoke,onChanged,playerId,canVerify]);
  useEffect(()=>{
   alive.current=true;void readStatus();
   return()=>{alive.current=false;++statusGeneration.current;};
@@ -102,7 +110,7 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
    if(response?.ok!==true||response.review_id!==current.id||response.status!==(decision==='reject'?'rejected':'accepted'))throw new Error('The review result could not be confirmed. Reload player data before trying again.');
    const resolved={...current,status:response.status};reviewRef.current=resolved;setReview(resolved);
    setEditing(false);setReviewEditor(null);setUncertain(false);
-   setNotice(decision==='reject'?'Suggested update rejected. Recorded statistics are unchanged.':'Reviewed statistics saved. Review before verifying.');
+   setNotice(decision==='reject'?'Suggested update rejected. Recorded statistics are unchanged.':(canVerify?'Reviewed statistics saved. Review before verifying.':'Reviewed statistics saved. An agency admin must verify before publishing.'));
    if(await onChanged()===false)throw new Error('Your review was saved, but player data could not reload. Try again.');
   }catch(failure){if(alive.current){setUncertain(true);setError(reviewFailure(failure));}}
   finally{mutation.current=false;if(alive.current)setSaving(false);}
@@ -131,9 +139,9 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
  const busy=starting||saving||pending(job);
  const currentJobContext=!job?.context||matchesCurrentSeasonContext(job.context,player);
  const field=(key:keyof SeasonDraft,value:string|boolean)=>setDraft(current=>({...current,[key]:value}));
- return <section className={styles.panel} aria-label="Player data">
+ return <section id="player-data" ref={panelRef} tabIndex={-1} className={styles.panel} aria-label="Player data">
   <header className={styles.header}>
-   <div><span className={styles.kicker}>PLAYER DATA</span><h3>Current-season statistics</h3><p>{[player.current_season_label,player.current_club,player.current_league].filter(Boolean).join(' · ')||'Add the season, club and competition to start.'}</p></div>
+   <div><span className={styles.kicker}>{[player.first_name,player.last_name].filter(Boolean).join(' ') || player.preferred_name || 'Player'} · Player data</span><h3>Current-season statistics</h3><p>{[player.current_season_label,player.current_club,player.current_league].filter(Boolean).join(' · ')||'Add the season, club and competition to start.'}</p></div>
    {canEdit?<button type="button" data-ui-button="secondary" className={styles.update} onClick={()=>void startRefresh()} disabled={busy||editing||blocked||!contextReady||uncertain||review?.status==='needs_review'} aria-describedby={!contextReady?contextHintId:undefined}>
     {busy?<LoaderCircle size={15} className={styles.spin}/>:<RefreshCw size={15}/>}
     {starting?'Starting update...':pending(job)?'Updating statistics...':'Update statistics'}
@@ -143,9 +151,9 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
   <div className={styles.stats} aria-label="Season statistics">{PLAYER_STAT_FIELDS.map(key=><div key={key}><span>{labels[key]}</span><strong aria-label={row?.[key]==null||row?.[key]===''?labels[key]+' not available':undefined} className={row?.[key]==null||row?.[key]===''?styles.unknown:undefined}>{number(row?.[key])}</strong></div>)}</div>
   {pending(job)?<JourneyStatus compact kind="loading" title="Checking current-season sources" description="You can keep using the profile while this finishes."/>:job?.summary?.message&&(job.status==='failed'||!currentJobContext)?<JourneyStatus compact kind="warning" title={!currentJobContext?'Season details changed':'Update needs attention'} description={currentJobContext?job.summary.message:'Update the statistics to check the current season and club.'}/>:null}
   {canEdit&&review?.status==='needs_review'?<section className={styles.review} aria-label="Review suggested statistics">
-   <div className={styles.formHeading}><h4>New figures to review</h4><p>Recorded statistics have not changed. Check the player, season and sources before accepting.</p></div>
+   <div className={styles.formHeading}><h4>New figures to review</h4><p>Compare the suggestion with the current figures above. Check the player, season and sources before accepting.</p></div>
    <p className={styles.reviewContext}>{[review.context.season_label,review.context.club_name,review.context.league].filter(Boolean).join(' · ')}</p>
-   <table className={styles.comparison}><caption>Recorded and suggested season statistics</caption><thead><tr><th scope="col">Statistic</th><th scope="col">Recorded</th><th scope="col">Suggested</th></tr></thead><tbody>
+   <table className={styles.comparison}><caption>Figures at the source check and suggested update</caption><thead><tr><th scope="col">Statistic</th><th scope="col">At check</th><th scope="col">Suggested</th></tr></thead><tbody>
     {PLAYER_STAT_FIELDS.map(key=><tr key={key} data-changed={review.before[key]!==review.proposed[key]||undefined}><th scope="row">{labels[key]}</th><td>{review.before[key]==null?'Unknown':number(review.before[key])}</td><td>{review.proposed[key]==null?'Unknown':number(review.proposed[key])}</td></tr>)}
    </tbody></table>
    <div className={styles.reviewSources}>{(review.sources||[]).map((source,index)=>safeSourceUrl(source.url)?<a key={source.url} href={safeSourceUrl(source.url)!} target="_blank" rel="noreferrer">{source.title||'Source '+(index+1)} <ExternalLink size={12}/></a>:null)}{review.checked_at?<span>Checked {compactDateTime(review.checked_at)}</span>:<span>Source date not recorded</span>}</div>
@@ -173,7 +181,7 @@ export default function AgencyPlayerDataPanel({player,career,canEdit,invoke,onCh
   {!editing?<div className={styles.actions}>
    {canEdit?<button type="button" data-ui-button="secondary" onClick={openEditor} disabled={busy||blocked||uncertain}><Pencil size={14}/>{row?'Edit current statistics':'Add season statistics'}</button>:null}
    {pending(job)||uncertain?<button type="button" data-ui-button="secondary" onClick={()=>void readStatus()} disabled={checking}>{checking?'Checking...':'Check progress'}</button>:null}
-   {canEdit&&(player.review_required_at||player.review_reason)?<button type="button" data-ui-button="secondary" onClick={onReview} disabled={busy||blocked}>Review current player data</button>:null}
+   {canVerify&&(player.review_required_at||player.review_reason)?<button type="button" data-ui-button="secondary" onClick={onReview} disabled={busy||blocked}>Review current player data</button>:null}
   </div>:<form ref={formRef} className={styles.form} onSubmit={event=>{event.preventDefault();void save();}} aria-label="Edit current-season statistics">
    <div className={styles.formHeading}><h4>{reviewEditor?'Correct the suggested statistics':row?'Correct the current statistics':'Add season statistics'}</h4><p>{reviewEditor?'Review the suggested figures and source. The season and club stay fixed for this update.':'Set the current season. Keep league and cup figures separate.'}</p></div>
    <div className={styles.fields}>{(['season_label','club_name','league','country'] as const).map(key=><label key={key}>{({season_label:'Season',club_name:'Club',league:'Competition',country:'Country'})[key]}<input readOnly={Boolean(reviewEditor)} value={draft[key]} onChange={event=>field(key,event.target.value)} required={key!=='country'} maxLength={key==='season_label'?40:key==='country'?100:180}/></label>)}</div>
