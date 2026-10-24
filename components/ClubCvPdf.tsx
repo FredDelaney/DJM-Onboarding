@@ -2109,6 +2109,11 @@ export async function downloadClubCv({
   logoUrl,
   filename,
 }: DownloadArgs) {
+  // Reuse the document exporters' bounded image conversion. SVG logos can
+  // contain browser CSS font stacks that React PDF cannot render directly.
+  const exportLogo = logoUrl
+    ? await (await import('@/lib/document-logo')).documentLogo(logoUrl)
+    : undefined;
   const pdfDocument =
   (
     <ClubCvPdfDocument
@@ -2118,7 +2123,7 @@ export async function downloadClubCv({
         photoUrl || null
       }
       logoUrl={
-        logoUrl || null
+        exportLogo?.dataUrl || null
       }
     />
   );
