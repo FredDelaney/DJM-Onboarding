@@ -1,6 +1,6 @@
 # Calendar recorded-date recovery
 
-Scope: PLY-03 / UI-09. Frontend only, stacked on PR 259 at `9a11378172cfc186cc2a3e7e3ac0c9b3b5f2e3d4`. Preserve every broader programme gate.
+Scope: PLY-03 / UI-09. Draft PR 260, product `06c0ca890cb27f22156cab4da0cfd73964678be1`. Frontend only, stacked on PR 259 at `9a11378172cfc186cc2a3e7e3ac0c9b3b5f2e3d4`. Preserve every broader programme gate.
 
 ## Reproduced failure and narrow repair
 
@@ -21,3 +21,11 @@ Frontend only: Vercel project `prj_uMBOnfwXjmglJXpJblkGqNrDWAmK`, team `jesseedg
 Immediate rollback: `dpl_Bb6ZrEQgQjLnpjBNxmxudP8JbbR3`, product `be01d770c9625d3eeb765ece9fc1191dd7fa60c4`. Existing agency-os 61/statistics 14/public 9 and installed migrations remain as recorded in `redream-player-details-review.md`. Never replay the excluded September migration or installed history.
 
 Read-only hosted acceptance must use existing Marcus Bell (`25be93d4-7dff-4086-94d9-5ffd3f6d6b0f`) under Northstar owner context: correct 28 November marker/day row and Agenda, same-tenant player handoff, mobile/desktop bounds and scrolling. Recheck original seven-player hash `6e9392dc6b3dc877bfb90c47aeedbb93`. No F1 recreation is needed. Actual ordinary-staff, provider, physical iPhone/Safari and independent-agency acceptance remain open.
+
+## Rollout checkpoint
+
+Exact staging build `dpl_6khPdwBHGb6zy7tdN1JjxUDgyH3M` is READY on the canonical staging alias, reread at product `06c0ca890cb27f22156cab4da0cfd73964678be1`. Immediate rollback remains `dpl_Bb6ZrEQgQjLnpjBNxmxudP8JbbR3`. Actual signed-in owner Month marker/day row and Agenda contain the unchanged 28 November expiry. Open player resolves Marcus Bell within Northstar; the profile header confirms the same date. Desktop 1459px and responsive Chrome 390x844 show zero document overflow; the mobile player link is 44x44px and the row is reachable above the fixed navigation. Screenshots: `calendar/hosted-recorded-expiry-desktop.png`, `calendar/hosted-recorded-expiry-390.png`. These do not establish physical-device or ordinary-staff acceptance. Matching CI run `40124363629` is in progress. Parent PR 259 at `9a11378172cfc186cc2a3e7e3ac0c9b3b5f2e3d4` passes verify and full browser CI on run `40122962486`. Fresh staging read-only baseline confirms all seven player rows retain the original hash, removed F1 remains absent, and the owner/header-scoped reader still returns the exact 28 November timestamp.
+
+Hosted Agenda also exposed a separate selection-strip issue: Month -> Agenda showed days 1-7 while the selected record was on 28 November. The existing scroll effect now also responds to view changes. The expanded existing browser check asserts the selected day is within the strip at all four widths in both zones; both Calendar suites pass. Before screenshot: `calendar/hosted-agenda-selection-before-390.png`. Final follow-up `npm run check` passes all 2,080 tests, every TypeScript project, production build and 144,096 / 150,000 gzip budget. A matching final build/hosted recheck and exact-head CI are still required. The existing CI artifact now includes the Calendar screenshots, without weakening any check.
+
+The hosted 768px date picker is also accepted: x=449.55px, width=200px, right=649.55px, page scrollWidth=768px. Screenshot: `calendar/hosted-date-picker-768.png`. Viewport was restored after the check. Immediate recovery target for the selection-strip follow-up is now `dpl_6khPdwBHGb6zy7tdN1JjxUDgyH3M` / `06c0ca890cb27f22156cab4da0cfd73964678be1`; the pre-Calendar rollback above remains available. No backend rollout or data write is involved.

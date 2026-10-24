@@ -184,6 +184,13 @@ try{
    await month.getByRole('button',{name:'Saturday, 28 November 2026',exact:true}).click();
    if(width===390)await recorded.screenshot({path:'/tmp/redream-platform-programme/calendar/recorded-dates-'+zone.replaceAll('/','-')+'-390.png',fullPage:false});
    await recorded.getByRole('button',{name:'Agenda',exact:true}).click();
+   await recorded.waitForFunction(()=>{
+    const strip=document.querySelector('[aria-label="Choose a day"]');
+    const selected=strip?.querySelector('[aria-pressed="true"]');
+    if(!strip||!selected)return false;
+    const outer=strip.getBoundingClientRect(),day=selected.getBoundingClientRect();
+    return day.left>=outer.left&&day.right<=outer.right;
+   },undefined,{timeout:5000});
    for(const title of ['Recorded contract expiry','Recorded agency agreement','Recorded document expiry'])await recorded.getByRole('article').filter({hasText:title}).waitFor();
    assert.equal(await recorded.getByRole('article').filter({hasText:'Shared unscheduled follow-up'}).count(),0,'Undated shared work stays in No date, not an overdue agenda row');
    await recorded.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth,undefined,{timeout:5000});
