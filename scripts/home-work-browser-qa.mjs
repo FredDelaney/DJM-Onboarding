@@ -23,9 +23,10 @@ try{
   if(body.action==='tenants')response={tenants:[{tenant_id:'qa-tenant',slug:'qa',role:'owner',display_name:'QA agency'}]};
   else if(body.action==='home_focus')response={home:{attention:{judgement:[
    ...(work.status==='open'?[{command_id:'player_action:'+player,command_type:'Player follow-up due',source_type:'player',source_id:player,title:'Lachlan Sattout',due_at:work.due_at,evidence:{next_action:work.title,next_action_due:work.due_on},actionability:{mode:'review_only',cta:'Review'}}]:[]),
-   ...(legacy.status==='open'?[{command_id:'task:'+task,source_type:'task',source_id:task,title:contextMode?contextTitle+' · Dylan'+(contextCopies>1?' (2 active copies)':''):legacy.display_title,...(contextMode?{task_title:contextTitle}:{}),due_at:legacy.due_at,evidence:{task_count:contextCopies,...(contextMode?{tasks:[{task_id:task,...legacy.context,updated_at:legacy.state.version},...(contextCopies>1?[{task_id:'60000000-0000-4000-8000-000000000002'}]:[])]}:{})},actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[]),
+   ...(legacy.status==='open'?[{command_id:'task:'+task,source_type:'task',source_id:task,priority_score:contextMode?95:0,title:contextMode?contextTitle+' · Dylan'+(contextCopies>1?' (2 active copies)':''):legacy.display_title,...(contextMode?{task_title:contextTitle}:{}),due_at:legacy.due_at,evidence:{task_count:contextCopies,...(contextMode?{tasks:[{task_id:task,...legacy.context,updated_at:legacy.state.version},...(contextCopies>1?[{task_id:'60000000-0000-4000-8000-000000000002'}]:[])]}:{})},actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[]),
    {command_id:'player-review',command_type:'Player review required',source_type:'player',source_id:player,player_id:player,title:'Review Dylan data',evidence:{review_reason:'Career statistics changed'},actionability:{mode:'review_only',cta:'Review player data'}}
   ]}}};
+  else if(path.endsWith('/redream_autopilot_operations'))response={deadlines:{items:contextMode?Array.from({length:5},(_,i)=>({item_id:'qa-date-'+i,title:'Recorded agency date '+(i+1),deadline_at:'2026-09-01T12:00:00Z'})):[]}};
   else if(path.endsWith('/redream_assigned_work_page_v1'))response={items:work.status==='open'?[{work_kind:work.work_kind,work_id:player,title:work.display_title,due_at:work.due_at,date_only:true,responsible_people:[{user_id:member,display_name:'Jesse Edge'}]}]:[],next_cursor:null};
   else if(path.endsWith('/redream_work_responsibility_v1'))response={user_ids:[member],people:[{user_id:member,display_name:'Jesse Edge'}],revision:1};
   else if(path.endsWith('/redream_home_work_v1')){
@@ -108,6 +109,7 @@ try{
  await page.reload();
  const labelledTitle=contextTitle+' · Dylan';
  const labelled=()=>page.locator('article').filter({hasText:labelledTitle});
+ // Five overdue calendar rows must not crowd a genuinely high-priority task out of Home.
  await labelled().getByRole('button',{name:'Complete '+labelledTitle,exact:true}).click();
  await page.getByRole('button',{name:'Undo completion of '+labelledTitle,exact:true}).waitFor();
  assert.equal(await panel.count(),0,'A player label must not trigger a false task-changed editor');

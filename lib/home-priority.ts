@@ -41,3 +41,10 @@ export function homeCommandCategory(command: HomeCommand, now = new Date()): Hom
   if (/\b(opportunity|club need|player match|pitch|send player|recruit|route|interest|looking for|requirement)\b/i.test(text)) return 'Opportunity detected';
   return 'Needs action now';
 }
+
+// Server decision-policy priorities use 0-100; the Home queue reserves 0-9,000
+// points within each category for commands, dates, meetings and aftercare.
+export function homePriorityWeight(value: unknown): number {
+  const score = Number(value);
+  return Number.isFinite(score) ? Math.min(100, Math.max(0, score)) * 90 : 0;
+}
