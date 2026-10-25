@@ -29,6 +29,7 @@ try{
   await preview.getByText('Contract until 30 Jun 2027',{exact:true}).waitFor();
   assert.equal(await preview.locator('.dossier-photo').count(),0,'Missing portraits reserve no empty panel');
   assert.equal(await preview.locator('.dossier-hero-no-photo').count(),1);
+  assert.equal(await preview.locator('.dossier-hero').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(36, 20, 61)','The club hero uses the agency primary colour');
   assert.ok(await preview.evaluate(node=>node.scrollWidth<=node.clientWidth+1),'Dossier has no horizontal overflow at '+width);
   await preview.getByRole('link',{name:'Watch footage',exact:true}).waitFor();
   await preview.getByRole('link',{name:'Transfermarkt',exact:true}).first().waitFor();
@@ -90,10 +91,21 @@ try{
   await share.getByText('Club share ready.',{exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>window.qaProfileShareCreates),2,'Only the explicit retry sends a second request');
   await share.getByRole('button',{name:'Copy message',exact:true}).waitFor();
+  await page.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='Close');
   await page.keyboard.press('Escape');await share.waitFor({state:'hidden'});
   assert.equal(await shareOpener.evaluate(node=>node===document.activeElement),true);
   assert.equal(await page.evaluate(()=>window.scrollY),shareScroll,'Closing sharing restores background position');
   await page.close();
  }
+ const light=await browser.newPage({viewport:{width:390,height:844}});
+ const lightUrl=new URL(process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow');
+ lightUrl.search='?view=players&player=qa-player-0&profile=1&scenario=populated-light-brand';
+ await light.goto(lightUrl.href);await light.getByRole('button',{name:'Preview Player Profile',exact:true}).click();
+ const background=await light.locator('.dossier-hero').evaluate(node=>getComputedStyle(node).backgroundColor);
+ const hex='#'+background.match(/\d+/g).slice(0,3).map(value=>Number(value).toString(16).padStart(2,'0')).join('');
+ const {brandContrastRatio}=await import('../lib/tenant-brand-style.ts');
+ assert.ok(brandContrastRatio(hex,'#FFFFFF')>=7,'Light agency colours retain a readable dossier hero');
+ assert.ok(await light.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ await light.close();
  console.log('Profile tools and club preview: viewport bounds, independent scroll, toolbar, focus isolation/wrap/Escape/return, reopening and four widths passed');
 }finally{await browser.close();}

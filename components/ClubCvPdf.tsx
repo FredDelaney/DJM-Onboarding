@@ -24,6 +24,7 @@ import {
   dossierPositionMap,
   dossierVerifiedDate,
 } from '@/lib/dossier';
+import { readableBrandInk, foregroundForBrandColour, brandContrastRatio } from '@/lib/tenant-brand-style';
 import {
   researchSourceLabel,
   sameResearchUrl,
@@ -877,11 +878,9 @@ export function ClubCvPdfDocument({
       : fallback;
   };
 
-  const primaryColor =
-    cleanBrandColour(
-      agency?.primary_color,
-      NAVY,
-    );
+  const primaryColor = readableBrandInk(
+    cleanBrandColour(agency?.primary_color, NAVY), '#FFFFFF', 7,
+  );
 
   const accentColor =
     cleanBrandColour(
@@ -900,14 +899,14 @@ export function ClubCvPdfDocument({
           accentColor,
       },
       accentText: {
-        color: accentColor,
+        color: brandContrastRatio(accentColor, primaryColor) >= 4.5 ? accentColor : WHITE,
       },
       logoFallback: {
         backgroundColor:
           accentColor,
       },
       logoFallbackText: {
-        color: primaryColor,
+        color: foregroundForBrandColour(accentColor),
       },
       primaryText: {
         color: primaryColor,
@@ -919,7 +918,7 @@ export function ClubCvPdfDocument({
       contactEmail: {
         backgroundColor:
           accentColor,
-        color: primaryColor,
+        color: foregroundForBrandColour(accentColor),
       },
     });
 

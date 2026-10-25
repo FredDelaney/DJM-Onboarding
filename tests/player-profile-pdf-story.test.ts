@@ -12,6 +12,7 @@ async function withDocument(run: (build: (args: any) => any) => Promise<void>) {
   const dir = mkdtempSync(resolve('node_modules/.profile-pdf-test-'));
   try {
     const source = readFileSync('components/ClubCvPdf.tsx', 'utf8')
+      .replaceAll("'@/lib/tenant-brand-style'", JSON.stringify(pathToFileURL(resolve('lib/tenant-brand-style.ts')).href))
       .replaceAll("'@/lib/dossier'", JSON.stringify(pathToFileURL(resolve('lib/dossier.ts')).href))
       .replaceAll("'@/lib/research-links'", JSON.stringify(pathToFileURL(resolve('lib/research-links.ts')).href));
     writeFileSync(dir + '/component.mjs', transpileModule(source, {compilerOptions: {module: ModuleKind.ESNext, jsx: JsxEmit.ReactJSX}}).outputText);
@@ -107,4 +108,21 @@ test('PDF shows the approved contract expiry and avoids a duplicate identity hea
       assert.ok(!collect(build({profile: {...base, contract_expiry: expiry}})).includes('Contract until'));
     }
   });
+});
+
+
+test('PDF hero uses a readable agency colour and readable evaluation links',async()=>{
+ await withDocument(async build=>{
+  for(const primary of ['#24143D','#FFFFFF','#FFCC00']){
+   const document=build({profile:{...base,primary_video_url:'https://example.test/footage'},agency:{primary_color:primary,accent_color:'#111827'}});
+   const hero=document.props.children[0].props.children[0];
+   const {brandContrastRatio,readableBrandInk}=await import('../lib/tenant-brand-style.ts');
+   const background=hero.props.style[1].backgroundColor;
+   assert.equal(background,readableBrandInk(primary,'#FFFFFF',7));
+   assert.ok(brandContrastRatio(background,'#FFFFFF')>=7);
+   const nodes=(node:any):any[]=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(nodes):[node,...nodes(node.props?.children)];
+   const link=nodes(hero).find((node:any)=>node.props?.src==='https://example.test/footage');
+   assert.ok(link);assert.ok(brandContrastRatio(background,link.props.style[1].color)>=4.5);
+  }
+ });
 });

@@ -585,6 +585,11 @@ export default function AgencyPlayerProfile({
   const [shareExpiry, setShareExpiry] = useState('30');
   const [shareResultUrl, setShareResultUrl] = useState('');
   const [shareResultMessage, setShareResultMessage] = useState('');
+  useEffect(() => {
+    if (shareOpen && shareResultUrl && !previewOpen && actionBusy !== 'share') {
+      shareDialog.current?.querySelector<HTMLElement>('button[aria-label="Close"]')?.focus({preventScroll: true});
+    }
+  }, [shareOpen, shareResultUrl, previewOpen, actionBusy]);
   const [shareVersionId, setShareVersionId] = useState('');
   const [showOlderLinks, setShowOlderLinks] = useState(false);
   const [versions, setVersions] = useState<ProfileVersion[]>([]);

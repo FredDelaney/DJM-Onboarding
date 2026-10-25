@@ -32,6 +32,7 @@ import {
   dossierPositionMap,
   dossierVerifiedDate,
 } from '@/lib/dossier';
+import { readableBrandInk, foregroundForBrandColour } from '@/lib/tenant-brand-style';
 import {
   researchSourceLabel,
   sameResearchUrl,
@@ -111,13 +112,11 @@ export default function PublicProfile({
       .slice(0, 3)
       .toUpperCase();
 
+  const accentColor = agency?.accent_color || '#f5e900';
   const dossierStyle = {
-    '--navy':
-      agency?.primary_color ||
-      '#061f3a',
-    '--yellow':
-      agency?.accent_color ||
-      '#f5e900',
+    '--navy': readableBrandInk(agency?.primary_color || '#061f3a', '#FFFFFF', 7),
+    '--yellow': accentColor,
+    '--on-accent': foregroundForBrandColour(accentColor),
   } as any;
 
   const photo =

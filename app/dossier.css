@@ -32,13 +32,7 @@
     0
     58px;
 
-  background:
-    linear-gradient(
-      145deg,
-      #04182d 0%,
-      #061f3a 58%,
-      #0a3157 100%
-    );
+  background: var(--navy, #061f3a);
 
   color: #fff;
 }
@@ -349,11 +343,8 @@
 }
 
 .dossier-hero-btn-primary {
-  background:
-    var(--yellow);
-
-  color:
-    var(--navy);
+  background: var(--yellow);
+  color: var(--on-accent, #111827);
 }
 
 .dossier-hero-btn-secondary {
