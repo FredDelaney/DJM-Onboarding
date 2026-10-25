@@ -22,8 +22,12 @@ export function captureOutcomeLinks(
     if (action.status !== "applied" || !validId.test(action.target_id || ""))
       continue;
     const id = action.target_id;
-    if (action.target_type === "task")
-      links.push({ label: "View follow-ups", href: base + "?view=calendar" });
+    if (action.target_type === "task") {
+      const kind = action.resolved_payload?.task_kind ?? 'task';
+      const title = action.resolved_payload?.task_title || action.resolved_payload?.title;
+      if (kind === 'task' || kind === 'calendar_task')
+        links.push({ label: typeof title==='string'&&title.trim()?"Open follow-up: "+title.trim():"Open follow-up", href: base + "?view=calendar&work=" + kind + "&task=" + id });
+    }
     else if (action.target_type === "player")
       links.push({
         label: "Open player",

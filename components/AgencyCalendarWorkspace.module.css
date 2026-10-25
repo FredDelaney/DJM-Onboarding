@@ -937,6 +937,9 @@
 
 /* Keep daily work close to the top on a phone. */
 .jumpDisclosure{position:relative;min-width:0;}
+.workFeedback{position:fixed;bottom:24px;right:24px;width:min(480px,calc(100% - 48px));z-index:210;pointer-events:none;}
+.workFeedback>div{pointer-events:auto;box-shadow:0 8px 30px #162d4820;}
+@media(max-width:680px){.workFeedback{left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));width:auto;}}
 .jumpDisclosure summary{display:flex;align-items:center;min-height:44px;cursor:pointer;color:#31546a;font-size:13px;}
 .jumpDisclosure[open] .dateJump{position:absolute;top:100%;right:0;z-index:2;padding:12px;background:white;border:1px solid #dce5eb;border-radius:12px;box-shadow:0 8px 24px #16354b14;min-width:200px;}
 .calendarControls{column-gap:12px;row-gap:10px;grid-template-columns:minmax(0,1fr) auto;}

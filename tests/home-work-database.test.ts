@@ -11,6 +11,7 @@ const agent = '10000000-0000-4000-8000-000000000002';
 const colleague = '10000000-0000-4000-8000-000000000003';
 const player = '30000000-0000-4000-8000-000000000001';
 const task = '60000000-0000-4000-8000-000000000001';
+const capture = '80000000-0000-4000-8000-000000000001';
 const migration = readdirSync('supabase/migrations').find(name => name.endsWith('_home_task_completion.sql'))!;
 async function value(sql: string, params: any[] = []): Promise<any> {
   return Object.values((await db.query(`select ${sql}`, params)).rows[0])[0];
@@ -45,9 +46,33 @@ before(async () => {
   for (const name of ['20261004125332_calendar_workspace_tasks_v1.sql','20261004134529_calendar_task_owner_edit_guard.sql','20261012074747_shared_work_responsibility_v1.sql','20261012075754_agency_reminder_responsibility_v1.sql','20261012083123_assigned_work_paging_v1.sql',migration]) {
     await db.exec(readFileSync(`supabase/migrations/${name}`,'utf8'));
   }
+  await db.exec(readFileSync('supabase/migrations/20261025073833_normalise_active_followup_state.sql','utf8'));
+  // Exercise the actual Home and Tell task writers in the same PostgreSQL
+  // instance. Capture/auth transport is fixture infrastructure; no model call.
+  await db.exec(`
+    create table djm_os.captures(id uuid primary key,tenant_id uuid,submitted_by uuid,transcript_text text);
+    create table djm_os.tell_djm_permissions(tenant_id uuid,user_id uuid,is_enabled boolean);
+    create table public.notification_preferences(user_id uuid,timezone text);
+    create table djm_os.tell_djm_actions(id uuid primary key default gen_random_uuid(),tenant_id uuid,capture_id uuid,action_hash text,action_index integer,action_type text,status text,confidence numeric,evidence text,proposed_payload jsonb,resolved_payload jsonb,target_type text,target_id uuid,before_json jsonb,after_json jsonb,verification_json jsonb,undo_supported boolean,error_message text,applied_at timestamptz,undone_at timestamptz,updated_at timestamptz,unique(capture_id,action_hash));
+    create table djm_os.events(tenant_id uuid,event_type text,actor_user_id uuid,person_id uuid,organisation_id uuid,player_id uuid,payload jsonb,source text,confidence numeric,occurred_at timestamptz);
+    create function private.user_has_staff_tenant_access(t uuid,u uuid) returns boolean language sql stable as $$select exists(select 1 from platform.tenant_memberships m join platform.tenants x on x.id=m.tenant_id where m.tenant_id=t and m.user_id=u and m.status='active' and x.status='active' and m.role in ('owner','admin','agent','operations','scout'))$$;
+    create function private.tell_request_tenant() returns uuid language sql stable as $$select private.redream_request_tenant()$$;
+    create function private.tell_assert_capture(c uuid,w boolean) returns void language plpgsql as $$begin if not exists(select 1 from djm_os.captures where id=c and tenant_id=private.tell_request_tenant() and submitted_by=auth.uid()) then raise exception 'Capture access denied';end if;end$$;
+    insert into djm_os.tell_djm_permissions values('${tenant}','${agent}',true);
+    insert into public.notification_preferences values('${agent}','Europe/Rome');
+  `);
+  const connected=readFileSync('supabase/migrations/20261022191532_connected_work_and_player_photo_reliability.sql','utf8');
+  for(const name of ['private.redream_task_actor_can_edit','public.redream_ai_update_task','private.redream_ai_undo_task']){
+    const definition=connected.match(new RegExp('create or replace function '+name.replaceAll('.','\\.')+'\\([\\s\\S]*?\\n\\$\\$;'));
+    assert.ok(definition,name);
+    const acl=connected.slice(definition.index!+definition[0].length).match(/^\nrevoke all[\s\S]*?(?=\n\n)/);
+    assert.ok(acl,name+' canonical grants');
+    await db.exec(definition[0]+acl[0]);
+  }
 });
 beforeEach(async () => {
-  await db.exec(`delete from platform.audit_events;delete from platform.work_responsibilities;delete from platform.calendar_tasks;delete from djm_os.tasks;delete from public.players;
+  await db.exec(`delete from platform.audit_events;delete from platform.work_responsibilities;delete from platform.calendar_tasks;delete from djm_os.tasks;delete from public.players;delete from djm_os.tell_djm_actions;delete from djm_os.events;delete from djm_os.captures;
+    insert into djm_os.captures values('${capture}','${tenant}','${agent}','I spoke to the club and completed the call. Reopen the follow-up.');
     insert into public.players(id,tenant_id,primary_staff_user_id,preferred_name,next_action,next_action_due,football_status) values('${player}','${tenant}','${agent}','Dylan','Call the player','2026-10-14','active');
     insert into djm_os.tasks(id,tenant_id,owner_user_id,title,due_at,status,player_id) values('${task}','${tenant}','${agent}','Catch up','2026-10-14T13:30:00Z','open','${player}');
     insert into platform.work_responsibilities values('${tenant}','player_next_action','${player}',array['${agent}'::uuid],1,'${owner}',now());
@@ -155,4 +180,54 @@ test('manual calendar tasks use existing privacy, notes and revision controls', 
   const audit = JSON.stringify((await db.query('select * from platform.audit_events')).rows);
   assert.ok(!audit.includes('Private task')); assert.ok(!audit.includes('Private note')); assert.ok(!audit.includes('Private completion note'));
   await assert.rejects(() => work('calendar_task',created.id,'update',{title:'Stale'},original.work.state),/home_work_conflict/);
+});
+
+async function tellTask(operation:string,key:string){
+ const current=(await db.query<any>('select * from djm_os.tasks where id=$1',[task])).rows[0];
+ return value('public.redream_ai_update_task($1,$2,0,0.99,$3,$4)',[capture,key,operation==='reopen'?'Reopen the follow-up':'I spoke to the club and completed the call',JSON.stringify({task_id:task,task_kind:'task',task_title:current.title,expected_status:current.status,expected_updated_at:current.updated_at,operation,objective_satisfied:true})]);
+}
+test('Tell completion and Undo reconcile the same Home and assigned-work record',async()=>{
+ const original=await work('task',task);
+ const applied=await tellTask('complete','connected-complete');
+ assert.equal((await work('task',task)).work.status,'done');
+ assert.ok(!(await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant])).items.some((item:any)=>item.work_id===task));
+ await assert.rejects(()=>work('task',task,'complete',{},original.work.state),/home_work_conflict/);
+ await value('private.redream_ai_undo_task($1)',[applied.action_id]);
+ const restored=(await work('task',task)).work;
+ assert.equal(restored.status,'open');assert.equal(restored.title,original.work.title);assert.equal(restored.due_at,original.work.due_at);
+ assert.equal(await value('status from djm_os.tell_djm_actions where id=$1',[applied.action_id]),'undone');
+ assert.equal(await value("count(*)::integer from djm_os.events where event_type='REDREAM_AI_TASK_UPDATED'"),1);
+});
+test('in-progress follow-ups remain active in the editor and assignments and Undo preserves their original status',async()=>{
+ await db.query("update djm_os.tasks set status='in_progress' where id=$1",[task]);
+ await db.query("insert into platform.work_responsibilities values($1,'task',$2,$3,1,$4,now())",[tenant,task,[agent],owner]);
+ const current=await work('task',task);
+ assert.equal(current.work.status,'open','In progress is active, not completed');
+ assert.ok((await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant])).items.some((item:any)=>item.work_id===task));
+ const done=await work('task',task,'complete',{},current.work.state);
+ const restored=await work('task',task,'undo',{undo_token:done.undo_token},done.work.state);
+ assert.equal(restored.work.status,'open');
+ assert.equal(await value('status from djm_os.tasks where id=$1',[task]),'in_progress');
+});
+test('a later Tell change prevents Home Undo from overwriting current work',async()=>{
+ const original=await work('task',task);
+ const completed=await work('task',task,'complete',{note:'Club confirmed the trial.'},original.work.state);
+ await tellTask('reopen','connected-reopen');
+ const current=await work('task',task);
+ assert.equal(current.work.status,'open');assert.equal(current.work.note,'Club confirmed the trial.');
+ await assert.rejects(()=>work('task',task,'undo',{undo_token:completed.undo_token},current.work.state),/home_work_undo_conflict/);
+ assert.equal((await work('task',task)).work.status,'open');
+ assert.equal(await value("has_function_privilege('authenticated','public.redream_ai_update_task(uuid,text,integer,numeric,text,jsonb)','execute')"),false);
+});
+
+test('cancelled tasks stay closed and their actual status is available to the receipt viewer',async()=>{
+ await db.query("update djm_os.tasks set status='cancelled' where id=$1",[task]);
+ const cancelled=await work('task',task);
+ assert.equal(cancelled.work.status,'done');assert.equal(cancelled.work.state.original_status,'cancelled');
+ await assert.rejects(()=>work('task',task,'complete',{},cancelled.work.state),/home_work_closed/);
+});
+test('active-state migration preserves canonical reader identity and permissions on replay',async()=>{
+ const read=()=>value("jsonb_agg(jsonb_build_object('oid',oid,'owner',proowner,'acl',proacl::text,'config',proconfig,'body',md5(prosrc)) order by oid) from pg_proc where oid in ('private.home_work_state(text,uuid,uuid,text)'::regprocedure,'private.responsibility_work(text,uuid)'::regprocedure)");
+ const before=await read();await db.exec(readFileSync('supabase/migrations/20261025073833_normalise_active_followup_state.sql','utf8'));assert.deepEqual(await read(),before);
+ for(const name of ['private.home_work_state(text,uuid,uuid,text)','private.responsibility_work(text,uuid)'])assert.equal(await value('has_function_privilege($1,$2,$3)',['authenticated',name,'execute']),false);
 });

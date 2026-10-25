@@ -63,5 +63,6 @@ jobs:
             /tmp/redream-platform-programme/home
             /tmp/redream-platform-programme/club-stats
             /tmp/redream-platform-programme/calendar
+            /tmp/redream-platform-programme/connected-followups
           retention-days: 7
           if-no-files-found: ignore
