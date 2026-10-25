@@ -7,8 +7,9 @@ const task='60000000-0000-4000-8000-000000000001';
 const key=kind=>kind==='task'?task:player;
 const state=title=>({title,status:'open',version:1,note:''});
 let work={work_kind:'player_next_action',work_id:player,title:'Catch up',display_title:'Lachlan Sattout: Catch up',due_on:'2026-10-14',due_at:'2026-10-14',note:'',status:'open',state:state('Catch up')};
-let legacy={...work,work_kind:'task',work_id:task,title:'Call the club',display_title:'Call the club',state:state('Call the club')};
+let legacy={...work,work_kind:'task',work_id:task,title:'Call the club',display_title:'Call the club',state:state('Call the club'),context:{player_id:player,person_id:null,organisation_id:null,club_need_id:null}};
 let undoWork,failWrite=false,delayRead=0;
+let contextMode=false,contextTitle='Call the club',contextCopies=1;
 const writes=[];
 let activePage;
 try{
@@ -22,7 +23,7 @@ try{
   if(body.action==='tenants')response={tenants:[{tenant_id:'qa-tenant',slug:'qa',role:'owner',display_name:'QA agency'}]};
   else if(body.action==='home_focus')response={home:{attention:{judgement:[
    ...(work.status==='open'?[{command_id:'player_action:'+player,command_type:'Player follow-up due',source_type:'player',source_id:player,title:'Lachlan Sattout',due_at:work.due_at,evidence:{next_action:work.title,next_action_due:work.due_on},actionability:{mode:'review_only',cta:'Review'}}]:[]),
-   ...(legacy.status==='open'?[{command_id:'task:'+task,source_type:'task',source_id:task,title:legacy.display_title,due_at:legacy.due_at,evidence:{task_count:1},actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[]),
+   ...(legacy.status==='open'?[{command_id:'task:'+task,source_type:'task',source_id:task,title:contextMode?contextTitle+' · Dylan'+(contextCopies>1?' (2 active copies)':''):legacy.display_title,...(contextMode?{task_title:contextTitle}:{}),due_at:legacy.due_at,evidence:{task_count:contextCopies,...(contextMode?{tasks:[{task_id:task,...legacy.context,updated_at:legacy.state.version},...(contextCopies>1?[{task_id:'60000000-0000-4000-8000-000000000002'}]:[])]}:{})},actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[]),
    {command_id:'player-review',command_type:'Player review required',source_type:'player',source_id:player,player_id:player,title:'Review Dylan data',evidence:{review_reason:'Career statistics changed'},actionability:{mode:'review_only',cta:'Review player data'}}
   ]}}};
   else if(path.endsWith('/redream_assigned_work_page_v1'))response={items:work.status==='open'?[{work_kind:work.work_kind,work_id:player,title:work.display_title,due_at:work.due_at,date_only:true,responsible_people:[{user_id:member,display_name:'Jesse Edge'}]}]:[],next_cursor:null};
@@ -101,7 +102,48 @@ try{
  assert.equal(work.title,'Send the trial details');assert.equal(work.due_on,'2026-10-21');
  await page.getByRole('button',{name:'Undo completion of '+completedTitle,exact:true}).click();
  await row().getByRole('button',{name:'Update',exact:true}).waitFor();
+ // A server-labelled task uses the saved task title for stale-work checks,
+ // while confirmation retains the player context the user actually selected.
+ contextMode=true;legacy={...legacy,status:'open',state:{...legacy.state,status:'open',version:legacy.state.version+1}};
+ await page.reload();
+ const labelledTitle=contextTitle+' · Dylan';
+ const labelled=()=>page.locator('article').filter({hasText:labelledTitle});
+ await labelled().getByRole('button',{name:'Complete '+labelledTitle,exact:true}).click();
+ await page.getByRole('button',{name:'Undo completion of '+labelledTitle,exact:true}).waitFor();
+ assert.equal(await panel.count(),0,'A player label must not trigger a false task-changed editor');
+ await page.getByRole('button',{name:'Undo completion of '+labelledTitle,exact:true}).click();
+ await labelled().getByRole('button',{name:'Update',exact:true}).waitFor();
+ const savedCount=writes.filter(body=>body.p_action==='complete').length;
+ legacy={...legacy,title:'Changed in another session',display_title:'Changed in another session',state:{...legacy.state,title:'Changed in another session',version:legacy.state.version+1}};
+ await labelled().getByRole('button',{name:'Complete '+labelledTitle,exact:true}).click();
+ await panel.waitFor();
+ await panel.getByText('The saved task has changed. Check these details before completing it.',{exact:true}).waitFor();
+ assert.equal(writes.filter(body=>body.p_action==='complete').length,savedCount,'A real canonical title change still requires review');
+ await panel.getByRole('button',{name:'Close task editor',exact:true}).click();
+ contextTitle=legacy.title;await page.reload();
+ const currentLabel=contextTitle+' · Dylan';
+ await page.getByRole('button',{name:'Complete '+currentLabel,exact:true}).waitFor();
+ legacy={...legacy,context:{...legacy.context,player_id:'30000000-0000-4000-8000-000000000002'},state:{...legacy.state,version:legacy.state.version+1}};
+ await page.getByRole('button',{name:'Complete '+currentLabel,exact:true}).click();await panel.waitFor();
+ assert.equal(writes.filter(body=>body.p_action==='complete').length,savedCount,'Changed player context cannot silently complete a task selected for another player');
+ await panel.getByRole('button',{name:'Close task editor',exact:true}).click();
+ legacy={...legacy,context:{...legacy.context,player_id:player}};await page.reload();
+ await page.getByRole('button',{name:'Complete '+currentLabel,exact:true}).waitFor();
+ legacy={...legacy,note:'A newer saved note',state:{...legacy.state,note:'A newer saved note',version:legacy.state.version+1}};
+ await page.getByRole('button',{name:'Complete '+currentLabel,exact:true}).click();await panel.waitFor();
+ assert.equal(await panel.getByLabel('Note (optional)',{exact:true}).inputValue(),'A newer saved note');
+ assert.equal(writes.filter(body=>body.p_action==='complete').length,savedCount,'An updated record version still requires review when title and date match');
+ await panel.getByRole('button',{name:'Close task editor',exact:true}).click();
+ contextTitle=legacy.title;contextCopies=2;await page.reload();
+ const groupedTitle=contextTitle+' · Dylan (2 active copies)';
+ const grouped=page.locator('article').filter({hasText:groupedTitle});
+ await grouped.waitFor();
+ assert.equal(await grouped.getByRole('button',{name:'Complete '+groupedTitle,exact:true}).count(),0,'Grouped work never gets a direct task-completion tick');
+ const details=grouped.locator('summary').filter({hasText:/^Details$/});
+ await details.click();
+ assert.equal(await details.evaluate(node=>node.parentElement.open),true);
+ assert.equal(writes.filter(body=>body.p_action==='complete').length,savedCount,'Possible copies stay in the existing review flow without completing a saved task');
  assert.deepEqual(errors,[]);
  await page.screenshot({path:'/tmp/home-quick-tasks.png',fullPage:true});
- console.log('Home quick tasks: editing, saved notes, failures, direct completion, double taps, Undo and mobile touch targets passed.');
+ console.log('Home quick tasks: editing, failures, direct completion/Undo, named player context, canonical title/context/version conflicts, grouped review and mobile touch targets passed.');
 }catch(error){if(activePage){console.log(await activePage.locator('body').innerText());await activePage.screenshot({path:'/tmp/home-work-failure.png',fullPage:true});}console.log(JSON.stringify(writes));throw error;}finally{await browser.close();}
