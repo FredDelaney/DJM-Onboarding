@@ -14,6 +14,7 @@ function definition(text:string,name:string){
  const end=tail.indexOf(delimiter[1],delimiter.index+delimiter[0].length);assert.ok(end>0);return tail.slice(0,end+delimiter[1].length+1);
 }
 async function result(sql:string,args:any[]=[]):Promise<any>{return Object.values((await db.query(sql,args)).rows[0])[0];}
+async function denied(action:()=>Promise<unknown>,pattern:RegExp,reason?:string){await db.exec('savepoint denied_call');try{await assert.rejects(action,pattern,reason);}finally{await db.exec('rollback to savepoint denied_call;release savepoint denied_call');}}
 const home=(user=owner,limit=8,scope=tenant)=>result('select public.platform_server_personal_home_commands($1,$2,$3)',[scope,user,limit]);
 let oldCrowding=false,oldTaskCrowding=false;
 async function crowd(count=40){await db.query("insert into public.players(id,tenant_id,first_name,review_required_at,review_reason,verification_status) select gen_random_uuid(),$1,'Review player '||n,now(),'Career statistics changed','reviewing' from generate_series(1,$2) n",[tenant,count]);}
@@ -84,7 +85,7 @@ before(async()=>{
  const pattern=/select pg_temp\.patch_staff_boundary\('public\.platform_server_personal_home_commands\(uuid,uuid,integer\)'::regprocedure,\s*\$boundary\$([\s\S]*?)\$boundary\$,\s*\$boundary\$([\s\S]*?)\$boundary\$\);/g;
  for(const match of patches.matchAll(pattern)){assert.ok(personal.includes(match[1]));personal=personal.replace(match[1],match[2]);}
  await db.exec(personal);
- for(const fn of ['platform_server_agency_commands(uuid,integer)','platform_server_agency_decisions(uuid,integer)','platform_server_personal_home_commands(uuid,uuid,integer)'])await db.exec('revoke all on function public.'+fn+' from public,anon,authenticated;grant execute on function public.'+fn+' to service_role');
+ for(const fn of ['platform_server_agency_commands(uuid,integer)','platform_server_agency_decisions(uuid,integer)','platform_server_personal_home_commands(uuid,uuid,integer)','platform_server_user_task_commands(uuid,uuid,integer)'])await db.exec('revoke all on function public.'+fn+' from public,anon,authenticated;grant execute on function public.'+fn+' to service_role');
  await db.exec(file('20261005182123_player_data_workflow.sql'));
  await db.exec(file('20261024114808_approval_first_player_stats_review_v1.sql'));
  await db.exec(file('20261024120738_scope_stats_review_policy_without_platform_grants_v1.sql'));
@@ -93,6 +94,9 @@ before(async()=>{
  const oldRaw=await result('select public.platform_server_agency_commands($1,25)',[tenant]);const oldDecisions=await result('select public.platform_server_agency_decisions($1,25)',[tenant]);
  await db.exec(readFileSync(migration,'utf8'));
  await db.exec(file('20261024151913_connect_player_details_reviews_to_personal_home_v1.sql'));
+ const ownerGuard=file('20260926094944_redream_user_owned_work_v1.sql');
+ await db.exec(ownerGuard.slice(0,ownerGuard.indexOf('create or replace function public.platform_server_user_task_commands(')));
+ await db.exec(file('20261025082614_canonical_agency_home_staff_access.sql'));
  const stable=(v:any)=>{const {generated_at,...rest}=v;return rest;};
  assert.deepEqual(stable(await result('select public.platform_server_agency_commands($1,25)',[tenant])),stable(oldRaw),'Other callers retain the exact raw feed contract');
  assert.deepEqual(stable(await result('select public.platform_server_agency_decisions($1,25)',[tenant])),stable(oldDecisions),'Other callers retain the exact enriched feed contract');
@@ -133,10 +137,8 @@ test('acceptance replaces suggestion work with canonical verification, without c
 test('large review volume is bounded and labelled without consuming the requested business slots',async()=>{
  await crowd(205);const feed=await home(owner,1);assert.equal(reviews(feed).length,200);assert.equal(feed.player_reviews_has_more,true);assert.equal(feed.commands.length,201);assert.equal(feed.commands[0].command_type,'Player follow-up due');
 });
-test('revoked memberships, inactive team members and tenants fail closed; browser execution stays denied',async()=>{
+test('revoked agency memberships and tenants fail closed; browser execution stays denied',async()=>{
  await stage();await db.query("update platform.tenant_memberships set status='suspended' where user_id=$1",[agent]);await assert.rejects(()=>home(agent),/active_tenant_staff_required/);
- await db.query('update djm_os.team_members set is_active=false where user_id=$1',[owner]);await assert.rejects(()=>home(),/active_tenant_staff_required/);
- await db.query('update djm_os.team_members set is_active=true where user_id=$1',[owner]);
  for(const status of ['provisioning','suspended','closed']){await db.query('update platform.tenants set status=$1 where id=$2',[status,tenant]);await assert.rejects(()=>home(),/active_tenant_staff_required/);}
  for(const fn of ['platform_server_agency_commands(uuid,integer)','platform_server_agency_decisions(uuid,integer)','platform_server_personal_home_commands(uuid,uuid,integer)']){
   const r:any=(await db.query("select has_function_privilege('anon',$1,'execute') as anon,has_function_privilege('authenticated',$1,'execute') as browser,has_function_privilege('service_role',$1,'execute') as server",[fn])).rows[0];assert.deepEqual(r,{anon:false,browser:false,server:true});
@@ -204,4 +206,100 @@ test('resolved details leave verification and ordinary tasks separate; generic c
 test('details and statistics decisions coexist while business admission remains available',async()=>{
  await stage();await stageDetails();await colleagueTasks();const feed=await home(owner,1);
  assert.ok(feed.commands.some((c:any)=>c.command_type==='Player follow-up due'));assert.equal(feed.commands.filter((c:any)=>c.command_type==='Player details suggested').length,1);assert.equal(feed.commands.filter((c:any)=>c.command_type==='Player statistics suggested').length,1);
+});
+
+test('all supported staff roles can use Home and create owned tasks without a legacy global staff row',async()=>{
+ await db.exec('begin');
+ try{
+  await db.query('delete from djm_os.team_members where user_id=$1',[owner]);
+  await db.query("select set_config('test.uid',$1,true)",[owner]);
+  for(const role of ['owner','admin','agent','operations','scout']){
+   await db.query('update platform.tenant_memberships set role=$2 where tenant_id=$3 and user_id=$1',[owner,role,tenant]);
+   const feed=await home(owner);assert.ok(Array.isArray(feed.commands),role+' can load Home');
+   const created:any=(await db.query("insert into djm_os.tasks(tenant_id,title,status) values($1,$2,'open') returning *",[tenant,'Canonical staff task '+role])).rows[0];
+   assert.equal(created.owner_user_id,owner,role+' receives canonical ownership');
+   const personal=await result('select public.platform_server_user_task_commands($1,$2,50)',[tenant,owner]);
+   assert.ok(personal.commands.some((c:any)=>c.source_id===created.id),role+' sees own new task');
+   assert.equal((await db.query('select * from djm_os.team_members where user_id=$1',[owner])).rows.length,0,'No global staff backfill');
+  }
+ }finally{await db.exec('rollback');}
+});
+
+test('active agency membership is authoritative even when a legacy global record is inactive',async()=>{
+ await db.exec('begin');
+ try{
+  await db.query('update djm_os.team_members set is_active=false where user_id=$1',[owner]);
+  assert.ok(Array.isArray((await home(owner)).commands));
+  await db.query("insert into djm_os.tasks(tenant_id,owner_user_id,title,status) values($1,$2,'Agency-owned work','open')",[tenant,owner]);
+  for(const status of ['invited','suspended','ended']){
+   await db.query('update platform.tenant_memberships set status=$2 where tenant_id=$3 and user_id=$1',[owner,status,tenant]);
+   await denied(()=>home(owner),/active_tenant_staff_required/);
+   await denied(()=>result('select public.platform_server_user_task_commands($1,$2,8)',[tenant,owner]),/active_tenant_staff_required/);
+  }
+ }finally{await db.exec('rollback');}
+});
+
+test('global staff alone, player membership, missing identity and inactive tenants cannot open Home or own active tasks',async()=>{
+ for(const kind of ['missing membership','player role','inactive tenant']){
+  await db.exec('begin');
+  try{
+   if(kind==='missing membership')await db.query('delete from platform.tenant_memberships where tenant_id=$1 and user_id=$2',[tenant,owner]);
+   if(kind==='player role')await db.query("update platform.tenant_memberships set role='player' where tenant_id=$1 and user_id=$2",[tenant,owner]);
+   if(kind==='inactive tenant')await db.query("update platform.tenants set status='suspended' where id=$1",[tenant]);
+   await denied(()=>home(owner),/active_tenant_staff_required/,kind);
+   await denied(()=>db.query("insert into djm_os.tasks(tenant_id,owner_user_id,title,status) values($1,$2,'Denied work','open')",[tenant,owner]),/task_owner_must_be_active_tenant_staff/,kind);
+  }finally{await db.exec('rollback');}
+ }
+ await assert.rejects(()=>home(null as any),/active_tenant_staff_required/);
+ await assert.rejects(()=>home(owner,8,null as any),/active_tenant_staff_required/);
+});
+
+test('multi-agency staff keep task feeds and revocation scoped to the selected agency',async()=>{
+ await db.exec('begin');
+ try{
+  await db.query("insert into platform.tenant_memberships values($1,$2,'active','agent')",[other,owner]);
+  await db.query('delete from djm_os.team_members where user_id=$1',[owner]);
+  const created:any=(await db.query("insert into djm_os.tasks(tenant_id,owner_user_id,title,status) values($1,$2,'FOREIGN_AGENCY_TASK','open') returning id",[other,owner])).rows[0];
+  assert.ok(!(await home(owner)).commands.some((c:any)=>c.source_id===created.id));
+  assert.ok((await home(owner,8,other)).commands.some((c:any)=>c.source_id===created.id));
+  await denied(()=>home(agent,8,other),/active_tenant_staff_required/);
+  await db.query("update platform.tenant_memberships set status='ended' where tenant_id=$1 and user_id=$2",[tenant,owner]);
+  await denied(()=>home(owner),/active_tenant_staff_required/);
+  assert.ok((await home(owner,8,other)).commands.some((c:any)=>c.source_id===created.id));
+ }finally{await db.exec('rollback');}
+});
+
+test('canonical Home access migration preserves identities, grants, security modes and data; replay and unknown bodies are guarded',async()=>{
+ const identities=['public.platform_server_personal_home_commands(uuid,uuid,integer)','public.platform_server_user_task_commands(uuid,uuid,integer)','private.redream_enforce_staff_task_owner()'];
+ const metadata=(id:string)=>result("select jsonb_build_object('oid',oid,'owner',proowner,'acl',proacl,'config',proconfig,'definer',prosecdef) from pg_proc where oid=$1::regprocedure",[id]);
+ const before=await Promise.all(identities.map(metadata));
+ const rows=await result('select jsonb_agg(to_jsonb(t)) from djm_os.tasks t');
+ const migration=file('20261025082614_canonical_agency_home_staff_access.sql');
+ await db.exec(migration);await db.exec(migration);
+ assert.deepEqual(await Promise.all(identities.map(metadata)),before);
+ assert.deepEqual(await result('select jsonb_agg(to_jsonb(t)) from djm_os.tasks t'),rows);
+ for(const identity of identities){
+  assert.equal(await result("select has_function_privilege('anon',$1,'execute')",[identity]),false,identity);
+  assert.equal(await result("select has_function_privilege('authenticated',$1,'execute')",[identity]),false,identity);
+  assert.equal(await result("select has_function_privilege('service_role',$1,'execute')",[identity]),true);
+ }
+ const definition=await result('select pg_get_functiondef($1::regprocedure)',[identities[0]]);
+ await db.exec(definition.replace('begin','begin\n -- unexpected later change'));
+ try{await assert.rejects(()=>db.exec(migration),/differs from the reviewed baseline/);}finally{await db.exec(definition);}
+});
+
+test('the reviewed older staging task feed keeps its body and metadata apart from canonical staff admission',async()=>{
+ const identity='public.platform_server_user_task_commands(uuid,uuid,integer)';
+ const current=await result('select pg_get_functiondef($1::regprocedure)',[identity]);
+ try{
+  await db.exec(definition(file('20260926094944_redream_user_owned_work_v1.sql'),'public.platform_server_user_task_commands'));
+  assert.equal(await result('select md5(prosrc) from pg_proc where oid=$1::regprocedure',[identity]),'b2cec93693b824128df375b7e7d7dce0');
+  const original=await result('select pg_get_functiondef($1::regprocedure)',[identity]);
+  await db.exec(file('20261025082614_canonical_agency_home_staff_access.sql'));
+  const patched=await result('select pg_get_functiondef($1::regprocedure)',[identity]);
+  const legacy='    join djm_os.team_members tm\n      on tm.user_id=m.user_id\n     and tm.is_active\n';
+  assert.equal(patched,original.replace(legacy,''));
+  await db.exec('begin');
+  try{await db.query('delete from djm_os.team_members where user_id=$1',[owner]);assert.ok((await home(owner)).commands.some((c:any)=>c.title==='Existing follow-up'));}finally{await db.exec('rollback');}
+ }finally{await db.exec(current);}
 });
