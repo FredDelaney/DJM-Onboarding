@@ -1,6 +1,6 @@
 'use client';
 
-import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { lockPageScroll, isolateElements } from '@/lib/page-scroll-lock';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -208,11 +208,16 @@ export default function AgencyActionDrawer({
   onApplied: () => Promise<void> | void;
 }) {
   const preparedRef = useRef(false);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const modalState = useRef({busy: false, onClose});
 
   const [mode, setMode] =
     useState<Mode>('preparing');
 
   const [busy, setBusy] = useState(false);
+  modalState.current = {busy, onClose};
   const [error, setError] = useState('');
   const [result, setResult] =
     useState<any>(null);
@@ -652,47 +657,68 @@ export default function AgencyActionDrawer({
   }, [request.key]);
 
   useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
+    openerRef.current ??= document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const opener = openerRef.current;
     const releaseScroll = lockPageScroll();
-
-
+    // The drawer stays in its existing tenant-themed tree. Isolate siblings
+    // along that branch so no ancestor containing the dialog becomes inert.
+    const background: HTMLElement[] = [];
+    let branch: HTMLElement | null = backdropRef.current;
+    while (branch?.parentElement) {
+      const parent = branch.parentElement;
+      background.push(...Array.from(parent.children).filter(
+        (node): node is HTMLElement => node instanceof HTMLElement && node !== branch,
+      ));
+      if (parent === document.body) break;
+      branch = parent;
+    }
+    const releaseBackground = isolateElements(background);
+    const controls = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+    ) || []).filter(node => node.getClientRects().length > 0 && !node.closest('[inert]'));
+    const first = () => (controls()[0] || dialogRef.current)?.focus({preventScroll: true});
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !dialogRef.current?.contains(event.target)) first();
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopPropagation();
+        if (!modalState.current.busy) modalState.current.onClose();
+      } else if (event.key === 'Tab') {
+        const items = controls(), start = items[0], end = items.at(-1);
+        if (!items.length) { event.preventDefault(); dialogRef.current?.focus(); }
+        else if (!dialogRef.current?.contains(document.activeElement)) {
+          event.preventDefault(); (event.shiftKey ? end : start)?.focus();
+        } else if (event.shiftKey && document.activeElement === start) {
+          event.preventDefault(); end?.focus();
+        } else if (!event.shiftKey && document.activeElement === end) {
+          event.preventDefault(); start?.focus();
+        }
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', key, true);
+    first();
     return () => {
-      releaseScroll();
-      queueMicrotask(() => {
-        if (opener?.isConnected) opener.focus();
-      });
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', key, true);
+      releaseBackground(); releaseScroll();
+      queueMicrotask(() => { if (opener?.isConnected && !opener.closest('[inert]')) opener.focus({preventScroll: true}); });
     };
   }, []);
 
   useEffect(() => {
-    const handleKey = (
-      event: KeyboardEvent,
-    ) => {
-      if (
-        event.key === 'Escape' &&
-        !busy &&
-        !event.defaultPrevented
-      ) {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener(
-      'keydown',
-      handleKey,
-    );
-
-    return () =>
-      window.removeEventListener(
-        'keydown',
-        handleKey,
-      );
-  }, [busy, onClose]);
+    const dialog = dialogRef.current;
+    if (dialog && !busy && (!dialog.contains(document.activeElement) || dialog === document.activeElement)) {
+      dialog.querySelector<HTMLElement>('button[aria-label="Close action workspace"]')?.focus({preventScroll: true});
+    }
+  }, [busy, mode]);
 
   return (
     <div
       className={styles.backdrop}
+      ref={backdropRef}
       onClick={(event) => {
         if (
           event.target ===
@@ -705,6 +731,8 @@ export default function AgencyActionDrawer({
     >
       <aside
         className={`${styles.drawer} ${reviewOnly ? styles.reviewDrawer : ''}`}
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={request.title}
@@ -885,6 +913,7 @@ export default function AgencyActionDrawer({
                         'select' &&
                       ownerCandidates.length ? (
                         <select
+                          aria-label={meta.label}
                           value={
                             inputs[key] ||
                             ''
@@ -931,6 +960,7 @@ export default function AgencyActionDrawer({
                         </select>
                       ) : (
                         <input
+                          aria-label={meta.label}
                           type={meta.type}
                           value={
                             inputs[key] ||

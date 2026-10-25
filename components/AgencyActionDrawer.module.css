@@ -1631,3 +1631,13 @@
  .drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){font-size:16px!important}
  .actions button,.footer button{min-height:44px}
 }
+
+/* Keep dismissal tappable and the decision's recorded context readable. */
+.drawer .close { min-width: 44px; min-height: 44px; }
+.drawer .evidenceFact { min-width: 0; max-width: 100%; }
+.evidenceFact strong,
+.reviewDrawer .reviewMeta .evidenceFact strong {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}

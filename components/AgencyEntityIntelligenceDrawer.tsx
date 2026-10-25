@@ -1,6 +1,6 @@
 'use client';
 
-import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { lockPageScroll, isolateElements } from '@/lib/page-scroll-lock';
 import {
   ArrowLeft,
   ArrowRight,
@@ -135,6 +135,43 @@ export default function AgencyEntityIntelligenceDrawer({
   const [error, setError] = useState('');
   const [data, setData] = useState<Record<string, any>>({});
   const pageMode = presentation === 'page';
+  const pageRef = useRef<HTMLDivElement>(null);
+  const pageOpener = useRef<HTMLElement | null>(null);
+  const closePage = useRef(onClose);
+  closePage.current = onClose;
+  useEffect(() => {
+    if (!pageMode) return;
+    pageOpener.current ??= document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const releaseScroll = lockPageScroll();
+    const siblings: HTMLElement[] = [];
+    let branch: HTMLElement | null = pageRef.current;
+    while (branch?.parentElement) {
+      const parent = branch.parentElement;
+      siblings.push(...Array.from(parent.children).filter(
+        (node): node is HTMLElement => node instanceof HTMLElement && node !== branch,
+      ));
+      if (parent === document.body) break;
+      branch = parent;
+    }
+    const releaseBackground = isolateElements(siblings);
+    pageRef.current?.querySelector<HTMLElement>('h2')?.focus({preventScroll: true});
+    const key = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || pageRef.current?.closest('[inert]')) return;
+      if (Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]')).some(node=>node.getClientRects().length)) return;
+      event.preventDefault(); closePage.current();
+    };
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('keydown', key);
+      releaseBackground(); releaseScroll();
+      queueMicrotask(() => {
+        const opener = pageOpener.current;
+        const otherModal = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]')).some(node=>node.getClientRects().length);
+        if (!otherModal && opener?.isConnected && !opener.closest('[inert]')) opener.focus({preventScroll: true});
+      });
+    };
+  }, [pageMode, request.key]);
+
 
   const readSequence = useRef(0);
   const load = useCallback(async (options?: { recordRefresh?: boolean }) => {
@@ -291,12 +328,13 @@ export default function AgencyEntityIntelligenceDrawer({
 
   return (
     <div
+      ref={pageRef}
       className={pageMode ? styles.pageShell : styles.backdrop}
       onClick={pageMode ? undefined : (event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <aside className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`} role={pageMode ? 'region' : 'dialog'} aria-modal={pageMode ? undefined : true}>
+      <aside className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`} role={pageMode ? 'region' : 'dialog'} aria-label={request.kind==='deal' ? deal.title || request.title : request.title} aria-modal={pageMode ? undefined : true}>
         <header className={styles.header}>
           <div className={styles.topline}>
             <span className={styles.live}><i />Agency record</span>
@@ -333,7 +371,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
             <div>
               <p>{request.kind === 'player' ? 'PLAYER' : 'DEAL'}</p>
-              <h2>{request.kind==='deal' ? deal.title || request.title : request.title}</h2>
+              <h2 tabIndex={pageMode ? -1 : undefined}>{request.kind==='deal' ? deal.title || request.title : request.title}</h2>
               {request.context ? <span>{request.context}</span> : null}
             </div>
           </div>
