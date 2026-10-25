@@ -18,12 +18,14 @@ Logs and evidence: `/tmp/redream-platform-programme/connected-followups-create-u
 
 ## Exact staging manifest
 
-Apply only these two files in order, after final checks and publication. No historical replay or db push:
+Apply only these three files in order, after final checks and publication. No historical replay or db push:
 
 1. `20261025072558_guard_task_creation_undo.sql`, SHA-256 `382ac40e1734e1fa5f3d98442aff8f911d8ff36f61ab64da4958d4410de2477f`. Existing owner-only Undo core source MD5 `feb0e58af6269bee3d0abd1425b5724a` -> `2ce689440904c71ecdc92e0451806005`.
 2. `20261025073833_normalise_active_followup_state.sql`, SHA-256 `efd93a4c02ed6ba5a238b4e611eb2ff5a2c11b9cb5f026782de05d28bc1c3e69`. Existing private Home-state source MD5 `12b7e80d1263f379fca9eb49b86afe56` -> `696b90172e06941bcc0e1ac96b6e6489`; responsibility-state source `b6d2ede49bd2071d40ef835fc361fbe2` -> `cf662d2a4b50d75dec9464daac8cbe32`.
 
-Both guard exact reviewed bodies, preserve function OIDs/owners/configuration/ACL/security mode, are idempotent and have local lock/statement limits. No table/data rewrite or access grant. Never execute excluded `20260930142119_restore_redream_relationship_person_entrypoint.sql`.
+3. `20261025080901_include_owned_calendar_followups.sql`, SHA-256 `fa2ff5237c6f4ba23f19d7679fac45445cd5c47bfc3dc9f8a56d25f6f563952d`. Existing assigned-work reader source MD5 `5c4cf06966ddbadd0e2efc849a47417d` -> `83a8c5fc79e47fd66db8dc99d0c433ed`. Hosted canary found an owned task without an explicit tag disappeared from No date after refresh. Include only active undated tasks owned by the current user when no explicit responsibility row exists; explicit reassignment/empty lists, tenant scope, pagination and existing metadata remain intact. No task or assignment rewrite.
+
+All three guard exact reviewed bodies, preserve function OIDs/owners/configuration/ACL/security mode, are idempotent and have local lock/statement limits. No table/data rewrite or access grant. Never execute excluded `20260930142119_restore_redream_relationship_person_entrypoint.sql`.
 
 Supabase staging only: `ltvmopvarlnidiozvpow`. No Edge Function, secret, provider, schedule or configuration deployment. Existing agency-os 61/statistics 14/public 9 remain unchanged. Frontend: Vercel `prj_uMBOnfwXjmglJXpJblkGqNrDWAmK`, team `jesseedge10-8415s-projects`, canonical staging alias `redream-systems-staging-jesseedge10-8415s-projects.vercel.app`. Build the committed exact SHA, inspect READY/project/SHA, then assign only that alias.
 
@@ -36,3 +38,13 @@ Private preflight backup: `/tmp/redream-platform-programme/connected-followups-s
 After staging installation, verify exact sources, unchanged metadata and advisor findings before seeding. Use an isolated labelled deterministic fixture through the existing guarded writers, with no paid AI request or external send. Verify actual receipt links, scoped task/editor, completion/Undo and current Home/Calendar readback, including a newer-change denial. Preserve all original records, clean only exact fixture dependencies and retain required audit history. Do not recreate the earlier F1 fixture. Actual owner-only technical staging proof does not accept ordinary staff, model/provider, physical iPhone/Safari or an independent agency.
 
 No merge or production rollout. Other legacy Undo action types remain separately unaccepted until their workflows are reviewed; task evidence is not universal Undo acceptance.
+
+## Hosted checkpoint: 25 October, G2
+
+Product `10f7c9173b669fd68b9b8d0ee8d1791efc7266fc` is READY at `dpl_8ZZMqEd2DiHMuhNYGKbvDkkA9KKX` on the canonical staging alias, with matching project/SHA. The first two exact migrations are installed at their canonical versions; all three affected OIDs/owners/ACL/configuration/security modes and advisor finding sets are unchanged. No worker rollout. PR 261 verify passes on run `40174886933`; browser CI is pending.
+
+Installed-database rollback canaries pass for canonical task creation, authenticated Home edits, newer-edit creation-Undo denial, unchanged creation Undo, in-progress editor/explicit-assignment visibility, cancelled state and wrong-workspace task/receipt denial. These checks leave no fixture data.
+
+Disposable G2 was created through the existing canonical action writer, with final done capture status committed atomically and no model request. Capture `9e8df6ed-a79a-430c-8bc7-6b567722bc2e`, task `da7749ae-1df9-4568-8588-bd047d0c4c74`, action `477b0bb6-1918-44ca-b784-bedf54e31272`. Actual 390px receipt -> exact editor, saved title/note, tomorrow reschedule, cold current-state landing, completion and Undo pass; the saved task and actor audits agree. Undo is 44px and above the mobile nav, with document width 390px. AI usage stays 46 events. Browser screenshot capture at emulated width was incorrectly scaled by the tool; DOM bounds were verified, but those captures are not accepted as visual evidence. Physical-device acceptance remains open.
+
+No date acceptance initially FAILED: the saved untagged owner task disappeared after successful refresh because the assignment reader admitted only explicit tags. The third migration addresses this exact gap. The regression reproduces the failure before the patch; all 57 focused Home/Calendar/Tell PostgreSQL tests pass afterward, including explicit assignment authority, closed/foreign/colleague exclusions, 205-row pagination and metadata/replay/unknown-body guards. Final full check passes 2,103 tests, all TypeScript projects, build and unchanged gzip budget (144,563 / 150,000). Third migration installation, hosted recovery and exact G2 cleanup are pending. Backup/evidence: `connected-followups-owned-reader-before.json`, `connected-followups-owned-undated-before.log`, `connected-followups-owned-undated-after.log`, `connected-followups-owned-final-check.log`, and `connected-followups-installed-and-canary.json` under the private programme evidence directory.

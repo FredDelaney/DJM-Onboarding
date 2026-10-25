@@ -47,6 +47,7 @@ before(async () => {
     await db.exec(readFileSync(`supabase/migrations/${name}`,'utf8'));
   }
   await db.exec(readFileSync('supabase/migrations/20261025073833_normalise_active_followup_state.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261025080901_include_owned_calendar_followups.sql','utf8'));
   // Exercise the actual Home and Tell task writers in the same PostgreSQL
   // instance. Capture/auth transport is fixture infrastructure; no model call.
   await db.exec(`
@@ -230,4 +231,54 @@ test('active-state migration preserves canonical reader identity and permissions
  const read=()=>value("jsonb_agg(jsonb_build_object('oid',oid,'owner',proowner,'acl',proacl::text,'config',proconfig,'body',md5(prosrc)) order by oid) from pg_proc where oid in ('private.home_work_state(text,uuid,uuid,text)'::regprocedure,'private.responsibility_work(text,uuid)'::regprocedure)");
  const before=await read();await db.exec(readFileSync('supabase/migrations/20261025073833_normalise_active_followup_state.sql','utf8'));assert.deepEqual(await read(),before);
  for(const name of ['private.home_work_state(text,uuid,uuid,text)','private.responsibility_work(text,uuid)'])assert.equal(await value('has_function_privilege($1,$2,$3)',['authenticated',name,'execute']),false);
+});
+
+test('an owned untagged task remains discoverable after clearing its date and a fresh read',async()=>{
+ const original=await work('task',task,'read');
+ await work('task',task,'update',{due_on:null,note:'Keep the undated follow-up'},original.work.state);
+ await db.query("update djm_os.tasks set status='in_progress' where id=$1",[task]);
+ const page=await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant]);
+ const found=page.items.filter((item:any)=>item.work_kind==='task'&&item.work_id===task);
+ assert.equal(found.length,1);assert.equal(found[0].due_at,null);assert.equal(found[0].context.player_id,player);
+ assert.equal((await work('task',task,'read')).work.note,'Keep the undated follow-up');
+ await actor(colleague);
+ assert.ok(!(await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant])).items.some((item:any)=>item.work_id===task));
+});
+
+test('undated owner fallback respects explicit reassignment, empty choices and closed/foreign records',async()=>{
+ await db.query('update djm_os.tasks set due_at=null where id=$1',[task]);
+ await value('public.redream_work_responsibility_v1($1,$2,$3,0,$4)',['task',task,JSON.stringify([agent]),tenant]);
+ let page=await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant]);
+ assert.equal(page.items.filter((item:any)=>item.work_id===task).length,1,'No duplicate owner + explicit assignment');
+ await value('public.redream_work_responsibility_v1($1,$2,$3,1,$4)',['task',task,JSON.stringify([colleague]),tenant]);
+ assert.ok(!(await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant])).items.some((item:any)=>item.work_id===task));
+ await db.query("update platform.work_responsibilities set responsible_user_ids='{}' where work_id=$1",[task]);
+ assert.ok(!(await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant])).items.some((item:any)=>item.work_id===task));
+ await db.query('delete from platform.work_responsibilities where work_id=$1',[task]);
+ for(const status of ['completed','cancelled']){
+  await db.query('update djm_os.tasks set status=$2 where id=$1',[task,status]);
+  assert.ok(!(await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant])).items.some((item:any)=>item.work_id===task));
+ }
+ await db.query("update djm_os.tasks set status='open',tenant_id=$2 where id=$1",[task,foreign]);
+ assert.ok(!(await value('public.redream_assigned_work_page_v1($1,null,200)',[tenant])).items.some((item:any)=>item.work_id===task));
+});
+
+test('owned undated work remains paginated beyond the first two hundred',async()=>{
+ await db.query(`insert into djm_os.tasks(id,tenant_id,owner_user_id,title,status) select ('61000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,$1,$2,'Undated owned '||n,'open' from generate_series(1,205)n`,[tenant,agent]);
+ let cursor:any=null;const seen:any[]=[];
+ do{const page=await value('public.redream_assigned_work_page_v1($1,$2,200)',[tenant,cursor]);seen.push(...page.items);cursor=page.next_cursor;}while(cursor!==null);
+ assert.equal(seen.filter((item:any)=>item.title.startsWith('Undated owned ')).length,205);
+ assert.equal(new Set(seen.map((item:any)=>item.work_kind+':'+item.work_id)).size,seen.length);
+});
+
+test('owned follow-up recovery preserves reader metadata, supports replay and refuses unknown bodies',async()=>{
+ const identity='public.redream_assigned_work_page_v1(uuid,integer,integer)';
+ const metadata=()=>value("jsonb_build_object('oid',oid,'owner',proowner,'acl',proacl,'config',proconfig,'definer',prosecdef) from pg_proc where oid=$1::regprocedure",[identity]);
+ const before=await metadata(),source=readFileSync('supabase/migrations/20261025080901_include_owned_calendar_followups.sql','utf8');
+ await db.exec(source);await db.exec(source);assert.deepEqual(await metadata(),before);
+ assert.equal(await value("has_function_privilege('anon',$1,'execute')",[identity]),false);
+ assert.equal(await value("has_function_privilege('authenticated',$1,'execute')",[identity]),true);
+ const definition=await value('pg_get_functiondef($1::regprocedure)',[identity]);
+ await db.exec(definition.replace('begin','begin\n -- unexpected revision'));
+ try{await assert.rejects(()=>db.exec(source),/differs from the reviewed baseline/);}finally{await db.exec(definition);}
 });
