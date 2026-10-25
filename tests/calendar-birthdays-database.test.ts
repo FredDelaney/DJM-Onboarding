@@ -126,6 +126,53 @@ test('the active-follow-up repair preserves function identity/grants/data, repla
   await assert.rejects(()=>db.exec(repair),/differs from the reviewed active-work baseline/);
  }finally{await db.exec(original);}
 });
+test('canonical Calendar membership works without a legacy global staff row and still denies revoked or non-staff access',async()=>{
+ await db.exec('begin');
+ const denied=async(pattern:RegExp)=>{
+  await db.exec('savepoint denied_calendar');
+  try{await assert.rejects(()=>value("public.redream_calendar_range(current_date,current_date+1,'UTC')"),pattern);}
+  finally{await db.exec('rollback to savepoint denied_calendar;release savepoint denied_calendar');}
+ };
+ try{
+  await db.exec(readFileSync('supabase/migrations/20261025125836_canonical_agency_calendar_access.sql','utf8'));
+  await db.query('delete from djm_os.team_members where user_id=$1',[user]);
+  for(const role of ['owner','admin','agent','scout','operations']){
+   await db.query("update platform.tenant_memberships set role=$1 where tenant_id=$2 and user_id=$3",[role,tenant,user]);
+   const r=await value("public.redream_calendar_range('2026-10-04','2026-10-05','Europe/Rome')");
+   assert.deepEqual(r.meetings.items.map((x:any)=>x.title),['Midnight meeting'],role);
+   assert.ok(!JSON.stringify(r).includes('Private colleague meeting'));assert.ok(!JSON.stringify(r).includes('Other tenant meeting'));
+   if(!['owner','admin'].includes(role))assert.equal(r.operations.access.restricted,true);
+  }
+  await db.query('insert into djm_os.team_members values($1,false)',[user]);
+  assert.equal((await value("public.redream_calendar_range('2026-10-04','2026-10-05','Europe/Rome')")).meetings.items.length,1);
+  for(const status of ['invited','suspended','ended']){
+   await db.query('update platform.tenant_memberships set status=$1 where user_id=$2',[status,user]);
+   await denied(/active_tenant_staff_required/);
+  }
+  await db.query("update platform.tenant_memberships set status='active',role='player' where user_id=$1",[user]);
+  await denied(/active_tenant_staff_required/);
+  await db.query("update platform.tenant_memberships set role='agent' where user_id=$1",[user]);
+  await db.query("update platform.tenants set status='inactive' where id=$1",[tenant]);
+  await denied(/active_tenant_staff_required/);
+  await value("set_config('test.user','',false)");
+  await denied(/authentication_required/);
+ }finally{await db.exec('rollback');}
+});
+test('canonical Calendar repair retains the active-work body, catalog and grants, replays safely and refuses unreviewed readers',async()=>{
+ const target='public.redream_calendar_range(date,date,text)';
+ const meta=()=>value('jsonb_build_object(\'oid\',oid,\'owner\',proowner,\'acl\',proacl,\'config\',proconfig,\'definer\',prosecdef) from pg_proc where oid=$1::regprocedure',[target]);
+ const before=await meta(),original=await value('pg_get_functiondef($1::regprocedure)',[target]);
+ const repair=readFileSync('supabase/migrations/20261025125836_canonical_agency_calendar_access.sql','utf8');
+ try{
+  await db.exec(repair);await db.exec(repair);assert.deepEqual(await meta(),before);
+  const current=await value('pg_get_functiondef($1::regprocedure)',[target]);
+  assert.ok(!current.includes('join djm_os.team_members'));
+  assert.ok(current.includes("task.status in ('open','in_progress')"));
+  for(const role of ['anon','authenticated','service_role'])assert.equal(await value("has_function_privilege($1,$2,'execute')",[role,target]),role!=='anon');
+  await db.exec(current.replace('begin','begin\n -- unknown future reader'));
+  await assert.rejects(()=>db.exec(repair),/differs from the reviewed agency-access baseline/);
+ }finally{await db.exec(original);}
+});
 test('foreign workspaces, player actors, invalid dates and direct table access are denied', async () => {
   await assert.rejects(() => value('public.redream_calendar_birthdays($1,$2,true,$3)', ['2026-10-01','2026-11-01',otherTenant]), /Workspace access denied/);
   await assert.rejects(() => value('public.redream_birthday_save($1,$2,2,30,null,true,null)', ['contact',contact]), /date|birthday/i);
