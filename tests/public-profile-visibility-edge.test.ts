@@ -150,3 +150,14 @@ test('SQL and TypeScript projections agree on malformed values without mutating 
   assert.deepEqual(visiblePublicPlayerProfile(value),sql);assert.deepEqual(value,snapshot);
  }
 });
+
+
+test('actual public HTTP handler includes only the approved contract snapshot date',async()=>{
+ await setProfile({...approved(),contract_expiry:'2027-06-30',private_contract_terms:'SECRET_CONTRACT_TERMS'});
+ const data=(await (await post(player,{slug:'approved-player'})).json()).data;
+ assert.equal(data.profile.contract_expiry,'2027-06-30');
+ assert.ok(!JSON.stringify(data).includes('SECRET_CONTRACT_TERMS'));
+ await setProfile(approved());
+ const legacy=(await (await post(player,{slug:'approved-player'})).json()).data;
+ assert.ok(!legacy.profile.contract_expiry,'Old snapshots do not fetch a private fallback date');
+});

@@ -93,3 +93,18 @@ test('career heading has deliberate space after the performance chart in the ren
   assert.ok(heading.y-chartValue.bottom>=24,'The career heading is separated from the performance chart rather than touching its edge');
  });
 });
+
+
+test('PDF shows the approved contract expiry and avoids a duplicate identity headline', async () => {
+  await withDocument(async build => {
+    const document = build({profile: {...base, headline: 'Left back · Example FC', contract_expiry: '2027-06-30', current_status: 'under_contract'}});
+    const text = collect(document);
+    const hero = collect(document.props.children[0].props.children[0]);
+    assert.ok(text.includes('Contract until 30 Jun 2027'));
+    assert.ok(text.includes('Under Contract'));
+    assert.equal(hero.split('Left back · Example FC').length - 1, 1);
+    for (const expiry of [null, undefined, '2027-02-29']) {
+      assert.ok(!collect(build({profile: {...base, contract_expiry: expiry}})).includes('Contract until'));
+    }
+  });
+});

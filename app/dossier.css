@@ -2657,3 +2657,9 @@
     font-size: 12px;
   }
 }
+
+/* A missing portrait must not reserve an empty column or shrink the identity. */
+.dossier-hero-grid.dossier-hero-no-photo {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "copy" "actions";
+}

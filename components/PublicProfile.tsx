@@ -20,6 +20,8 @@ import {
 } from '@/lib/supabase';
 
 import {
+  dossierContractExpiry,
+  dossierHeadline,
   dossierCareer,
   dossierCareerStatLine,
   dossierHeadlineStats,
@@ -59,6 +61,8 @@ export default function PublicProfile({
     notice,
     setNotice,
   ] = useState('');
+
+  const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
 
   if (!profile) {
     return (
@@ -121,6 +125,10 @@ export default function PublicProfile({
       'player-public',
       profile.profile_photo_path,
     );
+
+  const showPhoto = Boolean(photo && failedPhoto !== photo);
+  const contractExpiry = dossierContractExpiry(profile.contract_expiry);
+  const headline = dossierHeadline(profile);
 
   const hidden =
     new Set(
@@ -497,7 +505,7 @@ export default function PublicProfile({
             </button>
           </div>
 
-          <div className="dossier-hero-grid">
+          <div className={`dossier-hero-grid${showPhoto ? '' : ' dossier-hero-no-photo'}`}>
             <div className="dossier-hero-copy">
               <div className="dossier-accent" />
 
@@ -520,17 +528,18 @@ export default function PublicProfile({
                   .join(' · ')}
               </div>
 
-              {(profile.age_display || nationality !== '-') && (
+              {(profile.age_display || nationality !== '-' || contractExpiry) && (
                 <div className="dossier-hero-facts">
                   {profile.age_display && <span>Age {profile.age_display}</span>}
                   {nationality !== '-' && <span>{nationality}</span>}
+                  {contractExpiry && <span>Contract until {contractExpiry}</span>}
                 </div>
               )}
 
-              {profile.headline && (
+              {headline && (
                 <p className="dossier-headline">
                   {
-                    profile.headline
+                    headline
                   }
                 </p>
               )}
@@ -568,25 +577,11 @@ export default function PublicProfile({
 
             </div>
 
-            <div className="dossier-photo">
-              {photo ? (
-                <img
-                  src={photo}
-                  alt={
-                    profile.display_name
-                  }
-                />
-              ) : (
-                <span>
-                  {String(
-                    profile.display_name ||
-                      'P',
-                  )
-                    .charAt(0)
-                    .toUpperCase()}
-                </span>
-              )}
-            </div>
+            {showPhoto && (
+              <div className="dossier-photo">
+                <img src={photo!} alt={profile.display_name} onError={() => setFailedPhoto(photo)} />
+              </div>
+            )}
 
             <div className="dossier-hero-actions no-print">
               {primaryVideo && !hidden.has('videos') && (
@@ -781,7 +776,7 @@ export default function PublicProfile({
                   <div><span>Current club</span><strong>{profile.current_club || 'Not set'}</strong></div>
                   <div><span>Additional positions</span><strong>{dossierList(profile.secondary_positions).join(' · ') || '-'}</strong></div>
                   <div><span>Preferred foot</span><strong>{profile.preferred_foot || '-'}</strong></div>
-                  <div><span>Status</span><strong>{profile.current_status || `Contact ${agencyShortName}`}</strong></div>
+                  <div><span>Status</span><strong>{currentStatus || `Contact ${agencyShortName}`}</strong></div>
                 </div>
 
                 <div className="dossier-position-key">

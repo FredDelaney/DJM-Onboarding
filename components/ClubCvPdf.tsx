@@ -12,6 +12,8 @@ import {
 } from '@react-pdf/renderer';
 
 import {
+  dossierContractExpiry,
+  dossierHeadline,
   dossierCareer,
   dossierCareerStatLine,
   dossierHeadlineStats,
@@ -937,6 +939,9 @@ export function ClubCvPdfDocument({
       .replaceAll('_', ' ')
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+  const contractExpiry = dossierContractExpiry(profile?.contract_expiry);
+  const headline = dossierHeadline(profile);
+
   const stats =
     dossierHeadlineStats(
       profile,
@@ -1196,14 +1201,14 @@ export function ClubCvPdfDocument({
                   'Professional footballer'}
               </Text>
 
-              {profile?.headline && (
+              {headline && (
                 <Text
                   style={
                     styles.headline
                   }
                 >
                   {clip(
-                    profile.headline,
+                    headline,
                     170,
                   )}
                 </Text>
@@ -1255,6 +1260,10 @@ export function ClubCvPdfDocument({
                   )}
               </View>
 
+              {contractExpiry && (
+                <Text style={styles.statusText}>Contract until {contractExpiry}</Text>
+              )}
+
               {primaryVideo && !hidden(profile, 'videos') && (
                 <Link
                   src={primaryVideo}
@@ -1274,29 +1283,13 @@ export function ClubCvPdfDocument({
               )}
             </View>
             
-            {photoUrl ? (
+            {photoUrl && (
               <Image
                 src={photoUrl}
                 style={
                   styles.photo
                 }
               />
-            ) : (
-              <View
-                style={
-                  styles.photoFallback
-                }
-              >
-                <Text
-                  style={
-                    styles.photoInitial
-                  }
-                >
-                  {name
-                    .charAt(0)
-                    .toUpperCase()}
-                </Text>
-              </View>
             )}
           </View>
         </View>

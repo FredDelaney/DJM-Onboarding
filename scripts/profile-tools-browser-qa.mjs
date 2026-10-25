@@ -7,7 +7,7 @@ try{
   const page=await browser.newPage({viewport:{width,height:700}});
   await page.emulateMedia({reducedMotion:'no-preference'});
   const url=new URL(process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow');
-  url.search='?view=players&player=qa-player-0&profile=1&scenario=populated';
+  url.search='?view=players&player=qa-player-0&profile=1&scenario=populated-share';
   for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(error){if(i===59)throw error;await page.waitForTimeout(250);}}
   await page.getByRole('heading',{name:'José Silva',exact:true}).waitFor();
   const trigger=page.locator('summary').filter({hasText:/^More/});await trigger.click();
@@ -26,6 +26,12 @@ try{
   const box=await preview.boundingBox();
   assert.ok(box&&Math.abs(box.x)<1&&Math.abs(box.y)<1&&Math.abs(box.width-width)<1&&Math.abs(box.height-700)<1,'Preview fills the viewport instead of its animated ancestor at '+width);
   assert.equal(await preview.getAttribute('role'),'dialog');
+  await preview.getByText('Contract until 30 Jun 2027',{exact:true}).waitFor();
+  assert.equal(await preview.locator('.dossier-photo').count(),0,'Missing portraits reserve no empty panel');
+  assert.equal(await preview.locator('.dossier-hero-no-photo').count(),1);
+  assert.ok(await preview.evaluate(node=>node.scrollWidth<=node.clientWidth+1),'Dossier has no horizontal overflow at '+width);
+  await preview.getByRole('link',{name:'Watch footage',exact:true}).waitFor();
+  await preview.getByRole('link',{name:'Transfermarkt',exact:true}).first().waitFor();
   const close=preview.getByRole('button',{name:'Close',exact:true});
   await close.waitFor({state:'visible'});
   assert.ok(await close.evaluate(node=>{const r=node.getBoundingClientRect();return r.y>=0&&r.bottom<=innerHeight&&r.height>=44&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===node;}),'Close remains visible and tappable at '+width);
@@ -53,6 +59,40 @@ try{
   await preview.waitFor({state:'visible'});
   await page.keyboard.press('Escape');await preview.waitFor({state:'hidden'});
   assert.equal(await trigger.evaluate(node=>node===document.activeElement),true,'Menu previews return focus to More');
+  const shareOpener=page.getByRole('button',{name:'Share Player Profile',exact:true});
+  await shareOpener.scrollIntoViewIfNeeded();await shareOpener.focus();
+  const shareScroll=await page.evaluate(()=>window.scrollY);
+  await shareOpener.click();
+  const share=page.getByRole('dialog',{name:'Share Player Profile',exact:true});await share.waitFor();
+  const shareClose=share.getByRole('button',{name:'Close',exact:true});
+  assert.equal(await shareClose.evaluate(node=>node===document.activeElement),true,'Sharing starts with focus inside the dialog');
+  assert.equal(await shareOpener.evaluate(node=>Boolean(node.closest('[inert]'))),true,'Share dialog isolates the workspace');
+  for(let i=0;i<9;i++){await page.keyboard.press('Tab');assert.equal(await share.evaluate(node=>node.contains(document.activeElement)),true,'Share Tab stays inside at '+width);}
+  await share.getByLabel('Club',{exact:true}).selectOption('qa-club');
+  await share.getByLabel('Profile to share',{exact:true}).selectOption('qa-version');
+  await share.getByRole('button',{name:'Preview selected club profile',exact:true}).click();
+  await preview.waitFor({state:'visible'});
+  assert.equal(await close.evaluate(node=>node===document.activeElement),true,'Nested preview owns keyboard focus');
+  await page.keyboard.press('Escape');await preview.waitFor({state:'hidden'});
+  assert.equal(await share.isVisible(),true,'Closing the nested preview preserves sharing');
+  assert.equal(await share.evaluate(node=>node.contains(document.activeElement)),true,'Focus returns inside sharing');
+  await share.getByLabel('Club-specific note',{exact:false}).fill('A concise club introduction.');
+  const create=share.getByRole('button',{name:'Create club share',exact:true});
+  await create.scrollIntoViewIfNeeded();
+  assert.ok(await create.evaluate(node=>{const r=node.getBoundingClientRect();return r.height>=44&&r.top>=0&&r.bottom<=innerHeight+1;}),'Sharing action stays reachable at '+width);
+  await create.dblclick();await page.keyboard.press('Escape');
+  assert.equal(await share.isVisible(),true,'Escape cannot dismiss a share while its write is pending');
+  await share.getByRole('alert').waitFor();
+  assert.equal(await page.evaluate(()=>window.qaProfileShareCreates),1,'A failed double activation sends one request');
+  assert.equal(await share.getByLabel('Club-specific note',{exact:true}).inputValue(),'A concise club introduction.','A failed write preserves the introduction');
+  assert.equal(await share.getByLabel('Club',{exact:true}).inputValue(),'qa-club');
+  await create.click();
+  await share.getByText('Club share ready.',{exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>window.qaProfileShareCreates),2,'Only the explicit retry sends a second request');
+  await share.getByRole('button',{name:'Copy message',exact:true}).waitFor();
+  await page.keyboard.press('Escape');await share.waitFor({state:'hidden'});
+  assert.equal(await shareOpener.evaluate(node=>node===document.activeElement),true);
+  assert.equal(await page.evaluate(()=>window.scrollY),shareScroll,'Closing sharing restores background position');
   await page.close();
  }
  console.log('Profile tools and club preview: viewport bounds, independent scroll, toolbar, focus isolation/wrap/Escape/return, reopening and four widths passed');

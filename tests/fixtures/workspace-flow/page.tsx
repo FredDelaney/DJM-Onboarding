@@ -72,6 +72,14 @@ export default function Page(){
    communication:{summary:{connected_items:3},items:[{capture_id:'activity-1',channel:'email',direction:'inbound',person_name:'Recruitment director',summary:'Requested full-match footage and current-season figures before the next recruitment meeting.',owner_name:'Example Agent',occurred_at:'2026-10-11T12:00:00Z'}],open_followups:[{task_id:'followup-1',title:'Send reviewed footage and season evidence to North Coast FC',due_at:'2026-10-15T12:00:00Z',owner_name:'Example Agent'}]},
    deals:[],clubs:[],branding:{support_email:'qa@example.test'},secondary_ready:scenario!=='populated-late-detail',auto_key_stats:[]
   }};
+  if(scenario==='populated-share'&&action==='create_options')return {options:{clubs:[{id:'qa-club',name:'QA Recipient FC'}]}};
+  if(scenario==='populated-share'&&action==='player_profile_versions')return {versions:[{id:'qa-version',organisation_id:'qa-club',status:'approved',headline:'QA club profile',presentation:{display_name:'José Silva',primary_position:'Centre back',current_club:'Wellington Harbour Football Club',contract_expiry:'2027-06-30',hidden_sections:[]}}]};
+  if(scenario==='populated-share'&&action==='player_profile_share_create'){
+   (window as any).qaProfileShareCreates=((window as any).qaProfileShareCreates||0)+1;
+   await new Promise(resolve=>setTimeout(resolve,300));
+   if((window as any).qaProfileShareCreates===1)throw new Error('Could not create the private link. Try again.');
+   return {share:{id:'qa-share-created',token:'60000000-0000-4000-8000-000000000001',club_name:'QA Recipient FC',active:true,view_count:0}};
+  }
   if(action==='player_profile_detail')return await new Promise(resolve=>{finishLateDetail.current=resolve;(window as any).qaWaitingProfileDetail=true;});
   if(action==='player_profile_video_add'){fixtureVideos.current=[...fixtureVideos.current,{id:'added-film',title:body.title,url:body.url}];return {};}
   if(action==='player_profile_video_remove'){fixtureVideos.current=fixtureVideos.current.filter(video=>video.id!==body.video_id);return {};}
