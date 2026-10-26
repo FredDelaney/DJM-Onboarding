@@ -16,7 +16,7 @@ The existing editor reports a lost Save response as an error and leaves the old 
 
 ## Exact backend manifest
 
-One new migration, created by the Supabase CLI: `supabase/migrations/20261026230055_agency_document_exact_read.sql`.
+One new migration, first created by the Supabase CLI and aligned to the actual staging-assigned version: `supabase/migrations/20261026231700_agency_document_exact_read.sql`.
 
 It adds only `public.redream_document_read(text,uuid)`, a stable, fixed-empty-search-path reader with the existing authenticated active-tenant owner/admin guard. It returns the exact active document and existing revision-specific activity metadata, or an explicit missing/archived state. It performs no write, event, lock, token creation or external action. Archived content and unnecessary creator fields are excluded. PUBLIC/anon execute is revoked; authenticated/service_role may call it but must pass the same user/tenant check. Raw table grants, policies and the existing writer remain untouched. The existing document PK and event/share document indexes cover the exact lookups; no new index or list scan.
 
@@ -44,3 +44,17 @@ Final `npm run check` passes 2,148 tests, all TypeScript projects, production bu
 The React/SQL checklists are applied to the narrow changes: no conditional hook, new provider/listener dependency, shared server state or unbounded operation. The existing before-unload listener remains paired with cleanup; per-operation cancellation and deadline listeners/timers are removed. Exact reads use existing keys and contain no write/lock/event. Existing raw grants and writer remain the boundary. Staging preflight confirms the exact reader is absent and Jesse has active owner memberships in both intended technical canary tenants. Data/advisor/source baselines are recorded privately before application.
 
 Publication, new-head CI, exact staging migration/canary and frontend acceptance remain pending until recorded in the installed checkpoint. No new backend has been applied in this local checkpoint, and no production or external action is included.
+
+
+## Staging backend checkpoint
+
+The exact reviewed reader SQL is applied only to ReDream staging. The migration service records version `20261026231700`, name `agency_document_exact_read`; the originally CLI-created 20261026230055 file is renamed to that authoritative version with identical SQL, without replay or ledger repair. Use the final 20261026231700 filename for future environments.
+
+Retrieved reader OID 31991 is STABLE SECURITY DEFINER, owned by postgres, with empty search_path and only postgres/authenticated/service_role execute ACL. Its source hash is 86c2a5c5ea0e7597d2d60d27c00a8790. The committed canary passes on staging using the actual authenticated role and Jesse's verified two owner memberships: missing/create/read-only/update/stable-ID/stale-revision/foreign/archive/nonmember/anonymous. All writes roll back. This is actual PostgreSQL acceptance, not a hosted network interruption or independent-agency test. Data/source/grant/advisor comparison and exact frontend acceptance are recorded after they complete.
+
+
+The installed reader body exactly matches the final local SQL hash above. The existing writer retains OID 30640, source hash fd0101533fcf451d7b82ee66df4f3be6, owner, empty search_path and ACL. Raw SELECT/INSERT/UPDATE/DELETE remain false for anon/authenticated on all three document tables. All 16 original data projections, including the prior archived QA document and its events, match after the rollback-only canary. No active canary is added.
+
+Performance advisors and all prior security findings are unchanged excluding observation timestamps. Security has exactly one expected addition: the deliberately authenticated-callable, tenant-owner/admin-guarded exact reader (85 -> 86 authenticated security-definer notices). Its scoped API purpose, execute denial for anon, raw-table denial and real-role denial/tenant checks above are reviewed explicitly; no blanket grant or bypass is added. [Supabase notice guidance](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable). This is not a claim that the wider OPS-04 backlog is resolved.
+
+After aligning the file to the provider-recorded version, all ten document database tests and the complete local canary rehearsal pass again. Application SQL/source and frontend code are unchanged from the full 2,148-test/type/build/bundle pass; only the migration filename, fixture reference and installation evidence change. Publish that final aligned head, retain its new CI run and stage that exact frontend. No second migration application or SQL rewrite belongs to the alignment.

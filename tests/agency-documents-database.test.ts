@@ -91,7 +91,7 @@ before(async () => {
       "utf8",
     ),
   );
-  await db.exec(readFileSync("supabase/migrations/20261026230055_agency_document_exact_read.sql", "utf8"));
+  await db.exec(readFileSync("supabase/migrations/20261026231700_agency_document_exact_read.sql", "utf8"));
   await db.query("insert into auth.users values($1),($2),($3)", [
     owner,
     otherOwner,
