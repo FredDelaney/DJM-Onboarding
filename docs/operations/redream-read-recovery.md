@@ -22,7 +22,7 @@ No migration, Edge Function, secret, provider, schedule, database/business row o
 
 Draft [PR 269](https://github.com/FredDelaney/DJM-Onboarding/pull/269), product `c91f4b03bebd07be0bdfa6bdd466242b35ff02fd`, is pushed and READY as `redream-systems-staging-j4oykem4w-jesseedge10-8415s-projects.vercel.app`. Exact full SHA, staging project and canonical alias are independently checked. The actual signed-in Northstar 390px cold Live deals list shows both original records; screenshot 04 is saved and inspected. The local injected-failure screenshots prove clear error/explicit retry; no hosted error is manufactured or claimed. All 13 original business-data hashes match and no fixture/cleanup remains.
 
-Product verify is green on `40277115659`; complete browser CI remains live. The two older scroll assertions from parent PR 267 are corrected forward in this product and pass production-mode local checks; parent runs are not relabelled green. The documentation-only installed checkpoint continues on `codex/redream-deal-profile-handoff` so that running source CI can finish without cancellation. No merge, production deployment or full-programme acceptance is claimed.
+Full CI run `40277115659` is green for both verify and browser journeys. The two older scroll assertions from parent PR 267 are corrected forward in this product and pass production-mode local checks; parent runs are not relabelled green. The documentation-only installed checkpoint continues on `codex/redream-deal-profile-handoff` so that running source CI can finish without cancellation. No merge, production deployment or full-programme acceptance is claimed.
 
 ## Next connected journey: reuse these existing paths
 

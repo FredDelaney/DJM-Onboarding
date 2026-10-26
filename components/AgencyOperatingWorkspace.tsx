@@ -8,7 +8,7 @@ import {useHomeRelevance} from './useHomeRelevance';
 import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWorkControl';
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
-import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery} from '@/lib/workspace-record-navigation';
+import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery,workspaceProfileFromDealHref} from '@/lib/workspace-record-navigation';
 import PeopleViewSwitcher from './PeopleViewSwitcher';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
@@ -461,6 +461,9 @@ export default function AgencyOperatingWorkspace() {
   const canSeeBusiness = ['owner', 'admin'].includes(
     String(workspace?.role || ''),
   );
+  const profileSourceDealId=String(search.get('source_deal')||'').trim().toLowerCase();
+  const profileSourceDealHref=canSeeBusiness&&profileSourceDealId
+    ?workspaceIntelligenceHref(basePath,'',{kind:'deal',entityId:profileSourceDealId}):null;
   const canCreateRecords = ['owner','admin','agent','operations'].includes(String(workspace?.role || ''));
   const restrictedView = !canSeeBusiness && ['opportunities','business'].includes(view);
   const navigation = NAV.filter(
@@ -1023,6 +1026,10 @@ export default function AgencyOperatingWorkspace() {
     const href = workspaceIntelligenceListHref(basePath, window.location.search, request);
     if (href) window.history.replaceState(null, '', href);
     setIntelligenceRequest(current => current?.kind === request.kind && current.entityId === request.entityId ? null : current);
+    if(request.kind==='deal')requestAnimationFrame(()=>{
+      const target=document.getElementById('opportunity-'+request.entityId)||document.getElementById('workspace-view-heading');
+      target?.focus({preventScroll:true});
+    });
   }, [basePath]);
 
   useEffect(() => {
@@ -1525,7 +1532,7 @@ export default function AgencyOperatingWorkspace() {
           <div className={styles.pageHeadCopy}>
             <div className={styles.pageHeadTitleLine}>
               <div>
-                <h1>{viewPresentation.title}</h1>
+                <h1 id="workspace-view-heading" tabIndex={-1}>{viewPresentation.title}</h1>
               </div>
             </div>
           </div>
@@ -1687,11 +1694,12 @@ export default function AgencyOperatingWorkspace() {
                   playerId={selectedPlayerId}
                   preparation={preparationLink(search.get("capture"), search.get("preparation"))}
                   backHref={`${basePath}?view=players`}
+                  dealContext={profileSourceDealHref?{id:profileSourceDealId,backHref:profileSourceDealHref}:null}
                   cacheScope={stateScope}
                   workHref={`${basePath}?view=players&player=${encodeURIComponent(selectedPlayerId)}`}
                   role={String(workspace?.role || '')}
                   fallbackAgency={agencyBranding}
-                  invoke={(action, body) => invoke<any>(action, body)}
+                  invoke={invoke}
                   rpc={rpc}
                   onOpenAction={(request) => setActionRequest(request)}
                   onOpenIntelligence={(playerId, title, context) =>
@@ -1849,9 +1857,7 @@ export default function AgencyOperatingWorkspace() {
             invoke<any>(action, body)
           }
           onClose={() => setActionRequest(null)}
-          onApplied={async () => {
-            await loadView();
-          }}
+          onApplied={refreshRecords}
         />
       ) : null}
 
@@ -1868,6 +1874,12 @@ export default function AgencyOperatingWorkspace() {
           onOpenAction={(request) => {
             setActionRequest(request);
           }}
+          onOpenPlayerProfile={canSeeBusiness ? (playerId,dealId)=>{
+            const href=workspaceProfileFromDealHref(basePath,window.location.search,playerId,dealId);
+            if(!href)return;
+            setIntelligenceRequest(null);
+            window.history.pushState(null,'',href);
+          }:undefined}
           onOpenCloseout={(dealRoomId, title, context) => {
             setDealCloseoutRequest({
               key: `deal-closeout:${dealRoomId}`,

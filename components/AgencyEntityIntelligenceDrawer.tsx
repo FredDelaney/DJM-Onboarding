@@ -22,6 +22,7 @@ import RecordDetails from '@/components/RecordDetails';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { hasRecordedNumber } from '@/lib/recorded-number';
+import { UUID_PATTERN } from '@/lib/entity-context';
 
 import styles from './AgencyEntityIntelligenceDrawer.module.css';
 
@@ -101,6 +102,7 @@ export default function AgencyEntityIntelligenceDrawer({
   onOpenCloseout,
   onOpenNegotiation,
   onOpenPlayerReview,
+  onOpenPlayerProfile,
   presentation = 'drawer',
   rpc,
   canManageRecords = false,
@@ -125,6 +127,7 @@ export default function AgencyEntityIntelligenceDrawer({
     title: string,
     context?: string | null,
   ) => void;
+  onOpenPlayerProfile?: (playerId:string,dealId:string) => void;
   presentation?: 'drawer' | 'page';
   rpc?: Rpc;
   canManageRecords?: boolean;
@@ -587,11 +590,12 @@ export default function AgencyEntityIntelligenceDrawer({
                 <p>Next action</p>
                 <h3>{primaryDealAction?.instruction || deal.next_action_text || deal.next_decision || 'No next action recorded.'}</h3>
                 <span>{[human(deal.stage), human(control.state || momentum.state || 'recorded')].filter(Boolean).join(' · ')}{deal.next_action_at ? ` · Due ${relativeDate(deal.next_action_at)}` : ''}</span>
-                {primaryDealAction ? (
+                {primaryDealAction || (onOpenPlayerProfile&&UUID_PATTERN.test(warRoom.player?.player_id||'')) ? (
                   <div className={styles.actions}>
-                    <button type="button" onClick={() => onOpenAction(primaryDealAction)}>
+                    {primaryDealAction?<button type="button" onClick={() => onOpenAction(primaryDealAction)}>
                       <ArrowRight size={15} />{primaryDealAction.label}
-                    </button>
+                    </button>:null}
+                    {onOpenPlayerProfile&&UUID_PATTERN.test(warRoom.player?.player_id||'')?<button type="button" onClick={()=>onOpenPlayerProfile(warRoom.player.player_id,request.entityId)}><ArrowRight size={15}/>Review player profile</button>:null}
                   </div>
                 ) : null}
               </div>
