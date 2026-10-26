@@ -55,12 +55,12 @@ async function setup(width,scenario='normal'){
    assert.equal(body.deal_room_id,deal);if(name==='deal_step_prepare')assert.equal(body.step_type,'set_next_action');
    const owned=state.owner,complete=owned?Boolean(body.input?.next_action_text&&body.input?.next_action_at):Boolean(body.input?.owner_user_id);
    value={proposal:{status:complete?'proposed':'needs_input',action_type:owned?'set_deal_next_action':'assign_deal_owner',ownership_required_first:!owned,
-    required_inputs:complete?[]:owned?['next_action_text','next_action_at']:['owner_user_id'],owner_candidates:[{user_id:owner,name:'Agency Owner'}],
-    ...(complete?{proposal_id:owned?nextProposal:ownerProposal,undo_supported:true,payload:body.input}:{}),reminder_owner_name:owned?'Agency Owner':null,external_side_effect:false}};
+    executable:complete,required_inputs:owned?(complete?[]:['next_action_text','next_action_at']):['owner_user_id'],owner_candidates:[{user_id:owner,name:'Agency Owner'}],
+    ...(complete?{proposal_id:owned?nextProposal:ownerProposal,payload:body.input}:{}),reminder_owner_name:owned?'Agency Owner':null,external_side_effect:false}};
   }
   else if(name==='action_execute'){
    state.executes++;if(body.proposal_id===ownerProposal)state.owner=true;else{assert.equal(body.proposal_id,nextProposal);state.followup=true;}
-   value={result:{status:'applied'}};
+   value={result:{status:'applied',undo_supported:true}};
   }
   else if(name==='action_undo'){state.undos++;if(body.proposal_id===nextProposal)state.followup=false;else state.owner=false;value={ok:true};}
   else if(path.includes('/functions/v1/agency-os')&&['player_profile_publish','player_profile_save','player_profile_version_save','player_profile_prepare'].includes(name))throw new Error('No profile publication, preparation or save is authorised by this journey: '+name);

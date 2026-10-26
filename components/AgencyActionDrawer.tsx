@@ -308,7 +308,11 @@ export default function AgencyActionDrawer({
     result?.reminder_owner_name || '',
   ).trim();
 
-  const requiredInputs =
+  const preparedOwner = result?.ownership_required_first === true &&
+    result?.action_type === 'assign_deal_owner' && result?.status === 'proposed' &&
+    result?.executable === true && Boolean(inputs.owner_user_id) &&
+    result?.payload?.owner_user_id === inputs.owner_user_id;
+  const requiredInputs = preparedOwner ? [] :
     rawRequiredInputs.length
       ? rawRequiredInputs
       : actionType ===
@@ -338,7 +342,8 @@ export default function AgencyActionDrawer({
     '';
 
   const undoSupported = Boolean(
-    proposal?.undo_supported ||
+    appliedResult?.undo_supported ||
+      proposal?.undo_supported ||
       result?.undo_supported,
   );
 
