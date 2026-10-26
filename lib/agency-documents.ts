@@ -82,6 +82,7 @@ export function documentBrief(
       ["player_name", "Player"],
       ["principal_name", "Mandated by"],
       ["territory", "Clubs and territories"],
+      ["commission", "Fee arrangement"],
       ["start_date", "Valid from"],
       ["end_date", "Expires"],
     ],
@@ -103,6 +104,13 @@ export function documentBrief(
   return layouts[doc.kind].flatMap(([key, label]) => {
     const value = fields[key]?.trim();
     if (!value) return [];
+    if (doc.kind === "mandate" && ["territory", "commission"].includes(key) &&
+      (value.length > 220 || value.split(/\r?\n/).length > 3)) {
+      // Point to full wording only when the actual document still includes it.
+      const section = doc.content.sections.find(item =>
+        item.title.trim() && item.body.includes(`{{${key}}}`));
+      if (section) return [{ label, value: `See ${resolveDocumentText(section.title, doc.content)}` }];
+    }
     // Calendar dates have no timezone. Never shift them to the previous day.
     if (/^\d{4}-\d{2}-\d{2}$/.test(value) && /(?:date|dob)$/.test(key)) {
       const date = new Date(value + "T12:00:00Z");

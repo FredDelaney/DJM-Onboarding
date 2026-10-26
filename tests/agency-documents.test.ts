@@ -394,6 +394,26 @@ test("review does not hide unfinished clauses or missing variables", () => {
   ];
   assert.deepEqual(documentIssues(doc), []);
 });
+test("mandate opening facts keep fees visible and reference full long terms without losing them", () => {
+  const doc = newAgencyDocument("mandate", documentBrand());
+  const territory = Array.from({length:12},(_,n)=>`QA permitted market ${n+1}, with agreed exclusions in this sample.`).join("\n");
+  const commission = "QA payer, sample fee basis, sample split and sample payment trigger. ".repeat(12).trim();
+  Object.assign(doc.content.fields, {territory, commission});
+  let brief = documentBrief(doc);
+  assert.equal(brief.find(item=>item.label==="Clubs and territories")?.value,"See Clubs and territories");
+  assert.equal(brief.find(item=>item.label==="Fee arrangement")?.value,"See Commission arrangement");
+  const body = doc.content.sections.map(section=>resolveDocumentText(section.body,doc.content)).join("\n");
+  assert.ok(body.includes(territory)&&body.includes(commission));
+  doc.content.sections[1].title="Agreed markets";
+  assert.equal(documentBrief(doc).find(item=>item.label==="Clubs and territories")?.value,"See Agreed markets");
+  doc.content.sections[1].body="Custom scope wording without the field variable";
+  doc.content.sections[2].body="Custom fee wording without the field variable";
+  brief=documentBrief(doc);
+  assert.equal(brief.find(item=>item.label==="Clubs and territories")?.value,territory,"Unreferenced full wording must remain in the export");
+  assert.equal(brief.find(item=>item.label==="Fee arrangement")?.value,commission);
+  doc.content.fields.commission="50% of the sample agency fee, payable by the sample principal on the sample trigger.";
+  assert.equal(documentBrief(doc).find(item=>item.label==="Fee arrangement")?.value,doc.content.fields.commission);
+});
 test("representation wording uses editable tenant/player terms and clears personal notice details for another player", () => {
   const doc = newAgencyDocument(
     "player_contract",
