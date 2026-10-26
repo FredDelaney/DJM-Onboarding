@@ -80,6 +80,7 @@ try {
  await progressive.getByLabel('Profile headline',{exact:true}).fill('Saved while details finish');
  await progressive.getByRole('button',{name:'Save',exact:true}).click();
  await progressive.getByRole('status').filter({hasText:'Player Profile saved.'}).waitFor();
+ assert.equal(await progressive.getByRole('button',{name:'Retry profile details',exact:true}).count(),0,'A complete late-detail response must remain usable through Save');
  await page.keyboard.press('Escape');
   for(const label of [/^Club links/,/^Activity/]){
    const summary=page.locator('summary').filter({hasText:label}).first();
