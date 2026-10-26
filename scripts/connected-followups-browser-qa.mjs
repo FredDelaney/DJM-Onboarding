@@ -13,6 +13,74 @@ try{
  const panel=()=>page.getByRole('dialog',{name:'Update task',exact:true});
  const row=title=>page.getByRole('article').filter({hasText:title});
  const toggle=label=>page.getByRole('button',{name:label,exact:true}).evaluate(node=>node.click());
+ // Read-delayed row openings must retain the actual Update control, including
+ // native/assistive clicks that do not focus it before dispatching the event.
+ await page.goto(url().href+'?connectedWork&slowWorkRead');
+ for(const width of [320,390,768,1440]){
+  await page.setViewportSize({width,height:844});
+  const update=row('Call James about Dylan').getByRole('button',{name:'Update',exact:true});
+  await update.scrollIntoViewIfNeeded();const scroll=await page.evaluate(()=>scrollY);
+  await update.click();await panel().waitFor();
+  assert.equal(await panel().getByLabel('Action',{exact:true}).evaluate(node=>node===document.activeElement),true);
+  await panel().getByRole('button',{name:'Close task editor',exact:true}).click();await panel().waitFor({state:'hidden'});
+  await page.waitForFunction(()=>document.activeElement?.textContent?.trim()==='Update',undefined,{timeout:3000});
+  assert.equal(await update.evaluate(node=>node===document.activeElement),true,'Async task Close returns to its exact Update control at '+width);
+  assert.equal(await page.evaluate(()=>document.body.style.overflow),'','Close releases the scroll lock');
+  assert.equal(await page.evaluate(()=>document.querySelector('main')?.inert),false,'Close releases background isolation');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  assert.ok(Math.abs(await page.evaluate(()=>scrollY)-scroll)<2,'Unchanged task Close retains the list position');
+  if(width===390){await mkdir('/tmp/redream-platform-programme/task-editor-focus',{recursive:true});await page.screenshot({path:'/tmp/redream-platform-programme/task-editor-focus/returned-update-390.png'});}
+ }
+ assert.equal(await page.evaluate(()=>window.calendarReads.filter(read=>read.name==='redream_home_work_v1'&&read.args.p_action!=='read').length),0,'Opening and closing a task never writes it');
+ await page.goto(url().href+'?connectedWork&slowWorkRead&failFirstWorkRead');
+ const update=()=>row('Call James about Dylan').getByRole('button',{name:'Update',exact:true});
+ await update().click();await row('Call James about Dylan').getByRole('alert').filter({hasText:'This task could not load. Try again.'}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.textContent?.trim()==='Update',undefined,{timeout:3000});
+ assert.equal(await update().evaluate(node=>node===document.activeElement),true,'A failed opening read restores its enabled control');
+ await update().click();await panel().waitFor();
+ await panel().getByLabel('Action',{exact:true}).fill('Keep this draft');
+ await panel().getByRole('button',{name:'Close task editor',exact:true}).click();
+ const discard=page.getByRole('alertdialog',{name:'Discard these task changes?',exact:true});await discard.waitFor();
+ await discard.getByRole('button',{name:'Cancel',exact:true}).click();await discard.waitFor({state:'hidden'});
+ assert.equal(await panel().getByLabel('Action',{exact:true}).inputValue(),'Keep this draft');
+ await page.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='Close task editor');
+ await panel().getByRole('button',{name:'Close task editor',exact:true}).click();
+ await discard.getByRole('button',{name:'Discard changes',exact:true}).click();await panel().waitFor({state:'hidden'});
+ await page.waitForFunction(()=>document.activeElement?.textContent?.trim()==='Update');
+ assert.equal(await update().evaluate(node=>node===document.activeElement),true,'Discard returns to the original row after nested isolation is released');
+ await update().click();await panel().getByLabel('Action',{exact:true}).fill('Reviewed follow-up');
+ await panel().getByRole('button',{name:'Save changes',exact:true}).click();await panel().waitFor({state:'hidden'});
+ await page.waitForFunction(()=>document.activeElement?.textContent?.trim()==='Update');
+ assert.equal(await row('Reviewed follow-up').getByRole('button',{name:'Update',exact:true}).evaluate(node=>node===document.activeElement),true,'Save returns to the updated row');
+ await row('Reviewed follow-up').getByRole('button',{name:'Update',exact:true}).click();
+ await panel().getByRole('button',{name:'Mark complete',exact:true}).click();await panel().waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'Undo completion of Reviewed follow-up',exact:true}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='Undo completion of Reviewed follow-up');
+ assert.equal(await row('Reviewed follow-up').count(),0,'Completion keeps the useful Undo focus after its row is removed');
+ await page.goto(link());await panel().waitFor();await page.keyboard.press('Escape');await panel().waitFor({state:'hidden'});
+ await page.waitForFunction(()=>document.activeElement?.id==='workspace-view-heading');
+ await row('Call James about Dylan').getByRole('button',{name:'Update',exact:true}).click();await panel().waitFor();
+ await panel().getByRole('button',{name:'Close task editor',exact:true}).evaluate(node=>{
+  node.click();[...document.querySelectorAll('button')].find(button=>button.textContent==='Add task').click();
+ });
+ const nextDialog=page.getByRole('dialog',{name:'Add task',exact:true});await nextDialog.waitFor();
+ await page.waitForFunction(()=>document.querySelector('[role="dialog"] input')===document.activeElement);
+ assert.equal(await nextDialog.getByLabel('Title',{exact:true}).evaluate(node=>node===document.activeElement),true,'A new modal keeps focus when an earlier editor closes');
+ await page.keyboard.press('Escape');await nextDialog.waitFor({state:'hidden'});
+ await page.goto(url().href+'?connectedWork&slowWorkRead');
+ await row('Call James about Dylan').waitFor();await toggle('Concurrent follow-up edit');
+ const staleTick=row('Call James about Dylan').getByRole('button',{name:'Complete Call James about Dylan',exact:true});
+ await staleTick.click();await panel().getByRole('status').filter({hasText:'saved task has changed'}).waitFor();
+ await page.keyboard.press('Escape');await panel().waitFor({state:'hidden'});
+ await page.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='Complete Call James about Dylan');
+ assert.equal(await staleTick.evaluate(node=>node===document.activeElement),true,'A changed-record editor returns to the initiating completion control');
+ await page.goto(url().href+'?connectedWork&slowWorkRead');
+ await row('Call James about Dylan').getByRole('button',{name:'Update',exact:true}).click();await panel().waitFor();
+ await toggle('Switch tenant');await panel().waitFor({state:'hidden'});
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(resolve)));
+ assert.notEqual(await page.evaluate(()=>document.activeElement?.id),'workspace-view-heading','An old tenant editor must not restore focus into a different workspace');
+ assert.equal(await row('Call James about Dylan').count(),0);
+ await page.goto(link());
  await panel().waitFor();
  assert.equal(await panel().getByLabel('Action',{exact:true}).inputValue(),'Call James about Dylan');
  assert.equal(await panel().getByLabel('Due date',{exact:true}).inputValue(),'2026-11-28');
