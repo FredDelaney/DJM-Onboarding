@@ -12,10 +12,11 @@ async function setup(width,scenario='normal'){
  const user={id:owner,email:'fixture@example.test',aud:'authenticated',role:'authenticated',created_at:'2026-01-01T00:00:00Z',app_metadata:{},user_metadata:{}};
  const token='fixture.'+Buffer.from(JSON.stringify({sub:owner,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture';
  const session={access_token:token,refresh_token:'fixture-refresh',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
- await page.addInitScript(session=>{
+ await page.addInitScript(({session,scenario})=>{
   if(location.hostname==='127.0.0.1')localStorage.setItem('sb-example-auth-token',JSON.stringify(session));
+  if(scenario==='clipboard')Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:()=>{window.qaClipboardCalls=(window.qaClipboardCalls||0)+1;return new Promise(()=>{});}}});
   Object.defineProperty(navigator,'connection',{configurable:true,value:Object.assign(new EventTarget(),{saveData:true,effectiveType:'4g'})});
- },session);
+ },{session,scenario});
  const state={phase:'overview',owner:scenario!=='unowned',prepares:0,executes:0,undos:0,shares:[],contextReads:0,held:[],allowContext:scenario!=='late'&&scenario!=='stale',failContext:scenario==='failed',failRefresh:false,followup:false,errors:[]};
  page.on('pageerror',error=>state.errors.push(error.message));
  const war=id=>({available:true,deal_room_id:id,player:{player_id:scenario==='mismatch'&&state.phase==='profile'?otherClub:player,name:'Example Player'},club:{organisation_id:id===otherDeal?otherClub:club,name:id===otherDeal?'Second Recipient FC':'Recipient United'},deal:{title:id===otherDeal?'Second recorded deal':'Example Player to Recipient United',stage:'interest',status:'active',owner_user_id:state.owner?owner:null,private_notes:'Internal-only sentinel'},control:{state:'recorded'},next_control_fix:scenario==='refresh'?{instruction:'Set the recorded follow-up.'}:{}});
@@ -174,6 +175,12 @@ try{
   await share.getByText('The linked deal changed or could not load. Choose the club and deal again.',{exact:true}).waitFor();
   assert.equal(await share.getByRole('button',{name:'Create club share',exact:true}).isEnabled(),false);assert.equal(await share.getByLabel('Club-specific note',{exact:true}).inputValue(),'Retain my draft');assert.equal(state.shares.length,0);
   await share.getByLabel('Club',{exact:true}).selectOption(otherClub);assert.equal(await share.getByLabel('Existing deal or opportunity',{exact:true}).inputValue(),'');assert.equal(await share.getByRole('button',{name:'Create club share',exact:true}).isEnabled(),true);assert.deepEqual(state.errors,[]);await page.close();
+ }
+ {
+  const {page,state,openProfile}=await setup(390,'clipboard');await openProfile();await page.getByRole('link',{name:'Back to deal',exact:true}).waitFor();await page.getByRole('button',{name:'Share Player Profile',exact:true}).click();
+  const share=page.getByRole('dialog',{name:'Share Player Profile',exact:true});await share.getByRole('button',{name:'Create club share',exact:true}).click();await share.getByText('Club share ready.',{exact:true}).waitFor();
+  await page.waitForFunction(()=>{const button=Array.from(document.querySelectorAll('[role=dialog] button')).find(node=>node.textContent==='Done');return button&&!button.disabled;});
+  assert.equal(await page.evaluate(()=>window.qaClipboardCalls||0),0,'Creating a link must never wait for optional clipboard access');assert.equal(state.shares.length,1);await share.getByRole('button',{name:'Done',exact:true}).click();await share.waitFor({state:'hidden'});assert.equal(await page.getByRole('button',{name:'Share Player Profile',exact:true}).isEnabled(),true);assert.deepEqual(state.errors,[]);await page.close();
  }
  {
   const {page,state,visit}=await setup(390,'restricted');state.phase='profile';await visit('view=players&player='+player+'&profile=1&source_deal='+deal);

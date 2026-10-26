@@ -1579,12 +1579,7 @@ export default function AgencyPlayerProfile({
       const readyMessage = buildShareMessage(url);
       setShareResultUrl(url);
       setShareResultMessage(readyMessage);
-      try {
-        await navigator.clipboard.writeText(readyMessage);
-        setNotice('Private link created. Message copied.');
-      } catch {
-        setNotice('Private link created.');
-      }
+      setNotice('Private link created.');
       await load(true);
     } catch (shareError) {
       setError(friendlyError(shareError));
