@@ -148,7 +148,9 @@ export default function AgencyEntityIntelligenceDrawer({
     while (branch?.parentElement) {
       const parent = branch.parentElement;
       siblings.push(...Array.from(parent.children).filter(
-        (node): node is HTMLElement => node instanceof HTMLElement && node !== branch,
+        // The visible mobile bar remains part of this page, including record-scoped capture.
+        (node): node is HTMLElement => node instanceof HTMLElement && node !== branch &&
+          !node.hasAttribute('data-workspace-mobile-navigation'),
       ));
       if (parent === document.body) break;
       branch = parent;
