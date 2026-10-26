@@ -65,6 +65,7 @@ jobs:
             /tmp/redream-platform-programme/calendar
             /tmp/redream-platform-programme/read-recovery
             /tmp/redream-platform-programme/deal-profile-handoff
+            /tmp/redream-platform-programme/profile-secondary-recovery
             /tmp/redream-platform-programme/connected-followups
           retention-days: 7
           if-no-files-found: ignore
