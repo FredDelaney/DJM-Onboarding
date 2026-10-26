@@ -1034,7 +1034,7 @@ export function DocumentStudioEditor({
                       {issues.length ? (
                         <details className={styles.checklist} open>
                           <summary>
-                            {issues.length} things to check before sharing
+                            {issues.length} {issues.length === 1 ? "thing" : "things"} to check before sharing
                           </summary>
                           <ul>
                             {issues.map((issue) => (
@@ -1479,7 +1479,7 @@ export function DocumentStudioEditor({
                 >
                   <ShieldCheck size={15} />
                   {issues.length
-                    ? `${issues.length} checks before sharing`
+                    ? `${issues.length} ${issues.length === 1 ? "check" : "checks"} before sharing`
                     : "Review complete"}
                 </button>
                 <DocumentExportButtons doc={doc} onError={setError} />
