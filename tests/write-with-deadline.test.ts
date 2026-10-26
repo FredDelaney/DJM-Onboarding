@@ -25,6 +25,17 @@ test('late completion cannot turn an unconfirmed write into success',async()=>{
  await pending;
  assert.deepEqual(result,{status:'unknown'});
 });
+test('caller cancellation aborts the request and ends the deadline without retrying',async()=>{
+ const cancel=new AbortController();let signal:AbortSignal|undefined;
+ const pending=writeWithDeadline(current=>{signal=current;return new Promise(()=>{});},10000,cancel.signal);
+ await Promise.resolve();cancel.abort();
+ assert.deepEqual(await pending,{status:'unknown'});assert.equal(signal?.aborted,true);
+});
+test('an already cancelled caller does not start a write',async()=>{
+ const cancel=new AbortController();cancel.abort();let calls=0;
+ assert.deepEqual(await writeWithDeadline(async()=>{calls++;return 'saved';},100,cancel.signal),{status:'unknown'});
+ assert.equal(calls,0);
+});
 
 test('a server denial is returned for the caller to handle, never reported as success',async()=>{
  const result=await writeWithDeadline(async()=>({data:null,error:{code:'42501',message:'denied'}}),100);

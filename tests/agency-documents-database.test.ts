@@ -91,6 +91,7 @@ before(async () => {
       "utf8",
     ),
   );
+  await db.exec(readFileSync("supabase/migrations/20261026230055_agency_document_exact_read.sql", "utf8"));
   await db.query("insert into auth.users values($1),($2),($3)", [
     owner,
     otherOwner,
@@ -111,6 +112,63 @@ before(async () => {
 });
 after(async () => {
   await db.close();
+});
+const exact = async (id: string, slug = "agency-a") => (await db.query<{ result: any }>(
+  "select public.redream_document_read($1,$2) as result", [slug, id],
+)).rows[0].result;
+test("exact document confirmation is read-only, outside the list limit and owner/admin scoped", async () => {
+  await actor(owner);
+  const draft = await save(newAgencyDocument("player_contract", documentBrand({ display_name: "Agency A" })));
+  await db.exec("reset role");
+  await db.query("update public.agency_documents set updated_at='2020-01-01' where id=$1", [draft.id]);
+  await db.query("insert into public.agency_documents(tenant_id,kind,title,content) select $1,'player_contract','QA bulk '||n,$2::jsonb from generate_series(1,101) n", [tenantA, JSON.stringify(draft.content)]);
+  await actor(owner);
+  assert.equal((await call("list")).documents.some((d: any) => d.id === draft.id), false);
+  const read = await exact(draft.id);
+  assert.equal(read.tenant_id, tenantA); assert.equal(read.state, "found");
+  assert.equal(read.document.id, draft.id); assert.deepEqual(read.document.content, draft.content);
+  assert.equal(read.document.revision, 1); assert.equal(read.document.created_by, undefined);
+  await assert.rejects(save({...draft, revision:0}), /already in use/);
+  assert.equal((await exact(draft.id)).document.revision, 1);
+  const count = (await db.query<{ count: number }>("select jsonb_array_length(public.redream_documents('agency-a','events',$1,1))::int as count", [draft.id])).rows[0].count;
+  await exact(draft.id); assert.equal((await call("events", draft)).length, count);
+  await actor(otherOwner); await assert.rejects(exact(draft.id), /owners and admins/);
+  assert.deepEqual(await exact(draft.id, "agency-b"), { tenant_id: tenantB, state: "missing", document: null });
+  await actor(agent); await assert.rejects(exact(draft.id), /owners and admins/);
+  await db.exec("reset role");
+  await db.query("update platform.tenant_memberships set role='admin' where tenant_id=$1 and user_id=$2", [tenantA, agent]);
+  await actor(agent); assert.equal((await exact(draft.id)).state, "found");
+  await db.exec("reset role");
+  await db.query("update platform.tenant_memberships set role='agent' where tenant_id=$1 and user_id=$2", [tenantA, agent]);
+  await actor(null, "anon"); await assert.rejects(exact(draft.id), /permission denied/);
+  await actor(null); await assert.rejects(exact(draft.id), /Sign in/);
+  await actor(owner);
+  await db.exec("reset role");
+  await db.query("update platform.tenants set status='suspended' where id=$1", [tenantA]);
+  await actor(owner); await assert.rejects(exact(draft.id), /owners and admins/);
+  await db.exec("reset role");
+  await db.query("update platform.tenants set status='active' where id=$1", [tenantA]);
+  await actor(owner);
+  await call("archive", draft);
+  assert.deepEqual(await exact(draft.id), { tenant_id: tenantA, state: "archived", document: null });
+  await db.exec("reset role");
+  await db.query("update platform.tenant_memberships set status='ended' where tenant_id=$1 and user_id=$2", [tenantA, owner]);
+  await actor(owner); await assert.rejects(exact(draft.id), /owners and admins/);
+  await db.exec("reset role");
+  await db.query("update platform.tenant_memberships set status='active' where tenant_id=$1 and user_id=$2", [tenantA, owner]);
+  // Remove only this test's rows so existing library assertions retain their baseline.
+  await db.query("delete from public.agency_documents where id=$1 or title like 'QA bulk %'", [draft.id]);
+  const canary = readFileSync("docs/operations/sql/redream-document-save-confirmation-canary.sql", "utf8")
+    .replaceAll("675c4f97-f5b9-4686-912f-938b01b4df18", owner)
+    .replaceAll("7ac91076-7836-4dfa-9ed0-4d825ae2c3dd", tenantA)
+    .replaceAll("northstar-football-management", "agency-a").replaceAll("djm-sports-management", "agency-b");
+  await db.query("insert into platform.tenant_memberships values($1,$2,'owner','active')", [tenantB,owner]);
+  try { await db.exec(canary); }
+  finally {
+    await db.exec("rollback; reset role");
+    await db.query("delete from platform.tenant_memberships where tenant_id=$1 and user_id=$2", [tenantB,owner]);
+  }
+  await actor(owner);
 });
 test("anonymous, non-admin and foreign-tenant callers cannot read the document library", async () => {
   await actor(null);
