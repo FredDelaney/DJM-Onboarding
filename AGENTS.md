@@ -40,3 +40,7 @@ Critical rules:
 - Fix violations intentionally with appropriate punctuation. Do not blindly auto-rewrite source.
 - Input parsing may use escaped Unicode such as `\u2014` where support for external text requires it.
 - Do not deploy or mutate production without explicit authorisation.
+
+## ReDream platform programme continuity
+
+For work on the ReDream platform programme, first read `docs/exec-plans/active/redream-platform-programme.md`. It is the authoritative scope, dependency, acceptance, UI coverage and continuation tracker. Update its current checkpoint and evidence for each delivery commit; preserve every unresolved item. A partial milestone is not programme completion. Reuse the existing architecture and completed hardening. Keep all existing privacy, approval and release boundaries.

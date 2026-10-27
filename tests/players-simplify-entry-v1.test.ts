@@ -37,12 +37,14 @@ test('the whole player card opens the full player profile', () => {
   assert.match(players, /event\.key === 'Enter' \|\| event\.key === ' '/);
 });
 
-test('player cards do not duplicate opening with a separate Open button', () => {
+test('player cards keep one explicit next-step control without duplicate desktop actions', () => {
   assert.doesNotMatch(
     players,
     /<UserRound size=\{14\}\/> Open/,
   );
-  assert.match(players, /\{attention\?\([\s\S]*styles\.playerCardActions/);
+  assert.doesNotMatch(players, /className=\{styles\.playerCardActions\}/);
+  assert.match(players, /aria-label=\{`\$\{priority\.actionLabel\} for \$\{name\}`\}/);
+  assert.match(players, /event\.stopPropagation\(\);openPriority\(\)/);
   assert.match(players, /Review next step/);
   assert.match(players, /Prepare next move/);
 });

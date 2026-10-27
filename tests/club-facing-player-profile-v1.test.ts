@@ -15,9 +15,11 @@ const css = readFileSync(
   'utf8',
 );
 
-test('club profile puts current output, footage and external evidence near the top', () => {
+test('club profile puts truthful headline figures, footage and external evidence near the top', () => {
   assert.match(profile, /const quickStats =/);
-  assert.match(profile, /CURRENT OUTPUT/);
+  assert.match(profile, /HEADLINE FIGURES/);
+  assert.match(profile, /dossierHeadlineStatContext/);
+  assert.doesNotMatch(profile, /CURRENT OUTPUT|Reviewed player data|Latest recorded season/);
   assert.match(profile, /const featuredLinks =/);
   assert.match(profile, /CLUB EVALUATION/);
   assert.match(profile, /Watch and verify/);

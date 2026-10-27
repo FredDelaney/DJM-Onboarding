@@ -355,6 +355,21 @@ export const dossierPositionMap = (
     .slice(0, 4);
 };
 
+function headlinePeriodEvidence(profile: any) {
+  const career = dossierCareer(profile);
+  const selected = career[0] || null;
+  const selectedYear = numeric(selected?.stats_year);
+  const label = String(selected?.season_label ?? selected?.season ?? '').trim();
+  const normalise = (value: unknown) => String(value ?? '').trim().toLowerCase().replaceAll('/', '-').replace(/\s+/g, '');
+  const rows = selected ? career.filter((row: any) => {
+    const year = numeric(row?.stats_year);
+    if (selectedYear !== null && year !== null) return year === selectedYear;
+    const rowLabel = normalise(row?.season_label ?? row?.season);
+    return rowLabel && rowLabel === normalise(label);
+  }) : [];
+  return {rows, period: selectedYear !== null ? String(selectedYear) : label};
+}
+
 export const dossierHeadlineStats = (
   profile: any,
   limit = 6,
@@ -378,35 +393,7 @@ export const dossierHeadlineStats = (
 
   const output = [...manual];
   const seen = new Set(output.map((item) => key(item.label)));
-  const career = dossierCareer(profile);
-  const selected = career[0] || null;
-  const selectedYear = numeric(selected?.stats_year);
-  const selectedLabel = String(
-    selected?.season_label ?? selected?.season ?? '',
-  )
-    .trim()
-    .toLowerCase()
-    .replaceAll('/', '-')
-    .replace(/\s+/g, '');
-
-  const periodRows = selected
-    ? career.filter((row: any) => {
-        const rowYear = numeric(row?.stats_year);
-        const rowLabel = String(
-row?.season_label ?? row?.season ?? '',
-        )
-.trim()
-.toLowerCase()
-.replaceAll('/', '-')
-.replace(/\s+/g, '');
-
-        if (selectedYear !== null && rowYear !== null) {
-return rowYear === selectedYear;
-        }
-
-        return rowLabel && rowLabel === selectedLabel;
-      })
-    : [];
+  const {rows: periodRows} = headlinePeriodEvidence(profile);
 
   const sum = (
     field:
@@ -431,8 +418,8 @@ return rowYear === selectedYear;
   const goals = sum('goals');
   const assists = sum('assists');
   const contributions =
-    goals !== null || assists !== null
-      ? (goals || 0) + (assists || 0)
+    goals !== null && assists !== null
+      ? goals + assists
       : null;
 
   const candidates: Record<string, number | string | null> = {
@@ -468,6 +455,42 @@ return rowYear === selectedYear;
   return output.slice(0, limit);
 };
 
+// Describe the figures actually displayed, never borrow the latest career row's
+// season, source or freshness for an intentional custom/historical selection.
+export function dossierHeadlineStatContext(profile: any, limit = 6) {
+  const text = (value: unknown) => typeof value === 'string' ? value.trim() : '';
+  const curated = dossierList(profile?.key_stats).filter((row: any) =>
+    String(row?.label ?? row?.name ?? '').trim() && String(row?.value ?? row?.stat ?? '').trim()).slice(0,limit);
+  const evidence = headlinePeriodEvidence(profile);
+  const records = curated.length ? curated : evidence.rows;
+  const scopes = records.map((row: any) => {
+    const period = text(row.season_label) || text(row.season);
+    return period ? [period,text(row.club_name),text(row.league)].filter(Boolean).join(' · ') : '';
+  });
+  const sources = records.map((row: any) => text(row.source_name) || text(row.source_provider) || text(row.provider));
+  const dates = records.map((row: any) => {
+    for (const [field,label] of [['checked_at','Checked'],['source_reviewed_at','Reviewed'],['source_synced_at','Updated']]) {
+      const value = text(row[field]);
+      if (/^\d{4}-\d{2}-\d{2}T/.test(value) && Number.isFinite(Date.parse(value)))
+        return label+' '+new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(value));
+    }
+    return '';
+  });
+  const mixed = (values: string[]) => new Set(values).size > 1;
+  const common = (values: string[], missing: string, varied: string) =>
+    mixed(values) ? varied : values[0] || missing;
+  return {
+    period: curated.length ? common(scopes,'Period not recorded','Selected evidence') : evidence.period || 'Period not recorded',
+    source: common(sources,'Source not recorded',curated.length ? 'Sources by figure' : 'Sources vary'),
+    date: common(dates,'Source date not recorded','Source dates vary'),
+    notes: curated.length ? records.map((_: any,index: number) => [
+      mixed(scopes) ? scopes[index] || 'Period not recorded' : null,
+      mixed(sources) ? sources[index] || 'Source not recorded' : null,
+      mixed(dates) ? dates[index] || 'Date not recorded' : null,
+    ].filter(Boolean).join(' · ')) : [],
+  };
+}
+
 export const dossierPerformance = (
   profile: any,
   limit = 5,
@@ -493,12 +516,13 @@ export const dossierPerformance = (
       ? 'minutes'
       : 'appearances';
 
+  const recordedRows = rows.filter((row: any) => numeric(row?.[metric]) !== null);
   const values =
-    rows.map(
+    recordedRows.map(
       (row: any) =>
         numeric(
           row?.[metric],
-        ) || 0,
+        )!,
     );
 
   const max =
@@ -511,7 +535,7 @@ export const dossierPerformance = (
     metric,
 
     rows:
-      rows.map(
+      recordedRows.map(
         (
           row: any,
           index,

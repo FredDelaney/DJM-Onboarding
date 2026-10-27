@@ -23,6 +23,7 @@ import {
   dossierCareer,
   dossierCareerStatLine,
   dossierHeadlineStats,
+  dossierHeadlineStatContext,
   dossierList,
   dossierNationality,
   dossierPerformance,
@@ -136,20 +137,12 @@ export default function PublicProfile({
   const career =
     dossierCareer(profile);
 
-  const latestCareerSeason =
-    career[0]?.season_label ||
-    career[0]?.season ||
-    career[0]?.start_date?.slice(
-      0,
-      4,
-    ) ||
-    null;
-
   const headlineStats =
     dossierHeadlineStats(
       profile,
       6,
     );
+  const statContext = dossierHeadlineStatContext(profile);
 
   const quickStats =
     headlineStats.slice(0, 4);
@@ -673,14 +666,12 @@ export default function PublicProfile({
             <section className="dossier-quick-stats">
               <div className="dossier-quick-stats-head">
                 <div>
-                  <span>CURRENT OUTPUT</span>
+                  <span>HEADLINE FIGURES</span>
                   <strong>
-                    {latestCareerSeason
-                      ? latestCareerSeason
-                      : 'Latest recorded season'}
+                    {statContext.period}
                   </strong>
                 </div>
-                <small>Reviewed player data</small>
+                <small>{statContext.source}<br/>{statContext.date}</small>
               </div>
 
               <div className="dossier-quick-stats-grid">
@@ -691,6 +682,7 @@ export default function PublicProfile({
                   >
                     <strong>{stat.value}</strong>
                     <span>{stat.label}</span>
+                    {statContext.notes[index] ? <small className="dossier-stat-context">{statContext.notes[index]}</small> : null}
                   </div>
                 ))}
               </div>
@@ -877,14 +869,12 @@ export default function PublicProfile({
                   </div>
 
                   <h2>
-                    Season output.
+                    Football evidence.
                   </h2>
                 </div>
 
                 <span>
-                  {latestCareerSeason
-                    ? `Recorded through ${latestCareerSeason}`
-                    : 'Reviewed source data'}
+                  {statContext.period}
                 </span>
               </div>
 
@@ -913,6 +903,7 @@ export default function PublicProfile({
                             stat.label
                           }
                         </span>
+                        {statContext.notes[index] ? <small className="dossier-stat-context">{statContext.notes[index]}</small> : null}
                       </div>
                     ),
                   )}
