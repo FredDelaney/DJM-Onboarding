@@ -76,7 +76,7 @@ import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 import { brandingForWorkspace } from '@/lib/workspace-branding';
 import { readHomePosition } from '@/lib/read-home-position';
 import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
-import { homeCommandCategory, isHomePlayerDataReview, isHomeStatisticsReview, isHomeDetailsReview, type HomeQueueCategory } from '@/lib/home-priority';
+import { homeCommandCategory, homePriorityWeight, isHomePlayerDataReview, isHomeStatisticsReview, isHomeDetailsReview, type HomeQueueCategory } from '@/lib/home-priority';
 import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
 import styles from './AgencyOperatingWorkspace.module.css';
@@ -2594,7 +2594,7 @@ function Home({
       category,
       score:
         categoryScore[category] +
-        Math.min(9_000, Math.max(0, Number(command?.priority_score || 0))),
+        homePriorityWeight(command?.priority_score),
       title: review?.title || (command?.command_type === 'Player follow-up due' && command?.evidence?.next_action
         ? `${command.title}: ${command.evidence.next_action}`
         : command?.title) || human(command?.command_type || 'Agency action'),

@@ -32,8 +32,19 @@ function confirmed(value:any,ref:WorkRef):Result {
  if(!work||work.work_kind!==ref.kind||work.work_id!==ref.id||typeof work.title!=='string'||typeof work.display_title!=='string'||typeof work.note!=='string'||!['open','done'].includes(work.status)||!work.state||typeof work.state!=='object'||Array.isArray(work.state))throw new Error('home_work_unconfirmed');
  return {work,undo_token:typeof value.undo_token==='string'?value.undo_token:null};
 }
-function matches(entry:Entry,work:Work):boolean {
- if(entry.title.trim().toLowerCase()!==work.display_title.trim().toLowerCase())return false;
+function matches(entry:Entry,work:Work,checkVersion=true):boolean {
+ let title=entry.title;
+ if(entry.ref.kind==='task'&&entry.payload?.source_type==='task'&&entry.payload?.source_id===entry.ref.id){
+  const evidence=entry.payload.evidence;
+  if(evidence?.task_count>1)return false;
+  if(typeof entry.payload.task_title==='string'&&evidence?.task_count===1&&Array.isArray(evidence.tasks)&&evidence.tasks.length===1&&evidence.tasks[0]?.task_id===entry.ref.id){
+   const task=evidence.tasks[0];
+   if(checkVersion&&task.updated_at!=null&&task.updated_at!==work.state.version)return false;
+   if(['player_id','person_id','organisation_id','club_need_id'].some(key=>(task[key]??null)!==(work.context?.[key]??null)))return false;
+   title=entry.payload.task_title;
+  }
+ }
+ if(title.trim().toLowerCase()!==work.display_title.trim().toLowerCase())return false;
  const due=entry.payload?.due_at||entry.payload?.deadline_at;
  if(!due)return work.due_on===null;
  if(entry.ref.kind==='player_next_action'||entry.payload?.date_only)return String(due).slice(0,10)===work.due_on;
@@ -64,7 +75,7 @@ export function useHomeWork(rpc:HomeRpc,tenantId:string,userId:string) {
  };
  const changed=(entry:Entry,result:Result,completed:boolean)=>{
   if(!current())return;
-  setState(old=>({...old,editor:null,errors:{...old.errors,[keyFor(entry.ref)]:''},overrides:{...old.overrides,[keyFor(entry.ref)]:result.work},saved:completed?'':'Changes saved.',notices:completed&&result.undo_token?[...old.notices,{id:keyFor(entry.ref)+':'+result.undo_token,title:result.work.status==='done'?result.work.display_title:entry.title,result}].slice(-5):old.notices}));
+  setState(old=>({...old,editor:null,errors:{...old.errors,[keyFor(entry.ref)]:''},overrides:{...old.overrides,[keyFor(entry.ref)]:result.work},saved:completed?'':'Changes saved.',notices:completed&&result.undo_token?[...old.notices,{id:keyFor(entry.ref)+':'+result.undo_token,title:result.work.status==='done'&&!matches(entry,result.work,false)?result.work.display_title:entry.title,result}].slice(-5):old.notices}));
   window.dispatchEvent(new Event('redream:responsibilities-updated'));
  };
  async function open(entry:Entry) {
