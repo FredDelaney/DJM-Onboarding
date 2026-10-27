@@ -1690,7 +1690,7 @@ export default function AgencyOperatingWorkspace() {
             {view === 'players' ? (
               showPlayerProfile ? (
                 <AgencyPlayerProfile
-                  key={`player-profile:${selectedPlayerId}`}
+                  key={`player-profile:${stateScope}:${selectedPlayerId}`}
                   playerId={selectedPlayerId}
                   preparation={preparationLink(search.get("capture"), search.get("preparation"))}
                   backHref={`${basePath}?view=players`}

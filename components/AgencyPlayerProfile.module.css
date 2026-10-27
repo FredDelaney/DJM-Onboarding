@@ -2524,3 +2524,7 @@ fieldset.editorBody { min-width: 0; margin: 0; border: 0; }
 .dealContext>span{min-width:0;overflow-wrap:anywhere;}
 .dealContext strong{color:var(--interface-ink,#1f2937);font-weight:600;}
 .dealContext button{min-height:44px;padding:8px 12px;border:1px solid #dce1e7;border-radius:10px;background:#fff;color:var(--interface-ink,#1f2937);font:inherit;cursor:pointer;}
+
+.readRecovery{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:8px 0 16px;padding:12px 0;border-bottom:1px solid #e5e7eb;color:var(--interface-ink,#1f2937);font-size:13px;line-height:1.5}
+.readRecovery p{flex:1 1 180px;min-width:0;margin:0;overflow-wrap:anywhere}
+.readRecovery button{min-height:44px;padding:8px 12px;flex:0 1 auto}

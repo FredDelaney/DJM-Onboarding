@@ -89,7 +89,7 @@ export default function Page(){
   if(action==='player_profile_video_remove'){fixtureVideos.current=fixtureVideos.current.filter(video=>video.id!==body.video_id);return {};}
   if(action==='player_profile_save'){
    if(scenario==='populated-save-failure')throw new Error('Profile save temporarily unavailable');
-   if(scenario==='populated-late-detail')finishLateDetail.current?.({detail:{secondary_ready:true,shares:[{id:'late-share',club_name:'Late loaded club recruitment',view_count:1,active:false}],communication:{summary:{connected_items:1},items:[{capture_id:'late-activity',channel:'email',summary:'Progressive detail arrived during Save.'}],open_followups:[]}}});
+   if(scenario==='populated-late-detail')finishLateDetail.current?.({detail:{secondary_ready:true,documents:[{id:'document',title:'Player CV'}],deals:[],clubs:[],branding:{support_email:'qa@example.test',primary_color:'#24143D',accent_color:'#8B5CF6'},shares:[{id:'late-share',club_name:'Late loaded club recruitment',view_count:1,active:false}],communication:{summary:{connected_items:1},items:[{capture_id:'late-activity',channel:'email',summary:'Progressive detail arrived during Save.'}],open_followups:[]}}});
    await new Promise(resolve=>setTimeout(resolve,300));
    savedProfileSettings.current=body.settings;(window as any).qaProfileSave=body.settings;return {};
   }
