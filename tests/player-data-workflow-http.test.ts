@@ -5,37 +5,43 @@ import {test,beforeEach,after} from 'node:test';
 const shared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/football-data/player-data-workflow.ts','utf8'))).toString('base64');
 const visibilityShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/public-profile-visibility.ts','utf8'))).toString('base64');
 const staffShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/staff-read-contract.ts','utf8'))).toString('base64');
+const statShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/profile-stat-evidence.ts','utf8'))).toString('base64');
+const evidenceShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/player-profile-preparation.ts','utf8').replace('"./football-data/player-data-workflow.ts"','"data:text/javascript;base64,'+shared+'"'))).toString('base64');
 const source=readFileSync('supabase/functions/agency-os/index.ts','utf8')
- .replace(/^import .*player-profile-preparation\.ts";$/m,'const preparePlayerProfileEvidence = () => { throw new Error("outside this test"); }; const reviewPlayerProfileEvidence = preparePlayerProfileEvidence;')
+ .replace('"../_shared/player-profile-preparation.ts"','"data:text/javascript;base64,'+evidenceShared+'"')
  .replace(/^import .*player-profile-ai\.ts";$/m,'const selectPlayerProfilePresentation = () => { throw new Error("outside this test"); };')
  .replace(/^import .*player-profile-text-improvement\.ts";$/m,'const suggestPlayerProfileTextImprovement = () => { throw new Error("outside this test"); };')
  .replace(/^import .*player-context-ai\.ts";$/m,'const researchPlayerContext = () => { throw new Error("outside this test"); };')
  .replace(/^import .*ai-router\.ts";$/m,'const selectAiRoute = () => { throw new Error("outside this test"); };')
  .replace('"../_shared/staff-read-contract.ts"','"data:text/javascript;base64,'+staffShared+'"')
+ .replace('"../_shared/profile-stat-evidence.ts"','"data:text/javascript;base64,'+statShared+'"')
  .replace('import "jsr:@supabase/functions-js/edge-runtime.d.ts";','')
  .replace('import { createSupabaseContext } from "npm:@supabase/server@1.6.0";','const createSupabaseContext = () => globalThis.playerDataHttpContext;')
  .replace('"../_shared/football-data/player-data-workflow.ts"','"data:text/javascript;base64,'+shared+'"');
 const {default:handler}=await import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(source)).toString('base64'));
 const originalFetch=globalThis.fetch;
 let calls:any[]=[],background:Promise<any>[]=[],writes:any[]=[],careerRows:any[]=[],dispatch=true,role='agent',allowed=true,published=true;
+let cvSettings:any={key_stats:[]};
 let publicHandler:any;
 (globalThis as any).Deno={serve:(callback:any)=>{publicHandler=callback;}};
 const publicSource=readFileSync('supabase/functions/player-profile-public/index.ts','utf8')
  .replace('import "jsr:@supabase/functions-js/edge-runtime.d.ts";','')
  .replace('import { createClient } from "jsr:@supabase/supabase-js@2";','const createClient = () => globalThis.playerDataHttpContext.data.supabaseAdmin;')
  .replace('"../_shared/public-profile-visibility.ts"','"data:text/javascript;base64,'+visibilityShared+'"')
+ .replace('"../_shared/profile-stat-evidence.ts"','"data:text/javascript;base64,'+statShared+'"')
  .replace('"../_shared/football-data/player-data-workflow.ts"','"data:text/javascript;base64,'+shared+'"');
 await import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(publicSource)).toString('base64'));
 const job={id:'40000000-0000-4000-8000-000000000001',status:'queued'};
-const player={id:'player',tenant_id:'tenant',current_season_label:'2026/27',current_club:'Example II',current_league:'Regional League',verification_status:'verified',verified_at:'2026-10-01T12:00:00Z'};
+const player={id:'player',tenant_id:'tenant',primary_position:'Centre back',current_season_label:'2026/27',current_club:'Example II',current_league:'Regional League',verification_status:'verified',verified_at:'2026-10-01T12:00:00Z'};
 beforeEach(()=>{
  calls=[];background=[];writes=[];careerRows=[];dispatch=true;role='agent';allowed=true;published=true;player.verification_status='verified';
+ cvSettings={key_stats:[]};
  (globalThis as any).Deno={env:{get:(key:string)=>key==='SUPABASE_URL'?'https://example.supabase.co':'fake-service'}};
  (globalThis as any).EdgeRuntime={waitUntil:(promise:Promise<any>)=>background.push(promise)};
- (globalThis as any).playerDataHttpContext={data:{userClaims:{sub:'actor'},supabaseAdmin:{
+ (globalThis as any).playerDataHttpContext={data:{userClaims:{sub:'actor',email:'agent@example.test'},supabaseAdmin:{
   rpc:async(name:string,args:any)=>{calls.push({name,args});return {data:name==='platform_server_user_workspaces'?[{tenant_id:'tenant',role,is_primary:true}]:name==='get_push_scheduler_secret'?'fake-cron':name==='platform_server_request_player_stats_refresh'?{dispatch,job}:name==='platform_server_player_stats_refresh_status'?job:{ok:true,row:{}},error:null};},
   from:(table:string)=>{
-   const query:any={select:()=>query,eq:()=>query,in:()=>query,order:()=>query,limit:()=>query,maybeSingle:async()=>({data:table==='staff_player_access'?{player_id:'player',can_edit:true}:table==='players'?(allowed?{...player}:null):table==='player_public_profiles'?(published?{player_id:player.id,key_stats:[],hidden_sections:[],hide_market_value:true}:null):table==='player_cv_settings'?{key_stats:[]}:null,error:null}),update:(value:any)=>{writes.push({table,value});return query;},then:(resolve:any)=>Promise.resolve({data:table==='career_entries'?structuredClone(careerRows):[],error:null}).then(resolve)};
+   const query:any={select:()=>query,eq:()=>query,in:()=>query,order:()=>query,limit:()=>query,maybeSingle:async()=>({data:table==='staff_player_access'?{player_id:'player',can_edit:true}:table==='players'?(allowed?{...player}:null):table==='player_public_profiles'?(published?{player_id:player.id,key_stats:[],hidden_sections:[],hide_market_value:true}:null):table==='player_cv_settings'?cvSettings:null,error:null}),update:(value:any)=>{writes.push({table,value});return query;},then:(resolve:any)=>Promise.resolve({data:table==='career_entries'?structuredClone(careerRows):[],error:null}).then(resolve)};
    return query;
   }
  }},error:null};
@@ -86,9 +92,35 @@ test('the staff profile and published club profile select the same sourced reser
  careerRows=[{...current,club_name:'Example',appearances:30},{...current,season_label:'2025/26',appearances:21},current];
  const staff=await (await handler.fetch(request('player_profile_core'))).json();
  const club=await (await publicHandler(new Request('https://example.com',{method:'POST',body:JSON.stringify({slug:'dylan'})}))).json();
- assert.deepEqual(staff.profile.auto_key_stats,club.data.profile.key_stats);
- assert.deepEqual(club.data.profile.key_stats,[{label:'Apps',value:'8'},{label:'Starts',value:'5'},{label:'Minutes',value:'450'},{label:'Goals',value:'0'}]);
+ assert.deepEqual(staff.profile.auto_key_stats,club.data.profile.key_stats.map(({label,value}:any)=>({label,value})),'Restricted staff retain their existing stat projection');
+ assert.equal(staff.profile.auto_stats_meta.season_label,'2026/27');
+ assert.deepEqual(club.data.profile.key_stats,[{label:'Apps',value:'8'},{label:'Starts',value:'5'},{label:'Minutes',value:'450'},{label:'Goals',value:'0'}].map(stat=>({...stat,season_label:'2026/27',club_name:'Example Reserves',league:'Regional League',checked_at:'2026-10-01T12:00:00Z'})));
  assert.equal(club.data.stats_meta.source_url,current.source_url);
+});
+
+test('actual publication carries only approved football evidence for selected historical figures',async()=>{
+ role='owner';
+ careerRows=[{id:'past',season_label:'2025',club_name:'Former FC',league:'Historical League',goals:0,source_name:'League report',source_url:'https://league.example/2025',source_reviewed_at:'2026-01-20T12:00:00Z',notes:'PRIVATE',expected_commission:123}];
+ cvSettings={selected_stat_refs:['past:goals'],key_stats:[]};
+ const response=await handler.fetch(request('player_profile_publish'));
+ assert.equal(response.status,200,await response.text());
+ const snapshot=calls.find(call=>call.name==='platform_server_publish_player_profile_snapshot')?.args.p_snapshot;
+ assert.deepEqual(snapshot.key_stats,[{label:'Goals',value:'0',season_label:'2025',club_name:'Former FC',league:'Historical League',source_name:'League report',source_reviewed_at:'2026-01-20T12:00:00Z'}]);
+ assert.equal(JSON.stringify(snapshot).includes('PRIVATE'),false);
+ assert.equal(JSON.stringify(snapshot).includes('expected_commission'),false);
+});
+
+test('publication preserves custom scope and gives automatic figures their actual source period',async()=>{
+ role='owner';
+ careerRows=[{id:'current',season_label:'2026/27',club_name:'Example Reserves',league:'Regional League',goals:0,source_name:'Current report',source_url:'https://league.example/current',source_reviewed_at:'2026-10-01T12:00:00Z'}];
+ cvSettings={key_stats:[{label:'Agency figure',value:'7'}]};
+ let response=await handler.fetch(request('player_profile_publish'));
+ assert.equal(response.status,200,await response.text());
+ assert.deepEqual(calls.findLast(call=>call.name==='platform_server_publish_player_profile_snapshot')?.args.p_snapshot.key_stats,cvSettings.key_stats,'Custom figures are not attributed to the current evidence');
+ cvSettings={key_stats:[],selected_stat_refs:[]};
+ response=await handler.fetch(request('player_profile_publish'));
+ assert.equal(response.status,200,await response.text());
+ assert.deepEqual(calls.findLast(call=>call.name==='platform_server_publish_player_profile_snapshot')?.args.p_snapshot.key_stats,[{label:'Goals',value:'0',season_label:'2026/27',club_name:'Example Reserves',league:'Regional League',source_name:'Current report',checked_at:'2026-10-01T12:00:00Z'}]);
 });
 test('club reads cannot expose unpublished or unverified player data',async()=>{
  const read=()=>publicHandler(new Request('https://example.com',{method:'POST',body:JSON.stringify({slug:'dylan'})}));

@@ -1759,6 +1759,30 @@
 .pagination { grid-column: 1 / -1; display: grid; justify-items: center; gap: 10px; padding: 18px; color: var(--text-muted, #64748b); text-align: center; font-size: 13px; }
 .pagination p { margin: 0; }
 
+/* One explicit next-step control; setup guidance stays visually quiet. */
+.playerCard .mobileNextAction[type='button'] {
+  width: auto;
+  justify-self: stretch;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+.playerCard .mobileNextAction[type='button']:focus-visible {
+  outline: 2px solid var(--agency-primary);
+  outline-offset: 3px;
+}
+.playerCardEnd .setupPill {
+  background: #f3f5f7;
+  color: #596674;
+}
+.setupNextAction .mobileStatusDotCalm {
+  background: #8c97a2;
+}
+
 /* Calm roster v1: the player is the object, metadata is supporting detail. */
 @media (min-width: 681px) {
   .workspace {

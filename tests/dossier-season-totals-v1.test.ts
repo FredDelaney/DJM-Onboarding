@@ -7,7 +7,8 @@ import {
   headlineSeasonRows,
   resolveHeadlineSeason,
 } from '../lib/football-season-stats.ts';
-import { dossierHeadlineStats } from '../lib/dossier.ts';
+import { dossierHeadlineStats, dossierHeadlineStatContext, dossierPerformance } from '../lib/dossier.ts';
+import { withProfileStatEvidence } from '../supabase/functions/_shared/profile-stat-evidence.ts';
 
 const jamesRows = [
   {
@@ -72,6 +73,62 @@ test('an agent-selected profile statistic is not mixed with unselected career to
     key_stats: [{ label: 'Goals', value: '7' }],
     career_timeline: [{ season_label: '2026', club_name: 'Club', appearances: 20, goals: 7 }],
   }), [{ label: 'Goals', value: '7' }]);
+});
+
+test('custom figures never inherit current career period, source or checked date', () => {
+  const context=dossierHeadlineStatContext({key_stats:[{label:'Goals',value:0}],career_timeline:[{season_label:'2026',club_name:'Current FC',goals:99,source_name:'Current source',source_reviewed_at:'2026-10-20T12:00:00Z'}]});
+  assert.deepEqual(context,{period:'Period not recorded',source:'Source not recorded',date:'Source date not recorded',notes:['']});
+});
+
+test('selected historical figures keep their own evidence and genuine zero values', () => {
+  const stat=withProfileStatEvidence({label:'Goals',value:0},{season_label:'2025',club_name:'Former FC',league:'League',source_name:'Official report',source_reviewed_at:'2026-01-20T12:00:00Z',notes:'PRIVATE',expected_commission:123,owner_user_id:'PRIVATE'});
+  assert.deepEqual(stat,{label:'Goals',value:0,season_label:'2025',club_name:'Former FC',league:'League',source_name:'Official report',source_reviewed_at:'2026-01-20T12:00:00Z'});
+  const profile={key_stats:[stat],career_timeline:[{season_label:'2026',club_name:'Current FC',goals:9}]};
+  assert.deepEqual(dossierHeadlineStats(profile),[{label:'Goals',value:'0'}]);
+  assert.deepEqual(dossierHeadlineStatContext(profile),{period:'2025 · Former FC · League',source:'Official report',date:'Reviewed 20 Jan 2026',notes:['']});
+});
+
+test('mixed-period and partly sourced figures retain evidence per figure', () => {
+  const context=dossierHeadlineStatContext({key_stats:[
+    {label:'Apps',value:10,season_label:'2025',source_name:'Historical source',source_reviewed_at:'2026-01-20T12:00:00Z'},
+    {label:'Goals',value:0,season_label:'2026',source_name:'Current source',checked_at:'2026-10-20T12:00:00Z'},
+    {label:'Assists',value:3},
+  ]});
+  assert.equal(context.period,'Selected evidence');
+  assert.equal(context.source,'Sources by figure');
+  assert.equal(context.date,'Source dates vary');
+  assert.deepEqual(context.notes,['2025 · Historical source · Reviewed 20 Jan 2026','2026 · Current source · Checked 20 Oct 2026','Period not recorded · Source not recorded · Date not recorded']);
+});
+
+test('fallback career totals and context use the same explicit classified period', () => {
+  const profile={career_timeline:jamesRows.map(row=>({...row,source_name:'Official reports',source_reviewed_at:'2026-10-20T12:00:00Z'}))};
+  assert.equal(dossierHeadlineStats(profile).find(stat=>stat.label==='Apps')?.value,'11');
+  assert.equal(dossierHeadlineStatContext(profile).period,'2026');
+  assert.equal(dossierHeadlineStatContext(profile).source,'Official reports');
+});
+
+test('invalid source dates never produce freshness claims', () => {
+  const stat=withProfileStatEvidence({label:'Apps',value:2},{season_label:'2025',source_name:'Source',checked_at:'not-a-date',source_reviewed_at:'2026'});
+  assert.equal(stat.checked_at,undefined);assert.equal(stat.source_reviewed_at,undefined);
+  assert.equal(dossierHeadlineStatContext({key_stats:[stat]}).date,'Source date not recorded');
+});
+
+test('a missing goals or assists count is unknown, not zero contributions', () => {
+  for (const row of [{season_label:'2026',goals:2},{season_label:'2026',assists:0}]) {
+    assert.equal(aggregateFootballStats([row]).contributions,null);
+    assert.equal(dossierHeadlineStats({career_timeline:[row]}).some(stat=>stat.label==='G+A'),false);
+  }
+  assert.equal(aggregateFootballStats([{goals:0,assists:0}]).contributions,0);
+});
+
+test('career charts omit unknown metric values while retaining a recorded zero', () => {
+  const chart=dossierPerformance({career_timeline:[
+    {season_label:'2026',club_name:'Current FC',goals:0},
+    {season_label:'2025',club_name:'Former FC',appearances:0},
+    {season_label:'2024',club_name:'Earlier FC',appearances:33},
+  ]});
+  assert.equal(chart.metric,'appearances');
+  assert.deepEqual(chart.rows.map(row=>[row.season_label,row.visualLabel]),[['2025','0 apps'],['2024','33 apps']]);
 });
 
 test('dossier and stats panel use the shared full-period rule and six totals', () => {
