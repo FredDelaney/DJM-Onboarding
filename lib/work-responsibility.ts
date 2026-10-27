@@ -1,13 +1,15 @@
+import {isHomePlayerDataReview} from './home-priority.ts';
 import type { CalendarRpc } from './calendar/tasks.ts';
 export type WorkRef = { kind: string; id: string };
 const kinds = new Set(['player_next_action','career_strategy_review','target_window_end','deal_next_action','club_need_expiry','player_request_due','representation_record_end','document_expiry','contract_expiry']);
 export function workRefFor(value: any): WorkRef | null {
+  if(isHomePlayerDataReview(value))return null;
   const kind = value?.work_kind || (value?.source_type === 'task' ? 'task' : value?.deadline_type) || (value?.task_id ? 'task' : '');
   const id = String(value?.work_id || value?.task_id || (value?.source_type === 'task' ? value?.source_id : value?.entity_id) || '');
   return (kind === 'task' || kinds.has(kind)) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? {kind,id} : null;
 }
 export function homeWorkRefFor(value: any): WorkRef | null {
-  if (value?.command_type === 'Player review required' || /^review\b.*\b(data|statistics|player record)\b/i.test(String(value?.title || '')) || Number(value?.evidence?.task_count || 1) > 1) return null;
+  if (isHomePlayerDataReview(value) || value?.command_type === 'Player review required' || /^review\b.*\b(data|statistics|player record)\b/i.test(String(value?.title || '')) || Number(value?.evidence?.task_count || 1) > 1) return null;
   const followUp = value?.source_type === 'player' && value?.command_type === 'Player follow-up due';
   const kind = followUp ? 'player_next_action' : value?.work_kind || value?.deadline_type || (value?.source_type === 'task' || value?.task_id ? 'task' : '');
   const id = String(value?.work_id || value?.task_id || value?.source_id || value?.entity_id || '');

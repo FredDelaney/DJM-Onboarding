@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { homeCommandCategory, isHomePlayerDataReview } from '../lib/home-priority.ts';
+import { homeCommandCategory, isHomePlayerDataReview, isHomeStatisticsReview } from '../lib/home-priority.ts';
 
 const now = new Date(2026, 9, 23, 12);
 test('a player data-review timestamp is not treated as an overdue business deadline', () => {
@@ -29,4 +29,15 @@ test('undated and invalid-date context retains existing categories without fabri
     assert.equal(homeCommandCategory({ title: 'Review player match for club need', due_at }, now), 'Opportunity detected');
     assert.equal(homeCommandCategory({ source_type: 'capture', title: 'Clarify which Alex', due_at }, now), 'Needs action now');
   }
+});
+
+test('sourced suggestions stay in the quiet review group and are never deadlines',()=>{
+ const c={source_type:'player',command_type:'Player statistics suggested',due_at:'2000-01-01'};
+ assert.equal(isHomeStatisticsReview(c),true);assert.equal(isHomePlayerDataReview(c),true);assert.equal(homeCommandCategory(c,now),'FYI');
+ assert.equal(isHomeStatisticsReview({...c,source_type:'task'}),false);
+});
+
+test('material detail suggestions stay in the quiet review group even with contract words or an old check date',()=>{
+ const card={source_type:'player',command_type:'Player details suggested',title:'Check contract expiry',due_at:'2020-01-01'};
+ assert.equal(isHomePlayerDataReview(card),true);assert.equal(homeCommandCategory(card),'FYI');
 });
