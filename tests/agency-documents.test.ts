@@ -351,6 +351,41 @@ test("invoice money uses rounded minor units and rejects invalid or missing amou
   doc.content.lines[0].unitPrice = "0";
   assert.ok(documentIssues(doc).some((x) => x.startsWith("Check invoice")));
 });
+test("invoice review rejects invalid or reversed dates and focuses the date to correct", () => {
+  const doc = newAgencyDocument("invoice", documentBrand());
+  doc.content.fields.issue_date = "2026-11-01";
+  doc.content.fields.due_date = "2026-10-31";
+  const reversed = "Due date must be on or after the issue date";
+  assert.ok(documentIssues(doc).includes(reversed));
+  assert.deepEqual(documentIssueTarget(doc, reversed), {tab:"details",id:"document-field-due_date"});
+  for (const key of ["issue_date", "due_date"]) {
+    for (const value of ["2026-02-31", "2026-2-01", "0000-01-01", "not a date"]) {
+      doc.content.fields = {issue_date:"2026-11-01",due_date:"2026-11-01",[key]:value};
+      const issue = key === "issue_date" ? "Check the invoice issue date" : "Check the invoice due date";
+      assert.ok(documentIssues(doc).includes(issue), key + " " + value);
+      assert.deepEqual(documentIssueTarget(doc, issue), {tab:"details",id:"document-field-"+key});
+    }
+  }
+  for (const value of ["2026-11-01", "2028-02-29"]) {
+    doc.content.fields = {issue_date:value,due_date:value};
+    assert.equal(documentIssues(doc).some(issue => /invoice (issue|due) date|Due date must/.test(issue)),false,"Same-day and leap-day billing remain valid");
+  }
+});
+test("invoice template reuse requires a fresh payment date without changing the original", () => {
+  const source = newAgencyDocument("invoice", documentBrand());
+  source.content.fields.issue_date = "2020-01-01";
+  source.content.fields.due_date = "2020-01-15";
+  const before = structuredClone(source);
+  const template = copyAgencyDocument(source,"template");
+  assert.equal(template.content.fields.issue_date,undefined);
+  assert.equal(template.content.fields.due_date,undefined);
+  const next = copyAgencyDocument({...source,is_template:true},"from_template");
+  assert.equal(next.content.fields.due_date,undefined,"Legacy templates cannot silently retain an old due date");
+  assert.notEqual(next.content.fields.issue_date,"2020-01-01");
+  assert.ok(documentIssues(next).includes("Add due date"));
+  assert.deepEqual(source,before);
+  assert.equal(copyAgencyDocument(source,"duplicate").content.fields.due_date,"2020-01-15","Explicit duplicate retains selected agreement dates for review");
+});
 test("external links accept only HTTPS without embedded credentials", () => {
   for (const value of [
     "javascript:alert(1)",

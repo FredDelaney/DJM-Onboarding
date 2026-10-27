@@ -93,6 +93,7 @@ before(async () => {
     ),
   );
   await db.exec(readFileSync("supabase/migrations/20261026231700_agency_document_exact_read.sql", "utf8"));
+  await db.exec(readFileSync("supabase/migrations/20261027055046_invoice_date_review_guard.sql", "utf8"));
   await db.query("insert into auth.users values($1),($2),($3)", [
     owner,
     otherOwner,
@@ -397,6 +398,62 @@ test("invoice payments are explicit manual records and duplicate numbers are rej
     save({ ...savedInvoice, title: "Change paid invoice" }),
     /recorded payment/,
   );
+});
+test("invoice drafts retain invalid dates but share and manual lifecycle actions require valid ordered dates", async () => {
+  await actor(owner);
+  let invoice = newAgencyDocument("invoice",documentBrand({display_name:"QA Agency"}));
+  invoice.content.fields = {invoice_number:"QA-DATE-001",recipient_name:"QA Club",recipient_address:"QA address",currency:"GBP",tax_rate:"20",issue_date:"2026-11-01",due_date:"2026-10-31"};
+  invoice.content.brand.bankDetails = "TEST ONLY, not an account";
+  invoice.content.sections = [{id:"terms",title:"QA terms",body:"QA software test only. No payment is requested."}];
+  invoice.content.lines = [{id:"fee",description:"QA fictional service",quantity:"1.5",unitPrice:"100.01"}];
+  invoice.content.reviewed = true;
+  for (const [issue,due,message] of [
+    ["2026-11-01","2026-10-31",/Due date must be on or after the issue date/],
+    ["2026-02-31","2026-11-01",/Use valid invoice dates/],
+    ["2026-11-01","2026-11-31",/Use valid invoice dates/],
+    ["2026-2-01","2026-11-01",/Use valid invoice dates/],
+    ["0000-01-01","2026-11-01",/Use valid invoice dates/],
+  ] as const) {
+    invoice.content.fields.issue_date=issue; invoice.content.fields.due_date=due;
+    invoice=await save(invoice);
+    assert.equal(invoice.content.fields.due_date,due,"Incomplete drafts remain saveable");
+    const before=await call("events",invoice);
+    for (const action of ["share","sent","paid"]) await assert.rejects(call(action,invoice,{note:"QA date test only"}),message);
+    assert.deepEqual(await call("events",invoice),before,"Rejected actions leave no event or link");
+  }
+  invoice.content.fields.issue_date="2028-02-29";invoice.content.fields.due_date="2028-02-29";
+  invoice=await save(invoice);
+  assert.ok((await call("share",invoice)).token,"Valid same-day leap-date billing remains supported");
+  await call("archive",invoice);
+});
+test("invoice date staging canary rehearses the actual role and leaves no rows or events", async () => {
+  await db.exec("reset role");
+  const counts = async () => (await db.query("select (select count(*) from public.agency_documents) documents,(select count(*) from public.agency_document_shares) shares,(select count(*) from public.agency_document_events) events")).rows;
+  const before = await counts();
+  const canary = readFileSync("docs/operations/sql/redream-invoice-date-canary.sql", "utf8")
+    .replaceAll("675c4f97-f5b9-4686-912f-938b01b4df18", owner)
+    .replaceAll("northstar-football-management", "agency-a").replaceAll("djm-sports-management", "agency-b");
+  await db.query("insert into platform.tenant_memberships values($1,$2,'owner','active')", [tenantB,owner]);
+  try { await db.exec(canary); }
+  finally {
+    await db.exec("rollback; reset role");
+    await db.query("delete from platform.tenant_memberships where tenant_id=$1 and user_id=$2", [tenantB,owner]);
+  }
+  assert.deepEqual(await counts(),before);
+});
+test("invoice date migration preserves the writer contract, is repeatable and refuses source drift", async () => {
+  await db.exec("reset role");
+  const catalog = () => db.query("select oid,proowner,proacl,proconfig,prosecdef,provolatile,md5(prosrc) hash from pg_proc where oid='public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure");
+  const before = await catalog();
+  const migration = readFileSync("supabase/migrations/20261027055046_invoice_date_review_guard.sql", "utf8");
+  await db.exec(migration);
+  assert.deepEqual((await catalog()).rows, before.rows);
+  const definition = (await db.query<{definition:string}>("select pg_get_functiondef('public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure) definition")).rows[0].definition;
+  await db.exec("begin");
+  await db.exec(definition.replace("Use valid invoice dates", "QA unexpected source"));
+  await assert.rejects(db.exec(migration.match(/do \$patch\$[\s\S]*?end \$patch\$;/)![0]), /Unexpected redream_documents source/);
+  await db.exec("rollback");
+  assert.deepEqual((await catalog()).rows, before.rows);
 });
 test("raw tables and privileged document APIs remain closed to anonymous callers", async () => {
   await actor(null, "anon");

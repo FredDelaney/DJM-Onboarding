@@ -567,6 +567,20 @@ export function documentIssues(doc: AgencyDocument): string[] {
   )
     issues.push("Complete empty section headings and wording");
   if (doc.kind === "invoice") {
+    const issue = doc.content.fields.issue_date || "";
+    const due = doc.content.fields.due_date || "";
+    const validDate = (value: string) => {
+      if (!/^(?!0000)\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const date = new Date(value + "T12:00:00Z");
+      return (
+        Number.isFinite(date.getTime()) &&
+        date.toISOString().slice(0, 10) === value
+      );
+    };
+    if (issue && !validDate(issue)) issues.push("Check the invoice issue date");
+    if (due && !validDate(due)) issues.push("Check the invoice due date");
+    if (validDate(issue) && validDate(due) && due < issue)
+      issues.push("Due date must be on or after the issue date");
     if (
       !invoiceTotals(doc.content).valid ||
       invoiceTotals(doc.content).total <= 0
@@ -753,6 +767,10 @@ export function copyAgencyDocument(
   if (source.kind === "invoice") {
     content.fields.invoice_number = "";
     content.fields.reference = "";
+    if (mode !== "duplicate") {
+      delete content.fields.issue_date;
+      delete content.fields.due_date;
+    }
   }
   if (mode === "from_template") {
     content.fields.issue_date = documentDate(new Date(), settings.timezone);
