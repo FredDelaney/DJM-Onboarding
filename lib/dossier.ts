@@ -39,6 +39,23 @@ export const dossierNationality = (
     : '-';
 };
 
+// Contract dates are calendar dates, never local timestamps or inferred terms.
+export const dossierContractExpiry = (value: unknown): string | null => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(value + 'T00:00:00Z');
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+  }).format(date);
+};
+
+export const dossierHeadline = (profile: any): string | null => {
+  const headline = String(profile?.headline || '').trim();
+  const identity = [profile?.primary_position, profile?.current_club].filter(Boolean).join(' · ');
+  const normalise = (text: string) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+  return headline && normalise(headline) !== normalise(identity) ? headline : null;
+};
+
 export const dossierVerifiedDate = (
   value: any,
 ) => {

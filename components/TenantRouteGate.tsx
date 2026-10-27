@@ -39,6 +39,9 @@ export function TenantRouteGate({
   const isPublicPlayerProfileRoute =
     /^\/p\/[^/]+\/?$/.test(pathname);
 
+  // Recipient data is authorised by the share token, not a private host mapping.
+  const isClubRecipientRoute = /^\/s\/[^/]+\/?$/.test(pathname);
+
   const isReDreamPublicRoute =
     allowReDreamPublicRoot &&
     REDREAM_PUBLIC_ROUTES.has(pathname);
@@ -49,6 +52,7 @@ export function TenantRouteGate({
       isAgencyActivationRoute ||
       isAgencyWorkspaceRoute ||
       isPublicPlayerProfileRoute ||
+      isClubRecipientRoute ||
       isReDreamPublicRoute ||
       pathname === '/tell' ||
       pathname === '/sign-in' ||

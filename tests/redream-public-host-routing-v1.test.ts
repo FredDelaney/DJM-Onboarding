@@ -94,3 +94,10 @@ test('actual tenant gate retains existing workspace, control plane and authentic
     assert.equal(renderGate(path), 'APPROVED_PUBLIC_ROUTE', path);
   }
 });
+
+test('actual tenant gate permits the token-scoped club recipient on a shared host',()=>{
+ for(const path of ['/s/98df9d8f-2f83-4ff0-bd1f-49c7c3133c96','/s/98df9d8f-2f83-4ff0-bd1f-49c7c3133c96/','/s/not-a-token'])assert.equal(renderGate(path),'APPROVED_PUBLIC_ROUTE',path);
+});
+test('club recipient routing keeps root, nested and private paths closed',()=>{
+ for(const path of ['/s','/s/','/s/token/admin','/s/token/edit','/share','/agency','/admin/players'])assert.equal(renderGate(path),'WORKSPACE_UNAVAILABLE',path);
+});
