@@ -70,6 +70,7 @@ jobs:
             /tmp/redream-platform-programme/representation-journey
             /tmp/redream-platform-programme/mandate-journey
             /tmp/redream-platform-programme/player-pitch-journey
+            /tmp/redream-platform-programme/scouting-report-journey
             /tmp/redream-platform-programme/invoice-journey
             /tmp/redream-platform-programme/invoice-currency
             /tmp/redream-platform-programme/document-save-recovery

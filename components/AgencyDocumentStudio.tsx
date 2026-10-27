@@ -44,6 +44,8 @@ import {
   copyAgencyDocument,
   documentIssues,
   fillDocumentPlayer,
+  replacesScoutingPlayer,
+  isReusableScoutingTemplate,
   newAgencyDocument,
   type AgencyDocument,
   type DocumentBrand,
@@ -291,6 +293,7 @@ export function DocumentStudioEditor({
   const docRef = useRef(doc); docRef.current = doc;
   const scope = `${workspaceSlug}:${initialData.tenant_id}`, scopeRef = useRef(scope);
   scopeRef.current = scope;
+  const [pendingImport, setPendingImport] = useState<{ draft: AgencyDocument; player: DocumentPlayer; scope: string } | null>(null);
   const dialog = useRef<HTMLDialogElement>(null),
     pending = useRef<(() => void) | null>(null),
     mounted = useRef(true),
@@ -370,6 +373,34 @@ export function DocumentStudioEditor({
     }));
   const setField = (key: string, value: string) =>
     edit((current) => updateDocumentField(current, key, value));
+  const applyPlayerImport = (target = pendingImport) => {
+    const current = docRef.current;
+    setPendingImport(null);
+    dialog.current?.close();
+    if (!target || !current || current.paid_at || busy || saveLock.current || target.scope !== scopeRef.current ||
+      current.revision !== target.draft.revision || !sameDocumentDraft(current, target.draft) ||
+      !initialData.players.some(player => player.id === target.player.id)) {
+      setError("This document changed. Choose the player again before copying details.");
+      return;
+    }
+    const next = { ...fillDocumentPlayer(current, target.player),
+      title: updateDocumentField(current, "player_name", target.player.name).title };
+    edit(() => next);
+    setNotice(current.kind === "scouting_report"
+      ? next.content.sources.length
+        ? "Published profile details copied. Review the evidence for this report."
+        : "Player name copied. No published profile evidence is available."
+      : "Player details copied into this document. Your roster is unchanged.");
+  };
+  const beginPlayerImport = () => {
+    const player = initialData.players.find(item => item.id === playerId);
+    if (!doc || !player || busy || doc.paid_at) return;
+    const target = { draft: structuredClone(doc), player, scope: scopeRef.current };
+    setPendingImport(target);
+    if (doc.kind === "scouting_report" && (doc.content.fields.player_name?.trim() || doc.content.sources.length || replacesScoutingPlayer(doc, player)))
+      openDialog("import_player");
+    else applyPlayerImport(target);
+  };
   const refresh = async () => {
     const latest = await request<DocumentStudioData>("list");
     if (mounted.current) setLibrary(latest.documents);
@@ -510,7 +541,9 @@ export function DocumentStudioEditor({
         template.kind === "agency_pitch" &&
           template.content.pitchTemplateVersion !== 1
           ? "Layout and branding kept. Previous pitch wording and sources cleared. Add this player's details and wording."
-          : "Template loaded. Add this recipient's details and check any personalised wording.",
+          : template.kind === "scouting_report" && !isReusableScoutingTemplate(template)
+            ? "Layout and branding kept. Previous scouting headings, observations and sources cleared. Add this player's evidence."
+            : "Template loaded. Add this recipient's details and check any personalised wording.",
       );
     });
   const asTemplate = () => {
@@ -519,7 +552,9 @@ export function DocumentStudioEditor({
       select(copyAgencyDocument(doc, "template"));
       setNotice(
         doc.kind === "scouting_report"
-          ? "Layout and branding kept. Player observations and sources cleared for this reusable template."
+          ? isReusableScoutingTemplate(doc)
+              ? "Reusable scouting guidance kept. Personal fields cleared; review this template before reuse."
+              : "Layout and branding kept. Player headings, observations and sources cleared for this reusable template."
           : doc.kind === "agency_pitch" &&
               !(doc.is_template && doc.content.pitchTemplateVersion === 1)
             ? "Layout and branding kept. Pitch wording and sources cleared. Add reusable agency wording before saving."
@@ -936,25 +971,7 @@ export function DocumentStudioEditor({
                             content: { ...current.content, reviewed: false },
                           }))
                         }
-                        onImport={() => {
-                          const player = initialData.players.find(
-                            (item) => item.id === playerId,
-                          );
-                          if (!player) return;
-                          edit((current) => ({
-                            ...fillDocumentPlayer(current, player),
-                            title: updateDocumentField(
-                              current,
-                              "player_name",
-                              player.name,
-                            ).title,
-                          }));
-                          setNotice(
-                            doc.kind === "scouting_report"
-                              ? "Published profile details copied. Review the evidence for this report."
-                              : "Player details copied into this document. Your roster is unchanged.",
-                          );
-                        }}
+                        onImport={beginPlayerImport}
                       >
                         {doc.kind === "invoice" ? (
                           <section
@@ -1362,7 +1379,7 @@ export function DocumentStudioEditor({
                             />
                           </label>
                           <label>
-                            Source checked on
+                            Source added on
                             <input
                               type="date"
                               value={source.capturedAt?.slice(0, 10) || ""}
@@ -1626,6 +1643,20 @@ export function DocumentStudioEditor({
       <dialog
         ref={dialog}
         className={styles.dialog}
+        onKeyDown={(event) => {
+          if (event.key !== "Tab") return;
+          const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+            "button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href]",
+          )).filter(node => node.getClientRects().length > 0);
+          const first = controls[0], last = controls.at(-1);
+          if (!controls.includes(document.activeElement as HTMLElement)) {
+            event.preventDefault(); (event.shiftKey ? last : first)?.focus();
+          } else if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault(); last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault(); first?.focus();
+          }
+        }}
         aria-label={
           dialogMode === "discard"
             ? "Unsaved document changes"
@@ -1635,6 +1666,7 @@ export function DocumentStudioEditor({
         }
         onCancel={(event) => {
           if (busy) event.preventDefault();
+          else setPendingImport(null);
         }}
       >
         <header>
@@ -1643,6 +1675,8 @@ export function DocumentStudioEditor({
               ? "Keep your changes?"
               : dialogMode === "share"
                 ? "Share a considered version"
+                : dialogMode === "import_player"
+                  ? "Copy player details?"
                 : dialogMode === "paid"
                   ? "Record a payment"
                   : dialogMode === "sent"
@@ -1656,7 +1690,7 @@ export function DocumentStudioEditor({
             type="button"
             disabled={!!busy}
             aria-label="Close document dialog"
-            onClick={() => dialog.current?.close()}
+            onClick={() => { setPendingImport(null); dialog.current?.close(); }}
           >
             <X size={20} />
           </button>
@@ -1683,6 +1717,18 @@ export function DocumentStudioEditor({
               >
                 Discard changes
               </button>
+            </div>
+          </>
+        ) : dialogMode === "import_player" ? (
+          <>
+            <p>Copy details for <strong>{pendingImport?.player.name}</strong> into this draft?</p>
+            {!pendingImport?.player.profile ? <p>No published profile is available for this player. Only the name will be copied.</p> : null}
+            <p>Player details, profile evidence and sources will be replaced. {pendingImport && replacesScoutingPlayer(pendingImport.draft, pendingImport.player)
+              ? "This starts a fresh assessment; existing scouting observations will be cleared."
+              : "Your scouting observations will stay."} Save the draft to keep these changes.</p>
+            <div className={styles.dialogActions}>
+              <button data-ui-button="secondary" type="button" onClick={() => { setPendingImport(null); dialog.current?.close(); }}>Keep current report</button>
+              <button data-ui-button="primary" className={styles.primary} type="button" onClick={() => applyPlayerImport()}>Copy profile details</button>
             </div>
           </>
         ) : dialogMode === "share" ? (
