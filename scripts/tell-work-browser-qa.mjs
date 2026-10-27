@@ -44,7 +44,7 @@ try{
  }
  await page.getByRole('button',{name:'Approve & save',exact:true}).click();
  await page.getByRole('button',{name:'Retry approved changes',exact:true}).waitFor();
- await page.getByRole('link',{name:'View follow-ups',exact:true}).waitFor();
+ await page.getByRole('link',{name:'Open follow-up: Call James about Dylan',exact:true}).waitFor();
  await page.getByText('Failed: Send updated profile',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Retry approved changes',exact:true}).click();
  await page.getByText('Follow-up created',{exact:true}).waitFor();
@@ -61,6 +61,13 @@ try{
  await page.reload(); await page.getByRole('button',{name:'Call James about Dylan',exact:true}).click();
  await page.getByText('Complete: Call James about Dylan',{exact:true}).waitFor();
  assert.equal(approvals,2,'Choosing a task does not approve it');
+ const longTitle='Send the reviewed player dossier and the confirmed trial availability to the recruitment team before the next transfer meeting';
+ const secondTask='40000000-0000-4000-8000-000000000002';
+ current=receipt([completed,{...followup,status:'applied',target_type:'task',target_id:secondTask,resolved_payload:{title:longTitle}}],'done');await page.reload();
+ const exactFollowup=page.getByRole('link',{name:'Open follow-up: '+longTitle,exact:true});await exactFollowup.waitFor();
+ assert.equal(await exactFollowup.getAttribute('href'),'/workspace/qa-tell-work?view=calendar&work=task&task='+secondTask);
+ assert.equal(await page.getByRole('link',{name:/^Open follow-up/}).count(),2,'Each confirmed task has its own identifiable destination');
+ for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:844});await exactFollowup.scrollIntoViewIfNeeded();const box=await exactFollowup.boundingBox();assert.ok(box.height>=44&&box.width<=width);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Long task links wrap at '+width);}
  current=receipt([{...followup,status:'needs_review'}]);await page.reload();
  holdEdit=true;await page.getByRole('button',{name:'Edit original note',exact:true}).click();
  await page.getByRole('button',{name:'Sign out test account',exact:true}).click();

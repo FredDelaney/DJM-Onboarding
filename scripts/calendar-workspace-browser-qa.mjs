@@ -36,7 +36,7 @@ try{
  await page.getByLabel('Title',{exact:true}).fill('Unscheduled work');
  await page.getByLabel('No date',{exact:true}).check();
  await page.getByRole('button',{name:'Save task',exact:true}).click();
- await page.getByText('No date',{exact:true}).click();
+ await page.locator('summary').filter({hasText:'No date'}).click();
  await page.getByText('Unscheduled work',{exact:true}).waitFor();
  await page.getByText('Shared unscheduled follow-up',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Toggle save failure',exact:true}).click();

@@ -21,9 +21,12 @@ import dynamic from 'next/dynamic';
 import { calendarDateKey, monthDays, shiftMonth } from '@/lib/calendar/dates';
 import { useSearchParams } from 'next/navigation';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import {createPortal} from 'react-dom';
 
 import WorkResponsibilityControl from './WorkResponsibilityControl';
-import {workRefFor,workHref} from '@/lib/work-responsibility';
+import {workRefFor,homeWorkRefFor,workHref} from '@/lib/work-responsibility';
+import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWorkControl';
+import {projectConfirmedCalendarWork,projectConfirmedAssignedWork} from '@/lib/calendar/confirmed-work';
 import styles from './AgencyCalendarWorkspace.module.css';
 import AgencyCalendarTaskForm from './AgencyCalendarTaskForm';
 import AgencyCalendarTaskRow from './AgencyCalendarTaskRow';
@@ -64,6 +67,7 @@ const parseDate = (value: unknown, dateOnly = false) => {
 type Rpc = <T = any>(
   name: string,
   args?: Record<string, unknown>,
+  signal?: AbortSignal,
 ) => Promise<T>;
 
 export default function AgencyCalendarWorkspace({
@@ -85,6 +89,15 @@ export default function AgencyCalendarWorkspace({
 }) {
   const search = useSearchParams();
   const requestedTaskId=String(search.get('task')||'').trim();
+  const requestedWork=homeWorkRefFor({work_kind:search.get('work'),work_id:requestedTaskId});
+  const requestedWorkKey=requestedWork?requestedWork.kind+':'+requestedWork.id:'';
+  const openedWork=useRef('');
+  const workControl=useHomeWork(rpc,tenantId,userId);
+  const workFeedback=useRef<HTMLDivElement>(null);
+  const latestWorkNotice=workControl.notices.at(-1)?.id;
+  useEffect(()=>{
+    if(latestWorkNotice&&document.activeElement===document.body){const buttons=workFeedback.current?.querySelectorAll<HTMLElement>('button[aria-label^="Undo completion"]');if(buttons?.length)buttons[buttons.length-1].focus({preventScroll:true});}
+  },[latestWorkNotice]);
   const openedTask=useRef('');
   const requestedMeetingId = String(search.get('meeting') || '').trim();
   const [clientReady, setClientReady] = useState(false);
@@ -96,6 +109,7 @@ export default function AgencyCalendarWorkspace({
   const [prefScope,setPrefScope]=useState('');
   const [refreshDates,setRefreshDates]=useState(0);
   const [showDone,setShowDone]=useState(false),[showArchived,setShowArchived]=useState(false);
+  const [linkedUndated,setLinkedUndated]=useState(false);
   const [taskForm,setTaskForm]=useState<{scope:string;task?:CalendarTask}|null>(null);
   const [greeting,setGreeting]=useState('');
   const [now,setNow]=useState(()=>new Date());
@@ -105,14 +119,32 @@ export default function AgencyCalendarWorkspace({
   const rangeEnd=useMemo(()=>{if(view==='month')return shiftMonth(`${month}-01`,1);const end=new Date(`${selectedDate}T12:00:00`);end.setDate(end.getDate()+horizon+1);return calendarDateKey(end)>shiftMonth(`${month}-01`,1)?calendarDateKey(end):shiftMonth(`${month}-01`,1);},[month,selectedDate,horizon,view]);
   const source=useCalendarSources(rpc,tenantId,userId,`${month}-01`,rangeEnd,today,birthdayFilters.contacts,showDone,showArchived,refreshDates);
   const scopeRef=useRef(source.scope);scopeRef.current=source.scope;
-   useEffect(()=>{if(!requestedTaskId||openedTask.current===source.scope+requestedTaskId)return;const task=[...source.tasks,...source.undated,...source.overdue].find(task=>task.id===requestedTaskId);if(task?.can_edit){openedTask.current=source.scope+requestedTaskId;setTaskForm({scope:source.scope,task});}},[requestedTaskId,source.scope,source.tasks,source.undated,source.overdue]);
+   useEffect(()=>{if(search.get('work')||!requestedTaskId||openedTask.current===source.scope+requestedTaskId)return;const task=[...source.tasks,...source.undated,...source.overdue].find(task=>task.id===requestedTaskId);if(task?.can_edit){openedTask.current=source.scope+requestedTaskId;setTaskForm({scope:source.scope,task});}},[requestedTaskId,source.scope,source.tasks,source.undated,source.overdue,search]);
+  const requestedEntry=requestedWork?{ref:requestedWork,title:'Follow-up',payload:{}}:null;
+  useEffect(()=>{
+    if(!requestedEntry||openedWork.current===source.scope+requestedWorkKey)return;
+    openedWork.current=source.scope+requestedWorkKey;
+    setLinkedUndated(false);
+    void workControl.open(requestedEntry);
+  },[requestedWorkKey,source.scope]);
+  useEffect(()=>{
+    const editor=workControl.editor;
+    if(editor&&editor.ref.kind+':'+editor.ref.id===requestedWorkKey){setLinkedUndated(!editor.work.due_on);if(editor.work.due_on)setSelectedDate(editor.work.due_on);}
+  },[requestedWorkKey,workControl.editor]);
+  const workSourcesReady=['dates','todayDates','sharedWork','tasks','todayTasks','overdue','undated'].every(name=>{
+    const item=source.sources[name];return item&&item.refresh===refreshDates&&!item.busy&&!item.error;
+  });
+  useEffect(()=>{
+    if(workSourcesReady&&Object.keys(workControl.overrides).length)workControl.reconcile(workControl.overrides);
+  },[workSourcesReady,workControl.overrides]);
   useEffect(()=>{setClientReady(true);},[]);
   useEffect(()=>{let saved=null;try{saved=preferenceKey?localStorage.getItem(`redream:calendar:${preferenceKey}`):null;}catch{}const value=parseCalendarPreferences(saved);setPreferences(value);setView(value.view);setPrefScope(preferenceKey||'');setTaskForm(null);setGreeting('');setShowDone(false);setShowArchived(false);},[preferenceKey]);
   useEffect(()=>{if(!preferenceKey||prefScope!==preferenceKey)return;try{localStorage.setItem(`redream:calendar:${preferenceKey}`,JSON.stringify({...preferences,view}));}catch{}},[preferences,view,preferenceKey,prefScope]);
   useEffect(()=>{dayStrip.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({block:'nearest',inline:'center',behavior:'auto'});},[selectedDate,view]);
   useEffect(()=>{const refresh=()=>setRefreshDates(n=>n+1),clock=()=>setNow(new Date());const timer=window.setInterval(clock,30000);window.addEventListener('redream:birthdays-updated',refresh);window.addEventListener('redream:responsibilities-updated',refresh);document.addEventListener('visibilitychange',clock);return()=>{clearInterval(timer);window.removeEventListener('redream:birthdays-updated',refresh);window.removeEventListener('redream:responsibilities-updated',refresh);document.removeEventListener('visibilitychange',clock);};},[]);
   const datesBusy=source.busy,datesError=source.errors.map(e=>e.message).join(' ');
-  const sharedFollowUps=source.sharedWork.filter((work:any)=>work.work_kind!=='calendar_task').map((work:any)=>({...work,task_id:work.work_id,...work.context}));
+  const confirmedAssignments=projectConfirmedAssignedWork(source.sharedWork,workControl.overrides);
+  const sharedFollowUps=confirmedAssignments.filter((work:any)=>work.work_kind!=='calendar_task').map((work:any)=>({...work,task_id:work.work_id,...work.context}));
    const existingFollowUps=source.dates?.follow_ups?.items||[];
    const sourceData={...source.dates,follow_ups:{items:[...existingFollowUps,...sharedFollowUps.filter((work:any)=>!existingFollowUps.some((item:any)=>(item.work_kind||'task')===work.work_kind&&(item.work_id||item.task_id)===work.work_id))]}},birthdayData=source.birthdays;
   async function runTaskWrite(name:string,args:Record<string,unknown>){const scope=source.scope;try{const result=await rpc<any>(name,args);if(scopeRef.current!==scope)return;if(!result?.task)throw new Error('Task could not be confirmed.');source.confirmTask(result.task);setRefreshDates(n=>n+1);}catch(error){if(scopeRef.current===scope&&/task_owner_inactive|task_revision_conflict/.test(String((error as any)?.message||error)))setRefreshDates(n=>n+1);throw error;}}
@@ -132,12 +164,12 @@ export default function AgencyCalendarWorkspace({
     setMeetingBriefBusy(false);
   };
 
-  const agenda=useMemo(()=>filterCalendarEvents(normaliseCalendarEvents(sourceData,birthdayData,[...source.tasks,...source.overdue]),preferences),[sourceData,birthdayData,source.tasks,source.overdue,preferences]);
+  const agenda=useMemo(()=>filterCalendarEvents(projectConfirmedCalendarWork(normaliseCalendarEvents(sourceData,birthdayData,[...source.tasks,...source.overdue]),workControl.overrides,showDone),preferences),[sourceData,birthdayData,source.tasks,source.overdue,preferences,workControl.overrides,showDone]);
   const groups=useMemo(()=>groupCalendarEvents(agenda,selectedDate,view,horizon,now),[agenda,selectedDate,view,horizon,now]);
-  const todayEvents=filterCalendarEvents(normaliseCalendarEvents({...source.todayDates,follow_ups:{items:[...(source.todayDates?.follow_ups?.items||[]),...sharedFollowUps]}},{items:[]},[...source.todayTasks,...source.overdue]),preferences);
+  const todayEvents=filterCalendarEvents(projectConfirmedCalendarWork(normaliseCalendarEvents({...source.todayDates,follow_ups:{items:[...(source.todayDates?.follow_ups?.items||[]),...sharedFollowUps]}},{items:[]},[...source.todayTasks,...source.overdue]),workControl.overrides),preferences);
   const todaySummary=todayProjection(todayEvents,now);
   const undated=source.undated.filter(task=>preferences.layers[task.visibility]);
-  const sharedUndated=source.sharedWork.filter((work:any)=>work.work_kind!=='calendar_task'&&!work.due_at);
+  const sharedUndated=confirmedAssignments.filter((work:any)=>work.work_kind!=='calendar_task'&&!work.due_at);
   const formatWhen = (item: AgendaItem) => {
     const date = parseDate(item.dateAt, item.dateOnly);
     if (!date) return 'Date not set';
@@ -317,6 +349,10 @@ export default function AgencyCalendarWorkspace({
 
   return (
     <div className={styles.workspace}>
+      {workControl.saved||workControl.notices.length?createPortal(<div className={styles.workFeedback} ref={workFeedback}><HomeWorkFeedback controller={workControl}/></div>,document.body):null}
+      {requestedEntry&&workControl.busy===requestedWorkKey?<p role="status">Opening follow-up...</p>:null}
+      {search.get('work')&&!requestedEntry?<p role="alert">This follow-up link is not valid. <Link href={basePath+'?view=calendar'}>Open Calendar</Link></p>:null}
+      {requestedEntry&&workControl.errors[requestedWorkKey]?<div className={styles.datesError} role="alert"><p>{workControl.errors[requestedWorkKey]}</p><button type="button" disabled={Boolean(workControl.busy)} onClick={()=>void workControl.open(requestedEntry)}>Retry follow-up</button></div>:null}
       <AgencyCalendarToday projection={todaySummary} partial={source.partial} sources={source.sources} onSelectToday={()=>{setSelectedDate(today);setView('agenda');}}/>
       <section className={styles.calendarControls} aria-label="Calendar controls">
         <div className={styles.calendarHeading}>
@@ -382,6 +418,11 @@ export default function AgencyCalendarWorkspace({
                 const action = actionFor(item);
 
                 if(item.task)return <div key={item.key} className={styles.taskWithDate}><span className={styles.taskDate}>{item.dateOnly?'All day':formatWhen(item)}</span><AgencyCalendarTaskRow task={item.task} onEdit={task=>setTaskForm({scope:source.scope,task})} onAction={taskAction}/></div>;
+                const work=homeWorkRefFor({work_kind:item.workKind,work_id:item.workId});
+                if(work)return <HomeWorkRow key={item.key} entry={{ref:work,title:item.title,payload:{work_kind:work.kind,work_id:work.id,due_at:item.dateAt,date_only:item.dateOnly}}} deadline={formatWhen(item)} waiting={false} controller={workControl} description={item.detail==='Your follow-up'?undefined:item.detail}
+                  relatedAction={<Link className={styles.action} href={action.href||workHref({context:{player_id:item.playerId,person_id:item.personId,organisation_id:item.organisationId,club_need_id:item.clubNeedId}},basePath)}>{action.label}<ChevronRight size={17}/></Link>}>
+                  {work.kind!=='calendar_task'?<WorkResponsibilityControl key={source.scope+item.key} work={work} tenantId={tenantId} rpc={rpc}/>:null}
+                </HomeWorkRow>;
                 return (
                   <article
                     className={
@@ -466,16 +507,20 @@ export default function AgencyCalendarWorkspace({
       </section>
         </div>
       </div>
-      <details className={styles.noDate} open={search.get('undated')==='1'||undefined}><summary>No date</summary>
+      <details className={styles.noDate} open={search.get('undated')==='1'||linkedUndated||undefined}><summary>No date</summary>
         {undated.map(task=><AgencyCalendarTaskRow key={task.id} task={task} onEdit={task=>setTaskForm({scope:source.scope,task})} onAction={taskAction}/>)}
-        {sharedUndated.map((work:any)=><article className={styles.taskRow} id={'work-'+work.work_id} key={work.work_kind+':'+work.work_id}>
+        {sharedUndated.map((work:any)=>{const ref=homeWorkRefFor(work);return ref?<div id={'work-'+work.work_id} key={work.work_kind+':'+work.work_id}><HomeWorkRow entry={{ref,title:work.title,payload:work}} deadline="No date" waiting={false} controller={workControl}
+          relatedAction={Object.values(work.context||{}).some(Boolean)?<Link className={styles.agendaAction} href={workHref(work,basePath)}>Review<ChevronRight size={17}/></Link>:undefined}>
+          <WorkResponsibilityControl key={source.scope+work.work_kind+work.work_id} work={ref} tenantId={tenantId} rpc={rpc}/>
+        </HomeWorkRow></div>:<article className={styles.taskRow} id={'work-'+work.work_id} key={work.work_kind+':'+work.work_id}>
           <div className={styles.taskCopy}><strong>{work.title}</strong>
             {workRefFor(work)?<WorkResponsibilityControl key={source.scope+work.work_kind+work.work_id} work={workRefFor(work)!} tenantId={tenantId} rpc={rpc}/>:null}
           </div>
           {Object.values(work.context||{}).some(Boolean)?<Link className={styles.agendaAction} href={workHref(work,basePath)}>Review<ChevronRight size={17}/></Link>:null}
-        </article>)}
+        </article>;})}
         {!undated.length&&!sharedUndated.length?<p>No unscheduled tasks.</p>:null}
       </details>
+      <HomeWorkEditor controller={workControl}/>
       {taskForm?.scope===source.scope?<AgencyCalendarTaskForm key={taskForm.task?.id||'new'} task={taskForm.task} selectedDate={selectedDate} userId={userId} assignees={source.assignees} onSave={saveTask} onClose={()=>setTaskForm(null)}/>:null}
       {meetingBrief ? (
         <MeetingBriefDrawer

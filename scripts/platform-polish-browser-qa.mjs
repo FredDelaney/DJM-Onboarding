@@ -44,7 +44,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
   const taskId='00000000-0000-4000-8000-000000000094',clubId='00000000-0000-4000-8000-000000000095';
   const dealA='00000000-0000-4000-8000-000000000096',dealB='00000000-0000-4000-8000-000000000097';
   const dueAt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00Z';
-  const receipt=captureId=>{const applied=state.screen==='complete'||state.approved;return {capture:{id:captureId,status:applied?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up today.'},actions:[{id:'action',action_type:'create_task',status:applied?'applied':'pending',evidence:'Follow up today',proposed_payload:{title:'Follow up with Example FC',owner_name:'Jesse',due_at:dueAt},resolved_payload:applied?{organisation_id:clubId}:undefined,target_type:applied?'task':undefined,target_id:applied?taskId:undefined,undo_supported:true}]};};
+  const receipt=captureId=>{const applied=state.screen==='complete'||state.approved;return {capture:{id:captureId,status:applied?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up today.'},actions:[{id:'action',action_type:'create_task',status:applied?'applied':'pending',evidence:'Follow up today',proposed_payload:{title:'Follow up with Example FC',owner_name:'Jesse',due_at:dueAt},resolved_payload:applied?{title:'Follow up with Example FC',organisation_id:clubId}:undefined,target_type:applied?'task':undefined,target_id:applied?taskId:undefined,undo_supported:true}]};};
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   await context.addInitScript(({session,suite})=>{if(location.hostname!=='127.0.0.1')return;const screen=new URL(location.href).searchParams.get('screen')||'';if(suite==='account'&&screen!=='reset'&&!screen.startsWith('onboarding-'))localStorage.removeItem('sb-example-auth-token');else localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},{session,suite});
   await context.route('https://example.supabase.co/**',async route=>{
@@ -258,7 +258,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       assert.equal(await disclosure.evaluate(node=>node.open),false,suite+'/'+screen+' detail must close with keyboard');
      }
     }
-    if(suite==='capture'&&screen==='review'&&width===390)await verifyCaptureFollowupJourney(page,()=>({approvals:state.approvals,completions:state.completions,dueAt}));
+    if(suite==='capture'&&screen==='review'&&width===390)await verifyCaptureFollowupJourney(page,()=>({approvals:state.approvals,completions:state.completions,dueAt,taskId}));
     if(suite==='detail'&&['club','contact','deal'].includes(screen)&&width===390){
      const label=screen==='club'?'Example FC':screen==='contact'?'Example Director':'Example transfer';
      const edit=page.getByRole('button',{name:'Edit '+label,exact:true});await edit.click();

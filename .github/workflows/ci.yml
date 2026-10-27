@@ -32,7 +32,7 @@ jobs:
 
   browser_journeys:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -63,5 +63,6 @@ jobs:
             /tmp/redream-platform-programme/home
             /tmp/redream-platform-programme/club-stats
             /tmp/redream-platform-programme/calendar
+            /tmp/redream-platform-programme/connected-followups
           retention-days: 7
           if-no-files-found: ignore

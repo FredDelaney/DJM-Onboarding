@@ -5,12 +5,12 @@ import {useEffect,useId,useRef,useState,type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {Check,CheckCircle2,LoaderCircle,Pencil,X} from 'lucide-react';
 import ConfirmActionDialog from './ConfirmActionDialog';
-import type {WorkRef} from '@/lib/work-responsibility';
+import type {WorkRef,ConfirmedHomeWork} from '@/lib/work-responsibility';
 import {readWithDeadline} from '@/lib/read-with-deadline';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
 import styles from './HomeWorkControl.module.css';
 
-type Work = {work_kind:string;work_id:string;title:string;display_title:string;due_on:string|null;due_at:string|null;note:string;status:'open'|'done';state:Record<string,unknown>};
+type Work = ConfirmedHomeWork;
 type Entry = {ref:WorkRef;title:string;payload:any};
 type Result = {work:Work;undo_token:string|null};
 type Editor = Entry & {work:Work;notice?:string};
@@ -22,8 +22,8 @@ const fresh=(scope:string):ControlState=>({scope,busy:'',errors:{},overrides:{},
 function errorMessage(error:unknown):string {
  const message=error instanceof Error?error.message:String(error);
  if(/home_work_(conflict|undo_conflict)|task_revision_conflict/.test(message))return 'This task changed. Reload it to check the latest details. Your draft is still here.';
- if(/access_denied|edit_denied/.test(message))return 'You no longer have permission to update this task. Refresh Home.';
- if(/home_work_closed/.test(message))return 'This task has already been completed. Refresh Home.';
+ if(/access_denied|edit_denied/.test(message))return 'This task is unavailable or you no longer have permission to update it.';
+ if(/home_work_closed/.test(message))return 'This task has already been completed. Reload it to check the latest details.';
  if(/input_invalid|task_time/.test(message))return 'Check the action and due date, then try again.';
  return 'Could not confirm the save. Your changes are still here. Please try again.';
 }
@@ -64,12 +64,12 @@ export function useHomeWork(rpc:HomeRpc,tenantId:string,userId:string) {
  };
  const changed=(entry:Entry,result:Result,completed:boolean)=>{
   if(!current())return;
-  setState(old=>({...old,editor:null,errors:{...old.errors,[keyFor(entry.ref)]:''},overrides:{...old.overrides,[keyFor(entry.ref)]:result.work},saved:completed?'':'Changes saved.',notices:completed&&result.undo_token?[...old.notices,{id:keyFor(entry.ref)+':'+result.undo_token,title:entry.title,result}].slice(-5):old.notices}));
+  setState(old=>({...old,editor:null,errors:{...old.errors,[keyFor(entry.ref)]:''},overrides:{...old.overrides,[keyFor(entry.ref)]:result.work},saved:completed?'':'Changes saved.',notices:completed&&result.undo_token?[...old.notices,{id:keyFor(entry.ref)+':'+result.undo_token,title:result.work.status==='done'?result.work.display_title:entry.title,result}].slice(-5):old.notices}));
   window.dispatchEvent(new Event('redream:responsibilities-updated'));
  };
  async function open(entry:Entry) {
   if(lock.current)return;lock.current=true;patch({busy:keyFor(entry.ref)});
-  try{const result=await read(entry.ref);if(current())patch({editor:{...entry,work:result.work},errors:{...view.errors,[keyFor(entry.ref)]:''}});}
+  try{const result=await read(entry.ref);if(current())patch({editor:{...entry,title:result.work.display_title,work:result.work},errors:{...view.errors,[keyFor(entry.ref)]:''}});}
   catch(error){patch({errors:{...view.errors,[keyFor(entry.ref)]:errorMessage(error)}});}
   finally{if(current()){lock.current=false;patch({busy:''});}}
  }
@@ -110,7 +110,7 @@ export function useHomeWork(rpc:HomeRpc,tenantId:string,userId:string) {
 }
 type Controller=ReturnType<typeof useHomeWork>;
 
-export function HomeWorkRow({entry,deadline,waiting,controller,children,relatedAction}:{entry:Entry;deadline:string;waiting:boolean;controller:Controller;children:ReactNode;relatedAction?:ReactNode}) {
+export function HomeWorkRow({entry,deadline,waiting,controller,children,relatedAction,description}:{entry:Entry;deadline:string;waiting:boolean;controller:Controller;children:ReactNode;relatedAction?:ReactNode;description?:string}) {
  const key=keyFor(entry.ref),busy=controller.busy===key,error=controller.errors[key];
  const dueLabel=deadline.replace(/^Overdue\s+(.*overdue)$/i,'$1');
  return <article className={styles.row}>
@@ -120,6 +120,7 @@ export function HomeWorkRow({entry,deadline,waiting,controller,children,relatedA
   <div className={styles.copy}>
    <div className={styles.meta}>{waiting&&dueLabel.toLowerCase()!=='waiting'?<span>Waiting</span>:null}<span>{dueLabel}</span></div>
    <strong>{entry.title}</strong>
+   {description?<p className={styles.description}>{description}</p>:null}
    <div className={styles.actions}>{children}<button type="button" className={styles.update} disabled={Boolean(controller.busy)} onClick={()=>void controller.open(entry)}><Pencil size={15}/>Update</button></div>
    {relatedAction?<div className={styles.related}>{relatedAction}</div>:null}
    {error?<p className={styles.error} role="alert">{error}</p>:null}
@@ -147,17 +148,18 @@ function EditorPanel({editor,controller}:{editor:Editor;controller:Controller}) 
  const [next,setNext]=useState(false),[nextTitle,setNextTitle]=useState(''),[nextDate,setNextDate]=useState('');
  const [error,setError]=useState(''),[discard,setDiscard]=useState(false),[mounted,setMounted]=useState(false),[viewport,setViewport]=useState<{top:number;height:number}|null>(null);
  const initial=useRef(JSON.stringify([title,date,note,next,nextTitle,nextDate]));
- const dirty=JSON.stringify([title,date,note,next,nextTitle,nextDate])!==initial.current,busy=Boolean(controller.busy);
+ const dirty=JSON.stringify([title,date,note,next,nextTitle,nextDate])!==initial.current,busy=Boolean(controller.busy),closed=work.status==='done',cancelled=work.work_kind==='task'&&work.state.original_status==='cancelled';
  const close=()=>{if(busy)return;if(dirty)setDiscard(true);else controller.close();};
  useEffect(()=>{setMounted(true);alive.current=true;const previous=document.activeElement as HTMLElement|null,releaseScroll = lockPageScroll();return()=>{alive.current=false;releaseScroll();queueMicrotask(()=>{if(previous?.isConnected)previous.focus();});};},[]);
  useEffect(()=>{
   if(!mounted)return;
   const siblings=[...document.body.children].filter((node):node is HTMLElement=>node instanceof HTMLElement&&node!==backdrop.current),releaseBackground = isolateElements(siblings);
-  dialog.current?.querySelector<HTMLInputElement>('input')?.focus();
+  (dialog.current?.querySelector<HTMLElement>('input:not(:disabled)')||dialog.current?.querySelector<HTMLElement>('button:not(:disabled)'))?.focus();
   const resize=()=>{const view=window.visualViewport;if(view)setViewport({top:view.offsetTop,height:view.height});};
   resize();window.visualViewport?.addEventListener('resize',resize);window.visualViewport?.addEventListener('scroll',resize);
   return()=>{releaseBackground();window.visualViewport?.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('scroll',resize);};
  },[mounted]);
+ useEffect(()=>{if(mounted&&closed)dialog.current?.querySelector<HTMLElement>('button:not(:disabled)')?.focus({preventScroll:true});},[mounted,closed]);
  async function submit(action:'update'|'complete') {
   if(busy)return;setError('');
   if(!title.trim()){setError('Fill in the action first.');return;}
@@ -169,21 +171,25 @@ function EditorPanel({editor,controller}:{editor:Editor;controller:Controller}) 
  return createPortal(<div className={styles.backdrop} ref={backdrop} style={viewport?{top:viewport.top,height:viewport.height,bottom:'auto'}:undefined}><div className={styles.editor} ref={dialog} role="dialog" aria-modal="true" aria-labelledby={id} onKeyDown={event=>{
   if((event.target as HTMLElement).closest('[role="alertdialog"]'))return;
   if(event.key==='Escape'){event.preventDefault();close();}
-  if(event.key==='Tab'){const controls=[...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),[tabindex="0"]')||[])];const first=controls[0],last=controls[controls.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
+  if(event.key==='Tab'){const controls=[...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),summary,[tabindex="0"]')||[])];const first=controls[0],last=controls[controls.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
  }}>
-  <header><div><h2 id={id}>Update task</h2><p>{work.display_title}</p></div><button type="button" aria-label="Close task editor" onClick={close} disabled={busy}><X size={20}/></button></header>
+  <header><div><h2 id={id}>{closed?cancelled?'Cancelled task':'Completed task':'Update task'}</h2><p>{work.display_title}</p></div><button type="button" aria-label="Close task editor" onClick={close} disabled={busy}><X size={20}/></button></header>
   <form onSubmit={event=>{event.preventDefault();void submit(next?'complete':'update');}}>
+   {closed?<p className={styles.hint} role="status">{cancelled?'This task was cancelled.':'This task is complete.'} The details below are the current saved record.</p>:null}
+   {closed&&dirty?<details className={styles.unsavedDraft}><summary>Your unsaved draft</summary><p>These edits were not saved. Copy anything you still need before closing.</p><p>{title}</p>{date?<p>{date}</p>:null}{note?<p>{note}</p>:null}</details>:null}
+   <fieldset className={styles.fields} aria-label="Task details" disabled={busy||closed}>
    {editor.notice?<p className={styles.hint} role="status">{editor.notice}</p>:null}
-   <label>Action<input value={title} maxLength={200} required disabled={busy} onChange={event=>setTitle(event.target.value)} placeholder="What needs to happen?"/></label>
-   <label>Due date<input type="date" value={date} disabled={busy} onChange={event=>setDate(event.target.value)}/></label>
+   <label>Action<input value={closed?work.title:title} maxLength={200} required disabled={busy} onChange={event=>setTitle(event.target.value)} placeholder="What needs to happen?"/></label>
+   <label>Due date<input type="date" value={closed?work.due_on||'':date} disabled={busy} onChange={event=>setDate(event.target.value)}/></label>
    <div className={styles.dateShortcuts}><button type="button" disabled={busy} onClick={()=>setDate(localDate(0))}>Today</button><button type="button" disabled={busy} onClick={()=>setDate(localDate(1))}>Tomorrow</button><button type="button" disabled={busy} onClick={()=>setDate('')}>No date</button></div>
-   <label>Note (optional)<textarea aria-label="Note (optional)" value={note} maxLength={2000} rows={3} disabled={busy} onChange={event=>setNote(event.target.value)} placeholder="What happened or what should happen next?"/></label>
+   <label>Note (optional)<textarea aria-label="Note (optional)" value={closed?work.note:note} maxLength={2000} rows={3} disabled={busy} onChange={event=>setNote(event.target.value)} placeholder="What happened or what should happen next?"/></label>
    {work.work_kind==='player_next_action'?<div className={styles.followUp}>
     <label className={styles.check}><input type="checkbox" checked={next} disabled={busy} onChange={event=>setNext(event.target.checked)}/>Add a follow-up when completing</label>
     {next?<><label>Next action<input value={nextTitle} maxLength={200} disabled={busy} onChange={event=>setNextTitle(event.target.value)}/></label><label>Next due date<input type="date" value={nextDate} disabled={busy} onChange={event=>setNextDate(event.target.value)}/></label></>:null}
    </div>:null}
+   </fieldset>
    {error?<div className={styles.error} role="alert"><p>{error}</p><button type="button" disabled={busy} onClick={()=>{void controller.reload(editor).then(()=>{if(alive.current)setError('');},value=>{if(alive.current)setError(errorMessage(value));});}}>Reload task</button></div>:null}
-   <footer><button type="submit" className={styles.primary} disabled={busy||work.status!=='open'}>{busy?'Saving...':next?'Complete & save follow-up':'Save changes'}</button>{!next?<button type="button" className={styles.complete} disabled={busy||work.status!=='open'} onClick={()=>void submit('complete')}><CheckCircle2 size={18}/>Mark complete</button>:null}</footer>
+   {!closed?<footer><button type="submit" className={styles.primary} disabled={busy}>{busy?'Saving...':next?'Complete & save follow-up':'Save changes'}</button>{!next?<button type="button" className={styles.complete} disabled={busy} onClick={()=>void submit('complete')}><CheckCircle2 size={18}/>Mark complete</button>:null}</footer>:null}
   </form>
   <ConfirmActionDialog open={discard} title="Discard these task changes?" description="Your unsaved changes will be lost." confirmLabel="Discard changes" tone="warning" onClose={()=>setDiscard(false)} onConfirm={controller.close}/>
  </div></div>,document.body);

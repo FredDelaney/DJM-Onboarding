@@ -42,6 +42,6 @@ Screenshots: `calendar/hosted-recorded-expiry-desktop.png`, `hosted-recorded-exp
 
 ## CI and remaining gates
 
-Parent PR 259 at exact `9a11378172cfc186cc2a3e7e3ac0c9b3b5f2e3d4` passes verify and full browser CI on run `40122962486`. First Calendar run `40124363629` passed verify, then was cancelled when superseded by the follow-up; it is not full-browser acceptance. Final product run `40125154708` passes verify; full browser CI remains in progress at this checkpoint. Inspect the latest exact PR head after publishing this documentation; do not infer full CI success.
+Parent PR 259 at exact `9a11378172cfc186cc2a3e7e3ac0c9b3b5f2e3d4` passes verify and full browser CI on run `40122962486`. First Calendar run `40124363629` passed verify, then was cancelled when superseded by the follow-up; it is not full-browser acceptance. That product run was superseded by the documentation checkpoint. Exact final PR 260 head `e21343a63345559f4aa0373f04b77f4dc8f8b203` passes verify and full browser CI on run `40125721923`. No check is waived.
 
 PLY-03 and UI-09 remain active. This accepts the scoped recorded-date owner journey, not every Calendar state, actual ordinary staff, provider integration, physical iPhone/Safari or real independent agency. All 46 programme items and 17 UI rows remain in the authoritative tracker. Keep draft; no merge or production rollout.
