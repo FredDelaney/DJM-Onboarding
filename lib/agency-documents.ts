@@ -44,6 +44,8 @@ export type DocumentContent = {
   lines: DocumentLine[];
   sources: DocumentSource[];
   reviewed: boolean;
+  // Records clean-template authorship, not permission or factual verification.
+  pitchTemplateVersion?: 1;
 };
 export type AgencyDocument = {
   id: string;
@@ -82,6 +84,7 @@ export function documentBrief(
       ["player_name", "Player"],
       ["principal_name", "Mandated by"],
       ["territory", "Clubs and territories"],
+      ["commission", "Fee arrangement"],
       ["start_date", "Valid from"],
       ["end_date", "Expires"],
     ],
@@ -103,6 +106,13 @@ export function documentBrief(
   return layouts[doc.kind].flatMap(([key, label]) => {
     const value = fields[key]?.trim();
     if (!value) return [];
+    if (doc.kind === "mandate" && ["territory", "commission"].includes(key) &&
+      (value.length > 220 || value.split(/\r?\n/).length > 3)) {
+      // Point to full wording only when the actual document still includes it.
+      const section = doc.content.sections.find(item =>
+        item.title.trim() && item.body.includes(`{{${key}}}`));
+      if (section) return [{ label, value: `See ${resolveDocumentText(section.title, doc.content)}` }];
+    }
     // Calendar dates have no timezone. Never shift them to the previous day.
     if (/^\d{4}-\d{2}-\d{2}$/.test(value) && /(?:date|dob)$/.test(key)) {
       const date = new Date(value + "T12:00:00Z");
@@ -706,7 +716,29 @@ export function copyAgencyDocument(
       "end_date",
     ])
       delete content.fields[key];
-    content.sources = [];
+    const reusablePitch =
+      source.kind === "agency_pitch" &&
+      source.is_template &&
+      source.content.pitchTemplateVersion === 1;
+    if (!reusablePitch) content.sources = [];
+    if (source.kind === "agency_pitch" && !reusablePitch) {
+      // Literal chapter text can contain a previous prospect's private details.
+      // Clean old templates too; only subsequently authored template copy is reused.
+      content.sections = content.sections.map((section, index) => {
+        const match = /^section-(\d+)$/.exec(section.id);
+        const canonical =
+          match && DOCUMENT_TEMPLATES.agency_pitch.sections[Number(match[1])];
+        return {
+          ...section,
+          title: canonical ? canonical[0] : `Agency chapter ${index + 1}`,
+          body: canonical
+            ? canonical[1]
+            : "[[Add reusable agency wording for this chapter. Use variables for personal details.]]",
+        };
+      });
+      content.lines = [];
+      content.pitchTemplateVersion = 1;
+    }
     if (source.kind === "scouting_report" && !source.is_template) {
       // Observations about one player are not reusable agency template wording.
       content.sections = content.sections.map((section) => ({

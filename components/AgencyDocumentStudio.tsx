@@ -507,7 +507,10 @@ export function DocumentStudioEditor({
         copyAgencyDocument(template, "from_template", initialData.settings),
       );
       setNotice(
-        "Template loaded. Add this recipient's details and check any personalised wording.",
+        template.kind === "agency_pitch" &&
+          template.content.pitchTemplateVersion !== 1
+          ? "Layout and branding kept. Previous pitch wording and sources cleared. Add this player's details and wording."
+          : "Template loaded. Add this recipient's details and check any personalised wording.",
       );
     });
   const asTemplate = () => {
@@ -517,7 +520,10 @@ export function DocumentStudioEditor({
       setNotice(
         doc.kind === "scouting_report"
           ? "Layout and branding kept. Player observations and sources cleared for this reusable template."
-          : "Personal fields cleared. Check any personalised wording before saving the template.",
+          : doc.kind === "agency_pitch" &&
+              !(doc.is_template && doc.content.pitchTemplateVersion === 1)
+            ? "Layout and branding kept. Pitch wording and sources cleared. Add reusable agency wording before saving."
+            : "Personal fields cleared. Check any personalised wording before saving the template.",
       );
     });
   };
