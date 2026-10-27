@@ -243,11 +243,14 @@ export function updateDocumentField(
       fields.reference === doc.content.fields.invoice_number)
   )
     fields.reference = value;
+  const content = { ...doc.content, fields, reviewed: false };
+  if (doc.kind === "scouting_report" && key === "player_name" && value.trim())
+    delete content.scoutingTemplateVersion;
   return {
     ...doc,
     title,
     status: "draft",
-    content: { ...doc.content, fields, reviewed: false },
+    content,
   };
 }
 

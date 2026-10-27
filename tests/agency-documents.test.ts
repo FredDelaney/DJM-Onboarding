@@ -623,3 +623,58 @@ test("document RPC compatibility is per request and leaves unrelated requests an
   assert.ok(requests.every(r=>r.headers["x-redream-workspace"]==="qa-workspace"&&r.signal===signal));
   assert.equal(new Set(requests.map(r=>r.headers)).size,4);
 });
+
+test("scouting conversion clears literal player headings and legacy templates while preserving the original", () => {
+  const report=newAgencyDocument("scouting_report",documentBrand({display_name:"QA Agency"}));
+  report.content.fields.player_name="QA Previous Player";
+  report.content.sections[0].title="QA Previous Player, private assessment";
+  report.content.sections[2].body="QA previous match conclusions";
+  report.content.sections.push({id:"custom-observation",title:"QA Previous Player private meeting",body:"QA previous match conclusions",pageBreak:true});
+  report.content.sources=[{label:"QA previous private video",url:"",capturedAt:"2026-10-27"}];
+  Object.assign(report.content,{scoutingProfilePlayerId:"previous-player"});
+  const original=structuredClone(report);
+  for(const is_template of [false,true]){
+    const template=copyAgencyDocument({...report,is_template},is_template?"from_template":"template");
+    assert.doesNotMatch(JSON.stringify(template),/QA Previous Player|QA previous match|QA previous private|previous-player/);
+    assert.deepEqual(template.content.sections.map(s=>[s.id,s.pageBreak]),report.content.sections.map(s=>[s.id,s.pageBreak]));
+    assert.equal((template.content as any).scoutingTemplateVersion,1);
+    assert.equal(template.content.reviewed,false);
+    assert.ok(documentIssues(template).includes("Complete the highlighted template text"));
+  }
+  assert.deepEqual(report,original);
+  assert.equal(copyAgencyDocument(report,"duplicate").content.sections[0].title,report.content.sections[0].title);
+});
+test("clean scouting template guidance and methodology survive reuse, while new player observations cannot become reusable", () => {
+  const template=copyAgencyDocument(newAgencyDocument("scouting_report",documentBrand()),"template");
+  template.content.sections[2].title="Role in {{recipient_name}}'s system";
+  template.content.sections[2].body="Separate observed actions from questions for the next observation.";
+  template.content.sources=[{label:"QA reusable scouting methodology",url:"",capturedAt:"2026-10-27"}];
+  const report=copyAgencyDocument(template,"from_template");
+  assert.equal(report.content.sections[2].body,template.content.sections[2].body);
+  assert.deepEqual(report.content.sources,template.content.sources);
+  report.content.fields.player_name="QA Next Player";report.content.sections[2].title="QA Next Player private role";
+  report.content.sections[2].body="QA Next Player observations";report.content.sources.push({label:"QA Next Player match",url:"",capturedAt:"2026-10-27"});
+  assert.doesNotMatch(JSON.stringify(copyAgencyDocument(report,"template")),/QA Next Player|QA reusable scouting methodology/);
+});
+test("published profile replacement identifies the source player, including same-name players and untracked legacy reports", () => {
+  let report=newAgencyDocument("scouting_report",documentBrand());
+  const player={id:"qa-player-a",name:"QA Same Name",profile:{career_summary:"QA approved profile A"}};
+  report=fillDocumentPlayer(report,player);
+  assert.equal((report.content as any).scoutingProfilePlayerId,player.id);
+  report.content.sections[3].body="QA player A personal observations";
+  const original=structuredClone(report);
+  const refreshed=fillDocumentPlayer(report,{...player,profile:{career_summary:"QA refreshed profile A"}});
+  assert.equal(refreshed.content.sections[3].body,report.content.sections[3].body,"Same source player retains authored observations");
+  assert.match(refreshed.content.sections[1].body,/QA refreshed profile A/);
+  assert.ok(refreshed.content.sources.some(s=>s.label.includes(player.name)),"The copied profile's identity remains visible as provenance");
+  const unnamed=structuredClone(report);unnamed.content.fields.player_name="";
+  assert.doesNotMatch(JSON.stringify(fillDocumentPlayer(unnamed,{id:"qa-player-b",name:"QA Other",profile:null})),/QA player A personal/);
+  const next=fillDocumentPlayer(report,{id:"qa-player-b",name:player.name,profile:null});
+  assert.doesNotMatch(JSON.stringify(next),/QA player A personal|QA approved profile A/);
+  assert.equal((next.content as any).scoutingProfilePlayerId,"qa-player-b");
+  delete (report.content as any).scoutingProfilePlayerId;
+  assert.doesNotMatch(JSON.stringify(fillDocumentPlayer(report,player)),/QA player A personal/);
+  report.content.fields.player_name="";
+  assert.doesNotMatch(JSON.stringify(fillDocumentPlayer(report,player)),/QA player A personal/);
+  assert.equal(original.content.sections[3].body,"QA player A personal observations");
+});

@@ -8,6 +8,7 @@ import {
   resolveDocumentText,
   newAgencyDocument,
   copyAgencyDocument,
+  fillDocumentPlayer,
   invoiceTotals,
   documentMoney,
   type AgencyDocument,
@@ -741,4 +742,30 @@ test("reviewed representation snapshots retain contract variables without carryi
     JSON.stringify(reportSnapshot),
     /TEST-LICENCE|Private contract notice address|commercial_commission|governing_law/,
   );
+});
+
+test("scouting provenance/template metadata persists privately and never enters a recipient snapshot", async () => {
+  await actor(owner);
+  const template=copyAgencyDocument(newAgencyDocument("scouting_report",documentBrand({display_name:"QA Scouting Agency"})),"template");
+  template.content.sections[2].body="QA reusable observation guidance";
+  const storedTemplate=await save(template);
+  assert.equal(storedTemplate.content.scoutingTemplateVersion,1);
+  const report=fillDocumentPlayer(copyAgencyDocument(storedTemplate,"from_template"),{id:"qa-private-profile-source",name:"QA Scouting Subject",profile:{current_club:"QA Club",key_stats:[{label:"QA scoped appearances",value:0}],private_notes:"QA NEVER IMPORT"}});
+  Object.assign(report.content.fields,{recipient_name:"QA receiving club",report_date:"2026-10-27",author:"QA report author"});
+  report.content.sections=report.content.sections.map((section,index)=>({...section,body:index===1?section.body:"QA fictional observation notes only. No football recommendation is established."}));
+  report.content.sources.push({label:"QA manual observation notes",url:"",capturedAt:"2026-10-27"});
+  report.content.reviewed=true;
+  let record=await save(report);
+  assert.equal(record.content.scoutingProfilePlayerId,"qa-private-profile-source");
+  assert.equal(record.content.scoutingTemplateVersion,undefined,"Personal profile import is not reusable template authorship");
+  assert.doesNotMatch(JSON.stringify(record),/QA NEVER IMPORT/);
+  assert.equal((await exact(record.id)).document.content.scoutingProfilePlayerId,"qa-private-profile-source");
+  record.content.scoutingTemplateVersion=1;record=await save(record);
+  const link=await call("share",record);
+  await actor(null,"anon");
+  const snapshot=await open("agency-a",link.token);
+  assert.match(JSON.stringify(snapshot),/QA scoped appearances: 0/);
+  assert.match(JSON.stringify(snapshot),/Published player profile: QA Scouting Subject/);
+  assert.doesNotMatch(JSON.stringify(snapshot),/scoutingProfilePlayerId|scoutingTemplateVersion|qa-private-profile-source|QA NEVER IMPORT/);
+  await actor(owner);await call("archive",record);await call("archive",storedTemplate);
 });

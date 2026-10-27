@@ -57,7 +57,7 @@ try{
    await(await sectionField(n,'wording')).fill(reusable[n]);
   }
   await tab('Add source');await page.getByLabel('Source description',{exact:true}).fill('QA reusable agency service schedule');
-  await page.getByLabel('Source checked on',{exact:true}).fill('2026-10-27');
+  await page.getByLabel('Source added on',{exact:true}).fill('2026-10-27');
   await title('QA Reusable Pitch '+brand);await save(true);
   await tab('Library');await page.getByRole('button',{name:/^QA Original Pitch/}).click();
   await tab('Content');assert.match(await(await sectionField(0,'wording')).inputValue(),/QA Previous Prospect/,'Original is unchanged');

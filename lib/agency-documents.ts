@@ -47,6 +47,9 @@ export type DocumentContent = {
   reviewed: boolean;
   // Records clean-template authorship, not permission or factual verification.
   pitchTemplateVersion?: 1;
+  scoutingTemplateVersion?: 1;
+  // Private import provenance, not roster assignment, permission or verification.
+  scoutingProfilePlayerId?: string;
   // Persisted in recipient snapshots: absence means the earlier two-decimal format.
   invoiceCurrencyVersion?: 1;
 };
@@ -653,6 +656,23 @@ export function documentIssues(doc: AgencyDocument, forSharing = false): string[
     );
   return issues;
 }
+export function replacesScoutingPlayer(doc: AgencyDocument, player: DocumentPlayer): boolean {
+  if (doc.kind !== "scouting_report") return false;
+  if (doc.content.scoutingProfilePlayerId) return doc.content.scoutingProfilePlayerId !== player.id;
+  if (doc.content.fields.player_name?.trim()) return true;
+  // An untracked legacy assessment cannot be attributed by a missing name.
+  // Clean template guidance stays reusable until a player is chosen.
+  return doc.content.scoutingTemplateVersion !== 1 && (doc.content.sources.length > 0 ||
+    doc.content.sections.some(section => {
+      const match = /^section-(\d+)$/.exec(section.id);
+      const canonical = match && DOCUMENT_TEMPLATES.scouting_report.sections[Number(match[1])];
+      return !canonical || section.title !== canonical[0] || section.body !== canonical[1];
+    }));
+}
+export function isReusableScoutingTemplate(doc: AgencyDocument): boolean {
+  return doc.kind === "scouting_report" && doc.is_template && doc.content.scoutingTemplateVersion === 1 &&
+    !doc.content.scoutingProfilePlayerId && !doc.content.fields.player_name?.trim();
+}
 export function fillDocumentPlayer(
   doc: AgencyDocument,
   player: DocumentPlayer,
@@ -675,6 +695,8 @@ export function fillDocumentPlayer(
     delete content.fields.excluded_income;
   }
   if (doc.kind === "scouting_report") {
+    delete content.scoutingTemplateVersion;
+    content.scoutingProfilePlayerId = player.id;
     const stats = Array.isArray(profile.key_stats)
       ? profile.key_stats.slice(0, 12).flatMap((stat: unknown) => {
           if (!stat || typeof stat !== "object") return [];
@@ -693,9 +715,7 @@ export function fillDocumentPlayer(
       profile.career_summary,
       ...stats,
     ].filter(Boolean);
-    const replacing =
-      doc.content.fields.player_name &&
-      doc.content.fields.player_name !== player.name;
+    const replacing = replacesScoutingPlayer(doc, player);
     const sections = replacing
       ? DOCUMENT_TEMPLATES.scouting_report.sections.map(
           ([title, body], index) => ({ id: `section-${index}`, title, body }),
@@ -714,7 +734,7 @@ export function fillDocumentPlayer(
     content.sources = facts.length
       ? [
           {
-            label: "Agency-approved player profile",
+            label: `Published player profile: ${player.name}`,
             url: "",
             capturedAt: new Date().toISOString(),
           },
@@ -769,7 +789,8 @@ export function copyAgencyDocument(
       source.kind === "agency_pitch" &&
       source.is_template &&
       source.content.pitchTemplateVersion === 1;
-    if (!reusablePitch) content.sources = [];
+    const reusableReport = isReusableScoutingTemplate(source);
+    if (!reusablePitch && !reusableReport) content.sources = [];
     if (source.kind === "agency_pitch" && !reusablePitch) {
       // Literal chapter text can contain a previous prospect's private details.
       // Clean old templates too; only subsequently authored template copy is reused.
@@ -788,15 +809,19 @@ export function copyAgencyDocument(
       content.lines = [];
       content.pitchTemplateVersion = 1;
     }
-    if (source.kind === "scouting_report" && !source.is_template) {
-      // Observations about one player are not reusable agency template wording.
-      content.sections = content.sections.map((section) => ({
-        ...section,
-        body:
-          section.id === "section-0"
-            ? DOCUMENT_TEMPLATES.scouting_report.sections[0][1]
-            : "[[Add sourced observations for this player and the receiving club.]]",
-      }));
+    if (source.kind === "scouting_report") {
+      delete content.scoutingProfilePlayerId;
+      if (!reusableReport) {
+        // Observations about one player are not reusable agency template wording.
+        content.sections = content.sections.map((section, index) => {
+          const match = /^section-(\d+)$/.exec(section.id);
+          const canonical = match && DOCUMENT_TEMPLATES.scouting_report.sections[Number(match[1])];
+          return { ...section, title: canonical ? canonical[0] : `Report section ${index + 1}`,
+            body: canonical ? canonical[1] : "[[Add reusable scouting guidance. Keep player observations and sources in the individual report.]]" };
+        });
+        content.lines = [];
+        content.scoutingTemplateVersion = 1;
+      }
     }
   }
   if (source.kind === "invoice") {

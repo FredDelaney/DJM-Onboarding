@@ -42,7 +42,8 @@ export async function createDocumentWord(
     theme = documentTheme(brand),
     primary = theme.primary.slice(1),
     muted = "60717A",
-    isPitch = kind === "agency_pitch";
+    isPitch = kind === "agency_pitch",
+    isReport = kind === "scouting_report";
   const text = (value: string, size = 22, bold = false, color = "263740") =>
     new TextRun({ text: value, size, bold, color, font: "Arial" });
   const para = (
@@ -58,14 +59,14 @@ export async function createDocumentWord(
             text: line,
             break: index ? 1 : undefined,
             font: "Arial",
-            size: isPitch ? 32 : 22,
+            size: isPitch ? 32 : isReport ? 21 : 22,
             color: "263740",
           }),
       ),
       spacing: {
         before,
-        after: isPitch ? 240 : 170,
-        line: isPitch ? 360 : 310,
+        after: isPitch ? 240 : isReport ? 120 : 170,
+        line: isPitch ? 360 : isReport ? 294 : 310,
       },
       keepNext,
       keepLines,
@@ -124,7 +125,7 @@ export async function createDocumentWord(
                 const item = brief[row * columns + column];
                 return new TableCell({
                   width: { size: 100 / columns, type: WidthType.PERCENTAGE },
-                  margins: { top: 120, bottom: 180, left: 0, right: 200 },
+                  margins: { top: isReport ? 80 : 120, bottom: isReport ? 120 : 180, left: 0, right: 200 },
                   children: item
                     ? [
                         new Paragraph({
@@ -262,7 +263,7 @@ export async function createDocumentWord(
         text: resolveDocumentText(section.title, content),
         heading: HeadingLevel.HEADING_1,
         pageBreakBefore: !isPitch && !!section.pageBreak,
-        spacing: { before: isPitch ? 0 : 240, after: isPitch ? 340 : 150 },
+        spacing: { before: isPitch ? 0 : isReport ? 160 : 240, after: isPitch ? 340 : isReport ? 80 : 150 },
       }),
     );
     const body = resolveDocumentText(section.body, content);
@@ -386,7 +387,7 @@ export async function createDocumentWord(
           next: "Normal",
           run: {
             font: isPitch ? "Georgia" : "Arial",
-            size: isPitch ? 64 : 28,
+            size: isPitch ? 64 : isReport ? 26 : 28,
             bold: !isPitch,
             color: primary,
           },

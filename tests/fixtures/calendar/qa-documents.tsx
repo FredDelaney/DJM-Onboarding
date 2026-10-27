@@ -170,6 +170,8 @@ export function getServerSideProps({
           : "",
       longInvoice: query.longInvoice === "1",
       legacyCurrency: query.legacyCurrency === "1",
+      scoutingPlayers: query.scoutingPlayers === "1",
+      legacyReport: query.legacyReport === "1",
     },
   };
 }
@@ -177,10 +179,14 @@ export default function DocumentFixture({
   reviewBrand = "",
   longInvoice = false,
   legacyCurrency = false,
+  scoutingPlayers = false,
+  legacyReport = false,
 }: {
   reviewBrand?: string;
   longInvoice?: boolean;
   legacyCurrency?: boolean;
+  scoutingPlayers?: boolean;
+  legacyReport?: boolean;
 }) {
   const [handoff, setHandoff] = useState<PreparationLink | null>(null);
   useEffect(() => {
@@ -204,8 +210,14 @@ export default function DocumentFixture({
   historical.content.fields.currency = "KWD";
   historical.content.fields.tax_rate = "0";
   historical.content.lines = [{id:"legacy",description:"QA historical amount",quantity:"1.5",unitPrice:"1.23"}];
+  const legacyScouting = newAgencyDocument("scouting_report", selectedBrand);
+  legacyScouting.is_template = true; legacyScouting.revision = 1; legacyScouting.title = "QA legacy scouting template";
+  legacyScouting.content.fields.player_name = "QA Previous Legacy Player";
+  legacyScouting.content.sections[0].title = "QA Previous Legacy Player private assessment";
+  legacyScouting.content.sections[2].body = "QA Previous Legacy Player private conclusions";
+  legacyScouting.content.sources = [{label:"QA Previous Legacy Player private video",url:"",capturedAt:"2026-10-27"}];
   const documents = useRef<AgencyDocument[]>(
-      legacyCurrency ? [historical] : reviewBrand
+      legacyReport ? [legacyScouting] : legacyCurrency ? [historical] : reviewBrand
         ? reviewCollection(selectedBrand, longInvoice)
         : [structuredClone(invoice)],
     ),
@@ -231,9 +243,11 @@ export default function DocumentFixture({
           current_club: "Harbour FC",
           primary_position: "CM",
           career_summary: "Senior football experience with Harbour FC.",
+          ...(scoutingPlayers ? {key_stats:[{label:"QA published appearances, 2025/26",value:0},{label:"QA unknown minutes",value:null}]} : {}),
         },
       },
       { id: "player-b", name: "Jamie Harper", profile: null },
+      ...(scoutingPlayers ? [{id:"player-c",name:"Alex Bennett",profile:null}] : []),
     ],
   }).current;
   const request = useCallback<DocumentRequest>(
