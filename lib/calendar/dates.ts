@@ -1,6 +1,11 @@
 export type BirthdayFilters = { players: boolean; contacts: boolean; staff: boolean };
 export function calendarDateKey(value: string | Date, dateOnly = false): string {
-  if (dateOnly && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (dateOnly && typeof value === 'string') {
+    // PostgreSQL serializes recorded all-day dates as midnight timestamps.
+    // Retain their calendar date rather than shifting them as timed instants.
+    const recorded = value.match(/^(\d{4}-\d{2}-\d{2})(?:$|T)/);
+    if (recorded) return recorded[1];
+  }
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

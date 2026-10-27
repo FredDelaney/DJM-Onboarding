@@ -1,6 +1,7 @@
 import {isHomePlayerDataReview} from './home-priority.ts';
 import type { CalendarRpc } from './calendar/tasks.ts';
 export type WorkRef = { kind: string; id: string };
+export type ConfirmedHomeWork = {work_kind:string;work_id:string;title:string;display_title:string;due_on:string|null;due_at:string|null;note:string;status:'open'|'done';state:Record<string,unknown>;context?:Record<string,unknown>};
 const kinds = new Set(['player_next_action','career_strategy_review','target_window_end','deal_next_action','club_need_expiry','player_request_due','representation_record_end','document_expiry','contract_expiry']);
 export function workRefFor(value: any): WorkRef | null {
   if(isHomePlayerDataReview(value))return null;

@@ -1347,7 +1347,7 @@ export default function AiCapture({
           </div>
 
           {hasAppliedActions ? <div className={styles.completeActions}>
-            {captureOutcomeLinks(receipt.actions||[],workspaceSlug).map(link=><Link key={link.href} href={link.href} className={styles.secondary} onNavigate={onNavigate}>{link.label}</Link>)}
+            {captureOutcomeLinks(receipt.actions||[],workspaceSlug).map(link=><Link key={link.href} href={link.href} className={`${styles.secondary} ${styles.outcomeLink}`} onNavigate={onNavigate}>{link.label}</Link>)}
           </div> : null}
           {verifiedComplete ? (
             <div className={styles.completeActions}>

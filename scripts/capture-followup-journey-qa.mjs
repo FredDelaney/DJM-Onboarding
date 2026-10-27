@@ -3,7 +3,7 @@ export async function verifyCaptureFollowupJourney(page, counts) {
   const title = "Follow up with Example FC";
   assert.equal(
     await page
-      .getByRole("link", { name: "View follow-ups", exact: true })
+      .getByRole("link", { name: "Open follow-up: " + title, exact: true })
       .count(),
     0,
     "A proposal must not claim saved follow-ups",
@@ -25,9 +25,20 @@ export async function verifyCaptureFollowupJourney(page, counts) {
     .waitFor();
   await page.goBack();
   await page.getByText("Update complete", { exact: true }).waitFor();
-  await page
-    .getByRole("link", { name: "View follow-ups", exact: true })
-    .click();
+  const followup = page.getByRole("link", { name: "Open follow-up: " + title, exact: true });
+  const destination = new URL(await followup.getAttribute("href"), page.url());
+  assert.equal(destination.pathname, "/workspace/qa-platform-polish", "The task stays in the selected agency");
+  assert.equal(destination.searchParams.get("view"), "calendar");
+  assert.equal(destination.searchParams.get("work"), "task");
+  assert.equal(destination.searchParams.get("task"), counts().taskId, "The receipt opens its confirmed task");
+  await followup.click();
+  const linkedEditor = page.getByRole("dialog", { name: "Update task", exact: true });
+  await linkedEditor.waitFor();
+  assert.equal(await linkedEditor.getByLabel("Action", { exact: true }).inputValue(), title);
+  assert.equal(await linkedEditor.getByLabel("Due date", { exact: true }).inputValue(), counts().dueAt.slice(0, 10));
+  assert.equal(counts().completions, 0, "Opening the exact task does not complete it");
+  await linkedEditor.getByRole("button", { name: "Close task editor", exact: true }).click();
+  await linkedEditor.waitFor({ state: "hidden" });
   await page.getByRole("heading", { name: "Calendar", exact: true }).waitFor();
   const row = page.locator("article").filter({ hasText: title }).first();
   await row.waitFor();

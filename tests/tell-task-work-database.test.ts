@@ -55,6 +55,7 @@ before(async () => {
   await db.exec(readFileSync('supabase/migrations/20261020164842_close_resolved_capture_reviews.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261020172347_restore_missing_tell_undo_dependency.sql','utf8'));
   await db.exec(readFileSync('supabase/migrations/20261022191532_connected_work_and_player_photo_reliability.sql','utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261025072558_guard_task_creation_undo.sql','utf8'));
   await db.query("insert into platform.tenant_memberships values($1,$2,'active','agent'),($1,$3,'active','agent'),($4,$2,'active','agent')",[tenant,user,other,foreign]);
   await db.query("insert into djm_os.tell_djm_permissions values($1,$2,true,'full')",[tenant,user]);
   await db.query("insert into djm_os.team_members values($1,'Example Agent',true),($2,'Example Colleague',true)",[user,other]);
@@ -87,7 +88,8 @@ test('restored internal Undo handles ordinary notes and follow-ups without expos
   const followup=await task();
   for(const [key,type,target] of [['undo-note','log_interaction',note.id],['undo-followup','create_task',followup.id]]){
     await db.query("update djm_os.tasks set source='tell_djm:'||$1||':'||$2,updated_at=now() where id=$3",[capture,key,followup.id]);
-    const a=(await db.query<any>("insert into djm_os.tell_djm_actions(tenant_id,capture_id,action_hash,action_type,status,target_id,undo_supported,applied_at) values($1,$2,$3,$4,'applied',$5,true,now()) returning id",[tenant,capture,key,type,target])).rows[0];
+    const snapshot=type==='create_task'?await value('to_jsonb(t) from djm_os.tasks t where id=$1',[target]):null;
+    const a=(await db.query<any>("insert into djm_os.tell_djm_actions(tenant_id,capture_id,action_hash,action_type,status,target_id,after_json,undo_supported,applied_at) values($1,$2,$3,$4,'applied',$5,$6,true,now()) returning id",[tenant,capture,key,type,target,snapshot])).rows[0];
     assert.equal((await value('public.redream_ai_undo_action($1)',[a.id])).undone,true);
     assert.equal(await value('status from djm_os.tell_djm_actions where id=$1',[a.id]),'undone');
   }
@@ -111,6 +113,65 @@ test('Undo refuses subsequent changes and another workspace', async () => {
   await db.query("select set_config('test.tenant',$1,false)",[foreign]);
   await assert.rejects(()=>value('public.redream_ai_undo_action($1)',[result.action_id]),/access denied/);
   await db.query("select set_config('test.tenant',$1,false)",[tenant]);
+});
+
+test('Undo of task creation never deletes a later staff edit inside the old five-second window',async()=>{
+ const created=await task();
+ const key='undo-created-after-edit';
+ await db.query("update djm_os.tasks set source='tell_djm:'||$1||':'||$2,updated_at=clock_timestamp() where id=$3",[capture,key,created.id]);
+ const after=await value('to_jsonb(t) from djm_os.tasks t where id=$1',[created.id]);
+ const action=(await db.query<any>("insert into djm_os.tell_djm_actions(tenant_id,capture_id,action_hash,action_type,status,target_id,after_json,undo_supported,applied_at) values($1,$2,$3,'create_task','applied',$4,$5,true,clock_timestamp()) returning id",[tenant,capture,key,created.id,after])).rows[0];
+ await db.query("update djm_os.tasks set title='Confirmed by another staff action',updated_at=clock_timestamp() where id=$1",[created.id]);
+ await assert.rejects(()=>value('public.redream_ai_undo_action($1)',[action.id]),/changed|safely undone/);
+ assert.equal(await value('title from djm_os.tasks where id=$1',[created.id]),'Confirmed by another staff action');
+});
+
+async function createdTaskAction(key:string,shared=false,missingSnapshot=false){
+ const t=await task(),approved='2026-10-25T01:00:00Z';
+ await db.query("update djm_os.tasks set source='tell_djm:'||$1||':'||$2,updated_at=$4 where id=$3",[capture,key,t.id,approved]);
+ const snapshot=await value('to_jsonb(t) from djm_os.tasks t where id=$1',[t.id]);
+ const verification=shared?{responsible_user_ids:[user,other],approved_at:approved}:{};
+ const action=(await db.query<any>("insert into djm_os.tell_djm_actions(tenant_id,capture_id,action_hash,action_type,status,target_id,after_json,verification_json,undo_supported,applied_at) values($1,$2,$3,'create_task','applied',$4,$5,$6,true,$7) returning id",[tenant,capture,key,t.id,missingSnapshot?null:snapshot,verification,approved])).rows[0];
+ if(shared)await db.query("insert into platform.work_responsibilities values($1,'task',$2,$3,1,$4,$5)",[tenant,t.id,[user,other],user,approved]);
+ return {task:t.id,action:action.id};
+}
+test('unchanged task creation remains reversible after the old time window and nullable schema additions',async()=>{
+ const created=await createdTaskAction('undo-aged-creation');
+ await db.query("update djm_os.tell_djm_actions set after_json=after_json-'due_at' where id=$1",[created.action]);
+ assert.equal((await value('public.redream_ai_undo_action($1)',[created.action])).undone,true);
+ assert.equal(await value('count(*)::integer from djm_os.tasks where id=$1',[created.task]),0);
+});
+test('unchanged approved shared creation Undo removes only its original responsibility row',async()=>{
+ const created=await createdTaskAction('undo-shared-creation',true);
+ assert.equal((await value('public.redream_ai_undo_action($1)',[created.action])).undone,true);
+ assert.equal(await value('count(*)::integer from platform.work_responsibilities where work_id=$1',[created.task]),0);
+});
+test('new or revised responsibility prevents creation Undo without changing the task',async()=>{
+ for(const shared of [false,true]){
+  const created=await createdTaskAction('undo-reassigned-'+shared,shared);
+  if(shared)await db.query('update platform.work_responsibilities set revision=2,updated_at=clock_timestamp() where work_id=$1',[created.task]);
+  else await db.query("insert into platform.work_responsibilities values($1,'task',$2,$3,1,$4,clock_timestamp())",[tenant,created.task,[user,other],user]);
+  await assert.rejects(()=>value('public.redream_ai_undo_action($1)',[created.action]),/responsibility changed/);
+  assert.equal(await value('count(*)::integer from djm_os.tasks where id=$1',[created.task]),1);
+  assert.equal(await value('status from djm_os.tell_djm_actions where id=$1',[created.action]),'applied');
+ }
+});
+test('missing creation snapshots never authorise deletion',async()=>{
+ const created=await createdTaskAction('undo-unproved-creation',false,true);
+ await assert.rejects(()=>value('public.redream_ai_undo_action($1)',[created.action]),/changed/);
+ assert.equal(await value('count(*)::integer from djm_os.tasks where id=$1',[created.task]),1);
+});
+test('creation Undo migration is idempotent, preserves its contract and refuses an unknown body',async()=>{
+ const migration=readFileSync('supabase/migrations/20261025072558_guard_task_creation_undo.sql','utf8');
+ const definition=await value("pg_get_functiondef('public.redream_ai_undo_action_core_pre_email(uuid)'::regprocedure)");
+ const catalog=()=>value("jsonb_build_object('oid',oid,'owner',proowner,'acl',proacl::text,'config',proconfig,'definer',prosecdef,'body',md5(prosrc)) from pg_proc where oid='public.redream_ai_undo_action_core_pre_email(uuid)'::regprocedure");
+ const before=await catalog();await db.exec(migration);assert.deepEqual(await catalog(),before);
+ assert.equal(await value("has_function_privilege('authenticated','public.redream_ai_undo_action_core_pre_email(uuid)','execute')"),false);
+ try{
+  await db.exec("create or replace function public.redream_ai_undo_action_core_pre_email(p_action_id uuid) returns jsonb language plpgsql set search_path='' as $$begin return '{}'::jsonb;end;$$");
+  await assert.rejects(()=>db.exec(migration),/differs from the reviewed baseline/);
+ }finally{await db.exec(definition);}
+ assert.deepEqual(await catalog(),before);
 });
 test('reschedule and reopen change only the requested task fields', async () => {
   const t=await task(); await apply('reschedule',payload(t,{operation:'reschedule',due_at:'2026-10-27T09:00:00+01:00'}));
