@@ -425,6 +425,16 @@
 .error {
   color: #a13932 !important;
 }
+.saveRecovery {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 12px 20px;
+}
+.feedback .saveRecovery p {
+  margin: 0 0 8px;
+  padding: 0;
+  color: #5e6265;
+}
 .editorLayout {
   display: grid;
   grid-template-columns: 350px minmax(0, 1fr);

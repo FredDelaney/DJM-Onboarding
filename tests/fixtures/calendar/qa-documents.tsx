@@ -200,7 +200,7 @@ export default function DocumentFixture({
         : [structuredClone(invoice)],
     ),
     events = useRef<Record<string, any[]>>({}),
-    failed = useRef(false);
+    failed = useRef(false), saveAttempts = useRef(0), readAttempts = useRef(0);
   const initial = useRef<DocumentStudioData>({
     tenant_id: "fixture",
     brand: {
@@ -235,6 +235,7 @@ export default function DocumentFixture({
           { id: "capture-one", summary: "A development plan for Milo" },
         ] as any;
       window.dispatchEvent(new CustomEvent("qa-document-request", { detail: action }));
+      window.dispatchEvent(new CustomEvent("qa-document-record", { detail: { action, id: doc?.id, revision: doc?.revision } }));
       if (action === "capture_read" && payload.capture_id === "30000000-0000-4000-8000-000000000001") {
         const query = new URLSearchParams(window.location.search);
         if (query.get("scenario") === "brief-retry" && !failed.current) { failed.current = true; throw new Error("Fixture timeout"); }
@@ -286,17 +287,47 @@ export default function DocumentFixture({
           documents: structuredClone(documents.current),
         } as any;
       if (!doc) throw new Error("Choose a document");
+      if (action === "read") {
+        const scenario = new URLSearchParams(window.location.search).get("scenario");
+        if (scenario === "save-check-failed" && readAttempts.current++ === 0) {
+          throw new Error("Fixture confirmation unavailable");
+        }
+        if (scenario === "save-check-slow") return new Promise(() => {});
+        const current = documents.current.find(item => item.id === doc.id);
+        return { tenant_id: scenario === "save-read-foreign" ? "foreign" : "fixture", state: current ? "found" : "missing", document: current ? structuredClone(current) : null } as any;
+      }
       if (action === "save") {
+        saveAttempts.current++;
+        const scenario = new URLSearchParams(window.location.search).get("scenario");
+        if (scenario === "save-retry-rejected" && saveAttempts.current === 2)
+          throw Object.assign(new Error("Check the draft title before trying again."), {code: "P0001"});
+        if (scenario === "save-late" && saveAttempts.current === 1) {
+          return new Promise((resolve, reject) => setTimeout(() => {
+            const current = documents.current.find(item => item.id === doc.id);
+            if ((current?.revision || 0) !== doc.revision) {
+              window.dispatchEvent(new CustomEvent("qa-document-late", { detail: "rejected" }));
+              reject(Object.assign(new Error("This document changed."), {code: "40001"}));
+            } else {
+              const late = {...doc,...payload,revision:doc.revision+1,updated_at:new Date().toISOString()} as AgencyDocument;
+              documents.current = [late,...documents.current.filter(item => item.id !== doc.id)];
+              window.dispatchEvent(new CustomEvent("qa-document-late", { detail: "saved" }));
+              resolve(structuredClone(late) as any);
+            }
+          }, 1600));
+        }
         if (
           new URLSearchParams(window.location.search).get("scenario") ===
             "save-failed" &&
           !failed.current
         ) {
           failed.current = true;
-          throw new Error(
+          throw Object.assign(new Error(
             "The save failed. Your draft is still here. Try again.",
-          );
+          ), { code: "P0001" });
         }
+        const existing = documents.current.find(item => item.id === doc.id);
+        if ((!doc.revision && existing) || (existing && existing.revision !== doc.revision))
+          throw Object.assign(new Error("This document changed. Reopen it before saving again."), {code: "40001"});
         const saved = {
           ...doc,
           ...payload,
@@ -314,6 +345,13 @@ export default function DocumentFixture({
           },
           ...(events.current[doc.id] || []),
         ];
+        if (scenario?.startsWith("save-") && scenario !== "save-failed" && saveAttempts.current === 1) {
+          if (scenario === "save-absent" || scenario === "save-retry-rejected") documents.current = documents.current.filter(item => item.id !== doc.id);
+          if (scenario === "save-conflict") saved.title = "Another editor's saved version";
+          if (scenario === "save-lost") return new Promise(() => {});
+          if (scenario !== "save-absent" && scenario !== "save-retry-rejected") documents.current = [structuredClone(saved), ...documents.current.filter(item => item.id !== doc.id)];
+          throw new Error("Fixture connection lost after write");
+        }
         return structuredClone(saved) as any;
       }
       if (action === "events") return (events.current[doc.id] || []) as any;
