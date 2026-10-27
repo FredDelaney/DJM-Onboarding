@@ -6,6 +6,9 @@ import {PGlite} from '@electric-sql/pglite';
 const db=new PGlite();
 const migration=readFileSync('supabase/migrations/20261023075343_restore_profile_release_writers_v1.sql','utf8');
 const lockMigration=readFileSync('supabase/migrations/20261023092411_lock_profile_publication_player_v1.sql','utf8');
+const statMigration=readFileSync('supabase/migrations/20261023191512_preserve_approved_profile_stat_snapshots_v1.sql','utf8');
+const seasonSource=readFileSync('supabase/migrations/20260902113027_djm_dossier_season_totals_v1.sql','utf8');
+const timelineSource=readFileSync('supabase/migrations/20260825162448_sanitize_public_dossier_placeholder_content_v1.sql','utf8');
 const previousPublisher=readFileSync('supabase/migrations/20261002105500_player_profile_publish_snapshot_writer_v1.sql','utf8').match(/create or replace function public\.platform_server_publish_player_profile_snapshot[\s\S]*?\bas (\$\w*\$)[\s\S]*?\1;/i)![0];
 const parent=readFileSync('supabase/migrations/20260924214500_tenant_parity_player_security_v1.sql','utf8');
 const tenant='20000000-0000-4000-8000-000000000001',foreign='20000000-0000-4000-8000-000000000002';
@@ -48,6 +51,13 @@ before(async()=>{
   primary_video_url text,transfermarkt_url text,wyscout_url text,stats_url text,contact_email text,
   career_timeline jsonb,selected_videos jsonb,notable_experience jsonb,market_value_display text,market_value_source_url text,
   hidden_sections text[],hide_market_value boolean,verified_at timestamptz,updated_at timestamptz default now()
+ );
+ create table public.career_entries(
+  id uuid primary key default gen_random_uuid(),player_id uuid references public.players(id) on delete cascade,
+  club_name text,country text,league text,season_label text,stats_year smallint,start_date date,end_date date,
+  appearances integer,starts integer,minutes integer,goals integer,assists integer,is_international boolean default false,
+  source_name text,source_url text,source_reviewed_at timestamptz,source_synced_at timestamptz,source_provider text,
+  notes text,sort_order integer default 0,created_at timestamptz default now()
  );
  create function private.user_is_tenant_admin(t uuid) returns boolean language sql stable as $$
   select exists(select 1 from platform.tenant_memberships m join platform.tenants t on t.id=m.tenant_id
@@ -187,3 +197,91 @@ test('unknown guard drift aborts the transaction before any partial reconciliati
  assert.equal(await value('to_regprocedure($1)::text',[verification]),null);
  assert.equal(await value('to_regprocedure($1)::text',[publication]),null);
 });
+
+function sqlFunction(source:string,name:string){
+ const escaped=name.replaceAll('.','\\.');
+ const definition=source.match(new RegExp('create or replace function '+escaped+'\\([\\s\\S]*?\\bas (\\$\\w*\\$)[\\s\\S]*?\\1;','i'))?.[0];
+ assert.ok(definition,name);return definition;
+}
+async function withStatTrigger(check:()=>Promise<void>){
+ for(const name of ['djm_normalize_season_label','player_career_timeline','player_authoritative_key_stats','djm_refresh_public_profile_from_career'])
+  await db.exec(sqlFunction(seasonSource,'private.'+name));
+ await db.exec(sqlFunction(timelineSource,'private.set_public_profile_career_timeline'));
+ await db.exec(`create trigger trg_public_profile_career_timeline before insert or update on public.player_public_profiles
+  for each row execute function private.set_public_profile_career_timeline();
+  create trigger trg_refresh_public_profile_from_career after insert or update or delete on public.career_entries
+  for each row execute function private.djm_refresh_public_profile_from_career();`);
+ try{
+  await db.query("update public.players set current_season_label='2026/27',stats_url='https://youtube.com/not-a-stats-source' where id=$1",[player]);
+  await db.query(`insert into public.career_entries(player_id,club_name,league,season_label,appearances,goals,source_name,source_reviewed_at,notes)
+   values($1,'Reserve FC','Reserve League','2026/27',24,0,'Reviewed reserve report','2026-10-20T12:00:00Z','PRIVATE'),
+   ($1,'Senior FC','Senior League','2026/27',31,5,'Reviewed senior report','2026-10-21T12:00:00Z','PRIVATE'),
+   ($1,'Unreviewed FC','Unreviewed League','2026/27',999,999,'Unreviewed report',null,'PRIVATE')`,[player]);
+  await verify();await check();
+ }finally{
+  await db.exec('reset role; drop trigger trg_public_profile_career_timeline on public.player_public_profiles; drop trigger trg_refresh_public_profile_from_career on public.career_entries;');
+ }
+}
+const approvedStats=[{label:'Apps',value:'24',season_label:'2026/27',club_name:'Reserve FC',league:'Reserve League',source_name:'Reviewed reserve report',checked_at:'2026-10-20T12:00:00Z'}];
+
+test('real publication trigger reproduces combined totals then preserves approved automatic, historical, custom and empty snapshots',async()=>withStatTrigger(async()=>{
+ const old=await publish({key_stats:approvedStats});
+ assert.equal(old.profile.key_stats.find((s:any)=>s.label==='Apps').value,'55','Reproduce the actual hosted trigger mismatch before repairing it');
+ assert.equal(old.profile.key_stats[0].source_name,undefined);
+ const before=await value('to_jsonb(p) from public.player_public_profiles p where player_id=$1',[player]);
+ await db.exec(statMigration);
+ assert.deepEqual(await value('to_jsonb(p) from public.player_public_profiles p where player_id=$1',[player]),before,'Installing the repair does not rewrite a saved profile');
+ for(const stats of [approvedStats,[{label:'Goals',value:'0',season_label:'2025',source_name:'Historical report',source_reviewed_at:'2026-01-20T12:00:00Z'}],[{label:'Apps',value:'7'}],[]]){
+  const result=await publish({key_stats:stats,career_timeline:[{club_name:'Unreviewed injected row',notes:'PRIVATE'}]});
+  assert.deepEqual(result.profile.key_stats,stats);
+  assert.deepEqual(await value('key_stats from public.player_public_profiles where player_id=$1',[player]),stats);
+  assert.equal(result.profile.career_timeline.length,2,'The actual reviewed-career projection is still enforced');
+  assert.equal(JSON.stringify(result.profile).includes('PRIVATE'),false);
+  assert.equal(JSON.stringify(result.profile).includes('Unreviewed'),false);
+  assert.equal(result.profile.stats_url,null,'Existing source-link sanitization remains enforced');
+ }
+}));
+
+test('metadata and career-refresh writes retain the approved figures while raw legacy stat edits keep authoritative filtering',async()=>withStatTrigger(async()=>{
+ await db.exec(statMigration);await publish({key_stats:approvedStats});
+ await db.query('update public.player_public_profiles set updated_at=clock_timestamp() where player_id=$1',[player]);
+ assert.deepEqual(await value('key_stats from public.player_public_profiles where player_id=$1',[player]),approvedStats);
+ await db.query('update public.career_entries set appearances=25 where player_id=$1 and club_name=$2',[player,'Reserve FC']);
+ assert.deepEqual(await value('key_stats from public.player_public_profiles where player_id=$1',[player]),approvedStats,'A background refresh is not approval to change a snapshot');
+ await db.query(`update public.player_public_profiles set key_stats='[{"label":"Apps","value":"99999"}]' where player_id=$1`,[player]);
+ assert.equal((await value('key_stats from public.player_public_profiles where player_id=$1',[player])).find((s:any)=>s.label==='Apps').value,'56','Unscoped raw writes cannot invent football totals');
+}));
+
+test('snapshot stat preservation rejects wrong-tenant or browser-forged context and preserves server-only publisher grants',async()=>withStatTrigger(async()=>{
+ await db.exec(statMigration);await publish({key_stats:approvedStats});
+ assert.equal(await value("has_function_privilege('authenticated',$1,'execute')",[publication]),false);
+ assert.equal(await value("has_function_privilege('service_role',$1,'execute')",[publication]),true);
+ for(const browser of [false,true]){
+  await db.exec('begin');
+  try{
+   await value("set_config('djm.internal_tenant_dossier_mode','publish_snapshot',true)");
+   await value("set_config('djm.internal_tenant_dossier_tenant',$1,true)",[browser?tenant:foreign]);
+   if(browser){await db.exec('grant select,update on public.player_public_profiles to authenticated; set local role authenticated;');}
+   await assert.rejects(db.query(`update public.player_public_profiles set key_stats='[{"label":"Apps","value":"99999"}]' where player_id=$1`,[player]),/context|mismatch/);
+  }finally{await db.exec('rollback');}
+ }
+ await db.exec('set role service_role');
+ try{assert.deepEqual((await publish({key_stats:approvedStats})).profile.key_stats,approvedStats);}
+ finally{await db.exec('reset role');}
+}));
+
+test('stat repair preserves trigger ownership/grants and refuses unexpected definition, configuration or ACL drift',async()=>withStatTrigger(async()=>{
+ const signature='private.set_public_profile_career_timeline()';
+ const before=await value('jsonb_build_object(\'owner\',proowner,\'acl\',proacl,\'config\',proconfig) from pg_proc where oid=$1::regprocedure',[signature]);
+ for(const change of [
+  sqlFunction(timelineSource,'private.set_public_profile_career_timeline').replace('declare','declare\n -- unknown change'),
+  "alter function "+signature+" set search_path='public'",
+  'grant execute on function '+signature+' to authenticated',
+ ]){
+  await db.exec('begin');
+  try{await db.exec(change);await assert.rejects(db.exec(statMigration),/profile_stat_trigger_drift/);}
+  finally{await db.exec('rollback');}
+ }
+ await db.exec(statMigration);
+ assert.deepEqual(await value('jsonb_build_object(\'owner\',proowner,\'acl\',proacl,\'config\',proconfig) from pg_proc where oid=$1::regprocedure',[signature]),before);
+}));
