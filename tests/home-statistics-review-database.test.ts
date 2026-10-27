@@ -18,7 +18,7 @@ const home=(user=owner,limit=8,scope=tenant)=>result('select public.platform_ser
 let oldCrowding=false,oldTaskCrowding=false;
 async function crowd(count=40){await db.query("insert into public.players(id,tenant_id,first_name,review_required_at,review_reason,verification_status) select gen_random_uuid(),$1,'Review player '||n,now(),'Career statistics changed','reviewing' from generate_series(1,$2) n",[tenant,count]);}
 async function seed(){
- await db.exec('delete from djm_os.review_items;delete from public.player_source_refreshes;delete from public.career_entries;delete from public.player_public_profiles;delete from platform.agency_command_feedback;delete from platform.audit_events;delete from platform.player_staff_tags;delete from public.staff_player_access;delete from djm_os.tasks;delete from public.players;update platform.tenant_memberships set status=\'active\';update djm_os.team_members set is_active=true;update platform.tenants set status=\'active\';');
+ await db.exec('delete from djm_os.review_items;delete from public.player_source_suggestions;delete from public.player_source_refreshes;delete from public.career_entries;delete from public.player_public_profiles;delete from platform.agency_command_feedback;delete from platform.audit_events;delete from platform.player_staff_tags;delete from public.staff_player_access;delete from djm_os.tasks;delete from public.players;update platform.tenant_memberships set status=\'active\';update djm_os.team_members set is_active=true;update platform.tenants set status=\'active\';');
  await db.query("insert into public.players(id,tenant_id,first_name,current_club,current_season_label,current_league,current_country,primary_staff_user_id,next_action,next_action_due) values($1,$2,'Recorded player','Example II','2026/27','Regional League','NZ',$3,'Call the club',current_date)",[player,tenant,agent]);
  await db.query("insert into public.career_entries(player_id,club_name,season_label,league,country,appearances,starts,minutes,goals,assists,source_name,source_url,notes) values($1,'Example II','2026/27','Regional League','NZ',8,5,450,0,null,'Official league','https://league.example/player','PRIVATE_CAREER_SENTINEL')",[player]);
  await db.query("update public.players set verification_status='verified',verified_at=now(),review_required_at=null,review_reason=null where id=$1",[player]);
@@ -50,6 +50,7 @@ before(async()=>{
  create table public.career_entries(id uuid primary key default gen_random_uuid(),player_id uuid,season_label text,club_name text,league text,country text,appearances int,starts int,minutes int,goals int,assists int,source_name text,source_url text,source_provider text,source_acceptance_method text,source_reviewed_at timestamptz,source_synced_at timestamptz,updated_at timestamptz default now(),notes text);
  create table public.player_public_profiles(player_id uuid,published boolean,career_timeline jsonb);
  create table public.player_source_refreshes(id uuid primary key default gen_random_uuid(),player_id uuid,source text,provider text,mode text,capability text,status text,requested_by uuid,requested_at timestamptz default now(),started_at timestamptz,completed_at timestamptz,summary jsonb default '{}',raw_snapshot jsonb default '{}',error_text text,updated_at timestamptz default now(),source_url text,facts_discovered int default 0,review_required int default 0,accepted_count int default 0,rejected_count int default 0,payload_hash text);
+ create table public.player_source_suggestions(id uuid default gen_random_uuid(),refresh_id uuid,player_id uuid,decision text);
  create table djm_os.review_items(id uuid default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,review_type text,title text,detail text,player_id uuid,confidence numeric,payload jsonb,status text default 'open',resolved_at timestamptz);
  create table platform.audit_events(tenant_id uuid,actor_user_id uuid,actor_kind text,action text,entity_type text,entity_id text,before_state jsonb,after_state jsonb,metadata jsonb);
  create table djm_os.tasks(id uuid default gen_random_uuid(),tenant_id uuid,owner_user_id uuid,title text,player_id uuid,person_id uuid,organisation_id uuid,club_need_id uuid,interaction_id uuid,task_type text,source text,due_at timestamptz,status text,priority int,created_at timestamptz default now());
@@ -91,6 +92,7 @@ before(async()=>{
  await seed();await colleagueTasks();oldTaskCrowding=!(await home()).commands.some((c:any)=>c.command_type==='Player follow-up due');
  const oldRaw=await result('select public.platform_server_agency_commands($1,25)',[tenant]);const oldDecisions=await result('select public.platform_server_agency_decisions($1,25)',[tenant]);
  await db.exec(readFileSync(migration,'utf8'));
+ await db.exec(file('20261024151913_connect_player_details_reviews_to_personal_home_v1.sql'));
  const stable=(v:any)=>{const {generated_at,...rest}=v;return rest;};
  assert.deepEqual(stable(await result('select public.platform_server_agency_commands($1,25)',[tenant])),stable(oldRaw),'Other callers retain the exact raw feed contract');
  assert.deepEqual(stable(await result('select public.platform_server_agency_decisions($1,25)',[tenant])),stable(oldDecisions),'Other callers retain the exact enriched feed contract');
@@ -175,4 +177,31 @@ test('shared private feed helpers stay owner-only invokers without expanding cal
  for(const fn of ['private.agency_command_feed(uuid,integer,boolean,boolean)','private.agency_decision_feed(uuid,integer,boolean,boolean)']){
   const r:any=(await db.query("select prosecdef,has_function_privilege('anon',oid,'execute') as anon,has_function_privilege('authenticated',oid,'execute') as browser,has_function_privilege('service_role',oid,'execute') as server from pg_proc where oid=$1::regprocedure",[fn])).rows[0];assert.deepEqual(r,{prosecdef:false,anon:false,browser:false,server:false});
  }
+});
+
+async function stageDetails(){
+ const id=await result("insert into public.player_source_refreshes(player_id,provider,status,completed_at,raw_snapshot) values($1,'agency_player_context_v1','needs_review',now(),'{\"PRIVATE_CONTEXT_SENTINEL\":true}') returning id",[player]);
+ await db.query("insert into public.player_source_suggestions(refresh_id,player_id,decision) values($1,$2,'pending')",[id,player]);return id;
+}
+test('saved details use the same quiet authorised Home group without leaking proposed values or sources',async()=>{
+ const id=await stageDetails();for(const actor of [owner,agent]){
+  const feed=await home(actor);const card=feed.commands.find((c:any)=>c.command_type==='Player details suggested');
+  assert.equal(card.command_id,'player_details_review:'+id);assert.equal(card.evidence.details_review_id,id);assert.equal(card.player_id,player);assert.equal(card.priority_score,40);assert.equal(card.due_at,null);assert.equal(card.actionability.mode,'review_only');
+  assert.doesNotMatch(JSON.stringify(card),/PRIVATE_CONTEXT|suggested_value|source_evidence|league\.example/);
+ }
+ assert.ok(!(await home(scout)).commands.some((c:any)=>c.command_type==='Player details suggested'));
+ assert.ok(!(await home(colleague)).commands.some((c:any)=>c.command_type==='Player details suggested'));
+});
+test('resolved details leave verification and ordinary tasks separate; generic completion cannot resolve them',async()=>{
+ const id=await stageDetails();await db.query("insert into platform.agency_command_feedback(tenant_id,actor_user_id,command_id,feedback_type) values($1,$2,$3,'completed')",[tenant,owner,'player_details_review:'+id]);
+ assert.ok((await home()).commands.some((c:any)=>c.command_type==='Player details suggested'));
+ await db.query("update public.player_source_suggestions set decision='accepted' where refresh_id=$1",[id]);
+ await db.query("update public.player_source_refreshes set status='applied' where id=$1",[id]);
+ await db.query("update public.players set verification_status='reviewing',review_required_at=now(),review_reason='Reviewed player details changed' where id=$1",[player]);
+ const feed=await home();assert.ok(!feed.commands.some((c:any)=>c.command_type==='Player details suggested'));assert.ok(feed.commands.some((c:any)=>c.command_type==='Player review required'));
+ assert.equal(await result('select status from djm_os.tasks'),'open');
+});
+test('details and statistics decisions coexist while business admission remains available',async()=>{
+ await stage();await stageDetails();await colleagueTasks();const feed=await home(owner,1);
+ assert.ok(feed.commands.some((c:any)=>c.command_type==='Player follow-up due'));assert.equal(feed.commands.filter((c:any)=>c.command_type==='Player details suggested').length,1);assert.equal(feed.commands.filter((c:any)=>c.command_type==='Player statistics suggested').length,1);
 });

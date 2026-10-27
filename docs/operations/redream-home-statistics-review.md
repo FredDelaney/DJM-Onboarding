@@ -28,7 +28,7 @@ Thirteen real PostgreSQL cases pass, including original failure reproduction, un
 
 A historical security fixture must load the actual pre-hardening Home definition before applying the October 6 guarded migration; loading the later already-hardened Home body would replay that patch and correctly trip its drift guard. The current Home contract is separately exercised through the actual new migration. No security checks are waived.
 
-Final `npm run check` passes 2,041 tests, all TypeScript projects, the production build and bundle limits (workspace gzip 144,058 / 150,000 bytes). GitHub verify passes on run `40100732755`; full browser CI remains running. Actual hosted acceptance and cleanup below pass. Synthetic providers and emulated mobile widths do not establish real provider, physical iPhone or independent-agency acceptance.
+Final `npm run check` passes 2,041 tests, all TypeScript projects, the production build and bundle limits (workspace gzip 144,058 / 150,000 bytes). Product-head verify passed on run `40100732755`; its browser job was cancelled by the documentation checkpoint. Exact PR 258 head `02a1e0a6ce93f4c4f7715fe7862b46db69a32a87` passes verify and full browser CI on run `40101618810`. Actual hosted acceptance and cleanup below pass. Synthetic providers and emulated mobile widths do not establish real provider, physical iPhone or independent-agency acceptance.
 
 
 ## Actual staging acceptance (24 October)

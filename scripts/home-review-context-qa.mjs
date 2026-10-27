@@ -8,7 +8,7 @@ try {
   const page=await browser.newPage({viewport:{width:390,height:844}});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   let prepares=0;
-  let pendingReview=true,pendingStats=true;
+  let pendingReview=true,pendingStats=true,pendingDetails=true;
   let dense=false,relevanceFailure=false,assignedFailure=false;
   const dylan='30000000-0000-4000-8000-000000000001';
   const privatePlayer='30000000-0000-4000-8000-000000000099';
@@ -35,6 +35,7 @@ try {
       {command_id:'capture:undated',source_type:'capture',source_id:capture,title:'Clarify the trial location',priority_score:1},
     ]}}};
     if(action==='home_focus'&&pendingStats)body.home.attention.judgement.push(statsCommand,{...statsCommand,command_id:'player_stats_review:private',player_id:privatePlayer,source_id:privatePlayer,title:'Private statistics suggestion'});
+    if(action==='home_focus'&&pendingDetails)body.home.attention.judgement.push({...statsCommand,command_id:'player_details_review:context',command_type:'Player details suggested',evidence:{details_review_id:'context'}},{...statsCommand,command_id:'player_details_review:private',command_type:'Player details suggested',player_id:privatePlayer,source_id:privatePlayer,title:'Private detail suggestion'});
     if(action==='action_prepare'){prepares++;body={proposal:{proposal_id:'fake',title:'Create player action: Dylan',executable:true}};}
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   });
@@ -61,7 +62,8 @@ try {
     assert.ok(await review.isVisible());
     assert.ok(await review.evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=12),'Action labels must be readable, not hidden behind an arrow at '+width);
   }
-  pendingStats=false;
+  const detailsLink=page.getByRole('link',{name:'Review player details',exact:true});assert.equal(await detailsLink.getAttribute('href'),'/agency?view=players&player='+dylan+'&profile=1#player-details');assert.equal(await page.locator('article').filter({has:detailsLink}).getByRole('button').count(),0);assert.equal(await page.getByText('Private detail suggestion',{exact:true}).count(),0);
+  pendingDetails=false;pendingStats=false;
   await page.goto(url.href);await page.getByText('Arrange a call with Dejan',{exact:true}).waitFor();
   assert.equal(await page.getByRole('link',{name:'Review suggested figures',exact:true}).count(),0,'A resolved suggestion disappears without completing the separate verification or reminder');
   pendingReview=false;

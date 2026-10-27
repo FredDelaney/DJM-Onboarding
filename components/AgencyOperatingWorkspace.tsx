@@ -76,7 +76,7 @@ import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 import { brandingForWorkspace } from '@/lib/workspace-branding';
 import { readHomePosition } from '@/lib/read-home-position';
 import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
-import { homeCommandCategory, isHomePlayerDataReview, isHomeStatisticsReview, type HomeQueueCategory } from '@/lib/home-priority';
+import { homeCommandCategory, isHomePlayerDataReview, isHomeStatisticsReview, isHomeDetailsReview, type HomeQueueCategory } from '@/lib/home-priority';
 import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
 import styles from './AgencyOperatingWorkspace.module.css';
@@ -237,7 +237,7 @@ const reviewPlayerId = (command: any): string => {
 };
 
 const reviewCopy = (command: any) => ({
-  title: isHomeStatisticsReview(command) ? `Review ${command?.title || 'player'} statistics` : command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
+  title: isHomeDetailsReview(command) ? `Review ${command?.title || 'player'} details` : isHomeStatisticsReview(command) ? `Review ${command?.title || 'player'} statistics` : command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
   reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Review the player profile.' : 'Review the profile, then mark this done.',
 });
 
@@ -2451,6 +2451,7 @@ function Home({
 
   const actionFor = (command: any) => {
     const playerId = reviewPlayerId(command);
+    if (playerId && isHomeDetailsReview(command)) return <Link className={styles.compactButton} href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}&profile=1#player-details`}><ChevronRight size={16}/>Review player details</Link>;
     if (playerId && isHomeStatisticsReview(command)) return <Link className={styles.compactButton} href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}&profile=1#player-data`}><ChevronRight size={16}/>Review suggested figures</Link>;
     if (playerId) return (
       <div className={styles.homeReviewActions}>

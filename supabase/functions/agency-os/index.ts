@@ -110,8 +110,8 @@ export default {fetch:async(req:Request)=>{
       "migration_create_batch","migration_preflight","migration_row_decision","migration_approve","migration_apply",
       "deal_receivables","deal_receivable_save","receivable_payment_record","deal_closeout","deal_closeout_save"
     ]);
-    const footballReads=new Set(["player_data_status"]);
-    const footballWrites=new Set(["player_profile_photo_begin","player_profile_photo_attach","player_data_save","player_data_review","player_data_refresh","player_context_research","player_context_apply","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
+    const footballReads=new Set(["player_data_status","player_context_status"]);
+    const footballWrites=new Set(["player_profile_photo_begin","player_profile_photo_attach","player_data_save","player_data_review","player_data_refresh","player_context_research","player_context_apply","player_context_review","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
     if(!ownerAdmin()&&!staffActions.has(action)&&!footballReads.has(action)&&!footballWrites.has(action)&&!(role==="operations"&&operationsActions.has(action))){
       return deny("Agency administrator access required");
     }
@@ -520,44 +520,53 @@ export default {fetch:async(req:Request)=>{
     }
 
 
-    if(action==="player_context_research"||action==="player_context_apply"){
-      if(!operator())return deny("Agency operator access required");
+    if(["player_context_research","player_context_apply","player_context_review","player_context_status"].includes(action)){
+      if(action!=="player_context_status"&&!operator())return deny("Agency operator access required");
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
       const player=await profilePlayer(pid);if(!player)return json({error:"Player not found in this agency"},404);
+      const reviewArgs={p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId};
+      const readReview=()=>rpc("platform_server_player_details_review_status",reviewArgs);
+      const proposalFor=(review:any)=>review?.status==="needs_review"?{
+        id:review.id,fields:Object.fromEntries((review.fields||[]).filter((f:any)=>f.decision==="pending").map((f:any)=>[f.field,f.suggested])),
+        before:Object.fromEntries((review.fields||[]).map((f:any)=>[f.field,f.before])),
+        sources:(review.fields||[]).flatMap((f:any)=>f.sources||[]).filter((source:any,index:number,all:any[])=>all.findIndex(x=>x.url===source.url)===index),reason:review.reason
+      }:null;
+      if(action==="player_context_status")return json({ok:true,review:canReviewPlayerStats?await readReview():null});
       if(action==="player_context_research"){
+        const current=await readReview();if(current?.status==="needs_review")return json({ok:true,proposal:proposalFor(current),review:current});
         const apiKey=Deno.env.get("OPENAI_API_KEY");
-        if(!apiKey)return json({error:"Player research is temporarily unavailable"},503);
-        const {data:career,error:careerError}=await ctx.supabaseAdmin.from("career_entries")
-          .select("club_name,league,season_label").eq("player_id",pid).order("start_date",{ascending:false}).limit(6);
-        if(careerError)throw careerError;
-        const researched=await researchPlayerContext({player,career:career||[]},{apiKey,model:Deno.env.get("REDREAM_PROFILE_MODEL")||"gpt-6-luna",timeoutMs:25000});
-        if(!researched.ok)return json({ok:false,proposal:null,reason:researched.reason,confidence:researched.confidence,sources:researched.sources},200);
-        const fillable=["current_club","current_league","current_country","current_season_label","primary_position","transfermarkt_url","stats_url"] as const;
-        const fields:Record<string,string>={};
-        for(const key of fillable){
-          if(!id((player as any)[key])&&id((researched.fields as any)[key]))fields[key]=id((researched.fields as any)[key]);
+        if(!apiKey)return json({error:"Player research is temporarily unavailable. Recorded details remain available."},503);
+        const requestId=id(body?.request_id)||crypto.randomUUID();
+        if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId))return json({error:"A valid research request is required"},400);
+        const claim=await rpc("platform_server_request_player_details_review",{...reviewArgs,p_request_id:requestId});
+        if(claim?.dispatch!==true){const review=await readReview();return json({ok:true,proposal:proposalFor(review),review});}
+        const finishArgs={...reviewArgs,p_expected:player,p_request_id:claim.id};
+        try{
+          const {data:career,error:careerError}=await ctx.supabaseAdmin.from("career_entries")
+            .select("club_name,league,season_label").eq("player_id",pid).order("start_date",{ascending:false}).limit(6);
+          if(careerError)throw careerError;
+          const researched=await researchPlayerContext({player,career:career||[]},{apiKey,model:Deno.env.get("REDREAM_PROFILE_MODEL")||"gpt-6-luna",timeoutMs:25000});
+          const staged=await rpc("platform_server_stage_player_details_review",{...finishArgs,p_fields:researched.ok?researched.fields:{},p_sources:researched.ok?researched.field_sources:{},p_reason:researched.reason,p_confidence:researched.ok?researched.confidence:0});
+          const review=staged?.review_id?await readReview():null;
+          return json({ok:staged?.status!=="failed",proposal:proposalFor(review),review,reason:staged?.status==="rejected"?"This suggestion was already rejected. Recorded details are unchanged.":staged?.status==="unchanged"?"The sources confirm the recorded details.":staged?.status==="failed"?"No reliable changes could be confirmed. Recorded details are unchanged.":null});
+        }catch(error){
+          try{await rpc("platform_server_stage_player_details_review",{...finishArgs,p_fields:{},p_sources:{},p_reason:"Source check could not complete",p_confidence:0});}
+          catch{console.error("player details research status could not be saved",{request_id:claim.id});}
+          return json({error:"The source check could not finish. Recorded details are unchanged. Check progress before trying again."},503);
         }
-        return json({ok:true,proposal:{fields,confidence:researched.confidence,reason:researched.reason,sources:researched.sources,model:researched.model}});
       }
-      const incoming=obj(body?.fields),allowed=["current_club","current_league","current_country","current_season_label","primary_position","transfermarkt_url","stats_url"];
-      const patch:Record<string,string>={};
-      const before:Record<string,unknown>={};
-      for(const key of allowed){
-        const value=id(incoming[key]).slice(0,key.endsWith("_url")?600:160);
-        if(!value||id((player as any)[key]))continue;
-        if(key.endsWith("_url")){
-          let safe=false;try{const u=new URL(value);safe=u.protocol==="https:"||u.protocol==="http:";}catch{}
-          if(!safe)continue;
-        }
-        before[key]=(player as any)[key]??null;patch[key]=value;
+      const reviewId=id(body?.review_id);if(!reviewId)return json({error:"Reload the saved player details review before deciding."},409);
+      let decisions=body?.decisions;
+      // Preparation reuses exactly the persisted suggestions. Body sources,
+      // baselines, actor and tenant are never accepted as research evidence.
+      if(action==="player_context_apply"){
+        const current=await readReview();if(current?.id!==reviewId)return json({error:"The player review changed. Reload it before deciding."},409);
+        const incoming=obj(body?.fields),savedFields=(current.fields||[]);
+        if(Object.keys(incoming).some(key=>!savedFields.some((f:any)=>f.field===key)))return json({error:"Choose only details in this saved review."},409);
+        decisions=savedFields.filter((f:any)=>Object.hasOwn(incoming,f.field)).map((f:any)=>({id:f.id,decision:JSON.stringify(incoming[f.field])===JSON.stringify(f.suggested)?"accept":"edit",value:incoming[f.field]}));
       }
-      if(!Object.keys(patch).length)return json({ok:true,applied_fields:[],player});
-      patch.updated_at=new Date().toISOString();
-      const {data:updated,error:updateError}=await ctx.supabaseAdmin.from("players").update(patch).eq("id",pid).eq("tenant_id",tenantId)
-        .select("id,current_club,current_league,current_country,current_season_label,primary_position,transfermarkt_url,stats_url,updated_at").single();
-      if(updateError)throw updateError;
-      await profileAudit("player_context.ai_applied",pid,before,updated,{applied_fields:Object.keys(patch).filter(key=>key!=="updated_at"),sources:Array.isArray(body?.sources)?body.sources.slice(0,8):[]});
-      return json({ok:true,applied_fields:Object.keys(patch).filter(key=>key!=="updated_at"),player:updated});
+      const reviewed=await rpc("platform_server_review_player_details",{...reviewArgs,p_review_id:reviewId,p_decisions:decisions});
+      return json({...obj(reviewed),applied_fields:action==="player_context_apply"?Object.keys(obj(body?.fields)):[]});
     }
 
     if(action==="player_data_status"||action==="player_data_refresh"||action==="player_data_save"||action==="player_data_review"){
@@ -641,14 +650,14 @@ export default {fetch:async(req:Request)=>{
       if(assignment.error)throw assignment.error;
       if(!assignment.data)return deny("This player is not assigned to your account");
       const statisticsEditor=operator()&&assignment.data.can_edit===true&&!["retired","inactive"].includes(String(player.football_status||"").toLowerCase());
-      if(action==="player_profile_detail")return json({ok:true,tenant:workspace,detail:{access:{scope:"assigned",restricted:true,can_edit_statistics:statisticsEditor},documents:[],shares:[],deals:[],clubs:[],communication:{summary:{},items:[],open_followups:[]},secondary_ready:true}});
+      if(action==="player_profile_detail")return json({ok:true,tenant:workspace,detail:{access:{scope:"assigned",restricted:true,can_edit_statistics:statisticsEditor,can_review_player_details:statisticsEditor},documents:[],shares:[],deals:[],clubs:[],communication:{summary:{},items:[],open_followups:[]},secondary_ready:true}});
       const [careerResult,videosResult]=await Promise.all([
         ctx.supabaseAdmin.from("career_entries").select("id,player_id,club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,is_international,sort_order,source_name,source_url,source_reviewed_at,source_provider,source_synced_at,updated_at").eq("player_id",pid).order("sort_order").order("start_date",{ascending:false}),
         ctx.supabaseAdmin.from("player_videos").select("id,title,url,video_type,featured,sort_order").eq("player_id",pid).order("featured",{ascending:false}).order("sort_order")
       ]);
       if(careerResult.error)throw careerResult.error;if(videosResult.error)throw videosResult.error;
       const stats=profileAutoStats(careerResult.data||[],player);
-      return json({ok:true,tenant:workspace,profile:{...restrictedPlayerProfile({player,career:careerResult.data||[],videos:videosResult.data||[],auto_key_stats:stats.stats,auto_stats_meta:stats.meta}),access:{scope:"assigned",restricted:true,can_edit_statistics:statisticsEditor}}});
+      return json({ok:true,tenant:workspace,profile:{...restrictedPlayerProfile({player,career:careerResult.data||[],videos:videosResult.data||[],auto_key_stats:stats.stats,auto_stats_meta:stats.meta}),access:{scope:"assigned",restricted:true,can_edit_statistics:statisticsEditor,can_review_player_details:statisticsEditor}}});
     }
 
     if(action==="player_profile_core"){
@@ -1251,6 +1260,8 @@ export default {fetch:async(req:Request)=>{
       player_photo_revision_conflict:"The player photo changed. Reopen the player before choosing a replacement.",
       proposal_expired:"This approval has expired. Cancel and open the action again to review a fresh approval.",
       command_no_longer_actionable:"This action is no longer available. Refresh the workspace to see the latest work.",
+      player_stats_context_changed:"The player’s club, season or competition changed. Reload player data, then reject this older suggestion before checking new sources.",
+      player_stats_review_already_resolved:"This suggestion was already reviewed. Reload player data to see the saved result.",
       player_stats_revision_conflict:"These statistics changed while you were editing. Your draft is retained. Reload recorded data before saving.",
       player_stats_refresh_running:"A statistics update is running. Wait for it to finish before saving corrections.",
       player_stats_row_exists:"A season record already exists. Reload recorded data and edit that record.",
@@ -1259,6 +1270,8 @@ export default {fetch:async(req:Request)=>{
       draft_career_strategy_not_found:"This career plan changed. Reload it before approving.",
     };
     if(Object.hasOwn(conflicts,message)) return json({error:conflicts[message],code:message},409);
+    const detailsConflicts=["Player details changed. Check the record again.","Player identity changed. Check the record again.","This detail was already reviewed. Reload the record."];
+    if(detailsConflicts.includes(message))return json({error:message,code:"player_details_review_conflict"},409);
     const inputErrors:Record<string,string>={
       career_strategy_incomplete_for_approval:"Add the career objective, preferred route, fallback route and next checkpoint before approving. Reopen the career plan to complete it.",
       player_photo_path_invalid:"Choose a photo uploaded for this player.",
