@@ -1,6 +1,6 @@
 # Document assistance source checks and hosted journey
 
-Scope: DOC-06 / UI-11 / UI-12, stacked on draft PR 279. The full 46-item and 17-surface programme remains active.
+Scope: DOC-06 / UI-11 / UI-12, consolidated in main integration PR 281 after the earlier stacked reviews closed. The full 46-item and 17-surface programme remains active.
 
 ## Source-established change
 
@@ -39,3 +39,16 @@ Deploy only `redream-document-assist` to **staging** project `ltvmopvarlnidiozvp
 Frontend: existing `components/AgencyDocumentAssist.tsx` only. Supporting changes: existing shared-helper/Edge tests, document fixture/browser test and artifact registration, plus this manifest/programme checkpoint. Publish a draft based on `codex/redream-scouting-report-journey`; use the exact pushed frontend on the existing staging project/team. Independently verify full SHA/project/READY/preview target/alias before owner acceptance. No production, merge or migration is included. Never replay existing/excluded migrations.
 
 After the source-check release, one bounded fictional DJM owner request must succeed with `document_assist_v2`, exact quotes, deliberate Apply, manual editability, no implicit document/roster/task/share write and expected tenant-scoped usage only. The baseline end-to-end exports above do not prove the new function is installed. Record exact bundle hashes, deployment identity and final-source CI separately. Actual staff/device/provider permutations, every document kind with live AI, physical iPhone/Safari, independent-agency and production acceptance remain open.
+
+
+## Installed source-check checkpoint
+
+Source 4604652aba15860bbd484d24fe4ed0cf666f4280 is published in integration PR 281 against main. The earlier PR 279 merged only 20ffb93; its green CI 40558875510 is retained. Main 18dd835 has no source change beyond the common-ancestor bf01ef1 tree, so this integration preserves the current validated programme without overwriting independent changes or adding another dependency chain.
+
+Staging function version 4 is ACTIVE with JWT true and all three downloaded files matching source. SHA256: entrypoint f8561d36426b7bb2de6934c4f505c7c77349fd42714ef38a516893a24b4ce351; shared document-assist 5b8f1dd21f30b6ea53069d453a6299a85e2d69cb93296a06a8e17f8c9380efcb; unchanged router 804475e186a9e19c099629dca578098ac057ebc283c778b672984589acd4b5b8. Original version-3 bundle remains in function-before.json. No migration/configuration/secret change occurred.
+
+Frontend dpl_4wsNgykoeXVWEFqBFmhDaufr8bDK, immutable redream-systems-staging-m7nbtfhui-jesseedge10-8415s-projects.vercel.app, is READY. Full source, staging project, preview target and canonical alias independently match. Immediate frontend rollback is the accepted pasten9n7 / dpl_BjuabT2VR6tV8eUamhNRX6BkHVaE artifact; the stricter function is protocol-compatible. Do not roll back unrelated backend migrations.
+
+Actual owner V2 success preserves QA Łukasz D2, exact quotes and the stated priority, asks for missing actual services/people, and leaves unknowns blank. Before Apply the fields remain blank; afterwards the draft is manually editable and Share remains blocked. Explicit discard returns to the empty Library; no document, roster, task or share is created. Usage 3748a9bf-ec8a-470e-9d2b-3aedebcbb407 records document_assist_v2 success, 3,772 ms and estimated cost 326 micros ($0.000326), actual cost unknown. Fresh nine business/original-usage and three document hashes match after excluding only that expected metering event. The prior full export acceptance is reused because exporter source is unchanged. v2-before.json / v2-final.json and hosted proofs retain the exact evidence. The agent-created tab is closed.
+
+CI 40599502683 verify is green; full browser journeys remain in progress at this checkpoint. Keep that exact run. This completes the scoped source-check delivery, not all DOC-06, staff/provider permutations, physical-device, independent-agency or production acceptance. No merge, production or external send/share/sign occurred.
