@@ -7,6 +7,7 @@ import {
   DOCUMENT_TEMPLATES,
   resolveDocumentText,
   newAgencyDocument,
+  copyAgencyDocument,
   type AgencyDocument,
 } from "../lib/agency-documents.ts";
 const db = new PGlite();
@@ -290,6 +291,30 @@ test("public opens are idempotent and published versions do not change with draf
   await call("revoke", saved);
   await actor(null, "anon");
   assert.equal(await open("agency-a", token), null);
+});
+test("clean pitch template authorship survives private save/reopen but is not recipient content", async () => {
+  await actor(owner);
+  const template = copyAgencyDocument(newAgencyDocument("agency_pitch", documentBrand({display_name: "QA Agency"})), "template");
+  template.content.sections = [{ id: "section-0", title: "A personal conversation", body: "{{player_name}}, we will discuss {{purpose}} before agreeing any support." }];
+  template.content.sources = [{ label: "QA agency service schedule", url: "", capturedAt: "2026-10-27" }];
+  const stored = await save(template);
+  assert.equal(stored.content.pitchTemplateVersion, 1);
+  const reopened = (await call("list")).documents.find((doc: AgencyDocument) => doc.id === stored.id);
+  assert.equal(reopened.content.pitchTemplateVersion, 1);
+  const pitch = copyAgencyDocument(reopened, "from_template");
+  pitch.content.fields = { player_name: "QA Pitch Prospect", purpose: "QA regular communication" };
+  pitch.content.reviewed = true;
+  const record = await save(pitch);
+  assert.deepEqual(record.content.sources, template.content.sources);
+  const link = await call("share", record);
+  await actor(null, "anon");
+  const snapshot = await open("agency-a", link.token);
+  assert.equal(snapshot.content.pitchTemplateVersion, undefined);
+  assert.equal(snapshot.content.sections[0].body, template.content.sections[0].body);
+  assert.deepEqual(snapshot.content.sources, template.content.sources);
+  await actor(owner);
+  await call("archive", record);
+  await call("archive", stored);
 });
 test("tokens expire and become unavailable when an agency is suspended", async () => {
   await actor(owner);

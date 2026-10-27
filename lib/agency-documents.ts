@@ -44,6 +44,8 @@ export type DocumentContent = {
   lines: DocumentLine[];
   sources: DocumentSource[];
   reviewed: boolean;
+  // Records clean-template authorship, not permission or factual verification.
+  pitchTemplateVersion?: 1;
 };
 export type AgencyDocument = {
   id: string;
@@ -714,7 +716,29 @@ export function copyAgencyDocument(
       "end_date",
     ])
       delete content.fields[key];
-    content.sources = [];
+    const reusablePitch =
+      source.kind === "agency_pitch" &&
+      source.is_template &&
+      source.content.pitchTemplateVersion === 1;
+    if (!reusablePitch) content.sources = [];
+    if (source.kind === "agency_pitch" && !reusablePitch) {
+      // Literal chapter text can contain a previous prospect's private details.
+      // Clean old templates too; only subsequently authored template copy is reused.
+      content.sections = content.sections.map((section, index) => {
+        const match = /^section-(\d+)$/.exec(section.id);
+        const canonical =
+          match && DOCUMENT_TEMPLATES.agency_pitch.sections[Number(match[1])];
+        return {
+          ...section,
+          title: canonical ? canonical[0] : `Agency chapter ${index + 1}`,
+          body: canonical
+            ? canonical[1]
+            : "[[Add reusable agency wording for this chapter. Use variables for personal details.]]",
+        };
+      });
+      content.lines = [];
+      content.pitchTemplateVersion = 1;
+    }
     if (source.kind === "scouting_report" && !source.is_template) {
       // Observations about one player are not reusable agency template wording.
       content.sections = content.sections.map((section) => ({

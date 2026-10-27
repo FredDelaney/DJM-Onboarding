@@ -69,6 +69,7 @@ jobs:
             /tmp/redream-platform-programme/task-editor-focus
             /tmp/redream-platform-programme/representation-journey
             /tmp/redream-platform-programme/mandate-journey
+            /tmp/redream-platform-programme/player-pitch-journey
             /tmp/redream-platform-programme/document-save-recovery
             /tmp/redream-platform-programme/connected-followups
           retention-days: 7
