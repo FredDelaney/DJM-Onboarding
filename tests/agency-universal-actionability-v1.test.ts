@@ -403,7 +403,7 @@ test('Action Workspace uses customer language instead of execution plumbing', ()
   assert.match(drawer, /You stay in control/);
   assert.match(
     drawer,
-    /Done\. The latest view is up to/,
+    /Change saved\./,
   );
 
   assert.doesNotMatch(drawer, /READY TO APPLY/);

@@ -261,6 +261,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     if(suite==='capture'&&screen==='review'&&width===390)await verifyCaptureFollowupJourney(page,()=>({approvals:state.approvals,completions:state.completions,dueAt,taskId}));
     if(suite==='detail'&&['club','contact','deal'].includes(screen)&&width===390){
      const label=screen==='club'?'Example FC':screen==='contact'?'Example Director':'Example transfer';
+     const parentOverflow=await page.evaluate(()=>document.body.style.overflow);
      const edit=page.getByRole('button',{name:'Edit '+label,exact:true});await edit.click();
      const editor=page.getByRole('dialog',{name:'Manage '+label,exact:true});await editor.waitFor();
      const field=editor.getByLabel(screen==='club'?'Club name':screen==='contact'?'Full name':'Deal title',{exact:true});
@@ -272,7 +273,13 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      assert.equal(await edit.evaluate(node=>node===document.activeElement),true,'Record edit returns focus');
      await edit.click();await editor.waitFor();assert.equal(await field.inputValue(),label,'Cancelled drafts do not change the record');
      await editor.getByRole('button',{name:'Cancel',exact:true}).click();await editor.waitFor({state:'hidden'});
-     assert.equal(await page.evaluate(()=>document.body.style.overflow),'','Page records restore document scrolling after editing');
+     assert.equal(await page.evaluate(()=>document.body.style.overflow),parentOverflow,'Editing restores the existing parent scroll lease');
+     if(screen==='deal'){
+      assert.equal(parentOverflow,'hidden','The full-screen deal retains its document scroll lease');
+      const shell=page.locator('[class*="pageShell"]');
+      assert.equal(await shell.evaluate(node=>getComputedStyle(node).overflowY),'auto','The deal page retains its own scrolling');
+      assert.equal(await edit.evaluate(node=>!!node.closest('[inert]')),false,'The deal remains interactive after its editor closes');
+     }
      if(screen==='contact'||screen==='club'){
       const identity=page.locator(screen==='contact'?'[class*="headerIdentity"]':'[class*="headerTop"] > div:first-child').first();
       const controls=page.locator('[class*="headerControls"]').first();
@@ -362,7 +369,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
    await page.goto(root+'/workspace/qa-platform-polish?suite=detail&screen=deal');
    await page.getByRole('heading',{name:'Example transfer',exact:true}).waitFor();
    await page.getByRole('button',{name:'Edit Example transfer',exact:true}).waitFor();
-   assert.equal(await page.evaluate(()=>document.body.style.overflow),'','A page record allows document scrolling');
+   assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden','The full-screen deal locks the covered document while its own content scrolls');
    await page.getByRole('heading',{name:'Confirm the trial dates',exact:true}).waitFor();
    await page.getByText('Forward movement recorded',{exact:true}).waitFor();
    assert.equal(await page.getByRole('region',{name:'Latest activity',exact:true}).locator('time').textContent(),'8 Oct 2026','Activity shows the recorded date rather than a due-date warning');
