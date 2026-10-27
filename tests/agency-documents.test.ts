@@ -135,6 +135,39 @@ test("agency templates clear the previous player's pitch priorities and scouting
     undefined,
   );
 });
+test("a pitch document or legacy template cannot silently become another prospect's personalised wording", () => {
+  const pitch = newAgencyDocument("agency_pitch", documentBrand({display_name:"QA Agency"}));
+  pitch.content.fields = {player_name:"QA Previous Prospect",purpose:"QA private family priority"};
+  pitch.content.sections[0].title="QA Previous Prospect's personal plan";
+  pitch.content.sections[0].body="QA Previous Prospect has a QA private family priority.";
+  pitch.content.sections.push({id:"custom-chapter",title:"QA private family meeting",body:"QA private family priority and meeting details",pageBreak:true});
+  pitch.content.sources=[{label:"QA private conversation",url:"",capturedAt:"2026-10-27"}];
+  const before=structuredClone(pitch);
+  for(const is_template of [false,true]){
+    const template=copyAgencyDocument({...pitch,is_template},is_template?"from_template":"template");
+    assert.doesNotMatch(JSON.stringify(template),/QA Previous Prospect|QA private family|QA private conversation/);
+    assert.equal(template.content.sections.length,pitch.content.sections.length);
+    assert.deepEqual(template.content.sections.map(s=>[s.id,s.pageBreak]),pitch.content.sections.map(s=>[s.id,s.pageBreak]));
+    assert.equal(template.content.brand.name,"QA Agency");
+    assert.equal(template.content.reviewed,false);
+    assert.equal(template.content.pitchTemplateVersion,1);
+    assert.ok(documentIssues(template).includes("Complete the highlighted template text"));
+  }
+  assert.deepEqual(pitch,before,"Conversion never edits the original saved pitch");
+  assert.equal(copyAgencyDocument(pitch,"duplicate").content.sections[0].body,pitch.content.sections[0].body,"Explicit duplicate retains the chosen document, with review reset");
+});
+test("deliberately authored clean pitch template copy and agency evidence remain reusable", () => {
+  const template=copyAgencyDocument(newAgencyDocument("agency_pitch",documentBrand()),"template");
+  template.content.sections[1].body="QA reusable agency service offer. Confirm the scope in a conversation.";
+  template.content.sources=[{label:"QA reusable agency service schedule",url:"",capturedAt:"2026-10-27"}];
+  const next=copyAgencyDocument(template,"from_template");
+  assert.equal(next.content.sections[1].body,template.content.sections[1].body);
+  assert.deepEqual(next.content.sources,template.content.sources);
+  assert.equal(next.content.reviewed,false);
+  next.content.fields.player_name="QA Second Prospect";
+  next.content.sections[1].body="QA Second Prospect's private situation";
+  assert.doesNotMatch(JSON.stringify(copyAgencyDocument(next,"template")),/QA Second Prospect/);
+});
 
 test("unknown optional football details stay absent and exported dates read naturally", () => {
   const report = newAgencyDocument("scouting_report", documentBrand());
