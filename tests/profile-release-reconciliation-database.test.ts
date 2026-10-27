@@ -355,3 +355,106 @@ test('settings repair retains ownership and grants and refuses unknown body, con
  await db.exec(settingsStatMigration);
  assert.deepEqual(await value("jsonb_build_object('owner',proowner,'acl',proacl,'config',proconfig) from pg_proc where oid=$1::regprocedure",[signature]),before);
 }));
+
+const contractMigration=readFileSync('supabase/migrations/20261025133959_include_approved_profile_contract_expiry.sql','utf8');
+const versionSource=readFileSync('supabase/migrations/20261013200134_player_profile_versions_and_source_refs_v1.sql','utf8');
+const visibilitySource=readFileSync('supabase/migrations/20261009061051_public_profile_visibility_boundary.sql','utf8');
+async function withContractSnapshot(check:()=>Promise<void>){
+ await db.exec('begin');
+ try{
+  await db.exec(lockMigration);await db.exec(statMigration);
+  await db.exec('create schema djm_os;create table djm_os.people(id uuid,tenant_id uuid);');
+  const columns=JSON.parse(readFileSync('tests/fixtures/public-profile-tables.json','utf8'));
+  for(const c of columns){
+   if(c.table_schema==='public'&&c.table_name==='players')continue;
+   const table=c.table_schema+'.'+c.table_name;
+   if(!await value('to_regclass($1)::text',[table]))await db.exec('create table '+table+'(qa_fixture boolean)');
+   if(await value('exists(select 1 from information_schema.columns where table_schema=$1 and table_name=$2 and column_name=$3)',[c.table_schema,c.table_name,c.column_name]))continue;
+   const type=c.data_type==='USER-DEFINED'?'text':c.data_type==='ARRAY'?({uuid:'uuid[]',text:'text[]',int4:'integer[]'} as any)[c.udt_name.slice(1)]||'text[]':c.data_type;
+   await db.exec('alter table '+table+' add column "'+c.column_name+'" '+type);
+  }
+  await db.exec('create table auth.users(id uuid primary key)');
+  const versionTable=versionSource.match(/create table public\.player_profile_versions \([\s\S]*?\n\);/)?.[0];assert.ok(versionTable);
+  await db.exec(versionTable);
+  await db.exec('alter table public.club_share_links add column profile_version_id uuid');
+  for(const [source,name]of [[visibilitySource,'private.visible_public_player_profile'],[versionSource,'private.protect_player_profile_version'],[versionSource,'public.get_club_share'],[readFileSync('supabase/migrations/20260823212918_enforce_verified_club_profiles_v1.sql','utf8'),'private.enforce_public_profile_publish_rules']])await db.exec(sqlFunction(source,name));
+  await db.exec(`create trigger approved_version_guard before insert or update or delete on public.player_profile_versions for each row execute function private.protect_player_profile_version();
+   create trigger public_publish_rules before insert or update on public.player_public_profiles for each row execute function private.enforce_public_profile_publish_rules();
+   revoke all on function public.get_club_share(uuid) from public;grant execute on function public.get_club_share(uuid) to service_role;`);
+  await verify();await publish({});
+  await db.query("update public.players set contract_expiry='2027-06-30',contract_status='under_contract' where id=$1",[player]);await verify();
+  const before=await value('to_jsonb(pp) from public.player_public_profiles pp where player_id=$1',[player]);
+  await db.exec(contractMigration);await db.exec(contractMigration);
+  assert.deepEqual(await value("to_jsonb(pp)-'contract_expiry' from public.player_public_profiles pp where player_id=$1",[player]),before,'No previous public facts are rewritten');
+  assert.equal(await value('contract_expiry from public.player_public_profiles where player_id=$1',[player]),null,'Installing cannot disclose a private date');
+  await check();
+ }finally{await db.exec('rollback');}
+}
+async function contractRejects(run:()=>Promise<unknown>,pattern:RegExp){
+ await db.exec('savepoint expected_denial');
+ try{await assert.rejects(run,pattern);}finally{await db.exec('rollback to expected_denial;release expected_denial');}
+}
+const contractClub='40000000-0000-4000-8000-000000000001';
+const contractVersion='50000000-0000-4000-8000-000000000001';
+async function saveContractVersion(presentation:any,version=contractVersion,versionTenant=tenant){
+ return db.query(`insert into public.player_profile_versions(id,tenant_id,player_id,profile_kind,organisation_id,status,presentation,master_player_updated_at,master_data_fingerprint,created_by,approved_by,approved_at)
+ values($1,$2,$3,'club',$4,'approved',$5,now(),'reviewed-fingerprint',$6,$6,now())`,[version,versionTenant,player,contractClub,JSON.stringify(presentation),owner]);
+}
+async function contractRecipients(){
+ await db.query('insert into auth.users values($1)',[owner]);
+ await db.query('insert into djm_os.organisations(id,tenant_id,name) values($1,$2,$3)',[contractClub,tenant,'Example Recipient FC']);
+ await db.query(`insert into public.club_share_links(id,token,player_id,organisation_id,active,expires_at) values($1,$1,$2,$3,true,now()+interval '1 day')`,[contractClub,player,contractClub]);
+}
+
+test('contract expiry needs explicit publication and comes only from verified canonical facts',async()=>withContractSnapshot(async()=>{
+ await contractRejects(()=>publish({contract_expiry:'2099-01-01'}),/unsupported_profile_snapshot_field/);
+ const result=await publish({headline:'Approved profile'});
+ assert.equal(result.profile.contract_expiry,'2027-06-30');assert.equal(result.profile.current_status,'under_contract');
+ await db.query("update public.players set contract_expiry='2028-06-30' where id=$1",[player]);await verify();
+ assert.equal(await value('contract_expiry::text from public.player_public_profiles where player_id=$1',[player]),'2027-06-30','Private changes cannot rewrite the approved date');
+ await contractRejects(()=>db.query("update public.player_public_profiles set contract_expiry='2099-01-01' where player_id=$1",[player]),/verified player record|profile field/i);
+ await contractRejects(()=>publish({},agent),/tenant_admin|required|denied/i);
+ await contractRejects(()=>publish({},outsider),/tenant_admin|required|denied/i);
+ await db.query("update public.players set contract_expiry=null where id=$1",[player]);await verify();
+ assert.equal((await publish({})).profile.contract_expiry,null,'Deliberate republication can clear a removed date');
+}));
+
+test('general and immutable club recipients retain exactly the approved contract date',async()=>withContractSnapshot(async()=>{
+ await contractRecipients();
+ let general=await value('public.get_club_share($1)',[contractClub]);
+ assert.equal(general.profile.contract_expiry,null,'Legacy published snapshots remain undisclosed');
+ await publish({});
+ general=await value('public.get_club_share($1)',[contractClub]);assert.equal(general.profile.contract_expiry,'2027-06-30');
+ await saveContractVersion(general.profile);
+ await db.query('update public.club_share_links set profile_version_id=$1 where token=$2',[contractVersion,contractClub]);
+ await db.query("update public.players set contract_expiry='2028-06-30' where id=$1",[player]);await verify();await publish({});
+ const fixed=await value('public.get_club_share($1)',[contractClub]);assert.equal(fixed.profile.contract_expiry,'2027-06-30','Club versions never borrow a newer private or general date');
+ assert.ok(!JSON.stringify(fixed).includes('verification_notes'));
+ await contractRejects(()=>db.query("update public.player_profile_versions set presentation=presentation||'{\"contract_expiry\":\"2028-06-30\"}' where id=$1",[contractVersion]),/immutable/);
+ await db.query('update public.club_share_links set active=false where token=$1',[contractClub]);assert.equal(await value('public.get_club_share($1)',[contractClub]),null);
+ await db.query("update public.club_share_links set active=true,expires_at=now()-interval '1 second' where token=$1",[contractClub]);assert.equal(await value('public.get_club_share($1)',[contractClub]),null);
+ await db.query("update public.club_share_links set expires_at=now()+interval '1 day' where token=$1",[contractClub]);
+ await db.query("select set_config('djm.public_profile_action','safety_unpublish',true)");await db.query('update public.player_public_profiles set published=false where player_id=$1',[player]);assert.equal(await value('public.get_club_share($1)',[contractClub]),null);
+}));
+
+test('version date must match the published snapshot, while legacy versions keep no date',async()=>withContractSnapshot(async()=>{
+ await contractRecipients();await publish({});
+ await contractRejects(()=>saveContractVersion({contract_expiry:'2099-01-01'}),/must match the published/);
+ await contractRejects(()=>saveContractVersion({contract_expiry:2027}),/invalid_player_profile_presentation_text/);
+ await contractRejects(()=>saveContractVersion({contract_expiry:'2027-06-30'},contractVersion,foreign),/tenant_mismatch/);
+ await saveContractVersion({display_name:'Legacy approved profile',primary_position:'Centre back'});
+ await db.query('update public.club_share_links set profile_version_id=$1 where token=$2',[contractVersion,contractClub]);
+ assert.equal((await value('public.get_club_share($1)',[contractClub])).profile.contract_expiry,null,'Old versions are not silently enriched');
+}));
+
+
+test('contract migration preserves function metadata and refuses unknown drift atomically',async()=>withContractSnapshot(async()=>{
+ const metadata=()=>db.query("select oid,proname,proowner,proacl::text,proconfig,prosecdef,md5(prosrc) as hash from pg_proc where oid=any(array['public.get_club_share(uuid)'::regprocedure,'public.platform_server_publish_player_profile_snapshot(uuid,uuid,uuid,jsonb)'::regprocedure,'private.protect_public_profile_admin_fields()'::regprocedure]) order by oid");
+ const before=(await metadata()).rows;await db.exec(contractMigration);assert.deepEqual((await metadata()).rows,before);
+ const original=await value("pg_get_functiondef('private.protect_player_profile_version()'::regprocedure)");
+ await db.exec(original.replace('declare','declare\n -- unreviewed drift'));
+ const published=await value('to_jsonb(pp) from public.player_public_profiles pp where player_id=$1',[player]);
+ await contractRejects(()=>db.exec(contractMigration),/differs from reviewed function/);
+ assert.deepEqual((await metadata()).rows,before,'No earlier function was partially replaced');
+ assert.deepEqual(await value('to_jsonb(pp) from public.player_public_profiles pp where player_id=$1',[player]),published);
+}));

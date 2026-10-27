@@ -379,6 +379,7 @@ const makeDraftProfile = (
       : null,
     nationalities: player.nationalities || [],
     current_status: player.contract_status,
+    contract_expiry: player.contract_expiry,
     current_club: player.current_club,
     key_stats: keyStats,
     why_review: form.why_review || null,
@@ -528,6 +529,52 @@ export default function AgencyPlayerProfile({
     };
   }, [previewOpen]);
   const [shareOpen, setShareOpen] = useState(false);
+  const shareDialog = useRef<HTMLElement>(null);
+  const shareOpener = useRef<HTMLElement | null>(null);
+  const shareBusy = useRef(false);
+  shareBusy.current = actionBusy === 'share';
+  useEffect(() => {
+    if (!shareOpen || previewOpen) return;
+    const opener = shareOpener.current;
+    const position = {left: window.scrollX, top: window.scrollY};
+    const releaseScroll = lockPageScroll();
+    const releaseBackground = isolateElements(Array.from(document.body.children).filter(
+      (node): node is HTMLElement => node instanceof HTMLElement && !node.contains(shareDialog.current),
+    ));
+    const controls = () => Array.from(shareDialog.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), select:not(:disabled), input:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+    ) || []).filter(node => node.getClientRects().length > 0);
+    const focusFirst = () => controls()[0]?.focus({preventScroll: true});
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !shareDialog.current?.contains(event.target)) focusFirst();
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopPropagation();
+        if (!shareBusy.current) setShareOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = controls(), first = items[0], last = items.at(-1);
+      if (!shareDialog.current?.contains(document.activeElement)) {
+        event.preventDefault(); (event.shiftKey ? last : first)?.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus();
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', key, true);
+    focusFirst();
+    return () => {
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', key, true);
+      releaseBackground(); releaseScroll();
+      window.scrollTo({...position, behavior: 'instant'});
+      queueMicrotask(() => { if (opener?.isConnected && !opener.closest('[inert]')) opener.focus({preventScroll: true}); });
+    };
+  }, [shareOpen, previewOpen]);
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [shareClub, setShareClub] = useState('');
@@ -538,6 +585,11 @@ export default function AgencyPlayerProfile({
   const [shareExpiry, setShareExpiry] = useState('30');
   const [shareResultUrl, setShareResultUrl] = useState('');
   const [shareResultMessage, setShareResultMessage] = useState('');
+  useEffect(() => {
+    if (shareOpen && shareResultUrl && !previewOpen && actionBusy !== 'share') {
+      shareDialog.current?.querySelector<HTMLElement>('button[aria-label="Close"]')?.focus({preventScroll: true});
+    }
+  }, [shareOpen, shareResultUrl, previewOpen, actionBusy]);
   const [shareVersionId, setShareVersionId] = useState('');
   const [showOlderLinks, setShowOlderLinks] = useState(false);
   const [versions, setVersions] = useState<ProfileVersion[]>([]);
@@ -886,7 +938,7 @@ export default function AgencyPlayerProfile({
       label: 'Contract details',
       ok: Boolean(player.contract_status) &&
         (Boolean(player.contract_expiry) ||
-          !/under contract|contracted|on loan/i.test(text(player.contract_status))),
+          !/under contract|contracted|on loan/i.test(text(player.contract_status).replaceAll('_', ' ').replaceAll('-', ' '))),
       important: false,
       missingTitle: player.contract_status
         ? 'Add contract expiry'
@@ -1647,6 +1699,8 @@ export default function AgencyPlayerProfile({
   const openShareComposer = () => {
     if (!canEdit||recordRefreshNeeded) return;
 
+    shareOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setError('');
     setShareResultUrl('');
     setShareResultMessage('');
     setShareMessage('');
@@ -2067,12 +2121,18 @@ export default function AgencyPlayerProfile({
               : verificationOnly
                 ? 'Confirm the current player record once before the profile goes live.'
                 : canPublish
-                  ? 'Everything required is ready.'
+                  ? missingShareHighlights.length
+                    ? `Ready to publish. Before sharing: ${missingShareHighlights.slice(0, 2).map(item => item.missingTitle).join(' · ')}`
+                    : 'Review the club-facing profile, then publish.'
                   : primaryRequiredCheck?.missingDetail || 'Complete the required player information first.'}
           </p>
         </div>
 
         <div className={styles.heroActions}>
+          <button type="button" data-ui-button="secondary" className={styles.secondaryAction}
+            onClick={() => openProfilePreview(draftProfile)} aria-label="Preview Player Profile">
+            <Eye size={15} /> Preview
+          </button>
           {published?.published ? (
             <button
               type="button"
@@ -2143,7 +2203,7 @@ export default function AgencyPlayerProfile({
                 type="button"
                 data-ui-button="secondary"
                 className={styles.secondaryAction}
-                onClick={() => setPreviewOpen(true)}
+                onClick={() => openProfilePreview(draftProfile)}
               >
                 <Eye size={15} />
                 Preview
@@ -2670,15 +2730,6 @@ export default function AgencyPlayerProfile({
               <span className={styles.eyebrow}>WHAT CLUBS SEE</span>
               <h3>Player overview</h3>
             </div>
-            <button
-              type="button"
-              data-ui-button="icon"
-              className={styles.iconButton}
-              onClick={() => openProfilePreview(draftProfile)}
-              aria-label="Preview Player Profile"
-            >
-              <Eye size={16} />
-            </button>
           </div>
 
           <div className={styles.story}>
@@ -3576,6 +3627,7 @@ export default function AgencyPlayerProfile({
         >
           <section
             className={`${styles.modal} ${styles.shareModal}`}
+            ref={shareDialog}
             role="dialog"
             aria-modal="true"
             aria-label="Share Player Profile"
@@ -3601,6 +3653,8 @@ export default function AgencyPlayerProfile({
                 <X size={17} />
               </button>
             </header>
+
+            {error ? <div className={styles.error} role="alert" aria-atomic="true">{error}</div> : null}
 
             {shareResultUrl ? (
               <div className={styles.shareSuccess}>
@@ -3673,6 +3727,7 @@ export default function AgencyPlayerProfile({
                 <label>
                   <span>Club</span>
                   <select
+                    aria-label="Club"
                     value={shareClub}
                     onChange={(event) => {
                       setShareClub(event.target.value);
@@ -3731,6 +3786,7 @@ export default function AgencyPlayerProfile({
                 <label>
                   <span>Profile to share</span>
                   <select
+                    aria-label="Profile to share"
                     value={shareVersionId}
                     onChange={(event) => setShareVersionId(event.target.value)}
                     disabled={versionsBusy}
@@ -3767,6 +3823,7 @@ export default function AgencyPlayerProfile({
                 <label>
                   <span>Club-specific note</span>
                   <textarea
+                    aria-label="Club-specific note"
                     rows={3}
                     value={shareMessage}
                     onChange={(event) =>

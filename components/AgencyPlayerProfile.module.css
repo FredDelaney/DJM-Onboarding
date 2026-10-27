@@ -2518,3 +2518,5 @@ fieldset.editorBody { min-width: 0; margin: 0; border: 0; }
 .form textarea.storyInput[aria-invalid="true"], .prepareFields textarea.storyInput[aria-invalid="true"] { border-color: #b42318; }
 .storyHelp { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; line-height: 1.5; color: #6e6e73; }
 .storyHelp > span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.shareModal > footer > button { min-height: 44px; }

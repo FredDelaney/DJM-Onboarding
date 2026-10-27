@@ -12,6 +12,8 @@ import {
 } from '@react-pdf/renderer';
 
 import {
+  dossierContractExpiry,
+  dossierHeadline,
   dossierCareer,
   dossierCareerStatLine,
   dossierHeadlineStats,
@@ -22,6 +24,7 @@ import {
   dossierPositionMap,
   dossierVerifiedDate,
 } from '@/lib/dossier';
+import { readableBrandInk, foregroundForBrandColour, brandContrastRatio } from '@/lib/tenant-brand-style';
 import {
   researchSourceLabel,
   sameResearchUrl,
@@ -875,11 +878,9 @@ export function ClubCvPdfDocument({
       : fallback;
   };
 
-  const primaryColor =
-    cleanBrandColour(
-      agency?.primary_color,
-      NAVY,
-    );
+  const primaryColor = readableBrandInk(
+    cleanBrandColour(agency?.primary_color, NAVY), '#FFFFFF', 7,
+  );
 
   const accentColor =
     cleanBrandColour(
@@ -898,14 +899,14 @@ export function ClubCvPdfDocument({
           accentColor,
       },
       accentText: {
-        color: accentColor,
+        color: brandContrastRatio(accentColor, primaryColor) >= 4.5 ? accentColor : WHITE,
       },
       logoFallback: {
         backgroundColor:
           accentColor,
       },
       logoFallbackText: {
-        color: primaryColor,
+        color: foregroundForBrandColour(accentColor),
       },
       primaryText: {
         color: primaryColor,
@@ -917,7 +918,7 @@ export function ClubCvPdfDocument({
       contactEmail: {
         backgroundColor:
           accentColor,
-        color: primaryColor,
+        color: foregroundForBrandColour(accentColor),
       },
     });
 
@@ -936,6 +937,9 @@ export function ClubCvPdfDocument({
       .trim()
       .replaceAll('_', ' ')
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+  const contractExpiry = dossierContractExpiry(profile?.contract_expiry);
+  const headline = dossierHeadline(profile);
 
   const stats =
     dossierHeadlineStats(
@@ -1196,14 +1200,14 @@ export function ClubCvPdfDocument({
                   'Professional footballer'}
               </Text>
 
-              {profile?.headline && (
+              {headline && (
                 <Text
                   style={
                     styles.headline
                   }
                 >
                   {clip(
-                    profile.headline,
+                    headline,
                     170,
                   )}
                 </Text>
@@ -1255,6 +1259,10 @@ export function ClubCvPdfDocument({
                   )}
               </View>
 
+              {contractExpiry && (
+                <Text style={styles.statusText}>Contract until {contractExpiry}</Text>
+              )}
+
               {primaryVideo && !hidden(profile, 'videos') && (
                 <Link
                   src={primaryVideo}
@@ -1274,29 +1282,13 @@ export function ClubCvPdfDocument({
               )}
             </View>
             
-            {photoUrl ? (
+            {photoUrl && (
               <Image
                 src={photoUrl}
                 style={
                   styles.photo
                 }
               />
-            ) : (
-              <View
-                style={
-                  styles.photoFallback
-                }
-              >
-                <Text
-                  style={
-                    styles.photoInitial
-                  }
-                >
-                  {name
-                    .charAt(0)
-                    .toUpperCase()}
-                </Text>
-              </View>
             )}
           </View>
         </View>

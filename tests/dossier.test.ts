@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { dossierPerformance, dossierPositionMap } from '../lib/dossier.ts';
+import { dossierContractExpiry, dossierHeadline, dossierPerformance, dossierPositionMap } from '../lib/dossier.ts';
 
 test('maps primary and secondary positions onto distinct football locations', () => {
   assert.deepEqual(
@@ -34,4 +34,18 @@ test('season bars compare one honest measure and retain exact labels', () => {
   assert.equal(result.metric, 'minutes');
   assert.deepEqual(result.rows.map((row) => row.visualPercentage), [100, 50]);
   assert.deepEqual(result.rows.map((row) => row.visualLabel), ['900 mins', '450 mins']);
+});
+
+
+test('contract expiry is an exact calendar date, with missing and impossible dates omitted', () => {
+  assert.equal(dossierContractExpiry('2027-06-30'), '30 Jun 2027');
+  assert.equal(dossierContractExpiry('2028-02-29'), '29 Feb 2028');
+  for (const value of [null, undefined, '', '2027-02-29', '2027-04-31', '2027-13-01', '2027-06-30T00:00:00Z', 2027]) assert.equal(dossierContractExpiry(value), null);
+});
+
+test('the hero omits a repeated identity line and preserves a meaningful authored introduction', () => {
+  const profile = {primary_position: 'Centre back', current_club: 'Example FC'};
+  assert.equal(dossierHeadline({...profile, headline: '  Centre back · Example FC  '}), null);
+  assert.equal(dossierHeadline({...profile, headline: 'CENTRE BACK · Example FC'}), null);
+  assert.equal(dossierHeadline({...profile, headline: 'A left-footed defender with senior experience.'}), 'A left-footed defender with senior experience.');
 });
