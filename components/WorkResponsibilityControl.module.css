@@ -6,7 +6,9 @@
 .panel p[role="alert"] { color: #b03c2e; }
 .actions { display: flex; gap: 6px; margin-top: 8px; }
 .actions button { min-height: 44px; padding: 0 12px; border: 0; border-radius: 9px; background: #f5f5f7; color: #424245; font: inherit; font-size: 13px; cursor: pointer; }
-.actions button:last-child { color: #0066cc; }
+.actions button[data-ui-button="primary"] { background:var(--tenant-primary,#0071e3); color:var(--tenant-on-primary,#fff); }
+.actions button:disabled { opacity:.5; cursor:default; }
+.actions button:focus-visible { outline:3px solid var(--tenant-primary,#0071e3); outline-offset:2px; }
 
 /* World-class product pass v11: responsibility is context, not a competing CTA. */
 .control{z-index:8}

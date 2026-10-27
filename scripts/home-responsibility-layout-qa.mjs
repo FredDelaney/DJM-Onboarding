@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright';
 const browser = await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
 const people = [{user_id:'10000000-0000-4000-8000-000000000001',display_name:'Jesse Edge'},{user_id:'10000000-0000-4000-8000-000000000002',display_name:'Dapo Kayode'}];
+const output='/tmp/redream-platform-programme/daily-work-polish';await mkdir(output,{recursive:true});
 try {
  const page = await browser.newPage({viewport:{width:390,height:844}});
  const errors=[]; page.on('pageerror',error=>errors.push(error.message));
@@ -28,16 +30,18 @@ try {
   const action=row.getByRole('button',{name:'Update',exact:true});
   assert.ok(await action.evaluate(node=>parseFloat(getComputedStyle(node).fontSize)>=12),'Home actions must show a readable label at '+width);
   await row.getByLabel('Change responsible people',{exact:true}).click();
-  await row.getByLabel('Choose responsible people',{exact:true}).click();
   await row.getByRole('checkbox',{name:'Dapo Kayode',exact:true}).waitFor();
+  assert.equal(await row.getByRole('button',{name:'Save people',exact:true}).isDisabled(),true);
+  assert.equal(await row.getByLabel('Choose responsible people',{exact:true}).count(),0,'Selecting colleagues requires no nested disclosure');
   const metrics=await row.evaluate(node=>{
    const visible=node=>{const box=node.getBoundingClientRect();return box.width>0&&box.height>0;};
    return {overflow:document.documentElement.scrollWidth-innerWidth,small:[...node.querySelectorAll('button,summary,input:not([type=checkbox])')].filter(visible).filter(control=>control.getBoundingClientRect().height<43.5).map(control=>control.getAttribute('aria-label')||control.textContent.trim())};
   });
   assert.ok(metrics.overflow<=1,'The Home responsibility picker must fit the viewport at '+width);
   assert.deepEqual(metrics.small,[],'Expanded Home controls need comfortable touch targets at '+width);
-  await row.getByRole('button',{name:'Done',exact:true}).click();
+  if(width===390||width===1440)await row.screenshot({path:output+`/home-people-${width}.png`});
   await row.getByRole('button',{name:'Cancel',exact:true}).click();
+  assert.equal(await row.getByLabel('Change responsible people',{exact:true}).evaluate(node=>node===document.activeElement),true,'Cancel returns to its Home assignment control');
  }
  assert.deepEqual(errors,[]);
  console.log('Home task actions and expanded responsibility editing passed at five viewport widths.');

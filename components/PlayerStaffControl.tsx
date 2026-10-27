@@ -17,11 +17,19 @@ export default function PlayerStaffControl({playerId,scope,rpc}:{playerId:string
  const key=scope+':'+playerId;
  const current=useRef(key);current.current=key;
  const sequence=useRef(0);
+ const trigger=useRef<HTMLButtonElement>(null),editor=useRef<HTMLDivElement>(null),returnFocus=useRef<string|null>(null);
  const [unavailable,setUnavailable]=useState<string|null>(null);
  const [saved,setSaved]=useState<{key:string;value:Tags}|null>(null);
  const [editing,setEditing]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [members,setMembers]=useState<Assignee[]>([]),[ids,setIds]=useState<string[]>([]),[all,setAll]=useState(false),[teamReady,setTeamReady]=useState(false);
  const value=saved?.key===key?saved.value:null;
+ const changed=!!value&&(all!==value.all_staff||(!all&&(ids.length!==value.user_ids.length||ids.some(id=>!value.user_ids.includes(id)))));
+ useEffect(()=>{
+  if(returnFocus.current!==key)returnFocus.current=null;
+  if(editing)editor.current?.focus();
+  else if(returnFocus.current===key){trigger.current?.focus();returnFocus.current=null;}
+ },[editing,key]);
+ const cancel=()=>{sequence.current++;returnFocus.current=key;setEditing(false);setError('');};
  const load=useCallback(async()=>{
   const request=++sequence.current;setError('');
   try {
@@ -46,13 +54,13 @@ export default function PlayerStaffControl({playerId,scope,rpc}:{playerId:string
   }catch{if(current.current===key&&request===sequence.current)setError('Could not load agency staff. Try again.');}
  }
  async function save(){
-  if(!value||busy||!teamReady)return;
+  if(!value||busy||!teamReady||!changed)return;
   const request=++sequence.current;setBusy(true);setError('');
   try {
    const result=await readWithDeadline(rpc<Tags>('redream_player_staff_tags_v1',{p_player_id:playerId,p_input:{all_staff:all,user_ids:all?[]:ids},p_expected_revision:value.revision}));
    if(current.current!==key||request!==sequence.current)return;
    if(!confirmed(result,playerId))throw new Error('unconfirmed');
-   setSaved({key,value:result});setEditing(false);setNotice('Player team saved.');
+   setSaved({key,value:result});returnFocus.current=key;setEditing(false);setNotice('Player team saved.');
    window.dispatchEvent(new Event('redream:responsibilities-updated'));
   }catch(err){if(current.current===key&&request===sequence.current){
    const message=String((err as any)?.message||err);
@@ -63,17 +71,17 @@ export default function PlayerStaffControl({playerId,scope,rpc}:{playerId:string
  return <section className={styles.team} aria-label="Player team">
   <div className={styles.header}><div><h3><Users size={15} aria-hidden="true"/>Player team</h3>
    <p>Tagged staff receive this player’s updates and reminders on Home. Player access stays the same.</p></div>
-   {value?.can_edit&&!editing?<button type="button" onClick={()=>void edit()}>Tag staff</button>:null}</div>
+   {value?.can_edit&&!editing?<button ref={trigger} type="button" onClick={()=>void edit()}>Tag staff</button>:null}</div>
   {!value&&!error?<p role="status">Loading player team...</p>:null}
   {value&&!editing?<div className={styles.people}>{value.all_staff?<span>All staff</span>:value.people.length?value.people.map(person=><span key={person.user_id}>{person.display_name}{person.active===false?' (inactive)':''}</span>):<p>No staff tagged. Agency admins can review unassigned players.</p>}</div>:null}
-  {editing?<div className={styles.editor}>
+  {editing?<div ref={editor} className={styles.editor} tabIndex={-1} role="group" aria-label="Edit player team" onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();if(!busy)cancel();}}}>
    <label className={styles.all}><input type="checkbox" checked={all} disabled={busy||!teamReady} onChange={event=>setAll(event.target.checked)}/><span>All staff<small>Includes staff who join the agency later.</small></span></label>
-   {!all&&teamReady?<ResponsiblePeoplePicker label="Tagged staff" members={members} selected={ids} knownPeople={value?.people} onChange={setIds} disabled={busy}/>:null}
+   {!all&&teamReady?<ResponsiblePeoplePicker label="Tagged staff" members={members} selected={ids} knownPeople={value?.people} onChange={setIds} disabled={busy} showSelectAll={false}/>:null}
    {!teamReady&&!error?<p role="status">Loading agency staff...</p>:null}
    <p>Tasks keep their own responsible people.</p>
-   <div className={styles.actions}><button type="button" disabled={busy} onClick={()=>{sequence.current++;setEditing(false);setError('');}}>Cancel</button><button type="button" data-ui-button="primary" disabled={busy||!teamReady} onClick={()=>void save()}>{busy?'Saving...':'Save team'}</button></div>
+   <div className={styles.actions}><button type="button" disabled={busy} onClick={cancel}>Cancel</button><button type="button" data-ui-button="primary" disabled={busy||!teamReady||!changed} onClick={()=>void save()}>{busy?'Saving...':'Save team'}</button></div>
   </div>:null}
-  {error?<div className={styles.error} role="alert"><p>{error}</p><button type="button" disabled={busy} onClick={()=>{setEditing(false);void load();}}>Reload team</button>{editing&&!teamReady?<button type="button" onClick={()=>void edit()}>Retry staff</button>:null}</div>:null}
+  {error?<div className={styles.error} role="alert"><p>{error}</p><button type="button" disabled={busy} onClick={()=>{returnFocus.current=key;setEditing(false);void load();}}>Reload team</button>{editing&&!teamReady?<button type="button" onClick={()=>void edit()}>Retry staff</button>:null}</div>:null}
   {notice?<p role="status">{notice}</p>:null}
  </section>;
 }

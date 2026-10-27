@@ -19,9 +19,7 @@ try{
  await page.getByRole('button',{name:'Add task',exact:true}).click();
  await page.getByLabel('Title',{exact:true}).fill('Company planning');
  await page.getByLabel('Visibility',{exact:true}).selectOption('company');
- await page.getByLabel('Choose responsible people',{exact:true}).click();
  await page.getByRole('checkbox',{name:'Dapo',exact:true}).check();
- await page.getByRole('button',{name:'Done',exact:true}).click();
  await page.getByRole('button',{name:'Save task',exact:true}).click();
  await page.locator('article[data-task-id]').getByText('Company planning',{exact:true}).waitFor();
  assert.ok(await page.locator('article[data-task-id]').filter({hasText:'Company planning'}).getByText('Company · Jesse, Dapo',{exact:true}).isVisible(),'Both responsible people must be shown after save');
