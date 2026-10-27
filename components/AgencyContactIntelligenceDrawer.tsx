@@ -255,11 +255,13 @@ export default function AgencyContactIntelligenceDrawer({
   const summaryEmployment =
     contact?.employment || {};
 
-  const summaryRelationship =
-    contact?.relationship || {...detail?.relationship_memory?.best_route,route_state:detail?.relationship_memory?.state};
+  const summaryRelationship = detail?.relationship_memory
+    ? {...detail.relationship_memory.best_route,route_state:detail.relationship_memory.state}
+    : contact?.relationship || {};
 
-  const summaryActivity =
-    contact?.activity || {last_interaction_at:detail?.relationship_memory?.last_meaningful_at};
+  const summaryActivity = detail?.relationship_memory
+    ? {last_interaction_at:detail.relationship_memory.last_meaningful_at}
+    : contact?.activity || {};
 
   const summaryClubContext =
     contact?.club_context || {};
@@ -1248,8 +1250,10 @@ export default function AgencyContactIntelligenceDrawer({
             </RecordDetails>
 
             <AgencyRelationshipActions
+              key={scope+':'+clean(contact?.person_id)}
               personId={clean(contact?.person_id)}
               rpc={rpc}
+              onReload={()=>load({recordRefresh:true})}
               onSaved={async (result) => {
                 setDetail(result);
                 await onRefresh();
