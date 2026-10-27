@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import vm from 'node:vm';
+import { createRequire } from 'node:module';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ts from 'typescript';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 const host = read('lib/redream-public-host.ts');
@@ -51,4 +56,41 @@ test('local development remains an explicit exception', () => {
   assert.match(host, /'localhost'/);
   assert.match(host, /'127\.0\.0\.1'/);
   assert.match(host, /Boolean\(developmentFlag\?\.trim\(\)\)/);
+});
+
+const require = createRequire(import.meta.url);
+const compiledGate = ts.transpileModule(gate, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
+}).outputText;
+function renderGate(pathname: string) {
+  const exports: any = {};
+  vm.runInNewContext(compiledGate, {
+    exports,
+    require: (name: string) => {
+      if (name === 'next/navigation') return { usePathname: () => pathname };
+      if (name === 'react/jsx-runtime') return require(name);
+      throw new Error(`Unexpected gate dependency: ${name}`);
+    },
+  });
+  return renderToStaticMarkup(createElement(exports.TenantRouteGate, {
+    children: 'APPROVED_PUBLIC_ROUTE', fallback: 'WORKSPACE_UNAVAILABLE',
+  }));
+}
+
+test('actual tenant gate permits the slug-scoped public player route without a private host mapping', () => {
+  for (const path of ['/p/example-player-a1b2c', '/p/example-player-a1b2c/']) {
+    assert.equal(renderGate(path), 'APPROVED_PUBLIC_ROUTE');
+  }
+});
+
+test('public player routing does not open legacy, private or nested routes on unresolved hosts', () => {
+  for (const path of ['/p', '/p/', '/p/example/admin', '/players', '/admin', '/profile', '/app', '/']) {
+    assert.equal(renderGate(path), 'WORKSPACE_UNAVAILABLE', path);
+  }
+});
+
+test('actual tenant gate retains existing workspace, control plane and authentication entrypoints', () => {
+  for (const path of ['/workspace/djm-sports-management', '/platform', '/platform/sign-in', '/sign-in']) {
+    assert.equal(renderGate(path), 'APPROVED_PUBLIC_ROUTE', path);
+  }
 });

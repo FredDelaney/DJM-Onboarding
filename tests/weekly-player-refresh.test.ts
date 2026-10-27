@@ -67,10 +67,11 @@ test("scheduled evidence remains traceable through canonical writes", () => {
 
 const aiWorker = readFileSync("supabase/functions/refresh-player-stats-ai-worker/index.ts", "utf8");
 
-test("AI fallback advances cumulative current-season figures without reducing trusted values", () => {
+test("AI fallback proposes cumulative figures for review without reducing trusted values", () => {
   assert.match(aiWorker, /FRESHNESS_MS=20\*60\*60\*1000/);
   assert.match(aiWorker, /newV>oldV/);
-  assert.match(aiWorker, /source_synced_at:\s*now/);
+  assert.match(aiWorker, /platform_server_stage_player_stats_review/);
+  assert.doesNotMatch(aiWorker, /from\("career_entries"\)\.(?:update|insert)/);
   assert.match(aiWorker, /two independent supporting sources/);
   assert.match(aiWorker, /complete\(existing\)&&fresh\(existing\)&&!force/);
 });

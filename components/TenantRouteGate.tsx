@@ -34,6 +34,11 @@ export function TenantRouteGate({
     pathname === '/workspace' ||
     pathname.startsWith('/workspace/');
 
+  // This route resolves its approved public snapshot and agency by slug.
+  // A shared ReDream host does not need a private workspace domain mapping.
+  const isPublicPlayerProfileRoute =
+    /^\/p\/[^/]+\/?$/.test(pathname);
+
   const isReDreamPublicRoute =
     allowReDreamPublicRoot &&
     REDREAM_PUBLIC_ROUTES.has(pathname);
@@ -43,6 +48,7 @@ export function TenantRouteGate({
       {isPlatformControlPlane ||
       isAgencyActivationRoute ||
       isAgencyWorkspaceRoute ||
+      isPublicPlayerProfileRoute ||
       isReDreamPublicRoute ||
       pathname === '/tell' ||
       pathname === '/sign-in' ||

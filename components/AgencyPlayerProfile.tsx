@@ -1134,6 +1134,7 @@ export default function AgencyPlayerProfile({
     if (!current()) return false;
     setStatisticsStatusVersion(value => value + 1);
     if (['queued', 'running'].includes(String(job.status))) setNotice('Statistics are still updating. This draft uses the recorded evidence available now.');
+    else if (job.status === 'needs_review') setNotice('New statistics are ready for review below. This draft uses the recorded figures until you accept them.');
     else if (job.status === 'failed') setNotice('Statistics could not refresh. This draft uses the recorded evidence available now.');
     else if (await load(true, true) === false) throw new Error('Statistics were checked, but the player record could not reload. Try again.');
     return current();
@@ -3399,14 +3400,16 @@ export default function AgencyPlayerProfile({
                   rows={4}
                   aria-label="Custom key numbers"
                   value={form.key_stats_text}
-                  onChange={(event) =>
-                    setField('key_stats_text', event.target.value)
-                  }
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setForm(current => ({...current, key_stats_text: value, selected_stat_refs: []}));
+                  }}
                   placeholder={'Goals: 8\nAssists: 6'}
                 />
                 <small>
-                  Optional. Leave blank and reviewed current-season numbers are
-                  used automatically.
+                  {form.selected_stat_refs.length
+                    ? 'Selected source statistics are in use. Enter custom key numbers to replace them.'
+                    : 'Optional. Leave blank and reviewed current-season numbers are used automatically.'}
                 </small>
               </label>
 

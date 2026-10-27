@@ -7,6 +7,8 @@ const db=new PGlite();
 const migration=readFileSync('supabase/migrations/20261023075343_restore_profile_release_writers_v1.sql','utf8');
 const lockMigration=readFileSync('supabase/migrations/20261023092411_lock_profile_publication_player_v1.sql','utf8');
 const statMigration=readFileSync('supabase/migrations/20261023191512_preserve_approved_profile_stat_snapshots_v1.sql','utf8');
+const settingsStatMigration=readFileSync('supabase/migrations/20261023193512_preserve_profile_stat_editor_choices_v1.sql','utf8');
+const reviewedCareerSource=readFileSync('supabase/migrations/20260825155856_harden_reviewed_career_dossier_stats_v1.sql','utf8');
 const seasonSource=readFileSync('supabase/migrations/20260902113027_djm_dossier_season_totals_v1.sql','utf8');
 const timelineSource=readFileSync('supabase/migrations/20260825162448_sanitize_public_dossier_placeholder_content_v1.sql','utf8');
 const previousPublisher=readFileSync('supabase/migrations/20261002105500_player_profile_publish_snapshot_writer_v1.sql','utf8').match(/create or replace function public\.platform_server_publish_player_profile_snapshot[\s\S]*?\bas (\$\w*\$)[\s\S]*?\1;/i)![0];
@@ -284,4 +286,72 @@ test('stat repair preserves trigger ownership/grants and refuses unexpected defi
  }
  await db.exec(statMigration);
  assert.deepEqual(await value('jsonb_build_object(\'owner\',proowner,\'acl\',proacl,\'config\',proconfig) from pg_proc where oid=$1::regprocedure',[signature]),before);
+}));
+
+async function withSettingsStatTrigger(check:()=>Promise<void>){
+ await db.exec(`create table public.player_cv_settings(player_id uuid primary key references public.players(id),key_stats jsonb,
+  selected_stat_refs jsonb default '[]',intro_line text);
+  grant select,insert,update on public.player_cv_settings to service_role,authenticated;`);
+ await db.exec(sqlFunction(reviewedCareerSource,'private.normalize_cv_key_stats'));
+ await db.exec(`revoke all on function private.normalize_cv_key_stats() from public,anon,authenticated;
+  create trigger normalize_cv_key_stats before insert or update of key_stats on public.player_cv_settings
+  for each row execute function private.normalize_cv_key_stats();`);
+ try{await check();}finally{await db.exec('reset role;drop table public.player_cv_settings;');}
+}
+async function saveStatChoices(stats:unknown,refs:string[]=[]){
+ await db.exec('set role service_role');
+ try{return (await db.query<any>(`insert into public.player_cv_settings(player_id,key_stats,selected_stat_refs) values($1,$2,$3)
+  on conflict(player_id) do update set key_stats=excluded.key_stats,selected_stat_refs=excluded.selected_stat_refs returning *`,
+  [player,JSON.stringify(stats),JSON.stringify(refs)])).rows[0];}
+ finally{await db.exec('reset role');}
+}
+
+test('actual settings save reproduces automatic totals becoming custom then retains automatic, selected and custom choices through publication',async()=>withStatTrigger(()=>withSettingsStatTrigger(async()=>{
+ const broken=await saveStatChoices([]);
+ assert.equal(broken.key_stats.find((s:any)=>s.label==='Apps').value,'55','Reproduce the separate settings-trigger failure on the real upsert');
+ const before=await value('to_jsonb(s) from public.player_cv_settings s where player_id=$1',[player]);
+ await db.exec(settingsStatMigration);await db.exec(statMigration);
+ assert.deepEqual(await value('to_jsonb(s) from public.player_cv_settings s where player_id=$1',[player]),before,'Migration installation never reinterprets existing choices');
+ const historical=[{label:'Goals',value:'0',season_label:'2025',source_name:'Historical report',source_reviewed_at:'2026-01-20T12:00:00Z'}];
+ for(const {stats,refs,expected} of [
+  {stats:[],refs:[],expected:approvedStats},
+  {stats:[],refs:['40000000-0000-4000-8000-000000000001:goals'],expected:historical},
+  {stats:[{label:'Apps',value:'7'}],refs:[],expected:[{label:'Apps',value:'7'}]},
+ ]){
+  const saved=await saveStatChoices(stats,refs);
+  assert.deepEqual(saved.key_stats,stats);assert.deepEqual(saved.selected_stat_refs,refs);
+  assert.deepEqual((await publish({key_stats:expected})).profile.key_stats,expected);
+ }
+ assert.deepEqual((await saveStatChoices([])).key_stats,[],'Returning to automatic mode stays automatic after reload');
+})));
+
+test('settings preserve only bounded editorial pairs and deny a browser-spoofed service claim',async()=>withStatTrigger(()=>withSettingsStatTrigger(async()=>{
+ await db.exec(settingsStatMigration);
+ assert.deepEqual((await saveStatChoices([{label:' Goals ',value:' 0 ',source_name:'Invented evidence',notes:'PRIVATE'}])).key_stats,[{label:'Goals',value:'0'}]);
+ for(const invalid of [null,{},[null],[{label:'Apps',value:7}],[{label:' ',value:'1'}],[{label:'Apps',value:'x'.repeat(51)}],Array.from({length:7},()=>({label:'Apps',value:'7'}))])
+  await assert.rejects(()=>saveStatChoices(invalid),/array|six named/);
+ await db.exec('begin');
+ try{
+  await value("set_config('request.jwt.claim.role','service_role',true)");
+  await db.exec('set local role authenticated');
+  await db.query(`update public.player_cv_settings set key_stats='[{"label":"Apps","value":"99999"}]' where player_id=$1`,[player]);
+  assert.equal((await value('key_stats from public.player_cv_settings where player_id=$1',[player])).find((s:any)=>s.label==='Apps').value,'55','The actual database role, not a spoofed claim, controls the server-only path');
+ }finally{await db.exec('rollback');}
+})));
+
+test('settings repair retains ownership and grants and refuses unknown body, configuration and access drift',async()=>withSettingsStatTrigger(async()=>{
+ const signature='private.normalize_cv_key_stats()';
+ const before=await value("jsonb_build_object('owner',proowner,'acl',proacl,'config',proconfig) from pg_proc where oid=$1::regprocedure",[signature]);
+ for(const change of [
+  sqlFunction(reviewedCareerSource,'private.normalize_cv_key_stats').replace('begin','begin\n -- unknown change'),
+  "alter function "+signature+" set search_path='public'",
+  'grant execute on function '+signature+' to authenticated',
+  'grant execute on function '+signature+' to public',
+ ]){
+  await db.exec('begin');
+  try{await db.exec(change);await assert.rejects(db.exec(settingsStatMigration),/profile_stat_settings_trigger_drift/);}
+  finally{await db.exec('rollback');}
+ }
+ await db.exec(settingsStatMigration);
+ assert.deepEqual(await value("jsonb_build_object('owner',proowner,'acl',proacl,'config',proconfig) from pg_proc where oid=$1::regprocedure",[signature]),before);
 }));
