@@ -70,7 +70,7 @@
 
 .copy small {
   color: #7f8994;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 650;
 }
 
@@ -111,8 +111,8 @@
 /* Premium mobile workspace identity v2 */
 @media (max-width: 680px) {
   .compact {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     display: grid;
     place-items: center;
     border: 1px solid #e6ebef;

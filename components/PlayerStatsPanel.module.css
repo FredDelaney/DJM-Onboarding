@@ -78,15 +78,15 @@
 }
 
 .error {
-  border: 1px solid rgba(180, 45, 55, 0.18);
-  background: rgba(180, 45, 55, 0.06);
-  color: #8f2630;
+  border: 1px solid var(--interface-danger-line);
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .success {
-  border: 1px solid rgba(35, 130, 95, 0.18);
-  background: rgba(35, 130, 95, 0.06);
-  color: #17684e;
+  border: 1px solid var(--interface-success-line);
+  background: var(--interface-success-bg);
+  color: var(--interface-success);
 }
 
 .context {
@@ -310,3 +310,7 @@
     animation: none;
   }
 }
+
+/* Quiet typography and surfaces for this work view. */
+.kicker { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.card { box-shadow: none; border-color: #e5e5e7; }

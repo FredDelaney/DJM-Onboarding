@@ -1,18 +1,9 @@
 'use client';
+import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import {ArrowLeft,ArrowRight,CalendarClock,CheckCircle2,CircleAlert,History,LoaderCircle,Target,X} from 'lucide-react';
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  CalendarClock,
-  CheckCircle2,
-  CircleAlert,
-  History,
-  LoaderCircle,
-  ShieldCheck,
-  Target,
-  X,
-} from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
@@ -44,7 +35,7 @@ const num = (value: unknown) => {
 };
 
 const prettyDate = (value: unknown) => {
-  if (!value) return 'Not recorded';
+  if (!value) return 'Not set';
 
   const parsed = new Date(String(value));
   if (Number.isNaN(parsed.getTime())) return String(value);
@@ -105,6 +96,8 @@ export default function AgencyPlayerServiceReviewDrawer({
   const [busy, setBusy] = useState(true);
   const [captureBusy, setCaptureBusy] = useState(false);
   const [error, setError] = useState('');
+  const [readError, setReadError] = useState('');
+  const readSequence = useRef(0);
   const [message, setMessage] = useState('');
 
   const [reviewPack, setReviewPack] = useState<any>(null);
@@ -114,7 +107,10 @@ export default function AgencyPlayerServiceReviewDrawer({
   const pageMode = presentation === 'page';
 
   const load = useCallback(async () => {
+    const requestId = ++readSequence.current;
+    const current = () => readSequence.current === requestId;
     setBusy(true);
+    setReadError('');
     setError('');
 
     try {
@@ -123,7 +119,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         statementResult,
         historyResult,
         deltaResult,
-      ] = await Promise.all([
+      ] = await readWithDeadline(Promise.all([
         invoke('player_review_pack', {
           player_id: request.playerId,
           proof_window_days: 30,
@@ -139,28 +135,29 @@ export default function AgencyPlayerServiceReviewDrawer({
         invoke('player_value_proof_delta', {
           player_id: request.playerId,
         }),
-      ]);
+      ]));
+      if (!current()) return;
 
       setReviewPack(packResult?.review_pack || null);
       setStatement(statementResult?.statement || null);
       setHistory(historyResult?.history || null);
       setDelta(deltaResult?.delta || null);
     } catch (loadError) {
-      setError(friendlyError(loadError));
+      if (current()) setReadError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }, [invoke, request.playerId]);
 
   useEffect(() => {
     void load();
+    return () => { readSequence.current++; };
   }, [load]);
 
   useEffect(() => {
     if (pageMode) return;
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
 
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !captureBusy) onClose();
@@ -169,7 +166,7 @@ export default function AgencyPlayerServiceReviewDrawer({
     window.addEventListener('keydown', keydown);
 
     return () => {
-      document.body.style.overflow = previous;
+      releaseScroll();
       window.removeEventListener('keydown', keydown);
     };
   }, [captureBusy, onClose, pageMode]);
@@ -218,7 +215,7 @@ export default function AgencyPlayerServiceReviewDrawer({
       });
 
       setMessage(
-        'The current 30-day player-safe proof was captured as a point-in-time snapshot.',
+        '30-day snapshot saved.',
       );
 
       await onApplied();
@@ -241,7 +238,7 @@ export default function AgencyPlayerServiceReviewDrawer({
       instruction:
         firstBreach?.required_action ||
         meeting?.nearest_deadline?.next_action?.instruction ||
-        'Review the player service position and record the next accountable action.',
+        'Review player service and set the next action.',
       label: 'Prepare service move',
       action: 'player_service_move_prepare',
       payload: {
@@ -272,12 +269,12 @@ export default function AgencyPlayerServiceReviewDrawer({
         },
         {
           label: 'Recorded proof',
-          value: human(proof?.proof_state || 'not recorded'),
-          detail: 'Evidence of recorded work, not player satisfaction',
+          value: human(proof?.proof_state || 'not set'),
+          detail: 'Evidence of agency work, not player satisfaction',
         },
       ],
       successCondition:
-        'The player service gap is resolved or the next accountable action is explicitly reset.',
+        'The service gap is resolved.',
       confirmationLabel: 'Prepare service action',
     });
   };
@@ -290,7 +287,7 @@ export default function AgencyPlayerServiceReviewDrawer({
       instruction:
         alignment?.next_strategy_action?.instruction ||
         alignment?.strategy?.next_checkpoint ||
-        'Review the player-owned career plan with current recorded evidence.',
+        'Review the career plan.',
       label: 'Review career plan',
       action: 'career_strategy_action_prepare',
       payload: {
@@ -315,7 +312,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           value: human(
             alignment?.confirmation_state ||
               statement?.career_plan?.player_confirmation ||
-              'not recorded',
+              'not set',
           ),
         },
         {
@@ -324,7 +321,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         },
       ],
       successCondition:
-        'The player-owned career plan is current, explicitly confirmed where required and usable for market decisions.',
+        'The career plan is current and confirmed.',
       confirmationLabel: 'Prepare career review',
     });
   };
@@ -348,7 +345,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Recorded player-service evidence
+              Player-service evidence
             </span>
 
             <button
@@ -367,24 +364,35 @@ export default function AgencyPlayerServiceReviewDrawer({
           <h2>{request.title}</h2>
           <p className={styles.subhead}>
             {request.context ||
-              'Prepare a factual player review from service delivery, career control, market work and recorded deadlines.'}
+              'Work, plans and deadlines.'}
           </p>
         </header>
 
         {busy ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LoaderCircle size={18} className={styles.spin} />
             <div>
               <strong>Preparing the player review</strong>
               <span>
-                Loading the service statement, review pack and persisted proof history.
+                Loading recorded activity and previous reviews.
               </span>
             </div>
           </div>
         ) : null}
 
+        {readError ? (
+          <div className={styles.notice + ' ' + styles.error} role="alert">
+            <CircleAlert size={18} />
+            <div>
+              <strong>Could not load the player review</strong>
+              <span>{readError}</span>
+              <button type="button" data-ui-button="secondary" className="btn" disabled={busy} onClick={() => void load()}>Try again</button>
+            </div>
+          </div>
+        ) : null}
+
         {error ? (
-          <div className={`${styles.notice} ${styles.error}`}>
+          <div className={`${styles.notice} ${styles.error}`} role="alert">
             <CircleAlert size={18} />
             <div>
               <strong>Player review needs attention</strong>
@@ -394,7 +402,7 @@ export default function AgencyPlayerServiceReviewDrawer({
         ) : null}
 
         {message ? (
-          <div className={`${styles.notice} ${styles.success}`}>
+          <div className={`${styles.notice} ${styles.success}`} role="status">
             <CheckCircle2 size={18} />
             <div>
               <strong>Recorded</strong>
@@ -403,7 +411,7 @@ export default function AgencyPlayerServiceReviewDrawer({
           </div>
         ) : null}
 
-        {!busy && !error ? (
+        {!busy && !readError ? (
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
@@ -413,13 +421,13 @@ export default function AgencyPlayerServiceReviewDrawer({
                     meeting?.relationship_control_state ||
                       meeting?.service_control_state ||
                       proof?.proof_state ||
-                      'recorded',
+                      'not set',
                   )}
                 </h3>
                 <span>
                   {meeting?.nearest_deadline?.title ||
                     statement?.service_plan?.next_action ||
-                    'Review the recorded service position with the player.'}
+                    'Discuss the next step.'}
                 </span>
               </div>
 
@@ -430,7 +438,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                     ? prettyDate(meeting.nearest_deadline.deadline_at)
                     : 'No date'}
                 </strong>
-                <span>nearest recorded deadline</span>
+                <span>nearest deadline</span>
               </div>
             </section>
 
@@ -440,7 +448,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 value={human(
                   meeting?.service_control_state ||
                     serviceRelationship?.service_control?.state ||
-                    'not recorded',
+                    'not set',
                 )}
                 detail={`${num(
                   serviceRelationship?.service_control?.high_breach_count,
@@ -451,7 +459,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 value={human(
                   meeting?.career_alignment_state ||
                     alignment?.alignment_state ||
-                    'not recorded',
+                    'not set',
                 )}
                 detail={
                   alignment?.review_due_at
@@ -464,29 +472,23 @@ export default function AgencyPlayerServiceReviewDrawer({
                 value={human(
                   meeting?.value_proof_state ||
                     proof?.proof_state ||
-                    'not recorded',
+                    'not set',
                 )}
-                detail="Recorded activity, not service quality or satisfaction"
+                detail="Activity only, not a judgement of service quality or satisfaction"
               />
               <Fact
-                label="Proof history"
-                value={`${snapshots.length} snapshot(s)`}
+                label="Saved reviews"
+                value={`${snapshots.length} saved`}
                 detail={
                   latestSnapshot?.snapshot_date
                     ? `Latest ${prettyDate(latestSnapshot.snapshot_date)}`
-                    : 'No persisted baseline yet'
+                    : 'No saved baseline yet'
                 }
               />
             </div>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <CheckCircle2 size={17} />
-                <div>
-                  <p>WHAT THE AGENCY ACTUALLY DID</p>
-                  <h3>Recorded service and market work in the last 30 days</h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Last 30 days</summary>
 
               <div className={styles.grid}>
                 <Fact
@@ -535,9 +537,9 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <History size={17} />
                     <div>
-                      <strong>No material recorded movement in this window.</strong>
+                      <strong>No recorded activity in this period.</strong>
                       <span>
-                        Offline work that has not been captured cannot appear as proof.
+                        Add any work completed outside ReDream.
                       </span>
                     </div>
                   </div>
@@ -545,18 +547,12 @@ export default function AgencyPlayerServiceReviewDrawer({
               </div>
 
               <p className={styles.truth}>
-                Activity volume is evidence that work was recorded. It is not proof of service quality, player satisfaction or transfer success.
+                Recorded activity does not measure service quality, player satisfaction or transfer success.
               </p>
-            </section>
+            </details>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <History size={17} />
-                <div>
-                  <p>WHAT CHANGED SINCE THE LAST REVIEW</p>
-                  <h3>Compare persisted snapshots instead of reconstructing history</h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Changes since the last review</summary>
 
               {comparable ? (
                 <>
@@ -589,9 +585,9 @@ export default function AgencyPlayerServiceReviewDrawer({
                     <div className={styles.empty}>
                       <CheckCircle2 size={17} />
                       <div>
-                        <strong>No count changes between the two snapshots.</strong>
+                        <strong>No count change between snapshots.</strong>
                         <span>
-                          The evidence state can still be reviewed without inventing movement.
+                          Review the underlying records for context.
                         </span>
                       </div>
                     </div>
@@ -603,23 +599,23 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div>
                     <strong>No comparison yet.</strong>
                     <span>
-                      At least two persisted snapshots are required. The platform does not fabricate a historical baseline.
+                      Save two reviews to compare changes over time.
                     </span>
                   </div>
                 </div>
               )}
 
               <p className={styles.truth}>
-                Snapshot deltas compare recorded evidence. Overlapping rolling windows can move counts in either direction, so a negative delta is not automatically deterioration.
+                Overlapping review periods can change counts. A fall does not necessarily mean deterioration.
               </p>
-            </section>
+            </details>
 
             <section className={styles.panel}>
               <div className={styles.panelHead}>
                 <Target size={17} />
                 <div>
                   <p>PLAYER MEETING AGENDA</p>
-                  <h3>What deserves an explicit human conversation next</h3>
+                  <h3>Next conversation</h3>
                 </div>
               </div>
 
@@ -637,7 +633,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                       </span>
                       <small>
                         {item.next_action?.instruction ||
-                          'Review the recorded deadline with the player.'}
+                          'Review the deadline.'}
                       </small>
                     </div>
                   </article>
@@ -647,7 +643,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <CheckCircle2 size={17} />
                     <div>
-                      <strong>No upcoming recorded deadline in this review horizon.</strong>
+                      <strong>No upcoming deadline in this period.</strong>
                       <span>
                         The review stays factual rather than manufacturing urgency.
                       </span>
@@ -679,21 +675,15 @@ export default function AgencyPlayerServiceReviewDrawer({
               </div>
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <ShieldCheck size={17} />
-                <div>
-                  <p>PLAYER-SAFE PREVIEW</p>
-                  <h3>What can be used for service transparency without exposing internal deal intelligence</h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Player preview</summary>
 
               <div className={styles.grid}>
                 <Fact
                   label="Next service action"
                   value={
                     statement?.service_plan?.next_action ||
-                    'Not recorded'
+                    'Not set'
                   }
                   detail={
                     statement?.service_plan?.next_action_due
@@ -703,7 +693,7 @@ export default function AgencyPlayerServiceReviewDrawer({
                 />
                 <Fact
                   label="Career plan"
-                  value={human(statement?.career_plan?.state || 'not recorded')}
+                  value={human(statement?.career_plan?.state || 'not set')}
                   detail={
                     statement?.career_plan?.objective ||
                     'No player-safe objective recorded'
@@ -733,18 +723,12 @@ export default function AgencyPlayerServiceReviewDrawer({
               ) : null}
 
               <p className={styles.truth}>
-                This is a preview only. Nothing is sent to the player automatically, and internal negotiation, relationship and commercial intelligence remains separate.
+                Preview only. Nothing is sent automatically; internal deal and relationship intelligence stays private.
               </p>
-            </section>
+            </details>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <History size={17} />
-                <div>
-                  <p>PROOF HISTORY</p>
-                  <h3>Persist a factual baseline for future player reviews</h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Save this review</summary>
 
               <div className={styles.snapshotRows}>
                 {snapshots.slice(0, 8).map((item: any) => (
@@ -761,9 +745,9 @@ export default function AgencyPlayerServiceReviewDrawer({
                   <div className={styles.empty}>
                     <History size={17} />
                     <div>
-                      <strong>No persisted proof snapshot yet.</strong>
+                      <strong>No saved review yet.</strong>
                       <span>
-                        Capture one when the agency wants a point-in-time baseline for a future review.
+                        Save the current review to compare it with a future review.
                       </span>
                     </div>
                   </div>
@@ -782,17 +766,14 @@ export default function AgencyPlayerServiceReviewDrawer({
                 ) : (
                   <History size={15} />
                 )}
-                Capture current proof snapshot
+                Save review
               </button>
 
               <p className={styles.truth}>
-                A same-day 30-day capture refreshes that day’s snapshot rather than creating a duplicate baseline.
+                Saving again today updates the same 30-day review.
               </p>
-            </section>
+            </details>
 
-            <p className={styles.truth}>
-              Player Service Review organises recorded operating evidence for a human conversation. It does not infer player satisfaction, loyalty, agency quality or career outcome.
-            </p>
           </div>
         ) : null}
       </aside>

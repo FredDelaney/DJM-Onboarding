@@ -59,8 +59,8 @@ test('staff navigation uses the shared V2 operating views', () => {
 });
 
 test('mobile staff navigation and full-bleed heroes stay inside the viewport', () => {
-  const responsive = read('app/responsive-polish.css');
-  const overhaul = read('app/djm-os-ux-overhaul.css');
+  const responsive = read('app/product.css');
+  const overhaul = read('app/product.css');
   assert.match(responsive, /@media \(max-width: 960px\)[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto;/);
   assert.match(responsive, /@media \(max-width: 960px\)[\s\S]*grid-column: 1 \/ -1;[\s\S]*overflow-x: auto;/);
   assert.match(responsive, /\.djm-os-product-nav,[\s\S]*min-width: 0;[\s\S]*max-width: 100%;/);
@@ -73,7 +73,7 @@ test('player navigation is Home, agency and Me while legacy destinations stay co
   assert.match(source, /label: 'Home'/);
   assert.match(source, /label: 'Your agency'/);
   assert.match(source, /label: 'Me'/);
-  assert.match(source, /activePrefixes: \['\/profile', '\/career', '\/check-in', '\/cv', '\/documents'\]/);
+  assert.match(source, /activePrefixes: \['\/profile', '\/career', '\/check-in', '\/cv', '\/documents', '\/connections'\]/);
   assert.doesNotMatch(source, /label: 'Career'/);
   assert.doesNotMatch(source, /label: 'Documents'/);
 });
@@ -206,7 +206,7 @@ test('legacy top-level products redirect into the shared ReDream information arc
 test('global intelligence protects the V9 evidence and audit contract', () => {
   const source = read('components/PlayerIntelligencePanel.tsx');
   assert.match(source, /Missing evidence is treated as uncertainty, never as zero performance/);
-  assert.match(source, /Analyst diagnostics/);
+  assert.match(source, /Score details/);
   assert.match(source, /Legacy V5/);
   assert.match(source, /Audit-only preview · never canonical/);
   assert.match(source, /djm_player_global_intelligence/);

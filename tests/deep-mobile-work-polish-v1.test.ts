@@ -68,10 +68,10 @@ test('compact Capture sheet keeps its mobile controls readable', () => {
   assert.match(capture, /Premium compact Capture readability v1/);
   assert.match(
     capture,
-    /\.compact \.prompt span[\s\S]*font-size: 11px/,
+    /\.compact \.prompt span[\s\S]*font-size: 12px/,
   );
   assert.match(
     capture,
-    /\.compact \.secondary[\s\S]*min-height: 44px[\s\S]*font-size: 10\.5px/,
+    /\.compact \.secondary[\s\S]*min-height: 44px[\s\S]*font-size: 12px/,
   );
 });

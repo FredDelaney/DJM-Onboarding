@@ -31,8 +31,8 @@ test('Tell ReDream voice text and share capture stage resolved work and wait for
   assert.match(migration, /pending_approval_actions/);
   assert.match(migration, /approval_required/);
   assert.match(capture, /redream_ai_approve_capture/);
-  assert.match(capture, /Approve updates/);
-  assert.match(capture, /Nothing has changed yet/);
+  assert.match(capture, /Approve & save/);
+  assert.match(capture, /Review before saving/);
 });
 
 test('Tell ReDream preview exposes the agency consequences before commit', () => {
@@ -58,7 +58,7 @@ test('Edit returns the original note without committing staged changes', () => {
   assert.match(capture, /const editCapture = async/);
   assert.match(capture, /redream_ai_delete_capture/);
   assert.match(capture, /setMode\('text'\)/);
-  assert.match(capture, /setText\(transcript\)/);
+  assert.match(capture, /changeTypedText\(transcript\)/);
   assert.match(capture, /editingCapture \? 'Opening\.\.\.' : 'Edit'/);
 });
 
@@ -105,7 +105,7 @@ test('player self-statements prefer the signed player identity over a duplicate 
   assert.match(worker, /claimType === "player_transfer_preference"/);
   assert.match(worker, /next\.player_name = next\.contact_name/);
   assert.match(worker, /if \(playerName && contactName && playerName === contactName\)/);
-  assert.match(worker, /Kota told me he wants Denmark means player_name Kota, not contact_name Kota/);
+  assert.match(worker, /Dylan told me he wants Denmark means player_name Dylan, not contact_name Dylan/);
   assert.match(worker, /preferSignedPlayerReference\([\s\S]*enrichNeedDependentAction/);
 });
 

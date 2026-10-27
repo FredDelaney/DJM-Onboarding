@@ -1,21 +1,8 @@
 'use client';
+import JourneyStatus from '@/components/JourneyStatus';
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import {
-  Bell,
-  CalendarDays,
-  Check,
-  Clipboard,
-  ExternalLink,
-  Fingerprint,
-  KeyRound,
-  Mail,
-  RefreshCw,
-  RotateCcw,
-  ShieldCheck,
-  Smartphone,
-  SunMedium,
-} from 'lucide-react';
+import {Bell,CalendarDays,Clipboard,ExternalLink,Fingerprint,KeyRound,Mail,RefreshCw,RotateCcw,ShieldCheck,Smartphone,SunMedium} from 'lucide-react';
 
 import { getAuthCapabilities } from '@/lib/auth-capabilities';
 import { disableWebPush, enableWebPush, getPushReadiness, type PushReadiness } from '@/lib/push';
@@ -255,7 +242,7 @@ export default function ConnectionsPanel({
       return;
     }
     if (!passkeysSupported) {
-      setError('This browser or device cannot create a passkey here. Your password will keep working.');
+      setError('This device cannot create a passkey. Your password still works.');
       return;
     }
 
@@ -274,13 +261,13 @@ export default function ConnectionsPanel({
       const text = String(passkeyError?.message || '').toLowerCase();
 
       if (name.includes('notallowed') || text.includes('cancel')) {
-        setError('Passkey setup was cancelled. Nothing changed and your password still works.');
+        setError('Passkey setup cancelled. Your password still works.');
       } else if (code.includes('credential_exists') || text.includes('already')) {
         setError('This passkey is already linked to your ReDream account.');
       } else if (code.includes('passkey_disabled')) {
         setError('Face ID or passkey sign-in is not enabled for this workspace.');
       } else {
-        setError('Passkey setup did not complete. Your password still works, so you can try again safely.');
+        setError('Passkey setup failed. Your password still works.');
       }
     } finally {
       setBusy('');
@@ -305,7 +292,7 @@ export default function ConnectionsPanel({
 
   if (loading) {
     return (
-      <div className={styles.loading}>
+      <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
         <RefreshCw size={18} className={styles.spin} /> Connecting your ReDream account...
       </div>
     );
@@ -313,8 +300,8 @@ export default function ConnectionsPanel({
 
   return (
     <div className={styles.wrap}>
-      {error ? <div className={styles.error} role="alert">{error}</div> : null}
-      {message ? <div className={styles.success} role="status"><Check size={16} />{message}</div> : null}
+      {error ? <JourneyStatus compact kind="error" description={error}/> : null}
+      {message ? <JourneyStatus compact kind="success" description={message}/> : null}
 
       {showSecurity ? (
       <section className={`${styles.card} ${styles.securityCard}`}>
@@ -380,7 +367,7 @@ export default function ConnectionsPanel({
           <div>
             <span>CALENDAR</span>
             <h2>Your ReDream dates, where you already look.</h2>
-            <p>Subscribe once. Dated ReDream actions then stay current from the private ReDream feed.</p>
+            <p>Subscribe once to keep dated ReDream actions current.</p>
           </div>
         </div>
 
@@ -398,7 +385,7 @@ export default function ConnectionsPanel({
 
         <div className={styles.privateNote}>
           <ShieldCheck size={16} />
-          <span>The feed contains only dated ReDream action titles, times and deep links. Treat the subscription URL like a password.</span>
+          <span>Private feed of dated ReDream actions and links. Keep the subscription URL private.</span>
           <button type="button" onClick={() => void rotateCalendar()} disabled={busy === 'calendar'}>
             <RotateCcw size={14} /> {busy === 'calendar' ? 'Resetting...' : 'Reset link'}
           </button>

@@ -25,12 +25,12 @@ test('exact opportunity entry retains real candidate gates and denies other tena
   await db.query("insert into platform.tenants values($1,'active'),($2,'active')",[uuid(1),uuid(2)]);
   await db.query("insert into platform.tenant_memberships values($1,$2,'owner','active'),($1,$3,'scout','active'),($4,$2,'owner','active')",[uuid(1),uuid(10),uuid(11),uuid(2)]);
   await db.query("insert into djm_os.organisations(id,tenant_id,name) values($1,$2,'Exact Club')",[uuid(30),uuid(1)]);
-  await db.query("insert into djm_os.club_needs(id,tenant_id,organisation_id,title,status,need_type,priority) select ('00000000-0000-0000-0000-'||lpad((100+g)::text,12,'0'))::uuid,$1,$2,'Recorded need '||g,'active','confirmed',g from generate_series(0,300)g",[uuid(1),uuid(30)]);
+  await db.query("insert into djm_os.club_needs(id,tenant_id,organisation_id,title,status,need_type,priority) select ('00000000-0000-0000-0000-'||lpad((100+g)::text,12,'0'))::uuid,$1,$2,'Club need '||g,'active','confirmed',g from generate_series(0,300)g",[uuid(1),uuid(30)]);
   await db.query("insert into public.players values($1,$2,'Assigned Candidate',null,null,null,'active'),($3,$2,'Archived Candidate',null,null,now(),'active')",[uuid(40),uuid(1),uuid(41)]);
   await db.query("insert into djm_os.player_matches values($1,$2,$3,$4,'reviewing'),($5,$2,$3,$6,'reviewing')",[uuid(50),uuid(1),uuid(100),uuid(40),uuid(51),uuid(41)]);
   const migration=readFileSync('supabase/migrations/20261006053128_exact_workspace_record_entry.sql','utf8');await db.exec(migration);await db.exec(migration);
   const get=async(tenant=uuid(1),user=uuid(10),id=uuid(100))=>(await db.query<{value:any}>('select public.platform_server_workspace_need_record($1,$2,$3) value',[tenant,user,id])).rows[0].value;
-  const exact=await get();assert.equal(exact.item.club_need_id,uuid(100));assert.equal(exact.item.need.title,'Recorded need 0');
+  const exact=await get();assert.equal(exact.item.club_need_id,uuid(100));assert.equal(exact.item.need.title,'Club need 0');
   assert.equal(exact.item.candidate_coverage.recorded_candidates,1);assert.equal(exact.item.candidate_coverage.human_review,1);
   assert.equal(exact.item.candidate_coverage.candidates[0].career_gate_reason,'Recorded evidence needs review');
   assert.equal(exact.item.coverage_state,'career_or_human_review_required');

@@ -72,7 +72,7 @@ test('Player Profile reuses a short-lived prefetched cache', () => {
   assert.match(cache, /const TTL_MS = 60_000/);
   assert.match(cache, /profileRequests/);
   assert.match(profile, /getCachedPlayerProfile\(playerId, cacheScope\)/);
-  assert.match(profile, /setCachedPlayerProfile\(playerId, profile, cacheScope\)/);
+  assert.match(profile, /setCachedPlayerProfile\(playerId, bundle, cacheScope\)/);
 });
 
 test('duplicate AI and account identity reads are deduplicated', () => {
@@ -109,7 +109,7 @@ test('main workspaces keep recent screens visible while refreshing in the backgr
   assert.match(shell, /writeViewCache\(cacheKey, nextData\)/);
   assert.match(shell, /loadSequenceRef/);
   assert.match(shell, /const warmView = useCallback/);
-  assert.match(shell, /await warmView\(targetView\)/);
+  assert.match(shell, /await warmView\(targetView, false\)/);
 });
 
 test('Home paints from a small focus read before secondary context', () => {
@@ -129,11 +129,11 @@ test('Opportunities loads the visible tab before hidden opportunity data', () =>
   assert.match(shell, /const opportunitiesSection =/);
   assert.match(
     shell,
-    /opportunitiesSection === 'deals'[\s\S]*await rpc<any>\('redream_autopilot_deals'/,
+    /opportunitiesSection === 'deals'[\s\S]*await readWithDeadline\(rpc<any>\('redream_autopilot_deals'/,
   );
   assert.match(
     shell,
-    /else \{[\s\S]*await rpc<any>\('redream_autopilot_market'/,
+    /else \{[\s\S]*await readWithDeadline\(rpc<any>\('redream_autopilot_market'/,
   );
   assert.match(
     shell,

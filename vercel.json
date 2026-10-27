@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "fix/public-profile-visibility-boundary": false,
+      "ux/copy-polish-oct12": false,
+      "ux/visual-responsibility-oct12": false
+    }
+  }
+}

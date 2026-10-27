@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
         <div>
           <div className="yellow-line" />
           <h1>Choose a new password for your workspace.</h1>
-          <p>Use a strong password you do not reuse elsewhere. You can return to the same agency journey when recovery is complete.</p>
+          <p>Use a strong password you do not reuse elsewhere.</p>
         </div>
         <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>Secure account recovery</span>
       </section>
@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
 
           {complete ? (
             <div className="stack" style={{ marginTop: 28 }}>
-              <div className="card pad" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}><ShieldCheck size={20} /><div><strong>Your new password is active.</strong><p className="small muted" style={{ marginTop: 4 }}>You have been signed out of the recovery session. Sign in again with your new password.</p></div></div>
+              <div className="card pad" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}><ShieldCheck size={20} /><div><strong>Your new password is active.</strong><p className="small muted" style={{ marginTop: 4 }}>Recovery complete. Sign in with your new password.</p></div></div>
               <Link href={backHref} className="btn btn-navy btn-block">{returnPath ? 'Back to owner workspace' : 'Sign in'} <ArrowRight size={17} /></Link>
             </div>
           ) : ready ? (

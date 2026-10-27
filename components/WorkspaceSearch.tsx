@@ -1,4 +1,5 @@
 'use client';
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import {useCallback,useEffect,useId,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import Link from 'next/link';
@@ -13,7 +14,7 @@ import styles from './WorkspaceSearch.module.css';
 
 type Invoke=<T=any>(action:string,body?:Record<string,unknown>)=>Promise<T>;
 type Rpc=<T=any>(name:string,args?:Record<string,unknown>)=>Promise<T>;
-type Props={cacheScope?:string;basePath?:string;tenantId?:string;userId?:string;invoke?:Invoke;rpc?:Rpc;onCreate?:(kind:AgencyCreateKind)=>void;compact?:boolean;className?:string;seed?:{view:string;data:any}};
+type Props={cacheScope?:string;basePath?:string;tenantId?:string;userId?:string;invoke?:Invoke;rpc?:Rpc;onCreate?:(kind:AgencyCreateKind)=>void;compact?:boolean;className?:string;triggerLabel?:string;seed?:{view:string;data:any}};
 type SearchState={query:string;items:SearchItem[];total:number;hasMore:boolean;pending:boolean;error:string};
 const emptySearch=():SearchState=>({query:'',items:[],total:0,hasMore:false,pending:false,error:''});
 type Suggestion={key:string;title:string;subtitle:string;kind:string;href?:string;create?:AgencyCreateKind};
@@ -40,21 +41,21 @@ export default function WorkspaceSearch(props:Props={}){
   enabled={Boolean(tenantId&&(props.userId??sessionId))} invoke={props.invoke||invoke}/>;
 }
 
-function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate,compact,className}:Props&{enabled:boolean;invoke:Invoke}){
+function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate,compact,className,triggerLabel}:Props&{enabled:boolean;invoke:Invoke}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),[active,setActive]=useState(0);
  const [search,setSearch]=useState(emptySearch),[attempt,setAttempt]=useState(0);
  const alive=useRef(true),generation=useRef(0);
  const adapters=useRef({invoke});adapters.current={invoke};
  const overlay=useRef<HTMLDivElement>(null),dialog=useRef<HTMLElement>(null),input=useRef<HTMLInputElement>(null);
- const opener=useRef<HTMLElement|null>(null);
+ const opener=useRef<HTMLElement|null>(null),trigger=useRef<HTMLButtonElement>(null);
  const id=useId();
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;generation.current++;};},[]);
  const close=useCallback(()=>{setOpen(false);setQuery('');},[]);
  const show=()=>{opener.current=document.activeElement as HTMLElement;setOpen(true);};
  useEffect(()=>{
   const key=(event:KeyboardEvent)=>{
-   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'&&enabled){
-    if(document.querySelector('[aria-modal="true"]')&&!open)return;
+   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'&&enabled&&trigger.current?.getClientRects().length){
+    if(Array.from(document.querySelectorAll<HTMLElement>('[aria-modal="true"]')).some(node=>node.getClientRects().length&&getComputedStyle(node).visibility!=='hidden')&&!open)return;
     event.preventDefault();if(open)close();else{opener.current=document.activeElement as HTMLElement;setOpen(true);}
    }
   };
@@ -62,11 +63,11 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
  },[close,enabled,open]);
  useEffect(()=>{
   if(!open)return;
-  const previous=opener.current,overflow=document.body.style.overflow;
+  const previous=opener.current,releaseScroll = lockPageScroll();
   const siblings=[...document.body.children].filter((node):node is HTMLElement=>node instanceof HTMLElement&&node!==overlay.current);
-  const inert=siblings.map(node=>node.inert);
-  siblings.forEach(node=>{node.inert=true;});document.body.style.overflow='hidden';input.current?.focus();
-  return()=>{siblings.forEach((node,index)=>{node.inert=inert[index];});document.body.style.overflow=overflow;if(previous?.isConnected)previous.focus();};
+  const releaseBackground = isolateElements(siblings);
+  input.current?.focus();
+  return()=>{releaseBackground();releaseScroll();if(previous?.isConnected)previous.focus();};
  },[open]);
  useEffect(()=>{
   const version=++generation.current;
@@ -110,8 +111,8 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
   close();
  };
  return <>
-  <button type="button" className={[styles.trigger,compact?styles.compact:'',className||''].join(' ')} onClick={show} disabled={!enabled} aria-label="Find in this agency" aria-haspopup="dialog" aria-expanded={open}>
-   <Search size={17}/><span>{compact?'Find':'Search this agency'}</span>{!compact?<kbd>⌘K</kbd>:null}
+  <button ref={trigger} type="button" className={[styles.trigger,compact?styles.compact:'',className||''].join(' ')} onClick={show} disabled={!enabled} aria-label="Find in this agency" aria-haspopup="dialog" aria-expanded={open}>
+   <Search size={17}/><span>{triggerLabel||(compact?'Find':'Search this agency')}</span>{!compact?<kbd>⌘K</kbd>:null}
   </button>
   {open?createPortal(<div ref={overlay} className={styles.overlay} onPointerDown={event=>{if(event.target===event.currentTarget)close();}}>
    <section ref={dialog} role="dialog" aria-modal="true" aria-labelledby={id+'-title'} className={styles.dialog}
@@ -135,9 +136,9 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
      <button type="button" onClick={close} aria-label="Close search"><X size={19}/></button>
     </div>
     <div className={styles.status} role="status" aria-live="polite">
-     {pending?<><LoaderCircle size={13} className={styles.spin}/>Searching recorded data…</>:query?(search.hasMore?'Showing '+search.items.length+' of '+search.total+' matching records':search.total+' matching '+(search.total===1?'record':'records')):'Go straight to a record or start something new'}
+     {pending?<><LoaderCircle size={13} className={styles.spin}/>Searching your workspace…</>:query?(search.hasMore?'Showing '+search.items.length+' of '+search.total+' matching records':search.total+' matching '+(search.total===1?'record':'records')):'Go straight to a record or start something new'}
     </div>
-    {current&&search.error?<div className={styles.error} role="alert"><span>Agency records could not be searched. {search.error}</span><button type="button" onClick={()=>{setAttempt(value=>value+1);input.current?.focus();}}>Try again</button></div>:null}
+    {current&&search.error?<div className={styles.error} role="alert"><span>ReDream could not search your workspace. {search.error}</span><button type="button" onClick={()=>{setAttempt(value=>value+1);input.current?.focus();}}>Try again</button></div>:null}
     <div className={styles.results} role="listbox" id={id+'-results'} aria-label="Search results">
      {results.map((item,index)=>{
       const body=<><span className={styles.kind}>{item.create?<Plus size={13}/>:null}{item.kind}</span><strong>{item.title}</strong>{item.subtitle?<small>{item.subtitle}</small>:null}<ArrowRight size={16} className={styles.arrow}/></>;
@@ -145,7 +146,7 @@ function SearchSession({basePath='/agency',cacheScope='',enabled,invoke,onCreate
       return item.href?<Link {...common} key={item.key} href={item.href} prefetch={false} onClick={event=>choose(event,item.href!)}>{body}</Link>:
        <button {...common} type="button" key={item.key} onClick={()=>{close();if(item.create)onCreate?.(item.create);}}>{body}</button>;
      })}
-     {query&&!results.length&&!pending&&!search.error?<div className={styles.empty}><strong>No matching records</strong><p>Try another name, club or role. Search uses recorded agency data.</p></div>:null}
+     {query&&!results.length&&!pending&&!search.error?<div className={styles.empty}><strong>No matching records</strong><p>Try another name, club or role.</p></div>:null}
     </div>
     <footer className={styles.footer}><span>↑ ↓ move · Enter open · Esc close</span><span>Recorded agency data</span></footer>
    </section>

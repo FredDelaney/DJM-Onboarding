@@ -1,4 +1,5 @@
 'use client';
+import JourneyStatus from '@/components/JourneyStatus';
 
 import { useRouter } from 'next/navigation';
 import {
@@ -56,9 +57,9 @@ export default function SecuritySettingsPage() {
     >
       <div className={styles.stack}>
 
-        {error ? <div className={styles.error}>{error}</div> : null}
+        {error ? <JourneyStatus compact kind="error" description={error}/> : null}
         {message ? (
-          <div className={styles.success}>
+          <div className={styles.success} role="status" aria-atomic="true">
             <CheckCircle2 size={16} />
             {message}
           </div>

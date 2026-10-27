@@ -1,5 +1,4 @@
 'use client';
-
 import {
   CalendarDays,
   ContactRound,
@@ -11,10 +10,12 @@ import {
   Unplug,
   X,
 } from 'lucide-react';
+
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -27,6 +28,8 @@ import {
 import AgencyMessagingConnections from './AgencyMessagingConnections';
 import AgencyProviderContactLinks from './AgencyProviderContactLinks';
 import styles from './AgencyConnectionsDrawer.module.css';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import { providerConnectionState } from '@/lib/provider-connection-state';
 
 type Provider =
   | 'google'
@@ -52,13 +55,13 @@ const PROVIDERS: Array<{
     key: 'google',
     name: 'Google',
     description:
-      'Google Calendar, contacts and Gmail when this is an agency mailbox.',
+      'Calendar, contacts and optional Gmail for agency work.',
   },
   {
     key: 'microsoft',
     name: 'Microsoft',
     description:
-      'Outlook Calendar, contacts and email for your agency work.',
+      'Calendar, contacts and optional Outlook for agency work.',
   },
 ];
 
@@ -75,6 +78,8 @@ export default function AgencyConnectionsDrawer({
 }) {
   const [connections, setConnections] =
     useState<Connection[]>([]);
+  const [readError, setReadError] = useState('');
+  const loadGeneration = useRef(0);
   const [emailAccess, setEmailAccess] =
     useState<Record<Provider, boolean>>({
       google: false,
@@ -108,18 +113,23 @@ export default function AgencyConnectionsDrawer({
   const load =
     useCallback(
       async () => {
+        const generation = ++loadGeneration.current;
         setLoading(true);
-        setError('');
+        setReadError('');
+        const controller = new AbortController();
 
         try {
           const result =
-            await platformRpc<{
+            await readWithDeadline(platformRpc<{
               connections?: Connection[];
             }>(
               'redream_provider_connections',
               {},
               workspaceSlug,
-            );
+              controller.signal,
+            ));
+          if (generation !== loadGeneration.current) return;
+          if (!Array.isArray(result?.connections)) throw new Error('Connection status could not be confirmed. Please try again.');
 
           const next =
             Array.isArray(
@@ -153,20 +163,24 @@ export default function AgencyConnectionsDrawer({
               false,
           });
         } catch (loadError) {
-          setError(
-            friendlyError(
-              loadError,
-            ),
+          if (generation !== loadGeneration.current) return;
+          setReadError(
+            (loadError as {code?:string})?.code === 'PGRST202'
+              ? 'Connections could not load. Try again later.'
+              : friendlyError(loadError),
           );
         } finally {
-          setLoading(false);
+          controller.abort();
+          if (generation === loadGeneration.current) setLoading(false);
         }
       },
       [workspaceSlug],
     );
 
   useEffect(() => {
+    setConnections([]);
     void load();
+    return () => { ++loadGeneration.current; };
   }, [load]);
 
   useEffect(() => {
@@ -185,6 +199,11 @@ export default function AgencyConnectionsDrawer({
         'connection_provider',
       );
 
+    const reason =
+      params.get(
+        'connection_reason',
+      );
+
     const providerLabel =
       provider === 'microsoft'
         ? 'Microsoft'
@@ -198,14 +217,23 @@ export default function AgencyConnectionsDrawer({
       status === 'connected'
     ) {
       setMessage(
-        `${providerLabel} connected.`,
+        `${providerLabel} setup returned. Check its status below.`,
       );
     } else if (
       status === 'error'
     ) {
-      setError(
-        `${providerLabel} connection did not complete. Nothing was changed.`,
-      );
+      const reasonMessage =
+        provider === 'instagram'
+          ? reason === 'cancelled'
+            ? 'Instagram connection cancelled. Nothing changed.'
+            : reason === 'professional_required'
+              ? 'Instagram needs a Business or Creator account. Change the account type in Instagram, then try again.'
+              : reason === 'permission_denied'
+                ? 'Instagram needs access to your professional inbox. Approve the requested permissions, then try again.'
+                : 'Instagram could not finish connecting. Make sure the account is Business or Creator, then try again.'
+          : providerLabel + ' connection did not complete. Nothing was changed.';
+
+      setError(reasonMessage);
     }
 
     if (
@@ -218,6 +246,9 @@ export default function AgencyConnectionsDrawer({
       );
       params.delete(
         'connection_provider',
+      );
+      params.delete(
+        'connection_reason',
       );
       params.delete(
         'connections',
@@ -504,7 +535,7 @@ export default function AgencyConnectionsDrawer({
           <div
             className={
               styles.loading
-            }
+            } role="status" aria-busy="true" aria-atomic="true"
           >
             <LoaderCircle
               size={18}
@@ -514,7 +545,7 @@ export default function AgencyConnectionsDrawer({
             />
             Checking connections...
           </div>
-        ) : (
+        ) : readError ? <div className={styles.error} role="alert">{readError} <button type="button" data-ui-button="secondary" className={styles.secondary} onClick={() => void load()}>Retry</button></div> : (
           <div
             className={
               styles.providers
@@ -526,6 +557,7 @@ export default function AgencyConnectionsDrawer({
                   byProvider.get(
                     provider.key,
                   );
+                const connectionState = providerConnectionState(connected);
 
                 const working =
                   busy.endsWith(
@@ -581,14 +613,12 @@ export default function AgencyConnectionsDrawer({
 
                           <span
                             className={
-                              connected
+                              connectionState.ready
                                 ? styles.connected
                                 : styles.notConnected
                             }
                           >
-                            {connected
-                              ? 'Connected'
-                              : 'Not connected'}
+                            {connectionState.label}
                           </span>
                         </div>
 
@@ -660,7 +690,7 @@ export default function AgencyConnectionsDrawer({
                           <small>
                             {emailAccessChanged
                               ? 'Choose Update access to apply this change.'
-                              : 'Optional. Use this only for an agency mailbox you use with clubs and football contacts. ReDream keeps only recent emails involving people already in Network.'}
+                              : 'Optional for an agency mailbox you use with clubs and football contacts. ReDream keeps only recent emails with people already in Network.'}
                           </small>
                         </span>
                       </div>
@@ -711,7 +741,7 @@ export default function AgencyConnectionsDrawer({
                               styles.primary
                             }
                             onClick={() =>
-                              emailAccessChanged
+                              emailAccessChanged || connectionState.reconnect
                                 ? void connect(provider.key)
                                 : void syncProvider(provider.key)
                             }
@@ -729,10 +759,10 @@ export default function AgencyConnectionsDrawer({
                             ) : (
                               <RefreshCw size={14} />
                             )}
-                            {emailAccessChanged ? 'Update access' : 'Sync now'}
+                            {connectionState.reconnect ? 'Reconnect' : emailAccessChanged ? 'Update access' : 'Sync now'}
                           </button>
 
-                          {!emailAccessChanged ? (
+                          {!emailAccessChanged && !connectionState.reconnect ? (
                             <button
                               type="button"
                               data-ui-button="secondary"
@@ -811,7 +841,7 @@ export default function AgencyConnectionsDrawer({
           </div>
         )}
 
-        <AgencyProviderContactLinks
+        {!loading && !readError ? <AgencyProviderContactLinks
           workspaceSlug={workspaceSlug}
           onStatus={(kind, nextMessage) => {
             if (kind === 'success') {
@@ -822,7 +852,7 @@ export default function AgencyConnectionsDrawer({
               setError(nextMessage);
             }
           }}
-        />
+        /> : null}
 
         <AgencyMessagingConnections
           workspaceSlug={workspaceSlug}
@@ -884,11 +914,7 @@ export default function AgencyConnectionsDrawer({
             size={16}
           />
           <span>
-            Refresh tokens are
-            encrypted in Supabase
-            Vault. They are never
-            exposed to the browser
-            or another agency.
+            Your connection credentials are encrypted and kept private to your agency.
           </span>
         </footer>
       </section>

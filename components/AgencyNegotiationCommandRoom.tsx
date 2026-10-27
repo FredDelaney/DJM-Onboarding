@@ -1,21 +1,14 @@
 'use client';
+import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import {ArrowLeft,ArrowRight,CheckCircle2,CircleAlert,LoaderCircle,Network,ShieldCheck,Target,X} from 'lucide-react';
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  CircleAlert,
-  LoaderCircle,
-  Network,
-  ShieldCheck,
-  Target,
-  Users,
-  X,
-} from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
+import { hasRecordedNumber } from '@/lib/recorded-number';
+
 import styles from './AgencyNegotiationCommandRoom.module.css';
 
 export type AgencyNegotiationRequest = {
@@ -39,6 +32,7 @@ const list = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
 
 const numeric = (value: unknown, fallback = '-') => {
+  if (!hasRecordedNumber(value)) return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed)
     ? String(Math.round(parsed))
@@ -49,10 +43,11 @@ const money = (
   value: unknown,
   currency = 'EUR',
 ) => {
+  if (!hasRecordedNumber(value)) return 'Not set';
   const amount = Number(value);
 
   if (!Number.isFinite(amount)) {
-    return 'Not recorded';
+    return 'Not set';
   }
 
   try {
@@ -118,6 +113,10 @@ export default function AgencyNegotiationCommandRoom({
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
+  const [readError, setReadError] = useState('');
+  const readSequence = useRef(0);
+  const targetOutcomeInput = useRef<HTMLTextAreaElement>(null);
+  const briefSection = useRef<HTMLDetailsElement>(null);
   const [message, setMessage] = useState('');
 
   const [brief, setBrief] = useState<any>(null);
@@ -189,7 +188,10 @@ export default function AgencyNegotiationCommandRoom({
   }, []);
 
   const load = useCallback(async () => {
+    const requestId = ++readSequence.current;
+    const current = () => readSequence.current === requestId;
     setBusy(true);
+    setReadError('');
     setError('');
 
     try {
@@ -201,7 +203,7 @@ export default function AgencyNegotiationCommandRoom({
         pressureResult,
         guardrailResult,
         originResult,
-      ] = await Promise.all([
+      ] = await readWithDeadline(Promise.all([
         invoke('negotiation_brief', {
           deal_room_id: request.dealRoomId,
         }),
@@ -223,7 +225,8 @@ export default function AgencyNegotiationCommandRoom({
         invoke('deal_origin', {
           deal_room_id: request.dealRoomId,
         }),
-      ]);
+      ]));
+      if (!current()) return;
 
       const nextGuardrails =
         guardrailResult?.guardrails || null;
@@ -238,9 +241,9 @@ export default function AgencyNegotiationCommandRoom({
 
       applyGuardrailFields(nextGuardrails);
     } catch (loadError) {
-      setError(friendlyError(loadError));
+      if (current()) setReadError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }, [
     applyGuardrailFields,
@@ -250,14 +253,12 @@ export default function AgencyNegotiationCommandRoom({
 
   useEffect(() => {
     void load();
+    return () => { readSequence.current++; };
   }, [load]);
 
   useEffect(() => {
-    const previous =
-      document.body.style.overflow;
+    const releaseScroll = lockPageScroll();
 
-    document.body.style.overflow =
-      'hidden';
 
     const keydown = (
       event: KeyboardEvent,
@@ -280,8 +281,7 @@ export default function AgencyNegotiationCommandRoom({
     );
 
     return () => {
-      document.body.style.overflow =
-        previous;
+      releaseScroll();
 
       window.removeEventListener(
         'keydown',
@@ -316,7 +316,7 @@ export default function AgencyNegotiationCommandRoom({
     guardrails?.guardrails || {};
 
   const guardrailState =
-    guardrails?.state || 'not recorded';
+    guardrails?.state || 'not set';
 
   const originRecord =
     origin?.origin || {};
@@ -406,7 +406,7 @@ export default function AgencyNegotiationCommandRoom({
         currency.trim().length !== 3
       ) {
         throw new Error(
-          'Use a three-letter currency code for numeric guardrails.',
+          'Use a three-letter currency code.',
         );
       }
 
@@ -474,7 +474,7 @@ export default function AgencyNegotiationCommandRoom({
       );
 
       setMessage(
-        'Private negotiation guardrails saved as a draft. No term was sent or accepted.',
+        'Draft saved. Nothing was sent or accepted.',
       );
 
       await onApplied();
@@ -514,7 +514,7 @@ export default function AgencyNegotiationCommandRoom({
       setConfirmApprove(false);
 
       setMessage(
-        'Negotiation guardrails approved as the current internal operating limits.',
+        'Negotiation limits approved.',
       );
 
       await onApplied();
@@ -535,9 +535,8 @@ export default function AgencyNegotiationCommandRoom({
       nextStep.step_type ===
       'set_negotiation_guardrails'
     ) {
-      setMessage(
-        'Record the private negotiation guardrails below before advancing.',
-      );
+      targetOutcomeInput.current?.focus({preventScroll: true});
+      targetOutcomeInput.current?.scrollIntoView({block: 'center'});
       return;
     }
 
@@ -545,9 +544,10 @@ export default function AgencyNegotiationCommandRoom({
       nextStep.step_type ===
       'prepare_negotiation_brief'
     ) {
-      setMessage(
-        'The negotiation brief is ready for human review in this room. ReDream will not invent positions that are not recorded.',
-      );
+      if (briefSection.current) briefSection.current.open = true;
+      const summary = briefSection.current?.querySelector('summary');
+      summary?.focus({preventScroll: true});
+      summary?.scrollIntoView({block: 'center'});
       return;
     }
 
@@ -559,7 +559,7 @@ export default function AgencyNegotiationCommandRoom({
       title: request.title,
       instruction:
         nextStep.instruction ||
-        'Close the highest-priority recorded negotiation-preparation gap.',
+        'Close the top preparation gap.',
       label:
         'Prepare negotiation step',
       action:
@@ -576,7 +576,7 @@ export default function AgencyNegotiationCommandRoom({
         {
           label: 'Readiness',
           value:
-            `${numeric(readiness?.score)} / 100`,
+            hasRecordedNumber(readiness?.score) ? `${numeric(readiness.score)} / 100` : 'Not recorded',
           detail:
             'Internal preparation completeness, not signing probability',
         },
@@ -601,7 +601,7 @@ export default function AgencyNegotiationCommandRoom({
       ],
       successCondition:
         nextStep.success_condition ||
-        'The recorded preparation gap is resolved or explicitly documented.',
+        'The preparation gap is resolved.',
       confirmationLabel:
         'Create preparation task',
     });
@@ -644,37 +644,48 @@ export default function AgencyNegotiationCommandRoom({
           </div>
 
           <p className={styles.eyebrow}>
-            NEGOTIATION COMMAND ROOM
+            NEGOTIATION
           </p>
 
           <h2>{request.title}</h2>
 
           <p className={styles.subhead}>
             {request.context ||
-              'Prepare the negotiation from recorded facts, private human-set limits and the real decision route.'}
+              'Prepare from facts, private limits and the real decision route.'}
           </p>
         </header>
 
         {busy ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LoaderCircle
               size={18}
               className={styles.spin}
             />
             <div>
               <strong>
-                Building the negotiation picture
+                Loading negotiation details
               </strong>
               <span>
-                Readiness, guardrails, decision-makers, pressure and provenance are being refreshed.
+                Loading deal facts, contacts and your saved negotiation limits.
               </span>
+            </div>
+          </div>
+        ) : null}
+
+        {readError ? (
+          <div className={styles.notice + ' ' + styles.error} role="alert">
+            <CircleAlert size={18} />
+            <div>
+              <strong>Could not load negotiation details</strong>
+              <span>{readError}</span>
+              <button type="button" data-ui-button="secondary" className="btn" disabled={busy} onClick={() => void load()}>Try again</button>
             </div>
           </div>
         ) : null}
 
         {error ? (
           <div
-            className={`${styles.notice} ${styles.error}`}
+            className={`${styles.notice} ${styles.error}`} role="alert"
           >
             <CircleAlert size={18} />
             <div>
@@ -688,7 +699,7 @@ export default function AgencyNegotiationCommandRoom({
 
         {message ? (
           <div
-            className={`${styles.notice} ${styles.success}`}
+            className={`${styles.notice} ${styles.success}`} role="status"
           >
             <CheckCircle2 size={18} />
             <div>
@@ -698,7 +709,7 @@ export default function AgencyNegotiationCommandRoom({
           </div>
         ) : null}
 
-        {!busy ? (
+        {!busy && !readError ? (
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
@@ -712,11 +723,11 @@ export default function AgencyNegotiationCommandRoom({
                 <span>
                   {nextStep?.instruction ||
                     brief?.readiness_statement ||
-                    'Review the recorded facts before advancing.'}
+                    'Review the facts before advancing.'}
                 </span>
               </div>
 
-              <div className={styles.heroScore}>
+              {hasRecordedNumber(readiness?.score) ? <div className={styles.heroScore}>
                 <ShieldCheck size={18} />
                 <strong>
                   {numeric(
@@ -726,7 +737,7 @@ export default function AgencyNegotiationCommandRoom({
                 <span>
                   preparation completeness
                 </span>
-              </div>
+              </div> : null}
             </section>
 
             <div className={styles.grid}>
@@ -746,7 +757,7 @@ export default function AgencyNegotiationCommandRoom({
                 label="Decision pressure"
                 value={human(
                   pressure?.state ||
-                    'not recorded',
+                    'not set',
                 )}
                 detail={
                   pressure
@@ -771,7 +782,7 @@ export default function AgencyNegotiationCommandRoom({
                 value={human(
                   originRecord.route_type ||
                     origin?.state ||
-                    'not recorded',
+                    'not set',
                 )}
                 detail={
                   originRecord
@@ -789,7 +800,7 @@ export default function AgencyNegotiationCommandRoom({
                 <div>
                   <p>PREPARATION SEQUENCE</p>
                   <h3>
-                    Close uncertainty in dependency order
+                    {list(sequence?.steps).length ? 'Resolve these items first' : 'No preparation steps recorded'}
                   </h3>
                 </div>
               </div>
@@ -838,7 +849,7 @@ export default function AgencyNegotiationCommandRoom({
                   <ArrowRight size={15} />
                   {nextStep.step_type ===
                   'set_negotiation_guardrails'
-                    ? 'Record guardrails below'
+                    ? (canEdit ? 'Record guardrails below' : 'Review guardrails below')
                     : nextStep.step_type ===
                         'prepare_negotiation_brief'
                       ? 'Review negotiation brief'
@@ -847,20 +858,12 @@ export default function AgencyNegotiationCommandRoom({
               ) : null}
 
               <p className={styles.truth}>
-                Completing a task does not prove the underlying negotiation gap is resolved. The sequence stays tied to recorded evidence.
+                {list(sequence?.steps).length ? 'After completing a task, check that the underlying issue is resolved.' : 'Preparation steps will appear here once recorded.'}
               </p>
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Users size={17} />
-                <div>
-                  <p>DECISION ROUTE</p>
-                  <h3>
-                    Who can move this deal and how the agency can reach them
-                  </h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Decision-makers and contact routes</summary>
 
               <div className={styles.rows}>
                 {people
@@ -876,11 +879,11 @@ export default function AgencyNegotiationCommandRoom({
                         </strong>
                         <span>
                           {person.role_title ||
-                            'Role not recorded'}
+                            'Role not set'}
                           {' '}·{' '}
                           {human(
                             person.route_mode ||
-                              'recorded route',
+                              'known contact route',
                           )}
                         </span>
                         <small>
@@ -918,7 +921,7 @@ export default function AgencyNegotiationCommandRoom({
                         No decision-maker route is recorded.
                       </strong>
                       <span>
-                        ReDream will not invent signing authority or club hierarchy.
+                        Confirm the decision-maker and their authority with the club.
                       </span>
                     </div>
                   </div>
@@ -926,9 +929,9 @@ export default function AgencyNegotiationCommandRoom({
               </div>
 
               <p className={styles.truth}>
-                Role proximity comes from recorded job titles. It does not prove formal signing authority or final decision ownership.
+                Job titles do not confirm decision-making or signing authority. Verify both with the club.
               </p>
-            </section>
+            </details>
 
             <section className={styles.panel}>
               <div className={styles.panelHead}>
@@ -936,7 +939,7 @@ export default function AgencyNegotiationCommandRoom({
                 <div>
                   <p>PRIVATE GUARDRAILS</p>
                   <h3>
-                    Human-set objectives, limits and concession order
+                    Objectives and limits
                   </h3>
                 </div>
               </div>
@@ -945,6 +948,7 @@ export default function AgencyNegotiationCommandRoom({
                 <label className={styles.full}>
                   <span>Target outcome</span>
                   <textarea
+                    ref={targetOutcomeInput}
                     value={targetOutcome}
                     onChange={(event) =>
                       setTargetOutcome(
@@ -952,7 +956,7 @@ export default function AgencyNegotiationCommandRoom({
                       )
                     }
                     disabled={!canEdit}
-                    placeholder="What outcome are we trying to achieve?"
+                    placeholder="Target outcome"
                   />
                 </label>
 
@@ -966,7 +970,7 @@ export default function AgencyNegotiationCommandRoom({
                       )
                     }
                     disabled={!canEdit}
-                    placeholder="What fallback would still be acceptable?"
+                    placeholder="Acceptable fallback"
                   />
                 </label>
 
@@ -1213,20 +1217,12 @@ export default function AgencyNegotiationCommandRoom({
               ) : null}
 
               <p className={styles.truth}>
-                The platform never invents negotiation floors, targets, concessions or walk-away terms. These fields are private human-set operating limits and are not proof of client consent, legal authority or enforceability.
+                Private limits set by your agency. Confirm client consent and legal authority separately.
               </p>
             </section>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Target size={17} />
-                <div>
-                  <p>KNOWN FACTS & OPEN QUESTIONS</p>
-                  <h3>
-                    Keep negotiation positions separate from what is actually recorded
-                  </h3>
-                </div>
-              </div>
+            <details ref={briefSection} className={styles.panel + ' interface-details'}>
+              <summary>Recorded facts and open questions</summary>
 
               <div className={styles.grid}>
                 <Fact
@@ -1246,7 +1242,7 @@ export default function AgencyNegotiationCommandRoom({
                   )}
                   detail={
                     terms.salary_period ||
-                    'Period not recorded'
+                    'Period not set'
                   }
                 />
                 <Fact
@@ -1311,18 +1307,10 @@ export default function AgencyNegotiationCommandRoom({
                     )}
                 </div>
               </div>
-            </section>
+            </details>
 
-            <section className={styles.panel}>
-              <div className={styles.panelHead}>
-                <Network size={17} />
-                <div>
-                  <p>PROVENANCE</p>
-                  <h3>
-                    Where this opportunity actually came from
-                  </h3>
-                </div>
-              </div>
+            <details className={styles.panel + ' interface-details'}>
+              <summary>Opportunity history</summary>
 
               <div className={styles.grid}>
                 <Fact
@@ -1330,7 +1318,7 @@ export default function AgencyNegotiationCommandRoom({
                   value={human(
                     originRecord.route_type ||
                       origin?.state ||
-                      'not recorded',
+                      'not set',
                   )}
                   detail={
                     originRecord
@@ -1343,7 +1331,7 @@ export default function AgencyNegotiationCommandRoom({
                   value={
                     originRecord
                       .intermediary_person_name ||
-                    'Not recorded'
+                    'Not set'
                   }
                   detail={
                     originRecord
@@ -1355,12 +1343,12 @@ export default function AgencyNegotiationCommandRoom({
               </div>
 
               <p className={styles.truth}>
-                Deal origin is explicit agency provenance. It is not inferred from whichever contact is currently attached to the deal, and it does not explain why a deal succeeds or fails.
+                Origin records who sourced the deal. A linked contact does not establish its origin or explain its outcome.
               </p>
-            </section>
+            </details>
 
             <p className={styles.truth}>
-              Negotiation Command Room is internal preparation support. It is not legal advice, regulatory clearance, authority confirmation, bargaining-power analysis or a prediction of signing outcome.
+              Internal preparation only. Verify legal, regulatory and signing requirements separately.
             </p>
           </div>
         ) : null}
@@ -1373,7 +1361,7 @@ export default function AgencyNegotiationCommandRoom({
                 Approve these private negotiation limits?
               </strong>
               <span>
-                Approval marks the current draft as the agency’s internal operating limits for this deal. It does not send, accept or legally bind any term.
+                Saves these private limits. It does not send, accept or legally bind any term.
               </span>
             </div>
 

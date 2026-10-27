@@ -39,7 +39,7 @@
   align-items: center;
   gap: 7px;
   color: #6f7781;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -69,7 +69,7 @@
 .confirmBar p {
   margin: 0;
   color: #888f98;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.1em;
 }
@@ -86,7 +86,7 @@
   max-width: 680px;
   margin: 0;
   color: #79818b;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -96,9 +96,9 @@
   display: flex;
   gap: 11px;
   align-items: flex-start;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid var(--interface-info-line);
+  border-radius: var(--interface-feedback-radius);
+  background: var(--interface-info-bg);
 }
 
 .notice strong,
@@ -108,24 +108,24 @@
 
 .notice strong {
   color: #363d45;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .notice span {
   margin-top: 3px;
   color: #7f8790;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .error {
   border-color: #f0d9d9;
-  background: #fffafa;
+  background: var(--interface-danger-bg);
 }
 
 .success {
   border-color: #d8ece2;
-  background: #f8fdf9;
+  background: var(--interface-success-bg);
 }
 
 .spin {
@@ -164,7 +164,7 @@
   max-width: 560px;
   display: block;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -183,7 +183,7 @@
 .heroScore span {
   margin-top: 4px;
   color: rgba(255, 255, 255, 0.62);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .grid,
@@ -207,7 +207,7 @@
 .formGrid label > span,
 .questionGrid > div > span {
   color: #8a919a;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -221,7 +221,7 @@
 
 .fact small {
   color: #858d96;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -269,7 +269,7 @@
   border-radius: 50%;
   background: #f0f2f4;
   color: var(--agency-primary);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -281,20 +281,20 @@
 
 .step strong {
   color: #343b43;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .step p {
   margin: 3px 0 0;
   color: #6f7882;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .step small {
   margin-top: 4px;
   color: #9298a0;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .row {
@@ -318,19 +318,19 @@
 
 .row strong {
   color: #343b43;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .row span {
   margin-top: 3px;
   color: #6f7882;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .row small {
   margin-top: 3px;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -345,7 +345,7 @@
 }
 
 .routeScore span {
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .formGrid {
@@ -370,7 +370,7 @@
   background: #fbfcfd;
   color: #343b43;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   outline: none;
 }
 
@@ -409,7 +409,7 @@
   border-radius: 9px;
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -444,7 +444,7 @@
 .questionGrid p {
   margin: 7px 0 0;
   color: #66707a;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -466,19 +466,19 @@
 
 .empty strong {
   color: #414850;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .empty span {
   margin-top: 2px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .truth {
   margin: 10px 1px 0;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -509,13 +509,13 @@
 .confirmBar strong {
   margin-top: 3px;
   color: #333a42;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .confirmBar span {
   margin-top: 3px;
   color: #7d858e;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -603,6 +603,7 @@
 .pageShell {
   position: fixed;
   inset: 0;
+  bottom: var(--workspace-mobile-navigation-inset, 0px);
   z-index: 88;
   min-width: 0;
   overflow-y: auto;
@@ -647,5 +648,93 @@
   .pagePanel .body {
     padding-left: 0;
     padding-right: 0;
+  }
+}
+
+/* Calm focused workspace v2 */
+@media (min-width: 681px) {
+  .pagePanel .header { padding: 10px 0 15px; margin-bottom: 10px; border: 0; border-bottom: 1px solid #e4e8eb; border-radius: 0; background: transparent; }
+  .pagePanel .content, .pagePanel .body { gap: 10px; }
+  .pagePanel .hero { padding: 16px 18px; border-radius: 14px; box-shadow: none; }
+  .pagePanel .hero h3 { margin: 4px 0 5px; font-size: 20px; }
+  .pagePanel .grid { gap: 0; overflow: hidden; border: 1px solid #e6eaed; border-radius: 12px; background: #fff; }
+  .pagePanel .fact { padding: 11px 12px; border: 0; border-radius: 0; background: transparent; }
+  .pagePanel .fact:nth-child(even) { border-left: 1px solid #edf0f2; }
+  .pagePanel .fact:nth-child(n+3) { border-top: 1px solid #edf0f2; }
+  .pagePanel .panel { padding: 15px; border-radius: 13px; box-shadow: none; }
+}
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+.panel, .pagePanel .header, .fact { box-shadow: none; border-color: #e5e5e7; }
+.pageShell { background: #f5f5f7; }
+.header h2 { font-weight: 600; letter-spacing: -.035em; }
+.hero { min-height: 0; padding: 22px; background: #111827; box-shadow: none; }
+.hero h3 { font-size: 24px; font-weight: 600; }
+.pagePanel :global(.interface-details) { display: block; }
+.pagePanel :global(.interface-details:not([open])) { padding-top: 8px; padding-bottom: 8px; }
+@media (max-width:680px) {
+  .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .fact { padding: 12px; border-radius: 12px; }
+}
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow, .live, .topline { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.panel { box-shadow: none; border-color: #e5e5e7; }
+.primary, .secondary { font-weight: 500; box-shadow: none; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }
+
+/* Detail pages follow the same quiet reading hierarchy as the workspace. */
+.hero { border: 1px solid #e5e5e7; background: #fff; color: #1d1d1f; box-shadow: none; }
+.hero h3 { color: #1d1d1f; font-weight: 600; }
+.hero p { font-weight: 500; letter-spacing: 0; }
+.hero > div:first-child > span { color: #6e6e73; line-height: 1.5; }
+.heroScore strong { color: #1d1d1f; font-weight: 600; }
+.heroScore span { color: #6e6e73; }
+.fact span { font-weight: 500; letter-spacing: 0; text-transform: none; }
+.fact strong { font-size: 14px; font-weight: 500; }
+@media (max-width: 680px) {
+ .hero { gap: 16px; padding: 18px; }
+ .hero h3 { font-size: 23px; }
+ .content { gap: 12px; }
+}
+
+/* One fact surface, rather than four separate cards, on phones too. */
+@media (max-width: 680px) {
+  .pagePanel .grid {
+    gap: 0; overflow: hidden; border: 1px solid #e5e5e7; border-radius: 14px; background: #fff;
+  }
+  .pagePanel .grid > .fact { border: 0; border-radius: 0; padding: 12px 14px; background: transparent; }
+  .pagePanel .grid > .fact:nth-child(even) { border-left: 1px solid #efeff1; }
+  .pagePanel .grid > .fact:nth-child(n+3) { border-top: 1px solid #efeff1; }
+}
+
+/* Keep the selected record and return action visible inside long detail pages. */
+.pagePanel { max-height: none; }
+.pagePanel .header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #fff;
+}
+.pagePanel .header h2 { overflow-wrap: anywhere; }
+.pagePanel .header::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: -2px;
+  right: -2px;
+  height: 32px;
+  background: #f5f5f7;
+  pointer-events: none;
+}
+@media (max-height: 600px) {
+  .pagePanel .header { padding-block: 12px; }
+  .pagePanel .header .topline { margin-bottom: 8px; }
+  .pagePanel .header .subhead { display: none; }
+  .pagePanel .header h2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
 }

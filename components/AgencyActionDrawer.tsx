@@ -1,5 +1,6 @@
 'use client';
 
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -263,9 +264,10 @@ export default function AgencyActionDrawer({
     'confirm_strategy_with_player';
 
   const showCareerApproval =
-    strategyActionType ===
+    !showCareerStrategyForm &&
+    !showCareerConfirmation &&
+    (strategyActionType ===
       'complete_strategy_approval' ||
-    (!showCareerConfirmation &&
       allowedNextSteps.includes(
         'approve_career_strategy',
       ));
@@ -460,17 +462,27 @@ export default function AgencyActionDrawer({
       inputs.career_next_checkpoint || '',
     ).trim();
 
+    const preferredPathway = String(
+      inputs.career_preferred_pathway || '',
+    ).trim();
+
+    const fallbackPathway = String(
+      inputs.career_fallback_pathway || '',
+    ).trim();
+
     const reviewDueAt = String(
       inputs.career_review_due_at || '',
     ).trim();
 
     if (
       !objective ||
+      !preferredPathway ||
+      !fallbackPathway ||
       !nextCheckpoint ||
       !reviewDueAt
     ) {
       setError(
-        'Career objective, next checkpoint and review date are required.',
+        'Add the career objective, preferred route, fallback route, next checkpoint and review date.',
       );
       return;
     }
@@ -485,7 +497,10 @@ export default function AgencyActionDrawer({
           player_id: playerId,
           review_due_at: reviewDueAt,
           strategy: {
+            ...result?.career_strategy?.strategy?.strategy,
             objective,
+            preferred_pathway: preferredPathway,
+            fallback_pathway: fallbackPathway,
             next_checkpoint:
               nextCheckpoint,
             target_markets: commaList(
@@ -637,15 +652,15 @@ export default function AgencyActionDrawer({
   }, [request.key]);
 
   useEffect(() => {
-    const previous =
-      document.body.style.overflow;
+    const opener = document.activeElement as HTMLElement | null;
+    const releaseScroll = lockPageScroll();
 
-    document.body.style.overflow =
-      'hidden';
 
     return () => {
-      document.body.style.overflow =
-        previous;
+      releaseScroll();
+      queueMicrotask(() => {
+        if (opener?.isConnected) opener.focus();
+      });
     };
   }, []);
 
@@ -655,8 +670,10 @@ export default function AgencyActionDrawer({
     ) => {
       if (
         event.key === 'Escape' &&
-        !busy
+        !busy &&
+        !event.defaultPrevented
       ) {
+        event.preventDefault();
         onClose();
       }
     };
@@ -1021,6 +1038,36 @@ export default function AgencyActionDrawer({
                     }))
                   }
                   placeholder="What is the player trying to achieve?"
+                />
+              </label>
+
+              <label>
+                <span>Preferred route</span>
+                <input
+                  type="text"
+                  value={inputs.career_preferred_pathway || ''}
+                  onChange={(event) =>
+                    setInputs((current) => ({
+                      ...current,
+                      career_preferred_pathway: event.target.value,
+                    }))
+                  }
+                  placeholder="How should the player reach that objective?"
+                />
+              </label>
+
+              <label>
+                <span>Fallback route</span>
+                <input
+                  type="text"
+                  value={inputs.career_fallback_pathway || ''}
+                  onChange={(event) =>
+                    setInputs((current) => ({
+                      ...current,
+                      career_fallback_pathway: event.target.value,
+                    }))
+                  }
+                  placeholder="What is the alternative if that route is unavailable?"
                 />
               </label>
 
@@ -1595,7 +1642,7 @@ export default function AgencyActionDrawer({
         ) : null}
 
         {error ? (
-          <section className={styles.error}>
+          <section className={styles.error} role="alert" aria-atomic="true">
             <CircleAlert size={16} />
 
             <div>

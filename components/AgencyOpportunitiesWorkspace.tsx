@@ -4,7 +4,6 @@ import {
   ChevronRight,
   BriefcaseBusiness,
   MessageCircleMore,
-  Search,
   Target,
   Users,
 } from 'lucide-react';
@@ -16,6 +15,7 @@ import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelli
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import WorkspaceListSearch from './WorkspaceListSearch';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
@@ -37,7 +37,7 @@ const human = (value: unknown) =>
 
 const money = (value: unknown, currency = 'EUR') => {
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return 'Commission not recorded';
+  if (!Number.isFinite(amount)) return 'Commission not set';
 
   try {
     return new Intl.NumberFormat('en-GB', {
@@ -69,7 +69,7 @@ function ConnectedOpportunityContext({
   const latest = context?.latest_contact || null;
   const followup = context?.open_followup || null;
   const sourceName =
-    context?.source_person_name || 'Recorded source';
+    context?.source_person_name || 'Known source';
   const label =
     context?.scope === 'deal_source_contact'
       ? 'DEAL CONTACT'
@@ -91,7 +91,7 @@ function ConnectedOpportunityContext({
             </strong>
             <span>
               {latest?.summary ||
-                'Connected contact recorded.'}
+                'Contact linked.'}
             </span>
             <div className={styles.connectedContextMeta}>
               <em>
@@ -160,6 +160,7 @@ export default function AgencyOpportunitiesWorkspace({
   basePath,
   onRetry,
   onRefresh,
+  onRecordRefresh,
   rpc,
   onOpenAction,
   onOpenPursuit,
@@ -171,6 +172,7 @@ export default function AgencyOpportunitiesWorkspace({
   basePath: string;
   onRetry?: () => void;
   onRefresh: () => Promise<void>;
+  onRecordRefresh?: () => Promise<void>;
   rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenPursuit: (request: AgencyPursuitRequest) => void;
@@ -200,7 +202,7 @@ export default function AgencyOpportunitiesWorkspace({
     void readWithDeadline(invoke<any>('workspace_need_record',{club_need_id:requestedRecord})).then(response=>{
       if(!current)return;
       const record=response?.record;
-      if(!record?.available||String(record?.item?.club_need_id||'')!==requestedRecord)throw new Error('This opportunity is no longer available in your agency.');
+      if(!record?.available||String(record?.item?.club_need_id||'')!==requestedRecord)throw new Error('This opportunity is unavailable.');
       setExactNeed(record.item);
     }).catch(error=>{if(current)setExactError(error instanceof Error?error.message:'This opportunity could not load.');})
       .finally(()=>{if(current)setExactBusy(false);});
@@ -227,8 +229,8 @@ export default function AgencyOpportunitiesWorkspace({
   }, [rpc]);
 
   const refreshEntities = useCallback(async () => {
-    await Promise.all([onRefresh(), reloadArchives()]);
-  }, [onRefresh, reloadArchives]);
+    await Promise.all([(onRecordRefresh || onRefresh)(), reloadArchives()]);
+  }, [onRefresh, onRecordRefresh, reloadArchives]);
 
   useEffect(() => {
     void reloadArchives().catch(() => undefined);
@@ -394,7 +396,7 @@ export default function AgencyOpportunitiesWorkspace({
         `${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`,
       instruction:
         item.next_action?.instruction ||
-        'Create controlled scouting work against the recorded club need.',
+        'Create scouting work.',
       label: 'Prepare search',
       action: 'scouting_mandate_prepare',
       payload: {
@@ -402,13 +404,13 @@ export default function AgencyOpportunitiesWorkspace({
       },
       context:
         item.need?.position ||
-        'Recorded club need',
+        'Club need',
       facts: [
         {
           label: 'Need',
           value:
             item.need?.title ||
-            'Recorded player need',
+            'Player need',
           detail:
             `${human(item.need?.need_type || 'recorded')} · ${item.club?.name || 'Club recorded'}`,
         },
@@ -426,30 +428,30 @@ export default function AgencyOpportunitiesWorkspace({
             ]
               .filter(Boolean)
               .join(' · ') ||
-            'Profile not fully recorded',
+            'Player profile needs more detail',
           detail: item.need?.transfer_type
             ? human(item.need.transfer_type)
-            : 'Transfer type not recorded',
+            : 'Transfer type not set',
         },
         {
           label: 'Coverage',
           value:
-            `${Number(item.candidate_coverage?.recorded_candidates || 0)} recorded candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
+            `${Number(item.candidate_coverage?.recorded_candidates || 0)} candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
           detail: human(
             item.coverage_state ||
-              'coverage not recorded',
+              'coverage not set',
           ),
         },
         {
           label: 'Timing',
           value: item.need?.expires_at
             ? relativeDate(item.need.expires_at)
-            : 'No expiry recorded',
-          detail: 'Recorded club-demand timing',
+            : 'No expiry set',
+          detail: 'Club need timing',
         },
       ],
       successCondition:
-        'At least one credible candidate route is recorded against this club need.',
+        'A credible player is linked.',
       confirmationLabel: 'Create search task',
     });
   };
@@ -509,7 +511,7 @@ export default function AgencyOpportunitiesWorkspace({
     const commissionValue =
       hasExpectedCommission && deal.currency
         ? money(deal.expected_commission, deal.currency)
-        : 'Commission not recorded';
+        : 'Commission not set';
 
     const introductionContext =
       deal.next_best_move?.introduction_context || {};
@@ -551,7 +553,7 @@ export default function AgencyOpportunitiesWorkspace({
           label: 'Primary blocker',
           value:
             deal.primary_blocker ||
-            'No blocker recorded',
+            'No blocker',
           detail: human(
             deal.control_state ||
               deal.rescue_state ||
@@ -563,25 +565,25 @@ export default function AgencyOpportunitiesWorkspace({
           value: commissionValue,
           detail: hasExpectedCommission
             ? 'Expected commission'
-            : 'Expected commission not recorded',
+            : 'Expected commission not set',
         },
         {
           label: 'Access route',
           value:
             introductionTarget ||
             deal.organisation ||
-            'No route recorded',
+            'No contact route yet',
           detail: introductionVia
             ? `Warm introduction via ${introductionVia}`
             : introductionRole ||
-              'No warm introduction recorded',
+              'No warm introduction yet',
         },
       ],
       successCondition:
         deal.next_control_fix?.success_condition ||
         (needsOwner
-          ? 'One accountable owner controls the live deal.'
-          : 'The recorded deal-control gap is resolved.'),
+          ? 'One owner is accountable.'
+          : 'Nothing needs attention.'),
       confirmationLabel:
         needsOwner ? 'Assign deal owner' : 'Apply fix',
     });
@@ -609,7 +611,7 @@ export default function AgencyOpportunitiesWorkspace({
             onClick={() => selectView('routes')}
           >
             <Users size={15} />
-            Player routes
+            Player opportunities
             {data?.market != null ? <span>{routes.length}</span> : null}
           </button>
 
@@ -625,32 +627,10 @@ export default function AgencyOpportunitiesWorkspace({
           </button>
         </div>
 
-        <label className={styles.search}>
-          <Search size={15} />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={
-              view === 'needs'
-                ? 'Search club or need'
-                : view === 'routes'
-                  ? 'Search player or club'
-                  : 'Search live deals'
-            }
-            aria-label="Search opportunities"
-          />
-          {search ? (
-            <button data-ui-button="tertiary"
-              type="button"
-              onClick={() => setSearch('')}
-            >
-              Clear
-            </button>
-          ) : null}
-        </label>
+        <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='needs'?'Search club or need':view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/>
       </section>
 
-      {exactBusy?<p role="status">Opening opportunity...</p>:null}
+      {exactBusy?<p role="status">Opening...</p>:null}
       {exactError?<div role="alert"><p>{exactError}</p><button type="button" className="btn" onClick={()=>setExactRetry(value=>value+1)}>Try again</button></div>:null}
       <section className={styles.listCard}>
         {view === 'needs'
@@ -697,8 +677,8 @@ export default function AgencyOpportunitiesWorkspace({
                       {item.need?.title || 'Player need'}
                     </strong>
                     <span>
-                      {!needOpen ? 'This recorded need is no longer active.' : item.next_action?.instruction ||
-                        'Review the recorded need.'}
+                      {!needOpen ? 'This need is closed.' : item.next_action?.instruction ||
+                        'Review the club need.'}
                     </span>
                     <small>
                       {item.need?.position || 'Position open'}
@@ -751,9 +731,9 @@ export default function AgencyOpportunitiesWorkspace({
                           : prepareSearch(item);
                       }}
                     >
-                      {hasRoute ? 'Open route' : 'Start search'}
+                      {hasRoute ? 'Open opportunity' : 'Start search'}
                       <ChevronRight size={18} />
-                    </button> : <span>Recorded need closed</span>}
+                    </button> : <span>Club need closed</span>}
                   </div>
                 </article>
               );
@@ -771,7 +751,7 @@ export default function AgencyOpportunitiesWorkspace({
                 item.career_strategy_gate?.next_action
                   ?.instruction ||
                 item.best_access_route?.why_this_route ||
-                'Review the pursuit evidence.';
+                'Review this opportunity.';
 
               return (
                 <article
@@ -792,7 +772,7 @@ export default function AgencyOpportunitiesWorkspace({
                   </div>
 
                   <div className={styles.copy}>
-                    <span className={styles.rowEyebrow}>Player route</span>
+                    <span className={styles.rowEyebrow}>Player opportunity</span>
                     <strong>
                       {item.player?.name || 'Player'} →{' '}
                       {item.club?.name || 'Club'}
@@ -823,7 +803,7 @@ export default function AgencyOpportunitiesWorkspace({
                       openRoute(item);
                     }}
                   >
-                    Open pursuit
+                    Open opportunity
                     <ChevronRight size={18} />
                   </button>
                 </article>
@@ -856,7 +836,7 @@ export default function AgencyOpportunitiesWorkspace({
                       deal.expected_commission,
                       deal.currency,
                     )
-                  : 'Commission not recorded';
+                  : 'Commission not set';
 
               return (
                 <article
@@ -941,8 +921,8 @@ export default function AgencyOpportunitiesWorkspace({
 
         {readState !== 'ready' ? (
           <div className={styles.empty} role="status">
-            <strong>{readState === 'error' ? 'This view could not be updated' : 'Loading opportunities...'}</strong>
-            <span>{readState === 'error' ? 'Your recorded work is safe. Try loading it again.' : 'Checking the latest recorded work.'}</span>
+            <strong>{readState === 'error' ? 'Could not update' : 'Loading...'}</strong>
+            <span>{readState === 'error' ? 'Try again.' : 'Checking...'}</span>
             {readState === 'error' && onRetry ? <button type="button" className={styles.tab} onClick={onRetry}>Try again</button> : null}
           </div>
         ) : null}
@@ -964,17 +944,17 @@ export default function AgencyOpportunitiesWorkspace({
                 : view === 'needs'
                   ? 'No active club needs'
                   : view === 'routes'
-                    ? 'No player routes yet'
+                    ? 'No player opportunities yet'
                     : 'No live deals'}
             </strong>
             <span>
               {search
-                ? 'Try a different search.'
+                ? 'Try another search.'
                 : view === 'needs'
-                  ? 'Add a real club need and the player routes around it can be organised here.'
+                  ? 'Add a club need to get started.'
                   : view === 'routes'
-                    ? 'Routes appear when a player is linked to a recorded club need.'
-                    : 'Commercial work appears here once a player-club route becomes a live deal.'}
+                    ? 'Linked players will appear here.'
+                    : 'Live deals will appear here.'}
             </span>
           </div>
         ) : null}

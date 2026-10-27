@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.json",
+  "include": [
+    "page.tsx",
+    "../../../next-env.d.ts"
+  ],
+  "compilerOptions": {
+    "incremental": false
+  }
+}

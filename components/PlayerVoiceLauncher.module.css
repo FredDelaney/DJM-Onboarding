@@ -139,12 +139,12 @@
 .success {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #dce7df;
-  border-radius: 14px;
-  background: #f4f8f5;
+  border: 1px solid var(--interface-success-line);
+  border-radius: var(--interface-feedback-radius);
+  background: var(--interface-success-bg);
   padding: 12px;
-  color: #395c45;
-  font-size: 11px;
+  color: var(--interface-success);
+  font-size: var(--interface-feedback-font-size);
   line-height: 1.5;
   text-align: left;
 }
@@ -163,12 +163,12 @@
   gap: 7px;
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #eadcdc;
-  border-radius: 12px;
-  background: #fbf6f6;
+  border: 1px solid var(--interface-danger-line);
+  border-radius: var(--interface-feedback-radius);
+  background: var(--interface-danger-bg);
   padding: 10px 11px;
-  color: #8a4d4d;
-  font-size: 10px;
+  color: var(--interface-danger);
+  font-size: var(--interface-feedback-font-size);
   line-height: 1.45;
   text-align: left;
 }

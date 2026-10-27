@@ -30,9 +30,10 @@ test('Player Profile is part of the current Players workspace', () => {
 });
 
 test('Player Profile manager uses simple required states instead of scores', () => {
-  assert.match(manager, /Ready to publish/);
+  assert.match(manager, /Next move/);
+  assert.match(manager, /Publish Player Profile/);
   assert.match(manager, /missingRequiredCount/);
-  assert.match(manager, /required .* missing/);
+  assert.match(manager, /primaryRequiredCheck/);
   assert.match(manager, /OPTIONAL IMPROVEMENTS/);
   assert.match(manager, /Improve before you send it/);
   assert.doesNotMatch(manager, /Profile readiness/);
@@ -118,7 +119,7 @@ test('published Player Profile reads current trusted stats instead of freezing p
   assert.match(publicEdge, /career_entries/);
   assert.match(publicEdge, /player_cv_settings/);
   assert.match(publicEdge, /currentStats/);
-  assert.match(publicEdge, /customStats\?profileResult\.data\.key_stats:auto\.stats/);
+  assert.match(publicEdge, /customStats\|\|selectedSourceStats\?profileResult\.data\.key_stats:auto\.stats/);
   assert.match(publicEdge, /stats_meta/);
 });
 

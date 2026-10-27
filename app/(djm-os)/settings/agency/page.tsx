@@ -1,10 +1,12 @@
 'use client';
-
 import {
   CheckCircle2,
   LockKeyhole,
   Save,
 } from 'lucide-react';
+import JourneyStatus from '@/components/JourneyStatus';
+
+
 import {
   FormEvent,
   useCallback,
@@ -124,15 +126,15 @@ export default function AgencySettingsPage() {
       <div className={styles.stack}>
 
         {!canEdit ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LockKeyhole size={16} />
             Agency identity is owner-controlled. You can review it here, but only
             an owner can change these details.
           </div>
         ) : null}
-        {error ? <div className={styles.error}>{error}</div> : null}
+        {error ? <JourneyStatus compact kind="error" description={error}/> : null}
         {message ? (
-          <div className={styles.success}>
+          <div className={styles.success} role="status" aria-atomic="true">
             <CheckCircle2 size={16} />
             {message}
           </div>
@@ -145,7 +147,7 @@ export default function AgencySettingsPage() {
           <div className={styles.panelHead}>
             <div>
               <h2>Workspace identity</h2>
-              <p>Keep the agency name and customer-facing contact details current.</p>
+              <p>Used in your workspace and club presentations.</p>
             </div>
           </div>
 
@@ -241,9 +243,7 @@ export default function AgencySettingsPage() {
               <strong style={{ color: brandPreview.accent }}>Readable accent text</strong>
             </div>
             <p>
-              ReDream protects contrast automatically. Your original brand colours
-              stay available for logos and highlights, while text and controls use
-              a readable version when needed.
+              Text and controls use accessible contrast. Logos and highlights keep your original colours.
             </p>
           </div>
 

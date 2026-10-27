@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -32,6 +33,10 @@ import {
 } from '@/components/PlayerShell';
 
 import AppExperience from '@/components/AppExperience';
+import JourneyStatus from '@/components/JourneyStatus';
+import {usePlayerPageRead} from '@/lib/use-player-page-read';
+import {writeWithDeadline} from '@/lib/write-with-deadline';
+import {saveProfilePhoto,type PhotoDraft} from '@/lib/profile-photo-write';
 
 import {
   publicFile,
@@ -79,6 +84,15 @@ const shortList = (
     : fallback;
 };
 
+const readProfileMedia = async (playerId:string) => {
+  const [videosResult,docsResult] = await Promise.all([
+    supabase.from('player_videos').select('*').eq('player_id',playerId).order('featured',{ascending:false}).order('sort_order'),
+    supabase.from('player_documents').select('id',{count:'exact',head:true}).eq('player_id',playerId),
+  ]);
+  if (videosResult.error || docsResult.error) throw new Error('Profile media unavailable');
+  return {videos:videosResult.data || [],documentCount:docsResult.count || 0};
+};
+
 export default function Profile() {
   const ctx = usePlayerContext();
 
@@ -88,14 +102,13 @@ export default function Profile() {
   const [pr, setPr] =
     useState<any>({});
 
-  const [videos, setVideos] =
-    useState<any[]>([]);
+  const pageRead = usePlayerPageRead(ctx.player?.id,readProfileMedia);
+  const videos = pageRead.data?.videos || [];
 
   const [videoUrl, setVideoUrl] =
     useState('');
 
-  const [documentCount, setDocumentCount] =
-    useState(0);
+  const documentCount = pageRead.data?.documentCount || 0;
 
   const [editor, setEditor] =
     useState<Editor>(null);
@@ -111,6 +124,26 @@ export default function Profile() {
 
   const [error, setError] =
     useState('');
+  const [photoError,setPhotoError]=useState('');
+  const [photoBusy,setPhotoBusy]=useState(false);
+  const [photoName,setPhotoName]=useState('');
+  const photoDraft=useRef<(PhotoDraft & {file:File;playerId:string})|null>(null);
+  const pendingVideos=useRef(new Map<string,any>());
+  const mediaMounted=useRef(true);
+  const mediaScope=useRef({playerId:ctx.player?.id,userId:ctx.user?.id});
+  if(mediaScope.current.playerId!==ctx.player?.id||mediaScope.current.userId!==ctx.user?.id)mediaScope.current={playerId:ctx.player?.id,userId:ctx.user?.id};
+  useEffect(()=>{mediaMounted.current=true;return()=>{mediaMounted.current=false;};},[]);
+  useEffect(()=>{
+    pendingVideos.current.clear();
+    photoDraft.current=null;
+    setPhotoName('');
+    setPhotoError('');
+    setPhotoBusy(false);
+    setVideoUrl('');
+    setError('');
+    setBusy(false);
+  },[ctx.player?.id,ctx.user?.id]);
+  const isCurrentMediaWrite=(scope:typeof mediaScope.current)=>mediaMounted.current&&mediaScope.current===scope;
 
   useEffect(() => {
     if (!ctx.player) {
@@ -123,34 +156,7 @@ export default function Profile() {
 
     setDirty(false);
 
-    Promise.all([
-      supabase
-        .from('player_videos')
-        .select('*')
-        .eq('player_id', ctx.player.id)
-        .order('featured', {
-          ascending: false,
-        })
-        .order('sort_order'),
 
-      supabase
-        .from('player_documents')
-        .select('id', {
-          count: 'exact',
-          head: true,
-        })
-        .eq('player_id', ctx.player.id),
-    ]).then(
-      ([videosResult, docsResult]) => {
-        setVideos(
-          videosResult.data || [],
-        );
-
-        setDocumentCount(
-          docsResult.count || 0,
-        );
-      },
-    );
   }, [     ctx.player?.id,     ctx.player?.updated_at,   ]);
 
   useEffect(() => {
@@ -201,12 +207,20 @@ useEffect(() => {
   }
 }, []);
 
-  if (ctx.loading) {
-    return <LoadingScreen />;
+  if (ctx.loading || ctx.error) {
+    return <LoadingScreen error={ctx.error} onRetry={() => void ctx.refresh()} />;
   }
 
   if (!ctx.player) {
-    return null;
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus title="No player profile is linked yet" description="Ask your agency to link your profile."/></main></PlayerShell>;
+  }
+  if (pageRead.loading || pageRead.error) {
+    return <PlayerShell><main className="narrow player-shell"><JourneyStatus
+      kind={pageRead.error ? 'error' : 'loading'}
+      title={pageRead.error ? 'Your profile information could not load' : 'Loading your profile information'}
+      description={pageRead.error || 'Loading your profile.'}
+      onRetry={pageRead.error ? () => void pageRead.retry() : undefined}
+    /></main></PlayerShell>;
   }
 
   const updatePlayer = (
@@ -299,6 +313,7 @@ useEffect(() => {
   const save = async (
     closeAfter = true,
   ) => {
+    if (busy) return false;
     const validationError =
       validate();
 
@@ -429,31 +444,24 @@ useEffect(() => {
         pr.travel_availability || null,
     };
 
-    const results =
-      await Promise.all([
-        supabase
-          .from('players')
-          .update(playerPatch)
-          .eq('id', ctx.player.id),
-
-        supabase
-          .from('player_private')
-          .upsert({
-            player_id:
-              ctx.player.id,
-            ...privatePatch,
-          }),
-      ]);
-
+    const outcome = await writeWithDeadline(signal=>Promise.all([
+      supabase.from('players').update(playerPatch).eq('id',ctx.player.id).select('id').abortSignal(signal).single(),
+      supabase.from('player_private').upsert({player_id:ctx.player.id,...privatePatch}).select('player_id').abortSignal(signal).single(),
+    ]));
+    if (outcome.status === 'unknown') {
+      setError('Could not confirm every change. Some may have saved. Your edits are still here.');
+      setBusy(false);
+      return false;
+    }
     const failed =
-      results.find(
+      outcome.result.find(
         (result: any) =>
           result.error,
       );
 
     if (failed?.error) {
       setError(
-        'We couldn’t save your changes. Please try again.',
+        failed.error.code ? 'Could not save every change. Some may have saved. Your edits are still here.' : 'Could not confirm every change. Some may have saved. Your edits are still here.',
       );
 
       setBusy(false);
@@ -472,10 +480,12 @@ flash('Saved');
 void ctx.refresh();
 
 return true;
-    
+
   };
 
   const addVideo = async () => {
+    if(busy)return;
+    const scope=mediaScope.current;
     const url =
       videoUrl.trim();
 
@@ -485,7 +495,7 @@ return true;
 
     if (!isHttpUrl(url)) {
       setError(
-        'Video must be a valid http or https link.',
+        'Enter a valid video link.',
       );
       return;
     }
@@ -493,12 +503,10 @@ return true;
     setBusy(true);
     setError('');
 
-    const {
-      data,
-      error: addError,
-    } = await supabase
-      .from('player_videos')
-      .insert({
+    let payload=pendingVideos.current.get(url);
+    if(!payload){
+      payload={
+        id:crypto.randomUUID(),
         player_id:
           ctx.player.id,
 
@@ -515,22 +523,27 @@ return true;
 
         sort_order:
           videos.length,
-      })
-      .select('*')
-      .single();
-
-    if (addError) {
+      };
+      pendingVideos.current.set(url,payload);
+    }
+    const outcome=await writeWithDeadline(signal=>supabase.from('player_videos').upsert(payload,{onConflict:'id'}).select('*').abortSignal(signal).single());
+    if(!isCurrentMediaWrite(scope))return;
+    if(outcome.status==='unknown'||(outcome.result.error&&!outcome.result.error.code)){
+      setError('Could not confirm the video. Your link is still here. Try again.');
+      setBusy(false);
+      return;
+    }
+    const {data,error:addError}=outcome.result;
+    if (addError || !data) {
       setError(
-        'We couldn’t add that video.',
+        'Could not add the video.',
       );
       setBusy(false);
       return;
     }
 
-    setVideos((current) => [
-      ...current,
-      data,
-    ]);
+    pageRead.updateData(current=>({...current,videos:[...current.videos.filter(video=>video.id!==data.id),data]}));
+    pendingVideos.current.delete(url);
 
     setVideoUrl('');
     setBusy(false);
@@ -540,111 +553,83 @@ return true;
   const removeVideo = async (
     videoId: string,
   ) => {
+    if(busy)return;
+    const scope=mediaScope.current;
+    const playerId=ctx.player.id;
     setBusy(true);
     setError('');
 
-    const {
-      error: removeError,
-    } = await supabase
-      .from('player_videos')
-      .delete()
-      .eq('id', videoId);
-
-    if (removeError) {
+    const outcome=await writeWithDeadline(async signal=>{
+      const removed=await supabase.from('player_videos').delete().eq('id',videoId).eq('player_id',playerId).select('id').abortSignal(signal);
+      if(removed.error||removed.data?.length)return removed;
+      const remaining=await supabase.from('player_videos').select('id').eq('id',videoId).eq('player_id',playerId).abortSignal(signal).maybeSingle();
+      if(remaining.error)return remaining;
+      return remaining.data?{error:{code:'NOT_REMOVED'},data:null}:removed;
+    });
+    if(!isCurrentMediaWrite(scope))return;
+    if(outcome.status==='unknown'||(outcome.result.error&&!outcome.result.error.code)){
+      setError('Could not confirm video removal. Try again.');
+      setBusy(false);
+      return;
+    }
+    if (outcome.result.error) {
       setError(
-        'We couldn’t remove that video.',
+        'Could not remove the video.',
       );
       setBusy(false);
       return;
     }
 
-    setVideos((current) =>
-      current.filter(
-        (video) =>
-          video.id !== videoId,
-      ),
-    );
+    pageRead.updateData(current=>({...current,videos:current.videos.filter(video=>video.id!==videoId)}));
 
     setBusy(false);
     flash('Video removed');
   };
 
-  const uploadPhoto = async (
-    event: any,
-  ) => {
-    const file =
-      event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
+  const savePhotoDraft=async()=>{
+    const draft=photoDraft.current;
+    if(busy||!draft||draft.playerId!==ctx.player.id)return;
+    const scope=mediaScope.current;
     setBusy(true);
-    setError('');
-
-    const ext =
-      file.name
-        .split('.')
-        .pop()
-        ?.toLowerCase() || 'jpg';
-
-    const path =
-      `${ctx.user.id}/profile-${Date.now()}.${ext}`;
-
-    const {
-      error: uploadError,
-    } = await supabase
-      .storage
-      .from('player-public')
-      .upload(
-        path,
-        file,
-        {
-          upsert: true,
-        },
-      );
-
-    if (uploadError) {
-      setError(
-        'We couldn’t upload that photo.',
-      );
-      setBusy(false);
+    setPhotoBusy(true);
+    setPhotoError('');
+    const outcome=await saveProfilePhoto(draft,
+      ()=>{
+        if(!isCurrentMediaWrite(scope))throw new Error('Photo owner changed');
+        return supabase.storage.from('player-public').upload(draft.path,draft.file,{upsert:true});
+      },
+      signal=>{
+        if(!isCurrentMediaWrite(scope))throw new Error('Photo owner changed');
+        return supabase.from('players').update({profile_photo_path:draft.path}).eq('id',draft.playerId).select('id').abortSignal(signal).single();
+      },
+    );
+    if(!isCurrentMediaWrite(scope)||photoDraft.current!==draft)return;
+    setBusy(false);
+    setPhotoBusy(false);
+    if(outcome.status!=='saved'){
+      setPhotoError(outcome.status==='unknown'
+        ? 'We could not confirm your photo update. Your selected photo is still here. Try again to continue the same update.'
+        : outcome.stage==='upload'
+          ? 'We couldn’t upload that photo. Your selected photo is still here. Please try again.'
+          : 'The photo uploaded but could not be attached to your profile. Try again to attach the same photo.');
       return;
     }
+    setP((current:any)=>({...current,profile_photo_path:draft.path}));
+    photoDraft.current=null;
+    setPhotoName('');
+    setPhotoError('');
+    flash('Photo updated');
+    if(!dirty)void ctx.refresh();
+  };
 
-    const {
-      error: attachError,
-    } = await supabase
-      .from('players')
-      .update({
-        profile_photo_path:
-          path,
-      })
-      .eq(
-        'id',
-        ctx.player.id,
-      );
-
-    if (attachError) {
-      setError(
-        'The photo uploaded but could not be attached to your profile.',
-      );
-      setBusy(false);
-      return;
-    }
-
-setP(
-  (current: any) => ({
-    ...current,
-    profile_photo_path:
-      path,
-  }),
-);
-
-setBusy(false);
-flash('Photo updated');
-
-void ctx.refresh();
+  const uploadPhoto=(event:any)=>{
+    const file:File|undefined=event.target.files?.[0];
+    event.target.value='';
+    if(!file||busy)return;
+    const ext=file.name.split('.').pop()?.toLowerCase()||'jpg';
+    photoDraft.current={file,playerId:ctx.player.id,path:`${ctx.user.id}/profile-${crypto.randomUUID()}.${ext}`,uploaded:false};
+    setPhotoName(file.name);
+    void savePhotoDraft();
   };
 
   const closeEditor = () => {
@@ -654,7 +639,7 @@ void ctx.refresh();
 
     if (dirty) {
       setError(
-        'You have unsaved changes. Save them or choose Discard.',
+        'Save or discard your changes.',
       );
       return;
     }
@@ -668,8 +653,10 @@ void ctx.refresh();
       return;
     }
 
+    // Photos are separately confirmed media, not part of the editable field draft.
     setP({
       ...ctx.player,
+      profile_photo_path:p.profile_photo_path??ctx.player.profile_photo_path,
     });
 
     setPr({
@@ -765,11 +752,11 @@ void ctx.refresh();
             </div>
 
             <h1 className="page-title">
-              Your career record.
+              Your profile
             </h1>
 
             <p className="page-intro">
-              Keep it accurate once. Your agency uses the same information when opportunities move quickly.
+              Your details, preferences and footage.
             </p>
           </div>
 
@@ -790,11 +777,19 @@ void ctx.refresh();
             <input
               type="file"
               accept="image/*"
+              aria-label="Update profile photo"
+              disabled={busy}
               hidden
               onChange={uploadPhoto}
             />
           </label>
         </header>
+        {photoName&&<div style={{marginBottom:20}}><JourneyStatus
+          kind={photoBusy?'loading':'error'}
+          title={photoBusy?'Updating your profile photo':'Your photo update needs another try'}
+          description={photoError||`Uploading ${photoName}. Your current photo stays in place until this update is confirmed.`}
+          onRetry={!busy&&photoError?()=>void savePhotoDraft():undefined}
+        /></div>}
 
         <section className="profile-21-status">
           <div className="profile-21-status-main">
@@ -942,7 +937,7 @@ void ctx.refresh();
             </strong>
 
             <span>
-              Salary expectations, passports, personal contact details and move preferences are not automatically shown to clubs.
+              Pay, passports, personal contacts and move preferences stay private unless approved for sharing.
             </span>
           </div>
         </section>
@@ -995,7 +990,7 @@ void ctx.refresh();
                 </button>
               </header>
 
-              <div className="profile-editor-body">
+              <fieldset className="profile-editor-body" disabled={busy} style={{border:0,minWidth:0,margin:0}}>
                 {editor ===
                   'football' && (
                   <FootballEditor
@@ -1050,7 +1045,7 @@ void ctx.refresh();
                     {error}
                   </div>
                 )}
-              </div>
+              </fieldset>
 
               {editor !== 'media' &&
                 dirty && (
@@ -1530,7 +1525,7 @@ function CareerEditor({
                   event.target.value,
               })
             }
-            placeholder="Be realistic. This helps your agency target the right opportunities."
+            placeholder="Markets you would seriously consider"
           />
         </div>
 
@@ -1723,7 +1718,7 @@ function SourcesEditor({
           </strong>
 
           <span>
-            External profiles give your agency a verification trail. Your dossier statistics are reviewed separately by your agency.
+            Add reliable profile links. Your agency reviews the statistics before sharing them.
           </span>
         </div>
       </div>

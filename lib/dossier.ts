@@ -132,14 +132,14 @@ export const dossierCareerStatLine = (
       null
       ? `${numeric(
           row.appearances,
-        )} apps`
+        )} ${numeric(row.appearances) === 1 ? 'app' : 'apps'}`
       : null,
 
     numeric(row?.starts) !==
       null
       ? `${numeric(
           row.starts,
-        )} starts`
+        )} ${numeric(row.starts) === 1 ? 'start' : 'starts'}`
       : null,
 
     numeric(row?.minutes) !==
@@ -148,21 +148,21 @@ export const dossierCareerStatLine = (
           row.minutes,
         )!.toLocaleString(
           'en-GB',
-        )} mins`
+        )} ${numeric(row.minutes) === 1 ? 'min' : 'mins'}`
       : null,
 
     numeric(row?.goals) !==
       null
       ? `${numeric(
           row.goals,
-        )} goals`
+        )} ${numeric(row.goals) === 1 ? 'goal' : 'goals'}`
       : null,
 
     numeric(row?.assists) !==
       null
       ? `${numeric(
           row.assists,
-        )} assists`
+        )} ${numeric(row.assists) === 1 ? 'assist' : 'assists'}`
       : null,
   ].filter(Boolean);
 
@@ -371,6 +371,10 @@ export const dossierHeadlineStats = (
         value: String(item?.value ?? item?.stat ?? '').trim(),
       }))
       .filter((item) => item.label && item.value);
+
+  // An agent-curated selection is intentional. Do not append other career
+  // numbers that were not chosen for this presentation.
+  if (manual.length) return manual.slice(0, limit);
 
   const output = [...manual];
   const seen = new Set(output.map((item) => key(item.label)));

@@ -27,14 +27,14 @@ test('mobile primary navigation stays focused on five everyday destinations', ()
 test('mobile header keeps account identity and moves Tell ReDream to one persistent control', () => {
   assert.match(shell, /desktopHeadActions/);
   assert.match(shell, /mobileHeadActions/);
-  assert.match(shell, /mobileTell/);
-  assert.match(shellCss, /\.mobileTell[\s\S]*position:\s*fixed/);
+  assert.match(shell, /AgencyMobileNavigation/);
+  assert.match(readFileSync('components/AgencyMobileNavigation.module.css','utf8'), /position:\s*fixed/);
 });
 
 test('Home shows one bounded five-item queue on mobile', () => {
   assert.match(shell, /\.slice\(0, 5\)/);
-  assert.match(shell, /styles\.homeTodayQueue/);
-  assert.match(shell, /styles\.todayQueueCard/);
+  assert.match(shell, /styles\.focusPanel/);
+  assert.match(shell, /styles\.focusRow/);
   assert.match(shellCss, /\.todayQueueList/);
   assert.match(shellCss, /\.todayQueueAction/);
   assert.doesNotMatch(shellCss, /\.homePulseGrid\s*\{/);
@@ -67,7 +67,7 @@ test('Pursuit Room speaks like an agent workflow while preserving internal contr
 
 test('Business uses plain agency language', () => {
   assert.match(owner, /Run the agency/);
-  assert.match(owner, /Deals, money owed, player service and who owns what/);
+  assert.match(owner, /Deals, income, player service and team ownership/);
   assert.doesNotMatch(owner, /Run the business without losing the football/);
 });
 

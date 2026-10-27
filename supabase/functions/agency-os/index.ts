@@ -1,5 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createSupabaseContext } from "npm:@supabase/server@1.6.0";
+import { preparePlayerProfileEvidence, reviewPlayerProfileEvidence } from "../_shared/player-profile-preparation.ts";
+import { selectPlayerProfilePresentation } from "../_shared/player-profile-ai.ts";
+import { suggestPlayerProfileTextImprovement } from "../_shared/player-profile-text-improvement.ts";
+import { researchPlayerContext } from "../_shared/player-context-ai.ts";
 import { refreshOutcome, safeSourceUrl, selectCurrentSeasonEvidence } from "../_shared/football-data/player-data-workflow.ts";
 
 import {restrictedPlayerProfile,restrictedClubAccount} from "../_shared/staff-read-contract.ts";
@@ -10,6 +14,35 @@ const obj=(v:unknown):Record<string,unknown>=>v&&typeof v==="object"&&!Array.isA
 const clamp=(v:unknown,min:number,max:number,fallback:number)=>Math.max(min,Math.min(max,Number(v??fallback)||fallback));
 const profileSlug=(v:unknown)=>String(v||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60);
 const profileAge=(v:unknown)=>{const raw=id(v);if(!raw)return null;const born=new Date(raw);if(Number.isNaN(born.getTime()))return null;return String(Math.floor((Date.now()-born.getTime())/(365.2425*86400000)))};
+const profileSnapshotKeys=["display_name","headline","primary_position","secondary_positions","preferred_foot","age_display","height_display","nationalities","current_status","current_club","key_stats","why_review","career_summary","profile_photo_path","hero_image_path","primary_video_url","transfermarkt_url","wyscout_url","stats_url","career_timeline","selected_videos","notable_experience","market_value_display","market_value_source_url","hidden_sections","hide_market_value","contact_email","verified_at"] as const;
+const publicProfileSnapshot=(profile:Record<string,unknown>)=>{
+  const snapshot=Object.fromEntries(profileSnapshotKeys.map(key=>[key,profile[key]??null])) as Record<string,unknown>;
+  for(const key of ["secondary_positions","nationalities","career_timeline","selected_videos","hidden_sections"]){if(!Array.isArray(snapshot[key]))snapshot[key]=[];}
+  snapshot.notable_experience=Array.isArray(profile.notable_experience)?profile.notable_experience.map((item:any)=>id(typeof item==="string"?item:item?.label||item?.title||item?.value).slice(0,180)).filter(Boolean):[];
+  return snapshot;
+};
+const profileStatsFromRefs=(refs:string[],candidates:any[])=>{
+  const byRef=new Map(candidates.map((candidate:any)=>[candidate.ref,candidate]));
+  const selected=refs.map(ref=>byRef.get(ref)).filter(Boolean) as any[];
+  return{
+    keyStats:selected.map(candidate=>({label:candidate.label,value:String(candidate.value)})),
+    sources:selected.map(candidate=>({source_ref:candidate.ref,value:candidate.value,season:candidate.seasonLabel,competition:candidate.competition,club:candidate.club,provenance:candidate.source.provenance,provider:candidate.source.provider,source_name:candidate.source.name,source_url:candidate.source.url,reviewed_at:candidate.source.reviewedAt,synced_at:candidate.source.syncedAt,selected_by:"agent_approved"}))
+  };
+};
+const validProfileRefs=(value:unknown,candidates:any[])=>{
+  if(!Array.isArray(value)||value.length>6||value.some(item=>typeof item!=="string"))return null;
+  const refs=value as string[];
+  const allowed=new Set(candidates.map(candidate=>candidate.ref));
+  return new Set(refs).size===refs.length&&refs.every(ref=>allowed.has(ref))?refs:null;
+};
+const profileMasterFingerprint=async(bundle:any)=>{
+  const player=bundle.player||{};
+  const facts={name:[player.first_name,player.last_name,player.preferred_name],date_of_birth:player.date_of_birth,nationalities:player.nationalities,height_cm:player.height_cm,preferred_foot:player.preferred_foot,primary_position:player.primary_position,secondary_positions:player.secondary_positions,current_club:player.current_club,current_league:player.current_league,current_country:player.current_country,contract_status:player.contract_status,contract_expiry:player.contract_expiry,football_status:player.football_status,current_season_label:player.current_season_label,transfermarkt_url:player.transfermarkt_url,wyscout_url:player.wyscout_url,stats_url:player.stats_url,profile_photo_path:player.profile_photo_path,verification_status:player.verification_status,verified_at:player.verified_at};
+  const career=(bundle.career||[]).map((row:any)=>({id:row.id,club_name:row.club_name,league:row.league,season_label:row.season_label,appearances:row.appearances,starts:row.starts,minutes:row.minutes,goals:row.goals,assists:row.assists,source_provider:row.source_provider,source_name:row.source_name,source_url:row.source_url,source_reviewed_at:row.source_reviewed_at,source_synced_at:row.source_synced_at})).sort((a:any,b:any)=>String(a.id).localeCompare(String(b.id)));
+  const videos=(bundle.videos||[]).map((video:any)=>({id:video.id,title:video.title,url:video.url,featured:video.featured,updated_at:video.updated_at})).sort((a:any,b:any)=>String(a.id).localeCompare(String(b.id)));
+  const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify({facts,career,videos})));
+  return Array.from(new Uint8Array(bytes),byte=>byte.toString(16).padStart(2,"0")).join("");
+};
 const statNorm=(value:unknown)=>String(value||"").trim().toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
 const trustedAutoStatProviders=new Set(["thesportsdb","api_football","wyscout","sportmonks","public_web_evidence","public_web_verified"]);
 const profileAutoStats=(career:any[],player:any,latestCheck:any=null)=>{
@@ -37,6 +70,8 @@ export default {fetch:async(req:Request)=>{
   const {data:ctx,error:contextError}=await createSupabaseContext(req,{auth:"user"});
   if(contextError||!ctx) return json({error:contextError?.message||"Unauthorized"},contextError?.status||401);
   try{
+    // Await returned route promises so RPC failures reach the JSON/CORS error handler.
+    return await (async()=>{
     const claims=(ctx.userClaims||{}) as Record<string,unknown>;
     const userId=String(claims.id||claims.sub||"");
     if(!userId) return json({error:"Authenticated user identity missing"},401);
@@ -74,7 +109,7 @@ export default {fetch:async(req:Request)=>{
       "deal_receivables","deal_receivable_save","receivable_payment_record","deal_closeout","deal_closeout_save"
     ]);
     const footballReads=new Set(["player_data_status"]);
-    const footballWrites=new Set(["player_data_save","player_data_refresh","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
+    const footballWrites=new Set(["player_profile_photo_begin","player_profile_photo_attach","player_data_save","player_data_refresh","player_context_research","player_context_apply","player_profile_transfermarkt_save","player_profile_video_add","player_profile_video_remove"]);
     if(!ownerAdmin()&&!staffActions.has(action)&&!footballReads.has(action)&&!footballWrites.has(action)&&!(role==="operations"&&operationsActions.has(action))){
       return deny("Agency administrator access required");
     }
@@ -82,7 +117,7 @@ export default {fetch:async(req:Request)=>{
     const dealId=()=>id(body?.deal_room_id),playerId=()=>id(body?.player_id),matchId=()=>id(body?.player_match_id);
     const profilePlayer=async(pid:string)=>{
       if(!pid)return null;
-      const {data,error}=await ctx.supabaseAdmin.from("players").select("id,tenant_id,user_id,archived_at,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,profile_photo_path,verification_status,verified_at,review_required_at,review_reason,current_season_label,agency_priority,next_action,next_action_due").eq("id",pid).eq("tenant_id",tenantId).maybeSingle();
+      const {data,error}=await ctx.supabaseAdmin.from("players").select("id,tenant_id,user_id,archived_at,updated_at,first_name,last_name,preferred_name,date_of_birth,nationalities,height_cm,preferred_foot,primary_position,secondary_positions,current_club,current_league,current_country,contract_status,contract_expiry,football_status,transfermarkt_url,wyscout_url,stats_url,profile_photo_path,verification_status,verified_at,review_required_at,review_reason,current_season_label,agency_priority,next_action,next_action_due").eq("id",pid).eq("tenant_id",tenantId).maybeSingle();
       if(error)throw error;
       return data;
     };
@@ -133,7 +168,7 @@ export default {fetch:async(req:Request)=>{
     const profileSecondary=async(pid:string)=>{
       const [documentsResult,sharesResult,serverContext,communication]=await Promise.all([
         ctx.supabaseAdmin.from("player_documents").select("id,title,document_type,club_shareable,created_at,country,expires_at").eq("player_id",pid).eq("club_shareable",true).order("created_at",{ascending:false}),
-        ctx.supabaseAdmin.from("club_share_links").select("id,token,player_id,label,active,expires_at,view_count,last_viewed_at,created_at,opportunity_id,organisation_id,source_person_id,pitch_message,pitch_status,sent_at,revoked_at").eq("player_id",pid).order("created_at",{ascending:false}).limit(50),
+        ctx.supabaseAdmin.from("club_share_links").select("id,token,player_id,label,active,expires_at,view_count,last_viewed_at,created_at,opportunity_id,organisation_id,source_person_id,profile_version_id,pitch_message,pitch_status,sent_at,revoked_at").eq("player_id",pid).order("created_at",{ascending:false}).limit(50),
         profileContext(pid),
         profileCommunication(pid)
       ]);
@@ -155,7 +190,7 @@ export default {fetch:async(req:Request)=>{
         ctx.supabaseAdmin.from("career_entries").select("id,player_id,club_name,country,league,season_label,start_date,end_date,appearances,starts,minutes,goals,assists,notes,is_international,sort_order,source_name,source_url,source_reviewed_at,source_provider,source_synced_at,updated_at").eq("player_id",pid).order("sort_order").order("start_date",{ascending:false}),
         ctx.supabaseAdmin.from("player_videos").select("id,player_id,title,url,video_type,featured,sort_order,created_at,updated_at").eq("player_id",pid).order("featured",{ascending:false}).order("sort_order"),
         ctx.supabaseAdmin.from("player_documents").select("id,title,document_type,club_shareable,created_at,country,expires_at").eq("player_id",pid).eq("club_shareable",true).order("created_at",{ascending:false}),
-        ctx.supabaseAdmin.from("club_share_links").select("id,token,player_id,label,active,expires_at,view_count,last_viewed_at,created_at,opportunity_id,organisation_id,source_person_id,pitch_message,pitch_status,sent_at,revoked_at").eq("player_id",pid).order("created_at",{ascending:false}).limit(50),
+        ctx.supabaseAdmin.from("club_share_links").select("id,token,player_id,label,active,expires_at,view_count,last_viewed_at,created_at,opportunity_id,organisation_id,source_person_id,profile_version_id,pitch_message,pitch_status,sent_at,revoked_at").eq("player_id",pid).order("created_at",{ascending:false}).limit(50),
         profileContext(pid),
         ctx.supabaseAdmin.from("player_source_refreshes").select("provider,status,fresh_at,source_url,summary").eq("player_id",pid).eq("provider","openai_web_stats").eq("status","applied").order("fresh_at",{ascending:false}).limit(1).maybeSingle(),
         profileCommunication(pid)
@@ -168,6 +203,22 @@ export default {fetch:async(req:Request)=>{
       const shares=(sharesResult.data||[]).map((share:any)=>({...share,club_name:clubMap.get(String(share.organisation_id||""))||share.label||null,deal_title:dealMap.get(String(share.opportunity_id||""))?.title||null}));
       const career=careerResult.data||[],autoStats=profileAutoStats(career,player,refreshResult.data||null);
       return{player,settings:settingsResult.data||{},published:publishedResult.data||null,career,videos:videosResult.data||[],documents:documentsResult.data||[],shares,deals,clubs,branding:serverContext.branding,communication,auto_key_stats:autoStats.stats,auto_stats_meta:autoStats.meta};
+    };
+    const profileEvidence=(bundle:any)=>preparePlayerProfileEvidence({player:bundle.player,career:bundle.career||[],videos:bundle.videos||[],now:new Date().toISOString()});
+    const profileClubTarget=async(pid:string,organisationId:string,dealRoomId:string|null)=>{
+      const target=obj(await rpc("platform_server_player_profile_share_target",{p_tenant_id:tenantId,p_player_id:pid,p_deal_room_id:dealRoomId,p_organisation_id:organisationId||null}));
+      const deal=obj(target.deal),organisation=obj(target.organisation);
+      if(dealRoomId&&organisationId&&id(deal.organisation_id)&&id(deal.organisation_id)!==organisationId)return null;
+      const resolvedOrganisation=id(deal.organisation_id)||organisationId;
+      if(dealRoomId&&!Object.keys(deal).length)return null;
+      if(!resolvedOrganisation||!Object.keys(organisation).length||id(organisation.id)!==resolvedOrganisation)return null;
+      return{deal,organisation,organisationId:resolvedOrganisation};
+    };
+    const profileAiKey=async()=>{
+      const key=Deno.env.get("OPENAI_API_KEY");
+      if(!key)return null;
+      try{return await rpc("platform_server_player_profile_ai_access",{p_tenant_id:tenantId,p_user_id:userId})===true?key:null;}
+      catch(error){console.warn("player-profile AI access unavailable",error);return null;}
     };
 
     if(action==="home_focus"){
@@ -465,6 +516,46 @@ export default {fetch:async(req:Request)=>{
     }
 
 
+    if(action==="player_context_research"||action==="player_context_apply"){
+      if(!operator())return deny("Agency operator access required");
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const player=await profilePlayer(pid);if(!player)return json({error:"Player not found in this agency"},404);
+      if(action==="player_context_research"){
+        const apiKey=Deno.env.get("OPENAI_API_KEY");
+        if(!apiKey)return json({error:"Player research is temporarily unavailable"},503);
+        const {data:career,error:careerError}=await ctx.supabaseAdmin.from("career_entries")
+          .select("club_name,league,season_label").eq("player_id",pid).order("start_date",{ascending:false}).limit(6);
+        if(careerError)throw careerError;
+        const researched=await researchPlayerContext({player,career:career||[]},{apiKey,model:Deno.env.get("REDREAM_PROFILE_MODEL")||"gpt-6-luna",timeoutMs:25000});
+        if(!researched.ok)return json({ok:false,proposal:null,reason:researched.reason,confidence:researched.confidence,sources:researched.sources},200);
+        const fillable=["current_club","current_league","current_country","current_season_label","primary_position","transfermarkt_url","stats_url"] as const;
+        const fields:Record<string,string>={};
+        for(const key of fillable){
+          if(!id((player as any)[key])&&id((researched.fields as any)[key]))fields[key]=id((researched.fields as any)[key]);
+        }
+        return json({ok:true,proposal:{fields,confidence:researched.confidence,reason:researched.reason,sources:researched.sources,model:researched.model}});
+      }
+      const incoming=obj(body?.fields),allowed=["current_club","current_league","current_country","current_season_label","primary_position","transfermarkt_url","stats_url"];
+      const patch:Record<string,string>={};
+      const before:Record<string,unknown>={};
+      for(const key of allowed){
+        const value=id(incoming[key]).slice(0,key.endsWith("_url")?600:160);
+        if(!value||id((player as any)[key]))continue;
+        if(key.endsWith("_url")){
+          let safe=false;try{const u=new URL(value);safe=u.protocol==="https:"||u.protocol==="http:";}catch{}
+          if(!safe)continue;
+        }
+        before[key]=(player as any)[key]??null;patch[key]=value;
+      }
+      if(!Object.keys(patch).length)return json({ok:true,applied_fields:[],player});
+      patch.updated_at=new Date().toISOString();
+      const {data:updated,error:updateError}=await ctx.supabaseAdmin.from("players").update(patch).eq("id",pid).eq("tenant_id",tenantId)
+        .select("id,current_club,current_league,current_country,current_season_label,primary_position,transfermarkt_url,stats_url,updated_at").single();
+      if(updateError)throw updateError;
+      await profileAudit("player_context.ai_applied",pid,before,updated,{applied_fields:Object.keys(patch).filter(key=>key!=="updated_at"),sources:Array.isArray(body?.sources)?body.sources.slice(0,8):[]});
+      return json({ok:true,applied_fields:Object.keys(patch).filter(key=>key!=="updated_at"),player:updated});
+    }
+
     if(action==="player_data_status"||action==="player_data_refresh"||action==="player_data_save"){
       if(action!=="player_data_status"&&!operator())return deny("Agency operator access required");
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
@@ -562,18 +653,127 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,tenant:workspace,profile});
     }
 
-    if(action==="player_profile_save"){
+    if(action==="player_profile_prepare"){
+      if(!operator())return deny("Agency operator access required");
+      const pid=playerId(),kind=id(body?.kind);
+      if(!pid||!["general","club"].includes(kind))return json({error:"Choose General or For a Club"},400);
+      const bundle=await profileCore(pid);if(!bundle)return json({error:"Player not found in this agency"},404);
+      const organisationId=id(body?.organisation_id),dealRoomId=id(body?.deal_room_id)||null;
+      const target=kind==="club"?await profileClubTarget(pid,organisationId,dealRoomId):null;
+      if(kind==="club"&&!target)return json({error:"Choose a club or opportunity in this workspace"},400);
+      const clubContext=target?obj(await rpc("platform_server_player_profile_club_context",{p_tenant_id:tenantId,p_player_id:pid,p_organisation_id:target.organisationId,p_deal_room_id:dealRoomId})):{};
+      const clubNeed=obj(clubContext.club_need),clubOrganisation=obj(clubContext.organisation);
+      const evidence=profileEvidence(bundle);
+      const player=bundle.player;
+      const name=[player.preferred_name||player.first_name,player.last_name].filter(Boolean).join(" ")||"Player";
+      const aiKey=await profileAiKey();
+      const selected=await selectPlayerProfilePresentation({
+        mode:kind as "general"|"club",
+        player:{displayName:name,primaryPosition:player.primary_position,currentClub:player.current_club,currentSeasonLabel:player.current_season_label},
+        club:target?{name:id(target.organisation.name),league:id(clubOrganisation.league_name)||null,positionNeed:id(clubNeed.position)||null}:null,
+        statCandidates:evidence.statCandidates,videoCandidates:evidence.videoCandidates
+      },{apiKey:aiKey,model:Deno.env.get("REDREAM_PROFILE_MODEL")||"gpt-6-luna",timeoutMs:12000});
+      const fingerprint=await profileMasterFingerprint(bundle);
+      return json({ok:true,ai_available:Boolean(aiKey),proposal:{kind,headline:selected.headline,why_review:selected.introLine,selected_stat_refs:selected.selectedStatRefs,selected_video_id:selected.selectedVideoId,hidden_sections:Array.isArray(bundle.settings?.hidden_sections)?bundle.settings.hidden_sections:[],source_fingerprint:fingerprint,club_name:target?id(target.organisation.name):null,club_requirement:clubNeed.id?{title:id(clubNeed.title)||null,position:id(clubNeed.position)||null}:null,preparation_source:selected.source,preparation_reason:selected.reason},evidence:{stats:evidence.statCandidates.map(candidate=>({ref:candidate.ref,label:candidate.label,value:candidate.value,seasonLabel:candidate.seasonLabel,competition:candidate.competition,source:{name:candidate.source.name||candidate.source.provider,status:candidate.source.provenance,updatedAt:candidate.source.reviewedAt||candidate.source.syncedAt}})),videos:evidence.videoCandidates}});
+    }
+
+    if(action==="player_profile_review"){
+      if(!operator())return deny("Agency operator access required");
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const bundle=await profileCore(pid);if(!bundle)return json({error:"Player not found in this agency"},404);
+      let draft=obj(body?.proposal),changed=false;
+      if(id(draft.source_fingerprint))changed=id(draft.source_fingerprint)!==await profileMasterFingerprint(bundle);
+      const versionId=id(body?.version_id);
+      if(versionId){
+        const versionResult=await ctx.supabaseAdmin.from("player_profile_versions").select("id,presentation,stat_sources,master_data_fingerprint").eq("id",versionId).eq("tenant_id",tenantId).eq("player_id",pid).maybeSingle();
+        if(versionResult.error)throw versionResult.error;
+        if(!versionResult.data)return json({error:"Profile version not found"},404);
+        if(!Object.keys(draft).length){
+          draft={...obj(versionResult.data.presentation),selected_stat_refs:Array.isArray(versionResult.data.stat_sources)?versionResult.data.stat_sources.map((source:any)=>id(source.source_ref)).filter(Boolean):[],selected_video_id:(bundle.videos||[]).find((video:any)=>video.url===versionResult.data.presentation?.primary_video_url)?.id||null};
+        }
+        changed=versionResult.data.master_data_fingerprint!==await profileMasterFingerprint(bundle);
+      }
+      const selectedRefs=Array.isArray(draft.selected_stat_refs)?draft.selected_stat_refs:Array.isArray(bundle.settings?.selected_stat_refs)?bundle.settings.selected_stat_refs:[];
+      const selectedVideo=draft.selected_video_id??bundle.settings?.selected_video_id??null;
+      const suggestions=reviewPlayerProfileEvidence({player:bundle.player,career:bundle.career||[],videos:bundle.videos||[],now:new Date().toISOString(),draft:{featuredStatRefs:selectedRefs,primaryVideoId:selectedVideo,introLine:id(draft.why_review)||id(bundle.settings?.why_review)}});
+      if(changed)suggestions.unshift({code:"new_player_data",message:"New player data is available. Review this profile before sharing it."});
+      return json({ok:true,review:{status:suggestions.length?"suggestions":"ready",suggestions:suggestions.slice(0,8)}});
+    }
+
+    if(action==="player_profile_improve"){
       if(!operator())return deny("Agency operator access required");
       const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
       const player=await profilePlayer(pid);if(!player)return json({error:"Player not found in this agency"},404);
+      const section=id(body?.section),style=id(body?.style),sourceText=id(body?.text);
+      if(!["headline","why_review"].includes(section)||!["shorter","clearer","football_focused","more_direct","tailor_to_club"].includes(style)||!sourceText||sourceText.length>1200)return json({error:"Choose a profile section to improve"},400);
+      let clubName:string|null=null;
+      if(style==="tailor_to_club"){
+        const target=await profileClubTarget(pid,id(body?.organisation_id),id(body?.deal_room_id)||null);
+        if(!target)return json({error:"Choose a club in this workspace"},400);
+        clubName=id(target.organisation.name);
+      }
+      const improvement=await suggestPlayerProfileTextImprovement({section:section as "headline"|"why_review",style:style as "shorter"|"clearer"|"football_focused"|"more_direct"|"tailor_to_club",text:sourceText,clubName},{apiKey:await profileAiKey(),model:Deno.env.get("REDREAM_PROFILE_MODEL")||"gpt-6-luna",timeoutMs:12000});
+      return json({ok:true,improvement});
+    }
+
+    if(action==="player_profile_versions"){
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const bundle=await profileCore(pid);if(!bundle)return json({error:"Player not found in this agency"},404);
+      const [versionsResult,context,fingerprint]=await Promise.all([
+        ctx.supabaseAdmin.from("player_profile_versions").select("id,profile_kind,organisation_id,deal_room_id,status,presentation,master_data_fingerprint,created_at,approved_at").eq("tenant_id",tenantId).eq("player_id",pid).eq("status","approved").order("created_at",{ascending:false}).limit(50),
+        profileContext(pid),profileMasterFingerprint(bundle)
+      ]);
+      if(versionsResult.error)throw versionsResult.error;
+      const clubs=new Map((context.clubs||[]).map((club:any)=>[id(club.id),id(club.name)]));
+      const versions=(versionsResult.data||[]).map((version:any)=>({id:version.id,kind:version.profile_kind,organisation_id:version.organisation_id,deal_room_id:version.deal_room_id,club_name:clubs.get(id(version.organisation_id))||null,headline:id(version.presentation?.headline),status:version.status,created_at:version.created_at,approved_at:version.approved_at,presentation:version.presentation,new_player_data_available:version.master_data_fingerprint!==fingerprint}));
+      return json({ok:true,versions});
+    }
+
+    if(action==="player_profile_version_save"){
+      if(!operator())return deny("Agency operator access required");
+      const pid=playerId(),organisationId=id(body?.organisation_id),dealRoomId=id(body?.deal_room_id)||null;
+      if(!pid||!organisationId)return json({error:"Choose a player and club"},400);
+      const bundle=await profileCore(pid);if(!bundle)return json({error:"Player not found in this agency"},404);
+      if(!bundle.published?.published)return json({error:"Publish the general Player Profile before saving a club version"},409);
+      if(bundle.player.verification_status!=="verified"||!bundle.player.verified_at)return json({error:"Verify current player data before saving a club profile"},409);
+      const target=await profileClubTarget(pid,organisationId,dealRoomId);
+      if(!target)return json({error:"Club or opportunity not found for this player"},404);
+      const fingerprint=await profileMasterFingerprint(bundle);
+      if(id(body?.source_fingerprint)!==fingerprint)return json({error:"Player data changed. Prepare this profile again before saving"},409);
+      const request=obj(body?.presentation),evidence=profileEvidence(bundle);
+      const refs=validProfileRefs(request.selected_stat_refs,evidence.statCandidates);
+      if(!refs)return json({error:"Choose statistics with current source evidence"},409);
+      const videoId=id(request.selected_video_id)||null;
+      if(videoId&&!evidence.videoCandidates.some(video=>video.id===videoId))return json({error:"Choose an available player video"},409);
+      const selected=videoId?(bundle.videos||[]).find((video:any)=>video.id===videoId):null;
+      const statData=profileStatsFromRefs(refs,evidence.statCandidates);
+      const allowedSections=new Set(["why_review","stats","career","videos","experience"]);
+      const hidden=Array.isArray(request.hidden_sections)?request.hidden_sections.map(id).filter((section:string)=>allowedSections.has(section)):[];
+      const presentation={...publicProfileSnapshot(bundle.published),headline:id(request.headline).slice(0,220)||bundle.published.headline,why_review:id(request.why_review).slice(0,1200)||null,key_stats:statData.keyStats,primary_video_url:selected?.url||bundle.published.primary_video_url||null,selected_videos:selected?[{title:selected.title,url:selected.url,video_type:selected.video_type}]:bundle.published.selected_videos||[],hidden_sections:hidden};
+      const now=new Date().toISOString();
+      const {data,error}=await ctx.supabaseAdmin.from("player_profile_versions").insert({tenant_id:tenantId,player_id:pid,profile_kind:"club",organisation_id:target.organisationId,source_person_id:id(target.deal.source_person_id)||null,deal_room_id:dealRoomId,status:"approved",presentation,stat_sources:statData.sources,master_player_updated_at:bundle.player.updated_at||now,master_data_fingerprint:fingerprint,created_by:userId,approved_by:userId,approved_at:now}).select("id,profile_kind,organisation_id,deal_room_id,status,presentation,created_at,approved_at").single();
+      if(error)throw error;
+      await profileAudit("player_profile.version_approved",pid,{},data,{organisation_id:target.organisationId,deal_room_id:dealRoomId,stat_refs:refs});
+      return json({ok:true,version:{...data,club_name:id(target.organisation.name)}});
+    }
+
+    if(action==="player_profile_save"){
+      if(!operator())return deny("Agency operator access required");
+      const pid=playerId();if(!pid)return json({error:"player_id is required"},400);
+      const bundle=await profileCore(pid);if(!bundle)return json({error:"Player not found in this agency"},404);
       const source=obj(body?.settings);
-      const before=(await ctx.supabaseAdmin.from("player_cv_settings").select("*").eq("player_id",pid).maybeSingle()).data||{};
+      const before=bundle.settings||{};
+      const evidence=profileEvidence(bundle);
+      const selectedStatRefs=Object.hasOwn(source,"selected_stat_refs")?validProfileRefs(source.selected_stat_refs,evidence.statCandidates):(Array.isArray(before.selected_stat_refs)?before.selected_stat_refs:[]);
+      if(!selectedStatRefs)return json({error:"Choose statistics with current source evidence"},409);
+      const selectedVideoId=Object.hasOwn(source,"selected_video_id")?id(source.selected_video_id)||null:id(before.selected_video_id)||null;
+      if(selectedVideoId&&!evidence.videoCandidates.some(video=>video.id===selectedVideoId))return json({error:"Choose an available player video"},409);
       const clean=(value:unknown,max:number)=>id(value).slice(0,max)||null;
       const keyStats=Array.isArray(source.key_stats)?source.key_stats.slice(0,6).map((item:any)=>({label:id(item?.label).slice(0,50),value:id(item?.value).slice(0,50)})).filter((item:any)=>item.label&&item.value):[];
       const notable=Array.isArray(source.notable_experience)?source.notable_experience.slice(0,8).map((item:any)=>id(typeof item==="string"?item:item?.label||item?.title||item?.value).slice(0,180)).filter(Boolean):[];
       const allowedSections=new Set(["why_review","stats","career","videos","experience"]);
       const hidden=Array.isArray(source.hidden_sections)?source.hidden_sections.map((item:any)=>id(item)).filter((item:string)=>allowedSections.has(item)):[];
-      const payload={player_id:pid,intro_line:clean(source.intro_line,220),why_review:clean(source.why_review,1200),career_summary:clean(source.career_summary,1200),key_stats:keyStats,notable_experience:notable,hide_market_value:source.hide_market_value!==false,market_value_display:clean(source.market_value_display,80),market_value_source_url:clean(source.market_value_source_url,1000),hidden_sections:hidden};
+      const payload={player_id:pid,intro_line:clean(source.intro_line,220),why_review:clean(source.why_review,1200),career_summary:clean(source.career_summary,1200),key_stats:keyStats,selected_stat_refs:selectedStatRefs,selected_video_id:selectedVideoId,notable_experience:notable,hide_market_value:source.hide_market_value!==false,market_value_display:clean(source.market_value_display,80),market_value_source_url:clean(source.market_value_source_url,1000),hidden_sections:hidden};
       if(!payload.hide_market_value&&payload.market_value_display&&!payload.market_value_source_url)return json({error:"A source URL is required when market value is shown"},400);
       const {data,error}=await ctx.supabaseAdmin.from("player_cv_settings").upsert(payload).select("*").single();if(error)throw error;
       await profileAudit("player_profile.settings_saved",pid,before,data,{});
@@ -614,6 +814,24 @@ export default {fetch:async(req:Request)=>{
       if(saveResult.error)throw saveResult.error;
       const verification=obj(await rpc("platform_server_confirm_player_profile_verification",{p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId,p_verification_method:"operator_confirmation"}));
       return json({ok:true,player:verification.player||await profilePlayer(pid)});
+    }
+
+    if(action==="player_profile_photo_begin"||action==="player_profile_photo_attach"){
+      const pid=playerId(),player=await profilePlayer(pid);
+      if(!player||player.archived_at||["retired","inactive"].includes(String(player.football_status||"").toLowerCase()))return json({error:"Player not found in this agency"},404);
+      if(action==="player_profile_photo_begin"){
+        const extensions:Record<string,string>={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"};
+        const type=id(body?.content_type),size=Number(body?.size);
+        if(!Object.hasOwn(extensions,type)||!Number.isInteger(size)||size<1||size>8*1024*1024)return json({error:"Use a JPG, PNG or WebP image smaller than 8 MB"},400);
+        const path=`agency/${tenantId}/players/${pid}/${userId}/${crypto.randomUUID()}.${extensions[type]}`;
+        const {data,error}=await ctx.supabaseAdmin.storage.from("player-public").createSignedUploadUrl(path);
+        if(error)throw error;
+        if(!data?.token)return json({error:"The photo upload could not be prepared. Try again"},503);
+        return json({ok:true,upload:{path,token:data.token,expected_photo_path:player.profile_photo_path||null}});
+      }
+      return json({ok:true,player:await rpc("platform_server_attach_player_photo",{
+        p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId,p_path:id(body?.path),p_expected_photo_path:body?.expected_photo_path??null
+      })});
     }
 
     if(action==="player_profile_transfermarkt_save"){
@@ -677,9 +895,16 @@ export default {fetch:async(req:Request)=>{
       if(settings.hide_market_value===false&&settings.market_value_display&&!settings.market_value_source_url)return json({error:"Add a source URL before showing market value"},409);
       const name=[player.first_name,player.last_name].filter(Boolean).join(" ")||player.preferred_name||"Player";
       const existing=bundle.published||{};
-      const selected=(bundle.videos||[]).filter((video:any)=>video.featured).length?(bundle.videos||[]).filter((video:any)=>video.featured).slice(0,4):(bundle.videos||[]).slice(0,4);
+      const evidence=profileEvidence(bundle);
+      const savedRefs=Array.isArray(settings.selected_stat_refs)?settings.selected_stat_refs:[];
+      const refs=validProfileRefs(savedRefs,evidence.statCandidates);
+      if(!refs)return json({error:"A selected statistic changed. Review its source before publishing"},409);
+      const featuredVideoId=id(settings.selected_video_id);
+      if(featuredVideoId&&!evidence.videoCandidates.some(video=>video.id===featuredVideoId))return json({error:"The featured video is unavailable. Choose another before publishing"},409);
+      const defaultVideos=(bundle.videos||[]).filter((video:any)=>video.featured).length?(bundle.videos||[]).filter((video:any)=>video.featured).slice(0,4):(bundle.videos||[]).slice(0,4);
+      const selected=featuredVideoId?[(bundle.videos||[]).find((video:any)=>video.id===featuredVideoId),...defaultVideos.filter((video:any)=>video.id!==featuredVideoId)].filter(Boolean).slice(0,4):defaultVideos;
       const timeline=(bundle.career||[]).map((row:any)=>({club_name:row.club_name,country:row.country,league:row.league,season_label:row.season_label,start_date:row.start_date,end_date:row.end_date,appearances:row.appearances,starts:row.starts,minutes:row.minutes,goals:row.goals,assists:row.assists,source_name:row.source_name,source_url:row.source_url,source_reviewed_at:row.source_reviewed_at,sort_order:row.sort_order}));
-      const customStats=Array.isArray(settings.key_stats)&&settings.key_stats.length?settings.key_stats:bundle.auto_key_stats||[];
+      const customStats=refs.length?profileStatsFromRefs(refs,evidence.statCandidates).keyStats:Array.isArray(settings.key_stats)&&settings.key_stats.length?settings.key_stats:bundle.auto_key_stats||[];
       const snapshot={headline:id(settings.intro_line)||[player.primary_position,player.current_club].filter(Boolean).join(" · ")||"Professional footballer",key_stats:customStats,why_review:id(settings.why_review)||null,career_summary:id(settings.career_summary)||null,primary_video_url:selected?.[0]?.url||null,career_timeline:timeline,selected_videos:selected.map((video:any)=>({title:video.title,url:video.url,video_type:video.video_type})),notable_experience:Array.isArray(settings.notable_experience)?settings.notable_experience:[],market_value_display:settings.hide_market_value===false?id(settings.market_value_display)||null:null,market_value_source_url:settings.hide_market_value===false?id(settings.market_value_source_url)||null:null,hidden_sections:Array.isArray(settings.hidden_sections)?settings.hidden_sections:[],hide_market_value:settings.hide_market_value!==false};
       const publishResult=obj(await rpc("platform_server_publish_player_profile_snapshot",{p_tenant_id:tenantId,p_player_id:pid,p_actor_user_id:userId,p_snapshot:snapshot}));
       const published=obj(publishResult.profile);
@@ -705,16 +930,27 @@ export default {fetch:async(req:Request)=>{
       const deal=obj(target.deal);
       const organisation=obj(target.organisation);
       if(dealRoomId&&!Object.keys(deal).length)return json({error:"Deal not found for this player"},404);
+      if(dealRoomId&&organisationId&&id(deal.organisation_id)&&id(deal.organisation_id)!==organisationId)return json({error:"The opportunity belongs to another club"},409);
       organisationId=id(deal.organisation_id)||organisationId;
       const sourcePersonId=id(deal.source_person_id)||null;
       if(!organisationId)return json({error:"Choose the club this profile is being shared with"},400);
       if(!Object.keys(organisation).length)return json({error:"Club not found in this agency workspace"},404);
+      const versionId=id(body?.profile_version_id)||null;
+      if(versionId){
+        const versionResult=await ctx.supabaseAdmin.from("player_profile_versions").select("id,profile_kind,organisation_id,deal_room_id,source_person_id,status").eq("id",versionId).eq("tenant_id",tenantId).eq("player_id",pid).maybeSingle();
+        if(versionResult.error)throw versionResult.error;
+        const version=versionResult.data;
+        if(!version||version.status!=="approved")return json({error:"Choose an approved profile version"},409);
+        if(version.profile_kind==="club"&&version.organisation_id!==organisationId)return json({error:"This profile version was prepared for another club"},409);
+        if(version.deal_room_id&&version.deal_room_id!==dealRoomId)return json({error:"This profile version belongs to another opportunity"},409);
+        if(version.source_person_id&&version.source_person_id!==sourcePersonId)return json({error:"This profile version belongs to another contact"},409);
+      }
       const expiresDays=clamp(body?.expires_days,1,180,30);
       const now=new Date();
       const expiresAt=new Date(now.getTime()+expiresDays*86400000).toISOString();
-      const {data,error}=await ctx.supabaseAdmin.from("club_share_links").insert({player_id:pid,label:id(organisation.name),active:true,expires_at:expiresAt,created_by:userId,opportunity_id:dealRoomId,organisation_id:organisationId,source_person_id:sourcePersonId,pitch_message:id(body?.pitch_message).slice(0,1500)||null,pitch_status:"ready",selected_sections:Array.isArray(body?.selected_sections)?body.selected_sections:[],sent_at:null}).select("*").single();if(error)throw error;
+      const {data,error}=await ctx.supabaseAdmin.from("club_share_links").insert({player_id:pid,label:id(organisation.name),active:true,expires_at:expiresAt,created_by:userId,opportunity_id:dealRoomId,organisation_id:organisationId,source_person_id:sourcePersonId,profile_version_id:versionId,pitch_message:id(body?.pitch_message).slice(0,1500)||null,pitch_status:"ready",selected_sections:Array.isArray(body?.selected_sections)?body.selected_sections:[],sent_at:null}).select("*").single();if(error)throw error;
       if(dealRoomId) await rpc("platform_server_player_profile_mark_pitch_ready",{p_tenant_id:tenantId,p_player_id:pid,p_deal_room_id:dealRoomId});
-      await profileAudit("player_profile.share_link_created",pid,{},data,{organisation_id:organisationId,club_name:id(organisation.name),deal_room_id:dealRoomId});
+      await profileAudit("player_profile.share_link_created",pid,{},data,{organisation_id:organisationId,club_name:id(organisation.name),deal_room_id:dealRoomId,profile_version_id:versionId});
       return json({ok:true,share:{...data,club_name:id(organisation.name),deal_title:id(deal.title)||null}});
     }
 
@@ -933,7 +1169,21 @@ export default {fetch:async(req:Request)=>{
       if(action==="player_value_proof_capture") return result("result","platform_server_capture_player_value_proof",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId,p_window_days:clamp(body?.window_days,1,366,30)});
       if(action==="career_strategy") return result("career_strategy","platform_server_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p});
       if(action==="career_alignment") return result("career_alignment","platform_server_player_career_alignment",{p_tenant_id:tenantId,p_player_id:p});
-      if(action==="career_strategy_action_prepare") return result("proposal","platform_server_prepare_career_strategy_action",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId});
+      if(action==="career_strategy_action_prepare"){
+        const prepared=obj(await rpc("platform_server_prepare_career_strategy_action",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId}));
+        if(!["define_career_strategy","confirm_strategy_with_player","complete_strategy_approval"].includes(id(prepared.strategy_action_type)))return json({ok:true,tenant:workspace,proposal:prepared});
+        const career=obj(await rpc("platform_server_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p}));
+        const recorded=obj(career.strategy),strategy=obj(recorded.strategy);
+        const missing=["objective","preferred_pathway","fallback_pathway","next_checkpoint"].filter(key=>!id(strategy[key]));
+        const nextType=!id(recorded.id)||missing.length?"define_career_strategy":career.confirmation_state!=="confirmed"?"confirm_strategy_with_player":"complete_strategy_approval";
+        return json({ok:true,tenant:workspace,proposal:{...prepared,
+          strategy_action_type:nextType,
+          instruction:nextType==="define_career_strategy"?"Complete the career plan before recording player confirmation.":nextType==="confirm_strategy_with_player"?"Record the player's confirmation of this saved plan.":"Review and approve the confirmed career plan.",
+          allowed_next_steps:[nextType==="define_career_strategy"?"save_career_strategy":nextType==="confirm_strategy_with_player"?"record_player_confirmation":"approve_career_strategy"],
+          career_strategy:career,
+          suggested_input:{career_objective:id(strategy.objective),career_preferred_pathway:id(strategy.preferred_pathway),career_fallback_pathway:id(strategy.fallback_pathway),career_next_checkpoint:id(strategy.next_checkpoint),career_review_due_at:id(recorded.review_due_at),career_target_markets:Array.isArray(strategy.target_markets)?strategy.target_markets.join(", "):"",career_avoid_markets:Array.isArray(strategy.avoid_markets)?strategy.avoid_markets.join(", "):"",career_notes:id(strategy.notes)}
+        }});
+      }
       if(action==="career_strategy_confirm"){const m=id(body?.confirmation_method);if(!m)return json({error:"confirmation_method is required"},400);return result("career_strategy","platform_server_confirm_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId,p_method:m});}
       if(action==="career_strategy_approve") return result("career_strategy","platform_server_approve_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId});
       return result("career_strategy","platform_server_archive_player_career_strategy",{p_tenant_id:tenantId,p_player_id:p,p_actor_user_id:userId});
@@ -975,21 +1225,31 @@ export default {fetch:async(req:Request)=>{
       const data=await rpc("platform_server_seed_demo_story",{p_tenant_id:tenantId});await rpc("platform_server_reconcile_commitments",{p_tenant_id:tenantId});await rpc("platform_server_refresh_agency_pulse",{p_tenant_id:tenantId});return json({ok:true,result:data});
     }
     return json({error:"Unknown action"},400);
+    })();
   }catch(error){
     const message=error instanceof Error?error.message:String(obj(error).message||"");
-    if(obj(error).code==="42501"||["workspace_access_denied","agency_staff_access_required","active_tenant_staff_required","proposal_access_denied","agency_admin_access_required"].includes(message)){
+    if(obj(error).code==="42501"||["workspace_access_denied","agency_staff_access_required","active_tenant_staff_required","proposal_access_denied","agency_admin_access_required","owner_or_admin_required","agency_operator_access_required"].includes(message)){
       return json({error:"You do not have permission to perform this action.",code:"workspace_access_denied"},403);
     }
     const conflicts:Record<string,string>={
+      player_photo_revision_conflict:"The player photo changed. Reopen the player before choosing a replacement.",
       proposal_expired:"This approval has expired. Cancel and open the action again to review a fresh approval.",
       command_no_longer_actionable:"This action is no longer available. Refresh the workspace to see the latest work.",
       player_stats_revision_conflict:"These statistics changed while you were editing. Your draft is retained. Reload recorded data before saving.",
       player_stats_refresh_running:"A statistics update is running. Wait for it to finish before saving corrections.",
       player_stats_row_exists:"A season record already exists. Reload recorded data and edit that record.",
       refresh_request_conflict:"This update request belongs to another record. Reload the player profile.",
+      player_confirmation_required_before_approval:"Record the player's confirmation before approving this career plan.",
+      draft_career_strategy_not_found:"This career plan changed. Reload it before approving.",
     };
     if(Object.hasOwn(conflicts,message)) return json({error:conflicts[message],code:message},409);
     const inputErrors:Record<string,string>={
+      career_strategy_incomplete_for_approval:"Add the career objective, preferred route, fallback route and next checkpoint before approving. Reopen the career plan to complete it.",
+      player_photo_path_invalid:"Choose a photo uploaded for this player.",
+      player_photo_upload_incomplete:"The photo upload is incomplete. Retry the same photo.",
+      career_objective_required:"Add a career objective before saving the plan.",
+      career_next_checkpoint_required:"Add the next checkpoint before saving the plan.",
+      future_review_due_at_required:"Choose a review date of today or later before saving the plan.",
       current_season_context_required:"Add the current season, club and competition before updating statistics.",
       reviewed_stats_source_required:"Add a valid source link and confirm you checked the figures.",
       invalid_player_stats:"Statistics must be whole numbers of 0 or more.",

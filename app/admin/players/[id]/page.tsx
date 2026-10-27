@@ -3094,7 +3094,7 @@ const removePlayer=async(
                       {p.primary_position||'Position pending'} · {p.current_club||'Club pending'} · {p.current_league||'League pending'}
                     </strong>
                     <small>
-                      The agency keeps this record connected. Open only to correct verified identity or contract information.
+                      Correct verified identity and contract details.
                     </small>
                   </span>
                   <span
@@ -3462,7 +3462,7 @@ const removePlayer=async(
                 </h3>
 
                 <p className="small muted">
-                  Keep the source links that clubs and the agency use to verify the sporting record.
+                  Keep trusted sources for the sporting record.
                 </p>
 
                 <div className="source-row">
@@ -3512,10 +3512,7 @@ const removePlayer=async(
                 <div className="divider"/>
 
                 <p className="small muted">
-                  Source editing now lives in one place. Connect or replace a
-                  profile at the top of this player record and the agency updates every
-                  research, intelligence and dossier workflow from the same saved
-                  link.
+                  Manage profile links above. Updates apply across player research and profiles.
                 </p>
 
                 <button
@@ -3647,7 +3644,7 @@ const removePlayer=async(
                           e.target.value
                       })
                     }
-                    placeholder="2–3 sentences of factual sporting context: level, role, current situation and strongest relevant experience."
+                    placeholder="Two or three factual sentences about level, role and current situation."
                   />
                 </div>
 
@@ -4696,7 +4693,7 @@ const removePlayer=async(
                       lineHeight:1.5
                     }}
                   >
-                    Permanent. This removes the player record and linked app data. Use only when you are certain the record should no longer exist.
+                    Permanently deletes this player and linked app data. This cannot be undone.
                   </p>
 
                   <button
@@ -4747,7 +4744,7 @@ const removePlayer=async(
                   </h2>
 
                   <p>
-                    Create a private, tracked club link. Each link can be copied, monitored and switched off independently.
+                    Private club links can be copied, tracked and switched off separately.
                   </p>
                 </div>
 
@@ -4980,7 +4977,7 @@ const removePlayer=async(
               </h2>
 
               <p>
-                The public club profile will stop being available. Player data and the agency dossier stay safely in the platform.
+                Public access will stop. The private player record and agency dossier stay.
               </p>
 
               <div className="club-confirm-actions">

@@ -51,7 +51,7 @@ const clubCreateMigration = readFileSync(
 
 test('every daily data area has one obvious real create action', () => {
   assert.match(workspace, /label: 'Add player'/);
-  assert.match(workspace, /kind: 'club_need', label: 'Add opportunity'/);
+  assert.match(workspace, /kind: 'club_need', label: 'Add club need'/);
   assert.doesNotMatch(workspace, /label: 'Add deal'/);
   assert.match(network, /view === 'clubs' \? 'Add club' : 'Add contact'/);
   assert.match(network, /onCreate\(view === 'clubs' \? 'club' : 'contact'\)/);
@@ -85,7 +85,7 @@ test('one reusable create drawer stays minimum-first and football specific', () 
 });
 
 test('drawer actions go through the tenant-bound agency operating bridge', () => {
-  assert.match(drawer, /invoke\('create_options'\)/);
+  assert.match(drawer, /invokeRef\.current\('create_options'\)/);
   assert.match(drawer, /action = 'create_player'/);
   assert.match(drawer, /action = 'create_club'/);
   assert.match(drawer, /action = 'create_club_need'/);
@@ -185,7 +185,7 @@ test('create drawer is a real responsive workspace surface', () => {
   assert.match(css, /\.backdrop\s*\{/);
   assert.match(css, /\.drawer\s*\{/);
   assert.match(css, /@media \(max-width: 620px\)/);
-  assert.match(css, /min-height: 100dvh/);
+  assert.match(css, /height: 100dvh/);
 });
 
 

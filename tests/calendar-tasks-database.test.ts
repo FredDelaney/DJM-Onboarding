@@ -18,7 +18,15 @@ before(async()=>{
  create table platform.tenant_memberships(tenant_id uuid,user_id uuid,status text,role text);
  create table public.profiles(id uuid,display_name text);
  create table platform.audit_events(tenant_id uuid,actor_user_id uuid,actor_kind text,action text,entity_type text,entity_id text,before_state jsonb,after_state jsonb,metadata jsonb);
- create table djm_os.tasks(id uuid,title text);insert into djm_os.tasks values(gen_random_uuid(),'Existing work');
+ create table public.players(id uuid,tenant_id uuid,primary_staff_user_id uuid,preferred_name text,first_name text,last_name text,next_action text,next_action_due date,contract_expiry date,football_status text);
+ create table platform.player_career_strategies(id uuid,tenant_id uuid,player_id uuid,review_due_at date,strategy jsonb,status text);
+ create table djm_os.deal_rooms(id uuid,tenant_id uuid,owner_user_id uuid,title text,next_action_text text,next_action_at timestamptz,status text,player_id uuid);
+ create table djm_os.club_needs(id uuid,tenant_id uuid,owner_user_id uuid,title text,expires_at timestamptz,status text,organisation_id uuid);
+ create table public.player_requests(id uuid,player_id uuid,assigned_to_user_id uuid,title text,due_at timestamptz,status text);
+ create table public.player_agreements(id uuid,player_id uuid,title text,agreement_type text,end_date date,status text);
+ create table public.player_documents(id uuid,player_id uuid,title text,expires_at date);
+ create table djm_os.tasks(id uuid,title text,tenant_id uuid,owner_user_id uuid,due_at timestamptz,status text,player_id uuid,person_id uuid,organisation_id uuid,club_need_id uuid);
+ insert into djm_os.tasks(id,title,tenant_id,owner_user_id,status) values('60000000-0000-4000-8000-000000000001','Existing work','${tenant}','${agent}','open');
  create function private.redream_request_tenant() returns uuid language sql stable as $$select '${tenant}'::uuid$$;
  insert into platform.tenants values('${tenant}','active'),('${foreign}','active');
  insert into platform.tenant_memberships values('${tenant}','${owner}','active','owner'),('${tenant}','${agent}','active','agent'),('${tenant}','${colleague}','active','scout');
@@ -28,6 +36,12 @@ before(async()=>{
  assert.ok(migration,'calendar task migration is required');
  await db.exec(readFileSync(`supabase/migrations/${migration}`,'utf8'));
  await db.exec(readFileSync('supabase/migrations/20261004134529_calendar_task_owner_edit_guard.sql','utf8'));
+ const shared=readdirSync('supabase/migrations').find(name=>name.endsWith('_shared_work_responsibility_v1.sql'));
+ if(shared)await db.exec(readFileSync(`supabase/migrations/${shared}`,'utf8'));
+ const reminders=readdirSync('supabase/migrations').find(name=>name.endsWith('_agency_reminder_responsibility_v1.sql'));
+ if(reminders)await db.exec(readFileSync(`supabase/migrations/${reminders}`,'utf8'));
+ const paging=readdirSync('supabase/migrations').find(name=>name.endsWith('_assigned_work_paging_v1.sql'));
+ if(paging)await db.exec(readFileSync(`supabase/migrations/${paging}`,'utf8'));
 });
 after(()=>db.close());
 test('personal content is owner-only, including against tenant administrators',async()=>{
@@ -61,7 +75,7 @@ test('stale revisions, inactive assignees and immutable visibility reject',async
 test('audit contains no personal title, notes or dates and legacy rows are untouched',async()=>{
  await actor(agent);const task=await create({title:'PrivateSentinel',notes:'SecretSentinel',due_on:'2041-02-15'});await change(task,'complete');
  const logs=JSON.stringify((await db.query('select * from platform.audit_events')).rows);assert.ok(!logs.includes('PrivateSentinel'));assert.ok(!logs.includes('SecretSentinel'));assert.ok(!logs.includes('2041-02-15'));
- assert.deepEqual((await db.query('select title from djm_os.tasks')).rows,[{title:'Existing work'}]);
+ assert.deepEqual((await db.query('select title from djm_os.tasks where id=\'60000000-0000-4000-8000-000000000001\'')).rows,[{title:'Existing work'}]);
 });
 test('validation, retry idempotency and reversible archive',async()=>{
  await actor(owner);for(const input of [{title:' '},{title:'x'.repeat(201)},{title:'Valid',notes:'x'.repeat(2001)},{title:'Valid',visibility:'public'},{title:'Valid',owner_user_id:agent}])await assert.rejects(()=>create(input),/task_/);
@@ -91,4 +105,102 @@ test('range reads paginate authorised rows and keep undated work separate',async
  await actor(owner);assert.ok(!(await read('undated')).items.some((r:any)=>r.id===task.id));
  const first=await read('range',{limit:1});assert.equal(first.items.length,1);assert.ok(first.next_cursor);const second=await read('range',{limit:1,cursor:first.next_cursor});assert.notEqual(first.items[0].id,second.items[0].id);assert.equal(first.count,second.count);
  const assignees=await value('public.redream_calendar_task_assignees_v1(null)');assert.equal(assignees.items.length,3);
+});
+
+test('several responsible people persist together and can complete shared work',async()=>{
+ await actor(owner);
+ let task=await create({title:'Shared planning',visibility:'company',responsible_user_ids:[agent,colleague],due_on:'2026-10-14'});
+ assert.deepEqual(task.responsible_people.map((p:any)=>p.user_id).sort(),[agent,colleague]);
+ await actor(colleague);assert.equal((await read()).items.find((r:any)=>r.id===task.id).can_edit,true);
+ task=await change(task,'complete');assert.equal(task.status,'done');
+ await actor(owner);task=await change(task,'edit',{responsible_user_ids:[agent]});
+ assert.deepEqual(task.responsible_people.map((p:any)=>p.user_id),[agent]);
+ await actor(colleague);await assert.rejects(()=>change(task,'reopen'),/task_edit_denied/);
+});
+test('responsibility picker cannot assign outsiders or expose private tasks',async()=>{
+ await actor(owner);
+ await assert.rejects(()=>create({title:'Outside',visibility:'company',responsible_user_ids:['90000000-0000-4000-8000-000000000001']}),/task_owner_inactive/);
+ await assert.rejects(()=>create({title:'Private',responsible_user_ids:[agent]}),/task_personal_owner_invalid/);
+ let task=await create({title:'Unassigned company work',visibility:'company',responsible_user_ids:[]});
+ assert.deepEqual(task.responsible_people,[]);
+ task=await change(task,'edit',{responsible_user_ids:[owner,owner,agent]});
+ assert.deepEqual(task.responsible_people.map((p:any)=>p.user_id).sort(),[owner,agent]);
+ const input={id:'50000000-0000-4000-8000-000000000088',title:'Shared retry',visibility:'company',responsible_user_ids:[agent,colleague]};
+ const first=await create(input);assert.equal((await create({...input,responsible_user_ids:[colleague,agent]})).id,first.id);
+ await assert.rejects(()=>create({...input,responsible_user_ids:[agent]}),/task_create_conflict/);
+});
+
+test('saved reminder responsibility persists, guards stale edits and shares only selected work',async()=>{
+ const id='60000000-0000-4000-8000-000000000001';
+ await db.query("insert into djm_os.tasks(id,title,tenant_id,status) values('60000000-0000-4000-8000-000000000099','Unassigned',$1,'open')",[tenant]);
+ await actor(colleague);
+ await assert.rejects(()=>value('public.redream_work_responsibility_v1($1,$2,null,null,null)',['task','60000000-0000-4000-8000-000000000099']),/work_access_denied/);
+ await actor(agent);
+ const initial=await value('public.redream_work_responsibility_v1($1,$2,null,null,null)',['task',id]);
+ assert.deepEqual(initial.people.map((p:any)=>p.user_id),[agent]);
+ const saved=await value('public.redream_work_responsibility_v1($1,$2,$3,0,null)',['task',id,JSON.stringify([agent,colleague])]);
+ assert.equal(saved.revision,1);
+ await actor(colleague);
+ const read=await value('public.redream_work_responsibility_v1($1,$2,null,null,null)',['task',id]);
+ assert.deepEqual(read.people.map((p:any)=>p.user_id),[agent,colleague]);
+ const mine=await value('public.redream_assigned_work_v1(null)');
+ assert.ok(mine.items.some((item:any)=>item.work_kind==='task'&&item.work_id===id&&item.title==='Existing work'));
+ await assert.rejects(()=>value('public.redream_work_responsibility_v1($1,$2,$3,0,null)',['task',id,JSON.stringify([agent])]),/task_revision_conflict/);
+ await actor(agent);
+ await value('public.redream_work_responsibility_v1($1,$2,$3,1,null)',['task',id,JSON.stringify([agent])]);
+ await actor(colleague);
+ assert.ok(!(await value('public.redream_assigned_work_v1(null)')).items.some((item:any)=>item.work_id===id));
+ await assert.rejects(()=>value('public.redream_work_responsibility_v1($1,$2,null,null,null)',['task',id]),/work_access_denied/);
+ await actor(owner);
+ await assert.rejects(()=>value('public.redream_work_responsibility_v1($1,$2,$3,2,null)',['task',id,JSON.stringify(['90000000-0000-4000-8000-000000000001'])]),/task_owner_inactive/);
+ await assert.rejects(()=>value('public.redream_work_responsibility_v1($1,$2,null,null,$3)',['task',id,foreign]),/calendar_access_denied/);
+ assert.equal(await value("has_function_privilege('anon','public.redream_work_responsibility_v1(text,uuid,jsonb,integer,uuid)','execute')"),false);
+});
+
+// A club-need owner must be able to share their own reminder without owner/admin privileges.
+test('club need owners can add responsible people to their own reminder',async()=>{
+ const id='70000000-0000-4000-8000-000000000001';
+ await db.query("insert into djm_os.club_needs(id,tenant_id,owner_user_id,title,status,expires_at) values($1,$2,$3,'Find a goalkeeper','active','2026-10-20')",[id,tenant,agent]);
+ await actor(agent);
+ const initial=await value('public.redream_work_responsibility_v1($1,$2,null,null,null)',['club_need_expiry',id]);
+ assert.deepEqual(initial.user_ids,[agent]);
+ await value('public.redream_work_responsibility_v1($1,$2,$3,0,null)',['club_need_expiry',id,JSON.stringify([agent,colleague])]);
+ await actor(colleague);
+ const item=(await value('public.redream_assigned_work_v1(null)')).items.find((item:any)=>item.work_id===id);
+ assert.equal(item.title,'Find a goalkeeper');assert.equal(item.context.club_need_id,id);
+});
+test('all player reminder kinds persist their dates and hide completed source work',async()=>{
+ const player='71000000-0000-4000-8000-000000000001',strategy='71000000-0000-4000-8000-000000000002',deal='71000000-0000-4000-8000-000000000003',request='71000000-0000-4000-8000-000000000004',agreement='71000000-0000-4000-8000-000000000005',document='71000000-0000-4000-8000-000000000006';
+ await db.query("insert into public.players values($1,$2,$3,'Example','Example','Player','Call club','2026-10-15','2026-12-31','active')",[player,tenant,agent]);
+ await db.query("insert into platform.player_career_strategies values($1,$2,$3,'2026-10-16','{\"target_window\":{\"end_date\":\"2026-10-31\"}}','approved')",[strategy,tenant,player]);
+ await db.query("insert into djm_os.deal_rooms values($1,$2,$3,'Trial','Confirm travel','2026-10-17T10:00:00Z','active',$4)",[deal,tenant,agent,player]);
+ await db.query("insert into public.player_requests values($1,$2,$3,'Availability','2026-10-18T10:00:00Z','open')",[request,player,agent]);
+ await db.query("insert into public.player_agreements values($1,$2,'Agency agreement','representation','2026-11-30','active')",[agreement,player]);
+ await db.query("insert into public.player_documents values($1,$2,'Passport','2027-01-31')",[document,player]);
+ await actor(agent);
+ for(const [kind,id] of [['player_next_action',player],['contract_expiry',player],['career_strategy_review',strategy],['target_window_end',strategy],['deal_next_action',deal],['player_request_due',request],['representation_record_end',agreement],['document_expiry',document]]){
+  await value('public.redream_work_responsibility_v1($1,$2,$3,0,null)',[kind,id,JSON.stringify([agent,colleague])]);
+ }
+ await actor(colleague);
+ let items=(await value('public.redream_assigned_work_v1(null)')).items;
+ assert.equal(items.filter((item:any)=>item.context?.player_id===player).length,8);
+ assert.equal(items.find((item:any)=>item.work_kind==='career_strategy_review').due_at,'2026-10-16');
+ assert.equal(items.find((item:any)=>item.work_kind==='target_window_end').due_at,'2026-10-31');
+ await db.query("update djm_os.deal_rooms set status='completed' where id=$1",[deal]);
+ await db.query("update public.player_requests set status='completed' where id=$1",[request]);
+ items=(await value('public.redream_assigned_work_v1(null)')).items;
+ assert.ok(!items.some((item:any)=>item.work_id===deal||item.work_id===request));
+ await db.query("update public.players set tenant_id=$2 where id=$1",[player,foreign]);
+ assert.ok(!(await value('public.redream_assigned_work_v1(null)')).items.some((item:any)=>item.context?.player_id===player));
+});
+
+test('assigned work pagination reaches later reminders after the first two hundred',async()=>{
+ await actor(owner);
+ await db.exec(`insert into djm_os.tasks(id,title,tenant_id,status) select ('72000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'Paged work '||n,'${tenant}','open' from generate_series(1,205) n;
+ insert into platform.work_responsibilities(tenant_id,work_kind,work_id,responsible_user_ids,updated_by) select tenant_id,'task',id,array['${agent}'::uuid],'${owner}' from djm_os.tasks where title like 'Paged work %';`);
+ await actor(agent);
+ let cursor:any=null,seen:any[]=[];
+ do{const page=await value('public.redream_assigned_work_page_v1(null,$1,200)',[cursor]);seen.push(...page.items);cursor=page.next_cursor;}while(cursor!==null);
+ assert.equal(seen.filter((item:any)=>item.title.startsWith('Paged work ')).length,205);
+ assert.ok(seen.some((item:any)=>item.title==='Paged work 205'));
 });

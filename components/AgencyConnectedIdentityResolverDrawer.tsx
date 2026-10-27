@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ArrowLeft,
   CheckCircle2,
@@ -12,6 +11,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
+
 import {
   useCallback,
   useEffect,
@@ -969,18 +969,18 @@ export default function AgencyConnectedIdentityResolverDrawer({
           </button>
         </header>
         {error ? (
-          <div className={styles.error}>{error}</div>
+          <div className={styles.error} role="alert" aria-atomic="true">{error}</div>
         ) : null}
 
         {success ? (
-          <div className={styles.success}>
+          <div className={styles.success} role="status" aria-atomic="true">
             <CheckCircle2 size={15} />
             <span>{success}</span>
           </div>
         ) : null}
 
         {loading ? (
-          <div className={styles.loading}>
+          <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
             <LoaderCircle size={16} />
             Loading connected identities
           </div>

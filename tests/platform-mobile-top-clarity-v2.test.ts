@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const shell = readFileSync('components/AgencyOperatingWorkspace.tsx','utf8');
 const shellCss = readFileSync('components/AgencyOperatingWorkspace.module.css','utf8');
-const staffCss = readFileSync('app/staff-mobile-layout-fix.css','utf8');
+const staffCss = readFileSync('app/product.css','utf8');
 
 test('agency workspace does not mount a translucent top veil', () => {
   assert.doesNotMatch(shell, /mobileScrolled/);

@@ -10,11 +10,18 @@ page.on('pageerror',error=>errors.push(error.message));
 try{
  const visit=async(query='')=>{
   for(let i=0;i<50;i++){try{await page.goto(root+query);break;}catch(error){if(i===49)throw error;await page.waitForTimeout(500);}}
-  await page.getByRole('button',{name:'Find in this agency',exact:true}).waitFor();
+  await find().waitFor();
   await page.locator('[data-qa-ready="true"]').waitFor();
   await page.addStyleTag({content:'nextjs-portal { display: none !important; }'});
  };
  const find=()=>page.getByRole('button',{name:'Find in this agency',exact:true});
+ const contacts=async()=>page.viewportSize().width<=680?page.getByRole('navigation',{name:'People categories',exact:true}).getByRole('link',{name:'Contacts',exact:true}).click():page.getByRole('button',{name:/^People/}).click();
+ const navigate=async (view, category='Clubs')=>{
+  if(page.viewportSize().width>680)return page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:view==='home'?'Home':view==='network'?'Network':'Players',exact:true}).click();
+  const nav=page.getByRole('navigation',{name:'Mobile workspace',exact:true});
+  await nav.getByRole('link',{name:view==='home'?'Today':'People',exact:true}).click();
+  if(view==='network')await page.getByRole('navigation',{name:'People categories',exact:true}).getByRole('link',{name:category,exact:true}).click();
+ };
  const open=async()=>{await find().click();const dialog=page.getByRole('dialog',{name:'Find in this agency',exact:true});await dialog.waitFor();return dialog;};
  const box=dialog=>dialog.getByRole('combobox');
  const choose=async(text)=>{const dialog=await open();await box(dialog).fill(text);return dialog;};
@@ -53,12 +60,12 @@ try{
  await page.keyboard.press('Enter');await page.locator('#opportunity-qa-need[data-search-match="true"]').waitFor();
  await page.waitForFunction(()=>document.activeElement?.id==='opportunity-qa-need');
  assert.equal(new URL(page.url()).searchParams.get('record'),'qa-need');
- await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Players',exact:true}).click();
+ await navigate('players');
  dialog=await choose('Add player');await page.keyboard.press('Enter');await page.getByRole('status').getByText('Create player',{exact:true}).waitFor();
  await page.locator('[data-qa-dialog]').click();await page.keyboard.press('Control+k');
  assert.equal(await page.getByRole('dialog',{name:'Find in this agency',exact:true}).count(),0,'Search opened over another dialog');
  await page.getByRole('button',{name:'Close other dialog'}).click();
- await page.getByRole('textbox',{name:'Search players',exact:true}).fill('Example');
+ await page.getByRole('searchbox',{name:'Search players',exact:true}).fill('Example');
  const card=page.getByRole('button',{name:'Open Example Player 5',exact:true});await card.scrollIntoViewIfNeeded();
  const before=await page.evaluate(()=>window.scrollY);assert.ok(before>100);
  await card.click();await page.getByRole('region',{name:'Player data',exact:true}).waitFor();
@@ -66,16 +73,17 @@ try{
  assert.equal(await page.getByRole('link',{name:'Work view',exact:true}).count(),1);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Profile overflow');
  await page.getByRole('link',{name:'Back to players',exact:true}).click();
- await page.getByRole('textbox',{name:'Search players',exact:true}).waitFor();
+ await page.getByRole('searchbox',{name:'Search players',exact:true}).waitFor();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search players"]')?.value==='Example');
  await page.waitForFunction(top=>Math.abs(window.scrollY-top)<5,before);
- await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Network',exact:true}).click();
- await page.getByRole('button',{name:/^People/}).click();await page.getByRole('textbox',{name:'Search Network'}).fill('Director');
- await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Home',exact:true}).click();
- await page.getByRole('navigation',{name:'Agency workspace'}).getByRole('link',{name:'Network',exact:true}).click();
+ await navigate('network');
+ await contacts();await page.getByRole('searchbox',{name:'Search Network'}).fill('Director');
+ await navigate('home');
+ await navigate('network','Contacts');
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
- assert.equal(await page.getByRole('textbox',{name:'Search Network'}).getAttribute('placeholder'),'Search person, club, role or country');
- await page.reload();await page.getByRole('textbox',{name:'Search Network'}).waitFor();
+ await page.getByRole('heading',{name:'Dapo Director',exact:true}).waitFor();
+ assert.equal(await page.getByRole('heading',{name:'Example FC',exact:true}).count(),0,'Returning to Network must preserve the People view');
+ await page.reload();await page.getByRole('searchbox',{name:'Search Network'}).waitFor();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
  await page.locator('[data-qa-switch]').click();await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='');
  dialog=await choose('jose');await dialog.getByText('No matching records',{exact:true}).waitFor();
@@ -88,7 +96,7 @@ try{
  await box(dialog).fill('Example Player 248');await dialog.getByText('No matching records',{exact:true}).waitFor();await page.keyboard.press('Escape');
  await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
  await page.getByRole('button',{name:'Load more players',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Load more players',exact:true}).count(),0);
- await page.getByRole('textbox',{name:'Search players',exact:true}).fill('Example Player 249');await page.getByRole('button',{name:'Open Example Player 249',exact:true}).waitFor();
+ await page.getByRole('searchbox',{name:'Search players',exact:true}).fill('Example Player 249');await page.getByRole('button',{name:'Open Example Player 249',exact:true}).waitFor();
  await visit('?scenario=page-failure');await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByRole('alert').filter({hasText:'Next page unavailable'}).waitFor();await page.getByRole('button',{name:'Retry loading players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
  await visit('?scenario=stale');dialog=await choose('jose');await page.waitForTimeout(300);await box(dialog).fill('Dapo');await dialog.getByRole('option',{name:/Dapo Director/}).waitFor();await page.waitForTimeout(850);assert.equal(await dialog.getByRole('option',{name:/José Silva/}).count(),0);await page.keyboard.press('Escape');
  await visit('?scenario=hung');dialog=await choose('jose');await dialog.getByRole('alert').filter({hasText:'took too long'}).waitFor({timeout:15000});await dialog.getByRole('button',{name:'Try again',exact:true}).click();await dialog.getByRole('option',{name:/José Silva/}).waitFor();
@@ -119,6 +127,7 @@ try{
  let currentUser=userA,currentRole='owner';
  const restrictedRequests=[];
  await page.route('https://example.supabase.co/**',async route=>{
+  if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
   const path=new URL(route.request().url()).pathname,body=route.request().postDataJSON()||{};
   let result={};
   const restricted=currentRole!=='owner';
@@ -151,11 +160,11 @@ try{
   await route.fulfill({contentType:'application/json',body:JSON.stringify(result)});
  });
  await page.addInitScript(value=>localStorage.setItem('sb-example-auth-token',JSON.stringify(value)),session(userA));
- await page.goto(root+'?coordinator=1&view=players');
+ await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&view=players');
  await page.getByRole('button',{name:'Open Coordinator Player 0',exact:true}).waitFor();
  await page.getByRole('button',{name:'Load more players',exact:true}).click();await page.getByText(/^200 of 250 players loaded\./).waitFor();
  const coordinatorView=async view=>page.evaluate(({url,view})=>{const next=new URL(url);next.searchParams.set('view',view);window.history.pushState(null,'',next.pathname+next.search);},{url:page.url(),view});
- await coordinatorView('network');await page.getByRole('textbox',{name:'Search Network',exact:true}).waitFor();
+ await coordinatorView('network');await page.getByRole('searchbox',{name:'Search Network',exact:true}).waitFor();
  slowRefresh=true;await coordinatorView('players');await refreshRead;
  const refreshing=page.getByRole('button',{name:'Refreshing players...',exact:true});await refreshing.waitFor();assert.equal(await refreshing.isDisabled(),true);
  releaseRefresh();await page.getByRole('button',{name:'Load more players',exact:true}).waitFor();await page.getByText(/^200 of 250 players loaded\./).waitFor();
@@ -166,23 +175,24 @@ try{
  assert.equal(await page.getByRole('button',{name:/^Open Coordinator Player/}).count(),0,'Previous account page leaked');
  await page.getByText(/^100 of 250 players loaded\./).waitFor();
  for(const role of ['agent','scout','operations']){
-  currentRole=role;currentUser=userA;await page.goto(root+'?coordinator=1&view=players&role='+role);
+  currentRole=role;currentUser=userA;await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&view=players&role='+role);
   await page.getByRole('button',{name:'Open Coordinator Player 0',exact:true}).waitFor();
   assert.equal(await page.getByRole('link',{name:'Opportunities',exact:true}).count(),0);
   assert.equal(await page.getByRole('link',{name:'Business',exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:/^Manage /}).count(),0);
   if(role==='scout')assert.equal(await page.getByRole('button',{name:'Add player',exact:true}).count(),0);
-  await page.goto(root+'?coordinator=1&role='+role+'&view=network');await page.getByText('Shared clubs and contacts. Your contact pages show your own activity. Commercial agency context requires administrator access.',{exact:true}).waitFor();
+  await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&role='+role+'&view=network');await page.getByText('Shared network. Commercial details are for admins.',{exact:true}).waitFor();
   await page.getByRole('heading',{name:'Shared Staff Club',exact:true}).waitFor();
   assert.equal(await page.getByText('LIVE OPPORTUNITIES',{exact:true}).count(),0);
   assert.equal(await page.getByText('BEST ROUTE',{exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:/^Manage /}).count(),0);
-  await page.getByRole('button',{name:/^People/}).click();
+  await contacts();
   await page.getByRole('heading',{name:'Shared Staff Contact',exact:true}).waitFor();
   assert.equal(await page.getByText('RELATIONSHIP OWNER',{exact:true}).count(),0);
-  await coordinatorView('home');await page.getByText('Your personal work',{exact:true}).waitFor();
-  await page.getByText('No personal task, meeting or commitment currently needs your attention.',{exact:true}).waitFor();
-  await coordinatorView('opportunities');await page.getByRole('heading',{name:'Administrator access required',exact:true}).waitFor();
+  await coordinatorView('home');await page.getByRole('heading',{name:'Your day',exact:true}).waitFor();
+  await page.getByText('Your work only. Commercial records require admin access.',{exact:true}).waitFor();
+  await page.getByText('Your work is up to date.',{exact:true}).waitFor();
+  await coordinatorView('opportunities');await page.getByRole('heading',{name:'Admin access needed',exact:true}).waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1));
  }
  assert.deepEqual(restrictedRequests,[],'Restricted workspace requested private agency or archive data');

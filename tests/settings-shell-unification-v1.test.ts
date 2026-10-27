@@ -54,6 +54,6 @@ test('settings and the main agency workspace share the same tenant logo treatmen
 test('settings keeps the same account menu and mobile Tell ReDream affordance as the app', () => {
   assert.match(settingsWorkspace, /AccountMenu/);
   assert.match(settingsWorkspace, /mobileHeadActions/);
-  assert.match(settingsWorkspace, /mobileTell/);
+  assert.match(settingsWorkspace, /AgencyMobileNavigation/);
   assert.match(settingsWorkspace, /AiLauncher/);
 });

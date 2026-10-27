@@ -8,6 +8,7 @@ import {
   BookOpen,
   Building2,
   CalendarDays,
+  ChevronDown,
   Coins,
   CreditCard,
   Home as HomeIcon,
@@ -24,6 +25,7 @@ import {
 
 import AccountMenu from '@/components/AccountMenu';
 import AiLauncher from '@/components/AiLauncher';
+import AgencyMobileNavigation from '@/components/AgencyMobileNavigation';
 import { useAdmin } from '@/components/AdminShell';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
@@ -80,6 +82,9 @@ export default function SettingsWorkspace({
     auth.workspace?.portal_name ||
     runtime.branding.display_name ||
     'Agency workspace';
+  const basePath = auth.workspace?.slug
+    ? `/workspace/${encodeURIComponent(auth.workspace.slug)}`
+    : '/agency';
   const navigation = MAIN_NAV.filter(
     (item) => item.key !== 'business' || canManageAgency,
   );
@@ -109,6 +114,12 @@ export default function SettingsWorkspace({
         { href: '/settings/billing', label: 'Plan & billing', icon: <CreditCard size={16} /> },
       ]
     : [];
+  const currentSettingLabel = [
+    { href: '/settings', label: 'Overview' },
+    ...personal,
+    ...agency,
+    ...account,
+  ].find((item) => item.href === pathname)?.label || (title === 'Settings' ? 'Overview' : title);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -121,11 +132,11 @@ export default function SettingsWorkspace({
     <div
       className={shellStyles.root}
       style={theme}
-      data-settings-shell="agency-workspace"
+      data-settings-shell="agency-workspace" data-interface="calm"
     >
       <aside className={shellStyles.sidebar}>
         <div className={shellStyles.brand}>
-          <TenantWorkspaceBrand href="/agency" darkSurface />
+          <TenantWorkspaceBrand href="/agency" />
         </div>
 
         <nav className={shellStyles.nav} aria-label="Agency workspace">
@@ -142,7 +153,12 @@ export default function SettingsWorkspace({
                 className={item.key === 'business' ? shellStyles.navManagement : ''}
               >
                 <Icon size={17} />
-                <span>{item.label}</span>
+                {item.key === 'opportunities' ? (
+                  <>
+                    <span className={shellStyles.navDesktopLabel}>{item.label}</span>
+                    <span className={shellStyles.navMobileLabel}>Market</span>
+                  </>
+                ) : <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -184,39 +200,55 @@ export default function SettingsWorkspace({
         </header>
 
         <div className={styles.workspace}>
-          <aside className={styles.rail} aria-label="Settings navigation">
-            <Link href="/agency" className={styles.back}>
-              <ArrowLeft size={14} />
-              Back to workspace
-            </Link>
+          <details className={styles.settingsMenu}>
+            <summary aria-label="Settings navigation">
+              <div>
+                <span>Settings</span>
+                <strong>{currentSettingLabel}</strong>
+              </div>
+              <ChevronDown size={16} />
+            </summary>
 
-            <div className={styles.workspaceIdentity}>
-              <strong>{workspaceName}</strong>
-              <span>{humanRole(role)}</span>
+            <div className={styles.settingsMenuPanel}>
+              <div className={styles.settingsMenuMeta}>
+                <strong>{workspaceName}</strong>
+                <span>{humanRole(role)}</span>
+              </div>
+              <Link href="/agency" className={styles.back}>
+                <ArrowLeft size={14} />
+                Back to workspace
+              </Link>
+
+              <nav className={styles.nav}>
+                <SettingsLink
+                  item={{ href: '/settings', label: 'Overview', icon: <LayoutGrid size={16} /> }}
+                  current={pathname === '/settings'}
+                />
+                <SettingsGroup label="You" items={personal} pathname={pathname} />
+                {agency.length ? (
+                  <SettingsGroup label="Agency" items={agency} pathname={pathname} />
+                ) : null}
+                {account.length ? (
+                  <SettingsGroup label="ReDream" items={account} pathname={pathname} />
+                ) : null}
+              </nav>
             </div>
-
-            <nav className={styles.nav}>
-              <SettingsLink
-                item={{ href: '/settings', label: 'Overview', icon: <LayoutGrid size={16} /> }}
-                current={pathname === '/settings'}
-              />
-              <SettingsGroup label="You" items={personal} pathname={pathname} />
-              {agency.length ? (
-                <SettingsGroup label="Agency" items={agency} pathname={pathname} />
-              ) : null}
-              {account.length ? (
-                <SettingsGroup label="ReDream" items={account} pathname={pathname} />
-              ) : null}
-            </nav>
-          </aside>
+          </details>
 
           <section className={styles.content}>{children}</section>
         </div>
       </main>
 
-      <div className={shellStyles.mobileTell}>
-        <AiLauncher />
-      </div>
+      <AgencyMobileNavigation
+        basePath={basePath}
+        view="settings"
+        canSeeBusiness={canManageAgency}
+        search={{tenantId: auth.workspace.tenant_id, userId: auth.user.id, basePath}}
+        onNavigate={(_view, href) => router.push(href)}
+        onWarm={(view) => router.prefetch(view === 'home' ? basePath : `${basePath}?view=${view}`)}
+        onConnections={() => router.push('/settings/connections')}
+        onCaptureCompleted={() => void auth.refresh()}
+      />
     </div>
   );
 }

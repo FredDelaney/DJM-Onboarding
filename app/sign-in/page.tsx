@@ -13,6 +13,7 @@ import { resolveActiveAuthDestination, resolveCurrentAuthentication } from '@/li
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { captureReturnPath } from '@/lib/capture-return-path';
 import { supabase } from '@/lib/supabase';
+import { authEntryErrorMessage } from '@/lib/password-auth-fetch';
 
 export default function SignIn() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function SignIn() {
     entryActive.current = true;
     const initialRequest = ++routeGeneration.current;
     const reportError = (error: unknown) => {
-      if (active) setMsg(error instanceof Error ? error.message : 'We could not open your workspace. Please try again.');
+      if (active) setMsg(authEntryErrorMessage(error));
     };
     const {data: listener} = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== 'SIGNED_OUT' && event !== 'SIGNED_IN') return;
@@ -115,7 +116,7 @@ export default function SignIn() {
       if (result.error) throw result.error;
       await routeUser(result.data.user.id);
     } catch (error) {
-      if (current()) setMsg(error instanceof Error ? error.message : 'You signed in, but we could not open your workspace. Please try again.');
+      if (current()) setMsg(authEntryErrorMessage(error));
     } finally {
       if (current()) setBusy(false);
     }
@@ -170,8 +171,7 @@ export default function SignIn() {
           <div className="yellow-line" />
           <h1>Private access. The right workspace for you.</h1>
           <p>
-            Agency staff open the ReDream Agency Workspace. Represented players
-            open their private Player Workspace from the same secure sign-in.
+            Staff use the agency workspace. Players use their private portal.
           </p>
         </div>
         <span className="small" style={{ color: 'rgba(255,255,255,.45)' }}>
@@ -197,8 +197,7 @@ export default function SignIn() {
           </div>
           <h2>Welcome back.</h2>
           <p className="page-intro" style={{ fontSize: 15 }}>
-            Sign in once. ReDream will open the workspace your account is
-            authorised to use.
+            Sign in to open your authorised workspace.
           </p>
 
           {passkeyReady ? (
@@ -321,8 +320,7 @@ export default function SignIn() {
           </form>
 
           <p className="small muted" style={{ marginTop: 22, lineHeight: 1.6 }}>
-            New agency staff join through a secure invitation from their agency.
-            New players join through their private player invitation.
+            New staff and players need a secure invitation from their agency.
           </p>
         </div>
       </section>

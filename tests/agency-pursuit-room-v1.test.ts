@@ -17,7 +17,7 @@ const marketEdge = fs.readFileSync(
 
 test('Market opens one tenant-native Pursuit Room from a live player-club route', () => {
   assert.match(workspace, /AgencyPursuitRoom/);
-  assert.match(workspace, /Open route/);
+  assert.match(workspace, /Open opportunity/);
   assert.match(workspace, /playerMatchId/);
 });
 
@@ -58,7 +58,7 @@ test('Pursuit Room preserves explicit human external-action boundaries', () => {
   );
   assert.match(
     room,
-    /Pursuit readiness is not deal probability/,
+    /Opportunity readiness is not deal probability/,
   );
 });
 

@@ -89,14 +89,14 @@ test('Club keeps direct relationships and warm introduction evidence distinct', 
 
   assert.match(
     club,
-    /does not guess private club intent or whether a transfer will happen/,
+    /Club needs and transfer outcomes are not inferred/,
   );
 });
 
 test('Club connects relationship context directly to opportunities and deals', () => {
   assert.match(
     club,
-    /LIVE OPPORTUNITIES/,
+    /Live opportunities/,
   );
 
   assert.match(
@@ -123,7 +123,7 @@ test('Strategic club plays remain guarded internal preparations rather than exte
 
   assert.match(
     club,
-    /Nothing is sent externally without a person confirming it/,
+    /Nothing is sent without approval/,
   );
 
   assert.match(

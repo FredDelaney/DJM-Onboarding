@@ -54,7 +54,7 @@ test('first-run experience stays evidence-derived rather than manually completed
   assert.doesNotMatch(ownerLaunch, /set_first_value/);
   assert.match(
     ownerLaunch,
-    /Your first player milestone now comes from the real roster/,
+    /Your first player milestone is ready/,
   );
 });
 

@@ -1,11 +1,13 @@
 'use client';
-
 import {
   Camera,
   CheckCircle2,
   LoaderCircle,
   Trash2,
 } from 'lucide-react';
+import JourneyStatus from '@/components/JourneyStatus';
+
+
 import {
   ChangeEvent,
   FormEvent,
@@ -221,9 +223,9 @@ export default function ProfileSettingsPage() {
     >
       <div className={styles.stack}>
 
-        {error ? <div className={styles.error}>{error}</div> : null}
+        {error ? <JourneyStatus compact kind="error" description={error}/> : null}
         {message ? (
-          <div className={styles.success}>
+          <div className={styles.success} role="status" aria-atomic="true">
             <CheckCircle2 size={16} />
             {message}
           </div>
@@ -233,7 +235,7 @@ export default function ProfileSettingsPage() {
           <div className={styles.panelHead}>
             <div>
               <h2>Profile photo</h2>
-              <p>Used across ownership, team handoffs and your account menu.</p>
+              <p>Shown beside your name.</p>
             </div>
             <Camera size={19} />
           </div>

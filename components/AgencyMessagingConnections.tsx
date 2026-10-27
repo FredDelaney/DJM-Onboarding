@@ -68,6 +68,12 @@ type FacebookSdk = {
   ) => void;
 };
 
+type WhatsAppConfig = {
+  app_id: string;
+  config_id: string;
+  graph_version: string;
+};
+
 declare global {
   interface Window {
     FB?: FacebookSdk;
@@ -83,13 +89,13 @@ const PROVIDERS: Array<{
     key: 'whatsapp',
     name: 'WhatsApp Business',
     description:
-      'Best for club and football contacts. Choose only the business conversations ReDream should remember.',
+      'Best for club and football contacts. Requires WhatsApp Business.',
   },
   {
     key: 'instagram',
     name: 'Instagram',
     description:
-      'Best for player conversations. Choose the player DMs ReDream should remember.',
+      'Best for player conversations. Requires a Business or Creator account.',
   },
 ];
 
@@ -142,7 +148,7 @@ async function loadFacebookSdk(
             if (!window.FB) {
               reject(
                 new Error(
-                  'Meta connection could not load.',
+                  'Could not open Meta. Check that your browser allows pop-ups, then try again.',
                 ),
               );
             }
@@ -165,7 +171,7 @@ async function loadFacebookSdk(
         script.onerror = () =>
           reject(
             new Error(
-              'Meta connection could not load.',
+              'Could not open Meta. Check that your browser allows pop-ups, then try again.',
             ),
           );
         document.head.appendChild(
@@ -177,7 +183,7 @@ async function loadFacebookSdk(
 
   if (!window.FB) {
     throw new Error(
-      'Meta connection could not load.',
+      'Could not open Meta. Check that your browser allows pop-ups, then try again.',
     );
   }
 
@@ -191,17 +197,10 @@ async function loadFacebookSdk(
   return window.FB;
 }
 
-async function whatsappSignup(
-  appId: string,
+function whatsappSignup(
+  sdk: FacebookSdk,
   configId: string,
-  version: string,
 ) {
-  const sdk =
-    await loadFacebookSdk(
-      appId,
-      version,
-    );
-
   let removeListener =
     () => {};
 
@@ -305,30 +304,30 @@ async function whatsappSignup(
       },
     );
 
-  try {
-    const [
-      authorizationCode,
-      sessionInfo,
-    ] = await Promise.all([
-      timeout(
-        code,
-        120000,
-        'WhatsApp connection timed out.',
-      ),
-      timeout(
-        session,
-        120000,
-        'WhatsApp setup details were not returned.',
-      ),
-    ]);
-
-    return {
-      code: authorizationCode,
-      ...sessionInfo,
-    };
-  } finally {
-    removeListener();
-  }
+  return Promise.all([
+    timeout(
+      code,
+      120000,
+      'WhatsApp connection timed out.',
+    ),
+    timeout(
+      session,
+      120000,
+      'WhatsApp setup details were not returned.',
+    ),
+  ])
+    .then(
+      ([
+        authorizationCode,
+        sessionInfo,
+      ]) => ({
+        code: authorizationCode,
+        ...sessionInfo,
+      }),
+    )
+    .finally(() => {
+      removeListener();
+    });
 }
 
 export default function AgencyMessagingConnections({
@@ -376,6 +375,14 @@ export default function AgencyMessagingConnections({
       whatsapp: false,
       instagram: false,
     });
+
+  const [
+    whatsappConfig,
+    setWhatsAppConfig,
+  ] =
+    useState<WhatsAppConfig | null>(
+      null,
+    );
 
   const byProvider =
     useMemo(
@@ -463,11 +470,66 @@ export default function AgencyMessagingConnections({
               },
             );
 
+          let whatsappReady = false;
+
+          if (config?.whatsapp_ready) {
+            try {
+              const whatsapp =
+                await platformInvoke<{
+                  ready?: boolean;
+                  app_id?: string | null;
+                  config_id?: string | null;
+                  graph_version?: string | null;
+                }>(
+                  'redream-meta-connect',
+                  {
+                    action:
+                      'whatsapp_config',
+                    workspace_slug:
+                      workspaceSlug,
+                  },
+                );
+
+              if (
+                whatsapp?.ready &&
+                whatsapp.app_id &&
+                whatsapp.config_id
+              ) {
+                const graphVersion =
+                  whatsapp.graph_version ||
+                  'v26.0';
+
+                await loadFacebookSdk(
+                  whatsapp.app_id,
+                  graphVersion,
+                );
+
+                setWhatsAppConfig({
+                  app_id:
+                    whatsapp.app_id,
+                  config_id:
+                    whatsapp.config_id,
+                  graph_version:
+                    graphVersion,
+                });
+                whatsappReady = true;
+              } else {
+                setWhatsAppConfig(null);
+              }
+            } catch {
+              setWhatsAppConfig(
+                null,
+              );
+            }
+          } else {
+            setWhatsAppConfig(
+              null,
+            );
+          }
+
           setReady({
             whatsapp:
-              Boolean(
-                config?.whatsapp_ready,
-              ),
+              whatsappReady,
             instagram:
               Boolean(
                 config?.instagram_ready,
@@ -664,38 +726,19 @@ export default function AgencyMessagingConnections({
       );
 
       try {
-        const config =
-          await platformInvoke<{
-            ready?: boolean;
-            app_id?: string;
-            config_id?: string;
-            graph_version?: string;
-          }>(
-            'redream-meta-connect',
-            {
-              action:
-                'whatsapp_config',
-              workspace_slug:
-                workspaceSlug,
-            },
-          );
-
         if (
-          !config?.ready ||
-          !config.app_id ||
-          !config.config_id
+          !whatsappConfig ||
+          !window.FB
         ) {
           throw new Error(
-            'WhatsApp connection needs Meta app setup first.',
+            'WhatsApp is still preparing. Refresh this page, then try again.',
           );
         }
 
         const signup =
           await whatsappSignup(
-            config.app_id,
-            config.config_id,
-            config.graph_version ||
-              'v26.0',
+            window.FB,
+            whatsappConfig.config_id,
           );
 
         const result =
@@ -894,10 +937,7 @@ export default function AgencyMessagingConnections({
           styles.sectionCopy
         }
       >
-        Connecting an account does not give ReDream every conversation.
-        Instagram is normally for your players. WhatsApp is normally for
-        club and football contacts. Turn on only the conversations that
-        matter, then confirm the person or player before ReDream uses the context.
+        Only enabled chats are saved to Agency Memory. Connect once, then choose the conversations ReDream may remember.
       </p>
 
       {loading ? (
@@ -912,8 +952,7 @@ export default function AgencyMessagingConnections({
               styles.spin
             }
           />
-          Checking messaging
-          accounts...
+          Checking connections...
         </div>
       ) : (
         <div
@@ -1136,15 +1175,7 @@ export default function AgencyMessagingConnections({
                               styles.noThreads
                             }
                           >
-                            New
-                            conversations
-                            will appear
-                            here. Nothing
-                            is saved to
-                            Agency Memory
-                            until you
-                            switch a chat
-                            on.
+                            No conversations yet. Nothing is saved to Agency Memory until you switch a chat on.
                           </div>
                         )}
                       </div>
@@ -1190,7 +1221,9 @@ export default function AgencyMessagingConnections({
 
                         {ready[
                           provider.key
-                        ] ? (
+                        ] &&
+                        health !==
+                          'connected' ? (
                           <button
                             type="button"
                             className={
@@ -1285,10 +1318,16 @@ export default function AgencyMessagingConnections({
                           size={14}
                         />
                       )}
-                      Connect{' '}
-                      {providerName(
-                        provider.key,
-                      )}
+                      {working
+                        ? 'Opening ' +
+                          providerName(
+                            provider.key,
+                          ) +
+                          '...'
+                        : 'Connect ' +
+                          providerName(
+                            provider.key,
+                          )}
                     </button>
                   ) : (
                     <button
@@ -1302,7 +1341,7 @@ export default function AgencyMessagingConnections({
                       <ShieldCheck
                         size={14}
                       />
-                      Setup in progress
+                      Not available yet
                     </button>
                   )}
                 </article>

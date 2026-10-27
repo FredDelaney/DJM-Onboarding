@@ -10,6 +10,7 @@ try {
   const dylan='30000000-0000-4000-8000-000000000001';
   const capture='40000000-0000-4000-8000-000000000001';
   await page.route('https://example.supabase.co/**',async route=>{
+   if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
     const action=route.request().postDataJSON()?.action;
     let body={};
     if(action==='tenants')body={tenants:[{tenant_id:'qa-tenant',slug:'qa',role:'owner',display_name:'QA agency'}]};
@@ -27,6 +28,8 @@ try {
   assert.equal(await page.getByRole('link',{name:'Review player data',exact:true}).count(),1,'Player review must open the existing record, not create another reminder');
   const review=page.getByRole('link',{name:'Review player data',exact:true});
   assert.equal(await review.getAttribute('href'),'/agency?view=players&player='+dylan+'&profile=1');
+  const reviewRow=page.locator('article').filter({has:review});
+  await reviewRow.locator('summary').filter({hasText:'Details'}).click();
   await page.getByText('Career statistics changed',{exact:true}).waitFor();
   assert.equal(await page.getByText('Review the player record and resolve the flagged issue.',{exact:true}).count(),0,'Generic reminder must not duplicate the same player review card');
   assert.equal(await page.getByRole('link',{name:'Answer question',exact:true}).getAttribute('href'),'/workspace/qa/capture?capture='+capture);

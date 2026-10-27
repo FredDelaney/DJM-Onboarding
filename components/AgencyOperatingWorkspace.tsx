@@ -1,12 +1,22 @@
 'use client';
 
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
+import WorkResponsibilityControl from './WorkResponsibilityControl';
+import {workRefFor,homeWorkRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
+import {homeRelevanceReference} from '@/lib/home-relevance';
+import {useHomeRelevance} from './useHomeRelevance';
+import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWorkControl';
 import AiLauncher from '@/components/AiLauncher';
+import AgencyMobileNavigation from './AgencyMobileNavigation';
+import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery} from '@/lib/workspace-record-navigation';
+import PeopleViewSwitcher from './PeopleViewSwitcher';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { preparationLink } from '@/lib/capture-preparation';
 import {
   ArrowRight,
   ChevronRight,
@@ -16,6 +26,7 @@ import {
   CheckCircle2,
   CircleAlert,
   Coins,
+  FileText,
   LoaderCircle,
   Home as HomeIcon,
   LogOut,
@@ -39,6 +50,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import ToolsMenu from './ToolsMenu';
 
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
 import {
@@ -55,20 +67,30 @@ import type { AgencyDealCloseoutRequest } from '@/components/AgencyDealCloseoutD
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
 import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
-import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
 import { readWithDeadline } from '@/lib/read-with-deadline';
-import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
-import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
-import AgencyCalendarWorkspace from '@/components/AgencyCalendarWorkspace';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 
+import { brandingForWorkspace } from '@/lib/workspace-branding';
+import { readHomePosition } from '@/lib/read-home-position';
 import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
+import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
+function WorkspaceSectionLoading({label = 'workspace'}: {label?: string}) {
+  return <section className={styles.viewLoading} role="status" aria-busy="true" aria-atomic="true">
+    <LoaderCircle size={18} className={styles.spin} />
+    <span>Loading {label}...</span>
+  </section>;
+}
+
+const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'), {loading: () => <WorkspaceSectionLoading label="players"/>});
+const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: () => <WorkspaceSectionLoading label="Network"/>});
+const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
+const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
 const AgencyCreateDrawer = dynamic(() => import('@/components/AgencyCreateDrawer'));
 const AgencyRosterMigrationPanel = dynamic(() => import('@/components/AgencyRosterMigrationPanel'));
 const AgencyActionDrawer = dynamic(() => import('@/components/AgencyActionDrawer'));
@@ -89,6 +111,21 @@ const AgencyMeetingOutcomeDrawer = dynamic(() => import('@/components/AgencyMeet
 const AgencyTeamHandoffDrawer = dynamic(() => import('@/components/AgencyTeamHandoffDrawer'));
 
 type View = 'home' | 'players' | 'opportunities' | 'network' | 'calendar' | 'business';
+
+function preloadWorkspaceView(view: View, showPlayerProfile = false) {
+  // Start the visible destination alongside its reads, or on navigation intent.
+  // Background data warming must not download every hidden page's code.
+  let request: Promise<unknown> | undefined;
+  if (view === 'players') request = showPlayerProfile
+    ? import('@/components/AgencyPlayerProfile')
+    : import('@/components/AgencyPlayersWorkspace');
+  else if (view === 'network') request = import('@/components/AgencyNetworkWorkspace');
+  else if (view === 'opportunities') request = import('@/components/AgencyOpportunitiesWorkspace');
+  else if (view === 'calendar') request = import('@/components/AgencyCalendarWorkspace');
+  void request?.catch(() => {
+    // The rendered destination retains its normal module loading/error path.
+  });
+}
 
 type ViewCacheEntry = {
   data: any;
@@ -124,6 +161,7 @@ type Workspace = {
   is_primary?: boolean;
   synthetic_demo?: boolean;
   display_name?: string | null;
+  logo_asset?: string | null;
   short_name?: string | null;
   portal_name?: string | null;
   primary_color?: string | null;
@@ -151,37 +189,37 @@ const VIEW_PRESENTATION: Record<
     eyebrow: 'HOME',
     title: 'Home',
     description:
-      'What needs your attention.',
+      'What needs attention.',
   },
   players: {
     eyebrow: 'PLAYERS',
     title: 'Players',
     description:
-      'Your players, recruitment and the next decisions around them.',
+      'Roster and next steps.',
   },
   opportunities: {
     eyebrow: 'OPPORTUNITIES',
     title: 'Opportunities',
     description:
-      'Club need, player fit, relationship and next action.',
+      'Needs, matches and deals.',
   },
   network: {
     eyebrow: 'NETWORK',
     title: 'Network',
     description:
-      'The clubs and people that move opportunities.',
+      'Clubs and relationships.',
   },
   calendar: {
     eyebrow: 'CALENDAR',
     title: 'Calendar',
     description:
-      'Meetings, follow-ups and deadlines in one place.',
+      'Meetings and deadlines.',
   },
   business: {
     eyebrow: 'BUSINESS',
     title: 'Business',
     description:
-      'Money, live business and the agency position.',
+      'Deals and revenue.',
   },
 };
 
@@ -199,7 +237,7 @@ const reviewPlayerId = (command: any): string => {
 
 const reviewCopy = (command: any) => ({
   title: command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
-  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Open the player profile to check the recorded data.' : 'Check the player profile, then mark this reminder done.',
+  reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Review the player profile.' : 'Review the profile, then mark this done.',
 });
 
 const commandWorkingView = (command: any): View => {
@@ -256,7 +294,7 @@ const money = (value: unknown, currency = 'EUR') => {
 
 const careerGateLabel = (value: unknown) => {
   const state = String(value || '').trim().toLowerCase();
-  if (!state) return 'Recorded';
+  if (!state) return 'Upcoming';
   if (state.startsWith('open_')) return 'Open to progress';
   if (state.startsWith('review_')) return 'Review needed';
   if (state.startsWith('hold_')) return 'Player decision needed';
@@ -347,17 +385,16 @@ export default function AgencyOperatingWorkspace() {
   useEffect(() => {
     if (!proposal || !signedIn || !workspace?.tenant_id) return;
     const previous = confirmationOpener.current || document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
+    const releaseScroll = lockPageScroll();
     const siblings = [...document.body.children].filter(
       (element): element is HTMLElement => element instanceof HTMLElement && element !== confirmationBackdrop.current,
     );
-    const inert = siblings.map(element => element.inert);
-    siblings.forEach(element => { element.inert = true; });
-    document.body.style.overflow = 'hidden';
+    const releaseBackground = isolateElements(siblings);
+
     confirmationDialog.current?.querySelector<HTMLButtonElement>('button')?.focus();
     return () => {
-      siblings.forEach((element, index) => { element.inert = inert[index]; });
-      document.body.style.overflow = overflow;
+      releaseBackground();
+      releaseScroll();
       if (previous?.isConnected) previous.focus();
     };
   }, [proposal, signedIn, workspace?.tenant_id]);
@@ -396,24 +433,26 @@ export default function AgencyOperatingWorkspace() {
   const [openedMeetingOutcomeId, setOpenedMeetingOutcomeId] =
     useState('');
   const previousViewRef = useRef<View>(view);
+  const recordRouteQuery = search.toString();
 
   useEffect(() => {
+    setIntelligenceRequest(current => workspaceIntelligenceRequestFromQuery(recordRouteQuery, current, ['owner','admin'].includes(String(workspace?.role || ''))));
     if (previousViewRef.current === view) return;
     previousViewRef.current = view;
 
     setActionRequest(null);
-    setIntelligenceRequest(null);
     setPursuitRequest(null);
     setClubAccountRequest(null);
     setNegotiationRequest(null);
     setPlayerServiceReviewRequest(null);
     setDealCloseoutRequest(null);
     setCreateKind(null);
-  }, [view]);
+  }, [view, recordRouteQuery, workspace?.role]);
 
+  const agencyBranding = brandingForWorkspace(runtime, workspace);
   const workspaceName =
     workspace?.display_name ||
-    runtime.branding.display_name ||
+    agencyBranding.display_name ||
     'Agency workspace';
   const viewPresentation = VIEW_PRESENTATION[view];
   const stateScope = workspace?.tenant_id && sessionUserId
@@ -435,17 +474,17 @@ export default function AgencyOperatingWorkspace() {
     search.get('tab') !== 'recruitment'
       ? { kind: 'player', label: 'Add player' }
       : view === 'opportunities' && canSeeBusiness
-        ? { kind: 'club_need', label: 'Add opportunity' }
+        ? { kind: 'club_need', label: 'Add club need' }
         : null;
 
   const theme = tenantBrandCssVariables({
     primary:
       workspace?.primary_color ||
-      runtime.branding.primary_color,
-    secondary: runtime.branding.secondary_color,
+      agencyBranding.primary_color,
+    secondary: agencyBranding.secondary_color,
     accent:
       workspace?.accent_color ||
-      runtime.branding.accent_color,
+      agencyBranding.accent_color,
   });
 
   const invoke = useCallback(
@@ -487,6 +526,7 @@ export default function AgencyOperatingWorkspace() {
     async <T,>(
       name: string,
       args: Record<string, unknown> = {},
+      signal?: AbortSignal,
     ): Promise<T> => {
       if (!workspace?.slug) {
         throw new Error('Agency workspace is not resolved.');
@@ -496,13 +536,14 @@ export default function AgencyOperatingWorkspace() {
         name,
         args,
         workspace.slug,
+        signal,
       );
     },
     [workspace?.slug],
   );
 
   const warmView = useCallback(
-    async (targetView: View) => {
+    async (targetView: View, preloadCode = true) => {
       if (
         !workspace?.tenant_id ||
         !workspace?.slug ||
@@ -511,6 +552,8 @@ export default function AgencyOperatingWorkspace() {
       ) {
         return;
       }
+
+      if (preloadCode) preloadWorkspaceView(targetView);
 
       const cacheKey = [
         workspace.tenant_id,
@@ -531,28 +574,21 @@ export default function AgencyOperatingWorkspace() {
       const request = (async () => {
         try {
           if (targetView === 'home') {
-            let home: any = null;
-
-            try {
-              const focus = await invoke<any>('home_focus', {
-                limit: 8,
-              });
-              home = focus?.home || {};
-            } catch {
-              home = await rpc<any>('redream_autopilot_home', {
-                p_limit: 8,
-              });
-            }
+            const home = await readHomePosition(
+              () => invoke<any>('home_focus', {limit:8}),
+              () => rpc<any>('redream_autopilot_home', {p_limit:8}),
+              3000,
+            );
 
             writeViewCache(cacheKey, { home });
             return;
           }
 
           if (targetView === 'players') {
-            const directory = await invoke<any>(
+            const directory = await readWithDeadline(invoke<any>(
               'players_workspace',
               { limit: 100 },
-            );
+            ), 3000);
 
             writeViewCache(cacheKey, {
               directory: directory?.players || {},
@@ -561,10 +597,10 @@ export default function AgencyOperatingWorkspace() {
           }
 
           if (targetView === 'opportunities') {
-            const market = await rpc<any>(
+            const market = await readWithDeadline(rpc<any>(
               'redream_autopilot_market',
               { p_limit: 100 },
-            );
+            ), 3000);
 
             writeViewCache(cacheKey, {
               market,
@@ -576,10 +612,10 @@ export default function AgencyOperatingWorkspace() {
           if (targetView === 'network') {
             writeViewCache(
               cacheKey,
-              await rpc<any>('redream_autopilot_relationships', {
+              await readWithDeadline(rpc<any>('redream_autopilot_relationships', {
                 p_limit: 100,
                 p_contact_limit: 250,
-              }),
+              }), 3000),
             );
             return;
           }
@@ -587,10 +623,10 @@ export default function AgencyOperatingWorkspace() {
           if (targetView === 'calendar') {
             writeViewCache(
               cacheKey,
-              await rpc<any>('redream_autopilot_calendar', {
+              await readWithDeadline(rpc<any>('redream_autopilot_calendar', {
                 p_horizon_days: 90,
                 p_limit: 100,
-              }),
+              }), 3000),
             );
           }
         } catch {
@@ -620,9 +656,17 @@ export default function AgencyOperatingWorkspace() {
 
   const navigateWorkspaceView = useCallback(
     (targetView: View, href: string) => {
-      if (targetView === view || typeof window === 'undefined') return;
+      if (typeof window === 'undefined' || href === window.location.pathname + window.location.search) return;
 
-      void warmView(targetView);
+      setActionRequest(null);
+      setIntelligenceRequest(null);
+      setPursuitRequest(null);
+      setClubAccountRequest(null);
+      setNegotiationRequest(null);
+      setPlayerServiceReviewRequest(null);
+      setDealCloseoutRequest(null);
+      setCreateKind(null);
+      if (targetView !== view) void warmView(targetView);
       window.history.pushState(
         { redreamView: targetView },
         '',
@@ -637,7 +681,7 @@ export default function AgencyOperatingWorkspace() {
     const identity = sessionUserId;
     const current = () => sequence === workspaceSequenceRef.current && authIdentityRef.current === identity;
     if (!targetSlug) {
-      setError('This agency workspace could not be resolved.');
+      setError('Workspace unavailable.');
       setBusy(false);
       return;
     }
@@ -663,7 +707,7 @@ export default function AgencyOperatingWorkspace() {
         setWorkspace(null);
         setData(null);
         setError(
-          'This signed-in account does not have agency staff access here.',
+          'This account does not have staff access.',
         );
         return;
       }
@@ -679,7 +723,7 @@ export default function AgencyOperatingWorkspace() {
     }
   }, [targetSlug, sessionUserId]);
 
-  const loadView = useCallback(async () => {
+  const loadView = useCallback(async (options?: { rejectOnError?: boolean }) => {
     if (!workspace?.tenant_id) return;
 
     const requestId = ++loadSequenceRef.current;
@@ -755,38 +799,33 @@ export default function AgencyOperatingWorkspace() {
 
     try {
       if (view === 'home') {
-        let home: any = null;
-        try {
-          const focus = await invoke<any>('home_focus', { limit: 8 });
-          home = focus?.home || {};
-        } catch {
-          home = await rpc<any>('redream_autopilot_home', {
-            p_limit: 8,
-          });
-        }
+        const home = await readHomePosition(
+          () => invoke<any>('home_focus', {limit:8}),
+          () => rpc<any>('redream_autopilot_home', {p_limit:8}),
+        );
 
-        commit({ ...(latestData || {}), home, home_reads: { operations: 'loading', connected_work: 'loading', meeting_aftercare: 'loading' } });
+        commit({ ...(latestData || {}), home, home_reads: { operations: 'loading', connected_work: 'loading', meeting_aftercare: 'loading' }, home_read_version: requestId });
         if (isCurrent()) setBusy(false);
 
         void Promise.allSettled([
           ['owner','admin'].includes(String(workspace.role))
-            ? rpc<any>('redream_autopilot_operations', {p_horizon_days:90,p_limit:20})
+            ? readWithDeadline(rpc<any>('redream_autopilot_operations', {p_horizon_days:90,p_limit:20}))
             : Promise.resolve({access:{restricted:true}}),
-          rpc<any>('redream_connected_work', {
+          readWithDeadline(rpc<any>('redream_connected_work', {
             p_limit: 6,
-          }),
-          rpc<any>('redream_meeting_aftercare', {
+          })),
+          readWithDeadline(rpc<any>('redream_meeting_aftercare', {
             p_limit: 12,
-          }),
+          })),
         ]).then((reads) => {
           if (!isCurrent()) return;
           merge(settleHomeReads(latestData || {}, reads));
         });
       } else if (view === 'players') {
         if (playersSection === 'recruitment') {
-          const recruitment = await invoke<any>('recruitment_board', {
+          const recruitment = await readWithDeadline(invoke<any>('recruitment_board', {
             limit: 250,
-          });
+          }));
 
           merge({
             recruitment: recruitment?.recruitment || {},
@@ -808,9 +847,9 @@ export default function AgencyOperatingWorkspace() {
         }
       } else if (view === 'opportunities') {
         if (opportunitiesSection === 'deals') {
-          const deals = await rpc<any>('redream_autopilot_deals', {
+          const deals = await readWithDeadline(rpc<any>('redream_autopilot_deals', {
             p_limit: 100,
-          });
+          }));
 
           commit({
             ...(latestData || {}),
@@ -822,12 +861,12 @@ export default function AgencyOperatingWorkspace() {
           if (isCurrent()) setBusy(false);
 
           void Promise.allSettled([
-            rpc<any>('redream_autopilot_market', {
+            readWithDeadline(rpc<any>('redream_autopilot_market', {
               p_limit: 100,
-            }),
-            rpc<any>('redream_opportunity_connected_context', {
+            })),
+            readWithDeadline(rpc<any>('redream_opportunity_connected_context', {
               p_limit: 100,
-            }),
+            })),
           ]).then((reads) => {
             if (!isCurrent()) return;
             merge({
@@ -843,9 +882,9 @@ export default function AgencyOperatingWorkspace() {
             });
           });
         } else {
-          const market = await rpc<any>('redream_autopilot_market', {
+          const market = await readWithDeadline(rpc<any>('redream_autopilot_market', {
             p_limit: 100,
-          });
+          }));
 
           commit({
             ...(latestData || {}),
@@ -857,12 +896,12 @@ export default function AgencyOperatingWorkspace() {
           if (isCurrent()) setBusy(false);
 
           void Promise.allSettled([
-            rpc<any>('redream_autopilot_deals', {
+            readWithDeadline(rpc<any>('redream_autopilot_deals', {
               p_limit: 100,
-            }),
-            rpc<any>('redream_opportunity_connected_context', {
+            })),
+            readWithDeadline(rpc<any>('redream_opportunity_connected_context', {
               p_limit: 100,
-            }),
+            })),
           ]).then((reads) => {
             if (!isCurrent()) return;
             merge({
@@ -880,17 +919,17 @@ export default function AgencyOperatingWorkspace() {
         }
       } else if (view === 'network') {
         commit(
-          await rpc<any>('redream_autopilot_relationships', {
+          await readWithDeadline(rpc<any>('redream_autopilot_relationships', {
             p_limit: 100,
             p_contact_limit: 250,
-          }),
+          })),
         );
       } else if (view === 'calendar') {
         commit(
-          await rpc<any>('redream_autopilot_calendar', {
+          await readWithDeadline(rpc<any>('redream_autopilot_calendar', {
             p_horizon_days: 90,
             p_limit: 100,
-          }),
+          })),
         );
       } else if (view === 'business') {
         if (
@@ -901,11 +940,11 @@ export default function AgencyOperatingWorkspace() {
           if (isCurrent()) {
             setData(null);
             setError(
-              'Business is available to agency owners and administrators.',
+              'Business is for owners and admins.',
             );
           }
         } else {
-          const control = await invoke<any>('agency_control_centre');
+          const control = await readWithDeadline(invoke<any>('agency_control_centre'));
           commit({
             owner_business: {
               control: control?.control_centre || null,
@@ -919,14 +958,14 @@ export default function AgencyOperatingWorkspace() {
           if (isCurrent()) setBusy(false);
 
           void Promise.allSettled([
-            invoke<any>('agency_roi_proof', {
+            readWithDeadline(invoke<any>('agency_roi_proof', {
               window_days: 30,
-            }),
-            invoke<any>('receivables_command', {
+            })),
+            readWithDeadline(invoke<any>('receivables_command', {
               horizon_days: 90,
               limit: 100,
-            }),
-            invoke<any>('team_capacity'),
+            })),
+            readWithDeadline(invoke<any>('team_capacity')),
           ]).then((results) => {
             if (!isCurrent()) return;
             const value = (index: number, key: string) =>
@@ -948,6 +987,7 @@ export default function AgencyOperatingWorkspace() {
       }
     } catch (loadError) {
       if (isCurrent()) setError(friendlyError(loadError));
+      if (options?.rejectOnError) throw loadError;
     } finally {
       if (isCurrent()) {
         directoryRefreshRef.current = false;
@@ -966,6 +1006,23 @@ export default function AgencyOperatingWorkspace() {
     workspace?.tenant_id,
     sessionUserId,
   ]);
+
+  // Editors must distinguish a confirmed write from a failed list refresh.
+  // Ordinary navigation/refresh keeps its existing page-level error handling.
+  const refreshRecords = useCallback(() => loadView({ rejectOnError: true }), [loadView]);
+  const handleCaptureCompleted = useCallback(() => { void loadView(); }, [loadView]);
+  const openIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
+    setIntelligenceRequest(request);
+    const href = workspaceIntelligenceHref(basePath, window.location.search, request);
+    if (href && href !== window.location.pathname + window.location.search) {
+      window.history.pushState(null, '', href);
+    }
+  }, [basePath]);
+  const closeIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
+    const href = workspaceIntelligenceListHref(basePath, window.location.search, request);
+    if (href) window.history.replaceState(null, '', href);
+    setIntelligenceRequest(current => current?.kind === request.kind && current.entityId === request.entityId ? null : current);
+  }, [basePath]);
 
   useEffect(() => {
     let active = true;
@@ -1030,6 +1087,11 @@ export default function AgencyOperatingWorkspace() {
   }, [resolveWorkspace, sessionReady, signedIn]);
 
   useEffect(() => {
+    if (!signedIn || !workspace?.tenant_id || restrictedView) return;
+    preloadWorkspaceView(view, showPlayerProfile);
+  }, [view, showPlayerProfile, signedIn, workspace?.tenant_id, restrictedView]);
+
+  useEffect(() => {
     if (workspace?.tenant_id) void loadView();
     return () => { loadSequenceRef.current++; };
   }, [loadView, workspace?.tenant_id]);
@@ -1043,7 +1105,6 @@ export default function AgencyOperatingWorkspace() {
       return;
     }
 
-    let cancelled = false;
     const targets: View[] = [
       'home',
       'players',
@@ -1052,29 +1113,23 @@ export default function AgencyOperatingWorkspace() {
       'calendar',
     ].filter((targetView) => targetView !== view) as View[];
 
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const priorityTargets = targets.slice(0, 2);
-        const remainingTargets = targets.slice(2);
+    return scheduleWorkspaceWarming(async (canContinue) => {
+      if (!canContinue()) return;
+      const priorityTargets = targets.slice(0, 2);
+      const remainingTargets = targets.slice(2);
 
-        await Promise.allSettled(
-          priorityTargets.map((targetView) => warmView(targetView)),
+      await Promise.allSettled(
+        priorityTargets.map((targetView) => warmView(targetView, false)),
+      );
+
+      for (const targetView of remainingTargets) {
+        if (!canContinue()) return;
+        await warmView(targetView, false);
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 60),
         );
-
-        for (const targetView of remainingTargets) {
-          if (cancelled) return;
-          await warmView(targetView);
-          await new Promise((resolve) =>
-            window.setTimeout(resolve, 60),
-          );
-        }
-      })();
-    }, 320);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
+      }
+    });
   }, [
     busy,
     inlineEntityWorkspaceOpen,
@@ -1187,7 +1242,7 @@ export default function AgencyOperatingWorkspace() {
       instruction:
         command?.recommended_action ||
         command?.why_now ||
-        'Review the current evidence and decide the next step.',
+        'Review the evidence and decide.',
       label:
         command?.actionability?.cta ||
         (command?.actionability?.requires_input
@@ -1237,7 +1292,7 @@ export default function AgencyOperatingWorkspace() {
     const response = await readWithDeadline(invoke<any>('players_workspace', { limit: 100, offset: directory.next_offset }));
     if (sequence !== loadSequenceRef.current) return;
     const next = response?.players;
-    if (!next || !Array.isArray(next.items)) throw new Error('The next players could not load. Please try again.');
+    if (!next || !Array.isArray(next.items)) throw new Error('Players could not load. Try again.');
     const items = [...new Map([...(directory.items || []), ...next.items].map(item => [item.player_id, item])).values()];
     const nextData = { ...data, directory: { ...next, items } };
     writeViewCache([workspace.tenant_id, sessionUserId, workspace.role, 'players', 'players'].join(':'), nextData);
@@ -1376,8 +1431,8 @@ export default function AgencyOperatingWorkspace() {
       <main className={styles.authPage} style={theme}>
         <section className={styles.authCard}>
           <CircleAlert size={22} />
-          <h1>Workspace access unavailable.</h1>
-          <p>{error || 'Agency staff access is required.'}</p>
+          <h1>Workspace unavailable</h1>
+          <p>{error || 'Staff access is required.'}</p>
           <button
             type="button"
             data-ui-button="secondary"
@@ -1393,12 +1448,12 @@ export default function AgencyOperatingWorkspace() {
   }
 
   return (
-    <div className={styles.root} style={theme}>
+    <div className={styles.root} style={theme} data-interface="calm" data-mobile-workspace data-people-directory={['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?'true':undefined}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
+            branding={agencyBranding}
             href={basePath}
-            darkSurface
           />
         </div>
 
@@ -1464,7 +1519,7 @@ export default function AgencyOperatingWorkspace() {
       <main className={styles.main}>
         <header className={`${styles.pageHead} ${inlineEntityWorkspaceOpen ? styles.pageHeadHidden : ''}`}>
           <div className={styles.mobileTenantBrand}>
-            <TenantWorkspaceBrand href={basePath} compact />
+            <TenantWorkspaceBrand branding={agencyBranding} href={basePath} compact />
           </div>
           <div className={styles.pageHeadCopy}>
             <div className={styles.pageHeadTitleLine}>
@@ -1472,59 +1527,59 @@ export default function AgencyOperatingWorkspace() {
                 <h1>{viewPresentation.title}</h1>
               </div>
             </div>
-            <p className={styles.pageDescription}>
-              {viewPresentation.description}
-            </p>
           </div>
           <div className={styles.desktopHeadActions}>
-            <AiLauncher />
-            <button
-              type="button"
-              data-ui-button="tertiary"
-              className={styles.refresh}
-              onClick={() => setConnectionsOpen(true)}
-              title="Connections"
-            >
-              <PlugZap size={15} />
-              Connections
-            </button>
-            {createAction ? (
+            <AiLauncher onCaptureCompleted={handleCaptureCompleted} />
+            {createAction && view !== 'players' ? (
               <button
                 type="button"
                 data-ui-button="secondary"
-              className={styles.createButton}
+                className={styles.createButton}
                 onClick={() => setCreateKind(createAction.kind)}
               >
                 <Plus size={15} />
                 {createAction.label}
               </button>
             ) : null}
-            {view === 'players' &&
-            ['owner', 'admin', 'operations'].includes(
-              workspace.role,
-            ) ? (
-              <button
-                type="button"
-                data-ui-button="tertiary"
-              className={styles.refresh}
-                onClick={() => setRosterImportOpen(true)}
-              >
-                Import players
-              </button>
-            ) : null}
-            <button
-              type="button"
-              data-ui-button="tertiary"
-              className={styles.refresh}
-              onClick={() => void loadView()}
-              disabled={busy}
-            >
-              <RefreshCw
-                size={15}
-                className={busy ? styles.spin : ''}
-              />
-              Refresh
-            </button>
+            <ToolsMenu className={styles.workspaceTools} menuClassName={styles.workspaceToolsMenu} label="Workspace tools">
+                {canSeeBusiness ? <Link data-ui-button="tertiary" className={styles.refresh} href={'/workspace/' + encodeURIComponent(workspace.slug) + '/documents'}><FileText size={15}/>Documents</Link> : null}
+                <button
+                  type="button"
+                  data-ui-button="tertiary"
+                  className={styles.refresh}
+                  onClick={() => setConnectionsOpen(true)}
+                  title="Connections"
+                >
+                  <PlugZap size={15} />
+                  Connections
+                </button>
+                {view === 'players' &&
+                ['owner', 'admin', 'operations'].includes(
+                  workspace.role,
+                ) ? (
+                  <button
+                    type="button"
+                    data-ui-button="tertiary"
+                  className={styles.refresh}
+                    onClick={() => setRosterImportOpen(true)}
+                  >
+                    Import players
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  data-ui-button="tertiary"
+                  className={styles.refresh}
+                  onClick={() => void loadView()}
+                  disabled={busy}
+                >
+                  <RefreshCw
+                    size={15}
+                    className={busy ? styles.spin : ''}
+                  />
+                  Refresh
+                </button>
+            </ToolsMenu>
             <AccountMenu
               workspace={workspace}
               onSignOut={signOut}
@@ -1538,7 +1593,8 @@ export default function AgencyOperatingWorkspace() {
           </div>
         </header>
 
-        {createAction && !inlineEntityWorkspaceOpen ? (
+        {['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?<PeopleViewSwitcher basePath={basePath} view={view} onNavigate={navigateWorkspaceView}/>:null}
+        {createAction && !inlineEntityWorkspaceOpen && view !== 'players' ? (
           <div className={styles.mobileContextAction}>
             <button
               type="button"
@@ -1559,11 +1615,9 @@ export default function AgencyOperatingWorkspace() {
             </div>
             <div className={styles.firstValueHandoffCopy}>
               <p className={styles.eyebrow}>FIRST WORKING VALUE REACHED</p>
-              <h2>Your agency is operating now.</h2>
+              <h2>Ready to go</h2>
               <p>
-                Your player, club contact and live opportunity are now connected.
-                Keep the opportunity current here, then use Today to see what
-                matters next.
+                Your player, contact and opportunity are connected. Keep the next step current here.
               </p>
             </div>
             <button
@@ -1578,7 +1632,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {error ? (
-          <div role="alert">
+          <div>
             <ErrorBox text={error} />
             <button type="button" data-ui-button="secondary"
               className={styles.secondaryButton}
@@ -1590,10 +1644,7 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
 
         {busy && !data ? (
-          <section className={styles.loadingCard}>
-            <LoaderCircle size={20} className={styles.spin} />
-            Loading current agency position...
-          </section>
+          <WorkspaceSectionLoading label={view === 'players' && playersSection === 'recruitment' ? 'recruitment' : view === 'home' ? 'your day' : view}/>
         ) : null}
 
         {data ? (
@@ -1603,13 +1654,16 @@ export default function AgencyOperatingWorkspace() {
           >
             {restrictedView ? (
               <section className={styles.sectionCard}>
-                <h2>Administrator access required</h2>
-                <p>Commercial opportunities and business records are available to agency owners and administrators.</p>
+                <h2>Admin access needed</h2>
+                <p>Commercial records are for owners and admins.</p>
                 <Link className={styles.homeTextLink} href={basePath+'?view=players'}>Open assigned players <ChevronRight size={14}/></Link>
               </section>
             ) : null}
             {view === 'home' ? (
               <Home
+                rpc={rpc}
+                tenantId={workspace.tenant_id}
+                userId={sessionUserId}
                 data={data}
                 basePath={basePath}
                 workspaceSlug={String(workspace?.slug || targetSlug || '')}
@@ -1630,15 +1684,17 @@ export default function AgencyOperatingWorkspace() {
                 <AgencyPlayerProfile
                   key={`player-profile:${selectedPlayerId}`}
                   playerId={selectedPlayerId}
+                  preparation={preparationLink(search.get("capture"), search.get("preparation"))}
                   backHref={`${basePath}?view=players`}
                   cacheScope={stateScope}
                   workHref={`${basePath}?view=players&player=${encodeURIComponent(selectedPlayerId)}`}
                   role={String(workspace?.role || '')}
-                  fallbackAgency={runtime.branding}
+                  fallbackAgency={agencyBranding}
                   invoke={(action, body) => invoke<any>(action, body)}
+                  rpc={rpc}
                   onOpenAction={(request) => setActionRequest(request)}
                   onOpenIntelligence={(playerId, title, context) =>
-                    setIntelligenceRequest({
+                    openIntelligenceRequest({
                       key: `player-360:${playerId}`,
                       kind: 'player',
                       entityId: playerId,
@@ -1652,9 +1708,11 @@ export default function AgencyOperatingWorkspace() {
                   stateScope={stateScope}
                   canManageRecords={canSeeBusiness}
                   canCreateRecords={canCreateRecords}
+                  onCreatePlayer={() => setCreateKind('player')}
+                  onRecordRefresh={refreshRecords}
                   data={data}
                   basePath={basePath}
-                  invoke={(action, body) => invoke<any>(action, body)}
+                  invoke={invoke}
                   rpc={rpc}
                   onRefresh={loadView}
                   onLoadMore={loadMorePlayers}
@@ -1665,6 +1723,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'opportunities' && canSeeBusiness ? (
               <AgencyOpportunitiesWorkspace
+                onRecordRefresh={refreshRecords}
                 key={stateScope}
                 invoke={invoke}
                 onRetry={() => void loadView()}
@@ -1676,11 +1735,12 @@ export default function AgencyOperatingWorkspace() {
                   setActionRequest(request)
                 }
                 onOpenPursuit={setPursuitRequest}
-                onOpenIntelligence={setIntelligenceRequest}
+                onOpenIntelligence={openIntelligenceRequest}
               />
             ) : null}
             {view === 'network' ? (
               <AgencyNetworkWorkspace
+                onRecordRefresh={refreshRecords}
                 key={stateScope}
                 stateScope={stateScope}
                 canManageRecords={canSeeBusiness}
@@ -1720,9 +1780,9 @@ export default function AgencyOperatingWorkspace() {
         ) : null}
       </main>
 
-      <div className={styles.mobileTell}>
-        <AiLauncher />
-      </div>
+      <AgencyMobileNavigation basePath={basePath} workspaceSlug={workspace.slug} view={view} canSeeBusiness={canSeeBusiness} onCaptureCompleted={handleCaptureCompleted}
+        search={{tenantId:workspace.tenant_id,userId:sessionUserId,basePath,cacheScope:stateScope,invoke,rpc,seed:{view,data},onCreate:setCreateKind}}
+        onNavigate={navigateWorkspaceView} onWarm={target=>void warmView(target)} onConnections={()=>setConnectionsOpen(true)}/>
 
       {connectionsOpen ? (
         <AgencyConnectionsDrawer
@@ -1773,11 +1833,10 @@ export default function AgencyOperatingWorkspace() {
         <AgencyCreateDrawer
           key={`create:${createKind}`}
           kind={createKind}
+          theme={theme}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setCreateKind(null)}
-          onCreated={async () => {
-            await loadView();
-          }}
+          onCreated={refreshRecords}
         />
       ) : null}
 
@@ -1800,8 +1859,11 @@ export default function AgencyOperatingWorkspace() {
           key={intelligenceRequest.key}
           request={intelligenceRequest}
           presentation="page"
-          invoke={(action, body) => invoke<any>(action, body)}
-          onClose={() => setIntelligenceRequest(null)}
+          rpc={rpc}
+          canManageRecords={canSeeBusiness}
+          onRefresh={refreshRecords}
+          invoke={invoke}
+          onClose={() => closeIntelligenceRequest(intelligenceRequest)}
           onOpenAction={(request) => {
             setActionRequest(request);
           }}
@@ -1849,7 +1911,7 @@ export default function AgencyOperatingWorkspace() {
           }}
           onOpenDeal={(dealRoomId, title, context) => {
             setPursuitRequest(null);
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,
@@ -1868,7 +1930,7 @@ export default function AgencyOperatingWorkspace() {
           key={playerServiceReviewRequest.key}
           request={playerServiceReviewRequest}
           presentation="page"
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           onClose={() => setPlayerServiceReviewRequest(null)}
           onOpenAction={(request) => {
             setPlayerServiceReviewRequest(null);
@@ -1886,7 +1948,7 @@ export default function AgencyOperatingWorkspace() {
           request={negotiationRequest}
           presentation="page"
           role={String(workspace?.role || '')}
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           onClose={() => setNegotiationRequest(null)}
           onOpenAction={(request) => {
             setActionRequest(request);
@@ -1902,16 +1964,16 @@ export default function AgencyOperatingWorkspace() {
           key={clubAccountRequest.key}
           request={clubAccountRequest}
           presentation="page"
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           rpc={rpc}
-          onRefresh={loadView}
+          onRefresh={refreshRecords}
           onClose={closeClubAccount}
           onOpenAction={(request) => {
             setActionRequest(request);
           }}
           onOpenDeal={(dealRoomId, title, context) => {
             closeClubAccount();
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,
@@ -1919,12 +1981,12 @@ export default function AgencyOperatingWorkspace() {
               context,
             });
           }}
-          onOpenMarket={() => {
+          onOpenMarket={(needId) => {
             setClubAccountRequest(null);
             window.history.pushState(
               null,
               '',
-              `${basePath}?view=opportunities`,
+              `${basePath}?view=opportunities${needId ? '&tab=needs&record=' + encodeURIComponent(needId) : ''}`,
             );
           }}
           onOpenPursuit={(request) => {
@@ -1950,7 +2012,7 @@ export default function AgencyOperatingWorkspace() {
           request={dealCloseoutRequest}
           presentation="page"
           role={String(workspace?.role || '')}
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           onClose={() => setDealCloseoutRequest(null)}
           onApplied={async () => {
             await loadView();
@@ -1961,7 +2023,7 @@ export default function AgencyOperatingWorkspace() {
       {memoryOpen ? (
         <AgencyMemoryDrawer
           presentation="page"
-          invoke={(action, body) => invoke<any>(action, body)}
+          invoke={invoke}
           onClose={() => setMemoryOpen(false)}
           onApplied={async () => {
             await loadView();
@@ -1976,7 +2038,7 @@ export default function AgencyOperatingWorkspace() {
           onClose={() => setOwnerCommandOpen(false)}
           onOpenDeal={(dealRoomId, title, context) => {
             setOwnerCommandOpen(false);
-            setIntelligenceRequest({
+            openIntelligenceRequest({
               key: `deal-war-room:${dealRoomId}`,
               kind: 'deal',
               entityId: dealRoomId,
@@ -2044,7 +2106,7 @@ export default function AgencyOperatingWorkspace() {
               Nothing changes until you confirm. The latest recorded
               information will be checked again first.
             </p>
-            {proposalError ? <div role="alert"><ErrorBox text={proposalError} /></div> : null}
+            {proposalError ? <div><ErrorBox text={proposalError} /></div> : null}
             <div className={styles.modalActions}>
               <button
                 type="button"
@@ -2092,7 +2154,7 @@ function Loading({
 
 function ErrorBox({ text }: { text: string }) {
   return (
-    <div className={styles.error}>
+    <div className={styles.error} role="alert" aria-atomic="true">
       <CircleAlert size={16} />
       <span>{text}</span>
     </div>
@@ -2149,10 +2211,12 @@ function EmptyState({
   icon: Icon,
   title,
   copy,
+  action,
 }: {
   icon: typeof Users;
   title: string;
   copy: string;
+  action?: React.ReactNode;
 }) {
   return (
     <div className={styles.emptyState}>
@@ -2161,11 +2225,15 @@ function EmptyState({
       </div>
       <strong>{title}</strong>
       <span>{copy}</span>
+      {action ? <div className={styles.emptyStateAction}>{action}</div> : null}
     </div>
   );
 }
 
 function Home({
+  rpc,
+  tenantId,
+  userId,
   data,
   basePath,
   workspaceSlug,
@@ -2176,6 +2244,9 @@ function Home({
   onPrepareConnectedReply,
   onRecordMeetingOutcome,
 }: {
+  rpc: <T=any>(name:string,args?:Record<string,unknown>)=>Promise<T>;
+  tenantId: string;
+  userId: string;
   data: any;
   basePath: string;
   workspaceSlug: string;
@@ -2187,6 +2258,24 @@ function Home({
   onRecordMeetingOutcome: (meeting: any) => void;
 }) {
   const restricted = Boolean(data?.home?.access?.restricted);
+  const [agencyOverview,setAgencyOverview]=useState(false);
+  const homeWork = useHomeWork(rpc,tenantId,userId);
+  const retryHome=useRef(onRetry);retryHome.current=onRetry;
+  const assignedScope=tenantId+':'+userId;
+  const [assignedLoading,setAssignedLoading]=useState(true);
+  const [assignedWork,setAssignedWork]=useState<{scope:string;items:any[]}>({scope:'',items:[]});
+  const [assignedError,setAssignedError]=useState('');
+  useEffect(()=>{
+    let alive=true,request=0;
+    // Keep local confirmations until both the Home/operations feed and assignments refresh.
+    // Only reconcile captured values, never an edit which completed during this read.
+    const confirmedOverrides=typeof data?.home_read_version==='number'&&data?.home_reads?.operations==='ready'?homeWork.overrides:{};
+    const load=()=>{const token=++request;setAssignedError('');setAssignedLoading(true);void readWithDeadline(readAssignedWorkPages(rpc,tenantId).then(items=>({items}))).then(value=>{if(alive&&token===request){if(!Array.isArray(value?.items)){setAssignedError('Could not confirm your assigned tasks.');}else {setAssignedWork({scope:assignedScope,items:value.items});homeWork.reconcile(confirmedOverrides);}setAssignedLoading(false);}},()=>{if(alive&&token===request){setAssignedError('Could not load your assigned tasks.');setAssignedLoading(false);}});};
+    const reload=()=>{retryHome.current();};
+    load();window.addEventListener('redream:responsibilities-updated',reload);
+    return()=>{alive=false;window.removeEventListener('redream:responsibilities-updated',reload);};
+  },[rpc,tenantId,assignedScope,data?.home_read_version,data?.home_reads?.operations]);
+
   const [greeting, setGreeting] = useState('Good to see you.');
 
   useEffect(() => {
@@ -2207,7 +2296,7 @@ function Home({
   ]);
   const readNotice = (state: string) => state === 'ready' ? null : (
     <div className={styles.homeReadNotice} role="status">
-      <span>{state === 'loading' ? 'Checking for updates...' : 'Some updates could not be loaded.'}</span>
+      <span>{state === 'loading' ? 'Checking...' : 'Some updates failed to load.'}</span>
       {state === 'error' ? (
         <button type="button" className={styles.compactButton} onClick={onRetry}>
           Try again
@@ -2329,7 +2418,7 @@ function Home({
     }
 
     const clubNeedId = String(
-      item?.context?.club_need_id || item?.club_need_id || '',
+      item?.context?.club_need_id || item?.club_need_id || (item?.entity_type === 'club_need' ? item?.entity_id : '') || '',
     ).trim();
     const entityType = String(item?.entity_type || '');
 
@@ -2340,7 +2429,7 @@ function Home({
       return `${basePath}?view=opportunities&tab=routes`;
     }
     if (clubNeedId || entityType === 'club_need') {
-      return `${basePath}?view=opportunities&tab=needs`;
+      return `${basePath}?view=opportunities&tab=needs${clubNeedId ? '&record=' + encodeURIComponent(clubNeedId) : ''}`;
     }
 
     const personId = String(
@@ -2470,6 +2559,7 @@ function Home({
     deadline: string;
     kind: 'command' | 'meeting_aftercare' | 'day';
     payload: any;
+    canEdit?: boolean;
   };
 
   const categoryScore: Record<QueueCategory, number> = {
@@ -2522,18 +2612,20 @@ function Home({
       review?.reason ||
       command?.why_now ||
       command?.evidence?.reason ||
-      'This needs a decision or action from the agency.';
+      'This needs a decision.';
     const recommendation =
       command?.recommended_action ||
       command?.actionability?.cta ||
-      (review ? 'Review the recorded player data.' : 'Open this and decide the next move.');
+      (review ? 'Review the player.' : 'Decide the next move.');
     queueCandidates.push({
       id: `command:${command?.command_id || index}`,
       category,
       score:
         categoryScore[category] +
         Math.min(9_000, Math.max(0, Number(command?.priority_score || 0))),
-      title: review?.title || command?.title || human(command?.command_type || 'Agency action'),
+      title: review?.title || (command?.command_type === 'Player follow-up due' && command?.evidence?.next_action
+        ? `${command.title}: ${command.evidence.next_action}`
+        : command?.title) || human(command?.command_type || 'Agency action'),
       why,
       recommendation,
       owner: ownerFor(command),
@@ -2554,7 +2646,7 @@ function Home({
       category: 'Needs action now',
       score: categoryScore['Needs action now'] + 8_500 - index,
       title: `Record the outcome from ${name}`,
-      why: 'The meeting has ended, but the outcome and next move are not recorded.',
+      why: 'The meeting outcome is missing.',
       recommendation: 'Capture what happened and the next action while it is still fresh.',
       owner: 'You',
       deadline: item?.ends_at ? `Ended ${relativeDate(item.ends_at)}` : 'Now',
@@ -2600,13 +2692,13 @@ function Home({
           (isPast ? 7_500 : isToday ? 6_500 : Math.max(0, 4_000 - daysAway * 50)),
         title: item?.title || 'Agency deadline',
         why: isPast
-          ? 'This recorded deadline has passed and still needs attention.'
+          ? 'This deadline has passed and still needs attention.'
           : isToday
-            ? 'This recorded deadline lands today.'
+            ? 'This deadline is today.'
             : `This date is approaching in ${daysAway} day${daysAway === 1 ? '' : 's'}.`,
-        recommendation: 'Open the underlying record and confirm the next move.',
+        recommendation: 'Open the item and confirm the next move.',
         owner: item?.owner_name || 'You',
-        deadline: isPast ? `Overdue ${relativeDate(item.deadline_at)}` : relativeDate(item.deadline_at),
+        deadline: isPast ? relativeDate(item.deadline_at) : relativeDate(item.deadline_at),
         kind: 'day',
         payload: item,
       });
@@ -2633,10 +2725,34 @@ function Home({
 
 
 
+  for (const work of assignedWork.scope===assignedScope?assignedWork.items:[]) {
+    const date=work.due_at?new Date(work.date_only?String(work.due_at).slice(0,10)+'T12:00:00':work.due_at):null;
+    if(date&&(Number.isNaN(date.getTime())||date.getTime()>now.getTime()+7*86400000))continue;
+    const key=work.work_kind+':'+work.work_id;
+    if(queueCandidates.some(item=>{const ref=homeWorkRefFor(item.payload)||workRefFor(item.payload);return ref?.kind+':'+ref?.id===key;}))continue;
+    queueCandidates.push({id:'assigned:'+key,category:!date||date<=endOfToday?'Needs action now':'Upcoming risk',score:!date?15000:date<now?47500:date<=endOfToday?46500:30500,title:work.title,why:'This work is assigned to you.',recommendation:'',owner:work.responsible_people?.map((person:any)=>person.display_name).join(', ')||'',deadline:date?dateLabel(work.due_at):'No date',kind:'day',payload:work});
+  }
+
+  const relevance=useHomeRelevance(rpc,assignedScope,tenantId,JSON.stringify(queueCandidates.map(item=>homeRelevanceReference(item.payload))),agencyOverview,data?.home_read_version);
   const queue = queueCandidates
+    .map((item,index)=>({...item,canEdit:relevance.editable.has(index),visible:relevance.visible.has(index)}))
+    .filter(item=>item.visible)
+    .map(item=>{
+      const ref=homeWorkRefFor(item.payload),saved=ref?homeWork.overrides[ref.kind+':'+ref.id]:null;
+      if(!saved)return item;
+      const effectiveDue=saved.due_at||saved.due_on;
+      const dateOnly=ref!.kind==='player_next_action'||(ref!.kind==='calendar_task'&&!saved.due_at);
+      const date=effectiveDue?new Date(dateOnly?String(effectiveDue).slice(0,10)+'T12:00:00':effectiveDue):null;
+      const category:QueueCategory=!date||date<=endOfToday?'Needs action now':'Upcoming risk';
+      return {...item,title:saved.display_title,deadline:date?dateLabel(effectiveDue):'No date',category,score:!date?15000:date<now?47500:date<=endOfToday?46500:30500,payload:{...item.payload,due_at:effectiveDue,deadline_at:effectiveDue,date_only:dateOnly,home_saved_status:saved.status}};
+    })
+    .filter(item=>item.payload?.home_saved_status!=='done')
     .filter(
       (item, index, source) =>
-        source.findIndex(candidate => candidate.id === item.id) === index,
+        source.findIndex(candidate => {
+          const a=homeWorkRefFor(candidate.payload),b=homeWorkRefFor(item.payload);
+          return a&&b?a.kind===b.kind&&a.id===b.id:candidate.id===item.id;
+        }) === index,
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
@@ -2656,6 +2772,13 @@ function Home({
     .filter((item) => item.count > 0);
 
   const queueAction = (item: QueueItem) => {
+    const ref=homeWorkRefFor(item.payload)||workRefFor(item.payload);
+    if(ref&&item.canEdit===false){
+      const related={...item.payload,work_kind:ref.kind,work_id:ref.id,context:{...item.payload?.context}};
+      const playerId=item.payload?.player_id||(item.payload?.source_type==='player'?item.payload.source_id:'');
+      if(playerId)related.context.player_id=playerId;
+      return <Link className={styles.compactButton} href={workHref(related,basePath)}>Review<ChevronRight size={16}/></Link>;
+    }
     if (item.kind === 'command') return actionFor(item.payload);
     if (item.kind === 'meeting_aftercare') {
       return (
@@ -2672,7 +2795,7 @@ function Home({
     return (
       <Link
         className={styles.compactButton}
-        href={dayHrefFor(item.payload)}
+        href={item.payload?.work_kind?workHref(item.payload,basePath):dayHrefFor(item.payload)}
       >
         <ChevronRight size={16} />
         {item.payload?.calendar_kind === 'meeting'
@@ -2684,88 +2807,65 @@ function Home({
     );
   };
 
+  const categoryLabel: Record<QueueCategory,string> = {
+    'Needs action now':'Needs attention','Waiting on someone':'Waiting',
+    'Upcoming risk':'Coming up','Opportunity detected':'Opportunity','FYI':'For you',
+  };
+  const meaningfulRecommendation = (item: QueueItem) =>
+    item.recommendation && !/^(Open the item|Decide the next move|Review the player|Open the meeting)/i.test(item.recommendation)
+      && item.recommendation.trim() !== item.why.trim();
+
   return (
-    <div className={`${styles.homeStack} ${styles.homeCommandCentre}`}>
-      <section className={styles.homeWelcome}>
-        <p>{greeting}</p>
-        <h2>
-          {queue.length
-            ? `${queue.length} ${queue.length === 1 ? 'thing matters' : 'things matter'} now`
-            : allState === 'ready'
-              ? 'Nothing needs your attention'
-              : 'Checking what matters now'}
-        </h2>
-        {queue.length ? (
-          <>
-            <p className={styles.homeFocusHint}>
-              Start with number one. ReDream has ranked the rest for you.
-            </p>
-            <div className={styles.homeQueueSummary} aria-label="Today at a glance">
-              {queueSummary.map((item) => (
-                <span key={item.category}>
-                  <b>{item.count}</b>
-                  {item.category}
-                </span>
-              ))}
-            </div>
-          </>
-        ) : null}
-      </section>
-
-      <section className={`${styles.sectionCard} ${styles.homeTodayQueue}`} aria-label="Today priorities">
-        <div className={styles.sectionHead}>
-          <div className={styles.homeSectionTitle}>
-            <span className={styles.homeSectionLabel}>{restricted ? 'Your personal work' : 'Ranked across the agency'}</span>
-            <h2>Today</h2>
-          </div>
-          <Link className={styles.homeTextLink} href={`${basePath}?view=calendar`}>
-            Calendar
-            <ChevronRight size={14} />
-          </Link>
-        </div>
-
-        {restricted ? <p className={styles.homeReadNotice}>Your tasks, meetings and commitments. Assigned players are in Players. Commercial agency signals require administrator access.</p> : null}
+    <div className={styles.focusHome}>
+      <header className={styles.focusWelcome}>
+        <div><p>{greeting}</p><h2>Your day</h2></div>
+        <Link className={styles.focusCalendarLink} href={`${basePath}?view=calendar`}>Calendar<ChevronRight size={16}/></Link>
+      </header>
+      {!restricted&&relevance.personalisationReady?<div className={styles.homeScope} role="group" aria-label="Home view"><button type="button" aria-pressed={!agencyOverview} onClick={()=>setAgencyOverview(false)}>My work</button><button type="button" aria-pressed={agencyOverview} onClick={()=>setAgencyOverview(true)}>Agency overview</button></div>:null}
+      <p className={styles.homeScopeHint}>{!relevance.personalisationReady?'Staff tagging is not enabled yet. Showing your existing Home feed.':agencyOverview?'Agency updates, with your personal tasks kept private.':'Your tagged players and assigned tasks. Task assignments take priority.'}</p>
+      <HomeWorkFeedback controller={homeWork}/>
+      <section className={styles.focusPanel} aria-label="Today priorities">
+        <div className={styles.focusHeading}><h3>{restricted ? 'Your work' : 'Needs your attention'}</h3>
+          <span>{queue.length ? `${queue.length} item${queue.length===1?'':'s'}` : allState !== 'ready' || assignedLoading || relevance.loading ? 'Updating' : assignedError || relevance.error ? 'Unavailable' : 'All clear'}</span></div>
+        {restricted ? <p className={styles.homeReadNotice}>Your work only. Commercial records require admin access.</p> : null}
         {readNotice(allState)}
-
-        <div className={styles.todayQueueList}>
-          {queue.map((item, index) => (
-            <article
-              className={`${styles.attentionCard} ${styles.todayQueueCard} ${
-                index === 0 ? styles.attentionCardPrimary : ''
-              }`}
-              key={item.id}
-            >
-              <div className={styles.attentionCopy}>
-                <div className={styles.attentionMeta}>
-                  <span>{index + 1} · {item.category.toUpperCase()}</span>
-                  <small>{item.deadline}</small>
-                </div>
-                <strong>{item.title}</strong>
-                <span className={styles.todayQueueWhy}>{item.why}</span>
-                <div className={styles.todayQueueRecommendation}>
-                  <small>ReDream recommends</small>
-                  <span>{item.recommendation}</span>
-                </div>
-                <div className={styles.todayQueueOwner}>
-                  <span>Owner: {item.owner}</span>
-                  <span>When: {item.deadline}</span>
-                </div>
+        {assignedLoading&&!queue.length?<p className={styles.homeReadNotice} role="status">Loading your tasks...</p>:null}
+        {assignedError?<p className={styles.homeReadNotice} role="alert">{assignedError}</p>:null}
+        {relevance.loading&&!queue.length?<p className={styles.homeReadNotice} role="status">Checking your updates...</p>:null}
+        {relevance.error?<div className={styles.homeReadNotice} role="alert">{relevance.error}<button type="button" onClick={relevance.retry}>Retry updates</button></div>:null}
+        <div className={styles.focusList}>
+          {queue.map(item => {
+            const ref=homeWorkRefFor(item.payload);
+            if(ref&&item.canEdit)return <HomeWorkRow key={item.id} entry={{ref,title:item.title,payload:item.payload}} deadline={item.deadline} waiting={item.category==='Waiting on someone'} controller={homeWork} relatedAction={item.kind==='command'&&item.payload?.reply_interaction_id?queueAction(item):null}>
+              {ref.kind!=='calendar_task'?<WorkResponsibilityControl key={assignedScope+item.id} work={ref} tenantId={tenantId} rpc={rpc}/>:null}
+            </HomeWorkRow>;
+            return <article className={styles.focusRow} key={item.id}>
+            <div className={styles.focusCopy}>
+              <div className={styles.focusMeta}>
+                <span className={item.category === 'Needs action now' ? styles.focusUrgency : undefined}>
+                  {item.category === 'Needs action now'
+                    ? item.deadline.replace(/^Overdue\s+(.*overdue)$/i, '$1')
+                    : categoryLabel[item.category]}
+                </span>
+                {item.category !== 'Needs action now' && item.deadline !== categoryLabel[item.category]
+                  ? <small>{item.deadline.replace(/^Overdue\s+(.*overdue)$/i, '$1')}</small>
+                  : null}
               </div>
-              <div className={styles.todayQueueAction}>
-                {queueAction(item)}
-              </div>
-            </article>
-          ))}
-
-          {!queue.length && allState === 'ready' ? (
-            <EmptyState
-              icon={CheckCircle2}
-              title="Nothing needs you right now"
-              copy={restricted ? "No personal task, meeting or commitment currently needs your attention." : "No action, waiting item, risk or opportunity is currently asking for attention."}
-            />
-          ) : null}
+              <strong>{item.title}</strong>
+              <details className={styles.focusDetails}><summary>Details</summary>
+                <p>{item.why}</p>{meaningfulRecommendation(item)?<p>{item.recommendation}</p>:null}
+                {item.owner && item.owner !== 'You' ? <p>Responsible: {item.owner}</p>:null}
+              </details>
+              {item.canEdit&&workRefFor(item.payload)?<WorkResponsibilityControl key={assignedScope+item.id} work={workRefFor(item.payload)!} tenantId={tenantId} rpc={rpc}/>:null}
+            </div>
+            <div className={styles.focusAction}>{queueAction(item)}</div>
+          </article>;})}
+          {!queue.length && allState === 'ready' && !assignedLoading && !assignedError && !relevance.loading && !relevance.error ? <EmptyState icon={CheckCircle2} title="Nothing needs you right now"
+            copy={restricted ? "Your work is up to date." : "Check your players or capture a new update."}
+            action={<div className={styles.emptyStateActions}><AiLauncher onCaptureCompleted={onRetry}/><Link className={styles.compactButton} href={basePath+'?view=players'}><Users size={14}/>Check players</Link></div>}/>:null}
         </div>
       </section>
+      <HomeWorkEditor controller={homeWork}/>
     </div>
   );
 }
@@ -2794,7 +2894,7 @@ function Players({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="PLAYERS"
-        title="Know what every player needs next."
+        title="Know what each player needs next."
         copy="Contracts, opportunities and next actions in one place."
         icon={Users}
         badge={`${summary.active_players ?? items.length} players`}
@@ -2808,23 +2908,23 @@ function Players({
         />
 
         <Metric
-          label="Contract windows"
+          label="Contracts coming up"
           value={String(summary.contract_critical_window || 0)}
-          detail="Players nearing a key contract date"
+          detail="Players with an important contract date approaching"
         />
 
         <Metric
-          label="Without market activity"
+          label="No active opportunity"
           value={String(summary.market_coverage_gaps || 0)}
-          detail="No active route or deal recorded"
+          detail="Players with no live club opportunity"
         />
 
         <Metric
-          label="Representation records"
+          label="Representation details"
           value={String(
             representation.records_needing_review || 0,
           )}
-          detail={`${representation.missing_representation_records || 0} missing records`}
+          detail={`${representation.missing_representation_records || 0} missing details`}
         />
       </section>
 
@@ -2877,7 +2977,7 @@ function Players({
               value: human(serviceState),
               detail: serviceGaps.length
                 ? `${serviceGaps.length} recorded gap${serviceGaps.length === 1 ? '' : 's'}`
-                : 'No player-service gap recorded',
+                : 'Nothing missing right now',
             },
             {
               label: 'Next move',
@@ -2887,7 +2987,7 @@ function Players({
                   ? relativeDate(
                       item.player.next_action_due,
                     )
-                  : 'No due date recorded',
+                  : 'No due date set',
             },
             {
               label: 'Contract timing',
@@ -2902,8 +3002,8 @@ function Players({
               label: 'Market activity',
               value: human(marketState),
               detail: activeDeals
-                ? `${activeDeals} active recorded deal${activeDeals === 1 ? '' : 's'}`
-                : 'No active deal recorded',
+                ? `${activeDeals} active opportunit${activeDeals === 1 ? 'y' : 'ies'}`
+                : 'No active opportunity',
             },
           ];
 
@@ -2931,7 +3031,7 @@ function Players({
                     ?.fix_type ===
                   'assign_primary_staff'
                     ? 'One accountable primary staff member owns the player.'
-                    : 'The recorded player-control gap is resolved.'),
+                    : 'The player issue is resolved.'),
                 confirmationLabel:
                   item.next_control_fix?.fix_type ===
                   'assign_primary_staff'
@@ -3006,8 +3106,8 @@ function Players({
                   <strong>{human(marketState)}</strong>
                   <small>
                     {activeDeals
-                      ? `${activeDeals} active recorded deal${activeDeals === 1 ? '' : 's'}`
-                      : 'No active deal recorded'}
+                      ? `${activeDeals} active opportunit${activeDeals === 1 ? 'y' : 'ies'}`
+                      : 'No active opportunity'}
                   </small>
                 </div>
 
@@ -3074,8 +3174,8 @@ function Players({
         {!items.length ? (
           <EmptyState
             icon={Users}
-            title="No players recorded yet"
-            copy="Once the first player is active, their service position and live business will appear here."
+            title="Add your first player"
+            copy="Add the player once. Their contract, opportunities and next actions stay together."
           />
         ) : null}
       </section>
@@ -3103,12 +3203,11 @@ function Players({
             </div>
 
             <strong>
-              Player service exceptions are surfaced on the cards above.
+              The players who need action are shown above.
             </strong>
 
             <span>
-              These players have a real follow-up, ownership or coverage issue
-              recorded. Open the player above to see the next action.
+              These players have a follow-up, ownership or opportunity issue. Open a player to see what needs to happen next.
             </span>
           </div>
         </section>
@@ -3246,7 +3345,7 @@ function Relationships({
       <WorkspaceIntro
         eyebrow="NETWORK"
         title="Your football network."
-        copy="See the clubs and people you know, what is happening there and the best route in."
+        copy="See who you know and the best route in."
         icon={Network}
         badge={`${clubSummary.relevant_clubs ?? clubs.length} relevant clubs`}
       />
@@ -3258,7 +3357,7 @@ function Relationships({
             clubSummary.relevant_clubs ??
               clubs.length,
           )}
-          detail="Clubs connected to current work"
+          detail="Clubs in your network and live work"
         />
 
         <Metric
@@ -3267,7 +3366,7 @@ function Relationships({
             contactSummary.club_contacts ??
               contacts.length,
           )}
-          detail="People recorded at clubs"
+          detail="People you know at clubs"
         />
 
         <Metric
@@ -3277,7 +3376,7 @@ function Relationships({
               .strong_recorded_direct_relationships ||
               0,
           )}
-          detail="Direct access already recorded"
+          detail="People you already know well"
         />
 
         <Metric
@@ -3417,17 +3516,17 @@ function Relationships({
                 ? access.introduction_via ||
                   'Warm introduction'
                 : access.best_direct_contact ||
-                  'No recorded contact';
+                  'No contact yet';
 
             const routeDetail =
               useIntroduction
                 ? access.introduction_target
                   ? `Introduction to ${access.introduction_target}`
-                  : 'Recorded introduction route'
+                  : 'Warm introduction available'
                 : access.best_direct_role ||
                   human(
                     access.direct_state ||
-                      'recorded access',
+                      'contact available',
                   );
 
             const playType = String(
@@ -3455,18 +3554,18 @@ function Relationships({
 
             const playSuccessCondition =
               warmPlay
-                ? 'A controlled introduction task is prepared from the recorded route. No external message is sent automatically.'
+                ? 'An introduction task is ready from the known relationship. No external message is sent automatically.'
                 : [
                       'protect_live_deal',
                       'remove_deal_blocker',
                     ].includes(playType)
-                  ? 'The recorded relationship action is prepared against the live deal and remains human-controlled.'
+                  ? 'The known relationship action is prepared against the live deal and remains human-controlled.'
                   : playType ===
                         'source_for_confirmed_need'
                     ? 'A controlled sourcing task is prepared against the confirmed club need.'
                     : playType === 'pitch_now'
                       ? 'The pitch route is reviewed and prepared for human-led external action.'
-                      : 'The recommended relationship play is prepared against the recorded evidence.';
+                      : 'The recommended relationship step is based on the information you have.';
 
             const playConfirmationLabel =
               warmPlay
@@ -3495,7 +3594,7 @@ function Relationships({
                   ]
                     .filter(Boolean)
                     .join(' · ') ||
-                  'Club context recorded',
+                  'Club details',
               },
               {
                 label: 'Best route',
@@ -3540,7 +3639,7 @@ function Relationships({
                     <p className={styles.eyebrow}>
                       {human(
                         item.account_state ||
-                          'relationship recorded',
+                          'relationship',
                       )}
                     </p>
 
@@ -3564,7 +3663,7 @@ function Relationships({
                       ? 'Warm introduction'
                       : human(
                           access.direct_state ||
-                            'Recorded access',
+                            'Contact available',
                         )}
                   </span>
                 </div>
@@ -3624,7 +3723,7 @@ function Relationships({
                       <strong>
                         {keyContacts.length
                           ? 'Who we know here'
-                          : 'No current contact recorded'}
+                          : 'No contacts yet'}
                       </strong>
                     </div>
 
@@ -3707,7 +3806,7 @@ function Relationships({
                               >
                                 {human(
                                   relationship.route_state ||
-                                    'not recorded',
+                                    'not set',
                                 )}
                               </small>
                             </button>
@@ -3721,9 +3820,7 @@ function Relationships({
                         styles.clubPeopleEmpty
                       }
                     >
-                      Add or capture the people
-                      behind this club to build a
-                      usable relationship route.
+                      Add the people you know at this club so ReDream can show you the best route in.
                     </p>
                   )}
                 </div>
@@ -3779,7 +3876,7 @@ function Relationships({
                             clubName,
                           instruction:
                             topPlay.recommended_action ||
-                            'Prepare the strongest recorded relationship route.',
+                            'Prepare the best relationship route.',
                           label:
                             playActionLabel,
                           action:
@@ -3861,12 +3958,12 @@ function Relationships({
               title={
                 relationshipSearch
                   ? 'No clubs match this search'
-                  : 'No relevant club relationships yet'
+                  : 'Add your first club relationship'
               }
               copy={
                 relationshipSearch
                   ? 'Try another club, country or league.'
-                  : 'Add club contacts and keep your relationships current to build this view.'
+                  : 'Add a club or contact to start building your network here.'
               }
             />
           ) : null}
@@ -3901,7 +3998,7 @@ function Relationships({
 
               const clubName =
                 employment.organisation_name ||
-                'Club not recorded';
+                'Club not set';
 
               const location = [
                 employment.organisation_city,
@@ -3957,7 +4054,7 @@ function Relationships({
                       >
                         {human(
                           item.operating_state ||
-                            'relationship recorded',
+                            'relationship',
                         )}
                       </p>
 
@@ -3978,7 +4075,7 @@ function Relationships({
                     >
                       {human(
                         relationship.route_state ||
-                          'not recorded',
+                          'not set',
                       )}
                     </span>
                   </div>
@@ -3996,7 +4093,7 @@ function Relationships({
                       <small>
                         {location ||
                           employment.league_name ||
-                          'Location not recorded'}
+                          'Location not set'}
                       </small>
                     </div>
 
@@ -4010,7 +4107,7 @@ function Relationships({
                       </strong>
                       <small>
                         {relationship.route_score
-                          ? `Recorded route ${relationship.route_score}`
+                          ? `Contact route ${relationship.route_score}`
                           : 'No direct relationship score recorded'}
                       </small>
                     </div>
@@ -4026,7 +4123,7 @@ function Relationships({
                           ? relativeDate(
                               activity.last_interaction_at,
                             )
-                          : 'Not recorded'}
+                          : 'Not set'}
                       </strong>
                       <small>
                         {Number(
@@ -4143,7 +4240,7 @@ function Relationships({
               title={
                 relationshipSearch
                   ? 'No contacts match this search'
-                  : 'No club contacts recorded yet'
+                  : 'No club contacts yet'
               }
               copy={
                 relationshipSearch
@@ -4308,7 +4405,7 @@ function AgencyCalendar({
 
   const exactDate = (value: unknown) => {
     const raw = String(value || '').trim();
-    if (!raw) return 'Date not recorded';
+    if (!raw) return 'Date not set';
 
     const date = new Date(
       /^\d{4}-\d{2}-\d{2}$/.test(raw)
@@ -4397,8 +4494,8 @@ function AgencyCalendar({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="CALENDAR"
-        title="The dates your agency cannot forget."
-        copy="Birthdays, contracts, representation records and dated work from information already recorded by the agency."
+        title="Everything coming up."
+        copy="Meetings, follow-ups and key dates."
         icon={CalendarDays}
         badge={`${items.length} upcoming dates`}
       />
@@ -4434,7 +4531,7 @@ function AgencyCalendar({
             {contractDates}
           </strong>
           <small>
-            Recorded in this horizon
+            Coming up in this period
           </small>
         </div>
 
@@ -4444,7 +4541,7 @@ function AgencyCalendar({
             {representationDates}
           </strong>
           <small>
-            Recorded end dates
+            Agreements ending in this period
           </small>
         </div>
       </section>
@@ -4520,7 +4617,7 @@ function AgencyCalendar({
                         ?.instruction ||
                       human(
                         item?.deadline_type ||
-                          'Recorded date',
+                          'Important date',
                       );
 
                 return (
@@ -4562,7 +4659,7 @@ function AgencyCalendar({
                           {human(
                             item?.date_state ||
                               item?.deadline_state ||
-                              'Recorded',
+                              'Upcoming',
                           )}
                         </small>
                       </div>
@@ -4580,7 +4677,7 @@ function AgencyCalendar({
                             )} · ${relativeDate(
                               item.date_at,
                             )}`
-                          : 'Date not recorded'}
+                          : 'Date not set'}
                       </span>
 
                       <small>
@@ -4609,8 +4706,8 @@ function AgencyCalendar({
           {!items.length ? (
             <EmptyState
               icon={CalendarDays}
-              title="No upcoming dates recorded"
-              copy="Birthdays, contracts, representation dates, meetings and follow-ups will appear here as they are recorded."
+              title="Nothing coming up yet"
+              copy="Connect your calendar or add a meeting."
             />
           ) : null}
         </div>
@@ -4620,7 +4717,7 @@ function AgencyCalendar({
             styles.calendarTruth
           }
         >
-          The calendar shows recorded dates and recurring player birthdays. A date can prompt attention, but it does not determine legal, regulatory or commercial consequence.
+          Calendar dates help you plan your work. Always check the underlying contract or agreement before relying on a legal or commercial deadline.
         </p>
       </section>
     </div>
@@ -4638,16 +4735,15 @@ function Business({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="BUSINESS"
-        title="Agency business"
-        copy="Deals, money owed and team ownership."
+        title="Your business"
+        copy="Live deals, income and owners."
         icon={Coins}
         badge="Management only"
       />
 
       <section className={styles.businessEntry}>
         <div>
-          <h2>See the agency position.</h2>
-          <p>Deals, receivables and team ownership in one place.</p>
+          <h2>Deals, income and team ownership</h2>
         </div>
 
         <button
@@ -4658,7 +4754,7 @@ function Business({
           disabled={!data?.owner_business}
         >
           <Coins size={15} />
-          Open business view
+          Open business
         </button>
       </section>
     </div>
@@ -4694,8 +4790,8 @@ function Market({
     <div className={styles.stack}>
       <WorkspaceIntro
         eyebrow="OPPORTUNITIES"
-        title="Club needs. Player fits. Best route in."
-        copy="See what clubs need, which players could fit and who can open the door."
+        title="See every live opportunity clearly."
+        copy="See the need, player fit and best route in."
         icon={Target}
         badge={`${demandSummary.active_needs ?? needs.length} active needs`}
       />
@@ -4706,21 +4802,21 @@ function Market({
           value={String(
             demandSummary.active_needs ?? needs.length,
           )}
-          detail="Live requirements from clubs"
+          detail="What clubs are actively looking for"
         />
 
         <Metric
-          label="Needs without a player"
+          label="Needs without a match"
           value={String(demandSummary.roster_gaps || 0)}
-          detail="No player route recorded yet"
+          detail="No suitable player linked yet"
         />
 
         <Metric
-          label="Player routes"
+          label="Player opportunities"
           value={String(
             pursuitSummary.pursuit_count ?? pursuits.length,
           )}
-          detail="Player to club opportunities"
+          detail="Players linked to a club opportunity"
         />
 
         <Metric
@@ -4775,7 +4871,7 @@ function Market({
 
                     <span>
                       {item.next_action?.instruction ||
-                        'Review the recorded need.'}
+                        'Review the club need.'}
                     </span>
 
                     <small>
@@ -4786,7 +4882,7 @@ function Market({
 
                     <div
                       className={styles.routeCandidates}
-                      aria-label="Recorded player routes"
+                      aria-label="Player opportunities"
                     >
                       {visibleCandidates.map((candidate: any) => (
                         <div
@@ -4822,7 +4918,7 @@ function Market({
                                     'PLAYER-CLUB ROUTE',
                                   title:
                                     candidate.player_name ||
-                                    'Player route',
+                                    'Player opportunity',
                                   instruction:
                                     candidate.career_gate_reason ||
                                     'Review the player-owned career strategy before external activity.',
@@ -4852,7 +4948,7 @@ function Market({
                                       label: 'Club need',
                                       value:
                                         item.need?.title ||
-                                        'Recorded player need',
+                                        'Player need',
                                       detail:
                                         item.club?.name ||
                                         'Club recorded',
@@ -4901,7 +4997,7 @@ function Market({
 
                       {!visibleCandidates.length ? (
                         <div className={styles.routeCandidateEmpty}>
-                          No recorded candidate yet
+                          No player linked yet
                         </div>
                       ) : null}
 
@@ -4936,7 +5032,7 @@ function Market({
                             instruction:
                               item.next_action
                                 ?.instruction ||
-                              'Create controlled scouting work against the recorded club need.',
+                              'Create scouting work for this club need.',
                             label: 'Prepare search',
                             action:
                               'scouting_mandate_prepare',
@@ -4952,7 +5048,7 @@ function Market({
                                 label: 'Need',
                                 value:
                                   item.need?.title ||
-                                  'Recorded player need',
+                                  'Player need',
                                 detail:
                                   `${human(item.need?.need_type || 'recorded')} · ${item.club?.name || 'Club recorded'}`,
                               },
@@ -4977,7 +5073,7 @@ function Market({
                                       item.need
                                         .transfer_type,
                                     )
-                                  : 'Transfer type not recorded',
+                                  : 'Transfer type not set',
                               },
                               {
                                 label: 'Coverage',
@@ -4985,7 +5081,7 @@ function Market({
                                   `${Number(item.candidate_coverage?.recorded_candidates || 0)} recorded candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
                                 detail: human(
                                   item.coverage_state ||
-                                    'coverage not recorded',
+                                    'coverage not set',
                                 ),
                               },
                               {
@@ -5002,7 +5098,7 @@ function Market({
                               },
                             ],
                             successCondition:
-                              'At least one credible candidate route is recorded against this club need.',
+                              'At least one credible player is linked to this club need.',
                             confirmationLabel:
                               'Create search task',
                           })
@@ -5020,8 +5116,8 @@ function Market({
             {!needs.length ? (
               <EmptyState
                 icon={Target}
-                title="No active club demand"
-                copy="Club needs will appear here with possible players and the next action."
+                title="No club needs yet"
+                copy="Add what the club needs. Matching players and next steps stay together."
               />
             ) : null}
           </div>
@@ -5033,13 +5129,13 @@ function Market({
           <div className={styles.sectionHead}>
             <div>
               <p className={styles.eyebrow}>
-                PLAYER-CLUB ROUTES
+                PLAYER OPPORTUNITIES
               </p>
-              <h2>Routes to move</h2>
+              <h2>Player opportunities to move</h2>
             </div>
 
             <span className={styles.sectionCount}>
-              {pursuits.length} recorded
+              {pursuits.length} opportunities
             </span>
           </div>
 
@@ -5054,7 +5150,7 @@ function Market({
                 item.career_strategy_gate?.next_action
                   ?.instruction ||
                 item.best_access_route?.why_this_route ||
-                'Review the pursuit evidence.';
+                'Review this player opportunity.';
 
               return (
                 <article
@@ -5137,7 +5233,7 @@ function Market({
                       }
                     >
                       <BriefcaseBusiness size={14} />
-                      Open route
+                      Open opportunity
                     </button>
 
                     {item.player?.player_id ? (
@@ -5203,7 +5299,7 @@ function Market({
                                     ?.role_title ||
                                   item.best_access_route
                                     ?.why_this_route ||
-                                  'Recorded relationship route',
+                                  'Relationship route',
                               },
                               {
                                 label:
@@ -5225,8 +5321,8 @@ function Market({
                               ).startsWith(
                                 'hold_',
                               )
-                                ? 'The player-owned career strategy is current before the pursuit progresses externally.'
-                                : 'The recorded career-control action is completed before the pursuit progresses externally.',
+                                ? 'The player-owned career strategy is current before the opportunity progresses externally.'
+                                : 'The required career action is completed before the opportunity progresses externally.',
                             confirmationLabel:
                               'Continue strategy review',
                           })
@@ -5244,8 +5340,8 @@ function Market({
             {!pursuits.length ? (
               <EmptyState
                 icon={Target}
-                title="No active player-club pursuits"
-                copy="Recorded player routes will appear here only when real club demand and player context exist."
+                title="No player opportunities yet"
+                copy="Add a club need and player. The next step stays with the opportunity."
               />
             ) : null}
           </div>
@@ -5292,7 +5388,7 @@ function Deals({
           value={String(
             summary.active_deals ?? deals.length,
           )}
-          detail="Deals currently in play"
+          detail="Deals you are actively working"
         />
 
         <Metric
@@ -5307,7 +5403,7 @@ function Deals({
             (summary.momentum_recovery_deals || 0) +
               (summary.commercial_rescue_deals || 0),
           )}
-          detail="Cooling or stalled work"
+          detail="Deals that need a push"
         />
 
         <Metric
@@ -5315,7 +5411,7 @@ function Deals({
           value={String(
             summary.negotiation_preparation_required_count || 0,
           )}
-          detail="Deals needing preparation"
+          detail="Deals to prepare for negotiation"
         />
       </section>
 
@@ -5356,7 +5452,7 @@ function Deals({
                     deal.expected_commission,
                     deal.currency,
                   )
-                : 'Commission not recorded';
+                : 'Commission not set';
 
             const introductionContext =
               deal.next_best_move
@@ -5399,7 +5495,7 @@ function Deals({
                 label: 'Primary blocker',
                 value:
                   deal.primary_blocker ||
-                  'No blocker recorded',
+                  'No blocker',
                 detail: human(
                   deal.control_state ||
                     deal.rescue_state ||
@@ -5412,19 +5508,19 @@ function Deals({
                 detail:
                   hasExpectedCommission
                     ? 'Expected commission'
-                    : 'Expected commission not recorded',
+                    : 'Expected commission not set',
               },
               {
                 label: 'Access route',
                 value:
                   introductionTarget ||
                   deal.organisation ||
-                  'No route recorded',
+                  'No contact route yet',
                 detail:
                   introductionVia
                     ? `Warm introduction via ${introductionVia}`
                     : introductionRole ||
-                      'No warm introduction recorded',
+                      'No warm introduction yet',
               },
             ];
 
@@ -5456,7 +5552,7 @@ function Deals({
                         ?.success_condition ||
                       (needsOwner
                         ? 'One accountable owner controls the live deal.'
-                        : 'The recorded deal-control gap is resolved.'),
+                        : 'Nothing needs attention.'),
                     confirmationLabel:
                       needsOwner
                         ? 'Assign deal owner'
@@ -5582,8 +5678,8 @@ function Deals({
           {!deals.length ? (
             <EmptyState
               icon={BriefcaseBusiness}
-              title="No live deals recorded"
-              copy="Active deal rooms will appear here with their next recorded decision and commercial context."
+              title="No live deals yet"
+              copy="Create a deal when money or terms are being discussed."
             />
           ) : null}
         </div>

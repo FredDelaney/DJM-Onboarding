@@ -20,7 +20,7 @@ test('public ReDream site uses the approved identity instead of a lettermark', (
   const page = read('components/ReDreamPublicLanding.tsx');
   const css = read('components/ReDreamPublicLanding.module.css');
 
-  assert.match(page, /\/brand\/redream-lockup-light\.png/);
+  assert.match(page, /data-interface="calm"/);
   assert.match(page, /\/brand\/redream-lockup-dark\.png/);
   assert.doesNotMatch(page, /className=\{styles\.brandMark\}>R</);
 

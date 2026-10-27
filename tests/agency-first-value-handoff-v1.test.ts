@@ -20,16 +20,15 @@ const workspaceCss = readFileSync(
 test('first value completion stops talking like setup software', () => {
   assert.match(ownerLaunch, /FIRST VALUE REACHED/);
   assert.match(ownerLaunch, /Your agency is operating now/);
-  assert.match(ownerLaunch, /First working value reached/);
+  assert.match(ownerLaunch, /Your agency is live in ReDream/);
   assert.doesNotMatch(ownerLaunch, /Owner setup complete/);
 });
 
-test('first value hands the owner directly into live opportunities', () => {
-  assert.match(
-    ownerLaunch,
-    /\/workspace\/\$\{encodeURIComponent\(runtime\.slug\)\}\?view=opportunities&handoff=first-value/,
-  );
-  assert.match(ownerLaunch, /Enter live opportunities/);
+test('first value teaches Tell ReDream before normal workspace navigation', () => {
+  assert.match(ownerLaunch, /Try Tell ReDream now/);
+  assert.match(ownerLaunch, /firstCaptureHref/);
+  assert.match(ownerLaunch, /Skip for now and open Today/);
+  assert.doesNotMatch(ownerLaunch, /Enter live opportunities/);
 });
 
 test('operating workspace treats the handoff as transient presentation only', () => {
@@ -64,7 +63,7 @@ test('handoff preserves normal evidence-led workspace navigation', () => {
   assert.match(workspace, /Today/);
   assert.match(workspace, /Market/);
   assert.match(workspace, /Deals/);
-  assert.match(workspace, /see what\s+matters next/);
+  assert.match(workspace, /Keep the next step current here/);
   assert.doesNotMatch(workspace, /mark.*first.*value/i);
   assert.doesNotMatch(workspace, /complete.*first.*value/i);
 });

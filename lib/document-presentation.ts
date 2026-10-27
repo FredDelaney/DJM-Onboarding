@@ -1,0 +1,35 @@
+import { mixBrandColour, readableBrandInk } from "./tenant-brand-style.ts";
+import type { DocumentKind } from "./agency-documents.ts";
+import type { AgencyDocument } from "./agency-documents.ts";
+
+/** One letterhead palette for the browser and both published formats. */
+export function documentTheme(brand: { primary: string; accent: string }) {
+  const raw = /^#[\da-f]{6}$/i.test(brand.primary) ? brand.primary : "#172A36";
+  const surface = mixBrandColour(raw, "#FFFFFF", 0.96);
+  return {
+    primary: readableBrandInk(raw, surface),
+    accent: /^#[\da-f]{6}$/i.test(brand.accent)
+      ? brand.accent.toUpperCase()
+      : "#AF9367",
+    surface,
+  };
+}
+
+/** Keep short signing blocks intact without preventing long clauses from flowing. */
+export function isDocumentSigningBlock(body: string) {
+  return body.length < 1500 && /Signature\s*:/i.test(body);
+}
+/** Keep the opening facts balanced in preview and both exported formats. */
+export function documentBriefColumns(kind: DocumentKind, count: number) {
+  return kind === "agency_pitch"
+    ? 3
+    : kind === "scouting_report" && count > 4
+      ? 3
+      : 2;
+}
+
+/** A short personal priority belongs on the pitch cover; long briefs stay in the chapter. */
+export function documentCoverLead(doc: AgencyDocument) {
+  const priority = doc.content.fields.purpose?.trim() || "";
+  return doc.kind === "agency_pitch" && priority.length <= 220 ? priority : "";
+}

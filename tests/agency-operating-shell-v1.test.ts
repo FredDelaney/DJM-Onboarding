@@ -58,15 +58,15 @@ test('Capture stays out of the workspace grid and mobile navigation fits all fiv
 
   assert.match(
     app,
-    /className=\{styles\.desktopHeadActions\}[\s\S]*<AiLauncher \/>/,
+    /className=\{styles\.desktopHeadActions\}[\s\S]*<AiLauncher\b/,
   );
   assert.match(
     app,
-    /className=\{styles\.mobileTell\}[\s\S]*<AiLauncher \/>/,
+    /<AgencyMobileNavigation/,
   );
 
   assert.match(
-    css,
+    read('components/AgencyMobileNavigation.module.css'),
     /grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/,
   );
   assert.match(css, /\.navManagement[\s\S]*display:\s*none/);
@@ -92,7 +92,7 @@ test('temporary same-origin workspace stays membership-bound before custom domai
 test('operating surface stays tenant-neutral without DJM agency branding', () => {
   const app = read('components/AgencyOperatingWorkspace.tsx');
   const layout = read('app/workspace/[tenantSlug]/layout.tsx');
-  assert.match(app, /Ranked across the agency/);
+  assert.match(app, /Today priorities/);
   assert.doesNotMatch(app, /DJM Sports Management/);
   assert.doesNotMatch(layout, /DJM Sports Management/);
 });

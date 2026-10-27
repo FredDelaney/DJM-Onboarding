@@ -1,5 +1,8 @@
 'use client';
-
+import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { hasRecordedNumber } from '@/lib/recorded-number';
+import { receivableBalances } from '@/lib/receivable-balances';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,7 +13,8 @@ import {
   ReceiptText,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import styles from './AgencyDealCloseoutDrawer.module.css';
@@ -39,14 +43,15 @@ const money = (
   value: unknown,
   currency = 'EUR',
 ) => {
+  if (!hasRecordedNumber(value)) return 'Not set';
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return 'Not recorded';
+  if (!Number.isFinite(amount)) return 'Not set';
 
   try {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
     }).format(amount);
   } catch {
     return `${currency} ${Math.round(amount).toLocaleString('en-GB')}`;
@@ -89,6 +94,8 @@ export default function AgencyDealCloseoutDrawer({
   const [busy, setBusy] = useState(true);
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
+  const [readError, setReadError] = useState('');
+  const readSequence = useRef(0);
   const [message, setMessage] = useState('');
   const [closeout, setCloseout] = useState<any>(null);
   const [receivables, setReceivables] = useState<any[]>([]);
@@ -119,12 +126,15 @@ export default function AgencyDealCloseoutDrawer({
   const canCollect = ['owner', 'admin', 'operations'].includes(role);
 
   const load = useCallback(async () => {
+    const requestId = ++readSequence.current;
+    const current = () => readSequence.current === requestId;
     setBusy(true);
+    setReadError('');
     setError('');
 
     try {
       const [closeoutResponse, receivableResponse] =
-        await Promise.all([
+        await readWithDeadline(Promise.all([
           invoke('deal_closeout', {
             deal_room_id: request.dealRoomId,
           }),
@@ -132,7 +142,8 @@ export default function AgencyDealCloseoutDrawer({
             deal_room_id: request.dealRoomId,
             limit: 100,
           }),
-        ]);
+        ]));
+      if (!current()) return;
 
       const nextCloseout = closeoutResponse?.closeout || {};
       const nextReceivables =
@@ -179,21 +190,21 @@ export default function AgencyDealCloseoutDrawer({
         String(nextCloseout?.deal?.currency || 'EUR').toUpperCase(),
       );
     } catch (loadError) {
-      setError(friendlyError(loadError));
+      if (current()) setReadError(friendlyError(loadError));
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }, [invoke, request.dealRoomId]);
 
   useEffect(() => {
     void load();
+    return () => { readSequence.current++; };
   }, [load]);
 
   useEffect(() => {
     if (pageMode) return;
 
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
 
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !actionBusy) {
@@ -205,13 +216,14 @@ export default function AgencyDealCloseoutDrawer({
     window.addEventListener('keydown', keydown);
 
     return () => {
-      document.body.style.overflow = previous;
+      releaseScroll();
       window.removeEventListener('keydown', keydown);
     };
   }, [actionBusy, onClose, pageMode, paymentTarget]);
 
   const deal = closeout?.deal || {};
   const checks = list(closeout?.checks);
+  const balanceSummary = receivableBalances(receivables);
   const record = closeout?.closeout_record || {};
   const closeoutStage =
     deal?.status === 'won' ||
@@ -259,7 +271,7 @@ export default function AgencyDealCloseoutDrawer({
     if (status === 'confirmed') {
       if (!closeoutStage) {
         setError(
-          'A confirmed closeout is only available once the deal is recorded at contracting or won.',
+          'Closeout is available once the deal reaches contracting or won.',
         );
         return;
       }
@@ -428,7 +440,7 @@ export default function AgencyDealCloseoutDrawer({
           <div className={styles.topline}>
             <span className={styles.live}>
               <i />
-              Human-recorded commercial truth
+              Confirmed commercial details
             </span>
 
             <button
@@ -452,7 +464,7 @@ export default function AgencyDealCloseoutDrawer({
         </header>
 
         {busy ? (
-          <div className={styles.notice}>
+          <div className={styles.notice} role="status" aria-atomic="true">
             <LoaderCircle size={18} className={styles.spin} />
             <div>
               <strong>Loading closeout control</strong>
@@ -463,8 +475,19 @@ export default function AgencyDealCloseoutDrawer({
           </div>
         ) : null}
 
+        {readError ? (
+          <div className={styles.notice + ' ' + styles.error} role="alert">
+            <CircleAlert size={18} />
+            <div>
+              <strong>Could not load closeout details</strong>
+              <span>{readError}</span>
+              <button type="button" data-ui-button="secondary" className="btn" disabled={busy} onClick={() => void load()}>Try again</button>
+            </div>
+          </div>
+        ) : null}
+
         {error ? (
-          <div className={`${styles.notice} ${styles.error}`}>
+          <div className={`${styles.notice} ${styles.error}`} role="alert">
             <CircleAlert size={18} />
             <div>
               <strong>This record needs attention</strong>
@@ -474,7 +497,7 @@ export default function AgencyDealCloseoutDrawer({
         ) : null}
 
         {message ? (
-          <div className={`${styles.notice} ${styles.success}`}>
+          <div className={`${styles.notice} ${styles.success}`} role="status">
             <CheckCircle2 size={18} />
             <div>
               <strong>Recorded</strong>
@@ -483,12 +506,12 @@ export default function AgencyDealCloseoutDrawer({
           </div>
         ) : null}
 
-        {!busy ? (
+        {!busy && !readError ? (
           <div className={styles.content}>
             <section className={styles.hero}>
               <div>
                 <p>CLOSEOUT POSITION</p>
-                <h3>{human(closeout?.state || 'not recorded')}</h3>
+                <h3>{human(closeout?.state || 'not set')}</h3>
                 <span>
                   {closeout?.next_action?.instruction ||
                     'Review the factual closeout record and collection position.'}
@@ -510,8 +533,8 @@ export default function AgencyDealCloseoutDrawer({
             <div className={styles.grid}>
               <Fact
                 label="Deal stage"
-                value={human(deal.stage || 'not recorded')}
-                detail={human(deal.status || 'not recorded')}
+                value={human(deal.stage || 'not set')}
+                detail={human(deal.status || 'not set')}
               />
               <Fact
                 label="Closeout record"
@@ -529,18 +552,13 @@ export default function AgencyDealCloseoutDrawer({
               />
               <Fact
                 label="Open balance"
-                value={money(
-                  receivables.reduce(
-                    (sum, item) => sum + Number(item.balance || 0),
-                    0,
-                  ),
-                  receivables[0]?.currency || deal.currency || 'EUR',
-                )}
-                detail={
-                  receivables.length > 1
-                    ? 'Displayed in the first recorded currency; review rows below if currencies differ'
-                    : 'Recorded collection balance'
-                }
+                value={balanceSummary.balances.map(({currency, amount}) => currency
+                  ? money(amount, currency)
+                  : `${amount.toLocaleString('en-GB')} (currency not set)`
+                ).join(' · ') || (receivables.length ? 'Not set' : 'No receivables')}
+                detail={balanceSummary.unrecorded ? 'Some balances are not recorded'
+                  : balanceSummary.balances.length > 1 ? 'Separate currencies; no conversion applied'
+                  : 'Recorded collection balance'}
               />
             </div>
 
@@ -735,7 +753,7 @@ export default function AgencyDealCloseoutDrawer({
                 <ReceiptText size={17} />
                 <div>
                   <p>COMMISSION COLLECTION</p>
-                  <h3>Turn an agreed entitlement into a receivable only when a human records it</h3>
+                  <h3>Create a receivable only after a human records it</h3>
                 </div>
               </div>
 
@@ -764,7 +782,7 @@ export default function AgencyDealCloseoutDrawer({
 
                           <p>
                             {item.payer || 'Payer not labelled'} · due{' '}
-                            {item.due_date || 'not recorded'}
+                            {item.due_date || 'not set'}
                           </p>
 
                           <small>

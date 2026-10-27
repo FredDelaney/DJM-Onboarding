@@ -216,7 +216,7 @@ test('only full-access users get one-tap creation of a genuinely new club', () =
 
 test('global mic inherits stable context from player club contact recruitment and opportunity routes', () => {
   assert.match(launcher, /usePathname/);
-  assert.match(launcher, /contextFromRoute/);
+  assert.match(launcher, /contextFromWorkspaceRoute/);
   assert.match(contextLib, /\/admin\/players/);
   assert.match(contextLib, /\/network\/clubs/);
   assert.match(contextLib, /\/network\/contacts/);
@@ -308,7 +308,7 @@ test('older background receipts cannot overwrite the capture the user opened', (
 test('recording and unsafe save guard against accidental navigation', () => {
   assert.match(capture, /beforeunload/);
   assert.match(capture, /document\.addEventListener\('click', guardLinks, true\)/);
-  assert.match(capture, /Finish the voice note before leaving this screen/);
+  assert.match(capture, /Finish the voice note first/);
   assert.match(launcher, /Finish saving before opening full screen/);
   assert.match(launcher, /disabled=\{unsafeToClose\}/);
 });
@@ -381,7 +381,7 @@ test('Tell DJM launch switch defaults off until backend deployment and smoke tes
 
 test('Tell DJM is feature-gated so frontend deployment cannot expose a broken backend', () => {
   assert.match(launcher, /redream_ai_current_access/);
-  assert.match(launcher, /if \(!access\?\.enabled\) return null/);
+  assert.match(launcher, /if \(!access\?\.enabled\)[\s\S]*if\(!navigation\)return null/);
   assert.match(fullPage, /redream_ai_current_access/);
   assert.match(fullPage, /Capture is not enabled yet/);
   assert.match(capture, /maxAudioSeconds/);
@@ -418,7 +418,7 @@ test('partial or failed captures can retry only their unfinished work from the p
   assert.match(migration, /v_capture\.status not in \('partial','failed'\)/);
   assert.match(capture, /Retry failed updates/);
   assert.match(capture, /redream_ai_retry_capture/);
-  assert.match(capture, /ReDream reuses the saved transcript and plan/);
+  assert.match(capture, /saved transcript and plan are reused/);
 });
 
 test('receipt polling spans the durable one-minute cron fallback without fan-out on reconnect', () => {

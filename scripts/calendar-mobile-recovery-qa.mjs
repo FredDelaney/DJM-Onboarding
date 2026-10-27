@@ -4,7 +4,8 @@ const require=createRequire(import.meta.url);
 const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright`:'playwright');
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
 try{
- const page=await browser.newPage({viewport:{width:390,height:844}});
+ const page=await browser.newPage({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
+ await page.clock.setFixedTime(new Date('2026-10-13T09:00:00Z'));
  const url=process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113/qa-calendar';
  for(let i=0;i<60;i++){try{await page.goto(url+'?stalled');break;}catch(e){if(i===59)throw e;await page.waitForTimeout(500);}}
  const today=page.getByRole('region',{name:'Today at a glance'});
@@ -22,7 +23,7 @@ try{
  await page.getByRole('button',{name:"Retry today's meetings",exact:true}).click();
  await today.getByText('Club meeting',{exact:true}).waitFor();
  await page.goto(url+'?stalledTasks');
- await today.getByText('Loading...', {exact:true}).first().waitFor();
+ await today.getByText('–', {exact:true}).first().waitFor();
  assert.equal(await today.getByText('0',{exact:true}).count(),0,'Unresolved tasks must not show zero overdue or due today');
  await page.goto(url);
  await today.getByText('Club meeting',{exact:true}).waitFor();
@@ -33,8 +34,11 @@ try{
  assert.equal(await todayReadCount(),before,'Browsing another month must not restart today summary reads');
  await page.getByRole('button',{name:'Add task',exact:true}).click();
  await page.setViewportSize({width:390,height:430});
+ // Viewport units settle on the next browser layout frame after the resize.
+ await page.waitForFunction(()=>{const overlay=document.querySelector('[role=dialog]')?.parentElement;return overlay&&Math.abs(overlay.getBoundingClientRect().height-innerHeight)<1;});
  const dialog=page.getByRole('dialog');
  assert.ok(await dialog.evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),'Form must stay within a shortened keyboard viewport');
+ await page.getByText('Add notes',{exact:true}).click();
  await page.getByLabel('Notes (optional)',{exact:true}).fill('Keyboard draft');
  await page.getByRole('button',{name:'Save task',exact:true}).scrollIntoViewIfNeeded();
  assert.ok(await page.getByRole('button',{name:'Save task',exact:true}).isVisible());

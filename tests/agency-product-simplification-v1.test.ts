@@ -56,9 +56,8 @@ test('legacy market, deals and relationships URLs resolve into V2 areas', () => 
 test('Home stays focused on five ranked agency decisions rather than dashboard widgets', () => {
   assert.match(workspace, /\.slice\(0, 5\)/);
   assert.match(workspace, /Good morning\./);
-  assert.match(workspace, /things matter/);
-  assert.match(workspace, /Ranked across the agency/);
-  assert.match(workspace, /ReDream recommends/);
+  assert.match(workspace, /priorities/);
+  assert.match(workspace, /Today priorities/);
   assert.doesNotMatch(workspace, /AGENCY PULSE/);
   assert.doesNotMatch(workspace, /OPPORTUNITIES MOVING/);
   assert.doesNotMatch(workspace, /PLAYERS NEEDING ATTENTION/);
@@ -70,7 +69,7 @@ test('Opportunities combines existing market and deal capability without rebuild
   assert.match(workspace, /redream_autopilot_market/);
   assert.match(workspace, /redream_autopilot_deals/);
   assert.match(workspace, /function Opportunities/);
-  assert.match(workspace, /Club needs\. Player fits\. Best route in\./);
+  assert.match(workspace, /See every live opportunity clearly\./);
   assert.match(workspace, /AgencyPursuitRoom/);
   assert.match(workspace, /AgencyNegotiationCommandRoom/);
   assert.match(workspace, /AgencyDealCloseoutDrawer/);

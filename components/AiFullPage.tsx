@@ -6,9 +6,11 @@ import { useAiWorkspace } from './useAiWorkspace';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import JourneyStatus from '@/components/JourneyStatus';
+import { readWithDeadline } from '@/lib/read-with-deadline';
 import AiCapture from '@/components/AiCapture';
 import AiRecentCaptures from '@/components/AiRecentCaptures';
-import { platformRpc } from '@/lib/platform-client';
+import { platformRpc, friendlyError } from '@/lib/platform-client';
 import { readReDreamShare } from '@/lib/redream-share';
 import {
   contextFromRoute,
@@ -70,6 +72,8 @@ export default function AiFullPage() {
   const [selectedCaptureId, setSelectedCaptureId] = useState<string | null>(null);
   const [recentRefreshKey, setRecentRefreshKey] = useState(0);
   const [access, setAccess] = useState<AiAccess | null>(null);
+  const [accessError, setAccessError] = useState('');
+  const [accessAttempt, setAccessAttempt] = useState(0);
 
   const handleCaptureCompleted = useCallback(() => {
     setRecentRefreshKey((value) => value + 1);
@@ -89,18 +93,26 @@ export default function AiFullPage() {
 
   useEffect(() => {
     setAccess(null);
+    setAccessError('');
     let active = true;
-    void platformRpc<AiAccess>('redream_ai_current_access', {}, workspaceSlug)
+    const controller = new AbortController();
+    void readWithDeadline(platformRpc<AiAccess>('redream_ai_current_access', {}, workspaceSlug, controller.signal))
       .then((result) => {
-        if (active) setAccess(result || { enabled: false });
+        if (!active) return;
+        if (!result || typeof result.enabled !== 'boolean') {
+          throw new Error('Capture access could not be confirmed. Please try again.');
+        }
+        setAccess(result);
       })
-      .catch(() => {
-        if (active) setAccess({ enabled: false });
-      });
+      .catch((error) => {
+        if (active) setAccessError(friendlyError(error));
+      })
+      .finally(() => controller.abort());
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [workspaceSlug]);
+  }, [workspaceSlug, accessAttempt]);
 
   useEffect(() => {
     setRouteContext(routeFallback);
@@ -123,27 +135,22 @@ export default function AiFullPage() {
     };
   }, [routeFallback, sourceRoute, workspaceSlug]);
 
+  if (accessError) {
+    return <JourneyStatus kind="error" title="Could not open Capture" description={accessError} onRetry={() => setAccessAttempt(value => value + 1)}/>;
+  }
+
   if (access === null) {
-    return (
-      <div style={{ padding: 18, border: '1px solid #e3e9ed', borderRadius: 16, background: '#fff', color: '#6d8190', fontSize: 11 }}>
-        Checking Capture...
-      </div>
-    );
+    return <JourneyStatus kind="loading" title="Opening Capture" description="Checking access to your agency workspace."/>;
   }
 
   if (!access.enabled) {
-    return (
-      <div style={{ padding: 18, border: '1px solid #e3e9ed', borderRadius: 16, background: '#fff' }}>
-        <strong style={{ display: 'block', color: '#17364d', fontSize: 13 }}>Capture is not enabled yet</strong>
-        <span style={{ display: 'block', marginTop: 5, color: '#738793', fontSize: 10, lineHeight: 1.5 }}>Your workspace is ready. Capture becomes available when your agency enables it.</span>
-      </div>
-    );
+    return <JourneyStatus title="Capture is not enabled yet" description="Ask an agency admin to enable Capture for your workspace."/>;
   }
 
   return (
     <>
       <AiCapture
-        key={workspaceSlug || 'legacy'}
+        key={`capture:${workspaceSlug || 'legacy'}`}
         context={context}
         resumeCaptureId={selectedCaptureId}
         maxAudioSeconds={Number(access.max_audio_seconds || 240)}
@@ -156,7 +163,7 @@ export default function AiFullPage() {
         onCompleted={handleCaptureCompleted}
       />
       <AiRecentCaptures
-        key={workspaceSlug || 'legacy'}
+        key={`recent:${workspaceSlug || 'legacy'}`}
         refreshKey={recentRefreshKey}
         onOpen={(captureId) => {
           setSelectedCaptureId(null);

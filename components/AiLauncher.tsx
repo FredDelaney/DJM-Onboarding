@@ -1,22 +1,35 @@
 'use client';
 
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import { useAiWorkspace } from './useAiWorkspace';
+import { useVisualViewport } from './useVisualViewport';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { Mic, X } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import AiCapture from '@/components/AiCapture';
 import { platformRpc } from '@/lib/platform-client';
 import {
-  contextFromRoute,
+  contextFromWorkspaceRoute,
+  entityContextLookupRoute,
   mergeEntityContext,
   aiCaptureHref,
   type EntityContext,
 } from '@/lib/entity-context';
 import styles from './AiLauncher.module.css';
+
+const AiCapture = dynamic(() => import('@/components/AiCapture'), {
+  loading: () => <p className={styles.loading} role="status">Opening Tell ReDream...</p>,
+});
+
+const preloadCapture = () => {
+  void import('@/components/AiCapture').catch(() => {
+    // Opening the dialog retains the normal module loading and error path.
+  });
+};
 
 type AiAccess = {
   workspace_slug?: string;
@@ -65,18 +78,22 @@ const cachedAiRouteContext = (
   return request;
 };
 
-export default function AiLauncher() {
+export default function AiLauncher({navigation=false,className,onCaptureCompleted}:{navigation?:boolean;className?:string;onCaptureCompleted?:()=>void}={}) {
   const [open, setOpen] = useState(false);
+  const viewport = useVisualViewport(open);
   const [unsafeToClose, setUnsafeToClose] = useState(false);
   const [mounted, setMounted] = useState(false);
   const workspaceSlug = useAiWorkspace();
   const pathname = usePathname() || '/djm';
-  const routeFallback = useMemo(() => contextFromRoute(pathname), [pathname]);
+  const query=useSearchParams().toString();
+  const sourceRoute=pathname+(query?'?'+query:'');
+  const routeFallback=useMemo(()=>contextFromWorkspaceRoute(pathname,new URLSearchParams(query)),[pathname,query]);
+  const captureDialog=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null);
   const [routeContext, setRouteContext] = useState<EntityContext>(routeFallback);
-  const [workspaceContext, setWorkspaceContext] = useState<EntityContext | null>(null);
+  const [workspaceContext, setWorkspaceContext] = useState<{route:string;value:EntityContext}|null>(null);
   const context = useMemo(
-    () => mergeEntityContext(routeContext, workspaceContext),
-    [routeContext, workspaceContext],
+    () => mergeEntityContext(routeContext.route===sourceRoute?routeContext:routeFallback,workspaceContext?.route===sourceRoute?workspaceContext.value:null),
+    [routeContext,routeFallback,workspaceContext,sourceRoute],
   );
   const [access, setAccess] = useState<AiAccess | null>(null);
 
@@ -110,10 +127,10 @@ export default function AiLauncher() {
     if (!open) return;
 
     let active = true;
-    void cachedAiRouteContext(pathname, workspaceSlug)
+    void cachedAiRouteContext(entityContextLookupRoute(routeFallback,sourceRoute), workspaceSlug)
       .then((resolved) => {
         if (!active) return;
-        setRouteContext({ ...routeFallback, ...(resolved || {}) });
+        setRouteContext(mergeEntityContext(resolved||{},routeFallback));
       })
       .catch(() => {
         if (active) setRouteContext(routeFallback);
@@ -122,12 +139,12 @@ export default function AiLauncher() {
     return () => {
       active = false;
     };
-  }, [open, pathname, routeFallback, workspaceSlug]);
+  }, [open, sourceRoute, routeFallback, workspaceSlug]);
 
   useEffect(() => {
     const onWorkspaceContext = (event: Event) => {
       const detail = (event as CustomEvent<EntityContext | null>).detail;
-      setWorkspaceContext(detail || null);
+      setWorkspaceContext(detail?{route:sourceRoute,value:detail}:null);
     };
     window.addEventListener('redream:ai-context', onWorkspaceContext);
     window.addEventListener('djm:tell-context', onWorkspaceContext);
@@ -135,12 +152,24 @@ export default function AiLauncher() {
       window.removeEventListener('redream:ai-context', onWorkspaceContext);
       window.removeEventListener('djm:tell-context', onWorkspaceContext);
     };
-  }, [workspaceSlug]);
+  }, [workspaceSlug,sourceRoute]);
 
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !unsafeToClose) setOpen(false);
+      if (event.defaultPrevented) return;
+      const anotherModal = Array.from(document.querySelectorAll<HTMLElement>('[aria-modal="true"]')).some(node =>
+        node !== captureDialog.current && node.getClientRects().length > 0 && !node.closest('[inert]') && !captureDialog.current?.contains(node),
+      );
+      if (anotherModal) return;
+      if (event.key === 'Escape' && !unsafeToClose) {event.preventDefault();setOpen(false);}
+      if(event.key==='Tab'){
+        const controls=Array.from(captureDialog.current?.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]')||[]).filter(node=>node.getClientRects().length&&!node.closest('[inert]'));
+        const first=controls[0],last=controls.at(-1);
+        if(!first){event.preventDefault();captureDialog.current?.focus();}
+        else if(event.shiftKey&&(document.activeElement===first||!captureDialog.current?.contains(document.activeElement))){event.preventDefault();last?.focus();}
+        else if(!event.shiftKey&&(document.activeElement===last||!captureDialog.current?.contains(document.activeElement))){event.preventDefault();first.focus();}
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -148,20 +177,31 @@ export default function AiLauncher() {
 
   useEffect(() => {
     if (!open || !mounted) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
+    const previousFocus=trigger.current;
+    const siblings=Array.from(document.body.children).filter((node):node is HTMLElement=>node instanceof HTMLElement&&!node.contains(captureDialog.current));
+    const releaseBackground = isolateElements(siblings);
+
+    captureDialog.current?.querySelector<HTMLButtonElement>('button')?.focus();
     return () => {
-      document.body.style.overflow = previousOverflow;
+      releaseBackground();
+      releaseScroll();
+      if(previousFocus?.isConnected)previousFocus.focus();
     };
   }, [open, mounted]);
 
-  if (!access?.enabled) return null;
+  if (!access?.enabled) {
+    if(!navigation)return null;
+    return <Link href={aiCaptureHref(sourceRoute,context,workspaceSlug)} className={className} aria-label="Tell ReDream"><Mic size={21}/><span>Tell ReDream</span></Link>;
+  }
 
   const dialog =
     open && mounted
       ? createPortal(
           <div
             className={styles.overlay}
+            data-compact={viewport ? viewport.height < 500 : undefined}
+            style={viewport ? {top: viewport.top, height: viewport.height, bottom: 'auto'} : undefined}
             onClick={(event) => {
               if (event.target !== event.currentTarget || unsafeToClose) return;
               setOpen(false);
@@ -169,6 +209,8 @@ export default function AiLauncher() {
           >
             <div
               className={styles.modal}
+              ref={captureDialog}
+              tabIndex={-1}
               role="dialog"
               aria-modal="true"
               aria-labelledby="ai-capture-dialog-title"
@@ -191,6 +233,8 @@ export default function AiLauncher() {
                   compact
                   context={context}
                   onUnsafeToCloseChange={setUnsafeToClose}
+                  onNavigate={() => { if (!unsafeToClose) setOpen(false); }}
+                  onCompleted={onCaptureCompleted}
                   maxAudioSeconds={Number(access.max_audio_seconds || 240)}
                   resolvedWorkspaceSlug={access.workspace_slug}
                 />
@@ -201,7 +245,7 @@ export default function AiLauncher() {
                 ) : (
                   <Link
                     className={styles.full}
-                    href={aiCaptureHref(pathname, context, workspaceSlug)}
+                    href={aiCaptureHref(sourceRoute, context, workspaceSlug)}
                     onClick={() => setOpen(false)}
                   >
                     Open full screen
@@ -218,7 +262,12 @@ export default function AiLauncher() {
     <>
       <button
         type="button"
-        className={styles.trigger}
+        className={navigation?className:styles.trigger}
+        ref={trigger}
+        aria-haspopup="dialog" aria-expanded={open}
+        onPointerEnter={preloadCapture}
+        onPointerDown={preloadCapture}
+        onFocus={preloadCapture}
         onClick={() => setOpen(true)}
         aria-label="Tell ReDream"
         title="Tell ReDream"

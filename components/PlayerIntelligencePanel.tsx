@@ -232,13 +232,10 @@ export default function PlayerIntelligencePanel({
           <div className={styles.eyebrowRow}>
             <span className={styles.eyebrow}><Sparkles size={13} /> GLOBAL INTELLIGENCE</span>
             <span className={`${styles.status} ${styles[status.tone]}`}>{status.label}</span>
-            <span className={styles.version}>V7.1</span>
           </div>
-          <h2>One score. Global context. Explainable evidence.</h2>
+          <h2>Player intelligence</h2>
           <p>
-            Current level is calculated across competition strength, role, position production,
-            career context and trusted external signals. Missing optional evidence reduces certainty,
-            never the player by default.
+            See the player’s current level and the evidence behind it. Missing evidence reduces confidence.
           </p>
           <div className={styles.identityLine}>
             <span>{subject?.primary_position || score?.position_group || 'Position pending'}</span>
@@ -257,8 +254,8 @@ export default function PlayerIntelligencePanel({
         </div>
       </header>
 
-      {error ? <div className={styles.error}><AlertCircle size={16} />{error}</div> : null}
-      {message ? <div className={styles.success}><CheckCircle2 size={16} />{message}</div> : null}
+      {error ? <div className={styles.error} role="alert" aria-atomic="true"><AlertCircle size={16} />{error}</div> : null}
+      {message ? <div className={styles.success} role="status" aria-atomic="true"><CheckCircle2 size={16} />{message}</div> : null}
 
       <div className={styles.commandStrip}>
         <Metric
@@ -368,11 +365,11 @@ export default function PlayerIntelligencePanel({
       <details className={styles.diagnostics}>
         <summary>
           <span>
-            <strong>Analyst diagnostics</strong>
+            <strong>Score details</strong>
             <small>
               {missing.length
                 ? `${missing.length} optional signal${missing.length === 1 ? '' : 's'} still missing`
-                : 'Full model provenance and controls'}
+                : 'Sources and scoring details'}
             </small>
           </span>
           <ChevronDown size={18} />
@@ -380,9 +377,9 @@ export default function PlayerIntelligencePanel({
 
         <div className={styles.diagnosticsBody}>
           <div className={styles.diagnosticGrid}>
-            <Diagnostic label="Canonical model" value={prettyModel(score?.model_version)} />
-            <Diagnostic label="Publication state" value={scorePublishable ? 'Published for decisions' : 'Internal prior only'} />
-            <Diagnostic label="Internal model prior" value={rawScoreValue == null ? '–' : String(Math.round(rawScoreValue))} />
+            <Diagnostic label="Scoring model" value={prettyModel(score?.model_version)} />
+            <Diagnostic label="Publication state" value={scorePublishable ? 'Published for decisions' : 'Draft only'} />
+            <Diagnostic label="Draft score" value={rawScoreValue == null ? '–' : String(Math.round(rawScoreValue))} />
             <Diagnostic label="Score state" value={scoreState || 'Unknown'} />
             <Diagnostic label="Provider" value={provenance?.provider || basis?.provider || 'Unknown'} />
             <Diagnostic label="Evidence grade" value={evidenceGrade || 'Unknown'} />

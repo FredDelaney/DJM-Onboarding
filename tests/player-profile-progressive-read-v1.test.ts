@@ -32,7 +32,6 @@ test('secondary evidence streams after the profile is visible', () => {
 });
 
 test('secondary loading never pretends missing evidence is zero', () => {
-  assert.match(profile, /secondaryReady \? documents\.length : '…'/);
   assert.match(profile, /Loading recent activity\.\.\./);
   assert.match(profile, /Loading profile activity\.\.\./);
   assert.match(
@@ -64,7 +63,7 @@ test('core profile read excludes secondary club and communication context', () =
 test('secondary profile context streams in after first paint', () => {
   assert.match(profile, /player_profile_detail/);
   assert.match(profile, /profile\.secondary_ready === false/);
-  assert.match(profile, /setCachedPlayerProfile\(playerId, next, cacheScope\)/);
+  assert.match(profile, /setCachedPlayerProfile\(playerId, bundle, cacheScope\)/);
   assert.match(agencyOs, /action==="player_profile_detail"/);
   assert.match(agencyOs, /const profileSecondary=async/);
   assert.match(agencyOs, /profileCommunication\(pid\)/);

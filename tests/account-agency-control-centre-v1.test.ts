@@ -62,7 +62,7 @@ test('profile images stay inside the signed-in user storage folder', () => {
 test('account control centre never stores raw card details', () => {
   assert.doesNotMatch(migration, /card_number|card_cvc|card_expiry/i);
   assert.doesNotMatch(billing, /card number|cvc|cvv/i);
-  assert.match(billing, /Card details stay with the secure payment provider/);
+  assert.match(billing, /Card details stay with the payment provider/);
 });
 
 test('payment changes use the secure provider portal server-side', () => {

@@ -177,7 +177,7 @@ test("the UI explains the global evidence state instead of presenting confidence
   assert.match(ui, /Evidence confidence/);
   assert.match(ui, /Evidence grade/);
   assert.match(ui, /ReDream Global Score V7\.1/);
-  assert.match(ui, /One score\. Global context\. Explainable evidence\./);
+  assert.match(ui, /Player intelligence/);
   assert.match(ui, /Uncertainty band, not a statistical CI/);
   assert.match(ui, /Missing evidence is treated as uncertainty, never as zero performance/);
   assert.match(ui, /djm_refresh_player_global_intelligence/);

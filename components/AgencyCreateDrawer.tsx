@@ -1,7 +1,8 @@
 'use client';
-
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import {
   BriefcaseBusiness,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   LoaderCircle,
@@ -11,13 +12,19 @@ import {
   Users,
   X,
 } from 'lucide-react';
+
 import {
   FormEvent,
+  type CSSProperties,
   useEffect,
+  useRef,
   useState,
 } from 'react';
+import {createPortal} from 'react-dom';
 
 import { friendlyError } from '@/lib/platform-client';
+import {readWithDeadline} from '@/lib/read-with-deadline';
+import ConfirmActionDialog from './ConfirmActionDialog';
 
 import styles from './AgencyCreateDrawer.module.css';
 
@@ -47,37 +54,43 @@ const META: Record<
     title: string;
     copy: string;
     submit: string;
+    added: string;
   }
 > = {
   player: {
     eyebrow: 'PLAYERS',
     title: 'Add player',
-    copy: 'Add the minimum useful player record now. You can complete the detail later.',
+    copy: 'Start with a name and position.',
     submit: 'Add player',
+    added: 'Player added',
   },
   club: {
     eyebrow: 'NETWORK',
     title: 'Add club',
-    copy: 'Add the club now. Contacts, needs and opportunities can be connected when they exist.',
+    copy: 'Start with the club name.',
     submit: 'Add club',
+    added: 'Club added',
   },
   club_need: {
     eyebrow: 'MARKET',
     title: 'Add club need',
-    copy: 'Record what a club is actively looking for so the right player routes can be connected.',
+    copy: 'Record the club and what they need.',
     submit: 'Add club need',
+    added: 'Club need added',
   },
   deal: {
     eyebrow: 'DEALS',
     title: 'Add deal',
-    copy: 'Start a real deal with the player, club and next action you already know.',
+    copy: 'Choose the player and club.',
     submit: 'Add deal',
+    added: 'Deal added',
   },
   contact: {
     eyebrow: 'NETWORK',
     title: 'Add contact',
-    copy: 'Add a real club contact and connect them to your agency network.',
+    copy: 'Start with a name and club.',
     submit: 'Add contact',
+    added: 'Contact added',
   },
 };
 
@@ -110,11 +123,13 @@ export default function AgencyCreateDrawer({
   invoke,
   onClose,
   onCreated,
+  theme,
 }: {
   kind: AgencyCreateKind;
   invoke: Invoke;
   onClose: () => void;
   onCreated: () => Promise<void> | void;
+  theme?: CSSProperties;
 }) {
   const meta = META[kind];
 
@@ -124,15 +139,55 @@ export default function AgencyCreateDrawer({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [created, setCreated] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState('');
+  const [optionsError, setOptionsError] = useState('');
+  const [optionsAttempt, setOptionsAttempt] = useState(0);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [viewport, setViewport] = useState<{top: number; height: number} | null>(null);
+  const dialog = useRef<HTMLElement>(null), backdrop = useRef<HTMLDivElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const phase = useRef<'editing' | 'saving' | 'created'>('editing');
+  const refreshingRef = useRef(false), active = useRef(true);
+  const invokeRef = useRef(invoke), createdCallback = useRef(onCreated), closeCallback = useRef(onClose);
+  const dirty = !created && Object.entries(initialValues).some(([key, value]) => values[key as keyof typeof initialValues] !== value);
+
+  useEffect(() => {invokeRef.current = invoke; createdCallback.current = onCreated; closeCallback.current = onClose;}, [invoke, onCreated, onClose]);
+
+  const requestClose = () => {
+    if (phase.current === 'saving') return;
+    if (dirty) setDiscardOpen(true);
+    else onClose();
+  };
 
   useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    active.current = true;
+    const releaseScroll = lockPageScroll();
+    if (!dialog.current?.contains(document.activeElement)) opener.current = document.activeElement as HTMLElement | null;
+    const siblings = [...document.body.children].filter((node): node is HTMLElement => node instanceof HTMLElement && !node.contains(backdrop.current));
+    const releaseBackground = isolateElements(siblings);
+
+    (dialog.current?.querySelector<HTMLElement>('input:not(:disabled),textarea:not(:disabled),select:not(:disabled)') || dialog.current?.querySelector<HTMLElement>('button:not(:disabled)'))?.focus();
 
     return () => {
-      document.body.style.overflow = previous;
+      active.current = false;
+      releaseBackground();
+      releaseScroll();
+      queueMicrotask(() => {if (!active.current && opener.current?.isConnected) opener.current.focus();});
     };
   }, []);
+
+  useEffect(() => {
+    const view = window.visualViewport;
+    const update = () => setViewport({top: view?.offsetTop || 0, height: view?.height || window.innerHeight});
+    update(); view?.addEventListener('resize', update); view?.addEventListener('scroll', update); window.addEventListener('resize', update);
+    return () => {view?.removeEventListener('resize', update); view?.removeEventListener('scroll', update); window.removeEventListener('resize', update);};
+  }, []);
+
+  useEffect(() => {
+    if (created) dialog.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+  }, [created]);
 
   useEffect(() => {
     setShowDetails(false);
@@ -142,14 +197,15 @@ export default function AgencyCreateDrawer({
     if (kind !== 'deal') return;
 
     let active = true;
+    setLoadingOptions(true);
+    setOptionsError('');
 
-    void invoke('create_options')
+    void readWithDeadline(Promise.resolve().then(() => invokeRef.current('create_options')))
       .then((response) => {
         if (!active) return;
 
-        const rows = Array.isArray(response?.options?.players)
-          ? response.options.players
-          : [];
+        const rows = response?.options?.players;
+        if (!Array.isArray(rows)) throw new Error('The player list could not be loaded. Please retry.');
 
         setPlayers(
           rows
@@ -164,7 +220,7 @@ export default function AgencyCreateDrawer({
       })
       .catch((cause) => {
         if (!active) return;
-        setError(friendlyError(cause));
+        setOptionsError(friendlyError(cause));
       })
       .finally(() => {
         if (active) setLoadingOptions(false);
@@ -173,7 +229,23 @@ export default function AgencyCreateDrawer({
     return () => {
       active = false;
     };
-  }, [kind]);
+  }, [kind, optionsAttempt]);
+
+  async function refreshCreatedList() {
+    if (refreshingRef.current || !active.current) return;
+    dialog.current?.focus();
+    refreshingRef.current = true;
+    setRefreshing(true); setRefreshError('');
+    try {
+      await readWithDeadline(Promise.resolve().then(() => createdCallback.current()));
+      if (active.current) closeCallback.current();
+    } catch {
+      if (active.current) setRefreshError('Saved successfully. The list could not refresh. You can retry the refresh or close this panel.');
+    } finally {
+      refreshingRef.current = false;
+      if (active.current) setRefreshing(false);
+    }
+  }
 
   function setValue(key: keyof typeof initialValues, value: string) {
     setValues((current) => ({
@@ -184,8 +256,11 @@ export default function AgencyCreateDrawer({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (phase.current !== 'editing') return;
 
+    phase.current = 'saving';
+    // The container remains focusable while the pending form controls are disabled.
+    dialog.current?.focus();
     setBusy(true);
     setError('');
 
@@ -277,29 +352,51 @@ export default function AgencyCreateDrawer({
       }
 
       await invoke(action, body);
-      await onCreated();
-      onClose();
+      phase.current = 'created';
+      if (!active.current) return;
+      setCreated(true);
+      void refreshCreatedList();
     } catch (cause) {
-      setError(friendlyError(cause));
+      phase.current = 'editing';
+      if (active.current) setError(friendlyError(cause));
     } finally {
-      setBusy(false);
+      if (active.current) setBusy(false);
     }
   }
 
-  return (
+  if (typeof document === 'undefined') return null;
+  return <>{createPortal(
     <div
+      ref={backdrop}
       className={styles.backdrop}
+      data-interface="calm"
+      style={{...theme, ...(viewport ? {top: viewport.top, height: viewport.height, bottom: 'auto'} : {})}}
       onMouseDown={(event) => {
         if (
           event.currentTarget === event.target &&
           !busy
         ) {
-          onClose();
+          requestClose();
         }
       }}
     >
       <section
+        ref={dialog}
+        tabIndex={-1}
+        inert={discardOpen || undefined}
         className={styles.drawer}
+        onKeyDown={event => {
+          if (event.defaultPrevented || discardOpen) return;
+          if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); requestClose();}
+          if (event.key === 'Tab') {
+            const controls = [...dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex="0"]') || []].filter(node => node.getClientRects().length);
+            const first = controls[0], last = controls.at(-1);
+            const entering = document.activeElement === dialog.current || !dialog.current?.contains(document.activeElement);
+            if (!first) {event.preventDefault(); dialog.current?.focus();}
+            else if (event.shiftKey && (document.activeElement === first || entering)) {event.preventDefault(); last?.focus();}
+            else if (!event.shiftKey && (document.activeElement === last || entering)) {event.preventDefault(); first.focus();}
+          }
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="agency-create-title"
@@ -318,7 +415,7 @@ export default function AgencyCreateDrawer({
               type="button"
               data-ui-button="icon"
               className={styles.close}
-              onClick={onClose}
+              onClick={requestClose}
               disabled={busy}
               aria-label={`Close ${meta.title}`}
             >
@@ -332,8 +429,13 @@ export default function AgencyCreateDrawer({
         </header>
 
         <form className={styles.form} onSubmit={submit}>
+          {created ? <div className={styles.saved} role="status">
+            <CheckCircle2 size={28} aria-hidden="true" />
+            <h3>{meta.added}</h3>
+            <p role={refreshError ? 'alert' : undefined}>{refreshError || 'Refreshing the list...'}</p>
+          </div> : <fieldset className={styles.fields} disabled={busy} aria-label={meta.title + ' details'}>
           {error ? (
-            <div className={styles.error}>{error}</div>
+            <div className={styles.error} role="alert" aria-atomic="true">{error}</div>
           ) : null}
 
           {kind === 'player' ? (
@@ -522,14 +624,16 @@ export default function AgencyCreateDrawer({
           {kind === 'deal' ? (
             <>
               {loadingOptions ? (
-                <div className={styles.loading}>
+                <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
                   <LoaderCircle size={17} className={styles.spin} />
                   Loading your players
                 </div>
               ) : null}
 
-              {!loadingOptions && !players.length ? (
-                <div className={styles.notice}>
+              {optionsError ? <div className={styles.error} role="alert"><p>{optionsError}</p><button type="button" data-ui-button="secondary" className={styles.secondary} onClick={() => {dialog.current?.focus(); setOptionsAttempt(attempt => attempt + 1);}}>Retry players</button></div> : null}
+
+              {!loadingOptions && !optionsError && !players.length ? (
+                <div className={styles.notice} role="status" aria-atomic="true">
                   Add a player first. Every deal must belong to a real player in this agency.
                 </div>
               ) : null}
@@ -640,12 +744,17 @@ export default function AgencyCreateDrawer({
             </>
           ) : null}
 
+          </fieldset>}
           <div className={styles.actions}>
+            {created ? <>
+              <button type="button" data-ui-button="secondary" className={styles.secondary} onClick={requestClose}>Close</button>
+              <button type="button" data-ui-button="primary" className={styles.primary} onClick={() => void refreshCreatedList()} disabled={refreshing}>{refreshing ? 'Refreshing...' : 'Refresh list'}</button>
+            </> : <>
             <button
               type="button"
               data-ui-button="secondary"
               className={styles.secondary}
-              onClick={onClose}
+              onClick={requestClose}
               disabled={busy}
             >
               Cancel
@@ -658,7 +767,7 @@ export default function AgencyCreateDrawer({
               disabled={
                 busy ||
                 (kind === 'deal' &&
-                  (loadingOptions || !players.length))
+                  (loadingOptions || Boolean(optionsError) || !players.length))
               }
             >
               {busy ? (
@@ -668,11 +777,13 @@ export default function AgencyCreateDrawer({
               )}
               {busy ? 'Saving' : meta.submit}
             </button>
+            </>}
           </div>
         </form>
       </section>
-    </div>
-  );
+    </div>, document.body)}
+    <ConfirmActionDialog open={discardOpen} title="Discard these changes?" description="Your new record has not been saved." confirmLabel="Discard changes" tone="warning" onClose={() => setDiscardOpen(false)} onConfirm={onClose} />
+    </>;
 }
 
 function Field({

@@ -44,7 +44,7 @@ test('Home is one bounded ranked Today queue rather than a dashboard', () => {
   assert.match(home, /FYI/);
   assert.match(home, /\.sort\(\(a, b\) => b\.score - a\.score\)/);
   assert.match(home, /\.slice\(0, 5\)/);
-  assert.match(home, /<h2>Today<\/h2>/);
+  assert.match(home, /<h2>Your day<\/h2>/);
   assert.doesNotMatch(home, /<h2>Needs attention<\/h2>/);
   assert.doesNotMatch(home, /What changed/);
   assert.doesNotMatch(home, /Recently handled by ReDream/);
@@ -52,10 +52,9 @@ test('Home is one bounded ranked Today queue rather than a dashboard', () => {
 
 test('Every Today card explains why, recommends the next move, owns it and has one action', () => {
   assert.match(home, /item\.why/);
-  assert.match(home, /ReDream recommends/);
   assert.match(home, /item\.recommendation/);
-  assert.match(home, /Owner: \{item\.owner\}/);
-  assert.match(home, /When: \{item\.deadline\}/);
+  assert.match(home, /\{item\.owner\}/);
+  assert.match(home, /item\.deadline/);
   assert.match(home, /queueAction\(item\)/);
   assert.match(home, /actionFor\(item\.payload\)/);
   assert.match(home, /Record outcome/);

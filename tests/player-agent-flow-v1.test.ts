@@ -17,8 +17,9 @@ test('a normal player deep link opens the agent workspace before the shareable p
 
 test('player workspace follows the agent decision order', () => {
   assert.match(players, /\['overview','opportunities','career','more'\]/);
-  assert.match(players, />NEXT MOVE</);
-  assert.match(players, /Latest activity/);
+  assert.match(players, />Next action</);
+  assert.match(players, /RecordActivitySummary/);
+  assert.match(readFileSync('components/RecordActivitySummary.tsx','utf8'), /Latest activity/);
   assert.match(players, /More player detail/);
   assert.match(players, /Current club situations/);
 });
@@ -46,8 +47,8 @@ test('connected communication is enrichment and cannot take down a Player Profil
 });
 
 test('a Player Profile load failure gives the agent recovery instead of a dead end', () => {
-  assert.match(profile, /Player Profile could not load/);
-  assert.match(profile, /Nothing has been changed/);
+  assert.match(profile, /Player profile could not load/);
+  assert.match(profile, /Nothing changed/);
   assert.match(profile, /Try again/);
   assert.match(profile, /Back to player/);
   assert.match(profile, /onClick=\{\(\) => void load\(\)\}/);

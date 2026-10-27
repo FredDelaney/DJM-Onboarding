@@ -1,6 +1,7 @@
 'use client';
-
+import { lockPageScroll } from '@/lib/page-scroll-lock';
 import { AlertTriangle, CheckCircle2, LoaderCircle, Mic, Square, X } from 'lucide-react';
+
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 
@@ -58,10 +59,10 @@ export default function PlayerVoiceLauncher() {
 
   useEffect(() => {
     if (!open || !mounted) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockPageScroll();
+
     return () => {
-      document.body.style.overflow = previousOverflow;
+      releaseScroll();
     };
   }, [mounted, open]);
 
@@ -248,7 +249,7 @@ export default function PlayerVoiceLauncher() {
                 ) : null}
 
                 {error ? (
-                  <div className={styles.error}>
+                  <div className={styles.error} role="alert" aria-atomic="true">
                     <AlertTriangle size={14} />
                     <span>{error}</span>
                   </div>
@@ -261,7 +262,7 @@ export default function PlayerVoiceLauncher() {
                 ) : null}
 
                 {transcript ? (
-                  <div className={styles.success}>
+                  <div className={styles.success} role="status" aria-atomic="true">
                     <strong>
                       <CheckCircle2 size={14} />
                       Sent to your agency

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { visiblePublicPlayerProfile, publicProfileSectionHidden } from "../_shared/public-profile-visibility.ts";
 import { selectCurrentSeasonEvidence, safeSourceUrl } from "../_shared/football-data/player-data-workflow.ts";
 
 const cors={
@@ -47,18 +48,20 @@ Deno.serve(async(req:Request)=>{
 
     const[contextResult,settingsResult,careerResult,refreshResult]=await Promise.all([
       admin.rpc("platform_server_player_profile_context",{p_tenant_id:player.tenant_id,p_player_id:player.id}),
-      admin.from("player_cv_settings").select("key_stats").eq("player_id",player.id).maybeSingle(),
+      admin.from("player_cv_settings").select("key_stats,selected_stat_refs").eq("player_id",player.id).maybeSingle(),
       admin.from("career_entries").select("season_label,club_name,league,appearances,starts,minutes,goals,assists,source_name,source_url,source_reviewed_at,source_provider,source_synced_at").eq("player_id",player.id),
       admin.from("player_source_refreshes").select("provider,status,fresh_at,source_url").eq("player_id",player.id).eq("provider","openai_web_stats").eq("status","applied").order("fresh_at",{ascending:false}).limit(1).maybeSingle(),
     ]);
     if(contextResult.error||settingsResult.error||careerResult.error)throw contextResult.error||settingsResult.error||careerResult.error;if(refreshResult.error)console.warn("public player-profile stat freshness unavailable",refreshResult.error);
 
     const customStats=Array.isArray(settingsResult.data?.key_stats)&&settingsResult.data.key_stats.length>0;
+    const selectedSourceStats=Array.isArray(settingsResult.data?.selected_stat_refs)&&settingsResult.data.selected_stat_refs.length>0;
     const auto=currentStats(careerResult.data||[],player,refreshResult.data||null);
-    const profile={...profileResult.data,key_stats:customStats?profileResult.data.key_stats:auto.stats};
+    const profile={...profileResult.data,key_stats:customStats||selectedSourceStats?profileResult.data.key_stats:auto.stats};
     const context=contextResult.data&&typeof contextResult.data==="object"?contextResult.data:{};
 
-    return reply({data:{profile,agency:context.branding||null,stats_meta:customStats?null:auto.meta}});
+    return reply({data:{profile:visiblePublicPlayerProfile(profile),agency:context.branding||null,
+      stats_meta:customStats||selectedSourceStats||publicProfileSectionHidden(profile,"stats")?null:auto.meta}});
   }catch(error){
     console.error("player-profile-public",error);
     return reply({error:"Unable to load Player Profile"},500);

@@ -39,7 +39,7 @@
   align-items: center;
   gap: 7px;
   color: #6f7781;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -68,7 +68,7 @@
 .hero p {
   margin: 0;
   color: #888f98;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.1em;
 }
@@ -85,7 +85,7 @@
   max-width: 620px;
   margin: 0;
   color: #79818b;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -117,7 +117,7 @@
   max-width: 520px;
   display: block;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -136,7 +136,7 @@
 .heroSide span {
   margin-top: 3px;
   color: rgba(255, 255, 255, 0.62);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .grid {
@@ -157,7 +157,7 @@
 
 .fact span {
   color: #8a919a;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -172,7 +172,7 @@
 
 .fact small {
   color: #858d96;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -229,19 +229,19 @@
 
 .row strong {
   color: #343b43;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .row span {
   margin-top: 3px;
   color: #6f7882;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .row small {
   margin-top: 3px;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -258,7 +258,7 @@
   color: var(--agency-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -280,13 +280,13 @@
 
 .empty strong {
   color: #414850;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .empty span,
 .baseline span {
   margin-top: 2px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -297,7 +297,7 @@
 .truth {
   margin: 10px 1px 0;
   color: #9298a0;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -401,7 +401,7 @@
 .teamIdentity strong {
   overflow: hidden;
   color: #30373f;
-  font-size: 11px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -410,7 +410,7 @@
   margin-top: 2px;
   overflow: hidden;
   color: #8a929b;
-  font-size: 8px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -421,7 +421,7 @@
   max-width: 112px;
   padding: 5px 7px;
   border-radius: 999px;
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 850;
   line-height: 1;
   white-space: nowrap;
@@ -476,7 +476,7 @@
 .teamMemberFacts span {
   margin-top: 4px;
   color: #939aa2;
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.15;
 }
 
@@ -485,7 +485,7 @@
   flex-wrap: wrap;
   gap: 5px 12px;
   color: #7d8790;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .teamCommercial {
@@ -500,7 +500,7 @@
   border-radius: 999px;
   background: #fff;
   color: #65727d;
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -523,12 +523,12 @@
 
 .teamEmpty strong {
   color: #414a52;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .teamEmpty span {
   margin-top: 2px;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -565,7 +565,7 @@
   background: #fff;
   color: #587181;
   font: inherit;
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 850;
   cursor: pointer;
 }
@@ -605,7 +605,7 @@
 
   .subhead {
     margin-top: 5px;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.4;
   }
 
@@ -621,7 +621,7 @@
 
   .hero p,
   .panelHead p {
-    font-size: 6.5px;
+    font-size: 12px;
   }
 
   .hero h3 {
@@ -654,7 +654,7 @@
   }
 
   .fact span {
-    font-size: 6px;
+    font-size: 12px;
   }
 
   .fact strong {
@@ -710,6 +710,7 @@
 .pageShell {
   position: fixed;
   inset: 0;
+  bottom: var(--workspace-mobile-navigation-inset, 0px);
   z-index: 88;
   min-width: 0;
   overflow-y: auto;
@@ -755,4 +756,50 @@
     padding-left: 0;
     padding-right: 0;
   }
+}
+
+/* Calm focused workspace v2 */
+@media (min-width: 681px) {
+  .pagePanel .header { padding: 10px 0 15px; margin-bottom: 10px; border: 0; border-bottom: 1px solid #e4e8eb; border-radius: 0; background: transparent; }
+  .pagePanel .content, .pagePanel .body { gap: 10px; }
+  .pagePanel .hero { padding: 16px 18px; border-radius: 14px; box-shadow: none; }
+  .pagePanel .hero h3 { margin: 4px 0 5px; font-size: 20px; }
+  .pagePanel .grid { gap: 0; overflow: hidden; border: 1px solid #e6eaed; border-radius: 12px; background: #fff; }
+  .pagePanel .fact { padding: 11px 12px; border: 0; border-radius: 0; background: transparent; }
+  .pagePanel .fact:nth-child(even) { border-left: 1px solid #edf0f2; }
+  .pagePanel .fact:nth-child(n+3) { border-top: 1px solid #edf0f2; }
+  .pagePanel .panel { padding: 15px; border-radius: 13px; box-shadow: none; }
+}
+
+/* Calm interface: common reading rhythm and quiet surfaces. */
+.panel, .pagePanel .header, .fact { box-shadow: none; border-color: #e5e5e7; }
+.pageShell { background: #f5f5f7; }
+.header h2 { font-weight: 600; letter-spacing: -.035em; }
+.hero { min-height: 0; padding: 22px; background: #111827; box-shadow: none; }
+.hero h3 { font-size: 24px; font-weight: 600; }
+.pagePanel :global(.interface-details) { display: block; }
+.pagePanel :global(.interface-details:not([open])) { padding-top: 8px; padding-bottom: 8px; }
+@media (max-width:680px) {
+  .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .fact { padding: 12px; border-radius: 12px; }
+}
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow, .live, .topline { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.panel { box-shadow: none; border-color: #e5e5e7; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }
+
+/* Detail pages follow the same quiet reading hierarchy as the workspace. */
+.hero { border: 1px solid #e5e5e7; background: #fff; color: #1d1d1f; box-shadow: none; }
+.hero h3 { color: #1d1d1f; font-weight: 600; }
+.hero p { font-weight: 500; letter-spacing: 0; }
+.hero > div:first-child > span { color: #6e6e73; line-height: 1.5; }
+.heroSide strong { color: #1d1d1f; font-weight: 600; }
+.heroSide span { color: #6e6e73; }
+.fact span { font-weight: 500; letter-spacing: 0; text-transform: none; }
+.fact strong { font-size: 14px; font-weight: 500; }
+@media (max-width: 680px) {
+ .hero { gap: 16px; padding: 18px; }
+ .hero h3 { font-size: 23px; }
+ .content { gap: 12px; }
 }

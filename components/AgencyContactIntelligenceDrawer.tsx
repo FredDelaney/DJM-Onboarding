@@ -1,7 +1,7 @@
 'use client';
-
 import {
   ArrowLeft,
+  ArrowRight,
   Building2,
   CheckCircle2,
   ExternalLink,
@@ -13,6 +13,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
+
 import {
   FormEvent,
   useCallback,
@@ -32,6 +33,11 @@ import AgencyBirthdayEditor from '@/components/AgencyBirthdayEditor';
 import AgencyRelationshipActions from '@/components/AgencyRelationshipActions';
 import AgencyRelationshipMemory from '@/components/AgencyRelationshipMemory';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import RecordContactActions from '@/components/RecordContactActions';
+import {contactLinks,contactPatch,normaliseContact} from '@/lib/record-contact-details';
+import RecordActivitySummary from './RecordActivitySummary';
+import RecordDetails from './RecordDetails';
+import {recordEditReady} from '@/lib/record-edit-readiness';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
 
@@ -45,8 +51,10 @@ type Props = {
   rpc: Rpc;
   onClose: () => void;
   onRefresh: () => Promise<void>;
+  onRecordRefresh?: () => Promise<void>;
   onOpenClub: (clubName: string) => void;
   presentation?: 'drawer' | 'page';
+  scope?: string;
 };
 
 const clean = (value: unknown) =>
@@ -85,7 +93,7 @@ const verificationLabel = (
   }
 
   if (state === 'not_recorded') {
-    return 'Employment not recorded';
+    return 'Employment not set';
   }
 
   return 'Verification unknown';
@@ -96,8 +104,10 @@ export default function AgencyContactIntelligenceDrawer({
   rpc,
   onClose,
   onRefresh,
+  onRecordRefresh,
   onOpenClub,
   presentation = 'drawer',
+  scope = '',
 }: Props) {
   const [detail, setDetail] =
     useState<any>(null);
@@ -166,7 +176,8 @@ export default function AgencyContactIntelligenceDrawer({
   };
 
   const readSequence = useRef(0);
-  const load = useCallback(async () => {
+  const [loadedPersonId, setLoadedPersonId] = useState('');
+  const load = useCallback(async (options?: { recordRefresh?: boolean }) => {
     const sequence = ++readSequence.current;
     const current = () => sequence === readSequence.current;
     const personId = clean(
@@ -175,8 +186,11 @@ export default function AgencyContactIntelligenceDrawer({
 
     if (!personId) return;
 
-    setBusy(true);
-    setError('');
+    if (!options?.recordRefresh) {
+      setBusy(true);
+      setError('');
+      setLoadedPersonId('');
+    }
 
     try {
       const result = await readWithDeadline(rpc<any>(
@@ -186,8 +200,9 @@ export default function AgencyContactIntelligenceDrawer({
         },
       ));
       if (!current()) return;
-      if (!result?.person) throw new Error('This person is no longer available in your agency.');
+      if (!result?.person) throw new Error('This contact is unavailable.');
       setDetail(result);
+      setLoadedPersonId(personId);
 
       setEmail(
         clean(
@@ -222,9 +237,10 @@ export default function AgencyContactIntelligenceDrawer({
         ),
       );
     } catch (loadError) {
+      if (current() && options?.recordRefresh) throw loadError;
       if (current()) setError(friendlyError(loadError));
     } finally {
-      if (current()) setBusy(false);
+      if (current() && !options?.recordRefresh) setBusy(false);
     }
   }, [contact?.person_id, rpc]);
 
@@ -277,7 +293,7 @@ export default function AgencyContactIntelligenceDrawer({
     clean(
       summaryEmployment?.organisation_name,
     ) ||
-    'Club not recorded';
+    'Club not set';
 
   const role =
     clean(employment?.role_title) ||
@@ -310,7 +326,7 @@ export default function AgencyContactIntelligenceDrawer({
     transfermarktUrl ||
     transfermarktSearch(
       name,
-      clubName === 'Club not recorded'
+      clubName === 'Club not set'
         ? ''
         : clubName,
     );
@@ -339,44 +355,26 @@ export default function AgencyContactIntelligenceDrawer({
 
     if (!personId) return;
 
-    const values = [
-      ['email', email],
-      ['whatsapp', whatsapp],
-      ['phone', phone],
-    ].filter(
-      ([, value]) =>
-        clean(value),
-    );
-
-    if (!values.length) {
-      setError(
-        'Add at least one contact detail.',
-      );
-      return;
-    }
-
     setSaving('reach');
     setError('');
 
     try {
-      let latest = detail;
-
-      for (const [
-        channel,
-        value,
-      ] of values) {
-        latest =
-          await rpc<any>(
+      const change=contactPatch({email:emailValue||null,whatsapp:clean(reach?.whatsapp?.value)||null},{email,whatsapp});
+      if(Object.keys(change.patch).length) await rpc('redream_record_contact_details_v1',{p_kind:'contact',p_record_id:personId,p_patch:change.patch,p_expected:change.expected});
+      const updated=normaliseContact({email,whatsapp});
+      const verifyValues=markReachVerified?(['email','whatsapp'] as const).filter(channel=>updated[channel]).map(channel=>[channel,updated[channel]!] as const):[];
+      for(const [channel,value] of verifyValues) await rpc('redream_relationship_save_contact_method',{p_person_id:personId,p_channel:channel,p_value:value,p_is_primary:true,p_mark_verified:true});
+      if(clean(phone)&&(clean(phone)!==phoneValue||markReachVerified)) await rpc<any>(
             'redream_relationship_save_contact_method',
             {
               p_person_id:
                 personId,
 
               p_channel:
-                channel,
+                'phone',
 
               p_value:
-                clean(value),
+                clean(phone),
 
               p_is_primary:
                 true,
@@ -385,9 +383,7 @@ export default function AgencyContactIntelligenceDrawer({
                 markReachVerified,
             },
           );
-      }
-
-      setDetail(latest);
+      await load({recordRefresh:true});
       setEditingReach(false);
       setMarkReachVerified(false);
 
@@ -429,7 +425,7 @@ export default function AgencyContactIntelligenceDrawer({
 
     if (!values.length) {
       setError(
-        'Add at least one external profile.',
+        'Add a profile link.',
       );
       return;
     }
@@ -497,7 +493,7 @@ export default function AgencyContactIntelligenceDrawer({
         !employmentId
       ) {
         setError(
-          'There is no current employment record to verify.',
+          'No current role to verify.',
         );
         return;
       }
@@ -575,12 +571,12 @@ export default function AgencyContactIntelligenceDrawer({
             }
           : null,
 
-        emailValue
+        contactLinks({email:emailValue,whatsapp:null}).email
           ? {
               key: 'email',
               label: 'Email',
               href:
-                `mailto:${emailValue}`,
+                contactLinks({email:emailValue,whatsapp:null}).email!,
               icon: Mail,
               external: false,
             }
@@ -609,6 +605,34 @@ export default function AgencyContactIntelligenceDrawer({
         whatsappLink,
       ],
     );
+
+  const primaryReach = quickActions[0] || null;
+  const employmentNeedsConfirmation =
+    Boolean(employment?.employment_id) &&
+    verificationState !== 'recently_verified';
+
+  const nextMove = !quickActions.length
+    ? {
+        title: 'Add a direct contact route',
+        detail: 'Add a trusted contact method.',
+        label: 'Add contact details',
+        kind: 'reach' as const,
+      }
+    : employmentNeedsConfirmation && !restricted
+      ? {
+          title: `Confirm ${name}'s current role`,
+          detail: `Check ${role} at ${clubName} before the next outreach.`,
+          label: `Confirm still at ${clubName}`,
+          kind: 'verify' as const,
+        }
+      : {
+          title: `Contact ${name}`,
+          detail: summaryActivity?.last_interaction_at
+            ? `Last contact ${relativeDate(summaryActivity.last_interaction_at)}. Use the strongest recorded channel and keep the relationship current.`
+            : 'No recent contact. Use the strongest channel.',
+          label: primaryReach?.label || 'Contact',
+          kind: 'contact' as const,
+        };
 
   const pageMode = presentation === 'page';
 
@@ -664,32 +688,33 @@ export default function AgencyContactIntelligenceDrawer({
               <div className={styles.headerMeta}>
                 <span>
                   {clean(summaryRelationship?.route_state)
-                    .replaceAll('_', ' ') || 'Relationship not recorded'}
+                    .replaceAll('_', ' ') || 'Relationship not set'}
                 </span>
                 <span>
                   Owner {clean(summaryRelationship?.owner_name) || 'unassigned'}
                 </span>
-                <span>
-                  Route {summaryRelationship?.route_score != null ? Number(summaryRelationship.route_score) : 'not recorded'}
-                </span>
+                {summaryRelationship?.route_score != null ? (
+                  <span>Relationship strength {Number(summaryRelationship.route_score)}</span>
+                ) : null}
                 <span>
                   {summaryActivity?.last_interaction_at
                     ? `Last contact ${relativeDate(summaryActivity.last_interaction_at)}`
-                    : 'No contact recorded'}
+                    : 'No recent contact'}
                 </span>
               </div>
             </div>
           </div>
 
           <div className={styles.headerControls}>
-            {!restricted ? <EntityActionsMenu
+            {recordEditReady({requestedId:clean(contact?.person_id),loadedId:loadedPersonId,busy,error,restricted}) ? <EntityActionsMenu
+                  showEdit
               kind="club_contact"
               entityId={clean(contact?.person_id)}
               label={name}
               rpc={rpc}
               onChanged={async (change) => {
-                await onRefresh();
-                if (change === 'edit') await load();
+                await (onRecordRefresh || onRefresh)();
+                if (change === 'edit') await load({ recordRefresh: true });
                 else onClose();
               }}
               fields={[
@@ -716,7 +741,7 @@ export default function AgencyContactIntelligenceDrawer({
           <div
             className={
               styles.loading
-            }
+            } role="status" aria-busy="true" aria-atomic="true"
           >
             <LoaderCircle
               size={20}
@@ -748,22 +773,55 @@ export default function AgencyContactIntelligenceDrawer({
               styles.body
             }
           >
-            {restricted ? <p className={styles.section}>Shared contact details and your personal relationship activity. Commercial agency context requires administrator access.</p> : null}
-            <AgencyRelationshipActions
-              personId={clean(contact?.person_id)}
-              rpc={rpc}
-              onSaved={async (result) => {
-                setDetail(result);
-                await onRefresh();
-              }}
-            />
+            {restricted ? <p className={styles.section}>Shared contact. Commercial details are for admins.</p> : null}
+            {!restricted?<RecordContactActions kind="contact" recordId={clean(contact?.person_id)} name={name} scope={scope} rpc={rpc} blocked={editingReach||Boolean(saving)} refreshKey={`${emailValue}:${clean(reach?.whatsapp?.value)}`}
+              onSaved={next=>{setDetail((current:any)=>({...current,reach:{...current?.reach,email:next.email?{value:next.email}:null,whatsapp:next.whatsapp?{value:next.whatsapp}:null}}));setEmail(next.email||'');setWhatsapp(next.whatsapp||'');}}/>:null}
+            <section className={styles.nextMove} aria-label="Next relationship action">
+              <div>
+                <span>Next action</span>
+                <strong>{nextMove.title}</strong>
+                <small>{nextMove.detail}</small>
+              </div>
 
-            <AgencyBirthdayEditor entityKind="contact" entityId={clean(contact?.person_id)} rpc={rpc} />
+              {nextMove.kind === 'reach' ? (
+                <button
+                  type="button"
+                  data-ui-button="primary"
+                  data-ui-tone="inverse"
+                  onClick={() => openReachEditor('email')}
+                >
+                  {nextMove.label}
+                  <ArrowRight size={15} />
+                </button>
+              ) : nextMove.kind === 'verify' ? (
+                <button
+                  type="button"
+                  data-ui-button="primary"
+                  data-ui-tone="inverse"
+                  disabled={Boolean(saving)}
+                  onClick={() => void confirmEmployment()}
+                >
+                  {saving === 'employment' ? (
+                    <LoaderCircle size={15} className={styles.spin} />
+                  ) : (
+                    <ShieldCheck size={15} />
+                  )}
+                  {nextMove.label}
+                </button>
+              ) : primaryReach ? (
+                <a
+                  className={styles.nextMoveLink}
+                  href={primaryReach.href}
+                  target={primaryReach.external ? '_blank' : undefined}
+                  rel={primaryReach.external ? 'noreferrer' : undefined}
+                >
+                  {nextMove.label}
+                  <ArrowRight size={15} />
+                </a>
+              ) : null}
+            </section>
 
-            <AgencyRelationshipMemory
-              memory={detail?.relationship_memory}
-            />
-
+            <RecordActivitySummary summary={summaryActivity?.last_interaction_at?'Last contact':null} when={summaryActivity?.last_interaction_at||null}/>
             <section
               className={
                 styles.section
@@ -820,15 +878,17 @@ export default function AgencyContactIntelligenceDrawer({
                 <div className={styles.reachEmpty}>
                   <div>
                     <strong>No direct contact details yet</strong>
-                    <span>Add one trusted channel and ReDream will keep it attached to this relationship.</span>
+                    <span>Add a verified contact method.</span>
                   </div>
-                  <button
-                    type="button"
-                    data-ui-button="secondary"
-                    onClick={() => openReachEditor('email')}
-                  >
-                    Add contact details
-                  </button>
+                  {nextMove.kind !== 'reach' ? (
+                    <button
+                      type="button"
+                      data-ui-button="secondary"
+                      onClick={() => openReachEditor('email')}
+                    >
+                      Add contact details
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -1024,6 +1084,7 @@ export default function AgencyContactIntelligenceDrawer({
               ) : null}
             </section>
 
+            <RecordDetails title="Employment details" open={employmentNeedsConfirmation}>
             <section
               className={
                 styles.section
@@ -1088,7 +1149,7 @@ export default function AgencyContactIntelligenceDrawer({
                         Boolean,
                       )
                       .join(', ') ||
-                      'Not recorded'}
+                      'Not set'}
                   </strong>
                 </div>
 
@@ -1181,48 +1242,32 @@ export default function AgencyContactIntelligenceDrawer({
                   styles.truth
                 }
               >
-                External profiles are
-                evidence only. ReDream
-                never changes someone's
-                club or role without
-                human confirmation.
+                  Confirm club or role changes before updating this contact.
               </p>
             </section>
+            </RecordDetails>
 
-            <section
-              className={
-                styles.section
-              }
-            >
-              <div
-                className={
-                  styles.sectionHead
-                }
-              >
-                <div>
-                  <span>
-                    IDENTITY SOURCES
-                  </span>
-                  <h3>
-                    Research profiles
-                  </h3>
-                </div>
+            <AgencyRelationshipActions
+              personId={clean(contact?.person_id)}
+              rpc={rpc}
+              onSaved={async (result) => {
+                setDetail(result);
+                await onRefresh();
+              }}
+            />
 
-                <button
-                  type="button"
-                  data-ui-button="tertiary"
-                  onClick={() =>
-                    setEditingProfiles(
-                      (value) =>
-                        !value,
-                    )
-                  }
-                >
-                  {editingProfiles
-                    ? 'Cancel'
-                    : 'Edit profiles'}
-                </button>
-              </div>
+            <AgencyRelationshipMemory
+              memory={detail?.relationship_memory}
+            />
+
+            <AgencyBirthdayEditor entityKind="contact" entityId={clean(contact?.person_id)} rpc={rpc} />
+
+            <details className={styles.section + ' interface-details'}>
+              <summary>Research profiles</summary>
+              <button type="button" data-ui-button="tertiary"
+                onClick={() => setEditingProfiles(value => !value)}>
+                {editingProfiles ? 'Cancel' : 'Edit profiles'}
+              </button>
 
               <ProfileLine
                 label="Transfermarkt"
@@ -1369,27 +1414,10 @@ export default function AgencyContactIntelligenceDrawer({
                   </button>
                 </form>
               ) : null}
-            </section>
+            </details>
 
-            <section
-              className={
-                styles.section
-              }
-            >
-              <div
-                className={
-                  styles.sectionHead
-                }
-              >
-                <div>
-                  <span>
-                    WHY THIS PERSON
-                  </span>
-                  <h3>
-                    Live agency context
-                  </h3>
-                </div>
-              </div>
+            <details className={styles.section + ' interface-details'}>
+              <summary>Live agency context</summary>
 
               <div
                 className={
@@ -1446,7 +1474,7 @@ export default function AgencyContactIntelligenceDrawer({
                 />
                 Open club context
               </button>
-            </section>
+            </details>
           </div>
         ) : null}
       </aside>

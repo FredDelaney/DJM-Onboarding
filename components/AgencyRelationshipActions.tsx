@@ -1,5 +1,4 @@
 'use client';
-
 import {
   Check,
   ClipboardCheck,
@@ -7,6 +6,7 @@ import {
   Route,
   X,
 } from 'lucide-react';
+
 import {
   FormEvent,
   useMemo,
@@ -292,7 +292,7 @@ export default function AgencyRelationshipActions({
       </div>
 
       {error ? (
-        <div className={styles.error}>
+        <div className={styles.error} role="alert" aria-atomic="true">
           {error}
         </div>
       ) : null}

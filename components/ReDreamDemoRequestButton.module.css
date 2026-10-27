@@ -181,11 +181,11 @@
 .error {
   margin-top: 13px;
   padding: 10px 11px;
-  border: 1px solid #efdada;
-  border-radius: 9px;
-  background: #fff8f8;
-  color: #8a4747;
-  font-size: 13px;
+  border: 1px solid var(--interface-danger-line);
+  border-radius: var(--interface-feedback-radius);
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
+  font-size: var(--interface-feedback-font-size);
   line-height: 1.45;
 }
 

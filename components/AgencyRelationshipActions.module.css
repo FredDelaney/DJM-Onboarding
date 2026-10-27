@@ -169,10 +169,10 @@
 
 .error {
   padding: 9px 10px;
-  border-radius: 9px;
-  background: #fff4f4;
-  color: #a33b3b;
-  font-size: 8px;
+  border-radius: var(--interface-feedback-radius);
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
+  font-size: var(--interface-feedback-font-size);
   line-height: 1.45;
 }
 

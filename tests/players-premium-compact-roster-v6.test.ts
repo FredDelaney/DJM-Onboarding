@@ -7,7 +7,7 @@ const css = readFileSync('components/AgencyPlayersWorkspace.module.css', 'utf8')
 
 test('mobile roster uses compact contract and opportunity metadata', () => {
   assert.match(component, /styles\.mobilePlayerMeta/);
-  assert.match(component, /Contract not recorded/);
+  assert.match(component, /Contract not set/);
   assert.match(component, /active .*opportunit/);
   assert.match(css, /Premium compact roster v6/);
   assert.match(css, /\.mobilePlayerMeta[\s\S]*display: flex/);

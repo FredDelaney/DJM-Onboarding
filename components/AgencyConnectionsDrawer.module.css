@@ -31,7 +31,7 @@
 .eyebrow {
   margin: 0 0 6px;
   color: var(--agency-accent);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .13em;
 }
@@ -47,7 +47,7 @@
   max-width: 440px;
   margin: 8px 0 0;
   color: #71808a;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -117,7 +117,7 @@
 .notConnected {
   padding: 4px 7px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .04em;
   text-transform: uppercase;
@@ -141,7 +141,7 @@
 .providerCopy > span {
   overflow: hidden;
   color: #7b8991;
-  font-size: 9px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -169,13 +169,13 @@
 
 .capabilities span {
   color: #355469;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .capabilities small {
   color: #89959d;
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .emailOption {
@@ -204,12 +204,12 @@
 
 .emailOption strong {
   color: #355469;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .emailOption small {
   color: #87949c;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -235,7 +235,7 @@
   border-radius: 9px;
   cursor: pointer;
   font: inherit;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -267,7 +267,7 @@
   gap: 9px;
   padding: 12px 13px;
   border-radius: 12px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -277,20 +277,20 @@
 }
 
 .error {
-  background: #fff1ef;
-  color: #9b4e43;
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .success {
-  background: #eef7f0;
-  color: #4d7458;
+  background: var(--interface-success-bg);
+  color: var(--interface-success);
 }
 
 .loading {
   justify-content: center;
   min-height: 140px;
   align-items: center;
-  color: #75858f;
+  color: var(--interface-muted);
 }
 
 .messagingSection {
@@ -313,7 +313,7 @@
 
 .sectionIntro > div > span {
   color: var(--agency-accent);
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: .12em;
 }
@@ -333,7 +333,7 @@
   max-width: 470px;
   margin: 0;
   color: #7c8a93;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -368,7 +368,7 @@
   border-radius: 13px;
   background: #fff;
   color: #7d8c95;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .threadList {
@@ -397,14 +397,14 @@
 .threadRow strong {
   overflow: hidden;
   color: #355469;
-  font-size: 9px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .threadRow small {
   color: #87949c;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -433,7 +433,7 @@
   background: #fff;
   color: #496273;
   font: inherit;
-  font-size: 9px;
+  font-size: 12px;
   outline: none;
 }
 
@@ -450,7 +450,7 @@
   border-radius: 10px;
   background: #f7f9fa;
   color: #839099;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -460,7 +460,7 @@
   border-radius: 10px;
   background: #fff9ed;
   color: #7d652f;
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -560,7 +560,7 @@
 
   .header p:last-child {
     margin-top: 4px;
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.35;
   }
 
@@ -586,11 +586,11 @@
   }
 
   .providerTitle strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .providerCopy > span {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .capabilities {
@@ -610,7 +610,7 @@
   }
 
   .capabilities span {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .emailOption {
@@ -620,7 +620,7 @@
   .emailOption small {
     display: -webkit-box;
     overflow: hidden;
-    font-size: 7.5px;
+    font-size: 12px;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
@@ -638,7 +638,7 @@
   .secondary {
     min-height: 40px;
     padding-inline: 8px;
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .messagingSection {
@@ -667,12 +667,12 @@
   }
 
   .threadRow small {
-    font-size: 7px;
+    font-size: 12px;
   }
 
   .security {
     padding: 9px 10px;
-    font-size: 8px;
+    font-size: 12px;
   }
 }
 
@@ -696,12 +696,12 @@
 
 .identityReview strong {
   color: #30383f;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .identityReview span {
   color: #7d8790;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -754,7 +754,7 @@
 .emailOff {
   padding: 2px 6px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-style: normal;
   font-weight: 850;
   letter-spacing: .04em;
@@ -778,6 +778,117 @@
 
 .identityReady {
   color: #4e735d;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
+}
+
+/* Quiet typography and surfaces for this work view. */
+.eyebrow { letter-spacing: 0; text-transform: none; font-weight: 500; }
+.primary, .secondary { font-weight: 500; box-shadow: none; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }
+
+/* World-class product pass v11: every deep workflow uses the same calm sheet language. */
+.drawer{box-shadow:0 20px 70px rgba(0,0,0,.14)}
+.header{border-bottom-color:#efeff1}
+.header h2{color:#1d1d1f;font-weight:600;letter-spacing:-.025em}
+.panel,.section{box-shadow:none;border-color:#e5e5e7}
+@media(max-width:680px){
+ .backdrop{padding:10px 0 0;align-items:flex-end;background:rgba(18,18,20,.28);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+ .drawer{width:100%;max-width:none;max-height:calc(100dvh - 10px);border-radius:24px 24px 0 0;border-color:rgba(60,60,67,.14);box-shadow:0 -12px 42px rgba(0,0,0,.12)}
+ .header{position:sticky;top:0;z-index:8;padding-top:16px;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px)}
+ .header h2{font-size:20px!important;line-height:1.18}
+ .header p,.header small{font-size:12px;line-height:1.45;color:#8e8e93}
+ .panel,.section{border-radius:14px}
+ .drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){font-size:16px!important}
+ .actions button,.footer button{min-height:44px}
+}
+
+
+/* ReDream connections polish 2026-10-17 */
+.providerCopy > span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.4;
+}
+
+.connected,
+.attention,
+.notConnected {
+  padding: 3px 7px;
+  font-size: 10px;
+  letter-spacing: .035em;
+}
+
+.messagingSection {
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.sectionIntro h3 {
+  font-size: 18px;
+}
+
+.sectionCopy {
+  max-width: 520px;
+  color: #71818b;
+  font-size: 12px;
+}
+
+.messagingProviders {
+  gap: 12px;
+}
+
+.messagingProvider {
+  gap: 13px;
+  padding: 16px;
+  border-color: #e4e9ec;
+  border-radius: 18px;
+  box-shadow: 0 18px 44px -40px rgba(16, 42, 59, .6);
+}
+
+.messagingProvider .providerIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: #f2f6f8;
+}
+
+.messagingProvider > .primary {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.messagingActions .primary,
+.messagingActions .secondary {
+  min-height: 40px;
+  border-radius: 11px;
+}
+
+@media (max-width: 620px) {
+  .provider,
+  .messagingProvider {
+    border-radius: 18px;
+  }
+
+  .provider {
+    gap: 13px;
+    padding: 16px;
+  }
+
+  .messagingProvider {
+    padding: 16px;
+  }
+
+  .messagingProvider > .primary {
+    min-height: 50px;
+    border-radius: 13px;
+  }
+
+  .providerTitle {
+    flex-wrap: wrap;
+    row-gap: 5px;
+  }
 }

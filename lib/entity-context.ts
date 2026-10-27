@@ -140,3 +140,33 @@ export function aiCaptureHref(
   const path = workspaceSlug ? `/workspace/${encodeURIComponent(workspaceSlug)}/capture` : '/tell';
   return `${path}?${params.toString()}`;
 }
+
+export function contextFromWorkspaceRoute(pathname:string,params:URLSearchParams):EntityContext {
+ const query=params.toString(),route=pathname+(query?'?'+query:'');
+ const base={...contextFromRoute(pathname),route};
+ if(!/^\/(?:agency|workspace\/[a-z0-9][a-z0-9-]*)$/.test(pathname))return base;
+ const recorded=(key:string)=>{const id=params.get(key)||'';return UUID_PATTERN.test(id)?id:undefined;};
+ const view=params.get('view');
+ if(view==='players'){
+  const player=recorded('player'),target=recorded('target');
+  if(player)return {...base,player_id:player,context_type:'player'};
+  if(target)return {...base,prospect_id:target,context_type:'recruitment'};
+ }
+ if(view==='network'){
+  const person=recorded('person'),club=recorded('club');
+  if(person)return {...base,person_id:person,context_type:'contact'};
+  if(club)return {...base,organisation_id:club,context_type:'club'};
+ }
+ if(['opportunities','market','deals'].includes(view||'')){
+  const record=recorded('record');
+  if(record&&params.get('tab')==='deals')return {...base,opportunity_id:record,context_type:'opportunity'};
+  if(record&&params.get('tab')!=='routes')return {...base,club_need_id:record,context_type:'opportunity'};
+ }
+ return base;
+}
+
+export function entityContextLookupRoute(context:EntityContext,fallback:string):string {
+ const records=[['player','player_id','/admin/players/'],['club','organisation_id','/network/clubs/'],['contact','person_id','/network/contacts/'],['recruitment','prospect_id','/recruitment/'],['opportunity','opportunity_id','/opportunities/']] as const;
+ for(const [type,key,path] of records){const id=context[key];if(context.context_type===type&&id&&UUID_PATTERN.test(id))return path+id;}
+ return fallback;
+}

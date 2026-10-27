@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,6 +14,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+
 import {
   useCallback,
   useEffect,
@@ -379,7 +379,7 @@ export default function AgencyTeamHandoffDrawer({
             </h2>
             <p>
               {step === 'select'
-                ? 'Choose the next accountable agent and exactly which recorded work should move.'
+                ? 'Choose the next accountable agent and exactly which work should move.'
                 : step === 'review'
                   ? 'Review the ownership change before anything moves.'
                   : 'The selected ownership has moved and the agency audit trail has been updated.'}
@@ -398,19 +398,19 @@ export default function AgencyTeamHandoffDrawer({
         </header>
 
         {error ? (
-          <div className={styles.error}>
+          <div className={styles.error} role="alert" aria-atomic="true">
             <CircleAlert size={15} />
             <span>{error}</span>
           </div>
         ) : null}
 
         {loading ? (
-          <div className={styles.loading}>
+          <div className={styles.loading} role="status" aria-busy="true" aria-atomic="true">
             <LoaderCircle size={18} />
             <span>Loading recorded ownership</span>
           </div>
         ) : step === 'success' ? (
-          <div className={styles.success}>
+          <div className={styles.success} role="status" aria-atomic="true">
             <CheckCircle2 size={28} />
             <h3>Responsibility moved</h3>
             <p>
@@ -524,7 +524,7 @@ export default function AgencyTeamHandoffDrawer({
               <strong>What will not move</strong>
               <span>
                 Personal calendars, email connections, selected chats and
-                recorded relationship routes stay exactly where they are.
+                known relationship routes stay exactly where they are.
               </span>
             </div>
 

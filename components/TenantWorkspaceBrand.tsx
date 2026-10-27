@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { useTenantRuntime } from '@/components/TenantRuntimeProvider';
+import type { TenantRuntime } from '@/lib/tenant-runtime';
 import styles from './TenantWorkspaceBrand.module.css';
 
 const initials = (value: string) =>
@@ -17,13 +18,15 @@ export default function TenantWorkspaceBrand({
   href = '/agency',
   compact = false,
   darkSurface = false,
+  branding: brandingOverride,
 }: {
   href?: string;
   compact?: boolean;
   darkSurface?: boolean;
+  branding?: TenantRuntime['branding'];
 }) {
   const runtime = useTenantRuntime();
-  const branding = runtime.branding;
+  const branding = brandingOverride || runtime.branding;
   const displayName = branding.display_name || 'Agency workspace';
   const label = branding.portal_name || branding.short_name || displayName;
   const regularLogo =

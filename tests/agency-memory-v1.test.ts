@@ -40,7 +40,7 @@ test('Persistent undo requires an applied reversible action and explicit confirm
 test('Learning refuses weak evidence and automatic policy mutation', () => {
   assert.match(
     memory,
-    /No decision-grade operating pattern is available yet/,
+    /There is not enough history yet to show a reliable pattern/,
   );
   assert.match(memory, /prefers no recommendation/);
   assert.match(

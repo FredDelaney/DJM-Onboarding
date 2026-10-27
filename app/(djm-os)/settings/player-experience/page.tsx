@@ -97,7 +97,7 @@ export default function PlayerExperienceSettingsPage() {
       {message ? <div className="ux-alert ux-alert-success">{message}</div> : null}
 
       <section className="ux-surface">
-        <div className="ux-surface-head"><div><p className="ux-eyebrow">FROM YOUR AGENCY</p><h2>Meaningful player updates</h2><p>Use announcements for information players genuinely need. Successful automation should not create noise.</p></div><Bell size={20} /></div>
+        <div className="ux-surface-head"><div><p className="ux-eyebrow">FROM YOUR AGENCY</p><h2>Player announcements</h2></div><Bell size={20} /></div>
         {isAdmin ? (
           <form className="ux-simple-form" onSubmit={publish}>
             <label>Announcement<textarea rows={4} value={announcement} onChange={(event) => setAnnouncement(event.target.value)} placeholder="What do players need to know?" /></label>
@@ -111,7 +111,7 @@ export default function PlayerExperienceSettingsPage() {
       </section>
 
       <section className="ux-surface ux-resource-settings">
-        <div className="ux-surface-head"><div><p className="ux-eyebrow">PLAYER LIBRARY</p><h2>Resources</h2><p>Keep the useful guidance players can access through their player workspace.</p></div></div>
+        <div className="ux-surface-head"><div><p className="ux-eyebrow">PLAYER LIBRARY</p><h2>Resources</h2><p>Guidance available in the player workspace.</p></div></div>
         <AdminResourceStudio
           resources={resources}
           canManage={isAdmin}

@@ -120,11 +120,11 @@ test(
   () => {
     assert.match(
       owner,
-      /Work counts show recorded ownership, not effort or performance/,
+      /Counts show assigned work, not effort or performance/,
     );
     assert.match(
       owner,
-      /does not calculate a fake utilisation percentage/,
+      /No utilisation percentage is estimated/,
     );
     assert.doesNotMatch(
       owner,

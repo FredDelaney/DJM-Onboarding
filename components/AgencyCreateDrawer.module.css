@@ -1,8 +1,13 @@
 .backdrop {
+  --agency-primary: #111827;
+  --agency-accent: #64748b;
+  --agency-on-primary: #fff;
   position: fixed;
   inset: 0;
   z-index: 155;
   display: flex;
+  height: 100dvh;
+  box-sizing: border-box;
   justify-content: flex-end;
   background: rgba(12, 16, 23, 0.44);
   backdrop-filter: blur(8px);
@@ -10,11 +15,14 @@
 
 .drawer {
   width: min(560px, 100vw);
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
   box-sizing: border-box;
-  background: #f5f6f8;
+  background: #fff;
   box-shadow: -34px 0 90px rgba(10, 16, 25, 0.2);
 }
 
@@ -23,10 +31,11 @@
   top: 0;
   z-index: 3;
   display: grid;
+  flex-shrink: 0;
   gap: 7px;
   padding: 24px 26px 20px;
-  border-bottom: 1px solid #e3e6e9;
-  background: rgba(250, 251, 252, 0.95);
+  border-bottom: 1px solid #e5e5e7;
+  background: #fff;
   backdrop-filter: blur(18px);
 }
 
@@ -49,8 +58,8 @@
 }
 
 .close {
-  width: 37px;
-  height: 37px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 1px solid #dfe3e7;
@@ -68,9 +77,9 @@
 .header p {
   margin: 0;
   color: var(--agency-accent);
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.15em;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .header h2 {
@@ -84,15 +93,40 @@
 .header > span {
   max-width: 470px;
   color: #747c86;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
 .form {
-  display: grid;
-  gap: 15px;
-  padding: 24px 26px 30px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
 }
+
+.fields {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-inline-size: 0;
+  gap: 15px;
+  margin: 0;
+  border: 0;
+  padding: 20px 24px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.fields > * { flex-shrink: 0; }
+
+.saved { flex: 1; min-height: 0; overflow: auto; padding: 28px 24px; color: #424245; }
+.saved > svg { color: #397757; }
+.saved h3 { margin: 12px 0 8px; color: #1d1d1f; font-size: 22px; font-weight: 600; }
+.saved p { font-size: 14px; line-height: 1.5; }
 
 .pair {
   display: grid;
@@ -108,8 +142,8 @@
 
 .field > span {
   color: #59626d;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .field input,
@@ -125,7 +159,7 @@
   color: #262d35;
   padding: 10px 11px;
   font: inherit;
-  font-size: 11px;
+  font-size: 14px;
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease;
@@ -150,14 +184,14 @@
 .loading {
   padding: 12px 13px;
   border-radius: 11px;
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
 .error {
-  border: 1px solid #f0d2ce;
-  background: #fff3f1;
-  color: #963b33;
+  border: 1px solid var(--interface-danger-line);
+  background: var(--interface-danger-bg);
+  color: var(--interface-danger);
 }
 
 .notice,
@@ -176,15 +210,19 @@
   align-items: center;
   gap: 8px;
   border: 1px solid #e2e5e8;
-  background: #fff;
-  color: #69727c;
+  background: var(--interface-soft);
+  color: var(--interface-muted);
 }
 
 .actions {
   display: grid;
-  grid-template-columns: minmax(110px, auto) minmax(170px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
   gap: 9px;
-  margin-top: 4px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 14px 24px max(14px, env(safe-area-inset-bottom));
+  border-top: 1px solid #e5e5e7;
+  background: #fff;
 }
 
 .primary,
@@ -197,14 +235,14 @@
   border-radius: 11px;
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
-  font-weight: 850;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .primary {
   border: 1px solid var(--agency-primary);
   background: var(--agency-primary);
-  color: #fff;
+  color: var(--agency-on-primary);
   box-shadow: 0 10px 24px rgba(20, 27, 39, 0.12);
 }
 
@@ -239,9 +277,9 @@
     padding: 20px 18px 17px;
   }
 
-  .form {
-    padding: 19px 18px calc(24px + env(safe-area-inset-bottom));
-  }
+  .fields { padding: 18px; }
+
+  .actions { padding-inline: 18px; }
 
   .pair {
     grid-template-columns: 1fr;
@@ -319,7 +357,7 @@
 /* Minimum-first quick add v1 */
 .detailsToggle {
   width: 100%;
-  min-height: 40px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -331,8 +369,8 @@
   color: #65707b;
   cursor: pointer;
   font: inherit;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .detailsToggle:hover {
@@ -357,7 +395,6 @@
 @media (max-width: 680px) {
   .detailsToggle {
     min-height: 44px;
-    font-size: 12px;
   }
 
   .optionalDetails {
@@ -365,4 +402,24 @@
     padding: 12px;
     border-radius: 13px;
   }
+}
+
+/* Quiet typography and surfaces for this work view. */
+.primary, .secondary { font-weight: 500; box-shadow: none; }
+.drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }
+
+/* World-class product pass v11: every deep workflow uses the same calm sheet language. */
+.drawer{box-shadow:0 20px 70px rgba(0,0,0,.14)}
+.header{border-bottom-color:#efeff1}
+.header h2{color:#1d1d1f;font-weight:600;letter-spacing:-.025em}
+.panel,.section{box-shadow:none;border-color:#e5e5e7}
+@media(max-width:680px){
+ .backdrop{padding:10px 0 0;align-items:flex-end;background:rgba(18,18,20,.28);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+ .drawer{width:100%;max-width:none;max-height:calc(100dvh - 10px);border-radius:24px 24px 0 0;border-color:rgba(60,60,67,.14);box-shadow:0 -12px 42px rgba(0,0,0,.12)}
+ .header{position:sticky;top:0;z-index:8;padding-top:16px;background:rgba(255,255,255,.96);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px)}
+ .header h2{font-size:20px!important;line-height:1.18}
+ .header p,.header small{font-size:12px;line-height:1.45;color:#8e8e93}
+ .panel,.section{border-radius:14px}
+ .drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){font-size:16px!important}
+ .actions button,.footer button{min-height:44px}
 }
