@@ -55,8 +55,13 @@ try{
  await row().getByRole('button',{name:'Update',exact:true}).waitFor();
  assert.equal(await row().count(),1,'The command and assignment feeds show one canonical follow-up');
  assert.equal(await page.getByRole('button',{name:/Complete.*Review.*data/i}).count(),0,'A data review cannot be cleared by a task tick');
- await row().getByRole('button',{name:'Update',exact:true}).click();
+ delayRead=180;await row().getByRole('button',{name:'Update',exact:true}).click();
  const panel=page.getByRole('dialog',{name:'Update task',exact:true});
+ await panel.getByRole('button',{name:'Close task editor',exact:true}).click();await panel.waitFor({state:'hidden'});
+ await page.waitForFunction(()=>document.activeElement?.textContent?.trim()==='Update');
+ assert.equal(await row().getByRole('button',{name:'Update',exact:true}).evaluate(node=>node===document.activeElement),true,'Home restores the exact opener after its async read');
+ const saveOpener=await row().getByRole('button',{name:'Update',exact:true}).elementHandle();
+ delayRead=0;await row().getByRole('button',{name:'Update',exact:true}).click();
  await panel.getByLabel('Action',{exact:true}).fill('Confirm the trial');
  await panel.getByLabel('Due date',{exact:true}).fill('2026-10-20');
  await panel.getByLabel('Note (optional)',{exact:true}).fill('Club is available Tuesday.');
@@ -67,6 +72,11 @@ try{
  failWrite=false;
  await panel.getByRole('button',{name:'Save changes',exact:true}).click();
  await panel.waitFor({state:'hidden'});
+ await page.waitForFunction(()=>document.activeElement?.textContent?.trim()==='Update'||document.activeElement?.id==='workspace-view-heading',undefined,{timeout:3000});
+ if(!await row().getByRole('button',{name:'Update',exact:true}).evaluate(node=>node===document.activeElement)){
+  assert.equal(await saveOpener.evaluate(node=>node.isConnected),false,'Heading fallback is used only when Home replaced the original row');
+  assert.equal(await page.getByRole('heading',{name:'Home',exact:true}).evaluate(node=>node===document.activeElement),true,'A replaced row returns to the current Home heading');
+ }
  await row().getByRole('button',{name:'Update',exact:true}).click();
  assert.equal(await panel.getByLabel('Note (optional)',{exact:true}).inputValue(),'Club is available Tuesday.');
  for(const width of [320,390,430,768]){
