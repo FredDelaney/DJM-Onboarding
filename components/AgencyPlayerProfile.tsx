@@ -39,6 +39,8 @@ import { publicFile } from '@/lib/supabase';
 import { safeSourceUrl } from '@/lib/player-data-workflow';
 import {readWithDeadline} from '@/lib/read-with-deadline';
 import { tenantBrandTokens } from '@/lib/tenant-brand-style';
+import {profileDealContextFromWarRoom,type ProfileDealContext} from '@/lib/workspace-record-navigation';
+import {UUID_PATTERN} from '@/lib/entity-context';
 
 import styles from './AgencyPlayerProfile.module.css';
 
@@ -51,6 +53,7 @@ type Props = {
   playerId: string;
   preparation?: PreparationLink | null;
   backHref: string;
+  dealContext?: {id:string;backHref:string}|null;
   workHref?: string;
   cacheScope?: string;
   role: string;
@@ -423,6 +426,7 @@ const shareStatus = (share: any) => {
 export default function AgencyPlayerProfile({
   playerId, preparation,
   backHref,
+  dealContext,
   workHref,
   cacheScope = '',
   role,
@@ -444,6 +448,43 @@ export default function AgencyPlayerProfile({
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const profileHeading=useRef<HTMLHeadingElement>(null);
+  const focusedProfile=useRef('');
+  const sourceDealId=String(dealContext?.id||'').toLowerCase();
+  const sourceKey=cacheScope+':'+playerId+':'+sourceDealId;
+  const sourceRequested=['owner','admin'].includes(role)&&UUID_PATTERN.test(sourceDealId)&&UUID_PATTERN.test(playerId);
+  const [sourceAttempt,setSourceAttempt]=useState(0);
+  const pendingSource=useRef<{key:string;request:Promise<any>}|null>(null);
+  const [sourceRead,setSourceRead]=useState<{key:string;loading:boolean;deal:ProfileDealContext|null;error:string;retryable:boolean}>({key:'',loading:false,deal:null,error:'',retryable:false});
+  useEffect(()=>{
+    if(!sourceRequested)return;
+    let active=true;
+    setSourceRead({key:sourceKey,loading:true,deal:null,error:'',retryable:false});
+    const readKey=sourceKey+':'+sourceAttempt;
+    if(pendingSource.current?.key!==readKey){
+      const request=readWithDeadline(invoke<any>('deal_war_room',{deal_room_id:sourceDealId}));
+      pendingSource.current={key:readKey,request};
+      const release=()=>{if(pendingSource.current?.request===request)pendingSource.current=null;};
+      void request.then(release,release);
+    }
+    void pendingSource.current.request.then(response=>{
+      if(!active)return;
+      const deal=profileDealContextFromWarRoom(response?.war_room,sourceDealId,playerId);
+      setSourceRead({key:sourceKey,loading:false,deal,error:deal?'':'This deal is unavailable for this player. Choose a club when sharing.',retryable:false});
+    }).catch(()=>{
+      if(active)setSourceRead({key:sourceKey,loading:false,deal:null,error:'The linked deal could not load. Retry, or choose a club when sharing.',retryable:true});
+    });
+    return()=>{active=false;};
+  },[sourceRequested,sourceKey,sourceDealId,playerId,invoke,sourceAttempt]);
+  const contextLoading=sourceRequested&&(sourceRead.key!==sourceKey||sourceRead.loading);
+  const sourceDeal=sourceRequested&&sourceRead.key===sourceKey&&!bundle?.access?.restricted&&String(bundle?.player?.id||'').toLowerCase()===playerId.toLowerCase() ?sourceRead.deal:null;
+  const contextError=sourceRequested&&sourceRead.key===sourceKey?sourceRead.error:'';
+  useEffect(()=>{
+    const key=cacheScope+':'+playerId;
+    if(loading||bundle?.player?.id!==playerId||focusedProfile.current===key)return;
+    focusedProfile.current=key;
+    if(sourceRequested)profileHeading.current?.focus({preventScroll:true});
+  },[loading,cacheScope,playerId,bundle?.player?.id,sourceRequested]);
   const [editOpen, setEditOpen] = useState(false);
   const [editorSection, setEditorSection] = useState<'story' | 'presentation' | 'video'>('story');
   const editorDialog = useRef<HTMLElement>(null);
@@ -581,6 +622,8 @@ export default function AgencyPlayerProfile({
   const [shareNetworkClubs, setShareNetworkClubs] = useState<any[]>([]);
   const [shareClubsBusy, setShareClubsBusy] = useState(false);
   const [shareDeal, setShareDeal] = useState('');
+  const [shareSource, setShareSource] = useState<{key:string;id:string}|null>(null);
+  const sourceShareBlocked=Boolean(shareSource&&shareDeal===shareSource.id&&(shareSource.key!==sourceKey||contextLoading||!sourceDeal));
   const [shareMessage, setShareMessage] = useState('');
   const [shareExpiry, setShareExpiry] = useState('30');
   const [shareResultUrl, setShareResultUrl] = useState('');
@@ -727,12 +770,15 @@ export default function AgencyPlayerProfile({
     : [];
   const liveShares = shares.filter((share: any) => ['Ready', 'Opened'].includes(shareStatus(share)));
   const olderShares = shares.filter((share: any) => ['Revoked', 'Expired'].includes(shareStatus(share)));
-  const clubs = Array.isArray(bundle?.clubs)
-    ? bundle.clubs
-    : [];
-  const deals = Array.isArray(bundle?.deals)
-    ? bundle.deals
-    : [];
+  const clubs=useMemo(()=>{
+    const recorded=Array.isArray(bundle?.clubs)?bundle.clubs:[];
+    return sourceDeal&&!recorded.some((club:any)=>club.id===sourceDeal.organisation_id)
+      ?[{id:sourceDeal.organisation_id,name:sourceDeal.club_name},...recorded]:recorded;
+  },[bundle?.clubs,sourceDeal]);
+  const deals=useMemo(()=>{
+    const recorded=Array.isArray(bundle?.deals)?bundle.deals:[];
+    return sourceDeal?[{...recorded.find((deal:any)=>deal.id===sourceDeal.id),...sourceDeal},...recorded.filter((deal:any)=>deal.id!==sourceDeal.id)]:recorded;
+  },[bundle?.deals,sourceDeal]);
   const shareClubOptions = useMemo(() => {
     const merged = new Map<string, any>();
 
@@ -1492,6 +1538,7 @@ export default function AgencyPlayerProfile({
 
   const createShare = async () => {
     if (!canEdit || actionBusy) return;
+    if(sourceShareBlocked){setError('The linked deal changed or could not load. Choose a club and deal again.');return;}
     const selectedDeal = deals.find(
       (deal: any) => String(deal.id) === shareDeal,
     );
@@ -1532,12 +1579,7 @@ export default function AgencyPlayerProfile({
       const readyMessage = buildShareMessage(url);
       setShareResultUrl(url);
       setShareResultMessage(readyMessage);
-      try {
-        await navigator.clipboard.writeText(readyMessage);
-        setNotice('Private link created. Message copied.');
-      } catch {
-        setNotice('Private link created.');
-      }
+      setNotice('Private link created.');
       await load(true);
     } catch (shareError) {
       setError(friendlyError(shareError));
@@ -1630,6 +1672,7 @@ export default function AgencyPlayerProfile({
     setShareOpen(false);
     onOpenAction({
       key: `player-profile-follow-up:${shareKey}`,
+      returnFocusId:shareOpener.current?.id||'player-profile-heading-'+playerId,
       eyebrow: 'PLAYER PROFILE FOLLOW-UP',
       title: `${name} → ${clubName}`,
       instruction:
@@ -1698,6 +1741,7 @@ export default function AgencyPlayerProfile({
 
   const openShareComposer = () => {
     if (!canEdit||recordRefreshNeeded) return;
+    if(contextLoading){setError('The linked deal is still loading. Please wait, then try again.');return;}
 
     shareOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setError('');
@@ -1708,8 +1752,9 @@ export default function AgencyPlayerProfile({
     const preparedClub = preparedSaved && proposal?.kind === 'club'
       ? prepareClub
       : '';
-    setShareDeal(preparedClub ? prepareDeal : '');
-    setShareClub(preparedClub);
+    setShareDeal(preparedClub ? prepareDeal : sourceDeal?.id || '');
+    setShareSource(!preparedClub&&sourceDeal?{key:sourceKey,id:sourceDeal.id}:null);
+    setShareClub(preparedClub || sourceDeal?.organisation_id || '');
     setShareVersionId(preparedClub ? preparedVersionId : '');
     setShareOpen(true);
     void loadVersions().catch(() => setVersions([]));
@@ -1955,9 +2000,11 @@ export default function AgencyPlayerProfile({
   return (
     <div className={styles.root} style={theme}>
       <div className={styles.topbar}>
-        <Link href={backHref} className={styles.back} aria-label="Back to players">
+        <Link href={sourceDeal&&dealContext?dealContext.backHref:backHref} onNavigate={event=>{
+          if(sourceDeal&&dealContext){event.preventDefault();window.history.pushState(null,'',dealContext.backHref);}
+        }} className={styles.back} aria-label={sourceDeal?'Back to deal':'Back to players'} title={sourceDeal?.title}>
           <ArrowLeft size={15} />
-          Players
+          {sourceDeal?'Back to deal':'Players'}
         </Link>
         {workHref ? <Link href={workHref} className={styles.back}>Work view</Link> : null}
 
@@ -1977,6 +2024,11 @@ export default function AgencyPlayerProfile({
           Player intelligence
         </button>
       </div>
+
+      {sourceRequested ? <div className={styles.dealContext} role="status" aria-label="Linked deal context">
+        <span>{contextLoading?'Loading linked deal...':sourceDeal?<>Deal for <strong>{sourceDeal.club_name}</strong></>:contextError}</span>
+        {contextError&&sourceRead.retryable?<button type="button" data-ui-button="secondary" onClick={()=>{setSourceRead({key:sourceKey,loading:true,deal:null,error:'',retryable:false});setSourceAttempt(value=>value+1);}}>Retry deal context</button>:null}
+      </div>:null}
 
       {error ? (
         <div className={styles.error} role="alert" aria-atomic="true">
@@ -2013,7 +2065,7 @@ export default function AgencyPlayerProfile({
             <div className={styles.eyebrow}>
               PLAYER PROFILE
             </div>
-            <h2>{name}</h2>
+            <h2 id={'player-profile-heading-'+playerId} ref={profileHeading} tabIndex={-1}>{name}</h2>
             <p>
               {[
                 player.primary_position,
@@ -2136,10 +2188,11 @@ export default function AgencyPlayerProfile({
           {published?.published ? (
             <button
               type="button"
+              id={'player-profile-share-'+playerId}
               data-ui-button="primary"
               className={styles.primaryAction}
               onClick={openShareComposer}
-              disabled={!canEdit || recordRefreshNeeded || Boolean(actionBusy)}
+              disabled={!canEdit || recordRefreshNeeded || Boolean(actionBusy) || contextLoading}
             >
               <Send size={16} />
               Share Player Profile
@@ -3731,6 +3784,7 @@ export default function AgencyPlayerProfile({
                     value={shareClub}
                     onChange={(event) => {
                       setShareClub(event.target.value);
+                      setShareSource(null);
                       setShareDeal('');
                       setShareVersionId('');
                     }}
@@ -3757,10 +3811,12 @@ export default function AgencyPlayerProfile({
                 <label>
                   <span>Existing deal or opportunity</span>
                   <select
+                    aria-label="Existing deal or opportunity"
                     value={shareDeal}
                     onChange={(event) => {
                       const value = event.target.value;
                       setShareDeal(value);
+                      setShareSource(null);
                       const deal = deals.find(
                         (item: any) => String(item.id) === value,
                       );
@@ -3778,8 +3834,7 @@ export default function AgencyPlayerProfile({
                     ))}
                   </select>
                   <small>
-                    Optional. Linking a live deal carries profile activity into that
-                    opportunity.
+                    {sourceShareBlocked?'The linked deal changed or could not load. Choose the club and deal again.':'Optional. Linking a live deal carries profile activity into that opportunity.'}
                   </small>
                 </label>
 
@@ -3872,6 +3927,7 @@ export default function AgencyPlayerProfile({
                   onClick={createShare}
                   disabled={
                     !shareClub ||
+                    sourceShareBlocked ||
                     actionBusy === 'share' ||
                     versionsBusy
                   }

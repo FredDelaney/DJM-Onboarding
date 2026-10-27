@@ -1631,3 +1631,19 @@
  .drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){font-size:16px!important}
  .actions button,.footer button{min-height:44px}
 }
+
+/* Keep dismissal tappable and the decision's recorded context readable. */
+.drawer .close { min-width: 44px; min-height: 44px; }
+.drawer .evidenceFact { min-width: 0; max-width: 100%; }
+.evidenceFact strong,
+.reviewDrawer .reviewMeta .evidenceFact strong {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+/* Confirmation stays readable above its actions on short screens. */
+.done .actions{position:static;margin:6px 0 0;padding:0;border:0;background:none;backdrop-filter:none}
+.refreshRecovery{display:flex;flex-wrap:wrap;align-items:center}
+.refreshRecovery p{flex:1 1 180px;margin:0;line-height:1.5}
+.refreshRecovery button{min-height:44px}

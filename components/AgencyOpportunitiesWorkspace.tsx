@@ -486,21 +486,17 @@ export default function AgencyOpportunitiesWorkspace({
     });
   };
 
-  const handleDeal = (deal: any) => {
-    const controlInstruction =
-      deal.next_control_fix?.instruction || '';
+  const openDeal = (deal: any) => onOpenIntelligence({
+    key: `deal-war-room:${deal.deal_room_id}`,
+    kind: 'deal',
+    entityId: String(deal.deal_room_id),
+    title: deal.title || 'Live deal',
+    context: deal.organisation || human(deal.stage),
+  });
 
-    if (!controlInstruction) {
-      onOpenIntelligence({
-        key: `deal-war-room:${deal.deal_room_id}`,
-        kind: 'deal',
-        entityId: String(deal.deal_room_id),
-        title: deal.title || 'Live deal',
-        context:
-          deal.organisation || human(deal.stage),
-      });
-      return;
-    }
+  const handleDeal = (deal: any) => {
+    const controlInstruction = deal.next_control_fix?.instruction || '';
+    if (!controlInstruction) { openDeal(deal); return; }
 
     const hasExpectedCommission =
       deal.expected_commission !== null &&
@@ -846,12 +842,12 @@ export default function AgencyOpportunitiesWorkspace({
                   data-search-match={requestedRecord===String(deal.deal_room_id)||undefined}
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleDeal(deal)}
+                  onClick={() => openDeal(deal)}
                   onKeyDown={(event) => {
                     if (event.target !== event.currentTarget) return;
                     if (event.key !== 'Enter' && event.key !== ' ') return;
                     event.preventDefault();
-                    handleDeal(deal);
+                    openDeal(deal);
                   }}
                 >
                   <div className={styles.icon}>

@@ -317,6 +317,8 @@ export async function verifyDealRecordCapture(page, url, dealA, dealB) {
       dealB,
       "The displayed deal replaces any prior search identity",
     );
+    assert.equal(await row.evaluate(node=>!!node.closest('[inert]')),true,'The covered deal list is isolated');
+    assert.equal(await nav.evaluate(node=>!!node.closest('[inert]')),false,'Visible mobile navigation stays available beside the deal page');
     await nav
       .getByRole("button", { name: "Tell ReDream", exact: true })
       .click();
@@ -344,6 +346,8 @@ export async function verifyDealRecordCapture(page, url, dealA, dealB) {
     );
     await page.keyboard.press("Escape");
     await capture.waitFor({ state: "hidden" });
+    assert.equal(await page.getByRole('heading',{name:'Example transfer B',exact:true}).isVisible(),true,'Closing record capture keeps the selected deal open');
+    assert.equal(await nav.getByRole('button',{name:'Tell ReDream',exact:true}).evaluate(node=>node===document.activeElement),true,'Record capture returns focus to the mobile launcher');
     await page.getByRole("button", { name: "Back", exact: true }).click();
     assert.equal(
       new URL(page.url()).searchParams.has("record"),

@@ -149,6 +149,7 @@ test('new Player Profile shares prepare a club-ready message without auto-sendin
   assert.match(manager, /Copy message/);
   assert.match(explicitShareBlock, /navigator\.share/);
   assert.doesNotMatch(createShareBlock, /navigator\.share/);
-  assert.match(createShareBlock, /navigator\.clipboard\.writeText\(readyMessage\)/);
+  assert.doesNotMatch(createShareBlock, /navigator\.clipboard/);
+  assert.match(manager, /navigator\.clipboard\.writeText\(shareResultMessage\)/);
   assert.match(createShareBlock, /pitch_message: shareMessage \|\| null/);
 });
