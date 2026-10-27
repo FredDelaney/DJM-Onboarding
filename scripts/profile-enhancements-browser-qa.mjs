@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {chromium} from 'playwright';
 import {mkdir} from 'node:fs/promises';
+import {chromium} from 'playwright';
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
 try {
  const page=await browser.newPage({viewport:{width:390,height:844}}),calls=[],errors=[];
@@ -8,6 +8,29 @@ try {
  let photo=null,settings={intro_line:'Reviewed player headline',key_stats:[{label:'Apps',value:'10'}]},career=[],uploads=0,verification='verified',attachUnconfirmed=false;
  let otherRequested;const requestedOther=new Promise(resolve=>{otherRequested=resolve;});let releaseOther;
  const workName='Example Player With A Longer Name';
+ async function presentation(kind,check){
+  const writes=calls.filter(call=>/save|publish|execute/.test(call.action)).length;
+  await page.getByRole('button',{name:'Preview Player Profile',exact:true}).click();
+  const preview=page.locator('[class*="previewBackdrop"]');
+  const figures=preview.locator('.dossier-quick-stats');
+  await figures.getByText('HEADLINE FIGURES',{exact:true}).waitFor();
+  await check(figures);
+  assert.equal(await figures.getByText('CURRENT OUTPUT',{exact:true}).count(),0,'Editorial selections never claim current-season output');
+  await mkdir('/tmp/redream-platform-programme/club-stats',{recursive:true});
+  for(const width of [320,390,768,1440]){
+   await page.setViewportSize({width,height:844});
+   assert.ok(await figures.evaluate(node=>node.scrollWidth<=node.clientWidth+1),kind+' figure context fits '+width);
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),kind+' preview fits '+width);
+   if(width===390||width===1440)await page.screenshot({path:'/tmp/redream-platform-programme/club-stats/'+kind+'-'+width+'.png'});
+  }
+  const pendingDownload=page.waitForEvent('download',{timeout:60000});
+  await preview.getByRole('button',{name:'PDF',exact:true}).click();
+  const download=await pendingDownload;
+  await download.saveAs('/tmp/redream-platform-programme/club-stats/'+kind+'.pdf');
+  assert.equal(await download.failure(),null,'Actual club CV export succeeds for '+kind);
+  await preview.getByRole('button',{name:'Close',exact:true}).click();
+  assert.equal(calls.filter(call=>/save|publish|execute/.test(call.action)).length,writes,'Preview and CV download never save or publish');
+ }
  await page.route('https://example.supabase.co/**',async route=>{
   if(route.request().method()==='PUT'){uploads++;return route.fulfill({json:{Key:'player-public/agency/fixture/player/profile.png'}});}
   if(route.request().method()==='GET')return route.fulfill({status:200,body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64'),contentType:'image/png'});
@@ -38,6 +61,12 @@ try {
  await stats.getByText('Custom figures, separate from current-season updates. Check their period and source before sharing.',{exact:true}).waitFor();
  assert.equal(await stats.getByText(/Official competition/).count(),0,'Custom figures never inherit the automatic source or freshness');
  assert.equal(await stats.getByRole('link',{name:'View source',exact:true}).count(),0,'Custom stats do not claim the automatic source');
+ await presentation('custom',async figures=>{
+  await figures.getByText('Period not recorded',{exact:true}).waitFor();
+  assert.match(await figures.innerText(),/Source not recorded/);
+  assert.match(await figures.innerText(),/Source date not recorded/);
+  assert.equal(await figures.getByText(/Official competition|Example League/).count(),0);
+ });
  await stats.getByRole('button',{name:'Use latest stats',exact:true}).click();
  await stats.getByText('Current-season stats in use',{exact:true}).waitFor();
  await stats.getByText('2026 · Example FC · Example League',{exact:true}).waitFor();
@@ -47,6 +76,12 @@ try {
  assert.deepEqual(save.body.settings,{key_stats:[],selected_stat_refs:[]},'Using current stats writes only the stat selection');
  assert.equal(settings.intro_line,'Reviewed player headline');
  assert.ok((await stats.innerText()).includes('24'));assert.ok((await stats.innerText()).includes('0'));
+ await presentation('automatic',async figures=>{
+  await figures.getByText('2026 · Example FC · Example League',{exact:true}).waitFor();
+  assert.match(await figures.innerText(),/Official competition/);
+  assert.match(await figures.innerText(),/Checked 20 Oct 2026/);
+  assert.ok((await figures.innerText()).includes('0'));
+ });
  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Fits '+width);}
  // Selected evidence can intentionally cover several seasons; label each without claiming the automatic source.
  career=[
@@ -64,6 +99,13 @@ try {
  assert.equal(await stats.getByText(/Unused source|Official competition/).count(),0,'Only the selected supported evidence is attributed');
  assert.match(await stats.innerText(),/Reviewed/);
  assert.match(await stats.innerText(),/Updated/);
+ await presentation('selected',async figures=>{
+  await figures.getByText('Selected evidence',{exact:true}).waitFor();
+  const tiles=figures.locator('.dossier-quick-stat');
+  assert.match(await tiles.nth(0).innerText(),/2025.*Former FC.*Historical source.*Reviewed 20 Jan 2026/s);
+  assert.match(await tiles.nth(2).innerText(),/2026.*Example FC.*Current source.*Updated 20 Oct 2026/s);
+  assert.equal(await figures.getByText(/Official competition|Unused source/).count(),0);
+ });
  // The primary work view reuses the same upload path and shows the confirmed photo immediately.
  photo=null;
  await page.goto(new URL('/qa-player-photo?view=players&player=fixture-profile',url).href);

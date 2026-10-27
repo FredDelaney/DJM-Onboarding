@@ -1,6 +1,7 @@
 'use client';
 
 import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { withProfileStatEvidence } from '@/supabase/functions/_shared/profile-stat-evidence';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,BarChart3,Check,ChevronDown,Clock3,Copy,Download,Eye,ExternalLink,Link2,LoaderCircle,Mail,MessageCircleMore,Pencil,Play,RefreshCw,Send,ShieldCheck,Sparkles,Trash2,X} from 'lucide-react';
 import {
@@ -342,19 +343,17 @@ const makeDraftProfile = (
     if (!row || !Object.hasOwn(statLabels, field)) return null;
     const value = row[field];
     if (value === null || value === undefined || value === '') return null;
-    return {
+    return withProfileStatEvidence({
       label: statLabels[field],
       value: String(value),
-      season_label: row.season_label || null,
-      source_name: row.source_name || row.source_provider || null,
-    };
+    },row);
   }).filter((item): item is NonNullable<typeof item> => Boolean(item));
   const keyStats = form.selected_stat_refs.length
     ? selectedStats
     : customStats.length
       ? customStats
       : Array.isArray(bundle?.auto_key_stats)
-        ? bundle.auto_key_stats
+        ? bundle.auto_key_stats.map((stat: any) => withProfileStatEvidence(stat,bundle.auto_stats_meta || {}))
         : [];
   const featuredVideo = videos.find(
     (item: any) => String(item.id) === form.selected_video_id,

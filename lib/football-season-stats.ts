@@ -111,7 +111,7 @@ export const aggregateFootballStats = (rows: FootballSeasonStatRow[]) => {
     goals,
     assists,
     contributions:
-      goals === null && assists === null ? null : (goals || 0) + (assists || 0),
+      goals === null || assists === null ? null : goals + assists,
   };
 };
 
