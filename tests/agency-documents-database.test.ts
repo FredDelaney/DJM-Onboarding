@@ -93,7 +93,7 @@ before(async () => {
     ),
   );
   await db.exec(readFileSync("supabase/migrations/20261026231700_agency_document_exact_read.sql", "utf8"));
-  await db.exec(readFileSync("supabase/migrations/20261027055046_invoice_date_review_guard.sql", "utf8"));
+  await db.exec(readFileSync("supabase/migrations/20261027060256_invoice_date_review_guard.sql", "utf8"));
   await db.query("insert into auth.users values($1),($2),($3)", [
     owner,
     otherOwner,
@@ -445,7 +445,7 @@ test("invoice date migration preserves the writer contract, is repeatable and re
   await db.exec("reset role");
   const catalog = () => db.query("select oid,proowner,proacl,proconfig,prosecdef,provolatile,md5(prosrc) hash from pg_proc where oid='public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure");
   const before = await catalog();
-  const migration = readFileSync("supabase/migrations/20261027055046_invoice_date_review_guard.sql", "utf8");
+  const migration = readFileSync("supabase/migrations/20261027060256_invoice_date_review_guard.sql", "utf8");
   await db.exec(migration);
   assert.deepEqual((await catalog()).rows, before.rows);
   const definition = (await db.query<{definition:string}>("select pg_get_functiondef('public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure) definition")).rows[0].definition;
