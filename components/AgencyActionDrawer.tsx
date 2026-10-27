@@ -20,6 +20,7 @@ import {
 } from 'react';
 
 import { friendlyError } from '@/lib/platform-client';
+import {readWithDeadline} from '@/lib/read-with-deadline';
 
 import styles from './AgencyActionDrawer.module.css';
 
@@ -43,6 +44,7 @@ export type AgencyActionRequest = {
   confirmationLabel?: string | null;
   fallbackHref?: string | null;
   fallbackLabel?: string | null;
+  returnFocusId?: string;
 };
 
 type Invoke = (
@@ -219,6 +221,9 @@ export default function AgencyActionDrawer({
   const [busy, setBusy] = useState(false);
   modalState.current = {busy, onClose};
   const [error, setError] = useState('');
+  const [refreshError,setRefreshError]=useState('');
+  const confirmationHeading=useRef<HTMLHeadingElement>(null);
+  useEffect(()=>{if(mode==='done'||mode==='undone')confirmationHeading.current?.focus();},[mode]);
   const [result, setResult] =
     useState<any>(null);
   const [proposal, setProposal] =
@@ -303,7 +308,11 @@ export default function AgencyActionDrawer({
     result?.reminder_owner_name || '',
   ).trim();
 
-  const requiredInputs =
+  const preparedOwner = result?.ownership_required_first === true &&
+    result?.action_type === 'assign_deal_owner' && result?.status === 'proposed' &&
+    result?.executable === true && Boolean(inputs.owner_user_id) &&
+    result?.payload?.owner_user_id === inputs.owner_user_id;
+  const requiredInputs = preparedOwner ? [] :
     rawRequiredInputs.length
       ? rawRequiredInputs
       : actionType ===
@@ -324,14 +333,17 @@ export default function AgencyActionDrawer({
     result?.payload ||
     {};
 
-  const successCondition =
-    request.successCondition ||
+  const followUpAfterOwner=request.action==='deal_step_prepare'&&request.payload.step_type==='set_next_action'&&result?.ownership_required_first===true;
+  const successCondition = followUpAfterOwner
+    ? 'One agency user owns this deal. Choose the follow-up action and date next.'
+    : request.successCondition ||
     proposalPayload?.success_condition ||
     result?.success_condition ||
     '';
 
   const undoSupported = Boolean(
-    proposal?.undo_supported ||
+    appliedResult?.undo_supported ||
+      proposal?.undo_supported ||
       result?.undo_supported,
   );
 
@@ -403,7 +415,7 @@ export default function AgencyActionDrawer({
     setMode('review');
   }
 
-  async function prepare() {
+  async function prepare(nextInputs:Record<string,string> = inputs) {
     if (busy) return;
 
     setBusy(true);
@@ -411,18 +423,18 @@ export default function AgencyActionDrawer({
     setMode('preparing');
 
     try {
-      const response = await invoke(
+      const response = await readWithDeadline(invoke(
         request.action,
         {
           ...request.payload,
-          ...(Object.keys(inputs).length
+          ...(Object.keys(nextInputs).length
             ? {
                 input:
-                  normaliseInputs(inputs),
+                  normaliseInputs(nextInputs),
               }
             : {}),
         },
-      );
+      ));
 
       consumePrepared(
         response?.proposal ||
@@ -595,6 +607,7 @@ export default function AgencyActionDrawer({
 
     setBusy(true);
     setError('');
+    setRefreshError('');
 
     try {
       const response = await invoke(
@@ -609,8 +622,7 @@ export default function AgencyActionDrawer({
       );
 
       setMode('done');
-
-      await onApplied();
+      try{await onApplied();}catch{setRefreshError('The change is saved, but the latest view could not load.');}
     } catch (actionError) {
       setError(
         friendlyError(actionError),
@@ -631,6 +643,7 @@ export default function AgencyActionDrawer({
 
     setBusy(true);
     setError('');
+    setRefreshError('');
 
     try {
       await invoke('action_undo', {
@@ -638,8 +651,7 @@ export default function AgencyActionDrawer({
       });
 
       setMode('undone');
-
-      await onApplied();
+      try{await onApplied();}catch{setRefreshError('Undo is saved, but the latest view could not load.');}
     } catch (actionError) {
       setError(
         friendlyError(actionError),
@@ -655,6 +667,13 @@ export default function AgencyActionDrawer({
     preparedRef.current = true;
     void prepare();
   }, [request.key]);
+
+  async function reloadConfirmedView(){
+    if(busy)return;
+    setBusy(true);
+    try{await onApplied();setRefreshError('');}catch{setRefreshError('The saved change is unchanged. The latest view could not load.');}
+    finally{setBusy(false);}
+  }
 
   useEffect(() => {
     openerRef.current ??= document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -704,7 +723,10 @@ export default function AgencyActionDrawer({
       document.removeEventListener('focusin', containFocus);
       document.removeEventListener('keydown', key, true);
       releaseBackground(); releaseScroll();
-      queueMicrotask(() => { if (opener?.isConnected && !opener.closest('[inert]')) opener.focus({preventScroll: true}); });
+      queueMicrotask(() => {
+        const target=(request.returnFocusId?document.getElementById(request.returnFocusId):null)||opener;
+        if(target?.isConnected&&!target.closest('[inert]'))target.focus({preventScroll:true});
+      });
     };
   }, []);
 
@@ -1522,7 +1544,7 @@ export default function AgencyActionDrawer({
                   <CheckCircle2 size={15} />
                 )}
 
-                {request.confirmationLabel ||
+                {followUpAfterOwner?'Assign owner':request.confirmationLabel ||
                   actionLabel(
                     actionType,
                     'Confirm action',
@@ -1588,14 +1610,12 @@ export default function AgencyActionDrawer({
               DONE
             </p>
 
-            <h3>
-              Done. The latest view is up to
-              date.
+            <h3 ref={confirmationHeading} tabIndex={-1}>
+              {followUpAfterOwner?'Owner assigned.':'Change saved.'}
             </h3>
 
             <p>
-              The change is saved and the
-              latest view is ready.
+              {followUpAfterOwner?'Choose the follow-up action and date to finish setting the reminder.':'The change is saved.'}
             </p>
 
             <div
@@ -1630,14 +1650,17 @@ export default function AgencyActionDrawer({
                 </button>
               ) : null}
 
+              {followUpAfterOwner?<button type="button" data-ui-button="primary" className={styles.primary} disabled={busy||Boolean(refreshError)} onClick={()=>{
+                setInputs({});setResult(null);setProposal(null);setAppliedResult(null);setRefreshError('');void prepare({});
+              }}>Set follow-up</button>:null}
               <button
                 type="button"
-                data-ui-button="primary"
-              className={styles.primary}
+                data-ui-button={followUpAfterOwner?'secondary':'primary'}
+              className={followUpAfterOwner?styles.secondary:styles.primary}
                 onClick={onClose}
                 disabled={busy}
               >
-                Done
+                {followUpAfterOwner?'Close':'Done'}
               </button>
             </div>
 
@@ -1651,6 +1674,7 @@ export default function AgencyActionDrawer({
           </section>
         ) : null}
 
+        {refreshError?<section className={styles.error+' '+styles.refreshRecovery} role="alert"><p>{refreshError}</p><button type="button" data-ui-button="secondary" disabled={busy} onClick={()=>void reloadConfirmedView()}>Reload latest view</button></section>:null}
         {mode === 'undone' ? (
           <section
             className={styles.resolved}
@@ -1661,11 +1685,11 @@ export default function AgencyActionDrawer({
               <p className={styles.eyebrow}>
                 UNDONE
               </p>
-              <h3>
+              <h3 ref={confirmationHeading} tabIndex={-1}>
                 The change has been undone.
               </h3>
               <p>
-                The latest view is up to date.
+                The previous change is restored.
               </p>
             </div>
           </section>
