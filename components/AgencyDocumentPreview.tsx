@@ -24,8 +24,7 @@ export default function AgencyDocumentPreview({
 }) {
   const { content, kind } = doc,
     { brand, fields } = content,
-    totals = invoiceTotals(content),
-    currency = fields.currency || "EUR";
+    totals = invoiceTotals(content);
   const logo = safeDocumentLogoUrl(brand.logoUrl);
   const brief = documentBrief(doc);
   const theme = documentTheme(brand);
@@ -124,12 +123,12 @@ export default function AgencyDocumentPreview({
                     <strong>{line.description || "Service description"}</strong>
                     <small>
                       {line.quantity || "0"} ×{" "}
-                      {documentPrice(line.unitPrice, currency)}
+                      {documentPrice(line.unitPrice, content)}
                     </small>
                   </span>
                   <strong>
                     {totals.valid
-                      ? documentMoney(totals.amounts[index], currency)
+                      ? documentMoney(totals.amounts[index], content)
                       : "[amount]"}
                   </strong>
                 </div>
@@ -140,7 +139,7 @@ export default function AgencyDocumentPreview({
                 <dt>Subtotal</dt>
                 <dd>
                   {totals.valid
-                    ? documentMoney(totals.subtotal, currency)
+                    ? documentMoney(totals.subtotal, content)
                     : "[amount]"}
                 </dd>
               </div>
@@ -148,7 +147,7 @@ export default function AgencyDocumentPreview({
                 <dt>Tax ({fields.tax_rate || "0"}%)</dt>
                 <dd>
                   {totals.valid
-                    ? documentMoney(totals.tax, currency)
+                    ? documentMoney(totals.tax, content)
                     : "[amount]"}
                 </dd>
               </div>
@@ -156,7 +155,7 @@ export default function AgencyDocumentPreview({
                 <dt>Total due</dt>
                 <dd>
                   {totals.valid
-                    ? documentMoney(totals.total, currency)
+                    ? documentMoney(totals.total, content)
                     : "[complete line items]"}
                 </dd>
               </div>

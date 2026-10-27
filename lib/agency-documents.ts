@@ -2,6 +2,7 @@ import {
   REPRESENTATION_CONTRACT_FIELDS,
   REPRESENTATION_CONTRACT_SECTIONS,
 } from "./representation-contract-template.ts";
+import { invoiceCurrencyMinorUnit } from "./invoice-currencies.ts";
 
 export const DOCUMENT_KINDS = [
   "player_contract",
@@ -46,6 +47,8 @@ export type DocumentContent = {
   reviewed: boolean;
   // Records clean-template authorship, not permission or factual verification.
   pitchTemplateVersion?: 1;
+  // Persisted in recipient snapshots: absence means the earlier two-decimal format.
+  invoiceCurrencyVersion?: 1;
 };
 export type AgencyDocument = {
   id: string;
@@ -415,6 +418,7 @@ export function newAgencyDocument(
     revision: 0,
     updated_at: now.toISOString(),
     content: {
+      ...(kind === "invoice" ? { invoiceCurrencyVersion: 1 as const } : {}),
       brand: { ...brand },
       fields: {
         issue_date: documentDate(now, settings.timezone),
@@ -477,17 +481,33 @@ export function resolveDocumentText(
   });
 }
 function scaled(value: string, places: number): number | null {
-  if (!new RegExp(`^\\d{1,9}(?:\\.\\d{1,${places}})?$`).test(value.trim()))
+  if (!new RegExp(`^\\d{1,9}${places ? `(?:\\.\\d{1,${places}})?` : ""}$`).test(value.trim()))
     return null;
   const [whole, fraction = ""] = value.trim().split(".");
   const n = Number(whole) * 10 ** places + Number(fraction.padEnd(places, "0"));
   return Number.isSafeInteger(n) ? n : null;
 }
+export function invoiceCurrencyDigits(content: DocumentContent): number | null {
+  if (!("invoiceCurrencyVersion" in content)) return 2;
+  return content.invoiceCurrencyVersion === 1
+    ? invoiceCurrencyMinorUnit(content.fields.currency || "")
+    : null;
+}
+function invoicePriceMinor(value: string, content: DocumentContent): number | null {
+  const digits = invoiceCurrencyDigits(content);
+  if (digits === null) return null;
+  if (!("invoiceCurrencyVersion" in content)) return scaled(value, 2);
+  if (!/^\d{1,9}(?:\.\d{1,9})?$/.test(value.trim())) return null;
+  const [whole, fraction = ""] = value.trim().split(".");
+  if (/[1-9]/.test(fraction.slice(digits))) return null;
+  const kept = fraction.slice(0, digits);
+  return scaled(whole + (kept ? "." + kept : ""), digits);
+}
 export function invoiceTotals(content: DocumentContent) {
-  let valid = content.lines.length > 0;
+  let valid = content.lines.length > 0 && invoiceCurrencyDigits(content) !== null;
   const amounts = content.lines.map((line) => {
     const quantity = scaled(line.quantity, 3),
-      price = scaled(line.unitPrice, 2);
+      price = invoicePriceMinor(line.unitPrice, content);
     if (
       quantity === null ||
       quantity <= 0 ||
@@ -519,24 +539,26 @@ export function invoiceTotals(content: DocumentContent) {
   if (!Number.isSafeInteger(total) || total > 999999999999) valid = false;
   return { valid, amounts, subtotal, tax, total };
 }
-export function documentMoney(minor: number, currency: string) {
-  if (!Number.isFinite(minor)) return "[amount]";
+export function documentMoney(minor: number, content: DocumentContent) {
+  const currency = content.fields.currency || "EUR";
+  const digits = invoiceCurrencyDigits(content);
+  if (!Number.isFinite(minor) || digits === null) return "[amount]";
   try {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: /^[A-Z]{3}$/.test(currency) ? currency : "EUR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(minor / 100);
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(minor / 10 ** digits);
   } catch {
-    return `${(minor / 100).toFixed(2)} ${currency}`;
+    return `${(minor / 10 ** digits).toFixed(digits)} ${currency}`;
   }
 }
-export function documentPrice(value: string, currency: string) {
-  const minor = scaled(value, 2);
-  return minor === null ? "[unit price]" : documentMoney(minor, currency);
+export function documentPrice(value: string, content: DocumentContent) {
+  const minor = invoicePriceMinor(value, content);
+  return minor === null ? "[unit price]" : documentMoney(minor, content);
 }
-export function documentIssues(doc: AgencyDocument): string[] {
+export function documentIssues(doc: AgencyDocument, forSharing = false): string[] {
   const issues: string[] = [];
   if (!doc.title.trim()) issues.push("Add a document title");
   if (!doc.content.brand.name.trim()) issues.push("Add the agency name");
@@ -567,6 +589,13 @@ export function documentIssues(doc: AgencyDocument): string[] {
   )
     issues.push("Complete empty section headings and wording");
   if (doc.kind === "invoice") {
+    const versioned = "invoiceCurrencyVersion" in doc.content;
+    const digits = invoiceCurrencyMinorUnit(doc.content.fields.currency || "");
+    if ((versioned && doc.content.invoiceCurrencyVersion !== 1) ||
+        (forSharing && !versioned && digits !== 2))
+      issues.push("Duplicate this invoice to use current currency precision");
+    if (doc.content.invoiceCurrencyVersion === 1 && doc.content.fields.currency && digits === null)
+      issues.push("Choose a supported invoice currency");
     const issue = doc.content.fields.issue_date || "";
     const due = doc.content.fields.due_date || "";
     const validDate = (value: string) => {
@@ -581,10 +610,16 @@ export function documentIssues(doc: AgencyDocument): string[] {
     if (due && !validDate(due)) issues.push("Check the invoice due date");
     if (validDate(issue) && validDate(due) && due < issue)
       issues.push("Due date must be on or after the issue date");
-    if (
-      !invoiceTotals(doc.content).valid ||
-      invoiceTotals(doc.content).total <= 0
-    )
+    const invalidPrecision = doc.content.invoiceCurrencyVersion === 1 && digits !== null &&
+      doc.content.lines.some(line => /^\d{1,9}\.\d{1,9}$/.test(line.unitPrice.trim()) &&
+        invoicePriceMinor(line.unitPrice, doc.content) === null);
+    if (invalidPrecision)
+      issues.push(digits === 0
+        ? `Use whole-unit prices for this ${doc.content.fields.currency} invoice`
+        : `Use up to ${digits} decimal places for this ${doc.content.fields.currency} invoice`);
+    if (!invalidPrecision && invoiceCurrencyDigits(doc.content) !== null && (
+      !invoiceTotals(doc.content).valid || invoiceTotals(doc.content).total <= 0
+    ))
       issues.push("Check invoice descriptions, quantities, amounts and tax");
     if (!/^[A-Z]{3}$/.test(doc.content.fields.currency || ""))
       issues.push("Use a three-letter currency code");
@@ -765,6 +800,8 @@ export function copyAgencyDocument(
     }
   }
   if (source.kind === "invoice") {
+    // A new, unreviewed copy uses current rules without altering its source's prices.
+    content.invoiceCurrencyVersion = 1;
     content.fields.invoice_number = "";
     content.fields.reference = "";
     if (mode !== "duplicate") {

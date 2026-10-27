@@ -531,7 +531,9 @@ export function DocumentStudioEditor({
     if (!doc) return;
     navigate(() => select(copyAgencyDocument(doc, "duplicate")));
   };
-  const issues = doc ? documentIssues(doc) : [];
+  const issues = doc ? documentIssues(doc, true) : [];
+  // Recording a historical payment must retain that invoice's original amounts.
+  const recordIssues = doc ? documentIssues(doc) : [];
   const loadActivity = async () => {
     if (!doc || busy) return;
     setTab("activity");
@@ -1503,7 +1505,7 @@ export function DocumentStudioEditor({
                           <button
                             data-ui-button="secondary"
                             type="button"
-                            disabled={dirty || issues.length > 0}
+                            disabled={dirty || recordIssues.length > 0}
                             onClick={() => openDialog("sent")}
                           >
                             Record sent
@@ -1512,7 +1514,7 @@ export function DocumentStudioEditor({
                             data-ui-button="secondary"
                             type="button"
                             disabled={
-                              dirty || !!doc.paid_at || issues.length > 0
+                              dirty || !!doc.paid_at || recordIssues.length > 0
                             }
                             onClick={() => openDialog("paid")}
                           >
@@ -1594,6 +1596,7 @@ export function DocumentStudioEditor({
                     type="button"
                     disabled={!!busy}
                     onClick={duplicate}
+                    id="document-duplicate"
                   >
                     <Copy size={15} />
                     Duplicate document

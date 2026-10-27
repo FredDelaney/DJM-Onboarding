@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {readFileSync} from "node:fs";
+import vm from "node:vm";
+import ts from "typescript";
 import {
   DOCUMENT_KINDS,
   DOCUMENT_TEMPLATES,
@@ -10,6 +13,8 @@ import {
   documentIssues,
   fillDocumentPlayer,
   invoiceTotals,
+  documentMoney,
+  documentPrice,
   newAgencyDocument,
   resolveDocumentText,
   safeDocumentUrl,
@@ -351,6 +356,56 @@ test("invoice money uses rounded minor units and rejects invalid or missing amou
   doc.content.lines[0].unitPrice = "0";
   assert.ok(documentIssues(doc).some((x) => x.startsWith("Check invoice")));
 });
+test("new invoice amounts follow the currency's minor unit, including whole and three/four-decimal units", () => {
+  for (const [currency,price,quantity,amount,tax,total] of [
+    ["JPY","100","2.5",250,50,300],
+    ["EUR","100.10","2.5",25025,5005,30030],
+    ["KWD","1.234","1.5",1851,370,2221],
+    ["CLF","1.2345","1.5",18518,3704,22222],
+  ] as const) {
+    const doc=newAgencyDocument("invoice",documentBrand());
+    doc.content.fields.currency=currency;doc.content.fields.tax_rate="20";
+    doc.content.lines=[{id:"one",description:"QA precision test",quantity,unitPrice:price}];
+    assert.deepEqual(invoiceTotals(doc.content),{valid:true,amounts:[amount],subtotal:amount,tax,total},currency);
+    const text=documentMoney(total,doc.content);
+    assert.match(text,currency==="JPY"?/300$/:currency==="KWD"?/2\.221$/:currency==="CLF"?/2\.2222$/:/300\.30$/);
+    assert.equal(doc.content.invoiceCurrencyVersion,1);
+  }
+});
+test("currency validation never rounds an unsupported unit price into a payable amount", () => {
+  const doc=newAgencyDocument("invoice",documentBrand());
+  doc.content.lines=[{id:"one",description:"QA price",quantity:"1",unitPrice:"100.01"}];
+  for(const[currency,price,valid]of [["JPY","100.01",false],["JPY","100.000",true],["KWD","1.2340",true],["KWD","1.2341",false],["CLF","1.23450",true],["ZZZ","1",false],["XAU","1",false],["XXX","1",false]] as const){
+    doc.content.fields.currency=currency;doc.content.lines[0].unitPrice=price;
+    assert.equal(invoiceTotals(doc.content).valid,valid,currency+" "+price);
+    if(!valid)assert.equal(documentPrice(price,doc.content),"[unit price]");
+  }
+  for(const version of [2,"1",null,false]){
+    Object.assign(doc.content,{invoiceCurrencyVersion:version});doc.content.fields.currency="EUR";
+    assert.equal(invoiceTotals(doc.content).valid,false,"An unknown format cannot fall back to legacy precision");
+  }
+});
+test("legacy invoice output keeps its recorded scale while explicit copies adopt current precision", () => {
+  const legacy=newAgencyDocument("invoice",documentBrand());
+  delete legacy.content.invoiceCurrencyVersion;
+  legacy.content.fields.currency="JPY";
+  legacy.content.lines=[{id:"one",description:"QA historical amount",quantity:"1",unitPrice:"100.01"}];
+  const before=structuredClone(legacy);
+  assert.equal(invoiceTotals(legacy.content).total,10001);
+  assert.match(documentMoney(10001,legacy.content),/100\.01$/);
+  const warning="Duplicate this invoice to use current currency precision";
+  assert.equal(documentIssues(legacy).includes(warning),false,"Rendering an old approved snapshot must not add a new draft stamp");
+  assert.ok(documentIssues(legacy,true).includes(warning),"New lifecycle actions require explicit correction");
+  assert.deepEqual(documentIssueTarget(legacy,warning),{tab:"review",id:"document-duplicate"});
+  for(const mode of ["duplicate","template","from_template"] as const){
+    const copy=copyAgencyDocument(legacy,mode);
+    assert.equal(copy.content.invoiceCurrencyVersion,1);
+    assert.equal(copy.content.reviewed,false);
+    assert.equal(copy.content.lines[0].unitPrice,"100.01");
+    assert.equal(invoiceTotals(copy.content).valid,false,"Correction is required; the copy never silently rounds the old price");
+  }
+  assert.deepEqual(legacy,before);
+});
 test("invoice review rejects invalid or reversed dates and focuses the date to correct", () => {
   const doc = newAgencyDocument("invoice", documentBrand());
   doc.content.fields.issue_date = "2026-11-01";
@@ -552,4 +607,19 @@ test("a new copy never inherits payment activity, invoice numbers or review appr
   assert.equal(template.content.fields.recipient_name, undefined);
   assert.equal(template.is_template, true);
   assert.equal(template.paid_at, undefined);
+});
+
+test("document RPC compatibility is per request and leaves unrelated requests and cancellation intact", async () => {
+  const requests:any[]=[];
+  const exported:any={};
+  const source=ts.transpileModule(readFileSync("lib/platform-client.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  vm.runInNewContext(source,{exports:exported,require:(name:string)=>name.endsWith("/supabase")?{supabase:{rpc:(name:string,args:any)=>{
+    const request:any={name,args,headers:{},setHeader(key:string,value:string){this.headers[key]=value;return this;},abortSignal(signal:AbortSignal){this.signal=signal;return this;},then(resolve:any){return Promise.resolve({data:{ok:true},error:null}).then(resolve);}};
+    requests.push(request);return request;
+  }}}:{measureOperation:(_kind:string,_name:string,run:()=>Promise<any>)=>run()}});
+  const signal=new AbortController().signal;
+  for(const name of ["redream_documents","redream_document_read","redream_document_open","redream_ai_receipt"]) await exported.platformRpc(name,{qa:true},"qa-workspace",signal);
+  assert.deepEqual(requests.map(r=>r.headers["x-redream-invoice-currency"]),["1","1","1",undefined]);
+  assert.ok(requests.every(r=>r.headers["x-redream-workspace"]==="qa-workspace"&&r.signal===signal));
+  assert.equal(new Set(requests.map(r=>r.headers)).size,4);
 });

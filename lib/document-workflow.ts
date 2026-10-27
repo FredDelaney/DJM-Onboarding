@@ -282,6 +282,8 @@ export function documentIssueTarget(
     return { tab: "details", id: "document-bank-details" };
   if (issue.includes("payment link"))
     return { tab: "details", id: "document-field-payment_url" };
+  if (issue === "Duplicate this invoice to use current currency precision")
+    return { tab: "review", id: "document-duplicate" };
   if (issue.includes("currency"))
     return { tab: "details", id: "document-field-currency" };
   if (issue === "Check the invoice issue date")

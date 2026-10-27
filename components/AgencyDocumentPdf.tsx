@@ -167,7 +167,6 @@ export default function AgencyDocumentPdf({
   const { content, kind } = doc,
     { brand } = content,
     totals = invoiceTotals(content),
-    currency = content.fields.currency || "EUR",
     theme = documentTheme(brand),
     primary = theme.primary,
     brief = documentBrief(doc),
@@ -382,11 +381,11 @@ export default function AgencyDocumentPdf({
                     {line.quantity}
                   </Text>
                   <Text style={styles.cell}>
-                    {documentPrice(line.unitPrice, currency)}
+                    {documentPrice(line.unitPrice, content)}
                   </Text>
                   <Text style={styles.cell}>
                     {totals.valid
-                      ? documentMoney(totals.amounts[index], currency)
+                      ? documentMoney(totals.amounts[index], content)
                       : "[amount]"}
                   </Text>
                 </View>
@@ -395,15 +394,15 @@ export default function AgencyDocumentPdf({
             <Text style={styles.body}>
               Subtotal{" "}
               {totals.valid
-                ? documentMoney(totals.subtotal, currency)
+                ? documentMoney(totals.subtotal, content)
                 : "[amount]"}{" "}
               · Tax ({content.fields.tax_rate || "0"}%){" "}
-              {totals.valid ? documentMoney(totals.tax, currency) : "[amount]"}
+              {totals.valid ? documentMoney(totals.tax, content) : "[amount]"}
             </Text>
             <Text style={[styles.total, { color: primary }]}>
               Total due{" "}
               {totals.valid
-                ? documentMoney(totals.total, currency)
+                ? documentMoney(totals.total, content)
                 : "[complete line items]"}
             </Text>
           </View>

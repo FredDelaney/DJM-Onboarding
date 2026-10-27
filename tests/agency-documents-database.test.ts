@@ -8,8 +8,11 @@ import {
   resolveDocumentText,
   newAgencyDocument,
   copyAgencyDocument,
+  invoiceTotals,
+  documentMoney,
   type AgencyDocument,
 } from "../lib/agency-documents.ts";
+import { INVOICE_CURRENCY_MINOR_UNITS } from "../lib/invoice-currencies.ts";
 const db = new PGlite();
 const tenantA = "10000000-0000-4000-8000-000000000001",
   tenantB = "10000000-0000-4000-8000-000000000002",
@@ -17,11 +20,15 @@ const tenantA = "10000000-0000-4000-8000-000000000001",
   otherOwner = "20000000-0000-4000-8000-000000000002",
   agent = "20000000-0000-4000-8000-000000000003";
 let saved: AgencyDocument, token: string;
+let dateStageWriterDefinition: string;
+let precedingCatalog: any[];
+const headers = async (current = true) => db.query("select set_config('request.headers',$1,false)", [JSON.stringify(current ? {'x-redream-invoice-currency':'1'} : {})]);
 const actor = async (id: string | null, role = "authenticated") => {
   await db.exec("reset role");
   await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
     id || "",
   ]);
+  await headers();
   await db.exec(`set role ${role}`);
 };
 const call = async (
@@ -55,6 +62,17 @@ const open = async (slug: string, value: string) => {
     [slug, value],
   );
   return result.rows[0].result;
+};
+const catalog = () => db.query<any>(`select oid,proname,proowner,proacl,proconfig,prosecdef,provolatile,proisstrict,md5(prosrc) hash from pg_proc
+  where oid in ('public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure,
+    'private.document_studio_snapshot(public.agency_documents)'::regprocedure,
+    'public.redream_document_read(text,uuid)'::regprocedure,'public.redream_document_open(text,text)'::regprocedure) order by oid`);
+// Represent an invoice genuinely created before versioned currency amounts existed.
+const historical = async (invoice: AgencyDocument) => {
+  await db.exec("reset role");
+  const record = (await db.query<{doc:AgencyDocument}>(`insert into public.agency_documents(id,tenant_id,kind,title,content,created_by)
+    values($1,$2,'invoice',$3,$4::jsonb,$5) returning to_jsonb(agency_documents) doc`, [invoice.id,tenantA,invoice.title,JSON.stringify(invoice.content),owner])).rows[0].doc;
+  await actor(owner); return record;
 };
 before(async () => {
   await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema platform;create schema private;
@@ -94,6 +112,9 @@ before(async () => {
   );
   await db.exec(readFileSync("supabase/migrations/20261026231700_agency_document_exact_read.sql", "utf8"));
   await db.exec(readFileSync("supabase/migrations/20261027060256_invoice_date_review_guard.sql", "utf8"));
+  dateStageWriterDefinition = (await db.query<{definition:string}>("select pg_get_functiondef('public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure) definition")).rows[0].definition;
+  precedingCatalog = (await catalog()).rows;
+  await db.exec(readFileSync("supabase/migrations/20261027063255_invoice_currency_precision_v1.sql", "utf8"));
   await db.query("insert into auth.users values($1),($2),($3)", [
     owner,
     otherOwner,
@@ -430,7 +451,9 @@ test("invoice date staging canary rehearses the actual role and leaves no rows o
   await db.exec("reset role");
   const counts = async () => (await db.query("select (select count(*) from public.agency_documents) documents,(select count(*) from public.agency_document_shares) shares,(select count(*) from public.agency_document_events) events")).rows;
   const before = await counts();
+  // The original date canary predates the format marker; model a current client.
   const canary = readFileSync("docs/operations/sql/redream-invoice-date-canary.sql", "utf8")
+    .replace('{"brand":{', '{"invoiceCurrencyVersion":1,"brand":{')
     .replaceAll("675c4f97-f5b9-4686-912f-938b01b4df18", owner)
     .replaceAll("northstar-football-management", "agency-a").replaceAll("djm-sports-management", "agency-b");
   await db.query("insert into platform.tenant_memberships values($1,$2,'owner','active')", [tenantB,owner]);
@@ -444,16 +467,193 @@ test("invoice date staging canary rehearses the actual role and leaves no rows o
 test("invoice date migration preserves the writer contract, is repeatable and refuses source drift", async () => {
   await db.exec("reset role");
   const catalog = () => db.query("select oid,proowner,proacl,proconfig,prosecdef,provolatile,md5(prosrc) hash from pg_proc where oid='public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure");
-  const before = await catalog();
+  const final = await catalog();
   const migration = readFileSync("supabase/migrations/20261027060256_invoice_date_review_guard.sql", "utf8");
-  await db.exec(migration);
+  const patch = migration.match(/do \$patch\$[\s\S]*?end \$patch\$;/)![0];
+  // Rehearse the historical date patch on its exact preceding body, then restore
+  // the current currency writer by rolling the entire rehearsal back.
+  await db.exec("begin");
+  await db.exec(dateStageWriterDefinition);
+  const before = await catalog();
+  await db.exec(patch);
   assert.deepEqual((await catalog()).rows, before.rows);
   const definition = (await db.query<{definition:string}>("select pg_get_functiondef('public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure) definition")).rows[0].definition;
-  await db.exec("begin");
   await db.exec(definition.replace("Use valid invoice dates", "QA unexpected source"));
-  await assert.rejects(db.exec(migration.match(/do \$patch\$[\s\S]*?end \$patch\$;/)![0]), /Unexpected redream_documents source/);
-  await db.exec("rollback");
-  assert.deepEqual((await catalog()).rows, before.rows);
+  await assert.rejects(db.exec(patch), /Unexpected redream_documents source/);
+  await db.exec("rollback; reset role");
+  assert.deepEqual((await catalog()).rows, final.rows);
+});
+test("invoice currency precision and its format survive save, authorised actions and recipient snapshots", async () => {
+  for (const [currency,price,quantity,total] of [["JPY","100","2.5",300],["EUR","100.10","2.5",30030],["KWD","1.234","1.5",2221],["CLF","1.2345","1.5",22222]] as const) {
+    await actor(owner);
+    const invoice=newAgencyDocument("invoice",documentBrand({display_name:"QA Agency"}));
+    Object.assign(invoice.content.fields,{currency,invoice_number:"QA-PRECISION-"+currency,recipient_name:"QA fictional club",recipient_address:"QA address",issue_date:"2026-11-01",due_date:"2026-11-01",tax_rate:"20"});
+    invoice.content.brand.bankDetails="QA only, not an account";
+    invoice.content.sections=[{id:"qa",title:"QA terms",body:"Fictional software test, no obligation or payment."}];
+    invoice.content.lines=[{id:"qa",description:"QA amount",quantity,unitPrice:price}];invoice.content.reviewed=true;
+    const record=await save(invoice);
+    const link=await call("share",record);
+    await actor(null,"anon");const snapshot=await open("agency-a",link.token);
+    assert.equal(snapshot.content.invoiceCurrencyVersion,1);
+    assert.equal(invoiceTotals(snapshot.content).total,total,currency);
+    assert.equal(documentMoney(total,snapshot.content),documentMoney(total,invoice.content));
+    await actor(owner);
+    for (const badPrice of [currency==="JPY"?"100.01":currency==="KWD"?"1.2341":currency==="CLF"?"1.23451":"1.005"]) {
+      record.content.lines[0].unitPrice=badPrice;const invalid=await save(record);
+      for(const action of ["share","sent","paid"])await assert.rejects(call(action,invalid,{note:"QA only"}),/unit prices/);
+      await call("archive",invalid);
+    }
+  }
+});
+test("unknown currency/format cannot bypass action validation and the SQL currency map matches all supported codes", async () => {
+  await actor(owner);
+  const invoice=newAgencyDocument("invoice",documentBrand({display_name:"QA Agency"}));
+  Object.assign(invoice.content.fields,{currency:"ZZZ",invoice_number:"QA-UNKNOWN-CURRENCY",recipient_name:"QA club",recipient_address:"QA address",issue_date:"2026-11-01",due_date:"2026-11-01"});
+  invoice.content.brand.bankDetails="QA only, not an account";invoice.content.sections=[{id:"qa",title:"QA",body:"Fictional software test only."}];
+  invoice.content.lines=[{id:"qa",description:"QA",quantity:"1",unitPrice:"1"}];invoice.content.reviewed=true;
+  let record=await save(invoice);
+  await assert.rejects(call("share",record),/supported invoice currency/);
+  record.content.fields.currency="EUR";Object.assign(record.content,{invoiceCurrencyVersion:"1"});
+  await assert.rejects(save(record),/supported invoice amount format/);
+  record.content.invoiceCurrencyVersion=1;
+  await call("archive",record);
+  await db.exec("reset role");
+  const parity = await db.query<{code:string;digits:number}>("select e.key code,private.invoice_currency_minor_unit_v1(e.key) digits from jsonb_each($1::jsonb) e order by e.key",[JSON.stringify(INVOICE_CURRENCY_MINOR_UNITS)]);
+  assert.equal(parity.rows.length,165);
+  for (const code of ["ZZZ","XXX","XAU","eur",""])
+    assert.equal((await db.query<{digits:number|null}>("select private.invoice_currency_minor_unit_v1($1) digits",[code])).rows[0].digits,null);
+  for (const role of ["anon","authenticated","service_role"])
+    assert.equal((await db.query<{allowed:boolean}>("select has_function_privilege($1,'private.invoice_currency_minor_unit_v1(text)','EXECUTE') allowed",[role])).rows[0].allowed,false);
+  for(const row of parity.rows) assert.equal(row.digits,INVOICE_CURRENCY_MINOR_UNITS[row.code],row.code);
+  await actor(owner);
+  await assert.rejects(db.query("select private.invoice_currency_minor_unit_v1('EUR')"),/permission denied/);
+});
+test("old approved snapshots and historical manual records keep their exact two-decimal amounts", async () => {
+  await actor(owner);
+  const invoice=newAgencyDocument("invoice",documentBrand({display_name:"QA historical agency"}));
+  delete invoice.content.invoiceCurrencyVersion;
+  Object.assign(invoice.content.fields,{currency:"KWD",invoice_number:"QA-HISTORICAL-KWD",recipient_name:"QA old club",recipient_address:"QA address",issue_date:"2026-11-01",due_date:"2026-11-01",tax_rate:"0"});
+  invoice.content.brand.bankDetails="QA only, not an account";invoice.content.sections=[{id:"qa",title:"QA",body:"Fictional historical fixture only."}];
+  invoice.content.lines=[{id:"qa",description:"QA",quantity:"1.5",unitPrice:"1.23"}];invoice.content.reviewed=true;
+  let record=await historical(invoice);
+  // Editing legacy wording does not upgrade or reinterpret its monetary format.
+  record.title="QA historical wording edit"; record=await save(record);
+  assert.equal(record.content.invoiceCurrencyVersion,undefined);
+  record.content.invoiceCurrencyVersion=1;
+  await assert.rejects(save(record),/Duplicate this invoice/);
+  delete record.content.invoiceCurrencyVersion;
+  await db.exec("reset role; begin");
+  const oldProjection=readFileSync("supabase/migrations/20261018153045_agency_document_representation_fields.sql","utf8").match(/create or replace function private\.document_studio_snapshot\([\s\S]*?end \$\$;/)![0];
+  await db.exec(oldProjection);
+  const snapshot=(await db.query<{snapshot:any}>("select private.document_studio_snapshot(d) snapshot from public.agency_documents d where id=$1",[record.id])).rows[0].snapshot;
+  await db.exec("rollback; reset role");
+  const token="b".repeat(64);
+  await db.query("insert into public.agency_document_shares(document_id,tenant_id,token_hash,snapshot,created_by,document_revision) values($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),$4::jsonb,$5,$6)",[record.id,tenantA,token,JSON.stringify(snapshot),owner,record.revision]);
+  await actor(null,"anon"); await headers(false);
+  assert.deepEqual(await open("agency-a",token),snapshot);
+  assert.equal(invoiceTotals(snapshot.content).total,185);assert.match(documentMoney(185,snapshot.content),/1\.85$/);
+  await actor(owner);await headers(false);
+  assert.equal((await exact(record.id)).document.content.invoiceCurrencyVersion,undefined);
+  await assert.rejects(call("share",record),/Duplicate this invoice/);
+  for(const action of ["sent","paid"]) await call(action,record,{note:"QA original amount 1.85 only; no external action."});
+  await assert.rejects(call("paid",record,{note:"QA repeat"}),/already been recorded/);
+  await assert.rejects(save(record),/recorded payment/);
+  const next=copyAgencyDocument(record,"duplicate");assert.equal(invoiceTotals(next.content).total,1845);
+  assert.equal(next.content.reviewed,false);assert.equal(record.content.invoiceCurrencyVersion,undefined);
+  await actor(null,"anon");assert.deepEqual(await open("agency-a",token),snapshot);
+  await actor(owner);await call("archive",record);
+});
+test("new invoice saves default and preserve their monetary format; stale clients fail before returning incorrect amounts", async () => {
+  await actor(owner);
+  const invoice=newAgencyDocument("invoice",documentBrand({display_name:"QA capability"}));
+  delete invoice.content.invoiceCurrencyVersion;
+  Object.assign(invoice.content.fields,{currency:"JPY",invoice_number:"QA-CAPABILITY",recipient_name:"QA club",recipient_address:"QA address",issue_date:"2026-11-01",due_date:"2026-11-01",tax_rate:"0"});
+  invoice.content.brand.bankDetails="QA only, not an account";invoice.content.sections=[{id:"qa",title:"QA",body:"Fictional software test only."}];
+  invoice.content.lines=[{id:"qa",description:"QA",quantity:"1",unitPrice:"100"}];invoice.content.reviewed=true;
+  let record=await save(invoice);assert.equal(record.content.invoiceCurrencyVersion,1);
+  delete record.content.invoiceCurrencyVersion;record=await save(record);assert.equal(record.content.invoiceCurrencyVersion,1);
+  for(const version of [2,"1",null,false]) {
+    Object.assign(record.content,{invoiceCurrencyVersion:version});await assert.rejects(save(record),/supported invoice amount format/);
+  }
+  record.content.invoiceCurrencyVersion=1;
+  const shared=await call("share",record);
+  await db.exec("reset role");
+  const counts=()=>db.query("select (select count(*) from public.agency_documents) documents,(select count(*) from public.agency_document_shares) shares,(select count(*) from public.agency_document_events) events");
+  const before=(await counts()).rows;
+  await actor(owner);await headers(false);
+  for(const action of ["list","share","sent","paid"]) await assert.rejects(call(action,record,{note:"QA only"}),/Refresh ReDream/);
+  await assert.rejects(exact(record.id),/Refresh ReDream/);
+  record.title="QA rejected old client update";await assert.rejects(save(record),/Refresh ReDream/);
+  const fresh=copyAgencyDocument(record,"duplicate");await assert.rejects(save(fresh),/Refresh ReDream/);
+  await actor(agent);await headers();await assert.rejects(exact(record.id),/owners and admins/);
+  await actor(otherOwner);assert.equal((await exact(record.id,"agency-b")).state,"missing");
+  await actor(null,"anon");await headers(false);
+  assert.equal(await open("agency-b",shared.token),null);
+  assert.equal(await open("agency-a","0".repeat(64)),null);
+  await assert.rejects(open("agency-a",shared.token),/Refresh ReDream/);
+  await db.exec("reset role");assert.deepEqual((await counts()).rows,before,"Rejected cached-client requests create no rows or events");
+  await actor(owner);assert.equal((await exact(record.id)).document.title,"Invoice");
+  await actor(null,"anon");assert.equal((await open("agency-a",shared.token)).content.invoiceCurrencyVersion,1);
+  await actor(owner);await call("archive",record);
+  const control=copyAgencyDocument(record,"duplicate");control.content.fields.currency="EUR";delete control.content.invoiceCurrencyVersion;
+  await headers(false);const eur=await save(control);assert.equal(eur.content.invoiceCurrencyVersion,1);
+  assert.equal(invoiceTotals(eur.content).total,10000);assert.equal((await exact(eur.id)).state,"found");await call("archive",eur);
+});
+test("currency migration preserves existing identities/security metadata, repeats safely and rolls back source drift", async () => {
+  await db.exec("reset role");const current=(await catalog()).rows;
+  assert.deepEqual(current.map(({hash,...row})=>row),precedingCatalog.map(({hash,...row})=>row));
+  const migration=readFileSync("supabase/migrations/20261027063255_invoice_currency_precision_v1.sql","utf8");
+  await db.exec(migration);assert.deepEqual((await catalog()).rows,current);
+  for(const signature of ["public.redream_documents(text,text,uuid,integer,jsonb)","private.document_studio_snapshot(public.agency_documents)","public.redream_document_read(text,uuid)","public.redream_document_open(text,text)","private.invoice_currency_minor_unit_v1(text)"]) {
+    await db.exec("begin");
+    const definition=(await db.query<{definition:string}>("select pg_get_functiondef($1::regprocedure) definition",[signature])).rows[0].definition;
+    await db.exec(definition.replace(/AS \$(\w*)\$/,match=>match+"\n-- QA unexpected source\n"));
+    // Remove only transaction wrappers; the rehearsal transaction owns rollback.
+    await assert.rejects(db.exec(migration.replace(/^begin;\s*/,"").replace(/commit;\s*$/,"")),/Unexpected .*source|Unexpected invoice currency lookup contract/);
+    await db.exec("rollback");assert.deepEqual((await catalog()).rows,current);
+  }
+});
+test("each currency scale keeps the same safe total ceiling and rejects a one-unit overflow", async () => {
+  for(const [currency,price,quantity,remainder,one] of [
+    ["JPY","999999999","1000","999","1000"],
+    ["EUR","999999999.99","10","0.09","0.10"],
+    ["KWD","999999999.999","1","0","0.001"],
+    ["CLF","99999999.9999","1","0","0.0001"],
+  ]) {
+    await actor(owner);
+    const invoice=newAgencyDocument("invoice",documentBrand({display_name:"QA limit"}));
+    Object.assign(invoice.content.fields,{currency,invoice_number:"QA-LIMIT-"+currency,recipient_name:"QA club",recipient_address:"QA address",issue_date:"2026-11-01",due_date:"2026-11-01",tax_rate:"0"});
+    invoice.content.brand.bankDetails="QA only, not an account";invoice.content.sections=[{id:"qa",title:"QA",body:"Fictional limit test; no payable fee."}];invoice.content.reviewed=true;
+    invoice.content.lines=[{id:"a",description:"QA",unitPrice:price,quantity},{id:"b",description:"QA remainder",unitPrice:remainder,quantity:"1"}];
+    assert.equal(invoiceTotals(invoice.content).valid,true);assert.equal(invoiceTotals(invoice.content).total,999999999999);
+    let record=await save(invoice);await call("share",record);
+    record.content.lines[1].unitPrice=one;record=await save(record);
+    assert.equal(invoiceTotals(record.content).valid,false);assert.equal(invoiceTotals(record.content).total,1000000000000);
+    for(const action of ["share","sent","paid"])await assert.rejects(call(action,record,{note:"QA only"}),/amounts and tax/);
+    await call("archive",record);
+  }
+});
+test("the exact currency staging canary rehearses authenticated and anonymous roles and rolls everything back", async () => {
+  await db.exec("reset role");
+  const counts=async()=>(await db.query("select (select count(*) from public.agency_documents) documents,(select count(*) from public.agency_document_shares) shares,(select count(*) from public.agency_document_events) events")).rows;
+  const before=await counts();
+  const canary=readFileSync("docs/operations/sql/redream-invoice-currency-canary.sql","utf8")
+    .replaceAll("675c4f97-f5b9-4686-912f-938b01b4df18",owner)
+    .replaceAll("northstar-football-management","agency-a").replaceAll("djm-sports-management","agency-b");
+  await db.query("insert into platform.tenant_memberships values($1,$2,'owner','active')",[tenantB,owner]);
+  try {await db.exec(canary);} finally {await db.exec("rollback;reset role");await db.query("delete from platform.tenant_memberships where tenant_id=$1 and user_id=$2",[tenantB,owner]);}
+  assert.deepEqual(await counts(),before);
+});
+test("zero-extended unit prices and a blank zero tax keep client and SQL arithmetic aligned", async () => {
+  for(const[currency,price,total]of [["JPY","100.000",100],["KWD","1.2340",1234],["CLF","1.23450",12345]] as const){
+    await actor(owner);const invoice=newAgencyDocument("invoice",documentBrand({display_name:"QA zero extension"}));
+    Object.assign(invoice.content.fields,{currency,invoice_number:"QA-ZEROS-"+currency,recipient_name:"QA club",recipient_address:"QA address",issue_date:"2026-11-01",due_date:"2026-11-01",tax_rate:""});
+    invoice.content.lines=[{id:"qa",description:"QA",quantity:"1",unitPrice:price}];invoice.content.brand.bankDetails="QA only, not an account";
+    invoice.content.sections=[{id:"qa",title:"QA",body:"Fictional software test only."}];invoice.content.reviewed=true;
+    const record=await save(invoice);const link=await call("share",record);
+    await actor(null,"anon");assert.equal(invoiceTotals((await open("agency-a",link.token)).content).total,total);
+    await actor(owner);await call("archive",record);
+  }
 });
 test("raw tables and privileged document APIs remain closed to anonymous callers", async () => {
   await actor(null, "anon");

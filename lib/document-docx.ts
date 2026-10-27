@@ -163,8 +163,7 @@ export async function createDocumentWord(
         `Issued ${content.fields.issue_date || "[date]"}   ·   Due ${content.fields.due_date || "[date]"}`,
       ),
     );
-    const totals = invoiceTotals(content),
-      currency = content.fields.currency || "EUR";
+    const totals = invoiceTotals(content);
     const row = (values: string[], head = false) =>
       new TableRow({
         tableHeader: head,
@@ -199,9 +198,9 @@ export async function createDocumentWord(
             row([
               line.description || "[service]",
               line.quantity,
-              documentPrice(line.unitPrice, currency),
+              documentPrice(line.unitPrice, content),
               totals.valid
-                ? documentMoney(totals.amounts[index], currency)
+                ? documentMoney(totals.amounts[index], content)
                 : "[amount]",
             ]),
           ),
@@ -222,16 +221,16 @@ export async function createDocumentWord(
     );
     children.push(
       para(
-        `Subtotal  ${totals.valid ? documentMoney(totals.subtotal, currency) : "[amount]"}`,
+        `Subtotal  ${totals.valid ? documentMoney(totals.subtotal, content) : "[amount]"}`,
         160,
       ),
       para(
-        `Tax (${content.fields.tax_rate || "0"}%)  ${totals.valid ? documentMoney(totals.tax, currency) : "[amount]"}`,
+        `Tax (${content.fields.tax_rate || "0"}%)  ${totals.valid ? documentMoney(totals.tax, content) : "[amount]"}`,
       ),
       new Paragraph({
         children: [
           text(
-            `Total due  ${totals.valid ? documentMoney(totals.total, currency) : "[complete line items]"}`,
+            `Total due  ${totals.valid ? documentMoney(totals.total, content) : "[complete line items]"}`,
             32,
             true,
             primary,

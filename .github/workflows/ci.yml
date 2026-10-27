@@ -71,6 +71,7 @@ jobs:
             /tmp/redream-platform-programme/mandate-journey
             /tmp/redream-platform-programme/player-pitch-journey
             /tmp/redream-platform-programme/invoice-journey
+            /tmp/redream-platform-programme/invoice-currency
             /tmp/redream-platform-programme/document-save-recovery
             /tmp/redream-platform-programme/connected-followups
           retention-days: 7

@@ -169,15 +169,18 @@ export function getServerSideProps({
           ? query.reviewBrand
           : "",
       longInvoice: query.longInvoice === "1",
+      legacyCurrency: query.legacyCurrency === "1",
     },
   };
 }
 export default function DocumentFixture({
   reviewBrand = "",
   longInvoice = false,
+  legacyCurrency = false,
 }: {
   reviewBrand?: string;
   longInvoice?: boolean;
+  legacyCurrency?: boolean;
 }) {
   const [handoff, setHandoff] = useState<PreparationLink | null>(null);
   useEffect(() => {
@@ -194,8 +197,15 @@ export default function DocumentFixture({
         bankDetails: "Test account only\nIBAN: EXAMPLE FOR LAYOUT REVIEW",
       })
     : brand;
+  const historical = structuredClone(invoice);
+  historical.content.brand = selectedBrand;
+  historical.title = "QA historical KWD invoice";
+  delete historical.content.invoiceCurrencyVersion;
+  historical.content.fields.currency = "KWD";
+  historical.content.fields.tax_rate = "0";
+  historical.content.lines = [{id:"legacy",description:"QA historical amount",quantity:"1.5",unitPrice:"1.23"}];
   const documents = useRef<AgencyDocument[]>(
-      reviewBrand
+      legacyCurrency ? [historical] : reviewBrand
         ? reviewCollection(selectedBrand, longInvoice)
         : [structuredClone(invoice)],
     ),
@@ -334,6 +344,7 @@ export default function DocumentFixture({
           revision: doc.revision + 1,
           updated_at: new Date().toISOString(),
         } as AgencyDocument;
+        window.dispatchEvent(new CustomEvent("qa-document-saved", {detail: structuredClone(saved)}));
         documents.current = [
           saved,
           ...documents.current.filter((item) => item.id !== doc.id),
