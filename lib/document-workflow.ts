@@ -284,6 +284,10 @@ export function documentIssueTarget(
     return { tab: "details", id: "document-field-payment_url" };
   if (issue.includes("currency"))
     return { tab: "details", id: "document-field-currency" };
+  if (issue === "Check the invoice issue date")
+    return { tab: "details", id: "document-field-issue_date" };
+  if (issue === "Check the invoice due date" || issue.startsWith("Due date must"))
+    return { tab: "details", id: "document-field-due_date" };
   if (issue.includes("invoice"))
     return { tab: "details", id: "document-line-items" };
   if (issue.includes("End date"))
