@@ -24,7 +24,7 @@ Apply the reviewed backend gate before the new frontend. An older frontend may b
 
 ## Exact migration manifest
 
-Unapplied migration: `supabase/migrations/20261027063255_invoice_currency_precision_v1.sql`, created using Supabase CLI 2.120.0. Only staging project `ltvmopvarlnidiozvpow` is eligible for this increment. No bulk push, excluded relationship migration, date-migration replay or exact-reader replay.
+Staging-applied migration: `supabase/migrations/20261027071355_invoice_currency_precision_v1.sql`, created using Supabase CLI 2.120.0. Only staging project `ltvmopvarlnidiozvpow` is eligible for this increment. No bulk push, excluded relationship migration, date-migration replay or exact-reader replay.
 
 The new private `invoice_currency_minor_unit_v1(text)` lookup is immutable, strict, security-invoker, empty-search-path and owner-only. All client/service-role execution is revoked. Its source hash is `7a55e13cc590c2bf75c885bab12cadfc`. Four existing bodies are patched only against these exact prerequisites:
 
@@ -37,7 +37,7 @@ The new private `invoice_currency_minor_unit_v1(text)` lookup is immutable, stri
 
 The migration retains each existing OID, owner, ACL, search_path, SECURITY DEFINER/invoker setting and volatility. Repeated exact-source application is a no-op. Unexpected source or security metadata fails the transaction. The snapshot adds only numeric version 1 on invoice output; non-invoice and historical DTOs retain their prior shape. No table, policy, RLS, schema exposure, public API signature, provider, schedule, secret, configuration or existing data changes.
 
-Staging preflight independently confirms writer OID 30640, snapshot 30639, exact reader 31991, public opener 30644 and all prerequisite hashes/security metadata. Validation helper hash `6ed11eb9dac5b33fe4187168024c1937`, document-table grants/RLS/policies and fresh original-data/advisor baselines are retained in private evidence. Do not apply until local validation, inspection and publication finish. If the service records a different ledger timestamp, align only the filename/test reference with identical SQL; do not replay SQL or alter the ledger.
+Staging preflight independently confirms writer OID 30640, snapshot 30639, exact reader 31991, public opener 30644 and all prerequisite hashes/security metadata. Validation helper hash `6ed11eb9dac5b33fe4187168024c1937`, document-table grants/RLS/policies and fresh original-data/advisor baselines are retained in private evidence. The exact migration is applied once to staging, recorded as 20261027071355 / invoice_currency_precision_v1. The CLI originally created 20261027063255; this filename/test alignment preserves identical SQL without replay or ledger rewrite. If the service records a different ledger timestamp, align only the filename/test reference with identical SQL; do not replay SQL or alter the ledger.
 
 ## Validation and remaining acceptance
 
@@ -50,3 +50,12 @@ After local completion/publication, apply only this migration to staging, verify
 Accept one labelled synthetic invoice through the actual owner UI, precise correction/save/reopen/real exports and normal archive. No hosted sent/paid event, real bank detail, obligation, recipient link, payment-URL visit or external send. Retain its archive audit and compare every original projection excluding only that exact new canary/dependencies. Historical provider/club/staff/physical-device/independent-agency and production acceptance remain open. Northstar/Atlas are technical fixtures. Continue DOC-05's sourced club-facing scouting journey only after this boundary; the whole programme remains active.
 
 Private evidence: `/tmp/redream-platform-programme/invoice-currency/`.
+
+
+## Staging backend acceptance
+
+Only `invoice_currency_precision_v1` is applied, version 20261027071355. All four expected body hashes, existing OIDs/owner/ACL/search_path/security/volatility and unchanged validation/table/RLS/policies match. The new lookup is OID 32019, postgres owner, hash 7a55e13cc590c2bf75c885bab12cadfc, immutable/strict/invoker/empty-search-path with owner-only execute; anon/authenticated/service_role execute are all false.
+
+The exact fully rolled-back staging canary passes four scales, server default/immutable format, invalid prices/no extra event, cached-client save/list/read/action denial, paid lock, historical manual amount, foreign/nonmember and actual anon/token-reader boundaries. Its synthetic historical row and all temporary documents/tokens/events roll back. All nine business, four related and three document projections match the fresh baseline. Security/performance finding sets match after stripping only observed_at timestamps. Existing security findings remain open; this is not a whole-database or security-backlog-clear assertion. Evidence: backend-before.json/backend-final.json.
+
+After identical-SQL filename alignment, all 48 focused model/database/save-recovery tests and final all-project TypeScript pass. No frontend promotion or hosted normal invoice canary is counted yet. Publish the necessary actual-version alignment, retain final-source CI, stage that exact pushed frontend and complete the owner QA/export/archive acceptance described above. Production remains untouched.

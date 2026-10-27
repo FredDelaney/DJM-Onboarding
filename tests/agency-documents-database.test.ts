@@ -114,7 +114,7 @@ before(async () => {
   await db.exec(readFileSync("supabase/migrations/20261027060256_invoice_date_review_guard.sql", "utf8"));
   dateStageWriterDefinition = (await db.query<{definition:string}>("select pg_get_functiondef('public.redream_documents(text,text,uuid,integer,jsonb)'::regprocedure) definition")).rows[0].definition;
   precedingCatalog = (await catalog()).rows;
-  await db.exec(readFileSync("supabase/migrations/20261027063255_invoice_currency_precision_v1.sql", "utf8"));
+  await db.exec(readFileSync("supabase/migrations/20261027071355_invoice_currency_precision_v1.sql", "utf8"));
   await db.query("insert into auth.users values($1),($2),($3)", [
     owner,
     otherOwner,
@@ -602,7 +602,7 @@ test("new invoice saves default and preserve their monetary format; stale client
 test("currency migration preserves existing identities/security metadata, repeats safely and rolls back source drift", async () => {
   await db.exec("reset role");const current=(await catalog()).rows;
   assert.deepEqual(current.map(({hash,...row})=>row),precedingCatalog.map(({hash,...row})=>row));
-  const migration=readFileSync("supabase/migrations/20261027063255_invoice_currency_precision_v1.sql","utf8");
+  const migration=readFileSync("supabase/migrations/20261027071355_invoice_currency_precision_v1.sql","utf8");
   await db.exec(migration);assert.deepEqual((await catalog()).rows,current);
   for(const signature of ["public.redream_documents(text,text,uuid,integer,jsonb)","private.document_studio_snapshot(public.agency_documents)","public.redream_document_read(text,uuid)","public.redream_document_open(text,text)","private.invoice_currency_minor_unit_v1(text)"]) {
     await db.exec("begin");
