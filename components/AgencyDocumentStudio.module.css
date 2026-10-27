@@ -1476,8 +1476,8 @@ details.fieldGroup .formField {
 .studio .dialog header > button {
   border: 0;
   padding: 4px;
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   background: transparent;
 }
 .dialog p {

@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   // Keep fontSize beside lineHeight: this renderer resolves line spacing before
   // inheriting the Page's smaller font, otherwise it uses its 18pt default.
   body: { fontSize: 10.5, marginBottom: 8, lineHeight: 1.45 },
-  reportBody: { fontSize: 10.5, marginBottom: 6, lineHeight: 1.4 },
+  reportBody: { fontSize: 10.5, marginBottom: 4, lineHeight: 1.4 },
   footer: {
     position: "absolute",
     bottom: 25,
@@ -167,7 +167,6 @@ export default function AgencyDocumentPdf({
   const { content, kind } = doc,
     { brand } = content,
     totals = invoiceTotals(content),
-    currency = content.fields.currency || "EUR",
     theme = documentTheme(brand),
     primary = theme.primary,
     brief = documentBrief(doc),
@@ -323,7 +322,7 @@ export default function AgencyDocumentPdf({
                 styles.title,
                 { color: primary },
                 kind === "scouting_report"
-                  ? { fontSize: 28, marginBottom: 14 }
+                  ? { fontSize: 28, marginBottom: 10 }
                   : {},
               ]}
               hyphenationCallback={keepWordWhole}
@@ -382,11 +381,11 @@ export default function AgencyDocumentPdf({
                     {line.quantity}
                   </Text>
                   <Text style={styles.cell}>
-                    {documentPrice(line.unitPrice, currency)}
+                    {documentPrice(line.unitPrice, content)}
                   </Text>
                   <Text style={styles.cell}>
                     {totals.valid
-                      ? documentMoney(totals.amounts[index], currency)
+                      ? documentMoney(totals.amounts[index], content)
                       : "[amount]"}
                   </Text>
                 </View>
@@ -395,15 +394,15 @@ export default function AgencyDocumentPdf({
             <Text style={styles.body}>
               Subtotal{" "}
               {totals.valid
-                ? documentMoney(totals.subtotal, currency)
+                ? documentMoney(totals.subtotal, content)
                 : "[amount]"}{" "}
               · Tax ({content.fields.tax_rate || "0"}%){" "}
-              {totals.valid ? documentMoney(totals.tax, currency) : "[amount]"}
+              {totals.valid ? documentMoney(totals.tax, content) : "[amount]"}
             </Text>
             <Text style={[styles.total, { color: primary }]}>
               Total due{" "}
               {totals.valid
-                ? documentMoney(totals.total, currency)
+                ? documentMoney(totals.total, content)
                 : "[complete line items]"}
             </Text>
           </View>
@@ -427,7 +426,7 @@ export default function AgencyDocumentPdf({
                 style={[
                   isPitch ? styles.pitchHeading : styles.heading,
                   kind === "scouting_report"
-                    ? { marginTop: 8, marginBottom: 4, fontSize: 13 }
+                    ? { marginTop: 6, marginBottom: 4, fontSize: 13 }
                     : {},
                   { color: primary },
                 ]}
@@ -499,10 +498,10 @@ export default function AgencyDocumentPdf({
               style={[
                 styles.heading,
                 kind === "scouting_report"
-                  ? { fontSize: 13, marginTop: 8, marginBottom: 4 }
+                  ? { fontSize: 13, marginTop: 6, marginBottom: 4 }
                   : {},
               ]}
-              minPresenceAhead={35}
+              minPresenceAhead={kind === "scouting_report" ? 24 : 35}
             >
               Sources
             </Text>

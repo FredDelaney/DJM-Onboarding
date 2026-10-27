@@ -12,6 +12,10 @@ export async function platformRpc<T = any>(
   return measureOperation('rpc', name, async () => {
     const request = supabase.rpc(name as any, args as any);
     if (workspaceSlug != null) request.setHeader('x-redream-workspace', workspaceSlug);
+    // Per-request compatibility signal, never an authorisation credential.
+    if (['redream_documents', 'redream_document_read', 'redream_document_open'].includes(name)) {
+      request.setHeader('x-redream-invoice-currency', '1');
+    }
     if (signal) request.abortSignal(signal);
     const { data, error } = await request;
 

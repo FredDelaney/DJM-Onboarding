@@ -243,11 +243,14 @@ export function updateDocumentField(
       fields.reference === doc.content.fields.invoice_number)
   )
     fields.reference = value;
+  const content = { ...doc.content, fields, reviewed: false };
+  if (doc.kind === "scouting_report" && key === "player_name" && value.trim())
+    delete content.scoutingTemplateVersion;
   return {
     ...doc,
     title,
     status: "draft",
-    content: { ...doc.content, fields, reviewed: false },
+    content,
   };
 }
 
@@ -282,6 +285,8 @@ export function documentIssueTarget(
     return { tab: "details", id: "document-bank-details" };
   if (issue.includes("payment link"))
     return { tab: "details", id: "document-field-payment_url" };
+  if (issue === "Duplicate this invoice to use current currency precision")
+    return { tab: "review", id: "document-duplicate" };
   if (issue.includes("currency"))
     return { tab: "details", id: "document-field-currency" };
   if (issue === "Check the invoice issue date")
