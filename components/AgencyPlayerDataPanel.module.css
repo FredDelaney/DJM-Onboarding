@@ -68,3 +68,15 @@
 .history[open] { display: grid; gap: 14px; }
 .history summary { font-size: 14px; font-weight: 500; }
 .customStats { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 13px; color: #6e6e73; }
+
+/* An in-place decision, with evidence visible beside the existing editor. */
+.review{display:grid;gap:14px;border-top:1px solid #e5e5e7;padding-top:18px;min-width:0}
+.reviewContext{margin:0;font-size:13px;line-height:1.5;color:#485b6c;overflow-wrap:anywhere}
+.comparison{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;font-variant-numeric:tabular-nums}
+.comparison caption{text-align:left;font-size:12px;color:#6e6e73;padding:0 0 10px}
+.comparison th,.comparison td{padding:11px 8px;border-bottom:1px solid #e5e5e7;text-align:right;overflow-wrap:anywhere}
+.comparison th:first-child{text-align:left;width:32%}.comparison thead th{font-size:12px;font-weight:500;color:#6e6e73}
+.comparison tbody th{font-weight:500}.comparison tr[data-changed] td:last-child{font-weight:700;color:var(--profile-primary,#244b6f);background:#f5f5f7}
+.reviewSources{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;line-height:1.6;color:#6e6e73}
+.reviewSources a{display:inline-flex;gap:5px;align-items:center;min-height:44px;color:var(--profile-primary,#244b6f);font-weight:600;overflow-wrap:anywhere}
+.reviewSources span{width:100%}.fields input[readonly]{background:#f5f5f7;color:#637082}

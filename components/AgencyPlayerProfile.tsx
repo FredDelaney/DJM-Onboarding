@@ -1134,6 +1134,7 @@ export default function AgencyPlayerProfile({
     if (!current()) return false;
     setStatisticsStatusVersion(value => value + 1);
     if (['queued', 'running'].includes(String(job.status))) setNotice('Statistics are still updating. This draft uses the recorded evidence available now.');
+    else if (job.status === 'needs_review') setNotice('New statistics are ready for review below. This draft uses the recorded figures until you accept them.');
     else if (job.status === 'failed') setNotice('Statistics could not refresh. This draft uses the recorded evidence available now.');
     else if (await load(true, true) === false) throw new Error('Statistics were checked, but the player record could not reload. Try again.');
     return current();

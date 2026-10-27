@@ -127,3 +127,23 @@ test('club reads cannot expose unpublished or unverified player data',async()=>{
  published=false;assert.equal((await (await read()).json()).data,null);
  published=true;player.verification_status='reviewing';assert.equal((await (await read()).json()).data,null);
 });
+
+test('pending research is recorded as needs_review with no applied fields or freshness',async()=>{
+ globalThis.fetch=async(_url,options)=>{assert.equal(JSON.parse(String(options?.body)).review_request_id,job.id);return new Response(JSON.stringify({refresh_ok:true,ai:{review_id:'review',review_status:'needs_review',proposed_fields:['appearances']}}));};
+ await handler.fetch(request());await Promise.all(background);
+ const final=writes.find(write=>write.value.status==='needs_review');assert.ok(final);assert.equal(final.value.fresh_at,null);assert.deepEqual(final.value.summary.changed_fields,[]);
+});
+test('review actions use the trusted actor and tenant, with no caller actor override',async()=>{
+ const r=await handler.fetch(request('player_data_review',{review_id:'review',decision:'edit',values:{goals:0},actor_user_id:'spoofed',p_tenant_id:'spoofed'}));assert.equal(r.status,200);
+ const call=calls.find(c=>c.name==='platform_server_review_player_stats');assert.equal(call.args.p_actor_user_id,'actor');assert.equal(call.args.p_tenant_id,'tenant');assert.equal(call.args.p_review_id,'review');assert.deepEqual(call.args.p_values,{goals:0});
+});
+test('scouts cannot receive pending proposals or submit decisions',async()=>{
+ role='scout';assert.equal((await handler.fetch(request('player_data_review',{review_id:'review',decision:'accept'}))).status,403);
+ const r=await handler.fetch(request('player_data_status'));assert.equal((await r.json()).review,null);assert.ok(!calls.some(c=>c.name==='platform_server_player_stats_review_status'||c.name==='platform_server_review_player_stats'));
+});
+
+test('repeat rejected evidence is retained as rejected with no freshness claim',async()=>{
+ globalThis.fetch=async()=>new Response(JSON.stringify({refresh_ok:true,ai:{review_id:'review',review_status:'rejected'}}));
+ await handler.fetch(request());await Promise.all(background);
+ const final=writes.find(write=>write.value.status==='rejected');assert.ok(final);assert.equal(final.value.fresh_at,null);assert.deepEqual(final.value.summary.changed_fields,[]);
+});
