@@ -1,6 +1,6 @@
 # ReDream platform programme: first delivery manifest
 
-Status: prepared locally; production unchanged. The full programme remains tracked in `docs/exec-plans/active/redream-platform-programme.md`.
+Status: both migrations applied and canary-validated on staging; production unchanged. The full programme remains tracked in `docs/exec-plans/active/redream-platform-programme.md`.
 
 ## Frontend scope
 
@@ -35,4 +35,12 @@ The second migration replaces only the four verified global-team policies on `dj
 
 Capture the actual function definition, policy definitions, ACLs and current release deployment before rollout. Restore reviewed function/policy definitions if the release regresses; preserve every observation, queued review and migration history entry. Do not restore a broad browser policy as an automatic rollback: restoring the previous global-team policy reopens the reproduced source-data exposure and requires a deliberate security decision.
 
-Nine focused PostgreSQL regressions cover the original failure and scoped repair. The remaining platform security findings, broader source ingestion contracts, physical-device testing and independent-agency acceptance remain in the master plan.
+Nine focused PostgreSQL regressions cover the original failure and scoped repair. Their membership fixtures now enforce the canonical role/status checks and use suspended/ended memberships and actual player roles, rather than unsupported viewer/revoked literals. The remaining platform security findings, broader source ingestion contracts, physical-device testing and independent-agency acceptance remain in the master plan.
+
+## Staging result, 23 October 2026
+
+The two exact migration sources are installed with canonical versions `20261023142549` and `20261023142943`. MCP initially generates its own ledger timestamp; each row was normalized only after exact name, one-statement content hash and canonical-version absence checks. No historical entry was replayed or overwritten.
+
+The real hosted canary in `sql/redream-programme-staging-acceptance.sql` passed correct two-agency person/prospect routing, repeat-call deduplication, unresolved-subject retention, unchanged source evidence, same-agency RLS CRUD, foreign insert/reassignment denial, independent staff without global team status, player/ended-membership denial and server-only execute. All test writes were rolled back. Before/after hashes of observations, reviews, branding, grants and cron jobs match, with zero synthetic tenants left. The new queue body MD5 is `e1116b5f9c28b0066bcbe58f29cc8bf6`; execute remains owner/service-role only.
+
+Staging has no change-review cron schedule. No schedule was added: this validates direct execution of the actual repaired function, not a scheduled staging run. Production cron execution remains a separate release/acceptance gate. Security and performance findings are unchanged after excluding their observation timestamps; existing findings remain open.

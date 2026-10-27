@@ -38,6 +38,10 @@ before(async () => {
     create table platform.tenants(id uuid primary key,status text);
     create table platform.tenant_memberships(tenant_id uuid,user_id uuid,status text,role text,is_primary boolean);
     grant usage on schema djm_os,auth,private,platform to anon,authenticated,service_role;`);
+  const membershipChecks = read('20260904133549_create_tenants_and_memberships.sql')
+    .match(/constraint tenant_memberships_(?:role|status)_check\s+check \([^\n]+\)/g);
+  assert.equal(membershipChecks?.length, 2);
+  for (const check of membershipChecks!) await db.exec('alter table platform.tenant_memberships add '+check);
   for (const table of ['public.players', ...['people','organisations','relationships','team_members','scouting_prospects','review_items','change_observations'].map(name => 'djm_os.' + name)]) {
     const ddl = schema.match(new RegExp(`create table ${table.replace('.', '\\.')} \\([\\s\\S]*?\\n\\);`));
     assert.ok(ddl, table);
@@ -60,9 +64,9 @@ before(async () => {
   await db.query("insert into platform.tenants values ($1,'active'),($2,'active')", [a,b]);
   await db.query(`insert into platform.tenant_memberships values
     ($1,$3,'active','agent',true),($2,$3,'active','agent',false),
-    ($1,$4,'active','agent',true),($2,$5,'revoked','agent',false),
+    ($1,$4,'active','agent',true),($2,$5,'suspended','agent',false),
     ($2,$6,'active','agent',false),($2,$7,'active','player',false),
-    ($2,$8,'active','admin',true),($2,$9,'active','viewer',true)`, [a,b,...[1,2,3,4,5,6,7].map(member)]);
+    ($2,$8,'active','admin',true),($2,$9,'active','player',true)`, [a,b,...[1,2,3,4,5,6,7].map(member)]);
   for (let i = 1; i <= 5; i++) await db.query('insert into djm_os.team_members(user_id,display_name,is_active) values ($1,$2,$3)', [member(i),'Synthetic member '+i,i!==4]);
   await db.query("insert into djm_os.people(id,tenant_id,full_name) values ($1,$3,'Same Name'),($2,$4,'Same Name'),($5,$4,'Unowned Contact')", [entity(1),entity(2),a,b,entity(6)]);
   await db.query("insert into djm_os.organisations(id,tenant_id,name,organisation_type) values ($1,$2,'Synthetic FC','club')", [entity(3),a]);
@@ -187,7 +191,7 @@ test('reproduces and closes the legacy global-team observation read/write bounda
   } finally { await db.exec('reset role'); }
 });
 
-test('independent-agency staff work without legacy DJM membership; revoked and read-only users stay denied', async () => {
+test('independent-agency staff work without legacy DJM membership; ended memberships and players stay denied', async () => {
   await observation('prospect',entity(5));
   await db.query("select set_config('test.user',$1,false)",[member(6)]);
   await db.exec('set role authenticated');
@@ -197,7 +201,7 @@ test('independent-agency staff work without legacy DJM membership; revoked and r
     await observation('player',entity(4));
     await assert.rejects(observation('person',entity(1)),(error:any)=>error.code==='42501');
   } finally { await db.exec('reset role'); }
-  await db.query("update platform.tenant_memberships set status='revoked' where user_id=$1",[member(6)]);
+  await db.query("update platform.tenant_memberships set status='ended' where user_id=$1",[member(6)]);
   for (const user of [member(6),member(7)]) {
     await db.query("select set_config('test.user',$1,false)",[user]);
     await db.exec('set role authenticated');

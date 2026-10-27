@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { withProfileStatEvidence } from "../_shared/profile-stat-evidence.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { visiblePublicPlayerProfile, publicProfileSectionHidden } from "../_shared/public-profile-visibility.ts";
 import { selectCurrentSeasonEvidence, safeSourceUrl } from "../_shared/football-data/player-data-workflow.ts";
@@ -22,8 +23,9 @@ function currentStats(career:any[],player:any,latestCheck:any){
   const rowChecked=row.source_reviewed_at||row.source_synced_at||null;
   const latest=latestCheck?.source_url&&latestCheck.source_url===row.source_url?latestCheck.fresh_at:null;
   const checkedAt=[rowChecked,latest].filter(Boolean).sort((a,b)=>Date.parse(String(b))-Date.parse(String(a)))[0]||null;
-  return{stats,meta:{season_label:row.season_label||null,club_name:row.club_name||null,league:row.league||null,
-    source_name:row.source_name||null,source_url:safeSourceUrl(row.source_url),checked_at:checkedAt}};
+  const meta={season_label:row.season_label||null,club_name:row.club_name||null,league:row.league||null,
+    provider:row.source_provider||null,source_name:row.source_name||null,source_url:safeSourceUrl(row.source_url),checked_at:checkedAt};
+  return{stats:stats.map(stat=>withProfileStatEvidence(stat,meta)),meta};
 }
 
 Deno.serve(async(req:Request)=>{
