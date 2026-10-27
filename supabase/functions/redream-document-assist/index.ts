@@ -73,7 +73,7 @@ export default {
             : estimate,
         p_actual_cost_micros: null,
         p_latency_ms: Math.round(performance.now() - started),
-        p_prompt_version: "document_assist_v1",
+        p_prompt_version: "document_assist_v2",
         p_source_fingerprint: null,
         p_external_request_id: requestId,
         p_idempotency_key: requestId,

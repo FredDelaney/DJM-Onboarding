@@ -59,6 +59,7 @@ jobs:
           path: |
             /tmp/platform-polish-screenshots
             /tmp/platform-polish-report.json
+            /tmp/redream-document-qa
             /tmp/redream-platform-programme/roster
             /tmp/redream-platform-programme/home
             /tmp/redream-platform-programme/club-stats

@@ -286,6 +286,10 @@ export default function DocumentFixture({
         }
         if (scenario === "assist-slow")
           await new Promise((resolve) => setTimeout(resolve, 900));
+        if (scenario === "assist-identity-mismatch" && !failed.current) {
+          failed.current = true;
+          return { suggestions: { fields: [{ key: "player_name", value: "Invented Prospect", quote: "Milo Carter" }], sections: [], questions: [] } } as any;
+        }
         return {
           suggestions: {
             fields: [

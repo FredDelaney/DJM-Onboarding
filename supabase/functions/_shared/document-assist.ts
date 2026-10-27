@@ -60,6 +60,22 @@ const object = (value: unknown): Record<string, unknown> =>
     : {};
 const text = (value: unknown, max: number) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";
+const identityFields = new Set([
+  "player_name", "player_club", "agent_name", "agent_licence",
+  "principal_name", "recipient_name", "recipient_email",
+]);
+// A supporting quote must contain the proposed identity, not merely exist in the brief.
+// This is literal grounding, not verification of the person, club or claim.
+function quotedIdentity(key: string, value: string, quote: string): boolean {
+  const normal = (input: string) => input.normalize("NFKC")
+    .replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"')
+    .replace(/\s+/g, " ").toLowerCase();
+  const literal = normal(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const token = "\\p{L}\\p{M}\\p{N}" + (key === "recipient_email" ? "._%+@-" : key === "agent_licence" ? "._/-" : "");
+  const end = key === "recipient_email" || key === "agent_licence"
+    ? `(?=$|[^${token}]|\\.(?=\\s|$))` : `(?=$|[^${token}])`;
+  return new RegExp(`(^|[^${token}])${literal}${end}`, "u").test(normal(quote));
+}
 export function documentAssistInput(value: unknown): AssistInput {
   const data = object(value);
   if (typeof data.kind !== "string" || !Object.hasOwn(assistFields, data.kind))
@@ -108,6 +124,7 @@ export const documentAssistInstructions = [
   "A named player may be an unsigned prospect. Never imply existing agency representation unless explicitly established by the brief.",
   "For each field suggestion quote the exact supporting words from notes in quote. Omit unsupported fields and do not repeat unchanged fields. Normalize explicitly supplied dates to YYYY-MM-DD; ask about ambiguous dates.",
   "Use only the exact field keys in allowed_field_keys. Do not invent, rename or translate a key. A field's supporting quote must be copied verbatim from notes, including capitalisation and punctuation.",
+  "Copy names, club names, agent licences and email addresses from their supporting quote. Do not expand abbreviations or invent an identity. Case, whitespace and quote typography may be adjusted without changing the identity.",
   "For contracts, mandates and invoices suggest allowed fields only. Never rewrite their clauses, terms, tax treatment, invoice lines, bank instructions or payment links. Do not offer legal advice.",
   "For a pitch or scouting report, draft only the supplied sections. Preserve their IDs. Use brief, plain paragraphs with useful line breaks and specific headings supplied in the input. No markdown, HTML, hype or invented claims.",
   "For reports, retain source context, observation date and uncertainty; distinguish observed facts from interpretation. Do not turn an internal negotiation, medical or private note into recipient-facing wording. Ask if safe wording needs more evidence.",
@@ -190,7 +207,8 @@ export function validateDocumentSuggestions(
       !(assistFields[input.kind] as readonly string[]).includes(key) ||
       !value ||
       quote.length < 3 ||
-      !input.notes.includes(quote)
+      !input.notes.includes(quote) ||
+      (identityFields.has(key) && !quotedIdentity(key, value, quote))
     )
       throw new Error("Unsupported field suggestion");
     if (/(?:_date|_dob)$/.test(key)) {
@@ -202,7 +220,7 @@ export function validateDocumentSuggestions(
       )
         throw new Error("Invalid date suggestion");
     }
-    return { key, value: value.replaceAll("\u2014", ","), quote };
+    return { key, value: identityFields.has(key) ? value : value.replaceAll("\u2014", ","), quote };
   });
   const sections = data.sections.map((item) => {
     const section = object(item),
