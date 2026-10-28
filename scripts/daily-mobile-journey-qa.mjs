@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-export async function verifyInPlaceCaptureCompletion(page, url, mobile = true) {
+export async function verifyInPlaceCaptureCompletion(page, url, mobile = true, userId) {
+  assert.ok(userId, 'Receipt-resume fixtures require their authenticated actor');
   await page.goto(url);
   const nav = page.getByRole("navigation", {
     name: "Mobile workspace",
@@ -16,17 +17,18 @@ export async function verifyInPlaceCaptureCompletion(page, url, mobile = true) {
     0,
     "The unsaved follow-up is absent from Today",
   );
-  await page.evaluate(() =>
+  await page.evaluate(actor =>
     localStorage.setItem(
       "redream-ai-active-captures",
       JSON.stringify([
         {
           captureId: "00000000-0000-4000-8000-000000000092",
+          userId: actor,
           workspaceSlug: "qa-platform-polish",
           createdAt: new Date().toISOString(),
         },
       ]),
-    ),
+    ),userId,
   );
   const trigger = mobile ? nav.getByRole("button", { name: "Tell ReDream", exact: true }) : page.locator('header').getByRole("button", { name: "Tell ReDream", exact: true });
   await trigger.click();
@@ -49,7 +51,8 @@ export async function verifyInPlaceCaptureCompletion(page, url, mobile = true) {
     "Approval refreshes Today without a navigation round-trip",
   );
 }
-export async function verifyDailyMobileNavigation(page) {
+export async function verifyDailyMobileNavigation(page, userId) {
+  assert.ok(userId, 'Receipt-resume fixtures require their authenticated actor');
   const nav = page.getByRole("navigation", {
     name: "Mobile workspace",
     exact: true,
@@ -187,18 +190,19 @@ export async function verifyDailyMobileNavigation(page) {
     true,
     "Capture restores focus",
   );
-  await page.evaluate(() => {
+  await page.evaluate(actor => {
     localStorage.setItem(
       "redream-ai-active-captures",
       JSON.stringify([
         {
           captureId: "00000000-0000-4000-8000-000000000092",
+          userId: actor,
           workspaceSlug: "qa-platform-polish",
           createdAt: new Date().toISOString(),
         },
       ]),
     );
-  });
+  },userId);
   await nav.getByRole("button", { name: "Tell ReDream", exact: true }).click();
   await capture
     .getByRole("button", { name: "Delete this update", exact: true })

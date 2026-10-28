@@ -68,3 +68,12 @@
   .feedback { padding-right: 16px; padding-left: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+.retainedDraft { min-width:0; }
+.retainedDraft summary { cursor:pointer; min-height:44px; display:flex; align-items:center; font-size:14px; }
+.retainedDraft summary::before { content:'+'; margin-right:10px; }
+.retainedDraft[open] summary::before { content:'−'; }
+.retainedDraft summary:focus-visible { outline:2px solid var(--agency-primary,#0071e3); outline-offset:2px; }
+.retainedDraft dl { margin:0; display:grid; gap:12px; }
+.retainedDraft dt { font-size:12px; color:var(--interface-muted,#64748b); }
+.retainedDraft dd { margin:4px 0 0; font-size:14px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; }
+.recoveryCopy { margin:0; font-size:13px; line-height:1.5; color:var(--interface-muted,#64748b); }

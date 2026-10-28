@@ -33,3 +33,19 @@ test('a stalled read expires once and a late result cannot turn it into success'
  resolve('late result');await request;
  await assert.rejects(bounded,/The request took too long/);
 });
+test('owner cancellation releases a stalled read and its timer without accepting a late result',async t=>{
+ const original=globalThis.clearTimeout,cleared:unknown[]=[];
+ t.mock.method(globalThis,'clearTimeout',(timer:ReturnType<typeof setTimeout>)=>{cleared.push(timer);original(timer);});
+ const controller=new AbortController();let complete!:(value:string)=>void;
+ const request=new Promise<string>(resolve=>{complete=resolve;});
+ const result=readWithDeadline(request,12000,controller.signal);controller.abort();
+ await assert.rejects(result,error=>error instanceof DOMException&&error.name==='AbortError');
+ assert.equal(cleared.length,1);assert.ok(cleared[0]);complete('Late');
+ await assert.rejects(result,{name:'AbortError'});
+});
+test('an already cancelled read never installs a new deadline',async t=>{
+ const set=t.mock.method(globalThis,'setTimeout');const controller=new AbortController();controller.abort();
+ await assert.rejects(readWithDeadline(Promise.resolve('Done'),12000,controller.signal),{name:'AbortError'});
+ await assert.rejects(readWithDeadline(Promise.reject(new Error('Old read failed')),12000,controller.signal),{name:'AbortError'});
+ assert.equal(set.mock.callCount(),0);
+});

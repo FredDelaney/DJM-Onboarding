@@ -781,6 +781,7 @@ export default function AgencyNetworkWorkspace({
                     </p>
                   </div>
                   {!restricted ? <EntityActionsMenu
+                    scope={stateScope}
                     kind="club"
                     entityId={String(club?.organisation_id || '')}
                     label={clubName}
@@ -1042,6 +1043,7 @@ export default function AgencyNetworkWorkspace({
                     </p>
                   </div>
                   {!restricted ? <EntityActionsMenu
+                    scope={stateScope}
                     kind="club_contact"
                     entityId={personId(item)}
                     label={fullName}

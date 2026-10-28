@@ -13,10 +13,11 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { friendlyError } from '@/lib/platform-client';
 import { changedEntityFields } from '@/lib/entity-edit-draft';
 import {emptyClubNeedBrief, validateClubNeedBrief} from '@/lib/club-need-brief';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
+import {readWithDeadline} from '@/lib/read-with-deadline';
+import {confirmsEntityAction,isDefinitiveEntityDenial,entityActionErrorMessage} from '@/lib/entity-action-result';
 import AgencyRecordSelect,{type AgencyRecordLookup,type AgencyLookupKind} from './AgencyRecordSelect';
 import styles from './EntityActionsMenu.module.css';
 import JourneyStatus from './JourneyStatus';
@@ -44,6 +45,7 @@ export type EntityEditField = {
 type Rpc = <T,>(
   name: string,
   args?: Record<string, unknown>,
+  signal?: AbortSignal,
 ) => Promise<T>;
 type Props = {
   kind: EntityActionKind;
@@ -51,7 +53,8 @@ type Props = {
   label: string;
   rpc: Rpc;
   fields: EntityEditField[];
-  onChanged: (change: EntityChange) => Promise<void> | void;
+  onChanged: (change: EntityChange, signal?: AbortSignal) => Promise<void> | void;
+  scope?: string;
   className?: string;
   showEdit?: boolean;
   versionedEdit?: boolean;
@@ -74,7 +77,11 @@ const impactEntries = (value: unknown) =>
     return Boolean(count);
   });
 
-export default function EntityActionsMenu({
+export default function EntityActionsMenu(props:Props){
+  return <EntityActionsPanel key={`${props.scope||''}:${props.kind}:${props.entityId}`} {...props}/>;
+}
+
+function EntityActionsPanel({
   kind,
   entityId,
   label,
@@ -100,13 +107,20 @@ export default function EntityActionsMenu({
   const [checking, setChecking] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [savedChange, setSavedChange] = useState<EntityChange | null>(null);
-  const [uncertainEdit,setUncertainEdit]=useState(false);
+  const [uncertainChange,setUncertainChange]=useState<EntityChange|null>(null);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<any>(null);
   const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
   const dialog=useRef<HTMLElement>(null), mutation=useRef(false), previewRequest=useRef(0);
+  const lifetime=useRef<AbortController|null>(null),previewAbort=useRef<AbortController|null>(null);
+  if(!lifetime.current)lifetime.current=new AbortController();
+  const current=(request:number)=>!lifetime.current?.signal.aborted&&previewRequest.current===request;
+  useEffect(()=>{
+    if(lifetime.current?.signal.aborted)lifetime.current=new AbortController();
+    return()=>{lifetime.current?.abort();previewAbort.current?.abort();previewRequest.current++;};
+  },[]);
   const patch = changedEntityFields(editFields, draft);
-  const dirty = mode === 'edit' && Object.keys(patch).length > 0 && !savedChange && !uncertainEdit;
+  const dirty = mode === 'edit' && Object.keys(patch).length > 0 && !savedChange;
   const isOpen = Boolean(mode);
   useEffect(()=>{
     if(!isOpen)return;
@@ -115,7 +129,10 @@ export default function EntityActionsMenu({
     const releaseBackground = isolateElements(siblings);
     const update=()=>{const view=window.visualViewport;if(view)setViewport({top:view.offsetTop,height:view.height});};
     update();window.visualViewport?.addEventListener('resize',update);window.visualViewport?.addEventListener('scroll',update);
-    return()=>{previewRequest.current++;releaseBackground();releaseScroll();window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);if(previous?.isConnected)previous.focus();};
+    return()=>{previewRequest.current++;previewAbort.current?.abort();releaseBackground();releaseScroll();window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);requestAnimationFrame(()=>{
+      const focused=document.activeElement;
+      if(!lifetime.current?.signal.aborted&&previous?.isConnected&&!document.querySelector('[aria-modal="true"]')&&(!focused||focused===document.body||focused===document.documentElement))previous.focus({preventScroll:true});
+    });};
   },[isOpen]);
   useEffect(()=>{if(mode)dialog.current?.querySelector<HTMLElement>(mode==='edit'?'input,textarea,select':'button')?.focus();},[mode]);
 
@@ -125,35 +142,44 @@ export default function EntityActionsMenu({
   ) => {
     event?.preventDefault();
     event?.stopPropagation();
+    if(mutation.current)return;
+    setBusy(false);
     setError('');
     setPreview(null);
     setChecking(false);
     setSavedChange(null);
-    setUncertainEdit(false);
+    setUncertainChange(null);
     setEditSections([]);
     setDiscardOpen(false);
-    const request = ++previewRequest.current;
+    previewAbort.current?.abort();
+    ++previewRequest.current;
     if (next === 'edit') { setDraft(initialDraft); setEditFields(fields.map(field => ({ ...field }))); }
     setMode(next);
-    if (next === 'delete') {
-      setChecking(true);
-      void rpc<any>('redream_entity_action_preview', {
-        p_entity_type: kind,
-        p_entity_id: entityId,
-      })
-        .then(value => { if (previewRequest.current === request) setPreview(value); })
-        .catch((cause) => { if (previewRequest.current === request) setError(friendlyError(cause)); })
-        .finally(() => { if (previewRequest.current === request) setChecking(false); });
-    }
+    if (next === 'delete') void loadPreview();
+  };
+
+  const loadPreview=async()=>{
+    if(mutation.current)return;
+    previewAbort.current?.abort();const controller=new AbortController();previewAbort.current=controller;
+    const request=++previewRequest.current;setChecking(true);setError('');setPreview(null);
+    try{
+      const value=await readWithDeadline(rpc<any>('redream_entity_action_preview',{p_entity_type:kind,p_entity_id:entityId},controller.signal),12000,controller.signal);
+      if(!current(request))return;
+      if(!value||value.entity_type!==kind||value.entity_id!==entityId||typeof value.can_delete!=='boolean'||value.delete_requires_confirmation!==true||!value.impact||typeof value.impact!=='object'||Array.isArray(value.impact))throw new Error('The safety check could not be confirmed. Please try again.');
+      setPreview(value);
+    }catch(cause){if(current(request))setError(entityActionErrorMessage(cause));}
+    finally{controller.abort();if(current(request))setChecking(false);}
   };
 
   const dismiss = () => {
     previewRequest.current++;
+    previewAbort.current?.abort();
     setError('');
     setPreview(null);
     setChecking(false);
     setDiscardOpen(false);
     setSavedChange(null);
+    setBusy(false);
     setMode(null);
   };
   const close = () => {
@@ -161,32 +187,40 @@ export default function EntityActionsMenu({
     if (dirty) { setDiscardOpen(true); return; }
     dismiss();
   };
-  const finish = async (change: EntityChange) => {
-    try { await onChanged(change); dismiss(); }
-    catch { setError('Your changes are saved, but the list could not refresh. Try refreshing the list or close this panel.'); }
+  const refreshRecord=async(change:EntityChange,request:number)=>{
+    if(!current(request))return;
+    const controller=new AbortController(),owner=lifetime.current!.signal,stop=()=>controller.abort();
+    owner.addEventListener('abort',stop,{once:true});
+    try{await readWithDeadline(Promise.resolve().then(()=>current(request)?onChanged(change,controller.signal):undefined),12000,controller.signal);}
+    finally{owner.removeEventListener('abort',stop);controller.abort();}
+  };
+  const finish = async (change: EntityChange,request:number) => {
+    try { await refreshRecord(change,request);if(current(request))dismiss(); }
+    catch {if(current(request))setError('Your change is saved, but the list could not refresh. Refresh the list or close this panel.');}
   };
   const mutate = async (change: EntityChange, name: string, args: Record<string, unknown>) => {
-    if (mutation.current || savedChange || uncertainEdit) return;
+    if (mutation.current || savedChange || uncertainChange) return;
     mutation.current = true;
     setBusy(true);
     setError('');
+    const request=previewRequest.current;
+    const unconfirmed=()=>{setUncertainChange(change);setError(`Could not confirm the ${change==='edit'?'update':change==='archive'?'archive':'deletion'}. It may still finish. Check the latest details before trying again.`);};
     try {
-      const request=previewRequest.current;
-      const call=()=>rpc(name, { p_entity_type: kind, p_entity_id: entityId, ...args });
-      if(versionedEdit&&change==='edit'){
-        const outcome=await writeWithDeadline(async()=>{try{return {value:await call()};}catch(error){return {error};}},12000);
-        if(previewRequest.current!==request)return;
-        if(outcome.status==='unknown'){setUncertainEdit(true);setError('Could not confirm the update. Close and reopen this request before making more changes.');return;}
-        if('error' in outcome.result)throw outcome.result.error;
-        if((outcome.result.value as any)?.brief_version!==1||(outcome.result.value as any)?.ok!==true){setUncertainEdit(true);setError('Could not confirm the update. Close and reopen this request before making more changes.');return;}
-      }else await call();
+      const outcome=await writeWithDeadline(async signal=>{try{return {value:await rpc(name,{p_entity_type:kind,p_entity_id:entityId,...args},signal)};}catch(error){return {error};}},12000,lifetime.current!.signal);
+      if(!current(request))return;
+      if(outcome.status==='unknown'){unconfirmed();return;}
+      if('error' in outcome.result){
+        if(isDefinitiveEntityDenial(outcome.result.error))throw outcome.result.error;
+        unconfirmed();return;
+      }
+      if(!confirmsEntityAction(outcome.result.value,change,kind,entityId,versionedEdit&&change==='edit')){unconfirmed();return;}
       setSavedChange(change);
-      await finish(change);
+      await finish(change,request);
     } catch (cause) {
-      setError(friendlyError(cause));
+      if(current(request))setError(entityActionErrorMessage(cause));
     } finally {
       mutation.current = false;
-      setBusy(false);
+      if(current(request))setBusy(false);
     }
   };
 
@@ -194,22 +228,24 @@ export default function EntityActionsMenu({
     if (!savedChange || mutation.current) return;
     mutation.current = true;
     setBusy(true);
-    try { await finish(savedChange); }
-    finally { mutation.current = false; setBusy(false); }
+    const request=previewRequest.current;
+    try { await finish(savedChange,request); }
+    finally { mutation.current = false;if(current(request))setBusy(false); }
   };
 
   const saveEdit = async () => {
     if (!Object.keys(patch).length) return;
     if(kind==='club_need' && Object.keys(patch).some(key=>key in emptyClubNeedBrief)){
-      try{validateClubNeedBrief(draft);}catch(cause){setError(friendlyError(cause));return;}
+      try{validateClubNeedBrief(draft);}catch(cause){setError(entityActionErrorMessage(cause));return;}
     }
     await mutate('edit', 'redream_entity_patch', { p_patch: patch });
   };
   const reloadUncertain = async () => {
     if(mutation.current)return;
     mutation.current=true;setBusy(true);
-    try{await onChanged('edit');dismiss();}catch{setError('The request could not reload. Close this panel and try opening it again.');}
-    finally{mutation.current=false;setBusy(false);}
+    const request=previewRequest.current;
+    try{await refreshRecord('edit',request);if(current(request))dismiss();}catch{if(current(request))setError(`The latest details could not load. ${uncertainChange==='edit'?'Your draft is kept. ':''}Close this panel to check the record from its list, or retry the read.`);}
+    finally{mutation.current=false;if(current(request))setBusy(false);}
   };
 
   const renderEditField=(field:EntityEditField)=>field.type==='reference'?<AgencyRecordSelect key={field.key} label={field.label} kind={field.lookupKind||'contact'} value={draft[field.key]||''} disabled={busy} lookup={lookup} onChange={id=>setDraft(current=>({...current,[field.key]:id}))}/>: (
@@ -312,7 +348,7 @@ export default function EntityActionsMenu({
             </header>
 
             {savedChange ? <div className={styles.saved}>
-              <JourneyStatus compact kind="info" title="Changes saved" description={error || 'Refreshing the list...'} onRetry={()=>void refresh()} retryLabel="Refresh list" retryBusy={busy}/>
+              <JourneyStatus compact kind="info" title={savedChange==='edit'?'Changes saved':savedChange==='archive'?'Record archived':'Record deleted'} description={error || 'Refreshing the list...'} onRetry={()=>void refresh()} retryLabel="Refresh list" retryBusy={busy}/>
               <button type="button" className={styles.secondary} onClick={close} disabled={busy}>Close</button>
             </div> : mode === 'menu' ? (
               <div className={styles.menu}>
@@ -335,8 +371,13 @@ export default function EntityActionsMenu({
               </div>
             ) : null}
 
-            {mode === 'edit' && !savedChange && uncertainEdit ? <div className={styles.saved}><JourneyStatus compact kind="error" description={error}/><button type="button" className={styles.secondary} onClick={()=>void reloadUncertain()} disabled={busy}>Reload request</button><button type="button" className={styles.secondary} onClick={dismiss} disabled={busy}>Close</button></div>:null}
-            {mode === 'edit' && !savedChange && !uncertainEdit ? (
+            {uncertainChange&&!savedChange?<div className={styles.saved}>
+              <JourneyStatus compact kind="error" title="Change not confirmed" description={error}/>
+              {uncertainChange==='edit'?<><details className={styles.retainedDraft}><summary>Retained draft</summary><dl>{editFields.filter(field=>field.key in patch).map(field=><div key={field.key}><dt>{field.label}</dt><dd>{draft[field.key]||'Cleared'}</dd></div>)}</dl></details><p className={styles.recoveryCopy}>Reloading opens the latest details and replaces this draft.</p></>:null}
+              <button type="button" className={styles.secondary} onClick={()=>void reloadUncertain()} disabled={busy}>{versionedEdit?'Reload request':'Reload record'}</button>
+              <button type="button" className={styles.secondary} onClick={close} disabled={busy}>Close</button>
+            </div>:null}
+            {mode === 'edit' && !savedChange && !uncertainChange ? (
               <form
                 className={styles.form}
                 onSubmit={(event) => {
@@ -358,7 +399,7 @@ export default function EntityActionsMenu({
                 </div>
               </form>
             ) : null}
-            {mode === 'archive' && !savedChange ? (
+            {mode === 'archive' && !savedChange && !uncertainChange ? (
               <div className={styles.confirm}>
                 <div className={styles.confirmIcon}><Archive size={22} /></div>
                 <h4>Archive this record?</h4>
@@ -376,7 +417,7 @@ export default function EntityActionsMenu({
               </div>
             ) : null}
 
-            {mode === 'delete' && !savedChange ? (
+            {mode === 'delete' && !savedChange && !uncertainChange ? (
               <div className={styles.confirm}>
                 <div className={`${styles.confirmIcon} ${styles.dangerIcon}`}>
                   <AlertTriangle size={22} />
@@ -411,17 +452,17 @@ export default function EntityActionsMenu({
 
                 {preview && preview.can_delete === false ? (
                   <p className={styles.warning}>
-                    Only a workspace owner or admin can permanently delete this record.
+                    This record cannot be permanently deleted. Archive it to retain its history.
                   </p>
                 ) : null}
-                {error ? <JourneyStatus compact kind="error" description={error}/> : null}
+                {error ? <JourneyStatus compact kind="error" description={error} onRetry={!preview?()=>void loadPreview():undefined} retryLabel="Retry safety check" retryBusy={checking}/> : null}
 
                 <div className={styles.actions}>
                   <button type="button" className={styles.secondary} onClick={close} disabled={busy}>Cancel</button>
                   <button
                     type="button"
                     className={styles.danger}
-                    disabled={busy || checking || !preview?.can_delete}
+                    disabled={busy || checking || preview?.can_delete!==true}
                     onClick={() => void mutate('delete', 'redream_entity_delete', { p_confirm: true })}
                   >
                     {busy ? <LoaderCircle size={16} className={styles.spin} /> : <Trash2 size={15} />}
@@ -434,7 +475,7 @@ export default function EntityActionsMenu({
         </div>,
         document.body,
       ) : null}
-      <ConfirmActionDialog open={discardOpen} tone="warning" title="Discard these changes?" description="Your unsaved changes will be lost." confirmLabel="Discard changes" onClose={()=>setDiscardOpen(false)} onConfirm={dismiss}/>
+      <ConfirmActionDialog open={discardOpen} tone="warning" title="Discard these changes?" description={uncertainChange?'Your draft will be discarded. The original change may still finish.':'Your unsaved changes will be lost.'} confirmLabel="Discard changes" onClose={()=>setDiscardOpen(false)} onConfirm={dismiss}/>
     </div>
   );
 }

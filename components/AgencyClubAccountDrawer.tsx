@@ -626,8 +626,9 @@ export default function AgencyClubAccountDrawer({
                 entityId={request.organisationId}
                 label={club.name || request.title}
                 rpc={rpc}
-                onChanged={async (change) => {
+                onChanged={async (change, signal) => {
                   await onRefresh();
+                  if(signal?.aborted)return;
                   if (change === 'edit') await load({ recordRefresh: true });
                   else onClose();
                 }}

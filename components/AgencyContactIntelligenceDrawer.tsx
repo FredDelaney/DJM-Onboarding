@@ -709,13 +709,15 @@ export default function AgencyContactIntelligenceDrawer({
 
           <div className={styles.headerControls}>
             {recordEditReady({requestedId:clean(contact?.person_id),loadedId:loadedPersonId,busy,error,restricted}) ? <EntityActionsMenu
+                  scope={scope}
                   showEdit
               kind="club_contact"
               entityId={clean(contact?.person_id)}
               label={name}
               rpc={rpc}
-              onChanged={async (change) => {
+              onChanged={async (change, signal) => {
                 await (onRecordRefresh || onRefresh)();
+                if(signal?.aborted)return;
                 if (change === 'edit') await load({ recordRefresh: true });
                 else onClose();
               }}

@@ -108,7 +108,7 @@ export default function Page(){
   throw new Error('Unexpected fixture action '+action);
  },[data,user,scenario,fixtureRole,profileOwner]);
  const rpc=useCallback(async(name:string,args:any={})=>{
-  if(scenario==='need-review'&&name==='redream_club_need_patch'){(window as any).qaBriefPatch=args.p_patch;if((window as any).qaBriefEditFails)throw new Error('Request update unavailable');if((window as any).qaBriefEditHangs)return new Promise(()=>{});setBriefPatch(current=>({...current,...args.p_patch}));return {ok:true,brief_version:1};}
+  if(scenario==='need-review'&&name==='redream_club_need_patch'){(window as any).qaBriefPatch=args.p_patch;if((window as any).qaBriefEditFails)throw Object.assign(new Error('Request update unavailable'),{code:'P0001'});if((window as any).qaBriefEditHangs)return new Promise(()=>{});setBriefPatch(current=>({...current,...args.p_patch}));return {ok:true,brief_version:1,id:args.p_need_id,entity_type:'club_need'};}
   reads.current[name]=(reads.current[name]||0)+1;
   if(name==='redream_relationship_person')return {person:{id:args.p_person_id,full_name:'Beyond Summary Director'},reach:{},employment:{},relationship_memory:{state:'recorded',best_route:{},routes:[]}};
   if(name==='redream_entity_archives')return {items:[]};

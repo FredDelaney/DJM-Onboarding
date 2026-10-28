@@ -269,15 +269,18 @@ function PlayerDrawer({
             <ArrowLeft size={18} />
           </button>
           {!busy&&!error&&detail&&canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted?<EntityActionsMenu
+            scope={cacheScope}
             showEdit
             kind="player"
             entityId={playerId}
             label={playerName}
             rpc={rpc}
-            onChanged={async (change) => {
+            onChanged={async (change, signal) => {
               await onRefresh();
+              if(signal?.aborted)return;
               if (change === 'edit') {
                 const response = await invoke<any>('player_workspace', { player_id: playerId });
+                if(signal?.aborted)return;
                 setDetail(response?.player || null);
               } else {
                 onClose();
@@ -851,12 +854,14 @@ export default function AgencyPlayersWorkspace({
             </button>
             {targetDetail?.target && canManageRecords ? (
               <EntityActionsMenu
+                scope={stateScope}
                 kind="recruitment_target"
                 entityId={targetId}
                 label={targetDetail.target.full_name || 'Recruitment target'}
                 rpc={rpc}
-                onChanged={async (change) => {
+                onChanged={async (change, signal) => {
                   await (onRecordRefresh || onRefresh)();
+                  if(signal?.aborted)return;
                   if (change === 'edit') await refreshTarget();
                   else closeTarget();
                 }}
@@ -1018,6 +1023,7 @@ export default function AgencyPlayersWorkspace({
                     <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not set'}</small></div>
                   <div className={styles.playerCardEnd}>
                     {!item.access?.restricted ? <>                    {canManageRecords ? <EntityActionsMenu
+                      scope={stateScope}
                       kind="player"
                       entityId={String(item.player_id)}
                       label={name}
@@ -1133,6 +1139,7 @@ export default function AgencyPlayersWorkspace({
                 <div className={styles.recruitmentStage}><span>{PIPELINE.find(([key])=>key===item.ui_stage)?.[1]||human(item.ui_stage)}</span><ChevronRight size={15}/></div>
                 </button>
                 {canManageRecords ? <EntityActionsMenu
+                  scope={stateScope}
                   kind="recruitment_target"
                   entityId={String(item.id)}
                   label={item.full_name || 'Recruitment target'}

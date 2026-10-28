@@ -1872,7 +1872,7 @@ export default function AgencyOperatingWorkspace() {
 
       {intelligenceRequest ? (
         <AgencyEntityIntelligenceDrawer
-          key={intelligenceRequest.key}
+          key={`${stateScope}:${intelligenceRequest.key}`}
           request={intelligenceRequest}
           presentation="page"
           rpc={rpc}
@@ -1983,7 +1983,7 @@ export default function AgencyOperatingWorkspace() {
 
       {clubAccountRequest ? (
         <AgencyClubAccountDrawer
-          key={clubAccountRequest.key}
+          key={`${stateScope}:${clubAccountRequest.key}`}
           request={clubAccountRequest}
           presentation="page"
           invoke={invoke}

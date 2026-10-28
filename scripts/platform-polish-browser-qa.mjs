@@ -177,10 +177,10 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      return {reviewHeroContrast,careerStacked,overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),networkToolbarOverlap,primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
     });
     if(process.env.CSS_CASCADE_SNAPSHOT||process.env.CSS_CASCADE_COMPARE)cascade[suite+'/'+screen+'/'+width]=await captureCascade(page);
-     if(suite==='agency'&&screen==='home'&&width<=680)await verifyDailyMobileNavigation(page);
+     if(suite==='agency'&&screen==='home'&&width<=680)await verifyDailyMobileNavigation(page,user.id);
     if(suite==='agency'&&screen==='home'&&[390,768,1440].includes(width)){
      state.approved=false;state.taskDone=false;state.approvals=0;state.completions=0;
-     await verifyInPlaceCaptureCompletion(page,url,width===390);
+     await verifyInPlaceCaptureCompletion(page,url,width===390,user.id);
     }
     if(suite==='agency'&&screen==='opportunities'&&width===390){await verifyDealRecordCapture(page,url,dealA,dealB);await verifyDealHistoryAndCrossView(page,url,dealA,dealB);}
     await verifyMobileChrome(page,suite,screen,width);

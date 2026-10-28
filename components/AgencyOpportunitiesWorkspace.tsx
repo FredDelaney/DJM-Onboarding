@@ -180,7 +180,7 @@ export default function AgencyOpportunitiesWorkspace({
   onRetry?: () => void;
   onRefresh: () => Promise<void>;
   onRecordRefresh?: () => Promise<void>;
-  rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
+  rpc: <T,>(name: string, args?: Record<string, unknown>, signal?:AbortSignal) => Promise<T>;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenPursuit: (request: AgencyPursuitRequest) => void;
   onOpenIntelligence: (request: AgencyIntelligenceRequest) => void;
@@ -705,7 +705,7 @@ export default function AgencyOpportunitiesWorkspace({
                       lookup={lookupRecords}
                       entityId={needId}
                       label={`${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`}
-                      rpc={(name,args)=>name==='redream_entity_patch'?rpc('redream_club_need_patch',{p_need_id:needId,p_expected_updated_at:item.need?.updated_at||null,p_patch:args?.p_patch}):rpc(name,args)}
+                      rpc={(name,args,signal)=>name==='redream_entity_patch'?rpc('redream_club_need_patch',{p_need_id:needId,p_expected_updated_at:item.need?.updated_at||null,p_patch:args?.p_patch},signal):rpc(name,args,signal)}
                       onChanged={refreshEntities}
                       fields={[
                         { key: 'title', label: 'Need title', value: item.need?.title },

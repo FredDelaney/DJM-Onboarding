@@ -355,8 +355,9 @@ export default function AgencyEntityIntelligenceDrawer({
                     { key: 'title', label: 'Deal title', value: deal.title || request.title },
                     { key: 'next_action_text', label: 'Next action', value: deal.next_action_text || '', type: 'textarea' },
                   ]}
-                  onChanged={async (change) => {
+                  onChanged={async (change, signal) => {
                     await onRefresh?.();
+                    if(signal?.aborted)return;
                     if (change === 'edit') await load({ recordRefresh: true });
                     else onClose();
                   }}
