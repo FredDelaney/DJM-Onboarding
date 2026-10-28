@@ -147,7 +147,9 @@ function receiptActionLabel(action: NonNullable<Receipt['actions']>[number]) {
 }
 
 function proposedPayload(action: NonNullable<Receipt['actions']>[number]) {
-  return action?.resolved_payload || action?.proposed_payload || {};
+  const resolved = action?.resolved_payload;
+  if (resolved && (Object.keys(resolved).length || !['pending', 'needs_review', 'failed'].includes(action.status))) return resolved;
+  return action?.proposed_payload || {};
 }
 
 function moneyValue(payload: Record<string, any>) {
@@ -214,7 +216,9 @@ function previewRows(actions: Receipt['actions'] = []) {
       }
       if (action.action_type === 'create_task') {
         add('Next action', payload.title);
-        add('Owner', payload.responsible_display_names?.join(' + ') || payload.owner_display_name || payload.owner_name || 'You');
+        const people = Array.isArray(payload.responsible_display_names)
+          ? payload.responsible_display_names.filter((name: unknown) => typeof name === 'string' && name.trim()) : [];
+        add(people.length > 1 ? 'Responsible people' : 'Owner', people.join(' + ') || payload.owner_display_name || payload.owner_name || 'You');
         add('Due', dueValue(payload.due_at));
       }
       if (action.action_type === 'update_task') {
