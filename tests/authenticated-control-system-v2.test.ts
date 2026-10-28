@@ -87,7 +87,9 @@ test('contextual create controls stay secondary while final submissions stay pri
   const players = readFileSync('components/AgencyPlayersWorkspace.tsx','utf8');
   assert.match(operating, /data-ui-button="secondary"[\s\S]{0,120}className=\{styles\.createButton\}/);
   assert.match(players, /data-ui-button="secondary"[\s\S]{0,120}openRecruitmentCreate/);
-  assert.match(players, /data-ui-button="primary"[\s\S]{0,500}Add target/);
+  assert.match(players,/AgencyCreateDrawer[\s\S]{0,130}kind="recruitment_target"/);
+  const create=readFileSync('components/AgencyCreateDrawer.tsx','utf8');
+  assert.match(create,/type="submit"[\s\S]{0,120}data-ui-button="primary"/);
 });
 
 

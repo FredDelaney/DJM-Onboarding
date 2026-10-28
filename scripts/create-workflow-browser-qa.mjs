@@ -6,7 +6,7 @@ const failures = [];
 const titles = {player: 'Add player', club: 'Add club', contact: 'Add contact', club_need: 'Add club need', deal: 'Add deal'};
 const playerOptions = {options: {players: [{player_id: 'fixture-player', name: 'Example Player', current_club: 'Example FC'}]}};
 try {
-  for (const scenario of process.env.CREATE_SCENARIOS?.split(',') || ['draft', 'layout', 'refresh', 'options', 'forms', 'write', 'keyboard', 'timeout', 'empty']) {
+  for (const scenario of process.env.CREATE_SCENARIOS?.split(',') || ['draft', 'layout', 'refresh', 'options', 'forms', 'write', 'write-timeout', 'keyboard', 'timeout', 'empty']) {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     const writes = [], pendingOptions = [];
@@ -22,6 +22,7 @@ try {
       } else {
         assert.ok(/^create_(player|club|contact|club_need|deal)$/.test(action));
         writes.push({action, body});
+        if(scenario==='write-timeout')await new Promise(resolve=>{releaseWrite=resolve;});
         if (scenario === 'write') {
           if (writes.length === 1) {status = 503; value = {error: 'Please try saving again'};}
           else await new Promise(resolve => {releaseWrite = resolve;});
@@ -49,7 +50,7 @@ try {
     try {
       const url = new URL('/qa-create', process.env.CALENDAR_QA_URL || 'http://127.0.0.1:3113');
       for (let i = 0; i < 60; i++) {try {await page.goto(url.href); break;} catch (error) {if (i === 59) throw error; await page.waitForTimeout(250);}}
-      if (scenario === 'timeout') await page.clock.install();
+      if (scenario === 'timeout'||scenario==='write-timeout') await page.clock.install();
       const kind = ['options', 'timeout', 'empty'].includes(scenario) ? 'deal' : 'player';
       let {trigger, dialog} = await open(kind);
       if (scenario === 'draft') {
@@ -93,6 +94,13 @@ try {
           assert.ok(await trigger.evaluate(node => node === document.activeElement), 'Saved ' + formKind + ' restores focus');
         }
         assert.equal(writes.length, 5);
+      } else if(scenario==='write-timeout'){
+        await fill(dialog,kind);await dialog.getByRole('button',{name:titles[kind],exact:true}).click();await dialog.locator('fieldset:disabled').waitFor();
+        await page.clock.fastForward(12_100);await dialog.getByRole('alert').filter({hasText:'Could not confirm the save'}).waitFor();
+        assert.equal(await dialog.getByLabel('First name',{exact:true}).inputValue(),'Example');
+        assert.equal(await dialog.getByRole('button',{name:titles[kind],exact:true}).count(),0,'An unknown creation outcome cannot be resent');
+        assert.equal(writes.length,1);assert.equal(await dialog.getByRole('heading',{name:'Player added',exact:true}).count(),0);
+        releaseWrite();await dialog.getByRole('button',{name:'Close and review the list',exact:true}).click();await dialog.waitFor({state:'hidden'});
       } else if (scenario === 'write') {
         await fill(dialog, kind); const save = dialog.getByRole('button', {name: titles[kind], exact: true}); await save.click();
         await dialog.getByRole('alert').waitFor(); assert.equal(await dialog.getByLabel('First name', {exact: true}).inputValue(), 'Example');

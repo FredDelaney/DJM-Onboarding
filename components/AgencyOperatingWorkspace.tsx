@@ -1714,8 +1714,11 @@ export default function AgencyOperatingWorkspace() {
                 />
               ) : (
                 <AgencyPlayersWorkspace
+                  theme={theme}
                   stateScope={stateScope}
                   canManageRecords={canSeeBusiness}
+                  canWorkRecruitment={canCreateRecords}
+                  canPromoteRecruitment={['owner','admin','agent'].includes(String(workspace.role||''))}
                   canCreateRecords={canCreateRecords}
                   onCreatePlayer={() => setCreateKind('player')}
                   onRecordRefresh={refreshRecords}

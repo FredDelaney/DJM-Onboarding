@@ -24,10 +24,11 @@ test('shared create drawer close meets the mobile touch baseline', () => {
 });
 
 test('Add target modal footer actions meet the mobile touch baseline', () => {
-  assert.match(players, /Final mobile modal touch polish v1/);
+  const source=readFileSync('components/AgencyPlayersWorkspace.tsx','utf8');
+  assert.match(source,/AgencyCreateDrawer[\s\S]{0,130}kind="recruitment_target"/);
   assert.match(
-    players,
-    /\.createModal \.modalActions \.primaryButton,[\s\S]*\.createModal \.modalActions \.secondaryButton[\s\S]*min-height: 44px/,
+    createDrawer,
+    /\.primary,[\s\S]*\.secondary[\s\S]*min-height: 44px/,
   );
 });
 

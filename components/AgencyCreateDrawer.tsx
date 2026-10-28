@@ -24,11 +24,13 @@ import {createPortal} from 'react-dom';
 
 import { friendlyError } from '@/lib/platform-client';
 import {readWithDeadline} from '@/lib/read-with-deadline';
+import {writeWithDeadline} from '@/lib/write-with-deadline';
 import ConfirmActionDialog from './ConfirmActionDialog';
 
 import styles from './AgencyCreateDrawer.module.css';
 
 export type AgencyCreateKind =
+  | 'recruitment_target'
   | 'player'
   | 'club'
   | 'club_need'
@@ -57,6 +59,9 @@ const META: Record<
     added: string;
   }
 > = {
+  recruitment_target: {
+    eyebrow:'RECRUITMENT', title:'Add target', copy:'Track a player you may work with. This does not add them to Our Players.', submit:'Add target', added:'Target added',
+  },
   player: {
     eyebrow: 'PLAYERS',
     title: 'Add player',
@@ -95,6 +100,7 @@ const META: Record<
 };
 
 const initialValues = {
+  full_name: '',
   first_name: '',
   last_name: '',
   primary_position: '',
@@ -124,11 +130,13 @@ export default function AgencyCreateDrawer({
   onClose,
   onCreated,
   theme,
+  onOpenCreated,
 }: {
   kind: AgencyCreateKind;
   invoke: Invoke;
   onClose: () => void;
-  onCreated: () => Promise<void> | void;
+  onCreated: (result?: any) => Promise<void> | void;
+  onOpenCreated?: (result: any) => void;
   theme?: CSSProperties;
 }) {
   const meta = META[kind];
@@ -140,6 +148,8 @@ export default function AgencyCreateDrawer({
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [created, setCreated] = useState(false);
+  const [uncertain,setUncertain]=useState(false);
+  const createdResult=useRef<any>(null),lifetime=useRef<AbortController|null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState('');
   const [optionsError, setOptionsError] = useState('');
@@ -148,12 +158,13 @@ export default function AgencyCreateDrawer({
   const [viewport, setViewport] = useState<{top: number; height: number} | null>(null);
   const dialog = useRef<HTMLElement>(null), backdrop = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLElement | null>(null);
-  const phase = useRef<'editing' | 'saving' | 'created'>('editing');
+  const phase = useRef<'editing' | 'saving' | 'created' | 'unknown'>('editing');
   const refreshingRef = useRef(false), active = useRef(true);
   const invokeRef = useRef(invoke), createdCallback = useRef(onCreated), closeCallback = useRef(onClose);
-  const dirty = !created && Object.entries(initialValues).some(([key, value]) => values[key as keyof typeof initialValues] !== value);
+  const openCreatedCallback=useRef(onOpenCreated);
+  const dirty = !created && !uncertain && Object.entries(initialValues).some(([key, value]) => values[key as keyof typeof initialValues] !== value);
 
-  useEffect(() => {invokeRef.current = invoke; createdCallback.current = onCreated; closeCallback.current = onClose;}, [invoke, onCreated, onClose]);
+  useEffect(() => {invokeRef.current = invoke; createdCallback.current = onCreated; closeCallback.current = onClose;openCreatedCallback.current=onOpenCreated;}, [invoke, onCreated, onClose,onOpenCreated]);
 
   const requestClose = () => {
     if (phase.current === 'saving') return;
@@ -163,6 +174,7 @@ export default function AgencyCreateDrawer({
 
   useEffect(() => {
     active.current = true;
+    const controller=new AbortController();lifetime.current=controller;
     const releaseScroll = lockPageScroll();
     if (!dialog.current?.contains(document.activeElement)) opener.current = document.activeElement as HTMLElement | null;
     const siblings = [...document.body.children].filter((node): node is HTMLElement => node instanceof HTMLElement && !node.contains(backdrop.current));
@@ -172,6 +184,7 @@ export default function AgencyCreateDrawer({
 
     return () => {
       active.current = false;
+      controller.abort();
       releaseBackground();
       releaseScroll();
       queueMicrotask(() => {if (!active.current && opener.current?.isConnected) opener.current.focus();});
@@ -186,8 +199,8 @@ export default function AgencyCreateDrawer({
   }, []);
 
   useEffect(() => {
-    if (created) dialog.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
-  }, [created]);
+    if (created||uncertain) dialog.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+  }, [created,uncertain]);
 
   useEffect(() => {
     setShowDetails(false);
@@ -237,8 +250,8 @@ export default function AgencyCreateDrawer({
     refreshingRef.current = true;
     setRefreshing(true); setRefreshError('');
     try {
-      await readWithDeadline(Promise.resolve().then(() => createdCallback.current()));
-      if (active.current) closeCallback.current();
+      await readWithDeadline(Promise.resolve().then(() => createdCallback.current(createdResult.current)));
+      if (active.current){if(openCreatedCallback.current)openCreatedCallback.current(createdResult.current);else closeCallback.current();}
     } catch {
       if (active.current) setRefreshError('Saved successfully. The list could not refresh. You can retry the refresh or close this panel.');
     } finally {
@@ -267,6 +280,11 @@ export default function AgencyCreateDrawer({
     try {
       let action = '';
       let body: Record<string, unknown> = {};
+
+      if(kind==='recruitment_target'){
+        action='recruitment_create';
+        body={full_name:values.full_name.trim(),primary_position:values.primary_position.trim()||null,current_club:values.current_club.trim()||null,current_country:values.current_country.trim()||null,contract_expiry:values.contract_expiry||null,transfermarkt_url:values.transfermarkt_url.trim()||null,recruitment_priority:3};
+      }
 
       if (kind === 'player') {
         action = 'create_player';
@@ -351,7 +369,15 @@ export default function AgencyCreateDrawer({
         };
       }
 
-      await invoke(action, body);
+      const outcome=await writeWithDeadline(async()=>{
+        try{return {value:await invoke(action,body)};}catch(error){return {error};}
+      },12000,lifetime.current?.signal);
+      if(!active.current)return;
+      const unknown=()=>{phase.current='unknown';setUncertain(true);setError('Could not confirm the save. Check the list before adding this record again; the original request may still finish.');};
+      if(outcome.status==='unknown'){unknown();return;}
+      if('error' in outcome.result&&outcome.result.error)throw outcome.result.error;
+      createdResult.current=outcome.result.value;
+      if(kind==='recruitment_target'&&(createdResult.current?.result?.created!==true||typeof createdResult.current?.result?.prospect_id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(createdResult.current.result.prospect_id))){unknown();return;}
       phase.current = 'created';
       if (!active.current) return;
       setCreated(true);
@@ -406,7 +432,7 @@ export default function AgencyCreateDrawer({
             <div className={styles.icon}>
               {kind === 'player' ? <Users size={18} /> : null}
               {kind === 'club' ? <BriefcaseBusiness size={18} /> : null}
-              {kind === 'club_need' ? <Target size={18} /> : null}
+              {kind === 'club_need'||kind==='recruitment_target' ? <Target size={18} /> : null}
               {kind === 'deal' ? <BriefcaseBusiness size={18} /> : null}
               {kind === 'contact' ? <UserRoundPlus size={18} /> : null}
             </div>
@@ -433,14 +459,14 @@ export default function AgencyCreateDrawer({
             <CheckCircle2 size={28} aria-hidden="true" />
             <h3>{meta.added}</h3>
             <p role={refreshError ? 'alert' : undefined}>{refreshError || 'Refreshing the list...'}</p>
-          </div> : <fieldset className={styles.fields} disabled={busy} aria-label={meta.title + ' details'}>
+          </div> : <fieldset className={styles.fields} disabled={busy||uncertain} aria-label={meta.title + ' details'}>
           {error ? (
             <div className={styles.error} role="alert" aria-atomic="true">{error}</div>
           ) : null}
 
-          {kind === 'player' ? (
+          {kind === 'player'||kind==='recruitment_target' ? (
             <>
-              <div className={styles.pair}>
+              {kind==='recruitment_target'?<Field label="Player name" required value={values.full_name} onChange={value=>setValue('full_name',value)}/>:<div className={styles.pair}>
                 <Field
                   label="First name"
                   required
@@ -452,11 +478,11 @@ export default function AgencyCreateDrawer({
                   value={values.last_name}
                   onChange={(value) => setValue('last_name', value)}
                 />
-              </div>
+              </div>}
 
               <Field
                 label="Primary position"
-                required
+                required={kind==='player'}
                 placeholder="e.g. Left winger"
                 value={values.primary_position}
                 onChange={(value) => setValue('primary_position', value)}
@@ -746,8 +772,9 @@ export default function AgencyCreateDrawer({
 
           </fieldset>}
           <div className={styles.actions}>
-            {created ? <>
+            {uncertain?<button type="button" data-ui-button="secondary" className={styles.secondary} onClick={onClose}>Close and review the list</button>:created ? <>
               <button type="button" data-ui-button="secondary" className={styles.secondary} onClick={requestClose}>Close</button>
+              {onOpenCreated?<button type="button" data-ui-button="secondary" className={styles.secondary} onClick={()=>onOpenCreated(createdResult.current)}>Open target</button>:null}
               <button type="button" data-ui-button="primary" className={styles.primary} onClick={() => void refreshCreatedList()} disabled={refreshing}>{refreshing ? 'Refreshing...' : 'Refresh list'}</button>
             </> : <>
             <button
