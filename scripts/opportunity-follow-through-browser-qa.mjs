@@ -8,6 +8,7 @@ try{
   const url=new URL(process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow');
   url.search='?view=opportunities&tab=needs&scenario=need-review';
   for(let attempt=0;attempt<50;attempt++){try{await page.goto(url.href);break;}catch(error){if(attempt===49)throw error;await page.waitForTimeout(250);}}
+  await page.locator('[data-qa-ready="true"]').waitFor();
   const row=page.locator('#opportunity-qa-need');
   const review=row.getByRole('button',{name:'Review Example FC: Centre back needed',exact:true});await review.waitFor({timeout:5000});
   assert.equal(await review.getAttribute('aria-expanded'),'false');
@@ -18,6 +19,27 @@ try{
   await row.getByText('Showing 3 of 5 recorded candidates.',{exact:true}).waitFor();
   await row.getByText('Opportunity link unavailable',{exact:true}).waitFor();assert.equal(await row.getByRole('button',{name:'Open opportunity for Unlinked Candidate',exact:true}).count(),0);
   await row.getByText('Left',{exact:true}).waitFor();await row.getByText('185 cm',{exact:true}).waitFor();
+  await row.getByText('EUR 5,000 per month · tax basis unknown',{exact:true}).waitFor();
+  await row.getByText('EUR 60,000',{exact:true}).waitFor();
+  await row.getByText('Optional extension budget (not guaranteed)',{exact:true}).waitFor();
+  await row.getByText('Original request',{exact:true}).click();await row.getByText('Original striker request, €5,000 monthly, 12 + 12.',{exact:true}).waitFor();
+  await row.getByRole('button',{name:'Manage Example FC · Centre back needed',exact:true}).click();
+  await page.getByRole('button',{name:/Edit/}).filter({hasText:'Edit'}).click();
+  const editor=page.getByRole('dialog');
+  assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).inputValue(),'5000');
+  assert.equal(await editor.getByLabel('Tax basis',{exact:true}).inputValue(),'');
+  await editor.getByLabel('Salary budget (maximum)',{exact:true}).fill('5500');
+  await editor.getByLabel('Optional extension (months)',{exact:true}).fill('6');
+  await editor.getByLabel('Source status',{exact:true}).selectOption('confirmed');
+  await page.evaluate(()=>window.qaBriefEditFails=true);
+  await editor.getByRole('button',{name:'Save changes',exact:true}).click();await editor.getByText('Request update unavailable',{exact:false}).waitFor();
+  assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).inputValue(),'5500','Failed edit retains the brief');
+  await page.evaluate(()=>window.qaBriefEditFails=false);
+  await editor.getByRole('button',{name:'Save changes',exact:true}).click();await editor.waitFor({state:'hidden'});
+  assert.deepEqual(await page.evaluate(()=>window.qaBriefPatch),{salary_budget:'5500',option_months:'6',source_status:'confirmed'},'Only changed canonical fields are patched');
+  await row.getByText('EUR 5,500 per month · tax basis unknown',{exact:true}).waitFor();
+  await row.getByText('EUR 33,000 over 6 months',{exact:true}).waitFor();
+  await row.getByText('Original striker request, €5,000 monthly, 12 + 12.',{exact:true}).waitFor();
   assert.equal(await row.getByText('Asked for current full-match footage.',{exact:true}).isVisible(),false,'Source conversation stays secondary');
   await row.getByText('Source conversation',{exact:true}).click();await row.getByText('Asked for current full-match footage.',{exact:true}).waitFor();
   const chosen=row.getByRole('button',{name:'Open opportunity for Chosen Player',exact:true});
@@ -50,6 +72,17 @@ try{
   assert.equal(await expired.getByRole('button',{name:'Start search',exact:true}).count(),0,'An expired need without an explicit status cannot start new work');
   assert.equal(await expired.getByRole('button',{name:'Open opportunity for Previous Candidate',exact:true}).count(),0);
   await expired.getByText('Previous Candidate',{exact:true}).waitFor();
+  if(width===390){
+    await page.clock.install();
+    await row.getByRole('button',{name:'Manage Example FC · Centre back needed',exact:true}).click();await page.getByRole('button',{name:/Edit/}).filter({hasText:'Edit'}).click();
+    const pending=page.getByRole('dialog');await pending.getByLabel('Salary budget (maximum)',{exact:true}).fill('5600');
+    await page.evaluate(()=>window.qaBriefEditHangs=true);await pending.getByRole('button',{name:'Save changes',exact:true}).click();await pending.getByRole('button',{name:'Saving...',exact:true}).waitFor();
+    await page.clock.fastForward(12100);await pending.getByText('Could not confirm the update.',{exact:false}).waitFor();
+    assert.equal(await pending.getByRole('button',{name:'Save changes',exact:true}).count(),0,'Unknown outcome cannot be blindly retried');
+    await pending.getByRole('button',{name:'Reload request',exact:true}).click();await pending.waitFor({state:'hidden'});
+    if(await review.getAttribute('aria-expanded')==='false')await review.click();
+    await row.getByText('EUR 5,500 per month · tax basis unknown',{exact:true}).waitFor();
+  }
   assert.deepEqual(errors,[]);await page.close();console.log('PASS club need review, deliberate player/search choice, missing coverage, expiry and layout',width);
  }
  if(process.env.OPPORTUNITY_QA_ONLY!=='needs'){

@@ -15,6 +15,8 @@ import { createPortal } from 'react-dom';
 
 import { friendlyError } from '@/lib/platform-client';
 import { changedEntityFields } from '@/lib/entity-edit-draft';
+import {emptyClubNeedBrief, validateClubNeedBrief} from '@/lib/club-need-brief';
+import {writeWithDeadline} from '@/lib/write-with-deadline';
 import styles from './EntityActionsMenu.module.css';
 import JourneyStatus from './JourneyStatus';
 import ConfirmActionDialog from './ConfirmActionDialog';
@@ -31,7 +33,8 @@ export type EntityEditField = {
   key: string;
   label: string;
   value?: unknown;
-  type?: 'text' | 'date' | 'url' | 'textarea';
+  type?: 'text' | 'date' | 'url' | 'textarea' | 'number' | 'select';
+  options?: readonly (readonly [string,string])[];
   placeholder?: string;
 };
 
@@ -48,6 +51,7 @@ type Props = {
   onChanged: (change: EntityChange) => Promise<void> | void;
   className?: string;
   showEdit?: boolean;
+  versionedEdit?: boolean;
 };
 
 export type EntityChange = 'edit' | 'archive' | 'delete';
@@ -75,6 +79,7 @@ export default function EntityActionsMenu({
   onChanged,
   className = '',
   showEdit = false,
+  versionedEdit = false,
 }: Props) {
   const initialDraft = useMemo(
     () => Object.fromEntries(
@@ -89,12 +94,13 @@ export default function EntityActionsMenu({
   const [checking, setChecking] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [savedChange, setSavedChange] = useState<EntityChange | null>(null);
+  const [uncertainEdit,setUncertainEdit]=useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState<any>(null);
   const [viewport, setViewport] = useState<{ top: number; height: number } | null>(null);
   const dialog=useRef<HTMLElement>(null), mutation=useRef(false), previewRequest=useRef(0);
   const patch = changedEntityFields(editFields, draft);
-  const dirty = mode === 'edit' && Object.keys(patch).length > 0 && !savedChange;
+  const dirty = mode === 'edit' && Object.keys(patch).length > 0 && !savedChange && !uncertainEdit;
   const isOpen = Boolean(mode);
   useEffect(()=>{
     if(!isOpen)return;
@@ -105,7 +111,7 @@ export default function EntityActionsMenu({
     update();window.visualViewport?.addEventListener('resize',update);window.visualViewport?.addEventListener('scroll',update);
     return()=>{previewRequest.current++;releaseBackground();releaseScroll();window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);if(previous?.isConnected)previous.focus();};
   },[isOpen]);
-  useEffect(()=>{if(mode)dialog.current?.querySelector<HTMLElement>(mode==='edit'?'input,textarea':'button')?.focus();},[mode]);
+  useEffect(()=>{if(mode)dialog.current?.querySelector<HTMLElement>(mode==='edit'?'input,textarea,select':'button')?.focus();},[mode]);
 
   const open = (
     next: Exclude<Mode, null>,
@@ -117,6 +123,7 @@ export default function EntityActionsMenu({
     setPreview(null);
     setChecking(false);
     setSavedChange(null);
+    setUncertainEdit(false);
     setDiscardOpen(false);
     const request = ++previewRequest.current;
     if (next === 'edit') { setDraft(initialDraft); setEditFields(fields.map(field => ({ ...field }))); }
@@ -152,12 +159,20 @@ export default function EntityActionsMenu({
     catch { setError('Your changes are saved, but the list could not refresh. Try refreshing the list or close this panel.'); }
   };
   const mutate = async (change: EntityChange, name: string, args: Record<string, unknown>) => {
-    if (mutation.current || savedChange) return;
+    if (mutation.current || savedChange || uncertainEdit) return;
     mutation.current = true;
     setBusy(true);
     setError('');
     try {
-      await rpc(name, { p_entity_type: kind, p_entity_id: entityId, ...args });
+      const request=previewRequest.current;
+      const call=()=>rpc(name, { p_entity_type: kind, p_entity_id: entityId, ...args });
+      if(versionedEdit&&change==='edit'){
+        const outcome=await writeWithDeadline(async()=>{try{return {value:await call()};}catch(error){return {error};}},12000);
+        if(previewRequest.current!==request)return;
+        if(outcome.status==='unknown'){setUncertainEdit(true);setError('Could not confirm the update. Close and reopen this request before making more changes.');return;}
+        if('error' in outcome.result)throw outcome.result.error;
+        if((outcome.result.value as any)?.brief_version!==1||(outcome.result.value as any)?.ok!==true){setUncertainEdit(true);setError('Could not confirm the update. Close and reopen this request before making more changes.');return;}
+      }else await call();
       setSavedChange(change);
       await finish(change);
     } catch (cause) {
@@ -178,7 +193,16 @@ export default function EntityActionsMenu({
 
   const saveEdit = async () => {
     if (!Object.keys(patch).length) return;
+    if(kind==='club_need' && Object.keys(patch).some(key=>key in emptyClubNeedBrief)){
+      try{validateClubNeedBrief(draft);}catch(cause){setError(friendlyError(cause));return;}
+    }
     await mutate('edit', 'redream_entity_patch', { p_patch: patch });
+  };
+  const reloadUncertain = async () => {
+    if(mutation.current)return;
+    mutation.current=true;setBusy(true);
+    try{await onChanged('edit');dismiss();}catch{setError('The request could not reload. Close this panel and try opening it again.');}
+    finally{mutation.current=false;setBusy(false);}
   };
 
   return (
@@ -213,7 +237,7 @@ export default function EntityActionsMenu({
             onKeyDown={event=>{
               if(event.key==='Escape'){event.stopPropagation();if(!busy)close();}
               if(event.key==='Tab'){
-                const controls=Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]')||[]).filter(node=>node.getClientRects().length);
+                const controls=Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex="0"]')||[]).filter(node=>node.getClientRects().length);
                 const first=controls[0],last=controls.at(-1);
                 if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
                 else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
@@ -265,7 +289,8 @@ export default function EntityActionsMenu({
               </div>
             ) : null}
 
-            {mode === 'edit' && !savedChange ? (
+            {mode === 'edit' && !savedChange && uncertainEdit ? <div className={styles.saved}><JourneyStatus compact kind="error" description={error}/><button type="button" className={styles.secondary} onClick={()=>void reloadUncertain()} disabled={busy}>Reload request</button><button type="button" className={styles.secondary} onClick={dismiss} disabled={busy}>Close</button></div>:null}
+            {mode === 'edit' && !savedChange && !uncertainEdit ? (
               <form
                 className={styles.form}
                 onSubmit={(event) => {
@@ -277,7 +302,10 @@ export default function EntityActionsMenu({
                   {editFields.map((field) => (
                     <label key={field.key}>
                       <span>{field.label}</span>
-                      {field.type === 'textarea' ? (
+                      {field.type === 'select' ? <select aria-label={field.label} disabled={busy} value={draft[field.key]||''} onChange={event=>setDraft(current=>({...current,[field.key]:event.target.value}))}>
+                        {draft[field.key]&&!field.options?.some(([value])=>value===draft[field.key])?<option value={draft[field.key]}>Current: {draft[field.key]}</option>:null}
+                        {field.options?.map(([value,label])=><option key={value} value={value}>{label}</option>)}
+                      </select> : field.type === 'textarea' ? (
                         <textarea
                           aria-label={field.label}
                           disabled={busy}
@@ -294,7 +322,9 @@ export default function EntityActionsMenu({
                         <input
                           aria-label={field.label}
                           disabled={busy}
-                          type={field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'}
+                          type={field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : field.type==='number'?'number':'text'}
+                          min={field.type==='number'?'0':undefined}
+                          step={field.type==='number'?'any':undefined}
                           value={draft[field.key] || ''}
                           placeholder={field.placeholder}
                           onChange={(event) =>

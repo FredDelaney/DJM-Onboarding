@@ -1849,6 +1849,12 @@ export default function AgencyOperatingWorkspace() {
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setCreateKind(null)}
           onCreated={refreshRecords}
+          onOpenCreated={createKind==='club_need'?result=>{
+            const needId=result?.created?.club_need_id;
+            if(typeof needId!=='string'||!needId)return;
+            setCreateKind(null);
+            window.history.pushState({},'',`${basePath}?view=opportunities&tab=needs&record=${encodeURIComponent(needId)}`);
+          }:undefined}
         />
       ) : null}
 

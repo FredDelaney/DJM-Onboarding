@@ -19,6 +19,7 @@ import WorkspaceListSearch from './WorkspaceListSearch';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import {clubNeedBriefFields, clubNeedFinancialFacts} from '@/lib/club-need-brief';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
@@ -659,6 +660,9 @@ export default function AgencyOpportunitiesWorkspace({
                 ['Preferred foot', item.need?.preferred_foot],
                 ['Minimum height', item.need?.min_height_cm ? `${item.need.min_height_cm} cm` : null],
                 ['Transfer', item.need?.transfer_type ? human(item.need.transfer_type) : null],
+                ...clubNeedFinancialFacts(item.need||{}),
+                ['Availability',item.need?.availability_notes],
+                ['Source status',item.need?.source_status?human(item.need.source_status):'Not established'],
                 ['Expires', expiry !== null && Number.isFinite(expiry) ? relativeDate(item.need.expires_at) : null],
               ].filter(([, value]) => value);
 
@@ -687,15 +691,17 @@ export default function AgencyOpportunitiesWorkspace({
                   <div className={styles.rowActions}>
                     <EntityActionsMenu
                       kind="club_need"
+                      versionedEdit
                       entityId={needId}
                       label={`${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`}
-                      rpc={rpc}
+                      rpc={(name,args)=>name==='redream_entity_patch'?rpc('redream_club_need_patch',{p_need_id:needId,p_expected_updated_at:item.need?.updated_at||null,p_patch:args?.p_patch}):rpc(name,args)}
                       onChanged={refreshEntities}
                       fields={[
                         { key: 'title', label: 'Need title', value: item.need?.title },
                         { key: 'position', label: 'Position', value: item.need?.position },
                         { key: 'profile_notes', label: 'Profile notes', value: item.need?.profile_notes, type: 'textarea' },
                         { key: 'expires_at', label: 'Expires', value: item.need?.expires_at ? String(item.need.expires_at).slice(0, 10) : '', type: 'date' },
+                        ...clubNeedBriefFields.map(field=>({...field,value:item.need?.[field.key]})),
                       ]}
                     />
                   </div>
@@ -705,6 +711,8 @@ export default function AgencyOpportunitiesWorkspace({
                   }}>
                     {facts.length ? <dl className={styles.needFacts}>{facts.map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl> : null}
                     {item.need?.profile_notes ? <p className={styles.needNotes}>{item.need.profile_notes}</p> : null}
+                    {item.need?.salary_budget!==null&&item.need?.salary_budget!==undefined?<p className={styles.needCoverage}>Request budgets only, not agreed earnings or agency revenue. No currency or tax conversion is applied.</p>:null}
+                    {item.need?.raw_request?<details className={styles.needSource}><summary>Original request</summary><p className={styles.needNotes}>{item.need.raw_request}</p></details>:null}
                     <div className={styles.needCandidates}>
                       <h3>Recorded player opportunities</h3>
                       {candidates.length ? <>

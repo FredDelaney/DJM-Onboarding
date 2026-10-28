@@ -88,7 +88,8 @@ test('drawer actions go through the tenant-bound agency operating bridge', () =>
   assert.match(drawer, /invokeRef\.current\('create_options'\)/);
   assert.match(drawer, /action = 'create_player'/);
   assert.match(drawer, /action = 'create_club'/);
-  assert.match(drawer, /action = 'create_club_need'/);
+  assert.match(drawer, /action = 'create_club_need_brief'/);
+  assert.match(drawer, /created\?\.brief_version!==1/);
   assert.match(drawer, /action = 'create_contact'/);
   assert.match(drawer, /action = 'create_deal'/);
   assert.match(workspace, /invoke<any>\(action, body\)/);

@@ -478,6 +478,10 @@ export default {fetch:async(req:Request)=>{
         p_country:id(body?.country)||null
       });
     }
+    if(action==="create_club_need_brief"){
+      if(!operator()) return deny("Agency operator access required");
+      return result("created","platform_server_agency_create_club_need_brief",{p_tenant_id:tenantId,p_actor_user_id:userId,p_request:body});
+    }
     if(action==="create_club_need"){
       if(!operator()) return deny("Agency operator access required");
       return result("created","platform_server_agency_create_club_need",{

@@ -25,6 +25,7 @@ export default function Page(){
  const fixtureOwner=params.get('owner')==='long'?'Alexandros Konstantinopoulos-MacDonald':'';
  const profileOwner=params.get('owner')==='missing'?null:fixtureOwner||'Example Agent';
  const scope='fixture-tenant-'+tenant+':fixture-user-'+user+':'+fixtureRole+':'+scenario,view=params.get('view')||'players',playerId=params.get('player')||'';
+ const [briefPatch,setBriefPatch]=useState<Record<string,unknown>>({});
  const [created,setCreated]=useState(''),[otherDialog,setOtherDialog]=useState(false),reads=useRef<Record<string,number>>({});
  const [loaded,setLoaded]=useState(100);useEffect(()=>setLoaded(100),[user]);
  const [clubRequest,setClubRequest]=useState<any>(null),[dealRequest,setDealRequest]=useState<any>(null);
@@ -42,13 +43,13 @@ export default function Page(){
   accounts:{clubs:[{organisation_id:'qa-club',name:'Example FC',country:'NZ',league_name:'Regional League',access:{direct_score:80}}]},
   contacts:{items:[{person_id:'qa-contact',person:{full_name:'Dapo Director'},employment:{organisation_id:'qa-club',organisation_name:'Example FC',role_title:'Director'},relationship:{route_score:80}},{person_id:'qa-scout',person:{full_name:'Moses Scout'},employment:{organisation_name:'Other FC',role_title:'Scout'},relationship:{route_score:30}}]},
   market:{demand:{items:scenario==='need-review'?[
-   {club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back',preferred_foot:'Left',min_height_cm:185,transfer_type:'permanent',expires_at:'2099-06-30',profile_notes:'Build from the back. Review current full-match footage before progressing. '+ 'LongRequirement'.repeat(12)},club:{name:'Example FC',organisation_id:'qa-club'},candidate_coverage:{recorded_candidates:5,candidates:[{player_name:'First Recorded Player',player_match_id:'first-match',player_id:'first-player',career_gate_state:'review_evidence',career_gate_reason:'Review the recorded evidence.'},{player_name:'Chosen Player',player_match_id:'chosen-match',player_id:'chosen-player',career_gate_state:'hold_player_decision',career_gate_reason:'Confirm the player’s preference.'},{player_name:'Unlinked Candidate'}]}},
+   {club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back',preferred_foot:'Left',min_height_cm:185,transfer_type:'permanent',expires_at:'2099-06-30',updated_at:'2026-10-28T16:00:00.123456Z',salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:null,contract_months:12,contract_guaranteed:true,option_months:12,source_status:'reported',availability_notes:'Join quickly',raw_request:'Original striker request, €5,000 monthly, 12 + 12.',...briefPatch,profile_notes:'Build from the back. Review current full-match footage before progressing. '+ 'LongRequirement'.repeat(12)},club:{name:'Example FC',organisation_id:'qa-club'},candidate_coverage:{recorded_candidates:5,candidates:[{player_name:'First Recorded Player',player_match_id:'first-match',player_id:'first-player',career_gate_state:'review_evidence',career_gate_reason:'Review the recorded evidence.'},{player_name:'Chosen Player',player_match_id:'chosen-match',player_id:'chosen-player',career_gate_state:'hold_player_decision',career_gate_reason:'Confirm the player’s preference.'},{player_name:'Unlinked Candidate'}]}},
    {club_need_id:'unknown-need',need:{title:'Goalkeeper request'},club:{name:'Other FC'},candidate_coverage:{candidates:[]}},
    {club_need_id:'expired-need',need:{title:'Previous transfer window',expires_at:'2020-01-01'},club:{name:'Previous FC'},candidate_coverage:{recorded_candidates:1,candidates:[{player_name:'Previous Candidate',player_match_id:'previous-match'}]}}
   ]:[{club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back'},club:{name:'Example FC'},candidate_coverage:{candidates:[]}}]},pursuits:{items:[]}},
   ...(scenario==='need-review'?{connected:{needs:[{club_need_id:'qa-need',source_person_name:'Example Director',latest_contact:{person_name:'Example Director',summary:'Asked for current full-match footage.',channel:'phone',owner_name:'Jesse Edge',owner_state:'active_staff'}}]}}:{}),
   deals:{portfolio:{deals:[{deal_room_id:'qa-deal',title:'Example transfer',organisation:'Example FC',stage:'open',primary_blocker:'Club requests current footage and confirmation of availability before the recruitment meeting.',next_control_fix:scenario==='deal-follow-through'?{instruction:'Assign one accountable deal owner.'}:undefined}]}}
- }),[user,scenario]);
+ }),[user,scenario,briefPatch]);
  const invoke=useCallback(async(action:string,body:any={})=>{
   reads.current[action]=(reads.current[action]||0)+1;
   if(scenario==='deal-follow-through'||scenario==='need-review')(window as any).qaOpportunityCalls=[...((window as any).qaOpportunityCalls||[]),action];
@@ -106,6 +107,7 @@ export default function Page(){
   throw new Error('Unexpected fixture action '+action);
  },[data,user,scenario,fixtureRole,profileOwner]);
  const rpc=useCallback(async(name:string,args:any={})=>{
+  if(scenario==='need-review'&&name==='redream_club_need_patch'){(window as any).qaBriefPatch=args.p_patch;if((window as any).qaBriefEditFails)throw new Error('Request update unavailable');if((window as any).qaBriefEditHangs)return new Promise(()=>{});setBriefPatch(current=>({...current,...args.p_patch}));return {ok:true,brief_version:1};}
   reads.current[name]=(reads.current[name]||0)+1;
   if(name==='redream_relationship_person')return {person:{id:args.p_person_id,full_name:'Beyond Summary Director'},reach:{},employment:{},relationship_memory:{state:'recorded',best_route:{},routes:[]}};
   if(name==='redream_entity_archives')return {items:[]};

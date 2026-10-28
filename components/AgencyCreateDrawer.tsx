@@ -25,6 +25,7 @@ import {createPortal} from 'react-dom';
 import { friendlyError } from '@/lib/platform-client';
 import {readWithDeadline} from '@/lib/read-with-deadline';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
+import {clubNeedBriefFields, emptyClubNeedBrief, validateClubNeedBrief, clubNeedFinancialFacts} from '@/lib/club-need-brief';
 import ConfirmActionDialog from './ConfirmActionDialog';
 
 import styles from './AgencyCreateDrawer.module.css';
@@ -100,6 +101,7 @@ const META: Record<
 };
 
 const initialValues = {
+  ...emptyClubNeedBrief,
   full_name: '',
   first_name: '',
   last_name: '',
@@ -141,7 +143,8 @@ export default function AgencyCreateDrawer({
 }) {
   const meta = META[kind];
 
-  const [values, setValues] = useState(initialValues);
+  const baseline = {...initialValues, currency:kind==='club_need'?'':initialValues.currency};
+  const [values, setValues] = useState(baseline);
   const [players, setPlayers] = useState<PlayerOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(kind === 'deal');
   const [busy, setBusy] = useState(false);
@@ -162,7 +165,7 @@ export default function AgencyCreateDrawer({
   const refreshingRef = useRef(false), active = useRef(true);
   const invokeRef = useRef(invoke), createdCallback = useRef(onCreated), closeCallback = useRef(onClose);
   const openCreatedCallback=useRef(onOpenCreated);
-  const dirty = !created && !uncertain && Object.entries(initialValues).some(([key, value]) => values[key as keyof typeof initialValues] !== value);
+  const dirty = !created && !uncertain && Object.entries(baseline).some(([key, value]) => values[key as keyof typeof initialValues] !== value);
 
   useEffect(() => {invokeRef.current = invoke; createdCallback.current = onCreated; closeCallback.current = onClose;openCreatedCallback.current=onOpenCreated;}, [invoke, onCreated, onClose,onOpenCreated]);
 
@@ -308,7 +311,8 @@ export default function AgencyCreateDrawer({
       }
 
       if (kind === 'club_need') {
-        action = 'create_club_need';
+        action = 'create_club_need_brief';
+        validateClubNeedBrief(values);
         body = {
           club_name: values.club_name.trim(),
           country: values.country.trim() || null,
@@ -316,6 +320,7 @@ export default function AgencyCreateDrawer({
           title: values.title.trim() || null,
           notes: values.notes.trim() || null,
           expires_on: values.expires_on || null,
+          brief:Object.fromEntries(clubNeedBriefFields.map(field=>[field.key,field.key==='currency'?values.currency.trim().toUpperCase():values[field.key].trim()||null])),
         };
       }
 
@@ -377,6 +382,7 @@ export default function AgencyCreateDrawer({
       if(outcome.status==='unknown'){unknown();return;}
       if('error' in outcome.result&&outcome.result.error)throw outcome.result.error;
       createdResult.current=outcome.result.value;
+      if(kind==='club_need'&&(createdResult.current?.created?.brief_version!==1||createdResult.current?.created?.created!==true||typeof createdResult.current?.created?.club_need_id!=='string')){unknown();return;}
       if(kind==='recruitment_target'&&(createdResult.current?.result?.created!==true||typeof createdResult.current?.result?.prospect_id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(createdResult.current.result.prospect_id))){unknown();return;}
       phase.current = 'created';
       if (!active.current) return;
@@ -567,6 +573,17 @@ export default function AgencyCreateDrawer({
                 value={values.notes}
                 onChange={(value) => setValue('notes', value)}
               />
+
+              <details className={styles.briefSection}>
+                <summary>Budget, contract & availability</summary>
+                <div className={styles.briefFields}>
+                  {clubNeedBriefFields.map(field=><label key={field.key} className={styles.field}>
+                    <span>{field.label}</span>
+                    {field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>:field.type==='textarea'?<textarea aria-label={field.label} value={values[field.key]} maxLength={2000} onChange={event=>setValue(field.key,event.target.value)}/>:<input aria-label={field.label} type={field.type} min={field.type==='number'?'0':undefined} step={field.type==='number'?'any':undefined} placeholder={field.key==='currency'?'e.g. EUR':'Optional'} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}
+                  </label>)}
+                  {clubNeedFinancialFacts(values).length?<div className={styles.briefSummary} aria-live="polite"><dl>{clubNeedFinancialFacts(values).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>Request budgets only. These are not agreed player earnings or agency revenue. No currency or tax conversion is applied.</p></div>:null}
+                </div>
+              </details>
 
               <DetailsToggle
                 open={showDetails}
@@ -774,7 +791,7 @@ export default function AgencyCreateDrawer({
           <div className={styles.actions}>
             {uncertain?<button type="button" data-ui-button="secondary" className={styles.secondary} onClick={onClose}>Close and review the list</button>:created ? <>
               <button type="button" data-ui-button="secondary" className={styles.secondary} onClick={requestClose}>Close</button>
-              {onOpenCreated?<button type="button" data-ui-button="secondary" className={styles.secondary} onClick={()=>onOpenCreated(createdResult.current)}>Open target</button>:null}
+              {onOpenCreated?<button type="button" data-ui-button="secondary" className={styles.secondary} onClick={()=>onOpenCreated(createdResult.current)}>{kind==='club_need'?'Open club need':'Open target'}</button>:null}
               <button type="button" data-ui-button="primary" className={styles.primary} onClick={() => void refreshCreatedList()} disabled={refreshing}>{refreshing ? 'Refreshing...' : 'Refresh list'}</button>
             </> : <>
             <button

@@ -392,6 +392,17 @@
   background: #fafbfc;
 }
 
+.briefSection { border-block: 1px solid var(--color-border, #e2e6ea); }
+.briefSection summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font-size: 14px; font-weight: 500; }
+.briefSection summary::before { content: '+'; margin-right: 10px; }
+.briefSection[open] summary::before { content: '−'; }
+.briefFields { display: grid; gap: 15px; padding: 4px 0 18px; }
+.briefSummary { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.briefSummary dl { margin: 0; display: grid; gap: 10px; }
+.briefSummary dt { color: var(--color-text-secondary, #64748b); }
+.briefSummary dd { margin: 0; font-weight: 500; }
+.briefSummary p { color: var(--color-text-secondary, #64748b); margin-bottom: 0; }
+
 @media (max-width: 680px) {
   .detailsToggle {
     min-height: 44px;

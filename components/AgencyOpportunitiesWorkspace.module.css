@@ -1028,7 +1028,7 @@
 .needChevronOpen { transform: rotate(90deg); }
 .needRow > .rowActions { grid-column: 2; align-self: start; }
 .needDetail { min-width: 0; grid-column: 1 / -1; display: grid; gap: 18px; padding-top: 18px; border-top: 1px solid var(--interface-line); }
-.needFacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; margin: 0; }
+.needFacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 0; }
 .needFacts > div { min-width: 0; }
 .needFacts dt { margin-bottom: 4px; color: var(--interface-muted); font-size: 12px; }
 .needFacts dd { margin: 0; color: var(--interface-ink); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
