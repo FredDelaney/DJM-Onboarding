@@ -7,15 +7,20 @@ try {
  const root=process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow';
  const dir=process.env.PROFILE_QA_SCREENSHOT_DIR;
  if(dir)await mkdir(dir,{recursive:true});
- async function open(width,scenario='populated',role='owner'){
+ async function open(width,scenario='populated',role='owner',owner=''){
   await page.setViewportSize({width,height:900});
-  for(let attempt=0;attempt<60;attempt++){try{await page.goto(root+'?view=players&player=qa-player-0&profile=1&scenario='+scenario+'&role='+role);break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}}
+  for(let attempt=0;attempt<60;attempt++){try{await page.goto(root+'?view=players&player=qa-player-0&profile=1&scenario='+scenario+'&role='+role+'&owner='+owner);break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}}
   await page.getByRole('heading',{name:'José Silva',exact:true}).waitFor();
  }
  const widths=process.env.PROFILE_QA_WIDTHS?.split(',').map(Number)||[320,390,768,1440];
  for(const width of widths){
-  await open(width);
+  await open(width,'populated','owner','long');
   await page.getByRole('region',{name:'Player data',exact:true}).waitFor();
+  const owners=page.locator('[aria-label="Owner: Alexandros Konstantinopoulos-MacDonald"]');
+  await owners.first().waitFor();assert.equal(await owners.count(),2,'Activity and follow-up both retain the actual responsible name');
+  assert.ok(await owners.locator('small,strong').evaluateAll(nodes=>nodes.length===4&&nodes.every(node=>parseFloat(getComputedStyle(node).fontSize)>=12)),'Responsibility text stays readable at '+width);
+  assert.ok(await owners.locator('strong').evaluateAll(nodes=>nodes.length===2&&nodes.every(node=>node.scrollWidth<=node.clientWidth+1&&getComputedStyle(node).whiteSpace==='normal')),'Full names wrap instead of being lost at '+width);
+  if(dir&&(width===390||width===1440))await page.locator('details').filter({has:page.locator('[aria-label="Owner: Alexandros Konstantinopoulos-MacDonald"]')}).screenshot({path:dir+'/ownership-'+width+'.png'});
   const hero=page.locator('section').filter({has:page.getByRole('heading',{name:'José Silva',exact:true})});
   const edit=hero.getByRole('button',{name:'Edit profile',exact:true});
   assert.equal(await edit.isVisible(),true,'Editing must be directly discoverable at '+width);
@@ -73,6 +78,9 @@ try {
   assert.equal(await dialog.getByLabel('Profile headline',{exact:true}).inputValue(),'Reviewed club presentation '+width,'Reopening after Save must use the saved values');
   await page.keyboard.press('Escape');
  }
+ await open(320,'populated','owner','missing');
+ const missingOwners=page.locator('[aria-label="Owner: Unassigned"]');await missingOwners.first().waitFor();assert.equal(await missingOwners.count(),2,'Missing ownership stays explicit in both connected contexts');
+ assert.ok(await missingOwners.locator('small,strong').evaluateAll(nodes=>nodes.length===4&&nodes.every(node=>parseFloat(getComputedStyle(node).fontSize)>=12)),'Unassigned ownership is equally readable');
  await open(390,'populated-late-detail');
  await page.waitForFunction(()=>window.qaWaitingProfileDetail===true);
  await page.getByRole('button',{name:'Edit profile',exact:true}).click();

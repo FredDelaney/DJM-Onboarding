@@ -3,14 +3,15 @@
   width: fit-content;
   max-width: 100%;
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 3px 6px;
   padding: 6px 8px;
   border: 1px solid #e4e8eb;
-  border-radius: 999px;
+  border-radius: 9px;
   background: #fff;
   color: #586773;
-  line-height: 1;
+  line-height: 1.4;
 }
 
 .chip svg,
@@ -20,22 +21,20 @@
 
 .chip small,
 .attention small {
-  color: #8b959d;
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  color: #586773;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .chip strong,
 .attention strong {
   min-width: 0;
-  overflow: hidden;
   color: #35444e;
-  font-size: 8px;
-  font-weight: 850;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .attention {
   border-color: #eadfdc;

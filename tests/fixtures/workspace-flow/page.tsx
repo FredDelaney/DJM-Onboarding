@@ -22,6 +22,8 @@ const base='/workspace/qa-find-flow';
 export default function Page(){
  const params=useSearchParams(),user=params.get('user')||'a',scenario=params.get('scenario')||'normal',tenant=params.get('tenant')||'a';
  const fixtureRole=params.get('role')||'owner';
+ const fixtureOwner=params.get('owner')==='long'?'Alexandros Konstantinopoulos-MacDonald':'';
+ const profileOwner=params.get('owner')==='missing'?null:fixtureOwner||'Example Agent';
  const scope='fixture-tenant-'+tenant+':fixture-user-'+user+':'+fixtureRole+':'+scenario,view=params.get('view')||'players',playerId=params.get('player')||'';
  const [created,setCreated]=useState(''),[otherDialog,setOtherDialog]=useState(false),reads=useRef<Record<string,number>>({});
  const [loaded,setLoaded]=useState(100);useEffect(()=>setLoaded(100),[user]);
@@ -72,6 +74,7 @@ export default function Page(){
   if(action==='players_workspace'){const offset=Number(body.offset)||0;const active=data.directory.items.filter(player=>player.player_id!=='qa-player-248');const items=active.slice(offset,offset+100);return {players:{items,total:250,next_offset:offset+items.length,has_more:offset+items.length<250}};}
   if(action==='recruitment_board')return {recruitment:data.recruitment};
   if(action==='player_data_status')return {job:null};
+  if(action==='player_context_status')return {review:null};
   if(action==='player_workspace')return {player:{identity:data.directory.items.find(p=>p.player_id===body.player_id)?.identity||{},service:{},agreements:[],documents:[],opportunities:[],deals:[],activity:[]}};
   if((action==='player_profile_core'||action==='player_profile')&&scenario.startsWith('populated'))return {profile:{
    player:{id:body.player_id,first_name:'José',last_name:'Silva',date_of_birth:'2002-04-19',primary_position:'Centre back',current_club:'Wellington Harbour Football Club',current_country:'New Zealand',current_league:'National League Championship',current_season_label:'2026/27',nationalities:['New Zealand','Portugal'],contract_status:'under_contract',contract_expiry:'2027-06-30',verified_at:'2026-10-10T12:00:00Z',verification_status:'verified',transfermarkt_url:'https://example.test/player',wyscout_url:'https://example.test/scouting'},
@@ -79,7 +82,7 @@ export default function Page(){
    settings:savedProfileSettings.current||{intro_line:'A left-footed centre back with first-team experience in New Zealand.',why_review:'Comfortable building play from the back. Review the full-match footage and recorded season figures together.',career_summary:'Progressed from academy football into the first team.'},
    published:{published:true},videos:fixtureVideos.current,documents:[{id:'document',title:'Player CV'}],
    shares:[{id:'share-1',club_name:'North Coast Football Club Recruitment Department',view_count:3,last_viewed_at:'2026-10-11T12:00:00Z',active:true,token:'fixture-share-one',deal_title:'Summer recruitment discussion'},{id:'share-2',club_name:'Riverdale Athletic',view_count:0,active:true,token:'fixture-share-two'}],
-   communication:{summary:{connected_items:3},items:[{capture_id:'activity-1',channel:'email',direction:'inbound',person_name:'Recruitment director',summary:'Requested full-match footage and current-season figures before the next recruitment meeting.',owner_name:'Example Agent',occurred_at:'2026-10-11T12:00:00Z'}],open_followups:[{task_id:'followup-1',title:'Send reviewed footage and season evidence to North Coast FC',due_at:'2026-10-15T12:00:00Z',owner_name:'Example Agent'}]},
+   communication:{summary:{connected_items:3},items:[{capture_id:'activity-1',channel:'email',direction:'inbound',person_name:'Recruitment director',summary:'Requested full-match footage and current-season figures before the next recruitment meeting.',owner_name:profileOwner,occurred_at:'2026-10-11T12:00:00Z'}],open_followups:[{task_id:'followup-1',title:'Send reviewed footage and season evidence to North Coast FC',due_at:'2026-10-15T12:00:00Z',owner_name:profileOwner}]},
    deals:[],clubs:[],branding:{support_email:'qa@example.test',primary_color:scenario==='populated-light-brand'?'#FFFFFF':'#24143D',accent_color:'#8B5CF6'},secondary_ready:scenario!=='populated-late-detail',auto_key_stats:[]
   }};
   if(scenario==='populated-share'&&action==='create_options')return {options:{clubs:[{id:'qa-club',name:'QA Recipient FC'}]}};
@@ -101,7 +104,7 @@ export default function Page(){
   }
   if(action==='player_profile_core'||action==='player_profile')return {profile:{access:fixtureRole!=='owner'?{scope:'assigned',restricted:true}:undefined,player:{id:body.player_id,first_name:user==='a'?'José':'Other',last_name:'Silva',primary_position:'Centre back',current_club:'Example FC',current_country:'NZ',current_league:'Regional League',current_season_label:'2026/27',verification_status:'reviewing'},career:[],settings:{},published:{published:false},videos:[],documents:[],shares:[],deals:[],clubs:[],branding:{support_email:'qa@example.test'},secondary_ready:scenario!=='populated-late-detail',auto_key_stats:[]}};
   throw new Error('Unexpected fixture action '+action);
- },[data,user,scenario,fixtureRole]);
+ },[data,user,scenario,fixtureRole,profileOwner]);
  const rpc=useCallback(async(name:string,args:any={})=>{
   reads.current[name]=(reads.current[name]||0)+1;
   if(name==='redream_relationship_person')return {person:{id:args.p_person_id,full_name:'Beyond Summary Director'},reach:{},employment:{},relationship_memory:{state:'recorded',best_route:{},routes:[]}};
