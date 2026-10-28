@@ -8,10 +8,10 @@ try{
  await page.route('https://example.supabase.co/rest/v1/rpc/**',async route=>{
   const method=new URL(route.request().url()).pathname.split('/').at(-1);
   if(method==='fixture_refresh'){await route.fulfill({status:refreshFails?503:200,contentType:'application/json',body:JSON.stringify(refreshFails?{message:'Refresh failed'}:{})});return;}
-  if(method==='redream_entity_action_preview'){await new Promise(resolve=>{releasePreview=resolve;});await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({can_delete:true,impact:{}})});return;}
+  if(method==='redream_entity_action_preview'){await new Promise(resolve=>{releasePreview=resolve;});await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({entity_type:'club',entity_id:'fixture-club',can_delete:true,impact:{}})});return;}
   assert.equal(method,'redream_entity_patch');lastPatch=route.request().postDataJSON().p_patch;writes++;
   if(mode==='pending')await new Promise(resolve=>{release=resolve;});
-  await route.fulfill({status:mode==='failed'?503:200,contentType:'application/json',body:JSON.stringify(mode==='failed'?{message:'Temporary save failure'}:{ok:true})});
+  await route.fulfill({status:mode==='failed'?400:200,contentType:'application/json',body:JSON.stringify(mode==='failed'?{message:'Check the club details.',code:'22023'}:{ok:true,id:'fixture-club',entity_type:'club'})});
  });
  const url=new URL('/qa-usability',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');
  for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(error){if(i===59)throw error;await page.waitForTimeout(250);}}

@@ -95,6 +95,7 @@ function amount(value:unknown,currency:unknown,multiplier=1):string|null {
   const tail=(units%scale).toString().padStart(4,'0').replace(/0+$/,'');
   return `${code || 'Currency unknown'} ${integer}${tail?'.'+tail:''}`;
 }
+export {amount as formatCommercialAmount};
 
 export function clubNeedFinancialFacts(brief:ClubNeedBrief):[string,string][] {
   const facts:[string,string][]=[];

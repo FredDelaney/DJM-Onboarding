@@ -125,6 +125,17 @@ test('market tenant-wide commercial and pitch routes require administrators',asy
   }
 });
 
+test('only verified agency administrators select the private salary read overload',async()=>{
+ for(const role of ['owner','admin','agent','operations','scout']){
+  const f=fixture('agency-os',role);const response=await f.call('demand_control_fast',{user_id:'forged-user',role:'owner',limit:999});
+  if(!['owner','admin'].includes(role)){assert.equal(response.status,403);assert.equal(f.calls.filter(call=>call.name==='platform_server_demand_control_fast').length,0);continue;}
+  assert.equal(response.status,200);
+  const read=f.calls.find(call=>call.name==='platform_server_demand_control_fast');assert.ok(read);
+  assert.equal(read.args.p_tenant_id,'own-tenant');assert.equal(read.args.p_limit,250);
+  assert.equal(read.args.p_user_id,['owner','admin'].includes(role)?'trusted-user':undefined);
+ }
+});
+
 test('assigned editors receive explicit football review capabilities, with all private profile controls restricted',async()=>{
  for(const role of ['agent','operations','scout'])for(const canEdit of [true,false]){
   const f=fixture('agency-os',role,canEdit,true);

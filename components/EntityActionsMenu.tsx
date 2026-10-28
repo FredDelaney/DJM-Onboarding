@@ -57,6 +57,7 @@ type Props = {
   scope?: string;
   className?: string;
   showEdit?: boolean;
+  editOnly?: boolean;
   versionedEdit?: boolean;
   lookup?:AgencyRecordLookup;
 };
@@ -90,6 +91,7 @@ function EntityActionsPanel({
   onChanged,
   className = '',
   showEdit = false,
+  editOnly = false,
   versionedEdit = false,
   lookup,
 }: Props) {
@@ -293,8 +295,8 @@ function EntityActionsPanel({
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
     >
-      {showEdit?<button type="button" className={styles.edit} onClick={event=>open('edit',event)} aria-label={'Edit '+label}><Pencil size={15}/><span>Edit</span></button>:null}
-      <button
+      {showEdit||editOnly?<button type="button" className={styles.edit} onClick={event=>open('edit',event)} aria-label={'Edit '+label}><Pencil size={15}/><span>Edit</span></button>:null}
+      {!editOnly?<button
         type="button"
         className={styles.trigger}
         aria-label={`Manage ${label}`}
@@ -302,7 +304,7 @@ function EntityActionsPanel({
         onClick={(event) => open('menu', event)}
       >
         <MoreHorizontal size={18} />
-      </button>
+      </button>:null}
 
       {mode ? createPortal(
         <div

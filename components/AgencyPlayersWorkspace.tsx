@@ -24,6 +24,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
+import PlayerSalaryTerms from '@/components/PlayerSalaryTerms';
 import RecordContactActions from '@/components/RecordContactActions';
 import AgencyCreateDrawer from './AgencyCreateDrawer';
 import ConfirmActionDialog from './ConfirmActionDialog';
@@ -373,6 +374,7 @@ function PlayerDrawer({
               {tab === 'overview' ? (
                 <div className={styles.detailStack}>
                   <PlayerStaffControl key={cacheScope+playerId} playerId={playerId} scope={cacheScope} rpc={rpc}/>
+                  {canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted?<PlayerSalaryTerms playerId={playerId} scope={cacheScope} rpc={rpc}/>:null}
                   <section className={styles.detailHero}>
                     <p>Next action</p>
                     <h3>{service?.next_service_move?.instruction || identity.next_action || 'No next action yet'}</h3>

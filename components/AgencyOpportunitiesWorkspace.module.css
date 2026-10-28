@@ -1046,6 +1046,10 @@ button.needCandidate:hover { background: var(--agency-primary-soft, var(--interf
 .needCandidate strong { font-size: 14px; font-weight: 600; line-height: 1.45; }
 .needCandidate small, .needCandidate span > span { color: #64748b; font-size: 13px; line-height: 1.5; }
 .needCandidate > svg { flex: 0 0 auto; color: #64748b; }
+.needCandidate .salaryCheck{display:grid;gap:3px;margin:3px 0;padding-left:10px;border-left:2px solid var(--interface-line)}
+.needCandidate .salaryCheck strong{font-size:13px;font-weight:550;color:var(--interface-ink)}
+.needCandidate .salaryCheck[data-conflict] {border-color:#a55b36}
+.needCandidate .salaryCheck[data-conflict] strong{color:#85452a}
 .needCoverage { margin: 0; color: #64748b; font-size: 13px; line-height: 1.6; }
 .needSource { min-width: 0; }
 .needSource > summary { display: flex; align-items: center; min-height: 44px; color: #46505e; font-size: 13px; cursor: pointer; }

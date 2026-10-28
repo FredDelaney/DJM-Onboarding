@@ -185,3 +185,75 @@ test('native tenant references reject the reproduced direct-write bypass while p
  const n=await record(id);assert.equal(n.tenant_id,tenant);assert.equal(n.source_person_id,null);assert.equal(n.source_organisation_id,null);
  const target=n.organisation_id;await db.query('delete from djm_os.organisations where id=$1',[target]);assert.equal(await scalar('count(*) from djm_os.club_needs where id=$1',[id]),0);
 });
+
+const salaryPlayer='50000000-0000-4000-8000-000000000091',foreignSalaryPlayer='50000000-0000-4000-8000-000000000092';
+const salaryRead=()=>scalar('public.redream_player_salary_terms($1)',[salaryPlayer]);
+const salaryWrite=async(patch:Record<string,unknown>,expected?:string|null)=>scalar('public.redream_player_salary_terms_patch($1,$2,$3)',[salaryPlayer,expected===undefined?(await salaryRead()).terms.updated_at:expected,patch]);
+const salaryCompare=(need:string)=>scalar('private.player_need_salary_check($1,$2,$3)',[tenant,need,salaryPlayer]);
+const validSalary={salary_minimum:'5000',salary_target:'5500',salary_currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',salary_source_status:'confirmed',salary_source_context:'QA player confirmation, base salary only',salary_checked_on:'2026-10-28'};
+
+test('salary terms extend private facts and both reviewed admin read models without changing their contracts',async()=>{
+ await db.exec(`alter table platform.tenant_memberships add check(role in('owner','admin','agent','scout','operations','player')),add check(status in('invited','active','suspended','ended'));`);
+ await db.exec(`create table djm_os.player_market_facts(player_id uuid primary key references public.players(id) on delete cascade,salary_expectation text,market_preferences text,relocation_preferences text,travel_availability text,passports_held text[] not null default '{}',work_rights text,preferred_move_timing text,last_synced_at timestamptz not null default now());
+ alter table djm_os.player_market_facts enable row level security;
+ create function private.user_is_player_tenant_admin(p_player uuid) returns boolean language sql stable security definer set search_path='' as $$select private.user_is_tenant_admin((select p.tenant_id from public.players p where p.id=p_player),auth.uid())$$;
+ create policy djm_team_select on djm_os.player_market_facts for select to authenticated using(private.user_is_player_tenant_admin(player_id));
+ grant select,insert,update,delete on djm_os.player_market_facts to authenticated;`);
+ const adminHelper=read('supabase/migrations/20261006120000_staff_workspace_authorization.sql').match(/create or replace function private\.redream_admin_tenant[\s\S]*?\$\$;/);assert.ok(adminHelper);await db.exec(adminHelper[0]);
+ const before=(await db.query("select oid,proowner,proacl,prosecdef,proconfig,provolatile from pg_proc where oid in ('public.platform_server_workspace_need_record(uuid,uuid,uuid)'::regprocedure,'public.platform_server_demand_control_fast(uuid,integer)'::regprocedure) order by oid")).rows;
+ await db.exec(read('supabase/migrations/20261028224735_player_salary_terms_and_comparison.sql'));
+ assert.deepEqual((await db.query("select oid,proowner,proacl,prosecdef,proconfig,provolatile from pg_proc where oid in ('public.platform_server_workspace_need_record(uuid,uuid,uuid)'::regprocedure,'public.platform_server_demand_control_fast(uuid,integer)'::regprocedure) order by oid")).rows,before);
+ await db.query("insert into public.players(id,tenant_id,first_name,last_name) values($1,$2,'Salary','Player'),($3,$4,'Foreign','Player')",[salaryPlayer,tenant,foreignSalaryPlayer,other]);
+ await db.query("insert into djm_os.player_market_facts(player_id,salary_expectation,market_preferences,last_synced_at) values($1,'Approx 5k plus benefits, basis unclear','Australia','2026-01-01')",[salaryPlayer]);
+ const empty=await salaryRead();assert.equal(empty.salary_terms_version,1);assert.equal(empty.terms.salary_minimum,null);assert.equal(empty.terms.updated_at,null);assert.match(empty.terms.legacy_salary_expectation,/Approx/);
+ await assert.rejects(()=>db.exec(read('supabase/migrations/20261028224735_player_salary_terms_and_comparison.sql')));await db.exec('rollback');
+});
+test('structured salary saves are exact, sourced, audited and leave player notes and synchronisation intact',async()=>{
+ const result=await salaryWrite(validSalary);assert.equal(result.ok,true);assert.equal(result.id,salaryPlayer);assert.equal(result.entity_type,'player');assert.equal(result.terms.salary_minimum,'5000');assert.equal(result.terms.updated_by,user);assert.ok(result.terms.updated_at);
+ const original=await scalar('to_jsonb(f) from djm_os.player_market_facts f where player_id=$1',[salaryPlayer]);assert.equal(original.salary_expectation,'Approx 5k plus benefits, basis unclear');assert.equal(original.market_preferences,'Australia');assert.match(original.last_synced_at,/2026-01-01/);
+ const audit=await scalar("to_jsonb(a) from platform.audit_events a where action='agency.player_salary_terms_updated' order by ctid desc limit 1");assert.equal(audit.actor_user_id,user);assert.equal(audit.actor_kind,'user');assert.equal(audit.tenant_id,tenant);assert.equal(audit.after_state.salary_target,'5500');
+ const count=await scalar('count(*) from platform.audit_events');const noop=await salaryWrite({salary_currency:'eur'});assert.equal(noop.terms.updated_at,result.terms.updated_at);assert.equal(await scalar('count(*) from platform.audit_events'),count);
+ await assert.rejects(()=>salaryWrite({salary_minimum:'4000'},null),(e:any)=>e.code==='40001');assert.equal((await salaryRead()).terms.salary_minimum,'5000');
+});
+test('salary validation rejects invalid values and source claims atomically, preserving unknown versus zero',async()=>{
+ const previous=await salaryRead(),count=await scalar('count(*) from platform.audit_events');
+ for(const patch of [{salary_minimum:'-1'},{salary_minimum:'NaN'},{salary_target:'Infinity'},{salary_minimum:'1e4'},{salary_minimum:'9999999999999'},{salary_minimum:'1.12345'},{salary_minimum:5000},{salary_currency:'XXX'},{salary_period:'daily'},{salary_tax_basis:'unknown'},{salary_source_status:'verified'},{salary_source_context:''},{salary_checked_on:''},{salary_checked_on:'2026-02-30'},{salary_checked_on:'2999-01-01'},{salary_checked_on:'2026-10-28T00:00:00Z'},{salary_target:'1'},{salary_source_context:'x'.repeat(2001)},{salary_expectation:'overwrite'},{tenant_id:other}])await assert.rejects(()=>salaryWrite(patch));
+ for(const invalid of [null,[],'invalid'])await assert.rejects(()=>scalar('public.redream_player_salary_terms_patch($1,$2,$3)',[salaryPlayer,previous.terms.updated_at,JSON.stringify(invalid)]),(e:any)=>e.code==='22023');
+ assert.deepEqual(await salaryRead(),previous);assert.equal(await scalar('count(*) from platform.audit_events'),count);
+ await salaryWrite({salary_minimum:'0',salary_target:'',salary_source_status:'reported',salary_source_context:'',salary_checked_on:''});const zero=await salaryRead();assert.equal(zero.terms.salary_minimum,'0');assert.equal(zero.terms.salary_target,null);assert.equal(zero.terms.salary_checked_on,null);
+ for(const [currency,valid,invalid] of [['JPY','5','5.1'],['EUR','5.12','5.123'],['KWD','5.123','5.1234'],['CLF','5.1234','5.12345']]){
+  await salaryWrite({salary_currency:currency,salary_minimum:valid});assert.equal((await salaryRead()).terms.salary_minimum,valid);await assert.rejects(()=>salaryWrite({salary_minimum:invalid}));
+ }
+ await salaryWrite({...validSalary});
+});
+test('salary comparisons use actual numeric amounts and explicit compatible units, with no legacy-text or FX/tax assumptions',async()=>{
+ const need=(await create({salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',source_status:'confirmed'})).club_need_id;
+ assert.equal((await salaryCompare(need)).state,'target_above_budget');
+ await salaryWrite({salary_minimum:'5000.01',salary_target:'5500'});let comparison=await salaryCompare(need);assert.equal(comparison.state,'minimum_above_budget');assert.equal(comparison.hard_conflict,true);assert.equal(comparison.club_budget,'5000');assert.equal(comparison.player_minimum,'5000.01');const fingerprint=comparison.fingerprint;
+ await db.query("update djm_os.club_needs set source_status='reported' where id=$1",[need]);assert.equal((await salaryCompare(need)).hard_conflict,false);assert.equal((await salaryCompare(need)).needs_source_confirmation,true);await db.query("update djm_os.club_needs set source_status='confirmed' where id=$1",[need]);
+ await salaryWrite({salary_source_status:'reported'});comparison=await salaryCompare(need);assert.equal(comparison.state,'minimum_above_budget');assert.equal(comparison.hard_conflict,false);assert.equal(comparison.needs_source_confirmation,true);assert.notEqual(comparison.fingerprint,fingerprint);
+ for(const [patch,state] of [[{salary_currency:'USD'},'different_currencies'],[{salary_currency:'EUR',salary_tax_basis:'gross'},'different_tax_basis'],[{salary_tax_basis:'net',salary_period:'annual'},'different_periods'],[{salary_period:''},'missing_information']] as const){await salaryWrite(patch);assert.equal((await salaryCompare(need)).state,state);}
+ await salaryWrite({salary_minimum:'',salary_target:'',salary_period:'monthly'});assert.equal((await salaryCompare(need)).state,'missing_information');
+ await salaryWrite({salary_minimum:'0',salary_target:'',salary_source_status:''});comparison=await salaryCompare(need);assert.equal(comparison.state,'minimum_within_budget');assert.equal(comparison.hard_conflict,false);assert.equal(comparison.needs_source_confirmation,true);
+ await salaryWrite({salary_minimum:'',salary_target:'5000'});assert.equal((await salaryCompare(need)).state,'target_within_budget');
+ await db.query("update djm_os.club_needs set salary_tax_basis='unknown' where id=$1",[need]);assert.equal((await salaryCompare(need)).state,'missing_information');
+ await db.query("update djm_os.club_needs set salary_tax_basis='net',salary_budget='NaN' where id=$1",[need]);assert.equal((await salaryCompare(need)).state,'missing_information');
+});
+test('both canonical need readers carry fresh salary evidence without modifying match status or source reasoning',async()=>{
+ await salaryWrite(validSalary);const need=(await create({salary_budget:'4900',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',source_status:'confirmed'})).club_need_id,match='60000000-0000-4000-8000-000000000091';
+ await db.query("insert into djm_os.player_matches(id,tenant_id,club_need_id,player_id,status,overall_score,reasoning) values($1,$2,$3,$4,'shortlisted',99,'{\"manual\":true}')",[match,tenant,need,salaryPlayer]);
+ const candidate=async()=>{const result=await scalar('public.platform_server_workspace_need_record($1,$2,$3)',[tenant,user,need]);return result.item.candidate_coverage.candidates[0];};
+ assert.equal((await candidate()).salary_check.state,'minimum_above_budget');const list=await scalar('public.platform_server_demand_control_fast($1,100,$2)',[tenant,user]);assert.equal(list.items.find((n:any)=>n.club_need_id===need).candidate_coverage.candidates[0].salary_check.hard_conflict,true);
+ const ordinary=await scalar('public.platform_server_demand_control_fast($1,100)',[tenant]);assert.equal(ordinary.items.find((n:any)=>n.club_need_id===need).candidate_coverage.candidates[0].salary_check,undefined,'The broader staff reader never gains private salary fields');
+ await salaryWrite({salary_minimum:'4800',salary_target:'4900'});assert.equal((await candidate()).salary_check.state,'minimum_within_budget');
+ const unchanged=await scalar('to_jsonb(m) from djm_os.player_matches m where id=$1',[match]);assert.equal(unchanged.status,'shortlisted');assert.deepEqual(unchanged.reasoning,{manual:true});assert.equal(unchanged.overall_score,99);
+});
+test('salary RPCs deny non-admin, anonymous, foreign, revoked and suspended access without table grants',async()=>{
+ const readSql='public.redream_player_salary_terms($1)',writeSql='public.redream_player_salary_terms_patch($1,null,\'{\"salary_minimum\":\"1\"}\')';
+ await actor();await db.exec('set role authenticated');try{assert.equal((await salaryRead()).terms.player_id,salaryPlayer);for(const sql of [readSql,writeSql])await assert.rejects(()=>scalar(sql,[foreignSalaryPlayer]));await assert.rejects(()=>scalar('private.player_need_salary_check($1,$2,$3)',[tenant,tenant,salaryPlayer]));assert.equal((await db.query('update djm_os.player_market_facts set salary_minimum=1 where player_id=$1',[salaryPlayer])).affectedRows,0);await assert.rejects(()=>db.query('insert into djm_os.player_market_facts(player_id,salary_minimum) values($1,1)',[foreignSalaryPlayer]));}finally{await db.exec('reset role');}
+ for(const role of ['agent','scout','operations','player']){await db.query('update platform.tenant_memberships set role=$1 where tenant_id=$2 and user_id=$3',[role,tenant,user]);for(const sql of [readSql,writeSql])await assert.rejects(()=>scalar(sql,[salaryPlayer]));await assert.rejects(()=>scalar('public.platform_server_demand_control_fast($1,100,$2)',[tenant,user]));}
+ await db.query("update platform.tenant_memberships set role='owner',status='ended' where tenant_id=$1 and user_id=$2",[tenant,user]);await assert.rejects(()=>salaryRead());await db.query("update platform.tenant_memberships set status='active' where tenant_id=$1 and user_id=$2",[tenant,user]);
+ await db.query("update platform.tenants set status='suspended' where id=$1",[tenant]);await assert.rejects(()=>salaryRead());await db.query("update platform.tenants set status='active' where id=$1",[tenant]);
+ await db.exec('set role anon');try{await assert.rejects(()=>salaryRead());}finally{await db.exec('reset role');}
+ await db.query("select set_config('test.user','',false)");await assert.rejects(()=>salaryRead());await actor();
+});

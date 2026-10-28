@@ -17,9 +17,14 @@ try{
   assert.equal(await page.evaluate(()=>window.qaOpenedOpportunity||null),null,'Reviewing a need cannot silently choose its first candidate');
   assert.equal(await page.evaluate(()=>(window.qaOpportunityCalls||[]).length),0,'Reviewing a need cannot start search preparation');
   await row.getByText('Showing 3 of 5 recorded candidates.',{exact:true}).waitFor();
+  await row.getByText('The recorded salary minimum exceeds the club base-salary budget.',{exact:true}).waitFor();
+  await row.getByText('Minimum: EUR 5,500.01 per month · net',{exact:true}).waitFor();
+  await row.getByText('Target: EUR 6,000 per month · net',{exact:true}).waitFor();
+  await row.getByText('Club budget: EUR 5,000 per month · net',{exact:true}).waitFor();
+  assert.equal(await row.getByText('Salary comparison not available. Review terms before presenting this player.',{exact:true}).count(),2,'Older/missing comparison data cannot imply affordability');
   await row.getByText('Opportunity link unavailable',{exact:true}).waitFor();assert.equal(await row.getByRole('button',{name:'Open opportunity for Unlinked Candidate',exact:true}).count(),0);
   await row.getByText('Left',{exact:true}).waitFor();await row.getByText('185 cm',{exact:true}).waitFor();
-  await row.getByText('EUR 5,000 per month · tax basis unknown',{exact:true}).waitFor();
+  await row.getByText('EUR 5,000 per month · net',{exact:true}).waitFor();
   await row.getByText('EUR 60,000',{exact:true}).waitFor();
   await row.getByText('18 to 26',{exact:true}).waitFor();await row.getByText('Senior first-team experience',{exact:true}).waitFor();await row.locator('dd').filter({hasText:/^Source Director$/}).waitFor();
   await row.getByText('Optional extension budget (not guaranteed)',{exact:true}).waitFor();
@@ -33,7 +38,7 @@ try{
   await editor.getByText('Football requirements',{exact:true}).click();
   await editor.getByText('Source & priority',{exact:true}).click();
   assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).inputValue(),'5000');
-  assert.equal(await editor.getByLabel('Tax basis',{exact:true}).inputValue(),'');
+  assert.equal(await editor.getByLabel('Tax basis',{exact:true}).inputValue(),'net');
   assert.equal(await editor.getByLabel('Nationality preferences (one per line)',{exact:true}).inputValue(),'Portugal\nNew Zealand');
   await editor.getByLabel('Source contact',{exact:true}).selectOption('40000000-0000-4000-8000-000000000001');
   await editor.getByLabel('Salary budget (maximum)',{exact:true}).fill('5500');
@@ -46,7 +51,8 @@ try{
   await page.evaluate(()=>window.qaBriefEditFails=false);
   await editor.getByRole('button',{name:'Save changes',exact:true}).click();await editor.waitFor({state:'hidden'});
   assert.deepEqual(await page.evaluate(()=>window.qaBriefPatch),{salary_budget:'5500',option_months:'6',source_status:'confirmed'},'Only changed canonical fields are patched');
-  await row.getByText('EUR 5,500 per month · tax basis unknown',{exact:true}).waitFor();
+  await row.getByText('EUR 5,500 per month · net',{exact:true}).waitFor();
+  await row.getByText('Club budget: EUR 5,500 per month · net',{exact:true}).waitFor();
   await row.getByText('EUR 33,000 over 6 months',{exact:true}).waitFor();
   await row.getByText('Original striker request, €5,000 monthly, 12 + 12.',{exact:true}).waitFor();
   assert.equal(await row.getByText('Asked for current full-match footage.',{exact:true}).isVisible(),false,'Source conversation stays secondary');
@@ -90,7 +96,7 @@ try{
     assert.equal(await pending.getByRole('button',{name:'Save changes',exact:true}).count(),0,'Unknown outcome cannot be blindly retried');
     await pending.getByRole('button',{name:'Reload request',exact:true}).click();await pending.waitFor({state:'hidden'});
     if(await review.getAttribute('aria-expanded')==='false')await review.click();
-    await row.getByText('EUR 5,500 per month · tax basis unknown',{exact:true}).waitFor();
+    await row.getByText('EUR 5,500 per month · net',{exact:true}).waitFor();
   }
   assert.deepEqual(errors,[]);await page.close();console.log('PASS club need review, deliberate player/search choice, missing coverage, expiry and layout',width);
  }
