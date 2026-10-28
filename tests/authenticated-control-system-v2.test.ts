@@ -32,7 +32,8 @@ test('semantic controls are used broadly across authenticated Agency components'
 
 test('control palette standardises light and inverse surfaces', () => {
   const palette = css.slice(css.lastIndexOf('Shared control palette.'));
-  assert.match(palette, /data-ui-button="primary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: var\(--interface-blue\) !important/);
+  assert.match(palette, /data-ui-button="primary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: var\(--agency-primary, var\(--interface-blue\)\) !important/);
+  assert.match(palette, /color: var\(--agency-on-primary, var\(--interface-surface\)\) !important/);
   assert.match(palette, /data-ui-button="secondary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: var\(--interface-soft\) !important/);
   assert.match(palette, /data-ui-tone="inverse"\]\[data-ui-button="primary"\][\s\S]*background: var\(--interface-surface\) !important/);
   assert.match(palette, /data-ui-tone="inverse"\]\[data-ui-button="secondary"\][\s\S]*background: rgba\(255,255,255,.08\) !important/);
