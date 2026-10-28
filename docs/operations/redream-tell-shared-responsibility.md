@@ -1,6 +1,6 @@
-# Tell ReDream: explicit shared task responsibility
+# Tell ReDream: shared work and capture recovery
 
-Status: shared-name worker/receipt implementation is prepared; three forward database migrations are installed and role-tested on staging `ltvmopvarlnidiozvpow`. The new worker and frontend are not deployed. Production is unchanged. Actual model, hosted UI and human acceptance remain required.
+Status: shared-name worker/receipt and saved-note recovery implementations are prepared; three forward database migrations are installed and role-tested on staging `ltvmopvarlnidiozvpow`. The new worker and frontend are not deployed. Production is unchanged. Actual model, hosted UI and human acceptance remain required.
 
 ## Change
 
@@ -59,6 +59,24 @@ The unchanged helper `private.user_has_staff_tenant_access(uuid,uuid)` has body 
 - Security advisor groups/findings are unchanged. Performance advisors retain the baseline findings and add one settings-policy init-plan warning. A separate actual authenticated-role EXPLAIN canary confirms the final policy uses an InitPlan filter, evaluated once per statement; the settings table is a singleton. This evidence is retained rather than adding privileges or another migration merely to silence the lint. The warning remains visible. [Advisor guidance](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select).
 
 Logs/catalog snapshots/canary result and EXPLAIN assertion: `/tmp/redream-platform-programme/tell-membership-release-*`, `tell-membership-post-*`, `tell-membership-staging-canary.json`, `tell-settings-initplan-*` and `tell-membership-database.log`.
+
+## Prepared saved-note recovery
+
+The existing IndexedDB queue is now visible through a compact Saved on this device disclosure. Original written text, voice duration and recorded context remain available after reload. Only the exact signed-in account and saved agency are shown. No queue, capture or storage-key system is duplicated, cleared or backfilled.
+
+The existing upload path retains the original client capture ID, source, voice bytes and agency; manual and reconnect requests share its existing in-flight operation. Background draining admits only the current account's records and stops when that account changes. A confirmed upload permits existing local cleanup; an uncertain upload retains the original note for same-ID retry. A timeout does not imply remote rollback or prove exactly-once execution.
+
+New automatic receipt-resume entries record their account without changing the compatible local-storage keys. Another account cannot adopt that entry. Older ownerless entries remain stored for deliberate recovery, rather than being automatically presented as the next user's update. Explicit server-authorised deep links retain their existing behaviour.
+
+Local queue/auth reads and local save/cleanup waits use the existing 12-second deadline. Capture uploads use the installed SDK's 90-second fetch timeout, which aborts the client request and cleans up its timer. Microphone startup auth reads are bounded as well. Local read failure offers a read-only retry and never pretends the notes were loaded. Queued copies remain untouched on failed uploads or inaccessible/legacy records.
+
+Retrying an already durable note does not hold the capture window open. Recording, unsaved memory-only notes and the existing unsafe operations retain their close guards. A note being composed disables opening another queued update, and background uploads do not replace the text/Ask experience. Late responses cannot focus a receipt after an account or workspace change.
+
+The existing failed-capture retry now serialises admission, bounds its RPC, checks the echoed capture ID/status and starts receipt polling without awaiting the optional worker wake-up. Only the server-confirmed queued/processing state is reflected; a completed state waits for the actual receipt. Partially prepared proposals cannot be approved, edited or dismissed through the UI until processing settles. Existing backend approval, Undo, roles and write rules are unchanged.
+
+Validation: the milestone passes all 2,200 tests. The final close-guard adjustment then passes 78 affected contracts, the saved-note/Tell-work/lazy-loading browser journeys, all TypeScript projects, production build and workspace gzip 146,075 / 150,000 bytes. Real IndexedDB text/voice/reload, account/agency exclusion, unchanged legacy records, storage failure/read retry, original-ID uploads, reconnect deduplication, SDK timeout/retry, preserved composer, safe durable-note closing, processing controls, nonblocking worker wake-up and late-account/remount/sign-out checks run locally with mocked HTTP. Actions fit at 320/390/768/1440; phone/desktop screenshots are inspected. The focused journey is included in the existing browser CI command.
+
+Evidence: `/tmp/redream-platform-programme/capture-recovery-focused.log`, `capture-recovery-browser.log`, `capture-recovery-final-check.log`, `capture-recovery-typecheck.log`, `capture-recovery-build.log` and `capture-recovery/saved-notes-*.png`. This is not physical microphone/Safari, real offline-network, hosted provider or human acceptance. The increment is frontend-only; no database, configuration, secret, provider or production mutation accompanies it. Hosted staging acceptance remains quota-deferred.
 
 ## Remaining deployment and acceptance
 

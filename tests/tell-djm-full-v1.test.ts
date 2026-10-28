@@ -42,8 +42,8 @@ test('offline capture is persisted before claiming it is safe', () => {
   assert.match(draftSave, /let locallySaved = false/);
   assert.match(draftSave, /locallySaved \? 'queued' : 'unsaved'/);
   assert.match(capture, /persistDraft\(unsavedDraft\)/);
-  assert.match(capture, /recording \|\| busy \|\| Boolean\(unsavedDraft\)/);
-  assert.match(capture, /Saved on this phone/);
+  assert.match(capture, /const unsafe = recording \|\| \(busy && !retryingSavedId\) \|\| Boolean\(unsavedDraft\)/);
+  assert.match(capture, /Saved on this device/);
   assert.match(capture, /window\.addEventListener\('online'/);
 });
 
@@ -288,8 +288,8 @@ test('safely uploaded captures survive refresh and reconnect to their receipt', 
   assert.match(offline, /rememberActiveAiCapture/);
   assert.match(offline, /listActiveAiCaptures/);
   assert.match(offline, /forgetActiveAiCapture/);
-  assert.match(capture, /rememberActiveAiCapture\(result\.capture_id, pendingWorkspace, pending.workspace\)/);
-  assert.match(capture, /listActiveAiCaptures\(\)\.filter\([\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
+  assert.match(capture, /rememberActiveAiCapture\(result\.capture_id, pendingWorkspace, pending.workspace, pending.userId\)/);
+  assert.match(capture, /captures\.filter\([\s\S]{0,130}item.userId === captureAccount[\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
   assert.match(capture, /forgetActiveAiCapture\(captureId\)/);
 });
 
@@ -340,7 +340,7 @@ test('pending local notes retry while the app remains open and connected', () =>
   assert.match(capture, /window\.setInterval/);
   assert.match(capture, /60_000/);
   assert.match(capture, /document\.visibilityState === 'visible'/);
-  assert.match(capture, /flushAiQueue\(listPendingAiCaptures/);
+  assert.match(capture, /flushAiQueue\(async \(\) => [\s\S]{0,140}filter\(item => item.userId === userId\)/);
 });
 
 
@@ -428,7 +428,7 @@ test('receipt polling spans the durable one-minute cron fallback without fan-out
   assert.match(capture, /const POLL_ATTEMPTS = 180/);
   assert.match(capture, /pollingRef/);
   assert.match(capture, /uploadPending\(item, false\)/);
-  assert.match(capture, /listActiveAiCaptures\(\)\.filter\([\s\S]{0,100}workspaceSlug\)\.slice\(-1\)/);
+  assert.match(capture, /if \(latestUploaded && !displayCaptureRef.current && !currentText.current.trim\(\)/);
 });
 
 test('rare orphan voice uploads are also removed after the retention window', () => {

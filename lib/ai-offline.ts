@@ -20,6 +20,11 @@ export type PendingAiCapture = {
 const DB_NAME = 'djm-tell-djm';
 const STORE = 'pending-captures';
 const VERSION = 1;
+export const AI_PENDING_CHANGED = 'redream:pending-captures-changed';
+
+function pendingChanged() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(AI_PENDING_CHANGED));
+}
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -47,6 +52,7 @@ export async function savePendingAiCapture(capture: PendingAiCapture) {
     tx.oncomplete = () => resolve();
     tx.onerror = tx.onabort = () => reject(tx.error || new Error('Could not save pending capture'));
   }); } finally { db.close(); }
+  pendingChanged();
 }
 
 export async function removePendingAiCapture(id: string) {
@@ -57,6 +63,7 @@ export async function removePendingAiCapture(id: string) {
     tx.oncomplete = () => resolve();
     tx.onerror = tx.onabort = () => reject(tx.error || new Error('Could not remove pending capture'));
   }); } finally { db.close(); }
+  pendingChanged();
 }
 
 export async function listPendingAiCaptures(): Promise<PendingAiCapture[]> {
@@ -87,7 +94,15 @@ export function assertAiCaptureOwner(pending: PendingAiCapture, userId: string |
   if (!userId || pending.userId !== userId) throw new Error('Sign in to the account that saved this note to upload it.');
 }
 
+// A saved note's account and agency never follow the currently open page.
+// Older notes without an explicit owner/origin stay in storage for recovery.
+export function scopedPendingAiCaptures(items: PendingAiCapture[], userId: string | null | undefined, workspaceSlug: string) {
+  if (!userId || !workspaceSlug || workspaceSlug === 'unresolved') return [];
+  return items.filter(item => item.userId === userId && pendingAiWorkspace(item) === workspaceSlug);
+}
+
 export type ActiveAiCapture = {
+  userId?: string;
   workspace?: AiWorkspaceContext;
   workspaceSlug?: string | null;
   captureId: string;
@@ -137,13 +152,14 @@ function writeActiveCaptures(items: ActiveAiCapture[]) {
   }
 }
 
-export function rememberActiveAiCapture(captureId: string, workspaceSlug: string | null = null, workspace?: AiWorkspaceContext) {
+export function rememberActiveAiCapture(captureId: string, workspaceSlug: string | null = null, workspace?: AiWorkspaceContext, userId?: string) {
   if (!captureId) return;
   const saved = readActiveCaptures();
   const existing = saved.find((item) => item.captureId === captureId);
   if (existing && pendingAiWorkspace(existing) !== null && pendingAiWorkspace(existing) !== workspaceSlug) return;
+  if (existing?.userId && userId && existing.userId !== userId) return;
   const current = saved.filter((item) => item.captureId !== captureId);
-  current.push({ captureId, workspaceSlug, workspace: existing?.workspace?.workspaceSlug ? existing.workspace : workspace, createdAt: new Date().toISOString() });
+  current.push({ captureId, userId: existing?.userId || userId, workspaceSlug, workspace: existing?.workspace?.workspaceSlug ? existing.workspace : workspace, createdAt: new Date().toISOString() });
   writeActiveCaptures(current);
 }
 

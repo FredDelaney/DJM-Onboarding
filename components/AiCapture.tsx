@@ -42,13 +42,14 @@ import { platformInvoke, platformRpc, friendlyError } from '@/lib/platform-clien
 import {
   chooseRecordingMimeType,
   forgetActiveAiCapture,
-  listActiveAiCaptures,
+  AI_PENDING_CHANGED,
   recoverLegacyAiCaptures,
   listPendingAiCaptures,
   PendingAiCapture,
   rememberActiveAiCapture,
   removePendingAiCapture,
   savePendingAiCapture,
+  scopedPendingAiCaptures,
 } from '@/lib/ai-offline';
 
 import styles from './AiCapture.module.css';
@@ -282,6 +283,11 @@ export default function AiCapture({
   const [editingCapture, setEditingCapture] = useState(false);
   const actionInFlight = useRef(false);
   const [actionBusy, setActionBusy] = useState(false);
+  const [savedQueue, setSavedQueue] = useState<{
+    userId: string; workspaceSlug: string; items: PendingAiCapture[]; error?: string;
+  } | null>(null);
+  const [retryingSavedId, setRetryingSavedId] = useState<string | null>(null);
+  const [captureAccount, setCaptureAccount] = useState<string | null>(null);
 
   const recordingRequestRef = useRef(false);
   const textRequestRef = useRef(false);
@@ -300,9 +306,36 @@ export default function AiCapture({
   const typedKey = useRef<string | null>(null);
   const typedOwner = useRef<string | null | undefined>(undefined);
   const typedEdited = useRef(false);
+  const queueReadRef = useRef(0);
   const currentText = useRef(text);
   currentText.current = text;
+  const foregroundBusyRef = useRef(false);
+  foregroundBusyRef.current = recording || busy || agentBusy || Boolean(unsavedDraft) || mode !== 'voice';
   const typedContext = JSON.stringify([context?.organisation_id,context?.person_id,context?.player_id,context?.prospect_id,context?.opportunity_id,context?.club_need_id,context?.label]);
+  const refreshSavedQueue = useCallback(async (userId = typedOwner.current) => {
+    const request = ++queueReadRef.current;
+    if (!userId || workspaceSlug === 'unresolved') { setSavedQueue(null); return; }
+    const current = () => mountedRef.current && request === queueReadRef.current
+      && activeWorkspaceRef.current === workspaceSlug && typedOwner.current === userId;
+    try {
+      const items = await readWithDeadline(listPendingAiCaptures());
+      if (current()) setSavedQueue({ userId, workspaceSlug, items: scopedPendingAiCaptures(items, userId, workspaceSlug) });
+    } catch {
+      if (current()) setSavedQueue({ userId, workspaceSlug, items: [], error: 'Could not check saved notes on this device.' });
+    }
+  }, [workspaceSlug]);
+
+  useEffect(() => {
+    const changed = () => { void refreshSavedQueue(); };
+    const visible = () => { if (document.visibilityState === 'visible') changed(); };
+    window.addEventListener(AI_PENDING_CHANGED, changed);
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      window.removeEventListener(AI_PENDING_CHANGED, changed);
+      document.removeEventListener('visibilitychange', visible);
+      ++queueReadRef.current;
+    };
+  }, [refreshSavedQueue]);
   const changeTypedText = (next:string) => {
     typedEdited.current = true;
     currentText.current = next;
@@ -316,13 +349,15 @@ export default function AiCapture({
       if(!active)return;
       const changedUser=typedOwner.current!==undefined&&typedOwner.current!==userId;
       typedOwner.current=userId;
+      setCaptureAccount(userId);
       const key=userId&&workspaceSlug&&workspaceSlug!=='unresolved'?aiTextDraftKey(userId,workspaceSlug,typedContext):null;
-      if(key===typedKey.current&&!changedUser)return;
+      if(key===typedKey.current&&!changedUser){void refreshSavedQueue(userId);return;}
       typedKey.current=key;
       if(changedUser){
         lifecycleRef.current++;setText('');setReceipt(null);setError('');setStatus('');typedEdited.current=false;
         setUnsavedDraft(null);setBusy(false);setApprovingCapture(false);setEditingCapture(false);setDeletingCapture(false);setAnswering(null);
         textRequestRef.current=false;actionInFlight.current=false;setActionBusy(false);
+        setSavedQueue(null);setRetryingSavedId(null);
         recordingRequestRef.current=false;displayCaptureRef.current=null;
         pollingRef.current.forEach(controller=>controller.abort());pollingRef.current.clear();
         const recorder=recorderRef.current;
@@ -331,6 +366,7 @@ export default function AiCapture({
         if(timerRef.current!==null)window.clearInterval(timerRef.current);
         timerRef.current=null;chunksRef.current=[];setRecording(false);
       }
+      void refreshSavedQueue(userId);
       if(!key)return;
       try{
         if(!changedUser&&(typedEdited.current||initialText.trim())){writeAiTextDraft(sessionStorage,key,currentText.current||initialText.trim());return;}
@@ -341,7 +377,7 @@ export default function AiCapture({
     const epoch=authEpoch;
     void readWithDeadline(supabase.auth.getSession()).then(({data})=>{if(epoch===authEpoch)scope(data.session?.user.id||null);}).catch(()=>undefined);
     return()=>{active=false;subscription.unsubscribe();};
-  },[workspaceSlug,typedContext,initialText]);
+  },[workspaceSlug,typedContext,initialText,refreshSavedQueue]);
 
   useEffect(() => {
     const sharedText = initialText.trim();
@@ -374,7 +410,7 @@ export default function AiCapture({
   useEffect(() => {
     onUnsafeToCloseChange?.(
       recording ||
-      busy ||
+      (busy && !retryingSavedId) ||
       agentBusy ||
       approvingCapture ||
       editingCapture ||
@@ -387,6 +423,7 @@ export default function AiCapture({
     editingCapture,
     onUnsafeToCloseChange,
     recording,
+    retryingSavedId,
     unsavedDraft,
   ]);
 
@@ -473,15 +510,16 @@ export default function AiCapture({
 
   useEffect(() => {
     if (!resumeCaptureId) return;
-    rememberActiveAiCapture(resumeCaptureId, workspaceSlug, workspace);
+    rememberActiveAiCapture(resumeCaptureId, workspaceSlug, workspace, typedOwner.current || undefined);
     setStatus('Checking...');
     void pollReceipt(resumeCaptureId, true);
   }, [pollReceipt, resumeCaptureId, workspaceSlug]);
 
   const uploadPending = useCallback(
     async (pending: PendingAiCapture, showReceipt = true) => {
+      const generation = lifecycleRef.current;
       const captureId = await uploadAiCaptureOnce(pending.id, async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await readWithDeadline(supabase.auth.getSession());
         assertAiCaptureOwner(pending, session?.user.id);
         const form = new FormData();
         form.append('client_capture_id', pending.id);
@@ -505,50 +543,61 @@ export default function AiCapture({
           form.append('file', file);
         }
 
-        const result: any = await platformInvoke('redream-ai-capture', form, session!.access_token);
+        const result: any = await platformInvoke('redream-ai-capture', form, session!.access_token, { timeout: 90_000 });
         if (!result?.capture_id) {
           throw new Error('Could not confirm the update. Try again.');
         }
 
-        rememberActiveAiCapture(result.capture_id, pendingWorkspace, pending.workspace);
-        await removePendingAiCapture(pending.id).catch(() => undefined);
+        rememberActiveAiCapture(result.capture_id, pendingWorkspace, pending.workspace, pending.userId);
+        await readWithDeadline(removePendingAiCapture(pending.id)).catch(() => undefined);
         return result.capture_id as string;
       });
       // Each caller may open its own receipt even when the upload was shared.
-      if (showReceipt && pendingAiWorkspace(pending) === workspaceSlug) void pollReceipt(captureId, true);
+      if (showReceipt && generation === lifecycleRef.current && mountedRef.current
+        && pending.userId === typedOwner.current && pendingAiWorkspace(pending) === workspaceSlug) void pollReceipt(captureId, true);
       return captureId;
     },
     [pollReceipt, workspaceSlug],
   );
 
   const flushPending = useCallback(async () => {
-    let uploadedAny = false;
+    const generation = lifecycleRef.current;
+    let latestUploaded: string | null = null;
+    let attempted = false;
     try {
-      const result = await flushAiQueue(listPendingAiCaptures, (item) => uploadPending(item, false));
-      uploadedAny = result.uploaded > 0;
-      if (result.failed > 0 && mountedRef.current) setError('Some notes could not upload. They are saved on this phone and will retry. Check your connection and account.');
+      const { data: { session } } = await readWithDeadline(supabase.auth.getSession());
+      if (!session || generation !== lifecycleRef.current || !mountedRef.current) return;
+      const userId = session.user.id;
+      const current = () => generation === lifecycleRef.current && mountedRef.current && typedOwner.current === userId;
+      const result = await flushAiQueue(async () => (await readWithDeadline(listPendingAiCaptures())).filter(item => item.userId === userId), async item => {
+        attempted = true;
+        const captureId = await uploadPending(item, false);
+        if (pendingAiWorkspace(item) === workspaceSlug) latestUploaded = captureId;
+      }, current);
+      if (!current()) return;
+      if (attempted && result.failed > 0) setError('Some saved notes could not upload. Check your connection and try again.');
+      if (latestUploaded && !displayCaptureRef.current && !currentText.current.trim()
+        && !foregroundBusyRef.current && !recordingRequestRef.current && !textRequestRef.current) void pollReceipt(latestUploaded, true);
     } catch {
       return; // Local storage is unavailable; existing pending data is untouched.
+    } finally {
+      if (generation === lifecycleRef.current && mountedRef.current) void refreshSavedQueue();
     }
-
-    if (uploadedAny) {
-      const latest = listActiveAiCaptures().filter((item) => pendingAiWorkspace(item) === workspaceSlug).slice(-1)[0];
-      if (latest && !displayCaptureRef.current) {
-        void pollReceipt(latest.captureId, true);
-      }
-    }
-  }, [pollReceipt, uploadPending, workspaceSlug]);
+  }, [pollReceipt, uploadPending, workspaceSlug, refreshSavedQueue]);
 
   useEffect(() => {
+    if (!captureAccount) return;
+    const generation = lifecycleRef.current;
     void flushPending();
 
     let mounted = true;
     void recoverLegacyAiCaptures((captureId) => platformRpc<string>(
       'redream_ai_capture_workspace', { p_capture_id: captureId },
     )).then((captures) => {
-      const active = captures.filter((item) => pendingAiWorkspace(item) === workspaceSlug).slice(-1)[0];
-      if (mounted && active && !displayCaptureRef.current) void pollReceipt(active.captureId, true);
-    });
+      const active = captures.filter((item) => item.userId === captureAccount && pendingAiWorkspace(item) === workspaceSlug).slice(-1)[0];
+      if (mounted && generation === lifecycleRef.current && typedOwner.current === captureAccount
+        && active && !displayCaptureRef.current && !currentText.current.trim() && !foregroundBusyRef.current) void pollReceipt(active.captureId, true);
+    }).catch(() => undefined);
 
     const online = () => void flushPending();
     const retryTimer = window.setInterval(() => {
@@ -561,10 +610,10 @@ export default function AiCapture({
       window.removeEventListener('online', online);
       window.clearInterval(retryTimer);
     };
-  }, [flushPending, pollReceipt]);
+  }, [flushPending, pollReceipt, captureAccount, workspaceSlug]);
 
   useEffect(() => {
-    const unsafe = recording || busy || Boolean(unsavedDraft);
+    const unsafe = recording || (busy && !retryingSavedId) || Boolean(unsavedDraft);
     if (!unsafe) return;
 
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -592,7 +641,7 @@ export default function AiCapture({
       window.removeEventListener('beforeunload', beforeUnload);
       document.removeEventListener('click', guardLinks, true);
     };
-  }, [busy, recording, unsavedDraft]);
+  }, [busy, recording, unsavedDraft, retryingSavedId]);
 
   const stopTracks = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -613,7 +662,7 @@ export default function AiCapture({
     setReceipt(null);
     setStatus('Saving your note...');
     const result = await saveAiDraft(pending, {
-      saveLocal: savePendingAiCapture,
+      saveLocal: draft => readWithDeadline(savePendingAiCapture(draft)),
       upload: uploadPending,
       online: () => navigator.onLine,
     });
@@ -628,7 +677,7 @@ export default function AiCapture({
     if(typedKey.current)try{writeAiTextDraft(sessionStorage,typedKey.current,'');}catch{}
     setText('');
     if (result.state === 'queued') {
-      setStatus('Saved on this phone. It will retry when connected.');
+      setStatus('Saved on this device. It will retry when connected.');
       if (result.error) setError(friendlyError(result.error));
     }
   };
@@ -672,7 +721,7 @@ export default function AiCapture({
         throw new Error('Microphone recording is not supported in this browser');
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await readWithDeadline(supabase.auth.getSession());
       if (!session) throw new Error('Sign in to record.');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -843,31 +892,35 @@ export default function AiCapture({
 
   const retryCapture = async () => {
     const captureId = receipt?.capture?.id;
-    if (!captureId) return;
+    if (!captureId || actionInFlight.current) return;
+    actionInFlight.current = true;setActionBusy(true);
 
     const generation=lifecycleRef.current;
     setError('');
     setStatus('Retrying...');
     try {
-      const result: any = await platformRpc('redream_ai_retry_capture', {
+      const result: any = await readWithDeadline(platformRpc('redream_ai_retry_capture', {
         p_capture_id: captureId,
-      }, workspaceSlug);
+      }, workspaceSlug));
       if(generation!==lifecycleRef.current||!mountedRef.current)return;
-      if (result?.capture_id) {
-        rememberActiveAiCapture(result.capture_id, workspaceSlug, workspace);
-        try {
-          await platformInvoke('redream-ai-process', {
-            capture_id: result.capture_id,
-          });
-        } catch {
-          // The durable cron worker is the fallback.
-        }
-        void pollReceipt(result.capture_id);
+      if (result?.capture_id !== captureId || typeof result?.status !== 'string') {
+        throw new Error('Could not confirm the retry. Check this update and try again.');
       }
+      rememberActiveAiCapture(captureId, workspaceSlug, workspace, typedOwner.current || undefined);
+      if (['queued','processing'].includes(result.status)) {
+        // This status is confirmed by the server, not an assumed successful write.
+        setReceipt(current => current?.capture?.id === captureId ? { ...current, capture: { ...current.capture, status: result.status } } : current);
+        // Processing is a best-effort wake-up; the durable worker remains the fallback.
+        void platformInvoke('redream-ai-process', { capture_id: captureId }, undefined, { timeout: 90_000 }).catch(() => undefined);
+      }
+      setStatus('Checking your update...');
+      void pollReceipt(captureId);
     } catch (retryError) {
       if(generation!==lifecycleRef.current)return;
       setStatus('');
       setError(friendlyError(retryError));
+    } finally {
+      if(generation===lifecycleRef.current){actionInFlight.current=false;setActionBusy(false);}
     }
   };
 
@@ -972,6 +1025,33 @@ export default function AiCapture({
     setText('');
   };
 
+  const retrySavedNote = async (pending: PendingAiCapture) => {
+    if (textRequestRef.current || text.trim() || busy || recording || agentBusy || approvingCapture || editingCapture
+      || deletingCapture || answering || actionInFlight.current || unsavedDraft
+      || !scopedPendingAiCaptures([pending], typedOwner.current, workspaceSlug).length) return;
+    textRequestRef.current = true;
+    const generation = lifecycleRef.current;
+    setRetryingSavedId(pending.id);setBusy(true);setError('');setStatus('Uploading saved note. You can close this screen.');
+    try {
+      const captureId = await uploadPending(pending, false);
+      if (generation !== lifecycleRef.current || !mountedRef.current) return;
+      setStatus('Checking your update...');
+      void pollReceipt(captureId, true);
+    } catch (uploadError) {
+      if (generation === lifecycleRef.current && mountedRef.current) {
+        setStatus('Upload was not confirmed. You can retry the saved note.');
+        setError(friendlyError(uploadError));
+      }
+    } finally {
+      if (generation === lifecycleRef.current && mountedRef.current) {
+        textRequestRef.current = false;setBusy(false);setRetryingSavedId(null);void refreshSavedQueue();
+      }
+    }
+  };
+
+  const visibleQueue = savedQueue && savedQueue.userId === captureAccount && savedQueue.workspaceSlug === workspaceSlug ? savedQueue : null;
+  const queueBusy = busy || recording || agentBusy || approvingCapture || editingCapture || deletingCapture || Boolean(answering) || actionBusy || Boolean(unsavedDraft) || Boolean(text.trim());
+
   const terminalStatus = receipt?.capture?.status || '';
   const needsAttention = [
     'needs_input',
@@ -995,8 +1075,9 @@ export default function AiCapture({
   const proposedRows = previewRows(receipt?.actions || []);
   const hasFailedActions = (receipt?.actions || []).some(action => action.status === 'failed');
   const hasReviewActions = (receipt?.actions || []).some(action => action.status === 'needs_review');
-  const canApprove = (hasPendingActions || hasFailedActions) && unresolvedQuestions.length === 0;
+  const canApprove = !inFlight && (hasPendingActions || hasFailedActions) && unresolvedQuestions.length === 0;
   const canEditProposal =
+    !inFlight &&
     (hasPendingActions || hasReviewActions || hasFailedActions) &&
     !hasAppliedActions &&
     Boolean(receipt?.capture?.transcript_text);
@@ -1117,10 +1198,10 @@ export default function AiCapture({
           role="status"
           aria-live="polite"
           className={`${styles.status} ${
-            status.includes('phone') ? styles.offline : ''
+            status.includes('device') ? styles.offline : ''
           }`}
         >
-          {status.includes('phone') ? (
+          {status.includes('device') ? (
             <WifiOff size={14} />
           ) : busy ? (
             <LoaderCircle size={14} />
@@ -1149,15 +1230,47 @@ export default function AiCapture({
         </div>
       ) : null}
 
+      {visibleQueue && (visibleQueue.items.length || visibleQueue.error) ? (
+        <section className={styles.savedQueue} aria-label="Notes saved on this device">
+          {visibleQueue.error ? <div role="alert" className={styles.queueReadError}>
+            <span>{visibleQueue.error}</span>
+            <button type="button" className={styles.secondary} onClick={() => void refreshSavedQueue()}>Check saved notes again</button>
+          </div> : <details>
+            <summary><span>Saved on this device</span><span>{visibleQueue.items.length} {visibleQueue.items.length === 1 ? 'note' : 'notes'}</span></summary>
+            <p>Notes retry automatically when connected. Upload a note to review its update.</p>
+            {text.trim() ? <p>Finish or save your current note before opening another update.</p> : null}
+            <ol className={styles.savedNotes}>
+              {visibleQueue.items.map((pending, index) => {
+                const savedAt = new Date(pending.createdAt);
+                const dated = Number.isFinite(savedAt.getTime());
+                return <li key={pending.id}>
+                  <div className={styles.savedNoteHead}>
+                    <strong>{pending.blob ? 'Voice note' : 'Written note'}</strong>
+                    {dated ? <time dateTime={pending.createdAt}>{savedAt.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time> : null}
+                  </div>
+                  {typeof pending.context?.label === 'string' && pending.context.label.trim() ? <span>{pending.context.label}</span> : null}
+                  {pending.blob && Number.isFinite(pending.durationSeconds) && Number(pending.durationSeconds) > 0 ? <span>{formatTimer(Number(pending.durationSeconds))} recording</span> : null}
+                  {pending.text.trim() ? <details className={styles.savedNoteSource}><summary>Read original note</summary><p tabIndex={0}>{pending.text}</p></details> : null}
+                  <button type="button" className={styles.secondary} disabled={queueBusy}
+                    aria-label={`Upload and review saved note ${index + 1}`} onClick={() => void retrySavedNote(pending)}>
+                    {retryingSavedId === pending.id ? 'Uploading...' : 'Upload & review'}
+                  </button>
+                </li>;
+              })}
+            </ol>
+          </details>}
+        </section>
+      ) : null}
+
       {receipt?.capture ? (
         <section className={styles.receipt}>
           <div className={styles.receiptHead}>
             <div>
               <strong>
-                {hasPendingActions ? 'Review proposed changes' : verifiedComplete ? preparations.length && !hasAppliedActions ? 'Your preparation' : 'Update complete' : 'Your update'}
+                {inFlight ? 'Preparing your update' : hasPendingActions ? 'Review proposed changes' : verifiedComplete ? preparations.length && !hasAppliedActions ? 'Your preparation' : 'Update complete' : 'Your update'}
               </strong>
               <span>
-                {hasPendingActions
+                {inFlight ? 'ReDream is processing your note. You can close this screen.' : hasPendingActions
                   ? 'Review the changes below.'
                   : needsAttention
                     ? 'ReDream has not guessed. Resolve the items below or edit the note.'
@@ -1198,7 +1311,7 @@ export default function AiCapture({
             <div className={styles.preview}>
               <div className={styles.previewHead}>
                 <div>
-                  <strong>{hasPendingActions ? 'Proposed changes' : 'What ReDream understood'}</strong>
+                  <strong>{inFlight ? 'Preparing suggestions' : hasPendingActions ? 'Proposed changes' : 'What ReDream understood'}</strong>
                 </div>
               </div>
               <div className={styles.previewGrid}>
@@ -1209,7 +1322,7 @@ export default function AiCapture({
                   </div>
                 ))}
               </div>
-              {hasPendingActions ? (
+              {hasPendingActions && !inFlight ? (
                 <div className={styles.approvalBar}>
                   <div>
                     <strong>Review before saving</strong>
@@ -1256,10 +1369,11 @@ export default function AiCapture({
               <button
                 type="button"
                 className={styles.retryButton}
+                disabled={actionBusy}
                 onClick={() => void retryCapture()}
               >
                 <RotateCcw size={12} />
-                Retry failed updates
+                {actionBusy ? 'Retrying...' : 'Retry failed updates'}
               </button>
               <span>The saved transcript and plan are reused. No duplicate is created.</span>
             </div>
@@ -1297,7 +1411,7 @@ export default function AiCapture({
                           type="button"
                           className={styles.answer}
                           key={`${question.id}-${index}`}
-                          disabled={answering === question.id}
+                          disabled={inFlight || answering === question.id}
                           onClick={() =>
                             void answerQuestion(question.id, candidate)
                           }
@@ -1334,7 +1448,7 @@ export default function AiCapture({
                   </span></details>
                   {action.error_message || proposedPayload(action)._review_reason ? <span role="status">{action.error_message || proposedPayload(action)._review_reason}</span> : null}
                 </div>
-                {['needs_review', 'failed', 'pending'].includes(action.status) ? <button type="button" className={styles.smallButton} disabled={actionBusy || approvingCapture} onClick={() => void dismissAction(action.id)}>Leave unchanged</button> : null}
+                {['needs_review', 'failed', 'pending'].includes(action.status) ? <button type="button" className={styles.smallButton} disabled={inFlight || actionBusy || approvingCapture} onClick={() => void dismissAction(action.id)}>Leave unchanged</button> : null}
                 {action.status === 'applied' && action.undo_supported ? (
                   <button
                     type="button"

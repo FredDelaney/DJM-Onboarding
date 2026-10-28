@@ -7,6 +7,8 @@ const completed={id:'complete',status:'applied',action_type:'update_task',target
 const followup={id:'followup',status:'pending',action_type:'create_task',evidence:'Alex and Moses will send the profile tomorrow',resolved_payload:{title:'Send updated profile',owner_display_name:'Alex Agent',responsible_display_names:['Alex Agent','Moses Agent'],due_at:'2026-10-21T09:00:00+02:00'}};
 const receipt=(actions,status='needs_review',questions=[])=>({capture:{id:captureId,status,summary:'AI summary is not a saved receipt',transcript_text:'I spoke to James about Dylan availability. Alex and Moses will send the profile tomorrow.'},actions,questions});
 let current=receipt([completed,followup]),approvals=0,undo=0,dismiss=0,holdEdit=false,releaseEdit;
+let captureRetries=0,receiptReads=0,holdRetry=false,releaseRetry,holdWorker=false,releaseWorker;
+const eventually=async(check,label)=>{for(let i=0;i<200;i++){if(check())return;await new Promise(resolve=>setTimeout(resolve,25));}throw Error('Timed out waiting for '+label);};
 try{
  const page=await browser.newPage({viewport:{width:390,height:600}}),errors=[];
  await page.addInitScript(()=>{
@@ -19,7 +21,9 @@ try{
  page.on('pageerror',error=>errors.push(error.message));
  await page.route('https://example.supabase.co/**',async route=>{
   const path=new URL(route.request().url()).pathname; let data=[];
-  if(path.endsWith('/redream_ai_receipt'))data=current;
+  if(path.endsWith('/redream_ai_receipt')){receiptReads++;data=current;}
+  else if(path.endsWith('/redream_ai_retry_capture')){captureRetries++;if(holdRetry)await new Promise(resolve=>{releaseRetry=resolve;});current=receipt([],'processing');data={capture_id:captureId,status:'queued'};}
+  else if(path.endsWith('/redream-ai-process')){if(holdWorker)await new Promise(resolve=>{releaseWorker=resolve;});data={};}
   else if(path.endsWith('/redream_ai_approve_capture')){
    approvals++;
    current=approvals===1?receipt([completed,{...followup,status:'failed',error_message:'The task could not save. Try again.'}],'partial'):receipt([completed,{...followup,status:'applied',target_type:'task',target_id:taskId,undo_supported:true}],'done');
@@ -37,6 +41,12 @@ try{
  await page.getByText('Responsible people',{exact:true}).waitFor();await page.getByText('Alex Agent + Moses Agent',{exact:true}).waitFor();assert.equal(approvals,0,'Shared responsibility remains a proposal until approval');
  await page.getByText('Saved changes are listed below. Approve the remaining proposals.',{exact:true}).waitFor();
  assert.equal(await page.getByText('AI summary is not a saved receipt',{exact:true}).count(),0);
+ current=receipt([followup],'processing');await page.reload();
+ await page.getByText('Preparing your update',{exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'Approve & save',exact:true}).count(),0,'A partial worker receipt cannot invite premature approval');
+ assert.equal(await page.getByRole('button',{name:'Edit original note',exact:true}).count(),0);
+ assert.equal(await page.getByRole('button',{name:'Leave unchanged',exact:true}).isDisabled(),true);
+ current=receipt([completed,followup]);await page.reload();await page.getByRole('button',{name:'Approve & save',exact:true}).waitFor();
  for(const viewport of [{width:320,height:360},{width:390,height:460},{width:768,height:600},{width:1440,height:900}]){
   await page.setViewportSize(viewport);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
@@ -75,6 +85,18 @@ try{
  await page.getByText('Follow-up created',{exact:true}).waitFor();
  assert.equal(await page.getByText('Unconfirmed colleague',{exact:true}).count(),0,'An empty confirmed payload cannot promote proposed ownership into a saved fact');
  assert.equal(await page.getByText('Unconfirmed title',{exact:true}).count(),0);
+ current=receipt([],'failed');await page.reload();
+ holdRetry=true;holdWorker=true;
+ const retry=page.getByRole('button',{name:'Retry failed updates',exact:true});await retry.waitFor();
+ await retry.evaluate(node=>{node.click();node.click();});
+ await eventually(()=>Boolean(releaseRetry),'retry admission');
+ assert.equal(await page.getByRole('button',{name:'Retrying...',exact:true}).isDisabled(),true);
+ const beforeRetryRead=receiptReads;releaseRetry();
+ await eventually(()=>Boolean(releaseWorker),'worker wake-up');
+ await page.getByText('Preparing your update',{exact:true}).waitFor();
+ await eventually(()=>receiptReads>beforeRetryRead,'receipt polling while worker wake-up is still held');
+ assert.equal(captureRetries,1,'Repeated taps cannot restart the same pending admission');
+ releaseWorker();holdWorker=false;holdRetry=false;
  current=receipt([{...followup,status:'needs_review'}]);await page.reload();
  holdEdit=true;await page.getByRole('button',{name:'Edit original note',exact:true}).click();
  await page.getByRole('button',{name:'Sign out test account',exact:true}).click();
@@ -83,5 +105,5 @@ try{
  await page.waitForTimeout(100);
  assert.equal(await page.getByRole('textbox',{name:'Your update',exact:true}).inputValue(),'','A late edit cannot restore another signed-in user’s transcript');
  assert.deepEqual(errors,[]);
- console.log('Tell work: partial success, failed-action retry, truthful receipts, clarification, dismissal, Undo and four mobile/desktop widths passed.');
+ console.log('Tell work: unfinished proposal controls wait, retry admission is serialised, receipt polling does not await the worker hint; partial success, failed-action retry, truthful receipts, clarification, dismissal, Undo and four widths pass.');
 }finally{await browser.close();}

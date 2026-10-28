@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { pendingAiWorkspace, aiWorkspaceSlug } from '../lib/ai-workspace.ts';
-import { rememberActiveAiCapture, listActiveAiCaptures, recoverLegacyAiCaptures, isPendingAiCapture, assertAiCaptureOwner } from '../lib/ai-offline.ts';
+import { rememberActiveAiCapture, listActiveAiCaptures, recoverLegacyAiCaptures, isPendingAiCapture, assertAiCaptureOwner, scopedPendingAiCaptures, type PendingAiCapture } from '../lib/ai-offline.ts';
 
 test('offline workspace is immutable after navigation to another agency', () => {
   const pending = { workspaceSlug: 'northstar', context: { route: '/workspace/northstar' } };
@@ -30,12 +30,15 @@ test('active capture resume preserves workspace and reads old local records', as
   }});
   try {
     values.set('djm-tell-djm-active-captures',JSON.stringify([{captureId:'old',createdAt:new Date().toISOString()}]));
-    rememberActiveAiCapture('north-capture','northstar');
+    rememberActiveAiCapture('north-capture','northstar',undefined,'owner-a');
     rememberActiveAiCapture('north-capture','djm-sports-management');
     const captures=listActiveAiCaptures();
     assert.equal(captures[0].captureId,'old');
     assert.equal(captures[0].workspaceSlug,undefined);
     assert.equal(captures[1].workspaceSlug,'northstar');
+    assert.equal(captures[1].userId,'owner-a');
+    rememberActiveAiCapture('north-capture','northstar',undefined,'owner-b');
+    assert.equal(listActiveAiCaptures().find(item=>item.captureId==='north-capture')?.userId,'owner-a','A second account cannot adopt an existing receipt resume entry');
     const restored=await recoverLegacyAiCaptures(async()=> 'northstar');
     assert.equal(restored.find(item=>item.captureId==='old')?.workspaceSlug,'northstar');
     assert.equal(values.get('redream-ai-active-captures'),values.get('djm-tell-djm-active-captures'));
@@ -73,4 +76,21 @@ test('malformed pending records cannot poison sorting or upload, old valid shape
   assert.throws(()=>assertAiCaptureOwner(old as any,'different-user'),/no recorded account/);
   assert.throws(()=>assertAiCaptureOwner({...old,userId:'original'} as any,'different-user'),/account that saved/);
   assert.doesNotThrow(()=>assertAiCaptureOwner({...old,userId:'original'} as any,'original'));
+});
+
+test('saved-note recovery exposes only the exact account and immutable agency without consuming other notes',()=>{
+  const own: PendingAiCapture={id:'stable-id',userId:'owner',workspaceSlug:'northstar',createdAt:new Date().toISOString(),channel:'voice_debrief',text:'Original evidence',context:{label:'Original player'},mimeType:'audio/webm',fileName:'voice.webm',durationSeconds:15,blob:new Blob(['original voice']),parentCaptureId:null};
+  const legacy={...own,id:'legacy',userId:undefined};
+  const otherAccount={...own,id:'other-account',userId:'other'};
+  const otherAgency={...own,id:'other-agency',workspaceSlug:'another-agency'};
+  const unknownOrigin={...own,id:'unknown-origin',workspace:{workspaceSlug:'unresolved',originRoute:'/tell',runtimeOrigin:'runtime' as const}};
+  const routeOrigin={...own,id:'older-route',workspaceSlug:undefined,context:{route:'/workspace/northstar/capture'}};
+  const items=[own,legacy,otherAccount,otherAgency,unknownOrigin,routeOrigin],snapshot=[...items];
+  assert.deepEqual(scopedPendingAiCaptures(items,'owner','northstar'),[own,routeOrigin]);
+  assert.equal(scopedPendingAiCaptures(items,'owner','northstar')[0],own,'The original stable ID, evidence and voice object are retained');
+  for(const actor of [null,undefined,''])assert.deepEqual(scopedPendingAiCaptures(items,actor,'northstar'),[]);
+  for(const workspace of ['unresolved',''])assert.deepEqual(scopedPendingAiCaptures(items,'owner',workspace),[]);
+  assert.deepEqual(scopedPendingAiCaptures(items,'other','northstar'),[otherAccount]);
+  assert.deepEqual(scopedPendingAiCaptures(items,'owner','another-agency'),[otherAgency]);
+  assert.deepEqual(items,snapshot,'Filtering never deletes, reattributes or rewrites retained records');
 });
