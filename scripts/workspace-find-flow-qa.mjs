@@ -104,7 +104,7 @@ try{
   await visit();dialog=await choose(query);const option=dialog.getByRole('option',{name:new RegExp(query)}).first();await option.waitFor();await option.click();
   if(kind==='need'){
    await page.locator('#opportunity-'+id).waitFor();await page.waitForFunction(id=>document.activeElement?.id==='opportunity-'+id,id);
-   await page.locator('#opportunity-'+id+' small').filter({hasText:'Best route: Recorded Candidate'}).waitFor();
+   await page.locator('#opportunity-'+id).getByRole('button',{name:'Open opportunity for Recorded Candidate',exact:true}).waitFor();
   }else await page.getByRole('heading',{name:query,exact:true}).waitFor();
  }
  await visit('?scenario=record-failure&view=opportunities&tab=needs&record=beyond-need');

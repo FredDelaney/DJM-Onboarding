@@ -39,12 +39,17 @@ export default function Page(){
   recruitment:{items:[{id:'qa-target',full_name:'Recruitment Prospect',current_club:'Example FC',ui_stage:'identified'}]},
   accounts:{clubs:[{organisation_id:'qa-club',name:'Example FC',country:'NZ',league_name:'Regional League',access:{direct_score:80}}]},
   contacts:{items:[{person_id:'qa-contact',person:{full_name:'Dapo Director'},employment:{organisation_id:'qa-club',organisation_name:'Example FC',role_title:'Director'},relationship:{route_score:80}},{person_id:'qa-scout',person:{full_name:'Moses Scout'},employment:{organisation_name:'Other FC',role_title:'Scout'},relationship:{route_score:30}}]},
-  market:{demand:{items:[{club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back'},club:{name:'Example FC'},candidate_coverage:{candidates:[]}}]},pursuits:{items:[]}},
+  market:{demand:{items:scenario==='need-review'?[
+   {club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back',preferred_foot:'Left',min_height_cm:185,transfer_type:'permanent',expires_at:'2099-06-30',profile_notes:'Build from the back. Review current full-match footage before progressing. '+ 'LongRequirement'.repeat(12)},club:{name:'Example FC',organisation_id:'qa-club'},candidate_coverage:{recorded_candidates:5,candidates:[{player_name:'First Recorded Player',player_match_id:'first-match',player_id:'first-player',career_gate_state:'review_evidence',career_gate_reason:'Review the recorded evidence.'},{player_name:'Chosen Player',player_match_id:'chosen-match',player_id:'chosen-player',career_gate_state:'hold_player_decision',career_gate_reason:'Confirm the player’s preference.'},{player_name:'Unlinked Candidate'}]}},
+   {club_need_id:'unknown-need',need:{title:'Goalkeeper request'},club:{name:'Other FC'},candidate_coverage:{candidates:[]}},
+   {club_need_id:'expired-need',need:{title:'Previous transfer window',expires_at:'2020-01-01'},club:{name:'Previous FC'},candidate_coverage:{recorded_candidates:1,candidates:[{player_name:'Previous Candidate',player_match_id:'previous-match'}]}}
+  ]:[{club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back'},club:{name:'Example FC'},candidate_coverage:{candidates:[]}}]},pursuits:{items:[]}},
+  ...(scenario==='need-review'?{connected:{needs:[{club_need_id:'qa-need',source_person_name:'Example Director',latest_contact:{person_name:'Example Director',summary:'Asked for current full-match footage.',channel:'phone',owner_name:'Jesse Edge',owner_state:'active_staff'}}]}}:{}),
   deals:{portfolio:{deals:[{deal_room_id:'qa-deal',title:'Example transfer',organisation:'Example FC',stage:'open',primary_blocker:'Club requests current footage and confirmation of availability before the recruitment meeting.',next_control_fix:scenario==='deal-follow-through'?{instruction:'Assign one accountable deal owner.'}:undefined}]}}
  }),[user,scenario]);
  const invoke=useCallback(async(action:string,body:any={})=>{
   reads.current[action]=(reads.current[action]||0)+1;
-  if(scenario==='deal-follow-through')(window as any).qaOpportunityCalls=[...((window as any).qaOpportunityCalls||[]),action];
+  if(scenario==='deal-follow-through'||scenario==='need-review')(window as any).qaOpportunityCalls=[...((window as any).qaOpportunityCalls||[]),action];
   if(action==='workspace_search'){
    if(scenario==='partial'&&reads.current[action]===1)throw new Error('Search temporarily unavailable');
    if(scenario==='hung'&&reads.current[action]===1)return await new Promise(()=>{});
@@ -60,6 +65,7 @@ export default function Page(){
    if(scenario==='record-failure'&&reads.current[action]<=2)throw new Error('Exact opportunity temporarily unavailable');
    return {record:{available:body.club_need_id==='beyond-need',item:{club_need_id:body.club_need_id,need:{title:'Beyond Summary Need',position:'Centre back',status:'active'},club:{name:'Beyond Summary Club'},candidate_coverage:{recorded_candidates:1,candidates:[{player_name:'Recorded Candidate',player_match_id:'recorded-match'}]},next_action:{instruction:'Review the recorded candidate.'}}}};
   }
+  if(scenario==='need-review'&&action==='scouting_mandate_prepare')return {result:{status:'needs_input',required_inputs:['next_action_text']}};
   if(action==='club_account')return {club:{club:{id:body.organisation_id,name:body.organisation_id==='beyond-club'?'Beyond Summary Club':'Example FC'},summary:{},people:[],needs:[],deals:[]}};
   if(scenario==='deal-follow-through'&&action==='deal_control_fix_prepare')return {result:{status:'needs_input',action_type:'assign_deal_owner',required_inputs:['owner_user_id'],owner_candidates:[{user_id:'qa-owner',name:'Agency Owner'}]}};
   if(action==='deal_war_room')return {war_room:{available:true,deal:{id:body.deal_room_id,title:scenario==='deal-follow-through'?'Example transfer':'Beyond Summary Deal',stage:'recorded'},next_control_fix:scenario==='deal-follow-through'?{instruction:'Assign one accountable deal owner.'}:{},control:{}}};
@@ -124,7 +130,7 @@ export default function Page(){
    <div className={params.get('profile')==='1'?styles.viewStage:undefined} key={scope+':'+view+':'+playerId+':'+(params.get('tab')||'')}>
     {view==='players'?(params.get('profile')==='1'&&playerId?<AgencyPlayerProfile playerId={playerId} cacheScope={scope} backHref={base+'?view=players'} workHref={base+'?view=players&player='+playerId} role={fixtureRole} fallbackAgency={{}} invoke={invoke as any} onOpenAction={()=>{}} onOpenIntelligence={()=>{}}/>:<AgencyPlayersWorkspace stateScope={scope} data={pageData} basePath={base} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onLoadMore={loadMore} onOpenAction={()=>{}}/>):null}
     {view==='network'?<AgencyNetworkWorkspace stateScope={scope} data={data} basePath={base} rpc={rpc as any} onRefresh={refresh} onCreate={()=>{}} onOpenAction={()=>{}} onOpenClubAccount={setClubRequest}/>:null}
-    {view==='opportunities'?<AgencyOpportunitiesWorkspace invoke={invoke as any} data={{...data,opportunity_reads:{market:'ready',deals:'ready'}}} basePath={base} rpc={rpc as any} onRetry={()=>{}} onRefresh={refresh} onOpenAction={setActionRequest} onOpenPursuit={()=>{}} onOpenIntelligence={setDealRequest}/>:null}
+    {view==='opportunities'?<AgencyOpportunitiesWorkspace invoke={invoke as any} data={{...data,opportunity_reads:{market:'ready',deals:'ready'}}} basePath={base} rpc={rpc as any} onRetry={()=>{}} onRefresh={refresh} onOpenAction={setActionRequest} onOpenPursuit={request=>{(window as any).qaOpenedOpportunity=request;}} onOpenIntelligence={setDealRequest}/>:null}
     {view==='home'||view==='calendar'?<h1>{view==='home'?'Home':'Calendar'}</h1>:null}
    </div>
    {clubRequest?<AgencyClubAccountDrawer key={scope+clubRequest.key} request={clubRequest} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onClose={()=>setClubRequest(null)} onOpenAction={()=>{}} onOpenDeal={()=>{}} onOpenMarket={()=>{}} onOpenPursuit={()=>{}} onOpenPlayer={()=>{}}/>:null}
