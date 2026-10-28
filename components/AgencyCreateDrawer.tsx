@@ -17,6 +17,7 @@ import {
   FormEvent,
   type CSSProperties,
   useEffect,
+  useCallback,
   useRef,
   useState,
 } from 'react';
@@ -25,7 +26,8 @@ import {createPortal} from 'react-dom';
 import { friendlyError } from '@/lib/platform-client';
 import {readWithDeadline} from '@/lib/read-with-deadline';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
-import {clubNeedBriefFields, emptyClubNeedBrief, validateClubNeedBrief, clubNeedFinancialFacts} from '@/lib/club-need-brief';
+import {clubNeedBriefFields,clubNeedCommercialFields,clubNeedFootballFields,clubNeedSourceFields, emptyClubNeedBrief, validateClubNeedBrief, clubNeedFinancialFacts} from '@/lib/club-need-brief';
+import AgencyRecordSelect from './AgencyRecordSelect';
 import ConfirmActionDialog from './ConfirmActionDialog';
 
 import styles from './AgencyCreateDrawer.module.css';
@@ -111,6 +113,7 @@ const initialValues = {
   contract_expiry: '',
   transfermarkt_url: '',
   club_name: '',
+  organisation_id:'',
   country: '',
   position: '',
   title: '',
@@ -150,6 +153,7 @@ export default function AgencyCreateDrawer({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [sourceOpen,setSourceOpen]=useState(false),[clubOpen,setClubOpen]=useState(false);
   const [created, setCreated] = useState(false);
   const [uncertain,setUncertain]=useState(false);
   const createdResult=useRef<any>(null),lifetime=useRef<AbortController|null>(null);
@@ -165,6 +169,7 @@ export default function AgencyCreateDrawer({
   const refreshingRef = useRef(false), active = useRef(true);
   const invokeRef = useRef(invoke), createdCallback = useRef(onCreated), closeCallback = useRef(onClose);
   const openCreatedCallback=useRef(onOpenCreated);
+  const lookupRecords=useCallback((record_kind:'club'|'contact'|'organisation',query:string,selected_id:string)=>invokeRef.current('club_request_options',{record_kind,query,selected_id}),[]);
   const dirty = !created && !uncertain && Object.entries(baseline).some(([key, value]) => values[key as keyof typeof initialValues] !== value);
 
   useEffect(() => {invokeRef.current = invoke; createdCallback.current = onCreated; closeCallback.current = onClose;openCreatedCallback.current=onOpenCreated;}, [invoke, onCreated, onClose,onOpenCreated]);
@@ -315,6 +320,7 @@ export default function AgencyCreateDrawer({
         validateClubNeedBrief(values);
         body = {
           club_name: values.club_name.trim(),
+          organisation_id:values.organisation_id||null,
           country: values.country.trim() || null,
           position: values.position.trim(),
           title: values.title.trim() || null,
@@ -556,8 +562,10 @@ export default function AgencyCreateDrawer({
                 label="Club"
                 required
                 value={values.club_name}
-                onChange={(value) => setValue('club_name', value)}
+                onChange={(value) => {setValue('club_name', value);setValue('organisation_id','');if(values.organisation_id)setValue('country','');}}
               />
+
+              <details className={styles.briefSection} onToggle={event=>setClubOpen(event.currentTarget.open)}><summary>Choose an existing club</summary>{clubOpen?<div className={styles.briefFields}><AgencyRecordSelect label="Existing club" kind="club" value={values.organisation_id} lookup={lookupRecords} onChange={(id,record)=>{setValue('organisation_id',id);if(record){setValue('club_name',record.name);setValue('country',record.country||'');}}}/></div>:null}</details>
 
               <Field
                 label="Position"
@@ -577,13 +585,16 @@ export default function AgencyCreateDrawer({
               <details className={styles.briefSection}>
                 <summary>Budget, contract & availability</summary>
                 <div className={styles.briefFields}>
-                  {clubNeedBriefFields.map(field=><label key={field.key} className={styles.field}>
+                  {clubNeedCommercialFields.map(field=><label key={field.key} className={styles.field}>
                     <span>{field.label}</span>
                     {field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>:field.type==='textarea'?<textarea aria-label={field.label} value={values[field.key]} maxLength={2000} onChange={event=>setValue(field.key,event.target.value)}/>:<input aria-label={field.label} type={field.type} min={field.type==='number'?'0':undefined} step={field.type==='number'?'any':undefined} placeholder={field.key==='currency'?'e.g. EUR':'Optional'} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}
                   </label>)}
                   {clubNeedFinancialFacts(values).length?<div className={styles.briefSummary} aria-live="polite"><dl>{clubNeedFinancialFacts(values).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>Request budgets only. These are not agreed player earnings or agency revenue. No currency or tax conversion is applied.</p></div>:null}
                 </div>
               </details>
+
+              <details className={styles.briefSection}><summary>Football requirements</summary><div className={styles.briefFields}>{clubNeedFootballFields.map(field=><label key={field.key} className={styles.field}><span>{field.label}</span>{field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>:field.type==='textarea'?<textarea aria-label={field.label} value={values[field.key]} maxLength={2000} onChange={event=>setValue(field.key,event.target.value)}/>:<input aria-label={field.label} type={field.type} min={field.type==='number'?'1':undefined} step={field.type==='number'?'1':undefined} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}</label>)}</div></details>
+              <details className={styles.briefSection} onToggle={event=>setSourceOpen(event.currentTarget.open)}><summary>Source & priority</summary>{sourceOpen?<div className={styles.briefFields}>{clubNeedSourceFields.map(field=>field.type==='reference'?<AgencyRecordSelect key={field.key} label={field.label} kind={field.lookupKind} value={values[field.key]} lookup={lookupRecords} onChange={id=>setValue(field.key,id)}/>:<label key={field.key} className={styles.field}><span>{field.label}</span>{field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>:field.type==='textarea'?<textarea aria-label={field.label} value={values[field.key]} maxLength={2000} onChange={event=>setValue(field.key,event.target.value)}/>:<input aria-label={field.label} type={field.type} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}</label>)}</div>:null}</details>
 
               <DetailsToggle
                 open={showDetails}
@@ -595,6 +606,7 @@ export default function AgencyCreateDrawer({
                   <Field
                     label="Country"
                     value={values.country}
+                    disabled={Boolean(values.organisation_id)}
                     onChange={(value) => setValue('country', value)}
                   />
 
@@ -840,6 +852,7 @@ function Field({
   min,
   step,
   maxLength,
+  disabled,
 }: {
   label: string;
   value: string;
@@ -850,12 +863,14 @@ function Field({
   min?: string;
   step?: string;
   maxLength?: number;
+  disabled?: boolean;
 }) {
   return (
     <label className={styles.field}>
       <span>{label}</span>
       <input
         type={type}
+        disabled={disabled}
         required={required}
         placeholder={placeholder}
         min={min}

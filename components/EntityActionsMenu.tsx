@@ -17,6 +17,7 @@ import { friendlyError } from '@/lib/platform-client';
 import { changedEntityFields } from '@/lib/entity-edit-draft';
 import {emptyClubNeedBrief, validateClubNeedBrief} from '@/lib/club-need-brief';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
+import AgencyRecordSelect,{type AgencyRecordLookup,type AgencyLookupKind} from './AgencyRecordSelect';
 import styles from './EntityActionsMenu.module.css';
 import JourneyStatus from './JourneyStatus';
 import ConfirmActionDialog from './ConfirmActionDialog';
@@ -33,7 +34,9 @@ export type EntityEditField = {
   key: string;
   label: string;
   value?: unknown;
-  type?: 'text' | 'date' | 'url' | 'textarea' | 'number' | 'select';
+  type?: 'text' | 'date' | 'url' | 'textarea' | 'number' | 'select' | 'reference';
+  lookupKind?:AgencyLookupKind;
+  section?:string;
   options?: readonly (readonly [string,string])[];
   placeholder?: string;
 };
@@ -52,6 +55,7 @@ type Props = {
   className?: string;
   showEdit?: boolean;
   versionedEdit?: boolean;
+  lookup?:AgencyRecordLookup;
 };
 
 export type EntityChange = 'edit' | 'archive' | 'delete';
@@ -80,6 +84,7 @@ export default function EntityActionsMenu({
   className = '',
   showEdit = false,
   versionedEdit = false,
+  lookup,
 }: Props) {
   const initialDraft = useMemo(
     () => Object.fromEntries(
@@ -90,6 +95,7 @@ export default function EntityActionsMenu({
   const [mode, setMode] = useState<Mode>(null);
   const [draft, setDraft] = useState<Record<string, string>>(initialDraft);
   const [editFields, setEditFields] = useState(fields);
+  const [editSections,setEditSections]=useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -124,6 +130,7 @@ export default function EntityActionsMenu({
     setChecking(false);
     setSavedChange(null);
     setUncertainEdit(false);
+    setEditSections([]);
     setDiscardOpen(false);
     const request = ++previewRequest.current;
     if (next === 'edit') { setDraft(initialDraft); setEditFields(fields.map(field => ({ ...field }))); }
@@ -205,6 +212,45 @@ export default function EntityActionsMenu({
     finally{mutation.current=false;setBusy(false);}
   };
 
+  const renderEditField=(field:EntityEditField)=>field.type==='reference'?<AgencyRecordSelect key={field.key} label={field.label} kind={field.lookupKind||'contact'} value={draft[field.key]||''} disabled={busy} lookup={lookup} onChange={id=>setDraft(current=>({...current,[field.key]:id}))}/>: (
+                    <label key={field.key}>
+                      <span>{field.label}</span>
+                      {field.type === 'select' ? <select aria-label={field.label} disabled={busy} value={draft[field.key]||''} onChange={event=>setDraft(current=>({...current,[field.key]:event.target.value}))}>
+                        {draft[field.key]&&!field.options?.some(([value])=>value===draft[field.key])?<option value={draft[field.key]}>Current: {draft[field.key]}</option>:null}
+                        {field.options?.map(([value,label])=><option key={value} value={value}>{label}</option>)}
+                      </select> : field.type === 'textarea' ? (
+                        <textarea
+                          aria-label={field.label}
+                          disabled={busy}
+                          value={draft[field.key] || ''}
+                          placeholder={field.placeholder}
+                          onChange={(event) =>
+                            setDraft((current) => ({
+                              ...current,
+                              [field.key]: event.target.value,
+                            }))
+                          }
+                        />
+                      ) : (
+                        <input
+                          aria-label={field.label}
+                          disabled={busy}
+                          type={field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : field.type==='number'?'number':'text'}
+                          min={field.type==='number'?'0':undefined}
+                          step={field.type==='number'?'any':undefined}
+                          value={draft[field.key] || ''}
+                          placeholder={field.placeholder}
+                          onChange={(event) =>
+                            setDraft((current) => ({
+                              ...current,
+                              [field.key]: event.target.value,
+                            }))
+                          }
+                        />
+                      )}
+                    </label>
+                  );
+
   return (
     <div
       className={`${styles.root} ${className}`.trim()}
@@ -237,7 +283,7 @@ export default function EntityActionsMenu({
             onKeyDown={event=>{
               if(event.key==='Escape'){event.stopPropagation();if(!busy)close();}
               if(event.key==='Tab'){
-                const controls=Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex="0"]')||[]).filter(node=>node.getClientRects().length);
+                const controls=Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),summary,a[href],[tabindex="0"]')||[]).filter(node=>node.getClientRects().length);
                 const first=controls[0],last=controls.at(-1);
                 if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
                 else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
@@ -299,44 +345,8 @@ export default function EntityActionsMenu({
                 }}
               >
                 <div className={styles.fields}>
-                  {editFields.map((field) => (
-                    <label key={field.key}>
-                      <span>{field.label}</span>
-                      {field.type === 'select' ? <select aria-label={field.label} disabled={busy} value={draft[field.key]||''} onChange={event=>setDraft(current=>({...current,[field.key]:event.target.value}))}>
-                        {draft[field.key]&&!field.options?.some(([value])=>value===draft[field.key])?<option value={draft[field.key]}>Current: {draft[field.key]}</option>:null}
-                        {field.options?.map(([value,label])=><option key={value} value={value}>{label}</option>)}
-                      </select> : field.type === 'textarea' ? (
-                        <textarea
-                          aria-label={field.label}
-                          disabled={busy}
-                          value={draft[field.key] || ''}
-                          placeholder={field.placeholder}
-                          onChange={(event) =>
-                            setDraft((current) => ({
-                              ...current,
-                              [field.key]: event.target.value,
-                            }))
-                          }
-                        />
-                      ) : (
-                        <input
-                          aria-label={field.label}
-                          disabled={busy}
-                          type={field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : field.type==='number'?'number':'text'}
-                          min={field.type==='number'?'0':undefined}
-                          step={field.type==='number'?'any':undefined}
-                          value={draft[field.key] || ''}
-                          placeholder={field.placeholder}
-                          onChange={(event) =>
-                            setDraft((current) => ({
-                              ...current,
-                              [field.key]: event.target.value,
-                            }))
-                          }
-                        />
-                      )}
-                    </label>
-                  ))}
+                  {editFields.filter(field=>!field.section).map(renderEditField)}
+                  {Array.from(new Set(editFields.map(field=>field.section).filter((section):section is string=>Boolean(section)))).map(section=><details key={section} className={styles.fieldSection} onToggle={event=>{const open=event.currentTarget.open;setEditSections(current=>open?current.includes(section)?current:[...current,section]:current.filter(value=>value!==section));}}><summary>{section}</summary>{editSections.includes(section)?<div className={styles.sectionFields}>{editFields.filter(field=>field.section===section).map(renderEditField)}</div>:null}</details>)}
                 </div>
                 {error ? <div className={styles.feedback}><JourneyStatus compact kind="error" description={error}/></div> : null}
                 <div className={styles.actions}>

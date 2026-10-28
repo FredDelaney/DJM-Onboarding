@@ -1030,6 +1030,8 @@
 .needDetail { min-width: 0; grid-column: 1 / -1; display: grid; gap: 18px; padding-top: 18px; border-top: 1px solid var(--interface-line); }
 .needFacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 0; }
 .needFacts > div { min-width: 0; }
+.needBriefGroup { display:grid; gap:12px; min-width:0; }
+.needBriefGroup h3 { margin:0; color:var(--interface-ink); font-size:14px; font-weight:600; }
 .needFacts dt { margin-bottom: 4px; color: var(--interface-muted); font-size: 12px; }
 .needFacts dd { margin: 0; color: var(--interface-ink); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .needNotes { margin: 0; max-width: 75ch; color: #46505e; font-size: 14px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }

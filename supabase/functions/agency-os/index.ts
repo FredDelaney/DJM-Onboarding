@@ -482,6 +482,10 @@ export default {fetch:async(req:Request)=>{
       if(!operator()) return deny("Agency operator access required");
       return result("created","platform_server_agency_create_club_need_brief",{p_tenant_id:tenantId,p_actor_user_id:userId,p_request:body});
     }
+    if(action==="club_request_options"){
+      if(!ownerAdmin()) return deny("Agency administrator access required");
+      return result("options","platform_server_club_request_options",{p_tenant_id:tenantId,p_actor_user_id:userId,p_kind:id(body?.record_kind),p_query:id(body?.query).slice(0,200),p_selected_id:id(body?.selected_id)||null});
+    }
     if(action==="create_club_need"){
       if(!operator()) return deny("Agency operator access required");
       return result("created","platform_server_agency_create_club_need",{

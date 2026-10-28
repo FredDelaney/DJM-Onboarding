@@ -6,6 +6,7 @@ set local statement_timeout='30s';
 do $canary$
 declare ta uuid:=gen_random_uuid();tb uuid:=gen_random_uuid();u uuid:=gen_random_uuid();invite uuid:=gen_random_uuid();
  email text;result jsonb;reopened jsonb;listed jsonb;need uuid;version timestamptz;denied boolean;staff_role text;counts integer;
+ ca uuid:=gen_random_uuid();cb uuid:=gen_random_uuid();so uuid:=gen_random_uuid();sp uuid:=gen_random_uuid();fp uuid:=gen_random_uuid();fo uuid:=gen_random_uuid();detailed uuid;looked jsonb;
 begin
  insert into platform.tenants(id,slug,status,metadata) values(ta,'qa-club-brief-'||ta,'active','{"synthetic":true}'),(tb,'qa-club-brief-'||tb,'active','{"synthetic":true}');
  email:='qa-club-brief-'||u||'@example.test';
@@ -55,6 +56,52 @@ begin
  if not denied then raise exception 'Invalid financial value admitted';end if;
  reset role;
  if (select count(*) from djm_os.club_needs where tenant_id=ta)<>counts or exists(select 1 from djm_os.organisations where tenant_id=ta and name='Invalid FC') then raise exception 'Rejected request left partial records';end if;
+ -- Forward intake migration: canonical sources, exact saved-club choice and complete football brief.
+ insert into djm_os.organisations(id,tenant_id,name,organisation_type,country) values
+ (ca,ta,'[QA rollback] Same Name FC','club','Portugal'),(cb,ta,'[QA rollback] Selected Record FC','club','Australia'),(so,ta,'[QA rollback] Source Agency','agency','Italy');
+ insert into djm_os.people(id,tenant_id,full_name,person_type) values(sp,ta,'[QA rollback] Source Director','club_contact'),(fp,tb,'[QA rollback] Foreign Director','club_contact');
+ insert into djm_os.employments(tenant_id,person_id,organisation_id,role_title,is_current) values(ta,sp,so,'Director',true);
+ perform set_config('request.headers',jsonb_build_object('x-redream-workspace','qa-club-brief-'||ta)::text,true);
+ set local role service_role;
+ looked:=public.platform_server_club_request_options(ta,u,'contact','Source',sp);
+ if looked#>>'{selected,id}'<>sp::text or looked#>>'{selected,name}'<>'[QA rollback] Source Director' then raise exception 'Source lookup mismatch';end if;
+ looked:=public.platform_server_club_request_options(ta,u,'contact','',fp);
+ if looked->'selected'<>'null'::jsonb or exists(select 1 from jsonb_array_elements(looked->'items') x where x->>'id'=fp::text) then raise exception 'Foreign source lookup leak';end if;
+ result:=public.platform_server_agency_create_club_need_brief(ta,u,'{"club_name":" [qa rollback] same name fc ","position":"Striker"}');
+ if result->>'organisation_id'<>ca::text then raise exception 'Existing club name did not reuse canonical identity';end if;
+ result:=public.platform_server_agency_create_club_need_brief(ta,u,jsonb_build_object('organisation_id',cb,'club_name','Old cached name','country','Old cached country','position','Striker','notes','Original complete request','brief',jsonb_build_object('min_age',18,'max_age',26,'preferred_foot','left','secondary_position','Winger','min_height_cm',180,'level_requirements','Senior experience','nationality_preferences',jsonb_build_array('Portugal','New Zealand'),'passport_requirements','EU passport','registration_notes','Before 30 June','source_person_id',sp,'source_organisation_id',so,'received_on','2026-10-20','priority',4,'source_context','Reported by the sporting director','source_status','reported')));
+ detailed:=(result->>'club_need_id')::uuid;
+ reopened:=public.platform_server_workspace_need_record(ta,u,detailed);
+ listed:=public.platform_server_demand_control_fast(ta,100);
+ reset role;
+ if result->>'organisation_id'<>cb::text or reopened#>>'{item,club,country}'<>'Australia' or reopened#>>'{item,need,source_person_name}'<>'[QA rollback] Source Director' or reopened#>>'{item,need,source_organisation_name}'<>'[QA rollback] Source Agency' or reopened#>>'{item,need,min_age}'<>'18' or reopened#>>'{item,need,received_on}'<>'2026-10-20' or reopened#>'{item,need,nationality_preferences}'<>'["Portugal","New Zealand"]'::jsonb then raise exception 'Detailed brief readback mismatch';end if;
+ if not exists(select 1 from jsonb_array_elements(listed->'items') x where x->>'club_need_id'=detailed::text and x#>>'{need,source_person_id}'=sp::text) then raise exception 'Detailed list projection mismatch';end if;
+ version:=(reopened#>>'{item,need,updated_at}')::timestamptz;
+ set local role authenticated;
+ result:=public.redream_club_need_patch(detailed,version,'{"min_age":"20","nationality_preferences":"","source_person_id":"","received_on":""}');
+ reset role;
+ if (select min_age from djm_os.club_needs where id=detailed)<>20 or (select source_person_id from djm_os.club_needs where id=detailed) is not null or (select received_date_confirmed from djm_os.club_needs where id=detailed) or (select raw_request from djm_os.club_needs where id=detailed)<>'Original complete request' then raise exception 'Detailed correction or original retention failed';end if;
+ select count(*) into counts from djm_os.club_needs where tenant_id=ta;
+ set local role service_role;
+ denied:=false;begin perform public.platform_server_agency_create_club_need_brief(ta,u,jsonb_build_object('organisation_id',ca,'position','Striker','brief',jsonb_build_object('source_person_id',fp)));exception when others then denied:=true;end;
+ if not denied then raise exception 'Foreign source write admitted';end if;
+ reset role;
+ if (select count(*) from djm_os.club_needs where tenant_id=ta)<>counts then raise exception 'Invalid source left a partial need';end if;
+ -- Native references also cover the authenticated table path, not just these RPCs.
+ insert into djm_os.organisations(id,tenant_id,name,organisation_type) values(fo,tb,'[QA rollback] Foreign Source Agency','agency');
+ set local role authenticated;
+ denied:=false;begin update djm_os.club_needs set source_organisation_id=fo where id=detailed;exception when foreign_key_violation or check_violation then denied:=true;end;
+ if not denied then raise exception 'Direct foreign organisation reference admitted';end if;
+ denied:=false;begin update djm_os.club_needs set source_person_id=fp where id=detailed;exception when foreign_key_violation or check_violation then denied:=true;end;
+ if not denied then raise exception 'Direct foreign person reference admitted';end if;
+ denied:=false;begin update djm_os.club_needs set organisation_id=fo where id=detailed;exception when foreign_key_violation or check_violation then denied:=true;end;
+ if not denied then raise exception 'Direct foreign club reference admitted';end if;
+ update djm_os.club_needs set source_person_id=sp,source_organisation_id=so where id=detailed;
+ reset role;
+ delete from djm_os.employments where person_id=sp and tenant_id=ta;
+ delete from djm_os.people where id=sp and tenant_id=ta;
+ delete from djm_os.organisations where id=so and tenant_id=ta;
+ if (select tenant_id from djm_os.club_needs where id=detailed) is distinct from ta or (select source_person_id from djm_os.club_needs where id=detailed) is not null or (select source_organisation_id from djm_os.club_needs where id=detailed) is not null then raise exception 'Source deletion failed to retain the request tenant';end if;
 end $canary$;
 select 'Club request create/list/reopen/edit and role canary passed; rolling back' result;
 rollback;

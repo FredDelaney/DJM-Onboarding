@@ -19,7 +19,7 @@ import WorkspaceListSearch from './WorkspaceListSearch';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
-import {clubNeedBriefFields, clubNeedFinancialFacts} from '@/lib/club-need-brief';
+import {clubNeedBriefFields, clubNeedFinancialFacts,clubNeedFootballFacts,clubNeedFieldValue} from '@/lib/club-need-brief';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
@@ -186,6 +186,7 @@ export default function AgencyOpportunitiesWorkspace({
   onOpenIntelligence: (request: AgencyIntelligenceRequest) => void;
 }) {
   const router = useRouter();
+  const lookupRecords=useCallback((record_kind:'club'|'contact'|'organisation',query:string,selected_id:string)=>invoke('club_request_options',{record_kind,query,selected_id}),[invoke]);
   const searchParams = useSearchParams();
   const requestedView = opportunityViewFrom(searchParams.get('tab'));
   const [view, setView] = useState<OpportunityView>(requestedView);
@@ -657,11 +658,20 @@ export default function AgencyOpportunitiesWorkspace({
               const toggle = () => setExpandedNeed({scope: basePath, id: expanded ? '' : needId});
               const facts = [
                 ['Position', item.need?.position],
+                ['Club league',item.club?.league_name],
+                ['Country',item.club?.country],
                 ['Preferred foot', item.need?.preferred_foot],
                 ['Minimum height', item.need?.min_height_cm ? `${item.need.min_height_cm} cm` : null],
                 ['Transfer', item.need?.transfer_type ? human(item.need.transfer_type) : null],
-                ...clubNeedFinancialFacts(item.need||{}),
+                ...clubNeedFootballFacts(item.need||{}),
                 ['Availability',item.need?.availability_notes],
+              ].filter(([, value]) => value);
+              const financialFacts=clubNeedFinancialFacts(item.need||{});
+              const sourceFacts=[
+                ['Source contact',item.need?.source_person_name|| (item.need?.source_person_id?'Saved contact unavailable':null)],
+                ['Source organisation',item.need?.source_organisation_name||(item.need?.source_organisation_id?'Saved organisation unavailable':null)],
+                ['Received',item.need?.received_on],
+                ['Priority',({1:'Low',2:'Routine',3:'Normal',4:'High',5:'Urgent'} as Record<string,string>)[String(item.need?.priority)]],
                 ['Source status',item.need?.source_status?human(item.need.source_status):'Not established'],
                 ['Expires', expiry !== null && Number.isFinite(expiry) ? relativeDate(item.need.expires_at) : null],
               ].filter(([, value]) => value);
@@ -692,6 +702,7 @@ export default function AgencyOpportunitiesWorkspace({
                     <EntityActionsMenu
                       kind="club_need"
                       versionedEdit
+                      lookup={lookupRecords}
                       entityId={needId}
                       label={`${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`}
                       rpc={(name,args)=>name==='redream_entity_patch'?rpc('redream_club_need_patch',{p_need_id:needId,p_expected_updated_at:item.need?.updated_at||null,p_patch:args?.p_patch}):rpc(name,args)}
@@ -701,7 +712,7 @@ export default function AgencyOpportunitiesWorkspace({
                         { key: 'position', label: 'Position', value: item.need?.position },
                         { key: 'profile_notes', label: 'Profile notes', value: item.need?.profile_notes, type: 'textarea' },
                         { key: 'expires_at', label: 'Expires', value: item.need?.expires_at ? String(item.need.expires_at).slice(0, 10) : '', type: 'date' },
-                        ...clubNeedBriefFields.map(field=>({...field,value:item.need?.[field.key]})),
+                        ...clubNeedBriefFields.map(field=>({...field,value:clubNeedFieldValue(field.key,item.need?.[field.key])})),
                       ]}
                     />
                   </div>
@@ -709,9 +720,10 @@ export default function AgencyOpportunitiesWorkspace({
                     if (event.key !== 'Escape') return;
                     event.preventDefault(); event.stopPropagation(); setExpandedNeed({scope: basePath, id: ''}); document.getElementById(toggleId)?.focus();
                   }}>
-                    {facts.length ? <dl className={styles.needFacts}>{facts.map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl> : null}
+                    {facts.length ? <section className={styles.needBriefGroup}><h3>Football requirements</h3><dl className={styles.needFacts}>{facts.map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section> : null}
+                    {financialFacts.length?<section className={styles.needBriefGroup}><h3>Budget & contract</h3><dl className={styles.needFacts}>{financialFacts.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p className={styles.needCoverage}>Request budgets only, not agreed earnings or agency revenue. No currency or tax conversion is applied.</p></section>:null}
+                    {sourceFacts.length?<section className={styles.needBriefGroup}><h3>Source & priority</h3><dl className={styles.needFacts}>{sourceFacts.map(([label,value])=><div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>{item.need?.source_context?<p className={styles.needNotes}>{item.need.source_context}</p>:null}{item.need?.source_person_name&&item.need?.source_person_id?<a href={`${basePath}?view=network&person=${encodeURIComponent(item.need.source_person_id)}`} className={styles.needSearch}>Open source contact<ChevronRight size={16}/></a>:null}</section>:null}
                     {item.need?.profile_notes ? <p className={styles.needNotes}>{item.need.profile_notes}</p> : null}
-                    {item.need?.salary_budget!==null&&item.need?.salary_budget!==undefined?<p className={styles.needCoverage}>Request budgets only, not agreed earnings or agency revenue. No currency or tax conversion is applied.</p>:null}
                     {item.need?.raw_request?<details className={styles.needSource}><summary>Original request</summary><p className={styles.needNotes}>{item.need.raw_request}</p></details>:null}
                     <div className={styles.needCandidates}>
                       <h3>Recorded player opportunities</h3>

@@ -1,5 +1,5 @@
 create table djm_os.club_needs(id uuid default gen_random_uuid(),
-organisation_id uuid,
+organisation_id uuid not null,
 source_person_id uuid,
 owner_user_id uuid,
 source_interaction_id uuid,
@@ -36,6 +36,11 @@ priority smallint default 3,
 need_type text default 'confirmed'::text,
 prediction_probability smallint,
 prediction_basis jsonb default '{}'::jsonb,
-tenant_id uuid,
+tenant_id uuid not null,
 archived_at timestamp with time zone,
-constraint club_needs_owner_user_id_fkey foreign key(owner_user_id) references djm_os.team_members(user_id) on delete set null);
+constraint club_needs_owner_user_id_fkey foreign key(owner_user_id) references djm_os.team_members(user_id) on delete set null,
+constraint club_needs_organisation_id_fkey foreign key(organisation_id) references djm_os.organisations(id) on delete cascade,
+constraint club_needs_source_person_id_fkey foreign key(source_person_id) references djm_os.people(id) on delete set null);
+
+-- The production/staging canonical club identity constraint, present since September 24.
+create unique index organisations_tenant_club_name_unique on djm_os.organisations(tenant_id,lower(btrim(name))) where organisation_type='club';

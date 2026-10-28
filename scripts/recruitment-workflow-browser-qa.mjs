@@ -78,7 +78,7 @@ try{
      await dialog.getByRole('alert').filter({hasText:'Could not confirm the save'}).waitFor();assert.equal(await dialog.getByLabel('Player name',{exact:true}).inputValue(),'QA New Prospect');
      assert.equal(await dialog.getByRole('button',{name:'Add target',exact:true}).count(),0);assert.equal(writes('recruitment_create').length,1);
     }else{
-     await page.getByRole('heading',{name:'QA New Prospect',exact:true}).waitFor();assert.equal(new URL(page.url()).searchParams.get('target'),created);assert.equal(new URL(page.url()).searchParams.has('player'),false);
+     await page.getByRole('heading',{name:'QA New Prospect',exact:true}).waitFor();await page.waitForURL(url=>url.searchParams.get('target')===created);assert.equal(new URL(page.url()).searchParams.get('target'),created);assert.equal(new URL(page.url()).searchParams.has('player'),false);
      assert.equal(writes('recruitment_create').length,1);assert.equal(writes('create_player').length,0);
      await page.getByRole('textbox',{name:'Interaction note',exact:true}).fill('Spoke about the player’s plans for next season.');
      await page.getByRole('combobox',{name:'Contact direction',exact:true}).selectOption('inbound');

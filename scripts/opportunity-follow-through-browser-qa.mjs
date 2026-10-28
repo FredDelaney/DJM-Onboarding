@@ -21,15 +21,24 @@ try{
   await row.getByText('Left',{exact:true}).waitFor();await row.getByText('185 cm',{exact:true}).waitFor();
   await row.getByText('EUR 5,000 per month · tax basis unknown',{exact:true}).waitFor();
   await row.getByText('EUR 60,000',{exact:true}).waitFor();
+  await row.getByText('18 to 26',{exact:true}).waitFor();await row.getByText('Senior first-team experience',{exact:true}).waitFor();await row.locator('dd').filter({hasText:/^Source Director$/}).waitFor();
   await row.getByText('Optional extension budget (not guaranteed)',{exact:true}).waitFor();
   await row.getByText('Original request',{exact:true}).click();await row.getByText('Original striker request, €5,000 monthly, 12 + 12.',{exact:true}).waitFor();
   await row.getByRole('button',{name:'Manage Example FC · Centre back needed',exact:true}).click();
   await page.getByRole('button',{name:/Edit/}).filter({hasText:'Edit'}).click();
   const editor=page.getByRole('dialog');
+  assert.equal(await page.evaluate(()=>window.qaSourceLookupCalls||0),0,'Source selectors do not fetch while their section is closed');
+  assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).count(),0,'Secondary edit fields stay optional');
+  await editor.getByText('Budget & contract',{exact:true}).click();
+  await editor.getByText('Football requirements',{exact:true}).click();
+  await editor.getByText('Source & priority',{exact:true}).click();
   assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).inputValue(),'5000');
   assert.equal(await editor.getByLabel('Tax basis',{exact:true}).inputValue(),'');
+  assert.equal(await editor.getByLabel('Nationality preferences (one per line)',{exact:true}).inputValue(),'Portugal\nNew Zealand');
+  await editor.getByLabel('Source contact',{exact:true}).selectOption('40000000-0000-4000-8000-000000000001');
   await editor.getByLabel('Salary budget (maximum)',{exact:true}).fill('5500');
   await editor.getByLabel('Optional extension (months)',{exact:true}).fill('6');
+  await editor.getByText('Budget & contract',{exact:true}).click();await editor.getByLabel('Salary budget (maximum)',{exact:true}).waitFor({state:'detached'});assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).count(),0);await editor.getByText('Budget & contract',{exact:true}).click();await editor.getByLabel('Salary budget (maximum)',{exact:true}).waitFor({state:'visible'});assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).inputValue(),'5500','Closing optional detail retains its draft');
   await editor.getByLabel('Source status',{exact:true}).selectOption('confirmed');
   await page.evaluate(()=>window.qaBriefEditFails=true);
   await editor.getByRole('button',{name:'Save changes',exact:true}).click();await editor.getByText('Request update unavailable',{exact:false}).waitFor();
@@ -75,7 +84,7 @@ try{
   if(width===390){
     await page.clock.install();
     await row.getByRole('button',{name:'Manage Example FC · Centre back needed',exact:true}).click();await page.getByRole('button',{name:/Edit/}).filter({hasText:'Edit'}).click();
-    const pending=page.getByRole('dialog');await pending.getByLabel('Salary budget (maximum)',{exact:true}).fill('5600');
+    const pending=page.getByRole('dialog');await pending.getByText('Budget & contract',{exact:true}).click();await pending.getByLabel('Salary budget (maximum)',{exact:true}).fill('5600');
     await page.evaluate(()=>window.qaBriefEditHangs=true);await pending.getByRole('button',{name:'Save changes',exact:true}).click();await pending.getByRole('button',{name:'Saving...',exact:true}).waitFor();
     await page.clock.fastForward(12100);await pending.getByText('Could not confirm the update.',{exact:false}).waitFor();
     assert.equal(await pending.getByRole('button',{name:'Save changes',exact:true}).count(),0,'Unknown outcome cannot be blindly retried');

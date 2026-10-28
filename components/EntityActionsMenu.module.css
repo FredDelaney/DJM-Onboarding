@@ -22,6 +22,11 @@
 .form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .fields { display: grid; gap: 16px; min-height: 0; padding: 20px; overflow-y: auto; overscroll-behavior: contain; scroll-padding: 12px; }
 .fields label { display: grid; gap: 7px; min-width: 0; }
+.fieldSection { border-top:1px solid var(--interface-line,#e2e6ea); min-width:0; }
+.fieldSection summary { display:flex; align-items:center; min-height:46px; font-size:14px; font-weight:500; cursor:pointer; }
+.fieldSection summary::before { content:'+'; margin-right:10px; }
+.fieldSection[open] summary::before { content:'−'; }
+.sectionFields { display:grid; gap:16px; padding:4px 0 16px; }
 .fields label > span { color: #515154; font-size: 13px; font-weight: 500; line-height: 1.35; }
 .fields input, .fields textarea, .fields select { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #d2d2d7; border-radius: 11px; background: #fff; color: #1d1d1f; font: inherit; font-size: 15px; outline: none; }
 .fields input, .fields select { min-height: 46px; padding: 10px 12px; }

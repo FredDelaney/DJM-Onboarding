@@ -1843,7 +1843,7 @@ export default function AgencyOperatingWorkspace() {
 
       {createKind ? (
         <AgencyCreateDrawer
-          key={`create:${createKind}`}
+          key={`create:${stateScope}:${createKind}`}
           kind={createKind}
           theme={theme}
           invoke={(action, body) => invoke<any>(action, body)}

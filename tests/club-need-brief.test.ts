@@ -31,3 +31,7 @@ test('invalid budgets, precision, enums and terms cannot be saved',()=>{
  for(const brief of [{salary_budget:'100.50',currency:'JPY'},{currency:'XXX'},{salary_period:'daily'},{salary_tax_basis:'tax free'},{contract_months:'0'},{contract_months:'121'},{option_months:'1.5'},{transfer_type:'confirmed'},{source_status:'predicted'},{availability_notes:'x'.repeat(2001)}])assert.throws(()=>validateClubNeedBrief(brief));
  for(const brief of [{salary_budget:'0',currency:'JPY'},{salary_budget:'1.234',currency:'KWD'},{salary_budget:'1.2345',currency:'CLF'},{contract_months:'12',contract_guaranteed:'false'},{salary_budget:'5000'}])assert.doesNotThrow(()=>validateClubNeedBrief(brief));
 });
+test('football criteria validate whole ranges and preserve explicit unknowns',()=>{
+ for(const value of [{min_age:'28',max_age:'20'},{min_height_cm:'130'},{min_age:'0'},{max_age:'20.5'},{received_on:'2026-02-30'},{source_person_id:'invented-contact'},{priority:'6'},{level_requirements:'x'.repeat(2001)}])assert.throws(()=>validateClubNeedBrief(value));
+ assert.doesNotThrow(()=>validateClubNeedBrief({min_age:'18',max_age:'26',preferred_foot:'left',min_height_cm:'180',nationality_preferences:'Portugal\nNew Zealand',received_on:'2026-10-20',priority:'4'}));
+});
