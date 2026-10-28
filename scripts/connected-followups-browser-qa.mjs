@@ -19,8 +19,12 @@ try{
  for(const width of [320,390,768,1440]){
   await page.setViewportSize({width,height:844});
   const update=row('Call James about Dylan').getByRole('button',{name:'Update',exact:true});
-  await update.scrollIntoViewIfNeeded();const scroll=await page.evaluate(()=>scrollY);
+  await update.scrollIntoViewIfNeeded();
+  // Clicking can itself scroll a newly laid-out row. Preserve where the user
+  // actually opened the editor, rather than an earlier pre-click position.
+  await update.evaluate(node=>{window.taskOpeningScroll=undefined;node.addEventListener('click',()=>{const bounds=node.getBoundingClientRect();window.taskOpeningScroll=scrollY;window.taskOpeningBounds={top:bounds.top,bottom:bounds.bottom};},{capture:true,once:true});});
   await update.click();await panel().waitFor();
+  const scroll=await page.evaluate(()=>window.taskOpeningScroll);assert.ok(Number.isFinite(scroll),'Opening click must capture the list position');
   assert.equal(await panel().getByLabel('Action',{exact:true}).evaluate(node=>node===document.activeElement),true);
   await panel().getByRole('button',{name:'Close task editor',exact:true}).click();await panel().waitFor({state:'hidden'});
   await page.waitForFunction(()=>document.activeElement?.textContent?.trim()==='Update',undefined,{timeout:3000});
@@ -28,7 +32,10 @@ try{
   assert.equal(await page.evaluate(()=>document.body.style.overflow),'','Close releases the scroll lock');
   assert.equal(await page.evaluate(()=>document.querySelector('main')?.inert),false,'Close releases background isolation');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  assert.ok(Math.abs(await page.evaluate(()=>scrollY)-scroll)<2,'Unchanged task Close retains the list position');
+  const returned=await update.evaluate(node=>{const bounds=node.getBoundingClientRect();return {y:scrollY,opened:window.taskOpeningScroll,openingBounds:window.taskOpeningBounds,returnedBounds:{top:bounds.top,bottom:bounds.bottom}};});
+  // Layout above the row can change document coordinates without moving the
+  // visible list (browser scroll anchoring). Assert the actual visual position.
+  assert.ok(Math.abs(returned.returnedBounds.top-returned.openingBounds.top)<2,`Unchanged task Close retains the visible list position at ${width}: ${JSON.stringify({before:scroll,...returned})}`);
   if(width===390){await mkdir('/tmp/redream-platform-programme/task-editor-focus',{recursive:true});await page.screenshot({path:'/tmp/redream-platform-programme/task-editor-focus/returned-update-390.png'});}
  }
  assert.equal(await page.evaluate(()=>window.calendarReads.filter(read=>read.name==='redream_home_work_v1'&&read.args.p_action!=='read').length),0,'Opening and closing a task never writes it');
