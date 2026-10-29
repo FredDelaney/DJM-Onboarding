@@ -1637,12 +1637,14 @@ export default function AgencyOperatingWorkspace() {
         {error ? (
           <div>
             <ErrorBox text={error} />
-            <button type="button" data-ui-button="secondary"
-              className={styles.secondaryButton}
-              disabled={busy} onClick={() => void loadView()}>
-              <RefreshCw size={15} />
-              {busy ? 'Trying again...' : 'Try again'}
-            </button>
+            {!(view === 'opportunities' && data?.opportunity_errors?.[opportunitiesSection === 'deals' ? 'deals' : 'market']) ? (
+              <button type="button" data-ui-button="secondary"
+                className={styles.secondaryButton}
+                disabled={busy} onClick={() => void loadView()}>
+                <RefreshCw size={15} />
+                {busy ? 'Trying again...' : 'Try again'}
+              </button>
+            ) : null}
           </div>
         ) : null}
 

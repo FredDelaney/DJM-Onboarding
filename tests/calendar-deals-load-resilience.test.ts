@@ -19,6 +19,20 @@ test('Confirming a calendar task does not strand unrelated in-flight date reads'
   assert.match(source, /clearTimeout\(timer\);setSources\(old=>/);
 });
 
+test('Timed-out Calendar reads abort their underlying request before retry', async () => {
+  const source = await readFile(calendarPath, 'utf8');
+  const tasks = await readFile(new URL('../lib/calendar/tasks.ts',import.meta.url), 'utf8');
+  assert.match(source, /new AbortController\(\)/);
+  assert.match(source, /controller\.abort\(\);finish\(null/);
+  assert.match(source, /job\.load\(controller\.signal\)/);
+  assert.match(tasks, /signal\?:AbortSignal/);
+});
+
+test('Failed Opportunities expose only their local retry control', async () => {
+  const shell = await readFile(shellPath, 'utf8');
+  assert.match(shell, /view === 'opportunities' && data\?\.opportunity_errors/);
+});
+
 test('Live Deals distinguishes loading, empty success, and failed first read', async () => {
   assert.equal(opportunityReadState({ market: { demand: { items: [] } } }, 'deals'), 'loading');
   assert.equal(opportunityReadState({ deals: { portfolio: { deals: [] } } }, 'deals'), 'ready');
