@@ -47,6 +47,13 @@ begin
  if not denied then raise exception 'Service-only private reader exposed';end if;
  affected:=0;begin update djm_os.player_market_facts set salary_minimum=1 where player_id=player;get diagnostics affected=row_count;exception when insufficient_privilege then affected:=0;end;
  if affected<>0 then raise exception 'Direct salary write admitted';end if;
+ listed:=public.redream_autopilot_market(25);
+ if listed#>>'{demand,items,0,candidate_coverage,candidates,0,salary_check,player_minimum}'<>'5000.01'
+  or listed#>>'{demand,items,0,candidate_coverage,candidates,0,salary_gate,can_proceed}'<>'false' then raise exception 'Authenticated Opportunities market lost private salary review';end if;
+ perform set_config('request.headers',jsonb_build_object('x-redream-workspace','qa-salary-'||tb)::text,true);
+ listed:=public.redream_autopilot_market(25);
+ if jsonb_array_length(listed#>'{demand,items}')<>0 or listed::text like '%'||player::text||'%' then raise exception 'Market review escaped the selected workspace';end if;
+ perform set_config('request.headers',jsonb_build_object('x-redream-workspace','qa-salary-'||ta)::text,true);
  reset role;
  if (select salary_expectation from djm_os.player_market_facts where player_id=player)<>'Approx 5k plus benefits; unconfirmed units' or (select market_preferences from djm_os.player_market_facts where player_id=player)<>'Australia' or (select last_synced_at from djm_os.player_market_facts where player_id=player) is distinct from original_sync then raise exception 'Legacy facts or sync metadata changed';end if;
  if not exists(select 1 from platform.audit_events where tenant_id=ta and actor_user_id=u and actor_kind='user' and action='agency.player_salary_terms_updated' and entity_id=player::text and after_state->>'salary_minimum'='5000.01') then raise exception 'Salary audit missing';end if;
@@ -166,6 +173,8 @@ begin
   set local role authenticated;
   denied:=false;begin perform public.redream_player_salary_terms(player);exception when insufficient_privilege then denied:=true;end;
   if not denied then raise exception 'Wrong role read admitted: %',staff_role;end if;
+  denied:=false;begin perform public.redream_autopilot_market(25);exception when insufficient_privilege then denied:=true;end;
+  if not denied then raise exception 'Wrong role market salary read admitted: %',staff_role;end if;
   denied:=false;begin perform public.redream_player_salary_terms_patch(player,version,'{"salary_minimum":"1"}');exception when insufficient_privilege then denied:=true;end;
   if not denied then raise exception 'Wrong role write admitted: %',staff_role;end if;
   reset role;
@@ -185,11 +194,16 @@ begin
  set local role authenticated;
  denied:=false;begin perform public.redream_player_salary_terms(player);exception when insufficient_privilege then denied:=true;end;
  if not denied then raise exception 'Revoked membership read admitted';end if;
+ denied:=false;begin perform public.redream_autopilot_market(25);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Revoked membership market salary read admitted';end if;
  reset role;
  set local role anon;
  denied:=false;begin perform public.redream_player_salary_terms(player);exception when insufficient_privilege then denied:=true;end;
  if not denied then raise exception 'Anonymous salary read admitted';end if;
+ denied:=false;begin perform public.redream_autopilot_market(25);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Anonymous market salary read admitted';end if;
  reset role;
 end $canary$;
-select 'PASS explicit deal currency/exact commission, actual career/financial gates, canonical draft/deal/verification, native publication denial, exact receipt/retry, source hold/resume, roles/tenant, legacy/manual preservation; complete synthetic transaction rolls back' result;
+select 'PASS explicit deal currency/exact commission, authenticated market salary projection, actual career/financial gates, canonical draft/deal/verification, native publication denial, exact receipt/retry, source hold/resume, roles/tenant, legacy/manual preservation; complete synthetic transaction rolls back' result,
+ (select md5(prosrc) from pg_proc where oid='public.redream_autopilot_market(integer)'::regprocedure) market_reader_md5;
 rollback;

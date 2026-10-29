@@ -283,7 +283,7 @@ test('financial constraints preserve canonical contracts and keep approval in th
  for(const signature of signatures)await db.exec('revoke all on function '+signature+' from public,anon,authenticated;grant execute on function '+signature+' to service_role;');
  const before=(await db.query('select oid,proowner,proacl,prosecdef,proconfig,provolatile from pg_proc where oid=any($1::regprocedure[]) order by oid',[signatures])).rows;
  const originalCareerHelper=read('tests/fixtures/club-request/career-gate-before.sql');await db.exec(originalCareerHelper);
- await db.exec(read('supabase/migrations/20261028230249_pursuit_salary_constraints.sql'));
+ await db.exec(read('supabase/migrations/20261029113943_pursuit_salary_constraints.sql'));
  // Only the unchanged dependency source is guarded here. Exercise each salary
  // writer with deliberate career states rather than inventing a strategy.
  await db.exec(`create or replace function public.platform_server_career_pursuit_gate(p_tenant_id uuid,p_player_match_id uuid) returns jsonb language sql as $$select jsonb_build_object('state',coalesce(nullif(current_setting('test.career_gate',true),''),'open_aligned'))$$`);
@@ -390,7 +390,7 @@ test('exploration expiry uses UTC, expired receipts stay truthful and decisions 
 test('new pursuit deals require explicit currency and human inputs, preserve exact optional commission and never copy salary into revenue',async()=>{
  const signature='public.platform_server_convert_pursuit_to_deal(uuid,uuid,uuid,jsonb)';
  const before=await scalar('jsonb_build_object(\'oid\',oid,\'owner\',proowner,\'acl\',proacl,\'mode\',prosecdef,\'path\',proconfig,\'volatility\',provolatile) from pg_proc where oid=$1::regprocedure',[signature]);
- await db.exec(read('supabase/migrations/20261029070637_require_explicit_pursuit_deal_money.sql'));
+ await db.exec(read('supabase/migrations/20261029113947_require_explicit_pursuit_deal_money.sql'));
  assert.deepEqual(await scalar('jsonb_build_object(\'oid\',oid,\'owner\',proowner,\'acl\',proacl,\'mode\',prosecdef,\'path\',proconfig,\'volatility\',provolatile) from pg_proc where oid=$1::regprocedure',[signature]),before);
  await salaryWrite({...validSalary,salary_minimum:'4000',salary_target:'4500'});
  const need=(await scalar('public.platform_server_agency_create_club_need_brief($1,$2,$3)',[tenant,user,{club_name:'Pursuit money QA',position:'Striker',brief:{salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',source_status:'confirmed'}}])).club_need_id;
@@ -409,4 +409,44 @@ test('new pursuit deals require explicit currency and human inputs, preserve exa
   }finally{await db.exec('rollback');}
  }
  assert.equal((await salaryRead()).terms.salary_minimum,'4000');
+});
+
+test('the actual authenticated Opportunities market reader carries private salary checks only for the selected active administrator',async()=>{
+ await actor();
+ // Unrelated market sections are isolated here; demand uses the real deployed
+ // reader, salary projection, membership helper and current structured terms.
+ await db.exec(`
+ create or replace function public.platform_server_career_aligned_pursuit_board(t uuid,n integer) returns jsonb language sql as $$select '{}'::jsonb$$;
+ create or replace function public.platform_server_pitch_readiness_command(t uuid,n integer) returns jsonb language sql as $$select '{}'::jsonb$$;
+ create or replace function public.platform_server_pitch_response_command(t uuid,n integer) returns jsonb language sql as $$select '{}'::jsonb$$;
+ create or replace function public.platform_server_revenue_command(t uuid,n integer) returns jsonb language sql as $$select '{}'::jsonb$$;`);
+ await db.exec(read('tests/fixtures/club-request/market-before.sql'));
+ await db.exec('revoke all on function public.redream_autopilot_market(integer) from public,anon;grant execute on function public.redream_autopilot_market(integer) to authenticated,service_role;');
+ await salaryWrite({...validSalary,salary_minimum:'6000',salary_target:'6500'});
+ const need=(await create({salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',source_status:'confirmed'})).club_need_id;
+ const match=await scalar('gen_random_uuid()::text');
+ await db.query("insert into djm_os.player_matches(id,tenant_id,club_need_id,player_id,status,reasoning) values($1,$2,$3,$4,'shortlisted','{\"manual\":true}')",[match,tenant,need,salaryPlayer]);
+ const market=()=>scalar('public.redream_autopilot_market(100)');
+ const candidate=(value:any)=>value.demand.items.find((i:any)=>i.club_need_id===need).candidate_coverage.candidates.find((c:any)=>c.player_match_id===match);
+ assert.equal(candidate(await market()).salary_check,undefined,'Reproduces the disconnected real market entrypoint');
+ const signature='public.redream_autopilot_market(integer)';
+ const contract=()=>scalar("jsonb_build_object('oid',oid,'owner',proowner,'acl',proacl,'mode',prosecdef,'path',proconfig,'volatility',provolatile,'arguments',pg_get_function_arguments(oid),'result',pg_get_function_result(oid)) from pg_proc where oid=$1::regprocedure",[signature]);
+ const before=await contract(),broaderHash=await scalar("md5(prosrc) from pg_proc where oid='public.platform_server_demand_control_fast(uuid,integer)'::regprocedure");
+ const patch=read('supabase/migrations/20261029115101_connect_market_salary_review_projection.sql');
+ await db.exec(patch);assert.deepEqual(await contract(),before);
+ const current=candidate(await market());assert.equal(current.salary_check.state,'minimum_above_budget');assert.equal(current.salary_check.player_minimum,'6000');assert.equal(current.salary_check.club_budget,'5000');assert.equal(current.salary_gate.can_proceed,false);
+ await db.exec('set role authenticated');try{assert.equal(candidate(await market()).salary_check.player_target,'6500');}finally{await db.exec('reset role');}
+ const broad=await scalar('public.platform_server_demand_control_fast($1,100)',[tenant]);
+ assert.equal(broad.items.find((i:any)=>i.club_need_id===need).candidate_coverage.candidates[0].salary_check,undefined);
+ assert.equal(await scalar("md5(prosrc) from pg_proc where oid='public.platform_server_demand_control_fast(uuid,integer)'::regprocedure"),broaderHash);
+ for(const role of ['agent','operations','scout','player']){
+  await db.query('update platform.tenant_memberships set role=$1 where tenant_id=$2 and user_id=$3',[role,tenant,user]);await assert.rejects(market,(e:any)=>e.code==='42501');
+ }
+ await db.query("update platform.tenant_memberships set role='owner' where tenant_id=$1 and user_id=$2",[tenant,user]);
+ await actor(other);await assert.rejects(market,(e:any)=>e.code==='42501');await actor();
+ await db.query("select set_config('test.user','',false)");await assert.rejects(market,(e:any)=>e.code==='42501');await actor();
+ await db.exec('set role anon');try{await assert.rejects(market,(e:any)=>e.code==='42501');}finally{await db.exec('reset role');}
+ const corrected=await scalar('pg_get_functiondef($1::regprocedure)',[signature]);
+ await db.exec(corrected.replace('redream_market_autopilot_v1','unreviewed_market_source'));
+ try{await assert.rejects(()=>db.exec(patch),/Unreviewed market reader source/);}finally{await db.exec(corrected);}
 });
