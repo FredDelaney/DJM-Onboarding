@@ -1,5 +1,9 @@
 # Tell ReDream: shared work and capture recovery
 
+## Applied migration history reconciliation, 29 October
+
+Jesse confirmed GPT suggested the separate ACL-baseline exception in commit `28ff6cb`, with no known reproduced failure. The release branch restores the original applied bytes of `20261028082359_canonical_tell_staff_membership.sql`, SHA-256 `6bb5719faeb41c77b80720c05a8ac0d1f17737810b793c96a861e4b538821a09`. The historical commit remains in Git history. All 16 focused tests in `tests/tell-staff-membership-database.test.ts` pass; log `/tmp/redream-platform-programme/restored-tell-staff-history.log`. No SQL is executed, no deployed function or permission changes, and no compatibility fix is claimed. A demonstrated runtime correction requires a separately reviewed forward migration.
+
 Status: shared-name worker/receipt and saved-note recovery implementations are prepared; three forward database migrations are installed and role-tested on staging `ltvmopvarlnidiozvpow`. The new worker and frontend are not deployed. Production is unchanged. Actual model, hosted UI and human acceptance remain required.
 
 ## Change
