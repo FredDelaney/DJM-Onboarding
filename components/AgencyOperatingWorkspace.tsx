@@ -1919,6 +1919,12 @@ export default function AgencyOperatingWorkspace() {
           key={`${stateScope}:${pursuitRequest.key}`}
           request={pursuitRequest}
           refreshKey={recordRefreshRevision}
+          onOpenPlayerProfile={canSeeBusiness ? playerId=>{
+            const href=workspaceIntelligenceHref(basePath,window.location.search,{kind:'player',entityId:playerId});
+            if(!href)return;
+            setPursuitRequest(null);
+            window.history.pushState(null,'',href+'#review-player-details');
+          }:undefined}
           presentation="page"
           role={String(workspace?.role || '')}
           marketData={data}
@@ -5145,7 +5151,7 @@ function Market({
               const accessMode =
                 item.access_strategy?.recommended_mode ||
                 item.best_access_route?.route_state ||
-                'recorded_route';
+                'access_not_recorded';
 
               const nextAction =
                 item.career_strategy_gate?.next_action

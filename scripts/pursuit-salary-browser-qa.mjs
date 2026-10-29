@@ -5,7 +5,7 @@ const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIU
 const out='/tmp/redream-platform-programme/pursuit-salary';await mkdir(out,{recursive:true});
 const expires=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
 try{
- for(const scenario of process.env.PURSUIT_SALARY_SCENARIOS?.split(',')||['external-refresh','deal-money','deal-money-unknown','normal','wrong-player','wrong-club','core-refresh','read-error','denied','conflict','unknown','idem-retry','timeout','terms-edit','late-scope']){
+ for(const scenario of process.env.PURSUIT_SALARY_SCENARIOS?.split(',')||['verification-required','verification-dirty','dossier-missing','dossier-unpublished','dossier-stale','dossier-unknown','dossier-contradictory','access-known','access-develop','access-missing','external-refresh','deal-money','deal-money-unknown','normal','wrong-player','wrong-club','core-refresh','read-error','denied','conflict','unknown','idem-retry','timeout','terms-edit','late-scope']){
   const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[],calls=[],receipts=new Map();let reads=0,writes=0,release,minimum='6000',target='6500',fingerprint='a'.repeat(32),active=false;
   let careerApproved=scenario!=='external-refresh';
   if(scenario==='external-refresh'||scenario==='core-refresh'||scenario.startsWith('deal-money')){minimum='4000';target='4500';}
@@ -14,7 +14,10 @@ try{
   const terms=()=>({player_id:'player-a',salary_minimum:minimum,salary_target:target,salary_currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',salary_source_status:'confirmed',salary_source_context:'Player confirmation',salary_checked_on:'2026-10-28',updated_at:'2026-10-28T00:00:00Z',updated_by:'actor',legacy_salary_expectation:null});
   await page.route('https://example.supabase.co/**',async route=>{
    const body=route.request().postDataJSON()||{},name=body.action||new URL(route.request().url()).pathname.split('/').at(-1);calls.push({name,body});let data={},status=200;
-   if(name==='external_dossiers')data={dossiers:{items:[{player:{player_id:body.player_id||'player-a'},share_state:'share_safe'}]}};
+   if(name==='external_dossiers'){
+    const states={'verification-required':'player_verification_required','verification-dirty':'player_verification_required','dossier-missing':'dossier_missing','dossier-unpublished':'dossier_unpublished','dossier-stale':'dossier_verification_stale','dossier-unknown':'not_checked','dossier-contradictory':'share_safe','access-known':'player_verification_required','access-develop':'player_verification_required','access-missing':'player_verification_required'};
+    data={dossiers:{items:[{player:{player_id:body.player_id||'player-a'},share_state:states[scenario]||'share_safe',...(states[scenario]?{safety:{profile_exists:['dossier-unpublished','dossier-stale'].includes(scenario)},next_action:{action:states[scenario]==='player_verification_required'?'verify_player':'review_then_publish',instruction:states[scenario]==='player_verification_required'?'Complete the human player verification workflow before external sharing.':'Review the current dossier.'}}:{})}]}};
+   }
    else if(name==='pitch_readiness')data={readiness:{items:['a','b'].map(key=>({player_match_id:'match-'+key,player:{player_id:'player-'+key},club:{organisation_id:'club-a'},career_gate:{state:careerApproved?'open_aligned':'hold_strategy_missing'},pursuit_readiness:{score:99}}))}};
    else if(name==='pitch_execution')data={execution:{items:scenario.startsWith('deal-money')?[{player_id:'player-a',organisation_id:'club-a',share_id:'synthetic-existing-share'}]:[]}};
    else if(name==='pitch_responses')data={responses:{items:[]}};
@@ -41,9 +44,39 @@ try{
    await route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)}).catch(()=>{});
   });
   try{
-   const url=new URL('/qa-pursuit-salary',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
+   const url=new URL('/qa-pursuit-salary',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');if(scenario.startsWith('access-'))url.searchParams.set('access',scenario.slice(7));if(scenario==='verification-required')url.searchParams.set('brand','light');if(scenario==='dossier-unpublished')url.searchParams.set('brand','other');for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
    const panel=page.getByRole('region',{name:'Base-salary review',exact:true});await panel.waitFor();
    if(['wrong-player','wrong-club'].includes(scenario)){await panel.getByText('This opportunity now refers to a different player or club. Close it and reopen the current record.',{exact:true}).waitFor();assert.equal(await panel.getByText('EUR 6,000',{exact:true}).count(),0);assert.equal(writes,0);await page.getByRole('button',{name:'Back to Opportunities',exact:true}).click();await page.getByText('Opportunity list',{exact:true}).waitFor();assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;}
+   if(scenario.startsWith('access-')){
+    await page.locator('summary').filter({hasText:'Opportunity details'}).click();
+    await page.getByText(scenario==='access-known'?'QA Club Contact':scenario==='access-develop'?/Develop Access/i:/Access not recorded/i,{exact:scenario==='access-known'}).waitFor();
+    assert.equal(await page.getByText('Previous cached contact',{exact:true}).count(),0);assert.equal(await page.getByText('Known Contact Route',{exact:true}).count(),0);assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;
+   }
+   if(scenario.startsWith('verification')||scenario.startsWith('dossier-')){
+    const needsReview=scenario.startsWith('verification')||['dossier-unknown','dossier-contradictory'].includes(scenario);
+    const button=page.getByRole('button',{name:needsReview?'Review player details':scenario==='dossier-missing'?'Create private dossier':'Publish dossier',exact:true});await button.waitFor();assert.equal(await button.count(),1,'One primary dossier action follows the current safety state');
+    if(needsReview){assert.equal(await page.getByRole('button',{name:'Publish dossier',exact:true}).count(),0);assert.equal(await page.getByText('The dossier exists but still needs controlled publication before it can support the pitch.',{exact:true}).count(),0);}
+    if(scenario==='dossier-contradictory')assert.equal(await page.getByText('Share Safe',{exact:true}).count(),0,'A missing profile is not shown as share-safe');
+    if(['verification-required','dossier-unpublished'].includes(scenario))for(const width of [320,390,768,1440]){
+      await page.setViewportSize({width,height:844});await button.scrollIntoViewIfNeeded();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Guidance fits '+width);assert.ok((await button.boundingBox()).height>=44,'Primary guidance remains easy to tap');
+      const colours=await page.getByRole('region',{name:'Next pursuit action',exact:true}).evaluate(hero=>{
+        const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');canvas.width=canvas.height=1;
+        const paint=(colour,background)=>{ctx.clearRect(0,0,1,1);if(background){ctx.fillStyle=background;ctx.fillRect(0,0,1,1);}ctx.fillStyle=colour;ctx.fillRect(0,0,1,1);return [...ctx.getImageData(0,0,1,1).data].slice(0,3);};
+        const bg=getComputedStyle(hero).backgroundColor,rgb=paint(bg),agency=paint(getComputedStyle(hero).getPropertyValue('--agency-primary'));
+        const luminance=values=>values.map(value=>{const c=value/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;}).reduce((sum,c,i)=>sum+c*[.2126,.7152,.0722][i],0);
+        const contrast=colour=>{const values=[luminance(rgb),luminance(paint(colour,bg))].sort((a,b)=>b-a);return (values[0]+.05)/(values[1]+.05);};
+        return {brandDistance:Math.max(...rgb.map((c,i)=>Math.abs(c-agency[i]))),ratios:[...hero.querySelectorAll('h3,div:first-child>span')].map(n=>contrast(getComputedStyle(n).color))};
+      });assert.ok(colours.brandDistance<40,'The hero follows this agency’s safe primary colour');assert.ok(colours.ratios.every(ratio=>ratio>=4.5),'Decision text stays readable at '+width);
+      await page.screenshot({path:out+'/guidance-'+scenario+'-'+width+'.png'});
+    }
+    if(scenario==='verification-dirty'){
+      await panel.getByText('Record a decision',{exact:true}).click();await panel.getByRole('combobox',{name:'Decision',exact:true}).selectOption('hold');await panel.getByRole('textbox',{name:'Reason',exact:true}).fill('Keep this review until the profile handoff is approved.');
+      await button.click();const discard=page.getByRole('alertdialog',{name:'Leave this salary review?',exact:true});await discard.getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(await panel.getByRole('textbox',{name:'Reason',exact:true}).inputValue(),'Keep this review until the profile handoff is approved.');
+      await button.click();await discard.getByRole('button',{name:'Leave review',exact:true}).click();
+    }else await button.click();
+    if(needsReview)await page.getByText('Player details: player-a',{exact:true}).waitFor();else{await page.getByText(scenario==='dossier-missing'?'Create a private dossier draft?':'Publish this player dossier?',{exact:true}).waitFor();await page.getByRole('button',{name:'Cancel',exact:true}).click();}
+    assert.equal(calls.filter(c=>['dossier_publish','pitch_publish','dossier_draft_create'].includes(c.name)).length,0,'No external publication or unapproved creation is implicit');assert.equal(writes,0);assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;
+   }
    if(scenario.startsWith('deal-money')){
     await panel.getByText('EUR 4,000',{exact:true}).waitFor();
     const create=page.getByRole('button',{name:'Create Deal Room',exact:true}),probability=page.getByLabel('Human probability %',{exact:true}),currency=page.getByRole('combobox',{name:'Deal currency',exact:true}),commission=page.getByLabel('Expected commission',{exact:true});

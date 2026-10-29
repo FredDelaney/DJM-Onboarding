@@ -1888,13 +1888,19 @@ export default function AgencyPlayerProfile({
       [key]: value,
     }));
 
-  const openVerify = (focus: 'verification' | 'position' | 'contract-status' | 'contract-expiry' = 'verification') => {
+  const openVerify = useCallback((focus: 'verification' | 'position' | 'contract-status' | 'contract-expiry' = 'verification') => {
     if(recordRefreshNeeded)return;
     setVerifyForm(verifyFormFromPlayer(player));
     setVerifyFocus(focus);
     setVerifyError('');
     setVerifyOpen(true);
-  };
+  },[recordRefreshNeeded,player]);
+
+  useEffect(()=>{
+    if(!canEdit||loading||error||recordRefreshNeeded||player.id!==playerId||window.location.hash!=='#review-player-details')return;
+    window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search);
+    openVerify('verification');
+  },[canEdit,loading,error,recordRefreshNeeded,player.id,playerId,openVerify]);
 
   const openTransfermarkt = () => {
     setTransfermarktUrl(text(player.transfermarkt_url));

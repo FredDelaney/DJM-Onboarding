@@ -462,7 +462,7 @@ export default function AgencyOpportunitiesWorkspace({
     const accessMode =
       item.access_strategy?.recommended_mode ||
       item.best_access_route?.route_state ||
-      'recorded_route';
+      'access_not_recorded';
 
     onOpenPursuit({
       key: `pursuit:${item.player_match_id}`,
@@ -759,7 +759,7 @@ export default function AgencyOpportunitiesWorkspace({
               const accessMode =
                 item.access_strategy?.recommended_mode ||
                 item.best_access_route?.route_state ||
-                'recorded_route';
+                'access_not_recorded';
 
               const nextAction =
                 item.career_strategy_gate?.next_action

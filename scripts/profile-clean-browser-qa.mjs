@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 const browser = await chromium.launch({executablePath: process.env.CALENDAR_CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage']});
 const failures = [];
 try {
-  for (const scenario of process.env.PROFILE_CLEAN_SCENARIOS?.split(',') || ['brief', 'compact', 'prepare', 'queued', 'fresh', 'context', 'context-failed', 'context-timeout', 'failure', 'links', 'layout']) {
+  for (const scenario of process.env.PROFILE_CLEAN_SCENARIOS?.split(',') || ['verification-link','verification-link-readonly','brief', 'compact', 'prepare', 'queued', 'fresh', 'context', 'context-failed', 'context-timeout', 'failure', 'links', 'layout']) {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
     const calls = [], errors = []; page.on('pageerror', error => errors.push(error.message));
     let detailsReview=null;
@@ -48,12 +48,23 @@ try {
     });
     try {
       const url = new URL('/qa-profile-clean', process.env.CALENDAR_QA_URL || 'http://127.0.0.1:3113');
+      if(scenario.startsWith('verification-link'))url.hash='review-player-details';
+      if(scenario==='verification-link-readonly')url.searchParams.set('role','player');
       if(scenario==='brief'){url.searchParams.set('capture','30000000-0000-4000-8000-000000000001');url.searchParams.set('preparation','profile_1');}
       const initialStatus = page.waitForResponse(response => response.request().postDataJSON()?.action === 'player_data_status');
       for (let i = 0; i < 60; i++) {try {await page.goto(url.href); break;} catch (error) {if (i === 59) throw error; await page.waitForTimeout(250);}}
       await page.getByRole('heading', {name: 'Example Player', exact: true}).waitFor();
       await initialStatus;
       await page.getByText('Source check finished', {exact: true}).waitFor({state: 'attached'});
+      if(scenario.startsWith('verification-link')){
+        const verify=page.getByRole('button',{name:'Confirm & verify',exact:true});
+        if(scenario==='verification-link-readonly')assert.equal(await verify.count(),0,'A review link cannot grant editing permission');
+        else{
+          await verify.waitFor();assert.equal(await page.getByRole('textbox',{name:/^Primary position/}).inputValue(),'Centre back');assert.equal(new URL(page.url()).hash,'');
+          await page.getByRole('button',{name:'Cancel',exact:true}).click();await page.reload();await page.getByRole('heading',{name:'Example Player',exact:true}).waitFor();assert.equal(await verify.count(),0,'A consumed link does not reopen a dismissed review');
+        }
+        assert.equal(calls.filter(c=>c.action==='player_profile_verify'||c.action?.includes('publish')).length,0,'Opening the existing review never verifies or publishes automatically');assert.deepEqual(errors,[]);console.log('Profile clean workflow passed: '+scenario);continue;
+      }
       if (scenario === 'brief') {
         const panel=page.getByRole('region',{name:'Tell ReDream preparation'});
         const brief=panel.getByRole('textbox',{name:'Review your brief'});

@@ -162,6 +162,7 @@ export default function AgencyPursuitRoom({
   onClose,
   onOpenAction,
   onOpenDeal,
+  onOpenPlayerProfile,
   onApplied,
   refreshKey = 0,
   presentation = 'drawer',
@@ -180,6 +181,7 @@ export default function AgencyPursuitRoom({
     title: string,
     context?: string | null,
   ) => void;
+  onOpenPlayerProfile?: (playerId: string) => void;
   onApplied: () => Promise<void> | void;
   refreshKey?: number;
   presentation?: 'drawer' | 'page';
@@ -250,7 +252,7 @@ export default function AgencyPursuitRoom({
   );
 
   const pursuit = safeArray(
-    marketData?.pursuits?.items,
+    (marketData?.market ?? marketData)?.pursuits?.items,
   ).find(
     (item: any) =>
       String(item?.player_match_id || '') ===
@@ -360,17 +362,14 @@ export default function AgencyPursuitRoom({
     !dealOwnerUserId;
 
   const accessLabel =
-    request.accessLabel ||
     pursuit?.best_access_route?.person_name ||
-    human(
-      pursuit?.access_strategy?.recommended_mode ||
-        'known contact route',
-    );
+    (pursuit?.access_strategy?.recommended_mode
+      ? human(pursuit.access_strategy.recommended_mode)
+      : pursuit ? 'Access not recorded' : request.accessLabel || 'Access not recorded');
 
-  const accessDetail =
-    request.accessDetail ||
-    pursuit?.best_access_route?.why_this_route ||
-    null;
+  const accessDetail = pursuit
+    ? pursuit.best_access_route?.why_this_route || null
+    : request.accessDetail || null;
 
   const canPublishDossier = [
     'owner',
@@ -696,6 +695,7 @@ export default function AgencyPursuitRoom({
       return;
     }
     if(['create_pitch','publish_pitch','create_deal'].includes(confirmAction)&&salaryGate?.can_proceed!==true){setError('Review current base-salary feasibility before preparing a new pitch or deal.');setConfirmAction(null);return;}
+    if(confirmAction==='publish_dossier'&&(!dossierCanPublish||!canPublishDossier)){setError('Review the current player profile before publishing.');setConfirmAction(null);return;}
 
     setActionBusy(confirmAction);
     setError('');
@@ -945,7 +945,10 @@ export default function AgencyPursuitRoom({
     careerOpen(careerState);
 
   const dossierIsSafe =
-    dossierState === 'share_safe';
+    dossierState === 'share_safe'&&dossier?.safety?.profile_exists!==false;
+  const dossierLabel=dossierState==='share_safe'&&!dossierIsSafe?'Review required':human(dossierState);
+  const dossierNeedsVerification=dossierState==='player_verification_required';
+  const dossierCanPublish=['dossier_unpublished','dossier_verification_stale'].includes(dossierState)&&dossier?.safety?.profile_exists!==false;
 
   const nextMove = (() => {
     const openDeal = () => {
@@ -979,6 +982,10 @@ export default function AgencyPursuitRoom({
       };
     }
 
+    if(dossierNeedsVerification||!dossierIsSafe&&dossierState!=='dossier_missing'&&!dossierCanPublish){
+      return {title:dossierNeedsVerification?'Review player verification':'Review the player profile',instruction:dossier?.next_action?.instruction||'Review the current player details before external sharing.',label:onOpenPlayerProfile?'Review player details':'Player profile unavailable',run:()=>requestLeave(()=>onOpenPlayerProfile?.(request.playerId||playerId)),disabled:!onOpenPlayerProfile};
+    }
+
     if (dossierState === 'dossier_missing') {
       return {
         title: 'Create the dossier',
@@ -993,7 +1000,7 @@ export default function AgencyPursuitRoom({
       return canPublishDossier
         ? {
             title: 'Review dossier publication',
-            instruction: 'The dossier exists but still needs controlled publication before it can support the pitch.',
+            instruction: dossier?.next_action?.instruction || 'Review the private dossier before approving publication.',
             label: 'Publish dossier',
             run: () => setConfirmAction('publish_dossier'),
             disabled: false,
@@ -1184,7 +1191,7 @@ export default function AgencyPursuitRoom({
               />
               <Step
                 label="Dossier"
-                value={human(dossierState)}
+                value={dossierLabel}
                 done={dossierIsSafe}
                 attention={
                   !dossierIsSafe &&
@@ -1253,7 +1260,9 @@ export default function AgencyPursuitRoom({
             </section>
 
             {canPublishDossier?<PursuitSalaryReview matchId={request.playerMatchId} playerId={request.playerId} clubId={request.clubId} refreshKey={salaryRefresh} invoke={invoke} rpc={rpc} onState={setSalaryGate} onDirty={setSalaryDirty} onChanged={onApplied}/>:null}
-            <div className={styles.grid}>
+            <details className={styles.context}>
+              <summary>Opportunity details</summary>
+              <div className={styles.grid}>
               <Fact
                 label="Player direction"
                 value={human(careerState)}
@@ -1283,14 +1292,11 @@ export default function AgencyPursuitRoom({
               />
               <Fact
                 label="Pitch readiness"
-                value={human(
-                  readiness
-                    ?.pitch_readiness_state ||
-                    dossierState,
-                )}
+                value={readiness?.pitch_readiness_state?human(readiness.pitch_readiness_state):dossierLabel}
                 detail="Recorded preparation state"
               />
-            </div>
+              </div>
+            </details>
 
             {careerIsOpen && dossierState !== 'dossier_missing' ? (
               <section className={styles.panel}>
@@ -1299,12 +1305,7 @@ export default function AgencyPursuitRoom({
                   <div>
                     <p>CLUB DOSSIER</p>
                     <h3>
-                      {dossierState ===
-                      'dossier_missing'
-                        ? 'Create the private club-facing dossier.'
-                        : dossierIsSafe
-                          ? 'The dossier passes the recorded share controls.'
-                          : 'The dossier needs publication control.'}
+                      {dossierNeedsVerification?'Review the player data first.':dossierIsSafe?'The dossier passes the recorded share controls.':dossierCanPublish?'Review the dossier before publication.':'Review the current player profile.'}
                     </h3>
                   </div>
                 </div>
@@ -1332,48 +1333,8 @@ export default function AgencyPursuitRoom({
                   </div>
                 ) : null}
 
-                <div className={styles.actions}>
-                  {dossierState ===
-                  'dossier_missing' ? (
-                    <button
-                      type="button"
-                      data-ui-button="primary"
-              className={styles.primary}
-                      onClick={() =>
-                        setConfirmAction(
-                          'create_dossier',
-                        )
-                      }
-                    >
-                      <FileText size={15} />
-                      Create private dossier
-                    </button>
-                  ) : null}
-
-                  {!dossierIsSafe &&
-                  dossierState !==
-                    'dossier_missing' &&
-                  canPublishDossier ? (
-                    <button
-                      type="button"
-                      data-ui-button="primary"
-              className={styles.primary}
-                      onClick={() =>
-                        setConfirmAction(
-                          'publish_dossier',
-                        )
-                      }
-                    >
-                      <Link2 size={15} />
-                      Publish dossier
-                    </button>
-                  ) : null}
-                </div>
-
                 {!canPublishDossier &&
-                !dossierIsSafe &&
-                dossierState !==
-                  'dossier_missing' ? (
+                dossierCanPublish ? (
                   <p className={styles.truth}>
                     Owner or admin approval is required for external dossier publication.
                   </p>
