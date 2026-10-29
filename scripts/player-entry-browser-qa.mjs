@@ -452,9 +452,9 @@ try {
   const {context,page,state}=await setup('inbox-healthy');await visit(page,'/inbox');await page.getByRole('heading',{name:'Confirm your availability',exact:true}).waitFor();
   await page.getByRole('button',{name:'Send a note',exact:true}).click();const input=page.getByPlaceholder('Type your note…');await input.fill('My separate unsent note');
   await page.getByRole('button',{name:'Open',exact:true}).click();await page.getByPlaceholder('Anything your agency should know?').fill('My completed reply');
-  state.mode='inbox-refresh-failed';await page.getByRole('button',{name:'Done',exact:true}).click();await page.getByText('Completed',{exact:true}).waitFor();
-  await page.getByRole('button',{name:'Try again',exact:true}).waitFor();state.mode='inbox-healthy';await page.getByRole('button',{name:'Try again',exact:true}).click();
-  await page.getByRole('heading',{name:'Your agency updates.',exact:true}).waitFor();
+  state.mode='inbox-refresh-failed';await page.getByRole('button',{name:'Done',exact:true}).click();
+  await page.getByRole('button',{name:'Try again',exact:true}).waitFor();assert.equal(state.requestRows.get('agency-action').status,'completed','The completion must be saved before context recovery');assert.equal(state.requestRows.get('agency-action').player_reply,'My completed reply');state.mode='inbox-healthy';await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await page.getByRole('heading',{name:'Your agency updates.',exact:true}).waitFor();await page.getByText('Completed',{exact:true}).waitFor();
   assert.equal(await input.count(),1,'Context recovery discarded an unrelated draft');
   assert.equal(await input.inputValue(),'My separate unsent note','Completing an action cleared the unsent note');await context.close();
  }
