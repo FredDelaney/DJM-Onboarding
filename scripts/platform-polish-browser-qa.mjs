@@ -95,7 +95,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(path.endsWith('/redream_ai_receipt'))data=receipt(body.p_capture_id);
     else if(path.endsWith('/redream_ai_approve_capture')){state.approvals++;state.approved=true;data={receipt:receipt(body.p_capture_id)};}
     else if(path.endsWith('/redream_calendar_range'))data={follow_ups:{items:state.approved&&!state.taskDone?[{task_id:taskId,title:'Follow up with Example FC',due_at:dueAt,organisation_id:clubId,organisation_name:'Example FC',source:'tell_djm:fixture'}]:[]}};
-    else if(path.endsWith('/redream_entity_patch')){state.recordWrites++;data={ok:true};}
+    else if(path.endsWith('/redream_entity_patch')){state.recordWrites++;data={ok:true,id:body.p_entity_id,entity_type:body.p_entity_type};}
     else if(path.endsWith('/redream_autopilot_relationships')){
      if(state.failRelationships){status=503;data={message:'The list is temporarily unavailable'};}
      else data={accounts:{clubs:[{organisation_id:'club',name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};

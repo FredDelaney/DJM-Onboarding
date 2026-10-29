@@ -1,0 +1,74 @@
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import {chromium} from 'playwright';
+const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
+const out='/tmp/redream-platform-programme/pursuit-salary';await mkdir(out,{recursive:true});
+const expires=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+try{
+ for(const scenario of ['normal','wrong-player','wrong-club','core-refresh','read-error','denied','conflict','unknown','idem-retry','timeout','terms-edit','late-scope']){
+  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[],calls=[],receipts=new Map();let reads=0,writes=0,release,minimum='6000',target='6500',fingerprint='a'.repeat(32),active=false;
+  if(scenario==='core-refresh'){minimum='4000';target='4500';}
+  page.on('pageerror',e=>errors.push(e.message));
+  const gate=(match,command)=>{const min=match==='match-b'?'1000':minimum,tgt=match==='match-b'?'2000':target,within=Number(min)<=5000&&Number(tgt)<=5000;return {version:1,player_match_id:match,player_id:match==='match-a'?'player-a':'player-b',club_id:'club-a',can_proceed:active||within,state:active?'open_exploration_review':within?'open_recorded_salary':'hold_salary_conflict',message:active?'Exploration is permitted under the recorded temporary review. The salary gap or uncertainty remains.':within?'The confirmed recorded base-salary expectation fits this budget. Contract terms still require agreement.':'The confirmed minimum exceeds the budget. Resolve the terms or record a justified temporary exploration decision.',comparison:{version:1,fingerprint,state:within?'minimum_within_budget':'minimum_above_budget',message:within?'The recorded minimum base salary fits this budget. This is not acceptance of contract terms.':'The recorded salary minimum exceeds the club base-salary budget.',player_minimum:min,player_target:tgt,player_currency:'EUR',player_period:'monthly',player_tax_basis:'net',club_budget:'5000',club_currency:'EUR',club_period:'monthly',club_tax_basis:'net',source_status:'confirmed',club_source_status:'confirmed',checked_on:'2026-10-28',missing:[]},review:active?{current:true,active:true,reason:'Check willingness before quoting any offer.',expires_on:expires}:null,confirmed_command_id:command&&receipts.has(command)?command:null};};
+  const terms=()=>({player_id:'player-a',salary_minimum:minimum,salary_target:target,salary_currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',salary_source_status:'confirmed',salary_source_context:'Player confirmation',salary_checked_on:'2026-10-28',updated_at:'2026-10-28T00:00:00Z',updated_by:'actor',legacy_salary_expectation:null});
+  await page.route('https://example.supabase.co/**',async route=>{
+   const body=route.request().postDataJSON()||{},name=body.action||new URL(route.request().url()).pathname.split('/').at(-1);calls.push({name,body});let data={},status=200;
+   if(name==='external_dossiers')data={dossiers:{items:[{player:{player_id:body.player_id||'player-a'},share_state:'share_safe'}]}};
+   else if(name==='pitch_readiness')data={readiness:{items:['a','b'].map(key=>({player_match_id:'match-'+key,player:{player_id:'player-'+key},club:{organisation_id:'club-a'},career_gate:{state:'open_aligned'},pursuit_readiness:{score:99}}))}};
+   else if(name==='pitch_execution')data={execution:{items:[]}};
+   else if(name==='pitch_responses')data={responses:{items:[]}};
+   else if(name==='pursuit_salary_review'){
+    const snapshot=gate(body.player_match_id,body.command_id);reads++;
+    if(scenario==='late-scope'&&body.player_match_id==='match-a'){await new Promise(resolve=>{release=resolve;});data={review:snapshot};}
+    else if(scenario==='read-error'&&reads===1){status=500;data={error:'Salary read interrupted'};}
+    else data={review:{...snapshot,...(scenario==='wrong-player'?{player_id:'another-player'}:scenario==='wrong-club'?{club_id:'another-club'}:{})}};
+   }else if(name==='pursuit_salary_review_save'){
+    writes++;
+    if(scenario==='denied'&&writes===1){status=400;data={error:'Check the exploration expiry.',code:'22023'};}
+    else if(scenario==='conflict'&&writes===1){fingerprint='b'.repeat(32);minimum='6100';status=409;data={error:'The salary evidence changed. Load the current check and review your decision again.',code:'40001'};}
+    else{
+     if(!receipts.has(body.command_id))receipts.set(body.command_id,body);active=true;data={review:gate(body.player_match_id,body.command_id)};
+     if(['unknown','idem-retry'].includes(scenario)&&writes===1)data={review:{...data.review,confirmed_command_id:null}};
+     if(scenario==='timeout'&&writes===1)await new Promise(resolve=>{release=resolve;});
+    }
+   }else if(name==='redream_player_salary_terms')data={salary_terms_version:1,terms:terms()};
+   else if(name==='redream_player_salary_terms_patch'){minimum=body.p_patch.salary_minimum||minimum;target=body.p_patch.salary_target||target;fingerprint='c'.repeat(32);active=false;data={ok:true,id:'player-a',entity_type:'player',salary_terms_version:1,terms:terms()};}
+   else if(name==='pitch_draft_create'){if(scenario==='core-refresh'){status=409;fingerprint='d'.repeat(32);minimum='7000';target='7500';data={error:'Review current base-salary feasibility before preparing a new pitch or deal.',code:'salary_review_required'};}else data={result:{created:true,share_id:'synthetic-private-draft'}};}
+   else{status=400;data={error:'Unexpected fixture action '+name};}
+   await route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)}).catch(()=>{});
+  });
+  try{
+   const url=new URL('/qa-pursuit-salary',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
+   const panel=page.getByRole('region',{name:'Base-salary review',exact:true});await panel.waitFor();
+   if(['wrong-player','wrong-club'].includes(scenario)){await panel.getByText('This opportunity now refers to a different player or club. Close it and reopen the current record.',{exact:true}).waitFor();assert.equal(await panel.getByText('EUR 6,000',{exact:true}).count(),0);assert.equal(writes,0);await page.getByRole('button',{name:'Back to Opportunities',exact:true}).click();await page.getByText('Opportunity list',{exact:true}).waitFor();assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;}
+   if(scenario==='core-refresh'){
+    await panel.getByText('EUR 4,000',{exact:true}).waitFor();await panel.getByText('Record a decision',{exact:true}).click();await panel.getByRole('combobox',{name:'Decision',exact:true}).selectOption('hold');await panel.getByRole('textbox',{name:'Reason',exact:true}).fill('Keep this local draft while the opportunity refreshes.');
+    await page.getByRole('button',{name:'Create private pitch',exact:true}).click();await page.getByRole('button',{name:'Create pitch draft',exact:true}).click();await page.getByText('Review current base-salary feasibility before preparing a new pitch or deal.',{exact:true}).waitFor();assert.equal(await panel.isVisible(),false,'A failed core read hides the view without discarding its draft');await page.getByRole('button',{name:'Try again',exact:true}).click();await panel.getByText('EUR 7,000',{exact:true}).waitFor();assert.equal(await panel.getByRole('textbox',{name:'Reason',exact:true}).inputValue(),'Keep this local draft while the opportunity refreshes.');assert.equal(writes,0);assert.ok(reads>=2,'A canonical financial denial reloads the current check');assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;
+   }
+   if(scenario==='late-scope'){
+    await panel.getByText('Checking current salary evidence',{exact:true}).waitFor();await page.getByRole('button',{name:'Back to Opportunities',exact:true}).click();await page.getByRole('button',{name:'Switch opportunity',exact:true}).click();await panel.getByText('EUR 1,000',{exact:true}).waitFor();release();assert.equal(await panel.getByText('EUR 6,000',{exact:true}).count(),0);assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;
+   }
+   if(scenario==='read-error'){await panel.getByText('Salary read interrupted',{exact:true}).waitFor();await panel.getByRole('button',{name:'Load current check',exact:true}).click();}
+   await panel.getByText('EUR 6,000',{exact:true}).waitFor();assert.equal(await page.locator('[class*="heroScore"]').count(),0,'A high old readiness value cannot mask a financial hold');
+   await page.getByRole('button',{name:'Review salary terms',exact:true}).click();assert.ok(await panel.evaluate(n=>n===document.activeElement));
+   if(scenario==='terms-edit'){
+    await panel.locator('summary').filter({hasText:'Salary expectations'}).click();await panel.getByRole('button',{name:'Edit salary expectations',exact:true}).click();
+    const edit=page.getByRole('dialog',{name:'Manage salary expectations',exact:true});await edit.getByLabel('Minimum base salary',{exact:true}).fill('5000');await edit.getByLabel('Target base salary',{exact:true}).fill('5000');await edit.getByRole('button',{name:'Save changes',exact:true}).click();await edit.waitFor({state:'hidden'});await page.getByRole('button',{name:'Create private pitch',exact:true}).waitFor();assert.equal(writes,0,'Correcting canonical terms never creates an override');assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;
+   }
+   await panel.getByText('Record a decision',{exact:true}).click();await panel.getByRole('combobox',{name:'Decision',exact:true}).selectOption('explore');await panel.getByRole('textbox',{name:'Reason',exact:true}).fill('Check willingness before quoting any offer.');await panel.getByLabel('Exploration until (UTC)',{exact:true}).fill(expires);
+   if(scenario==='normal'){
+    await page.getByRole('button',{name:'Back to Opportunities',exact:true}).click();const discard=page.getByRole('alertdialog',{name:'Leave this salary review?',exact:true});await discard.waitFor();await discard.getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(await panel.getByRole('textbox',{name:'Reason',exact:true}).inputValue(),'Check willingness before quoting any offer.');
+   }
+   for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Financial review fits '+width);const save=panel.getByRole('button',{name:'Save review',exact:true});await save.scrollIntoViewIfNeeded();const box=await save.boundingBox();assert.ok(box&&box.height>=44&&box.x>=0&&box.x+box.width<=width+1);if(scenario==='normal')await page.screenshot({path:out+'/review-'+width+'.png'});}
+   if(scenario==='timeout')await page.clock.install();await panel.getByRole('button',{name:'Save review',exact:true}).click();
+   if(scenario==='timeout'){await panel.getByRole('button',{name:'Saving review…',exact:true}).waitFor();await page.clock.fastForward(12100);}
+   if(scenario==='denied'){await panel.getByText('Check the exploration expiry.',{exact:true}).waitFor();assert.equal(await panel.getByRole('textbox',{name:'Reason',exact:true}).inputValue(),'Check willingness before quoting any offer.');await panel.getByRole('button',{name:'Save review',exact:true}).click();}
+   if(scenario==='conflict'){await panel.getByText('The salary evidence changed. Load the current check and review your decision again.',{exact:true}).waitFor();await panel.getByRole('button',{name:'Load current check',exact:true}).click();await panel.getByText('EUR 6,100',{exact:true}).waitFor();assert.equal(await panel.getByRole('textbox',{name:'Reason',exact:true}).inputValue(),'Check willingness before quoting any offer.');await panel.getByRole('button',{name:'Save review',exact:true}).click();}
+   if(scenario==='idem-retry'){await panel.getByRole('button',{name:'Retry same review',exact:true}).click();}
+   if(['unknown','timeout'].includes(scenario)){await panel.getByRole('button',{name:'Retry same review',exact:true}).waitFor();await panel.getByRole('button',{name:'Check saved review',exact:true}).last().click();}
+   await panel.getByText('Salary review saved. The recorded evidence and career controls are unchanged.',{exact:true}).waitFor();assert.equal(receipts.size,1);if(scenario==='idem-retry'){const saves=calls.filter(c=>c.name==='pursuit_salary_review_save');assert.deepEqual(saves[1].body,saves[0].body,'Explicit retry retains the same command identity and decision');}assert.equal(writes,['denied','conflict','idem-retry'].includes(scenario)?2:1,'Read recovery never resends a confirmed command');await page.getByRole('button',{name:'Create private pitch',exact:true}).waitFor();
+   if(scenario==='timeout')release();assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);
+  }catch(error){await page.screenshot({path:out+'/'+scenario+'-failure.png',fullPage:true}).catch(()=>{});console.log(JSON.stringify({scenario,reads,writes,calls:calls.map(c=>c.name),text:await page.locator('body').innerText()}));throw error;}
+  finally{await page.close();}
+ }
+}finally{await browser.close();}

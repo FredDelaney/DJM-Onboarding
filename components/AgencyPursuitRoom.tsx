@@ -27,6 +27,8 @@ import {
 } from 'react';
 
 import JourneyStatus from '@/components/JourneyStatus';
+import PursuitSalaryReview,{type PursuitSalaryState} from './PursuitSalaryReview';
+import ConfirmActionDialog from './ConfirmActionDialog';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
@@ -54,6 +56,7 @@ export type AgencyPursuitRequest = {
 type Invoke = (
   action: string,
   body?: Record<string, unknown>,
+  signal?:AbortSignal,
 ) => Promise<any>;
 
 type ConfirmAction =
@@ -151,6 +154,7 @@ export default function AgencyPursuitRoom({
   role,
   marketData,
   invoke,
+  rpc,
   onClose,
   onOpenAction,
   onOpenDeal,
@@ -161,6 +165,7 @@ export default function AgencyPursuitRoom({
   role: string;
   marketData: any;
   invoke: Invoke;
+  rpc?:<T,>(name:string,args?:Record<string,unknown>,signal?:AbortSignal)=>Promise<T>;
   onClose: () => void;
   onOpenAction: (
     request: AgencyActionRequest,
@@ -181,6 +186,13 @@ export default function AgencyPursuitRoom({
   const [error, setError] = useState('');
   const [message, setMessage] =
     useState('');
+  const [salaryRefresh,setSalaryRefresh]=useState(0);
+  const [salaryGate,setSalaryGate]=useState<PursuitSalaryState|null>(null);
+  const [salaryDirty,setSalaryDirty]=useState(false),[discardSalary,setDiscardSalary]=useState(false);
+  const pendingLeave=useRef<()=>void>(()=>{});
+  const requestLeave=useCallback((action:()=>void)=>{if(salaryDirty){pendingLeave.current=action;setDiscardSalary(true);}else action();},[salaryDirty]);
+  const closePursuit=useCallback(()=>requestLeave(onClose),[requestLeave,onClose]);
+  const openDealWithReview=(...args:Parameters<typeof onOpenDeal>)=>requestLeave(()=>onOpenDeal(...args));
   const [dossierControl, setDossierControl] =
     useState<any>(null);
   const [readinessControl, setReadinessControl] =
@@ -452,7 +464,7 @@ export default function AgencyPursuitRoom({
         )].some((modal) => modal !== panelRef.current);
         if (otherModal) return;
         event.preventDefault();
-        onClose();
+        closePursuit();
       }
     };
 
@@ -468,7 +480,7 @@ export default function AgencyPursuitRoom({
         keydown,
       );
     };
-  }, [actionBusy, onClose]);
+  }, [actionBusy, closePursuit]);
 
   const refresh = async () => {
     await onApplied();
@@ -676,6 +688,7 @@ export default function AgencyPursuitRoom({
     if (!confirmAction || actionBusy) {
       return;
     }
+    if(['create_pitch','publish_pitch','create_deal'].includes(confirmAction)&&salaryGate?.can_proceed!==true){setError('Review current base-salary feasibility before preparing a new pitch or deal.');setConfirmAction(null);return;}
 
     setActionBusy(confirmAction);
     setError('');
@@ -857,6 +870,7 @@ export default function AgencyPursuitRoom({
       setConfirmAction(null);
       await refresh();
     } catch (actionError) {
+      if(actionError&&typeof actionError==='object'&&'code' in actionError&&actionError.code==='salary_review_required')setSalaryRefresh(value=>value+1);
       setError(
         friendlyError(actionError),
       );
@@ -931,7 +945,7 @@ export default function AgencyPursuitRoom({
   const nextMove = (() => {
     const openDeal = () => {
       if (!dealRoomId) return;
-      onOpenDeal(
+      openDealWithReview(
         dealRoomId,
         `${request.playerName} → ${request.clubName}`,
         request.needTitle,
@@ -988,6 +1002,9 @@ export default function AgencyPursuitRoom({
           };
     }
 
+    if (salaryGate?.can_proceed!==true&&!dealRoomId&&!pitchDetail?.sent_at) {
+      return {title:'Review base-salary feasibility',instruction:salaryGate?.message||'Load the current salary check before preparing a new pitch or deal.',label:'Review salary terms',run:()=>{const panel=document.getElementById('pursuit-salary-review');panel?.scrollIntoView({block:'start',behavior:'smooth'});panel?.focus({preventScroll:true});},disabled:!canPublishDossier};
+    }
     if (!shareId) {
       return {
         title: 'Prepare the pitch',
@@ -1083,7 +1100,7 @@ export default function AgencyPursuitRoom({
     <div
       className={pageMode ? styles.pageShell : styles.backdrop}
       onClick={pageMode ? undefined : (event) => {
-        if (event.target === event.currentTarget && !actionBusy) onClose();
+        if (event.target === event.currentTarget && !actionBusy) closePursuit();
       }}
     >
       <aside
@@ -1104,7 +1121,7 @@ export default function AgencyPursuitRoom({
               type="button"
               data-ui-button="icon"
               className={styles.close}
-              onClick={onClose}
+              onClick={closePursuit}
               disabled={Boolean(
                 actionBusy,
               )}
@@ -1148,8 +1165,7 @@ export default function AgencyPursuitRoom({
           </section>
         ) : null}
 
-        {!busy && !error ? (
-          <div className={styles.content}>
+          <div className={styles.content} hidden={busy||Boolean(error)}>
             <section className={styles.journey}>
               <Step
                 label="Career"
@@ -1222,7 +1238,7 @@ export default function AgencyPursuitRoom({
                 </button>
               </div>
 
-              {hasReadinessScore ? (
+              {hasReadinessScore&&salaryGate?.can_proceed===true&&salaryGate.state==='open_recorded_salary' ? (
                 <div className={styles.heroScore}>
                   <Target size={17} />
                   <strong>{numeric(readinessScore)}</strong>
@@ -1231,6 +1247,7 @@ export default function AgencyPursuitRoom({
               ) : null}
             </section>
 
+            {canPublishDossier?<PursuitSalaryReview matchId={request.playerMatchId} playerId={request.playerId} clubId={request.clubId} refreshKey={salaryRefresh} invoke={invoke} rpc={rpc} onState={setSalaryGate} onDirty={setSalaryDirty} onChanged={onApplied}/>:null}
             <div className={styles.grid}>
               <Fact
                 label="Player direction"
@@ -1403,6 +1420,7 @@ export default function AgencyPursuitRoom({
                           'create_pitch',
                         )
                       }
+                      disabled={salaryGate?.can_proceed!==true}
                     >
                       <FileText size={15} />
                       Create private pitch
@@ -1477,6 +1495,7 @@ export default function AgencyPursuitRoom({
                               'publish_pitch',
                             )
                           }
+                          disabled={salaryGate?.can_proceed!==true}
                         >
                           <Link2 size={15} />
                           Publish pitch link
@@ -1589,7 +1608,7 @@ export default function AgencyPursuitRoom({
                         data-ui-button="secondary"
               className={styles.secondary}
                         onClick={() =>
-                          onOpenDeal(
+                          openDealWithReview(
                             dealRoomId,
                             `${request.playerName} → ${request.clubName}`,
                             request.needTitle,
@@ -1729,7 +1748,7 @@ export default function AgencyPursuitRoom({
                   data-ui-button="primary"
               className={styles.primary}
                   onClick={() =>
-                    onOpenDeal(
+                    openDealWithReview(
                       dealRoomId,
                       `${request.playerName} → ${request.clubName}`,
                       request.needTitle,
@@ -1739,12 +1758,12 @@ export default function AgencyPursuitRoom({
                   <BriefcaseBusiness size={15} />
                   Open Deal War Room
                 </button>
-              ) : !careerIsOpen ? (
+              ) : !careerIsOpen||salaryGate?.can_proceed!==true ? (
                 <div className={styles.dealLocked}>
                   <ShieldCheck size={16} />
                   <div>
                     <strong>Commercial controls stay locked for now.</strong>
-                    <span>Confirm the player's direction before creating a live deal.</span>
+                    <span>{!careerIsOpen?"Confirm the player's direction before creating a live deal.":'Review base-salary feasibility before creating a new deal.'}</span>
                   </div>
                 </div>
               ) : (
@@ -1836,7 +1855,7 @@ export default function AgencyPursuitRoom({
                         'create_deal',
                       )
                     }
-                    disabled={!careerIsOpen}
+                    disabled={!careerIsOpen||salaryGate?.can_proceed!==true}
                   >
                     <BriefcaseBusiness size={15} />
                     Create Deal Room
@@ -1850,7 +1869,6 @@ export default function AgencyPursuitRoom({
             </section>
             ) : null}
           </div>
-        ) : null}
 
         {confirm && !busy && !error ? (
           <div className={styles.confirmBar}>
@@ -1900,6 +1918,7 @@ export default function AgencyPursuitRoom({
           </div>
         ) : null}
       </aside>
+      <ConfirmActionDialog open={discardSalary} title="Leave this salary review?" description="Your unsaved review will be discarded. A submitted review may still complete; check this opportunity when you return." confirmLabel="Leave review" onConfirm={()=>pendingLeave.current()} onClose={()=>setDiscardSalary(false)}/>
     </div>
   );
 }

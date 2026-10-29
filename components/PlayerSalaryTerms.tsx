@@ -24,10 +24,10 @@ function checkedTerms(value:unknown,id:string):Terms{
  if(v?.salary_terms_version!==1||v.terms?.player_id!==id||fields.some(f=>v.terms?.[f.key]!==null&&typeof v.terms?.[f.key]!=='string')||v.terms.updated_at!==null&&typeof v.terms.updated_at!=='string')throw new Error('Salary details could not be confirmed. Load them again.');
  return v.terms;
 }
-export default function PlayerSalaryTerms(props:{playerId:string;scope:string;rpc:Rpc}){
+export default function PlayerSalaryTerms(props:{playerId:string;scope:string;rpc:Rpc;onRefreshComparison?:()=>void|Promise<void>}){
  return <SalaryTerms key={`${props.scope}:${props.playerId}`} {...props}/>;
 }
-function SalaryTerms({playerId,rpc}: {playerId:string;rpc:Rpc}){
+function SalaryTerms({playerId,rpc,onRefreshComparison}: {playerId:string;rpc:Rpc;onRefreshComparison?:()=>void|Promise<void>}){
  const [opened,setOpened]=useState(false),[terms,setTerms]=useState<Terms|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState('');
  const generation=useRef(0),alive=useRef(true),pending=useRef<AbortController|null>(null);
  const read=useCallback(async(signal?:AbortSignal)=>{
@@ -60,8 +60,8 @@ function SalaryTerms({playerId,rpc}: {playerId:string;rpc:Rpc}){
        const value=await rpc<T>('redream_player_salary_terms_patch',{p_player_id:playerId,p_expected_updated_at:terms.updated_at,p_patch:args?.p_patch},signal);
        checkedTerms(value,playerId);return value;
       }catch(cause){if(cause&&typeof cause==='object'&&'code' in cause){if(cause.code==='40001')throw Object.assign(new Error('These salary terms changed. Cancel this edit, then load the latest terms before saving.'),{code:'40001'});if('message' in cause&&typeof cause.message==='string')throw Object.assign(new Error(cause.message),{code:cause.code});}throw cause;}
-     }} onChanged={async(_change,signal)=>{await read(signal);}}/>
-     <button type="button" disabled={loading} onClick={()=>void read().catch(()=>{})}>Load latest terms</button></div>
+     }} onChanged={async(_change,signal)=>{await read(signal);if(!signal?.aborted)await onRefreshComparison?.();}}/>
+     <button type="button" disabled={loading} onClick={()=>void read().then(()=>onRefreshComparison?.()).catch(()=>{})}>Load latest terms</button></div>
    </>:null}
   </div>:null}
  </details>;

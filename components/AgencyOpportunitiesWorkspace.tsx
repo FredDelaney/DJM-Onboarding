@@ -741,12 +741,13 @@ export default function AgencyOpportunitiesWorkspace({
                               <strong>{name}</strong>
                               {candidate.salary_check?.version===1?<span className={styles.salaryCheck} data-conflict={candidate.salary_check.state==='minimum_above_budget'||candidate.salary_check.state==='target_above_budget'||undefined}>
                                 <strong>{candidate.salary_check.message}</strong>
+                                {candidate.salary_gate?<small>{candidate.salary_gate.review_active?`Exploration review active${candidate.salary_gate.review_until?` until ${candidate.salary_gate.review_until}`:''}`:candidate.salary_gate.can_proceed?'Confirmed base-salary check passes':'Salary review required before a new pitch or deal'}</small>:null}
                                 {candidate.salary_check.player_minimum!==null&&candidate.salary_check.player_minimum!==undefined?<small>Minimum: {salaryFigure(candidate.salary_check.player_minimum,candidate.salary_check.player_currency,candidate.salary_check.player_period,candidate.salary_check.player_tax_basis)}</small>:null}
                                 {candidate.salary_check.player_target!==null&&candidate.salary_check.player_target!==undefined?<small>Target: {salaryFigure(candidate.salary_check.player_target,candidate.salary_check.player_currency,candidate.salary_check.player_period,candidate.salary_check.player_tax_basis)}</small>:null}
                                 <small>Club budget: {salaryFigure(candidate.salary_check.club_budget,candidate.salary_check.club_currency,candidate.salary_check.club_period,candidate.salary_check.club_tax_basis)}</small>
                                 {candidate.salary_check.needs_source_confirmation?<small>Source needs confirmation.</small>:null}{candidate.salary_check.checked_on?<small>Checked {candidate.salary_check.checked_on}</small>:null}
                               </span>:<small>Salary comparison not available. Review terms before presenting this player.</small>}
-                              <small>{candidate.career_gate_state || candidate.match_status ? careerGateLabel(candidate.career_gate_state || candidate.match_status) : 'Recorded opportunity'}</small>
+                              <small>{candidate.salary_gate?'Career: ':''}{candidate.career_gate_state || candidate.match_status ? careerGateLabel(candidate.career_gate_state || candidate.match_status) : 'Recorded opportunity'}</small>
                               {candidate.career_gate_reason ? <span>{candidate.career_gate_reason}</span> : null}
                               {needOpen && !canOpen ? <small>Opportunity link unavailable</small> : null}
                             </span>

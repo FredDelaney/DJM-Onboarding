@@ -19,8 +19,8 @@ test('career-gated route puts Review career plan inside the current-decision her
   assert.match(css, /\.pagePanel \.heroAction[\s\S]*min-height: 46px/);
 });
 
-test('commercial deal form stays collapsed while career direction is gated', () => {
-  assert.match(component, /!careerIsOpen \? \([\s\S]*styles\.dealLocked/);
+test('commercial deal form stays collapsed while career direction or current salary feasibility is gated', () => {
+  assert.match(component, /!careerIsOpen\|\|salaryGate\?\.can_proceed!==true \? \([\s\S]*styles\.dealLocked/);
   assert.match(component, /Commercial controls stay locked for now/);
   assert.match(css, /\.pagePanel \.dealLocked[\s\S]*background: #f5f7f8/);
 });

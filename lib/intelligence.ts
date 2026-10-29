@@ -83,6 +83,7 @@ const reasoningObject = (value: unknown): Record<string, unknown> => {
 };
 
 const percentage = (value: unknown) => {
+  if ((typeof value !== 'number' && typeof value !== 'string') || String(value).trim() === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(0, Math.min(100, Math.round(number))) : null;
 };
@@ -122,6 +123,7 @@ export const matchAssessment = (candidate: CandidateEvidence) => {
     ...list(candidate.concerns),
     ...list(reasoning.concerns),
     ...list(reasoning.match_concerns),
+    ...(reasoning.source==='djm_fit_prediction_v3'?['This legacy fit estimate needs review against current requirements.']:[]),
   ];
   const missing = [
     ...list(candidate.missing_information),
@@ -129,7 +131,7 @@ export const matchAssessment = (candidate: CandidateEvidence) => {
     ...list(reasoning.missing),
   ];
 
-  const rawPercentage = percentage(candidate.overall_score ?? candidate.match_score);
+  const rawPercentage = hardBlockers.length||reasoning.source==='djm_fit_prediction_v3'?null:percentage(candidate.overall_score ?? candidate.match_score);
   let strength: MatchStrength = 'Insufficient evidence';
   let label = 'Insufficient evidence';
 

@@ -1219,3 +1219,4 @@
 .panel { box-shadow: none; border-color: #e5e5e7; }
 .primary, .secondary { font-weight: 500; box-shadow: none; }
 .drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }
+.content[hidden]{display:none!important}

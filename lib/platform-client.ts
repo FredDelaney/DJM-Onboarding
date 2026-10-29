@@ -44,6 +44,7 @@ export async function platformInvoke<T = any>(
 
     if (error) {
       let message = error.message || `Workspace function failed: ${functionName}`;
+      let code: string | undefined;
       const context = (error as any)?.context;
 
       if (context && typeof context.clone === 'function') {
@@ -51,6 +52,7 @@ export async function platformInvoke<T = any>(
           const response = context.clone();
           const payload = await response.json();
           message = payload?.error || payload?.message || message;
+          if (typeof payload?.code === 'string') code = payload.code;
         } catch {
           try {
             const response = context.clone();
@@ -62,7 +64,7 @@ export async function platformInvoke<T = any>(
         }
       }
 
-      throw new Error(message);
+      throw Object.assign(new Error(message), code ? {code} : {});
     }
 
     return data as T;

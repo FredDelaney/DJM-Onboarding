@@ -9,6 +9,7 @@ export default function Page(){
  useEffect(()=>{setPresentation(new URLSearchParams(location.search).get('presentation')==='drawer'?'drawer':'page');setReady(true);},[]);
  const invoke=useCallback(async(name:string)=>{
   if(name==='external_dossiers')return {dossiers:{items:[{player:{player_id:'player'},share_state:'share_safe'}]}};
+  if(name==='pursuit_salary_review')return {review:{version:1,player_match_id:'match',player_id:'player',club_id:'club',can_proceed:true,state:'open_recorded_salary',message:'Confirmed base salary fits the recorded budget.',comparison:{version:1,fingerprint:'a'.repeat(32),state:'minimum_within_budget',player_minimum:'4000',player_target:'4500',player_currency:'EUR',player_period:'monthly',player_tax_basis:'net',club_budget:'5000',club_currency:'EUR',club_period:'monthly',club_tax_basis:'net',source_status:'confirmed',club_source_status:'confirmed',missing:[]}}};
   if(name==='pitch_readiness')return {readiness:{items:[{player_match_id:'match',player:{player_id:'player'},club:{organisation_id:'club'},career_gate:{state:'open_confirmed'}}]}};
   if(name==='pitch_execution')return {execution:{items:[{player_id:'player',organisation_id:'club',share_id:'share',deal_owner_user_id:'owner',deal_owner_name:'Agency Owner',opportunity_id:'deal'}]}};
   if(name==='pitch_responses')return {responses:{items:[]}};

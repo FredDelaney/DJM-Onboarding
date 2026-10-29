@@ -512,6 +512,7 @@ export default function AgencyOperatingWorkspace() {
     async <T,>(
       action: string,
       body: Record<string, unknown> = {},
+      signal?: AbortSignal,
     ): Promise<T> => {
       if (!workspace?.tenant_id) {
         throw new Error('Agency workspace is not resolved.');
@@ -521,7 +522,7 @@ export default function AgencyOperatingWorkspace() {
         action,
         tenant_id: workspace.tenant_id,
         ...body,
-      });
+      },undefined,{signal});
     },
     [workspace?.tenant_id],
   );
@@ -1919,14 +1920,13 @@ export default function AgencyOperatingWorkspace() {
 
       {pursuitRequest ? (
         <AgencyPursuitRoom
-          key={pursuitRequest.key}
+          key={`${stateScope}:${pursuitRequest.key}`}
           request={pursuitRequest}
           presentation="page"
           role={String(workspace?.role || '')}
           marketData={data}
-          invoke={(action, body) =>
-            marketInvoke<any>(action, body)
-          }
+          invoke={marketInvoke}
+          rpc={rpc}
           onClose={() => setPursuitRequest(null)}
           onOpenAction={(request) => {
             setActionRequest(request);

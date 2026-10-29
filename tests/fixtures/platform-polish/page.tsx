@@ -57,8 +57,8 @@ export default function Page(){
   if(readScenario==='delayed')await new Promise(resolve=>setTimeout(resolve,1200));
   return invoke(action);
  },[readScenario]);
- const fixtureRpc=useCallback(async(method:string)=>{
-  if(method==='redream_entity_patch'){(window as any).__recordRefreshWrites=((window as any).__recordRefreshWrites||0)+1;return {ok:true};}
+ const fixtureRpc=useCallback(async(method:string,args?:Record<string,unknown>)=>{
+  if(method==='redream_entity_patch'){(window as any).__recordRefreshWrites=((window as any).__recordRefreshWrites||0)+1;return {ok:true,id:args?.p_entity_id,entity_type:args?.p_entity_type};}
   if(readScenario==='post-save-failed'&&(window as any).__recordRefreshWrites&&!((window as any).__recordRefreshAllow))throw new Error('Saved record refresh unavailable');
   if(readScenario==='failed')throw new Error('Fixture record read failed');
   if(readScenario==='delayed')await new Promise(resolve=>setTimeout(resolve,1200));

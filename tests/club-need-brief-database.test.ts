@@ -26,7 +26,7 @@ before(async()=>{
  create table djm_os.people(id uuid primary key,tenant_id uuid,full_name text);
  create table djm_os.employments(tenant_id uuid,organisation_id uuid,person_id uuid,is_current boolean,role_title text);
  create table djm_os.relationships(tenant_id uuid,person_id uuid,access_score integer,strength_score integer,trust_score integer,last_meaningful_at timestamptz,team_member_id uuid);
- create function public.platform_server_career_pursuit_gate(t uuid,m uuid) returns jsonb language sql as $$select '{}'::jsonb$$;
+ create function public.platform_server_career_pursuit_gate(p_tenant_id uuid,p_player_match_id uuid) returns jsonb language sql as $$select '{}'::jsonb$$;
  create function public.platform_server_introduction_routes(t uuid,o uuid,l integer) returns jsonb language sql as $$select '{}'::jsonb$$;
  create table djm_os.events(id uuid primary key default gen_random_uuid(),tenant_id uuid,event_type text,actor_user_id uuid,organisation_id uuid,payload jsonb,source text,confidence numeric,occurred_at timestamptz);
  create table platform.audit_events(tenant_id uuid,actor_user_id uuid,actor_kind text,action text,entity_type text,entity_id text,after_state jsonb,metadata jsonb);
@@ -256,4 +256,133 @@ test('salary RPCs deny non-admin, anonymous, foreign, revoked and suspended acce
  await db.query("update platform.tenants set status='suspended' where id=$1",[tenant]);await assert.rejects(()=>salaryRead());await db.query("update platform.tenants set status='active' where id=$1",[tenant]);
  await db.exec('set role anon');try{await assert.rejects(()=>salaryRead());}finally{await db.exec('reset role');}
  await db.query("select set_config('test.user','',false)");await assert.rejects(()=>salaryRead());await actor();
+});
+
+let salaryMatch='',salaryNeed='';
+const pursuitRead=(match=salaryMatch,command:string|null=null)=>scalar('public.platform_server_pursuit_salary_review($1,$2,$3,$4)',[tenant,user,match,command]);
+const reviewWrite=async(decision:string,reason='QA deliberate exploration with salary confirmation pending',expires:string|null=null,id?:string,fingerprint?:string)=>{
+ const gate=await pursuitRead();return scalar('public.platform_server_record_pursuit_salary_review($1,$2,$3,$4,$5,$6,$7,$8)',[tenant,user,salaryMatch,id??await scalar('gen_random_uuid()::text'),fingerprint??gate.comparison.fingerprint,decision,reason,expires]);
+};
+test('financial constraints preserve canonical contracts and keep approval in the private audit domain',async()=>{
+ await db.exec(`alter table public.players add primary_position text,add secondary_positions text[] default '{}',add preferred_foot text,add date_of_birth date,add height_cm integer,add verification_status text,add verified_at timestamptz;
+ create table public.career_entries(player_id uuid,minutes integer,appearances integer);
+ alter table platform.audit_events add id uuid default gen_random_uuid() primary key,add occurred_at timestamptz default now();
+ alter table platform.audit_events enable row level security;
+ alter table djm_os.player_matches alter column id set default gen_random_uuid(),alter column updated_at set default now(),add unique(club_need_id,player_id);
+ create table public.club_share_links(id uuid primary key default gen_random_uuid(),player_id uuid,label text,active boolean,expires_at timestamptz,created_by uuid,opportunity_id uuid,organisation_id uuid,pitch_message text,pitch_status text,selected_sections jsonb,revoked_at timestamptz,created_at timestamptz default now(),sent_at timestamptz);
+ create table public.player_public_profiles(player_id uuid primary key,published boolean,verified_at timestamptz);
+ create table platform.club_pitch_contexts(share_id uuid,tenant_id uuid,player_match_id uuid,club_need_id uuid,created_by uuid);
+ create table djm_os.deal_rooms(id uuid primary key default gen_random_uuid(),tenant_id uuid,player_id uuid,organisation_id uuid,club_need_id uuid,owner_user_id uuid,title text,stage text,status text,expected_commission numeric,currency text,probability numeric,manual_probability numeric,model_probability numeric,probability_source text,probability_basis jsonb,primary_blocker text,next_decision text,next_action_at timestamptz,next_action_text text,last_meaningful_at timestamptz,source text,created_at timestamptz default now());
+ create function djm_os.position_matches_player(p_position text,primary_position text,secondary_positions text[]) returns boolean language sql immutable as $$select lower(p_position)=lower(primary_position) or exists(select 1 from unnest(secondary_positions) p where lower(p)=lower(p_position))$$;
+ create function djm_os.registration_fit_score(requirement text,rights text,passports text[],country text) returns numeric language sql as $$select null::numeric$$;
+ create function public.platform_server_pitch_execution_command(t uuid,n integer) returns jsonb language sql as $$select '{"items":[]}'::jsonb$$;
+ create table platform.player_career_strategies(id uuid,tenant_id uuid,player_id uuid,status text,version integer,confirmation_status text,review_due_at date,strategy jsonb);
+ create table platform.player_career_exceptions(id uuid,tenant_id uuid,player_match_id uuid,status text,confirmation_status text,expires_at date,created_at timestamptz,approved_at timestamptz,reason text);`);
+ await db.exec(read('tests/fixtures/club-request/pursuit-writers-before.sql'));
+ const signatures=[ 'djm_os.refresh_need_matches(uuid)','public.platform_server_create_pitch_draft(uuid,uuid,uuid,jsonb)','public.platform_server_publish_pitch_link(uuid,uuid,uuid,timestamptz)','public.platform_server_convert_pursuit_to_deal(uuid,uuid,uuid,jsonb)'];
+ for(const signature of signatures)await db.exec('revoke all on function '+signature+' from public,anon,authenticated;grant execute on function '+signature+' to service_role;');
+ const before=(await db.query('select oid,proowner,proacl,prosecdef,proconfig,provolatile from pg_proc where oid=any($1::regprocedure[]) order by oid',[signatures])).rows;
+ const originalCareerHelper=read('tests/fixtures/club-request/career-gate-before.sql');await db.exec(originalCareerHelper);
+ await db.exec(read('supabase/migrations/20261028230249_pursuit_salary_constraints.sql'));
+ // Only the unchanged dependency source is guarded here. Exercise each salary
+ // writer with deliberate career states rather than inventing a strategy.
+ await db.exec(`create or replace function public.platform_server_career_pursuit_gate(p_tenant_id uuid,p_player_match_id uuid) returns jsonb language sql as $$select jsonb_build_object('state',coalesce(nullif(current_setting('test.career_gate',true),''),'open_aligned'))$$`);
+ assert.deepEqual((await db.query('select oid,proowner,proacl,prosecdef,proconfig,provolatile from pg_proc where oid=any($1::regprocedure[]) order by oid',[signatures])).rows,before);
+ await db.query("update public.players set primary_position='Striker' where id=$1",[salaryPlayer]);
+ await salaryWrite({...validSalary,salary_minimum:'6000',salary_target:'6500'});
+ salaryNeed=(await create({salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',source_status:'confirmed'})).club_need_id;
+ await db.query('select djm_os.refresh_need_matches($1)',[salaryNeed]);salaryMatch=await scalar('id::text from djm_os.player_matches where club_need_id=$1 and player_id=$2',[salaryNeed,salaryPlayer]);assert.ok(salaryMatch);
+});
+test('canonical automatic matching removes fabricated commercial/aggregate precision and surfaces hard financial constraints',async()=>{
+ const match=await scalar('to_jsonb(m) from djm_os.player_matches m where id=$1',[salaryMatch]);assert.equal(match.overall_score,null);assert.equal(match.commercial_score,null);assert.equal(match.reasoning.source,'redream_recorded_match_checks_v1');assert.equal(match.reasoning.hard_blockers.length,1);assert.ok(match.reasoning.missing_information.includes('Authorised current base-salary review'));assert.doesNotMatch(JSON.stringify(match.reasoning),/6000|6500|QA player confirmation/);
+ await db.query("update djm_os.player_matches set status='shortlisted',overall_score=99,commercial_score=98,reasoning='{\"manual\":true,\"source\":\"human\"}' where id=$1",[salaryMatch]);
+ await db.query('select djm_os.refresh_need_matches($1)',[salaryNeed]);const manual=await scalar('to_jsonb(m) from djm_os.player_matches m where id=$1',[salaryMatch]);assert.equal(manual.overall_score,99);assert.equal(manual.commercial_score,98);assert.deepEqual(manual.reasoning,{manual:true,source:'human'});
+ assert.equal((await pursuitRead()).can_proceed,false);assert.equal((await pursuitRead()).state,'hold_salary_conflict','Manual ranking cannot open the financial gate');
+});
+test('a deliberate private review is current, expiring, idempotent and cannot change salary or career facts',async()=>{
+ const original=await salaryRead(),career=await scalar('public.platform_server_career_pursuit_gate($1,$2)',[tenant,salaryMatch]),before=await scalar('count(*) from platform.audit_events');
+ const id=await scalar('gen_random_uuid()::text'),fingerprint=(await pursuitRead()).comparison.fingerprint,expires=await scalar("(current_date+1)::text");
+ const first=await reviewWrite('explore','QA check willingness before pricing any offer',expires,id,fingerprint);assert.equal(first.can_proceed,true);assert.equal(first.confirmed_command_id,id);assert.equal(first.state,'open_exploration_review');assert.equal(first.review.active,true);
+ await reviewWrite('explore','QA check willingness before pricing any offer',expires,id,fingerprint);assert.equal(await scalar('count(*) from platform.audit_events'),before+1);
+ await assert.rejects(()=>reviewWrite('explore','A different reason',expires,id,fingerprint),(e:any)=>e.code==='22023');
+ assert.deepEqual(await salaryRead(),original);assert.deepEqual(await scalar('public.platform_server_career_pursuit_gate($1,$2)',[tenant,salaryMatch]),career);
+ await salaryWrite({salary_minimum:'6001'});let current=await pursuitRead();assert.equal(current.can_proceed,false);assert.equal(current.review.current,false);
+ await assert.rejects(()=>reviewWrite('explore','Stale decision',expires,undefined,fingerprint),(e:any)=>e.code==='40001');
+ const replay=await reviewWrite('explore','QA check willingness before pricing any offer',expires,id,fingerprint);assert.equal(replay.confirmed_command_id,id);assert.equal(replay.can_proceed,false,'Receipt proves the old write, never approval against changed evidence');
+});
+test('salary review validates explicit decisions and preserves a hold until compatible terms are deliberately used',async()=>{
+ for(const args of [['explore','',null],['explore','QA missing expiry',null],['explore','QA invalid expiry','2000-01-01'],['other','QA unsupported',null],['hold','x'.repeat(2001),null],['use_recorded_terms','QA cannot skip incompatible terms',null]] as const)await assert.rejects(()=>reviewWrite(...args));
+ await salaryWrite({salary_minimum:'4900',salary_target:'5000'});assert.equal((await pursuitRead()).can_proceed,true);
+ await reviewWrite('hold','QA need to confirm the requested base salary again');assert.equal((await pursuitRead()).can_proceed,false);assert.equal((await pursuitRead()).state,'hold_recorded_review');
+ await salaryWrite({salary_minimum:'4899'});assert.equal((await pursuitRead()).can_proceed,false,'A source correction does not silently remove a human hold');
+ await reviewWrite('use_recorded_terms','QA confirmed comparable base salary with both parties');assert.equal((await pursuitRead()).can_proceed,true);
+ await salaryWrite({salary_target:'6000'});assert.equal((await pursuitRead()).can_proceed,false,'A target outside budget needs an explicit review');
+});
+test('canonical pitch/deal writers enforce the financial gate independently of career approval and retain existing verification checks',async()=>{
+ const shares=await scalar('count(*) from public.club_share_links'),deals=await scalar('count(*) from djm_os.deal_rooms');
+ await assert.rejects(()=>scalar('public.platform_server_create_pitch_draft($1,$2,$3,$4)',[tenant,salaryMatch,user,{}]),(e:any)=>e.code==='22023');
+ await assert.rejects(()=>scalar('public.platform_server_convert_pursuit_to_deal($1,$2,$3,$4)',[tenant,salaryMatch,user,{}]),(e:any)=>e.code==='22023');assert.equal(await scalar('count(*) from public.club_share_links'),shares);assert.equal(await scalar('count(*) from djm_os.deal_rooms'),deals);
+ await reviewWrite('explore','QA explore only; career and external approval remain separate',await scalar('(current_date+1)::text'));
+ await db.query("select set_config('test.career_gate','hold_strategy_missing',false)");await assert.rejects(()=>scalar('public.platform_server_create_pitch_draft($1,$2,$3,$4)',[tenant,salaryMatch,user,{}]),/career_control_gate_not_open/);
+ await db.query("select set_config('test.career_gate','open_aligned',false)");const draft=await scalar('public.platform_server_create_pitch_draft($1,$2,$3,$4)',[tenant,salaryMatch,user,{}]);assert.equal(draft.created,true);
+ await assert.rejects(()=>scalar('public.platform_server_publish_pitch_link($1,$2,$3,null)',[tenant,draft.share_id,user]),/player_not_verified_for_external_share/);
+ await db.query("update public.players set verification_status='verified',verified_at=now() where id=$1",[salaryPlayer]);await db.query('insert into public.player_public_profiles values($1,true,now())',[salaryPlayer]);
+ assert.equal((await scalar('public.platform_server_publish_pitch_link($1,$2,$3,null)',[tenant,draft.share_id,user])).published,true);
+ await salaryWrite({salary_minimum:'4901'});await assert.rejects(()=>scalar('public.platform_server_publish_pitch_link($1,$2,$3,null)',[tenant,draft.share_id,user]),(e:any)=>e.code==='22023');
+});
+
+test('native linked writes reject direct publication/deal/context bypass without obstructing general shares or view history',async()=>{
+ const share=await scalar('id::text from public.club_share_links where player_id=$1 limit 1',[salaryPlayer]);
+ await assert.rejects(()=>db.query("update public.club_share_links set pitch_message='Bypass financial review' where id=$1",[share]),(e:any)=>e.code==='22023');
+ await db.exec('alter table public.club_share_links add view_count integer default 0,add last_viewed_at timestamptz');
+ await db.query('update public.club_share_links set view_count=view_count+1,last_viewed_at=now(),sent_at=now() where id=$1',[share]);assert.equal(await scalar('view_count from public.club_share_links where id=$1',[share]),1);
+ await db.query('update public.club_share_links set active=false where id=$1',[share]);await assert.rejects(()=>db.query('update public.club_share_links set active=true where id=$1',[share]),(e:any)=>e.code==='22023');
+ const org=await scalar('organisation_id from djm_os.club_needs where id=$1',[salaryNeed]);
+ await assert.rejects(()=>db.query('insert into djm_os.deal_rooms(tenant_id,player_id,organisation_id,club_need_id) values($1,$2,$3,$4)',[tenant,salaryPlayer,org,salaryNeed]),(e:any)=>e.code==='22023');
+ const general=(await db.query<any>('insert into public.club_share_links(player_id,organisation_id,active) values($1,$2,true) returning id',[salaryPlayer,org])).rows[0].id;
+ await assert.rejects(()=>db.query('insert into platform.club_pitch_contexts(share_id,tenant_id,player_match_id,club_need_id,created_by) values($1,$2,$3,$4,$5)',[general,tenant,salaryMatch,salaryNeed,user]),(e:any)=>e.code==='22023');
+ await db.query("insert into djm_os.deal_rooms(tenant_id,player_id,organisation_id,title) values($1,$2,$3,'Unlinked general deal')",[tenant,salaryPlayer,org]);
+});
+test('current need readers prioritise salary-ready candidates and never label a financially held route ready',async()=>{
+ const record=await scalar('public.platform_server_workspace_need_record($1,$2,$3)',[tenant,user,salaryNeed]);const item=record.item;
+ assert.equal(item.candidate_coverage.candidates[0].salary_gate.can_proceed,false);assert.equal(item.candidate_coverage.progress_ready,0);assert.equal(item.coverage_state,'salary_review_required');
+ const broad=await scalar('public.platform_server_demand_control_fast($1,100)',[tenant]);assert.equal(broad.items.find((i:any)=>i.club_need_id===salaryNeed).candidate_coverage.candidates[0].salary_gate,undefined);
+ const listed=await scalar('public.platform_server_demand_control_fast($1,100,$2)',[tenant,user]);assert.equal(listed.items.find((i:any)=>i.club_need_id===salaryNeed).candidate_coverage.candidates[0].salary_gate.can_proceed,false);
+});
+
+test('service-only reviews reject foreign and non-admin authority, while ordinary staff cannot forge private approvals',async()=>{
+ const before=await scalar('count(*) from platform.audit_events');
+ await assert.rejects(()=>scalar('public.platform_server_pursuit_salary_review($1,$2,$3,null)',[other,user,salaryMatch]),(e:any)=>e.code==='42501');
+ await assert.rejects(()=>scalar('public.platform_server_pursuit_salary_review($1,$2,$3,null)',[tenant,foreignSalaryPlayer,salaryMatch]),(e:any)=>e.code==='42501');
+ await db.exec('set role authenticated');try{await assert.rejects(()=>pursuitRead(),(e:any)=>e.code==='42501');await assert.rejects(()=>db.query("insert into platform.audit_events(tenant_id,action,entity_type,entity_id,after_state) values($1,'agency.pursuit_salary_review','player_match',$2,'{\"decision\":\"explore\"}')",[tenant,salaryMatch]),(e:any)=>e.code==='42501');}finally{await db.exec('reset role');}
+ assert.equal(await scalar('count(*) from platform.audit_events'),before);
+ for(const role of ['agent','operations','scout','player']){await db.query('update platform.tenant_memberships set role=$1 where tenant_id=$2 and user_id=$3',[role,tenant,user]);await assert.rejects(()=>pursuitRead(),(e:any)=>e.code==='42501');}
+ await db.query("update platform.tenant_memberships set role='owner' where tenant_id=$1 and user_id=$2",[tenant,user]);
+ await reviewWrite('explore','QA temporary exploration, current admin authority required',await scalar('(current_date+1)::text'));assert.equal((await pursuitRead()).can_proceed,true);
+ await db.query("update platform.tenant_memberships set status='ended' where tenant_id=$1 and user_id=$2",[tenant,user]);assert.equal((await scalar('private.pursuit_salary_gate($1,$2)',[tenant,salaryMatch])).can_proceed,false);await db.query("update platform.tenant_memberships set status='active' where tenant_id=$1 and user_id=$2",[tenant,user]);
+});
+
+test('the native publication guard also runs for the authenticated role allowed by the existing table policy',async()=>{
+ await reviewWrite('hold','QA retain the financial hold before new publication');
+ await db.exec(`grant select,insert,update on public.club_share_links to authenticated;alter table public.club_share_links enable row level security;create policy staff_edit_share on public.club_share_links for all to authenticated using(private.user_is_player_tenant_admin(player_id)) with check(private.user_is_player_tenant_admin(player_id));`);
+ const share=await scalar('id::text from public.club_share_links where player_id=$1 and active=false limit 1',[salaryPlayer]);
+ await db.exec('set role authenticated');try{await assert.rejects(()=>db.query('update public.club_share_links set active=true where id=$1',[share]),(e:any)=>e.code==='22023');await assert.rejects(()=>scalar('private.assert_pursuit_salary_progress($1,$2)',[tenant,salaryMatch]),(e:any)=>e.code==='42501');}finally{await db.exec('reset role');}
+ assert.equal(await scalar('active from public.club_share_links where id=$1',[share]),false);
+});
+
+test('exploration expiry uses UTC, expired receipts stay truthful and decisions never transfer to another request',async()=>{
+ await salaryWrite({...validSalary,salary_minimum:'6000',salary_target:'6500'});
+ const today=await scalar("((now() at time zone 'UTC')::date)::text"),yesterday=await scalar("((now() at time zone 'UTC')::date-1)::text");
+ await db.exec("set timezone='Etc/GMT+12'");
+ try{
+  await assert.rejects(()=>reviewWrite('explore','QA expiry must use the UTC day',yesterday),(e:any)=>e.code==='22023');
+  const saved=await reviewWrite('explore','QA same-day UTC exploration',today);assert.equal(saved.can_proceed,true);assert.equal(saved.expiry_basis,'end_of_utc_date');
+ }finally{await db.exec("set timezone='UTC'");}
+ const gate=await pursuitRead(),expiredId=await scalar('gen_random_uuid()::text'),savedFingerprint=await scalar("after_state->>'fingerprint' from platform.audit_events where id=$1",[gate.review.id]);
+ // An already-committed historical command remains a valid receipt after expiry.
+ await db.query("insert into platform.audit_events(id,tenant_id,actor_user_id,actor_kind,action,entity_type,entity_id,after_state,occurred_at) select $1,tenant_id,actor_user_id,actor_kind,action,entity_type,entity_id,jsonb_set(after_state,'{expires_on}',to_jsonb($2::text)),clock_timestamp() from platform.audit_events where id=$3",[expiredId,yesterday,gate.review.id]);
+ const expired=await reviewWrite('explore','QA same-day UTC exploration',yesterday,expiredId,savedFingerprint);assert.equal(expired.confirmed_command_id,expiredId);assert.equal(expired.can_proceed,false);assert.equal(expired.review.active,false);
+ const context=expired.review.context,nextNeed=(await create({salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',source_status:'confirmed'})).club_need_id;
+ await db.query('update djm_os.player_matches set club_need_id=$1 where id=$2',[nextNeed,salaryMatch]);
+ const moved=await pursuitRead();assert.equal(moved.review.same_context,false);assert.equal(moved.can_proceed,false);assert.deepEqual(moved.review.context,context);
 });
