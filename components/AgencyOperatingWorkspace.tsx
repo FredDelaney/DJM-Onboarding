@@ -622,13 +622,8 @@ export default function AgencyOperatingWorkspace() {
           }
 
           if (targetView === 'calendar') {
-            writeViewCache(
-              cacheKey,
-              await readWithDeadline(rpc<any>('redream_autopilot_calendar', {
-                p_horizon_days: 90,
-                p_limit: 100,
-              }), 3000),
-            );
+            // Calendar fetches its own scoped sources. Avoid an unused overview read.
+            return;
           }
         } catch {
           // Warming is opportunistic. The visible view keeps its normal load path.
@@ -926,12 +921,9 @@ export default function AgencyOperatingWorkspace() {
           })),
         );
       } else if (view === 'calendar') {
-        commit(
-          await readWithDeadline(rpc<any>('redream_autopilot_calendar', {
-            p_horizon_days: 90,
-            p_limit: 100,
-          })),
-        );
+        // The calendar component owns its date/task loading and retry UI.
+        // Do not block initial rendering on an unused overview RPC.
+        commit({ ...(latestData || {}), calendar: {} });
       } else if (view === 'business') {
         if (
           !['owner', 'admin'].includes(
@@ -987,7 +979,17 @@ export default function AgencyOperatingWorkspace() {
         }
       }
     } catch (loadError) {
-      if (isCurrent()) setError(friendlyError(loadError));
+      if (isCurrent()) {
+        setError(friendlyError(loadError));
+        if (view === 'opportunities') {
+          const failed = opportunitiesSection === 'deals' ? 'deals' : 'market';
+          // A failed primary read must show Error + Try again, not Loading forever.
+          setData((current: any) => ({
+            ...(current || {}),
+            opportunity_errors: { ...(current?.opportunity_errors || {}), [failed]: true },
+          }));
+        }
+      }
       if (options?.rejectOnError) throw loadError;
     } finally {
       if (isCurrent()) {
