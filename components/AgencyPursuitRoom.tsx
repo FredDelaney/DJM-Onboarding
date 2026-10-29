@@ -163,6 +163,7 @@ export default function AgencyPursuitRoom({
   onOpenAction,
   onOpenDeal,
   onApplied,
+  refreshKey = 0,
   presentation = 'drawer',
 }: {
   request: AgencyPursuitRequest;
@@ -180,6 +181,7 @@ export default function AgencyPursuitRoom({
     context?: string | null,
   ) => void;
   onApplied: () => Promise<void> | void;
+  refreshKey?: number;
   presentation?: 'drawer' | 'page';
 }) {
   const panelRef = useRef<HTMLElement>(null);
@@ -449,7 +451,7 @@ export default function AgencyPursuitRoom({
   useEffect(() => {
     void loadDetails();
     return () => { ++loadGeneration.current; };
-  }, [loadDetails]);
+  }, [loadDetails,refreshKey]);
 
   useEffect(() => {
     const releaseScroll = lockPageScroll();

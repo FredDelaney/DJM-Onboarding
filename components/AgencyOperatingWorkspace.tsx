@@ -395,6 +395,7 @@ export default function AgencyOperatingWorkspace() {
     useState<AgencyIntelligenceRequest | null>(null);
   const [pursuitRequest, setPursuitRequest] =
     useState<AgencyPursuitRequest | null>(null);
+  const [recordRefreshRevision,setRecordRefreshRevision]=useState(0);
   const [ownerCommandOpen, setOwnerCommandOpen] = useState(false);
   const [teamHandoffMember, setTeamHandoffMember] = useState<any>(null);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -1004,7 +1005,12 @@ export default function AgencyOperatingWorkspace() {
 
   // Editors must distinguish a confirmed write from a failed list refresh.
   // Ordinary navigation/refresh keeps its existing page-level error handling.
-  const refreshRecords = useCallback(() => loadView({ rejectOnError: true }), [loadView]);
+  const refreshRecords = useCallback(() => {
+    // A confirmed related save also invalidates an already-open pursuit.
+    // Its own read must run even when the overview refresh fails.
+    setRecordRefreshRevision(value=>value+1);
+    return loadView({ rejectOnError: true });
+  }, [loadView]);
   const handleCaptureCompleted = useCallback(() => { void loadView(); }, [loadView]);
   const openIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
     setIntelligenceRequest(request);
@@ -1912,6 +1918,7 @@ export default function AgencyOperatingWorkspace() {
         <AgencyPursuitRoom
           key={`${stateScope}:${pursuitRequest.key}`}
           request={pursuitRequest}
+          refreshKey={recordRefreshRevision}
           presentation="page"
           role={String(workspace?.role || '')}
           marketData={data}
