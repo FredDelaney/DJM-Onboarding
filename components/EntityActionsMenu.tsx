@@ -133,7 +133,8 @@ function EntityActionsPanel({
     update();window.visualViewport?.addEventListener('resize',update);window.visualViewport?.addEventListener('scroll',update);
     return()=>{previewRequest.current++;previewAbort.current?.abort();releaseBackground();releaseScroll();window.visualViewport?.removeEventListener('resize',update);window.visualViewport?.removeEventListener('scroll',update);requestAnimationFrame(()=>{
       const focused=document.activeElement;
-      if(!lifetime.current?.signal.aborted&&previous?.isConnected&&!document.querySelector('[aria-modal="true"]')&&(!focused||focused===document.body||focused===document.documentElement))previous.focus({preventScroll:true});
+      const blockedByModal=Array.from(document.querySelectorAll('[aria-modal="true"]')).some(modal=>!modal.closest('[inert]')&&!modal.contains(previous));
+      if(!lifetime.current?.signal.aborted&&previous?.isConnected&&!previous.closest('[inert]')&&!blockedByModal&&(!focused||focused===document.body||focused===document.documentElement))previous.focus({preventScroll:true});
     });};
   },[isOpen]);
   useEffect(()=>{if(mode)dialog.current?.querySelector<HTMLElement>(mode==='edit'?'input,textarea,select':'button')?.focus();},[mode]);

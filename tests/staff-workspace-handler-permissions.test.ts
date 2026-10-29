@@ -155,3 +155,9 @@ test('financial review routes bind the verified admin actor and selected agency 
  test('canonical financial denial retains a clear recoverable code at the HTTP boundary',async()=>{
  const f=fixture('agency-market','owner',false,true,false,{name:'platform_server_create_pitch_draft',code:'22023',message:'Review base-salary feasibility in this opportunity before preparing a new pitch or deal.'});const result=await f.call('pitch_draft_create',{player_match_id:'match'});assert.equal(result.status,409);assert.equal(result.body.code,'salary_review_required');assert.match(result.body.error,/Review current base-salary feasibility/);
 });
+
+test('invalid pursuit-deal money is a definitive recoverable input denial while the salary gate retains its own code',async()=>{
+ for(const [message,status,code] of [['Choose a valid currency for this deal.',400,'22023'],['Review base-salary feasibility in this opportunity before preparing a new pitch or deal.',409,'salary_review_required']] as const){
+  const f=fixture('agency-market','owner',false,true,false,{name:'platform_server_convert_pursuit_to_deal',code:'22023',message});const result=await f.call('pursuit_deal_create',{player_match_id:'match',input:{currency:'XXX'}});assert.equal(result.status,status);assert.equal(result.body.code,code);
+ }
+});

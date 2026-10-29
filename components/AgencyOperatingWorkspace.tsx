@@ -1,5 +1,7 @@
 'use client';
 
+import {formatCommercialAmount} from '@/lib/club-need-brief';
+
 import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,homeWorkRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
@@ -279,19 +281,7 @@ const initials = (value: string) =>
     .map((part) => part[0]?.toUpperCase())
     .join('');
 
-const money = (value: unknown, currency = 'EUR') => {
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return '-';
-  try {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${Math.round(amount).toLocaleString('en-GB')}`;
-  }
-};
+const money = (value:unknown,currency?:string|null) => formatCommercialAmount(value,currency)||'-';
 
 const careerGateLabel = (value: unknown) => {
   const state = String(value || '').trim().toLowerCase();

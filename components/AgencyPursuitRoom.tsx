@@ -29,7 +29,9 @@ import {
 import JourneyStatus from '@/components/JourneyStatus';
 import PursuitSalaryReview,{type PursuitSalaryState} from './PursuitSalaryReview';
 import ConfirmActionDialog from './ConfirmActionDialog';
+import {formatCommercialAmount} from '@/lib/club-need-brief';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import {INVOICE_CURRENCY_MINOR_UNITS,invoiceCurrencyMinorUnit} from '@/lib/invoice-currencies';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
@@ -68,6 +70,8 @@ type ConfirmAction =
   | 'create_deal'
   | 'execute_response'
   | null;
+
+const dealCurrencies=Object.keys(INVOICE_CURRENCY_MINOR_UNITS).sort();
 
 const human = (value: unknown) =>
   String(value || '')
@@ -218,6 +222,7 @@ export default function AgencyPursuitRoom({
     useState('');
   const [expectedCommission, setExpectedCommission] =
     useState('');
+  const [dealCurrency,setDealCurrency]=useState('');
   const [dealNextAction, setDealNextAction] =
     useState('');
 
@@ -791,18 +796,21 @@ export default function AgencyPursuitRoom({
         confirmAction ===
         'create_deal'
       ) {
-        const probability =
-          Number(dealProbability);
+        const probability = Number(dealProbability);
 
         if (
-          !Number.isFinite(probability) ||
+          !/^[0-9]{1,3}$/.test(dealProbability.trim()) ||
           probability < 0 ||
           probability > 100
         ) {
           throw new Error(
-            'Enter your own deal probability from 0 to 100.',
+            'Enter your own whole-number deal probability from 0 to 100.',
           );
         }
+
+        const currency=dealCurrency.trim().toUpperCase(),digits=invoiceCurrencyMinorUnit(currency),commission=expectedCommission.trim();
+        if(digits===null)throw new Error('Choose a valid currency for this deal.');
+        if(commission&&(!/^[0-9]{1,12}([.][0-9]{1,4})?$/.test(commission)||(commission.split('.')[1]?.length||0)>digits))throw new Error('Check the expected agency commission and currency precision.');
 
         const result = await invoke(
           'pursuit_deal_create',
@@ -812,16 +820,11 @@ export default function AgencyPursuitRoom({
             input: {
               stage: dealStage,
               probability,
-              expected_commission:
-                expectedCommission.trim()
-                  ? Number(
-                      expectedCommission,
-                    )
-                  : null,
+              expected_commission:commission||null,
               next_action_text:
                 dealNextAction.trim() ||
                 null,
-              currency: 'EUR',
+              currency,
             },
           },
         );
@@ -920,7 +923,7 @@ export default function AgencyPursuitRoom({
     create_deal: {
       title: 'Create a live Deal Room?',
       body:
-        'Your probability is a human judgement. ReDream will not convert opportunity readiness into probability or contact the club.',
+        `${expectedCommission.trim()?`Expected agency commission: ${formatCommercialAmount(expectedCommission.trim(),dealCurrency)}.`:'Agency commission is not recorded.'} Your probability is a human judgement. ReDream will not convert opportunity readiness into probability or contact the club.`,
       button: 'Create Deal Room',
     },
     execute_response: {
@@ -1768,7 +1771,7 @@ export default function AgencyPursuitRoom({
                 </div>
               ) : (
                 <>
-                  <div className={styles.formGrid}>
+                  <form id="pursuit-deal-form" className={`${styles.formGrid} ${styles.dealForm}`} onSubmit={event=>{event.preventDefault();setConfirmAction('create_deal');}}>
                     <label>
                       <span>Human stage</span>
                       <select
@@ -1803,6 +1806,8 @@ export default function AgencyPursuitRoom({
                       </span>
                       <input
                         type="number"
+                        required
+                        step="1"
                         min="0"
                         max="100"
                         value={dealProbability}
@@ -1820,17 +1825,22 @@ export default function AgencyPursuitRoom({
                         Expected commission
                       </span>
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
+                        inputMode="decimal"
+                        maxLength={17}
+                        pattern={(invoiceCurrencyMinorUnit(dealCurrency)??4)===0?'[0-9]{1,12}':`[0-9]{1,12}([.][0-9]{1,${invoiceCurrencyMinorUnit(dealCurrency)??4}})?`}
+                        title={dealCurrency?`Use up to ${invoiceCurrencyMinorUnit(dealCurrency)??4} decimal places for ${dealCurrency}.`:'Choose the deal currency before recording an amount.'}
                         value={expectedCommission}
                         onChange={(event) =>
                           setExpectedCommission(
                             event.target.value,
                           )
                         }
-                        placeholder="Optional EUR"
+                        placeholder="Optional amount"
                       />
                     </label>
+
+                    <label><span>Deal currency</span><select required value={dealCurrency} onChange={event=>setDealCurrency(event.target.value)}><option value="">Choose currency</option>{dealCurrencies.map(code=><option key={code} value={code}>{code}</option>)}</select></label>
 
                     <label>
                       <span>Next action</span>
@@ -1844,17 +1854,13 @@ export default function AgencyPursuitRoom({
                         placeholder="Optional recorded next action"
                       />
                     </label>
-                  </div>
+                  </form>
 
                   <button
-                    type="button"
+                    type="submit"
+                    form="pursuit-deal-form"
                     data-ui-button="secondary"
-              className={styles.secondary}
-                    onClick={() =>
-                      setConfirmAction(
-                        'create_deal',
-                      )
-                    }
+              className={`${styles.secondary} ${styles.createDeal}`}
                     disabled={!careerIsOpen||salaryGate?.can_proceed!==true}
                   >
                     <BriefcaseBusiness size={15} />
@@ -1862,7 +1868,7 @@ export default function AgencyPursuitRoom({
                   </button>
 
                   <p className={styles.truth}>
-                    Opportunity readiness is not deal probability. Probability must remain your own commercial judgement.
+                    Commission is agency revenue; leave it blank until known. Opportunity readiness is not deal probability. Probability must remain your own commercial judgement.
                   </p>
                 </>
               )}

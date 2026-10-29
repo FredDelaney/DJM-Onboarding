@@ -1220,3 +1220,7 @@
 .primary, .secondary { font-weight: 500; box-shadow: none; }
 .drawer .header h2 { font-size: 22px; font-weight: 600; letter-spacing: -.025em; }
 .content[hidden]{display:none!important}
+
+.dealForm label > span, .pagePanel .dealForm label > span { font-size: 11px; line-height: 1.4; letter-spacing: .03em; }
+.dealForm input, .dealForm select, .pagePanel .dealForm input, .pagePanel .dealForm select { min-height: 44px; font-size: 16px; }
+.createDeal, .pagePanel .createDeal { min-height: 44px; font-size: 13px; }

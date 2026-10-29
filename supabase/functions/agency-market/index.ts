@@ -73,7 +73,8 @@ export default {fetch:async(req:Request)=>{
     }
     if(action==="pursuit_deal_create"){
       const matchId=id(body?.player_match_id);if(!matchId)return json({error:"player_match_id is required"},400);
-      return json({ok:true,tenant:workspace,result:await rpc("platform_server_convert_pursuit_to_deal",{p_tenant_id:tenantId,p_player_match_id:matchId,p_actor_user_id:userId,p_input:obj(body?.input)})});
+      try{return json({ok:true,tenant:workspace,result:await rpc("platform_server_convert_pursuit_to_deal",{p_tenant_id:tenantId,p_player_match_id:matchId,p_actor_user_id:userId,p_input:obj(body?.input)})});}
+      catch(error){const cause=error as {code?:string;message?:string};if(cause?.code==="22023"&&cause.message!=="Review base-salary feasibility in this opportunity before preparing a new pitch or deal.")return json({error:cause.message||"Check the deal inputs and try again.",code:"22023"},400);throw error;}
     }
     if(action==="pitch_draft_create"){
       const matchId=id(body?.player_match_id);if(!matchId)return json({error:"player_match_id is required"},400);

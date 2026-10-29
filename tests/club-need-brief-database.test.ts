@@ -386,3 +386,27 @@ test('exploration expiry uses UTC, expired receipts stay truthful and decisions 
  await db.query('update djm_os.player_matches set club_need_id=$1 where id=$2',[nextNeed,salaryMatch]);
  const moved=await pursuitRead();assert.equal(moved.review.same_context,false);assert.equal(moved.can_proceed,false);assert.deepEqual(moved.review.context,context);
 });
+
+test('new pursuit deals require explicit currency and human inputs, preserve exact optional commission and never copy salary into revenue',async()=>{
+ const signature='public.platform_server_convert_pursuit_to_deal(uuid,uuid,uuid,jsonb)';
+ const before=await scalar('jsonb_build_object(\'oid\',oid,\'owner\',proowner,\'acl\',proacl,\'mode\',prosecdef,\'path\',proconfig,\'volatility\',provolatile) from pg_proc where oid=$1::regprocedure',[signature]);
+ await db.exec(read('supabase/migrations/20261029070637_require_explicit_pursuit_deal_money.sql'));
+ assert.deepEqual(await scalar('jsonb_build_object(\'oid\',oid,\'owner\',proowner,\'acl\',proacl,\'mode\',prosecdef,\'path\',proconfig,\'volatility\',provolatile) from pg_proc where oid=$1::regprocedure',[signature]),before);
+ await salaryWrite({...validSalary,salary_minimum:'4000',salary_target:'4500'});
+ const need=(await scalar('public.platform_server_agency_create_club_need_brief($1,$2,$3)',[tenant,user,{club_name:'Pursuit money QA',position:'Striker',brief:{salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',source_status:'confirmed'}}])).club_need_id;
+ const match=await scalar("gen_random_uuid()::text");await db.query("insert into djm_os.player_matches(id,tenant_id,club_need_id,player_id,status,reasoning) values($1,$2,$3,$4,'shortlisted','{\"manual\":true}')",[match,tenant,need,salaryPlayer]);
+ const convert=(input:Record<string,unknown>)=>scalar('public.platform_server_convert_pursuit_to_deal($1,$2,$3,$4)',[tenant,match,user,input]);
+ const base={stage:'qualifying',probability:0,currency:'USD'};
+ const count=await scalar('count(*) from djm_os.deal_rooms');
+ for(const invalid of [{currency:''},{currency:null},{currency:'XXX'},{stage:''},{stage:null},{probability:''},{probability:null},{probability:1.5},{probability:101},{probability:true},{expected_commission:'NaN'},{expected_commission:'-1'},{expected_commission:'1e3'},{expected_commission:'1.005'},{expected_commission:'1000000000000'},{currency:'JPY',expected_commission:'1.1'}]){
+  await assert.rejects(()=>convert({...base,...invalid}),(e:any)=>e.code==='22023');assert.equal(await scalar('count(*) from djm_os.deal_rooms'),count);
+ }
+ for(const [currency,commission] of [['USD','1234.56'],['JPY','100'],['KWD','1.234'],['CLF','1.2345'],['CLF','999999999999.1234'],['EUR',null],['EUR','0']] as const){
+  await db.exec('begin');try{
+   const result=await convert({...base,currency,expected_commission:commission});assert.equal(result.created,true);assert.equal(result.deal.currency,currency);assert.equal(result.deal.probability,0);assert.equal(result.deal.expected_commission,commission,'The acknowledgement keeps exact decimal strings and null');
+   assert.equal(await scalar('expected_commission::text from djm_os.deal_rooms where id=$1',[result.deal_room_id]),commission);
+   const reused=await convert({});assert.equal(reused.existing,true);assert.equal(reused.deal_room_id,result.deal_room_id);assert.equal(reused.deal.currency,currency,'Reopening an existing deal does not replace its actual currency');
+  }finally{await db.exec('rollback');}
+ }
+ assert.equal((await salaryRead()).terms.salary_minimum,'4000');
+});

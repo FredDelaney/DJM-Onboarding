@@ -99,8 +99,31 @@ begin
  set local role service_role;
  result:=public.platform_server_publish_pitch_link(ta,draft_id,u,null);
  if result->>'published'<>'true' then raise exception 'Verified and permitted publication failed';end if;
- result:=public.platform_server_convert_pursuit_to_deal(ta,match_id,u,'{"stage":"qualifying","probability":15,"title":"[QA rollback] Human-entered deal"}');deal_id:=(result->>'deal_room_id')::uuid;
+ for invalid in select value from jsonb_array_elements('[{"currency":""},{"currency":"XXX"},{"stage":null},{"probability":null},{"probability":1.5},{"expected_commission":"1.005"},{"expected_commission":"1e3"},{"expected_commission":"-1"},{"currency":"JPY","expected_commission":"1.1"}]') loop
+  denied:=false;begin perform public.platform_server_convert_pursuit_to_deal(ta,match_id,u,jsonb_build_object('stage','qualifying','probability',15,'currency','USD')||invalid);exception when invalid_parameter_value then denied:=true;end;
+  if not denied then raise exception 'Invalid or assumed deal money admitted: %',invalid;end if;
+ end loop;
+ result:=public.platform_server_convert_pursuit_to_deal(ta,match_id,u,'{"stage":"qualifying","probability":15,"currency":"USD","expected_commission":"1234.56","title":"[QA rollback] Human-entered deal"}');deal_id:=(result->>'deal_room_id')::uuid;
  if deal_id is null then raise exception 'Permitted linked deal creation failed: %',result;end if;
+ if result#>>'{deal,currency}'<>'USD' or result#>>'{deal,expected_commission}'<>'1234.56' then raise exception 'Deal commission/currency changed or inherited salary budget';end if;
+ if jsonb_typeof(result#>'{deal,expected_commission}')<>'string' then raise exception 'Deal acknowledgement loses decimal transport precision';end if;
+ reset role;
+ -- Supported boundary value: these reads must not pass exact numerics through a
+ -- JavaScript number or turn a CLF commission into a two-decimal EUR amount.
+ update djm_os.deal_rooms set expected_commission=999999999999.1234,currency='CLF' where id=deal_id;
+ set local role service_role;
+ result:=public.platform_server_deal_war_room_instant_v3(ta,deal_id);
+ if result#>>'{deal,expected_commission}'<>'999999999999.1234' or jsonb_typeof(result#>'{deal,expected_commission}')<>'string' then raise exception 'Instant deal read lost exact commission';end if;
+ result:=public.platform_server_deal_war_room_v2(ta,deal_id);
+ if result#>>'{deal,expected_commission}'<>'999999999999.1234' or jsonb_typeof(result#>'{deal,expected_commission}')<>'string' then raise exception 'Deep deal read lost exact commission';end if;
+ result:=public.platform_server_deal_closeout_control(ta,deal_id);
+ if result#>>'{deal,expected_commission}'<>'999999999999.1234' or jsonb_typeof(result#>'{deal,expected_commission}')<>'string' then raise exception 'Closeout read lost exact commission';end if;
+ result:=public.platform_server_deal_portfolio_v4(ta,20);
+ if not exists(select 1 from jsonb_array_elements(result->'deals') d where d->>'deal_room_id'=deal_id::text and d->>'expected_commission'='999999999999.1234' and jsonb_typeof(d->'expected_commission')='string') then raise exception 'Portfolio read lost exact commission';end if;
+ reset role;
+ update djm_os.deal_rooms set expected_commission=1234.56,currency='USD' where id=deal_id;
+ set local role service_role;
+
  result:=public.platform_server_record_pursuit_salary_review(ta,u,match_id,gen_random_uuid(),fingerprint,'hold','QA retain hold before native publication',null);
  reset role;
  -- General unlinked profile sharing remains compatible. It never commits.
@@ -168,5 +191,5 @@ begin
  if not denied then raise exception 'Anonymous salary read admitted';end if;
  reset role;
 end $canary$;
-select 'PASS actual career/financial gates, canonical draft/deal/verification, native publication denial, exact receipt/retry, source hold/resume, roles/tenant, legacy/manual preservation; complete synthetic transaction rolls back' result;
+select 'PASS explicit deal currency/exact commission, actual career/financial gates, canonical draft/deal/verification, native publication denial, exact receipt/retry, source hold/resume, roles/tenant, legacy/manual preservation; complete synthetic transaction rolls back' result;
 rollback;

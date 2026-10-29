@@ -46,20 +46,7 @@ const human = (value: unknown) =>
     .replaceAll('_', ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-const money = (value: unknown, currency = 'EUR') => {
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return 'Commission not set';
-
-  try {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${Math.round(amount).toLocaleString('en-GB')}`;
-  }
-};
+const money = (value:unknown,currency?:string|null) => formatCommercialAmount(value,currency)||'Commission not set';
 
 const careerGateLabel = (value: unknown) => {
   const state = String(value || '').trim().toLowerCase();

@@ -270,6 +270,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      await field.fill('Temporary draft');await page.keyboard.press('Escape');
      const discard=page.getByRole('alertdialog',{name:'Discard these changes?',exact:true});await discard.waitFor();
      await discard.getByRole('button',{name:'Discard changes',exact:true}).click();await editor.waitFor({state:'hidden'});
+     await edit.and(page.locator(':focus')).waitFor({timeout:3000});
      assert.equal(await edit.evaluate(node=>node===document.activeElement),true,'Record edit returns focus');
      await edit.click();await editor.waitFor();assert.equal(await field.inputValue(),label,'Cancelled drafts do not change the record');
      await editor.getByRole('button',{name:'Cancel',exact:true}).click();await editor.waitFor({state:'hidden'});

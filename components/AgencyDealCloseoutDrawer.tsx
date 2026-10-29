@@ -1,4 +1,6 @@
 'use client';
+
+import {formatCommercialAmount} from '@/lib/club-need-brief';
 import { lockPageScroll } from '@/lib/page-scroll-lock';
 import { hasRecordedNumber } from '@/lib/recorded-number';
 import { receivableBalances } from '@/lib/receivable-balances';
@@ -521,10 +523,7 @@ export default function AgencyDealCloseoutDrawer({
               <div className={styles.heroSide}>
                 <Coins size={18} />
                 <strong>
-                  {money(
-                    deal.expected_commission,
-                    deal.currency || 'EUR',
-                  )}
+                  {formatCommercialAmount(deal.expected_commission,deal.currency)||'Not set'}
                 </strong>
                 <span>forecast commission</span>
               </div>

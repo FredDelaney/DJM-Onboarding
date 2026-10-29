@@ -5,9 +5,9 @@ const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIU
 const out='/tmp/redream-platform-programme/pursuit-salary';await mkdir(out,{recursive:true});
 const expires=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
 try{
- for(const scenario of ['normal','wrong-player','wrong-club','core-refresh','read-error','denied','conflict','unknown','idem-retry','timeout','terms-edit','late-scope']){
+ for(const scenario of ['deal-money','deal-money-unknown','normal','wrong-player','wrong-club','core-refresh','read-error','denied','conflict','unknown','idem-retry','timeout','terms-edit','late-scope']){
   const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[],calls=[],receipts=new Map();let reads=0,writes=0,release,minimum='6000',target='6500',fingerprint='a'.repeat(32),active=false;
-  if(scenario==='core-refresh'){minimum='4000';target='4500';}
+  if(scenario==='core-refresh'||scenario.startsWith('deal-money')){minimum='4000';target='4500';}
   page.on('pageerror',e=>errors.push(e.message));
   const gate=(match,command)=>{const min=match==='match-b'?'1000':minimum,tgt=match==='match-b'?'2000':target,within=Number(min)<=5000&&Number(tgt)<=5000;return {version:1,player_match_id:match,player_id:match==='match-a'?'player-a':'player-b',club_id:'club-a',can_proceed:active||within,state:active?'open_exploration_review':within?'open_recorded_salary':'hold_salary_conflict',message:active?'Exploration is permitted under the recorded temporary review. The salary gap or uncertainty remains.':within?'The confirmed recorded base-salary expectation fits this budget. Contract terms still require agreement.':'The confirmed minimum exceeds the budget. Resolve the terms or record a justified temporary exploration decision.',comparison:{version:1,fingerprint,state:within?'minimum_within_budget':'minimum_above_budget',message:within?'The recorded minimum base salary fits this budget. This is not acceptance of contract terms.':'The recorded salary minimum exceeds the club base-salary budget.',player_minimum:min,player_target:tgt,player_currency:'EUR',player_period:'monthly',player_tax_basis:'net',club_budget:'5000',club_currency:'EUR',club_period:'monthly',club_tax_basis:'net',source_status:'confirmed',club_source_status:'confirmed',checked_on:'2026-10-28',missing:[]},review:active?{current:true,active:true,reason:'Check willingness before quoting any offer.',expires_on:expires}:null,confirmed_command_id:command&&receipts.has(command)?command:null};};
   const terms=()=>({player_id:'player-a',salary_minimum:minimum,salary_target:target,salary_currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',salary_source_status:'confirmed',salary_source_context:'Player confirmation',salary_checked_on:'2026-10-28',updated_at:'2026-10-28T00:00:00Z',updated_by:'actor',legacy_salary_expectation:null});
@@ -15,7 +15,7 @@ try{
    const body=route.request().postDataJSON()||{},name=body.action||new URL(route.request().url()).pathname.split('/').at(-1);calls.push({name,body});let data={},status=200;
    if(name==='external_dossiers')data={dossiers:{items:[{player:{player_id:body.player_id||'player-a'},share_state:'share_safe'}]}};
    else if(name==='pitch_readiness')data={readiness:{items:['a','b'].map(key=>({player_match_id:'match-'+key,player:{player_id:'player-'+key},club:{organisation_id:'club-a'},career_gate:{state:'open_aligned'},pursuit_readiness:{score:99}}))}};
-   else if(name==='pitch_execution')data={execution:{items:[]}};
+   else if(name==='pitch_execution')data={execution:{items:scenario.startsWith('deal-money')?[{player_id:'player-a',organisation_id:'club-a',share_id:'synthetic-existing-share'}]:[]}};
    else if(name==='pitch_responses')data={responses:{items:[]}};
    else if(name==='pursuit_salary_review'){
     const snapshot=gate(body.player_match_id,body.command_id);reads++;
@@ -34,6 +34,8 @@ try{
    }else if(name==='redream_player_salary_terms')data={salary_terms_version:1,terms:terms()};
    else if(name==='redream_player_salary_terms_patch'){minimum=body.p_patch.salary_minimum||minimum;target=body.p_patch.salary_target||target;fingerprint='c'.repeat(32);active=false;data={ok:true,id:'player-a',entity_type:'player',salary_terms_version:1,terms:terms()};}
    else if(name==='pitch_draft_create'){if(scenario==='core-refresh'){status=409;fingerprint='d'.repeat(32);minimum='7000';target='7500';data={error:'Review current base-salary feasibility before preparing a new pitch or deal.',code:'salary_review_required'};}else data={result:{created:true,share_id:'synthetic-private-draft'}};}
+   else if(name==='pitch_detail')data={pitch:{id:'synthetic-existing-share',player_id:'player-a',organisation_id:'club-a',active:true,pitch_status:'sent',sent_at:'2026-10-28T00:00:00Z',token:'synthetic-fixture-token'}};
+   else if(name==='pursuit_deal_create')data={result:{created:true,deal_room_id:'synthetic-money-deal'}};
    else{status=400;data={error:'Unexpected fixture action '+name};}
    await route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)}).catch(()=>{});
   });
@@ -41,6 +43,19 @@ try{
    const url=new URL('/qa-pursuit-salary',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
    const panel=page.getByRole('region',{name:'Base-salary review',exact:true});await panel.waitFor();
    if(['wrong-player','wrong-club'].includes(scenario)){await panel.getByText('This opportunity now refers to a different player or club. Close it and reopen the current record.',{exact:true}).waitFor();assert.equal(await panel.getByText('EUR 6,000',{exact:true}).count(),0);assert.equal(writes,0);await page.getByRole('button',{name:'Back to Opportunities',exact:true}).click();await page.getByText('Opportunity list',{exact:true}).waitFor();assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;}
+   if(scenario.startsWith('deal-money')){
+    await panel.getByText('EUR 4,000',{exact:true}).waitFor();
+    const create=page.getByRole('button',{name:'Create Deal Room',exact:true}),probability=page.getByLabel('Human probability %',{exact:true}),currency=page.getByRole('combobox',{name:'Deal currency',exact:true}),commission=page.getByLabel('Expected commission',{exact:true});
+    await create.click();assert.equal(await page.getByText('Create a live Deal Room?',{exact:true}).count(),0);assert.equal(calls.filter(c=>c.name==='pursuit_deal_create').length,0,'An empty human probability cannot become zero');
+    await probability.fill('0');await create.click();assert.equal(await currency.inputValue(),'','Deal currency has no EUR default');assert.equal(await page.getByText('Create a live Deal Room?',{exact:true}).count(),0);
+    await currency.selectOption(scenario==='deal-money'?'USD':'JPY');
+    if(scenario==='deal-money'){
+     await commission.fill('1234.567');await create.click();assert.equal(await commission.evaluate(n=>n.validity.patternMismatch),true);assert.equal(calls.filter(c=>c.name==='pursuit_deal_create').length,0);await commission.fill('1234.56');
+    }
+    for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Deal money fits '+width);for(const field of [probability,currency,commission])assert.ok(await field.evaluate(n=>n.getBoundingClientRect().height>=44),'Deal fields stay easy to tap');await create.scrollIntoViewIfNeeded();assert.ok((await create.boundingBox()).height>=44);if(scenario==='deal-money')await page.screenshot({path:out+'/deal-money-'+width+'.png'});}
+    await create.click();await page.getByText('Create a live Deal Room?',{exact:true}).waitFor();await page.getByText(scenario==='deal-money'?/Expected agency commission: USD 1,234[.]56[.]/:/Agency commission is not recorded[.]/).waitFor();await page.getByRole('button',{name:'Create Deal Room',exact:true}).last().click();
+    await page.getByRole('button',{name:'Open Deal War Room',exact:true}).waitFor();const sent=calls.filter(c=>c.name==='pursuit_deal_create');assert.equal(sent.length,1);assert.equal(sent[0].body.input.currency,scenario==='deal-money'?'USD':'JPY');assert.equal(sent[0].body.input.expected_commission,scenario==='deal-money'?'1234.56':null);assert.equal(sent[0].body.input.probability,0);assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;
+   }
    if(scenario==='core-refresh'){
     await panel.getByText('EUR 4,000',{exact:true}).waitFor();await panel.getByText('Record a decision',{exact:true}).click();await panel.getByRole('combobox',{name:'Decision',exact:true}).selectOption('hold');await panel.getByRole('textbox',{name:'Reason',exact:true}).fill('Keep this local draft while the opportunity refreshes.');
     await page.getByRole('button',{name:'Create private pitch',exact:true}).click();await page.getByRole('button',{name:'Create pitch draft',exact:true}).click();await page.getByText('Review current base-salary feasibility before preparing a new pitch or deal.',{exact:true}).waitFor();assert.equal(await panel.isVisible(),false,'A failed core read hides the view without discarding its draft');await page.getByRole('button',{name:'Try again',exact:true}).click();await panel.getByText('EUR 7,000',{exact:true}).waitFor();assert.equal(await panel.getByRole('textbox',{name:'Reason',exact:true}).inputValue(),'Keep this local draft while the opportunity refreshes.');assert.equal(writes,0);assert.ok(reads>=2,'A canonical financial denial reloads the current check');assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;
