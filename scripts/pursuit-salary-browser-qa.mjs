@@ -85,7 +85,7 @@ try{
       await button.click();const discard=page.getByRole('alertdialog',{name:'Leave this salary review?',exact:true});await discard.getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(await panel.getByRole('textbox',{name:'Reason',exact:true}).inputValue(),'Keep this review until the profile handoff is approved.');
       await button.click();await discard.getByRole('button',{name:'Leave review',exact:true}).click();
     }else await button.click();
-    if(needsReview)await page.getByText('Player details: player-a',{exact:true}).waitFor();else{await page.getByText(scenario==='dossier-missing'?'Create a private dossier draft?':'Publish this player dossier?',{exact:true}).waitFor();await page.getByRole('button',{name:'Cancel',exact:true}).click();}
+    if(needsReview)await page.getByText('Player details: player-a',{exact:true}).waitFor();else{await page.getByText(scenario==='dossier-missing'?'Create a private dossier draft?':'Publish this player dossier?',{exact:true}).waitFor();await page.getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(await button.evaluate(el=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.activeElement===el)))),true,'Cancelling restores the exact controlled-action opener');}
     assert.equal(calls.filter(c=>['dossier_publish','pitch_publish','dossier_draft_create'].includes(c.name)).length,0,'No external publication or unapproved creation is implicit');assert.equal(writes,0);assert.deepEqual(errors,[]);console.log('Salary pursuit passed: '+scenario);continue;
    }
    if(scenario.startsWith('deal-money')){

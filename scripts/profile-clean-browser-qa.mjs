@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 const browser = await chromium.launch({executablePath: process.env.CALENDAR_CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage']});
 const failures = [];
 try {
-  for (const scenario of process.env.PROFILE_CLEAN_SCENARIOS?.split(',') || ['verification-link','verification-link-readonly','brief', 'compact', 'prepare', 'queued', 'fresh', 'context', 'context-failed', 'context-timeout', 'failure', 'links', 'layout']) {
+  for (const scenario of process.env.PROFILE_CLEAN_SCENARIOS?.split(',') || ['verification-link','verification-link-readonly','verification-link-keyboard','brief', 'compact', 'prepare', 'queued', 'fresh', 'context', 'context-failed', 'context-timeout', 'failure', 'links', 'layout']) {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
     const calls = [], errors = []; page.on('pageerror', error => errors.push(error.message));
     let detailsReview=null;
@@ -53,15 +53,24 @@ try {
       if(scenario==='brief'){url.searchParams.set('capture','30000000-0000-4000-8000-000000000001');url.searchParams.set('preparation','profile_1');}
       const initialStatus = page.waitForResponse(response => response.request().postDataJSON()?.action === 'player_data_status');
       for (let i = 0; i < 60; i++) {try {await page.goto(url.href); break;} catch (error) {if (i === 59) throw error; await page.waitForTimeout(250);}}
-      await page.getByRole('heading', {name: 'Example Player', exact: true}).waitFor();
+      await page.getByRole('heading', {name: 'Example Player', exact: true, includeHidden: scenario.startsWith('verification-link')}).waitFor({state:'attached'});
       await initialStatus;
       await page.getByText('Source check finished', {exact: true}).waitFor({state: 'attached'});
       if(scenario.startsWith('verification-link')){
         const verify=page.getByRole('button',{name:'Confirm & verify',exact:true});
         if(scenario==='verification-link-readonly')assert.equal(await verify.count(),0,'A review link cannot grant editing permission');
         else{
-          await verify.waitFor();assert.equal(await page.getByRole('textbox',{name:/^Primary position/}).inputValue(),'Centre back');assert.equal(new URL(page.url()).hash,'');
-          await page.getByRole('button',{name:'Cancel',exact:true}).click();await page.reload();await page.getByRole('heading',{name:'Example Player',exact:true}).waitFor();assert.equal(await verify.count(),0,'A consumed link does not reopen a dismissed review');
+          await verify.waitFor();const reviewDialog=page.getByRole('dialog',{name:'Review current player data',exact:true});
+          assert.equal(await reviewDialog.evaluate(el=>el.contains(document.activeElement)),true,'Review entry puts focus inside the dialog');
+          assert.equal(await page.getByRole('heading',{name:'Example Player',exact:true,includeHidden:true}).evaluate(el=>Boolean(el.closest('[inert]'))),true,'The profile behind the review cannot receive keyboard focus');
+          const close=reviewDialog.getByRole('button',{name:'Close',exact:true});await verify.focus();await page.keyboard.press('Tab');assert.equal(await close.evaluate(el=>el===document.activeElement),true,'Tab wraps inside the review');
+          await page.keyboard.press('Shift+Tab');assert.equal(await verify.evaluate(el=>el===document.activeElement),true,'Reverse Tab stays inside the review');
+          assert.equal(await page.getByRole('textbox',{name:/^Primary position/}).inputValue(),'Centre back');assert.equal(new URL(page.url()).hash,'');
+          if(process.env.PROFILE_CLEAN_SCREENSHOT_DIR){await mkdir(process.env.PROFILE_CLEAN_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:process.env.PROFILE_CLEAN_SCREENSHOT_DIR+'/review-focus-'+scenario+'.png'});}
+          if(scenario==='verification-link-keyboard')await page.keyboard.press('Escape');else await page.getByRole('button',{name:'Cancel',exact:true}).click();
+          await reviewDialog.waitFor({state:'hidden'});const heading=page.getByRole('heading',{name:'Example Player',exact:true});assert.equal(await heading.evaluate(el=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.activeElement===el)))),true,'Dismissing a deep-link review returns focus to the player');
+          assert.equal(await heading.evaluate(el=>Boolean(el.closest('[inert]'))),false,'Dismissal restores profile interaction');assert.notEqual(await page.evaluate(()=>document.body.style.overflow),'hidden','Dismissal releases its scroll lock');
+          await page.reload();await heading.waitFor();assert.equal(await verify.count(),0,'A consumed link does not reopen a dismissed review');
         }
         assert.equal(calls.filter(c=>c.action==='player_profile_verify'||c.action?.includes('publish')).length,0,'Opening the existing review never verifies or publishes automatically');assert.deepEqual(errors,[]);console.log('Profile clean workflow passed: '+scenario);continue;
       }

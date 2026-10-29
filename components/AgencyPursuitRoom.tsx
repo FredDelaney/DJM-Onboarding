@@ -215,6 +215,19 @@ export default function AgencyPursuitRoom({
     useState('');
   const [confirmAction, setConfirmAction] =
     useState<ConfirmAction>(null);
+  const confirmationOpener=useRef<HTMLElement|null>(null);
+  const openConfirmation=(action:Exclude<ConfirmAction,null>)=>{
+    confirmationOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    setConfirmAction(action);
+  };
+  const cancelConfirmation=()=>{
+    const opener=confirmationOpener.current;
+    setConfirmAction(null);
+    requestAnimationFrame(()=>{
+      const focused=document.activeElement;
+      if(opener?.isConnected&&!opener.closest('[inert],[aria-hidden="true"]')&&!opener.matches(':disabled')&&(!focused||focused===document.body||!focused.isConnected))opener.focus({preventScroll:true});
+    });
+  };
   const [responseProposal, setResponseProposal] =
     useState<any>(null);
 
@@ -991,7 +1004,7 @@ export default function AgencyPursuitRoom({
         title: 'Create the dossier',
         instruction: 'Prepare the private club-facing player dossier before building the pitch.',
         label: 'Create private dossier',
-        run: () => setConfirmAction('create_dossier'),
+        run: () => openConfirmation('create_dossier'),
         disabled: false,
       };
     }
@@ -1002,7 +1015,7 @@ export default function AgencyPursuitRoom({
             title: 'Review dossier publication',
             instruction: dossier?.next_action?.instruction || 'Review the private dossier before approving publication.',
             label: 'Publish dossier',
-            run: () => setConfirmAction('publish_dossier'),
+            run: () => openConfirmation('publish_dossier'),
             disabled: false,
           }
         : {
@@ -1022,7 +1035,7 @@ export default function AgencyPursuitRoom({
         title: 'Prepare the pitch',
         instruction: 'Create the private pitch draft for this exact player-club route.',
         label: 'Create private pitch',
-        run: () => setConfirmAction('create_pitch'),
+        run: () => openConfirmation('create_pitch'),
         disabled: false,
       };
     }
@@ -1032,7 +1045,7 @@ export default function AgencyPursuitRoom({
         title: 'Publish the pitch link',
         instruction: 'Make the private pitch link available. ReDream will not send it for you.',
         label: 'Publish pitch link',
-        run: () => setConfirmAction('publish_pitch'),
+        run: () => openConfirmation('publish_pitch'),
         disabled: false,
       };
     }
@@ -1042,7 +1055,7 @@ export default function AgencyPursuitRoom({
         title: 'Complete human delivery',
         instruction: 'Send the pitch through your chosen channel, then confirm the delivery here.',
         label: 'I sent this pitch',
-        run: () => setConfirmAction('confirm_sent'),
+        run: () => openConfirmation('confirm_sent'),
         disabled: false,
       };
     }
@@ -1053,7 +1066,7 @@ export default function AgencyPursuitRoom({
             title: 'Review the club response',
             instruction: 'Confirm the internal response-review work before ReDream creates it.',
             label: 'Review and confirm',
-            run: () => setConfirmAction('execute_response'),
+            run: () => openConfirmation('execute_response'),
             disabled: false,
           }
         : {
@@ -1383,7 +1396,7 @@ export default function AgencyPursuitRoom({
                       data-ui-button="primary"
               className={styles.primary}
                       onClick={() =>
-                        setConfirmAction(
+                        openConfirmation(
                           'create_pitch',
                         )
                       }
@@ -1458,7 +1471,7 @@ export default function AgencyPursuitRoom({
                           data-ui-button="primary"
               className={styles.primary}
                           onClick={() =>
-                            setConfirmAction(
+                            openConfirmation(
                               'publish_pitch',
                             )
                           }
@@ -1476,7 +1489,7 @@ export default function AgencyPursuitRoom({
                           data-ui-button="primary"
               className={styles.primary}
                           onClick={() =>
-                            setConfirmAction(
+                            openConfirmation(
                               'confirm_sent',
                             )
                           }
@@ -1676,7 +1689,7 @@ export default function AgencyPursuitRoom({
                         data-ui-button="primary"
               className={styles.primary}
                         onClick={() =>
-                          setConfirmAction(
+                          openConfirmation(
                             'execute_response',
                           )
                         }
@@ -1735,7 +1748,7 @@ export default function AgencyPursuitRoom({
                 </div>
               ) : (
                 <>
-                  <form id="pursuit-deal-form" className={`${styles.formGrid} ${styles.dealForm}`} onSubmit={event=>{event.preventDefault();setConfirmAction('create_deal');}}>
+                  <form id="pursuit-deal-form" className={`${styles.formGrid} ${styles.dealForm}`} onSubmit={event=>{event.preventDefault();openConfirmation('create_deal');}}>
                     <label>
                       <span>Human stage</span>
                       <select
@@ -1853,9 +1866,7 @@ export default function AgencyPursuitRoom({
                 type="button"
                 data-ui-button="secondary"
               className={styles.secondary}
-                onClick={() =>
-                  setConfirmAction(null)
-                }
+                onClick={cancelConfirmation}
                 disabled={Boolean(
                   actionBusy,
                 )}

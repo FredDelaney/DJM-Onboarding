@@ -523,6 +523,38 @@ export default function AgencyPlayerProfile({
     };
   }, [editOpen]);
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const verifyDialog=useRef<HTMLElement>(null);
+  const verificationBusy=useRef(false);
+  verificationBusy.current=Boolean(actionBusy);
+  useEffect(()=>{
+    if(!verifyOpen)return;
+    const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    const releaseScroll=lockPageScroll();
+    const releaseBackground=isolateElements(Array.from(document.body.children).filter((node):node is HTMLElement=>node instanceof HTMLElement&&!node.contains(verifyDialog.current)));
+    const controls=()=>Array.from(verifyDialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex]:not([tabindex="-1"])')||[]).filter(node=>node.getClientRects().length>0&&!node.closest('[inert]'));
+    const focusFirst=()=>{(controls()[0]||verifyDialog.current)?.focus({preventScroll:true});};
+    const containFocus=(event:FocusEvent)=>{if(event.target instanceof Node&&!verifyDialog.current?.contains(event.target))focusFirst();};
+    const key=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();if(!verificationBusy.current)setVerifyOpen(false);return;}
+      if(event.key!=='Tab')return;
+      event.stopPropagation();
+      const all=controls(),first=all[0],last=all.at(-1),inside=verifyDialog.current?.contains(document.activeElement);
+      if(!first){event.preventDefault();verifyDialog.current?.focus();}
+      else if(event.shiftKey&&(!inside||document.activeElement===first)){event.preventDefault();last?.focus();}
+      else if(!event.shiftKey&&(!inside||document.activeElement===last)){event.preventDefault();first.focus();}
+    };
+    document.addEventListener('focusin',containFocus);
+    document.addEventListener('keydown',key,true);
+    if(!verifyDialog.current?.contains(document.activeElement))focusFirst();
+    return()=>{
+      document.removeEventListener('focusin',containFocus);document.removeEventListener('keydown',key,true);
+      releaseBackground();releaseScroll();
+      queueMicrotask(()=>{
+        const target=opener?.isConnected&&opener!==document.body?opener:profileHeading.current,focused=document.activeElement;
+        if(target?.isConnected&&!target.closest('[inert]')&&(!focused||focused===document.body||!focused.isConnected))target.focus({preventScroll:true});
+      });
+    };
+  },[verifyOpen]);
   const [verifyFocus, setVerifyFocus] = useState<'verification' | 'position' | 'contract-status' | 'contract-expiry'>(
     'verification',
   );
@@ -3221,6 +3253,8 @@ export default function AgencyPlayerProfile({
             role="dialog"
             aria-modal="true"
             aria-label="Review current player data"
+            ref={verifyDialog}
+            tabIndex={-1}
           >
             <header>
               <div>
