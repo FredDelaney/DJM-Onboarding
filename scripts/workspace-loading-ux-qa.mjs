@@ -58,7 +58,9 @@ try {
   if(query==='view=home'){const elapsed=Math.round(performance.now()-readStarted);await writeFile(process.env.HOME_LOADING_REPORT||'/tmp/redream-home-loading-timing.json',JSON.stringify({elapsed_ms:elapsed,environment:'local Chromium, intercepted stalled reads',budget_ms:16500}));assert.ok(elapsed<16500,'Home must reach recovery within one 12-second read budget plus browser overhead; observed '+elapsed+'ms');}
   assert.equal(await page.getByText('Loading current agency position...',{exact:true}).count(),0);
   stalled.clear();const recovered=page.waitForResponse(response=>response.url().endsWith('/'+names[0])||response.request().postDataJSON()?.action===names[0]);
-  await page.getByRole('button',{name:calendar?'Retry dates':'Try again',exact:true}).click();await recovered;
+  if(calendar) await deadlineAlert.getByRole('button',{name:'Retry meetings and agency dates',exact:true}).click();
+  else await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await recovered;
   await deadlineAlert.waitFor({state:'hidden'});
   assert.equal(await page.getByRole('link',{name:'Selected Fixture Agency workspace',exact:true,includeHidden:true}).count(),2,'Both desktop and mobile brand links use the authorised selected agency');
   if(query==='view=home')await page.locator('a[href$="&tab=needs&record=00000000-0000-4000-8000-000000000091"]').waitFor();
