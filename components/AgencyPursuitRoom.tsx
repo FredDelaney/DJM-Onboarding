@@ -376,15 +376,15 @@ export default function AgencyPursuitRoom({
     'admin',
   ].includes(role);
 
-  const readinessScore =
-    readiness?.pursuit_readiness?.score ??
-    pursuit?.readiness_score ??
-    null;
+  const assessment = readiness?.pursuit_readiness;
+  const readinessScore = assessment ? assessment.score ?? null : pursuit?.readiness_score ?? null;
+  const missingAssessments = safeArray(assessment?.missing_factors ?? pursuit?.missing_factors).filter((item:any)=>typeof item==='string');
+  const assessmentIncomplete = (assessment?.state ?? pursuit?.readiness_state)==='assessment_incomplete'||missingAssessments.length>0;
   const hasReadinessScore =
     readinessScore !== null &&
     readinessScore !== undefined &&
     String(readinessScore).trim() !== '' &&
-    Number.isFinite(Number(readinessScore));
+    Number.isFinite(Number(readinessScore))&&!assessmentIncomplete;
 
   const pitchUrl =
     pitchDetail?.token &&
@@ -1237,6 +1237,7 @@ export default function AgencyPursuitRoom({
                 <p>NEXT MOVE</p>
                 <h3>{nextMove.title}</h3>
                 <span>{nextMove.instruction}</span>
+                {assessmentIncomplete?<span>{missingAssessments.length?'Readiness not scored. Not recorded: '+missingAssessments.map(human).join(', ')+'.':'Readiness needs more information.'}</span>:null}
 
                 <button
                   type="button"
