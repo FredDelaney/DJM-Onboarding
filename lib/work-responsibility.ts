@@ -24,10 +24,11 @@ export function workHref(value:any,basePath:string):string {
   return basePath+'?view=calendar'+(!value?.due_at?'&undated=1#work-'+encodeURIComponent(value?.work_id||''):'');
 }
 
-export async function readAssignedWorkPages(rpc:CalendarRpc,tenantId:string):Promise<any[]> {
+export async function readAssignedWorkPages(rpc:CalendarRpc,tenantId:string,signal?:AbortSignal):Promise<any[]> {
  const items:any[]=[];const seen=new Set<number>();let cursor:number|null=null;
  do {
-  const page:{items:any[];next_cursor?:number|null;limited?:boolean}=await rpc('redream_assigned_work_page_v1',{p_tenant_id:tenantId,p_cursor:cursor,p_limit:200});
+  if(signal?.aborted)throw new Error('calendar_request_cancelled');
+  const page:{items:any[];next_cursor?:number|null;limited?:boolean}=await rpc('redream_assigned_work_page_v1',{p_tenant_id:tenantId,p_cursor:cursor,p_limit:200},signal);
   if(!Array.isArray(page?.items))throw new Error('assigned_work_unconfirmed');
   items.push(...page.items);
   cursor=page.next_cursor??null;
