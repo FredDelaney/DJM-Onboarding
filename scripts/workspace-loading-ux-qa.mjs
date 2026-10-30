@@ -60,20 +60,28 @@ try {
  // Every previously unbounded primary read reaches the existing recoverable error.
  for(const [query,names] of [
   ['view=network',['redream_autopilot_relationships']],
-  ['view=calendar',['redream_autopilot_calendar']],
+  // Calendar's actual range RPC now owns its errors and retry; there is no overview RPC.
+  ['view=calendar',['redream_calendar_range']],
   ['view=opportunities',['redream_autopilot_market']],
+  // Keep the commercial error contract covered independently of the Market tab.
+  ['view=opportunities&tab=deals',['redream_autopilot_deals']],
   ['view=players&tab=recruitment',['recruitment_board']],
   ['view=business',['agency_control_centre']],
   ['view=home',['home_focus','redream_autopilot_home']],
- ].filter(([query])=>!process.env.WORKSPACE_LOADING_CASE||query==='view='+process.env.WORKSPACE_LOADING_CASE)) {
+ ].filter(([query])=>!process.env.WORKSPACE_LOADING_CASE||query==='view='+process.env.WORKSPACE_LOADING_CASE||(process.env.WORKSPACE_LOADING_CASE==='deals'&&query==='view=opportunities&tab=deals'))) {
   stalled=new Set(names);const pending=new Promise(resolve=>{started=resolve;});
   await visit(query);await waitForRead(pending);const readStarted=performance.now();
-  await page.getByRole('alert').filter({hasText:'took too long'}).waitFor({timeout:30000});
+  const calendar=query==='view=calendar';
+  const deadlineAlert=page.getByRole('alert').filter({hasText:calendar?'Could not load meetings and agency dates.':'took too long'});
+  // Calendar reports its scoped date error without blocking the workspace shell.
+  await deadlineAlert.waitFor({timeout:30000});
   if(query==='view=home'){const elapsed=Math.round(performance.now()-readStarted);await writeFile(process.env.HOME_LOADING_REPORT||'/tmp/redream-home-loading-timing.json',JSON.stringify({elapsed_ms:elapsed,environment:'local Chromium, intercepted stalled reads',budget_ms:16500}));assert.ok(elapsed<16500,'Home must reach recovery within one 12-second read budget plus browser overhead; observed '+elapsed+'ms');}
   assert.equal(await page.getByText('Loading current agency position...',{exact:true}).count(),0);
   stalled.clear();const recovered=page.waitForResponse(response=>response.url().endsWith('/'+names[0])||response.request().postDataJSON()?.action===names[0]);
-  await page.getByRole('button',{name:'Try again',exact:true}).click();await recovered;
-  await page.getByRole('alert').filter({hasText:'took too long'}).waitFor({state:'hidden'});
+  if(calendar) await deadlineAlert.getByRole('button',{name:'Retry meetings and agency dates',exact:true}).click();
+  else await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await recovered;
+  await deadlineAlert.waitFor({state:'hidden'});
   assert.equal(await page.getByRole('link',{name:'Selected Fixture Agency workspace',exact:true,includeHidden:true}).count(),2,'Both desktop and mobile brand links use the authorised selected agency');
   if(query==='view=home')await page.locator('a[href$="&tab=needs&record=00000000-0000-4000-8000-000000000091"]').waitFor();
   if(query==='view=network')await page.getByRole('heading',{name:'Current Club',exact:true}).waitFor();
@@ -118,5 +126,5 @@ try {
  assert.equal(new URL(page.url()).searchParams.has('profile'),false,'Recorded work opens its existing work view');
  assert.equal(reads.includes('action_prepare'),false,'Opening recorded work never prepares an unrelated setup write');
  assert.deepEqual(errors,[],'No browser runtime failures');
- console.log('PASS: Home, Network, Calendar, Opportunities, Recruitment and Business deadlines, retry, late response rejection and stalled warming recovery.');
+ console.log('PASS: Home, Network, Calendar, Market, Live Deals, Recruitment and Business deadlines, retry, late response rejection and stalled warming recovery.');
 }catch(error){console.error('Failed URL:',page?.url(),'Recent reads:',reads.slice(-20));await mkdir('/tmp/redream-ux-pass',{recursive:true});await page?.screenshot({path:'/tmp/redream-ux-pass/loading-failure.png'});throw error;}finally{await browser.close();}

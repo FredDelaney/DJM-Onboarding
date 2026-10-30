@@ -8,7 +8,7 @@ export type CalendarTask = {
 export type Assignee={user_id:string;display_name:string;active?:boolean};
 export type TaskInput={id?:string;title:string;notes?:string;visibility?:'personal'|'company';owner_user_id?:string;responsible_user_ids?:string[];due_on:string|null;due_time:string|null;time_zone:string|null};
 export type TaskAction='edit'|'complete'|'reopen'|'archive'|'restore';
-export type CalendarRpc=<T=any>(name:string,args?:Record<string,unknown>)=>Promise<T>;
+export type CalendarRpc=<T=any>(name:string,args?:Record<string,unknown>,signal?:AbortSignal)=>Promise<T>;
 export function taskLocalInstant(dueOn:string,dueTime:string,zone:string):string {
  return Temporal.ZonedDateTime.from(`${dueOn}T${dueTime}[${zone}]`,{disambiguation:'reject',overflow:'reject'}).toInstant().toString();
 }
@@ -22,8 +22,8 @@ export function taskErrorMessage(error:unknown):string {
  if(/denied|task_archived/.test(code))return 'This task is no longer available to edit. Refresh the calendar.';
  return 'Could not save the task. Your changes are still here. Please try again.';
 }
-export async function readTaskPages(rpc:CalendarRpc,args:Record<string,unknown>):Promise<CalendarTask[]> {
+export async function readTaskPages(rpc:CalendarRpc,args:Record<string,unknown>,signal?:AbortSignal):Promise<CalendarTask[]> {
  const items:CalendarTask[]=[];let cursor:unknown=null;const seen=new Set<string>();
- do {const page=await rpc<any>('redream_calendar_tasks_v1',{...args,p_cursor:cursor});items.push(...(page.items||[]));cursor=page.next_cursor||null;if(cursor){const key=JSON.stringify(cursor);if(seen.has(key))throw new Error('pagination_cursor_repeated');seen.add(key);}}while(cursor);
+ do {if(signal?.aborted)throw new Error('calendar_request_cancelled');const page=await rpc<any>('redream_calendar_tasks_v1',{...args,p_cursor:cursor},signal);items.push(...(page.items||[]));cursor=page.next_cursor||null;if(cursor){const key=JSON.stringify(cursor);if(seen.has(key))throw new Error('pagination_cursor_repeated');seen.add(key);}}while(cursor);
  return items;
 }

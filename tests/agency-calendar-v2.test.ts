@@ -49,7 +49,9 @@ test('Calendar V2 stays behind tenant-aware read models', async () => {
   ]);
 
   assert.match(shell, /AgencyCalendarWorkspace/);
-  assert.match(shell, /redream_autopilot_calendar/);
+  const calendarSources = await readFile(new URL('../lib/calendar/useCalendarSources.ts', import.meta.url), 'utf8');
+  assert.match(calendarSources, /redream_calendar_range/);
+  assert.match(calendarSources, /readTaskPages/);
   assert.doesNotMatch(source, /\.from\(/);
   assert.doesNotMatch(source, /supabase\./);
 });
