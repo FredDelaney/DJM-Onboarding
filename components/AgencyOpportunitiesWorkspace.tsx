@@ -636,6 +636,7 @@ export default function AgencyOpportunitiesWorkspace({
       {exactError?<div role="alert"><p>{exactError}</p><button type="button" className="btn" onClick={()=>setExactRetry(value=>value+1)}>Try again</button></div>:null}
       {view === 'overview' ? <AgencyOpportunityOverview
         needs={needs} routes={routes} deals={deals}
+        connectedNeeds={connectedNeeds} connectedDeals={connectedDeals}
         marketReady={data?.market != null && !data?.opportunity_errors?.market}
         dealsReady={data?.deals != null && !data?.opportunity_errors?.deals}
         marketError={Boolean(data?.opportunity_errors?.market)}

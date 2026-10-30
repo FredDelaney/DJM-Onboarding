@@ -55,3 +55,8 @@
 @media(max-width:850px){.intro{flex-direction:column;align-items:stretch;gap:20px}.counts{align-self:stretch}.counts>div{flex:1}.counts>div:first-child{border-left:0;padding-left:0}.toolbar{flex-wrap:wrap}.search{max-width:none}}
 @media(max-width:680px){.overview{gap:15px}.intro{padding:21px 19px;border-radius:18px}.intro h2{font-size:24px}.intro p:not(.eyebrow){font-size:13px}.counts{padding-top:6px}.counts strong{font-size:22px}.toolbar{gap:11px}.filters{width:100%}.filter,.selected{flex:1;padding:0 10px;min-height:44px;font-size:13px}.search{min-height:48px}.search input{font-size:16px}.record{padding:16px 14px;gap:12px;grid-template-columns:36px minmax(0,1fr) 17px}.icon{width:36px;height:36px;border-radius:11px}.icon svg{width:16px}.copy strong{font-size:15px}.linked{margin:0 14px 13px 60px;padding-left:10px}.linkedRow{min-height:42px}}
 @media(prefers-reduced-motion:reduce){.record,.chevron{transition:none}}
+
+/* Evidence-first ownership and work cues. Readable without colour or icons. */
+.accountability{display:block;margin-top:3px;font-size:12px;line-height:1.45;color:var(--interface-muted,#687582);overflow-wrap:anywhere}
+.next b{font-weight:610;color:var(--interface-ink,#20272e)}
+@media (max-width:680px){.accountability{font-size:12px;line-height:1.5}}

@@ -11,6 +11,8 @@ type Props = {
   needs: any[];
   routes: any[];
   deals: any[];
+  connectedNeeds: any[];
+  connectedDeals: any[];
   marketReady: boolean;
   dealsReady: boolean;
   marketError: boolean;
@@ -25,10 +27,10 @@ function category(kind: OpportunityItem['kind']) {
   return kind === 'need' ? 'Club request' : kind === 'route' ? 'Player pursuit' : 'Live deal';
 }
 
-export default function AgencyOpportunityOverview({needs,routes,deals,marketReady,dealsReady,marketError,dealsError,onRetry,onOpenNeed,onOpenPursuit,onOpenDeal}: Props) {
+export default function AgencyOpportunityOverview({needs,routes,deals,connectedNeeds,connectedDeals,marketReady,dealsReady,marketError,dealsError,onRetry,onOpenNeed,onOpenPursuit,onOpenDeal}: Props) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all'|'attention'>('all');
-  const overview = useMemo(() => opportunityOverview({needs,routes,deals}), [needs,routes,deals]);
+  const overview = useMemo(() => opportunityOverview({needs,routes,deals,connectedNeeds,connectedDeals}), [needs,routes,deals,connectedNeeds,connectedDeals]);
   const open = (item: OpportunityItem) => {
     if (item.kind === 'need') return onOpenNeed(item.id);
     if (item.kind === 'deal') return onOpenDeal({
@@ -49,7 +51,7 @@ export default function AgencyOpportunityOverview({needs,routes,deals,marketRead
     });
   };
   const term = query.trim().toLocaleLowerCase();
-  const matches = (item: OpportunityItem) => [item.title,item.detail,item.context,item.nextAction].some(value => (value || '').toLocaleLowerCase().includes(term));
+  const matches = (item: OpportunityItem) => [item.title,item.detail,item.context,item.nextAction,item.ownerName].some(value => (value || '').toLocaleLowerCase().includes(term));
   const recordedNeedIds = new Set(overview.needs.map(need => need.id));
   const topLevel = [
     ...overview.needs,
@@ -60,13 +62,22 @@ export default function AgencyOpportunityOverview({needs,routes,deals,marketRead
   const matchesWithChildren = (item: OpportunityItem) => matches(item) || (item.kind === 'need' && (overview.byNeed.get(item.id) || []).some(matches));
   const attention = topLevel.filter(item => needsReview(item) && matchesWithChildren(item));
   const other = topLevel.filter(item => !needsReview(item) && matchesWithChildren(item));
+  const byPriority = (a: OpportunityItem,b: OpportunityItem) => a.attentionRank-b.attentionRank || a.title.localeCompare(b.title);
+  attention.sort(byPriority);
+  other.sort(byPriority);
   const visible = filter === 'attention' ? attention : [...attention, ...other];
   const loaded = marketReady && dealsReady;
 
   const row = (item: OpportunityItem) => {
     const Icon = item.kind === 'need' ? Target : item.kind === 'route' ? Users : BriefcaseBusiness;
     // Only show known canonical player/club links; no inferred match or interest.
-    const children = item.kind === 'need' ? overview.byNeed.get(item.id) || [] : [];
+    const allChildren = item.kind === 'need' ? overview.byNeed.get(item.id) || [] : [];
+    // Searching a linked player must reveal that exact player, even when the need has many candidates.
+    const children = term && !matches(item) ? allChildren.filter(matches) :
+      filter === 'attention' && !item.attention ? allChildren.filter(child => child.attention) : allChildren;
+    const hasChildAttention = allChildren.some(child => child.attention);
+    const due = item.dueAt ? new Date(item.dueAt) : null;
+    const dueText = due && Number.isFinite(due.getTime()) ? new Intl.DateTimeFormat('en-GB', {day:'numeric',month:'short'}).format(due) : null;
     return <article className={styles.item} key={item.key}>
       <button type="button" className={styles.record} onClick={() => open(item)} aria-label={`Open ${category(item.kind)}: ${item.title}`}>
         <span className={styles.icon}><Icon size={18} strokeWidth={1.8}/></span>
@@ -74,13 +85,14 @@ export default function AgencyOpportunityOverview({needs,routes,deals,marketRead
           <span className={styles.overline}>{category(item.kind)} <span className={styles.dot}>·</span> {item.context}</span>
           <strong>{item.title}</strong>
           <span className={styles.detail}>{item.detail}</span>
-          {item.nextAction ? <span className={styles.next}><ArrowUpRight size={14}/> {item.nextAction}</span> : null}
-          {(item.attentionReason || (children.some(child => child.attention) ? 'Linked player needs review' : null)) ? <span className={styles.reason}><CircleAlert size={13}/> {item.attentionReason || 'Linked player needs review'}</span> : null}
+          {(item.ownerName || dueText) ? <span className={styles.accountability}>{item.ownerName ? `Owner: ${item.ownerName}` : 'Opportunity owner not shown'}{dueText ? ` · Follow-up due ${dueText}` : ''}</span> : null}
+          {item.nextAction ? <span className={styles.next}><ArrowUpRight size={14}/><span><b>{item.nextActionLabel}:</b> {item.nextAction}</span></span> : null}
+          {(item.attentionReason || hasChildAttention) ? <span className={styles.reason}><CircleAlert size={13}/> {item.attentionReason || 'Linked player needs review'}</span> : null}
         </span>
         <ChevronRight className={styles.chevron} size={19}/>
       </button>
       {children.length ? <div className={styles.linked} aria-label={`Recorded player pursuits for ${item.title}`}>
-        <span className={styles.linkedTitle}>{children.length} recorded player {children.length === 1 ? 'pursuit' : 'pursuits'}</span>
+        <span className={styles.linkedTitle}>{term && !matches(item) ? `${children.length} matching player ${children.length === 1 ? 'pursuit' : 'pursuits'}` : `${allChildren.length} recorded player ${allChildren.length === 1 ? 'pursuit' : 'pursuits'}`}</span>
         {children.slice(0,3).map(child => <button type="button" key={child.key} className={styles.linkedRow} onClick={() => open(child)}>
           <span>{child.title}</span><ChevronRight size={15}/>
         </button>)}
@@ -111,6 +123,6 @@ export default function AgencyOpportunityOverview({needs,routes,deals,marketRead
       {attention.length ? <section className={styles.section} aria-label="Opportunities needing attention"><div className={styles.sectionHead}><h3>Needs attention</h3><span>{attention.length} recorded</span></div><div className={styles.cards}>{attention.map(row)}</div></section> : null}
       {filter==='all' && other.length ? <section className={styles.section} aria-label="Other recorded opportunities"><div className={styles.sectionHead}><h3>{attention.length ? 'Other opportunities' : 'Current opportunities'}</h3><span>{other.length} recorded</span></div><div className={styles.cards}>{other.map(row)}</div></section> : null}
     </div> : loaded && !marketError && !dealsError ? <div className={styles.empty}><Target size={23}/><h3>{query ? 'No matches' : filter==='attention' ? 'Nothing flagged for review' : 'No recorded opportunities yet'}</h3><p>{query ? 'Try another player or club name.' : filter==='attention' ? 'Open All work to see existing opportunities.' : 'Create a club request or player pursuit to get started.'}</p></div> : null}
-    <p className={styles.footnote}>Attention shows recorded deadlines, blockers and player-review states. It does not infer club interest or promises.</p>
+    <p className={styles.footnote}>Only recorded need-linked tasks, due dates and verified workflow blockers trigger attention. Suggestions are not completed or scheduled actions. Contact activity never proves a particular player was discussed.</p>
   </section>;
 }
