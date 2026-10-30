@@ -31,6 +31,7 @@ export default function Page(){
    if(scenario==='hung')return await new Promise(()=>{});
   }
   if(name==='external_dossiers')return {dossiers:{items:[{player:{player_id:'player'},share_state:'share_safe'}]}};
+  if(name==='pursuit_salary_review')return {review:{version:1,player_match_id:'match',player_id:'player',club_id:'club',can_proceed:true,state:'open_recorded_salary',message:'Confirmed base salary fits the recorded budget.',comparison:{version:1,fingerprint:'a'.repeat(32),state:'minimum_within_budget',player_minimum:'4000',player_target:'4500',player_currency:'EUR',player_period:'monthly',player_tax_basis:'net',club_budget:'5000',club_currency:'EUR',club_period:'monthly',club_tax_basis:'net',source_status:'confirmed',club_source_status:'confirmed',missing:[]}}};
   if(name==='pitch_readiness')return {readiness:{items:[{player_match_id:'match',player:{player_id:'player'},club:{organisation_id:'club'},career_gate:{state:'open_confirmed'}}]}};
   if(name==='pitch_execution')return {execution:{items:[]}};
   if(name==='pitch_responses')return {responses:{items:[]}};

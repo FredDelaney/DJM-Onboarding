@@ -169,15 +169,24 @@ export function getServerSideProps({
           ? query.reviewBrand
           : "",
       longInvoice: query.longInvoice === "1",
+      legacyCurrency: query.legacyCurrency === "1",
+      scoutingPlayers: query.scoutingPlayers === "1",
+      legacyReport: query.legacyReport === "1",
     },
   };
 }
 export default function DocumentFixture({
   reviewBrand = "",
   longInvoice = false,
+  legacyCurrency = false,
+  scoutingPlayers = false,
+  legacyReport = false,
 }: {
   reviewBrand?: string;
   longInvoice?: boolean;
+  legacyCurrency?: boolean;
+  scoutingPlayers?: boolean;
+  legacyReport?: boolean;
 }) {
   const [handoff, setHandoff] = useState<PreparationLink | null>(null);
   useEffect(() => {
@@ -194,13 +203,26 @@ export default function DocumentFixture({
         bankDetails: "Test account only\nIBAN: EXAMPLE FOR LAYOUT REVIEW",
       })
     : brand;
+  const historical = structuredClone(invoice);
+  historical.content.brand = selectedBrand;
+  historical.title = "QA historical KWD invoice";
+  delete historical.content.invoiceCurrencyVersion;
+  historical.content.fields.currency = "KWD";
+  historical.content.fields.tax_rate = "0";
+  historical.content.lines = [{id:"legacy",description:"QA historical amount",quantity:"1.5",unitPrice:"1.23"}];
+  const legacyScouting = newAgencyDocument("scouting_report", selectedBrand);
+  legacyScouting.is_template = true; legacyScouting.revision = 1; legacyScouting.title = "QA legacy scouting template";
+  legacyScouting.content.fields.player_name = "QA Previous Legacy Player";
+  legacyScouting.content.sections[0].title = "QA Previous Legacy Player private assessment";
+  legacyScouting.content.sections[2].body = "QA Previous Legacy Player private conclusions";
+  legacyScouting.content.sources = [{label:"QA Previous Legacy Player private video",url:"",capturedAt:"2026-10-27"}];
   const documents = useRef<AgencyDocument[]>(
-      reviewBrand
+      legacyReport ? [legacyScouting] : legacyCurrency ? [historical] : reviewBrand
         ? reviewCollection(selectedBrand, longInvoice)
         : [structuredClone(invoice)],
     ),
     events = useRef<Record<string, any[]>>({}),
-    failed = useRef(false);
+    failed = useRef(false), saveAttempts = useRef(0), readAttempts = useRef(0);
   const initial = useRef<DocumentStudioData>({
     tenant_id: "fixture",
     brand: {
@@ -221,9 +243,11 @@ export default function DocumentFixture({
           current_club: "Harbour FC",
           primary_position: "CM",
           career_summary: "Senior football experience with Harbour FC.",
+          ...(scoutingPlayers ? {key_stats:[{label:"QA published appearances, 2025/26",value:0},{label:"QA unknown minutes",value:null}]} : {}),
         },
       },
       { id: "player-b", name: "Jamie Harper", profile: null },
+      ...(scoutingPlayers ? [{id:"player-c",name:"Alex Bennett",profile:null}] : []),
     ],
   }).current;
   const request = useCallback<DocumentRequest>(
@@ -235,6 +259,7 @@ export default function DocumentFixture({
           { id: "capture-one", summary: "A development plan for Milo" },
         ] as any;
       window.dispatchEvent(new CustomEvent("qa-document-request", { detail: action }));
+      window.dispatchEvent(new CustomEvent("qa-document-record", { detail: { action, id: doc?.id, revision: doc?.revision } }));
       if (action === "capture_read" && payload.capture_id === "30000000-0000-4000-8000-000000000001") {
         const query = new URLSearchParams(window.location.search);
         if (query.get("scenario") === "brief-retry" && !failed.current) { failed.current = true; throw new Error("Fixture timeout"); }
@@ -261,6 +286,10 @@ export default function DocumentFixture({
         }
         if (scenario === "assist-slow")
           await new Promise((resolve) => setTimeout(resolve, 900));
+        if (scenario === "assist-identity-mismatch" && !failed.current) {
+          failed.current = true;
+          return { suggestions: { fields: [{ key: "player_name", value: "Invented Prospect", quote: "Milo Carter" }], sections: [], questions: [] } } as any;
+        }
         return {
           suggestions: {
             fields: [
@@ -286,23 +315,54 @@ export default function DocumentFixture({
           documents: structuredClone(documents.current),
         } as any;
       if (!doc) throw new Error("Choose a document");
+      if (action === "read") {
+        const scenario = new URLSearchParams(window.location.search).get("scenario");
+        if (scenario === "save-check-failed" && readAttempts.current++ === 0) {
+          throw new Error("Fixture confirmation unavailable");
+        }
+        if (scenario === "save-check-slow") return new Promise(() => {});
+        const current = documents.current.find(item => item.id === doc.id);
+        return { tenant_id: scenario === "save-read-foreign" ? "foreign" : "fixture", state: current ? "found" : "missing", document: current ? structuredClone(current) : null } as any;
+      }
       if (action === "save") {
+        saveAttempts.current++;
+        const scenario = new URLSearchParams(window.location.search).get("scenario");
+        if (scenario === "save-retry-rejected" && saveAttempts.current === 2)
+          throw Object.assign(new Error("Check the draft title before trying again."), {code: "P0001"});
+        if (scenario === "save-late" && saveAttempts.current === 1) {
+          return new Promise((resolve, reject) => setTimeout(() => {
+            const current = documents.current.find(item => item.id === doc.id);
+            if ((current?.revision || 0) !== doc.revision) {
+              window.dispatchEvent(new CustomEvent("qa-document-late", { detail: "rejected" }));
+              reject(Object.assign(new Error("This document changed."), {code: "40001"}));
+            } else {
+              const late = {...doc,...payload,revision:doc.revision+1,updated_at:new Date().toISOString()} as AgencyDocument;
+              documents.current = [late,...documents.current.filter(item => item.id !== doc.id)];
+              window.dispatchEvent(new CustomEvent("qa-document-late", { detail: "saved" }));
+              resolve(structuredClone(late) as any);
+            }
+          }, 1600));
+        }
         if (
           new URLSearchParams(window.location.search).get("scenario") ===
             "save-failed" &&
           !failed.current
         ) {
           failed.current = true;
-          throw new Error(
+          throw Object.assign(new Error(
             "The save failed. Your draft is still here. Try again.",
-          );
+          ), { code: "P0001" });
         }
+        const existing = documents.current.find(item => item.id === doc.id);
+        if ((!doc.revision && existing) || (existing && existing.revision !== doc.revision))
+          throw Object.assign(new Error("This document changed. Reopen it before saving again."), {code: "40001"});
         const saved = {
           ...doc,
           ...payload,
           revision: doc.revision + 1,
           updated_at: new Date().toISOString(),
         } as AgencyDocument;
+        window.dispatchEvent(new CustomEvent("qa-document-saved", {detail: structuredClone(saved)}));
         documents.current = [
           saved,
           ...documents.current.filter((item) => item.id !== doc.id),
@@ -314,6 +374,13 @@ export default function DocumentFixture({
           },
           ...(events.current[doc.id] || []),
         ];
+        if (scenario?.startsWith("save-") && scenario !== "save-failed" && saveAttempts.current === 1) {
+          if (scenario === "save-absent" || scenario === "save-retry-rejected") documents.current = documents.current.filter(item => item.id !== doc.id);
+          if (scenario === "save-conflict") saved.title = "Another editor's saved version";
+          if (scenario === "save-lost") return new Promise(() => {});
+          if (scenario !== "save-absent" && scenario !== "save-retry-rejected") documents.current = [structuredClone(saved), ...documents.current.filter(item => item.id !== doc.id)];
+          throw new Error("Fixture connection lost after write");
+        }
         return structuredClone(saved) as any;
       }
       if (action === "events") return (events.current[doc.id] || []) as any;

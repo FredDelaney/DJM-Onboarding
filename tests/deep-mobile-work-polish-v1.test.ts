@@ -43,16 +43,15 @@ test('Network create action stays on the list surface and disappears inside enti
 });
 
 test('relationship quick actions meet the mobile touch and readability baseline', () => {
-  assert.match(relationship, /Premium mobile relationship actions v1/);
   assert.match(
     relationship,
-    /\.actions button[\s\S]*min-height: 44px[\s\S]*font-size: 10\.5px/,
+    /\.actions button\s*\{[^}]*min-height:\s*44px[^}]*font-size:\s*13px/,
   );
   assert.match(
     relationship,
-    /\.formHead button[\s\S]*width: 44px[\s\S]*height: 44px/,
+    /\.formHead button\s*\{[^}]*width:\s*44px[^}]*min-height:\s*44px/,
   );
-  assert.match(relationship, /\.save[\s\S]*min-height: 44px/);
+  assert.match(relationship, /\.save\s*\{[^}]*min-height:\s*44px/);
 });
 
 test('compact Capture sheet keeps its mobile controls readable', () => {

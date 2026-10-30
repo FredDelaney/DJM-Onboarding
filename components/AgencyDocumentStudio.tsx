@@ -34,6 +34,8 @@ import {
 import { platformRpc, friendlyError } from "@/lib/platform-client";
 import { supabase } from "@/lib/supabase";
 import { readWithDeadline } from "@/lib/read-with-deadline";
+import { writeWithDeadline } from "@/lib/write-with-deadline";
+import { documentSaveCheck, sameDocumentDraft, type DocumentSaveCheck } from "@/lib/document-save-recovery";
 import { tenantBrandCssVariables } from "@/lib/tenant-brand-style";
 import {
   DOCUMENT_KINDS,
@@ -42,6 +44,8 @@ import {
   copyAgencyDocument,
   documentIssues,
   fillDocumentPlayer,
+  replacesScoutingPlayer,
+  isReusableScoutingTemplate,
   newAgencyDocument,
   type AgencyDocument,
   type DocumentBrand,
@@ -147,8 +151,10 @@ export default function AgencyDocumentStudio({
             signal,
           ),
         );
-      return readWithDeadline(
-        platformRpc(
+      if (action === "read") return platformRpc("redream_document_read", {
+        p_workspace_slug: workspaceSlug, p_id: doc?.id || null,
+      }, workspaceSlug, signal);
+      const operation = platformRpc(
           "redream_documents",
           {
             p_workspace_slug: workspaceSlug,
@@ -159,8 +165,9 @@ export default function AgencyDocumentStudio({
           },
           workspaceSlug,
           signal,
-        ),
-      );
+        );
+      // Save confirmation and cancellation belong to the editor's write flow.
+      return action === "save" ? operation : readWithDeadline(operation);
     },
     [workspaceSlug],
   );
@@ -281,14 +288,22 @@ export function DocumentStudioEditor({
     [note, setNote] = useState(""),
     [focusId, setFocusId] = useState(""),
     [dialogMode, setDialogMode] = useState("");
+  const [saveRecovery, setSaveRecovery] = useState<({ draft: AgencyDocument } & DocumentSaveCheck) | null>(null);
+  const operation = useRef(0), saveLock = useRef(false), abort = useRef<AbortController | null>(null);
+  const docRef = useRef(doc); docRef.current = doc;
+  const scope = `${workspaceSlug}:${initialData.tenant_id}`, scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const [pendingImport, setPendingImport] = useState<{ draft: AgencyDocument; player: DocumentPlayer; scope: string } | null>(null);
   const dialog = useRef<HTMLDialogElement>(null),
     pending = useRef<(() => void) | null>(null),
     mounted = useRef(true),
-    dirty = !!doc && JSON.stringify(doc) !== baseline;
+    dirty = !!doc && (JSON.stringify(doc) !== baseline || !!saveRecovery);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      operation.current++;
+      abort.current?.abort();
     };
   }, []);
   useEffect(() => {
@@ -307,7 +322,9 @@ export function DocumentStudioEditor({
         parent = parent.parentElement;
       }
       field.focus();
-      field.scrollIntoView({ block: "nearest" });
+      field.scrollIntoView(focusId === "document-save-recovery"
+        ? { block: "center", behavior: "instant" }
+        : { block: "nearest" });
     }
     setFocusId("");
   }, [focusId, tab]);
@@ -324,6 +341,11 @@ export function DocumentStudioEditor({
     dialog.current?.showModal();
   };
   const select = (next: AgencyDocument | null) => {
+    operation.current++;
+    abort.current?.abort();
+    saveLock.current = false;
+    setBusy("");
+    setSaveRecovery(null);
     setDoc(next ? structuredClone(next) : null);
     setBaseline(next ? JSON.stringify(next) : "");
     setPlayerId("");
@@ -351,44 +373,112 @@ export function DocumentStudioEditor({
     }));
   const setField = (key: string, value: string) =>
     edit((current) => updateDocumentField(current, key, value));
+  const applyPlayerImport = (target = pendingImport) => {
+    const current = docRef.current;
+    setPendingImport(null);
+    dialog.current?.close();
+    if (!target || !current || current.paid_at || busy || saveLock.current || target.scope !== scopeRef.current ||
+      current.revision !== target.draft.revision || !sameDocumentDraft(current, target.draft) ||
+      !initialData.players.some(player => player.id === target.player.id)) {
+      setError("This document changed. Choose the player again before copying details.");
+      return;
+    }
+    const next = { ...fillDocumentPlayer(current, target.player),
+      title: updateDocumentField(current, "player_name", target.player.name).title };
+    edit(() => next);
+    setNotice(current.kind === "scouting_report"
+      ? next.content.sources.length
+        ? "Published profile details copied. Review the evidence for this report."
+        : "Player name copied. No published profile evidence is available."
+      : "Player details copied into this document. Your roster is unchanged.");
+  };
+  const beginPlayerImport = () => {
+    const player = initialData.players.find(item => item.id === playerId);
+    if (!doc || !player || busy || doc.paid_at) return;
+    const target = { draft: structuredClone(doc), player, scope: scopeRef.current };
+    setPendingImport(target);
+    if (doc.kind === "scouting_report" && (doc.content.fields.player_name?.trim() || doc.content.sources.length || replacesScoutingPlayer(doc, player)))
+      openDialog("import_player");
+    else applyPlayerImport(target);
+  };
   const refresh = async () => {
     const latest = await request<DocumentStudioData>("list");
     if (mounted.current) setLibrary(latest.documents);
     return latest;
   };
-  const save = async () => {
-    if (!doc || busy || doc.paid_at) return;
+  const save = async (retry = false) => {
+    if (!doc || busy || saveLock.current || doc.paid_at || (saveRecovery && !retry)) return;
+    saveLock.current = true;
+    const version = ++operation.current, currentScope = scope;
+    const current = () => mounted.current && operation.current === version && scopeRef.current === currentScope;
+    const controller = new AbortController(); abort.current = controller;
     setBusy("save");
     setError("");
     setNotice("");
     const draft = doc;
     try {
-      const saved = await request<AgencyDocument>("save", draft, {
-        title: draft.title,
-        kind: draft.kind,
-        is_template: draft.is_template,
-        content: draft.content,
-      });
-      if (!mounted.current) return;
-      setDoc(saved);
-      setBaseline(JSON.stringify(saved));
-      setLibrary((current) => [
-        saved,
-        ...current.filter((item) => item.id !== saved.id),
-      ]);
-      setNotice(saved.is_template ? "Agency template saved" : "Draft saved");
-    } catch (err) {
-      if (mounted.current) setError(friendlyError(err));
-      if ((err as { code?: string })?.code === "40001") {
-        try {
-          await refresh();
-        } catch {
-          /* Keep the unsaved draft and original error. */
+      const outcome = await writeWithDeadline(async signal => {
+        try { return { data: await request<AgencyDocument>("save", draft, {
+          title: draft.title, kind: draft.kind, is_template: draft.is_template, content: draft.content,
+        }, signal), error: null }; }
+        catch (error) { return { data: null, error }; }
+      }, 12000, controller.signal);
+      if (!current()) return;
+      if (outcome.status === "complete" && outcome.result.error) {
+        const failure = outcome.result.error as { code?: string; message?: string };
+        // A returned database rejection is different from a missing acknowledgement.
+        if (/^[A-Z0-9]{5}$/.test(failure.code || "") && failure.code !== "40001" &&
+          failure.code !== "23505" && !/document ID .*already in use/i.test(failure.message || "")) {
+          setError(friendlyError(failure)); return;
         }
       }
+      if (outcome.status === "complete" && outcome.result.data) {
+        const check = documentSaveCheck({tenant_id: initialData.tenant_id, state: "found", document: outcome.result.data}, initialData.tenant_id, draft);
+        if (check.state === "matching") { acceptSaved(check.saved, draft); return; }
+      }
+      const check = await reconcileSave(draft, current, controller.signal);
+      // A duplicate invoice number can reject a new draft without creating its ID.
+      if (current() && !saveRecovery && check?.state === "missing" && outcome.status === "complete" && outcome.result.error) {
+        const failure = outcome.result.error as {code?: string};
+        if (/^[A-Z0-9]{5}$/.test(failure.code || "")) {
+          setSaveRecovery(null); setError(friendlyError(failure));
+        }
+      }
+    } catch (err) {
+      if (current()) setSaveRecovery({ draft, state: "unknown" });
     } finally {
-      if (mounted.current) setBusy("");
+      controller.abort();
+      if (current()) { setBusy(""); saveLock.current = false; }
     }
+  };
+  const acceptSaved = (saved: AgencyDocument, submitted: AgencyDocument) => {
+    const newer = !!docRef.current && docRef.current.id === submitted.id && !sameDocumentDraft(docRef.current, submitted);
+    setDoc(current => current?.id === submitted.id
+      ? sameDocumentDraft(current, submitted) ? saved : { ...current, revision: saved.revision, updated_at: saved.updated_at }
+      : current);
+    setBaseline(JSON.stringify(saved));
+    setLibrary(items => [saved, ...items.filter(item => item.id !== saved.id)]);
+    setSaveRecovery(null); setError("");
+    setNotice(newer ? "Previous save confirmed. Your newer changes are still unsaved." : saved.is_template ? "Agency template saved" : "Draft saved");
+  };
+  const reconcileSave = async (draft: AgencyDocument, current: () => boolean, signal: AbortSignal) => {
+    if (current()) setBusy("confirm");
+    let check: DocumentSaveCheck = { state: "unknown" };
+    try { check = documentSaveCheck(await readWithDeadline(request("read", draft, {}, signal)), initialData.tenant_id, draft); }
+    catch { /* An unsuccessful read is not evidence of an unsuccessful write. */ }
+    if (!current()) return;
+    if (check.state === "matching") acceptSaved(check.saved, draft);
+    else { setSaveRecovery({ draft, ...check }); setError(""); setFocusId("document-save-recovery"); }
+    return check;
+  };
+  const checkSaved = async () => {
+    if (!saveRecovery || busy || saveLock.current) return;
+    saveLock.current = true; setBusy("confirm");
+    const version = ++operation.current, currentScope = scope;
+    const current = () => mounted.current && operation.current === version && scopeRef.current === currentScope;
+    const controller = new AbortController(); abort.current = controller;
+    try { await reconcileSave(saveRecovery.draft, current, controller.signal); }
+    finally { controller.abort(); if (current()) { saveLock.current = false; setBusy(""); } }
   };
   const action = async (kind: string) => {
     if (!doc || busy) return;
@@ -448,7 +538,12 @@ export function DocumentStudioEditor({
         copyAgencyDocument(template, "from_template", initialData.settings),
       );
       setNotice(
-        "Template loaded. Add this recipient's details and check any personalised wording.",
+        template.kind === "agency_pitch" &&
+          template.content.pitchTemplateVersion !== 1
+          ? "Layout and branding kept. Previous pitch wording and sources cleared. Add this player's details and wording."
+          : template.kind === "scouting_report" && !isReusableScoutingTemplate(template)
+            ? "Layout and branding kept. Previous scouting headings, observations and sources cleared. Add this player's evidence."
+            : "Template loaded. Add this recipient's details and check any personalised wording.",
       );
     });
   const asTemplate = () => {
@@ -457,8 +552,13 @@ export function DocumentStudioEditor({
       select(copyAgencyDocument(doc, "template"));
       setNotice(
         doc.kind === "scouting_report"
-          ? "Layout and branding kept. Player observations and sources cleared for this reusable template."
-          : "Personal fields cleared. Check any personalised wording before saving the template.",
+          ? isReusableScoutingTemplate(doc)
+              ? "Reusable scouting guidance kept. Personal fields cleared; review this template before reuse."
+              : "Layout and branding kept. Player headings, observations and sources cleared for this reusable template."
+          : doc.kind === "agency_pitch" &&
+              !(doc.is_template && doc.content.pitchTemplateVersion === 1)
+            ? "Layout and branding kept. Pitch wording and sources cleared. Add reusable agency wording before saving."
+            : "Personal fields cleared. Check any personalised wording before saving the template.",
       );
     });
   };
@@ -466,7 +566,9 @@ export function DocumentStudioEditor({
     if (!doc) return;
     navigate(() => select(copyAgencyDocument(doc, "duplicate")));
   };
-  const issues = doc ? documentIssues(doc) : [];
+  const issues = doc ? documentIssues(doc, true) : [];
+  // Recording a historical payment must retain that invoice's original amounts.
+  const recordIssues = doc ? documentIssues(doc) : [];
   const loadActivity = async () => {
     if (!doc || busy) return;
     setTab("activity");
@@ -745,7 +847,7 @@ export function DocumentStudioEditor({
                   ? "Agency template"
                   : DOCUMENT_TEMPLATES[doc.kind].label}{" "}
                 ·{" "}
-                {dirty
+                {saveRecovery ? "Save unconfirmed" : dirty
                   ? "Unsaved changes"
                   : doc.revision
                     ? "Saved draft"
@@ -764,22 +866,31 @@ export function DocumentStudioEditor({
               <button
                 data-ui-button="primary"
                 type="button"
-                onClick={() => void save()}
+                onClick={() => void (saveRecovery ? checkSaved() : save())}
                 disabled={
                   !!busy || !!doc.paid_at || (!dirty && doc.revision > 0)
                 }
                 className={styles.primary}
               >
-                {busy === "save" ? (
+                {busy === "save" || busy === "confirm" ? (
                   <LoaderCircle size={16} />
                 ) : (
                   <Check size={16} />
                 )}
-                Save draft
+                {busy === "confirm" ? "Checking saved version…" : saveRecovery ? "Check saved version" : "Save draft"}
               </button>
             </div>
           </div>
           <div className={styles.feedback} aria-live="polite">
+            {saveRecovery ? <div role="status" id="document-save-recovery" tabIndex={-1} className={styles.saveRecovery}>
+              <p>{saveRecovery.state === "different" ? "A different version is saved. Your draft is still here."
+                : saveRecovery.state === "archived" ? "This document was archived. Your draft is still here."
+                : "We haven't confirmed this save. Your draft is still here."}</p>
+              {saveRecovery.state === "different" && "saved" in saveRecovery ? <button data-ui-button="secondary" type="button" disabled={!!busy}
+                onClick={() => navigate(() => select(saveRecovery.saved))}>Load saved version</button> : null}
+              {saveRecovery.state === "missing" || saveRecovery.state === "unchanged" ? <button data-ui-button="secondary" type="button" disabled={!!busy}
+                onClick={() => void save(true)}>Retry save</button> : null}
+            </div> : null}
             {notice ? (
               <p role="status">
                 <CheckCircle2 size={16} />
@@ -860,25 +971,7 @@ export function DocumentStudioEditor({
                             content: { ...current.content, reviewed: false },
                           }))
                         }
-                        onImport={() => {
-                          const player = initialData.players.find(
-                            (item) => item.id === playerId,
-                          );
-                          if (!player) return;
-                          edit((current) => ({
-                            ...fillDocumentPlayer(current, player),
-                            title: updateDocumentField(
-                              current,
-                              "player_name",
-                              player.name,
-                            ).title,
-                          }));
-                          setNotice(
-                            doc.kind === "scouting_report"
-                              ? "Published profile details copied. Review the evidence for this report."
-                              : "Player details copied into this document. Your roster is unchanged.",
-                          );
-                        }}
+                        onImport={beginPlayerImport}
                       >
                         {doc.kind === "invoice" ? (
                           <section
@@ -1034,7 +1127,7 @@ export function DocumentStudioEditor({
                       {issues.length ? (
                         <details className={styles.checklist} open>
                           <summary>
-                            {issues.length} things to check before sharing
+                            {issues.length} {issues.length === 1 ? "thing" : "things"} to check before sharing
                           </summary>
                           <ul>
                             {issues.map((issue) => (
@@ -1286,7 +1379,7 @@ export function DocumentStudioEditor({
                             />
                           </label>
                           <label>
-                            Source checked on
+                            Source added on
                             <input
                               type="date"
                               value={source.capturedAt?.slice(0, 10) || ""}
@@ -1429,7 +1522,7 @@ export function DocumentStudioEditor({
                           <button
                             data-ui-button="secondary"
                             type="button"
-                            disabled={dirty || issues.length > 0}
+                            disabled={dirty || recordIssues.length > 0}
                             onClick={() => openDialog("sent")}
                           >
                             Record sent
@@ -1438,7 +1531,7 @@ export function DocumentStudioEditor({
                             data-ui-button="secondary"
                             type="button"
                             disabled={
-                              dirty || !!doc.paid_at || issues.length > 0
+                              dirty || !!doc.paid_at || recordIssues.length > 0
                             }
                             onClick={() => openDialog("paid")}
                           >
@@ -1479,7 +1572,7 @@ export function DocumentStudioEditor({
                 >
                   <ShieldCheck size={15} />
                   {issues.length
-                    ? `${issues.length} checks before sharing`
+                    ? `${issues.length} ${issues.length === 1 ? "check" : "checks"} before sharing`
                     : "Review complete"}
                 </button>
                 <DocumentExportButtons doc={doc} onError={setError} />
@@ -1520,6 +1613,7 @@ export function DocumentStudioEditor({
                     type="button"
                     disabled={!!busy}
                     onClick={duplicate}
+                    id="document-duplicate"
                   >
                     <Copy size={15} />
                     Duplicate document
@@ -1549,6 +1643,20 @@ export function DocumentStudioEditor({
       <dialog
         ref={dialog}
         className={styles.dialog}
+        onKeyDown={(event) => {
+          if (event.key !== "Tab") return;
+          const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+            "button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href]",
+          )).filter(node => node.getClientRects().length > 0);
+          const first = controls[0], last = controls.at(-1);
+          if (!controls.includes(document.activeElement as HTMLElement)) {
+            event.preventDefault(); (event.shiftKey ? last : first)?.focus();
+          } else if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault(); last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault(); first?.focus();
+          }
+        }}
         aria-label={
           dialogMode === "discard"
             ? "Unsaved document changes"
@@ -1558,6 +1666,7 @@ export function DocumentStudioEditor({
         }
         onCancel={(event) => {
           if (busy) event.preventDefault();
+          else setPendingImport(null);
         }}
       >
         <header>
@@ -1566,6 +1675,8 @@ export function DocumentStudioEditor({
               ? "Keep your changes?"
               : dialogMode === "share"
                 ? "Share a considered version"
+                : dialogMode === "import_player"
+                  ? "Copy player details?"
                 : dialogMode === "paid"
                   ? "Record a payment"
                   : dialogMode === "sent"
@@ -1579,7 +1690,7 @@ export function DocumentStudioEditor({
             type="button"
             disabled={!!busy}
             aria-label="Close document dialog"
-            onClick={() => dialog.current?.close()}
+            onClick={() => { setPendingImport(null); dialog.current?.close(); }}
           >
             <X size={20} />
           </button>
@@ -1606,6 +1717,18 @@ export function DocumentStudioEditor({
               >
                 Discard changes
               </button>
+            </div>
+          </>
+        ) : dialogMode === "import_player" ? (
+          <>
+            <p>Copy details for <strong>{pendingImport?.player.name}</strong> into this draft?</p>
+            {!pendingImport?.player.profile ? <p>No published profile is available for this player. Only the name will be copied.</p> : null}
+            <p>Player details, profile evidence and sources will be replaced. {pendingImport && replacesScoutingPlayer(pendingImport.draft, pendingImport.player)
+              ? "This starts a fresh assessment; existing scouting observations will be cleared."
+              : "Your scouting observations will stay."} Save the draft to keep these changes.</p>
+            <div className={styles.dialogActions}>
+              <button data-ui-button="secondary" type="button" onClick={() => { setPendingImport(null); dialog.current?.close(); }}>Keep current report</button>
+              <button data-ui-button="primary" className={styles.primary} type="button" onClick={() => applyPlayerImport()}>Copy profile details</button>
             </div>
           </>
         ) : dialogMode === "share" ? (

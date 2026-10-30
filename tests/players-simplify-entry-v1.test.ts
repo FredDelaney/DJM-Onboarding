@@ -57,19 +57,19 @@ test('clickable player cards have clear desktop hover and keyboard focus feedbac
 
 
 test('Recruitment target capture is minimum-first with optional detail collapsed', () => {
-  const create = players.slice(players.indexOf('{createOpen?('));
+  assert.match(players,/AgencyCreateDrawer[\s\S]{0,130}kind="recruitment_target"/);
+  const shared=readFileSync('components/AgencyCreateDrawer.tsx','utf8');
+  const create=shared.slice(shared.indexOf("{kind === 'player'||kind==='recruitment_target'"),shared.indexOf("{kind === 'club' ? ("));
   assert.match(create, /Player name/);
-  assert.match(create, /Position/);
+  assert.match(create, /Primary position/);
   assert.match(create, /Current club/);
-  assert.match(create, /showRecruitDetails/);
-  assert.match(create, /More details/);
-  assert.match(create, /styles\.optionalCreateDetails/);
-  assert.match(styles, /\.createDetailsToggle/);
-  assert.match(styles, /\.optionalCreateDetails/);
+  assert.match(create, /DetailsToggle/);
+  assert.match(create, /showDetails/);
+  assert.match(create, /styles\.optionalDetails/);
 
-  const toggleIndex = create.indexOf('className={styles.createDetailsToggle}');
-  const countryIndex = create.indexOf('<span>Country</span>');
-  const transfermarktIndex = create.indexOf('<span>Transfermarkt</span>');
+  const toggleIndex = create.indexOf('<DetailsToggle');
+  const countryIndex = create.indexOf('label="Country"');
+  const transfermarktIndex = create.indexOf('label="Transfermarkt URL"');
   assert.ok(toggleIndex >= 0);
   assert.ok(countryIndex > toggleIndex);
   assert.ok(transfermarktIndex > toggleIndex);

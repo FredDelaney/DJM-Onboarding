@@ -1,6 +1,6 @@
 'use client';
 
-import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { lockPageScroll, isolateElements } from '@/lib/page-scroll-lock';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -20,6 +20,7 @@ import {
 } from 'react';
 
 import { friendlyError } from '@/lib/platform-client';
+import {readWithDeadline} from '@/lib/read-with-deadline';
 
 import styles from './AgencyActionDrawer.module.css';
 
@@ -43,6 +44,7 @@ export type AgencyActionRequest = {
   confirmationLabel?: string | null;
   fallbackHref?: string | null;
   fallbackLabel?: string | null;
+  returnFocusId?: string;
 };
 
 type Invoke = (
@@ -208,12 +210,20 @@ export default function AgencyActionDrawer({
   onApplied: () => Promise<void> | void;
 }) {
   const preparedRef = useRef(false);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const modalState = useRef({busy: false, onClose});
 
   const [mode, setMode] =
     useState<Mode>('preparing');
 
   const [busy, setBusy] = useState(false);
+  modalState.current = {busy, onClose};
   const [error, setError] = useState('');
+  const [refreshError,setRefreshError]=useState('');
+  const confirmationHeading=useRef<HTMLHeadingElement>(null);
+  useEffect(()=>{if(mode==='done'||mode==='undone')confirmationHeading.current?.focus();},[mode]);
   const [result, setResult] =
     useState<any>(null);
   const [proposal, setProposal] =
@@ -298,7 +308,11 @@ export default function AgencyActionDrawer({
     result?.reminder_owner_name || '',
   ).trim();
 
-  const requiredInputs =
+  const preparedOwner = result?.ownership_required_first === true &&
+    result?.action_type === 'assign_deal_owner' && result?.status === 'proposed' &&
+    result?.executable === true && Boolean(inputs.owner_user_id) &&
+    result?.payload?.owner_user_id === inputs.owner_user_id;
+  const requiredInputs = preparedOwner ? [] :
     rawRequiredInputs.length
       ? rawRequiredInputs
       : actionType ===
@@ -319,14 +333,17 @@ export default function AgencyActionDrawer({
     result?.payload ||
     {};
 
-  const successCondition =
-    request.successCondition ||
+  const followUpAfterOwner=request.action==='deal_step_prepare'&&request.payload.step_type==='set_next_action'&&result?.ownership_required_first===true;
+  const successCondition = followUpAfterOwner
+    ? 'One agency user owns this deal. Choose the follow-up action and date next.'
+    : request.successCondition ||
     proposalPayload?.success_condition ||
     result?.success_condition ||
     '';
 
   const undoSupported = Boolean(
-    proposal?.undo_supported ||
+    appliedResult?.undo_supported ||
+      proposal?.undo_supported ||
       result?.undo_supported,
   );
 
@@ -398,7 +415,7 @@ export default function AgencyActionDrawer({
     setMode('review');
   }
 
-  async function prepare() {
+  async function prepare(nextInputs:Record<string,string> = inputs) {
     if (busy) return;
 
     setBusy(true);
@@ -406,18 +423,18 @@ export default function AgencyActionDrawer({
     setMode('preparing');
 
     try {
-      const response = await invoke(
+      const response = await readWithDeadline(invoke(
         request.action,
         {
           ...request.payload,
-          ...(Object.keys(inputs).length
+          ...(Object.keys(nextInputs).length
             ? {
                 input:
-                  normaliseInputs(inputs),
+                  normaliseInputs(nextInputs),
               }
             : {}),
         },
-      );
+      ));
 
       consumePrepared(
         response?.proposal ||
@@ -590,6 +607,7 @@ export default function AgencyActionDrawer({
 
     setBusy(true);
     setError('');
+    setRefreshError('');
 
     try {
       const response = await invoke(
@@ -604,8 +622,7 @@ export default function AgencyActionDrawer({
       );
 
       setMode('done');
-
-      await onApplied();
+      try{await onApplied();}catch{setRefreshError('The change is saved, but the latest view could not load.');}
     } catch (actionError) {
       setError(
         friendlyError(actionError),
@@ -626,6 +643,7 @@ export default function AgencyActionDrawer({
 
     setBusy(true);
     setError('');
+    setRefreshError('');
 
     try {
       await invoke('action_undo', {
@@ -633,8 +651,7 @@ export default function AgencyActionDrawer({
       });
 
       setMode('undone');
-
-      await onApplied();
+      try{await onApplied();}catch{setRefreshError('Undo is saved, but the latest view could not load.');}
     } catch (actionError) {
       setError(
         friendlyError(actionError),
@@ -651,48 +668,79 @@ export default function AgencyActionDrawer({
     void prepare();
   }, [request.key]);
 
+  async function reloadConfirmedView(){
+    if(busy)return;
+    setBusy(true);
+    try{await onApplied();setRefreshError('');}catch{setRefreshError('The saved change is unchanged. The latest view could not load.');}
+    finally{setBusy(false);}
+  }
+
   useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
+    openerRef.current ??= document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const opener = openerRef.current;
     const releaseScroll = lockPageScroll();
-
-
+    // The drawer stays in its existing tenant-themed tree. Isolate siblings
+    // along that branch so no ancestor containing the dialog becomes inert.
+    const background: HTMLElement[] = [];
+    let branch: HTMLElement | null = backdropRef.current;
+    while (branch?.parentElement) {
+      const parent = branch.parentElement;
+      background.push(...Array.from(parent.children).filter(
+        (node): node is HTMLElement => node instanceof HTMLElement && node !== branch,
+      ));
+      if (parent === document.body) break;
+      branch = parent;
+    }
+    const releaseBackground = isolateElements(background);
+    const controls = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+    ) || []).filter(node => node.getClientRects().length > 0 && !node.closest('[inert]'));
+    const first = () => (controls()[0] || dialogRef.current)?.focus({preventScroll: true});
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !dialogRef.current?.contains(event.target)) first();
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopPropagation();
+        if (!modalState.current.busy) modalState.current.onClose();
+      } else if (event.key === 'Tab') {
+        const items = controls(), start = items[0], end = items.at(-1);
+        if (!items.length) { event.preventDefault(); dialogRef.current?.focus(); }
+        else if (!dialogRef.current?.contains(document.activeElement)) {
+          event.preventDefault(); (event.shiftKey ? end : start)?.focus();
+        } else if (event.shiftKey && document.activeElement === start) {
+          event.preventDefault(); end?.focus();
+        } else if (!event.shiftKey && document.activeElement === end) {
+          event.preventDefault(); start?.focus();
+        }
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', key, true);
+    first();
     return () => {
-      releaseScroll();
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', key, true);
+      releaseBackground(); releaseScroll();
       queueMicrotask(() => {
-        if (opener?.isConnected) opener.focus();
+        const target=(request.returnFocusId?document.getElementById(request.returnFocusId):null)||opener;
+        if(target?.isConnected&&!target.closest('[inert]'))target.focus({preventScroll:true});
       });
     };
   }, []);
 
   useEffect(() => {
-    const handleKey = (
-      event: KeyboardEvent,
-    ) => {
-      if (
-        event.key === 'Escape' &&
-        !busy &&
-        !event.defaultPrevented
-      ) {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener(
-      'keydown',
-      handleKey,
-    );
-
-    return () =>
-      window.removeEventListener(
-        'keydown',
-        handleKey,
-      );
-  }, [busy, onClose]);
+    const dialog = dialogRef.current;
+    if (dialog && !busy && (!dialog.contains(document.activeElement) || dialog === document.activeElement)) {
+      dialog.querySelector<HTMLElement>('button[aria-label="Close action workspace"]')?.focus({preventScroll: true});
+    }
+  }, [busy, mode]);
 
   return (
     <div
       className={styles.backdrop}
+      ref={backdropRef}
       onClick={(event) => {
         if (
           event.target ===
@@ -705,6 +753,8 @@ export default function AgencyActionDrawer({
     >
       <aside
         className={`${styles.drawer} ${reviewOnly ? styles.reviewDrawer : ''}`}
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={request.title}
@@ -885,6 +935,7 @@ export default function AgencyActionDrawer({
                         'select' &&
                       ownerCandidates.length ? (
                         <select
+                          aria-label={meta.label}
                           value={
                             inputs[key] ||
                             ''
@@ -931,6 +982,7 @@ export default function AgencyActionDrawer({
                         </select>
                       ) : (
                         <input
+                          aria-label={meta.label}
                           type={meta.type}
                           value={
                             inputs[key] ||
@@ -1492,7 +1544,7 @@ export default function AgencyActionDrawer({
                   <CheckCircle2 size={15} />
                 )}
 
-                {request.confirmationLabel ||
+                {followUpAfterOwner?'Assign owner':request.confirmationLabel ||
                   actionLabel(
                     actionType,
                     'Confirm action',
@@ -1558,14 +1610,12 @@ export default function AgencyActionDrawer({
               DONE
             </p>
 
-            <h3>
-              Done. The latest view is up to
-              date.
+            <h3 ref={confirmationHeading} tabIndex={-1}>
+              {followUpAfterOwner?'Owner assigned.':'Change saved.'}
             </h3>
 
             <p>
-              The change is saved and the
-              latest view is ready.
+              {followUpAfterOwner?'Choose the follow-up action and date to finish setting the reminder.':'The change is saved.'}
             </p>
 
             <div
@@ -1600,14 +1650,17 @@ export default function AgencyActionDrawer({
                 </button>
               ) : null}
 
+              {followUpAfterOwner?<button type="button" data-ui-button="primary" className={styles.primary} disabled={busy||Boolean(refreshError)} onClick={()=>{
+                setInputs({});setResult(null);setProposal(null);setAppliedResult(null);setRefreshError('');void prepare({});
+              }}>Set follow-up</button>:null}
               <button
                 type="button"
-                data-ui-button="primary"
-              className={styles.primary}
+                data-ui-button={followUpAfterOwner?'secondary':'primary'}
+              className={followUpAfterOwner?styles.secondary:styles.primary}
                 onClick={onClose}
                 disabled={busy}
               >
-                Done
+                {followUpAfterOwner?'Close':'Done'}
               </button>
             </div>
 
@@ -1621,6 +1674,7 @@ export default function AgencyActionDrawer({
           </section>
         ) : null}
 
+        {refreshError?<section className={styles.error+' '+styles.refreshRecovery} role="alert"><p>{refreshError}</p><button type="button" data-ui-button="secondary" disabled={busy} onClick={()=>void reloadConfirmedView()}>Reload latest view</button></section>:null}
         {mode === 'undone' ? (
           <section
             className={styles.resolved}
@@ -1631,11 +1685,11 @@ export default function AgencyActionDrawer({
               <p className={styles.eyebrow}>
                 UNDONE
               </p>
-              <h3>
+              <h3 ref={confirmationHeading} tabIndex={-1}>
                 The change has been undone.
               </h3>
               <p>
-                The latest view is up to date.
+                The previous change is restored.
               </p>
             </div>
           </section>

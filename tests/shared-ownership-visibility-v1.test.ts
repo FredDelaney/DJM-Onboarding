@@ -143,7 +143,7 @@ test(
     );
     assert.match(
       chipStyles,
-      /text-overflow: ellipsis/,
+      /overflow-wrap: anywhere/,
     );
   },
 );

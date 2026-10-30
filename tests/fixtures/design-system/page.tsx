@@ -11,7 +11,7 @@ export default function Page(){
  const [name,setName]=useState('Example Club'),[retry,setRetry]=useState(0);
  const rpc=async<T,>(method:string,args?:Record<string,unknown>):Promise<T>=>{
   const response=await fetch('https://example.supabase.co/rest/v1/rpc/'+method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)});
-  const result=await response.json();if(!response.ok)throw new Error(result.message||'Request failed');
+  const result=await response.json();if(!response.ok)throw Object.assign(new Error(result.message||'Request failed'),{code:result.code});
   if(method==='redream_entity_patch')setName(String((args?.p_patch as any)?.name||name));return result as T;
  };
  return <TenantRuntimeProvider runtime={runtime}><main data-interface="calm" style={{maxWidth:640,margin:'32px auto',padding:'0 16px','--interface-success':'#145a32','--interface-danger':'#b42318'} as any}>

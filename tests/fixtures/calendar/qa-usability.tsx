@@ -5,7 +5,7 @@ export default function Page(){
  const [query,setQuery]=useState(''),[name,setName]=useState('Example Club');
  const rpc=async<T,>(method:string,args?:Record<string,unknown>):Promise<T>=>{
   const response=await fetch('https://example.supabase.co/rest/v1/rpc/'+method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)});
-  const data=await response.json();if(!response.ok)throw new Error(data.message||'Could not save');return data as T;
+  const data=await response.json();if(!response.ok)throw Object.assign(new Error(data.message||'Could not save'),{code:data.code});return data as T;
  };
  return <main data-interface="calm" style={{maxWidth:620,padding:20,margin:'0 auto'}}>
   <h1>Usability checks</h1><WorkspaceListSearch label="Search players" placeholder="Search players" value={query} onChange={setQuery}/>

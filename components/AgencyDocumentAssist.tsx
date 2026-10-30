@@ -147,10 +147,12 @@ export default function AgencyDocumentAssist({
         throw new Error(
           "The document changed. Prepare suggestions again for the current draft.",
         );
-      const suggestions = validateDocumentSuggestions(
-        response.suggestions,
-        input,
-      );
+      let suggestions: DocumentSuggestions;
+      try {
+        suggestions = validateDocumentSuggestions(response.suggestions, input);
+      } catch {
+        throw new Error("Some suggestions are not supported by your brief. Your draft is unchanged. Check the brief and try again.");
+      }
       setResult({ suggestions, fingerprint });
       setSelected([
         ...suggestions.fields

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
@@ -19,36 +20,36 @@ import WorkspaceListSearch from './WorkspaceListSearch';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import {clubNeedBriefFields, clubNeedFinancialFacts,clubNeedFootballFacts,clubNeedFieldValue,formatCommercialAmount} from '@/lib/club-need-brief';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
-type OpportunityView = 'needs' | 'routes' | 'deals';
+const AgencyOpportunityOverview = dynamic(() => import('./AgencyOpportunityOverview'));
+
+type OpportunityView = 'overview' | 'needs' | 'routes' | 'deals';
 
 const opportunityViewFrom = (value: unknown): OpportunityView =>
-  value === 'routes' || value === 'deals' ? value : 'needs';
+  value === 'overview' || value === 'routes' || value === 'deals' ? value : 'needs';
 
 const list = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
+
+const candidateCoverageLabel = (item: any) => {
+  const value = item?.candidate_coverage?.recorded_candidates;
+  const count = typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
+  return count === null ? 'Coverage not recorded' : `${count} recorded candidate${count === 1 ? '' : 's'}`;
+};
+const salaryFigure=(amount:unknown,currency:unknown,period:unknown,basis:unknown)=>{
+ const value=formatCommercialAmount(amount,currency);if(value===null)return 'Not recorded';
+ return `${value} ${period==='monthly'?'per month':period==='weekly'?'per week':period==='annual'?'per year':'· period unknown'} · ${basis==='gross'?'gross':basis==='net'?'net':'tax basis unknown'}`;
+};
 
 const human = (value: unknown) =>
   String(value || '')
     .replaceAll('_', ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-const money = (value: unknown, currency = 'EUR') => {
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return 'Commission not set';
-
-  try {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${Math.round(amount).toLocaleString('en-GB')}`;
-  }
-};
+const money = (value:unknown,currency?:string|null) => formatCommercialAmount(value,currency)||'Commission not set';
 
 const careerGateLabel = (value: unknown) => {
   const state = String(value || '').trim().toLowerCase();
@@ -173,18 +174,20 @@ export default function AgencyOpportunitiesWorkspace({
   onRetry?: () => void;
   onRefresh: () => Promise<void>;
   onRecordRefresh?: () => Promise<void>;
-  rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
+  rpc: <T,>(name: string, args?: Record<string, unknown>, signal?:AbortSignal) => Promise<T>;
   onOpenAction: (request: AgencyActionRequest) => void;
   onOpenPursuit: (request: AgencyPursuitRequest) => void;
   onOpenIntelligence: (request: AgencyIntelligenceRequest) => void;
 }) {
   const router = useRouter();
+  const lookupRecords=useCallback((record_kind:'club'|'contact'|'organisation',query:string,selected_id:string)=>invoke('club_request_options',{record_kind,query,selected_id}),[invoke]);
   const searchParams = useSearchParams();
   const requestedView = opportunityViewFrom(searchParams.get('tab'));
   const [view, setView] = useState<OpportunityView>(requestedView);
   const [search, setSearch] = useState('');
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const requestedRecord=String(searchParams.get('record')||'');
+  const [expandedNeed, setExpandedNeed] = useState({scope: basePath, id: requestedView === 'needs' ? requestedRecord : ''});
   const [exactNeed,setExactNeed]=useState<any>(null);
   const [exactError,setExactError]=useState('');
   const [exactBusy,setExactBusy]=useState(false);
@@ -194,6 +197,9 @@ export default function AgencyOpportunitiesWorkspace({
   useEffect(()=>{
     setSearch('');
   },[requestedRecord,requestedView]);
+  useEffect(() => {
+    setExpandedNeed({scope: basePath, id: requestedView === 'needs' ? requestedRecord : ''});
+  }, [basePath, requestedRecord, requestedView]);
   useEffect(()=>{
     let current=true;
     setExactNeed(null);setExactError('');setExactBusy(false);
@@ -435,8 +441,7 @@ export default function AgencyOpportunitiesWorkspace({
         },
         {
           label: 'Coverage',
-          value:
-            `${Number(item.candidate_coverage?.recorded_candidates || 0)} candidate${Number(item.candidate_coverage?.recorded_candidates || 0) === 1 ? '' : 's'}`,
+          value: candidateCoverageLabel(item),
           detail: human(
             item.coverage_state ||
               'coverage not set',
@@ -460,7 +465,7 @@ export default function AgencyOpportunitiesWorkspace({
     const accessMode =
       item.access_strategy?.recommended_mode ||
       item.best_access_route?.route_state ||
-      'recorded_route';
+      'access_not_recorded';
 
     onOpenPursuit({
       key: `pursuit:${item.player_match_id}`,
@@ -486,21 +491,17 @@ export default function AgencyOpportunitiesWorkspace({
     });
   };
 
-  const handleDeal = (deal: any) => {
-    const controlInstruction =
-      deal.next_control_fix?.instruction || '';
+  const openDeal = (deal: any) => onOpenIntelligence({
+    key: `deal-war-room:${deal.deal_room_id}`,
+    kind: 'deal',
+    entityId: String(deal.deal_room_id),
+    title: deal.title || 'Live deal',
+    context: deal.organisation || human(deal.stage),
+  });
 
-    if (!controlInstruction) {
-      onOpenIntelligence({
-        key: `deal-war-room:${deal.deal_room_id}`,
-        kind: 'deal',
-        entityId: String(deal.deal_room_id),
-        title: deal.title || 'Live deal',
-        context:
-          deal.organisation || human(deal.stage),
-      });
-      return;
-    }
+  const handleDeal = (deal: any) => {
+    const controlInstruction = deal.next_control_fix?.instruction || '';
+    if (!controlInstruction) { openDeal(deal); return; }
 
     const hasExpectedCommission =
       deal.expected_commission !== null &&
@@ -593,6 +594,7 @@ export default function AgencyOpportunitiesWorkspace({
     <div className={styles.workspace}>
       <section className={styles.controls}>
         <div className={styles.tabs} aria-label="Opportunity view">
+          <button type="button" className={view === 'overview' ? styles.tabActive : styles.tab} aria-pressed={view === 'overview'} onClick={() => selectView('overview')}>Overview</button>
           <button
             type="button"
             className={view === 'needs' ? styles.tabActive : styles.tab}
@@ -627,114 +629,142 @@ export default function AgencyOpportunitiesWorkspace({
           </button>
         </div>
 
-        <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='needs'?'Search club or need':view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/>
+        {view !== 'overview' ? <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='needs'?'Search club or need':view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/> : null}
       </section>
 
       {exactBusy?<p role="status">Opening...</p>:null}
       {exactError?<div role="alert"><p>{exactError}</p><button type="button" className="btn" onClick={()=>setExactRetry(value=>value+1)}>Try again</button></div>:null}
-      <section className={styles.listCard}>
+      {view === 'overview' ? <AgencyOpportunityOverview
+        needs={needs} routes={routes} deals={deals}
+        connectedNeeds={connectedNeeds} connectedDeals={connectedDeals}
+        marketReady={data?.market != null && !data?.opportunity_errors?.market}
+        dealsReady={data?.deals != null && !data?.opportunity_errors?.deals}
+        marketError={Boolean(data?.opportunity_errors?.market)}
+        dealsError={Boolean(data?.opportunity_errors?.deals)}
+        onRetry={onRetry || (() => void onRefresh())}
+        onOpenNeed={(id) => router.push(`${basePath}?view=opportunities&tab=needs&record=${encodeURIComponent(id)}`, {scroll:false})}
+        onOpenPursuit={(request) => onOpenPursuit(request)}
+        onOpenDeal={(request) => onOpenIntelligence(request)}
+      /> : null}
+      {view !== 'overview' ? <section className={styles.listCard}>
         {view === 'needs'
           ? filteredNeeds.map((item: any) => {
               const candidates = list(
                 item?.candidate_coverage?.candidates,
               );
-              const topCandidate = candidates[0] || null;
-              const hasRoute = Boolean(
-                topCandidate?.player_match_id,
-              );
-              const needOpen = !item.need?.status || (item.need.status==='active' && (!item.need?.expires_at || Date.parse(item.need.expires_at)>=Date.now()));
+              const expiry = item.need?.expires_at ? Date.parse(item.need.expires_at) : null;
+              const inactive = Boolean(item.need?.status && item.need.status !== 'active');
+              const invalidExpiry = expiry !== null && !Number.isFinite(expiry);
+              const expired = expiry !== null && expiry < Date.now();
+              const needOpen = !inactive && !invalidExpiry && !expired;
+              const statusLabel = inactive ? `Need ${human(item.need.status).toLowerCase()}` : invalidExpiry ? 'Expiry needs review' : expired ? 'Need expired' : '';
+              const needId = String(item.club_need_id);
+              const expanded = expandedNeed.scope === basePath && expandedNeed.id === needId;
+              const toggleId = `need-review-${needId}`;
+              const panelId = `need-detail-${needId}`;
+              const toggle = () => setExpandedNeed({scope: basePath, id: expanded ? '' : needId});
+              const facts = [
+                ['Position', item.need?.position],
+                ['Club league',item.club?.league_name],
+                ['Country',item.club?.country],
+                ['Preferred foot', item.need?.preferred_foot],
+                ['Minimum height', item.need?.min_height_cm ? `${item.need.min_height_cm} cm` : null],
+                ['Transfer', item.need?.transfer_type ? human(item.need.transfer_type) : null],
+                ...clubNeedFootballFacts(item.need||{}),
+                ['Availability',item.need?.availability_notes],
+              ].filter(([, value]) => value);
+              const financialFacts=clubNeedFinancialFacts(item.need||{});
+              const sourceFacts=[
+                ['Source contact',item.need?.source_person_name|| (item.need?.source_person_id?'Saved contact unavailable':null)],
+                ['Source organisation',item.need?.source_organisation_name||(item.need?.source_organisation_id?'Saved organisation unavailable':null)],
+                ['Received',item.need?.received_on],
+                ['Priority',({1:'Low',2:'Routine',3:'Normal',4:'High',5:'Urgent'} as Record<string,string>)[String(item.need?.priority)]],
+                ['Source status',item.need?.source_status?human(item.need.source_status):'Not established'],
+                ['Expires', expiry !== null && Number.isFinite(expiry) ? relativeDate(item.need.expires_at) : null],
+              ].filter(([, value]) => value);
 
               return (
                 <article
-                  className={styles.row}
-                  key={item.club_need_id}
-                  id={`opportunity-${item.club_need_id}`}
-                  data-search-match={requestedRecord===String(item.club_need_id)||undefined}
-                  role={needOpen ? "button" : undefined}
-                  tabIndex={0}
-                  onClick={() =>
-                    needOpen && (hasRoute
-                      ? openNeedRoute(item, topCandidate)
-                      : prepareSearch(item))
-                  }
-                  onKeyDown={(event) => {
-                    if (!needOpen || event.target !== event.currentTarget) return;
-                    if (event.key !== 'Enter' && event.key !== ' ') return;
-                    event.preventDefault();
-                    hasRoute
-                      ? openNeedRoute(item, topCandidate)
-                      : prepareSearch(item);
+                  className={`${styles.row} ${styles.needRow}`}
+                  key={needId}
+                  id={`opportunity-${needId}`}
+                  data-search-match={requestedRecord === needId || undefined}
+                  tabIndex={-1}
+                  onKeyDown={event => {
+                    if (event.target !== event.currentTarget || !['Enter', ' '].includes(event.key)) return;
+                    event.preventDefault(); toggle();
                   }}
                 >
-                  <div className={styles.icon}>
-                    <Target size={16} />
-                  </div>
-
-                  <div className={styles.copy}>
-                    <span className={styles.rowEyebrow}>Club need</span>
-                    <strong>
-                      {item.club?.name || 'Club'} ·{' '}
-                      {item.need?.title || 'Player need'}
-                    </strong>
-                    <span>
-                      {!needOpen ? 'This need is closed.' : item.next_action?.instruction ||
-                        'Review the club need.'}
+                  <button type="button" className={styles.needReview} id={toggleId} aria-label={`Review ${item.club?.name || 'club'}: ${item.need?.title || 'player need'}`} aria-expanded={expanded} aria-controls={panelId} onClick={toggle}>
+                    <span className={styles.icon}><Target size={16}/></span>
+                    <span className={styles.copy}>
+                      <span className={styles.rowEyebrow}>Club need</span>
+                      <strong>{item.club?.name || 'Club'} · {item.need?.title || 'Player need'}</strong>
+                      <span>{statusLabel || item.next_action?.instruction || 'Review the requirements and recorded player opportunities.'}</span>
+                      <small>{item.need?.position || 'Position not recorded'} · {candidateCoverageLabel(item)}</small>
                     </span>
-                    <small>
-                      {item.need?.position || 'Position open'}
-                      {' · '}
-                      {Number(
-                        item.candidate_coverage?.recorded_candidates ||
-                          0,
-                      )}{' '}
-                      candidate
-                      {Number(
-                        item.candidate_coverage?.recorded_candidates ||
-                          0,
-                      ) === 1
-                        ? ''
-                        : 's'}
-                      {topCandidate?.player_name
-                        ? ` · Best route: ${topCandidate.player_name}`
-                        : ''}
-                    </small>
-
-                    <ConnectedOpportunityContext
-                      context={needConnected.get(
-                        String(item.club_need_id),
-                      )}
-                    />
-                  </div>
-
+                    <ChevronRight size={18} className={expanded ? styles.needChevronOpen : undefined}/>
+                  </button>
                   <div className={styles.rowActions}>
                     <EntityActionsMenu
                       kind="club_need"
-                      entityId={String(item.club_need_id)}
+                      versionedEdit
+                      lookup={lookupRecords}
+                      entityId={needId}
                       label={`${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`}
-                      rpc={rpc}
+                      rpc={(name,args,signal)=>name==='redream_entity_patch'?rpc('redream_club_need_patch',{p_need_id:needId,p_expected_updated_at:item.need?.updated_at||null,p_patch:args?.p_patch},signal):rpc(name,args,signal)}
                       onChanged={refreshEntities}
                       fields={[
                         { key: 'title', label: 'Need title', value: item.need?.title },
                         { key: 'position', label: 'Position', value: item.need?.position },
                         { key: 'profile_notes', label: 'Profile notes', value: item.need?.profile_notes, type: 'textarea' },
                         { key: 'expires_at', label: 'Expires', value: item.need?.expires_at ? String(item.need.expires_at).slice(0, 10) : '', type: 'date' },
+                        ...clubNeedBriefFields.map(field=>({...field,value:clubNeedFieldValue(field.key,item.need?.[field.key])})),
                       ]}
                     />
-                    {needOpen ? <button
-                      type="button"
-                      data-ui-button="nav"
-                      className={styles.action}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        hasRoute
-                          ? openNeedRoute(item, topCandidate)
-                          : prepareSearch(item);
-                      }}
-                    >
-                      {hasRoute ? 'Open opportunity' : 'Start search'}
-                      <ChevronRight size={18} />
-                    </button> : <span>Club need closed</span>}
                   </div>
+                  {expanded ? <section id={panelId} className={styles.needDetail} aria-labelledby={toggleId} onKeyDown={event => {
+                    if (event.key !== 'Escape') return;
+                    event.preventDefault(); event.stopPropagation(); setExpandedNeed({scope: basePath, id: ''}); document.getElementById(toggleId)?.focus();
+                  }}>
+                    {facts.length ? <section className={styles.needBriefGroup}><h3>Football requirements</h3><dl className={styles.needFacts}>{facts.map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section> : null}
+                    {financialFacts.length?<section className={styles.needBriefGroup}><h3>Budget & contract</h3><dl className={styles.needFacts}>{financialFacts.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p className={styles.needCoverage}>Request budgets only, not agreed earnings or agency revenue. No currency or tax conversion is applied.</p></section>:null}
+                    {sourceFacts.length?<section className={styles.needBriefGroup}><h3>Source & priority</h3><dl className={styles.needFacts}>{sourceFacts.map(([label,value])=><div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>{item.need?.source_context?<p className={styles.needNotes}>{item.need.source_context}</p>:null}{item.need?.source_person_name&&item.need?.source_person_id?<a href={`${basePath}?view=network&person=${encodeURIComponent(item.need.source_person_id)}`} className={styles.needSearch}>Open source contact<ChevronRight size={16}/></a>:null}</section>:null}
+                    {item.need?.profile_notes ? <p className={styles.needNotes}>{item.need.profile_notes}</p> : null}
+                    {item.need?.raw_request?<details className={styles.needSource}><summary>Original request</summary><p className={styles.needNotes}>{item.need.raw_request}</p></details>:null}
+                    <div className={styles.needCandidates}>
+                      <h3>Recorded player opportunities</h3>
+                      {candidates.length ? <>
+                        {typeof item.candidate_coverage?.recorded_candidates === 'number' && item.candidate_coverage.recorded_candidates > candidates.length ? <p className={styles.needCoverage}>Showing {candidates.length} of {item.candidate_coverage.recorded_candidates} recorded candidates.</p> : null}
+                        <ul>{candidates.map((candidate: any, index: number) => {
+                          const name = candidate.player_name || 'Player';
+                          const canOpen = needOpen && typeof candidate.player_match_id === 'string' && Boolean(candidate.player_match_id.trim());
+                          const summary = <>
+                            <span>
+                              <strong>{name}</strong>
+                              {candidate.salary_check?.version===1?<span className={styles.salaryCheck} data-conflict={candidate.salary_check.state==='minimum_above_budget'||candidate.salary_check.state==='target_above_budget'||undefined}>
+                                <strong>{candidate.salary_check.message}</strong>
+                                {candidate.salary_gate?<small>{candidate.salary_gate.review_active?`Exploration review active${candidate.salary_gate.review_until?` until ${candidate.salary_gate.review_until}`:''}`:candidate.salary_gate.can_proceed?'Confirmed base-salary check passes':'Salary review required before a new pitch or deal'}</small>:null}
+                                {candidate.salary_check.player_minimum!==null&&candidate.salary_check.player_minimum!==undefined?<small>Minimum: {salaryFigure(candidate.salary_check.player_minimum,candidate.salary_check.player_currency,candidate.salary_check.player_period,candidate.salary_check.player_tax_basis)}</small>:null}
+                                {candidate.salary_check.player_target!==null&&candidate.salary_check.player_target!==undefined?<small>Target: {salaryFigure(candidate.salary_check.player_target,candidate.salary_check.player_currency,candidate.salary_check.player_period,candidate.salary_check.player_tax_basis)}</small>:null}
+                                <small>Club budget: {salaryFigure(candidate.salary_check.club_budget,candidate.salary_check.club_currency,candidate.salary_check.club_period,candidate.salary_check.club_tax_basis)}</small>
+                                {candidate.salary_check.needs_source_confirmation?<small>Source needs confirmation.</small>:null}{candidate.salary_check.checked_on?<small>Checked {candidate.salary_check.checked_on}</small>:null}
+                              </span>:<small>Salary comparison not available. Review terms before presenting this player.</small>}
+                              <small>{candidate.salary_gate?'Career: ':''}{candidate.career_gate_state || candidate.match_status ? careerGateLabel(candidate.career_gate_state || candidate.match_status) : 'Recorded opportunity'}</small>
+                              {candidate.career_gate_reason ? <span>{candidate.career_gate_reason}</span> : null}
+                              {needOpen && !canOpen ? <small>Opportunity link unavailable</small> : null}
+                            </span>
+                            {canOpen ? <ChevronRight size={18}/> : null}
+                          </>;
+                          return <li key={typeof candidate.player_match_id === 'string' ? candidate.player_match_id : index}>
+                            {canOpen ? <button type="button" className={styles.needCandidate} aria-label={`Open opportunity for ${name}`} onClick={() => openNeedRoute(item, candidate)}>{summary}</button> : <div className={styles.needCandidate}>{summary}</div>}
+                          </li>;
+                        })}</ul>
+                      </> : <p className={styles.needCoverage}>{item.candidate_coverage?.recorded_candidates === 0 ? 'No candidates recorded yet.' : 'No player opportunities are shown for this need.'}</p>}
+                    </div>
+                    {needConnected.has(needId) ? <details className={styles.needSource}><summary>Source conversation</summary><ConnectedOpportunityContext context={needConnected.get(needId)}/></details> : null}
+                    {needOpen ? <button type="button" data-ui-button="secondary" className={styles.needSearch} onClick={() => prepareSearch(item)}>Start search<ChevronRight size={16}/></button> : <p className={styles.needCoverage}>{statusLabel}. Review this need before starting new work.</p>}
+                  </section> : null}
                 </article>
               );
             })
@@ -745,7 +775,7 @@ export default function AgencyOpportunitiesWorkspace({
               const accessMode =
                 item.access_strategy?.recommended_mode ||
                 item.best_access_route?.route_state ||
-                'recorded_route';
+                'access_not_recorded';
 
               const nextAction =
                 item.career_strategy_gate?.next_action
@@ -846,12 +876,12 @@ export default function AgencyOpportunitiesWorkspace({
                   data-search-match={requestedRecord===String(deal.deal_room_id)||undefined}
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleDeal(deal)}
+                  onClick={() => openDeal(deal)}
                   onKeyDown={(event) => {
                     if (event.target !== event.currentTarget) return;
                     if (event.key !== 'Enter' && event.key !== ' ') return;
                     event.preventDefault();
-                    handleDeal(deal);
+                    openDeal(deal);
                   }}
                 >
                   <div className={styles.icon}>
@@ -958,7 +988,7 @@ export default function AgencyOpportunitiesWorkspace({
             </span>
           </div>
         ) : null}
-      </section>
+      </section> : null}
     </div>
   );
 }

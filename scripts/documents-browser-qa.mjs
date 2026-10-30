@@ -57,7 +57,7 @@ try {
     }
   }
   // AI is optional, never mutates the draft until selected, and cannot apply a stale reply.
-  for (const scenario of ["", "assist-failed", "assist-slow"]) {
+  for (const scenario of ["", "assist-failed", "assist-slow", "assist-identity-mismatch"]) {
     await page.goto(
       new URL(`/qa-documents${scenario ? `?scenario=${scenario}` : ""}`, root)
         .href,
@@ -109,10 +109,10 @@ try {
         0,
       );
     } else {
-      if (scenario === "assist-failed") {
+      if (scenario === "assist-failed" || scenario === "assist-identity-mismatch") {
         await page
           .getByRole("alert")
-          .filter({ hasText: "could not prepare" })
+          .filter({ hasText: scenario === "assist-identity-mismatch" ? "not supported by your brief" : "could not prepare" })
           .waitFor();
         assert.equal(
           await page
@@ -120,6 +120,7 @@ try {
             .inputValue(),
           "",
         );
+        assert.equal(await page.getByRole("button", { name: "Apply selected suggestions" }).count(), 0);
         await page.getByRole("button", { name: "Try preparing again" }).click();
       }
       await page.getByRole("heading", { name: "Choose what to use" }).waitFor();

@@ -4,6 +4,7 @@ import {
   DOCUMENT_TEMPLATES,
   documentMoney,
   invoiceTotals,
+  invoiceCurrencyDigits,
   type AgencyDocument,
   type DocumentContent,
   type DocumentField,
@@ -112,6 +113,14 @@ export default function AgencyDocumentDetails({
             <small>From the issue date</small>
           </div>
         ) : null}
+        {definition.key === "currency" && doc.content.invoiceCurrencyVersion === 1 &&
+          invoiceCurrencyDigits(doc.content) !== null && invoiceCurrencyDigits(doc.content) !== 2 ? (
+          <p className={styles.hint}>
+            {invoiceCurrencyDigits(doc.content) === 0
+              ? `${value} uses whole-unit amounts.`
+              : `${value} uses ${invoiceCurrencyDigits(doc.content)} decimal places.`}
+          </p>
+        ) : null}
       </div>
     );
   };
@@ -192,10 +201,7 @@ export default function AgencyDocumentDetails({
                     <dt>Subtotal</dt>
                     <dd>
                       {totals.valid
-                        ? documentMoney(
-                            totals.subtotal,
-                            doc.content.fields.currency,
-                          )
+                        ? documentMoney(totals.subtotal, doc.content)
                         : "Check service amounts"}
                     </dd>
                   </div>
@@ -203,7 +209,7 @@ export default function AgencyDocumentDetails({
                     <dt>Tax ({doc.content.fields.tax_rate || "0"}%)</dt>
                     <dd>
                       {totals.valid
-                        ? documentMoney(totals.tax, doc.content.fields.currency)
+                        ? documentMoney(totals.tax, doc.content)
                         : "Check tax"}
                     </dd>
                   </div>
@@ -211,10 +217,7 @@ export default function AgencyDocumentDetails({
                     <dt>Total due</dt>
                     <dd>
                       {totals.valid
-                        ? documentMoney(
-                            totals.total,
-                            doc.content.fields.currency,
-                          )
+                        ? documentMoney(totals.total, doc.content)
                         : "Add valid services"}
                     </dd>
                   </div>

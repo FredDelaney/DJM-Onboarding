@@ -11,7 +11,7 @@ const source=readFileSync('supabase/functions/agency-os/index.ts','utf8')
  .replace('"../_shared/player-profile-preparation.ts"','"data:text/javascript;base64,'+evidenceShared+'"')
  .replace(/^import .*player-profile-ai\.ts";$/m,'const selectPlayerProfilePresentation = () => { throw new Error("outside this test"); };')
  .replace(/^import .*player-profile-text-improvement\.ts";$/m,'const suggestPlayerProfileTextImprovement = () => { throw new Error("outside this test"); };')
- .replace(/^import .*player-context-ai\.ts";$/m,'const researchPlayerContext = () => { throw new Error("outside this test"); };')
+ .replace(/^import .*player-context-ai\.ts";$/m,'const researchPlayerContext = (...args) => { globalThis.contextResearchCalls.push(args); if(globalThis.contextResearchThrows)throw new Error("Research transport failed"); return globalThis.contextResearchResult; };')
  .replace(/^import .*ai-router\.ts";$/m,'const selectAiRoute = () => { throw new Error("outside this test"); };')
  .replace('"../_shared/staff-read-contract.ts"','"data:text/javascript;base64,'+staffShared+'"')
  .replace('"../_shared/profile-stat-evidence.ts"','"data:text/javascript;base64,'+statShared+'"')
@@ -22,7 +22,7 @@ const {default:handler}=await import('data:text/javascript;base64,'+Buffer.from(
 const originalFetch=globalThis.fetch;
 let calls:any[]=[],background:Promise<any>[]=[],writes:any[]=[],careerRows:any[]=[],dispatch=true,role='agent',allowed=true,published=true;
 let cvSettings:any={key_stats:[]};
-let publicHandler:any;
+let publicHandler:any;let contextReview:any=null,contextDispatch=true;
 (globalThis as any).Deno={serve:(callback:any)=>{publicHandler=callback;}};
 const publicSource=readFileSync('supabase/functions/player-profile-public/index.ts','utf8')
  .replace('import "jsr:@supabase/functions-js/edge-runtime.d.ts";','')
@@ -34,12 +34,13 @@ await import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(pub
 const job={id:'40000000-0000-4000-8000-000000000001',status:'queued'};
 const player={id:'player',tenant_id:'tenant',primary_position:'Centre back',current_season_label:'2026/27',current_club:'Example II',current_league:'Regional League',verification_status:'verified',verified_at:'2026-10-01T12:00:00Z'};
 beforeEach(()=>{
- calls=[];background=[];writes=[];careerRows=[];dispatch=true;role='agent';allowed=true;published=true;player.verification_status='verified';
+ calls=[];background=[];writes=[];careerRows=[];dispatch=true;contextReview=null;contextDispatch=true;
+ (globalThis as any).contextResearchCalls=[];(globalThis as any).contextResearchThrows=false;(globalThis as any).contextResearchResult={ok:true,confidence:0.95,reason:"Explicit source evidence",fields:{current_club:"New II"},field_sources:{current_club:[{url:"https://league.example/player",title:"League"}]}};role='agent';allowed=true;published=true;player.verification_status='verified';
  cvSettings={key_stats:[]};
  (globalThis as any).Deno={env:{get:(key:string)=>key==='SUPABASE_URL'?'https://example.supabase.co':'fake-service'}};
  (globalThis as any).EdgeRuntime={waitUntil:(promise:Promise<any>)=>background.push(promise)};
  (globalThis as any).playerDataHttpContext={data:{userClaims:{sub:'actor',email:'agent@example.test'},supabaseAdmin:{
-  rpc:async(name:string,args:any)=>{calls.push({name,args});return {data:name==='platform_server_user_workspaces'?[{tenant_id:'tenant',role,is_primary:true}]:name==='get_push_scheduler_secret'?'fake-cron':name==='platform_server_request_player_stats_refresh'?{dispatch,job}:name==='platform_server_player_stats_refresh_status'?job:{ok:true,row:{}},error:null};},
+  rpc:async(name:string,args:any)=>{calls.push({name,args});if(name==='platform_server_stage_player_details_review')contextReview={id:args.p_request_id,status:args.p_confidence?'needs_review':'failed',fields:Object.entries(args.p_fields).map(([field,suggested])=>({id:'80000000-0000-4000-8000-000000000001',field,suggested,before:player[field as keyof typeof player]??null,decision:'pending',sources:args.p_sources[field]}))};return {data:name==='platform_server_player_details_review_status'?contextReview:name==='platform_server_request_player_details_review'?{id:job.id,dispatch:contextDispatch,status:'running'}:name==='platform_server_stage_player_details_review'?{review_id:job.id,status:contextReview.status}:name==='platform_server_review_player_details'?{ok:true,review_id:args.p_review_id,review:contextReview}:name==='platform_server_user_workspaces'?[{tenant_id:'tenant',role,is_primary:true}]:name==='platform_server_personal_home_commands'?{commands:[{command_id:'player_stats_review:review',source_type:'player',player_id:'player',command_type:'Player statistics suggested',actionability:{mode:'review_only',cta:'Review suggested figures'}}],player_reviews_has_more:true}:name==='get_push_scheduler_secret'?'fake-cron':name==='platform_server_request_player_stats_refresh'?{dispatch,job}:name==='platform_server_player_stats_refresh_status'?job:{ok:true,row:{}},error:null};},
   from:(table:string)=>{
    const query:any={select:()=>query,eq:()=>query,in:()=>query,order:()=>query,limit:()=>query,maybeSingle:async()=>({data:table==='staff_player_access'?{player_id:'player',can_edit:true}:table==='players'?(allowed?{...player}:null):table==='player_public_profiles'?(published?{player_id:player.id,key_stats:[],hidden_sections:[],hide_market_value:true}:null):table==='player_cv_settings'?cvSettings:null,error:null}),update:(value:any)=>{writes.push({table,value});return query;},then:(resolve:any)=>Promise.resolve({data:table==='career_entries'?structuredClone(careerRows):[],error:null}).then(resolve)};
    return query;
@@ -126,4 +127,79 @@ test('club reads cannot expose unpublished or unverified player data',async()=>{
  const read=()=>publicHandler(new Request('https://example.com',{method:'POST',body:JSON.stringify({slug:'dylan'})}));
  published=false;assert.equal((await (await read()).json()).data,null);
  published=true;player.verification_status='reviewing';assert.equal((await (await read()).json()).data,null);
+});
+
+test('pending research is recorded as needs_review with no applied fields or freshness',async()=>{
+ globalThis.fetch=async(_url,options)=>{assert.equal(JSON.parse(String(options?.body)).review_request_id,job.id);return new Response(JSON.stringify({refresh_ok:true,ai:{review_id:'review',review_status:'needs_review',proposed_fields:['appearances']}}));};
+ await handler.fetch(request());await Promise.all(background);
+ const final=writes.find(write=>write.value.status==='needs_review');assert.ok(final);assert.equal(final.value.fresh_at,null);assert.deepEqual(final.value.summary.changed_fields,[]);
+});
+test('review actions use the trusted actor and tenant, with no caller actor override',async()=>{
+ const r=await handler.fetch(request('player_data_review',{review_id:'review',decision:'edit',values:{goals:0},actor_user_id:'spoofed',p_tenant_id:'spoofed'}));assert.equal(r.status,200);
+ const call=calls.find(c=>c.name==='platform_server_review_player_stats');assert.equal(call.args.p_actor_user_id,'actor');assert.equal(call.args.p_tenant_id,'tenant');assert.equal(call.args.p_review_id,'review');assert.deepEqual(call.args.p_values,{goals:0});
+});
+test('scouts cannot receive pending proposals or submit decisions',async()=>{
+ role='scout';assert.equal((await handler.fetch(request('player_data_review',{review_id:'review',decision:'accept'}))).status,403);
+ const r=await handler.fetch(request('player_data_status'));assert.equal((await r.json()).review,null);assert.ok(!calls.some(c=>c.name==='platform_server_player_stats_review_status'||c.name==='platform_server_review_player_stats'));
+});
+
+test('repeat rejected evidence is retained as rejected with no freshness claim',async()=>{
+ globalThis.fetch=async()=>new Response(JSON.stringify({refresh_ok:true,ai:{review_id:'review',review_status:'rejected'}}));
+ await handler.fetch(request());await Promise.all(background);
+ const final=writes.find(write=>write.value.status==='rejected');assert.ok(final);assert.equal(final.value.fresh_at,null);assert.deepEqual(final.value.summary.changed_fields,[]);
+});
+
+test('Home keeps sourced reviews read-only, scopes the trusted actor and exposes bounded-review guidance',async()=>{
+ const response=await handler.fetch(request('home_focus',{user_id:'spoofed',p_user_id:'spoofed'}));assert.equal(response.status,200);
+ const body=await response.json();assert.equal(body.home.attention.player_reviews_has_more,true);assert.equal(body.home.attention.delegable.length,0);assert.equal(body.home.attention.confirm.length,0);assert.equal(body.home.attention.judgement[0].command_type,'Player statistics suggested');
+ const call=calls.find(c=>c.name==='platform_server_personal_home_commands');assert.equal(call.args.p_user_id,'actor');assert.equal(call.args.p_tenant_id,'tenant');assert.equal(background.length,0);assert.equal(writes.length,0);
+});
+
+
+test('material research claims one job and stages only server research with trusted actor and baseline',async()=>{
+ const response=await handler.fetch(request('player_context_research',{fields:{current_club:'Forged FC'},sources:[{url:'https://forged.example'}],p_actor_user_id:'attacker',p_expected:{current_club:'Forged baseline'}}));assert.equal(response.status,200);
+ const claim=calls.find(c=>c.name==='platform_server_request_player_details_review');assert.equal(claim.args.p_actor_user_id,'actor');assert.equal(claim.args.p_tenant_id,'tenant');assert.equal(claim.args.p_request_id,job.id);
+ const staged=calls.find(c=>c.name==='platform_server_stage_player_details_review');assert.equal(staged.args.p_fields.current_club,'New II');assert.equal(staged.args.p_expected.current_club,'Example II');assert.equal(staged.args.p_sources.current_club[0].url,'https://league.example/player');assert.equal(staged.args.p_request_id,job.id);assert.equal(writes.length,0);
+});
+test('pending or already claimed research does not start another paid check',async()=>{
+ contextReview={id:job.id,status:'needs_review',fields:[{field:'current_club',suggested:'Saved FC',decision:'pending',sources:[]}]};await handler.fetch(request('player_context_research'));assert.equal((globalThis as any).contextResearchCalls.length,0);assert.ok(!calls.some(c=>c.name==='platform_server_request_player_details_review'));
+ calls=[];contextReview={id:job.id,status:'running',fields:[]};contextDispatch=false;await handler.fetch(request('player_context_research'));assert.equal((globalThis as any).contextResearchCalls.length,0);assert.ok(calls.some(c=>c.name==='platform_server_request_player_details_review'));
+});
+test('material review polling is read-only and scouts receive no proposal',async()=>{
+ contextReview={id:job.id,status:'needs_review',fields:[]};await handler.fetch(request('player_context_status'));assert.equal((globalThis as any).contextResearchCalls.length,0);assert.ok(!calls.some(c=>/request|stage/.test(c.name)));
+ role='scout';calls=[];const response=await handler.fetch(request('player_context_status'));assert.equal((await response.json()).review,null);assert.ok(!calls.some(c=>c.name==='platform_server_player_details_review_status'));
+ assert.equal((await handler.fetch(request('player_context_review',{review_id:job.id,decisions:[]}))).status,403);
+});
+test('preparation can apply only a persisted review and cannot supply evidence or actor',async()=>{
+ contextReview={id:job.id,status:'needs_review',fields:[{id:'80000000-0000-4000-8000-000000000001',field:'current_club',suggested:'Saved FC',decision:'pending'}]};
+ assert.equal((await handler.fetch(request('player_context_apply',{fields:{current_club:'Old unsaved FC'}}))).status,409);
+ assert.equal((await handler.fetch(request('player_context_apply',{review_id:job.id,fields:{next_action:'Forged task'}}))).status,409);
+ const response=await handler.fetch(request('player_context_apply',{review_id:job.id,fields:{current_club:'Corrected FC'},sources:[{url:'https://forged.example'}],actor_user_id:'attacker'}));assert.equal(response.status,200);
+ const reviewed=calls.find(c=>c.name==='platform_server_review_player_details');assert.equal(reviewed.args.p_actor_user_id,'actor');assert.equal(reviewed.args.p_tenant_id,'tenant');assert.deepEqual(reviewed.args.p_decisions,[{id:'80000000-0000-4000-8000-000000000001',decision:'edit',value:'Corrected FC'}]);assert.equal(reviewed.args.p_sources,undefined);assert.equal(writes.length,0);
+});
+test('a research exception closes its claim without changing canonical fields or retrying research',async()=>{
+ (globalThis as any).contextResearchThrows=true;const response=await handler.fetch(request('player_context_research'));assert.equal(response.status,503);assert.equal((globalThis as any).contextResearchCalls.length,1);assert.ok(calls.some(c=>c.name==='platform_server_stage_player_details_review'&&c.args.p_confidence===0));assert.equal(writes.length,0);
+});
+
+test('a preparation retry retains the persisted suggestion id after an unconfirmed successful decision',async()=>{
+ contextReview={id:job.id,status:'applied',fields:[{id:'80000000-0000-4000-8000-000000000001',field:'current_club',suggested:'Saved FC',decision:'accepted',applied_value:'Corrected FC'}]};
+ const response=await handler.fetch(request('player_context_apply',{review_id:job.id,fields:{current_club:'Corrected FC'}}));assert.equal(response.status,200);assert.deepEqual(calls.find(c=>c.name==='platform_server_review_player_details')?.args.p_decisions,[{id:'80000000-0000-4000-8000-000000000001',decision:'edit',value:'Corrected FC'}]);
+});
+
+
+test('plain PostgreSQL review conflicts return recoverable user messages without database details',async()=>{
+ const admin=(globalThis as any).playerDataHttpContext.data.supabaseAdmin;
+ const rpc=admin.rpc;
+ for(const [action,message,code] of [
+  ['player_data_review','player_stats_context_changed','player_stats_context_changed'],
+  ['player_data_review','player_stats_review_already_resolved','player_stats_review_already_resolved'],
+  ['player_context_review','Player details changed. Check the record again.','player_details_review_conflict'],
+  ['player_context_review','Player identity changed. Check the record again.','player_details_review_conflict'],
+  ['player_context_review','This detail was already reviewed. Reload the record.','player_details_review_conflict']
+ ]){
+  admin.rpc=async(name:string,args:any)=>name==='platform_server_review_player_stats'||name==='platform_server_review_player_details'?{data:null,error:{code:'P0001',message,details:'private database detail'}}:rpc(name,args);
+  const response=await handler.fetch(request(action,{review_id:job.id,decision:'accept',decisions:[{id:'field',decision:'accept'}]}));
+  assert.equal(response.status,409);const result=await response.json();assert.equal(result.code,code);
+  assert.match(result.error,/Reload|Check|Reload/);assert.ok(!JSON.stringify(result).includes('private database detail'));assert.notEqual(result.error,'Agency OS request failed');
+ }
 });

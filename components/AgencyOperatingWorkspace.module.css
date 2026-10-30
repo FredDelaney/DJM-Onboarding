@@ -3559,7 +3559,8 @@
   }
 }
 
-/* Shared control palette. Inverse controls retain their dark-surface contrast. */
+/* Shared control palette. Tenant actions use contrast-safe brand tokens;
+   inverse controls retain their dark-surface contrast. */
 .root [data-ui-button] {
   appearance: none;
   cursor: pointer;
@@ -3573,8 +3574,8 @@
 
 .root [data-ui-button="primary"]:not([data-ui-tone="inverse"]) {
   border: 1px solid transparent !important;
-  background: var(--interface-blue) !important;
-  color: var(--interface-surface) !important;
+  background: var(--agency-primary, var(--interface-blue)) !important;
+  color: var(--agency-on-primary, var(--interface-surface)) !important;
   box-shadow: none !important;
 }
 
@@ -3625,8 +3626,12 @@
   outline-offset: 3px;
 }
 
+.root [data-ui-button]:not([data-ui-tone="inverse"]):focus-visible {
+  outline-color: var(--agency-primary, var(--interface-blue)) !important;
+}
+
 .root [data-ui-button="primary"]:not([data-ui-tone="inverse"]):hover {
-  background: var(--interface-blue-hover) !important;
+  background: color-mix(in srgb, var(--agency-primary, var(--interface-blue)) 90%, #000) !important;
 }
 
 @media (hover: hover) {

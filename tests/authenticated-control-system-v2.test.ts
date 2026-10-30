@@ -32,7 +32,8 @@ test('semantic controls are used broadly across authenticated Agency components'
 
 test('control palette standardises light and inverse surfaces', () => {
   const palette = css.slice(css.lastIndexOf('Shared control palette.'));
-  assert.match(palette, /data-ui-button="primary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: var\(--interface-blue\) !important/);
+  assert.match(palette, /data-ui-button="primary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: var\(--agency-primary, var\(--interface-blue\)\) !important/);
+  assert.match(palette, /color: var\(--agency-on-primary, var\(--interface-surface\)\) !important/);
   assert.match(palette, /data-ui-button="secondary"[^\n]*not\(\[data-ui-tone="inverse"\]\)[\s\S]*background: var\(--interface-soft\) !important/);
   assert.match(palette, /data-ui-tone="inverse"\]\[data-ui-button="primary"\][\s\S]*background: var\(--interface-surface\) !important/);
   assert.match(palette, /data-ui-tone="inverse"\]\[data-ui-button="secondary"\][\s\S]*background: rgba\(255,255,255,.08\) !important/);
@@ -87,7 +88,9 @@ test('contextual create controls stay secondary while final submissions stay pri
   const players = readFileSync('components/AgencyPlayersWorkspace.tsx','utf8');
   assert.match(operating, /data-ui-button="secondary"[\s\S]{0,120}className=\{styles\.createButton\}/);
   assert.match(players, /data-ui-button="secondary"[\s\S]{0,120}openRecruitmentCreate/);
-  assert.match(players, /data-ui-button="primary"[\s\S]{0,500}Add target/);
+  assert.match(players,/AgencyCreateDrawer[\s\S]{0,130}kind="recruitment_target"/);
+  const create=readFileSync('components/AgencyCreateDrawer.tsx','utf8');
+  assert.match(create,/type="submit"[\s\S]{0,120}data-ui-button="primary"/);
 });
 
 

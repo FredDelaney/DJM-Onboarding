@@ -58,3 +58,10 @@ test('truth states and Brain intents are deterministic', () => {
   assert.equal(brainIntent('Show clubs in New Zealand'), 'clubs');
   assert.equal(brainIntent('Write me a poem'), 'unsupported');
 });
+
+test('missing match percentages remain unknown rather than zero, and blockers suppress a high score',()=>{
+ for(const value of [undefined,null,'', '   ',false,true,NaN]){const result=matchAssessment({overall_score:value as any});assert.equal(result.percentage,null);assert.equal(result.strength,'Insufficient evidence');assert.doesNotMatch(result.display,/%/);}
+ assert.equal(matchAssessment({overall_score:0}).percentage,0);
+ const blocked=matchAssessment({overall_score:99,hard_blockers:['Confirmed financial incompatibility']});assert.equal(blocked.strength,'Weak');assert.equal(blocked.percentage,null);assert.doesNotMatch(blocked.display,/99|%/);
+ const legacy=matchAssessment({overall_score:99,reasoning:{source:'djm_fit_prediction_v3',strengths:['Position fits','Age fits']}});assert.equal(legacy.percentage,null);assert.equal(legacy.strength,'Moderate');assert.match(legacy.concerns.join(' '),/legacy fit estimate needs review/);
+});

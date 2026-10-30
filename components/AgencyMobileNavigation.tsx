@@ -101,7 +101,7 @@ export default function AgencyMobileNavigation({
     onNavigate(target, href);
   };
   return (
-    <div className={styles.root} data-interface="calm">
+    <div className={styles.root} data-interface="calm" data-workspace-mobile-navigation>
       <nav className={styles.bar} aria-label="Mobile workspace">
         <Link
           href={destinations[0].href!}

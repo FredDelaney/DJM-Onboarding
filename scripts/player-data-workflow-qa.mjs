@@ -40,7 +40,12 @@ try{
  assert.ok(await panel.getByRole('button',{name:'Edit current statistics',exact:true}).isDisabled());
  await page.reload();panel=page.getByRole('region',{name:'Player data',exact:true});
  await panel.getByRole('button',{name:'Updating statistics...',exact:true}).waitFor();
- await stats(panel).getByText('9',{exact:true}).waitFor({timeout:15000});
+ const suggestion=panel.getByRole('region',{name:'Review suggested statistics'});
+ await suggestion.waitFor({timeout:15000});
+ assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
+ let waiting=await ledger('normal');assert.equal(waiting.player.verification_status,'verified');assert.equal(waiting.published.published,true);
+ await suggestion.getByRole('button',{name:'Accept figures',exact:true}).click();
+ await stats(panel).getByText('9',{exact:true}).waitFor();
  let saved=await ledger('normal');
  assert.equal(saved.refreshes,1);assert.equal(saved.verifications,0);assert.equal(saved.publishes,0);
  assert.equal(saved.published.published,false);assert.equal(saved.player.verification_status,'reviewing');
@@ -50,12 +55,33 @@ try{
  await dialog.getByRole('button',{name:'Confirm & verify',exact:true}).click();
  await page.getByText('Current player data verified.',{exact:true}).waitFor();
  assert.equal((await ledger('normal')).verifications,1);
+ panel=await visit('staff-editor');
+ await panel.getByRole('button',{name:'Update statistics',exact:true}).click();
+ await panel.getByRole('button',{name:'Accept figures',exact:true}).waitFor({timeout:15000});
+ await panel.getByRole('button',{name:'Accept figures',exact:true}).click();
+ await panel.getByText('Reviewed statistics saved. An agency admin must verify before publishing.',{exact:true}).waitFor();
+ assert.equal(await panel.getByRole('button',{name:'Review current player data',exact:true}).count(),0);
+ assert.equal((await ledger('staff-editor')).verifications,0);assert.equal((await ledger('staff-editor')).publishes,0);
+ const resolvedUrl=new URL('/qa-player-data?scenario=normal#player-data',root);
+ await page.goto(resolvedUrl.href);
+ await page.getByText('This statistics update has already been reviewed. Recorded figures are shown above.',{exact:true}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.id==='player-data');
+ const anchorBounds=await page.locator('#player-data').evaluate(node=>({top:node.getBoundingClientRect().top,bottom:node.getBoundingClientRect().bottom,viewport:innerHeight}));
+ await page.screenshot({path:'/tmp/redream-platform-programme/home-review-resolved-anchor.png',fullPage:false});
+ assert.ok(anchorBounds.top>=0&&anchorBounds.bottom<=anchorBounds.viewport,'The resolved review, source guidance and actions are visible after the async Home link: '+JSON.stringify(anchorBounds));
  panel=await visit('failed');
  await panel.getByRole('button',{name:'Update statistics',exact:true}).click();
  await panel.getByText('Update needs attention',{exact:true}).waitFor({timeout:15000});
  assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
  assert.equal(await panel.getByText(/^Checked /).count(),0,'Failure cannot display a new successful check');
  assert.ok(await panel.getByRole('button',{name:'Update statistics',exact:true}).isEnabled());
+ panel=await visit('rejected-repeat');
+ await panel.getByRole('button',{name:'Update statistics',exact:true}).click();
+ await panel.getByRole('button',{name:'Update statistics',exact:true}).waitFor({state:'visible',timeout:15000});
+ await panel.locator('summary').click();
+ await panel.getByText('This suggestion was already rejected. Recorded statistics are unchanged.',{exact:true}).waitFor({timeout:15000});
+ assert.equal(await panel.getByRole('region',{name:'Review suggested statistics'}).count(),0);
+ assert.equal(await panel.getByText(/^Checked /).count(),0);assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
  panel=await visit('manual');
  await panel.getByRole('button',{name:'Edit current statistics',exact:true}).click();
  let form=panel.getByRole('form',{name:'Edit current-season statistics'});
@@ -99,7 +125,9 @@ try{
  panel=await visit('custom');
  await panel.getByText('The club profile uses custom headline statistics.',{exact:true}).waitFor();
  await panel.getByRole('button',{name:'Update statistics',exact:true}).click();
- await stats(panel).getByText('9',{exact:true}).waitFor({timeout:15000});
+ await panel.getByRole('region',{name:'Review suggested statistics'}).waitFor({timeout:15000});
+ await panel.getByRole('button',{name:'Accept figures',exact:true}).click();
+ await stats(panel).getByText('9',{exact:true}).waitFor();
  await panel.getByRole('button',{name:'Review current player data',exact:true}).click();
  const customReview=page.getByRole('dialog',{name:'Review current player data'});
  await customReview.getByText('9',{exact:true}).waitFor();
@@ -111,6 +139,41 @@ try{
  await page.getByText('Statistics updated. Publish when ready.',{exact:true}).waitFor();
  saved=await ledger('custom');assert.deepEqual(saved.settings.key_stats,[]);assert.equal(saved.publishes,0);
  await page.screenshot({path:join(screenshotDir,'mobile-profile.png'),fullPage:true});
+ for(const scenario of ['review-reject','review-edit','review-conflict','review-unconfirmed']){
+  panel=await visit(scenario);await panel.getByRole('button',{name:'Update statistics',exact:true}).click();
+  const pending=panel.getByRole('region',{name:'Review suggested statistics'});await pending.waitFor({timeout:15000});
+  for(const width of [320,390,768,1440]){
+   await page.setViewportSize({width,height:844});
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'Review overflow at '+width);
+   assert.ok((await pending.getByRole('button').evaluateAll(buttons=>buttons.map(button=>button.getBoundingClientRect().height))).every(height=>height>=44));
+  }
+  await page.setViewportSize({width:390,height:844});
+  if(scenario==='review-reject'){
+   await pending.getByRole('button',{name:'Reject update',exact:true}).click();await pending.waitFor({state:'detached'});
+   saved=await ledger(scenario);assert.equal(saved.player.verification_status,'verified');assert.equal(saved.published.published,true);assert.equal(saved.career[0].appearances,8);
+  }else if(scenario==='review-edit'||scenario==='review-conflict'){
+   await pending.getByRole('button',{name:'Edit figures',exact:true}).click();
+   const correction=panel.getByRole('form',{name:'Edit current-season statistics'});
+   assert.ok(await correction.getByRole('textbox',{name:'Club',exact:true}).getAttribute('readonly')!==null);
+   await correction.getByRole('textbox',{name:'Apps',exact:true}).fill('7');
+   await correction.getByRole('button',{name:'Save corrected figures',exact:true}).click();
+   await panel.getByText('Confirm that you checked these figures against the source.',{exact:true}).waitFor();
+   await correction.getByRole('checkbox').check();
+   await correction.getByRole('button',{name:'Save corrected figures',exact:true}).click();
+   if(scenario==='review-conflict'){
+    await panel.getByRole('alert').waitFor();assert.equal(await correction.getByRole('textbox',{name:'Apps',exact:true}).inputValue(),'7');
+    await panel.getByRole('button',{name:'Reload player data',exact:true}).click();
+    assert.equal(await correction.getByRole('textbox',{name:'Apps',exact:true}).inputValue(),'7');assert.equal(await stats(panel).getByText('8',{exact:true}).count(),1);
+    await page.screenshot({path:join(screenshotDir,'mobile-review-conflict.png'),fullPage:true});
+   }else{await stats(panel).getByText('7',{exact:true}).waitFor();saved=await ledger(scenario);assert.equal(saved.career[0].goals,0);assert.equal(saved.career[0].assists,null);assert.equal(saved.reviewDecisions,1);}
+  }else{
+   await pending.getByRole('button',{name:'Accept figures',exact:true}).click();await panel.getByRole('alert').waitFor();
+   assert.ok(await pending.getByRole('button',{name:'Accept figures',exact:true}).isDisabled());
+   await panel.getByRole('button',{name:'Reload player data',exact:true}).click();
+   await pending.waitFor({state:'detached'});await stats(panel).getByText('9',{exact:true}).waitFor();assert.equal((await ledger(scenario)).reviewDecisions,1);
+  }
+ }
+
  await page.setViewportSize({width:1440,height:1000});await visit('manual');
  await page.screenshot({path:join(screenshotDir,'desktop-profile.png'),fullPage:true});
  assert.deepEqual(errors,[],'Browser must have no unhandled application errors');

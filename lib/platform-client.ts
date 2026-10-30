@@ -12,6 +12,10 @@ export async function platformRpc<T = any>(
   return measureOperation('rpc', name, async () => {
     const request = supabase.rpc(name as any, args as any);
     if (workspaceSlug != null) request.setHeader('x-redream-workspace', workspaceSlug);
+    // Per-request compatibility signal, never an authorisation credential.
+    if (['redream_documents', 'redream_document_read', 'redream_document_open'].includes(name)) {
+      request.setHeader('x-redream-invoice-currency', '1');
+    }
     if (signal) request.abortSignal(signal);
     const { data, error } = await request;
 
@@ -27,9 +31,10 @@ export async function platformInvoke<T = any>(
   functionName: string,
   body: FormData | Record<string, any>,
   accessToken?: string,
+  requestOptions?: { signal?: AbortSignal; timeout?: number },
 ): Promise<T> {
   return measureOperation('edge', functionName, async () => {
-    const options: any = { body };
+    const options: any = { body, ...requestOptions };
     if (accessToken) options.headers = { Authorization: `Bearer ${accessToken}` };
     if (functionName === 'djm-tell-capture' || functionName === 'djm-tell-process' || functionName === 'redream-ai-capture' || functionName === 'redream-ai-process') {
       options.region = 'eu-west-1';
@@ -39,6 +44,7 @@ export async function platformInvoke<T = any>(
 
     if (error) {
       let message = error.message || `Workspace function failed: ${functionName}`;
+      let code: string | undefined;
       const context = (error as any)?.context;
 
       if (context && typeof context.clone === 'function') {
@@ -46,6 +52,7 @@ export async function platformInvoke<T = any>(
           const response = context.clone();
           const payload = await response.json();
           message = payload?.error || payload?.message || message;
+          if (typeof payload?.code === 'string') code = payload.code;
         } catch {
           try {
             const response = context.clone();
@@ -57,7 +64,7 @@ export async function platformInvoke<T = any>(
         }
       }
 
-      throw new Error(message);
+      throw Object.assign(new Error(message), code ? {code} : {});
     }
 
     return data as T;

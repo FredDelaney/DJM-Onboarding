@@ -27,6 +27,12 @@ export default function AgencyCalendarMonth({ date, items, onSelect }: {
       events={events} dayMaxEvents={1} eventDisplay="block" editable={false}
       dayRowClass={styles.monthRow}
       dayCellClass={info=>`${styles.monthCell} ${calendarDateKey(info.date)===date?styles.selectedCell:''}`}
+      dayCellDidMount={info=>{
+        // FullCalendar hides its decorative number, but our number is a real
+        // date-selection button and must remain in the accessibility tree.
+        const top=info.el.querySelector('button')?.parentElement;
+        if(top?.getAttribute('aria-hidden')==='true')top.removeAttribute('aria-hidden');
+      }}
       dayCellTopContent={info=>{
         const key=calendarDateKey(info.date);
         return <button type="button" className={info.isToday?styles.todayNumber:styles.dayNumber}

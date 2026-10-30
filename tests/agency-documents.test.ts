@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {readFileSync} from "node:fs";
+import vm from "node:vm";
+import ts from "typescript";
 import {
   DOCUMENT_KINDS,
   DOCUMENT_TEMPLATES,
@@ -10,6 +13,8 @@ import {
   documentIssues,
   fillDocumentPlayer,
   invoiceTotals,
+  documentMoney,
+  documentPrice,
   newAgencyDocument,
   resolveDocumentText,
   safeDocumentUrl,
@@ -134,6 +139,39 @@ test("agency templates clear the previous player's pitch priorities and scouting
     copyAgencyDocument(pitch, "from_template").content.fields.purpose,
     undefined,
   );
+});
+test("a pitch document or legacy template cannot silently become another prospect's personalised wording", () => {
+  const pitch = newAgencyDocument("agency_pitch", documentBrand({display_name:"QA Agency"}));
+  pitch.content.fields = {player_name:"QA Previous Prospect",purpose:"QA private family priority"};
+  pitch.content.sections[0].title="QA Previous Prospect's personal plan";
+  pitch.content.sections[0].body="QA Previous Prospect has a QA private family priority.";
+  pitch.content.sections.push({id:"custom-chapter",title:"QA private family meeting",body:"QA private family priority and meeting details",pageBreak:true});
+  pitch.content.sources=[{label:"QA private conversation",url:"",capturedAt:"2026-10-27"}];
+  const before=structuredClone(pitch);
+  for(const is_template of [false,true]){
+    const template=copyAgencyDocument({...pitch,is_template},is_template?"from_template":"template");
+    assert.doesNotMatch(JSON.stringify(template),/QA Previous Prospect|QA private family|QA private conversation/);
+    assert.equal(template.content.sections.length,pitch.content.sections.length);
+    assert.deepEqual(template.content.sections.map(s=>[s.id,s.pageBreak]),pitch.content.sections.map(s=>[s.id,s.pageBreak]));
+    assert.equal(template.content.brand.name,"QA Agency");
+    assert.equal(template.content.reviewed,false);
+    assert.equal(template.content.pitchTemplateVersion,1);
+    assert.ok(documentIssues(template).includes("Complete the highlighted template text"));
+  }
+  assert.deepEqual(pitch,before,"Conversion never edits the original saved pitch");
+  assert.equal(copyAgencyDocument(pitch,"duplicate").content.sections[0].body,pitch.content.sections[0].body,"Explicit duplicate retains the chosen document, with review reset");
+});
+test("deliberately authored clean pitch template copy and agency evidence remain reusable", () => {
+  const template=copyAgencyDocument(newAgencyDocument("agency_pitch",documentBrand()),"template");
+  template.content.sections[1].body="QA reusable agency service offer. Confirm the scope in a conversation.";
+  template.content.sources=[{label:"QA reusable agency service schedule",url:"",capturedAt:"2026-10-27"}];
+  const next=copyAgencyDocument(template,"from_template");
+  assert.equal(next.content.sections[1].body,template.content.sections[1].body);
+  assert.deepEqual(next.content.sources,template.content.sources);
+  assert.equal(next.content.reviewed,false);
+  next.content.fields.player_name="QA Second Prospect";
+  next.content.sections[1].body="QA Second Prospect's private situation";
+  assert.doesNotMatch(JSON.stringify(copyAgencyDocument(next,"template")),/QA Second Prospect/);
 });
 
 test("unknown optional football details stay absent and exported dates read naturally", () => {
@@ -318,6 +356,91 @@ test("invoice money uses rounded minor units and rejects invalid or missing amou
   doc.content.lines[0].unitPrice = "0";
   assert.ok(documentIssues(doc).some((x) => x.startsWith("Check invoice")));
 });
+test("new invoice amounts follow the currency's minor unit, including whole and three/four-decimal units", () => {
+  for (const [currency,price,quantity,amount,tax,total] of [
+    ["JPY","100","2.5",250,50,300],
+    ["EUR","100.10","2.5",25025,5005,30030],
+    ["KWD","1.234","1.5",1851,370,2221],
+    ["CLF","1.2345","1.5",18518,3704,22222],
+  ] as const) {
+    const doc=newAgencyDocument("invoice",documentBrand());
+    doc.content.fields.currency=currency;doc.content.fields.tax_rate="20";
+    doc.content.lines=[{id:"one",description:"QA precision test",quantity,unitPrice:price}];
+    assert.deepEqual(invoiceTotals(doc.content),{valid:true,amounts:[amount],subtotal:amount,tax,total},currency);
+    const text=documentMoney(total,doc.content);
+    assert.match(text,currency==="JPY"?/300$/:currency==="KWD"?/2\.221$/:currency==="CLF"?/2\.2222$/:/300\.30$/);
+    assert.equal(doc.content.invoiceCurrencyVersion,1);
+  }
+});
+test("currency validation never rounds an unsupported unit price into a payable amount", () => {
+  const doc=newAgencyDocument("invoice",documentBrand());
+  doc.content.lines=[{id:"one",description:"QA price",quantity:"1",unitPrice:"100.01"}];
+  for(const[currency,price,valid]of [["JPY","100.01",false],["JPY","100.000",true],["KWD","1.2340",true],["KWD","1.2341",false],["CLF","1.23450",true],["ZZZ","1",false],["XAU","1",false],["XXX","1",false]] as const){
+    doc.content.fields.currency=currency;doc.content.lines[0].unitPrice=price;
+    assert.equal(invoiceTotals(doc.content).valid,valid,currency+" "+price);
+    if(!valid)assert.equal(documentPrice(price,doc.content),"[unit price]");
+  }
+  for(const version of [2,"1",null,false]){
+    Object.assign(doc.content,{invoiceCurrencyVersion:version});doc.content.fields.currency="EUR";
+    assert.equal(invoiceTotals(doc.content).valid,false,"An unknown format cannot fall back to legacy precision");
+  }
+});
+test("legacy invoice output keeps its recorded scale while explicit copies adopt current precision", () => {
+  const legacy=newAgencyDocument("invoice",documentBrand());
+  delete legacy.content.invoiceCurrencyVersion;
+  legacy.content.fields.currency="JPY";
+  legacy.content.lines=[{id:"one",description:"QA historical amount",quantity:"1",unitPrice:"100.01"}];
+  const before=structuredClone(legacy);
+  assert.equal(invoiceTotals(legacy.content).total,10001);
+  assert.match(documentMoney(10001,legacy.content),/100\.01$/);
+  const warning="Duplicate this invoice to use current currency precision";
+  assert.equal(documentIssues(legacy).includes(warning),false,"Rendering an old approved snapshot must not add a new draft stamp");
+  assert.ok(documentIssues(legacy,true).includes(warning),"New lifecycle actions require explicit correction");
+  assert.deepEqual(documentIssueTarget(legacy,warning),{tab:"review",id:"document-duplicate"});
+  for(const mode of ["duplicate","template","from_template"] as const){
+    const copy=copyAgencyDocument(legacy,mode);
+    assert.equal(copy.content.invoiceCurrencyVersion,1);
+    assert.equal(copy.content.reviewed,false);
+    assert.equal(copy.content.lines[0].unitPrice,"100.01");
+    assert.equal(invoiceTotals(copy.content).valid,false,"Correction is required; the copy never silently rounds the old price");
+  }
+  assert.deepEqual(legacy,before);
+});
+test("invoice review rejects invalid or reversed dates and focuses the date to correct", () => {
+  const doc = newAgencyDocument("invoice", documentBrand());
+  doc.content.fields.issue_date = "2026-11-01";
+  doc.content.fields.due_date = "2026-10-31";
+  const reversed = "Due date must be on or after the issue date";
+  assert.ok(documentIssues(doc).includes(reversed));
+  assert.deepEqual(documentIssueTarget(doc, reversed), {tab:"details",id:"document-field-due_date"});
+  for (const key of ["issue_date", "due_date"]) {
+    for (const value of ["2026-02-31", "2026-2-01", "0000-01-01", "not a date"]) {
+      doc.content.fields = {issue_date:"2026-11-01",due_date:"2026-11-01",[key]:value};
+      const issue = key === "issue_date" ? "Check the invoice issue date" : "Check the invoice due date";
+      assert.ok(documentIssues(doc).includes(issue), key + " " + value);
+      assert.deepEqual(documentIssueTarget(doc, issue), {tab:"details",id:"document-field-"+key});
+    }
+  }
+  for (const value of ["2026-11-01", "2028-02-29"]) {
+    doc.content.fields = {issue_date:value,due_date:value};
+    assert.equal(documentIssues(doc).some(issue => /invoice (issue|due) date|Due date must/.test(issue)),false,"Same-day and leap-day billing remain valid");
+  }
+});
+test("invoice template reuse requires a fresh payment date without changing the original", () => {
+  const source = newAgencyDocument("invoice", documentBrand());
+  source.content.fields.issue_date = "2020-01-01";
+  source.content.fields.due_date = "2020-01-15";
+  const before = structuredClone(source);
+  const template = copyAgencyDocument(source,"template");
+  assert.equal(template.content.fields.issue_date,undefined);
+  assert.equal(template.content.fields.due_date,undefined);
+  const next = copyAgencyDocument({...source,is_template:true},"from_template");
+  assert.equal(next.content.fields.due_date,undefined,"Legacy templates cannot silently retain an old due date");
+  assert.notEqual(next.content.fields.issue_date,"2020-01-01");
+  assert.ok(documentIssues(next).includes("Add due date"));
+  assert.deepEqual(source,before);
+  assert.equal(copyAgencyDocument(source,"duplicate").content.fields.due_date,"2020-01-15","Explicit duplicate retains selected agreement dates for review");
+});
 test("external links accept only HTTPS without embedded credentials", () => {
   for (const value of [
     "javascript:alert(1)",
@@ -394,6 +517,26 @@ test("review does not hide unfinished clauses or missing variables", () => {
   ];
   assert.deepEqual(documentIssues(doc), []);
 });
+test("mandate opening facts keep fees visible and reference full long terms without losing them", () => {
+  const doc = newAgencyDocument("mandate", documentBrand());
+  const territory = Array.from({length:12},(_,n)=>`QA permitted market ${n+1}, with agreed exclusions in this sample.`).join("\n");
+  const commission = "QA payer, sample fee basis, sample split and sample payment trigger. ".repeat(12).trim();
+  Object.assign(doc.content.fields, {territory, commission});
+  let brief = documentBrief(doc);
+  assert.equal(brief.find(item=>item.label==="Clubs and territories")?.value,"See Clubs and territories");
+  assert.equal(brief.find(item=>item.label==="Fee arrangement")?.value,"See Commission arrangement");
+  const body = doc.content.sections.map(section=>resolveDocumentText(section.body,doc.content)).join("\n");
+  assert.ok(body.includes(territory)&&body.includes(commission));
+  doc.content.sections[1].title="Agreed markets";
+  assert.equal(documentBrief(doc).find(item=>item.label==="Clubs and territories")?.value,"See Agreed markets");
+  doc.content.sections[1].body="Custom scope wording without the field variable";
+  doc.content.sections[2].body="Custom fee wording without the field variable";
+  brief=documentBrief(doc);
+  assert.equal(brief.find(item=>item.label==="Clubs and territories")?.value,territory,"Unreferenced full wording must remain in the export");
+  assert.equal(brief.find(item=>item.label==="Fee arrangement")?.value,commission);
+  doc.content.fields.commission="50% of the sample agency fee, payable by the sample principal on the sample trigger.";
+  assert.equal(documentBrief(doc).find(item=>item.label==="Fee arrangement")?.value,doc.content.fields.commission);
+});
 test("representation wording uses editable tenant/player terms and clears personal notice details for another player", () => {
   const doc = newAgencyDocument(
     "player_contract",
@@ -464,4 +607,74 @@ test("a new copy never inherits payment activity, invoice numbers or review appr
   assert.equal(template.content.fields.recipient_name, undefined);
   assert.equal(template.is_template, true);
   assert.equal(template.paid_at, undefined);
+});
+
+test("document RPC compatibility is per request and leaves unrelated requests and cancellation intact", async () => {
+  const requests:any[]=[];
+  const exported:any={};
+  const source=ts.transpileModule(readFileSync("lib/platform-client.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  vm.runInNewContext(source,{exports:exported,require:(name:string)=>name.endsWith("/supabase")?{supabase:{rpc:(name:string,args:any)=>{
+    const request:any={name,args,headers:{},setHeader(key:string,value:string){this.headers[key]=value;return this;},abortSignal(signal:AbortSignal){this.signal=signal;return this;},then(resolve:any){return Promise.resolve({data:{ok:true},error:null}).then(resolve);}};
+    requests.push(request);return request;
+  }}}:{measureOperation:(_kind:string,_name:string,run:()=>Promise<any>)=>run()}});
+  const signal=new AbortController().signal;
+  for(const name of ["redream_documents","redream_document_read","redream_document_open","redream_ai_receipt"]) await exported.platformRpc(name,{qa:true},"qa-workspace",signal);
+  assert.deepEqual(requests.map(r=>r.headers["x-redream-invoice-currency"]),["1","1","1",undefined]);
+  assert.ok(requests.every(r=>r.headers["x-redream-workspace"]==="qa-workspace"&&r.signal===signal));
+  assert.equal(new Set(requests.map(r=>r.headers)).size,4);
+});
+
+test("scouting conversion clears literal player headings and legacy templates while preserving the original", () => {
+  const report=newAgencyDocument("scouting_report",documentBrand({display_name:"QA Agency"}));
+  report.content.fields.player_name="QA Previous Player";
+  report.content.sections[0].title="QA Previous Player, private assessment";
+  report.content.sections[2].body="QA previous match conclusions";
+  report.content.sections.push({id:"custom-observation",title:"QA Previous Player private meeting",body:"QA previous match conclusions",pageBreak:true});
+  report.content.sources=[{label:"QA previous private video",url:"",capturedAt:"2026-10-27"}];
+  Object.assign(report.content,{scoutingProfilePlayerId:"previous-player"});
+  const original=structuredClone(report);
+  for(const is_template of [false,true]){
+    const template=copyAgencyDocument({...report,is_template},is_template?"from_template":"template");
+    assert.doesNotMatch(JSON.stringify(template),/QA Previous Player|QA previous match|QA previous private|previous-player/);
+    assert.deepEqual(template.content.sections.map(s=>[s.id,s.pageBreak]),report.content.sections.map(s=>[s.id,s.pageBreak]));
+    assert.equal((template.content as any).scoutingTemplateVersion,1);
+    assert.equal(template.content.reviewed,false);
+    assert.ok(documentIssues(template).includes("Complete the highlighted template text"));
+  }
+  assert.deepEqual(report,original);
+  assert.equal(copyAgencyDocument(report,"duplicate").content.sections[0].title,report.content.sections[0].title);
+});
+test("clean scouting template guidance and methodology survive reuse, while new player observations cannot become reusable", () => {
+  const template=copyAgencyDocument(newAgencyDocument("scouting_report",documentBrand()),"template");
+  template.content.sections[2].title="Role in {{recipient_name}}'s system";
+  template.content.sections[2].body="Separate observed actions from questions for the next observation.";
+  template.content.sources=[{label:"QA reusable scouting methodology",url:"",capturedAt:"2026-10-27"}];
+  const report=copyAgencyDocument(template,"from_template");
+  assert.equal(report.content.sections[2].body,template.content.sections[2].body);
+  assert.deepEqual(report.content.sources,template.content.sources);
+  report.content.fields.player_name="QA Next Player";report.content.sections[2].title="QA Next Player private role";
+  report.content.sections[2].body="QA Next Player observations";report.content.sources.push({label:"QA Next Player match",url:"",capturedAt:"2026-10-27"});
+  assert.doesNotMatch(JSON.stringify(copyAgencyDocument(report,"template")),/QA Next Player|QA reusable scouting methodology/);
+});
+test("published profile replacement identifies the source player, including same-name players and untracked legacy reports", () => {
+  let report=newAgencyDocument("scouting_report",documentBrand());
+  const player={id:"qa-player-a",name:"QA Same Name",profile:{career_summary:"QA approved profile A"}};
+  report=fillDocumentPlayer(report,player);
+  assert.equal((report.content as any).scoutingProfilePlayerId,player.id);
+  report.content.sections[3].body="QA player A personal observations";
+  const original=structuredClone(report);
+  const refreshed=fillDocumentPlayer(report,{...player,profile:{career_summary:"QA refreshed profile A"}});
+  assert.equal(refreshed.content.sections[3].body,report.content.sections[3].body,"Same source player retains authored observations");
+  assert.match(refreshed.content.sections[1].body,/QA refreshed profile A/);
+  assert.ok(refreshed.content.sources.some(s=>s.label.includes(player.name)),"The copied profile's identity remains visible as provenance");
+  const unnamed=structuredClone(report);unnamed.content.fields.player_name="";
+  assert.doesNotMatch(JSON.stringify(fillDocumentPlayer(unnamed,{id:"qa-player-b",name:"QA Other",profile:null})),/QA player A personal/);
+  const next=fillDocumentPlayer(report,{id:"qa-player-b",name:player.name,profile:null});
+  assert.doesNotMatch(JSON.stringify(next),/QA player A personal|QA approved profile A/);
+  assert.equal((next.content as any).scoutingProfilePlayerId,"qa-player-b");
+  delete (report.content as any).scoutingProfilePlayerId;
+  assert.doesNotMatch(JSON.stringify(fillDocumentPlayer(report,player)),/QA player A personal/);
+  report.content.fields.player_name="";
+  assert.doesNotMatch(JSON.stringify(fillDocumentPlayer(report,player)),/QA player A personal/);
+  assert.equal(original.content.sections[3].body,"QA player A personal observations");
 });

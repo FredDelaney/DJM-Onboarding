@@ -14,6 +14,13 @@ function latestFunction(name:string){
  let definition='';
  for(const file of readdirSync('supabase/migrations').sort()){
   if(migrations.includes(file))continue;
+  // This suite replays the October 6 guarded patch. The newer Home definition
+  // already contains that boundary, so load its actual pre-patch version here.
+  // The current combined contract is exercised in home-statistics-review-database.
+  if(name==='public.platform_server_personal_home_commands'&&file>=migrations[0])continue;
+  // This fixture isolates the October 6 patch. The restored browser wrapper has
+  // a new scoped dependency; its complete current closure is exercised separately.
+  if(name==='public.redream_entity_delete'&&file>='20261028182236_restore_scoped_entity_management_entrypoints.sql')continue;
   const sql=readFileSync('supabase/migrations/'+file,'utf8');
   const pattern=new RegExp('create(?:\\s+or\\s+replace)?\\s+function\\s+'+name.replaceAll('.','\\.')+'\\s*\\(','ig');
   for(const match of sql.matchAll(pattern)){

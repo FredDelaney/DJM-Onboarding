@@ -77,12 +77,14 @@ export function validateSeasonDraft(draft: SeasonDraft): string | null {
  if (!draft.source_confirmed) return 'Confirm that you checked these figures against the source.';
  return null;
 }
-export type RefreshOutcome = {status: 'applied' | 'failed'; message: string; checked_at: string | null; changed_fields: string[];};
+export type RefreshOutcome = {status: 'applied' | 'failed' | 'needs_review' | 'rejected'; message: string; checked_at: string | null; changed_fields: string[];};
 export function refreshOutcome(payload: any, completedAt = new Date().toISOString()): RefreshOutcome {
  const fields = Array.isArray(payload?.ai?.fields_filled) ? payload.ai.fields_filled.filter((field: string) => PLAYER_STAT_FIELDS.includes(field as PlayerStatField)) : [];
  if (payload?.refresh_ok !== true || payload?.error || payload?.ai?.timed_out) {
   return {status:'failed',message:'The update could not confirm reliable new statistics. Recorded figures are still available. You can review the source or add corrections.',checked_at:null,changed_fields:[]};
  }
+ if (payload?.ai?.review_status === 'rejected' && payload?.ai?.review_id) return {status:'rejected',message:'This suggestion was already rejected. Recorded statistics are unchanged.',checked_at:null,changed_fields:[]};
+ if (payload?.ai?.review_status === 'needs_review' && payload?.ai?.review_id) return {status:'needs_review',message:'New figures are ready to review. Recorded statistics have not changed.',checked_at:null,changed_fields:[]};
  return {status:'applied',
   message:fields.length ? 'Statistics updated. Review the recorded figures before verifying the player.' : payload?.skipped ? 'Recent figures are already available. Recorded statistics were retained.' : 'Source check completed. Recorded figures were retained where no reliable change was found.',
   checked_at:payload?.skipped ? payload?.checked_at || null : completedAt,changed_fields:fields};

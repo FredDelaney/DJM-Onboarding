@@ -1,6 +1,7 @@
 'use client';
 
-import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
+import { createPortal } from 'react-dom';
 import { withProfileStatEvidence } from '@/supabase/functions/_shared/profile-stat-evidence';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,BarChart3,Check,ChevronDown,Clock3,Copy,Download,Eye,ExternalLink,Link2,LoaderCircle,Mail,MessageCircleMore,Pencil,Play,RefreshCw,Send,ShieldCheck,Sparkles,Trash2,X} from 'lucide-react';
@@ -18,6 +19,7 @@ import { type PreparationLink } from '@/lib/capture-preparation';
 import PublicProfile from '@/components/PublicProfile';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AgencyPlayerDataPanel from '@/components/AgencyPlayerDataPanel';
+import AgencyPlayerDetailsReview from '@/components/AgencyPlayerDetailsReview';
 import ToolsMenu from '@/components/ToolsMenu';
 import PlayerProfilePhoto from '@/components/PlayerProfilePhoto';
 import PlayerStaffControl from '@/components/PlayerStaffControl';
@@ -37,6 +39,8 @@ import { publicFile } from '@/lib/supabase';
 import { safeSourceUrl } from '@/lib/player-data-workflow';
 import {readWithDeadline} from '@/lib/read-with-deadline';
 import { tenantBrandTokens } from '@/lib/tenant-brand-style';
+import {profileDealContextFromWarRoom,type ProfileDealContext} from '@/lib/workspace-record-navigation';
+import {UUID_PATTERN} from '@/lib/entity-context';
 
 import styles from './AgencyPlayerProfile.module.css';
 
@@ -49,6 +53,7 @@ type Props = {
   playerId: string;
   preparation?: PreparationLink | null;
   backHref: string;
+  dealContext?: {id:string;backHref:string}|null;
   workHref?: string;
   cacheScope?: string;
   role: string;
@@ -88,20 +93,7 @@ type ProfileStat = {
   source?: { name?: string | null; status?: string | null } | null;
 };
 type ProfileVideo = { id: string; title: string; url: string };
-type PlayerContextProposal = {
-  fields: Partial<{
-    current_club: string;
-    current_league: string;
-    current_country: string;
-    current_season_label: string;
-    primary_position: string;
-    transfermarkt_url: string;
-    stats_url: string;
-  }>;
-  confidence: number;
-  reason: string;
-  sources: { title?: string; url: string }[];
-};
+type PlayerContextProposal = {id:string};
 type ProfileProposal = {
   kind: ProfileKind;
   headline: string;
@@ -142,6 +134,7 @@ type ProfileCheck = {
   label: string;
   ok: boolean;
   important: boolean;
+  pending?: boolean;
   missingTitle: string;
   missingDetail: string;
   where: string;
@@ -390,6 +383,7 @@ const makeDraftProfile = (
       : null,
     nationalities: player.nationalities || [],
     current_status: player.contract_status,
+    contract_expiry: player.contract_expiry,
     current_club: player.current_club,
     key_stats: keyStats,
     why_review: form.why_review || null,
@@ -433,6 +427,7 @@ const shareStatus = (share: any) => {
 export default function AgencyPlayerProfile({
   playerId, preparation,
   backHref,
+  dealContext,
   workHref,
   cacheScope = '',
   role,
@@ -454,6 +449,43 @@ export default function AgencyPlayerProfile({
   const [actionBusy, setActionBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const profileHeading=useRef<HTMLHeadingElement>(null);
+  const focusedProfile=useRef('');
+  const sourceDealId=String(dealContext?.id||'').toLowerCase();
+  const sourceKey=cacheScope+':'+playerId+':'+sourceDealId;
+  const sourceRequested=['owner','admin'].includes(role)&&UUID_PATTERN.test(sourceDealId)&&UUID_PATTERN.test(playerId);
+  const [sourceAttempt,setSourceAttempt]=useState(0);
+  const pendingSource=useRef<{key:string;request:Promise<any>}|null>(null);
+  const [sourceRead,setSourceRead]=useState<{key:string;loading:boolean;deal:ProfileDealContext|null;error:string;retryable:boolean}>({key:'',loading:false,deal:null,error:'',retryable:false});
+  useEffect(()=>{
+    if(!sourceRequested)return;
+    let active=true;
+    setSourceRead({key:sourceKey,loading:true,deal:null,error:'',retryable:false});
+    const readKey=sourceKey+':'+sourceAttempt;
+    if(pendingSource.current?.key!==readKey){
+      const request=readWithDeadline(invoke<any>('deal_war_room',{deal_room_id:sourceDealId}));
+      pendingSource.current={key:readKey,request};
+      const release=()=>{if(pendingSource.current?.request===request)pendingSource.current=null;};
+      void request.then(release,release);
+    }
+    void pendingSource.current.request.then(response=>{
+      if(!active)return;
+      const deal=profileDealContextFromWarRoom(response?.war_room,sourceDealId,playerId);
+      setSourceRead({key:sourceKey,loading:false,deal,error:deal?'':'This deal is unavailable for this player. Choose a club when sharing.',retryable:false});
+    }).catch(()=>{
+      if(active)setSourceRead({key:sourceKey,loading:false,deal:null,error:'The linked deal could not load. Retry, or choose a club when sharing.',retryable:true});
+    });
+    return()=>{active=false;};
+  },[sourceRequested,sourceKey,sourceDealId,playerId,invoke,sourceAttempt]);
+  const contextLoading=sourceRequested&&(sourceRead.key!==sourceKey||sourceRead.loading);
+  const sourceDeal=sourceRequested&&sourceRead.key===sourceKey&&!bundle?.access?.restricted&&String(bundle?.player?.id||'').toLowerCase()===playerId.toLowerCase() ?sourceRead.deal:null;
+  const contextError=sourceRequested&&sourceRead.key===sourceKey?sourceRead.error:'';
+  useEffect(()=>{
+    const key=cacheScope+':'+playerId;
+    if(loading||bundle?.player?.id!==playerId||focusedProfile.current===key)return;
+    focusedProfile.current=key;
+    if(sourceRequested)profileHeading.current?.focus({preventScroll:true});
+  },[loading,cacheScope,playerId,bundle?.player?.id,sourceRequested]);
   const [editOpen, setEditOpen] = useState(false);
   const [editorSection, setEditorSection] = useState<'story' | 'presentation' | 'video'>('story');
   const editorDialog = useRef<HTMLElement>(null);
@@ -491,6 +523,38 @@ export default function AgencyPlayerProfile({
     };
   }, [editOpen]);
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const verifyDialog=useRef<HTMLElement>(null);
+  const verificationBusy=useRef(false);
+  verificationBusy.current=Boolean(actionBusy);
+  useEffect(()=>{
+    if(!verifyOpen)return;
+    const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    const releaseScroll=lockPageScroll();
+    const releaseBackground=isolateElements(Array.from(document.body.children).filter((node):node is HTMLElement=>node instanceof HTMLElement&&!node.contains(verifyDialog.current)));
+    const controls=()=>Array.from(verifyDialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex]:not([tabindex="-1"])')||[]).filter(node=>node.getClientRects().length>0&&!node.closest('[inert]'));
+    const focusFirst=()=>{(controls()[0]||verifyDialog.current)?.focus({preventScroll:true});};
+    const containFocus=(event:FocusEvent)=>{if(event.target instanceof Node&&!verifyDialog.current?.contains(event.target))focusFirst();};
+    const key=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();if(!verificationBusy.current)setVerifyOpen(false);return;}
+      if(event.key!=='Tab')return;
+      event.stopPropagation();
+      const all=controls(),first=all[0],last=all.at(-1),inside=verifyDialog.current?.contains(document.activeElement);
+      if(!first){event.preventDefault();verifyDialog.current?.focus();}
+      else if(event.shiftKey&&(!inside||document.activeElement===first)){event.preventDefault();last?.focus();}
+      else if(!event.shiftKey&&(!inside||document.activeElement===last)){event.preventDefault();first.focus();}
+    };
+    document.addEventListener('focusin',containFocus);
+    document.addEventListener('keydown',key,true);
+    if(!verifyDialog.current?.contains(document.activeElement))focusFirst();
+    return()=>{
+      document.removeEventListener('focusin',containFocus);document.removeEventListener('keydown',key,true);
+      releaseBackground();releaseScroll();
+      queueMicrotask(()=>{
+        const target=opener?.isConnected&&opener!==document.body?opener:profileHeading.current,focused=document.activeElement;
+        if(target?.isConnected&&!target.closest('[inert]')&&(!focused||focused===document.body||!focused.isConnected))target.focus({preventScroll:true});
+      });
+    };
+  },[verifyOpen]);
   const [verifyFocus, setVerifyFocus] = useState<'verification' | 'position' | 'contract-status' | 'contract-expiry'>(
     'verification',
   );
@@ -498,17 +562,110 @@ export default function AgencyPlayerProfile({
     useState<VerifyPlayerForm>(emptyVerifyForm);
   const [verifyError, setVerifyError] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const previewDialog = useRef<HTMLDivElement>(null);
+  const previewClose = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!previewOpen) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const releaseScroll = lockPageScroll();
+    const releaseBackground = isolateElements(Array.from(document.body.children).filter(
+      (node): node is HTMLElement => node instanceof HTMLElement && !node.contains(previewDialog.current),
+    ));
+    const focusClose = () => previewClose.current?.focus({preventScroll: true});
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !previewDialog.current?.contains(event.target)) focusClose();
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopPropagation(); setPreviewOpen(false); return;
+      }
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(previewDialog.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+      ) || []).filter(node => node.getClientRects().length > 0);
+      const first = controls[0], last = controls.at(-1);
+      if (!previewDialog.current?.contains(document.activeElement)) {
+        event.preventDefault(); (event.shiftKey ? last : first)?.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus();
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', key, true);
+    focusClose();
+    return () => {
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', key, true);
+      releaseBackground(); releaseScroll();
+      queueMicrotask(() => { if (opener?.isConnected && !opener.closest('[inert]')) opener.focus({preventScroll: true}); });
+    };
+  }, [previewOpen]);
   const [shareOpen, setShareOpen] = useState(false);
+  const shareDialog = useRef<HTMLElement>(null);
+  const shareOpener = useRef<HTMLElement | null>(null);
+  const shareBusy = useRef(false);
+  shareBusy.current = actionBusy === 'share';
+  useEffect(() => {
+    if (!shareOpen || previewOpen) return;
+    const opener = shareOpener.current;
+    const position = {left: window.scrollX, top: window.scrollY};
+    const releaseScroll = lockPageScroll();
+    const releaseBackground = isolateElements(Array.from(document.body.children).filter(
+      (node): node is HTMLElement => node instanceof HTMLElement && !node.contains(shareDialog.current),
+    ));
+    const controls = () => Array.from(shareDialog.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), select:not(:disabled), input:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+    ) || []).filter(node => node.getClientRects().length > 0);
+    const focusFirst = () => controls()[0]?.focus({preventScroll: true});
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !shareDialog.current?.contains(event.target)) focusFirst();
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopPropagation();
+        if (!shareBusy.current) setShareOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = controls(), first = items[0], last = items.at(-1);
+      if (!shareDialog.current?.contains(document.activeElement)) {
+        event.preventDefault(); (event.shiftKey ? last : first)?.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus();
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', key, true);
+    focusFirst();
+    return () => {
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', key, true);
+      releaseBackground(); releaseScroll();
+      window.scrollTo({...position, behavior: 'instant'});
+      queueMicrotask(() => { if (opener?.isConnected && !opener.closest('[inert]')) opener.focus({preventScroll: true}); });
+    };
+  }, [shareOpen, previewOpen]);
   const [videoTitle, setVideoTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [shareClub, setShareClub] = useState('');
   const [shareNetworkClubs, setShareNetworkClubs] = useState<any[]>([]);
   const [shareClubsBusy, setShareClubsBusy] = useState(false);
   const [shareDeal, setShareDeal] = useState('');
+  const [shareSource, setShareSource] = useState<{key:string;id:string}|null>(null);
+  const sourceShareBlocked=Boolean(shareSource&&shareDeal===shareSource.id&&(shareSource.key!==sourceKey||contextLoading||!sourceDeal));
   const [shareMessage, setShareMessage] = useState('');
   const [shareExpiry, setShareExpiry] = useState('30');
   const [shareResultUrl, setShareResultUrl] = useState('');
   const [shareResultMessage, setShareResultMessage] = useState('');
+  useEffect(() => {
+    if (shareOpen && shareResultUrl && !previewOpen && actionBusy !== 'share') {
+      shareDialog.current?.querySelector<HTMLElement>('button[aria-label="Close"]')?.focus({preventScroll: true});
+    }
+  }, [shareOpen, shareResultUrl, previewOpen, actionBusy]);
   const [shareVersionId, setShareVersionId] = useState('');
   const [showOlderLinks, setShowOlderLinks] = useState(false);
   const [versions, setVersions] = useState<ProfileVersion[]>([]);
@@ -525,6 +682,9 @@ export default function AgencyPlayerProfile({
   const [preparedSaved, setPreparedSaved] = useState(false);
   const [aiAvailable, setAiAvailable] = useState(false);
   const [contextProposal, setContextProposal] = useState<PlayerContextProposal | null>(null);
+  const contextRequestId=useRef<string|null>(null);
+  const [detailsDraft,setDetailsDraft]=useState(false);
+  const [recordRefreshNeeded,setRecordRefreshNeeded]=useState(false),[recordReloadBusy,setRecordReloadBusy]=useState(false);
   const [preparationStep, setPreparationStep] = useState('');
   const [statisticsStatusVersion, setStatisticsStatusVersion] = useState(0);
   const preparationRun = useRef(0), preparationBusy = useRef(false);
@@ -543,14 +703,70 @@ export default function AgencyPlayerProfile({
     status: 'suggested' | 'unchanged';
   } | null>(null);
   const [previewProfile, setPreviewProfile] = useState<any>(null);
+  useEffect(() => {
+    setPreviewOpen(false); setPreviewProfile(null);
+  }, [playerId, cacheScope]);
   const [previewLabel, setPreviewLabel] = useState('PLAYER PROFILE PREVIEW');
   const [transfermarktOpen, setTransfermarktOpen] = useState(false);
   const [transfermarktUrl, setTransfermarktUrl] = useState('');
   const [transfermarktError, setTransfermarktError] = useState('');
 
+  const readScope = `${cacheScope}:${playerId}:${role}`;
+  const readScopeRef = useRef(readScope);
+  readScopeRef.current = readScope;
+  const [secondaryError, setSecondaryError] = useState('');
+  const [secondaryBusy, setSecondaryBusy] = useState(false);
+  const [versionsError, setVersionsError] = useState('');
+  const [shareClubsError, setShareClubsError] = useState('');
+  const secondaryRun = useRef(0), versionsRun = useRef(0), clubsRun = useRef(0);
+  const secondaryRequest = useRef<{key:string;run:number;generation:number;promise:Promise<boolean>}|null>(null);
+  const versionsRequest = useRef<{key:string;run:number;promise:Promise<ProfileVersion[]>}|null>(null);
+  const clubsRequest = useRef<{key:string;run:number;promise:Promise<any[]>}|null>(null);
+  useEffect(() => {
+    setSecondaryError(''); setSecondaryBusy(false);
+    setVersionsError(''); setVersions([]); setVersionsBusy(false); setShareVersionId('');
+    setShareClubsError(''); setShareNetworkClubs([]); setShareClubsBusy(false); setShareOpen(false);
+    return () => {
+      ++secondaryRun.current; ++versionsRun.current; ++clubsRun.current;
+      secondaryRequest.current=null; versionsRequest.current=null; clubsRequest.current=null;
+    };
+  }, [readScope]);
+
   const loadGeneration = useRef(0);
+  const loadSecondary = useCallback((generation:number):Promise<boolean> => {
+    const pending=secondaryRequest.current;
+    if(pending?.key===readScope&&pending.generation===generation)return pending.promise;
+    const run=++secondaryRun.current;
+    const current=()=>readScopeRef.current===readScope&&loadGeneration.current===generation&&secondaryRun.current===run;
+    setSecondaryBusy(true); setSecondaryError('');
+    const promise=(async()=>{
+      try {
+        const response=await readWithDeadline(invoke<any>('player_profile_detail',{player_id:playerId}));
+        const detail=response?.detail;
+        if(!detail||detail.secondary_ready!==true||
+          !['documents','shares','deals','clubs'].every(key=>Array.isArray(detail[key]))||
+          !detail.communication||typeof detail.communication!=='object'||
+          (!detail.access?.restricted&&(!detail.branding||typeof detail.branding!=='object'||Array.isArray(detail.branding))))throw new Error('Profile details unavailable');
+        if(!current())return false;
+        setBundle((current: any) => current?.player?.id===playerId ? {
+          ...current, ...detail,
+          branding:{...(current.branding||{}),...(detail.branding||{})},
+        }:current);
+        return true;
+      } catch {
+        if(current())setSecondaryError('Agency details and profile activity could not load.');
+        return false;
+      } finally {
+        if(current())setSecondaryBusy(false);
+        if(secondaryRequest.current?.run===run)secondaryRequest.current=null;
+      }
+    })();
+    secondaryRequest.current={key:readScope,run,generation,promise};
+    return promise;
+  }, [invoke,playerId,readScope]);
   const load = useCallback(async (fresh = false, preserveDraft = false) => {
     const generation = ++loadGeneration.current;
+    ++secondaryRun.current; setSecondaryError('');
     const cached = getCachedPlayerProfile(playerId, cacheScope);
     if (!cached) setLoading(true);
     setError('');
@@ -581,43 +797,28 @@ export default function AgencyPlayerProfile({
       setLoading(false);
 
       if (profile.secondary_ready === false) {
-        void invoke<any>('player_profile_detail', {
-          player_id: playerId,
-        })
-          .then((response) => {
-            const detail = response?.detail || null;
-            if (!detail || generation !== loadGeneration.current) return;
-
-            setBundle((current: any) => {
-              if (!current) return current;
-              const next = {
-                ...current,
-                ...detail,
-                branding: {
-                  ...(current.branding || {}),
-                  ...(detail.branding || {}),
-                },
-              };
-              return next;
-            });
-          })
-          .catch(() => undefined);
+        void loadSecondary(generation);
       }
       return true;
     } catch (loadError) {
       if (generation !== loadGeneration.current) return false;
       setError(friendlyError(loadError));
+      setSecondaryError('Agency details and profile activity could not load.');
       setLoading(false);
       return false;
     }
-  }, [invoke, playerId, cacheScope]);
+  }, [invoke, playerId, cacheScope, loadSecondary]);
 
   useEffect(() => {
     void load(false);
     return () => { ++loadGeneration.current; };
   }, [load]);
 
-  const reloadRecordedData = useCallback(() => load(true, true), [load]);
+  const reloadRecordedData = useCallback(async() => {
+    setRecordReloadBusy(true);const expected=loadGeneration.current+1;
+    try{const ok=await load(true,true);if(loadGeneration.current===expected)setRecordRefreshNeeded(ok===false);return ok;}
+    finally{setRecordReloadBusy(false);}
+  }, [load]);
 
   const player = bundle?.player || {};
   const agency = {
@@ -636,12 +837,15 @@ export default function AgencyPlayerProfile({
     : [];
   const liveShares = shares.filter((share: any) => ['Ready', 'Opened'].includes(shareStatus(share)));
   const olderShares = shares.filter((share: any) => ['Revoked', 'Expired'].includes(shareStatus(share)));
-  const clubs = Array.isArray(bundle?.clubs)
-    ? bundle.clubs
-    : [];
-  const deals = Array.isArray(bundle?.deals)
-    ? bundle.deals
-    : [];
+  const clubs=useMemo(()=>{
+    const recorded=Array.isArray(bundle?.clubs)?bundle.clubs:[];
+    return sourceDeal&&!recorded.some((club:any)=>club.id===sourceDeal.organisation_id)
+      ?[{id:sourceDeal.organisation_id,name:sourceDeal.club_name},...recorded]:recorded;
+  },[bundle?.clubs,sourceDeal]);
+  const deals=useMemo(()=>{
+    const recorded=Array.isArray(bundle?.deals)?bundle.deals:[];
+    return sourceDeal?[{...recorded.find((deal:any)=>deal.id===sourceDeal.id),...sourceDeal},...recorded.filter((deal:any)=>deal.id!==sourceDeal.id)]:recorded;
+  },[bundle?.deals,sourceDeal]);
   const shareClubOptions = useMemo(() => {
     const merged = new Map<string, any>();
 
@@ -780,6 +984,7 @@ export default function AgencyPlayerProfile({
     },
     {
       key: 'agency-contact',
+      pending: !secondaryReady,
       label: 'Agency contact ready',
       ok: Boolean(agency.support_email),
       important: true,
@@ -847,7 +1052,7 @@ export default function AgencyPlayerProfile({
       label: 'Contract details',
       ok: Boolean(player.contract_status) &&
         (Boolean(player.contract_expiry) ||
-          !/under contract|contracted|on loan/i.test(text(player.contract_status))),
+          !/under contract|contracted|on loan/i.test(text(player.contract_status).replaceAll('_', ' ').replaceAll('-', ' '))),
       important: false,
       missingTitle: player.contract_status
         ? 'Add contract expiry'
@@ -882,21 +1087,23 @@ export default function AgencyPlayerProfile({
 
   const requiredChecks = checks.filter((item) => item.important);
   const optionalChecks = checks.filter((item) => !item.important);
-  const missingRequiredChecks = requiredChecks.filter((item) => !item.ok);
+  const missingRequiredChecks = requiredChecks.filter((item) => !item.pending && !item.ok);
   const missingOptionalChecks = optionalChecks.filter((item) => !item.ok);
   const missingShareHighlights = missingOptionalChecks.filter((item) =>
     ['video', 'transfermarkt', 'contract'].includes(item.key),
   );
   const missingRequiredCount = missingRequiredChecks.length;
-  const canPublish = missingRequiredCount === 0;
+  const canPublish = secondaryReady && missingRequiredCount === 0;
   const verificationOnly =
-    missingRequiredCount === 1 &&
+    secondaryReady && missingRequiredCount === 1 &&
     missingRequiredChecks[0]?.key === 'verification';
   const canPublishFromHero = canPublish || verificationOnly;
   const guidedRequiredChecks = verificationOnly ? [] : missingRequiredChecks;
   const canEdit = !bundle?.access?.restricted && ['owner', 'admin', 'agent', 'operations'].includes(
     role,
   );
+  const canReviewDetails = canEdit || (bundle?.access?.can_review_player_details === true && ['agent','operations'].includes(role));
+  const canEditStatistics = canEdit || (bundle?.access?.can_edit_statistics === true && ['agent','operations'].includes(role));
   const primaryRequiredCheck = guidedRequiredChecks[0] || null;
   const primaryMoveBlocked =
     primaryRequiredCheck?.action === 'agency-settings' &&
@@ -974,31 +1181,87 @@ export default function AgencyPlayerProfile({
     }
   };
 
-  const loadVersions = async () => {
-    setVersionsBusy(true);
-    try {
-      const response = await invoke<any>('player_profile_versions', {
-        player_id: playerId,
-      });
-      const next = Array.isArray(response?.versions) ? response.versions : [];
-      setVersions(next);
-      setShareVersionId((current) => current && !next.some(
-        (version: ProfileVersion) => version.id === current && version.status === 'approved',
-      ) ? '' : current);
-      return next as ProfileVersion[];
-    } finally {
-      setVersionsBusy(false);
-    }
+  const loadVersions = (fresh=false):Promise<ProfileVersion[]> => {
+    if(!fresh&&versionsRequest.current?.key===readScope)return versionsRequest.current.promise;
+    const run=++versionsRun.current;
+    const current=()=>readScopeRef.current===readScope&&versionsRun.current===run;
+    setVersionsBusy(true); setVersionsError('');
+    const promise=(async()=>{
+      try {
+        const response=await readWithDeadline(invoke<any>('player_profile_versions',{player_id:playerId}));
+        if(!Array.isArray(response?.versions))throw new Error('Saved profiles unavailable');
+        if(current())setVersions(response.versions);
+        return response.versions as ProfileVersion[];
+      } catch(error) {
+        if(current())setVersionsError('Saved club profiles could not load. Retry, or choose the general profile.');
+        throw error;
+      } finally {
+        if(current())setVersionsBusy(false);
+        if(versionsRequest.current?.run===run)versionsRequest.current=null;
+      }
+    })();
+    versionsRequest.current={key:readScope,run,promise};
+    return promise;
+  };
+
+  const loadNetworkClubs = ():Promise<any[]> => {
+    if(clubsRequest.current?.key===readScope)return clubsRequest.current.promise;
+    const run=++clubsRun.current;
+    const current=()=>readScopeRef.current===readScope&&clubsRun.current===run;
+    setShareClubsBusy(true); setShareClubsError('');
+    const promise=(async()=>{
+      try {
+        const response=await readWithDeadline(invoke<any>('create_options'));
+        if(!Array.isArray(response?.options?.clubs))throw new Error('Agency clubs unavailable');
+        if(current())setShareNetworkClubs(response.options.clubs);
+        return response.options.clubs;
+      } catch(error) {
+        if(current())setShareClubsError('The club list could not load. Retry to see agency clubs.');
+        throw error;
+      } finally {
+        if(current())setShareClubsBusy(false);
+        if(clubsRequest.current?.run===run)clubsRequest.current=null;
+      }
+    })();
+    clubsRequest.current={key:readScope,run,promise};
+    return promise;
+  };
+
+  const restoreReadFocus = (target:HTMLElement|null, opener:Element|null, scope:string) => {
+    requestAnimationFrame(()=>{
+      if(readScopeRef.current===scope&&target?.isConnected&&!target.closest('[inert]')&&
+        !target.hasAttribute('disabled')&&(document.activeElement===document.body||document.activeElement===opener))target.focus({preventScroll:true});
+    });
+  };
+  const retryDetails = async () => {
+    const opener=document.activeElement, scope=readScope;
+    const target=editorDialog.current?.contains(opener)
+      ? Array.from(editorDialog.current.querySelectorAll<HTMLElement>('input,textarea,select')).find(node=>node.getClientRects().length>0)||null
+      : profileHeading.current;
+    await loadSecondary(loadGeneration.current);
+    restoreReadFocus(target,opener,scope);
+  };
+  const retryVersions = async () => {
+    const opener=document.activeElement, scope=readScope;
+    const target=shareDialog.current?.querySelector<HTMLElement>('select[aria-label="Profile to share"]')||null;
+    await loadVersions().catch(()=>undefined);restoreReadFocus(target,opener,scope);
+  };
+  const retryClubs = async () => {
+    const opener=document.activeElement, scope=readScope;
+    const target=shareDialog.current?.querySelector<HTMLElement>('select[aria-label="Club"]')||document.querySelector<HTMLElement>('#player-profile-prepare select[aria-label="Club"]');
+    await loadNetworkClubs().catch(()=>undefined);restoreReadFocus(target,opener,scope);
   };
 
   const openProfilePreview = (profile: any, label = 'PLAYER PROFILE PREVIEW') => {
+    if(label!=='CLUB PROFILE PREVIEW'&&!secondaryReady){setNotice('Load the agency details before previewing this profile.');return;}
     setPreviewProfile(profile);
     setPreviewLabel(label);
     setPreviewOpen(true);
   };
 
   const openPrepare = (start = false) => {
-    if (!canEdit) return;
+    if (!canEdit||recordRefreshNeeded) return;
+    if(detailsDraft){setNotice('Save or clear your player-details choices before preparing a profile.');document.getElementById('player-details')?.focus();document.getElementById('player-details')?.scrollIntoView({behavior:'instant',block:'start'});return;}
     if (start && !proposal && !contextProposal) {
       setPrepareKind('general');
       setPrepareOpen(true);
@@ -1014,15 +1277,7 @@ export default function AgencyPlayerProfile({
     }
     setPrepareOpen(true);
     if (shareNetworkClubs.length || shareClubsBusy) return;
-    setShareClubsBusy(true);
-    void invoke<any>('create_options')
-      .then((response) => {
-        setShareNetworkClubs(Array.isArray(response?.options?.clubs)
-          ? response.options.clubs
-          : []);
-      })
-      .catch(() => undefined)
-      .finally(() => setShareClubsBusy(false));
+    void loadNetworkClubs().catch(() => undefined);
   };
 
   const editProposal = (patch: Partial<ProfileProposal>) => {
@@ -1090,6 +1345,7 @@ export default function AgencyPlayerProfile({
     if (!current()) return false;
     setStatisticsStatusVersion(value => value + 1);
     if (['queued', 'running'].includes(String(job.status))) setNotice('Statistics are still updating. This draft uses the recorded evidence available now.');
+    else if (job.status === 'needs_review') setNotice('New statistics are ready for review below. This draft uses the recorded figures until you accept them.');
     else if (job.status === 'failed') setNotice('Statistics could not refresh. This draft uses the recorded evidence available now.');
     else if (await load(true, true) === false) throw new Error('Statistics were checked, but the player record could not reload. Try again.');
     return current();
@@ -1121,18 +1377,16 @@ export default function AgencyPlayerProfile({
 
       if (!canRefreshStats || !playerContext.primary_position || !playerContext.current_country) {
         setPreparationStep('Finding missing player details...');
-        const researched = await readWithDeadline(invoke<any>('player_context_research', { player_id: playerId }), 35000);
+        contextRequestId.current ||= crypto.randomUUID();
+        const researched = await readWithDeadline(invoke<any>('player_context_research', { player_id: playerId,request_id:contextRequestId.current }), 35000);
         if (!current()) return;
-        const fields = researched?.proposal?.fields || {};
-        if (researched?.proposal && Object.keys(fields).length) {
-          setContextProposal({
-            fields,
-            confidence: Number(researched.proposal.confidence || 0),
-            reason: text(researched.proposal.reason),
-            sources: Array.isArray(researched.proposal.sources) ? researched.proposal.sources : [],
-          });
+        const savedReview=researched?.review;
+        if(savedReview?.id&&['running','needs_review'].includes(savedReview.status)){
+          setContextProposal({id:savedReview.id});setPrepareOpen(false);
+          window.location.hash='player-details';
           return;
         }
+        contextRequestId.current=null;
         if (!canRefreshStats) throw new Error('AI could not confidently identify the missing current club, competition and season. Review the player details and try again.');
       }
 
@@ -1157,46 +1411,10 @@ export default function AgencyPlayerProfile({
     }
   };
 
-  const applyPlayerContextAndContinue = async () => {
-    if (!contextProposal || actionBusy || preparationBusy.current) return;
-    preparationBusy.current = true;
-    const run = ++preparationRun.current, current = () => run === preparationRun.current;
-    setActionBusy('context-apply');
-    setError('');
-    setNotice('');
-    try {
-      setPreparationStep('Saving reviewed player details...');
-      await readWithDeadline(invoke<any>('player_context_apply', {
-        player_id: playerId,
-        fields: contextProposal.fields,
-        sources: contextProposal.sources,
-      }), 35000);
-      if (!current()) return;
-      if (await load(true, true) === false) throw new Error('Player details were saved, but could not reload. Try again.');
-      if (!current()) return;
-      const nextContext = { ...(bundle?.player || {}), ...contextProposal.fields };
-      const canRefresh = Boolean(nextContext.current_season_label && nextContext.current_club && nextContext.current_league);
-      if (canRefresh) {
-        if (!await refreshPreparationStats(current)) return;
-      }
-      if (!current()) return;
-      setPreparationStep('Preparing your editable profile...');
-      const response = await readWithDeadline(invoke<any>('player_profile_prepare', {
-        player_id: playerId,
-        kind: prepareKind,
-        ...(prepareKind === 'club'
-          ? { organisation_id: prepareClub, deal_room_id: prepareDeal || null }
-          : {}),
-      }), 35000);
-      if (!current()) return;
-      adoptPreparedProfile(response);
-      setContextProposal(null);
-      setNotice('Player details saved. Review the prepared draft before saving it.');
-    } catch (contextError) {
-      if (current()) setError(friendlyError(contextError));
-    } finally {
-      if (current()) {preparationBusy.current = false; setActionBusy(''); setPreparationStep('');}
-    }
+  const applyPlayerContextAndContinue = () => {
+    if(actionBusy||preparationBusy.current)return;
+    setContextProposal(null);contextRequestId.current=null;setPrepareOpen(true);
+    void prepareProfile(prepareKind);
   };
 
   const improveProfileText = async () => {
@@ -1324,7 +1542,7 @@ export default function AgencyPlayerProfile({
       setPreparedVersionId(versionId);
       setPreparedSaved(true);
       setNotice('Club profile saved. Review it, then create a private share link.');
-      void loadVersions().catch(() => undefined);
+      void loadVersions(true).catch(() => undefined);
     } catch (saveError) {
       setError(friendlyError(saveError));
     } finally {
@@ -1339,6 +1557,7 @@ export default function AgencyPlayerProfile({
     } = {},
   ) => {
     if (!canEdit || actionBusy) return;
+    if(!secondaryReady){setError('Reload the agency details before publishing.');return;}
     if (options.saveFirst !== false && !(await saveSettings(false))) return;
     setActionBusy('publish');
     setError('');
@@ -1435,6 +1654,8 @@ export default function AgencyPlayerProfile({
 
   const createShare = async () => {
     if (!canEdit || actionBusy) return;
+    if(shareVersionId&&(versionsBusy||versionsError)){setError('Reload saved club profiles or choose the general profile.');return;}
+    if(sourceShareBlocked){setError('The linked deal changed or could not load. Choose a club and deal again.');return;}
     const selectedDeal = deals.find(
       (deal: any) => String(deal.id) === shareDeal,
     );
@@ -1475,12 +1696,7 @@ export default function AgencyPlayerProfile({
       const readyMessage = buildShareMessage(url);
       setShareResultUrl(url);
       setShareResultMessage(readyMessage);
-      try {
-        await navigator.clipboard.writeText(readyMessage);
-        setNotice('Private link created. Message copied.');
-      } catch {
-        setNotice('Private link created.');
-      }
+      setNotice('Private link created.');
       await load(true);
     } catch (shareError) {
       setError(friendlyError(shareError));
@@ -1573,6 +1789,7 @@ export default function AgencyPlayerProfile({
     setShareOpen(false);
     onOpenAction({
       key: `player-profile-follow-up:${shareKey}`,
+      returnFocusId:shareOpener.current?.id||'player-profile-heading-'+playerId,
       eyebrow: 'PLAYER PROFILE FOLLOW-UP',
       title: `${name} → ${clubName}`,
       instruction:
@@ -1640,8 +1857,11 @@ export default function AgencyPlayerProfile({
   };
 
   const openShareComposer = () => {
-    if (!canEdit) return;
+    if (!canEdit||recordRefreshNeeded) return;
+    if(contextLoading){setError('The linked deal is still loading. Please wait, then try again.');return;}
 
+    shareOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setError('');
     setShareResultUrl('');
     setShareResultMessage('');
     setShareMessage('');
@@ -1649,23 +1869,13 @@ export default function AgencyPlayerProfile({
     const preparedClub = preparedSaved && proposal?.kind === 'club'
       ? prepareClub
       : '';
-    setShareDeal(preparedClub ? prepareDeal : '');
-    setShareClub(preparedClub);
+    setShareDeal(preparedClub ? prepareDeal : sourceDeal?.id || '');
+    setShareSource(!preparedClub&&sourceDeal?{key:sourceKey,id:sourceDeal.id}:null);
+    setShareClub(preparedClub || sourceDeal?.organisation_id || '');
     setShareVersionId(preparedClub ? preparedVersionId : '');
     setShareOpen(true);
-    void loadVersions().catch(() => setVersions([]));
-    setShareClubsBusy(true);
-
-    void invoke<any>('create_options')
-      .then((response) => {
-        const options = Array.isArray(response?.options?.clubs)
-          ? response.options.clubs
-          : [];
-
-        setShareNetworkClubs(options);
-      })
-      .catch(() => undefined)
-      .finally(() => setShareClubsBusy(false));
+    void loadVersions().catch(() => undefined);
+    void loadNetworkClubs().catch(() => undefined);
   };
 
   const toggleSection = (key: string) => {
@@ -1710,12 +1920,19 @@ export default function AgencyPlayerProfile({
       [key]: value,
     }));
 
-  const openVerify = (focus: 'verification' | 'position' | 'contract-status' | 'contract-expiry' = 'verification') => {
+  const openVerify = useCallback((focus: 'verification' | 'position' | 'contract-status' | 'contract-expiry' = 'verification') => {
+    if(recordRefreshNeeded)return;
     setVerifyForm(verifyFormFromPlayer(player));
     setVerifyFocus(focus);
     setVerifyError('');
     setVerifyOpen(true);
-  };
+  },[recordRefreshNeeded,player]);
+
+  useEffect(()=>{
+    if(!canEdit||loading||error||recordRefreshNeeded||player.id!==playerId||window.location.hash!=='#review-player-details')return;
+    window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search);
+    openVerify('verification');
+  },[canEdit,loading,error,recordRefreshNeeded,player.id,playerId,openVerify]);
 
   const openTransfermarkt = () => {
     setTransfermarktUrl(text(player.transfermarkt_url));
@@ -1871,6 +2088,11 @@ export default function AgencyPlayerProfile({
     '--profile-on-accent': brand.onAccent,
   } as React.CSSProperties;
 
+  const recordRefreshBanner=recordRefreshNeeded?<section className={styles.card+' '+styles.reviewBanner} aria-label="Player refresh required">
+    <div><h3>Reload player details</h3><p>Showing the last loaded information. Reload before verifying, sharing or publishing.</p></div>
+    <button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={recordReloadBusy} onClick={()=>void reloadRecordedData()}>{recordReloadBusy?'Reloading...':'Reload player details'}</button>
+  </section>:null;
+
   if (bundle?.access?.restricted) {
     return <div className={styles.root} style={theme}>
       <div className={styles.topbar}><Link href={backHref} className={styles.back} aria-label="Back to players"><ArrowLeft size={15}/>Players</Link></div>
@@ -1879,16 +2101,27 @@ export default function AgencyPlayerProfile({
         <p>Review football information here. Contract and sharing controls are for admins.</p>
       </section>
       {error?<p className={styles.error} role="alert">{error}</p>:null}
+      {recordRefreshBanner}
       <PublicProfile profile={draftProfile} agency={agency}/>
+      {canReviewDetails?<AgencyPlayerDetailsReview key={'details-'+playerId} player={player} invoke={invoke} onChanged={reloadRecordedData} blocked={Boolean(actionBusy)||recordRefreshNeeded} onDraftChange={setDetailsDraft}/>:null}
+      <AgencyPlayerDataPanel key={playerId} player={player} career={career} canEdit={canEditStatistics} canVerify={false}
+        invoke={invoke} onChanged={reloadRecordedData} onReview={()=>{}} blocked={Boolean(actionBusy)||recordRefreshNeeded}/>
     </div>;
   }
+
+  const profileDetailsRecovery = !secondaryReady ? <div className={styles.readRecovery} role={secondaryError?'alert':'status'} aria-label="Profile details">
+    <p>{secondaryError||'Checking agency details and profile activity...'}</p>
+    {secondaryError?<button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={secondaryBusy} onClick={()=>void retryDetails()}>Retry profile details</button>:<LoaderCircle size={16} className={styles.spin}/>}
+  </div>:null;
 
   return (
     <div className={styles.root} style={theme}>
       <div className={styles.topbar}>
-        <Link href={backHref} className={styles.back} aria-label="Back to players">
+        <Link href={sourceDeal&&dealContext?dealContext.backHref:backHref} onNavigate={event=>{
+          if(sourceDeal&&dealContext){event.preventDefault();window.history.pushState(null,'',dealContext.backHref);}
+        }} className={styles.back} aria-label={sourceDeal?'Back to deal':'Back to players'} title={sourceDeal?.title}>
           <ArrowLeft size={15} />
-          Players
+          {sourceDeal?'Back to deal':'Players'}
         </Link>
         {workHref ? <Link href={workHref} className={styles.back}>Work view</Link> : null}
 
@@ -1908,6 +2141,13 @@ export default function AgencyPlayerProfile({
           Player intelligence
         </button>
       </div>
+
+      {sourceRequested ? <div className={styles.dealContext} role="status" aria-label="Linked deal context">
+        <span>{contextLoading?'Loading linked deal...':sourceDeal?<>Deal for <strong>{sourceDeal.club_name}</strong></>:contextError}</span>
+        {contextError&&sourceRead.retryable?<button type="button" data-ui-button="secondary" onClick={()=>{setSourceRead({key:sourceKey,loading:true,deal:null,error:'',retryable:false});setSourceAttempt(value=>value+1);}}>Retry deal context</button>:null}
+      </div>:null}
+
+      {profileDetailsRecovery}
 
       {error ? (
         <div className={styles.error} role="alert" aria-atomic="true">
@@ -1933,6 +2173,7 @@ export default function AgencyPlayerProfile({
         </section>
       ) : null}
 
+      {recordRefreshBanner}
       <section className={styles.hero}>
         <div className={styles.heroIdentity}>
           <PlayerProfilePhoto key={`${cacheScope}:${playerId}`} playerId={playerId} name={name} path={player.profile_photo_path}
@@ -1943,7 +2184,7 @@ export default function AgencyPlayerProfile({
             <div className={styles.eyebrow}>
               PLAYER PROFILE
             </div>
-            <h2>{name}</h2>
+            <h2 id={'player-profile-heading-'+playerId} ref={profileHeading} tabIndex={-1}>{name}</h2>
             <p>
               {[
                 player.primary_position,
@@ -1972,17 +2213,17 @@ export default function AgencyPlayerProfile({
             <div className={styles.statusRow}>
               <span
                 className={
-                  published?.published
+                  published?.published&&!recordRefreshNeeded
                     ? styles.liveStatus
                     : styles.draftStatus
                 }
               >
                 <ShieldCheck size={13} />
-                {published?.published ? 'Live' : 'Draft'}
+                {recordRefreshNeeded?'Refresh needed':published?.published ? 'Live' : 'Draft'}
               </span>
 
               <span>
-                {player.verification_status === 'verified'
+                {recordRefreshNeeded?'Showing last loaded data':player.verification_status === 'verified'
                   ? 'Data verified'
                   : 'Verification needed'}
               </span>
@@ -2029,7 +2270,7 @@ export default function AgencyPlayerProfile({
             <div>
               <span>Next move</span>
               <strong>
-                {published?.published
+                {recordRefreshNeeded?'Reload player details':!secondaryReady?'Check profile details':published?.published
                   ? 'Share with a club'
                   : verificationOnly
                     ? 'Verify and publish'
@@ -2041,7 +2282,7 @@ export default function AgencyPlayerProfile({
           </div>
 
           <p>
-            {published?.published
+            {recordRefreshNeeded?'Reload the player to confirm its current information.':!secondaryReady?(secondaryError?'Retry the agency details before previewing or publishing.':'Checking the agency details before previewing or publishing.'):published?.published
               ? missingShareHighlights.length
                 ? `Before sharing: ${missingShareHighlights
                     .slice(0, 2)
@@ -2051,23 +2292,32 @@ export default function AgencyPlayerProfile({
               : verificationOnly
                 ? 'Confirm the current player record once before the profile goes live.'
                 : canPublish
-                  ? 'Everything required is ready.'
+                  ? missingShareHighlights.length
+                    ? `Ready to publish. Before sharing: ${missingShareHighlights.slice(0, 2).map(item => item.missingTitle).join(' · ')}`
+                    : 'Review the club-facing profile, then publish.'
                   : primaryRequiredCheck?.missingDetail || 'Complete the required player information first.'}
           </p>
         </div>
 
         <div className={styles.heroActions}>
+          <button type="button" data-ui-button="secondary" className={styles.secondaryAction}
+            onClick={() => openProfilePreview(draftProfile)} disabled={!secondaryReady} aria-label="Preview Player Profile">
+            <Eye size={15} /> Preview
+          </button>
           {published?.published ? (
             <button
               type="button"
+              id={'player-profile-share-'+playerId}
               data-ui-button="primary"
               className={styles.primaryAction}
               onClick={openShareComposer}
-              disabled={!canEdit || Boolean(actionBusy)}
+              disabled={!canEdit || recordRefreshNeeded || Boolean(actionBusy) || contextLoading}
             >
               <Send size={16} />
               Share Player Profile
             </button>
+          ) : !secondaryReady ? (
+            <button type="button" data-ui-button="primary" className={styles.primaryAction} disabled>{secondaryError?'Profile details unavailable':'Checking profile details...'}</button>
           ) : canPublishFromHero ? (
             <button
               type="button"
@@ -2079,7 +2329,7 @@ export default function AgencyPlayerProfile({
                   confirmCurrentData: verificationOnly,
                 })
               }
-              disabled={!canEdit || Boolean(actionBusy)}
+              disabled={!canEdit || recordRefreshNeeded || Boolean(actionBusy)}
             >
               {actionBusy === 'publish' ? (
                 <LoaderCircle className={styles.spin} size={16} />
@@ -2094,7 +2344,7 @@ export default function AgencyPlayerProfile({
               data-ui-button="primary"
               className={styles.primaryAction}
               onClick={() => runProfileCheck(primaryRequiredCheck)}
-              disabled={!canEdit || primaryMoveBlocked || Boolean(actionBusy)}
+              disabled={!canEdit || recordRefreshNeeded || primaryMoveBlocked || Boolean(actionBusy)}
             >
               <ArrowRight size={16} />
               {primaryMoveBlocked ? 'Owner or admin required' : primaryRequiredCheck.actionLabel}
@@ -2127,7 +2377,8 @@ export default function AgencyPlayerProfile({
                 type="button"
                 data-ui-button="secondary"
                 className={styles.secondaryAction}
-                onClick={() => setPreviewOpen(true)}
+                disabled={!secondaryReady}
+                onClick={() => openProfilePreview(draftProfile)}
               >
                 <Eye size={15} />
                 Preview
@@ -2222,9 +2473,11 @@ export default function AgencyPlayerProfile({
               </div>
               {prepareKind === 'club' ? (
                 <div className={styles.prepareTargets}>
+                  {shareClubsError?<div className={styles.readRecovery} role="alert"><p>{shareClubsError}</p><button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={shareClubsBusy} onClick={()=>void retryClubs()}>Retry club list</button></div>:null}
                   <label>
                     <span>Club</span>
                     <select
+                      aria-label="Club"
                       value={prepareClub}
                       disabled={Boolean(actionBusy)}
                       onChange={(event) => {
@@ -2264,33 +2517,9 @@ export default function AgencyPlayerProfile({
               ) : null}
               {contextProposal ? (
                 <div className={styles.prepareKnownNeed}>
-                  <strong>Current player details found</strong>
-                  <div className={styles.prepareFields}>{Object.entries(contextProposal.fields).map(([key, value]) => <label key={key}><span>{({current_club:'Current club',current_league:'Competition',current_country:'Country',current_season_label:'Season',primary_position:'Position',transfermarkt_url:'Transfermarkt URL',stats_url:'Statistics URL'} as Record<string,string>)[key]}</span><input value={value || ''} disabled={Boolean(actionBusy)} onChange={event=>setContextProposal(current=>current?{...current,fields:{...current.fields,[key]:event.target.value}}:current)} /></label>)}</div>
-                  <details className={styles.profileDetails}><summary>Research sources</summary>
-                  <p>Confidence: {Math.round(contextProposal.confidence * 100)}%</p>
-                  {contextProposal.reason ? <p>{contextProposal.reason}</p> : null}
-                  {contextProposal.sources.length ? (
-                    <p>
-                      Sources: {contextProposal.sources.filter(source=>safeSourceUrl(source.url)).slice(0, 3).map((source, index) => (
-                        <span key={source.url}>
-                          {index ? ' · ' : ''}
-                          <a href={source.url} target="_blank" rel="noreferrer">{source.title || new URL(source.url).hostname}</a>
-                        </span>
-                      ))}
-                    </p>
-                  ) : null}
-                  </details>
-                  <div className={styles.prepareFooter}>
-                    <button type="button" data-ui-button="primary" className={styles.primaryAction}
-                      onClick={() => void applyPlayerContextAndContinue()} disabled={Boolean(actionBusy)}>
-                      {actionBusy === 'context-apply' ? <LoaderCircle className={styles.spin} size={15} /> : <Check size={15} />}
-                      Apply & continue
-                    </button>
-                    <button type="button" data-ui-button="secondary" className={styles.secondaryAction}
-                      onClick={() => setContextProposal(null)} disabled={Boolean(actionBusy)}>
-                      Not now
-                    </button>
-                  </div>
+                  <strong>Review the saved player details</strong>
+                  <p>Compare the source suggestions with the recorded profile before continuing.</p>
+                  <Link className={styles.secondaryAction} href="#player-details" onClick={()=>setPrepareOpen(false)}>Review player details</Link>
                 </div>
               ) : (
               <div className={styles.prepareFooter}>
@@ -2507,7 +2736,7 @@ export default function AgencyPlayerProfile({
                   setProposal(null);
                   setProfileReview(null);
                 }}>Change type</button>
-                <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => openProfilePreview(proposalPreview, 'PREPARED PROFILE PREVIEW')}>
+                <button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={!secondaryReady} onClick={() => openProfilePreview(proposalPreview, 'PREPARED PROFILE PREVIEW')}>
                   <Eye size={15} /> Preview
                 </button>
                 <button type="button" data-ui-button="secondary" className={styles.secondaryAction} onClick={() => void reviewProfile()} disabled={Boolean(actionBusy)}>
@@ -2543,17 +2772,20 @@ export default function AgencyPlayerProfile({
           <span>Included in the CV. Publish to update the shared profile.</span>
         </div>
       </section>
+      {canReviewDetails?<AgencyPlayerDetailsReview key={'details-'+playerId} player={player} invoke={invoke} onChanged={reloadRecordedData} blocked={Boolean(actionBusy)||recordRefreshNeeded} statusVersion={contextProposal?.id||''} onDraftChange={setDetailsDraft}
+        onContinue={contextProposal&&player.current_club&&player.current_league&&player.current_season_label&&player.primary_position&&player.current_country?applyPlayerContextAndContinue:undefined}/>:null}
       <AgencyPlayerDataPanel
         key={playerId}
         player={player}
         career={career}
-        canEdit={canEdit}
+        canEdit={canEditStatistics}
+        canVerify={canEdit}
         invoke={invoke}
         onChanged={reloadRecordedData}
         onReview={() => openVerify('verification')}
         hasCustomStats={Boolean(bundle?.settings?.key_stats?.length)}
         onUseRecordedStats={useRecordedStats}
-        blocked={Boolean(actionBusy) || editOpen || verifyOpen}
+        blocked={Boolean(actionBusy) || recordRefreshNeeded || editOpen || verifyOpen}
         statusVersion={statisticsStatusVersion}
         managedRefresh={actionBusy === 'prepare' || actionBusy === 'context-apply'}
       />
@@ -2675,15 +2907,6 @@ export default function AgencyPlayerProfile({
               <span className={styles.eyebrow}>WHAT CLUBS SEE</span>
               <h3>Player overview</h3>
             </div>
-            <button
-              type="button"
-              data-ui-button="icon"
-              className={styles.iconButton}
-              onClick={() => openProfilePreview(draftProfile)}
-              aria-label="Preview Player Profile"
-            >
-              <Eye size={16} />
-            </button>
           </div>
 
           <div className={styles.story}>
@@ -2773,11 +2996,11 @@ export default function AgencyPlayerProfile({
           </div>
         ) : (
           <div className={styles.empty}>
-            <LoaderCircle size={19} className={styles.spin} />
-            <strong>Loading recent activity...</strong>
+            {!secondaryError?<LoaderCircle size={19} className={styles.spin} />:null}
+            <strong>{secondaryError?'Recent activity could not load.':'Loading recent activity...'}</strong>
+            {secondaryError?<button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={secondaryBusy} onClick={()=>void retryDetails()}>Retry activity</button>:null}
             <span>
-              The Player Profile is ready while connected communication
-              finishes loading.
+              {secondaryError?'Your player details are still available. Retry the activity when ready.':'The Player Profile is ready while connected communication finishes loading.'}
             </span>
           </div>
         )}
@@ -2898,10 +3121,11 @@ export default function AgencyPlayerProfile({
 
           {!secondaryReady ? (
             <div className={styles.empty}>
-              <LoaderCircle size={19} className={styles.spin} />
-              <strong>Loading profile activity...</strong>
+              {!secondaryError?<LoaderCircle size={19} className={styles.spin} />:null}
+              <strong>{secondaryError?'Profile activity could not load.':'Loading profile activity...'}</strong>
+              {secondaryError?<button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={secondaryBusy} onClick={()=>void retryDetails()}>Retry share history</button>:null}
               <span>
-                Share history is loading without delaying the Player Profile.
+                {secondaryError?'Share history is unavailable until its details reload.':'Share history is loading without delaying the Player Profile.'}
               </span>
             </div>
           ) : !shares.length ? (
@@ -2932,9 +3156,10 @@ export default function AgencyPlayerProfile({
         </div>
       ) : null}
 
-      {transfermarktOpen ? (
+      {transfermarktOpen ? createPortal(
         <div
           className={styles.modalBackdrop}
+          style={theme}
           onClick={(event) => {
             if (event.target === event.currentTarget && !actionBusy) {
               setTransfermarktOpen(false);
@@ -3010,12 +3235,13 @@ export default function AgencyPlayerProfile({
               </button>
             </footer>
           </section>
-        </div>
+        </div>, document.body,
       ) : null}
 
-      {verifyOpen ? (
+      {verifyOpen ? createPortal(
         <div
           className={`${styles.modalBackdrop} ${styles.verifyBackdrop}`}
+          style={theme}
           onClick={(event) => {
             if (event.target === event.currentTarget && !actionBusy) {
               setVerifyOpen(false);
@@ -3027,6 +3253,8 @@ export default function AgencyPlayerProfile({
             role="dialog"
             aria-modal="true"
             aria-label="Review current player data"
+            ref={verifyDialog}
+            tabIndex={-1}
           >
             <header>
               <div>
@@ -3232,12 +3460,13 @@ export default function AgencyPlayerProfile({
               </button>
             </footer>
           </section>
-        </div>
+        </div>, document.body,
       ) : null}
 
-      {editOpen ? (
+      {editOpen ? createPortal(
         <div
           className={styles.modalBackdrop}
+          style={theme}
           onClick={(event) => {
             if (event.target === event.currentTarget) closeEditor();
           }}
@@ -3287,6 +3516,7 @@ export default function AgencyPlayerProfile({
               ))}
             </nav>
             <fieldset disabled={Boolean(actionBusy)} className={styles.form + ' ' + styles.editorBody}>
+              {profileDetailsRecovery}
               <div className={styles.editorSection} hidden={editorSection !== 'story'}>
               <label id="player-profile-positioning">
                 <span>Profile headline</span>
@@ -3352,14 +3582,16 @@ export default function AgencyPlayerProfile({
                   rows={4}
                   aria-label="Custom key numbers"
                   value={form.key_stats_text}
-                  onChange={(event) =>
-                    setField('key_stats_text', event.target.value)
-                  }
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setForm(current => ({...current, key_stats_text: value, selected_stat_refs: []}));
+                  }}
                   placeholder={'Goals: 8\nAssists: 6'}
                 />
                 <small>
-                  Optional. Leave blank and reviewed current-season numbers are
-                  used automatically.
+                  {form.selected_stat_refs.length
+                    ? 'Selected source statistics are in use. Enter custom key numbers to replace them.'
+                    : 'Optional. Leave blank and reviewed current-season numbers are used automatically.'}
                 </small>
               </label>
 
@@ -3558,12 +3790,13 @@ export default function AgencyPlayerProfile({
               </button>
             </footer>
           </section>
-        </div>
+        </div>, document.body,
       ) : null}
 
-      {shareOpen ? (
+      {shareOpen ? createPortal(
         <div
           className={styles.modalBackdrop}
+          style={theme}
           onClick={(event) => {
             if (
               event.target === event.currentTarget &&
@@ -3575,6 +3808,7 @@ export default function AgencyPlayerProfile({
         >
           <section
             className={`${styles.modal} ${styles.shareModal}`}
+            ref={shareDialog}
             role="dialog"
             aria-modal="true"
             aria-label="Share Player Profile"
@@ -3600,6 +3834,8 @@ export default function AgencyPlayerProfile({
                 <X size={17} />
               </button>
             </header>
+
+            {error ? <div className={styles.error} role="alert" aria-atomic="true">{error}</div> : null}
 
             {shareResultUrl ? (
               <div className={styles.shareSuccess}>
@@ -3672,9 +3908,12 @@ export default function AgencyPlayerProfile({
                 <label>
                   <span>Club</span>
                   <select
+                    aria-label="Club"
+                    aria-busy={shareClubsBusy}
                     value={shareClub}
                     onChange={(event) => {
                       setShareClub(event.target.value);
+                      setShareSource(null);
                       setShareDeal('');
                       setShareVersionId('');
                     }}
@@ -3694,17 +3933,20 @@ export default function AgencyPlayerProfile({
                   <small>
                     {shareClubsBusy
                       ? 'Loading your agency club network...'
-                      : 'Choose a club from your agency network.'}
+                      : shareClubsError?'Select a loaded club, or retry the list.':shareClubOptions.length?'Choose a club from your agency network.':'No agency clubs are recorded yet.'}
                   </small>
                 </label>
+                {shareClubsError?<div className={styles.readRecovery} role="alert"><p>{shareClubsError}</p><button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={shareClubsBusy} onClick={()=>void retryClubs()}>Retry club list</button></div>:null}
 
                 <label>
                   <span>Existing deal or opportunity</span>
                   <select
+                    aria-label="Existing deal or opportunity"
                     value={shareDeal}
                     onChange={(event) => {
                       const value = event.target.value;
                       setShareDeal(value);
+                      setShareSource(null);
                       const deal = deals.find(
                         (item: any) => String(item.id) === value,
                       );
@@ -3722,19 +3964,20 @@ export default function AgencyPlayerProfile({
                     ))}
                   </select>
                   <small>
-                    Optional. Linking a live deal carries profile activity into that
-                    opportunity.
+                    {sourceShareBlocked?'The linked deal changed or could not load. Choose the club and deal again.':'Optional. Linking a live deal carries profile activity into that opportunity.'}
                   </small>
                 </label>
 
                 <label>
                   <span>Profile to share</span>
                   <select
+                    aria-label="Profile to share"
                     value={shareVersionId}
                     onChange={(event) => setShareVersionId(event.target.value)}
                     disabled={versionsBusy}
                   >
                     <option value="">General Player Profile</option>
+                    {shareVersionId&&!shareableVersions.some(version=>version.id===shareVersionId)?<option value={shareVersionId}>{versionsBusy?'Checking selected club profile...':'Selected club profile is not in this list'}</option>:null}
                     {shareableVersions.map((version) => (
                       <option key={version.id} value={version.id}>
                         {version.headline || `${version.club_name || 'Club'} profile`}
@@ -3745,7 +3988,7 @@ export default function AgencyPlayerProfile({
                   <small>
                     {versionsBusy
                       ? 'Loading saved club profiles...'
-                      : shareableVersions.length
+                      : versionsError?'Choose the general profile, or retry saved profiles.':shareVersionId&&!shareableVersions.some(version=>version.id===shareVersionId)?'Choose a listed profile to confirm what you share.':shareableVersions.length
                         ? 'Saved club versions stay fixed when player data changes.'
                         : 'Prepare a club profile first to share a tailored version.'}
                   </small>
@@ -3763,9 +4006,12 @@ export default function AgencyPlayerProfile({
                   ) : null}
                 </label>
 
+                {versionsError?<div className={styles.readRecovery} role="alert"><p>{versionsError}</p><button type="button" data-ui-button="secondary" className={styles.secondaryAction} disabled={versionsBusy} onClick={()=>void retryVersions()}>Retry saved profiles</button></div>:null}
+
                 <label>
                   <span>Club-specific note</span>
                   <textarea
+                    aria-label="Club-specific note"
                     rows={3}
                     value={shareMessage}
                     onChange={(event) =>
@@ -3814,8 +4060,9 @@ export default function AgencyPlayerProfile({
                   onClick={createShare}
                   disabled={
                     !shareClub ||
+                    sourceShareBlocked ||
                     actionBusy === 'share' ||
-                    versionsBusy
+                    versionsBusy || Boolean(shareVersionId&&(versionsError||!shareableVersions.some(version=>version.id===shareVersionId)))
                   }
                 >
                   <Send size={15} />
@@ -3824,11 +4071,11 @@ export default function AgencyPlayerProfile({
               ) : null}
             </footer>
           </section>
-        </div>
+        </div>, document.body,
       ) : null}
 
-      {previewOpen ? (
-        <div className={styles.previewBackdrop}>
+      {previewOpen ? createPortal(
+        <div ref={previewDialog} className={styles.previewBackdrop} role="dialog" aria-modal="true" aria-label="Player Profile preview">
           <div className={styles.previewBar}>
             <div>
               <span>{previewLabel}</span>
@@ -3836,6 +4083,7 @@ export default function AgencyPlayerProfile({
             </div>
 
             <button data-ui-button="secondary"
+              ref={previewClose}
               type="button"
               onClick={() => setPreviewOpen(false)}
             >
@@ -3850,7 +4098,7 @@ export default function AgencyPlayerProfile({
               agency={agency}
             />
           </div>
-        </div>
+        </div>, document.body,
       ) : null}
     </div>
   );

@@ -9,11 +9,15 @@ import {
 
 import {
   FormEvent,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 import { friendlyError } from '@/lib/platform-client';
+import { readWithDeadline } from '@/lib/read-with-deadline';
+import { writeWithDeadline } from '@/lib/write-with-deadline';
 import styles from './AgencyRelationshipActions.module.css';
 
 type Rpc = <T = any>(
@@ -66,10 +70,12 @@ export default function AgencyRelationshipActions({
   personId,
   rpc,
   onSaved,
+  onReload,
 }: {
   personId: string;
   rpc: Rpc;
   onSaved: (result: any) => Promise<void>;
+  onReload: () => Promise<void>;
 }) {
   const [mode, setMode] =
     useState<Mode>('');
@@ -79,6 +85,19 @@ export default function AgencyRelationshipActions({
 
   const [error, setError] =
     useState('');
+  const [notice,setNotice]=useState('');
+  const [reviewActivity,setReviewActivity]=useState(false);
+  const [refreshFailed,setRefreshFailed]=useState(false),[refreshing,setRefreshing]=useState(false),[uncertain,setUncertain]=useState(false);
+  const lifetime=useRef<AbortController|null>(null),pending=useRef(false),lastResult=useRef<any>(null);
+  const form=useRef<HTMLFormElement>(null),triggers=useRef<Partial<Record<Exclude<Mode,''>,HTMLButtonElement>>>({}),returnFocus=useRef<Mode>('');
+  const unconfirmedMode=useRef<Mode>('');
+  useEffect(()=>{const controller=new AbortController();lifetime.current=controller;return()=>controller.abort();},[]);
+  useEffect(()=>{
+    if(mode)form.current?.querySelector<HTMLElement>('input,select,textarea')?.focus();
+  },[mode]);
+  useEffect(()=>{
+    if(!mode&&!busy&&!refreshing&&returnFocus.current){triggers.current[returnFocus.current]?.focus();returnFocus.current='';}
+  },[mode,busy,refreshing]);
 
   const [summary, setSummary] =
     useState('');
@@ -91,18 +110,19 @@ export default function AgencyRelationshipActions({
 
   const [dueAt, setDueAt] =
     useState('');
+  const [promiseTitle,setPromiseTitle]=useState(''),[promiseDueAt,setPromiseDueAt]=useState('');
 
   const [notes, setNotes] =
     useState('');
 
   const [strength, setStrength] =
-    useState('75');
+    useState('');
 
   const [access, setAccess] =
-    useState('75');
+    useState('');
 
   const [trust, setTrust] =
-    useState('75');
+    useState('');
 
   const actions = useMemo(
     () => [
@@ -135,17 +155,43 @@ export default function AgencyRelationshipActions({
   );
 
   const close = () => {
+    if(pending.current)return;
+    returnFocus.current=mode;
     setMode('');
     setError('');
   };
 
-  const saved = async (result: any) => {
-    await onSaved(result);
-    setSummary('');
-    setTitle('');
-    setDueAt('');
-    setNotes('');
-    setMode('');
+  const current=()=>!lifetime.current?.signal.aborted;
+  const refresh=async()=>{
+    if(refreshing||busy)return;
+    setRefreshing(true);
+    try{
+      await readWithDeadline(uncertain?onReload():onSaved(lastResult.current));
+      if(!current())return;
+      setRefreshFailed(false);
+      if(uncertain){returnFocus.current=mode||unconfirmedMode.current;unconfirmedMode.current='';setMode('');setUncertain(false);setError('');setReviewActivity(true);setNotice('Latest activity loaded. Check whether your change is already there before recording it again.');}
+    }catch{if(current())setRefreshFailed(true);}
+    finally{if(current())setRefreshing(false);}
+  };
+
+  const save=async(message:string,write:()=>Promise<any>,clearDraft:()=>void)=>{
+    if(pending.current||refreshing||uncertain)return;
+    pending.current=true;setBusy(true);setError('');setNotice('');setReviewActivity(false);setRefreshFailed(false);
+    try{
+      const outcome=await writeWithDeadline(async()=>{
+        try{return {result:await write()};}catch(error){return {error};}
+      },12000,lifetime.current?.signal);
+      if(!current())return;
+      if(outcome.status==='unknown'||!('result' in outcome.result)||!outcome.result.result?.person){
+        unconfirmedMode.current=mode;
+        setUncertain(true);
+        if(outcome.status==='complete'&&'error' in outcome.result)setError(friendlyError(outcome.result.error));
+        return;
+      }
+      const result=outcome.result.result;
+      lastResult.current=result;clearDraft();returnFocus.current=mode;setMode('');setNotice(message);
+      try{await readWithDeadline(onSaved(result));}catch{if(current())setRefreshFailed(true);}
+    }finally{if(current()){pending.current=false;setBusy(false);}}
   };
 
   const submitConversation = async (
@@ -160,11 +206,7 @@ export default function AgencyRelationshipActions({
       return;
     }
 
-    setBusy(true);
-    setError('');
-
-    try {
-      const result = await rpc<any>(
+    await save('Conversation saved.',()=>rpc<any>(
         'redream_relationship_record_interaction',
         {
           p_person_id: personId,
@@ -172,14 +214,7 @@ export default function AgencyRelationshipActions({
           p_summary: clean(summary),
           p_occurred_at: new Date().toISOString(),
         },
-      );
-
-      await saved(result);
-    } catch (saveError) {
-      setError(friendlyError(saveError));
-    } finally {
-      setBusy(false);
-    }
+      ),()=>setSummary(''));
   };
 
   const submitWork = async (
@@ -190,9 +225,10 @@ export default function AgencyRelationshipActions({
 
     if (busy) return;
 
-    const iso = toIso(dueAt);
+    const workTitle=kind==='promise'?promiseTitle:title;
+    const iso = toIso(kind==='promise'?promiseDueAt:dueAt);
 
-    if (clean(title).length < 2) {
+    if (clean(workTitle).length < 2) {
       setError(
         kind === 'promise'
           ? 'Add what we promised to do.'
@@ -206,26 +242,15 @@ export default function AgencyRelationshipActions({
       return;
     }
 
-    setBusy(true);
-    setError('');
-
-    try {
-      const result = await rpc<any>(
+    await save(kind==='promise'?'Promise saved.':'Follow-up saved.',()=>rpc<any>(
         'redream_relationship_add_work',
         {
           p_person_id: personId,
           p_kind: kind,
-          p_title: clean(title),
+          p_title: clean(workTitle),
           p_due_at: iso,
         },
-      );
-
-      await saved(result);
-    } catch (saveError) {
-      setError(friendlyError(saveError));
-    } finally {
-      setBusy(false);
-    }
+      ),()=>{if(kind==='promise'){setPromiseTitle('');setPromiseDueAt('');}else{setTitle('');setDueAt('');}});
   };
 
   const submitRelationship = async (
@@ -235,11 +260,8 @@ export default function AgencyRelationshipActions({
 
     if (busy) return;
 
-    setBusy(true);
-    setError('');
-
-    try {
-      const result = await rpc<any>(
+    if(!strength||!access||!trust){setError('Choose your relationship, access and trust assessments.');return;}
+    await save('Relationship updated.',()=>rpc<any>(
         'redream_relationship_update_route',
         {
           p_person_id: personId,
@@ -248,18 +270,11 @@ export default function AgencyRelationshipActions({
           p_trust_score: Number(trust),
           p_notes: clean(notes) || null,
         },
-      );
-
-      await saved(result);
-    } catch (saveError) {
-      setError(friendlyError(saveError));
-    } finally {
-      setBusy(false);
-    }
+      ),()=>{setNotes('');setStrength('');setAccess('');setTrust('');});
   };
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} aria-label="Relationship actions" onKeyDown={event=>{if(event.key==='Escape'&&mode){event.preventDefault();event.stopPropagation();close();}}}>
       <div className={styles.head}>
         <div>
           <span>DO NEXT</span>
@@ -275,10 +290,15 @@ export default function AgencyRelationshipActions({
           return (
             <button
               key={action.key}
+              ref={node=>{if(node)triggers.current[action.key]=node;else delete triggers.current[action.key];}}
               type="button"
+              disabled={busy||refreshing}
+              aria-expanded={active}
               data-ui-button={action.key === 'conversation' ? 'primary' : 'secondary'}
               className={active ? styles.active : ''}
               onClick={() => {
+                if(active){close();return;}
+                if(!reviewActivity)setNotice('');
                 setError('');
                 setMode(active ? '' : action.key);
               }}
@@ -291,6 +311,9 @@ export default function AgencyRelationshipActions({
         })}
       </div>
 
+      {notice?<p className={styles.notice} role="status">{notice}</p>:null}
+      {uncertain?<div className={styles.recovery} role="alert"><p>Could not confirm the save. Your draft is kept. Check the latest activity before recording it again; the earlier request may still finish.</p><button type="button" disabled={busy||refreshing} onClick={()=>void refresh()}>{refreshing?'Loading activity...':'Check latest activity'}</button></div>:refreshFailed?<div className={styles.recovery} role="alert"><p>Your change is saved. Network could not refresh.</p><button type="button" disabled={busy||refreshing} onClick={()=>void refresh()}>{refreshing?'Refreshing...':'Refresh Network'}</button></div>:null}
+
       {error ? (
         <div className={styles.error} role="alert" aria-atomic="true">
           {error}
@@ -298,7 +321,7 @@ export default function AgencyRelationshipActions({
       ) : null}
 
       {mode === 'conversation' ? (
-        <form
+        <form ref={form}
           className={styles.form}
           onSubmit={submitConversation}
         >
@@ -307,6 +330,7 @@ export default function AgencyRelationshipActions({
             <button data-ui-button="icon"
               type="button"
               onClick={close}
+              disabled={busy||refreshing}
               aria-label="Close conversation form"
             >
               <X size={14} />
@@ -315,7 +339,7 @@ export default function AgencyRelationshipActions({
 
           <label>
             Where did you speak?
-            <select
+            <select disabled={busy||refreshing}
               value={channel}
               onChange={(event) =>
                 setChannel(event.target.value)
@@ -333,7 +357,7 @@ export default function AgencyRelationshipActions({
 
           <label>
             What mattered?
-            <textarea
+            <textarea disabled={busy||refreshing}
               value={summary}
               onChange={(event) =>
                 setSummary(event.target.value)
@@ -347,7 +371,7 @@ export default function AgencyRelationshipActions({
             data-ui-button="primary"
               className={styles.save}
             type="submit"
-            disabled={busy}
+            disabled={busy||refreshing||uncertain}
           >
             {busy ? 'Saving...' : 'Save conversation'}
           </button>
@@ -355,7 +379,7 @@ export default function AgencyRelationshipActions({
       ) : null}
 
       {mode === 'followup' ? (
-        <form
+        <form ref={form}
           className={styles.form}
           onSubmit={(event) =>
             void submitWork(event, 'followup')
@@ -366,6 +390,7 @@ export default function AgencyRelationshipActions({
             <button data-ui-button="icon"
               type="button"
               onClick={close}
+              disabled={busy||refreshing}
               aria-label="Close follow-up form"
             >
               <X size={14} />
@@ -374,7 +399,7 @@ export default function AgencyRelationshipActions({
 
           <label>
             What needs to happen?
-            <input
+            <input disabled={busy||refreshing}
               value={title}
               onChange={(event) =>
                 setTitle(event.target.value)
@@ -385,7 +410,7 @@ export default function AgencyRelationshipActions({
 
           <label>
             When?
-            <input
+            <input disabled={busy||refreshing}
               type="datetime-local"
               value={dueAt}
               onChange={(event) =>
@@ -398,7 +423,7 @@ export default function AgencyRelationshipActions({
             data-ui-button="primary"
               className={styles.save}
             type="submit"
-            disabled={busy}
+            disabled={busy||refreshing||uncertain}
           >
             {busy ? 'Saving...' : 'Add follow-up'}
           </button>
@@ -406,7 +431,7 @@ export default function AgencyRelationshipActions({
       ) : null}
 
       {mode === 'promise' ? (
-        <form
+        <form ref={form}
           className={styles.form}
           onSubmit={(event) =>
             void submitWork(event, 'promise')
@@ -417,6 +442,7 @@ export default function AgencyRelationshipActions({
             <button data-ui-button="icon"
               type="button"
               onClick={close}
+              disabled={busy||refreshing}
               aria-label="Close promise form"
             >
               <X size={14} />
@@ -425,10 +451,10 @@ export default function AgencyRelationshipActions({
 
           <label>
             What did we promise?
-            <input
-              value={title}
+            <input disabled={busy||refreshing}
+              value={promiseTitle}
               onChange={(event) =>
-                setTitle(event.target.value)
+                setPromiseTitle(event.target.value)
               }
               placeholder="Send two centre-back profiles"
             />
@@ -436,11 +462,11 @@ export default function AgencyRelationshipActions({
 
           <label>
             Due by
-            <input
+            <input disabled={busy||refreshing}
               type="datetime-local"
-              value={dueAt}
+              value={promiseDueAt}
               onChange={(event) =>
-                setDueAt(event.target.value)
+                setPromiseDueAt(event.target.value)
               }
             />
           </label>
@@ -449,7 +475,7 @@ export default function AgencyRelationshipActions({
             data-ui-button="primary"
               className={styles.save}
             type="submit"
-            disabled={busy}
+            disabled={busy||refreshing||uncertain}
           >
             {busy ? 'Saving...' : 'Save promise'}
           </button>
@@ -457,7 +483,7 @@ export default function AgencyRelationshipActions({
       ) : null}
 
       {mode === 'relationship' ? (
-        <form
+        <form ref={form}
           className={styles.form}
           onSubmit={submitRelationship}
         >
@@ -466,6 +492,7 @@ export default function AgencyRelationshipActions({
             <button data-ui-button="icon"
               type="button"
               onClick={close}
+              disabled={busy||refreshing}
               aria-label="Close relationship form"
             >
               <X size={14} />
@@ -475,12 +502,13 @@ export default function AgencyRelationshipActions({
           <div className={styles.scoreGrid}>
             <label>
               Relationship
-              <select
+              <select disabled={busy||refreshing} required
                 value={strength}
                 onChange={(event) =>
                   setStrength(event.target.value)
                 }
               >
+                <option value="">Choose assessment</option>
                 {scoreOptions.strength.map(
                   ([label, value]) => (
                     <option
@@ -496,12 +524,13 @@ export default function AgencyRelationshipActions({
 
             <label>
               Access
-              <select
+              <select disabled={busy||refreshing} required
                 value={access}
                 onChange={(event) =>
                   setAccess(event.target.value)
                 }
               >
+                <option value="">Choose assessment</option>
                 {scoreOptions.access.map(
                   ([label, value]) => (
                     <option
@@ -517,12 +546,13 @@ export default function AgencyRelationshipActions({
 
             <label>
               Trust
-              <select
+              <select disabled={busy||refreshing} required
                 value={trust}
                 onChange={(event) =>
                   setTrust(event.target.value)
                 }
               >
+                <option value="">Choose assessment</option>
                 {scoreOptions.trust.map(
                   ([label, value]) => (
                     <option
@@ -539,7 +569,7 @@ export default function AgencyRelationshipActions({
 
           <label>
             Relationship note
-            <textarea
+            <textarea disabled={busy||refreshing}
               value={notes}
               onChange={(event) =>
                 setNotes(event.target.value)
@@ -553,7 +583,7 @@ export default function AgencyRelationshipActions({
             data-ui-button="primary"
               className={styles.save}
             type="submit"
-            disabled={busy}
+            disabled={busy||refreshing||uncertain}
           >
             {busy ? 'Saving...' : 'Update relationship'}
           </button>

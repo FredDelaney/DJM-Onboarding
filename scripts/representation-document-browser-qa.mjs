@@ -1,0 +1,105 @@
+// Existing document editor/exporters; synthetic parties only, no provider or send.
+import assert from 'node:assert/strict';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {chromium} from 'playwright';
+const root=new URL('/qa-documents?reviewBrand=northstar&scenario=save-failed',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');
+const output=process.env.REPRESENTATION_QA_OUTPUT||'/tmp/redream-platform-programme/representation-journey/journey';
+await mkdir(output,{recursive:true});
+const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
+try{
+ const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
+ page.on('pageerror',error=>errors.push(error.message));
+ await page.addInitScript(()=>{window.qaDocumentActions=[];window.addEventListener('qa-document-request',event=>window.qaDocumentActions.push(event.detail));});
+ await page.route('https://brand-assets.supabase.co/**',route=>route.fulfill({contentType:'image/svg+xml',headers:{'access-control-allow-origin':'*'},body:'<svg xmlns="http://www.w3.org/2000/svg" width="240" height="96"><rect width="240" height="96" rx="8" fill="#23483F"/><text x="120" y="64" font-family="Arial" font-size="48" text-anchor="middle" fill="white">NS</text></svg>'}));
+ for(let n=0;n<60;n++){try{await page.goto(root.href);break;}catch(error){if(n===59)throw error;await page.waitForTimeout(250);}}
+ const tab=name=>page.getByRole('button',{name,exact:true}).click();
+ const field=key=>page.locator('#document-field-'+key);
+ const share=()=>page.getByRole('button',{name:'Share',exact:true,includeHidden:true});
+ const confirm=()=>page.getByRole('checkbox',{name:'The wording and terms have been reviewed for this agreement.',exact:true});
+ const title='Player contract for QA Prospect Rowan';
+ await page.getByRole('button',{name:/Player contract.*Create document/}).click();
+ assert.equal(await field('player_name').inputValue(),'');
+ assert.equal(await field('agent_licence').inputValue(),'');
+ assert.equal(await field('commission').inputValue(),'','Negotiated fees are never invented');
+ assert.equal(await page.getByRole('combobox',{name:'Player to fill'}).isVisible(),false);
+ await page.getByText('This document does not add or change a roster player.',{exact:true}).waitFor();
+ await tab('Review');
+ await page.locator('summary').filter({hasText:/^\d+ things to check before sharing$/}).waitFor();
+ await page.getByRole('button',{name:'Add player notice address and email',exact:true}).click();
+ assert.equal(await field('player_notice_contact').evaluate(node=>node===document.activeElement),true,'Missing-field guidance opens the actual advanced field');
+ const values={player_name:'QA Prospect Rowan',player_dob:'2003-04-12',agent_name:'QA Agent Example',agent_licence:'QA-NOT-A-REAL-LICENCE',start_date:'2026-11-01',end_date:'2026-10-01',commission:'5%',commercial_commission:'10%',excluded_income:'QA agreed exclusions for this sample only',agent_notice_contact:'QA agency address\nagent@example.test',player_notice_contact:'QA player address\nprospect@example.test',data_protection_law:'the legislation recorded in the QA schedule',dispute_resolution:'the procedure recorded in the QA schedule',governing_law:'the jurisdiction recorded in the QA schedule',enforcement_courts:'the courts recorded in the QA schedule'};
+ for(const [key,value]of Object.entries(values))await field(key).fill(value);
+ await tab('Review');
+ assert.equal(await share().isDisabled(),true);
+ await page.getByRole('button',{name:'End date must follow the start date',exact:true}).click();
+ assert.equal(await field('end_date').evaluate(node=>node===document.activeElement),true);
+ await field('end_date').fill('2027-10-31');
+ await tab('Content');
+ const wording=page.getByRole('textbox',{name:'Section 2 wording',exact:true});
+ await page.getByLabel('Section 2',{exact:true}).locator('summary').click();
+ const original=await wording.inputValue();
+ const custom=Array.from({length:8},(_,i)=>`QA custom note ${i+1} for {{player_name}} at {{agency_name}}. This neutral sample paragraph exercises editable draft wording and pagination only.`).join('\n\n');
+ await wording.fill(original+'\n\n'+custom);
+ await tab('Branding');
+ await page.getByLabel('Primary colour',{exact:true}).fill('#123A36');
+ await page.getByLabel('Accent colour',{exact:true}).fill('#9B763A');
+ await tab('Review');
+ await page.getByText('1 thing to check before sharing',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'1 check before sharing',exact:true}).waitFor();
+ await confirm().check();
+ await page.getByText('Ready for your recipient',{exact:true}).waitFor();
+ assert.equal(await share().isDisabled(),true,'A reviewed unsaved draft still cannot create a link');
+ await tab('Save draft');
+ await page.getByRole('alert').filter({hasText:'Your draft is still here'}).waitFor();
+ assert.equal(await confirm().isChecked(),true,'A failed save does not erase the reviewed draft');
+ await tab('Content');
+ await page.getByLabel('Section 2',{exact:true}).locator('summary').click();
+ assert.equal(await wording.inputValue(),original+'\n\n'+custom);
+ await tab('Save draft');await page.getByRole('status').filter({hasText:'Draft saved'}).waitFor();
+ await tab('Library');
+ await page.getByRole('button',{name:new RegExp('^'+title)}).click();
+ assert.equal(await field('player_name').inputValue(),'QA Prospect Rowan');
+ assert.equal(await field('end_date').inputValue(),'2027-10-31');
+ await tab('Content');await page.getByLabel('Section 2',{exact:true}).locator('summary').click();
+ assert.equal(await wording.inputValue(),original+'\n\n'+custom,'Reopening keeps the saved personalised wording');
+ await tab('Branding');assert.equal((await page.getByLabel('Accent colour',{exact:true}).inputValue()).toUpperCase(),'#9B763A');
+ await tab('Review');assert.equal(await confirm().isChecked(),true);assert.equal(await share().isEnabled(),true);
+ const paper=page.getByRole('article',{name:'Document preview'});
+ for(const width of [320,390,768,1440]){
+  await page.setViewportSize({width,height:900});
+  if(width<=760)await tab('Preview');
+  await paper.waitFor();
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'Contract preview fits '+width);
+  assert.match(await paper.innerText(),/QA custom note 8 for QA Prospect Rowan at Northstar Football Management/);
+  assert.doesNotMatch(await paper.innerText(),/Alex Bennett|DRAFT FOR REVIEW/);
+  await page.getByRole('button',{name:'Save draft',exact:true}).scrollIntoViewIfNeeded();
+  if(width===390)await page.screenshot({path:output+'/contract-preview-390.png'});
+  if(width<=760)await tab('Edit');
+ }
+ await page.setViewportSize({width:1440,height:1000});
+ for(const [label,extension]of [['Word','docx'],['PDF','pdf']]){
+  const pending=page.waitForEvent('download');await tab(label);const download=await pending,path=output+'/new-player-contract.'+extension;await download.saveAs(path);
+  const bytes=await readFile(path);assert.ok(bytes.length>4000);
+  if(extension==='docx'){
+   const xml=member=>execFileSync('unzip',['-p',path,member],{encoding:'utf8'});
+   const text=xml('word/document.xml'),header=xml('word/header1.xml');
+   assert.match(text,/QA Prospect Rowan/);assert.match(text,/QA custom note 8/);assert.match(text,/QA-NOT-A-REAL-LICENCE/);
+   assert.doesNotMatch(text,/Alex Bennett|DRAFT FOR REVIEW|\{\{|\[\[/);assert.match(header,/Northstar Football Management/);assert.match(header,/9B763A/i);
+   assert.doesNotMatch(xml('word/settings.xml'),/w:(?:documentProtection|writeProtection)/,'The Word export stays editable');
+  }else assert.equal(bytes.subarray(0,5).toString(),'%PDF-');
+ }
+ await tab('Save as template');
+ for(const key of ['player_name','player_dob','start_date','end_date','player_notice_contact','excluded_income'])assert.equal(await field(key).inputValue(),'','A reusable template clears '+key);
+ assert.equal(await field('agent_name').inputValue(),'QA Agent Example','Agency details remain reusable');
+ await tab('Review');assert.equal(await confirm().isChecked(),false);assert.equal(await share().isDisabled(),true);
+ await tab('Save draft');await page.getByRole('status').filter({hasText:'Agency template saved'}).waitFor();
+ await tab('Library');await tab('Use template');
+ await field('player_name').fill('QA New Recipient');
+ assert.equal(await field('player_dob').inputValue(),'');assert.equal(await field('end_date').inputValue(),'');
+ await page.setViewportSize({width:390,height:900});await tab('Preview');assert.match(await paper.innerText(),/QA custom note 8 for QA New Recipient/);assert.doesNotMatch(await paper.innerText(),/QA Prospect Rowan/);
+ await tab('Edit');await tab('Review');assert.equal(await confirm().isChecked(),false);assert.equal(await share().isDisabled(),true);
+ const actions=await page.evaluate(()=>window.qaDocumentActions);assert.equal(actions.filter(action=>!['save','list'].includes(action)).length,0,'No AI, roster, sharing or send action is implicit');
+ assert.deepEqual(errors,[]);await writeFile(output+'/journey.json',JSON.stringify({widths:[320,390,768,1440],actions,exports:['new-player-contract.docx','new-player-contract.pdf'],synthetic:true},null,2));
+ console.log('Representation: new player, missing/date correction, customised clauses/brand, failed-save draft, reopen, review gate, editable Word/PDF and clean template reuse pass.');
+}finally{await browser.close();}

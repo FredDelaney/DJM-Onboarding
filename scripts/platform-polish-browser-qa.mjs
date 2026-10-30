@@ -44,7 +44,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
   const taskId='00000000-0000-4000-8000-000000000094',clubId='00000000-0000-4000-8000-000000000095';
   const dealA='00000000-0000-4000-8000-000000000096',dealB='00000000-0000-4000-8000-000000000097';
   const dueAt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00Z';
-  const receipt=captureId=>{const applied=state.screen==='complete'||state.approved;return {capture:{id:captureId,status:applied?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up today.'},actions:[{id:'action',action_type:'create_task',status:applied?'applied':'pending',evidence:'Follow up today',proposed_payload:{title:'Follow up with Example FC',owner_name:'Jesse',due_at:dueAt},resolved_payload:applied?{organisation_id:clubId}:undefined,target_type:applied?'task':undefined,target_id:applied?taskId:undefined,undo_supported:true}]};};
+  const receipt=captureId=>{const applied=state.screen==='complete'||state.approved;return {capture:{id:captureId,status:applied?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up today.'},actions:[{id:'action',action_type:'create_task',status:applied?'applied':'pending',evidence:'Follow up today',proposed_payload:{title:'Follow up with Example FC',owner_name:'Jesse',due_at:dueAt},resolved_payload:applied?{title:'Follow up with Example FC',organisation_id:clubId}:undefined,target_type:applied?'task':undefined,target_id:applied?taskId:undefined,undo_supported:true}]};};
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
   await context.addInitScript(({session,suite})=>{if(location.hostname!=='127.0.0.1')return;const screen=new URL(location.href).searchParams.get('screen')||'';if(suite==='account'&&screen!=='reset'&&!screen.startsWith('onboarding-'))localStorage.removeItem('sb-example-auth-token');else localStorage.setItem('sb-example-auth-token',JSON.stringify(session));},{session,suite});
   await context.route('https://example.supabase.co/**',async route=>{
@@ -95,7 +95,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(path.endsWith('/redream_ai_receipt'))data=receipt(body.p_capture_id);
     else if(path.endsWith('/redream_ai_approve_capture')){state.approvals++;state.approved=true;data={receipt:receipt(body.p_capture_id)};}
     else if(path.endsWith('/redream_calendar_range'))data={follow_ups:{items:state.approved&&!state.taskDone?[{task_id:taskId,title:'Follow up with Example FC',due_at:dueAt,organisation_id:clubId,organisation_name:'Example FC',source:'tell_djm:fixture'}]:[]}};
-    else if(path.endsWith('/redream_entity_patch')){state.recordWrites++;data={ok:true};}
+    else if(path.endsWith('/redream_entity_patch')){state.recordWrites++;data={ok:true,id:body.p_entity_id,entity_type:body.p_entity_type};}
     else if(path.endsWith('/redream_autopilot_relationships')){
      if(state.failRelationships){status=503;data={message:'The list is temporarily unavailable'};}
      else data={accounts:{clubs:[{organisation_id:'club',name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};
@@ -177,10 +177,10 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      return {reviewHeroContrast,careerStacked,overflow:document.documentElement.scrollWidth-innerWidth,bodyOverflow:document.body.style.overflow,header:header?getComputedStyle(header).backgroundColor:null,tabsVisible:tabs?visible(tabs):false,bottomVisible:[...document.querySelectorAll('.ux-player-mobile-nav')].some(visible),bottomLabels:[...document.querySelectorAll('.ux-player-mobile-nav a')].filter(visible).map(n=>n.textContent.trim()),networkToolbarOverlap,primaryNavVisible:primaryNav?visible(primaryNav):false,navigationIssues,navigationOverlap,missingLabels,smallControls,smallText,headings:[...document.querySelectorAll('h1,h2')].filter(visible).map(n=>n.textContent.trim())};
     });
     if(process.env.CSS_CASCADE_SNAPSHOT||process.env.CSS_CASCADE_COMPARE)cascade[suite+'/'+screen+'/'+width]=await captureCascade(page);
-     if(suite==='agency'&&screen==='home'&&width<=680)await verifyDailyMobileNavigation(page);
+     if(suite==='agency'&&screen==='home'&&width<=680)await verifyDailyMobileNavigation(page,user.id);
     if(suite==='agency'&&screen==='home'&&[390,768,1440].includes(width)){
      state.approved=false;state.taskDone=false;state.approvals=0;state.completions=0;
-     await verifyInPlaceCaptureCompletion(page,url,width===390);
+     await verifyInPlaceCaptureCompletion(page,url,width===390,user.id);
     }
     if(suite==='agency'&&screen==='opportunities'&&width===390){await verifyDealRecordCapture(page,url,dealA,dealB);await verifyDealHistoryAndCrossView(page,url,dealA,dealB);}
     await verifyMobileChrome(page,suite,screen,width);
@@ -258,9 +258,10 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       assert.equal(await disclosure.evaluate(node=>node.open),false,suite+'/'+screen+' detail must close with keyboard');
      }
     }
-    if(suite==='capture'&&screen==='review'&&width===390)await verifyCaptureFollowupJourney(page,()=>({approvals:state.approvals,completions:state.completions,dueAt}));
+    if(suite==='capture'&&screen==='review'&&width===390)await verifyCaptureFollowupJourney(page,()=>({approvals:state.approvals,completions:state.completions,dueAt,taskId}));
     if(suite==='detail'&&['club','contact','deal'].includes(screen)&&width===390){
      const label=screen==='club'?'Example FC':screen==='contact'?'Example Director':'Example transfer';
+     const parentOverflow=await page.evaluate(()=>document.body.style.overflow);
      const edit=page.getByRole('button',{name:'Edit '+label,exact:true});await edit.click();
      const editor=page.getByRole('dialog',{name:'Manage '+label,exact:true});await editor.waitFor();
      const field=editor.getByLabel(screen==='club'?'Club name':screen==='contact'?'Full name':'Deal title',{exact:true});
@@ -269,10 +270,17 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      await field.fill('Temporary draft');await page.keyboard.press('Escape');
      const discard=page.getByRole('alertdialog',{name:'Discard these changes?',exact:true});await discard.waitFor();
      await discard.getByRole('button',{name:'Discard changes',exact:true}).click();await editor.waitFor({state:'hidden'});
+     await edit.and(page.locator(':focus')).waitFor({timeout:3000});
      assert.equal(await edit.evaluate(node=>node===document.activeElement),true,'Record edit returns focus');
      await edit.click();await editor.waitFor();assert.equal(await field.inputValue(),label,'Cancelled drafts do not change the record');
      await editor.getByRole('button',{name:'Cancel',exact:true}).click();await editor.waitFor({state:'hidden'});
-     assert.equal(await page.evaluate(()=>document.body.style.overflow),'','Page records restore document scrolling after editing');
+     assert.equal(await page.evaluate(()=>document.body.style.overflow),parentOverflow,'Editing restores the existing parent scroll lease');
+     if(screen==='deal'){
+      assert.equal(parentOverflow,'hidden','The full-screen deal retains its document scroll lease');
+      const shell=page.locator('[class*="pageShell"]');
+      assert.equal(await shell.evaluate(node=>getComputedStyle(node).overflowY),'auto','The deal page retains its own scrolling');
+      assert.equal(await edit.evaluate(node=>!!node.closest('[inert]')),false,'The deal remains interactive after its editor closes');
+     }
      if(screen==='contact'||screen==='club'){
       const identity=page.locator(screen==='contact'?'[class*="headerIdentity"]':'[class*="headerTop"] > div:first-child').first();
       const controls=page.locator('[class*="headerControls"]').first();
@@ -362,7 +370,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
    await page.goto(root+'/workspace/qa-platform-polish?suite=detail&screen=deal');
    await page.getByRole('heading',{name:'Example transfer',exact:true}).waitFor();
    await page.getByRole('button',{name:'Edit Example transfer',exact:true}).waitFor();
-   assert.equal(await page.evaluate(()=>document.body.style.overflow),'','A page record allows document scrolling');
+   assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden','The full-screen deal locks the covered document while its own content scrolls');
    await page.getByRole('heading',{name:'Confirm the trial dates',exact:true}).waitFor();
    await page.getByText('Forward movement recorded',{exact:true}).waitFor();
    assert.equal(await page.getByRole('region',{name:'Latest activity',exact:true}).locator('time').textContent(),'8 Oct 2026','Activity shows the recorded date rather than a due-date warning');

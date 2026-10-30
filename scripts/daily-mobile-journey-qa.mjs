@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-export async function verifyInPlaceCaptureCompletion(page, url, mobile = true) {
+export async function verifyInPlaceCaptureCompletion(page, url, mobile = true, userId) {
+  assert.ok(userId, 'Receipt-resume fixtures require their authenticated actor');
   await page.goto(url);
   const nav = page.getByRole("navigation", {
     name: "Mobile workspace",
@@ -16,17 +17,18 @@ export async function verifyInPlaceCaptureCompletion(page, url, mobile = true) {
     0,
     "The unsaved follow-up is absent from Today",
   );
-  await page.evaluate(() =>
+  await page.evaluate(actor =>
     localStorage.setItem(
       "redream-ai-active-captures",
       JSON.stringify([
         {
           captureId: "00000000-0000-4000-8000-000000000092",
+          userId: actor,
           workspaceSlug: "qa-platform-polish",
           createdAt: new Date().toISOString(),
         },
       ]),
-    ),
+    ),userId,
   );
   const trigger = mobile ? nav.getByRole("button", { name: "Tell ReDream", exact: true }) : page.locator('header').getByRole("button", { name: "Tell ReDream", exact: true });
   await trigger.click();
@@ -49,7 +51,8 @@ export async function verifyInPlaceCaptureCompletion(page, url, mobile = true) {
     "Approval refreshes Today without a navigation round-trip",
   );
 }
-export async function verifyDailyMobileNavigation(page) {
+export async function verifyDailyMobileNavigation(page, userId) {
+  assert.ok(userId, 'Receipt-resume fixtures require their authenticated actor');
   const nav = page.getByRole("navigation", {
     name: "Mobile workspace",
     exact: true,
@@ -120,6 +123,11 @@ export async function verifyDailyMobileNavigation(page) {
   await page.waitForFunction(
     () => new URLSearchParams(location.search).get("network") === "people",
   );
+  // History restoration can update the URL before React commits its category.
+  await categories
+    .getByRole("link", { name: "Contacts", exact: true })
+    .and(page.locator('[aria-current="page"]'))
+    .waitFor();
   assert.equal(
     await categories
       .getByRole("link", { name: "Contacts", exact: true })
@@ -182,18 +190,19 @@ export async function verifyDailyMobileNavigation(page) {
     true,
     "Capture restores focus",
   );
-  await page.evaluate(() => {
+  await page.evaluate(actor => {
     localStorage.setItem(
       "redream-ai-active-captures",
       JSON.stringify([
         {
           captureId: "00000000-0000-4000-8000-000000000092",
+          userId: actor,
           workspaceSlug: "qa-platform-polish",
           createdAt: new Date().toISOString(),
         },
       ]),
     );
-  });
+  },userId);
   await nav.getByRole("button", { name: "Tell ReDream", exact: true }).click();
   await capture
     .getByRole("button", { name: "Delete this update", exact: true })
@@ -312,6 +321,8 @@ export async function verifyDealRecordCapture(page, url, dealA, dealB) {
       dealB,
       "The displayed deal replaces any prior search identity",
     );
+    assert.equal(await row.evaluate(node=>!!node.closest('[inert]')),true,'The covered deal list is isolated');
+    assert.equal(await nav.evaluate(node=>!!node.closest('[inert]')),false,'Visible mobile navigation stays available beside the deal page');
     await nav
       .getByRole("button", { name: "Tell ReDream", exact: true })
       .click();
@@ -339,6 +350,8 @@ export async function verifyDealRecordCapture(page, url, dealA, dealB) {
     );
     await page.keyboard.press("Escape");
     await capture.waitFor({ state: "hidden" });
+    assert.equal(await page.getByRole('heading',{name:'Example transfer B',exact:true}).isVisible(),true,'Closing record capture keeps the selected deal open');
+    assert.equal(await nav.getByRole('button',{name:'Tell ReDream',exact:true}).evaluate(node=>node===document.activeElement),true,'Record capture returns focus to the mobile launcher');
     await page.getByRole("button", { name: "Back", exact: true }).click();
     assert.equal(
       new URL(page.url()).searchParams.has("record"),

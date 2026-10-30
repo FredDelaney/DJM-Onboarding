@@ -9,11 +9,14 @@ try {
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  for(let attempt=0;attempt<60;attempt++)try{await page.goto(new URL('/qa-player-team',root).href);break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}
  await page.getByRole('button',{name:'Tag staff',exact:true}).click();
- await page.getByLabel('Choose responsible people',{exact:true}).click();
- await page.getByRole('button',{name:'All staff',exact:true}).click();
- await page.getByRole('button',{name:'Done',exact:true}).click();
+ await page.getByRole('checkbox',{name:'Sam Taylor',exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'Save team',exact:true}).isDisabled(),true,'Unchanged tags must not issue a save');
+ assert.equal(await page.getByRole('button',{name:/All (current )?staff/,exact:true}).count(),0,'Only the future-inclusive All staff checkbox belongs in this editor');
+ await page.getByRole('region',{name:'Player team'}).screenshot({path:output+'/player-specific-team-mobile.png'});
+ await page.getByRole('checkbox',{name:'Sam Taylor',exact:true}).check();
  await page.getByRole('button',{name:'Save team',exact:true}).click();
  await page.getByRole('status').filter({hasText:'Player team saved.'}).waitFor();
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Tag staff');
  await page.reload();
  await page.getByRole('region',{name:'Player team'}).getByText('Sam Taylor',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Tag staff',exact:true}).click();
@@ -37,6 +40,12 @@ try {
  }
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:output+'/player-team-mobile.png',fullPage:true});
  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Tag staff');
+ await page.getByRole('button',{name:'Tag staff',exact:true}).click();
+ await page.getByRole('checkbox',{name:'All staff Includes staff who join the agency later.'}).waitFor();
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>document.activeElement?.textContent==='Tag staff');
+ assert.equal(await page.getByRole('button',{name:'Save team',exact:true}).count(),0,'Escape closes just the team editor');
  await page.evaluate(()=>{window.slowTeamRead=true;});
  await page.reload();
  await page.getByRole('button',{name:'Switch player',exact:true}).click();

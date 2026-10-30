@@ -17,8 +17,15 @@ type HomeCommand = {
 
 // A review flag's due_at is its review timestamp, not a promised business deadline.
 // Real reminder tasks remain in the actionable queue with their existing controls.
+export function isHomeStatisticsReview(command: HomeCommand): boolean {
+  return command.source_type === 'player' && command.command_type === 'Player statistics suggested';
+}
+export function isHomeDetailsReview(command: HomeCommand): boolean {
+  return command.source_type === 'player' && command.command_type === 'Player details suggested';
+}
+
 export function isHomePlayerDataReview(command: HomeCommand): boolean {
-  return command.source_type === 'player' && command.command_type === 'Player review required';
+  return command.source_type === 'player' && (command.command_type === 'Player review required' || isHomeStatisticsReview(command) || isHomeDetailsReview(command));
 }
 
 export function homeCommandCategory(command: HomeCommand, now = new Date()): HomeQueueCategory {
@@ -33,4 +40,11 @@ export function homeCommandCategory(command: HomeCommand, now = new Date()): Hom
   if (/\b(risk|contract|expiry|expires|renew|renewal|deadline|window|overdue|registration)\b/i.test(text)) return 'Upcoming risk';
   if (/\b(opportunity|club need|player match|pitch|send player|recruit|route|interest|looking for|requirement)\b/i.test(text)) return 'Opportunity detected';
   return 'Needs action now';
+}
+
+// Server decision-policy priorities use 0-100; the Home queue reserves 0-9,000
+// points within each category for commands, dates, meetings and aftercare.
+export function homePriorityWeight(value: unknown): number {
+  const score = Number(value);
+  return Number.isFinite(score) ? Math.min(100, Math.max(0, score)) * 90 : 0;
 }

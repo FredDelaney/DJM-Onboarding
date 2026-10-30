@@ -30,6 +30,15 @@ export default {fetch:async(req:Request)=>{
     const tenantId=String(workspace.tenant_id),role=String(workspace.role||"");
     if(!["owner","admin"].includes(role)) return json({error:"Agency administrator access required",code:"workspace_access_denied"},403);
 
+    if(action==="pursuit_salary_review"||action==="pursuit_salary_review_save"){
+      const matchId=id(body?.player_match_id);if(!matchId)return json({error:"Choose a player opportunity.",code:"22023"},400);
+      try{
+        const args={p_tenant_id:tenantId,p_actor_user_id:userId,p_match_id:matchId,p_command_id:id(body?.command_id)||null};
+        const review=action==="pursuit_salary_review"?await rpc("platform_server_pursuit_salary_review",args):await rpc("platform_server_record_pursuit_salary_review",{...args,p_fingerprint:id(body?.fingerprint)||null,p_decision:id(body?.decision)||null,p_reason:id(body?.reason)||null,p_expires_on:id(body?.expires_on)||null});
+        return json({ok:true,tenant:workspace,review});
+      }catch(error){const cause=error as {code?:string;message?:string};const code=String(cause?.code||"");const known=code==="40001"||code==="42501"||code.startsWith("22");return json({error:known?cause.message||"Review the salary details and try again.":"The salary review could not be confirmed. Check its current status.",code:known?code:undefined},code==="40001"?409:code==="42501"?403:known?400:500);}
+    }
+
     if(action==="market_execution") return json({ok:true,tenant:workspace,market:await rpc("platform_server_market_execution_command",{p_tenant_id:tenantId})});
     if(action==="external_dossiers") return json({ok:true,tenant:workspace,dossiers:await rpc("platform_server_external_dossier_command",{p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,250,100)})});
     if(action==="pitch_readiness") return json({ok:true,tenant:workspace,readiness:await rpc("platform_server_pitch_readiness_command",{p_tenant_id:tenantId,p_limit:clamp(body?.limit,1,100,50)})});
@@ -64,7 +73,8 @@ export default {fetch:async(req:Request)=>{
     }
     if(action==="pursuit_deal_create"){
       const matchId=id(body?.player_match_id);if(!matchId)return json({error:"player_match_id is required"},400);
-      return json({ok:true,tenant:workspace,result:await rpc("platform_server_convert_pursuit_to_deal",{p_tenant_id:tenantId,p_player_match_id:matchId,p_actor_user_id:userId,p_input:obj(body?.input)})});
+      try{return json({ok:true,tenant:workspace,result:await rpc("platform_server_convert_pursuit_to_deal",{p_tenant_id:tenantId,p_player_match_id:matchId,p_actor_user_id:userId,p_input:obj(body?.input)})});}
+      catch(error){const cause=error as {code?:string;message?:string};if(cause?.code==="22023"&&cause.message!=="Review base-salary feasibility in this opportunity before preparing a new pitch or deal.")return json({error:cause.message||"Check the deal inputs and try again.",code:"22023"},400);throw error;}
     }
     if(action==="pitch_draft_create"){
       const matchId=id(body?.player_match_id);if(!matchId)return json({error:"player_match_id is required"},400);
@@ -96,5 +106,5 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,tenant:workspace,result:await rpc("platform_server_evaluate_pitch_response_action",{p_tenant_id:tenantId,p_proposal_id:proposalId})});
     }
     return json({error:"Unknown action"},400);
-  }catch(error){console.error("agency-market",error);return json({error:error instanceof Error?error.message:"Agency market request failed"},500);}
+  }catch(error){const cause=error as {code?:string;message?:string};if(cause?.code==="22023"&&cause.message==="Review base-salary feasibility in this opportunity before preparing a new pitch or deal.")return json({error:"Review current base-salary feasibility before preparing a new pitch or deal.",code:"salary_review_required"},409);console.error("agency-market",error);return json({error:error instanceof Error?error.message:"Agency market request failed"},500);}
 }};

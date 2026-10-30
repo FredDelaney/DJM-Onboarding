@@ -1,6 +1,6 @@
 'use client';
 
-import { lockPageScroll } from '@/lib/page-scroll-lock';
+import { lockPageScroll, isolateElements } from '@/lib/page-scroll-lock';
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,6 +22,7 @@ import RecordDetails from '@/components/RecordDetails';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import { hasRecordedNumber } from '@/lib/recorded-number';
+import { UUID_PATTERN } from '@/lib/entity-context';
 
 import styles from './AgencyEntityIntelligenceDrawer.module.css';
 
@@ -101,6 +102,7 @@ export default function AgencyEntityIntelligenceDrawer({
   onOpenCloseout,
   onOpenNegotiation,
   onOpenPlayerReview,
+  onOpenPlayerProfile,
   presentation = 'drawer',
   rpc,
   canManageRecords = false,
@@ -125,6 +127,7 @@ export default function AgencyEntityIntelligenceDrawer({
     title: string,
     context?: string | null,
   ) => void;
+  onOpenPlayerProfile?: (playerId:string,dealId:string) => void;
   presentation?: 'drawer' | 'page';
   rpc?: Rpc;
   canManageRecords?: boolean;
@@ -135,6 +138,45 @@ export default function AgencyEntityIntelligenceDrawer({
   const [error, setError] = useState('');
   const [data, setData] = useState<Record<string, any>>({});
   const pageMode = presentation === 'page';
+  const pageRef = useRef<HTMLDivElement>(null);
+  const pageOpener = useRef<HTMLElement | null>(null);
+  const closePage = useRef(onClose);
+  closePage.current = onClose;
+  useEffect(() => {
+    if (!pageMode) return;
+    pageOpener.current ??= document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const releaseScroll = lockPageScroll();
+    const siblings: HTMLElement[] = [];
+    let branch: HTMLElement | null = pageRef.current;
+    while (branch?.parentElement) {
+      const parent = branch.parentElement;
+      siblings.push(...Array.from(parent.children).filter(
+        // The visible mobile bar remains part of this page, including record-scoped capture.
+        (node): node is HTMLElement => node instanceof HTMLElement && node !== branch &&
+          !node.hasAttribute('data-workspace-mobile-navigation'),
+      ));
+      if (parent === document.body) break;
+      branch = parent;
+    }
+    const releaseBackground = isolateElements(siblings);
+    pageRef.current?.querySelector<HTMLElement>('h2')?.focus({preventScroll: true});
+    const key = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || pageRef.current?.closest('[inert]')) return;
+      if (Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]')).some(node=>node.getClientRects().length)) return;
+      event.preventDefault(); closePage.current();
+    };
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('keydown', key);
+      releaseBackground(); releaseScroll();
+      queueMicrotask(() => {
+        const opener = pageOpener.current;
+        const otherModal = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]')).some(node=>node.getClientRects().length);
+        if (!otherModal && opener?.isConnected && !opener.closest('[inert]')) opener.focus({preventScroll: true});
+      });
+    };
+  }, [pageMode, request.key]);
+
 
   const readSequence = useRef(0);
   const load = useCallback(async (options?: { recordRefresh?: boolean }) => {
@@ -291,12 +333,13 @@ export default function AgencyEntityIntelligenceDrawer({
 
   return (
     <div
+      ref={pageRef}
       className={pageMode ? styles.pageShell : styles.backdrop}
       onClick={pageMode ? undefined : (event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <aside className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`} role={pageMode ? 'region' : 'dialog'} aria-modal={pageMode ? undefined : true}>
+      <aside className={`${styles.drawer} ${pageMode ? styles.pagePanel : ''}`} role={pageMode ? 'region' : 'dialog'} aria-label={request.kind==='deal' ? deal.title || request.title : request.title} aria-modal={pageMode ? undefined : true}>
         <header className={styles.header}>
           <div className={styles.topline}>
             <span className={styles.live}><i />Agency record</span>
@@ -312,8 +355,9 @@ export default function AgencyEntityIntelligenceDrawer({
                     { key: 'title', label: 'Deal title', value: deal.title || request.title },
                     { key: 'next_action_text', label: 'Next action', value: deal.next_action_text || '', type: 'textarea' },
                   ]}
-                  onChanged={async (change) => {
+                  onChanged={async (change, signal) => {
                     await onRefresh?.();
+                    if(signal?.aborted)return;
                     if (change === 'edit') await load({ recordRefresh: true });
                     else onClose();
                   }}
@@ -333,7 +377,7 @@ export default function AgencyEntityIntelligenceDrawer({
             </div>
             <div>
               <p>{request.kind === 'player' ? 'PLAYER' : 'DEAL'}</p>
-              <h2>{request.kind==='deal' ? deal.title || request.title : request.title}</h2>
+              <h2 tabIndex={pageMode ? -1 : undefined}>{request.kind==='deal' ? deal.title || request.title : request.title}</h2>
               {request.context ? <span>{request.context}</span> : null}
             </div>
           </div>
@@ -547,11 +591,12 @@ export default function AgencyEntityIntelligenceDrawer({
                 <p>Next action</p>
                 <h3>{primaryDealAction?.instruction || deal.next_action_text || deal.next_decision || 'No next action recorded.'}</h3>
                 <span>{[human(deal.stage), human(control.state || momentum.state || 'recorded')].filter(Boolean).join(' · ')}{deal.next_action_at ? ` · Due ${relativeDate(deal.next_action_at)}` : ''}</span>
-                {primaryDealAction ? (
+                {primaryDealAction || (onOpenPlayerProfile&&UUID_PATTERN.test(warRoom.player?.player_id||'')) ? (
                   <div className={styles.actions}>
-                    <button type="button" onClick={() => onOpenAction(primaryDealAction)}>
+                    {primaryDealAction?<button type="button" onClick={() => onOpenAction(primaryDealAction)}>
                       <ArrowRight size={15} />{primaryDealAction.label}
-                    </button>
+                    </button>:null}
+                    {onOpenPlayerProfile&&UUID_PATTERN.test(warRoom.player?.player_id||'')?<button type="button" onClick={()=>onOpenPlayerProfile(warRoom.player.player_id,request.entityId)}><ArrowRight size={15}/>Review player profile</button>:null}
                   </div>
                 ) : null}
               </div>

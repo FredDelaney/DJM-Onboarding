@@ -47,7 +47,7 @@ try{
  await page.route('https://example.supabase.co/rest/v1/rpc/**',async route=>{
   const body=route.request().postDataJSON();assert.equal(body.p_entity_id,'fixture-club');assert.equal(body.p_patch.name,'Updated Club');writes++;
   if(mode==='pending')await new Promise(resolve=>{release=resolve;});
-  await route.fulfill({status:mode==='failed'?500:200,contentType:'application/json',body:JSON.stringify(mode==='failed'?{message:'Save temporarily unavailable'}:{ok:true})});
+  await route.fulfill({status:mode==='failed'?400:200,contentType:'application/json',body:JSON.stringify(mode==='failed'?{message:'Check the club details.',code:'22023'}:{ok:true,id:body.p_entity_id,entity_type:body.p_entity_type})});
  });
  if(!process.env.DESIGN_QA_ONLY||process.env.DESIGN_QA_ONLY==='editor'){
   await check('pending save keeps the editor and draft; confirmed save closes it',async()=>{
@@ -61,7 +61,7 @@ try{
   await check('failed save retains the draft and exposes an accessible error',async()=>{
    await page.goto(base+'?screen=editor');await page.getByRole('button',{name:'Edit Example Club',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Manage Example Club',exact:true});
    await dialog.getByLabel('Club name').fill('Updated Club');mode='failed';await dialog.getByRole('button',{name:'Save changes',exact:true}).click();
-   await page.getByText('Save temporarily unavailable',{exact:true}).waitFor();assert.equal(await dialog.isVisible(),true);assert.equal(await dialog.getByLabel('Club name').inputValue(),'Updated Club');
+   await page.getByText('Check the club details.',{exact:true}).waitFor();assert.equal(await dialog.isVisible(),true);assert.equal(await dialog.getByLabel('Club name').inputValue(),'Updated Club');
    assert.equal(await dialog.getByRole('alert').count(),1);assert.equal(await page.getByText('Changes saved',{exact:true}).count(),0);
   });
  }

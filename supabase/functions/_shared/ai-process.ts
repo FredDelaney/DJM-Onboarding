@@ -70,6 +70,7 @@ const planSchema = {
             due_at: nullableString,
             priority: nullableInteger,
             owner_name: nullableString,
+            owner_names: { type: ["array", "null"], items: { type: "string", minLength: 1 }, maxItems: 50 },
             club_name: nullableString,
             contact_name: nullableString,
             player_name: nullableString,
@@ -611,7 +612,7 @@ async function interpret(
         "When a named signed player is speaking about their own career, transfer preference, contract preference or future plans, use player_name for that person and leave contact_name null unless a different Network contact is explicitly named. For example, Dylan told me he wants Denmark means player_name Dylan, not contact_name Dylan.",
         "For add_claim, claim_key must be short lowercase ASCII snake_case, for example preferred_side, salary_expectation or transfer_preference. Never use spaces, punctuation or non-ASCII characters.",
                 "Use create_task only when an internal speaker states a follow-up, commitment or reminder, or when an inbound connected message contains an explicit request or question that clearly requires agency action or a reply.",
-        "When an internal speaker explicitly assigns a task to a named agency team member, copy that exact spoken name into owner_name. Examples include Dapo owns it or Moses to send it. Otherwise owner_name must be null. Never infer task ownership.",
+        "For task responsibility, copy every explicitly named agency colleague into owner_names using the exact spoken names, including a single colleague. Examples include Dapo owns it or Alex and Moses to send it. Do not expand a first name from vocabulary or include a player/contact merely mentioned as the subject or recipient. Use an empty array when nobody is named and leave the legacy owner_name null. Preserve an explicit shared speaker assignment such as Alex and I in the quoted evidence; for me alone describes a beneficiary, not another owner. Never infer ownership, omit an explicitly assigned colleague, or turn a negated assignment into responsibility. For an explicit collective assignment such as all staff, preserve the exact collective phrase in owner_names so it is clarified rather than silently assigned to the speaker.",
 "For email, create a task when an outbound agency email states a clear follow-up, commitment or reminder, or when an inbound email contains an explicit request or question that clearly requires agency action or a reply.",
 "For an outbound email, complete_email_thread_task may be used only when current_context.email_thread_task_candidate_count is exactly 1, current_context contains that exact candidate task id/title, and the current email explicitly proves the work is already completed. Evidence must quote the completion statement from the current email.",
 "Never use complete_email_thread_task for future tense, promises, plans, delays, partial progress, acknowledgements, or language such as I will, I can, I should, I need to, tomorrow, later, soon, working on it, or will send. The email must state or clearly contain the completed deliverable itself.",
@@ -978,14 +979,16 @@ function financialMagnitudeCandidates(field: "salary_budget" | "transfer_budget"
 }
 
 
-function taskOwnerFieldKey(actionKey: string, spokenName: string) {
-  const slug = normaliseEvidence(spokenName).replace(/\s+/g, "-") || "owner";
+function taskOwnerFieldKey(actionKey: string, spokenName: string, structured = false) {
+  const name = structured ? spokenName.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim() : normaliseEvidence(spokenName);
+  const slug = name.replace(/\s+/g, "-") || "owner";
   return `team_member:${actionKey}:${slug}`;
 }
 
 function taskIncludesSpeaker(action: any) {
   const evidence = String(action?.evidence || "");
-  return /\bmyself\b|\bfor\s+me\b|\bme\s+(?:and|&)\b|\b(?:and|&)\s+me\b/i.test(evidence);
+  if (/\b(?:not|without)\s+(?:me|myself)\b|\bI\s+(?:won't|will not|am not)\b/i.test(evidence)) return false;
+  return /\b(?:me|myself|I)\s+(?:and|&)\s+\p{L}|(?:\band\b|&)\s+(?:me|myself)\b|(?:\band\b|&)\s+I(?=\s+(?:will\b|'ll\b|should\b|to\b|on\b)|\s*[,.!?]?\s*$)/iu.test(evidence);
 }
 
 async function forceReviewAction(
@@ -1505,7 +1508,38 @@ async function processOne(
         approvalFirst &&
         action.type === "create_task"
       ) {
-        const spokenOwner = String(action.owner_name || "").trim();
+        const legacyOwner = String(action.owner_name || "").trim();
+        const structured = Array.isArray(action.owner_names) && action.owner_names.length > 0;
+        const rawOwners = structured ? action.owner_names : legacyOwner ? [legacyOwner] : [];
+        const normaliseName = (value: string) => value.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+        const names: string[] = [];
+        const seenNames = new Set<string>();
+        const malformed = (action.owner_names != null && !Array.isArray(action.owner_names))
+          || rawOwners.length > 50
+          || rawOwners.some((name: unknown) => typeof name !== "string" || !normaliseName(name));
+        if (!malformed) for (const value of rawOwners) {
+          const name = value.trim(), key = normaliseName(name);
+          if (!seenNames.has(key)) { seenNames.add(key); names.push(name); }
+        }
+        const quote = ` ${normaliseName(String(action.evidence || ""))} `;
+        const collective = /\b(?:all|every|the whole|the entire)\s+(?:staff|team|agency)\b|\beveryone\b/i.test(String(action.evidence || ""));
+        const negatedAssignment = /\b(?:do not|don['’]t|never)\s+(?:assign|give|add|include|put)\b/i.test(String(action.evidence || ""))
+          || names.some(name => {
+            const key = normaliseName(name);
+            return quote.includes(` not ${key} `) || quote.includes(` without ${key} `)
+              || ["will not", "won t", "is not responsible", "should not", "shouldn t"].some(negative => quote.includes(` ${key} ${negative} `));
+          });
+        if (malformed || (structured && legacyOwner && !seenNames.has(normaliseName(legacyOwner)))) {
+          forceReviewReason = "Choose the responsible people before saving this task.";
+          blocked = true;
+        } else if (structured && names.some(name => !quote.includes(` ${normaliseName(name)} `))) {
+          forceReviewReason = "A proposed responsible person was not named in the quoted instruction.";
+          blocked = true;
+        } else if (negatedAssignment || (collective && !names.length)) {
+          forceReviewReason = "Check who should be responsible before saving this task.";
+          blocked = true;
+        }
+
         const includesSelf = taskIncludesSpeaker(action);
         const responsibleUserIds: string[] = [];
         const responsibleDisplayNames: string[] = [];
@@ -1515,76 +1549,43 @@ async function processOne(
           responsibleUserIds.push(id);
           responsibleDisplayNames.push(label || "Team member");
         };
+        if (includesSelf || !names.length) addResponsible(String(capture.submitted_by), "You");
 
-        if (includesSelf || !spokenOwner) {
-          addResponsible(String(capture.submitted_by), "You");
-        }
-
-        if (spokenOwner) {
-          const ownerFieldKey = taskOwnerFieldKey(actionKey, spokenOwner);
+        if (!blocked) for (const spokenOwner of names) {
+          const ownerFieldKey = taskOwnerFieldKey(actionKey, spokenOwner, structured);
           const selectedOwner = resolutionFor(capture, ownerFieldKey);
           let ownerResolution: any = null;
-
           if (selectedOwner?.kind === "review") {
-            forceReviewReason =
-              `Task owner ${spokenOwner} was left for review.`;
+            forceReviewReason = `Task owner ${spokenOwner} was left for review.`;
             blocked = true;
-          } else if (
-            selectedOwner?.kind === "team_member" &&
-            selectedOwner?.user_id
-          ) {
-            ownerResolution = {
-              resolved: true,
-              user_id: String(selectedOwner.user_id),
-              display_name: selectedOwner.label || spokenOwner,
-              matched_by: "user",
-            };
+            continue;
+          }
+          if (selectedOwner?.kind === "team_member" && selectedOwner?.user_id) {
+            ownerResolution = {resolved: true, user_id: String(selectedOwner.user_id), display_name: selectedOwner.label || spokenOwner, matched_by: "user"};
           } else {
-            const { data, error } = await admin.rpc(
-              "redream_ai_resolve_team_member",
-              {
-                p_capture_id: capture.capture_id,
-                p_spoken_name: spokenOwner,
-              },
-            );
+            const {data, error} = await admin.rpc("redream_ai_resolve_team_member", {p_capture_id: capture.capture_id, p_spoken_name: spokenOwner});
             if (error) throw error;
             ownerResolution = data;
           }
-
-          if (!blocked && ownerResolution?.resolved && ownerResolution?.user_id) {
-            const ownerUserId = String(ownerResolution.user_id);
-            const ownerDisplayName =
-              ownerResolution.display_name || spokenOwner;
-            action.owner_user_id = includesSelf
-              ? String(capture.submitted_by)
-              : ownerUserId;
-            action.owner_display_name = ownerDisplayName;
-            addResponsible(ownerUserId, ownerDisplayName);
-          } else if (!blocked) {
-            const candidates = Array.isArray(ownerResolution?.candidates)
-              && ownerResolution.candidates.length
-              ? [...ownerResolution.candidates, reviewCandidate()]
-              : [reviewCandidate()];
-            await recordQuestion(
-              admin,
-              capture.capture_id,
-              ownerFieldKey,
-              `Who did you mean by "${spokenOwner}"?`,
-              "Choose the active agency team member responsible for this task.",
-              candidates,
-              { spoken_name: spokenOwner, action_key: actionKey },
-            );
+          if (ownerResolution?.resolved && ownerResolution?.user_id) {
+            addResponsible(String(ownerResolution.user_id), ownerResolution.display_name || spokenOwner);
+          } else {
+            const memberCandidates = (Array.isArray(ownerResolution?.candidates) ? ownerResolution.candidates : [])
+              .filter((candidate: any) => candidate?.user_id)
+              .map((candidate: any) => ({...candidate, kind: "team_member"}));
+            const candidates = [...memberCandidates, reviewCandidate()];
+            await recordQuestion(admin, capture.capture_id, ownerFieldKey, `Who did you mean by "${spokenOwner}"?`,
+              "Choose the active agency team member responsible for this task.", candidates,
+              {spoken_name: spokenOwner, action_key: actionKey});
             blocked = true;
           }
-        } else {
-          action.owner_user_id = String(capture.submitted_by);
-          action.owner_display_name = "You";
         }
-
+        if (responsibleUserIds.length > 50) {
+          blocked = true; forceReviewReason = "A task can have up to 50 responsible people. Review this selection.";
+        }
         if (!blocked) {
-          if (!responsibleUserIds.length) {
-            addResponsible(String(capture.submitted_by), "You");
-          }
+          action.owner_user_id = responsibleUserIds[0];
+          action.owner_display_name = responsibleDisplayNames[0];
           action.responsible_user_ids = responsibleUserIds;
           action.responsible_display_names = responsibleDisplayNames;
         }

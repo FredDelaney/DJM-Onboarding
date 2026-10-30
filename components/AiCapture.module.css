@@ -376,6 +376,7 @@
 
 /* Quiet typography and surfaces for this work view. */
 .primary, .secondary { font-weight: 500; box-shadow: none; }
+.completeActions .outcomeLink { max-width:100%; min-width:0; white-space:normal; overflow-wrap:anywhere; text-align:left; }
 
 .shell:not(.compact) .prompt strong { color: #f3f6f8; }
 .shell:not(.compact) .prompt span { color: #a9bdcb; }
@@ -396,3 +397,43 @@
 .preparations{display:grid;gap:10px;padding:18px 0;border-bottom:1px solid var(--line,#e5e7eb)}
 .preparations>a{display:flex;align-items:center;gap:12px;min-height:60px;padding:12px 14px;border:1px solid var(--line,#e5e7eb);border-radius:12px;color:inherit;text-decoration:none;background:var(--surface,#fff)}
 .preparations>a>span:first-of-type{flex:1;min-width:0}.preparations strong,.preparations small{display:block;overflow-wrap:anywhere}.preparations small{font-size:12px;color:var(--text-secondary,#667085);margin-top:3px}.preparations>a:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.savedQueue {
+  min-width: 0;
+  border: 1px solid #dfe6ea;
+  border-radius: 15px;
+  background: #fff;
+  color: #35546a;
+  overflow-wrap: anywhere;
+}
+.savedQueue > details > summary {
+  min-height: 48px;
+  padding: 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+.savedQueue > details > summary span + span {
+  margin-inline-start: 8px;
+  color: #586773;
+  font-size: 12px;
+  font-weight: 500;
+}
+.savedQueue > details > p {
+  margin: 0;
+  padding: 0 14px 12px;
+  color: #586773;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.savedNotes { display: grid; list-style: none; margin: 0; padding: 0 14px; }
+.savedNotes > li { display: grid; min-width: 0; gap: 8px; padding: 14px 0; border-top: 1px solid #edf1f3; }
+.savedNotes > li > span { color: #586773; font-size: 12px; line-height: 1.5; }
+.savedNoteHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.savedNoteHead strong { font-size: 13px; font-weight: 650; }
+.savedNoteHead time { color: #586773; font-size: 12px; }
+.savedNotes button, .queueReadError button { min-height: 44px; justify-self: start; }
+.savedNoteSource summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-size: 12px; }
+.savedNoteSource p { max-height: 14rem; overflow: auto; margin: 0; padding: 10px; border-radius: 8px; background: #f7f9fa; color: #35546a; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+.savedQueue summary:focus-visible, .savedNoteSource p:focus-visible { outline: 3px solid #567b92; outline-offset: 2px; }
+.queueReadError { display: grid; gap: 10px; padding: 14px; color: #586773; font-size: 13px; line-height: 1.5; }

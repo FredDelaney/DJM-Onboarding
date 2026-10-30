@@ -32,7 +32,7 @@ jobs:
 
   browser_journeys:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -59,8 +59,22 @@ jobs:
           path: |
             /tmp/platform-polish-screenshots
             /tmp/platform-polish-report.json
+            /tmp/redream-document-qa
             /tmp/redream-platform-programme/roster
             /tmp/redream-platform-programme/home
             /tmp/redream-platform-programme/club-stats
+            /tmp/redream-platform-programme/calendar
+            /tmp/redream-platform-programme/read-recovery
+            /tmp/redream-platform-programme/deal-profile-handoff
+            /tmp/redream-platform-programme/profile-secondary-recovery
+            /tmp/redream-platform-programme/task-editor-focus
+            /tmp/redream-platform-programme/representation-journey
+            /tmp/redream-platform-programme/mandate-journey
+            /tmp/redream-platform-programme/player-pitch-journey
+            /tmp/redream-platform-programme/scouting-report-journey
+            /tmp/redream-platform-programme/invoice-journey
+            /tmp/redream-platform-programme/invoice-currency
+            /tmp/redream-platform-programme/document-save-recovery
+            /tmp/redream-platform-programme/connected-followups
           retention-days: 7
           if-no-files-found: ignore

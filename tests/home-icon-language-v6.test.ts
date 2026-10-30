@@ -24,5 +24,5 @@ test('recent activity no longer uses boxed speech icons', () => {
 test('daily priority actions use the same quiet control hierarchy', () => {
   assert.match(css, /\.focusAction \.compactButton[\s\S]*min-height:\s*44px/);
   assert.match(css, /\.focusAction \.compactButton[\s\S]*background:\s*transparent/);
-  assert.match(css, /data-ui-button="primary"[\s\S]*background: var\(--interface-blue\)/);
+  assert.match(css, /data-ui-button="primary"[\s\S]*background: var\(--agency-primary, var\(--interface-blue\)\)/);
 });

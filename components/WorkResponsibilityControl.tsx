@@ -16,6 +16,8 @@ export default function WorkResponsibilityControl({work,tenantId,rpc,onSaved}:{w
  const requestSequence=useRef(0);
  const details=useRef<HTMLDetailsElement>(null);
  const visible=state?.scope===scope?state:null;
+ const changed=!!visible&&(draft.length!==visible.ids.length||draft.some(id=>!visible.ids.includes(id)));
+ const close=()=>{setReady(false);if(details.current){details.current.open=false;details.current.querySelector<HTMLElement>('summary')?.focus();}};
  const load=async()=>{
   const captured=scope,request=++requestSequence.current;setReady(false);setError('');
   try {
@@ -33,19 +35,19 @@ export default function WorkResponsibilityControl({work,tenantId,rpc,onSaved}:{w
   return()=>{alive=false;requestSequence.current++;};
  },[scope,rpc,work.kind,work.id,tenantId]);
  async function save(){
-  if(!visible||busy||!ready)return;const captured=scope,request=++requestSequence.current;setBusy(true);setError('');
+  if(!visible||busy||!ready||!changed)return;const captured=scope,request=++requestSequence.current;setBusy(true);setError('');
   try {
    const result=await readWithDeadline(rpc<any>('redream_work_responsibility_v1',{p_work_kind:work.kind,p_work_id:work.id,p_user_ids:draft,p_expected_revision:visible.revision,p_tenant_id:tenantId}));
    if(current.current!==captured||request!==requestSequence.current)return;
    if(!Array.isArray(result?.people)||!Array.isArray(result?.user_ids)||!Number.isInteger(result?.revision))throw new Error('Unconfirmed responsibility');
    setState({scope:captured,people:result.people,ids:result.user_ids,revision:result.revision});
-   if(details.current)details.current.open=false;
+   close();
    window.dispatchEvent(new Event('redream:responsibilities-updated'));onSaved?.();
-  } catch(err){if(current.current===captured&&request===requestSequence.current)setError(/task_revision_conflict|task_owner_inactive|denied|task_archived/.test(String((err as any)?.message||err))?taskErrorMessage(err):'Could not confirm the save. Reopen this reminder to check.');}
+  } catch(err){if(current.current===captured&&request===requestSequence.current)setError(/task_revision_conflict|task_owner_inactive|denied|task_archived/.test(String((err as any)?.message||err))?taskErrorMessage(err):'Could not confirm the save. Reopen the responsible people to check.');}
   finally{if(current.current===captured&&request===requestSequence.current)setBusy(false);}
  }
  return <details className={styles.control} ref={details} onToggle={event=>{if(event.target===event.currentTarget&&event.currentTarget.open)void load();}}
-  onKeyDown={event=>{if(event.key==='Escape'&&!busy){event.preventDefault();event.stopPropagation();if(details.current){details.current.open=false;details.current.querySelector<HTMLElement>('summary')?.focus();}}}}>
+  onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();if(!busy)close();}}}>
   <summary aria-label="Change responsible people" aria-description={visible?.people.length ? 'Responsible: '+visible.people.map(person=>person.display_name).join(', ') : visible ? 'Unassigned' : undefined}>
    {visible?.people.length ? <span className={styles.summaryAvatar} aria-hidden="true">{visible.people[0].display_name.split(' ').map(part=>part[0]).slice(0,2).join('')}</span> : null}
    <span className={styles.summaryText}>{visible?.people.length ? (visible.people.length === 1 ? visible.people[0].display_name : visible.people[0].display_name.split(' ')[0] + ' +' + (visible.people.length - 1)) : visible ? 'Unassigned' : 'Assign'}</span>
@@ -57,8 +59,8 @@ export default function WorkResponsibilityControl({work,tenantId,rpc,onSaved}:{w
    {error?<p role="alert">{error}</p>:null}
    <div className={styles.actions}>
     {error&&!ready?<button type="button" onClick={()=>void load()}>Retry</button>:null}
-    <button type="button" disabled={busy} onClick={()=>{if(details.current)details.current.open=false;}}>Cancel</button>
-    {ready?<button type="button" disabled={busy} onClick={()=>void save()}>{busy?'Saving...':'Save people'}</button>:null}
+    <button type="button" disabled={busy} onClick={close}>Cancel</button>
+    {ready?<button type="button" data-ui-button="primary" disabled={busy||!changed} onClick={()=>void save()}>{busy?'Saving...':'Save people'}</button>:null}
    </div>
   </div>
  </details>;

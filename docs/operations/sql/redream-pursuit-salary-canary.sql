@@ -1,0 +1,209 @@
+-- Staging ltvmopvarlnidiozvpow only, after the reviewed pursuit salary migration.
+-- May also run inside a rollback-only candidate migration envelope before installation.
+-- Synthetic invited identities, own/foreign agencies and records. Everything rolls back.
+-- Share/profile visibility changes stay uncommitted; no token is returned or sent.
+begin;
+set local lock_timeout='5s';set local statement_timeout='30s';
+do $canary$
+declare ta uuid:=gen_random_uuid();tb uuid:=gen_random_uuid();u uuid:=gen_random_uuid();invite uuid:=gen_random_uuid();email text;
+ player uuid:=gen_random_uuid();foreign_player uuid:=gen_random_uuid();need uuid;match_id uuid:=gen_random_uuid();
+ review_id uuid:=gen_random_uuid();general_id uuid;draft_id uuid;deal_id uuid;org uuid;gate jsonb;draft jsonb;fingerprint text;expiry date;career_id uuid;
+ result jsonb;terms jsonb;comparison jsonb;listed jsonb;original_sync timestamptz;version timestamptz;denied boolean;affected bigint;staff_role text;invalid jsonb;
+begin
+ insert into platform.tenants(id,slug,status,metadata) values(ta,'qa-salary-'||ta,'active','{"synthetic":true}'),(tb,'qa-salary-'||tb,'active','{"synthetic":true}');
+ email:='qa-salary-'||u||'@example.test';
+ insert into platform.tenant_staff_invites(id,tenant_id,email,role,token_hash,expires_at,metadata) values(invite,ta,email,'agent',md5(invite::text)||md5(u::text),now()+interval '1 hour','{"synthetic":true}');
+ insert into auth.users(id,email,role,aud,raw_app_meta_data,raw_user_meta_data) values(u,email,'authenticated','authenticated',jsonb_build_object('invitation_kind','agency_staff','staff_invite_id',invite,'invited_tenant_id',ta),'{"full_name":"Salary Canary"}');
+ insert into platform.tenant_memberships(tenant_id,user_id,role,status) values(ta,u,'owner','active'),(tb,u,'admin','active');
+ if exists(select 1 from djm_os.team_members where user_id=u) then raise exception 'Unexpected global staff dependency';end if;
+ perform set_config('request.jwt.claim.sub',u::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',u,'role','authenticated')::text,true);
+ perform set_config('request.headers',jsonb_build_object('x-redream-workspace','qa-salary-'||ta)::text,true);
+ insert into public.players(id,tenant_id,first_name,last_name,primary_position) values(player,ta,'[QA rollback]','Salary Player','Striker'),(foreign_player,tb,'[QA rollback]','Foreign Salary Player','Striker');
+ insert into djm_os.player_market_facts(player_id,salary_expectation,market_preferences) values(player,'Approx 5k plus benefits; unconfirmed units','Australia') on conflict(player_id) do update set salary_expectation=excluded.salary_expectation,market_preferences=excluded.market_preferences;
+ select last_synced_at into original_sync from djm_os.player_market_facts where player_id=player;
+ set local role service_role;
+ result:=public.platform_server_agency_create_club_need_brief(ta,u,jsonb_build_object('club_name','[QA rollback] Salary FC','position','Striker','brief',jsonb_build_object('salary_budget','5000','currency','EUR','salary_period','monthly','salary_tax_basis','net','source_status','confirmed')));
+ need:=(result->>'club_need_id')::uuid;
+ reset role;
+ insert into djm_os.player_matches(id,tenant_id,club_need_id,player_id,status,overall_score,reasoning) values(match_id,ta,need,player,'shortlisted',99,'{"manual":true}') on conflict(club_need_id,player_id) do update set status='shortlisted',overall_score=99,reasoning='{"manual":true}' returning id into match_id;
+ set local role authenticated;
+ terms:=public.redream_player_salary_terms(player)->'terms';
+ if terms->>'salary_minimum' is not null or terms->>'updated_at' is not null then raise exception 'Legacy note became structured money';end if;
+ result:=public.redream_player_salary_terms_patch(player,null,jsonb_build_object('salary_minimum','5000.01','salary_target','5500','salary_currency','EUR','salary_period','monthly','salary_tax_basis','net','salary_source_status','confirmed','salary_source_context','QA direct player confirmation, base salary only','salary_checked_on',current_date::text));
+ if result->>'ok'<>'true' or result->>'id'<>player::text or result->>'entity_type'<>'player' or result#>>'{terms,salary_minimum}'<>'5000.01' or result#>>'{terms,updated_by}'<>u::text then raise exception 'Salary save acknowledgement mismatch';end if;
+ version:=(result#>>'{terms,updated_at}')::timestamptz;
+ result:=public.redream_player_salary_terms_patch(player,version,'{"salary_currency":"eur"}');
+ if (result#>>'{terms,updated_at}')::timestamptz<>version then raise exception 'No-op changed the revision';end if;
+ denied:=false;begin perform public.redream_player_salary_terms_patch(player,null,'{"salary_minimum":"1"}');exception when serialization_failure then denied:=true;end;
+ if not denied then raise exception 'Stale salary edit admitted';end if;
+ for invalid in select value from jsonb_array_elements('[{"salary_minimum":"NaN"},{"salary_minimum":"-1"},{"salary_minimum":"1e4"},{"salary_minimum":"1.123"},{"salary_currency":"XXX"},{"salary_source_context":""},{"salary_checked_on":""},{"salary_expectation":"overwrite"}]') loop
+  denied:=false;begin perform public.redream_player_salary_terms_patch(player,version,invalid);exception when invalid_parameter_value then denied:=true;end;
+  if not denied then raise exception 'Invalid salary patch admitted: %',invalid;end if;
+ end loop;
+ denied:=false;begin perform public.redream_player_salary_terms(foreign_player);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Foreign player salary disclosed';end if;
+ denied:=false;begin perform public.platform_server_demand_control_fast(ta,100,u);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Service-only private reader exposed';end if;
+ affected:=0;begin update djm_os.player_market_facts set salary_minimum=1 where player_id=player;get diagnostics affected=row_count;exception when insufficient_privilege then affected:=0;end;
+ if affected<>0 then raise exception 'Direct salary write admitted';end if;
+ listed:=public.redream_autopilot_market(25);
+ if listed#>>'{demand,items,0,candidate_coverage,candidates,0,salary_check,player_minimum}'<>'5000.01'
+  or listed#>>'{demand,items,0,candidate_coverage,candidates,0,salary_gate,can_proceed}'<>'false' then raise exception 'Authenticated Opportunities market lost private salary review';end if;
+ perform set_config('request.headers',jsonb_build_object('x-redream-workspace','qa-salary-'||tb)::text,true);
+ listed:=public.redream_autopilot_market(25);
+ if jsonb_array_length(listed#>'{demand,items}')<>0 or listed::text like '%'||player::text||'%' then raise exception 'Market review escaped the selected workspace';end if;
+ perform set_config('request.headers',jsonb_build_object('x-redream-workspace','qa-salary-'||ta)::text,true);
+ reset role;
+ if (select salary_expectation from djm_os.player_market_facts where player_id=player)<>'Approx 5k plus benefits; unconfirmed units' or (select market_preferences from djm_os.player_market_facts where player_id=player)<>'Australia' or (select last_synced_at from djm_os.player_market_facts where player_id=player) is distinct from original_sync then raise exception 'Legacy facts or sync metadata changed';end if;
+ if not exists(select 1 from platform.audit_events where tenant_id=ta and actor_user_id=u and actor_kind='user' and action='agency.player_salary_terms_updated' and entity_id=player::text and after_state->>'salary_minimum'='5000.01') then raise exception 'Salary audit missing';end if;
+ set local role service_role;
+ listed:=public.platform_server_demand_control_fast(ta,100,u);
+ comparison:=listed#>'{items,0,candidate_coverage,candidates,0,salary_check}';
+ if comparison->>'state'<>'minimum_above_budget' or comparison->>'hard_conflict'<>'true' then raise exception 'Numeric salary conflict missing';end if;
+ result:=public.platform_server_workspace_need_record(ta,u,need);
+ if result#>>'{item,candidate_coverage,candidates,0,salary_check,player_minimum}'<>'5000.01' then raise exception 'Exact need salary evidence missing';end if;
+ listed:=public.platform_server_demand_control_fast(ta,100);
+ if listed#>'{items,0,candidate_coverage,candidates,0,salary_check}' is not null then raise exception 'Broader staff read gained private salary details';end if;
+ reset role;
+ if not exists(select 1 from djm_os.player_matches where id=match_id and status='shortlisted' and overall_score=99 and reasoning='{"manual":true}') then raise exception 'Manual selection or reasoning changed';end if;
+ -- Exercise the actual unchanged career gate, not a controlled local stub.
+ select organisation_id into org from djm_os.club_needs where id=need;
+ update djm_os.organisations set country='Portugal' where id=org and tenant_id=ta;
+ set local role service_role;
+ gate:=public.platform_server_pursuit_salary_review(ta,u,match_id,null);
+ if gate->>'can_proceed'<>'false' or gate->>'state'<>'hold_salary_conflict' then raise exception 'Current confirmed conflict is not held';end if;
+ fingerprint:=gate#>>'{comparison,fingerprint}';expiry:=(now() at time zone 'UTC')::date+1;
+ result:=public.platform_server_record_pursuit_salary_review(ta,u,match_id,review_id,fingerprint,'explore','QA check willingness before quoting any offer',expiry);
+ if result->>'confirmed_command_id'<>review_id::text or result->>'can_proceed'<>'true' or result#>>'{review,active}'<>'true' then raise exception 'Exploration receipt missing';end if;
+ result:=public.platform_server_record_pursuit_salary_review(ta,u,match_id,review_id,fingerprint,'explore','QA check willingness before quoting any offer',expiry);
+ denied:=false;begin perform public.platform_server_record_pursuit_salary_review(ta,u,match_id,review_id,fingerprint,'explore','QA different command details',expiry);exception when invalid_parameter_value then denied:=true;end;
+ if not denied then raise exception 'Review UUID admitted changed details';end if;
+ denied:=false;begin perform public.platform_server_create_pitch_draft(ta,match_id,u,'{}');exception when raise_exception then if sqlerrm like 'career_control_gate_not_open%' then denied:=true;else raise;end if;end;
+ if not denied then raise exception 'Financial approval bypassed missing career strategy';end if;
+ reset role;
+ if (select count(*) from platform.audit_events where id=review_id)<>1 then raise exception 'Idempotent review duplicated audit';end if;
+ if (select salary_minimum from djm_os.player_market_facts where player_id=player)<>5000.01 then raise exception 'Exploration rewrote player facts';end if;
+ insert into platform.player_career_strategies(tenant_id,player_id,status,confirmation_status,strategy,player_confirmed_at,approved_by,approved_at,created_by,updated_by)
+ values(ta,player,'approved','confirmed','{"target_markets":["Portugal"],"avoid_markets":[]}',now(),u,now(),u,u) returning id into career_id;
+ if public.platform_server_career_pursuit_gate(ta,match_id)->>'state'<>'open_aligned' then raise exception 'Canary career fixture is not genuinely aligned';end if;
+ set local role service_role;
+ result:=public.platform_server_record_pursuit_salary_review(ta,u,match_id,gen_random_uuid(),fingerprint,'hold','QA current minimum remains unaffordable',null);
+ denied:=false;begin perform public.platform_server_create_pitch_draft(ta,match_id,u,'{}');exception when invalid_parameter_value then denied:=true;end;
+ if not denied then raise exception 'Canonical pitch writer ignored financial hold';end if;
+ denied:=false;begin perform public.platform_server_convert_pursuit_to_deal(ta,match_id,u,'{}');exception when invalid_parameter_value then denied:=true;end;
+ if not denied then raise exception 'Canonical deal writer ignored financial hold';end if;
+ result:=public.platform_server_record_pursuit_salary_review(ta,u,match_id,gen_random_uuid(),fingerprint,'explore','QA deliberate exploration only, terms still unresolved',expiry);
+ draft:=public.platform_server_create_pitch_draft(ta,match_id,u,'{}');draft_id:=(draft->>'share_id')::uuid;
+ if draft->>'created'<>'true' or draft_id is null then raise exception 'Permitted canonical private draft failed';end if;
+ denied:=false;begin perform public.platform_server_publish_pitch_link(ta,draft_id,u,null);exception when raise_exception then if sqlerrm like 'player_not_verified_for_external_share%' then denied:=true;else raise;end if;end;
+ if not denied then raise exception 'Financial exploration bypassed player verification';end if;
+ reset role;
+ insert into platform.tenant_branding(tenant_id,display_name,support_email) values(ta,'[QA rollback] Salary Agency','qa-salary@example.test') on conflict(tenant_id) do update set support_email=excluded.support_email;
+ update public.players set verification_status='verified',verified_at=now() where id=player;
+ perform public.platform_server_create_external_dossier_draft(ta,player,u);
+ update public.player_public_profiles set published=true,verified_at=now() where player_id=player;
+ set local role service_role;
+ result:=public.platform_server_publish_pitch_link(ta,draft_id,u,null);
+ if result->>'published'<>'true' then raise exception 'Verified and permitted publication failed';end if;
+ for invalid in select value from jsonb_array_elements('[{"currency":""},{"currency":"XXX"},{"stage":null},{"probability":null},{"probability":1.5},{"expected_commission":"1.005"},{"expected_commission":"1e3"},{"expected_commission":"-1"},{"currency":"JPY","expected_commission":"1.1"}]') loop
+  denied:=false;begin perform public.platform_server_convert_pursuit_to_deal(ta,match_id,u,jsonb_build_object('stage','qualifying','probability',15,'currency','USD')||invalid);exception when invalid_parameter_value then denied:=true;end;
+  if not denied then raise exception 'Invalid or assumed deal money admitted: %',invalid;end if;
+ end loop;
+ result:=public.platform_server_convert_pursuit_to_deal(ta,match_id,u,'{"stage":"qualifying","probability":15,"currency":"USD","expected_commission":"1234.56","title":"[QA rollback] Human-entered deal"}');deal_id:=(result->>'deal_room_id')::uuid;
+ if deal_id is null then raise exception 'Permitted linked deal creation failed: %',result;end if;
+ if result#>>'{deal,currency}'<>'USD' or result#>>'{deal,expected_commission}'<>'1234.56' then raise exception 'Deal commission/currency changed or inherited salary budget';end if;
+ if jsonb_typeof(result#>'{deal,expected_commission}')<>'string' then raise exception 'Deal acknowledgement loses decimal transport precision';end if;
+ reset role;
+ -- Supported boundary value: these reads must not pass exact numerics through a
+ -- JavaScript number or turn a CLF commission into a two-decimal EUR amount.
+ update djm_os.deal_rooms set expected_commission=999999999999.1234,currency='CLF' where id=deal_id;
+ set local role service_role;
+ result:=public.platform_server_deal_war_room_instant_v3(ta,deal_id);
+ if result#>>'{deal,expected_commission}'<>'999999999999.1234' or jsonb_typeof(result#>'{deal,expected_commission}')<>'string' then raise exception 'Instant deal read lost exact commission';end if;
+ result:=public.platform_server_deal_war_room_v2(ta,deal_id);
+ if result#>>'{deal,expected_commission}'<>'999999999999.1234' or jsonb_typeof(result#>'{deal,expected_commission}')<>'string' then raise exception 'Deep deal read lost exact commission';end if;
+ result:=public.platform_server_deal_closeout_control(ta,deal_id);
+ if result#>>'{deal,expected_commission}'<>'999999999999.1234' or jsonb_typeof(result#>'{deal,expected_commission}')<>'string' then raise exception 'Closeout read lost exact commission';end if;
+ result:=public.platform_server_deal_portfolio_v4(ta,20);
+ if not exists(select 1 from jsonb_array_elements(result->'deals') d where d->>'deal_room_id'=deal_id::text and d->>'expected_commission'='999999999999.1234' and jsonb_typeof(d->'expected_commission')='string') then raise exception 'Portfolio read lost exact commission';end if;
+ reset role;
+ update djm_os.deal_rooms set expected_commission=1234.56,currency='USD' where id=deal_id;
+ set local role service_role;
+
+ result:=public.platform_server_record_pursuit_salary_review(ta,u,match_id,gen_random_uuid(),fingerprint,'hold','QA retain hold before native publication',null);
+ reset role;
+ -- General unlinked profile sharing remains compatible. It never commits.
+ insert into public.club_share_links(player_id,organisation_id,label,active,created_by,selected_sections)
+ select player_id,organisation_id,'[QA rollback] General profile',true,u,selected_sections from public.club_share_links where id=draft_id returning id into general_id;
+ denied:=false;begin insert into platform.club_pitch_contexts(share_id,tenant_id,player_match_id,club_need_id,created_by) values(general_id,ta,match_id,need,u);exception when invalid_parameter_value then denied:=true;end;
+ if not denied then raise exception 'Native active-context linking bypassed the hold';end if;
+ denied:=false;begin insert into djm_os.deal_rooms(tenant_id,player_id,organisation_id,club_need_id,title,stage,status,owner_user_id) values(ta,player,org,need,'[QA rollback] Native deal','qualifying','active',u);exception when invalid_parameter_value then denied:=true;end;
+ if not denied then raise exception 'Native deal insertion bypassed the hold';end if;
+ set local role authenticated;
+ update public.club_share_links set view_count=coalesce(view_count,0)+1,last_viewed_at=now(),sent_at=coalesce(sent_at,now()) where id=draft_id;
+ if not exists(select 1 from public.club_share_links where id=draft_id and active and view_count>=1) then raise exception 'Financial hold blocked passive view/delivery history';end if;
+ denied:=false;begin update public.club_share_links set pitch_message='[QA rollback] Changed external content' where id=draft_id;exception when invalid_parameter_value then denied:=true;end;
+ if not denied then raise exception 'Native active-content change bypassed financial hold';end if;
+ update public.club_share_links set active=false where id=draft_id;
+ denied:=false;begin update public.club_share_links set active=true where id=draft_id;exception when invalid_parameter_value then denied:=true;end;
+ if not denied then raise exception 'Native publication bypassed financial hold';end if;
+ denied:=false;begin perform public.platform_server_pursuit_salary_review(ta,u,match_id,null);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Service-only review exposed to browser database role';end if;
+ reset role;
+ -- Actual matcher must preserve a manually shortlisted record and its evidence.
+ perform djm_os.refresh_need_matches(need);
+ if not exists(select 1 from djm_os.player_matches where id=match_id and status='shortlisted' and overall_score=99 and reasoning='{"manual":true}') then raise exception 'Matching rewrote a manually reviewed candidate';end if;
+ -- Source correction must invalidate exploration and preserve deliberate holds.
+ set local role authenticated;
+ result:=public.redream_player_salary_terms_patch(player,version,'{"salary_minimum":"4900","salary_target":"5000"}');version:=(result#>>'{terms,updated_at}')::timestamptz;
+ reset role;
+ set local role service_role;
+ gate:=public.platform_server_pursuit_salary_review(ta,u,match_id,review_id);
+ if gate->>'can_proceed'<>'false' or gate->>'state'<>'hold_recorded_review' or gate->>'confirmed_command_id'<>review_id::text then raise exception 'Source edit removed hold or lost the earlier receipt';end if;
+ denied:=false;begin perform public.platform_server_record_pursuit_salary_review(ta,u,match_id,gen_random_uuid(),fingerprint,'explore','QA stale source decision',expiry);exception when serialization_failure then denied:=true;end;
+ if not denied then raise exception 'Stale source fingerprint admitted';end if;
+ result:=public.platform_server_record_pursuit_salary_review(ta,u,match_id,gen_random_uuid(),gate#>>'{comparison,fingerprint}','use_recorded_terms','QA now both confirmed base-salary sources fit',null);
+ if result->>'can_proceed'<>'true' then raise exception 'Confirmed compatible current terms did not resume';end if;
+ denied:=false;begin perform public.platform_server_pursuit_salary_review(tb,u,match_id,null);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Foreign agency opportunity disclosed';end if;
+ reset role;
+ for staff_role in select unnest(array['agent','operations','scout','player']) loop
+  update platform.tenant_memberships set role=staff_role where tenant_id=ta and user_id=u;
+  set local role authenticated;
+  denied:=false;begin perform public.redream_player_salary_terms(player);exception when insufficient_privilege then denied:=true;end;
+  if not denied then raise exception 'Wrong role read admitted: %',staff_role;end if;
+  denied:=false;begin perform public.redream_autopilot_market(25);exception when insufficient_privilege then denied:=true;end;
+  if not denied then raise exception 'Wrong role market salary read admitted: %',staff_role;end if;
+  denied:=false;begin perform public.redream_player_salary_terms_patch(player,version,'{"salary_minimum":"1"}');exception when insufficient_privilege then denied:=true;end;
+  if not denied then raise exception 'Wrong role write admitted: %',staff_role;end if;
+  reset role;
+  set local role service_role;
+  denied:=false;begin perform public.platform_server_demand_control_fast(ta,100,u);exception when insufficient_privilege then denied:=true;end;
+  if not denied then raise exception 'Wrong role private service read admitted';end if;
+  reset role;
+ end loop;
+ update platform.tenant_memberships set role='owner' where tenant_id=ta and user_id=u;
+ perform set_config('request.headers',jsonb_build_object('x-redream-workspace','qa-salary-'||tb)::text,true);
+ set local role authenticated;
+ denied:=false;begin perform public.redream_player_salary_terms(player);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Dual-admin wrong-workspace read admitted';end if;
+ reset role;
+ perform set_config('request.headers',jsonb_build_object('x-redream-workspace','qa-salary-'||ta)::text,true);
+ update platform.tenant_memberships set status='ended' where tenant_id=ta and user_id=u;
+ set local role authenticated;
+ denied:=false;begin perform public.redream_player_salary_terms(player);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Revoked membership read admitted';end if;
+ denied:=false;begin perform public.redream_autopilot_market(25);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Revoked membership market salary read admitted';end if;
+ reset role;
+ set local role anon;
+ denied:=false;begin perform public.redream_player_salary_terms(player);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Anonymous salary read admitted';end if;
+ denied:=false;begin perform public.redream_autopilot_market(25);exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'Anonymous market salary read admitted';end if;
+ reset role;
+end $canary$;
+select 'PASS explicit deal currency/exact commission, authenticated market salary projection, actual career/financial gates, canonical draft/deal/verification, native publication denial, exact receipt/retry, source hold/resume, roles/tenant, legacy/manual preservation; complete synthetic transaction rolls back' result,
+ (select md5(prosrc) from pg_proc where oid='public.redream_autopilot_market(integer)'::regprocedure) market_reader_md5;
+rollback;

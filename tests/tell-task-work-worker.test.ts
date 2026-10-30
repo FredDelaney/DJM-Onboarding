@@ -10,12 +10,12 @@ import * as preparation from '../supabase/functions/_shared/capture-preparation.
 const source=ts.transpileModule(readFileSync('supabase/functions/_shared/ai-process.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 const task={id:'task-a',title:'Speak to James about Dylan availability',status:'open',owner_user_id:'user-a',updated_at:'2026-10-20T09:00:00Z',person_name:'James Smith',player_name:'Dylan Example'};
 const action={key:'completed-call',type:'update_task',operation:'complete',task_ids:['task-a'],objective_satisfied:true,confidence:0.99,evidence:'I spoke to James about Dylan availability',due_at:null};
-async function run(actions:any[],tasks:any[]=[task],resolutions:any[]=[],states:any[]=[]) {
+async function run(actions:any[],tasks:any[]=[task],resolutions:any[]=[],states:any[]=[],options:{transcript?:string;owners?:Record<string,any>}={}) {
   const calls:Array<{name:string;args:any}>=[];
-  const capture={capture_id:'capture-a',tenant_id:'tenant-a',submitted_by:'user-a',channel:'typed_debrief',transcript_text:action.evidence,settings:{monthly_ai_budget_usd:5},context_json:{resolutions},extracted_json:{tell_djm_plan:{summary:'Test update',actions,task_context:{tasks,timezone:'Europe/Rome'}}}};
+  const capture={capture_id:'capture-a',tenant_id:'tenant-a',submitted_by:'user-a',channel:'typed_debrief',transcript_text:options.transcript||action.evidence,settings:{monthly_ai_budget_usd:5},context_json:{resolutions},extracted_json:{tell_djm_plan:{summary:'Test update',actions,task_context:{tasks,timezone:'Europe/Rome'}}}};
   const admin={auth:{getUser:async()=>({data:{user:{id:'user-a'}}})},rpc:async(name:string,args:any)=>{
     calls.push({name,args});
-    const data=name==='redream_ai_capture_action_states'?states:name==='redream_ai_worker_claim'?capture:name==='redream_ai_user_can_process'?true:name==='redream_ai_worker_complete'?{status:'done'}:name==='redream_ai_worker_fail'?{status:'failed'}:name==='redream_ai_notify_attention'?{queued:false}:{status:'applied'};
+    const data=name==='redream_ai_resolve_team_member'?(options.owners?.[args.p_spoken_name]||{resolved:false,candidates:[]}):name==='redream_ai_capture_action_states'?states:name==='redream_ai_worker_claim'?capture:name==='redream_ai_user_can_process'?true:name==='redream_ai_worker_complete'?{status:'done'}:name==='redream_ai_worker_fail'?{status:'failed'}:name==='redream_ai_notify_attention'?{queued:false}:{status:'applied'};
     return {data,error:null};
   }};
   const exports:any={};
@@ -70,6 +70,11 @@ test('fresh interpretation receives owned objectives and checks completion along
       assert.equal(input.transcript,action.evidence);
       assert.match(body.instructions,/Check every authorised open task/);
       assert.match(body.instructions,/Do not let log_interaction or create_task replace the completed-task action/);
+      const create=body.text.format.schema.properties.actions.items.anyOf.find((branch:any)=>branch.properties.type.enum[0]==='create_task');
+      assert.deepEqual(create.properties.owner_names.type,['array','null']);
+      assert.equal(create.properties.owner_names.maxItems,50);
+      assert.ok(create.required.includes('owner_names'));
+      assert.match(body.instructions,/copy every explicitly named agency colleague/);
       return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({summary:'Review completed work and follow-up',actions:[action]})}]}],usage:{input_tokens:1,output_tokens:1}});
     },
   });
@@ -90,4 +95,78 @@ test('the same people with an unsupported objective subject are staged rather th
  const calls=await run([action],[{...task,title:'Speak to James about Dylan trial'}]);
  assert.equal(calls.filter(c=>c.name==='redream_ai_update_task').length,0);
  assert.equal(calls.filter(c=>c.name==='redream_ai_stage_action'&&c.args.p_action_type==='update_task').length,1);
+});
+
+const sharedTask=(evidence:string,owner_names:any,owner_name:string|null=null)=>({key:'shared-followup',type:'create_task',title:'Send reviewed footage',evidence,confidence:0.99,due_at:null,owner_names,owner_name});
+const members={Alex:{resolved:true,user_id:'alex-id',display_name:'Alex Agent'},Moses:{resolved:true,user_id:'moses-id',display_name:'Moses Agent'}};
+const stagedTask=(calls:any[])=>calls.find(c=>c.name==='redream_ai_stage_action'&&c.args.p_action_type==='create_task')?.args.p_payload;
+test('two explicitly named colleagues are staged together without adding the speaker or applying a task',async()=>{
+ const evidence='Alex and Moses will send the reviewed footage.';
+ const calls=await run([sharedTask(evidence,['Alex','Moses'])],[],[],[],{transcript:evidence,owners:members});
+ assert.deepEqual(Array.from(stagedTask(calls)?.responsible_user_ids||[]),['alex-id','moses-id']);
+ assert.equal(stagedTask(calls)?.owner_user_id,'alex-id');assert.equal(stagedTask(calls)?.owner_display_name,'Alex Agent');
+ assert.deepEqual(Array.from(stagedTask(calls)?.responsible_display_names||[]),['Alex Agent','Moses Agent']);
+ assert.equal(calls.filter(c=>c.name==='redream_ai_apply_action').length,0);
+});
+test('a beneficiary is not another responsible person; explicit shared first-person work includes the speaker',async()=>{
+ for(const [evidence,ids] of [
+  ['Alex will send the footage for me.',['alex-id']],
+  ['Alex and I will send the footage.',['user-a','alex-id']],
+  ['Alex and me will send the footage.',['user-a','alex-id']],
+ ] as const){
+  const calls=await run([sharedTask(evidence,['Alex'])],[],[],[],{transcript:evidence,owners:members});
+  assert.deepEqual(Array.from(stagedTask(calls)?.responsible_user_ids||[]),Array.from(ids),evidence);
+ }
+});
+test('each ambiguous colleague gets a separate question and no partial task can be approved',async()=>{
+ const evidence='Alex and Moses will send the reviewed footage.';
+ const calls=await run([sharedTask(evidence,['Alex','Moses'])],[],[],[],{transcript:evidence});
+ const questions=calls.filter(c=>c.name==='redream_ai_record_question');
+ assert.deepEqual(questions.map(c=>c.args.p_field_key),['team_member:shared-followup:alex','team_member:shared-followup:moses']);
+ assert.equal(stagedTask(calls),undefined);
+ const resolved=await run([sharedTask(evidence,['Alex','Moses'])],[],[{field_key:'team_member:shared-followup:alex',value:{kind:'team_member',user_id:'chosen-alex',label:'Alex Second'}}],[],{transcript:evidence,owners:members});
+ assert.deepEqual(Array.from(stagedTask(resolved)?.responsible_user_ids||[]),['chosen-alex','moses-id']);
+});
+test('legacy resolver choices retain their staff identity when the user clarifies a colleague',async()=>{
+ const evidence='Alex and Moses will send the reviewed footage.';
+ const calls=await run([sharedTask(evidence,['Alex','Moses'])],[],[],[],{transcript:evidence,owners:{...members,Alex:{resolved:false,candidates:[{user_id:'alex-one',label:'Alex One'},{user_id:'alex-two',label:'Alex Two'}]}}});
+ const question=calls.find(c=>c.name==='redream_ai_record_question');
+ assert.deepEqual(Array.from(question?.args.p_candidates||[],(item:any)=>item.kind),['team_member','team_member','review']);
+ assert.equal(stagedTask(calls),undefined);
+});
+test('unspoken names and malformed owner lists cannot silently become someone else or the speaker',async()=>{
+ for(const names of [['Alex','Moses'],['Alex',null],'Alex',Array(51).fill('Alex')]){
+  const evidence='Alex will send the footage.';
+  const calls=await run([sharedTask(evidence,names)],[],[],[],{transcript:evidence,owners:members});
+  assert.equal(stagedTask(calls),undefined,JSON.stringify(names));
+  assert.ok(calls.some(c=>c.name==='redream_ai_apply_action'&&c.args.p_confidence===0));
+ }
+});
+test('cached single-owner plans still resolve and repeated aliases create one responsibility',async()=>{
+ for(const names of [null,['Alex','alex','Alex']]){
+  const evidence='Alex will send the reviewed footage.';
+  const calls=await run([sharedTask(evidence,names,'Alex')],[],[],[],{transcript:evidence,owners:members});
+  assert.deepEqual(Array.from(stagedTask(calls)?.responsible_user_ids||[]),['alex-id']);
+ }
+});
+test('colleagues with non-Latin names have distinct clarification keys',async()=>{
+ const evidence='أحمد and باسم will send the reviewed footage.';
+ const calls=await run([sharedTask(evidence,['أحمد','باسم'])],[],[],[],{transcript:evidence});
+ const questions=calls.filter(c=>c.name==='redream_ai_record_question');
+ assert.equal(questions.length,2);assert.equal(new Set(questions.map(c=>c.args.p_field_key)).size,2);
+ assert.equal(stagedTask(calls),undefined);
+});
+
+test('negated and unsupported collective assignments cannot silently fall back to the speaker',async()=>{
+ for(const [evidence,names] of [
+  ['Do not assign Alex to send the footage.',['Alex']],
+  ['Alex and Moses will not send the footage.',['Alex','Moses']],
+  ['All staff should send the footage.',[]],
+ ] as Array<[string,string[]]>){
+  const calls=await run([sharedTask(evidence,names)],[],[],[],{transcript:evidence,owners:members});
+  assert.equal(stagedTask(calls),undefined,evidence);assert.ok(calls.some(c=>c.name==='redream_ai_apply_action'&&c.args.p_confidence===0));
+ }
+ const evidence='Moses will send the footage, not Alex.';
+ const calls=await run([sharedTask(evidence,['Moses'])],[],[],[],{transcript:evidence,owners:members});
+ assert.deepEqual(Array.from(stagedTask(calls)?.responsible_user_ids||[]),['moses-id']);
 });

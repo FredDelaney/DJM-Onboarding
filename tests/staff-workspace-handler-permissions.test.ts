@@ -4,7 +4,7 @@ import test from 'node:test';
 import ts from 'typescript';
 import { restrictedPlayerProfile, restrictedClubAccount } from '../supabase/functions/_shared/staff-read-contract.ts';
 
-function fixture(file='agency-os', role='agent', canEdit=false, assigned=true, multiple=false) {
+function fixture(file='agency-os', role='agent', canEdit=false, assigned=true, multiple=false, failure?:{name:string;code:string;message:string}) {
   const calls: Array<{name:string; args?:any}> = [];
   const workspaces = [{tenant_id:'own-tenant',player_id:'own-player',role,is_primary:true}, ...(multiple?[{tenant_id:'second-tenant',role:'scout'}]:[])];
   const tables: Record<string, any[]> = {
@@ -15,7 +15,7 @@ function fixture(file='agency-os', role='agent', canEdit=false, assigned=true, m
     organisations:[{id:'own-club',tenant_id:'own-tenant',name:'Recorded Club',country:'NZ',organisation_type:'club'}],
   };
   const rpc = async (name:string,args:any={}) => {
-    calls.push({name,args});
+    calls.push({name,args});if(name===failure?.name)throw Object.assign(new Error(failure.message),{code:failure.code});
     const data = name==='platform_server_staff_club_identity'?{club:{id:'club',name:'Recorded Club',country:'NZ'},access:{restricted:true}}:
    name==='platform_server_user_workspaces'?workspaces:
       name==='platform_server_player_workspaces'?{workspaces}:
@@ -81,7 +81,7 @@ test('profile publication, contract verification and private CV settings require
   }
 });
 test('football writes require trusted assignment and can_edit before any mutation',async()=>{
-  for(const role of ['agent','operations']) for(const [assigned,canEdit] of [[true,false],[false,true]]) for(const action of ['player_profile_transfermarkt_save','player_profile_video_add','player_profile_video_remove','player_data_save','player_data_refresh']){
+  for(const role of ['agent','operations']) for(const [assigned,canEdit] of [[true,false],[false,true]]) for(const action of ['player_profile_transfermarkt_save','player_profile_video_add','player_profile_video_remove','player_data_save','player_data_review','player_data_refresh']){
     const f=fixture('agency-os',role,canEdit,assigned);
     assert.equal((await f.call(action,{url:'https://www.transfermarkt.com/example/profil/spieler/123',video_id:'video',staff_user_id:'owner',can_edit:true})).status,403,role+':'+action);
     assert.equal(f.calls.filter(c=>c.name.startsWith('write:')||c.name.startsWith('platform_server_')&&c.name!=='platform_server_user_workspaces').length,0);
@@ -123,4 +123,41 @@ test('market tenant-wide commercial and pitch routes require administrators',asy
     assert.equal((await f.call('market_execution')).status,403);
     assert.equal(f.calls.length,1);
   }
+});
+
+test('only verified agency administrators select the private salary read overload',async()=>{
+ for(const role of ['owner','admin','agent','operations','scout']){
+  const f=fixture('agency-os',role);const response=await f.call('demand_control_fast',{user_id:'forged-user',role:'owner',limit:999});
+  if(!['owner','admin'].includes(role)){assert.equal(response.status,403);assert.equal(f.calls.filter(call=>call.name==='platform_server_demand_control_fast').length,0);continue;}
+  assert.equal(response.status,200);
+  const read=f.calls.find(call=>call.name==='platform_server_demand_control_fast');assert.ok(read);
+  assert.equal(read.args.p_tenant_id,'own-tenant');assert.equal(read.args.p_limit,250);
+  assert.equal(read.args.p_user_id,['owner','admin'].includes(role)?'trusted-user':undefined);
+ }
+});
+
+test('assigned editors receive explicit football review capabilities, with all private profile controls restricted',async()=>{
+ for(const role of ['agent','operations','scout'])for(const canEdit of [true,false]){
+  const f=fixture('agency-os',role,canEdit,true);
+  const r=await f.call('player_profile_core',{can_edit_statistics:true});assert.equal(r.status,200);
+  assert.equal(r.body.profile.access.restricted,true);assert.equal(r.body.profile.access.can_edit_statistics,role!=='scout'&&canEdit);assert.equal(r.body.profile.access.can_review_player_details,role!=='scout'&&canEdit);
+  assert.doesNotMatch(JSON.stringify(r.body),/SECRET_COMMERCIAL/);
+  const detail=await f.call('player_profile_detail');assert.equal(detail.body.detail.access.can_edit_statistics,role!=='scout'&&canEdit);assert.equal(detail.body.detail.access.can_review_player_details,role!=='scout'&&canEdit);
+  assert.deepEqual(detail.body.detail.documents,[]);assert.deepEqual(detail.body.detail.shares,[]);
+ }
+});
+
+test('financial review routes bind the verified admin actor and selected agency before read or write',async()=>{
+ for(const role of ['agent','operations','scout','player'])for(const action of ['pursuit_salary_review','pursuit_salary_review_save']){const f=fixture('agency-market',role);assert.equal((await f.call(action,{player_match_id:'match',role:'owner',user_id:'forged'})).status,403);assert.equal(f.calls.length,1);}
+ for(const action of ['pursuit_salary_review','pursuit_salary_review_save']){const f=fixture('agency-market','admin');assert.equal((await f.call(action,{player_match_id:'match',command_id:'command',fingerprint:'a'.repeat(32),decision:'explore',reason:'Deliberate check',expires_on:'2026-11-01',actor_user_id:'forged',user_id:'forged'})).status,200);const call=f.calls.find(c=>c.name===('platform_server_'+(action.endsWith('_save')?'record_pursuit_salary_review':'pursuit_salary_review')));assert.ok(call);assert.equal(call.args.p_tenant_id,'own-tenant');assert.equal(call.args.p_actor_user_id,'trusted-user');assert.equal(call.args.p_match_id,'match');assert.equal(call.args.p_command_id,'command');}
+});
+
+ test('canonical financial denial retains a clear recoverable code at the HTTP boundary',async()=>{
+ const f=fixture('agency-market','owner',false,true,false,{name:'platform_server_create_pitch_draft',code:'22023',message:'Review base-salary feasibility in this opportunity before preparing a new pitch or deal.'});const result=await f.call('pitch_draft_create',{player_match_id:'match'});assert.equal(result.status,409);assert.equal(result.body.code,'salary_review_required');assert.match(result.body.error,/Review current base-salary feasibility/);
+});
+
+test('invalid pursuit-deal money is a definitive recoverable input denial while the salary gate retains its own code',async()=>{
+ for(const [message,status,code] of [['Choose a valid currency for this deal.',400,'22023'],['Review base-salary feasibility in this opportunity before preparing a new pitch or deal.',409,'salary_review_required']] as const){
+  const f=fixture('agency-market','owner',false,true,false,{name:'platform_server_convert_pursuit_to_deal',code:'22023',message});const result=await f.call('pursuit_deal_create',{player_match_id:'match',input:{currency:'XXX'}});assert.equal(result.status,status);assert.equal(result.body.code,code);
+ }
 });

@@ -5,9 +5,10 @@ import {chromium} from 'playwright';
 const browser = await chromium.launch({executablePath: process.env.CALENDAR_CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage']});
 const failures = [];
 try {
-  for (const scenario of process.env.PROFILE_CLEAN_SCENARIOS?.split(',') || ['brief', 'compact', 'prepare', 'queued', 'fresh', 'context', 'context-failed', 'context-timeout', 'failure', 'links', 'layout']) {
+  for (const scenario of process.env.PROFILE_CLEAN_SCENARIOS?.split(',') || ['verification-link','verification-link-readonly','verification-link-keyboard','brief', 'compact', 'prepare', 'queued', 'fresh', 'context', 'context-failed', 'context-timeout', 'failure', 'links', 'layout']) {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
     const calls = [], errors = []; page.on('pageerror', error => errors.push(error.message));
+    let detailsReview=null;
     let refreshed = false, saved = null, failed = scenario === 'failure', delayApply = scenario === 'context-timeout', releaseApply, statusReads = 0;
     const player = {id: 'fixture-profile', first_name: 'Example', last_name: 'Player', primary_position: 'Centre back', current_club: scenario.startsWith('context') ? '' : 'Example FC', current_league: 'National League', current_country: 'NZ', current_season_label: '2026', nationalities: ['NZ'], contract_status: 'under_contract', contract_expiry: '2027-06-30', verified_at: '2026-10-10T12:00:00Z', verification_status: 'verified'};
     const profile = () => ({player, settings: saved || {intro_line: 'A centre back with senior experience.', why_review: 'Review the recorded figures and footage together.'}, published: {published: false}, career: [{id: 'season', season_label: '2026', club_name: player.current_club, league: 'National League', country: 'NZ', appearances: 17, starts: 16, minutes: refreshed ? 1420 : null, goals: 1, assists: 0, source_name: 'Official competition reports', source_url: 'https://example.test/season', source_reviewed_at: '2026-10-10T12:00:00Z'}], videos: [], documents: [], shares: [{id: 'old', club_name: 'Archived club example', active: false, expires_at: '2026-01-01T00:00:00Z', view_count: 3}], deals: [], clubs: [], communication: {summary: {}, items: [], open_followups: []}, secondary_ready: true, auto_key_stats: [{label: 'Apps', value: 17}, {label: 'Starts', value: 16}], auto_stats_meta: {checked_at: '2026-10-01T12:00:00Z'}, branding: {display_name: 'Example Agency', support_email: 'agent@example.test'}});
@@ -24,8 +25,17 @@ try {
       else if (action === 'redream_ai_receipt') value = {capture: {id: '30000000-0000-4000-8000-000000000001', transcript_text: 'Prepare Example Player club profile. He played 17 senior matches. Private medical note.'}, preparations: [{key: 'profile_1', kind: 'player_profile', player_name: 'Example Player', club_name: null, evidence: 'Prepare Example Player club profile.'}]};
       else if (action === 'player_data_status') value = {job: {id: 'stats-check', status: refreshed && scenario === 'queued' && ++statusReads < 3 ? 'running' : refreshed && scenario === 'context-failed' ? 'failed' : 'applied', summary: {message: refreshed && scenario === 'context-failed' ? 'Reliable new figures could not be confirmed.' : 'Source check completed. Recorded figures were retained where no reliable change was found.', checked_at: '2026-10-15T12:00:00Z'}}};
       else if (action === 'player_data_refresh') {refreshed = true; value = {job: {id: 'stats-check', status: 'queued'}};}
-      else if (action === 'player_context_research') value = {proposal: {fields: {current_club: 'Suggested FC'}, confidence: 0.96, reason: 'The competition profile confirms the current squad.', sources: [{title: 'Official player page', url: 'https://example.test/player'}]}};
-      else if (action === 'player_context_apply') {if (delayApply) {delayApply = false; await new Promise(resolve => {releaseApply = resolve;});} Object.assign(player, body.fields); value = {ok: true, player};}
+      else if(action==='player_context_status')value={ok:true,review:detailsReview};
+      else if(action==='player_context_research'){
+        detailsReview={id:'70000000-0000-4000-8000-000000000001',status:'needs_review',fields:[{id:'80000000-0000-4000-8000-000000000001',field:'current_club',before:null,suggested:'Suggested FC',decision:'pending',sources:[{title:'Official player page',url:'https://example.test/player'}]}]};
+        value={ok:true,review:detailsReview};
+      }
+      else if(action==='player_context_review'){
+        const decision=body.decisions[0];player.current_club=decision.decision==='edit'?decision.value:'Suggested FC';
+        detailsReview={...detailsReview,status:'applied',fields:detailsReview.fields.map(field=>({...field,decision:'accepted',applied_value:player.current_club}))};
+        if(delayApply){delayApply=false;await new Promise(resolve=>{releaseApply=resolve;});}
+        value={ok:true,review_id:detailsReview.id,review:detailsReview};
+      }
       else if (action === 'player_profile_prepare') {
         if (failed) {status = 503; value = {error: 'Preparation temporarily unavailable'};}
         else value = {ai_available: true, proposal: {kind: 'general', headline: 'A centre back with 17 appearances.', why_review: 'Recorded first-team experience with current-season evidence.', selected_stat_refs: ['season:appearances'], selected_video_id: null, hidden_sections: [], source_fingerprint: 'fixture-current-evidence'}, evidence: {stats: [{ref: 'season:appearances', label: 'Apps', value: 17, seasonLabel: '2026', competition: 'National League', source: {name: 'Official competition reports', status: 'verified'}}], videos: []}};
@@ -38,12 +48,32 @@ try {
     });
     try {
       const url = new URL('/qa-profile-clean', process.env.CALENDAR_QA_URL || 'http://127.0.0.1:3113');
+      if(scenario.startsWith('verification-link'))url.hash='review-player-details';
+      if(scenario==='verification-link-readonly')url.searchParams.set('role','player');
       if(scenario==='brief'){url.searchParams.set('capture','30000000-0000-4000-8000-000000000001');url.searchParams.set('preparation','profile_1');}
       const initialStatus = page.waitForResponse(response => response.request().postDataJSON()?.action === 'player_data_status');
       for (let i = 0; i < 60; i++) {try {await page.goto(url.href); break;} catch (error) {if (i === 59) throw error; await page.waitForTimeout(250);}}
-      await page.getByRole('heading', {name: 'Example Player', exact: true}).waitFor();
+      await page.getByRole('heading', {name: 'Example Player', exact: true, includeHidden: scenario.startsWith('verification-link')}).waitFor({state:'attached'});
       await initialStatus;
       await page.getByText('Source check finished', {exact: true}).waitFor({state: 'attached'});
+      if(scenario.startsWith('verification-link')){
+        const verify=page.getByRole('button',{name:'Confirm & verify',exact:true});
+        if(scenario==='verification-link-readonly')assert.equal(await verify.count(),0,'A review link cannot grant editing permission');
+        else{
+          await verify.waitFor();const reviewDialog=page.getByRole('dialog',{name:'Review current player data',exact:true});
+          assert.equal(await reviewDialog.evaluate(el=>el.contains(document.activeElement)),true,'Review entry puts focus inside the dialog');
+          assert.equal(await page.getByRole('heading',{name:'Example Player',exact:true,includeHidden:true}).evaluate(el=>Boolean(el.closest('[inert]'))),true,'The profile behind the review cannot receive keyboard focus');
+          const close=reviewDialog.getByRole('button',{name:'Close',exact:true});await verify.focus();await page.keyboard.press('Tab');assert.equal(await close.evaluate(el=>el===document.activeElement),true,'Tab wraps inside the review');
+          await page.keyboard.press('Shift+Tab');assert.equal(await verify.evaluate(el=>el===document.activeElement),true,'Reverse Tab stays inside the review');
+          assert.equal(await page.getByRole('textbox',{name:/^Primary position/}).inputValue(),'Centre back');assert.equal(new URL(page.url()).hash,'');
+          if(process.env.PROFILE_CLEAN_SCREENSHOT_DIR){await mkdir(process.env.PROFILE_CLEAN_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:process.env.PROFILE_CLEAN_SCREENSHOT_DIR+'/review-focus-'+scenario+'.png'});}
+          if(scenario==='verification-link-keyboard')await page.keyboard.press('Escape');else await page.getByRole('button',{name:'Cancel',exact:true}).click();
+          await reviewDialog.waitFor({state:'hidden'});const heading=page.getByRole('heading',{name:'Example Player',exact:true});assert.equal(await heading.evaluate(el=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.activeElement===el)))),true,'Dismissing a deep-link review returns focus to the player');
+          assert.equal(await heading.evaluate(el=>Boolean(el.closest('[inert]'))),false,'Dismissal restores profile interaction');assert.notEqual(await page.evaluate(()=>document.body.style.overflow),'hidden','Dismissal releases its scroll lock');
+          await page.reload();await heading.waitFor();assert.equal(await verify.count(),0,'A consumed link does not reopen a dismissed review');
+        }
+        assert.equal(calls.filter(c=>c.action==='player_profile_verify'||c.action?.includes('publish')).length,0,'Opening the existing review never verifies or publishes automatically');assert.deepEqual(errors,[]);console.log('Profile clean workflow passed: '+scenario);continue;
+      }
       if (scenario === 'brief') {
         const panel=page.getByRole('region',{name:'Tell ReDream preparation'});
         const brief=panel.getByRole('textbox',{name:'Review your brief'});
@@ -82,20 +112,21 @@ try {
         const started = page.waitForRequest(request => request.postDataJSON()?.action === (scenario.startsWith('context') ? 'player_context_research' : scenario === 'fresh' ? 'player_profile_prepare' : 'player_data_refresh'), {timeout: 2500});
         await page.getByRole('button', {name: /Complete with AI|Prepare Profile/}).first().click(); await started;
         if (scenario.startsWith('context')) {
-          const input = page.getByRole('textbox', {name: 'Current club', exact: true}); await input.waitFor(); await input.fill('Reviewed FC');
-          if (scenario === 'context-timeout') await page.clock.install();
-          const applied = page.waitForRequest(request => request.postDataJSON()?.action === 'player_context_apply');
-          await page.getByRole('button', {name: 'Apply & continue', exact: true}).click();
-          await applied;
-          if (scenario === 'context-timeout') {
+          const details=page.getByRole('region',{name:'Player details review',exact:true});
+          await details.getByRole('combobox',{name:'Current club decision',exact:true}).selectOption('edit');
+          await details.getByRole('textbox',{name:'Corrected current club',exact:true}).fill('Reviewed FC');
+          if(scenario==='context-timeout')await page.clock.install();
+          const applied=page.waitForRequest(request=>request.postDataJSON()?.action==='player_context_review');
+          await details.getByRole('button',{name:'Save decisions',exact:true}).click();await applied;
+          if(scenario==='context-timeout'){
             await page.clock.fastForward(35001);
-            await page.getByText('The request took too long. Please try again.', {exact: true}).first().waitFor();
-            assert.equal(calls.filter(call => call.action === 'player_profile_prepare').length, 0, 'A timed-out context write cannot implicitly prepare or save');
-            const late = page.waitForResponse(response => response.request().postDataJSON()?.action === 'player_context_apply');
-            releaseApply(); await late;
-            assert.ok(await page.getByRole('button', {name: 'Apply & continue', exact: true}).isEnabled(), 'A stalled stage releases busy controls');
-            await page.getByRole('button', {name: 'Apply & continue', exact: true}).click();
+            await details.getByRole('button',{name:'Check progress',exact:true}).waitFor();
+            assert.equal(calls.filter(call=>call.action==='player_profile_prepare').length,0,'An unconfirmed decision cannot generate a profile');
+            const late=page.waitForResponse(response=>response.request().postDataJSON()?.action==='player_context_review');releaseApply();await late;
+            await details.getByRole('button',{name:'Check progress',exact:true}).click();
           }
+          await details.getByRole('button',{name:'Continue profile preparation',exact:true}).click();
+
         }
         if (scenario === 'failure') {
           await page.getByText('Preparation temporarily unavailable', {exact: true}).first().waitFor();
@@ -146,7 +177,7 @@ try {
           assert.ok(statusReads >= 3, 'The UI observes queued/running statistics before completion');
           assert.deepEqual((await page.getByRole('alert').allTextContents()).filter(value=>value.trim()), [], 'Concurrent status observers cannot report a successful reload as failed');
         }
-        if (scenario.startsWith('context')) assert.equal(calls.find(c => c.action === 'player_context_apply')?.body.fields.current_club, 'Reviewed FC');
+        if (scenario.startsWith('context')) assert.equal(calls.find(c => c.action === 'player_context_review')?.body.decisions[0].value, 'Reviewed FC');
       }
       assert.deepEqual(errors, []); console.log('Clean profile passed: ' + scenario);
     } catch (error) {failures.push({scenario, message: error.message, alerts:await page.getByRole('alert').allTextContents(), actions: calls.map(c => c.action), errors, text: await page.locator('body').innerText()});}

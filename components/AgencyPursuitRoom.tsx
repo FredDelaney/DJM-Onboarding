@@ -27,7 +27,11 @@ import {
 } from 'react';
 
 import JourneyStatus from '@/components/JourneyStatus';
+import PursuitSalaryReview,{type PursuitSalaryState} from './PursuitSalaryReview';
+import ConfirmActionDialog from './ConfirmActionDialog';
+import {formatCommercialAmount} from '@/lib/club-need-brief';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import {INVOICE_CURRENCY_MINOR_UNITS,invoiceCurrencyMinorUnit} from '@/lib/invoice-currencies';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import {
@@ -54,6 +58,7 @@ export type AgencyPursuitRequest = {
 type Invoke = (
   action: string,
   body?: Record<string, unknown>,
+  signal?:AbortSignal,
 ) => Promise<any>;
 
 type ConfirmAction =
@@ -65,6 +70,8 @@ type ConfirmAction =
   | 'create_deal'
   | 'execute_response'
   | null;
+
+const dealCurrencies=Object.keys(INVOICE_CURRENCY_MINOR_UNITS).sort();
 
 const human = (value: unknown) =>
   String(value || '')
@@ -151,16 +158,20 @@ export default function AgencyPursuitRoom({
   role,
   marketData,
   invoke,
+  rpc,
   onClose,
   onOpenAction,
   onOpenDeal,
+  onOpenPlayerProfile,
   onApplied,
+  refreshKey = 0,
   presentation = 'drawer',
 }: {
   request: AgencyPursuitRequest;
   role: string;
   marketData: any;
   invoke: Invoke;
+  rpc?:<T,>(name:string,args?:Record<string,unknown>,signal?:AbortSignal)=>Promise<T>;
   onClose: () => void;
   onOpenAction: (
     request: AgencyActionRequest,
@@ -170,7 +181,9 @@ export default function AgencyPursuitRoom({
     title: string,
     context?: string | null,
   ) => void;
+  onOpenPlayerProfile?: (playerId: string) => void;
   onApplied: () => Promise<void> | void;
+  refreshKey?: number;
   presentation?: 'drawer' | 'page';
 }) {
   const panelRef = useRef<HTMLElement>(null);
@@ -181,6 +194,13 @@ export default function AgencyPursuitRoom({
   const [error, setError] = useState('');
   const [message, setMessage] =
     useState('');
+  const [salaryRefresh,setSalaryRefresh]=useState(0);
+  const [salaryGate,setSalaryGate]=useState<PursuitSalaryState|null>(null);
+  const [salaryDirty,setSalaryDirty]=useState(false),[discardSalary,setDiscardSalary]=useState(false);
+  const pendingLeave=useRef<()=>void>(()=>{});
+  const requestLeave=useCallback((action:()=>void)=>{if(salaryDirty){pendingLeave.current=action;setDiscardSalary(true);}else action();},[salaryDirty]);
+  const closePursuit=useCallback(()=>requestLeave(onClose),[requestLeave,onClose]);
+  const openDealWithReview=(...args:Parameters<typeof onOpenDeal>)=>requestLeave(()=>onOpenDeal(...args));
   const [dossierControl, setDossierControl] =
     useState<any>(null);
   const [readinessControl, setReadinessControl] =
@@ -195,6 +215,19 @@ export default function AgencyPursuitRoom({
     useState('');
   const [confirmAction, setConfirmAction] =
     useState<ConfirmAction>(null);
+  const confirmationOpener=useRef<HTMLElement|null>(null);
+  const openConfirmation=(action:Exclude<ConfirmAction,null>)=>{
+    confirmationOpener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    setConfirmAction(action);
+  };
+  const cancelConfirmation=()=>{
+    const opener=confirmationOpener.current;
+    setConfirmAction(null);
+    requestAnimationFrame(()=>{
+      const focused=document.activeElement;
+      if(opener?.isConnected&&!opener.closest('[inert],[aria-hidden="true"]')&&!opener.matches(':disabled')&&(!focused||focused===document.body||!focused.isConnected))opener.focus({preventScroll:true});
+    });
+  };
   const [responseProposal, setResponseProposal] =
     useState<any>(null);
 
@@ -206,6 +239,7 @@ export default function AgencyPursuitRoom({
     useState('');
   const [expectedCommission, setExpectedCommission] =
     useState('');
+  const [dealCurrency,setDealCurrency]=useState('');
   const [dealNextAction, setDealNextAction] =
     useState('');
 
@@ -231,7 +265,7 @@ export default function AgencyPursuitRoom({
   );
 
   const pursuit = safeArray(
-    marketData?.pursuits?.items,
+    (marketData?.market ?? marketData)?.pursuits?.items,
   ).find(
     (item: any) =>
       String(item?.player_match_id || '') ===
@@ -341,32 +375,29 @@ export default function AgencyPursuitRoom({
     !dealOwnerUserId;
 
   const accessLabel =
-    request.accessLabel ||
     pursuit?.best_access_route?.person_name ||
-    human(
-      pursuit?.access_strategy?.recommended_mode ||
-        'known contact route',
-    );
+    (pursuit?.access_strategy?.recommended_mode
+      ? human(pursuit.access_strategy.recommended_mode)
+      : pursuit ? 'Access not recorded' : request.accessLabel || 'Access not recorded');
 
-  const accessDetail =
-    request.accessDetail ||
-    pursuit?.best_access_route?.why_this_route ||
-    null;
+  const accessDetail = pursuit
+    ? pursuit.best_access_route?.why_this_route || null
+    : request.accessDetail || null;
 
   const canPublishDossier = [
     'owner',
     'admin',
   ].includes(role);
 
-  const readinessScore =
-    readiness?.pursuit_readiness?.score ??
-    pursuit?.readiness_score ??
-    null;
+  const assessment = readiness?.pursuit_readiness;
+  const readinessScore = assessment ? assessment.score ?? null : pursuit?.readiness_score ?? null;
+  const missingAssessments = safeArray(assessment?.missing_factors ?? pursuit?.missing_factors).filter((item:any)=>typeof item==='string');
+  const assessmentIncomplete = (assessment?.state ?? pursuit?.readiness_state)==='assessment_incomplete'||missingAssessments.length>0;
   const hasReadinessScore =
     readinessScore !== null &&
     readinessScore !== undefined &&
     String(readinessScore).trim() !== '' &&
-    Number.isFinite(Number(readinessScore));
+    Number.isFinite(Number(readinessScore))&&!assessmentIncomplete;
 
   const pitchUrl =
     pitchDetail?.token &&
@@ -432,7 +463,7 @@ export default function AgencyPursuitRoom({
   useEffect(() => {
     void loadDetails();
     return () => { ++loadGeneration.current; };
-  }, [loadDetails]);
+  }, [loadDetails,refreshKey]);
 
   useEffect(() => {
     const releaseScroll = lockPageScroll();
@@ -452,7 +483,7 @@ export default function AgencyPursuitRoom({
         )].some((modal) => modal !== panelRef.current);
         if (otherModal) return;
         event.preventDefault();
-        onClose();
+        closePursuit();
       }
     };
 
@@ -468,7 +499,7 @@ export default function AgencyPursuitRoom({
         keydown,
       );
     };
-  }, [actionBusy, onClose]);
+  }, [actionBusy, closePursuit]);
 
   const refresh = async () => {
     await onApplied();
@@ -676,6 +707,8 @@ export default function AgencyPursuitRoom({
     if (!confirmAction || actionBusy) {
       return;
     }
+    if(['create_pitch','publish_pitch','create_deal'].includes(confirmAction)&&salaryGate?.can_proceed!==true){setError('Review current base-salary feasibility before preparing a new pitch or deal.');setConfirmAction(null);return;}
+    if(confirmAction==='publish_dossier'&&(!dossierCanPublish||!canPublishDossier)){setError('Review the current player profile before publishing.');setConfirmAction(null);return;}
 
     setActionBusy(confirmAction);
     setError('');
@@ -778,18 +811,21 @@ export default function AgencyPursuitRoom({
         confirmAction ===
         'create_deal'
       ) {
-        const probability =
-          Number(dealProbability);
+        const probability = Number(dealProbability);
 
         if (
-          !Number.isFinite(probability) ||
+          !/^[0-9]{1,3}$/.test(dealProbability.trim()) ||
           probability < 0 ||
           probability > 100
         ) {
           throw new Error(
-            'Enter your own deal probability from 0 to 100.',
+            'Enter your own whole-number deal probability from 0 to 100.',
           );
         }
+
+        const currency=dealCurrency.trim().toUpperCase(),digits=invoiceCurrencyMinorUnit(currency),commission=expectedCommission.trim();
+        if(digits===null)throw new Error('Choose a valid currency for this deal.');
+        if(commission&&(!/^[0-9]{1,12}([.][0-9]{1,4})?$/.test(commission)||(commission.split('.')[1]?.length||0)>digits))throw new Error('Check the expected agency commission and currency precision.');
 
         const result = await invoke(
           'pursuit_deal_create',
@@ -799,16 +835,11 @@ export default function AgencyPursuitRoom({
             input: {
               stage: dealStage,
               probability,
-              expected_commission:
-                expectedCommission.trim()
-                  ? Number(
-                      expectedCommission,
-                    )
-                  : null,
+              expected_commission:commission||null,
               next_action_text:
                 dealNextAction.trim() ||
                 null,
-              currency: 'EUR',
+              currency,
             },
           },
         );
@@ -857,6 +888,7 @@ export default function AgencyPursuitRoom({
       setConfirmAction(null);
       await refresh();
     } catch (actionError) {
+      if(actionError&&typeof actionError==='object'&&'code' in actionError&&actionError.code==='salary_review_required')setSalaryRefresh(value=>value+1);
       setError(
         friendlyError(actionError),
       );
@@ -906,7 +938,7 @@ export default function AgencyPursuitRoom({
     create_deal: {
       title: 'Create a live Deal Room?',
       body:
-        'Your probability is a human judgement. ReDream will not convert opportunity readiness into probability or contact the club.',
+        `${expectedCommission.trim()?`Expected agency commission: ${formatCommercialAmount(expectedCommission.trim(),dealCurrency)}.`:'Agency commission is not recorded.'} Your probability is a human judgement. ReDream will not convert opportunity readiness into probability or contact the club.`,
       button: 'Create Deal Room',
     },
     execute_response: {
@@ -926,12 +958,15 @@ export default function AgencyPursuitRoom({
     careerOpen(careerState);
 
   const dossierIsSafe =
-    dossierState === 'share_safe';
+    dossierState === 'share_safe'&&dossier?.safety?.profile_exists!==false;
+  const dossierLabel=dossierState==='share_safe'&&!dossierIsSafe?'Review required':human(dossierState);
+  const dossierNeedsVerification=dossierState==='player_verification_required';
+  const dossierCanPublish=['dossier_unpublished','dossier_verification_stale'].includes(dossierState)&&dossier?.safety?.profile_exists!==false;
 
   const nextMove = (() => {
     const openDeal = () => {
       if (!dealRoomId) return;
-      onOpenDeal(
+      openDealWithReview(
         dealRoomId,
         `${request.playerName} → ${request.clubName}`,
         request.needTitle,
@@ -960,12 +995,16 @@ export default function AgencyPursuitRoom({
       };
     }
 
+    if(dossierNeedsVerification||!dossierIsSafe&&dossierState!=='dossier_missing'&&!dossierCanPublish){
+      return {title:dossierNeedsVerification?'Review player verification':'Review the player profile',instruction:dossier?.next_action?.instruction||'Review the current player details before external sharing.',label:onOpenPlayerProfile?'Review player details':'Player profile unavailable',run:()=>requestLeave(()=>onOpenPlayerProfile?.(request.playerId||playerId)),disabled:!onOpenPlayerProfile};
+    }
+
     if (dossierState === 'dossier_missing') {
       return {
         title: 'Create the dossier',
         instruction: 'Prepare the private club-facing player dossier before building the pitch.',
         label: 'Create private dossier',
-        run: () => setConfirmAction('create_dossier'),
+        run: () => openConfirmation('create_dossier'),
         disabled: false,
       };
     }
@@ -974,9 +1013,9 @@ export default function AgencyPursuitRoom({
       return canPublishDossier
         ? {
             title: 'Review dossier publication',
-            instruction: 'The dossier exists but still needs controlled publication before it can support the pitch.',
+            instruction: dossier?.next_action?.instruction || 'Review the private dossier before approving publication.',
             label: 'Publish dossier',
-            run: () => setConfirmAction('publish_dossier'),
+            run: () => openConfirmation('publish_dossier'),
             disabled: false,
           }
         : {
@@ -988,12 +1027,15 @@ export default function AgencyPursuitRoom({
           };
     }
 
+    if (salaryGate?.can_proceed!==true&&!dealRoomId&&!pitchDetail?.sent_at) {
+      return {title:'Review base-salary feasibility',instruction:salaryGate?.message||'Load the current salary check before preparing a new pitch or deal.',label:'Review salary terms',run:()=>{const panel=document.getElementById('pursuit-salary-review');panel?.scrollIntoView({block:'start',behavior:'smooth'});panel?.focus({preventScroll:true});},disabled:!canPublishDossier};
+    }
     if (!shareId) {
       return {
         title: 'Prepare the pitch',
         instruction: 'Create the private pitch draft for this exact player-club route.',
         label: 'Create private pitch',
-        run: () => setConfirmAction('create_pitch'),
+        run: () => openConfirmation('create_pitch'),
         disabled: false,
       };
     }
@@ -1003,7 +1045,7 @@ export default function AgencyPursuitRoom({
         title: 'Publish the pitch link',
         instruction: 'Make the private pitch link available. ReDream will not send it for you.',
         label: 'Publish pitch link',
-        run: () => setConfirmAction('publish_pitch'),
+        run: () => openConfirmation('publish_pitch'),
         disabled: false,
       };
     }
@@ -1013,7 +1055,7 @@ export default function AgencyPursuitRoom({
         title: 'Complete human delivery',
         instruction: 'Send the pitch through your chosen channel, then confirm the delivery here.',
         label: 'I sent this pitch',
-        run: () => setConfirmAction('confirm_sent'),
+        run: () => openConfirmation('confirm_sent'),
         disabled: false,
       };
     }
@@ -1024,7 +1066,7 @@ export default function AgencyPursuitRoom({
             title: 'Review the club response',
             instruction: 'Confirm the internal response-review work before ReDream creates it.',
             label: 'Review and confirm',
-            run: () => setConfirmAction('execute_response'),
+            run: () => openConfirmation('execute_response'),
             disabled: false,
           }
         : {
@@ -1083,7 +1125,7 @@ export default function AgencyPursuitRoom({
     <div
       className={pageMode ? styles.pageShell : styles.backdrop}
       onClick={pageMode ? undefined : (event) => {
-        if (event.target === event.currentTarget && !actionBusy) onClose();
+        if (event.target === event.currentTarget && !actionBusy) closePursuit();
       }}
     >
       <aside
@@ -1104,7 +1146,7 @@ export default function AgencyPursuitRoom({
               type="button"
               data-ui-button="icon"
               className={styles.close}
-              onClick={onClose}
+              onClick={closePursuit}
               disabled={Boolean(
                 actionBusy,
               )}
@@ -1148,8 +1190,7 @@ export default function AgencyPursuitRoom({
           </section>
         ) : null}
 
-        {!busy && !error ? (
-          <div className={styles.content}>
+          <div className={styles.content} hidden={busy||Boolean(error)}>
             <section className={styles.journey}>
               <Step
                 label="Career"
@@ -1163,7 +1204,7 @@ export default function AgencyPursuitRoom({
               />
               <Step
                 label="Dossier"
-                value={human(dossierState)}
+                value={dossierLabel}
                 done={dossierIsSafe}
                 attention={
                   !dossierIsSafe &&
@@ -1209,6 +1250,7 @@ export default function AgencyPursuitRoom({
                 <p>NEXT MOVE</p>
                 <h3>{nextMove.title}</h3>
                 <span>{nextMove.instruction}</span>
+                {assessmentIncomplete?<span>{missingAssessments.length?'Readiness not scored. Not recorded: '+missingAssessments.map(human).join(', ')+'.':'Readiness needs more information.'}</span>:null}
 
                 <button
                   type="button"
@@ -1222,7 +1264,7 @@ export default function AgencyPursuitRoom({
                 </button>
               </div>
 
-              {hasReadinessScore ? (
+              {hasReadinessScore&&salaryGate?.can_proceed===true&&salaryGate.state==='open_recorded_salary' ? (
                 <div className={styles.heroScore}>
                   <Target size={17} />
                   <strong>{numeric(readinessScore)}</strong>
@@ -1231,7 +1273,10 @@ export default function AgencyPursuitRoom({
               ) : null}
             </section>
 
-            <div className={styles.grid}>
+            {canPublishDossier?<PursuitSalaryReview matchId={request.playerMatchId} playerId={request.playerId} clubId={request.clubId} refreshKey={salaryRefresh} invoke={invoke} rpc={rpc} onState={setSalaryGate} onDirty={setSalaryDirty} onChanged={onApplied}/>:null}
+            <details className={styles.context}>
+              <summary>Opportunity details</summary>
+              <div className={styles.grid}>
               <Fact
                 label="Player direction"
                 value={human(careerState)}
@@ -1261,14 +1306,11 @@ export default function AgencyPursuitRoom({
               />
               <Fact
                 label="Pitch readiness"
-                value={human(
-                  readiness
-                    ?.pitch_readiness_state ||
-                    dossierState,
-                )}
+                value={readiness?.pitch_readiness_state?human(readiness.pitch_readiness_state):dossierLabel}
                 detail="Recorded preparation state"
               />
-            </div>
+              </div>
+            </details>
 
             {careerIsOpen && dossierState !== 'dossier_missing' ? (
               <section className={styles.panel}>
@@ -1277,12 +1319,7 @@ export default function AgencyPursuitRoom({
                   <div>
                     <p>CLUB DOSSIER</p>
                     <h3>
-                      {dossierState ===
-                      'dossier_missing'
-                        ? 'Create the private club-facing dossier.'
-                        : dossierIsSafe
-                          ? 'The dossier passes the recorded share controls.'
-                          : 'The dossier needs publication control.'}
+                      {dossierNeedsVerification?'Review the player data first.':dossierIsSafe?'The dossier passes the recorded share controls.':dossierCanPublish?'Review the dossier before publication.':'Review the current player profile.'}
                     </h3>
                   </div>
                 </div>
@@ -1310,48 +1347,8 @@ export default function AgencyPursuitRoom({
                   </div>
                 ) : null}
 
-                <div className={styles.actions}>
-                  {dossierState ===
-                  'dossier_missing' ? (
-                    <button
-                      type="button"
-                      data-ui-button="primary"
-              className={styles.primary}
-                      onClick={() =>
-                        setConfirmAction(
-                          'create_dossier',
-                        )
-                      }
-                    >
-                      <FileText size={15} />
-                      Create private dossier
-                    </button>
-                  ) : null}
-
-                  {!dossierIsSafe &&
-                  dossierState !==
-                    'dossier_missing' &&
-                  canPublishDossier ? (
-                    <button
-                      type="button"
-                      data-ui-button="primary"
-              className={styles.primary}
-                      onClick={() =>
-                        setConfirmAction(
-                          'publish_dossier',
-                        )
-                      }
-                    >
-                      <Link2 size={15} />
-                      Publish dossier
-                    </button>
-                  ) : null}
-                </div>
-
                 {!canPublishDossier &&
-                !dossierIsSafe &&
-                dossierState !==
-                  'dossier_missing' ? (
+                dossierCanPublish ? (
                   <p className={styles.truth}>
                     Owner or admin approval is required for external dossier publication.
                   </p>
@@ -1399,10 +1396,11 @@ export default function AgencyPursuitRoom({
                       data-ui-button="primary"
               className={styles.primary}
                       onClick={() =>
-                        setConfirmAction(
+                        openConfirmation(
                           'create_pitch',
                         )
                       }
+                      disabled={salaryGate?.can_proceed!==true}
                     >
                       <FileText size={15} />
                       Create private pitch
@@ -1473,10 +1471,11 @@ export default function AgencyPursuitRoom({
                           data-ui-button="primary"
               className={styles.primary}
                           onClick={() =>
-                            setConfirmAction(
+                            openConfirmation(
                               'publish_pitch',
                             )
                           }
+                          disabled={salaryGate?.can_proceed!==true}
                         >
                           <Link2 size={15} />
                           Publish pitch link
@@ -1490,7 +1489,7 @@ export default function AgencyPursuitRoom({
                           data-ui-button="primary"
               className={styles.primary}
                           onClick={() =>
-                            setConfirmAction(
+                            openConfirmation(
                               'confirm_sent',
                             )
                           }
@@ -1589,7 +1588,7 @@ export default function AgencyPursuitRoom({
                         data-ui-button="secondary"
               className={styles.secondary}
                         onClick={() =>
-                          onOpenDeal(
+                          openDealWithReview(
                             dealRoomId,
                             `${request.playerName} → ${request.clubName}`,
                             request.needTitle,
@@ -1690,7 +1689,7 @@ export default function AgencyPursuitRoom({
                         data-ui-button="primary"
               className={styles.primary}
                         onClick={() =>
-                          setConfirmAction(
+                          openConfirmation(
                             'execute_response',
                           )
                         }
@@ -1729,7 +1728,7 @@ export default function AgencyPursuitRoom({
                   data-ui-button="primary"
               className={styles.primary}
                   onClick={() =>
-                    onOpenDeal(
+                    openDealWithReview(
                       dealRoomId,
                       `${request.playerName} → ${request.clubName}`,
                       request.needTitle,
@@ -1739,17 +1738,17 @@ export default function AgencyPursuitRoom({
                   <BriefcaseBusiness size={15} />
                   Open Deal War Room
                 </button>
-              ) : !careerIsOpen ? (
+              ) : !careerIsOpen||salaryGate?.can_proceed!==true ? (
                 <div className={styles.dealLocked}>
                   <ShieldCheck size={16} />
                   <div>
                     <strong>Commercial controls stay locked for now.</strong>
-                    <span>Confirm the player's direction before creating a live deal.</span>
+                    <span>{!careerIsOpen?"Confirm the player's direction before creating a live deal.":'Review base-salary feasibility before creating a new deal.'}</span>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className={styles.formGrid}>
+                  <form id="pursuit-deal-form" className={`${styles.formGrid} ${styles.dealForm}`} onSubmit={event=>{event.preventDefault();openConfirmation('create_deal');}}>
                     <label>
                       <span>Human stage</span>
                       <select
@@ -1784,6 +1783,8 @@ export default function AgencyPursuitRoom({
                       </span>
                       <input
                         type="number"
+                        required
+                        step="1"
                         min="0"
                         max="100"
                         value={dealProbability}
@@ -1801,17 +1802,22 @@ export default function AgencyPursuitRoom({
                         Expected commission
                       </span>
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
+                        inputMode="decimal"
+                        maxLength={17}
+                        pattern={(invoiceCurrencyMinorUnit(dealCurrency)??4)===0?'[0-9]{1,12}':`[0-9]{1,12}([.][0-9]{1,${invoiceCurrencyMinorUnit(dealCurrency)??4}})?`}
+                        title={dealCurrency?`Use up to ${invoiceCurrencyMinorUnit(dealCurrency)??4} decimal places for ${dealCurrency}.`:'Choose the deal currency before recording an amount.'}
                         value={expectedCommission}
                         onChange={(event) =>
                           setExpectedCommission(
                             event.target.value,
                           )
                         }
-                        placeholder="Optional EUR"
+                        placeholder="Optional amount"
                       />
                     </label>
+
+                    <label><span>Deal currency</span><select required value={dealCurrency} onChange={event=>setDealCurrency(event.target.value)}><option value="">Choose currency</option>{dealCurrencies.map(code=><option key={code} value={code}>{code}</option>)}</select></label>
 
                     <label>
                       <span>Next action</span>
@@ -1825,32 +1831,27 @@ export default function AgencyPursuitRoom({
                         placeholder="Optional recorded next action"
                       />
                     </label>
-                  </div>
+                  </form>
 
                   <button
-                    type="button"
+                    type="submit"
+                    form="pursuit-deal-form"
                     data-ui-button="secondary"
-              className={styles.secondary}
-                    onClick={() =>
-                      setConfirmAction(
-                        'create_deal',
-                      )
-                    }
-                    disabled={!careerIsOpen}
+              className={`${styles.secondary} ${styles.createDeal}`}
+                    disabled={!careerIsOpen||salaryGate?.can_proceed!==true}
                   >
                     <BriefcaseBusiness size={15} />
                     Create Deal Room
                   </button>
 
                   <p className={styles.truth}>
-                    Opportunity readiness is not deal probability. Probability must remain your own commercial judgement.
+                    Commission is agency revenue; leave it blank until known. Opportunity readiness is not deal probability. Probability must remain your own commercial judgement.
                   </p>
                 </>
               )}
             </section>
             ) : null}
           </div>
-        ) : null}
 
         {confirm && !busy && !error ? (
           <div className={styles.confirmBar}>
@@ -1865,9 +1866,7 @@ export default function AgencyPursuitRoom({
                 type="button"
                 data-ui-button="secondary"
               className={styles.secondary}
-                onClick={() =>
-                  setConfirmAction(null)
-                }
+                onClick={cancelConfirmation}
                 disabled={Boolean(
                   actionBusy,
                 )}
@@ -1900,6 +1899,7 @@ export default function AgencyPursuitRoom({
           </div>
         ) : null}
       </aside>
+      <ConfirmActionDialog open={discardSalary} title="Leave this salary review?" description="Your unsaved review will be discarded. A submitted review may still complete; check this opportunity when you return." confirmLabel="Leave review" onConfirm={()=>pendingLeave.current()} onClose={()=>setDiscardSalary(false)}/>
     </div>
   );
 }

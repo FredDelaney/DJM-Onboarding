@@ -5,6 +5,7 @@ import test from 'node:test';
 const person = readFileSync('components/AgencyContactIntelligenceDrawer.tsx','utf8');
 const personCss = readFileSync('components/AgencyContactIntelligenceDrawer.module.css','utf8');
 const actionsCss = readFileSync('components/AgencyRelationshipActions.module.css','utf8');
+const actions = readFileSync('components/AgencyRelationshipActions.tsx','utf8');
 const memoryCss = readFileSync('components/AgencyRelationshipMemory.module.css','utf8');
 const clubCss = readFileSync('components/AgencyClubAccountDrawer.module.css','utf8');
 
@@ -21,9 +22,8 @@ test('empty reach collapses to one actionable surface', () => {
 });
 
 test('relationship actions use one primary action with compact secondary tools', () => {
-  assert.match(actionsCss, /Relationship action hierarchy v3/);
-  assert.match(actionsCss, /\.actions button:first-child[\s\S]*grid-column: 1 \/ -1/);
-  assert.match(actionsCss, /grid-template-columns: repeat\(3/);
+  assert.match(actions, /data-ui-button=\{action\.key === 'conversation' \? 'primary' : 'secondary'\}/);
+  assert.match(actionsCss, /\.actions\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
 });
 
 test('relationship memory hides empty mobile blocks and uses compact summary strip', () => {

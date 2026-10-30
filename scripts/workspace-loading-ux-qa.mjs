@@ -15,11 +15,12 @@ try {
   if(location.hostname==='127.0.0.1')localStorage.setItem('sb-example-auth-token',JSON.stringify(value));
   Object.defineProperty(navigator,'connection',{configurable:true,value:Object.assign(new EventTarget(),{saveData:true,effectiveType:'4g'})});
  },session);
- let stalled=new Set(),started;
+ let stalled=new Set(),started,statementTimeout=false;
  await page.route('https://example.supabase.co/**',async route=>{
   if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
   const path=new URL(route.request().url()).pathname,body=route.request().postDataJSON()||{};
   const name=body.action||path.split('/').pop();reads.push(name);
+  if(statementTimeout&&name==='redream_autopilot_deals')return route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({code:'57014',message:'canceling statement due to statement timeout'})});
   if(stalled.has(name)){held.push(route);started?.();return;}
   let result={};
   if(path.includes('/auth/v1/user'))result=user;
@@ -29,6 +30,7 @@ try {
   else if(name==='redream_autopilot_operations')result={deadlines:{items:[{entity_type:'club_need',entity_id:'00000000-0000-4000-8000-000000000091',deadline_type:'club_need_expiry',title:'Recorded club need expires',deadline_at:new Date(Date.now()-86400000).toISOString()}]}};
   else if(name==='players_workspace')result={players:{items:[{player_id:'fixture-player',identity:{name:'Example Player',primary_position:'Centre back',current_club:'Example FC',next_action:'Call the club about the trial',next_action_due:'2020-01-01',contract_expiry:'2027-06-30'},service:{next_control_fix:{fix_type:'set_player_next_action',instruction:'Review the representation plan'},next_service_move:{move_type:'maintain_player_plan',instruction:'Agree the next career step with the player'}}}],total:1,has_more:false}};
   else if(name==='redream_autopilot_relationships')result={accounts:{clubs:[{organisation_id:'current',name:'Current Club',country:'NZ'}]},contacts:{items:[]}};
+  else if(name==='redream_autopilot_deals')result={portfolio:{deals:[{deal_room_id:'fixture-deal',title:'Example live transfer',organisation:'Example FC',stage:'interest'}]}};
   else if(name==='redream_ai_current_access')result={enabled:false};
   else result={items:[],accounts:{clubs:[]},contacts:{items:[]}};
   await route.fulfill({contentType:'application/json',body:JSON.stringify(result)});
@@ -37,6 +39,24 @@ try {
  const visit=async query=>{
   for(let attempt=0;attempt<60;attempt++)try{await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&'+query);return;}catch(error){if(attempt===59)throw error;await new Promise(resolve=>setTimeout(resolve,250));}
  };
+ // A real database deadline uses the same explicit recovery as a client deadline.
+ await page.setViewportSize({width:390,height:844});
+ statementTimeout=true;const previousDealReads=reads.filter(name=>name==='redream_autopilot_deals').length;
+ await visit('view=opportunities&tab=deals');
+ const timeoutAlert=page.getByRole('alert').filter({hasText:'The request took too long. Please try again.'});
+ await timeoutAlert.waitFor();
+ assert.equal(await page.getByText('canceling statement due to statement timeout',{exact:true}).count(),0,'Technical database language is not exposed');
+ assert.equal(reads.filter(name=>name==='redream_autopilot_deals').length,previousDealReads+1,'A failed read never silently retries');
+ await page.addStyleTag({content:'nextjs-portal{display:none!important}'});
+ await mkdir('/tmp/redream-platform-programme/read-recovery',{recursive:true});
+ await page.screenshot({path:'/tmp/redream-platform-programme/read-recovery/01-statement-timeout-mobile.png'});
+ statementTimeout=false;await page.getByRole('button',{name:'Try again',exact:true}).click();
+ await page.locator('#opportunity-fixture-deal').waitFor();await timeoutAlert.waitFor({state:'hidden'});
+ assert.equal(reads.filter(name=>name==='redream_autopilot_deals').length,previousDealReads+2,'Explicit Retry makes one fresh read');
+ assert.ok(page.url().includes('view=opportunities&tab=deals'),'Recovery keeps the same workspace and list');
+ await page.screenshot({path:'/tmp/redream-platform-programme/read-recovery/02-explicit-retry-mobile.png'});
+ await page.setViewportSize({width:1440,height:900});
+ console.log('PASS: server statement timeout uses clear recovery and one explicit retry');
  // Every previously unbounded primary read reaches the existing recoverable error.
  for(const [query,names] of [
   ['view=network',['redream_autopilot_relationships']],

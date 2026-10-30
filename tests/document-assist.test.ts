@@ -117,6 +117,37 @@ test("selected suggestions affect only the exact editable draft and reset review
   assert.equal(documentCoverLead(pitch), "");
 });
 
+test("identity suggestions cannot introduce a name, club, licence or email absent from their supporting quote", () => {
+  for (const [kind,key,quote,value] of [
+    ["agency_pitch","player_name","Prospect Ravi Singh plays for Harbour FC.","Invented Player"],
+    ["agency_pitch","player_club","Prospect Ravi Singh plays for Harbour FC.","Harbour Football Club"],
+    ["player_contract","agent_name","The licensed agent is Ravi Singh.","Invented Agent"],
+    ["player_contract","agent_licence","Agent licence is ABC1234.","1234"],
+    ["player_contract","agent_licence","Agent licence is ABC-1234.","1234"],
+    ["mandate","principal_name","The principal is Harbour FC.","Invented Agency"],
+    ["invoice","recipient_name","The invoice recipient is Harbour FC.","Invented Club"],
+    ["invoice","recipient_email","Billing email is accounts@example.com.","payments@invented.example"],
+    ["invoice","recipient_email","Billing email is accounts@example.com.evil.","accounts@example.com"],
+    ["invoice","recipient_email","Billing email is accounts+team@example.com.","team@example.com"],
+    ["agency_pitch","player_name","The prospect is named Ravioli.","Ravi"],
+  ] as const) {
+    const input=documentAssistInput({kind,notes:quote});
+    assert.throws(()=>validateDocumentSuggestions({fields:[{key,value,quote}],sections:[],questions:[]},input),/Unsupported field suggestion/);
+  }
+});
+
+test("source-bound identity extraction preserves multilingual names, typography and harmless case or whitespace changes", () => {
+  for (const name of ["Łukasz Zieliński","Νίκος Παππάς","Михаил Иванов","Ravi Singh","Jean D’Silva","Jean\u2014Marc"]) {
+    const quote=`The prospect is named ${name}.`;
+    const input=documentAssistInput({kind:"agency_pitch",notes:quote});
+    const value=name.replace("’","'").toUpperCase().replaceAll(" ","  ");
+    assert.equal(validateDocumentSuggestions({fields:[{key:"player_name",value,quote}],sections:[],questions:[]},input).fields[0].value,value);
+  }
+  const quote="The billing email is Accounts@Example.com.";
+  const input=documentAssistInput({kind:"invoice",notes:quote});
+  assert.equal(validateDocumentSuggestions({fields:[{key:"recipient_email",value:"accounts@example.com",quote}],sections:[],questions:[]},input).fields[0].value,"accounts@example.com");
+});
+
 const source = readFileSync(
   "supabase/functions/redream-document-assist/index.ts",
   "utf8",
@@ -282,6 +313,7 @@ test("suggestions use the configured router, bounded provider call, strict outpu
   )!.args;
   assert.equal(telemetry.p_tenant_id, "tenant-a");
   assert.equal(telemetry.p_status, "succeeded");
+  assert.equal(telemetry.p_prompt_version, "document_assist_v2");
   assert.equal(telemetry.p_input_tokens, 100);
   assert.ok(!JSON.stringify(telemetry).includes("Ravi Singh"));
   assert.ok(
@@ -298,6 +330,12 @@ test("provider failures and invalid suggestions are recoverable and recorded wit
         fields: [{ key: "player_id", value: "foreign", quote: "Ravi Singh" }],
         sections: [],
         questions: [],
+      },
+    },
+    {
+      output: {
+        fields: [{ key: "player_name", value: "Invented Player", quote: "Ravi Singh" }],
+        sections: [], questions: [],
       },
     },
   ]) {

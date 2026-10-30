@@ -1,5 +1,7 @@
 'use client';
 
+import {formatCommercialAmount} from '@/lib/club-need-brief';
+
 import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
 import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,homeWorkRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
@@ -8,7 +10,7 @@ import {useHomeRelevance} from './useHomeRelevance';
 import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWorkControl';
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
-import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery} from '@/lib/workspace-record-navigation';
+import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery,workspaceProfileFromDealHref} from '@/lib/workspace-record-navigation';
 import PeopleViewSwitcher from './PeopleViewSwitcher';
 import WorkspaceSearch from '@/components/WorkspaceSearch';
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
@@ -76,7 +78,7 @@ import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
 import { brandingForWorkspace } from '@/lib/workspace-branding';
 import { readHomePosition } from '@/lib/read-home-position';
 import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
-import { homeCommandCategory, isHomePlayerDataReview, type HomeQueueCategory } from '@/lib/home-priority';
+import { homeCommandCategory, homePriorityWeight, isHomePlayerDataReview, isHomeStatisticsReview, isHomeDetailsReview, type HomeQueueCategory } from '@/lib/home-priority';
 import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
 import styles from './AgencyOperatingWorkspace.module.css';
@@ -227,7 +229,7 @@ const VIEW_PRESENTATION: Record<
 const ALLOWED_ROLES = ['owner', 'admin', 'agent', 'scout', 'operations'];
 
 const reviewPlayerId = (command: any): string => {
-  const review = command?.command_type === 'Player review required' ||
+  const review = isHomePlayerDataReview(command) ||
     (command?.source_type === 'task' && /^Review (?:the player record and resolve the flagged issue\.|player data:)/i.test(String(command?.title || '')));
   if (!review) return '';
   const tasks = Array.isArray(command?.evidence?.tasks) ? command.evidence.tasks : [];
@@ -237,7 +239,7 @@ const reviewPlayerId = (command: any): string => {
 };
 
 const reviewCopy = (command: any) => ({
-  title: command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
+  title: isHomeDetailsReview(command) ? `Review ${command?.title || 'player'} details` : isHomeStatisticsReview(command) ? `Review ${command?.title || 'player'} statistics` : command?.source_type === 'player' ? `Review ${command?.title || 'player'} data` : `Review reminder · ${command?.evidence?.player_name || 'player'}`,
   reason: command?.source_type === 'player' ? command?.evidence?.review_reason || command?.why_now || 'Review the player profile.' : 'Review the profile, then mark this done.',
 });
 
@@ -279,19 +281,7 @@ const initials = (value: string) =>
     .map((part) => part[0]?.toUpperCase())
     .join('');
 
-const money = (value: unknown, currency = 'EUR') => {
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return '-';
-  try {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${Math.round(amount).toLocaleString('en-GB')}`;
-  }
-};
+const money = (value:unknown,currency?:string|null) => formatCommercialAmount(value,currency)||'-';
 
 const careerGateLabel = (value: unknown) => {
   const state = String(value || '').trim().toLowerCase();
@@ -405,6 +395,7 @@ export default function AgencyOperatingWorkspace() {
     useState<AgencyIntelligenceRequest | null>(null);
   const [pursuitRequest, setPursuitRequest] =
     useState<AgencyPursuitRequest | null>(null);
+  const [recordRefreshRevision,setRecordRefreshRevision]=useState(0);
   const [ownerCommandOpen, setOwnerCommandOpen] = useState(false);
   const [teamHandoffMember, setTeamHandoffMember] = useState<any>(null);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -461,6 +452,9 @@ export default function AgencyOperatingWorkspace() {
   const canSeeBusiness = ['owner', 'admin'].includes(
     String(workspace?.role || ''),
   );
+  const profileSourceDealId=String(search.get('source_deal')||'').trim().toLowerCase();
+  const profileSourceDealHref=canSeeBusiness&&profileSourceDealId
+    ?workspaceIntelligenceHref(basePath,'',{kind:'deal',entityId:profileSourceDealId}):null;
   const canCreateRecords = ['owner','admin','agent','operations'].includes(String(workspace?.role || ''));
   const restrictedView = !canSeeBusiness && ['opportunities','business'].includes(view);
   const navigation = NAV.filter(
@@ -509,6 +503,7 @@ export default function AgencyOperatingWorkspace() {
     async <T,>(
       action: string,
       body: Record<string, unknown> = {},
+      signal?: AbortSignal,
     ): Promise<T> => {
       if (!workspace?.tenant_id) {
         throw new Error('Agency workspace is not resolved.');
@@ -518,7 +513,7 @@ export default function AgencyOperatingWorkspace() {
         action,
         tenant_id: workspace.tenant_id,
         ...body,
-      });
+      },undefined,{signal});
     },
     [workspace?.tenant_id],
   );
@@ -1012,7 +1007,12 @@ export default function AgencyOperatingWorkspace() {
 
   // Editors must distinguish a confirmed write from a failed list refresh.
   // Ordinary navigation/refresh keeps its existing page-level error handling.
-  const refreshRecords = useCallback(() => loadView({ rejectOnError: true }), [loadView]);
+  const refreshRecords = useCallback(() => {
+    // A confirmed related save also invalidates an already-open pursuit.
+    // Its own read must run even when the overview refresh fails.
+    setRecordRefreshRevision(value=>value+1);
+    return loadView({ rejectOnError: true });
+  }, [loadView]);
   const handleCaptureCompleted = useCallback(() => { void loadView(); }, [loadView]);
   const openIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
     setIntelligenceRequest(request);
@@ -1025,6 +1025,10 @@ export default function AgencyOperatingWorkspace() {
     const href = workspaceIntelligenceListHref(basePath, window.location.search, request);
     if (href) window.history.replaceState(null, '', href);
     setIntelligenceRequest(current => current?.kind === request.kind && current.entityId === request.entityId ? null : current);
+    if(request.kind==='deal')requestAnimationFrame(()=>{
+      const target=document.getElementById('opportunity-'+request.entityId)||document.getElementById('workspace-view-heading');
+      target?.focus({preventScroll:true});
+    });
   }, [basePath]);
 
   useEffect(() => {
@@ -1527,7 +1531,7 @@ export default function AgencyOperatingWorkspace() {
           <div className={styles.pageHeadCopy}>
             <div className={styles.pageHeadTitleLine}>
               <div>
-                <h1>{viewPresentation.title}</h1>
+                <h1 id="workspace-view-heading" tabIndex={-1}>{viewPresentation.title}</h1>
               </div>
             </div>
           </div>
@@ -1687,15 +1691,16 @@ export default function AgencyOperatingWorkspace() {
             {view === 'players' ? (
               showPlayerProfile ? (
                 <AgencyPlayerProfile
-                  key={`player-profile:${selectedPlayerId}`}
+                  key={`player-profile:${stateScope}:${selectedPlayerId}`}
                   playerId={selectedPlayerId}
                   preparation={preparationLink(search.get("capture"), search.get("preparation"))}
                   backHref={`${basePath}?view=players`}
+                  dealContext={profileSourceDealHref?{id:profileSourceDealId,backHref:profileSourceDealHref}:null}
                   cacheScope={stateScope}
                   workHref={`${basePath}?view=players&player=${encodeURIComponent(selectedPlayerId)}`}
                   role={String(workspace?.role || '')}
                   fallbackAgency={agencyBranding}
-                  invoke={(action, body) => invoke<any>(action, body)}
+                  invoke={invoke}
                   rpc={rpc}
                   onOpenAction={(request) => setActionRequest(request)}
                   onOpenIntelligence={(playerId, title, context) =>
@@ -1710,8 +1715,11 @@ export default function AgencyOperatingWorkspace() {
                 />
               ) : (
                 <AgencyPlayersWorkspace
+                  theme={theme}
                   stateScope={stateScope}
                   canManageRecords={canSeeBusiness}
+                  canWorkRecruitment={canCreateRecords}
+                  canPromoteRecruitment={['owner','admin','agent'].includes(String(workspace.role||''))}
                   canCreateRecords={canCreateRecords}
                   onCreatePlayer={() => setCreateKind('player')}
                   onRecordRefresh={refreshRecords}
@@ -1836,12 +1844,18 @@ export default function AgencyOperatingWorkspace() {
 
       {createKind ? (
         <AgencyCreateDrawer
-          key={`create:${createKind}`}
+          key={`create:${stateScope}:${createKind}`}
           kind={createKind}
           theme={theme}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setCreateKind(null)}
           onCreated={refreshRecords}
+          onOpenCreated={createKind==='club_need'?result=>{
+            const needId=result?.created?.club_need_id;
+            if(typeof needId!=='string'||!needId)return;
+            setCreateKind(null);
+            window.history.pushState({},'',`${basePath}?view=opportunities&tab=needs&record=${encodeURIComponent(needId)}`);
+          }:undefined}
         />
       ) : null}
 
@@ -1853,15 +1867,13 @@ export default function AgencyOperatingWorkspace() {
             invoke<any>(action, body)
           }
           onClose={() => setActionRequest(null)}
-          onApplied={async () => {
-            await loadView();
-          }}
+          onApplied={refreshRecords}
         />
       ) : null}
 
       {intelligenceRequest ? (
         <AgencyEntityIntelligenceDrawer
-          key={intelligenceRequest.key}
+          key={`${stateScope}:${intelligenceRequest.key}`}
           request={intelligenceRequest}
           presentation="page"
           rpc={rpc}
@@ -1872,6 +1884,12 @@ export default function AgencyOperatingWorkspace() {
           onOpenAction={(request) => {
             setActionRequest(request);
           }}
+          onOpenPlayerProfile={canSeeBusiness ? (playerId,dealId)=>{
+            const href=workspaceProfileFromDealHref(basePath,window.location.search,playerId,dealId);
+            if(!href)return;
+            setIntelligenceRequest(null);
+            window.history.pushState(null,'',href);
+          }:undefined}
           onOpenCloseout={(dealRoomId, title, context) => {
             setDealCloseoutRequest({
               key: `deal-closeout:${dealRoomId}`,
@@ -1902,14 +1920,20 @@ export default function AgencyOperatingWorkspace() {
 
       {pursuitRequest ? (
         <AgencyPursuitRoom
-          key={pursuitRequest.key}
+          key={`${stateScope}:${pursuitRequest.key}`}
           request={pursuitRequest}
+          refreshKey={recordRefreshRevision}
+          onOpenPlayerProfile={canSeeBusiness ? playerId=>{
+            const href=workspaceIntelligenceHref(basePath,window.location.search,{kind:'player',entityId:playerId});
+            if(!href)return;
+            setPursuitRequest(null);
+            window.history.pushState(null,'',href+'#review-player-details');
+          }:undefined}
           presentation="page"
           role={String(workspace?.role || '')}
           marketData={data}
-          invoke={(action, body) =>
-            marketInvoke<any>(action, body)
-          }
+          invoke={marketInvoke}
+          rpc={rpc}
           onClose={() => setPursuitRequest(null)}
           onOpenAction={(request) => {
             setActionRequest(request);
@@ -1966,7 +1990,7 @@ export default function AgencyOperatingWorkspace() {
 
       {clubAccountRequest ? (
         <AgencyClubAccountDrawer
-          key={clubAccountRequest.key}
+          key={`${stateScope}:${clubAccountRequest.key}`}
           request={clubAccountRequest}
           presentation="page"
           invoke={invoke}
@@ -2455,6 +2479,8 @@ function Home({
 
   const actionFor = (command: any) => {
     const playerId = reviewPlayerId(command);
+    if (playerId && isHomeDetailsReview(command)) return <Link className={styles.compactButton} href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}&profile=1#player-details`}><ChevronRight size={16}/>Review player details</Link>;
+    if (playerId && isHomeStatisticsReview(command)) return <Link className={styles.compactButton} href={`${basePath}?view=players&player=${encodeURIComponent(playerId)}&profile=1#player-data`}><ChevronRight size={16}/>Review suggested figures</Link>;
     if (playerId) return (
       <div className={styles.homeReviewActions}>
         <Link
@@ -2596,7 +2622,7 @@ function Home({
       category,
       score:
         categoryScore[category] +
-        Math.min(9_000, Math.max(0, Number(command?.priority_score || 0))),
+        homePriorityWeight(command?.priority_score),
       title: review?.title || (command?.command_type === 'Player follow-up due' && command?.evidence?.next_action
         ? `${command.title}: ${command.evidence.next_action}`
         : command?.title) || human(command?.command_type || 'Agency action'),
@@ -2846,7 +2872,8 @@ function Home({
       </section>
       {dataReviews.length ? <details className={`${styles.focusPanel} ${styles.homeReviewGroup}`}>
         <summary><span>Player data to review</span><span>{dataReviews.length}</span></summary>
-        <p>Recorded changes and verification checks. Review these before sharing a profile.</p>
+        <p>Suggested updates and verification checks. Review these before sharing a profile.</p>
+        {home?.attention?.player_reviews_has_more?<p className={styles.homeReadNotice}>Showing up to 200 reviews. <Link href={`${basePath}?view=players`}>Open Players for other records</Link></p>:null}
         <div className={styles.focusList}>{dataReviews.map(renderQueueItem)}</div>
       </details> : null}
       <HomeWorkEditor controller={homeWork}/>
@@ -5128,7 +5155,7 @@ function Market({
               const accessMode =
                 item.access_strategy?.recommended_mode ||
                 item.best_access_route?.route_state ||
-                'recorded_route';
+                'access_not_recorded';
 
               const nextAction =
                 item.career_strategy_gate?.next_action
