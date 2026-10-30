@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
@@ -23,10 +24,12 @@ import {clubNeedBriefFields, clubNeedFinancialFacts,clubNeedFootballFacts,clubNe
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
-type OpportunityView = 'needs' | 'routes' | 'deals';
+const AgencyOpportunityOverview = dynamic(() => import('./AgencyOpportunityOverview'));
+
+type OpportunityView = 'overview' | 'needs' | 'routes' | 'deals';
 
 const opportunityViewFrom = (value: unknown): OpportunityView =>
-  value === 'routes' || value === 'deals' ? value : 'needs';
+  value === 'overview' || value === 'routes' || value === 'deals' ? value : 'needs';
 
 const list = (value: unknown): any[] =>
   Array.isArray(value) ? value : [];
@@ -591,6 +594,7 @@ export default function AgencyOpportunitiesWorkspace({
     <div className={styles.workspace}>
       <section className={styles.controls}>
         <div className={styles.tabs} aria-label="Opportunity view">
+          <button type="button" className={view === 'overview' ? styles.tabActive : styles.tab} aria-pressed={view === 'overview'} onClick={() => selectView('overview')}>Overview</button>
           <button
             type="button"
             className={view === 'needs' ? styles.tabActive : styles.tab}
@@ -625,12 +629,23 @@ export default function AgencyOpportunitiesWorkspace({
           </button>
         </div>
 
-        <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='needs'?'Search club or need':view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/>
+        {view !== 'overview' ? <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='needs'?'Search club or need':view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/> : null}
       </section>
 
       {exactBusy?<p role="status">Opening...</p>:null}
       {exactError?<div role="alert"><p>{exactError}</p><button type="button" className="btn" onClick={()=>setExactRetry(value=>value+1)}>Try again</button></div>:null}
-      <section className={styles.listCard}>
+      {view === 'overview' ? <AgencyOpportunityOverview
+        needs={needs} routes={routes} deals={deals}
+        marketReady={data?.market != null && !data?.opportunity_errors?.market}
+        dealsReady={data?.deals != null && !data?.opportunity_errors?.deals}
+        marketError={Boolean(data?.opportunity_errors?.market)}
+        dealsError={Boolean(data?.opportunity_errors?.deals)}
+        onRetry={onRetry || (() => void onRefresh())}
+        onOpenNeed={(id) => router.push(`${basePath}?view=opportunities&tab=needs&record=${encodeURIComponent(id)}`, {scroll:false})}
+        onOpenPursuit={(request) => onOpenPursuit(request)}
+        onOpenDeal={(request) => onOpenIntelligence(request)}
+      /> : null}
+      {view !== 'overview' ? <section className={styles.listCard}>
         {view === 'needs'
           ? filteredNeeds.map((item: any) => {
               const candidates = list(
@@ -972,7 +987,7 @@ export default function AgencyOpportunitiesWorkspace({
             </span>
           </div>
         ) : null}
-      </section>
+      </section> : null}
     </div>
   );
 }
