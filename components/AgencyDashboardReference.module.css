@@ -25,3 +25,75 @@
 
 .actionList a{text-decoration:none}
 .actionList :is(button,a):focus-visible{outline:2px solid var(--agency-primary,#3587fc);outline-offset:2px}
+
+
+/* REFERENCE-FIDELITY-20261031: spacing, hierarchy, card depth and clear states.
+   Extend the existing dashboard without replacing tenant styling or mobile navigation. */
+.dashboard{gap:30px;padding:clamp(19px,2.35vw,35px);border:1px solid #f0f2f6;border-radius:20px;background:#fff;color:#1b273b}
+.welcome{min-height:74px;gap:16px}
+.identity{gap:17px}.identity p{font-size:13px;color:#738195;font-weight:500;letter-spacing:.01em}
+.identity h2{font-size:clamp(25px,2.2vw,33px);line-height:1.14;letter-spacing:-.04em;font-weight:650}
+.agencyMark{width:61px;height:61px;flex-basis:61px;border-radius:15px;box-shadow:0 5px 13px #0b3e6c12}
+.scope{gap:2px;padding:4px;background:#f1f4f9;border:1px solid #edf1f6}
+.scope button{min-height:44px;padding:8px 16px;font-size:13px;font-weight:550}
+.scope button[aria-pressed=true]{background:#fff;color:#213248;box-shadow:0 2px 8px #1d345713}
+.topGrid{gap:22px}
+.panel,.metric,.request,.event,.activity{border:1px solid #edf0f5;border-radius:17px;background:#fff;box-shadow:0 7px 22px #1c344c0a,0 2px 4px #1c344c05}
+.panel{min-height:290px;overflow:hidden}
+.quickHead{padding:23px 23px 17px;gap:14px}.quickHead h3{font-size:15px;font-weight:700;letter-spacing:-.015em}
+.quickHead p{font-size:12.5px;margin-top:4px;color:#768397}
+.headIcon{width:39px;height:39px;border:1px solid #edf1f9;border-radius:12px;background:#fff;box-shadow:0 2px 5px #22365308}
+.actionList{margin:0 22px 16px;padding-top:5px;border-top:1px solid #edf0f5}
+.actionList button,.actionList a{min-height:62px;padding:9px 12px;border-radius:10px;gap:16px;font-size:14px;font-weight:530;transition:background .16s ease,color .16s ease}
+.actionList button:hover,.actionList a:hover{background:#f2f7ff;color:#1769cd}
+.actionList button>svg:last-child,.actionList a>svg:last-child{opacity:.75}
+.fixturesHead{padding:22px 22px 8px;gap:12px}
+.fixturesHead p{font-size:10.5px;font-weight:600;letter-spacing:.08em;color:#8c99aa}
+.fixturesHead h3{font-size:17px;font-weight:660;letter-spacing:-.025em}
+.dateControls{gap:1px}.dateControls a,.dateControls button{width:40px;height:44px;min-height:44px;min-width:40px}
+.fixtureList{max-height:254px;padding:3px 20px 17px;scrollbar-width:thin;scrollbar-color:#d8e1ed transparent}
+.fixture{grid-template-columns:49px 3px minmax(0,1fr);gap:12px;min-height:57px;padding:8px 3px}
+.fixture time{font-size:11.5px;color:#8491a4;font-variant-numeric:tabular-nums}.fixture i{height:37px;background:#17bd81}
+.fixture strong{font-size:12.5px;font-weight:620;color:#243149}.fixture span{font-size:11.5px;margin-top:3px}
+.metrics{gap:20px}.metric{min-height:162px;padding:23px 23px 21px}
+.metric p{font-size:13.5px;color:#57657b;margin-bottom:22px;font-weight:510}
+.metric strong{font-size:34px;font-weight:680;letter-spacing:-.055em;color:#1e2b3e}
+.metric small{font-size:12px;margin-top:8px;color:#7e8a9b}
+.metricIcon{right:22px;top:21px;width:49px;height:49px;box-sizing:border-box;display:grid;place-items:center;border-radius:15px;padding:0}
+.metricIcon svg{width:22px;height:22px}
+.metric[data-metric=clients] .metricIcon{color:#0cbf88;background:#e6f8f2}
+.metric[data-metric=fixtures] .metricIcon{color:#3e86f8;background:#eaf2ff}
+.metric[data-metric=agency] .metricIcon{color:#a657eb;background:#f5ecff}
+.metric[data-metric=club] .metricIcon{color:#ed822f;background:#fff1e8}
+.bottomGrid{gap:24px}.sectionTitle{min-height:42px;margin-bottom:11px}
+.sectionTitle h3{font-size:16px;font-weight:680;letter-spacing:-.022em}
+.sectionTitle h3 svg{height:18px;width:18px}.sectionTitle a{font-size:12.5px;font-weight:550}
+.column{gap:13px}.request{padding:17px;min-height:104px;transition:box-shadow .18s ease,transform .18s ease}
+.request:hover,.event:hover,.activity:hover{box-shadow:0 10px 28px #1c344c10,0 2px 6px #1c344c0a}
+.requestName{gap:12px}.clubAvatar{width:37px;height:37px;flex-basis:37px;border:1px solid #eff2f7;background:#eff6ff;color:#2779e8;box-shadow:0 3px 9px #1c344c0c;font-size:14px}
+.requestName strong,.event strong{font-size:13.5px;font-weight:610;color:#1f2d43}
+.requestName small,.event small{font-size:11.5px;margin-top:4px}
+.requestName>small{font-size:11px;color:#d88b17;background:#fff6e8;padding:5px 8px;border-radius:999px}
+.requestCounts{justify-content:flex-start;gap:21px;margin:16px 0 0 49px}
+.requestCounts strong{font-size:13.5px;color:#26334b}.requestCounts span{font-size:10.5px;color:#95a2b3}
+.event{min-height:80px;padding:13px 16px;gap:13px;grid-template-columns:39px minmax(0,1fr) auto}
+.eventSymbol{width:39px;height:39px;background:#eaf3ff;color:#4c91ed}
+.eventSymbol[data-event-type=birthday]{color:#f08aab;background:#fff0f5}
+.eventSymbol[data-event-type=agency-contract]{color:#9867de;background:#f5edff}
+.eventSymbol[data-event-type=club-contract]{color:#ee8d40;background:#fff2e6}
+.dateBox{min-width:45px;padding:6px 9px;gap:2px;border-radius:11px;box-shadow:0 2px 6px #1c344c08}
+.dateBox span{font-size:10px;font-weight:650}.dateBox strong{font-size:16px;font-variant-numeric:tabular-nums}
+.activity{min-height:154px;padding:20px 17px;gap:11px}
+.activity>span{width:48px;height:48px;border:1px solid #eaf6ef;background:#ecfbf3;color:#14b77a}
+.activity strong{font-size:13px;line-height:1.45;max-width:240px}
+.activity time{font-size:11.5px;color:#98a4b5;font-variant-numeric:tabular-nums}
+.readMeta{font-size:11px;color:#8997a9;margin-top:-4px}
+.itemLink{display:block;border-radius:12px}
+.itemLink:hover :is(.requestName,.fixture,.event,.activity){background:transparent}
+.empty{min-height:65px;display:grid;place-items:center;line-height:1.5;padding:20px;color:#8997aa}
+:where(.dashboard) :is(button,a):focus-visible{outline:3px solid var(--agency-primary,#3587fc);outline-offset:3px}
+@media(max-width:1200px){.bottomGrid{gap:16px}.metrics{gap:12px}.metric{padding:18px}.metricIcon{top:17px;right:16px;width:43px;height:43px}.requestCounts{margin-left:0}}
+@media(max-width:980px){.bottomGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.bottomGrid>section:last-child{grid-column:1/-1}.topGrid{gap:14px}}
+@media(max-width:820px){.dashboard{gap:22px}.topGrid,.bottomGrid{grid-template-columns:minmax(0,1fr)}.bottomGrid>section:last-child{grid-column:auto}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{min-height:0}}
+@media(max-width:520px){.dashboard{padding:17px;gap:20px;border-radius:17px}.welcome{min-height:58px;align-items:flex-start}.identity{gap:10px}.identity h2{font-size:clamp(21px,5vw,26px)}.identity p{font-size:11px}.agencyMark{width:44px;height:44px;flex-basis:44px;border-radius:11px}.scope{gap:0;padding:2px}.scope button{padding:6px 9px;min-height:44px;font-size:11px}.topGrid{gap:14px}.quickHead{padding:17px 16px 12px}.actionList{margin-inline:15px}.actionList button,.actionList a{min-height:54px;font-size:13px}.fixturesHead{flex-wrap:wrap;padding:16px 15px 5px}.dateControls{width:100%;justify-content:flex-end}.dateControls a,.dateControls button{min-width:44px;width:44px}.fixtureList{padding:0 13px 12px}.metrics{gap:10px}.metric{min-height:125px;padding:14px}.metric p{font-size:11px;margin-bottom:19px;max-width:85%}.metric strong{font-size:27px}.metric small{font-size:10.5px;line-height:1.3;max-width:100%}.metricIcon{top:13px;right:10px;width:35px;height:35px;border-radius:10px}.metricIcon svg{height:17px;width:17px}.sectionTitle h3{font-size:15px}.requestCounts{margin:12px 0 0 45px;gap:15px}.activity{min-height:130px}}
+@media(prefers-reduced-motion:reduce){.actionList button,.actionList a,.request{transition:none}}

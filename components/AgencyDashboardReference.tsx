@@ -114,6 +114,28 @@ function readableDay(date: string): string {
     : '';
 }
 
+function dayInZone(zone: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      year: 'numeric', month: '2-digit', day: '2-digit', timeZone: zone,
+    }).formatToParts(new Date());
+    const field = (name: string) => parts.find(part => part.type === name)?.value || '';
+    return `${field('year')}-${field('month')}-${field('day')}`;
+  } catch {
+    return '';
+  }
+}
+
+function readableActivityDate(value: string, zone: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric', timeZone: zone,
+    }).format(new Date(value));
+  } catch {
+    return 'Date unavailable';
+  }
+}
+
 function readableTime(value: string, timeZone: string): string {
   try {
     return new Intl.DateTimeFormat('en-GB', {
@@ -185,7 +207,7 @@ export default function AgencyDashboardReference({
       </section>
       <section className={styles.panel} aria-labelledby="dashboard-fixtures-title">
         <div className={styles.fixturesHead}>
-          <div><p>{readableDay(snapshot.localDate)} · <span>Selected day</span></p><h3 id="dashboard-fixtures-title">{readableDate(snapshot.localDate)}</h3></div>
+          <div><p>{readableDay(snapshot.localDate)} · <span>{snapshot.localDate===dayInZone(snapshot.timeZone)?'Today':'Selected day'}</span></p><h3 id="dashboard-fixtures-title">{readableDate(snapshot.localDate)}</h3></div>
           <div className={styles.dateControls}>
             <button onClick={()=>onDayChange(-1)} aria-label="Previous day"><ArrowLeft size={16}/></button>
             <button onClick={onRefresh} aria-label="Refresh fixtures"><RefreshCcw size={16}/></button>
@@ -195,7 +217,7 @@ export default function AgencyDashboardReference({
         </div>
         <div className={styles.fixtureList}>
           {snapshot.errors?.fixtures ? <div className={styles.empty} role="status">Fixtures unavailable. <button onClick={onRefresh}>Retry</button></div> :
-           snapshot.fixtures.length===0 ? <div className={styles.empty}>No fixtures recorded for this day.</div> :
+           snapshot.fixtures.length===0 ? <div className={styles.empty}>No fixtures recorded for this day. Coverage may be incomplete.</div> :
            snapshot.fixtures.map((fixture)=><SmallLink key={fixture.fixtureId} href={fixture.href} basePath={basePath}>
              <div className={styles.fixture}>
                <time>{readableTime(fixture.kickoffAt,snapshot.timeZone)}</time>
@@ -210,9 +232,9 @@ export default function AgencyDashboardReference({
     </div>
 
     <div className={styles.metrics} aria-label="Agency dashboard figures">
-      {metrics.map(({key,label,value,hint,Icon})=><section className={styles.metric} key={key}>
+      {metrics.map(({key,label,value,hint,Icon})=><section className={styles.metric} data-metric={key} key={key}>
         <p>{label}</p><span className={styles.metricIcon}><Icon size={21}/></span>
-        <strong>{snapshot.errors?.counts?'–':count(value)}</strong><small>{hint}</small>
+        <strong>{count(value)}</strong><small>{value===null?'Awaiting verified data':hint}</small>
       </section>)}
     </div>
 
@@ -240,7 +262,7 @@ export default function AgencyDashboardReference({
            snapshot.upcomingEvents.map((event)=>{
              const date=readableEventDate(event.date);
              return <SmallLink key={event.id} href={event.href} basePath={basePath}><article className={styles.event}>
-               <span className={styles.eventSymbol} aria-hidden="true"><Clock3 size={16}/></span>
+               <span className={styles.eventSymbol} data-event-type={event.type} aria-hidden="true"><Clock3 size={16}/></span>
                <div><strong>{event.label}</strong><small>{event.description}</small></div>
                <time dateTime={event.date} className={styles.dateBox}><span>{date.month}</span><strong>{date.day}</strong></time>
              </article></SmallLink>;
@@ -253,9 +275,9 @@ export default function AgencyDashboardReference({
           {snapshot.errors?.activity?<div className={styles.empty}>Activity unavailable</div>:
            snapshot.recentActivity.length===0?<div className={styles.empty}>No recent activity</div>:
            snapshot.recentActivity.map((activity)=><SmallLink key={activity.id} href={activity.href} basePath={basePath}><article className={styles.activity}>
-             <span aria-hidden="true"><UsersRound size={17}/></span>
+             <span aria-hidden="true"><UsersRound size={19}/></span>
              <strong>{activity.title}</strong>
-             <time>{readableTime(activity.happenedAt,snapshot.timeZone)}</time>
+             <time dateTime={activity.happenedAt}>{readableActivityDate(activity.happenedAt,snapshot.timeZone)}</time>
            </article></SmallLink>)}
         </div>
       </section>

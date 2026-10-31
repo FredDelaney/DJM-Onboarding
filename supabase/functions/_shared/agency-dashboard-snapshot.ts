@@ -192,12 +192,21 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
 
   try {
     let query=client.schema('platform').from('audit_events')
-      .select('id,actor_user_id,action,entity_type,occurred_at')
+      .select('id,actor_user_id,action,entity_type,entity_id,occurred_at')
       .eq('tenant_id',tenantId).order('occurred_at',{ascending:false}).limit(12);
     if(scope==='me')query=query.eq('actor_user_id',userId);
     snapshot.recentActivity=asRows(await query).filter(e=>e.action&&e.occurred_at)
-      .slice(0,8).map(e=>({id:e.id,title:`${human(e.action)} · ${human(e.entity_type)}`,
-        happenedAt:e.occurred_at}));
+      .slice(0,8).map(e=>{
+        // Resolve names only from players already permitted in the active scope.
+        // An opaque audit event by itself never grants visibility to a player.
+        const player=playerById.get(str(e.entity_id));
+        const created=e.action==='platform.agency.player_created'&&e.entity_type==='player'&&Boolean(player);
+        const playerName=player?`${str(player.first_name)} ${str(player.last_name)}`.trim():'';
+        return {id:e.id,
+          title:created&&playerName?`${playerName} added as a new player`:`${human(e.action)} · ${human(e.entity_type)}`,
+          happenedAt:e.occurred_at,
+          ...(created?{href:`${basePath}?view=players&player=${encodeURIComponent(str(e.entity_id))}`}:{})};
+      });
   }catch{errors.activity='Recent activity unavailable';}
 
   return snapshot;
