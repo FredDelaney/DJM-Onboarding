@@ -5,6 +5,13 @@ import AgencyDashboardReference,{type DashboardSnapshot,type DashboardScope,type
 import styles from './AgencyDashboardConnected.module.css';
 
 const isoDay = (value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value);
+function todayInZone(timeZone:string):string {
+  try {
+    const parts=new Intl.DateTimeFormat('en-GB',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+    const get=(type:string)=>parts.find(part=>part.type===type)?.value||'';
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  } catch{return new Date().toISOString().slice(0,10);}
+}
 function shiftDay(value:string,days:number):string {
   const base=new Date(`${value}T12:00:00Z`);
   if(!Number.isFinite(base.getTime()))return value;
@@ -66,7 +73,7 @@ export default function AgencyDashboardConnected({
     setScope(next);
   },[canViewAgency]);
   const changeDay=useCallback((days:number)=>{
-    setDate(current=>shiftDay(current||snapshot?.localDate||new Date().toISOString().slice(0,10),days));
+    setDate(current=>shiftDay(current||snapshot?.localDate||todayInZone(snapshot?.timeZone||'Europe/Rome'),days));
   },[snapshot?.localDate]);
   return <div className={styles.stack}>
     {snapshot ? <AgencyDashboardReference
