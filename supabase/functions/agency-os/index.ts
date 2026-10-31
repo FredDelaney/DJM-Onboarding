@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { readAgencyDashboardSnapshot } from "../_shared/agency-dashboard-snapshot.ts";
 import { createSupabaseContext } from "npm:@supabase/server@1.6.0";
 import { preparePlayerProfileEvidence, reviewPlayerProfileEvidence } from "../_shared/player-profile-preparation.ts";
 import { selectPlayerProfilePresentation } from "../_shared/player-profile-ai.ts";
@@ -97,7 +98,7 @@ export default {fetch:async(req:Request)=>{
     // New aliases fail closed. Restricted staff enter through reviewed projections
     // or personal workflows; explicit operations permissions stay explicit.
     const staffActions=new Set([
-      "home_focus","account_overview","account_profile_save","team",
+      "home_focus","dashboard_snapshot","account_overview","account_profile_save","team",
       "workspace_search","players_workspace","player_profile_core","player_profile_detail","player_profile","club_account",
       "recruitment_board","recruitment_target","recruitment_create","recruitment_set_stage",
       "recruitment_set_next_action","recruitment_log_interaction","recruitment_promote",
@@ -224,6 +225,22 @@ export default {fetch:async(req:Request)=>{
       try{return await rpc("platform_server_player_profile_ai_access",{p_tenant_id:tenantId,p_user_id:userId})===true?key:null;}
       catch(error){console.warn("player-profile AI access unavailable",error);return null;}
     };
+
+    if(action==="dashboard_snapshot"){
+      const {data:viewer,error:viewerError}=await ctx.supabaseAdmin.from("profiles")
+        .select("display_name,timezone").eq("id",userId).maybeSingle();
+      if(viewerError)throw viewerError;
+      const zone=String(viewer?.timezone||"UTC").trim();
+      const snapshot=await readAgencyDashboardSnapshot({
+        client:ctx.supabaseAdmin as any,
+        tenantId,userId,role,
+        scope:id(body?.scope)==="agency"?"agency":"me",
+        localDate:id(body?.local_date),
+        timeZone:zone,
+        basePath:"/workspace/"+encodeURIComponent(String(workspace.slug||"")),
+      });
+      return json({ok:true,snapshot,viewer_first_name:String(viewer?.display_name||"").trim().split(/\s+/)[0]||""});
+    }
 
     if(action==="home_focus"){
       const limit=clamp(body?.limit,1,12,8);

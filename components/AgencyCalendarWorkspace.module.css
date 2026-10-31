@@ -1085,3 +1085,15 @@
  .dayNumber,.todayNumber{width:44px;max-width:100%;height:44px;min-width:0;min-height:44px}
  .taskRow{padding:12px 0}
 }
+
+/* REFERENCE-CALENDAR-20261031: quiet month grid and visible date controls. */
+.calendarControls, .todayPanel { border-color: #e3eaf4; background: #fff; }
+.calendarHeading h2 { color: #1c2b42; }
+.dateNavigation button { color: #526680; border-radius: 10px; }
+.dateNavigation button:hover { background: #eef5ff; color: #176bd5; }
+.monthGrid { border: 1px solid #e5ebf4; border-radius: 16px; background: #fff; box-shadow: none; }
+.todayNumber { background: #3587fc; color: #fff; border-radius: 50%; }
+.selectedCell { background: #edf5ff; }
+.viewSwitch { background: #f2f5fa; border-radius: 12px; }
+.addTask { background: #3587fc; border-radius: 999px; color: #fff; }
+.taskRow { border-color: #edf1f6; }

@@ -81,10 +81,10 @@ const META: Record<
   },
   club_need: {
     eyebrow: 'MARKET',
-    title: 'Add club need',
-    copy: 'Record the club and what they need.',
-    submit: 'Add club need',
-    added: 'Club need added',
+    title: 'Add request',
+    copy: 'Record the position, budget and club requirements.',
+    submit: 'Add request',
+    added: 'Request added',
   },
   deal: {
     eyebrow: 'DEALS',
@@ -582,8 +582,8 @@ export default function AgencyCreateDrawer({
                 onChange={(value) => setValue('notes', value)}
               />
 
-              <details className={styles.briefSection}>
-                <summary>Budget, contract & availability</summary>
+              <details className={styles.briefSection} open>
+                <summary>Deal & budget</summary>
                 <div className={styles.briefFields}>
                   {clubNeedCommercialFields.map(field=><label key={field.key} className={styles.field}>
                     <span>{field.label}</span>

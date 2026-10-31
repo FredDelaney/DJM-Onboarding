@@ -7,6 +7,10 @@ import {
   Bell,
   BookOpen,
   Building2,
+  ClipboardList,
+  ContactRound,
+  Handshake,
+  Settings2,
   CalendarDays,
   ChevronDown,
   Coins,
@@ -24,6 +28,7 @@ import {
 } from 'lucide-react';
 
 import AccountMenu from '@/components/AccountMenu';
+import WorkspaceSearch from '@/components/WorkspaceSearch';
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from '@/components/AgencyMobileNavigation';
 import { useAdmin } from '@/components/AdminShell';
@@ -85,9 +90,19 @@ export default function SettingsWorkspace({
   const basePath = auth.workspace?.slug
     ? `/workspace/${encodeURIComponent(auth.workspace.slug)}`
     : '/agency';
-  const navigation = MAIN_NAV.filter(
-    (item) => item.key !== 'business' || canManageAgency,
-  );
+  const navigation: Array<{ key: string; label: string; href: string; icon: typeof HomeIcon; active?: boolean }> = [
+    { key: 'dashboard', label: 'Dashboard', href: '/agency', icon: HomeIcon },
+    { key: 'calendar', label: 'Calendar', href: '/agency?view=calendar', icon: CalendarDays },
+    { key: 'players', label: 'Players', href: '/agency?view=players', icon: Users },
+    { key: 'clubs', label: 'Clubs', href: '/agency?view=network&network=clubs', icon: Building2 },
+    ...(canManageAgency ? [
+      { key: 'requests', label: 'Requests', href: '/agency?view=opportunities&tab=needs', icon: ClipboardList },
+      { key: 'deals', label: 'Deals', href: '/agency?view=opportunities&tab=deals', icon: Handshake },
+    ] : []),
+    { key: 'contacts', label: 'Contacts', href: '/agency?view=network&network=people', icon: ContactRound },
+    ...(canManageAgency ? [{ key: 'business', label: 'Business', href: '/agency?view=business', icon: Coins }] : []),
+    { key: 'settings', label: 'Settings', href: '/settings', icon: Settings2, active: true },
+  ];
   const theme = tenantBrandCssVariables({
     primary: runtime.branding.primary_color,
     secondary: runtime.branding.secondary_color,
@@ -121,6 +136,14 @@ export default function SettingsWorkspace({
     ...account,
   ].find((item) => item.href === pathname)?.label || (title === 'Settings' ? 'Overview' : title);
 
+  const referenceTabs = [
+    { label: 'Account', href: '/settings/profile', selected: pathname === '/settings' || pathname === '/settings/profile' },
+    { label: 'Notifications', href: '/settings/preferences', selected: pathname === '/settings/preferences' },
+    ...(canManageAgency ? [{ label: 'Agency Info', href: '/settings/agency', selected: pathname === '/settings/agency' }] : []),
+    { label: 'Data & Security', href: '/settings/security', selected: pathname === '/settings/security' || pathname === '/settings/connections' },
+    ...(canManageAgency ? [{ label: 'Billing & Users', href: canManageBilling ? '/settings/billing' : '/settings/team', selected: pathname === '/settings/team' || pathname === '/settings/billing' }] : []),
+  ];
+
   const signOut = async () => {
     await supabase.auth.signOut();
     router.replace('/sign-in');
@@ -142,23 +165,15 @@ export default function SettingsWorkspace({
         <nav className={shellStyles.nav} aria-label="Agency workspace">
           {navigation.map((item) => {
             const Icon = item.icon;
-            const href =
-              item.key === 'home'
-                ? '/agency'
-                : `/agency?view=${item.key}`;
             return (
               <Link
                 key={item.key}
-                href={href}
-                className={item.key === 'business' ? shellStyles.navManagement : ''}
+                href={item.href}
+                aria-current={item.active ? 'page' : undefined}
+                className={`${item.active ? shellStyles.navActive : ''} ${item.key === 'business' ? shellStyles.navManagement : ''}`}
               >
-                <Icon size={17} />
-                {item.key === 'opportunities' ? (
-                  <>
-                    <span className={shellStyles.navDesktopLabel}>{item.label}</span>
-                    <span className={shellStyles.navMobileLabel}>Market</span>
-                  </>
-                ) : <span>{item.label}</span>}
+                <Icon size={17} aria-hidden="true" />
+                <span>{item.label}</span>
               </Link>
             );
           })}
@@ -183,7 +198,7 @@ export default function SettingsWorkspace({
           <div className={shellStyles.pageHeadCopy}>
             <div className={shellStyles.pageHeadTitleLine}>
               <div>
-                <h1>{title}</h1>
+                <h1>Settings</h1>
               </div>
             </div>
             {description ? (
@@ -191,6 +206,8 @@ export default function SettingsWorkspace({
             ) : null}
           </div>
           <div className={shellStyles.desktopHeadActions}>
+            <WorkspaceSearch className={shellStyles.headerSearch} triggerLabel="Search anything..."
+              tenantId={auth.workspace.tenant_id} userId={auth.user.id} basePath={basePath} />
             <AiLauncher />
             <AccountMenu workspace={auth.workspace} onSignOut={signOut} />
           </div>
@@ -200,6 +217,13 @@ export default function SettingsWorkspace({
         </header>
 
         <div className={styles.workspace}>
+          <nav className={styles.referenceTabs} aria-label="Settings sections">
+            {referenceTabs.map((tab) => (
+              <Link key={tab.label} href={tab.href}
+                className={`${styles.referenceTab} ${tab.selected ? styles.referenceTabActive : ''}`}
+                aria-current={tab.selected ? 'page' : undefined}>{tab.label}</Link>
+            ))}
+          </nav>
           <details className={styles.settingsMenu}>
             <summary aria-label="Settings navigation">
               <div>

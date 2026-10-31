@@ -7,12 +7,14 @@ const visibilityShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/f
 const staffShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/staff-read-contract.ts','utf8'))).toString('base64');
 const statShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/profile-stat-evidence.ts','utf8'))).toString('base64');
 const evidenceShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/player-profile-preparation.ts','utf8').replace('"./football-data/player-data-workflow.ts"','"data:text/javascript;base64,'+shared+'"'))).toString('base64');
+const dashboardShared=Buffer.from(stripTypeScriptTypes(readFileSync('supabase/functions/_shared/agency-dashboard-snapshot.ts','utf8'))).toString('base64');
 const source=readFileSync('supabase/functions/agency-os/index.ts','utf8')
  .replace('"../_shared/player-profile-preparation.ts"','"data:text/javascript;base64,'+evidenceShared+'"')
  .replace(/^import .*player-profile-ai\.ts";$/m,'const selectPlayerProfilePresentation = () => { throw new Error("outside this test"); };')
  .replace(/^import .*player-profile-text-improvement\.ts";$/m,'const suggestPlayerProfileTextImprovement = () => { throw new Error("outside this test"); };')
  .replace(/^import .*player-context-ai\.ts";$/m,'const researchPlayerContext = (...args) => { globalThis.contextResearchCalls.push(args); if(globalThis.contextResearchThrows)throw new Error("Research transport failed"); return globalThis.contextResearchResult; };')
  .replace(/^import .*ai-router\.ts";$/m,'const selectAiRoute = () => { throw new Error("outside this test"); };')
+ .replace('"../_shared/agency-dashboard-snapshot.ts"','"data:text/javascript;base64,'+dashboardShared+'"')
  .replace('"../_shared/staff-read-contract.ts"','"data:text/javascript;base64,'+staffShared+'"')
  .replace('"../_shared/profile-stat-evidence.ts"','"data:text/javascript;base64,'+statShared+'"')
  .replace('import "jsr:@supabase/functions-js/edge-runtime.d.ts";','')

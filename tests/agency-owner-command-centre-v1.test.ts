@@ -14,10 +14,12 @@ const owner = fs.readFileSync(
 test('Business is a management-only entry point to the existing owner command centre', () => {
   assert.match(workspace, /AgencyOwnerCommandCentre/);
   assert.match(workspace, /key: 'business'/);
+  assert.match(workspace, /\.\.\.\(canSeeBusiness \? \[\{ key: 'business'/);
+  assert.match(workspace, /\.\.\.\(canSeeBusiness \? \[\{ key: 'business'/);
   assert.match(workspace, /const canSeeBusiness = \['owner', 'admin'\]/);
   assert.match(
     workspace,
-    /!\['business','opportunities'\]\.includes\(item\.key\) \|\| canSeeBusiness/,
+    /\.\.\.\(canSeeBusiness \? \[[\s\S]*?key: 'deals'/,
   );
 });
 

@@ -434,3 +434,20 @@
  .drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){font-size:16px!important}
  .actions button,.footer button{min-height:44px}
 }
+
+/* REFERENCE-CREATE-20261031: consistent focused creation dialog. */
+@media (min-width: 681px) {
+  .drawer { width: min(650px, calc(100vw - 64px)); max-height: min(90dvh, 880px); border: 1px solid #e5ecf5; border-radius: 17px; box-shadow: 0 28px 90px rgba(22, 47, 82, .18); }
+  .header { padding: 20px 28px 18px; }
+  .fields { padding: 20px 28px; }
+  .actions { padding: 14px 28px 18px; }
+}
+.header h2 { color: #192438; font-size: 23px; font-weight: 650; }
+.header p { color: #3587fc; }
+.icon { background: #eaf2ff; color: #3587fc; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: #3587fc; box-shadow: 0 0 0 3px #3587fc15; }
+.primary { background: #3587fc; border-color: #3587fc; border-radius: 999px; color: #fff; }
+.secondary { border-radius: 999px; }
+.briefSection { border-color: #e9eef6; }
+.briefSection > summary { font-weight: 620; color: #344259; }
+.briefSection[open] > summary { color: #2877df; }
