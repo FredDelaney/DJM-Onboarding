@@ -189,7 +189,13 @@ try{
   await contacts();
   await page.getByRole('heading',{name:'Shared Staff Contact',exact:true}).waitFor();
   assert.equal(await page.getByText('RELATIONSHIP OWNER',{exact:true}).count(),0);
-  await coordinatorView('home');await page.getByRole('heading',{name:'Your day',exact:true}).waitFor();
+  await coordinatorView('home');
+  // The redesigned dashboard retains the original Home work queue in a collapsible panel.
+  // Expand it like a real user before checking the restricted staff data and actions.
+  const daySummary=page.locator('details > summary').filter({hasText:/^Your day/});
+  await daySummary.waitFor();
+  await daySummary.click();
+  await page.getByRole('heading',{name:'Your day',exact:true}).waitFor();
   await page.getByText('Your work only. Commercial records require admin access.',{exact:true}).waitFor();
   await page.getByText('Your work is up to date.',{exact:true}).waitFor();
   await coordinatorView('opportunities');await page.getByRole('heading',{name:'Admin access needed',exact:true}).waitFor();
