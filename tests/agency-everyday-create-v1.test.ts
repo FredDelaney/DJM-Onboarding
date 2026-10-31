@@ -64,7 +64,7 @@ test('every daily data area has one obvious real create action', () => {
 test('one reusable create drawer stays minimum-first and football specific', () => {
   assert.match(drawer, /title: 'Add player'/);
   assert.match(drawer, /title: 'Add club'/);
-  assert.match(drawer, /title: 'Add club need'/);
+  assert.match(drawer, /title: 'Add request'/);
   assert.match(drawer, /title: 'Add deal'/);
   assert.match(drawer, /title: 'Add contact'/);
   assert.match(drawer, /Primary position/);

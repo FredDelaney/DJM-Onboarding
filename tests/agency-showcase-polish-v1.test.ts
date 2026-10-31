@@ -20,7 +20,8 @@ test('showcase polish presents the V2 agency operating model', () => {
   assert.match(workspace, /label: 'Business'/);
   assert.doesNotMatch(workspace, /label: 'Relationships'/);
   assert.doesNotMatch(workspace, /label: 'Market'/);
-  assert.doesNotMatch(workspace, /label: 'Deals'/);
+  assert.match(workspace, /key: 'requests', label: 'Requests', view: 'opportunities'/);
+  assert.match(workspace, /key: 'deals', label: 'Deals', view: 'opportunities'/);
   assert.match(workspace, /VIEW_PRESENTATION/);
   assert.doesNotMatch(workspace, /label: 'Brain'/);
 });

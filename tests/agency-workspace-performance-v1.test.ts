@@ -8,6 +8,7 @@ const source = readFileSync(
 );
 
 const lazyModules = [
+  'WorkspaceSearch',
   'AgencyPlayerProfile',
   'AgencyPursuitRoom',
   'AgencyNegotiationCommandRoom',
@@ -29,9 +30,11 @@ test('top-level agency navigation behaves like an in-app workspace switch', () =
   assert.match(source, /window\.history\.pushState/);
   assert.match(
     source,
-    /onPointerDown=\{\(\) => void warmView\(item\.key\)\}/,
+    /onPointerDown=\{\(\) => \{ if \(item\.view\) void warmView\(item\.view\); \}\}/,
   );
   assert.match(source, /event\.preventDefault\(\)/);
+  assert.match(source, /navigateWorkspaceView\(item\.view, item\.href\)/);
+  assert.match(source, /navigateWorkspaceView\(item\.view, item\.href\)/);
   assert.match(source, /prefetch=\{false\}/);
 });
 

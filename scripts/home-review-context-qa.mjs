@@ -6,6 +6,7 @@ const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${proce
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
 try {
   const page=await browser.newPage({viewport:{width:390,height:844}});
+  const openDay=async()=>{const summary=page.locator('details > summary').filter({hasText:'Your day'});await summary.waitFor();if(!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();};
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   let prepares=0;
   let pendingReview=true,pendingStats=true,pendingDetails=true;
@@ -41,6 +42,7 @@ try {
   });
   const url=new URL('/qa-command',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');
   for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(e){if(i===59)throw e;await page.waitForTimeout(500);}}
+  await openDay();
   await page.getByText('Arrange a call with Dejan',{exact:true}).waitFor();
   await page.locator('summary').filter({hasText:'Player data to review'}).click();
   assert.equal(await page.getByRole('link',{name:'Review player data',exact:true}).count(),1,'Player review must open the existing record, not create another reminder');
@@ -64,17 +66,17 @@ try {
   }
   const detailsLink=page.getByRole('link',{name:'Review player details',exact:true});assert.equal(await detailsLink.getAttribute('href'),'/agency?view=players&player='+dylan+'&profile=1#player-details');assert.equal(await page.locator('article').filter({has:detailsLink}).getByRole('button').count(),0);assert.equal(await page.getByText('Private detail suggestion',{exact:true}).count(),0);
   pendingDetails=false;pendingStats=false;
-  await page.goto(url.href);await page.getByText('Arrange a call with Dejan',{exact:true}).waitFor();
+  await page.goto(url.href);await openDay();await page.getByText('Arrange a call with Dejan',{exact:true}).waitFor();
   assert.equal(await page.getByRole('link',{name:'Review suggested figures',exact:true}).count(),0,'A resolved suggestion disappears without completing the separate verification or reminder');
   pendingReview=false;
-  await page.goto(url.href);
+  await page.goto(url.href);await openDay();
   await page.getByText('Arrange a call with Dejan',{exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Mark reminder done',exact:true}).count(),1,'An existing review reminder must remain manageable after the player data is verified');
   await page.getByRole('button',{name:'Mark reminder done',exact:true}).click();
   await page.getByRole('dialog').waitFor();
   assert.equal(prepares,1,'Only explicit reminder completion prepares a write');
   dense=true;pendingStats=true;
-  await page.goto(url.href);
+  await page.goto(url.href);await openDay();
   const priorities=page.getByRole('region',{name:'Today priorities',exact:true});
   await priorities.getByText('Confirm contract extension',{exact:true}).waitFor();
   await priorities.getByText('Clarify the trial location',{exact:true}).waitFor();
@@ -102,7 +104,7 @@ try {
   await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:'/tmp/redream-platform-programme/home/390-collapsed.png',fullPage:true});
   relevanceFailure=true;
-  await page.goto(url.href);
+  await page.goto(url.href);await openDay();
   await page.getByRole('button',{name:'Retry updates',exact:true}).waitFor();
   assert.equal(await page.getByText('Player data to review',{exact:true}).count(),0,'A failed permission read reveals no grouped counts or content');
   assert.equal(await page.getByText('All clear',{exact:true}).count(),0,'A failed permission read is never all clear');
@@ -110,7 +112,7 @@ try {
   await page.getByRole('button',{name:'Retry updates',exact:true}).click();
   await priorities.getByText('Confirm contract extension',{exact:true}).waitFor();
   assignedFailure=true;
-  await page.goto(url.href);
+  await page.goto(url.href);await openDay();
   await page.getByRole('button',{name:'Retry tasks',exact:true}).waitFor();
   assignedFailure=false;
   await page.getByRole('button',{name:'Retry tasks',exact:true}).click();

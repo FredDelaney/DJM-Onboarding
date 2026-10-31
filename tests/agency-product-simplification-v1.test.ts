@@ -28,7 +28,8 @@ test('agency tenants receive the simple ReDream V2 product shell', () => {
   assert.match(workspace, /label: 'Business'/);
 
   assert.doesNotMatch(workspace, /label: 'Market'/);
-  assert.doesNotMatch(workspace, /label: 'Deals'/);
+  assert.match(workspace, /key: 'requests', label: 'Requests', view: 'opportunities'/);
+  assert.match(workspace, /key: 'deals', label: 'Deals', view: 'opportunities'/);
   assert.doesNotMatch(workspace, /label: 'Relationships'/);
   assert.doesNotMatch(workspace, /DJM Sports Management/);
 });
@@ -37,7 +38,7 @@ test('business is management-only and lives outside primary navigation', () => {
   assert.match(workspace, /const canSeeBusiness = \['owner', 'admin'\]/);
   assert.match(
     workspace,
-    /!\['business','opportunities'\]\.includes\(item\.key\) \|\| canSeeBusiness/,
+    /\.\.\.\(canSeeBusiness \? \[[\s\S]*?key: 'deals'/,
   );
   assert.match(workspace, /styles\.navManagement/);
   assert.match(accountMenu, /view=business/);

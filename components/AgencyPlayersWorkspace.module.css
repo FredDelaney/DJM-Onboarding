@@ -2014,3 +2014,16 @@
 .recruitmentPanel .interactionForm { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
 .recruitmentPanel .interactionForm textarea,.recruitmentPanel .interactionForm button { grid-column:1/-1; }
 @media(max-width:680px) { .recruitmentPanel .interactionForm { grid-template-columns:1fr; } }
+
+/* REFERENCE-ROSTER-20261031: light, legible roster and clear quick actions. */
+@media (min-width: 681px) {
+  .toolbar { gap: 14px; align-items: center; }
+  .playerCard { border-color: #e3eaf4; border-radius: 13px; background: #fff; box-shadow: none; }
+  .playerCard:hover { border-color: #cbdcf7; }
+  .playerCardTop { gap: 13px; }
+  .playerCardActions button, .profileShortcutRow button { border-radius: 999px; }
+  .playerPagePanel { border-color: #e4eaf4; border-radius: 16px; background: #fff; }
+}
+.search input { min-height: 44px; border: 1px solid #dfe7f2; border-radius: 11px; background: #fff; }
+.search input:focus { outline-color: #3587fc; }
+.playerHeroCopy h2 { color: #192438; }

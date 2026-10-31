@@ -24,12 +24,12 @@ test('agency workspace exposes the V2 operating areas with management-only Busin
   assert.match(app, /label: 'Business'/);
   assert.doesNotMatch(app, /label: 'Relationships'/);
   assert.doesNotMatch(app, /label: 'Market'/);
-  assert.doesNotMatch(app, /label: 'Deals'/);
+  assert.match(app, /label: 'Deals'/);
   assert.doesNotMatch(app, /label: 'Brain'/);
   assert.match(app, /rawRequestedView === 'market'/);
   assert.match(app, /rawRequestedView === 'deals'/);
   assert.match(app, /rawRequestedView === 'relationships'/);
-  assert.match(app, /!\['business','opportunities'\]\.includes\(item\.key\) \|\| canSeeBusiness/);
+  assert.match(app, /\.\.\.\(canSeeBusiness \? \[[\s\S]*?label: 'Deals'/);
 });
 
 test('agency workspace uses tenant-native Autopilot reads while preserving the relationship surface', () => {

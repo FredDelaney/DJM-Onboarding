@@ -62,6 +62,11 @@ try {
  await page.close();
  // Exercise the real Home coordinator with irrelevant high-priority records ahead of relevant work.
  const home=await browser.newPage({viewport:{width:390,height:844}});
+ const openDay=async()=>{
+  const summary=home.locator('details > summary').filter({hasText:'Your day'});
+  await summary.waitFor();
+  if(!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();
+ };
  const player='30000000-0000-4000-8000-000000000001',other='30000000-0000-4000-8000-000000000002';
  let fail=false,delay=false,missing=false;
  await home.route('https://example.supabase.co/**',async route=>{
@@ -85,7 +90,7 @@ try {
   else if(path.endsWith('/redream_meeting_aftercare'))result={items:[]};
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(result)});
  });
- await home.goto(new URL('/qa-command',root).href);
+ await home.goto(new URL('/qa-command',root).href);await openDay();
  await home.getByText('Australian player update',{exact:true}).waitFor();
  assert.equal(await home.getByText('Unrelated player update',{exact:true}).count(),0);
  const readonly=home.locator('article').filter({hasText:'Player follow-up: Confirm availability'});
@@ -106,7 +111,7 @@ try {
  await home.getByText('Australian player update',{exact:true}).waitFor();
  await home.screenshot({path:output+'/personal-home-mobile.png',fullPage:true});
  assert.ok(await home.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
- missing=true;await home.reload();
+ missing=true;await home.reload();await openDay();
  await home.getByText('Staff tagging is not enabled yet. Showing your existing Home feed.',{exact:true}).waitFor();
  await home.getByText('Unrelated player update',{exact:true}).waitFor();
  assert.equal(await home.getByRole('button',{name:'My work',exact:true}).count(),0,'The compatibility feed must not claim to be personalised');

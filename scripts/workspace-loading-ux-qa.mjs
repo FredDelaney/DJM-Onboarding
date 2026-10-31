@@ -35,7 +35,15 @@ try {
   else result={items:[],accounts:{clubs:[]},contacts:{items:[]}};
   await route.fulfill({contentType:'application/json',body:JSON.stringify(result)});
  });
- const waitForRead=async pending=>{let timer;try{await Promise.race([pending,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Expected workspace read did not start')),30000);})]);}finally{clearTimeout(timer);}};
+ // The redesigned dashboard keeps the canonical Home queue in a collapsed details panel.
+// Exercise its real disclosure interaction before asserting Home actions and links.
+const openYourDay=async()=>{
+ const summary=page.locator('details > summary').filter({hasText:/^Your day/});
+ await summary.waitFor();
+ if(!await summary.evaluate(node=>node.parentElement?.open===true))await summary.click();
+ await page.getByRole('heading',{name:'Your day',exact:true}).waitFor();
+};
+const waitForRead=async pending=>{let timer;try{await Promise.race([pending,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Expected workspace read did not start')),30000);})]);}finally{clearTimeout(timer);}};
  const visit=async query=>{
   for(let attempt=0;attempt<60;attempt++)try{await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&'+query);return;}catch(error){if(attempt===59)throw error;await new Promise(resolve=>setTimeout(resolve,250));}
  };
@@ -83,21 +91,21 @@ try {
   await recovered;
   await deadlineAlert.waitFor({state:'hidden'});
   assert.equal(await page.getByRole('link',{name:'Selected Fixture Agency workspace',exact:true,includeHidden:true}).count(),2,'Both desktop and mobile brand links use the authorised selected agency');
-  if(query==='view=home')await page.locator('a[href$="&tab=needs&record=00000000-0000-4000-8000-000000000091"]').waitFor();
+  if(query==='view=home'){await openYourDay();await page.locator('a[href$="&tab=needs&record=00000000-0000-4000-8000-000000000091"]').waitFor();}
   if(query==='view=network')await page.getByRole('heading',{name:'Current Club',exact:true}).waitFor();
   for(const route of held.splice(0))await route.fulfill({contentType:'application/json',body:JSON.stringify({accounts:{clubs:[{organisation_id:'old',name:'Old Club'}]},contacts:{items:[]}})});
   assert.equal(await page.getByRole('heading',{name:'Old Club',exact:true}).count(),0,'Expired reads cannot replace the recovered view');
   console.log('PASS: '+query+' deadline and retry');
  }
  // Navigation must not wait indefinitely for a stalled speculative warm read.
- stalled.clear();await visit('view=home');await page.getByRole('heading',{name:'Your day',exact:true}).waitFor();
+ stalled.clear();await visit('view=home');await openYourDay();
  stalled.add('redream_autopilot_relationships');const warmStarted=new Promise(resolve=>{started=resolve;});
- await page.getByRole('link',{name:'Network',exact:true}).click();await waitForRead(warmStarted);
+ await page.getByRole('link',{name:'Clubs',exact:true}).click();await waitForRead(warmStarted);
  stalled.clear();
  await page.getByRole('heading',{name:'Current Club',exact:true}).waitFor();
  for(const route of held.splice(0))await route.fulfill({contentType:'application/json',body:JSON.stringify({accounts:{clubs:[{organisation_id:'old',name:'Old Club'}]},contacts:{items:[]}})});
- await page.getByRole('link',{name:'Home',exact:true}).click();await page.getByRole('heading',{name:'Your day',exact:true}).waitFor();
- await page.getByRole('link',{name:'Network',exact:true}).click();await page.getByRole('heading',{name:'Current Club',exact:true}).waitFor();
+ await page.getByRole('link',{name:'Dashboard',exact:true}).click();await openYourDay();
+ await page.getByRole('link',{name:'Clubs',exact:true}).click();await page.getByRole('heading',{name:'Current Club',exact:true}).waitFor();
  assert.equal(await page.getByRole('heading',{name:'Old Club',exact:true}).count(),0,'Timed out warming cannot poison the view cache');
  await visit('view=players');
  const player=page.getByRole('button',{name:'Open Example Player',exact:true});await player.waitFor();

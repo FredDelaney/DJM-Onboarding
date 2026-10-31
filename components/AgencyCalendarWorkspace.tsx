@@ -89,6 +89,7 @@ export default function AgencyCalendarWorkspace({
 }) {
   const search = useSearchParams();
   const requestedTaskId=String(search.get('task')||'').trim();
+  const quickCreateTask=search.get('create')==='task';
   const requestedWork=homeWorkRefFor({work_kind:search.get('work'),work_id:requestedTaskId});
   const requestedWorkKey=requestedWork?requestedWork.kind+':'+requestedWork.id:'';
   const openedWork=useRef('');
@@ -111,6 +112,7 @@ export default function AgencyCalendarWorkspace({
   const [showDone,setShowDone]=useState(false),[showArchived,setShowArchived]=useState(false);
   const [linkedUndated,setLinkedUndated]=useState(false);
   const [taskForm,setTaskForm]=useState<{scope:string;task?:CalendarTask}|null>(null);
+  const openedQuickCreate=useRef('');
   const [greeting,setGreeting]=useState('');
   const [now,setNow]=useState(()=>new Date());
   const dayStrip=useRef<HTMLDivElement>(null);
@@ -139,6 +141,11 @@ export default function AgencyCalendarWorkspace({
   },[workSourcesReady,workControl.overrides]);
   useEffect(()=>{setClientReady(true);},[]);
   useEffect(()=>{let saved=null;try{saved=preferenceKey?localStorage.getItem(`redream:calendar:${preferenceKey}`):null;}catch{}const value=parseCalendarPreferences(saved);setPreferences(value);setView(value.view);setPrefScope(preferenceKey||'');setTaskForm(null);setGreeting('');setShowDone(false);setShowArchived(false);},[preferenceKey]);
+  useEffect(()=>{
+    if(!quickCreateTask||openedQuickCreate.current===source.scope)return;
+    openedQuickCreate.current=source.scope;
+    setTaskForm({scope:source.scope});
+  },[quickCreateTask,source.scope]);
   useEffect(()=>{if(!preferenceKey||prefScope!==preferenceKey)return;try{localStorage.setItem(`redream:calendar:${preferenceKey}`,JSON.stringify({...preferences,view}));}catch{}},[preferences,view,preferenceKey,prefScope]);
   useEffect(()=>{dayStrip.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({block:'nearest',inline:'center',behavior:'auto'});},[selectedDate,view]);
   useEffect(()=>{const refresh=()=>setRefreshDates(n=>n+1),clock=()=>setNow(new Date());const timer=window.setInterval(clock,30000);window.addEventListener('redream:birthdays-updated',refresh);window.addEventListener('redream:responsibilities-updated',refresh);document.addEventListener('visibilitychange',clock);return()=>{clearInterval(timer);window.removeEventListener('redream:birthdays-updated',refresh);window.removeEventListener('redream:responsibilities-updated',refresh);document.removeEventListener('visibilitychange',clock);};},[]);

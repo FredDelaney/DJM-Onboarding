@@ -56,8 +56,14 @@ test('the five primary destinations stay inside the selected workspace', () => {
     ['calendar', 'Calendar'],
   ]);
   assert.match(workspace, /const basePath = explicitSlug\s*\? `\/workspace\/\$\{encodeURIComponent\(explicitSlug\)\}`/);
-  assert.match(workspace, /item\.key === 'home'\s*\? basePath\s*: `\$\{basePath\}\?view=\$\{item\.key\}`/);
+  assert.match(workspace, /\{ key: 'dashboard', label: 'Dashboard', view: 'home', href: basePath/);
 
+  assert.match(workspace, /key: 'requests', label: 'Requests', view: 'opportunities'/);
+  assert.match(workspace, /key: 'deals', label: 'Deals', view: 'opportunities'/);
+  assert.match(workspace, /href=\{item\.href\}/);
+  assert.match(workspace, /key: 'requests', label: 'Requests', view: 'opportunities'/);
+  assert.match(workspace, /key: 'deals', label: 'Deals', view: 'opportunities'/);
+  assert.match(workspace, /href=\{item\.href\}/);
   const primaryNav = workspace.match(/<nav className=\{styles\.nav\}[\s\S]*?<\/nav>/)?.[0];
   assert.ok(primaryNav, 'primary workspace navigation exists');
   assert.doesNotMatch(primaryNav, /\/agency|\/admin|\/dashboard|router\.replace/);

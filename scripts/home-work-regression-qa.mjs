@@ -6,6 +6,7 @@ const failures=[];
 try{
  for(const scenario of ['reply','date','refresh']){
   const page=await browser.newPage({viewport:{width:390,height:844}});
+  const openDay=async()=>{const summary=page.locator('details > summary').filter({hasText:'Your day'});await summary.waitFor();if(!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();};
   let kind=scenario==='date'?'calendar_task':scenario==='reply'?'task':'player_next_action';
   let work={work_kind:kind,work_id:id,title:'Call the player',display_title:'Call the player',due_on:'2026-10-16',due_at:kind==='calendar_task'?null:'2026-10-16',note:'',status:'open',state:{revision:1,status:'open'}};
   let before,delayHome=false,homeReads=0;
@@ -34,6 +35,7 @@ try{
   try{
    const url=new URL('/qa-command',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');
    for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(error){if(i===59)throw error;await page.waitForTimeout(250);}}
+  await openDay();
    const row=()=>page.locator('article').filter({hasText:work.display_title});
    await row().getByRole('button',{name:'Update',exact:true}).waitFor();
    if(scenario==='reply')assert.equal(await row().getByRole('button',{name:'Prepare reply',exact:true}).count(),1,'Home retains reply preparation alongside task controls');

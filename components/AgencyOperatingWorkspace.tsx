@@ -12,7 +12,7 @@ import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
 import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery,workspaceProfileFromDealHref} from '@/lib/workspace-record-navigation';
 import PeopleViewSwitcher from './PeopleViewSwitcher';
-import WorkspaceSearch from '@/components/WorkspaceSearch';
+
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
 import dynamic from 'next/dynamic';
@@ -25,6 +25,11 @@ import {
   BriefcaseBusiness,
   CakeSlice,
   CalendarDays,
+  Building2,
+  ClipboardList,
+  ContactRound,
+  Handshake,
+  Settings2,
   CheckCircle2,
   CircleAlert,
   Coins,
@@ -94,6 +99,8 @@ const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersW
 const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: () => <WorkspaceSectionLoading label="Network"/>});
 const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
 const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
+const WorkspaceSearch = dynamic(() => import('@/components/WorkspaceSearch'));
+const AgencyDashboardConnected = dynamic(() => import('@/components/AgencyDashboardConnected'), {loading: () => <WorkspaceSectionLoading label="dashboard"/>});
 const AgencyCreateDrawer = dynamic(() => import('@/components/AgencyCreateDrawer'));
 const AgencyRosterMigrationPanel = dynamic(() => import('@/components/AgencyRosterMigrationPanel'));
 const AgencyActionDrawer = dynamic(() => import('@/components/AgencyActionDrawer'));
@@ -447,6 +454,11 @@ export default function AgencyOperatingWorkspace() {
     agencyBranding.display_name ||
     'Agency workspace';
   const viewPresentation = VIEW_PRESENTATION[view];
+  const activeHeading = view === 'home' ? 'Dashboard' : view === 'network'
+    ? (search.get('network') === 'people' ? 'Contacts' : 'Clubs')
+    : view === 'opportunities'
+      ? (search.get('tab') === 'deals' ? 'Deals' : 'Requests')
+      : viewPresentation.title;
   const stateScope = workspace?.tenant_id && sessionUserId
     ? `${workspace.tenant_id}:${sessionUserId}:${workspace.role}` : '';
   const canSeeBusiness = ['owner', 'admin'].includes(
@@ -457,9 +469,28 @@ export default function AgencyOperatingWorkspace() {
     ?workspaceIntelligenceHref(basePath,'',{kind:'deal',entityId:profileSourceDealId}):null;
   const canCreateRecords = ['owner','admin','agent','operations'].includes(String(workspace?.role || ''));
   const restrictedView = !canSeeBusiness && ['opportunities','business'].includes(view);
-  const navigation = NAV.filter(
-    (item) => !['business','opportunities'].includes(item.key) || canSeeBusiness,
-  );
+  // Reference navigation maps directly onto existing canonical ReDream views.
+  // Never invent a destination for a feature that is not backed by a real reader.
+  const navigation: Array<{
+    key: string;
+    label: string;
+    view?: View;
+    href: string;
+    icon: typeof Target;
+    active: boolean;
+  }> = [
+    { key: 'dashboard', label: 'Dashboard', view: 'home', href: basePath, icon: HomeIcon, active: view === 'home' },
+    { key: 'calendar', label: 'Calendar', view: 'calendar', href: `${basePath}?view=calendar`, icon: CalendarDays, active: view === 'calendar' },
+    { key: 'players', label: 'Players', view: 'players', href: `${basePath}?view=players`, icon: Users, active: view === 'players' },
+    { key: 'clubs', label: 'Clubs', view: 'network', href: `${basePath}?view=network&network=clubs`, icon: Building2, active: view === 'network' && search.get('network') !== 'people' },
+    ...(canSeeBusiness ? [
+      { key: 'requests', label: 'Requests', view: 'opportunities' as View, href: `${basePath}?view=opportunities&tab=needs`, icon: ClipboardList, active: view === 'opportunities' && search.get('tab') !== 'deals' },
+      { key: 'deals', label: 'Deals', view: 'opportunities' as View, href: `${basePath}?view=opportunities&tab=deals`, icon: Handshake, active: view === 'opportunities' && search.get('tab') === 'deals' },
+    ] : []),
+    { key: 'contacts', label: 'Contacts', view: 'network', href: `${basePath}?view=network&network=people`, icon: ContactRound, active: view === 'network' && search.get('network') === 'people' },
+    ...(canSeeBusiness ? [{ key: 'business', label: 'Business', view: 'business' as View, href: `${basePath}?view=business`, icon: Coins, active: view === 'business' }] : []),
+    { key: 'settings', label: 'Settings', href: '/settings', icon: Settings2, active: false },
+  ];
 
   const createAction:
     | { kind: AgencyCreateKind; label: string }
@@ -1467,48 +1498,27 @@ export default function AgencyOperatingWorkspace() {
         <nav className={styles.nav} aria-label="Agency workspace">
           {navigation.map((item) => {
             const Icon = item.icon;
-            const href =
-              item.key === 'home'
-                ? basePath
-                : `${basePath}?view=${item.key}`;
-
             return (
               <Link
                 key={item.key}
-                href={href}
+                href={item.href}
                 prefetch={false}
-                aria-current={view === item.key ? 'page' : undefined}
-                className={`${view === item.key ? styles.navActive : ''} ${item.key === 'business' ? styles.navManagement : ''}`}
-                onPointerDown={() => void warmView(item.key)}
-                onPointerEnter={() => void warmView(item.key)}
-                onFocus={() => void warmView(item.key)}
+                aria-current={item.active ? 'page' : undefined}
+                className={`${item.active ? styles.navActive : ''} ${item.key === 'business' ? styles.navManagement : ''}`}
+                onPointerDown={() => { if (item.view) void warmView(item.view); }}
+                onPointerEnter={() => { if (item.view) void warmView(item.view); }}
+                onFocus={() => { if (item.view) void warmView(item.view); }}
                 onClick={(event) => {
-                  if (
-                    event.button !== 0 ||
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey
-                  ) {
-                    return;
-                  }
-
+                  if (!item.view || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                   event.preventDefault();
-                  navigateWorkspaceView(item.key, href);
+                  navigateWorkspaceView(item.view, item.href);
                 }}
               >
-                <Icon size={17} />
-                {item.key === 'opportunities' ? <>
-                  <span className={styles.navDesktopLabel}>{item.label}</span>
-                  <span className={styles.navMobileLabel}>Market</span>
-                </> : <span>{item.label}</span>}
+                <Icon size={17} aria-hidden="true" />
+                <span>{item.label}</span>
               </Link>
             );
           })}
-          <WorkspaceSearch compact className={styles.findButton}
-            tenantId={workspace.tenant_id} userId={sessionUserId}
-            basePath={basePath} cacheScope={stateScope} invoke={invoke} rpc={rpc}
-            seed={{view,data}} onCreate={setCreateKind}/>
         </nav>
 
         <div className={styles.sidebarFoot}>
@@ -1531,11 +1541,15 @@ export default function AgencyOperatingWorkspace() {
           <div className={styles.pageHeadCopy}>
             <div className={styles.pageHeadTitleLine}>
               <div>
-                <h1 id="workspace-view-heading" tabIndex={-1}>{viewPresentation.title}</h1>
+                <h1 id="workspace-view-heading" tabIndex={-1}>{activeHeading}</h1>
               </div>
             </div>
           </div>
           <div className={styles.desktopHeadActions}>
+            <WorkspaceSearch className={styles.headerSearch} triggerLabel="Search anything..."
+              tenantId={workspace.tenant_id} userId={sessionUserId}
+              basePath={basePath} cacheScope={stateScope} invoke={invoke} rpc={rpc}
+              seed={{view,data}} onCreate={setCreateKind} />
             <AiLauncher onCaptureCompleted={handleCaptureCompleted} />
             {createAction && view !== 'players' ? (
               <button
@@ -1669,6 +1683,16 @@ export default function AgencyOperatingWorkspace() {
               </section>
             ) : null}
             {view === 'home' ? (
+              <AgencyDashboardConnected
+                invoke={invoke}
+                tenantId={workspace.tenant_id}
+                userId={sessionUserId}
+                role={String(workspace.role)}
+                basePath={basePath}
+                agencyName={workspaceName}
+                agencyMark={<TenantWorkspaceBrand branding={agencyBranding} href={basePath} compact />}
+                onCreate={(kind) => setCreateKind(kind)}
+              >
               <Home
                 rpc={rpc}
                 tenantId={workspace.tenant_id}
@@ -1687,6 +1711,7 @@ export default function AgencyOperatingWorkspace() {
                   setMeetingOutcomeRequest(meeting)
                 }
               />
+              </AgencyDashboardConnected>
             ) : null}
             {view === 'players' ? (
               showPlayerProfile ? (

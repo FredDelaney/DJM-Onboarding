@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 export async function verifyInPlaceCaptureCompletion(page, url, mobile = true, userId) {
   assert.ok(userId, 'Receipt-resume fixtures require their authenticated actor');
+  const openDay=async()=>{
+    const summary=page.locator('details > summary').filter({hasText:'Your day'});
+    await summary.waitFor();
+    if(!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();
+  };
   await page.goto(url);
+  await openDay();
   const nav = page.getByRole("navigation", {
     name: "Mobile workspace",
     exact: true,
@@ -44,6 +50,7 @@ export async function verifyInPlaceCaptureCompletion(page, url, mobile = true, u
     .getByRole("button", { name: "Close Tell ReDream", exact: true })
     .click();
   await capture.waitFor({ state: "hidden" });
+  await openDay();
   await complete.waitFor();
   assert.equal(
     new URL(page.url()).searchParams.get("view"),

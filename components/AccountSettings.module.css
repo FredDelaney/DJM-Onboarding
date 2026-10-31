@@ -435,3 +435,20 @@
 /* Quiet typography and surfaces for this work view. */
 .panel, .usageCard, .usageGrid { box-shadow: none; border-color: #e5e5e7; }
 .primary, .secondary { font-weight: 500; box-shadow: none; }
+
+/* REFERENCE-PROFILE-20261031: readable card forms and circular account photo. */
+.stack { gap: 18px; }
+.panel { padding: 25px; border: 1px solid #e2e9f3; border-radius: 15px; box-shadow: none; background: #fff; }
+.panelHead { padding-bottom: 4px; }
+.panelHead h2 { color: #192438; font-size: 18px; font-weight: 650; }
+.panelHead p { color: #7585a0; font-size: 13px; }
+.avatarEditor { grid-template-columns: 92px minmax(0, 1fr); }
+.avatarLarge { width: 92px; height: 92px; border: 1px solid #e5ebf3; border-radius: 50%; background: #eaf2ff; color: #3587fc; box-shadow: none; }
+.field { gap: 7px; }
+.field span { color: #24334b; font-size: 14px; font-weight: 530; }
+.field input, .field select, .field textarea { border-color: #dfe6f0; background: #fff; font-size: 14px; border-radius: 10px; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: #3587fc; box-shadow: 0 0 0 3px #3587fc18; }
+.primary { background: #3587fc; color: #fff; border-color: #3587fc; font-size: 13px; font-weight: 600; border-radius: 999px; padding-inline: 20px; }
+.secondary { border-color: #e3e8f0; border-radius: 999px; font-size: 13px; }
+.actions { justify-content: flex-end; }
+@media (max-width: 680px) { .panel { padding: 18px; } .avatarEditor { grid-template-columns: 80px 1fr; } .avatarLarge { width: 80px; height: 80px; } .field input, .field select { font-size: 16px; } }

@@ -63,6 +63,9 @@ export async function verifyCaptureFollowupJourney(page, counts) {
     .getByRole("navigation", { name: "Mobile workspace", exact: true })
     .getByRole("link", { name: "Today", exact: true })
     .click();
+  const day=page.locator('details > summary').filter({hasText:'Your day'});
+  await day.waitFor();
+  if(!(await day.evaluate(node=>node.parentElement.open)))await day.click();
   const complete = page.getByRole("button", {
     name: "Complete " + title,
     exact: true,

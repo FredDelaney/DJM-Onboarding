@@ -4293,3 +4293,37 @@
 .homeScope button[aria-pressed="true"] { background:var(--surface,#fff); color:var(--text-primary,#1d1d1f); box-shadow:0 1px 4px #0000000b; }
 .homeScope button:focus-visible { outline:3px solid var(--tenant-primary,#0071e3); outline-offset:1px; }
 .homeScopeHint { margin:8px 0 12px; color:var(--text-secondary,#6e6e73); font-size:13px; line-height:1.5; }
+
+/* REFERENCE-FOUNDATION-20261031: consolidated desktop structure, built on existing application screens. */
+@media (min-width: 681px) {
+  .root { grid-template-columns: 258px minmax(0, 1fr); background: #f6f8fc; color: #192438; }
+  .sidebar { gap: 0; padding: 0 12px 18px; border-right: 1px solid #e5ebf3; background: #fff; color: #28364a; }
+  .brand { min-height: 74px; margin: 0 -12px 18px; padding: 0 21px; background: #3587fc; color: #fff; }
+  .brand :global(a), .brand :global(strong), .brand :global(small) { color: #fff; }
+  .brand :global(.logoBox) { box-shadow: none; }
+  .nav { display: grid; grid-template-columns: 1fr; align-content: start; gap: 4px; }
+  .nav a { min-height: 44px; display: flex; justify-content: flex-start; gap: 12px; padding: 0 14px; border-radius: 11px; color: #526178; font-size: 14px; font-weight: 540; }
+  .nav a svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 1.9; }
+  .nav a span { display: inline; }
+  .nav a:hover { background: #f3f7ff; color: #1858b7; }
+  .nav a.navActive { background: #eaf2ff; color: #176dd5; font-weight: 660; box-shadow: none; }
+  .sidebarFoot { margin-top: auto; padding: 18px 12px 0; border-top: 1px solid #e9eef5; color: #64748b; }
+  .sidebarFoot button { color: #697a92; }
+  .main { width: 100%; max-width: none; box-sizing: border-box; margin: 0; padding: 22px clamp(20px, 2.5vw, 42px) 64px; }
+  .pageHead { min-height: 76px; box-sizing: border-box; align-items: center; gap: 18px; padding: 12px 20px; margin: 0 0 22px; border: 1px solid #edf1f7; border-radius: 16px; background: #fff; box-shadow: 0 3px 16px rgba(30, 55, 94, .025); }
+  .pageHead h1 { font-size: clamp(21px, 2.1vw, 27px); font-weight: 650; letter-spacing: -.035em; color: #3587fc; }
+  .desktopHeadActions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .headerSearch { display: flex; align-items: center; justify-content: flex-start; min-height: 40px; width: min(260px, 21vw); padding: 0 13px; border: 0; border-radius: 999px; background: #f3f6fb; color: #8190a7; font-weight: 500; font-size: 13px; }
+  .headerSearch:hover { background: #ebf2ff; }
+  .sectionCard, .card, .metric, .focusPanel { border-color: #e2e9f3; border-radius: 16px; background: #fff; box-shadow: none; }
+  .primaryButton, .compactButton, .createButton { background: #3587fc; color: #fff; box-shadow: none; border-radius: 999px; }
+}
+@media (min-width: 681px) and (max-width: 1040px) {
+  .root { grid-template-columns: 212px minmax(0, 1fr); }
+  .nav a { padding-inline: 10px; }
+  .headerSearch { max-width: 175px; }
+}
+@media (max-width: 680px) {
+  .pageHead h1 { color: #3587fc; }
+  .headerSearch { display: none; }
+}
