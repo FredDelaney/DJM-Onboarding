@@ -20,6 +20,7 @@ try {
     });
     const url = new URL('/qa-command', process.env.CALENDAR_QA_URL || 'http://127.0.0.1:3113');
     for (let i = 0; i < 60; i++) {try {await page.goto(url.href); break;} catch (error) {if (i === 59) throw error; await page.waitForTimeout(250);}}
+    await page.locator('details > summary').filter({hasText:'Your day'}).click();
     await page.getByText('A simple follow-up', {exact: true}).waitFor();
     await page.waitForTimeout(2000);
     assert.deepEqual(warming, [], 'Limited connections must not fetch hidden sections in the background');

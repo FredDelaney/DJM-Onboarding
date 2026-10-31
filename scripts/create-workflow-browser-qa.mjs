@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 const browser = await chromium.launch({executablePath: process.env.CALENDAR_CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage']});
 const failures = [];
-const titles = {player: 'Add player', club: 'Add club', contact: 'Add contact', club_need: 'Add club need', deal: 'Add deal'};
+const titles = {player: 'Add player', club: 'Add club', contact: 'Add contact', club_need: 'Add request', deal: 'Add deal'};
 const playerOptions = {options: {players: [{player_id: 'fixture-player', name: 'Example Player', current_club: 'Example FC'}]}};
 try {
   for (const scenario of process.env.CREATE_SCENARIOS?.split(',') || ['draft', 'layout', 'refresh', 'options', 'forms', 'brief', 'football-source','source-recovery', 'write', 'write-timeout', 'keyboard', 'timeout', 'empty']) {
@@ -88,7 +88,7 @@ try {
         await dialog.getByLabel('What does the club need?',{exact:true}).fill('Original striker request.');
         await dialog.getByText('Football requirements',{exact:true}).click();
         await dialog.getByLabel('Minimum age',{exact:true}).fill('28');await dialog.getByLabel('Maximum age',{exact:true}).fill('20');
-        await dialog.getByRole('button',{name:'Add club need',exact:true}).click();await dialog.getByText('Minimum age must not exceed maximum age.',{exact:true}).waitFor();assert.equal(writes.length,0);
+        await dialog.getByRole('button',{name:'Add request',exact:true}).click();await dialog.getByText('Minimum age must not exceed maximum age.',{exact:true}).waitFor();assert.equal(writes.length,0);
         await dialog.getByLabel('Minimum age',{exact:true}).fill('18');await dialog.getByLabel('Maximum age',{exact:true}).fill('26');
         await dialog.getByLabel('Preferred foot',{exact:true}).selectOption('left');await dialog.getByLabel('Minimum height (cm)',{exact:true}).fill('180');
         await dialog.getByLabel('Nationality preferences (one per line)',{exact:true}).fill('Portugal\nNew Zealand');await dialog.getByLabel('Playing level & experience',{exact:true}).fill('Senior first-team experience');
@@ -99,11 +99,17 @@ try {
         await dialog.getByLabel('Source organisation',{exact:true}).selectOption('30000000-0000-4000-8000-000000000003');
         await dialog.getByLabel('Date received (if known)',{exact:true}).fill('2026-10-20');await dialog.getByLabel('Priority',{exact:true}).selectOption('4');
         for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:600});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Football/source brief fits '+width);}
-        await dialog.getByRole('button',{name:'Add club need',exact:true}).click();await dialog.waitFor({state:'hidden'});
+        await dialog.getByRole('button',{name:'Add request',exact:true}).click();await dialog.waitFor({state:'hidden'});
         assert.equal(writes.length,1);const body=writes[0].body;assert.equal(body.organisation_id,'30000000-0000-4000-8000-000000000002');assert.equal(body.country,'Australia');assert.equal(body.brief.min_age,'18');assert.equal(body.brief.nationality_preferences,'Portugal\nNew Zealand');assert.equal(body.brief.source_person_id,'40000000-0000-4000-8000-000000000001');assert.equal(body.brief.received_on,'2026-10-20');assert.equal(body.notes,'Original striker request.');
       }else if(scenario==='brief'){
         await fill(dialog,kind);
-        await dialog.getByText('Budget, contract & availability',{exact:true}).click();
+        const budgetSection=dialog.locator('details').filter({hasText:'Deal & budget'});
+        await budgetSection.locator('summary').waitFor();
+        assert.equal(
+          await budgetSection.evaluate(section=>section.open),
+          true,
+          'Request budget must be expanded by default'
+        );
         assert.equal(await dialog.getByLabel('Currency',{exact:true}).inputValue(),'','No assumed currency');
         await dialog.getByLabel('Salary budget (maximum)',{exact:true}).fill('5000');
         await dialog.getByLabel('Currency',{exact:true}).fill('EUR');
@@ -120,10 +126,10 @@ try {
           await page.setViewportSize({width,height:600});
           await dialog.getByLabel('Source status',{exact:true}).scrollIntoViewIfNeeded();
           assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Brief fits '+width);
-          const save=await dialog.getByRole('button',{name:'Add club need',exact:true}).boundingBox();assert.ok(save&&save.height>=44&&save.y+save.height<=601,'Visible save at '+width);
+          const save=await dialog.getByRole('button',{name:'Add request',exact:true}).boundingBox();assert.ok(save&&save.height>=44&&save.y+save.height<=601,'Visible save at '+width);
           if((width===390||width===1440)&&process.env.CREATE_QA_SCREENSHOT)await page.screenshot({path:process.env.CREATE_QA_SCREENSHOT.replace('.png','-'+width+'.png')});
         }
-        await dialog.getByRole('button',{name:'Add club need',exact:true}).click();await dialog.waitFor({state:'hidden'});
+        await dialog.getByRole('button',{name:'Add request',exact:true}).click();await dialog.waitFor({state:'hidden'});
         assert.deepEqual(Object.fromEntries(['salary_budget','currency','salary_period','salary_tax_basis','contract_months','contract_guaranteed','option_months','transfer_type','transfer_budget','availability_notes','source_status'].map(key=>[key,writes[0].body.brief[key]])),{salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:null,contract_months:'12',contract_guaranteed:'true',option_months:'12',transfer_type:'free_agent',transfer_budget:null,availability_notes:'Within two weeks',source_status:'reported'});
         assert.equal(writes.length,1);
       } else if (scenario === 'draft') {

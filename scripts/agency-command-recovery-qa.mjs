@@ -5,6 +5,7 @@ const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${proce
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process','--no-zygote']});
 try {
   const page=await browser.newPage({viewport:{width:390,height:844}});
+  const openDay=async()=>{const summary=page.locator('details > summary').filter({hasText:'Your day'});await summary.waitFor();if(!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();};
   await page.route('https://example.supabase.co/**',async route=>{
    if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
     const action=route.request().postDataJSON()?.action;
@@ -20,6 +21,7 @@ try {
   });
   const url=new URL('/qa-command',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');
   for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(e){if(i===59)throw e;await page.waitForTimeout(500);}}
+  await openDay();
   await page.getByRole('button',{name:'Complete follow-up',exact:true}).click();
   // The existing markup is intentionally selected before it gains dialog semantics.
   const confirmation=page.locator('section').filter({hasText:'Nothing changes until you confirm.'});

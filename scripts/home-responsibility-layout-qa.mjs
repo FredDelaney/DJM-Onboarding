@@ -6,6 +6,7 @@ const people = [{user_id:'10000000-0000-4000-8000-000000000001',display_name:'Je
 const output='/tmp/redream-platform-programme/daily-work-polish';await mkdir(output,{recursive:true});
 try {
  const page = await browser.newPage({viewport:{width:390,height:844}});
+  const openDay=async()=>{const summary=page.locator('details > summary').filter({hasText:'Your day'});await summary.waitFor();if(!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();};
  const errors=[]; page.on('pageerror',error=>errors.push(error.message));
  await page.route('https://example.supabase.co/**',async route=>{
   if(new URL(route.request().url()).pathname.endsWith('/redream_home_relevance_v1'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({visible_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index),editable_indices:(route.request().postDataJSON()?.p_items||[]).map((_,index)=>index)})});
@@ -23,6 +24,7 @@ try {
  });
  const url=new URL('/qa-command',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');
  for(let attempt=0;attempt<60;attempt++){try{await page.goto(url.href);break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}}
+  await openDay();
  const row=page.locator('article').filter({hasText:'Lachlan Sattout: catch up'});
  await row.getByLabel('Change responsible people',{exact:true}).filter({hasText:'Jesse Edge'}).waitFor();
  for(const width of [320,390,430,768,1440]){

@@ -14,6 +14,7 @@ const writes=[];
 let activePage;
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
+  const openDay=async()=>{const summary=page.locator('details > summary').filter({hasText:'Your day'});await summary.waitFor();if(!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();};
  activePage=page;
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.route('https://example.supabase.co/**',async route=>{
@@ -51,6 +52,7 @@ try{
  });
  const url=new URL('/qa-command',process.env.CALENDAR_QA_URL||'http://127.0.0.1:3113');
  for(let i=0;i<60;i++){try{await page.goto(url.href);break;}catch(e){if(i===59)throw e;await page.waitForTimeout(250);}}
+  await openDay();
  const row=()=>page.locator('article').filter({hasText:work.display_title});
  await row().getByRole('button',{name:'Update',exact:true}).waitFor();
  assert.equal(await row().count(),1,'The command and assignment feeds show one canonical follow-up');
@@ -75,7 +77,7 @@ try{
  await page.waitForFunction(()=>document.activeElement?.textContent?.trim()==='Update'||document.activeElement?.id==='workspace-view-heading',undefined,{timeout:3000});
  if(!await row().getByRole('button',{name:'Update',exact:true}).evaluate(node=>node===document.activeElement)){
   assert.equal(await saveOpener.evaluate(node=>node.isConnected),false,'Heading fallback is used only when Home replaced the original row');
-  assert.equal(await page.getByRole('heading',{name:'Home',exact:true}).evaluate(node=>node===document.activeElement),true,'A replaced row returns to the current Home heading');
+  assert.equal(await page.locator('#workspace-view-heading').evaluate(node=>node===document.activeElement&&node.textContent?.trim()==='Dashboard'),true,'A replaced row returns to the current Home heading');
  }
  await row().getByRole('button',{name:'Update',exact:true}).click();
  assert.equal(await panel.getByLabel('Note (optional)',{exact:true}).inputValue(),'Club is available Tuesday.');
@@ -116,7 +118,7 @@ try{
  // A server-labelled task uses the saved task title for stale-work checks,
  // while confirmation retains the player context the user actually selected.
  contextMode=true;legacy={...legacy,status:'open',state:{...legacy.state,status:'open',version:legacy.state.version+1}};
- await page.reload();
+ await page.reload();await openDay();
  const labelledTitle=contextTitle+' · Dylan';
  const labelled=()=>page.locator('article').filter({hasText:labelledTitle});
  // Five overdue calendar rows must not crowd a genuinely high-priority task out of Home.
@@ -132,21 +134,21 @@ try{
  await panel.getByText('The saved task has changed. Check these details before completing it.',{exact:true}).waitFor();
  assert.equal(writes.filter(body=>body.p_action==='complete').length,savedCount,'A real canonical title change still requires review');
  await panel.getByRole('button',{name:'Close task editor',exact:true}).click();
- contextTitle=legacy.title;await page.reload();
+ contextTitle=legacy.title;await page.reload();await openDay();
  const currentLabel=contextTitle+' · Dylan';
  await page.getByRole('button',{name:'Complete '+currentLabel,exact:true}).waitFor();
  legacy={...legacy,context:{...legacy.context,player_id:'30000000-0000-4000-8000-000000000002'},state:{...legacy.state,version:legacy.state.version+1}};
  await page.getByRole('button',{name:'Complete '+currentLabel,exact:true}).click();await panel.waitFor();
  assert.equal(writes.filter(body=>body.p_action==='complete').length,savedCount,'Changed player context cannot silently complete a task selected for another player');
  await panel.getByRole('button',{name:'Close task editor',exact:true}).click();
- legacy={...legacy,context:{...legacy.context,player_id:player}};await page.reload();
+ legacy={...legacy,context:{...legacy.context,player_id:player}};await page.reload();await openDay();
  await page.getByRole('button',{name:'Complete '+currentLabel,exact:true}).waitFor();
  legacy={...legacy,note:'A newer saved note',state:{...legacy.state,note:'A newer saved note',version:legacy.state.version+1}};
  await page.getByRole('button',{name:'Complete '+currentLabel,exact:true}).click();await panel.waitFor();
  assert.equal(await panel.getByLabel('Note (optional)',{exact:true}).inputValue(),'A newer saved note');
  assert.equal(writes.filter(body=>body.p_action==='complete').length,savedCount,'An updated record version still requires review when title and date match');
  await panel.getByRole('button',{name:'Close task editor',exact:true}).click();
- contextTitle=legacy.title;contextCopies=2;await page.reload();
+ contextTitle=legacy.title;contextCopies=2;await page.reload();await openDay();
  const groupedTitle=contextTitle+' · Dylan (2 active copies)';
  const grouped=page.locator('article').filter({hasText:groupedTitle});
  await grouped.waitFor();
