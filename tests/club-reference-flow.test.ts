@@ -36,6 +36,8 @@ test('Clubs reference list and flow are real server-backed actions',()=>{
   assert.match(component,/invoke\('clubs_directory'/);
   assert.match(component,/invoke\('import_club'/);
   assert.match(workspace,/AgencyClubsReference/);
+  assert.match(workspace,/search\.get\('clubsv2'\) === '1'/);
+  assert.match(workspace,/network=clubs&clubsv2=1/);
   assert.match(workspace,/onOpenClubAccount=\{setClubAccountRequest\}/);
   assert.doesNotMatch(network,/AgencyClubsReference/);
   assert.match(workspace,/invoke=\{invoke\}/);

@@ -483,7 +483,7 @@ export default function AgencyOperatingWorkspace() {
     { key: 'dashboard', label: 'Dashboard', view: 'home', href: basePath, icon: HomeIcon, active: view === 'home' },
     { key: 'calendar', label: 'Calendar', view: 'calendar', href: `${basePath}?view=calendar`, icon: CalendarDays, active: view === 'calendar' },
     { key: 'players', label: 'Players', view: 'players', href: `${basePath}?view=players`, icon: Users, active: view === 'players' },
-    { key: 'clubs', label: 'Clubs', view: 'network', href: `${basePath}?view=network&network=clubs`, icon: Building2, active: view === 'network' && search.get('network') !== 'people' },
+    { key: 'clubs', label: 'Clubs', view: 'network', href: `${basePath}?view=network&network=clubs&clubsv2=1`, icon: Building2, active: view === 'network' && search.get('network') !== 'people' },
     ...(canSeeBusiness ? [
       { key: 'requests', label: 'Requests', view: 'opportunities' as View, href: `${basePath}?view=opportunities&tab=needs`, icon: ClipboardList, active: view === 'opportunities' && search.get('tab') !== 'deals' },
       { key: 'deals', label: 'Deals', view: 'opportunities' as View, href: `${basePath}?view=opportunities&tab=deals`, icon: Handshake, active: view === 'opportunities' && search.get('tab') === 'deals' },
@@ -1781,7 +1781,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenIntelligence={openIntelligenceRequest}
               />
             ) : null}
-            {view === 'network' && search.get('network') === 'clubs' && canSeeBusiness ? (
+            {view === 'network' && search.get('clubsv2') === '1' && canSeeBusiness ? (
               <AgencyClubsReference
                 key={stateScope + ':clubs'}
                 invoke={invoke}
