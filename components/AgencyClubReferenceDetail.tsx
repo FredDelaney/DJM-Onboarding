@@ -54,7 +54,7 @@ export default function AgencyClubReferenceDetail({
   const country=txt(club.country),league=txt(club.league_name);
   const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()).join('');
 
-  return <section className={styles.page}>
+  return <section className={styles.page} role="region" aria-label={`Club details for ${name}`}>
     <button type="button" className={styles.return} onClick={onClose}><ArrowLeft size={17}/> Back to Clubs</button>
     <header className={styles.clubHeader}>
       <span className={styles.clubMark}><Shield size={37} strokeWidth={1.5}/><strong>{initials}</strong></span>

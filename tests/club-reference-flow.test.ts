@@ -62,6 +62,7 @@ test('Club creation, directory and contact SQL preserve tenant access and privat
   assert.match(people,/p\.tenant_id=p_tenant_id/);
   assert.match(people,/private\.user_is_tenant_admin/);
   assert.match(people,/contact_email_invalid/);
+  assert.match(detail,/role="region" aria-label=\{`Club details for \$\{name\}`\}/, 'Club profile preserves its accessible region for mobile navigation and screen readers');
   assert.match(detail,/Requests/);
   assert.match(detail,/Deals/);
   assert.match(detail,/Contacts/);
