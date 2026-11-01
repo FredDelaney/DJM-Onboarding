@@ -549,14 +549,26 @@ export default function AgencyNetworkWorkspace({
     );
   }
 
-  if (view === 'clubs' && !requestedPersonId) {
-    return <AgencyClubsReference
-      invoke={invoke}
-      onRefresh={onRecordRefresh || onRefresh}
-      onCreate={onCreate}
-      onOpenClubAccount={openClub}
-      canCreateRecords={canCreateRecords}
-    />;
+  if (view === 'clubs' && explicitView === 'clubs' && !requestedPersonId && !restricted) {
+    return <div className={styles.workspace}>
+      <section className={styles.toolbar} data-people-toolbar aria-label="Network categories">
+        <div className={styles.tabs} data-people-internal-tabs>
+          <button type="button" className={styles.tabActive} onClick={()=>setView('clubs')}>
+            <BriefcaseBusiness size={15}/> Clubs <span>{clubs.length}</span>
+          </button>
+          <button type="button" className={styles.tab} onClick={()=>{setView('people');setFocus('all');}}>
+            <Users size={15}/> People <span>{people.length}</span>
+          </button>
+        </div>
+      </section>
+      <AgencyClubsReference
+        invoke={invoke}
+        onRefresh={onRecordRefresh || onRefresh}
+        onCreate={onCreate}
+        onOpenClubAccount={openClub}
+        canCreateRecords={canCreateRecords}
+      />
+    </div>;
   }
 
   return (

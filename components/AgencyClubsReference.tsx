@@ -192,7 +192,7 @@ export default function AgencyClubsReference({
       <label className={styles.searchField}>
         <Search size={20} aria-hidden="true"/>
         <span className={styles.srOnly}>Search clubs</span>
-        <input value={query} placeholder="Search clubs..." onChange={event=>{setQuery(event.target.value);setPage(0);}} />
+        <input type="search" aria-label="Search Network" value={query} placeholder="Search clubs..." onChange={event=>{setQuery(event.target.value);setPage(0);}} />
         {query&&<button type="button" onClick={()=>{setQuery('');setPage(0);}} aria-label="Clear search"><X size={15}/></button>}
       </label>
       {canCreateRecords&&<button type="button" data-ui-button="primary" className={styles.primary} onClick={()=>{setStage('choose');setImportError('');}}>
