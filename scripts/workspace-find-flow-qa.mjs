@@ -79,7 +79,11 @@ try{
  await navigate('network');
  await contacts();await page.getByRole('searchbox',{name:'Search Network'}).fill('Director');
  await navigate('home');
+ // Click navigation only after the previous destination has actually rendered.
+ // Fast consecutive Next App Router transitions can otherwise race in CI.
+ await page.getByRole('heading',{name:'Home',exact:true}).waitFor();
  await navigate('network','Contacts');
+ await page.getByRole('searchbox',{name:'Search Network',exact:true}).waitFor();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search Network"]')?.value==='Director');
  await page.getByRole('heading',{name:'Dapo Director',exact:true}).waitFor();
  assert.equal(await page.getByRole('heading',{name:'Example FC',exact:true}).count(),0,'Returning to Network must preserve the People view');
