@@ -12,7 +12,8 @@ try {
     await page.route('https://example.supabase.co/**', async route => {
       const {action, body = {}} = route.request().postDataJSON(); calls.push({action, body});
       let value = {}, status = 200;
-      if (action === 'club_account') value = {club: {club: {organisation_id: 'club-fixture', name: 'Example FC'}, access: {}, demand: {items: [{club_need_id:'need-outside-summary',title:'Recorded centre-back need'}]}, relationship_activity: {recent: []}, open_work: {tasks: [], commitments: []}, commercial: {deals: []}, pursuits: []}};
+      if (action === 'club_account') value = {club: {club: {organisation_id: 'club-fixture', name: 'Example FC'}, access: {}, demand: {items: [{club_need_id:'need-outside-summary',title:'Recorded centre-back need',status:'active'}]}, relationship_activity: {recent: []}, open_work: {tasks: [], commitments: []}, commercial: {deals: []}, pursuits: []}};
+      else if (action === 'club_reference_people') value = {people: {players: [{id:'player-fixture',name:'Example Player',position:'Midfielder'}], contacts: [{id:'contact-fixture',name:'Example Contact',role:'Sporting director'}], can_view_contacts: true, player_count_basis: 'current_club_name'}};
       else if (action === 'redream_relationship_person' || action === 'redream_relationship_confirm_employment') value = person;
       else if (action === 'redream_birthday_record') value = {birthday: null};
       else if (action === 'deal_war_room') value = {war_room: {deal: {id: 'deal-fixture', stage: 'negotiation', next_action_text: 'Review the recorded club terms'}, decision_pressure: {state: 'monitor', observed_days_in_stage: 12}}};
@@ -23,22 +24,36 @@ try {
       const url = new URL('/qa-record-clean', process.env.CALENDAR_QA_URL || 'http://127.0.0.1:3113');
       url.searchParams.set('kind', kind);
       for (let i = 0; i < 60; i++) {try {await page.goto(url.href); break;} catch (error) {if (i === 59) throw error; await page.waitForTimeout(250);}}
-      const supporting = page.getByText(kind === 'club' ? 'No conversation yet' : kind === 'contact' ? 'LAST CHECKED' : '12 observed days in stage', {exact: true});
-      await supporting.waitFor({state: 'attached', timeout: 5000});
-      assert.equal(await supporting.isVisible(), false, kind + ' supporting detail starts collapsed');
-      await page.locator('summary').filter({hasText: kind === 'club' ? /^Conversations/ : kind === 'contact' ? /^Employment details/ : /^Deal details/}).click();
-      assert.ok(await supporting.isVisible(), 'Supporting information remains accessible');
       if (kind === 'club') {
-        await page.getByRole('button', {name: 'Open Opportunities', exact: true}).click();
-        await page.getByText('Opportunities opened', {exact: true}).waitFor();
-        await page.getByRole('button', {name: 'Work need', exact: true}).click();
-        await page.getByText('Need opened: need-outside-summary', {exact: true}).waitFor();
-      } else if (kind === 'contact') {
+        // The redesigned page replaces the old collapsed Conversations panel with
+        // live tenant-scoped Players, Contacts, Requests and Deals sections.
+        await page.getByRole('heading', {name:'Players',exact:true}).waitFor();
+        await page.getByRole('button', {name:/Example Player/}).waitFor();
+        await page.getByText('Example Contact', {exact:true}).waitFor();
+        const peopleReads=calls.filter(call=>call.action==='club_reference_people');
+        assert.ok(peopleReads.length>=1&&peopleReads.length<=2,'Club detail makes bounded people reads (React dev Strict Mode may remount)');
+        assert.ok(peopleReads.every(call=>call.body.organisation_id==='club-fixture'),'Connected people reads must target the selected club');
+        await page.getByRole('button', {name:'Requests',exact:true}).click();
+        await page.getByRole('row', {name:/Recorded centre-back need/}).waitFor();
+        await page.getByRole('button', {name:'Add request',exact:true}).click();
+        await page.getByText('Opportunities opened', {exact:true}).waitFor();
+        await page.getByRole('row', {name:/Recorded centre-back need/}).click();
+        await page.getByText('Need opened: need-outside-summary', {exact:true}).waitFor();
+        await page.getByRole('button', {name:'Deals',exact:true}).click();
+        await page.getByText('No deals found', {exact:true}).waitFor();
+      } else {
+        const supporting = page.getByText(kind === 'contact' ? 'LAST CHECKED' : '12 observed days in stage', {exact:true});
+        await supporting.waitFor({state:'attached',timeout:5000});
+        assert.equal(await supporting.isVisible(),false,kind+' supporting detail starts collapsed');
+        await page.locator('summary').filter({hasText:kind==='contact'?/^Employment details/:/^Deal details/}).click();
+        assert.ok(await supporting.isVisible(),'Supporting information remains accessible');
+      }
+      if (kind === 'contact') {
         const confirmed = page.waitForResponse(response => response.request().postDataJSON()?.action === 'redream_relationship_confirm_employment');
         await page.getByRole('button', {name: 'Confirm still at Example FC', exact: true}).click();
         await confirmed;
         assert.equal(calls.find(call => call.action === 'redream_relationship_confirm_employment')?.body.p_employment_id, 'employment-fixture');
-      } else {
+      } else if (kind === 'deal') {
         assert.ok(await page.getByText('Review the recorded club terms', {exact: true}).isVisible());
         await page.getByRole('button', {name: 'Negotiation room', exact: true}).click();
         await page.getByText('Negotiation opened', {exact: true}).waitFor();

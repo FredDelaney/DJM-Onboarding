@@ -102,7 +102,7 @@ export default {fetch:async(req:Request)=>{
       "workspace_search","players_workspace","player_profile_core","player_profile_detail","player_profile","club_account",
       "recruitment_board","recruitment_target","recruitment_create","recruitment_set_stage",
       "recruitment_set_next_action","recruitment_log_interaction","recruitment_promote",
-      "create_options","create_player","create_club","create_contact",
+      "create_options","create_player","create_club","create_contact","clubs_directory","import_club","club_reference_people",
       "feedback","action_prepare","action_execute","action_undo","action_history"
     ]);
     const operationsActions=new Set([
@@ -484,6 +484,29 @@ export default {fetch:async(req:Request)=>{
         p_transfermarkt_url:id(body?.transfermarkt_url)||null
       });
     }
+    if(action==="club_reference_people"){
+      const organisationId=id(body?.organisation_id);
+      if(!organisationId)return json({error:"organisation_id is required"},400);
+      return result("people","platform_server_club_reference_people",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,p_organisation_id:organisationId
+      });
+    }
+    if(action==="clubs_directory"){
+      return result("directory","platform_server_clubs_directory",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,
+        p_search:id(body?.search).slice(0,120),
+        p_limit:clamp(body?.limit,1,50,12),
+        p_offset:clamp(body?.offset,0,5000,0)
+      });
+    }
+    if(action==="import_club"){
+      if(!operator())return deny("Agency operator access required");
+      return result("created","platform_server_agency_import_club",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,
+        p_club_name:id(body?.club_name),p_country:id(body?.country)||null,
+        p_league_name:id(body?.league_name)||null,p_source_id:id(body?.source_id)
+      });
+    }
     if(action==="create_club"){
       if(!operator()) return deny("Agency operator access required");
       const clubName=id(body?.club_name);
@@ -518,14 +541,16 @@ export default {fetch:async(req:Request)=>{
     }
     if(action==="create_contact"){
       if(!operator()) return deny("Agency operator access required");
-      return result("created","platform_server_agency_create_contact",{
+      return result("created","platform_server_agency_create_contact_with_methods",{
         p_tenant_id:tenantId,
         p_actor_user_id:userId,
         p_contact_name:id(body?.contact_name),
         p_club_name:id(body?.club_name),
         p_contact_role:id(body?.contact_role)||null,
         p_country:id(body?.country)||null,
-        p_notes:id(body?.notes)||null
+        p_notes:id(body?.notes)||null,
+        p_email:id(body?.email)||null,
+        p_phone:id(body?.phone)||null
       });
     }
     if(action==="create_deal"){

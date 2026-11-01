@@ -97,6 +97,7 @@ function WorkspaceSectionLoading({label = 'workspace'}: {label?: string}) {
 
 const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'), {loading: () => <WorkspaceSectionLoading label="players"/>});
 const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: () => <WorkspaceSectionLoading label="Network"/>});
+const AgencyClubsReference = dynamic(() => import('@/components/AgencyClubsReference'), {loading: () => <WorkspaceSectionLoading label="clubs"/>});
 const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
 const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
 const WorkspaceSearch = dynamic(() => import('@/components/WorkspaceSearch'));
@@ -482,7 +483,7 @@ export default function AgencyOperatingWorkspace() {
     { key: 'dashboard', label: 'Dashboard', view: 'home', href: basePath, icon: HomeIcon, active: view === 'home' },
     { key: 'calendar', label: 'Calendar', view: 'calendar', href: `${basePath}?view=calendar`, icon: CalendarDays, active: view === 'calendar' },
     { key: 'players', label: 'Players', view: 'players', href: `${basePath}?view=players`, icon: Users, active: view === 'players' },
-    { key: 'clubs', label: 'Clubs', view: 'network', href: `${basePath}?view=network&network=clubs`, icon: Building2, active: view === 'network' && search.get('network') !== 'people' },
+    { key: 'clubs', label: 'Clubs', view: 'network', href: `${basePath}?view=network&network=clubs&clubsv2=1`, icon: Building2, active: view === 'network' && search.get('network') !== 'people' },
     ...(canSeeBusiness ? [
       { key: 'requests', label: 'Requests', view: 'opportunities' as View, href: `${basePath}?view=opportunities&tab=needs`, icon: ClipboardList, active: view === 'opportunities' && search.get('tab') !== 'deals' },
       { key: 'deals', label: 'Deals', view: 'opportunities' as View, href: `${basePath}?view=opportunities&tab=deals`, icon: Handshake, active: view === 'opportunities' && search.get('tab') === 'deals' },
@@ -1780,7 +1781,16 @@ export default function AgencyOperatingWorkspace() {
                 onOpenIntelligence={openIntelligenceRequest}
               />
             ) : null}
-            {view === 'network' ? (
+            {view === 'network' && search.get('clubsv2') === '1' && canSeeBusiness ? (
+              <AgencyClubsReference
+                key={stateScope + ':clubs'}
+                invoke={invoke}
+                onRefresh={refreshRecords}
+                onCreate={(kind) => setCreateKind(kind)}
+                onOpenClubAccount={setClubAccountRequest}
+                canCreateRecords={canCreateRecords}
+              />
+            ) : view === 'network' ? (
               <AgencyNetworkWorkspace
                 onRecordRefresh={refreshRecords}
                 key={stateScope}
@@ -1876,6 +1886,7 @@ export default function AgencyOperatingWorkspace() {
           key={`create:${stateScope}:${createKind}`}
           kind={createKind}
           theme={theme}
+          prefillClub={createKind==='contact'&&clubAccountRequest?{name:clubAccountRequest.title}:undefined}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setCreateKind(null)}
           onCreated={refreshRecords}
@@ -2024,6 +2035,7 @@ export default function AgencyOperatingWorkspace() {
           presentation="page"
           invoke={invoke}
           rpc={rpc}
+          refreshKey={recordRefreshRevision}
           onRefresh={refreshRecords}
           onClose={closeClubAccount}
           onOpenAction={(request) => {
@@ -2051,6 +2063,7 @@ export default function AgencyOperatingWorkspace() {
             closeClubAccount();
             setPursuitRequest(request);
           }}
+          onCreateContact={() => setCreateKind('contact')}
           onOpenPlayer={(playerId) => {
             setClubAccountRequest(null);
             window.history.pushState(

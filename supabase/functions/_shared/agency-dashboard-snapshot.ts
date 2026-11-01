@@ -10,6 +10,7 @@ type Query = {data: Row[] | null; error: {message?: string} | null};
 type QueryClient = {
   from: (table:string)=>any;
   schema: (schema:string)=>{from:(table:string)=>any};
+  rpc: (fn:string,args:Record<string,unknown>)=>Promise<Query>;
 };
 export type DashboardRequestContext = {
   client: QueryClient;
@@ -203,11 +204,10 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
   }
 
   try {
-    let query=client.schema('platform').from('audit_events')
-      .select('id,actor_user_id,action,entity_type,entity_id,occurred_at')
-      .eq('tenant_id',tenantId).order('occurred_at',{ascending:false}).limit(12);
-    if(scope==='me')query=query.eq('actor_user_id',userId);
-    snapshot.recentActivity=asRows(await query).filter(e=>e.action&&e.occurred_at)
+    const activity=await client.rpc('platform_server_dashboard_recent_activity',{
+      p_tenant_id:tenantId,p_actor_user_id:userId,p_scope:scope,p_limit:12,
+    });
+    snapshot.recentActivity=asRows(activity).filter(e=>e.action&&e.occurred_at)
       .slice(0,8).map(e=>{
         // Resolve names only from players already permitted in the active scope.
         // An opaque audit event by itself never grants visibility to a player.

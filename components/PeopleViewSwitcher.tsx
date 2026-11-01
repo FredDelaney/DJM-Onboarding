@@ -29,7 +29,7 @@ export default function PeopleViewSwitcher({
     {
       label: "Clubs",
       view: "network" as const,
-      href: basePath + "?view=network&network=clubs",
+      href: basePath + "?view=network&network=clubs&clubsv2=1",
     },
     {
       label: "Contacts",
