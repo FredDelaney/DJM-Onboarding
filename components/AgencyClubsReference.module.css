@@ -107,3 +107,84 @@
 .searchModalBody{padding:19px 14px}.savedActions{flex-wrap:wrap}
 }
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* Reference fidelity v2: restrained ReDream finish, not Athlivo branding. */
+.shell{--club-accent:var(--agency-primary,#1e293b);--club-ink:#1c283a;--club-muted:#718098;min-height:626px;border-color:#e7ebf1;border-radius:17px;padding:30px 31px 19px;box-shadow:0 13px 40px rgba(34,46,68,.035);letter-spacing:-.008em}
+.searchField{height:49px;border-color:#dbe3ed;border-radius:12px;box-shadow:0 2px 5px #1d32420a}
+.searchField input{font-size:14px;letter-spacing:.006em}
+.primary{border-radius:999px;font-size:14px;font-weight:620;transition:filter .15s ease,transform .15s ease}
+.primary:active{transform:scale(.985)}
+.secondaryTools{margin:20px 5px 13px;gap:22px}
+.subtleButton{min-height:32px;font-size:13px;font-weight:550}
+.subtleButton:focus-visible,.sortButton:focus-visible,.clubCell:focus-visible,.result:focus-visible,.choice:focus-visible{outline:3px solid color-mix(in srgb,var(--club-accent) 24%,transparent);outline-offset:3px}
+.tableScroll{border-radius:12px;border-color:#dce4ed;box-shadow:0 2px 7px #182b4010}
+.table{min-width:680px}
+.table th{height:53px;background:linear-gradient(180deg,#f5f8fc 0%,#f1f5fb 100%);color:#43536c;font-size:12px;font-weight:720}
+.table th:first-child{min-width:265px}
+.table th+th{border-left:0}
+.table td{height:61px;border-color:#e8edf4;font-size:13px}
+.table th:first-child,.table td:first-child{position:sticky;left:0;z-index:2;box-shadow:3px 0 6px -6px #52658177}
+.table th:first-child{z-index:3;background:#f4f7fc}
+.table td:first-child{background:#fff}
+.table tr:hover td:first-child{background:#f7faff}
+.table tbody tr:hover{background:#f7faff}
+.clubCell{gap:13px;min-height:43px;color:#1b293c;font-weight:660;letter-spacing:-.012em}
+.clubCell>span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clubArrow{margin-left:auto;color:#aeb9c9;opacity:0;transition:opacity .15s ease}
+.clubCell:hover .clubArrow,.clubCell:focus-visible .clubArrow{opacity:1}
+.countryCell{font-size:13px;gap:8px;color:#52627b}
+.leagueCell{display:inline-flex;max-width:260px;gap:8px;align-items:center;vertical-align:middle}
+.leagueCell .leagueIcon{font-size:16px;line-height:1;color:#9baaca}
+.leagueCell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.table .numberCell{font-variant-numeric:tabular-nums;color:#364763}
+.recordCount{font-weight:550}
+.pagination{margin-top:18px;gap:14px}
+.pagination button{min-height:39px;border-radius:10px;background:#fff;color:#37475c}
+.pagination button:disabled{opacity:.37}
+.sourceNote{color:#a0abb9;margin-top:16px;font-size:11px}
+.overlay{background:rgba(10,18,31,.72);backdrop-filter:blur(2px)}
+.dialog{width:min(100%,710px);height:min(680px,calc(100dvh - 42px));border-radius:15px;box-shadow:0 24px 80px rgba(5,16,31,.28)}
+.dialogHeader{min-height:65px;border-bottom:1px solid #e8edf3}
+.dialogHeader strong{font-weight:700;font-size:16px;letter-spacing:-.014em}
+.dialogHeader>button:last-child{width:44px;height:44px}
+.back{min-height:44px}
+.choices{padding:42px 23px}
+.choice{min-height:87px;border-radius:15px;border-color:#e1e8f1;box-shadow:0 2px 4px #2b41500a}
+.choiceIcon{height:48px;width:48px;border-radius:13px;background:#f1f5f9;color:#627891}
+.choice strong{font-size:15px}
+.choice small{font-size:12px}
+.recommended{top:-11px;right:18px;font-size:10px;letter-spacing:.03em;border:2px solid #fff;padding:3px 10px}
+.dialogFooter{padding:10px 16px 13px;gap:2px;color:#8c9bb2;background:linear-gradient(180deg,#fff,#fcfdff)}
+.dialogFooter button{min-height:27px}
+.dialogFooter small{max-width:460px;color:#99a8b9;font-size:10px;line-height:1.4}
+.searchModalBody{padding:25px 23px}
+.modalSearch{min-height:53px}
+.recent{margin-top:25px}
+.recent>div{font-size:13px}
+.recent>button{min-height:65px;padding:10px 0;gap:12px}
+.recent>button>span:last-child{gap:5px}
+.recent strong{font-size:14px}
+.recent small,.result small{display:flex;align-items:center;gap:4px;color:#8291a5}
+.recent small>span,.result small>span{font-size:15px}
+.suggestionCount{display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:650;font-size:12px;margin:20px 0 13px}
+.suggestionCount span{font-weight:400;color:#9aa6b7}
+.results{gap:9px}
+.result{border-radius:14px;min-height:77px;box-shadow:0 2px 3px #1e33480c;transition:background .15s ease,border-color .15s ease}
+.result:hover{background:#f9fbfe;border-color:#b4c4d8}
+.result strong{font-size:14px}
+.result>svg:last-child{color:var(--club-accent)}
+.saved{padding-top:43px}
+.successIcon{background:#dcf8e7;color:#08a66f}
+.saved h2{font-size:21px}
+.savedActions button{min-height:45px}
+@media(max-width:780px){.shell{padding:18px 12px 17px;min-height:470px}.tools{flex-wrap:wrap}.table{min-width:650px}.table th:first-child{min-width:205px}.table .numberCell{width:85px}.dialog{width:100%;height:min(700px,calc(100dvh - 20px))}.searchModalBody{padding:20px 15px}.suggestionCount span{display:none}.clubArrow{display:none}}
+@media(max-width:540px){.choices{padding:27px 15px}.choice{padding:12px;gap:10px}.choice strong{font-size:14px}.choice small{font-size:11px}.dialogHeader{padding:0 12px}.overlay{padding:8px}.dialog{height:min(650px,calc(100dvh - 16px))}.dialogFooter small{font-size:10px}.savedActions{gap:8px}}
+
+/* Minimum tap targets on all directory controls. */
+.subtleButton,.sortButton{min-height:44px;align-items:center}
+.clubCell{min-height:44px}
+.pagination button{min-height:44px}
+.searchField input{height:44px}
+.searchField button{min-width:44px;min-height:44px}
+.sourceNote{font-size:12px}
+@media(max-width:780px){.tools>.primary{height:44px}}

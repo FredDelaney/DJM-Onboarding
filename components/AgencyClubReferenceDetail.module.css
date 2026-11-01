@@ -46,3 +46,46 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:720px){.page{padding:10px 12px 20px}.clubHeader{display:grid;grid-template-columns:minmax(0,1fr);padding:15px 12px;gap:10px}.clubMark{height:52px;width:52px;grid-column:1;grid-row:1}.clubMark>strong{font-size:13px}.headlines{grid-column:1;grid-row:2;min-width:0}.headlines h1{font-size:20px}.headlines p{font-size:12px}.headActions{grid-column:1;grid-row:3;width:100%;justify-content:flex-start;margin-left:0}.insights{margin-left:0}.tabs{margin:18px 0}.tab,.tabActive{min-height:44px;padding:10px 14px}.panels{gap:24px}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* Clubs v2 reference refinement, using ReDream's agency tokens. */
+.page{min-height:650px;padding:16px 24px 36px;border-radius:18px;box-shadow:0 12px 36px #28374908}
+.return{font-size:13px;gap:9px;margin-bottom:9px;color:#75859a}
+.clubHeader{min-height:126px;padding:22px 24px;gap:18px;border-radius:13px;border:1px solid #e0e6ee;border-bottom:3px solid color-mix(in srgb,var(--agency-primary,#283549) 65%,#b4c9f4);box-shadow:0 3px 8px #1a2d480b}
+.headlines{flex:1}
+.headlines h1{font-size:27px;letter-spacing:-.035em;font-weight:730;color:#1b2638}
+.headlines p{gap:9px;color:#64748b;font-size:14px}
+.leagueLogo{font-size:17px;color:#869bbd;line-height:1}
+.headActions{align-self:center}
+.insights{font-size:13px;min-height:44px;font-weight:600;border-color:#e1e8f1}
+.tabs{margin:24px 0 28px;gap:8px}
+.tab,.tabActive{padding:10px 19px;min-height:39px;font-size:14px;border-radius:999px;font-weight:570;transition:background .15s ease}
+.tab:hover{background:#f2f5fa;color:#23344c}
+.tabActive{font-weight:650}
+.panels{gap:27px}
+.sectionHeader{min-height:43px}
+.sectionHeader h2{font-size:16px;color:#161f2d;font-weight:680}
+.plus{width:44px;height:44px}
+.empty{min-height:182px;border-color:#dfe7f1;border-radius:12px;background:#fbfdff;padding:22px 16px;gap:6px}
+.emptyIcon{width:60px;height:60px;border-radius:50%;color:#91a5c0;margin-bottom:8px}
+.empty strong{font-size:14px;color:#2f3b4e}
+.empty p{color:#8393aa;line-height:1.45;font-size:13px}
+.personRow{min-height:66px}
+.requests{gap:13px}
+.actions select{min-height:42px;border-color:#dfe5ed;font-size:13px}
+.tableWrap{border-radius:12px;border-color:#dfe6f0;box-shadow:0 2px 6px #1b314410}
+.table th{height:51px;background:#f3f7fc;color:#43536c;font-weight:700}
+.table td{height:60px;color:#43536c}
+.table tr.clickable:hover{background:#f8faff}
+.table tr.clickable:focus-visible{outline:3px solid color-mix(in srgb,var(--agency-primary,#26374a) 22%,transparent);outline-offset:-4px}
+.footnote{margin-top:25px}
+@media(max-width:720px){
+.page{padding:10px 12px 26px;border-radius:14px}
+.clubHeader{gap:10px;padding:16px 14px}
+.headlines h1{font-size:22px}
+.headlines p{font-size:12px}
+.headActions{margin-top:4px}
+.tabs{gap:5px;margin:20px 0 24px}
+.tab,.tabActive{min-height:44px;padding:10px 16px}
+.empty{min-height:170px}
+.table{min-width:760px}
+}

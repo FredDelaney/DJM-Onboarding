@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronUp,
   LoaderCircle,
+  LockKeyhole,
   Plus,
   Target,
   UserRoundPlus,
@@ -28,6 +29,7 @@ import {readWithDeadline} from '@/lib/read-with-deadline';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
 import {clubNeedBriefFields,clubNeedCommercialFields,clubNeedFootballFields,clubNeedSourceFields, emptyClubNeedBrief, validateClubNeedBrief, clubNeedFinancialFacts} from '@/lib/club-need-brief';
 import AgencyRecordSelect from './AgencyRecordSelect';
+import ClubIdentityMark from './ClubIdentityMark';
 import ConfirmActionDialog from './ConfirmActionDialog';
 
 import styles from './AgencyCreateDrawer.module.css';
@@ -95,8 +97,8 @@ const META: Record<
   },
   contact: {
     eyebrow: 'NETWORK',
-    title: 'Add contact',
-    copy: 'Start with a name and club.',
+    title: 'New contact',
+    copy: 'Add a person to your club network.',
     submit: 'Add contact',
     added: 'Contact added',
   },
@@ -413,7 +415,7 @@ export default function AgencyCreateDrawer({
   return <>{createPortal(
     <div
       ref={backdrop}
-      className={styles.backdrop}
+      className={`${styles.backdrop} ${kind==='contact'?styles.contactBackdrop:''}`}
       data-interface="calm"
       style={{...theme, ...(viewport ? {top: viewport.top, height: viewport.height, bottom: 'auto'} : {})}}
       onMouseDown={(event) => {
@@ -429,7 +431,7 @@ export default function AgencyCreateDrawer({
         ref={dialog}
         tabIndex={-1}
         inert={discardOpen || undefined}
-        className={styles.drawer}
+        className={`${styles.drawer} ${kind==='contact'?styles.contactDrawer:''}`}
         onKeyDown={event => {
           if (event.defaultPrevented || discardOpen) return;
           if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); requestClose();}
@@ -636,56 +638,70 @@ export default function AgencyCreateDrawer({
           ) : null}
 
           {kind === 'contact' ? (
-            <>
+            <div className={styles.contactFields}>
               <Field
-                label="Contact name"
+                label="Name"
                 required
+                placeholder="Contact name"
                 value={values.contact_name}
                 onChange={(value) => setValue('contact_name', value)}
               />
 
-              <div className={styles.pair}>
-                <Field
-                  label="Club"
-                  required
-                  value={values.club_name}
-                  onChange={(value) => setValue('club_name', value)}
-                />
-                <Field
-                  label="Role"
-                  placeholder="e.g. Sporting Director"
+              <label className={styles.field}>
+                <span>Role</span>
+                <input
+                  list="agency-contact-role-options"
+                  placeholder="Select or enter a role"
                   value={values.contact_role}
-                  onChange={(value) => setValue('contact_role', value)}
+                  onChange={event => setValue('contact_role',event.target.value)}
                 />
-              </div>
-              <div className={styles.pair}>
-                <Field label="Email" placeholder="Email address" value={values.contact_email} onChange={value=>setValue('contact_email',value)}/>
-                <Field label="Phone" placeholder="Phone number" value={values.contact_phone} onChange={value=>setValue('contact_phone',value)}/>
-              </div>
-              <p style={{fontSize:12,color:'#75869b',margin:'0 0 8px'}}>Contact access follows your agency's existing permissions.</p>
+                <datalist id="agency-contact-role-options">
+                  <option value="Sporting Director"/>
+                  <option value="Head of Recruitment"/>
+                  <option value="Technical Director"/>
+                  <option value="Club Director"/>
+                  <option value="Head Coach"/>
+                  <option value="Scout"/>
+                  <option value="Agent"/>
+                </datalist>
+              </label>
 
-              <DetailsToggle
-                open={showDetails}
-                onToggle={() => setShowDetails((current) => !current)}
+              <label className={styles.field}>
+                <span>Club <span aria-hidden="true">*</span></span>
+                {prefillClub && values.club_name === prefillClub.name ? (
+                  <div className={styles.selectedClub}>
+                    <ClubIdentityMark name={prefillClub.name}/>
+                    <div><strong>{prefillClub.name}</strong><small>Selected club</small></div>
+                    <button type="button" aria-label="Change club" onClick={()=>setValue('club_name','')}>
+                      <X size={16}/>
+                    </button>
+                  </div>
+                ) : <input
+                    required
+                    aria-label="Club"
+                    placeholder="Club name"
+                    value={values.club_name}
+                    onChange={event=>setValue('club_name',event.target.value)}
+                  />}
+              </label>
+
+              <Field label="Email" type="email" placeholder="Email address" value={values.contact_email} onChange={value=>setValue('contact_email',value)}/>
+              <Field label="Phone" type="tel" placeholder="Phone number" value={values.contact_phone} onChange={value=>setValue('contact_phone',value)}/>
+              <TextArea
+                label="Notes"
+                placeholder="Add notes about this contact..."
+                value={values.notes}
+                onChange={value=>setValue('notes',value)}
               />
 
-              {showDetails ? (
-                <div className={styles.optionalDetails}>
-                  <Field
-                    label="Country"
-                    value={values.country}
-                    onChange={(value) => setValue('country', value)}
-                  />
-
-                  <TextArea
-                    label="Relationship note"
-                    placeholder="Optional context about how you know them."
-                    value={values.notes}
-                    onChange={(value) => setValue('notes', value)}
-                  />
-                </div>
-              ) : null}
-            </>
+              <div className={styles.contactAccess}>
+                <strong>Contact access</strong>
+                <div><LockKeyhole size={18}/><span>Managed by agency permissions</span></div>
+                <p>Visibility follows your agency's existing access rules.</p>
+              </div>
+              <DetailsToggle open={showDetails} onToggle={()=>setShowDetails(current=>!current)}/>
+              {showDetails ? <Field label="Country" value={values.country} onChange={value=>setValue('country',value)}/> : null}
+            </div>
           ) : null}
 
           {kind === 'deal' ? (

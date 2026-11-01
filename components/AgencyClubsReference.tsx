@@ -9,6 +9,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {AgencyClubAccountRequest} from './AgencyClubAccountDrawer';
 import {friendlyError} from '@/lib/platform-client';
 import styles from './AgencyClubsReference.module.css';
+import ClubIdentityMark, {CountryFlag} from './ClubIdentityMark';
 
 type ClubRow = {
   organisation_id: string;
@@ -32,11 +33,10 @@ type CatalogueClub = {
 type DirectoryPage = {items: ClubRow[]; total: number; has_more: boolean};
 type Invoke = (action: string, body?: Record<string, unknown>) => Promise<any>;
 type Stage = 'choose' | 'search' | 'success' | null;
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 8;
 
 function ClubMark({name, size = 'small'}: {name: string; size?: 'small'|'large'}) {
-  const initials = name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0]?.toUpperCase()).join('');
-  return <span className={size === 'large' ? styles.crestLarge : styles.crest} aria-hidden="true"><Shield size={size === 'large' ? 28 : 22} strokeWidth={1.6}/><b>{initials}</b></span>;
+  return <ClubIdentityMark name={name} large={size==='large'}/>;
 }
 
 export default function AgencyClubsReference({
@@ -216,7 +216,7 @@ export default function AgencyClubsReference({
           <small>Filtering this page. Search above to find clubs across your agency.</small>
         </div>}
       </div>
-      <span className={styles.recordCount}>{total.toLocaleString('en-GB')} clubs</span>
+      <span className={styles.recordCount}>{total.toLocaleString('en-GB')} {total===1?'club':'clubs'}</span>
     </div>
     <div className={styles.tableScroll}>
       <table className={styles.table}>
@@ -229,9 +229,9 @@ export default function AgencyClubsReference({
         </tr></thead>
         <tbody>
           {!loading&&!error&&shown.map(club=><tr key={club.organisation_id}>
-            <td><button type="button" className={styles.clubCell} onClick={()=>openClub(club)}><ClubMark name={club.name}/><span>{club.name}</span></button></td>
-            <td><span className={styles.countryCell}><Globe2 size={16}/>{club.country||'Not recorded'}</span></td>
-            {showLeague&&<td className={styles.muted}>{club.league_name||'Not recorded'}</td>}
+            <td><button type="button" className={styles.clubCell} onClick={()=>openClub(club)}><ClubMark name={club.name}/><span>{club.name}</span><ChevronRight className={styles.clubArrow} size={16}/></button></td>
+            <td><span className={styles.countryCell}><CountryFlag country={club.country}/>{club.country||'Not recorded'}</span></td>
+            {showLeague&&<td className={styles.muted}><span className={styles.leagueCell}><span aria-hidden="true" className={styles.leagueIcon}>◈</span>{club.league_name||'Not recorded'}</span></td>}
             {showPlayers&&<td className={styles.numberCell} title="Players with an exact current-club name match">{club.player_count??'Not set'}</td>}
             {showRequests&&<td className={styles.numberCell}>{club.request_count??'Not set'}</td>}
           </tr>)}
@@ -269,17 +269,17 @@ export default function AgencyClubsReference({
           <div className={styles.searchModalBody}>
             <label className={styles.modalSearch}><Search size={19}/><input value={catalogueQuery} onChange={event=>setCatalogueQuery(event.target.value)} placeholder="Search clubs by name" autoFocus maxLength={90}/>{catalogueQuery&&<button type="button" onClick={()=>setCatalogueQuery('')} aria-label="Clear"><X size={18}/></button>}</label>
             {!catalogueQuery.trim()&&recent.length>0&&<div className={styles.recent}><div><strong>Recent Searches</strong><button type="button" onClick={()=>{setRecent([]);try{localStorage.removeItem('redream-recent-club-searches-v1');}catch{}}}>Clear</button></div>
-              {recent.map(club=><button type="button" key={club.id} onClick={()=>setCatalogueQuery(club.name)}><ClubMark name={club.name}/><span>{club.name}<small>{club.country}</small></span></button>)}
+              {recent.map(club=><button type="button" key={club.id} onClick={()=>setCatalogueQuery(club.name)}><ClubMark name={club.name}/><span><strong>{club.name}</strong><small><CountryFlag country={club.country}/>{club.country}</small></span></button>)}
             </div>}
             {catalogueQuery.trim().length===1&&<p className={styles.helper}>Enter at least two characters to search.</p>}
             {catalogueBusy&&<p className={styles.helper}><LoaderCircle className={styles.spin} size={16}/> Searching clubs…</p>}
             {catalogueError&&<p className={styles.error} role="alert">{catalogueError}</p>}
             {importError&&<p className={styles.error} role="alert">{importError}</p>}
             {catalogueQuery.trim().length>1&&!catalogueBusy&&!catalogueError&&<>
-              <div className={styles.suggestionCount}>{catalogueTotal} matching clubs</div>
+              <div className={styles.suggestionCount}>{catalogueTotal} {catalogueTotal===1?'match':'matches'} <span>Select a club to add it to your agency</span></div>
               <div className={styles.results}>
                 {suggestions.map(club=><button type="button" className={styles.result} key={club.id} onClick={()=>void importClub(club)} disabled={Boolean(importing)}>
-                  <ClubMark name={club.name}/><span><strong>{club.name}</strong><small>{club.country}{club.league?' · '+club.league:''}</small></span>
+                  <ClubMark name={club.name}/><span><strong>{club.name}</strong><small><CountryFlag country={club.country}/>{club.country}{club.league?' · '+club.league:''}</small></span>
                   {importing===club.id?<LoaderCircle className={styles.spin} size={19}/>:<Plus size={17}/>}
                 </button>)}
                 {!suggestions.length&&<p className={styles.helper}>No matches. You can go back and add this club manually.</p>}

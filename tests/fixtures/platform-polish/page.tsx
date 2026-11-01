@@ -40,6 +40,7 @@ const noop=()=>{};
 const refresh=async()=>{};
 const invoke=async(action:string)=> {
  if(action==='club_account')return {club:{club:{id:'club',name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],deals:[]}};
+ if(action==='club_reference_people')return {people:{players:[],contacts:[],can_view_contacts:true,player_count_basis:'Exact current-club name match'}};
  if(action==='deal_war_room')return {war_room:{available:true,deal:{id:'deal',title:'Example transfer',stage:'open',next_action_text:'Confirm the trial dates'},next_control_fix:{},control:{},momentum:{movement:{last_forward_movement_at:'2026-10-08T10:00:00Z'}}}};
  if(action==='player_review_pack')return {review_pack:{value_proof:{},meeting_focus:{},career_alignment:{}}};
  if(action==='player_service_statement')return {statement:{privacy_contract:{excluded:[]}}};
