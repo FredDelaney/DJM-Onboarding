@@ -20,6 +20,7 @@ import { useSearchParams } from 'next/navigation';
 
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import WorkspaceListSearch from './WorkspaceListSearch';
+const AgencyClubsReference = dynamic(() => import('./AgencyClubsReference'), {loading: () => <p role="status">Loading clubs…</p>});
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
@@ -210,6 +211,7 @@ export default function AgencyNetworkWorkspace({
   data,
   basePath,
   rpc,
+  invoke,
   onRefresh,
   onRecordRefresh,
   onCreate,
@@ -222,6 +224,7 @@ export default function AgencyNetworkWorkspace({
   data: any;
   basePath: string;
   rpc: Rpc;
+  invoke: (action: string, body?: Record<string, unknown>) => Promise<any>;
   onRefresh: () => Promise<void>;
   onRecordRefresh?: () => Promise<void>;
   onCreate: (kind: 'club' | 'contact') => void;
@@ -544,6 +547,16 @@ export default function AgencyNetworkWorkspace({
         onOpenClub={(clubName) => openClubFromPerson(clubName)}
       />
     );
+  }
+
+  if (view === 'clubs' && !requestedPersonId) {
+    return <AgencyClubsReference
+      invoke={invoke}
+      onRefresh={onRecordRefresh || onRefresh}
+      onCreate={onCreate}
+      onOpenClubAccount={openClub}
+      canCreateRecords={canCreateRecords}
+    />;
   }
 
   return (

@@ -12,7 +12,7 @@ const rows=(data:any[])=>(new Proxy({},{get(_target,key){
 }}));
 const audit=[{id:'audit-1',actor_user_id:USER,entity_id:PLAYER,action:'platform.agency.player_created',entity_type:'player',occurred_at:'2026-10-31T10:00:00Z'}];
 const player=[{id:PLAYER,first_name:'Example',last_name:'Player',primary_staff_user_id:null,contract_expiry:null,date_of_birth:null}];
-const client={from:(table:string)=>rows(table==='players'?player:[]),schema:(schema:string)=>({from:(table:string)=>rows(schema==='platform'&&table==='audit_events'?audit:[])})};
+const client={from:(table:string)=>rows(table==='players'?player:[]),schema:(_schema:string)=>({from:(_table:string)=>rows([])}),rpc:(_name:string,args:Record<string,unknown>)=>Promise.resolve({data:args.p_scope==='agency'?audit:audit.filter(row=>row.actor_user_id===args.p_actor_user_id),error:null})};
 const context={client,tenantId:TENANT,userId:USER,role:'owner',scope:'agency' as const,localDate:'2026-10-31',timeZone:'Europe/Rome',basePath:'/workspace/djm'};
 test('Activity names and links are grounded in authorised player records',async()=>{
   const snapshot=await readAgencyDashboardSnapshot(context);

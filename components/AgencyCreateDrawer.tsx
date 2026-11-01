@@ -121,6 +121,8 @@ const initialValues = {
   expires_on: '',
   contact_name: '',
   contact_role: '',
+  contact_email: '',
+  contact_phone: '',
   player_id: '',
   stage: 'qualifying',
   expected_commission: '',
@@ -136,6 +138,7 @@ export default function AgencyCreateDrawer({
   onCreated,
   theme,
   onOpenCreated,
+  prefillClub,
 }: {
   kind: AgencyCreateKind;
   invoke: Invoke;
@@ -143,10 +146,12 @@ export default function AgencyCreateDrawer({
   onCreated: (result?: any) => Promise<void> | void;
   onOpenCreated?: (result: any) => void;
   theme?: CSSProperties;
+  prefillClub?: {name:string;country?:string|null};
 }) {
   const meta = META[kind];
 
-  const baseline = {...initialValues, currency:kind==='club_need'?'':initialValues.currency};
+  const baseline = {...initialValues, currency:kind==='club_need'?'':initialValues.currency,
+    ...(kind==='contact'&&prefillClub?{club_name:prefillClub.name,country:prefillClub.country||''}:{})};
   const [values, setValues] = useState(baseline);
   const [players, setPlayers] = useState<PlayerOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(kind === 'deal');
@@ -338,6 +343,8 @@ export default function AgencyCreateDrawer({
           contact_role: values.contact_role.trim() || null,
           country: values.country.trim() || null,
           notes: values.notes.trim() || null,
+          email: values.contact_email.trim() || null,
+          phone: values.contact_phone.trim() || null,
         };
       }
 
@@ -651,6 +658,11 @@ export default function AgencyCreateDrawer({
                   onChange={(value) => setValue('contact_role', value)}
                 />
               </div>
+              <div className={styles.pair}>
+                <Field label="Email" placeholder="Email address" value={values.contact_email} onChange={value=>setValue('contact_email',value)}/>
+                <Field label="Phone" placeholder="Phone number" value={values.contact_phone} onChange={value=>setValue('contact_phone',value)}/>
+              </div>
+              <p style={{fontSize:12,color:'#75869b',margin:'0 0 8px'}}>Contact access follows your agency's existing permissions.</p>
 
               <DetailsToggle
                 open={showDetails}

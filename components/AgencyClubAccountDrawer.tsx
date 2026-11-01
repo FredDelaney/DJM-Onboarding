@@ -30,6 +30,7 @@ import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import RecordActivitySummary from './RecordActivitySummary';
 import RecordDetails from './RecordDetails';
+import AgencyClubReferenceDetail from './AgencyClubReferenceDetail';
 import {recordEditReady} from '@/lib/record-edit-readiness';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import {
@@ -141,6 +142,8 @@ export default function AgencyClubAccountDrawer({
   onOpenMarket,
   onOpenPursuit,
   onOpenPlayer,
+  onCreateContact,
+  refreshKey = 0,
   presentation = 'drawer',
 }: {
   request: AgencyClubAccountRequest;
@@ -163,6 +166,8 @@ export default function AgencyClubAccountDrawer({
   onOpenPlayer: (
     playerId: string,
   ) => void;
+  onCreateContact?: () => void;
+  refreshKey?: number;
   presentation?: 'drawer' | 'page';
 }) {
   const [busy, setBusy] =
@@ -223,7 +228,7 @@ export default function AgencyClubAccountDrawer({
   useEffect(() => {
     void load();
     return () => { readSequence.current++; };
-  }, [load]);
+  }, [load, refreshKey]);
 
   useEffect(() => {
     if (presentation === 'page') return;
@@ -560,6 +565,19 @@ export default function AgencyClubAccountDrawer({
         <section className={styles.notice} role="status" aria-atomic="true"><p>Club details are shared. Commercial details are for admins.</p></section>
       </aside>
     </div>;
+  }
+
+  if (pageMode && !busy && !error && account?.club) {
+    return <AgencyClubReferenceDetail
+      account={account}
+      invoke={invoke}
+      refreshKey={refreshKey}
+      onClose={onClose}
+      onCreateContact={onCreateContact || (() => undefined)}
+      onOpenMarket={onOpenMarket}
+      onOpenDeal={onOpenDeal}
+      onOpenPlayer={onOpenPlayer}
+    />;
   }
 
   return (

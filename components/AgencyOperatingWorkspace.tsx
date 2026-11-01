@@ -1790,6 +1790,7 @@ export default function AgencyOperatingWorkspace() {
                 data={data}
                 basePath={basePath}
                 rpc={rpc}
+                invoke={invoke}
                 onRefresh={loadView}
                 onCreate={(kind) => setCreateKind(kind)}
                 onOpenAction={(request) =>
@@ -1876,6 +1877,7 @@ export default function AgencyOperatingWorkspace() {
           key={`create:${stateScope}:${createKind}`}
           kind={createKind}
           theme={theme}
+          prefillClub={createKind==='contact'&&clubAccountRequest?{name:clubAccountRequest.title}:undefined}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setCreateKind(null)}
           onCreated={refreshRecords}
@@ -2024,6 +2026,7 @@ export default function AgencyOperatingWorkspace() {
           presentation="page"
           invoke={invoke}
           rpc={rpc}
+          refreshKey={recordRefreshRevision}
           onRefresh={refreshRecords}
           onClose={closeClubAccount}
           onOpenAction={(request) => {
@@ -2051,6 +2054,7 @@ export default function AgencyOperatingWorkspace() {
             closeClubAccount();
             setPursuitRequest(request);
           }}
+          onCreateContact={() => setCreateKind('contact')}
           onOpenPlayer={(playerId) => {
             setClubAccountRequest(null);
             window.history.pushState(
