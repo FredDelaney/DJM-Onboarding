@@ -82,6 +82,7 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
   } catch {errors.counts='Unable to confirm player coverage';errors.fixtures='Player coverage unavailable';errors.events='Player coverage unavailable';}
 
   const playerIds=uuidIds(players),playerById=new Map(players.map(p=>[str(p.id),p]));
+  const agencyContractEvents:Row[]=[];
   const seasonEnd=`${date.slice(0,4)}-12-31`;
   // Do not equate any roster member with a signed client. A valid current agency
   // representation agreement is the source of truth for Total Clients.
@@ -97,7 +98,18 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
       if(agreements.length){
         const clientIds=new Set(signed.map(x=>str(x.player_id)));
         snapshot.activeClients=clientIds.size;
-        snapshot.agencyContractsExpiring90Days=signed.filter(a=>a.end_date&&str(a.end_date)>=today&&str(a.end_date)<=datePlus(today,90)).length;
+        const expiring=signed.filter(a=>a.end_date&&str(a.end_date)>=today&&str(a.end_date)<=datePlus(today,90));
+        snapshot.agencyContractsExpiring90Days=expiring.length;
+        for(const agreement of expiring){
+          const p=playerById.get(str(agreement.player_id));
+          if(!p)continue;
+          const name=`${str(p.first_name)} ${str(p.last_name)}`.trim()||'Player';
+          agencyContractEvents.push({
+            id:`agency-contract:${agreement.id}`,label:`${name} · Agency contract`,
+            description:'Representation agreement expiry',date:str(agreement.end_date),
+            type:'agency-contract',href:`${basePath}?view=players&player=${encodeURIComponent(str(p.id))}`,
+          });
+        }
       }
     }catch{errors.counts='Unable to verify representation agreements';}
   }
@@ -162,7 +174,7 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
 
   if(!errors.events){
     try {
-      const events:Row[]=[];
+      const events:Row[]=[...agencyContractEvents];
       for(const p of players){
         const name=`${p.first_name||''} ${p.last_name||''}`.trim()||'Player';
         const href=`${basePath}?view=players&player=${encodeURIComponent(p.id)}`;
