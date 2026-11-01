@@ -30,7 +30,15 @@ test('Club identity is distinctive, licensed-data-safe and country-aware',()=>{
   assert.match(identity,/function CountryFlag/);
   assert.match(identity,/New Zealand/);
   assert.match(identity,/England/);
-  assert.doesNotMatch(identity,/fetch\(|<img|https:\/\//);
+  assert.match(identity,/fetch\('\/api\/club-crest\?/);
+  assert.match(identity,/IntersectionObserver/);
+  const logoRoute=read('app/api/club-crest/route.ts');
+  assert.match(logoRoute,/wikidata.org/);
+  assert.match(logoRoute,/commons.wikimedia.org/);
+  assert.match(logoRoute,/Public domain/);
+  assert.match(logoRoute,/CC0/);
+  assert.match(logoRoute,/safeImage/);
+  assert.doesNotMatch(logoRoute,/SERVICE_ROLE|SECRET_KEY|thesportsdb/);
 });
 test('Club details preserve usable navigation, fields and accessible deal actions',()=>{
   assert.match(profile,/role="region" aria-label=\{\x60Club details for/);

@@ -1886,14 +1886,21 @@ export default function AgencyOperatingWorkspace() {
           key={`create:${stateScope}:${createKind}`}
           kind={createKind}
           theme={theme}
-          prefillClub={createKind==='contact'&&clubAccountRequest?{name:clubAccountRequest.title}:undefined}
+          prefillClub={clubAccountRequest && ['contact','club_need','deal','player'].includes(createKind) ? {name:clubAccountRequest.title,country:clubAccountRequest.country||undefined,organisationId:clubAccountRequest.organisationId}:undefined}
           invoke={(action, body) => invoke<any>(action, body)}
           onClose={() => setCreateKind(null)}
           onCreated={refreshRecords}
-          onOpenCreated={createKind==='club_need'?result=>{
+          onOpenCreated={createKind==='club'?result=>{
+            const id=result?.created?.organisation_id;
+            setCreateKind(null);
+            if(typeof id==='string'&&/^[0-9a-f-]{36}$/i.test(id)){
+              setClubAccountRequest({key:'club-account:'+id,organisationId:id,title:result?.formClubName||'New club',country:result?.formCountry||null});
+            }
+          }:createKind==='club_need'?result=>{
             const needId=result?.created?.club_need_id;
             if(typeof needId!=='string'||!needId)return;
             setCreateKind(null);
+            if(clubAccountRequest){setRecordRefreshRevision(v=>v+1);return;}
             window.history.pushState({},'',`${basePath}?view=opportunities&tab=needs&record=${encodeURIComponent(needId)}`);
           }:undefined}
         />
@@ -2064,6 +2071,9 @@ export default function AgencyOperatingWorkspace() {
             setPursuitRequest(request);
           }}
           onCreateContact={() => setCreateKind('contact')}
+          onCreateNeed={() => setCreateKind('club_need')}
+          onCreateDeal={() => setCreateKind('deal')}
+          onCreatePlayer={() => setCreateKind('player')}
           onOpenPlayer={(playerId) => {
             setClubAccountRequest(null);
             window.history.pushState(
