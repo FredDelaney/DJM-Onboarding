@@ -26,6 +26,7 @@ import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDra
 import { relativeDate } from '@/lib/platform-client';
 
 import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
+import {listMemoryKey} from '@/lib/workspace-list-memory';
 import styles from './AgencyNetworkWorkspace.module.css';
 
 const AgencyContactIntelligenceDrawer = dynamic(
@@ -239,7 +240,14 @@ export default function AgencyNetworkWorkspace({
   const search=memory.state.search;
   const setView=(value:NetworkView)=>{memory.update({view:value});const params=new URLSearchParams(window.location.search);params.set('network',value);window.history.replaceState(null,'',window.location.pathname+'?'+params.toString());};
   const setFocus=(value:NetworkFocus)=>memory.update({focus:value});
-  const setSearch=(value:string)=>memory.update({search:value});
+  const setSearch=(value:string)=>{
+    // Persist before navigating away: a fast route change can unmount before
+    // React's delayed list-memory effect has committed the last keystroke.
+    if(stateScope){
+      try{sessionStorage.setItem(listMemoryKey(stateScope,'network'),JSON.stringify({...memory.state,search:value}));}catch{}
+    }
+    memory.update({search:value});
+  };
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const searchParams = useSearchParams();
