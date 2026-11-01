@@ -6,16 +6,26 @@ export function useWorkspaceListMemory<T extends Record<string,string>>(scope:st
  const key=scope?listMemoryKey(scope,list):'';
  const defaults=useRef(initial);
  const [state,setState]=useState<T>(initial),[ready,setReady]=useState('');
+ const latest=useRef<T>(initial);
+ latest.current=state;
  useEffect(()=>{
   let restored=defaults.current;
   try{if(key)restored=readListMemory(sessionStorage.getItem(key),defaults.current);}catch{}
+  latest.current=restored;
   setState(restored);setReady(key);
  },[key]);
  useEffect(()=>{
   if(!key||ready!==key)return;
   try{sessionStorage.setItem(key,JSON.stringify(state));}catch{}
  },[key,ready,state]);
- const update=useCallback((patch:Partial<T>)=>setState(current=>({...current,...patch})),[]);
+ const update=useCallback((patch:Partial<T>)=>{
+  // Commit synchronously: a fast route change can unmount before React's effect.
+  // Consecutive view/search changes must share the latest value, not a stale render.
+  const next={...latest.current,...patch};
+  latest.current=next;
+  if(key&&ready===key){try{sessionStorage.setItem(key,JSON.stringify(next));}catch{}}
+  setState(next);
+ },[key,ready]);
  return {state:ready===key?state:defaults.current,update,ready:ready===key};
 }
 export function rememberListPosition(scope:string,list:string){
