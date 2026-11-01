@@ -1,7 +1,7 @@
 'use client';
 
 import {ArrowLeft, ArrowUpDown, Building2, ChevronRight, Globe2, Lightbulb, LoaderCircle, Plus, Shield, UsersRound} from 'lucide-react';
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useMemo,useState, type ReactNode} from 'react';
 import {friendlyError} from '@/lib/platform-client';
 import styles from './AgencyClubReferenceDetail.module.css';
 
@@ -22,9 +22,9 @@ const amount=(value:unknown,currency:unknown)=>{
 };
 
 export default function AgencyClubReferenceDetail({
-  account,invoke,onClose,onCreateContact,onOpenMarket,onOpenDeal,onOpenPlayer,refreshKey=0,
+  account,invoke,onClose,onCreateContact,onOpenMarket,onOpenDeal,onOpenPlayer,editControl,refreshKey=0,
 }: {
-  account:any;invoke:Invoke;refreshKey?:number;onClose:()=>void;onCreateContact:()=>void;
+  account:any;invoke:Invoke;refreshKey?:number;editControl?:ReactNode;onClose:()=>void;onCreateContact:()=>void;
   onOpenMarket:(needId?:string)=>void;onOpenDeal:OpenRecord;onOpenPlayer:(id:string)=>void;
 }) {
   const club=account?.club||{};
@@ -61,7 +61,10 @@ export default function AgencyClubReferenceDetail({
       <div className={styles.headlines}><h1>{name}</h1>
         <p><Globe2 size={15}/>{country||'Country not recorded'}{league&&<><span className={styles.dot}>·</span>{league}</>}</p>
       </div>
-      <button type="button" className={styles.insights} onClick={()=>setInsights(v=>!v)} aria-expanded={insights}><Lightbulb size={17}/> Insights</button>
+      <div className={styles.headActions}>
+        {editControl}
+        <button type="button" className={styles.insights} onClick={()=>setInsights(v=>!v)} aria-expanded={insights}><Lightbulb size={17}/> Insights</button>
+      </div>
     </header>
     {insights&&<section className={styles.insightPanel}><strong>Recorded relationship insights</strong><p>{account?.top_strategic_play?.recommended_action||'No recommended next step has been recorded for this club.'}</p><small>Based on ReDream agency records, not external predictions.</small></section>}
     <nav className={styles.tabs} aria-label="Club sections">
@@ -91,8 +94,8 @@ export default function AgencyClubReferenceDetail({
       </table>{!requests.length&&<div className={styles.empty}><span className={styles.emptyIcon}><Shield size={25}/></span><p>No requests found</p></div>}</div>
     </section>}
     {tab==='deals'&&<section className={styles.requests}><div className={styles.sectionHeader}><h2>Deals</h2></div>
-      <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Deal</th><th>Stage</th><th>Expected Commission</th><th>Next Action</th></tr></thead><tbody>
-        {dealRows.map(deal=><tr className={styles.clickable} key={deal.deal_room_id} onClick={()=>onOpenDeal(deal.deal_room_id,deal.title||'Deal',name)}><td>{deal.title||'Deal'}</td><td>{deal.stage||'Not specified'}</td><td>{amount(deal.expected_commission,deal.currency)}</td><td>{deal.next_action_at?new Date(deal.next_action_at).toLocaleDateString('en-GB'):'Not scheduled'}</td></tr>)}
+      <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Deal</th><th>Stage</th><th>Expected Commission</th><th>Next Action</th><th>Open</th></tr></thead><tbody>
+        {dealRows.map(deal=><tr key={deal.deal_room_id}><td>{deal.title||'Deal'}</td><td>{deal.stage||'Not specified'}</td><td>{amount(deal.expected_commission,deal.currency)}</td><td>{deal.next_action_at?new Date(deal.next_action_at).toLocaleDateString('en-GB'):'Not scheduled'}</td><td><button type="button" className={styles.openRecord} aria-label="Open deal" onClick={()=>onOpenDeal(deal.deal_room_id,deal.title||'Deal',name)}>Open deal <ChevronRight size={16}/></button></td></tr>)}
       </tbody></table>{!dealRows.length&&<div className={styles.empty}><span className={styles.emptyIcon}><Building2 size={25}/></span><p>No deals found</p></div>}</div>
     </section>}
     {tab==='overview'&&<p className={styles.footnote}>Player associations are based on an exact current-club name match. This is not a verified contract or registration link.</p>}

@@ -75,6 +75,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(body.action==='players_workspace')data={players:{items:[{player_id:'player',identity:{name:'Example Player',current_club:'Example FC',primary_position:'Centre back'},service:{}}],total:1,has_more:false}};
     else if(body.action==='home_focus')data={home:{attention:{confirm:state.approved&&!state.taskDone?[{command_id:'capture-follow-up',source_type:'task',source_id:taskId,title:'Follow up with Example FC',due_at:dueAt,owner_name:'Jesse',priority_score:99,actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[],judgement:[{command_id:'example-follow-up',source_type:'task',source_id:'60000000-0000-4000-8000-000000000001',title:'Confirm the trial dates',why_now:'The club is waiting for availability.',recommended_action:'Agree a week with the sporting director.',owner_name:'Jesse',priority_score:90},{command_id:'example-player',source_type:'task',source_id:'60000000-0000-4000-8000-000000000002',title:'Review the club shortlist',why_now:'Your player has new options to consider.',recommended_action:'Choose the two strongest routes.',owner_name:'Dapo',priority_score:80}]}}};
     else if(body.action==='club_account')data={club:{club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],commercial:{deals:[{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}}};
+    else if(body.action==='club_reference_people')data={people:{players:[],contacts:[],can_view_contacts:true,player_count_basis:'current_club_name'}};
     else if(body.action==='deal_war_room')data={war_room:{available:true,deal:{id:body.deal_room_id,title:body.deal_room_id===dealB?'Example transfer B':'Example transfer A',stage:'open'},control:{},next_control_fix:{}}};
     else if(body.action==='action_prepare'&&state.approved)data={proposal:{proposal_id:'capture-follow-up-proposal',title:'Complete: Follow up with Example FC',status:'proposed',executable:true}};
     else if(body.action==='action_execute'&&state.approved){state.completions++;state.taskDone=true;data={ok:true};}
@@ -282,8 +283,8 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       assert.equal(await edit.evaluate(node=>!!node.closest('[inert]')),false,'The deal remains interactive after its editor closes');
      }
      if(screen==='contact'||screen==='club'){
-      const identity=page.locator(screen==='contact'?'[class*="headerIdentity"]':'[class*="headerTop"] > div:first-child').first();
-      const controls=page.locator('[class*="headerControls"]').first();
+      const identity=page.locator(screen==='contact'?'[class*="headerIdentity"]':'[class*="headlines"]').first();
+      const controls=page.locator(screen==='contact'?'[class*="headerControls"]':'[class*="headActions"]').first();
       const a=await identity.boundingBox(),b=await controls.boundingBox();
       assert.ok(a.width>270,'The record identity gets the full phone width');
       assert.ok(b.y>=a.y+a.height-1,'Record controls use a separate row on phones');

@@ -568,10 +568,35 @@ export default function AgencyClubAccountDrawer({
   }
 
   if (pageMode && !busy && !error && account?.club) {
+    const editControl = recordEditReady({
+      requestedId: request.organisationId,
+      loadedId: loadedOrganisationId,
+      busy, error,
+      restricted: Boolean(account?.access?.restricted),
+    }) ? <EntityActionsMenu
+      showEdit
+      kind="club"
+      entityId={request.organisationId}
+      label={club.name || request.title}
+      rpc={rpc}
+      onChanged={async (change, signal) => {
+        await onRefresh();
+        if (signal?.aborted) return;
+        if (change === 'edit') await load({ recordRefresh: true });
+        else onClose();
+      }}
+      fields={[
+        { key: 'name', label: 'Club name', value: club.name || request.title },
+        { key: 'country', label: 'Country', value: club.country },
+        { key: 'city', label: 'City', value: club.city },
+        { key: 'website_url', label: 'Website', value: club.website_url, type: 'url' },
+      ]}
+    /> : null;
     return <AgencyClubReferenceDetail
       account={account}
       invoke={invoke}
       refreshKey={refreshKey}
+      editControl={editControl}
       onClose={onClose}
       onCreateContact={onCreateContact || (() => undefined)}
       onOpenMarket={onOpenMarket}
