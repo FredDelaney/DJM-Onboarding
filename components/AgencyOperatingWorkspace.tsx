@@ -97,6 +97,7 @@ function WorkspaceSectionLoading({label = 'workspace'}: {label?: string}) {
 
 const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'), {loading: () => <WorkspaceSectionLoading label="players"/>});
 const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: () => <WorkspaceSectionLoading label="Network"/>});
+const AgencyClubsReference = dynamic(() => import('@/components/AgencyClubsReference'), {loading: () => <WorkspaceSectionLoading label="clubs"/>});
 const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
 const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
 const WorkspaceSearch = dynamic(() => import('@/components/WorkspaceSearch'));
@@ -1780,7 +1781,16 @@ export default function AgencyOperatingWorkspace() {
                 onOpenIntelligence={openIntelligenceRequest}
               />
             ) : null}
-            {view === 'network' ? (
+            {view === 'network' && search.get('network') === 'clubs' && canSeeBusiness ? (
+              <AgencyClubsReference
+                key={stateScope + ':clubs'}
+                invoke={invoke}
+                onRefresh={refreshRecords}
+                onCreate={(kind) => setCreateKind(kind)}
+                onOpenClubAccount={setClubAccountRequest}
+                canCreateRecords={canCreateRecords}
+              />
+            ) : view === 'network' ? (
               <AgencyNetworkWorkspace
                 onRecordRefresh={refreshRecords}
                 key={stateScope}
@@ -1790,7 +1800,6 @@ export default function AgencyOperatingWorkspace() {
                 data={data}
                 basePath={basePath}
                 rpc={rpc}
-                invoke={invoke}
                 onRefresh={loadView}
                 onCreate={(kind) => setCreateKind(kind)}
                 onOpenAction={(request) =>

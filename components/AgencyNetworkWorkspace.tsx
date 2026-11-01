@@ -20,13 +20,11 @@ import { useSearchParams } from 'next/navigation';
 
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import WorkspaceListSearch from './WorkspaceListSearch';
-const AgencyClubsReference = dynamic(() => import('./AgencyClubsReference'), {loading: () => <p role="status">Loading clubs…</p>});
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDrawer';
 import { relativeDate } from '@/lib/platform-client';
 
 import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
-import {listMemoryKey} from '@/lib/workspace-list-memory';
 import styles from './AgencyNetworkWorkspace.module.css';
 
 const AgencyContactIntelligenceDrawer = dynamic(
@@ -212,7 +210,6 @@ export default function AgencyNetworkWorkspace({
   data,
   basePath,
   rpc,
-  invoke,
   onRefresh,
   onRecordRefresh,
   onCreate,
@@ -225,7 +222,6 @@ export default function AgencyNetworkWorkspace({
   data: any;
   basePath: string;
   rpc: Rpc;
-  invoke: (action: string, body?: Record<string, unknown>) => Promise<any>;
   onRefresh: () => Promise<void>;
   onRecordRefresh?: () => Promise<void>;
   onCreate: (kind: 'club' | 'contact') => void;
@@ -240,14 +236,7 @@ export default function AgencyNetworkWorkspace({
   const search=memory.state.search;
   const setView=(value:NetworkView)=>{memory.update({view:value});const params=new URLSearchParams(window.location.search);params.set('network',value);window.history.replaceState(null,'',window.location.pathname+'?'+params.toString());};
   const setFocus=(value:NetworkFocus)=>memory.update({focus:value});
-  const setSearch=(value:string)=>{
-    // Persist before navigating away: a fast route change can unmount before
-    // React's delayed list-memory effect has committed the last keystroke.
-    if(stateScope){
-      try{sessionStorage.setItem(listMemoryKey(stateScope,'network'),JSON.stringify({...memory.state,search:value}));}catch{}
-    }
-    memory.update({search:value});
-  };
+  const setSearch=(value:string)=>memory.update({search:value});
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const searchParams = useSearchParams();
@@ -555,28 +544,6 @@ export default function AgencyNetworkWorkspace({
         onOpenClub={(clubName) => openClubFromPerson(clubName)}
       />
     );
-  }
-
-  if (view === 'clubs' && explicitView === 'clubs' && !requestedPersonId && !restricted) {
-    return <div className={styles.workspace}>
-      <section className={styles.toolbar} data-people-toolbar aria-label="Network categories">
-        <div className={styles.tabs} data-people-internal-tabs>
-          <button type="button" className={styles.tabActive} onClick={()=>setView('clubs')}>
-            <BriefcaseBusiness size={15}/> Clubs <span>{clubs.length}</span>
-          </button>
-          <button type="button" className={styles.tab} onClick={()=>{setView('people');setFocus('all');}}>
-            <Users size={15}/> People <span>{people.length}</span>
-          </button>
-        </div>
-      </section>
-      <AgencyClubsReference
-        invoke={invoke}
-        onRefresh={onRecordRefresh || onRefresh}
-        onCreate={onCreate}
-        onOpenClubAccount={openClub}
-        canCreateRecords={canCreateRecords}
-      />
-    </div>;
   }
 
   return (
