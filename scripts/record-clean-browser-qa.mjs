@@ -36,7 +36,7 @@ try {
         await page.getByRole('button', {name:'Requests',exact:true}).click();
         await page.getByRole('row', {name:/Recorded centre-back need/}).waitFor();
         await page.getByRole('button', {name:'Add request',exact:true}).click();
-        await page.getByText('Opportunities opened', {exact:true}).waitFor();
+        await page.getByText('Club request creation opened', {exact:true}).waitFor();
         await page.getByRole('row', {name:/Recorded centre-back need/}).click();
         await page.getByText('Need opened: need-outside-summary', {exact:true}).waitFor();
         await page.getByRole('button', {name:'Deals',exact:true}).click();
