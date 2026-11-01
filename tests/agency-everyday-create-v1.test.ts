@@ -66,10 +66,10 @@ test('one reusable create drawer stays minimum-first and football specific', () 
   assert.match(drawer, /title: 'Add club'/);
   assert.match(drawer, /title: 'Add request'/);
   assert.match(drawer, /title: 'Add deal'/);
-  assert.match(drawer, /title: 'Add contact'/);
+  assert.match(drawer, /title: 'New contact'/);
   assert.match(drawer, /Primary position/);
   assert.match(drawer, /What does the club need\?/);
-  assert.match(drawer, /Relationship note/);
+  assert.match(drawer, /label="Notes"/);
   assert.match(drawer, /Expected commission/);
   assert.match(drawer, /Next action/);
   assert.match(drawer, /const \[showDetails, setShowDetails\]/);

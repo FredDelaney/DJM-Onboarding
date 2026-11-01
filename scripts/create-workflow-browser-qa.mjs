@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 const browser = await chromium.launch({executablePath: process.env.CALENDAR_CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage']});
 const failures = [];
-const titles = {player: 'Add player', club: 'Add club', contact: 'Add contact', club_need: 'Add request', deal: 'Add deal'};
+const titles = {player: 'Add player', club: 'Add club', contact: 'New contact', club_need: 'Add request', deal: 'Add deal'};
 const playerOptions = {options: {players: [{player_id: 'fixture-player', name: 'Example Player', current_club: 'Example FC'}]}};
 try {
   for (const scenario of process.env.CREATE_SCENARIOS?.split(',') || ['draft', 'layout', 'refresh', 'options', 'forms', 'brief', 'football-source','source-recovery', 'write', 'write-timeout', 'keyboard', 'timeout', 'empty']) {
@@ -53,7 +53,7 @@ try {
       else {
         await dialog.getByLabel('Club', {exact: true}).fill('Example FC');
         if (kind === 'club_need') await dialog.getByLabel('Position', {exact: true}).fill('Centre back');
-        if (kind === 'contact') await dialog.getByLabel('Contact name', {exact: true}).fill('Example Contact');
+        if (kind === 'contact') await dialog.getByLabel('Name', {exact: true}).fill('Example Contact');
         if (kind === 'deal') await dialog.getByRole('combobox', {name: 'Player', exact: true}).selectOption('fixture-player');
       }
     };
@@ -168,7 +168,8 @@ try {
         for (const formKind of Object.keys(titles)) {
           if (formKind !== 'player') ({trigger, dialog} = await open(formKind));
           await fill(dialog, formKind);
-          await dialog.getByRole('button', {name: titles[formKind], exact: true}).click(); await dialog.waitFor({state: 'hidden'});
+          if(formKind==='contact'&&process.env.CREATE_QA_SCREENSHOT)await page.screenshot({path:process.env.CREATE_QA_SCREENSHOT,fullPage:false});
+          await dialog.getByRole('button', {name: formKind==='contact'?'Add contact':titles[formKind], exact: true}).click(); await dialog.waitFor({state: 'hidden'});
           assert.equal(writes.at(-1).action, 'create_' + (formKind==='club_need'?'club_need_brief':formKind));
           assert.ok(await trigger.evaluate(node => node === document.activeElement), 'Saved ' + formKind + ' restores focus');
         }
