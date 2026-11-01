@@ -12,11 +12,10 @@ function todayInZone(timeZone:string):string {
     return `${get('year')}-${get('month')}-${get('day')}`;
   } catch{return new Date().toISOString().slice(0,10);}
 }
-function shiftDay(value:string,days:number):string {
-  const base=new Date(`${value}T12:00:00Z`);
-  if(!Number.isFinite(base.getTime()))return value;
-  base.setUTCDate(base.getUTCDate()+days);
-  return base.toISOString().slice(0,10);
+function verifiedDay(value:string):boolean {
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const parsed=new Date(`${value}T12:00:00Z`);
+  return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;
 }
 function validSnapshot(value:unknown,scope:DashboardScope):value is DashboardSnapshot {
   if(!value||typeof value!=='object')return false;
@@ -27,12 +26,13 @@ function validSnapshot(value:unknown,scope:DashboardScope):value is DashboardSna
     Array.isArray(data.upcomingEvents)&&Array.isArray(data.recentActivity);
 }
 export default function AgencyDashboardConnected({
-  invoke,tenantId,userId,role,basePath,agencyName,agencyMark,onCreate,children,
+  invoke,tenantId,userId,role,refreshKey=0,basePath,agencyName,agencyMark,onCreate,children,
 }: {
   invoke:<T=any>(action:string,body?:Record<string,unknown>)=>Promise<T>;
   tenantId:string;
   userId:string;
   role:string;
+  refreshKey?:number;
   basePath:string;
   agencyName:string;
   agencyMark?:ReactNode;
@@ -66,15 +66,16 @@ export default function AgencyDashboardConnected({
       if(active&&ticket===request.current)setError('Unable to load this dashboard. Your other ReDream data is unchanged.');
     }).finally(()=>{if(active&&ticket===request.current)setLoading(false);});
     return ()=>{active=false;};
-  },[invoke,tenantId,userId,role,effectiveScope,date,revision]);
+  },[invoke,tenantId,userId,role,effectiveScope,date,revision,refreshKey]);
 
   const changeScope=useCallback((next:DashboardScope)=>{
     if(next==='agency'&&!canViewAgency)return;
     setScope(next);
   },[canViewAgency]);
-  const changeDay=useCallback((days:number)=>{
-    setDate(current=>shiftDay(current||snapshot?.localDate||todayInZone(snapshot?.timeZone||'Europe/Rome'),days));
-  },[snapshot?.localDate]);
+  const selectDay=useCallback((day:string)=>{
+    if(verifiedDay(day))setDate(day);
+    else if(day==='today')setDate(todayInZone(snapshot?.timeZone||'UTC'));
+  },[snapshot?.timeZone]);
   return <div className={styles.stack}>
     {snapshot ? <AgencyDashboardReference
       snapshot={snapshot}
@@ -84,7 +85,7 @@ export default function AgencyDashboardConnected({
       basePath={basePath}
       canViewAgency={canViewAgency}
       onScopeChange={changeScope}
-      onDayChange={changeDay}
+      onDaySelect={selectDay}
       onRefresh={()=>setRevision(value=>value+1)}
       onCreate={onCreate}
       canCreatePlayer={role!=='scout'}

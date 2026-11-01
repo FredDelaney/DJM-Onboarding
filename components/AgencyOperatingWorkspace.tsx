@@ -1044,7 +1044,10 @@ export default function AgencyOperatingWorkspace() {
     setRecordRefreshRevision(value=>value+1);
     return loadView({ rejectOnError: true });
   }, [loadView]);
-  const handleCaptureCompleted = useCallback(() => { void loadView(); }, [loadView]);
+  const handleCaptureCompleted = useCallback(() => {
+    setRecordRefreshRevision(value=>value+1);
+    void loadView();
+  }, [loadView]);
   const openIntelligenceRequest = useCallback((request: AgencyIntelligenceRequest) => {
     setIntelligenceRequest(request);
     const href = workspaceIntelligenceHref(basePath, window.location.search, request);
@@ -1486,7 +1489,7 @@ export default function AgencyOperatingWorkspace() {
   }
 
   return (
-    <div className={styles.root} style={theme} data-interface="calm" data-mobile-workspace data-people-directory={['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?'true':undefined}>
+    <div className={styles.root} style={theme} data-interface="calm" data-dashboard-view={view === 'home' ? 'true' : undefined} data-mobile-workspace data-people-directory={['players','network'].includes(view)&&!inlineEntityWorkspaceOpen&&playersSection!=='recruitment'?'true':undefined}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <TenantWorkspaceBrand
@@ -1684,6 +1687,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {view === 'home' ? (
               <AgencyDashboardConnected
+                refreshKey={recordRefreshRevision}
                 invoke={invoke}
                 tenantId={workspace.tenant_id}
                 userId={sessionUserId}

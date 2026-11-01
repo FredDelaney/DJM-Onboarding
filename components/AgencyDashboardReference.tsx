@@ -7,8 +7,9 @@
 import Link from 'next/link';
 import type {ReactNode} from 'react';
 import {
-  ArrowLeft,
-  ArrowRight,
+  CalendarClock,
+  ShieldAlert,
+  UserRoundPlus,
   ArrowUpRight,
   CalendarDays,
   ChevronRight,
@@ -84,7 +85,7 @@ export type AgencyDashboardReferenceProps = {
   basePath: string;
   canViewAgency: boolean;
   onScopeChange: (scope: DashboardScope) => void;
-  onDayChange: (offsetDays: number) => void;
+  onDaySelect: (day: string) => void;
   onRefresh: () => void;
   onCreate: (kind: DashboardCreateKind) => void;
   canCreatePlayer: boolean;
@@ -161,13 +162,22 @@ function SmallLink({href,basePath,children}: {href?:string;basePath:string;child
   return <Link href={safe} className={styles.itemLink}>{children}</Link>;
 }
 
+function eventInitials(label: string): string {
+  const person = label.split(' · ')[0]?.trim() || '';
+  return person.split(/\s+/).slice(0,2).map(part => part[0]?.toUpperCase() || '').join('') || '•';
+}
+
+function clubInitials(name: string): string {
+  return name.trim().split(/\s+/).slice(0,2).map(part => part[0]?.toUpperCase() || '').join('') || 'C';
+}
+
 function count(value: DashboardMetric) {
   return typeof value==='number'&&Number.isSafeInteger(value)&&value>=0 ? value.toLocaleString('en-GB') : '–';
 }
 
 export default function AgencyDashboardReference({
   snapshot, firstName, agencyName, agencyMark, basePath, canViewAgency,
-  onScopeChange, onDayChange, onRefresh, onCreate, canCreatePlayer, canCreateRequest,
+  onScopeChange, onDaySelect, onRefresh, onCreate, canCreatePlayer, canCreateRequest,
 }: AgencyDashboardReferenceProps) {
   const requestPage = `${basePath}?view=opportunities&tab=needs`;
   const calendarPage = `${basePath}?view=calendar`;
@@ -207,11 +217,19 @@ export default function AgencyDashboardReference({
       </section>
       <section className={styles.panel} aria-labelledby="dashboard-fixtures-title">
         <div className={styles.fixturesHead}>
-          <div><p>{readableDay(snapshot.localDate)} · <span>{snapshot.localDate===dayInZone(snapshot.timeZone)?'Today':'Selected day'}</span></p><h3 id="dashboard-fixtures-title">{readableDate(snapshot.localDate)}</h3></div>
+          <div className={styles.fixtureDate}>
+            <p>{readableDay(snapshot.localDate)} · {snapshot.localDate===dayInZone(snapshot.timeZone)
+              ? <span>Today</span>
+              : <button type="button" onClick={()=>onDaySelect(dayInZone(snapshot.timeZone))}>Back to today</button>}</p>
+            <label className={styles.fixtureDatePicker}>
+              <h3 id="dashboard-fixtures-title">{readableDate(snapshot.localDate)}</h3>
+              <input type="date" aria-label="Choose fixture date" value={snapshot.localDate}
+                onChange={event=>onDaySelect(event.currentTarget.value)}/>
+            </label>
+          </div>
           <div className={styles.dateControls}>
-            <button onClick={()=>onDayChange(-1)} aria-label="Previous day"><ArrowLeft size={16}/></button>
-            <button onClick={onRefresh} aria-label="Refresh fixtures"><RefreshCcw size={16}/></button>
-            <button onClick={()=>onDayChange(1)} aria-label="Next day"><ArrowRight size={16}/></button>
+            <button type="button" onClick={onRefresh} aria-label="Refresh fixtures"><RefreshCcw size={16}/></button>
+            <Link href={`${calendarPage}&create=task`} aria-label="Create a calendar task"><Plus size={17}/></Link>
             <Link href={calendarPage} aria-label="Open calendar"><ArrowUpRight size={16}/></Link>
           </div>
         </div>
@@ -234,18 +252,19 @@ export default function AgencyDashboardReference({
     <div className={styles.metrics} aria-label="Agency dashboard figures">
       {metrics.map(({key,label,value,hint,Icon})=><section className={styles.metric} data-metric={key} key={key}>
         <p>{label}</p><span className={styles.metricIcon}><Icon size={21}/></span>
-        <strong>{count(value)}</strong><small>{value===null?'Awaiting verified data':hint}</small>
+        <strong aria-label={`${label}: ${value===null?'Not verified':count(value)}`}>{count(value)}</strong>
+        <small>{value===null?'Awaiting verified data':hint}</small>
       </section>)}
     </div>
 
     <div className={styles.bottomGrid}>
       <section aria-labelledby="dashboard-requests-title">
-        <div className={styles.sectionTitle}><h3 id="dashboard-requests-title">Club Requests</h3><Link href={requestPage}>View All <ChevronRight size={14}/></Link></div>
+        <div className={styles.sectionTitle}><h3 id="dashboard-requests-title"><ShieldAlert size={18} aria-hidden="true"/>Club Requests</h3><Link href={requestPage}>View All <ChevronRight size={14}/></Link></div>
         <div className={styles.column}>
           {snapshot.errors?.requests?<div className={styles.empty}>Requests unavailable</div>:
            snapshot.clubRequests.length===0?<div className={styles.empty}>No open requests</div>:
            snapshot.clubRequests.map((request)=><article className={styles.request} key={request.id}>
-             <SmallLink href={request.href} basePath={basePath}><div className={styles.requestName}><span className={styles.clubAvatar} aria-hidden="true">{request.clubName.slice(0,1).toUpperCase()}</span><div><strong>{request.position}</strong><small>{request.clubName}</small></div>{request.isPredicted?<small>Potential</small>:null}</div></SmallLink>
+             <SmallLink href={request.href} basePath={basePath}><div className={styles.requestName}><span className={styles.clubAvatar} aria-hidden="true">{clubInitials(request.clubName)}</span><div><strong>{request.position}</strong><small>{request.clubName}</small></div>{request.isPredicted?<small>Potential</small>:null}</div></SmallLink>
              <div className={styles.requestCounts}>
                <div><strong>{count(request.candidateCount)}</strong><span>Potential</span></div>
                <div><strong>{count(request.shortlistedCount)}</strong><span>Shortlist</span></div>
@@ -255,14 +274,14 @@ export default function AgencyDashboardReference({
         </div>
       </section>
       <section aria-labelledby="dashboard-events-title">
-        <div className={styles.sectionTitle}><h3 id="dashboard-events-title">Upcoming Events</h3><Link href={calendarPage}>Calendar <ChevronRight size={14}/></Link></div>
+        <div className={styles.sectionTitle}><h3 id="dashboard-events-title"><CalendarClock size={18} aria-hidden="true"/>Upcoming Events</h3><Link href={calendarPage}>Calendar <ChevronRight size={14}/></Link></div>
         <div className={styles.column}>
           {snapshot.errors?.events?<div className={styles.empty}>Events unavailable</div>:
            snapshot.upcomingEvents.length===0?<div className={styles.empty}>No upcoming events</div>:
            snapshot.upcomingEvents.map((event)=>{
              const date=readableEventDate(event.date);
              return <SmallLink key={event.id} href={event.href} basePath={basePath}><article className={styles.event}>
-               <span className={styles.eventSymbol} data-event-type={event.type} aria-hidden="true"><Clock3 size={16}/></span>
+               <span className={styles.eventSymbol} data-event-type={event.type} aria-hidden="true">{event.type==='task'||event.type==='meeting'?<Clock3 size={17}/>:eventInitials(event.label)}</span>
                <div><strong>{event.label}</strong><small>{event.description}</small></div>
                <time dateTime={event.date} className={styles.dateBox}><span>{date.month}</span><strong>{date.day}</strong></time>
              </article></SmallLink>;
@@ -275,7 +294,11 @@ export default function AgencyDashboardReference({
           {snapshot.errors?.activity?<div className={styles.empty}>Activity unavailable</div>:
            snapshot.recentActivity.length===0?<div className={styles.empty}>No recent activity</div>:
            snapshot.recentActivity.map((activity)=><SmallLink key={activity.id} href={activity.href} basePath={basePath}><article className={styles.activity}>
-             <span aria-hidden="true"><UsersRound size={19}/></span>
+             <span className={styles.activityPictograms} aria-hidden="true">
+               <span className={styles.activityPerson}><UsersRound size={20}/></span>
+               <span className={styles.activitySeparation}/>
+               <span className={styles.activityAction}><UserRoundPlus size={19}/></span>
+             </span>
              <strong>{activity.title}</strong>
              <time dateTime={activity.happenedAt}>{readableActivityDate(activity.happenedAt,snapshot.timeZone)}</time>
            </article></SmallLink>)}

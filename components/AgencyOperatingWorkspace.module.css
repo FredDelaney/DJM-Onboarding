@@ -4327,3 +4327,19 @@
   .pageHead h1 { color: #3587fc; }
   .headerSearch { display: none; }
 }
+
+/* SCREENSHOT-FIDELITY-V2: dashboard-only desktop framing. */
+@media (min-width: 681px) {
+  .root[data-dashboard-view="true"] {grid-template-columns:276px minmax(0,1fr)}
+  .root[data-dashboard-view="true"] .sidebar {height:100dvh;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#d9e0e9 transparent}
+  .root[data-dashboard-view="true"] .brand {min-height:80px;margin-bottom:20px;background:var(--agency-primary,#111827)}
+  .root[data-dashboard-view="true"] .pageHead h1 {color:var(--agency-primary,#111827)}
+  .root[data-dashboard-view="true"] .nav a.navActive {color:var(--agency-primary,#111827);background:color-mix(in srgb,var(--agency-primary,#111827) 9%,white)}
+  .root[data-dashboard-view="true"] .nav {gap:4px}
+  .root[data-dashboard-view="true"] .nav a {min-height:46px;font-size:14px}
+  .root[data-dashboard-view="true"] .main {padding:18px clamp(18px,1.65vw,29px) 55px}
+  .root[data-dashboard-view="true"] .pageHead {position:sticky;top:12px;z-index:25;min-height:80px;margin-bottom:18px;box-shadow:0 6px 20px #1c344c08}
+}
+@media (min-width:681px) and (max-width:1110px) {
+  .root[data-dashboard-view="true"] {grid-template-columns:226px minmax(0,1fr)}
+}
