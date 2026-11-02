@@ -1228,10 +1228,22 @@ export default function AgencyPlayerProfile({
   };
 
   const restoreReadFocus = (target:HTMLElement|null, opener:Element|null, scope:string) => {
-    requestAnimationFrame(()=>{
-      if(readScopeRef.current===scope&&target?.isConnected&&!target.closest('[inert]')&&
-        !target.hasAttribute('disabled')&&(document.activeElement===document.body||document.activeElement===opener))target.focus({preventScroll:true});
-    });
+    const restore=()=>{
+      if(readScopeRef.current!==scope||!target?.isConnected||target.closest('[inert]'))return;
+      if(target.hasAttribute('disabled')){
+        // On slower browsers React may not have enabled the select yet.
+        const observer=new MutationObserver(()=>{
+          if(!target.hasAttribute('disabled')){observer.disconnect();requestAnimationFrame(restore);}
+        });
+        observer.observe(target,{attributes:true,attributeFilter:['disabled']});
+        window.setTimeout(()=>observer.disconnect(),3000);
+        return;
+      }
+      if(document.activeElement===document.body||document.activeElement===opener||
+        (!opener?.isConnected&&document.activeElement===shareDialog.current?.querySelector('button[aria-label="Close"]')))
+        target.focus({preventScroll:true});
+    };
+    requestAnimationFrame(restore);
   };
   const retryDetails = async () => {
     const opener=document.activeElement, scope=readScope;
