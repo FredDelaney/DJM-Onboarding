@@ -381,6 +381,8 @@ test("invoice payments are explicit manual records and duplicate numbers are rej
     ...savedInvoice.content.fields,
     recipient_name: "Club A",
     recipient_address: "Example address",
+    // Explicit dates keep this database fixture valid independently of today's date.
+    issue_date: "2026-10-18",
     due_date: "2026-11-01",
     reference: "INV-001",
   };

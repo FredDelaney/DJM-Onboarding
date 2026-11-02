@@ -148,12 +148,12 @@ export default function AgencyCreateDrawer({
   onCreated: (result?: any) => Promise<void> | void;
   onOpenCreated?: (result: any) => void;
   theme?: CSSProperties;
-  prefillClub?: {name:string;country?:string|null};
+  prefillClub?: {name:string;country?:string|null;organisationId?:string};
 }) {
   const meta = META[kind];
 
   const baseline = {...initialValues, currency:kind==='club_need'?'':initialValues.currency,
-    ...(kind==='contact'&&prefillClub?{club_name:prefillClub.name,country:prefillClub.country||''}:{})};
+    ...(prefillClub?{club_name:prefillClub.name,country:prefillClub.country||'',organisation_id:kind==='club_need'?(prefillClub.organisationId||''):'' ,current_club:kind==='player'?prefillClub.name:'',current_country:kind==='player'?(prefillClub.country||''):''}:{})};
   const [values, setValues] = useState(baseline);
   const [players, setPlayers] = useState<PlayerOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(kind === 'deal');
@@ -396,7 +396,7 @@ export default function AgencyCreateDrawer({
       const unknown=()=>{phase.current='unknown';setUncertain(true);setError('Could not confirm the save. Check the list before adding this record again; the original request may still finish.');};
       if(outcome.status==='unknown'){unknown();return;}
       if('error' in outcome.result&&outcome.result.error)throw outcome.result.error;
-      createdResult.current=outcome.result.value;
+      createdResult.current=kind==='club'?{...outcome.result.value,formClubName:values.club_name.trim(),formCountry:values.country.trim()}:outcome.result.value;
       if(kind==='club_need'&&(createdResult.current?.created?.brief_version!==1||createdResult.current?.created?.created!==true||typeof createdResult.current?.created?.club_need_id!=='string')){unknown();return;}
       if(kind==='recruitment_target'&&(createdResult.current?.result?.created!==true||typeof createdResult.current?.result?.prospect_id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(createdResult.current.result.prospect_id))){unknown();return;}
       phase.current = 'created';
@@ -415,7 +415,7 @@ export default function AgencyCreateDrawer({
   return <>{createPortal(
     <div
       ref={backdrop}
-      className={`${styles.backdrop} ${kind==='contact'?styles.contactBackdrop:''}`}
+      className={`${styles.backdrop} ${kind==='contact'||kind==='club'?styles.contactBackdrop:''}`}
       data-interface="calm"
       style={{...theme, ...(viewport ? {top: viewport.top, height: viewport.height, bottom: 'auto'} : {})}}
       onMouseDown={(event) => {
@@ -431,7 +431,7 @@ export default function AgencyCreateDrawer({
         ref={dialog}
         tabIndex={-1}
         inert={discardOpen || undefined}
-        className={`${styles.drawer} ${kind==='contact'?styles.contactDrawer:''}`}
+        className={`${styles.drawer} ${kind==='contact'||kind==='club'?styles.contactDrawer:''}`}
         onKeyDown={event => {
           if (event.defaultPrevented || discardOpen) return;
           if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); requestClose();}
@@ -548,21 +548,26 @@ export default function AgencyCreateDrawer({
           ) : null}
 
           {kind === 'club' ? (
-            <>
+            <div className={styles.manualClubFields}>
+              <div className={styles.clubPreview}>
+                <ClubIdentityMark name={values.club_name||'New Club'} country={values.country} large/>
+                <div><strong>{values.club_name.trim()||'Your new club'}</strong><span>{values.country.trim()||'Add the country below'}</span></div>
+              </div>
               <Field
                 label="Club name"
                 required
+                placeholder="e.g. Wellington Phoenix"
                 value={values.club_name}
                 onChange={(value) => setValue('club_name', value)}
               />
-
               <Field
                 label="Country"
+                placeholder="e.g. New Zealand"
                 value={values.country}
                 onChange={(value) => setValue('country', value)}
-                placeholder="Optional"
               />
-            </>
+              <p className={styles.logoHint}>A verified club crest appears automatically when a suitable licensed image is available. Otherwise ReDream uses the club's own identity mark.</p>
+            </div>
           ) : null}
 
           {kind === 'club_need' ? (
@@ -670,7 +675,7 @@ export default function AgencyCreateDrawer({
                 <span>Club <span aria-hidden="true">*</span></span>
                 {prefillClub && values.club_name === prefillClub.name ? (
                   <div className={styles.selectedClub}>
-                    <ClubIdentityMark name={prefillClub.name}/>
+                    <ClubIdentityMark name={prefillClub.name} country={prefillClub.country}/>
                     <div><strong>{prefillClub.name}</strong><small>Selected club</small></div>
                     <button type="button" aria-label="Change club" onClick={()=>setValue('club_name','')}>
                       <X size={16}/>

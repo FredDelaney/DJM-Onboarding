@@ -293,6 +293,41 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       assert.ok(b.y>=a.y+a.height-1,'Record controls use a separate row on phones');
      }
     }
+    if(suite==='agency'&&screen==='clubs'&&width===390){
+      await page.getByRole('button',{name:'Example FC',exact:true}).first().click();
+      const profile=page.getByRole('region',{name:'Club details for Example FC',exact:true});
+      await profile.waitFor();
+      const createFromClub=async (label,dialogName,fieldName)=>{
+        await profile.getByRole('button',{name:'Add to club',exact:true}).click();
+        await profile.locator('[class*="addActionMenu"]').getByRole('button',{name:label,exact:true}).click();
+        const form=page.getByRole('dialog',{name:dialogName,exact:true});
+        await form.waitFor();
+        const field=form.getByLabel(fieldName,{exact:true});
+        if(fieldName==='Club'&&label==='Add contact')await form.getByText('Example FC',{exact:true}).waitFor();
+        else assert.equal(await field.inputValue(),'Example FC','Club context must be carried into '+label);
+        await form.getByRole('button',{name:'Cancel',exact:true}).click();
+        await form.waitFor({state:'hidden'});
+      };
+      await createFromClub('Add contact','New contact','Club');
+      await createFromClub('Add request','Add request','Club');
+      await createFromClub('Add deal','Add deal','Club');
+      await createFromClub('Add player','Add player','Current club');
+      assert.ok(await profile.isVisible(),'Club remains open after cancelling creation');
+      await profile.getByRole('button',{name:'Back to Clubs',exact:true}).click();
+      await page.getByRole('button',{name:'Add Club',exact:true}).click();
+      const choose=page.getByRole('dialog',{name:'Add Club',exact:true});
+      await choose.getByRole('button',{name:/Manual Entry/}).click();
+      const manual=page.getByRole('dialog',{name:'Add club',exact:true});
+      await manual.waitFor();
+      await manual.getByLabel('Club name',{exact:true}).fill('Example New FC');
+      await manual.getByLabel('Country',{exact:true}).fill('New Zealand');
+      await manual.getByText('Example New FC',{exact:true}).waitFor();
+      await manual.getByRole('button',{name:'Cancel',exact:true}).click();
+      const discard=page.getByRole('alertdialog',{name:'Discard these changes?',exact:true});
+      await discard.waitFor();
+      await discard.getByRole('button',{name:'Discard changes',exact:true}).click();
+      await manual.waitFor({state:'hidden'});
+    }
     if(suite==='agency'&&screen==='network'&&width===390) {
      await page.getByText('Relationship signals',{exact:true}).click();
      await page.getByRole('button',{name:/Needs attention/}).click();

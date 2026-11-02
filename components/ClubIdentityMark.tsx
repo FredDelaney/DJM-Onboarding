@@ -1,6 +1,7 @@
 'use client';
 
 import {Shield} from 'lucide-react';
+import {useEffect,useRef,useState} from 'react';
 import styles from './ClubIdentityMark.module.css';
 
 const regions:Record<string,string>={
@@ -41,9 +42,44 @@ function colour(name:string) {
   return (hash%5===0?'slate':hash%5===1?'blue':hash%5===2?'teal':hash%5===3?'indigo':'amber');
 }
 
-export default function ClubIdentityMark({name,large=false}:{name:string;large?:boolean}) {
+type Crest={url:string;creditUrl:string;source:'Wikimedia Commons';licence:string}|null;
+const crestCache=new Map<string,Promise<Crest>>();
+function fetchCrest(name:string,country:string):Promise<Crest>{
+  const key=(name+'|'+country).toLowerCase();
+  if(!crestCache.has(key)){
+    const params=new URLSearchParams({name,country});
+    crestCache.set(key,fetch('/api/club-crest?'+params.toString())
+      .then(async response=>response.ok?(await response.json()).crest as Crest:null)
+      .catch(()=>null));
+  }
+  return crestCache.get(key)!;
+}
+export default function ClubIdentityMark({name,country,large=false}:{name:string;country?:string|null;large?:boolean}) {
+  const [visible,setVisible]=useState(false);
+  const [crest,setCrest]=useState<Crest>(null);
+  const [imageReady,setImageReady]=useState(false);
+  const [imageError,setImageError]=useState(false);
+  const holder=useRef<HTMLSpanElement>(null);
+  useEffect(()=>{
+    const node=holder.current;
+    if(!node)return;
+    if(!('IntersectionObserver' in window)){setVisible(true);return;}
+    const observer=new IntersectionObserver(([entry])=>{if(entry.isIntersecting){setVisible(true);observer.disconnect();}},{rootMargin:'180px'});
+    observer.observe(node);
+    return ()=>observer.disconnect();
+  },[]);
+  useEffect(()=>{
+    if(!visible)return;
+    let mounted=true;
+    setImageError(false);
+    setImageReady(false);
+    setCrest(null);
+    void fetchCrest(name,country||'').then(result=>{if(mounted)setCrest(result);});
+    return ()=>{mounted=false;};
+  },[visible,name,country]);
   const initials=(name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join(''))||'FC';
-  return <span className={large?styles.large:styles.mark} data-tone={colour(name)} aria-hidden="true">
-    <span className={styles.inside}><Shield size={large?37:25} strokeWidth={1.5}/><strong>{initials}</strong></span>
+  return <span ref={holder} className={large?styles.large:styles.mark} data-tone={colour(name)} aria-hidden="true" title={crest?.creditUrl?'Club image: Wikimedia Commons ('+crest.licence+')':'Club identity'}>
+    <span className={styles.inside} style={imageReady?{visibility:'hidden'}:undefined}><Shield size={large?37:25} strokeWidth={1.5}/><strong>{initials}</strong></span>
+    {crest&&!imageError&&<img className={styles.logo} src={crest.url} alt="" loading="lazy" onLoad={()=>setImageReady(true)} onError={()=>{setImageReady(false);setImageError(true);}}/>}
   </span>;
 }

@@ -30,9 +30,12 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run check
 
-  browser_journeys:
+  # The complete browser programme previously passed every assertion but hit the
+  # 35-minute runner limit while uploading its final artefact. Run the two existing
+  # suites in parallel, then retain browser_journeys as the required aggregate gate.
+  browser_workflows:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -47,18 +50,12 @@ jobs:
           fi
           printf '%s\n' 'Acquire::Retries "2";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/99-browser-ci >/dev/null
       - run: npx playwright install --with-deps chromium
-      - run: npm run check:browser
-        env:
-          PLATFORM_POLISH_SCREENSHOTS: '1'
-          PLATFORM_POLISH_SCREENSHOT_DIR: /tmp/platform-polish-screenshots
-          PLATFORM_POLISH_REPORT: /tmp/platform-polish-report.json
+      - run: npm run check:browser:workflows
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
-          name: platform-polish-review
+          name: browser-workflows-review
           path: |
-            /tmp/platform-polish-screenshots
-            /tmp/platform-polish-report.json
             /tmp/redream-document-qa
             /tmp/redream-platform-programme/roster
             /tmp/redream-platform-programme/home
@@ -78,3 +75,52 @@ jobs:
             /tmp/redream-platform-programme/connected-followups
           retention-days: 7
           if-no-files-found: ignore
+
+  browser_visuals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Configure bounded browser dependency downloads
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
+          printf '%s\n' 'Acquire::Retries "2";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/99-browser-ci >/dev/null
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check:browser:visuals
+        env:
+          PLATFORM_POLISH_SCREENSHOTS: '1'
+          PLATFORM_POLISH_SCREENSHOT_DIR: /tmp/platform-polish-screenshots
+          PLATFORM_POLISH_REPORT: /tmp/platform-polish-report.json
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: platform-polish-review
+          path: |
+            /tmp/platform-polish-screenshots
+            /tmp/platform-polish-report.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  browser_journeys:
+    # Keep the existing required check name. It must fail unless BOTH suites pass.
+    needs: [browser_workflows, browser_visuals]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all browser journeys and visuals to pass
+        env:
+          WORKFLOWS_RESULT: ${{ needs.browser_workflows.result }}
+          VISUALS_RESULT: ${{ needs.browser_visuals.result }}
+        run: |
+          echo "Business workflows: $WORKFLOWS_RESULT"
+          echo "Visual journeys: $VISUALS_RESULT"
+          test "$WORKFLOWS_RESULT" = success
+          test "$VISUALS_RESULT" = success

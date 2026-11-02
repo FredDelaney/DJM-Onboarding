@@ -46,6 +46,7 @@ export type AgencyClubAccountRequest = {
   organisationId: string;
   title: string;
   context?: string | null;
+  country?: string | null;
 };
 
 type Invoke = (
@@ -143,6 +144,9 @@ export default function AgencyClubAccountDrawer({
   onOpenPursuit,
   onOpenPlayer,
   onCreateContact,
+  onCreateNeed,
+  onCreateDeal,
+  onCreatePlayer,
   refreshKey = 0,
   presentation = 'drawer',
 }: {
@@ -167,6 +171,9 @@ export default function AgencyClubAccountDrawer({
     playerId: string,
   ) => void;
   onCreateContact?: () => void;
+  onCreateNeed?: () => void;
+  onCreateDeal?: () => void;
+  onCreatePlayer?: () => void;
   refreshKey?: number;
   presentation?: 'drawer' | 'page';
 }) {
@@ -599,6 +606,9 @@ export default function AgencyClubAccountDrawer({
       editControl={editControl}
       onClose={onClose}
       onCreateContact={onCreateContact || (() => undefined)}
+      onCreateNeed={onCreateNeed || (() => undefined)}
+      onCreateDeal={onCreateDeal || (() => undefined)}
+      onCreatePlayer={onCreatePlayer || (() => undefined)}
       onOpenMarket={onOpenMarket}
       onOpenDeal={onOpenDeal}
       onOpenPlayer={onOpenPlayer}
