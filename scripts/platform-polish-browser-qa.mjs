@@ -100,7 +100,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(path.endsWith('/redream_entity_patch')){state.recordWrites++;data={ok:true,id:body.p_entity_id,entity_type:body.p_entity_type};}
     else if(path.endsWith('/redream_autopilot_relationships')){
      if(state.failRelationships){status=503;data={message:'The list is temporarily unavailable'};}
-     else data={accounts:{clubs:[{organisation_id:'club',name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};
+     else data={accounts:{clubs:[{organisation_id:clubId,name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};
     }
     else if(path.endsWith('/redream_autopilot_market'))data={demand:{items:[]},pursuits:{items:[]}};
     else if(path.endsWith('/redream_autopilot_deals'))data={portfolio:{deals:[{deal_room_id:dealA,title:'Example transfer A',stage:'open'},{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}};
