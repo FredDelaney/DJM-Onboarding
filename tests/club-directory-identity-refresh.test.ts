@@ -16,9 +16,9 @@ test('deep-linked club identity is resolved before prefilling linked record crea
   assert.match(account,/resolvedClubCallback\.current\?\.\(\{/);
   assert.match(account,/name: resolvedName/);
   assert.match(account,/organisationId: request\.organisationId/);
-  assert.match(workspace,/onResolvedClub=\{\(resolved\) =>/);
-  assert.match(workspace,/current\.organisationId !== resolved\.organisationId/);
-  assert.match(workspace,/return \{ \.\.\.current, title: resolved\.name, country: resolved\.country \}/);
+  assert.match(workspace,/onResolvedClub=\{\(\{ organisationId, name, country \}\) =>/);
+  assert.match(workspace,/current\?\.organisationId !== organisationId/);
+  assert.match(workspace,/return \{ \.\.\.current, title: name, country \}/);
   assert.match(workspace,/prefillClub=\{clubAccountRequest/);
   assert.match(workspace,/organisationId:clubAccountRequest\.organisationId/);
 });

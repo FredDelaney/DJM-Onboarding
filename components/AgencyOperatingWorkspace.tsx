@@ -2062,11 +2062,11 @@ export default function AgencyOperatingWorkspace() {
           rpc={rpc}
           refreshKey={recordRefreshRevision}
           onRefresh={refreshRecords}
-          onResolvedClub={(resolved) => {
+          onResolvedClub={({ organisationId, name, country }) => {
             setClubAccountRequest((current) => {
-              if (!current || current.organisationId !== resolved.organisationId) return current;
-              if (current.title === resolved.name && current.country === resolved.country) return current;
-              return { ...current, title: resolved.name, country: resolved.country };
+              if (current?.organisationId !== organisationId ||
+                  (current.title === name && current.country === country)) return current;
+              return { ...current, title: name, country };
             });
           }}
           onClose={closeClubAccount}
