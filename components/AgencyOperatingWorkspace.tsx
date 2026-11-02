@@ -11,7 +11,6 @@ import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWor
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
 import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery,workspaceProfileFromDealHref} from '@/lib/workspace-record-navigation';
-import PeopleViewSwitcher from './PeopleViewSwitcher';
 
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
@@ -98,6 +97,7 @@ function WorkspaceSectionLoading({label = 'workspace'}: {label?: string}) {
 const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'), {loading: () => <WorkspaceSectionLoading label="players"/>});
 const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: () => <WorkspaceSectionLoading label="Network"/>});
 const AgencyClubsReference = dynamic(() => import('@/components/AgencyClubsReference'), {loading: () => <WorkspaceSectionLoading label="clubs"/>});
+const PeopleViewSwitcher = dynamic(() => import('./PeopleViewSwitcher'));
 const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
 const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
 const WorkspaceSearch = dynamic(() => import('@/components/WorkspaceSearch'));
