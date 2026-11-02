@@ -74,7 +74,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(body.action==='tenants')data={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-platform-polish',role:'owner',display_name:'Example Agency'}]};
     else if(body.action==='players_workspace')data={players:{items:[{player_id:'player',identity:{name:'Example Player',current_club:'Example FC',primary_position:'Centre back'},service:{}}],total:1,has_more:false}};
     else if(body.action==='home_focus')data={home:{attention:{confirm:state.approved&&!state.taskDone?[{command_id:'capture-follow-up',source_type:'task',source_id:taskId,title:'Follow up with Example FC',due_at:dueAt,owner_name:'Jesse',priority_score:99,actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[],judgement:[{command_id:'example-follow-up',source_type:'task',source_id:'60000000-0000-4000-8000-000000000001',title:'Confirm the trial dates',why_now:'The club is waiting for availability.',recommended_action:'Agree a week with the sporting director.',owner_name:'Jesse',priority_score:90},{command_id:'example-player',source_type:'task',source_id:'60000000-0000-4000-8000-000000000002',title:'Review the club shortlist',why_now:'Your player has new options to consider.',recommended_action:'Choose the two strongest routes.',owner_name:'Dapo',priority_score:80}]}}};
-    else if(body.action==='club_account')data={club:{club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],commercial:{deals:[{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}}};
+    else if(body.action==='club_account')data={club:{club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],demand:{items:[{club_need_id:'70000000-0000-4000-8000-000000000001',position:'Centre-back',status:'open'},{club_need_id:'70000000-0000-4000-8000-000000000002',position:'Striker',status:'confirmed'},{club_need_id:'70000000-0000-4000-8000-000000000003',position:'Winger',status:'closed'}]},commercial:{deals:[{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}}};
     else if(body.action==='club_reference_people')data={people:{players:[],contacts:[],can_view_contacts:true,player_count_basis:'current_club_name'}};
     else if(body.action==='clubs_directory')data={directory:{items:[{organisation_id:clubId,name:'Example FC',country:'New Zealand',city:'Auckland',league_name:'National League',player_count:2,request_count:1,deal_count:1,contact_count:0,source_id:null},{organisation_id:dealA,name:'Wellington Phoenix II',country:'New Zealand',city:'Wellington',league_name:'National League - Central',player_count:1,request_count:0,deal_count:0,contact_count:0,source_id:null},{organisation_id:dealB,name:'Christchurch United',country:'New Zealand',city:'Christchurch',league_name:'National League - Southern',player_count:1,request_count:2,deal_count:0,contact_count:0,source_id:null}],total:3,has_more:false}};
     else if(body.action==='deal_war_room')data={war_room:{available:true,deal:{id:body.deal_room_id,title:body.deal_room_id===dealB?'Example transfer B':'Example transfer A',stage:'open'},control:{},next_control_fix:{}}};
@@ -100,7 +100,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(path.endsWith('/redream_entity_patch')){state.recordWrites++;data={ok:true,id:body.p_entity_id,entity_type:body.p_entity_type};}
     else if(path.endsWith('/redream_autopilot_relationships')){
      if(state.failRelationships){status=503;data={message:'The list is temporarily unavailable'};}
-     else data={accounts:{clubs:[{organisation_id:'club',name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};
+     else data={accounts:{clubs:[{organisation_id:clubId,name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};
     }
     else if(path.endsWith('/redream_autopilot_market'))data={demand:{items:[]},pursuits:{items:[]}};
     else if(path.endsWith('/redream_autopilot_deals'))data={portfolio:{deals:[{deal_room_id:dealA,title:'Example transfer A',stage:'open'},{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}};
@@ -289,7 +289,12 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       const identity=page.locator(screen==='contact'?'[class*="headerIdentity"]':'[class*="headlines"]').first();
       const controls=page.locator(screen==='contact'?'[class*="headerControls"]':'[class*="headActions"]').first();
       const a=await identity.boundingBox(),b=await controls.boundingBox();
-      assert.ok(a.width>270,'The record identity gets the full phone width');
+      if(screen==='club'){
+       const logo=page.locator('[class*="clubHeader"]>span').first();
+       const crest=await logo.boundingBox();
+       assert.ok(crest&&a.width>155,'Mobile club identity has room beside its crest');
+       assert.ok(Math.abs(crest.y-a.y)<25,'Mobile club crest and name share the header row');
+      }else assert.ok(a.width>270,'Contact identity gets the full phone width');
       assert.ok(b.y>=a.y+a.height-1,'Record controls use a separate row on phones');
      }
     }
@@ -297,6 +302,23 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       await page.getByRole('button',{name:'Example FC',exact:true}).first().click();
       const profile=page.getByRole('region',{name:'Club details for Example FC',exact:true});
       await profile.waitFor();
+      const clubAddress=await page.evaluate(()=>new URL(location.href).searchParams.get('club'));
+      assert.match(clubAddress||'',/^[0-9a-f-]{36}$/i,'Club profile has a valid deep-link');
+      await page.reload();
+      await profile.waitFor();
+      assert.equal(await page.evaluate(()=>new URL(location.href).searchParams.get('club')),clubAddress,'A reload preserves the selected club');
+      await page.goBack();
+      await page.getByRole('region',{name:'Clubs',exact:true}).waitFor();
+      assert.equal(await profile.count(),0,'Browser Back returns to the club directory');
+      await page.getByRole('button',{name:'Example FC',exact:true}).first().click();
+      await profile.waitFor();
+      await profile.getByRole('button',{name:'Requests',exact:true}).click();
+      await profile.getByRole('cell',{name:'Centre-back',exact:true}).waitFor();
+      await profile.getByRole('cell',{name:'Striker',exact:true}).waitFor();
+      assert.equal(await profile.getByRole('cell',{name:'Winger',exact:true}).count(),0,'Closed requests are excluded from Active');
+      await profile.getByLabel('Request status',{exact:true}).selectOption('all');
+      await profile.getByRole('cell',{name:'Winger',exact:true}).waitFor();
+      await profile.getByRole('button',{name:'Overview',exact:true}).click();
       const createFromClub=async (label,dialogName,fieldName)=>{
         await profile.getByRole('button',{name:'Add to club',exact:true}).click();
         await profile.locator('[class*="addActionMenu"]').getByRole('button',{name:label,exact:true}).click();
@@ -316,6 +338,8 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       await profile.getByRole('button',{name:'Back to Clubs',exact:true}).click();
       await page.getByRole('button',{name:'Add Club',exact:true}).click();
       const choose=page.getByRole('dialog',{name:'Add Club',exact:true});
+      await choose.waitFor();
+      assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden','Add Club keeps the background from scrolling');
       await choose.getByRole('button',{name:/Manual Entry/}).click();
       const manual=page.getByRole('dialog',{name:'Add club',exact:true});
       await manual.waitFor();
@@ -327,6 +351,14 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       await discard.waitFor();
       await discard.getByRole('button',{name:'Discard changes',exact:true}).click();
       await manual.waitFor({state:'hidden'});
+      assert.notEqual(await page.evaluate(()=>document.body.style.overflow),'hidden','Closing Add Club releases the background scroll lock');
+    }
+    if(suite==='detail'&&screen==='club'&&width===390){
+      await page.goto(root+fixturePath+'?suite=detail&screen=club&readonly=1');
+      await page.getByRole('heading',{name:'Example FC',exact:true}).waitFor();
+      for(const name of ['Add to club','Add club player','Add club contact','Add request','Add deal']){
+        assert.equal(await page.getByRole('button',{name,exact:true}).count(),0,'Read-only club cannot expose '+name);
+      }
     }
     if(suite==='agency'&&screen==='network'&&width===390) {
      await page.getByText('Relationship signals',{exact:true}).click();

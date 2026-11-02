@@ -38,7 +38,10 @@ test('Clubs reference list and flow are real server-backed actions',()=>{
   assert.match(workspace,/AgencyClubsReference/);
   assert.match(workspace,/search\.get\('clubsv2'\) === '1'/);
   assert.match(workspace,/network=clubs&clubsv2=1/);
-  assert.match(workspace,/onOpenClubAccount=\{setClubAccountRequest\}/);
+  assert.match(workspace,/onOpenClubAccount=\{openClubAccount\}/);
+  assert.match(read('scripts/platform-polish-browser-qa.mjs'),/accounts:\{clubs:\[\{organisation_id:clubId/,'Legacy cross-view fixture uses a real UUID-shaped club ID');
+  assert.match(workspace,/search\.get\('club'\)/);
+  assert.match(workspace,/club=\$\{encodeURIComponent\(request\.organisationId\)\}/);
   assert.doesNotMatch(network,/AgencyClubsReference/);
   assert.match(workspace,/invoke=\{invoke\}/);
   assert.match(edge,/platform_server_clubs_directory/);

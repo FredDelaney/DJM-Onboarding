@@ -31,7 +31,9 @@ test('Club account offers real create actions, not decorative controls',()=>{
 });
 test('Club creation and requests preserve existing record flow',()=>{
  assert.match(workspace,/onOpenCreated=\{createKind==='club'\?result/);
- assert.match(workspace,/setClubAccountRequest\(\{key:'club-account:'/);
+ assert.match(workspace,/openClubAccount\(\{key:'club-account:'/);
+ assert.match(workspace,/club=\$\{encodeURIComponent\(request\.organisationId\)\}/);
+ assert.match(workspace,/window\.history\.pushState\(\{redreamView:'network'\}/);
  assert.match(workspace,/result\?\.formClubName/);
  assert.match(create,/formClubName:values\.club_name\.trim\(\)/);
  assert.match(workspace,/if\(clubAccountRequest\)\{setRecordRefreshRevision/);
