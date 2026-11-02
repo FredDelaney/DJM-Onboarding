@@ -6,6 +6,8 @@ import {
   Shield, SlidersHorizontal, UsersRound, X,
 } from 'lucide-react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
+import {isolateElements,lockPageScroll} from '@/lib/page-scroll-lock';
 import type {AgencyClubAccountRequest} from './AgencyClubAccountDrawer';
 import {friendlyError} from '@/lib/platform-client';
 import styles from './AgencyClubsReference.module.css';
@@ -45,12 +47,14 @@ export default function AgencyClubsReference({
   onCreate,
   onOpenClubAccount,
   canCreateRecords,
+  recentScope = 'local',
 }: {
   invoke: Invoke;
   onRefresh: () => Promise<void>;
   onCreate: (kind:'club'|'contact')=>void;
   onOpenClubAccount:(request:AgencyClubAccountRequest)=>void;
   canCreateRecords:boolean;
+  recentScope?:string;
 }) {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -76,7 +80,9 @@ export default function AgencyClubsReference({
   const [importError, setImportError] = useState('');
   const [success, setSuccess] = useState<{club:CatalogueClub; id:string; existing:boolean; refreshFailed:boolean}|null>(null);
   const [recent, setRecent] = useState<CatalogueClub[]>([]);
+  const recentStorageKey='redream-recent-club-searches-v2:'+recentScope;
   const requestSerial = useRef(0);
+  const overlayRef=useRef<HTMLDivElement>(null);
   const [revision, setRevision] = useState(0);
 
   const load = useCallback(async () => {
@@ -106,10 +112,10 @@ export default function AgencyClubsReference({
 
   useEffect(()=>{
     try {
-      const saved=JSON.parse(window.localStorage.getItem('redream-recent-club-searches-v1')||'[]');
+      const saved=JSON.parse(window.localStorage.getItem(recentStorageKey)||'[]');
       if(Array.isArray(saved))setRecent(saved.slice(0,5).filter((item:any)=>typeof item?.id==='string'));
     } catch {/* Recent searches are optional. */}
-  },[]);
+  },[recentStorageKey]);
 
   useEffect(()=>{
     if(stage!=='search')return;
@@ -141,6 +147,31 @@ export default function AgencyClubsReference({
     return ()=>window.removeEventListener('keydown',close);
   },[stage,importing]);
 
+  useEffect(()=>{
+    if(!stage)return;
+    const releaseScroll=lockPageScroll();
+    const background=[...document.body.children].filter((node):node is HTMLElement=>node instanceof HTMLElement && node!==overlayRef.current);
+    const releaseBackground=isolateElements(background);
+    const opener=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    const timer=window.setTimeout(()=>overlayRef.current?.querySelector<HTMLElement>('input,button:not(:disabled)')?.focus(),0);
+    return ()=>{
+      window.clearTimeout(timer);
+      releaseBackground();releaseScroll();
+      queueMicrotask(()=>{if(document.activeElement===document.body&&opener?.isConnected)opener.focus();});
+    };
+  },[Boolean(stage)]);
+
+  const trapFocus=(event:React.KeyboardEvent<HTMLDivElement>)=>{
+    if(event.key!=='Tab')return;
+    const dialog=overlayRef.current;
+    if(!dialog)return;
+    const focusables=[...dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),[tabindex]:not([tabindex="-1"])')].filter(node=>node.getClientRects().length>0);
+    if(!focusables.length)return;
+    const first=focusables[0],last=focusables[focusables.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  };
+
   const countries=useMemo(()=>[...new Set(rows.map(row=>row.country).filter((item):item is string=>Boolean(item)))].sort(),[rows]);
   const shown=useMemo(()=>{
     const filtered=country?rows.filter(r=>r.country===country):[...rows];
@@ -162,7 +193,7 @@ export default function AgencyClubsReference({
   const saveRecent=(club:CatalogueClub)=>{
     const next=[club,...recent.filter(item=>item.id!==club.id)].slice(0,5);
     setRecent(next);
-    try{window.localStorage.setItem('redream-recent-club-searches-v1',JSON.stringify(next));}catch{}
+    try{window.localStorage.setItem(recentStorageKey,JSON.stringify(next));}catch{}
   };
   const importClub=async (club:CatalogueClub)=>{
     if(importing)return;
@@ -192,7 +223,7 @@ export default function AgencyClubsReference({
       <label className={styles.searchField}>
         <Search size={20} aria-hidden="true"/>
         <span className={styles.srOnly}>Search clubs</span>
-        <input type="search" aria-label="Search Network" value={query} placeholder="Search clubs..." onChange={event=>{setQuery(event.target.value);setPage(0);}} />
+        <input type="search" aria-label="Search clubs" value={query} placeholder="Search clubs..." onChange={event=>{setQuery(event.target.value);setPage(0);}} />
         {query&&<button type="button" onClick={()=>{setQuery('');setPage(0);}} aria-label="Clear search"><X size={15}/></button>}
       </label>
       {canCreateRecords&&<button type="button" data-ui-button="primary" className={styles.primary} onClick={()=>{setStage('choose');setImportError('');}}>
@@ -248,7 +279,7 @@ export default function AgencyClubsReference({
     </div>
     <p className={styles.sourceNote}>Players are matched to clubs by the exact name saved in their profiles. Club data is private to your agency.</p>
 
-    {stage&&<div className={styles.overlay} onMouseDown={event=>{if(event.target===event.currentTarget)resetFlow();}}>
+    {stage&&createPortal(<div ref={overlayRef} className={styles.overlay} onKeyDown={trapFocus} onMouseDown={event=>{if(event.target===event.currentTarget)resetFlow();}}>
       <section className={stage==='success'?styles.successDialog:styles.dialog} role="dialog" aria-modal="true" aria-label={stage==='choose'?'Add Club':stage==='search'?'Search Club':'Club saved'}>
         {stage!=='success'&&<header className={styles.dialogHeader}>
           {stage==='search'?<button type="button" data-ui-button="tertiary" className={styles.back} onClick={()=>setStage('choose')}><ArrowLeft size={17}/> Back</button>:<span/>}
@@ -268,7 +299,7 @@ export default function AgencyClubsReference({
         {stage==='search'&&<>
           <div className={styles.searchModalBody}>
             <label className={styles.modalSearch}><Search size={19}/><input value={catalogueQuery} onChange={event=>setCatalogueQuery(event.target.value)} placeholder="Search clubs by name" autoFocus maxLength={90}/>{catalogueQuery&&<button type="button" onClick={()=>setCatalogueQuery('')} aria-label="Clear"><X size={18}/></button>}</label>
-            {!catalogueQuery.trim()&&recent.length>0&&<div className={styles.recent}><div><strong>Recent Searches</strong><button type="button" onClick={()=>{setRecent([]);try{localStorage.removeItem('redream-recent-club-searches-v1');}catch{}}}>Clear</button></div>
+            {!catalogueQuery.trim()&&recent.length>0&&<div className={styles.recent}><div><strong>Recent Searches</strong><button type="button" onClick={()=>{setRecent([]);try{localStorage.removeItem(recentStorageKey);}catch{}}}>Clear</button></div>
               {recent.map(club=><button type="button" key={club.id} onClick={()=>setCatalogueQuery(club.name)}><ClubMark name={club.name} country={club.country}/><span><strong>{club.name}</strong><small><CountryFlag country={club.country}/>{club.country}</small></span></button>)}
             </div>}
             {catalogueQuery.trim().length===1&&<p className={styles.helper}>Enter at least two characters to search.</p>}
@@ -300,6 +331,6 @@ export default function AgencyClubsReference({
         </div>}
         {stage!=='success'&&<footer className={styles.dialogFooter}>Can’t find a club? <button type="button" onClick={()=>{setStage(null);onCreate('club');}}>Add manually</button><small>Club names from OpenFootball (CC0). Badges and leagues are shown only when verified.</small></footer>}
       </section>
-    </div>}
+    </div>,document.body)}
   </section>;
 }

@@ -149,6 +149,7 @@ export default function AgencyClubAccountDrawer({
   onCreatePlayer,
   refreshKey = 0,
   presentation = 'drawer',
+  canCreateRecords = true,
 }: {
   request: AgencyClubAccountRequest;
   invoke: Invoke;
@@ -176,6 +177,7 @@ export default function AgencyClubAccountDrawer({
   onCreatePlayer?: () => void;
   refreshKey?: number;
   presentation?: 'drawer' | 'page';
+  canCreateRecords?: boolean;
 }) {
   const [busy, setBusy] =
     useState(true);
@@ -580,7 +582,7 @@ export default function AgencyClubAccountDrawer({
       loadedId: loadedOrganisationId,
       busy, error,
       restricted: Boolean(account?.access?.restricted),
-    }) ? <EntityActionsMenu
+    }) && canCreateRecords ? <EntityActionsMenu
       showEdit
       kind="club"
       entityId={request.organisationId}
@@ -603,6 +605,7 @@ export default function AgencyClubAccountDrawer({
       account={account}
       invoke={invoke}
       refreshKey={refreshKey}
+      canCreateRecords={canCreateRecords}
       editControl={editControl}
       onClose={onClose}
       onCreateContact={onCreateContact || (() => undefined)}

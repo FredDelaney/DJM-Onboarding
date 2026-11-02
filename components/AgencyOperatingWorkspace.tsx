@@ -1247,6 +1247,21 @@ export default function AgencyOperatingWorkspace() {
     );
   }, [basePath, search]);
 
+  const openClubAccount = (request: AgencyClubAccountRequest) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(request.organisationId)) return;
+    setClubAccountRequest(request);
+    window.history.pushState({redreamView:'network'},'',`${basePath}?view=network&network=clubs&clubsv2=1&club=${encodeURIComponent(request.organisationId)}`);
+  };
+
+  // Preserve the selected club across reloads and browser history navigation.
+  useEffect(() => {
+    if(view!=='network'||!stateScope)return;
+    const id=search.get('club')||'';
+    setClubAccountRequest(current=>/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(id)
+      ? current?.organisationId===id?current:{key:'club-account:'+id,organisationId:id,title:'Club'}
+      : null);
+  },[view,recordRouteQuery,stateScope]);
+
   const closeClubAccount = () => {
     setClubAccountRequest(null);
 
@@ -1787,8 +1802,9 @@ export default function AgencyOperatingWorkspace() {
                 invoke={invoke}
                 onRefresh={refreshRecords}
                 onCreate={(kind) => setCreateKind(kind)}
-                onOpenClubAccount={setClubAccountRequest}
+                onOpenClubAccount={openClubAccount}
                 canCreateRecords={canCreateRecords}
+                recentScope={stateScope}
               />
             ) : view === 'network' ? (
               <AgencyNetworkWorkspace
@@ -1805,7 +1821,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenAction={(request) =>
                   setActionRequest(request)
                 }
-                onOpenClubAccount={setClubAccountRequest}
+                onOpenClubAccount={openClubAccount}
               />
             ) : null}
             {view === 'calendar' ? (
@@ -1894,7 +1910,7 @@ export default function AgencyOperatingWorkspace() {
             const id=result?.created?.organisation_id;
             setCreateKind(null);
             if(typeof id==='string'&&/^[0-9a-f-]{36}$/i.test(id)){
-              setClubAccountRequest({key:'club-account:'+id,organisationId:id,title:result?.formClubName||'New club',country:result?.formCountry||null});
+              openClubAccount({key:'club-account:'+id,organisationId:id,title:result?.formClubName||'New club',country:result?.formCountry||null});
             }
           }:createKind==='club_need'?result=>{
             const needId=result?.created?.club_need_id;
@@ -2040,6 +2056,7 @@ export default function AgencyOperatingWorkspace() {
           key={`${stateScope}:${clubAccountRequest.key}`}
           request={clubAccountRequest}
           presentation="page"
+          canCreateRecords={canCreateRecords}
           invoke={invoke}
           rpc={rpc}
           refreshKey={recordRefreshRevision}

@@ -188,3 +188,9 @@
 .searchField button{min-width:44px;min-height:44px}
 .sourceNote{font-size:12px}
 @media(max-width:780px){.tools>.primary{height:44px}}
+
+/* Keep search first on mobile; creation is secondary to finding an existing club. */
+@media(max-width:780px){
+.tools .searchField{order:0;flex-basis:100%}
+.tools>.primary{order:1;margin-left:auto;min-height:44px}
+}
