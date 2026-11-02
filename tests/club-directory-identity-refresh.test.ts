@@ -32,3 +32,9 @@ test('a club profile contact opens the existing people detail page',()=>{
   assert.match(workspace,/view=network&network=people&person=/);
   assert.match(workspace,/onOpenContact=\{\(personId\) => navigateWorkspaceView\('network'/);
 });
+
+test('opening a linked club never adds a duplicate browser history entry',()=>{
+  assert.match(workspace,/new URLSearchParams\(window\.location\.search\)\.get\('club'\)!==request\.organisationId/);
+  assert.match(workspace,/current\?\.organisationId===request\.organisationId\?current:request/);
+  assert.match(workspace,/const openClubAccount = useCallback/);
+});

@@ -74,7 +74,6 @@ import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDra
 import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
 import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
 import { readWithDeadline } from '@/lib/read-with-deadline';
-import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
@@ -98,6 +97,7 @@ const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersW
 const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: () => <WorkspaceSectionLoading label="Network"/>});
 const AgencyClubsReference = dynamic(() => import('@/components/AgencyClubsReference'), {loading: () => <WorkspaceSectionLoading label="clubs"/>});
 const PeopleViewSwitcher = dynamic(() => import('./PeopleViewSwitcher'));
+const AgencyOwnershipChip = dynamic(() => import('@/components/AgencyOwnershipChip'));
 const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
 const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
 const WorkspaceSearch = dynamic(() => import('@/components/WorkspaceSearch'));
@@ -1247,11 +1247,13 @@ export default function AgencyOperatingWorkspace() {
     );
   }, [basePath, search]);
 
-  const openClubAccount = (request: AgencyClubAccountRequest) => {
+  const openClubAccount = useCallback((request: AgencyClubAccountRequest) => {
     if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(request.organisationId)) return;
-    setClubAccountRequest(request);
-    window.history.pushState({redreamView:'network'},'',`${basePath}?view=network&network=clubs&clubsv2=1&club=${encodeURIComponent(request.organisationId)}`);
-  };
+    setClubAccountRequest(current=>current?.organisationId===request.organisationId?current:request);
+    // Linked club URLs already have a history entry; do not add a duplicate.
+    if(new URLSearchParams(window.location.search).get('club')!==request.organisationId)
+      window.history.pushState({redreamView:'network'},'',`${basePath}?view=network&network=clubs&clubsv2=1&club=${encodeURIComponent(request.organisationId)}`);
+  },[basePath]);
 
   // Preserve the selected club across reloads and browser history navigation.
   useEffect(() => {
