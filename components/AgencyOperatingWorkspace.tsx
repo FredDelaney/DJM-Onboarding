@@ -2099,20 +2099,8 @@ export default function AgencyOperatingWorkspace() {
           onCreateNeed={() => setCreateKind('club_need')}
           onCreateDeal={() => setCreateKind('deal')}
           onCreatePlayer={() => setCreateKind('player')}
-          onOpenPlayer={(playerId) => {
-            setClubAccountRequest(null);
-            window.history.pushState(
-              null,
-              '',
-              `${basePath}?view=players&player=${encodeURIComponent(
-                playerId,
-              )}`,
-            );
-          }}
-          onOpenContact={(personId) => {
-            setClubAccountRequest(null);
-            window.history.pushState(null, '', `${basePath}?view=network&network=people&person=${encodeURIComponent(personId)}`);
-          }}
+          onOpenPlayer={(playerId) => navigateWorkspaceView('players', `${basePath}?view=players&player=${encodeURIComponent(playerId)}`)}
+          onOpenContact={(personId) => navigateWorkspaceView('network', `${basePath}?view=network&network=people&person=${encodeURIComponent(personId)}`)}
         />
       ) : null}
 

@@ -30,4 +30,5 @@ test('a club profile contact opens the existing people detail page',()=>{
   assert.match(account,/onOpenContact=\{onOpenContact \|\|/);
   assert.match(workspace,/onOpenContact=\{\(personId\) =>/);
   assert.match(workspace,/view=network&network=people&person=/);
+  assert.match(workspace,/onOpenContact=\{\(personId\) => navigateWorkspaceView\('network'/);
 });
