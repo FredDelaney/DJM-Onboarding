@@ -143,10 +143,12 @@ export default function AgencyClubAccountDrawer({
   onOpenMarket,
   onOpenPursuit,
   onOpenPlayer,
+  onOpenContact,
   onCreateContact,
   onCreateNeed,
   onCreateDeal,
   onCreatePlayer,
+  onResolvedClub,
   refreshKey = 0,
   presentation = 'drawer',
   canCreateRecords = true,
@@ -171,10 +173,12 @@ export default function AgencyClubAccountDrawer({
   onOpenPlayer: (
     playerId: string,
   ) => void;
+  onOpenContact?: (personId: string) => void;
   onCreateContact?: () => void;
   onCreateNeed?: () => void;
   onCreateDeal?: () => void;
   onCreatePlayer?: () => void;
+  onResolvedClub?: (club: { organisationId: string; name: string; country: string | null }) => void;
   refreshKey?: number;
   presentation?: 'drawer' | 'page';
   canCreateRecords?: boolean;
@@ -190,6 +194,8 @@ export default function AgencyClubAccountDrawer({
   const [loadedOrganisationId, setLoadedOrganisationId] = useState('');
 
   const readSequence = useRef(0);
+  const resolvedClubCallback = useRef(onResolvedClub);
+  resolvedClubCallback.current = onResolvedClub;
   const load = useCallback(
     async (options?: { recordRefresh?: boolean }) => {
       const sequence = ++readSequence.current;
@@ -218,6 +224,14 @@ export default function AgencyClubAccountDrawer({
             null,
         );
         setLoadedOrganisationId(request.organisationId);
+        const resolvedName = String(record.club.name || '').trim();
+        if (resolvedName) {
+          resolvedClubCallback.current?.({
+            organisationId: request.organisationId,
+            name: resolvedName,
+            country: record.club.country || null,
+          });
+        }
       } catch (loadError) {
         if (!current()) return;
         if (options?.recordRefresh) throw loadError;
@@ -615,6 +629,7 @@ export default function AgencyClubAccountDrawer({
       onOpenMarket={onOpenMarket}
       onOpenDeal={onOpenDeal}
       onOpenPlayer={onOpenPlayer}
+      onOpenContact={onOpenContact || (() => undefined)}
     />;
   }
 

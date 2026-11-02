@@ -11,7 +11,6 @@ import {useHomeWork,HomeWorkRow,HomeWorkEditor,HomeWorkFeedback} from './HomeWor
 import AiLauncher from '@/components/AiLauncher';
 import AgencyMobileNavigation from './AgencyMobileNavigation';
 import {workspaceIntelligenceHref,workspaceIntelligenceListHref,workspaceIntelligenceRequestFromQuery,workspaceProfileFromDealHref} from '@/lib/workspace-record-navigation';
-import PeopleViewSwitcher from './PeopleViewSwitcher';
 
 import type { AgencyCreateKind } from '@/components/AgencyCreateDrawer';
 
@@ -75,7 +74,6 @@ import type { AgencyClubAccountRequest } from '@/components/AgencyClubAccountDra
 import type { AgencyNegotiationRequest } from '@/components/AgencyNegotiationCommandRoom';
 import type { AgencyPlayerServiceReviewRequest } from '@/components/AgencyPlayerServiceReviewDrawer';
 import { readWithDeadline } from '@/lib/read-with-deadline';
-import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import AccountMenu from '@/components/AccountMenu';
 import TenantWorkspaceBrand from '@/components/TenantWorkspaceBrand';
 import { tenantBrandCssVariables } from '@/lib/tenant-brand-style';
@@ -98,6 +96,8 @@ function WorkspaceSectionLoading({label = 'workspace'}: {label?: string}) {
 const AgencyPlayersWorkspace = dynamic(() => import('@/components/AgencyPlayersWorkspace'), {loading: () => <WorkspaceSectionLoading label="players"/>});
 const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkWorkspace'), {loading: () => <WorkspaceSectionLoading label="Network"/>});
 const AgencyClubsReference = dynamic(() => import('@/components/AgencyClubsReference'), {loading: () => <WorkspaceSectionLoading label="clubs"/>});
+const PeopleViewSwitcher = dynamic(() => import('./PeopleViewSwitcher'));
+const AgencyOwnershipChip = dynamic(() => import('@/components/AgencyOwnershipChip'));
 const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
 const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
 const WorkspaceSearch = dynamic(() => import('@/components/WorkspaceSearch'));
@@ -1247,11 +1247,13 @@ export default function AgencyOperatingWorkspace() {
     );
   }, [basePath, search]);
 
-  const openClubAccount = (request: AgencyClubAccountRequest) => {
+  const openClubAccount = useCallback((request: AgencyClubAccountRequest) => {
     if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(request.organisationId)) return;
-    setClubAccountRequest(request);
-    window.history.pushState({redreamView:'network'},'',`${basePath}?view=network&network=clubs&clubsv2=1&club=${encodeURIComponent(request.organisationId)}`);
-  };
+    setClubAccountRequest(current=>current?.organisationId===request.organisationId?current:request);
+    // Linked club URLs already have a history entry; do not add a duplicate.
+    if(new URLSearchParams(window.location.search).get('club')!==request.organisationId)
+      window.history.pushState({redreamView:'network'},'',`${basePath}?view=network&network=clubs&clubsv2=1&club=${encodeURIComponent(request.organisationId)}`);
+  },[basePath]);
 
   // Preserve the selected club across reloads and browser history navigation.
   useEffect(() => {
@@ -1804,6 +1806,7 @@ export default function AgencyOperatingWorkspace() {
                 onCreate={(kind) => setCreateKind(kind)}
                 onOpenClubAccount={openClubAccount}
                 canCreateRecords={canCreateRecords}
+                refreshKey={recordRefreshRevision}
                 recentScope={stateScope}
               />
             ) : view === 'network' ? (
@@ -2061,6 +2064,13 @@ export default function AgencyOperatingWorkspace() {
           rpc={rpc}
           refreshKey={recordRefreshRevision}
           onRefresh={refreshRecords}
+          onResolvedClub={({ organisationId, name, country }) => {
+            setClubAccountRequest((current) => {
+              if (current?.organisationId !== organisationId ||
+                  (current.title === name && current.country === country)) return current;
+              return { ...current, title: name, country };
+            });
+          }}
           onClose={closeClubAccount}
           onOpenAction={(request) => {
             setActionRequest(request);
@@ -2091,16 +2101,8 @@ export default function AgencyOperatingWorkspace() {
           onCreateNeed={() => setCreateKind('club_need')}
           onCreateDeal={() => setCreateKind('deal')}
           onCreatePlayer={() => setCreateKind('player')}
-          onOpenPlayer={(playerId) => {
-            setClubAccountRequest(null);
-            window.history.pushState(
-              null,
-              '',
-              `${basePath}?view=players&player=${encodeURIComponent(
-                playerId,
-              )}`,
-            );
-          }}
+          onOpenPlayer={(playerId) => navigateWorkspaceView('players', `${basePath}?view=players&player=${encodeURIComponent(playerId)}`)}
+          onOpenContact={(personId) => navigateWorkspaceView('network', `${basePath}?view=network&network=people&person=${encodeURIComponent(personId)}`)}
         />
       ) : null}
 
