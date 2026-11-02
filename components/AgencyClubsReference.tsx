@@ -47,6 +47,7 @@ export default function AgencyClubsReference({
   onCreate,
   onOpenClubAccount,
   canCreateRecords,
+  refreshKey = 0,
   recentScope = 'local',
 }: {
   invoke: Invoke;
@@ -54,6 +55,7 @@ export default function AgencyClubsReference({
   onCreate: (kind:'club'|'contact')=>void;
   onOpenClubAccount:(request:AgencyClubAccountRequest)=>void;
   canCreateRecords:boolean;
+  refreshKey?:number;
   recentScope?:string;
 }) {
   const [query, setQuery] = useState('');
@@ -108,7 +110,7 @@ export default function AgencyClubsReference({
   useEffect(() => {
     const id=window.setTimeout(()=>{void load();},query?220:0);
     return ()=>{window.clearTimeout(id);requestSerial.current++;};
-  },[load,revision]);
+  },[load,revision,refreshKey]);
 
   useEffect(()=>{
     try {

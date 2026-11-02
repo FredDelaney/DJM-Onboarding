@@ -1804,6 +1804,7 @@ export default function AgencyOperatingWorkspace() {
                 onCreate={(kind) => setCreateKind(kind)}
                 onOpenClubAccount={openClubAccount}
                 canCreateRecords={canCreateRecords}
+                refreshKey={recordRefreshRevision}
                 recentScope={stateScope}
               />
             ) : view === 'network' ? (
@@ -2061,6 +2062,13 @@ export default function AgencyOperatingWorkspace() {
           rpc={rpc}
           refreshKey={recordRefreshRevision}
           onRefresh={refreshRecords}
+          onResolvedClub={(resolved) => {
+            setClubAccountRequest((current) => {
+              if (!current || current.organisationId !== resolved.organisationId) return current;
+              if (current.title === resolved.name && current.country === resolved.country) return current;
+              return { ...current, title: resolved.name, country: resolved.country };
+            });
+          }}
           onClose={closeClubAccount}
           onOpenAction={(request) => {
             setActionRequest(request);
@@ -2100,6 +2108,10 @@ export default function AgencyOperatingWorkspace() {
                 playerId,
               )}`,
             );
+          }}
+          onOpenContact={(personId) => {
+            setClubAccountRequest(null);
+            window.history.pushState(null, '', `${basePath}?view=network&network=people&person=${encodeURIComponent(personId)}`);
           }}
         />
       ) : null}

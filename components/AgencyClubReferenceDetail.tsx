@@ -23,11 +23,11 @@ const amount=(value:unknown,currency:unknown)=>{
 };
 
 export default function AgencyClubReferenceDetail({
-  account,invoke,onClose,onCreateContact,onCreateNeed,onCreateDeal,onCreatePlayer,onOpenMarket,onOpenDeal,onOpenPlayer,editControl,refreshKey=0,canCreateRecords=true,
+  account,invoke,onClose,onCreateContact,onCreateNeed,onCreateDeal,onCreatePlayer,onOpenMarket,onOpenDeal,onOpenPlayer,onOpenContact,editControl,refreshKey=0,canCreateRecords=true,
 }: {
   account:any;invoke:Invoke;refreshKey?:number;editControl?:ReactNode;onClose:()=>void;onCreateContact:()=>void;
   onCreateNeed:()=>void;onCreateDeal:()=>void;onCreatePlayer:()=>void;canCreateRecords?:boolean;
-  onOpenMarket:(needId?:string)=>void;onOpenDeal:OpenRecord;onOpenPlayer:(id:string)=>void;
+  onOpenMarket:(needId?:string)=>void;onOpenDeal:OpenRecord;onOpenPlayer:(id:string)=>void;onOpenContact:(id:string)=>void;
 }) {
   const club=account?.club||{};
   const [tab,setTab]=useState<Tab>('overview');
@@ -100,7 +100,7 @@ export default function AgencyClubReferenceDetail({
         {!loading&&error&&<div className={styles.empty} role="alert">{error}</div>}
         {!loading&&!error&&!detail?.can_view_contacts&&<div className={styles.empty}><span className={styles.emptyIcon}><Shield size={25}/></span><strong>Private contacts</strong><p>Club contacts are available to agency administrators.</p></div>}
         {!loading&&!error&&detail?.can_view_contacts&&!detail.contacts.length&&<div className={styles.empty}><span className={styles.emptyIcon}><Building2 size={25}/></span><strong>No contacts found</strong><p>No contacts are associated with this club yet.</p></div>}
-        {!loading&&!error&&detail?.can_view_contacts&&detail.contacts.length>0&&<div className={styles.rows}>{detail.contacts.map(person=><div className={styles.personRow} key={person.id}><span className={styles.avatar}>{person.name.slice(0,1)}</span><span><strong>{person.name}</strong><small>{person.role||'Club contact'}</small></span></div>)}</div>}
+        {!loading&&!error&&detail?.can_view_contacts&&detail.contacts.length>0&&<div className={styles.rows}>{detail.contacts.map(person=><button type="button" className={styles.personRow} key={person.id} onClick={()=>onOpenContact(person.id)}><span className={styles.avatar}>{person.name.slice(0,1)}</span><span><strong>{person.name}</strong><small>{person.role||'Club contact'}</small></span><ChevronRight size={16}/></button>)}</div>}
       </section>
     </div>}
     {tab==='requests'&&<section className={styles.requests}>
