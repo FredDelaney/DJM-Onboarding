@@ -4,6 +4,7 @@ import {ArrowDown, ArrowUp, ChevronDown, Columns3, Filter, LayoutGrid, List, Loa
 import {useEffect, useMemo, useState} from 'react';
 import {publicFile} from '@/lib/supabase';
 import {friendlyError} from '@/lib/platform-client';
+import {PLAYER_AGENCY_STATUSES,playerAgencyStatus,playerAgencyStatusLabel} from '@/lib/player-agency-status';
 import styles from './PlayerExperience.module.css';
 
 type Props={
@@ -22,7 +23,7 @@ const initials=(value:string)=>value.split(/\s+/).filter(Boolean).slice(0,2).map
 const text=(value:unknown)=>String(value??'').trim();
 const nameOf=(player:any)=>text(player?.identity?.name)||[text(player?.identity?.first_name),text(player?.identity?.last_name)].filter(Boolean).join(' ')||'Unnamed player';
 const nationOf=(player:any)=>Array.isArray(player?.identity?.nationalities)?text(player.identity.nationalities[0]):text(player?.identity?.nationality);
-const statusOf=(player:any)=>player?.access?.restricted?'Assigned':text(player?.service?.state||player?.identity?.representation_status)||'Recorded';
+const statusOf=(player:any)=>playerAgencyStatus(player?.identity?.agency_status);
 const agentOf=(player:any)=>player?.access?.restricted?'':text(player?.agent_name||player?.identity?.agent_name||player?.assigned_agent_name);
 function Portrait({player}:{player:any}){const name=nameOf(player);const src=publicFile('player-public',text(player?.identity?.profile_photo_path)||null);return <span className={styles.listPortrait}>{src?<img src={src} alt="" loading="lazy"/>:initials(name)}</span>;}
 
@@ -37,6 +38,7 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
  },[]);
  const [columns,setColumns]=useState<Col[]>(allColumns.map(item=>item.id));
  const [filterPosition,setFilterPosition]=useState('');
+ const [filterStatus,setFilterStatus]=useState('');
  const [filterCountry,setFilterCountry]=useState('');
  const [sort,setSort]=useState<'name'|'age'|'club'>('name');
  const [ascending,setAscending]=useState(true);
@@ -45,24 +47,24 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
  const [moreError,setMoreError]=useState('');
  const positions=useMemo(()=>Array.from(new Set(players.map(p=>text(p?.identity?.primary_position)).filter(Boolean))).sort(),[players]);
  const countries=useMemo(()=>Array.from(new Set(players.map(nationOf).filter(Boolean))).sort(),[players]);
- const filterCount=Number(Boolean(filterPosition))+Number(Boolean(filterCountry));
+ const filterCount=Number(Boolean(filterPosition))+Number(Boolean(filterCountry))+Number(Boolean(filterStatus));
  const visible=useMemo(()=>players.filter(player=>{
   const identity=player?.identity||{};
   const matches=[nameOf(player),text(identity.current_club),text(identity.current_country),text(identity.primary_position),nationOf(player)].join(' ').toLowerCase().includes(search.trim().toLowerCase());
-  return matches&&(!filterPosition||text(identity.primary_position)===filterPosition)&&(!filterCountry||nationOf(player)===filterCountry);
+  return matches&&(!filterPosition||text(identity.primary_position)===filterPosition)&&(!filterCountry||nationOf(player)===filterCountry)&&(!filterStatus||statusOf(player)===filterStatus);
  }).sort((a,b)=>{
   const aval=sort==='age'?ageOf(a?.identity?.date_of_birth)??999:sort==='club'?text(a?.identity?.current_club):nameOf(a);
   const bval=sort==='age'?ageOf(b?.identity?.date_of_birth)??999:sort==='club'?text(b?.identity?.current_club):nameOf(b);
   const cmp=typeof aval==='number'&&typeof bval==='number'?aval-bval:String(aval).localeCompare(String(bval));
   return ascending?cmp:-cmp;
- }),[players,search,filterPosition,filterCountry,sort,ascending]);
+ }),[players,search,filterPosition,filterCountry,filterStatus,sort,ascending]);
  const included=(col:Col)=>columns.includes(col);
  const toggleColumn=(col:Col)=>setColumns(current=>current.includes(col)?current.length===1?current:current.filter(item=>item!==col):[...current,col]);
  const changeSort=(field:'name'|'age'|'club')=>{if(sort===field)setAscending(!ascending);else{setSort(field);setAscending(true);}};
  const toggleSelection=(id:string)=>setSelected(current=>current.includes(id)?current.filter(value=>value!==id):[...current,id]);
  const allChecked=visible.length>0&&visible.every(player=>selected.includes(String(player.player_id)));
  const loadMore=async()=>{if(!onLoadMore||loadingMore||directoryRefreshing)return;setLoadingMore(true);setMoreError('');try{await onLoadMore();}catch(error){setMoreError(friendlyError(error));}finally{setLoadingMore(false);}};
- const clear=()=>{setFilterPosition('');setFilterCountry('');onSearch('');};
+ const clear=()=>{setFilterPosition('');setFilterCountry('');setFilterStatus('');onSearch('');};
  return <section className={styles.directory} aria-label="Players directory">
   <div className={styles.directoryTop}>
    <div className={styles.directoryHeading}><div><span>PLAYER MANAGEMENT</span><h2>Players</h2></div><small>{total} {total===1?'player':'players'}</small></div>
@@ -78,6 +80,7 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
   <div className={styles.listTools}>
    <details className={styles.toolDropdown}><summary><Columns3 size={17}/> Columns <ChevronDown size={13}/></summary><div className={styles.toolPopover}>{allColumns.map(col=><label key={col.id}><input type="checkbox" checked={included(col.id)} onChange={()=>toggleColumn(col.id)}/>{col.label}</label>)}</div></details>
    <details className={styles.toolDropdown}><summary><Filter size={17}/> Filter {filterCount?<strong>{filterCount}</strong>:null}<ChevronDown size={13}/></summary><div className={styles.toolPopover}>
+    <label>Status<select aria-label="Agency status filter" value={filterStatus} onChange={event=>setFilterStatus(event.target.value)}><option value="">All statuses</option>{PLAYER_AGENCY_STATUSES.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
     <label>Position<select value={filterPosition} onChange={event=>setFilterPosition(event.target.value)}><option value="">All positions</option>{positions.map(option=><option key={option}>{option}</option>)}</select></label>
     <label>Nationality<select value={filterCountry} onChange={event=>setFilterCountry(event.target.value)}><option value="">All nationalities</option>{countries.map(option=><option key={option}>{option}</option>)}</select></label>
    </div></details>
@@ -102,7 +105,7 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
     {included('age')?<td>{ageOf(identity.date_of_birth)??'–'}</td>:null}
     {included('nationality')?<td><span className={styles.cellClamp}>{nationOf(player)||'–'}</span></td>:null}
     {included('position')?<td>{text(identity.primary_position)||'–'}</td>:null}
-    {included('status')?<td><span className={styles.statusChip} data-active={/active|represented|verified|ready/i.test(status)}>{status}</span></td>:null}
+    {included('status')?<td><span className={styles.statusChip} data-status={status}>{playerAgencyStatusLabel(status)}</span></td>:null}
     {included('agent')?<td>{agent?<span className={styles.agentName}><span>{initials(agent)}</span>{agent}</span>:'–'}</td>:null}
     {included('stage')?<td>{text(player?.service?.market_coverage?.state||identity.stage)||'–'}</td>:null}
    </tr>;})}

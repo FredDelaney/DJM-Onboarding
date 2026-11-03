@@ -10,6 +10,7 @@ import PlayerStaffControl from './PlayerStaffControl';
 import PlayerSalaryTerms from './PlayerSalaryTerms';
 import RecordContactActions from './RecordContactActions';
 import {friendlyError,relativeDate} from '@/lib/platform-client';
+import {PLAYER_AGENCY_STATUSES,playerAgencyStatus,playerAgencyStatusLabel,type PlayerAgencyStatus} from '@/lib/player-agency-status';
 import {prefetchPlayerProfile,invalidatePlayerProfile} from '@/lib/player-profile-cache';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
 import {confirmsEntityAction} from '@/lib/entity-action-result';
@@ -52,6 +53,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState<Record<EditKey,string>>(()=>pickDraft(initial?.identity));
  const [displayName,setDisplayName]=useState(raw(initial?.identity?.name));
+ const [agencyStatusDraft,setAgencyStatusDraft]=useState<PlayerAgencyStatus>(()=>playerAgencyStatus(initial?.identity?.agency_status));
  const [saveBusy,setSaveBusy]=useState(false);
  const [saveError,setSaveError]=useState('');
  const [savedMessage,setSavedMessage]=useState('');
@@ -102,6 +104,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  const save=async(event:React.FormEvent)=>{
   event.preventDefault();if(!canEdit||mutation.current)return;
   const patch=Object.fromEntries(editFields.filter(field=>draft[field.key]!==raw(identity[field.key])).map(field=>[field.key,draft[field.key]]));
+  if(agencyStatusDraft!==playerAgencyStatus(identity.agency_status))patch.agency_status=agencyStatusDraft;
   if(displayName.trim()!==name){
    if(!displayName.trim()||displayName.trim().length>120){setSaveError('Enter a player name of no more than 120 characters.');return;}
    patch.preferred_name=displayName.trim();
@@ -120,7 +123,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
   }catch(cause){if(alive.current)setSaveError(friendlyError(cause));}
   finally{mutation.current=false;if(alive.current)setSaveBusy(false);}
  };
- const openEdit=()=>{setDraft(pickDraft(identity));setDisplayName(name);setSaveError('');setSavedMessage('');setEditing(true);};
+ const openEdit=()=>{setDraft(pickDraft(identity));setAgencyStatusDraft(playerAgencyStatus(identity.agency_status));setDisplayName(name);setSaveError('');setSavedMessage('');setEditing(true);};
  return <div className={styles.playerSurface} role="region" aria-label={name+' player workspace'}>
   <div className={styles.playerPageHeader}><button type="button" className={styles.backLink} onClick={onClose} aria-label="Back to Players"><ArrowLeft size={17}/><span>Players</span></button><div className={styles.playerTopActions}><Link href={playerProfileUrl}><Sparkles size={16}/> Player Profile</Link>{canEdit?<EntityActionsMenu scope={cacheScope} kind="player" entityId={playerId} label={name} rpc={rpc} onChanged={async()=>{await onRefresh();await reload();}} fields={editFields.map(field=>({...field,value:identity[field.key]}))}/>:null}</div></div>
   {loading?<div className={styles.loadState}><LoaderCircle size={22}/> Loading player...</div>:null}
@@ -135,7 +138,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
     <Link className={styles.insightsLink} href={playerProfileUrl}><Sparkles size={15}/> Player Profile</Link>
     <div className={styles.identityContacts}>{canEdit?<RecordContactActions kind="player" recordId={playerId} name={name} scope={cacheScope} rpc={rpc}/>:null}</div>
     <div className={styles.identityStats}>
-     <div><strong>{raw(identity.football_status)||'Recorded'}</strong><span>Status</span></div>
+     <div><strong><span className={styles.statusChip} data-status={playerAgencyStatus(identity.agency_status)}>{playerAgencyStatusLabel(identity.agency_status)}</span></strong><span>Status</span></div>
      <div><strong>{age??'–'}</strong><span>Age</span></div>
      <div><strong>{raw(identity.primary_position)||'–'}</strong><span>Position</span></div>
     </div>
@@ -156,6 +159,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
      <div className={styles.editHead}><div><p>PLAYER DETAILS</p><h2>Edit player</h2><span>Changes are saved to this agency's player record.</span></div><button type="button" aria-label="Close editing" onClick={()=>setEditing(false)} disabled={saveBusy}><X size={18}/></button></div>
      <div className={styles.editColumns}>
       <section className={styles.editPanel}><h3>Player Information</h3><label>Player name<input type="text" value={displayName} maxLength={120} onChange={event=>setDisplayName(event.target.value)} disabled={saveBusy} aria-label="Player name" required/></label><p className={styles.editHelp}>Changes the player display name. Full legal-name details remain in Manage.</p>
+       <label>Agency status<select aria-label="Agency status" value={agencyStatusDraft} onChange={event=>setAgencyStatusDraft(event.target.value as PlayerAgencyStatus)} disabled={saveBusy}>{PLAYER_AGENCY_STATUSES.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><p className={styles.editHelp}>Signed: represented by our agency. Mandated: specific mandate. Prospect: someone we are evaluating.</p>
        <label>Position<input value={draft.primary_position} onChange={event=>setDraft({...draft,primary_position:event.target.value})} disabled={saveBusy}/></label>
        <label>Nationality<input value={nationalities.join(', ')} readOnly title="Edit verified football details in Player Profile."/></label>
        <label>Date of birth<input value={raw(identity.date_of_birth)} readOnly title="Edit verified football details in Player Profile."/></label>
