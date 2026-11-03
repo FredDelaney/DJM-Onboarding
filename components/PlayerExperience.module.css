@@ -210,3 +210,8 @@
  .recruitmentLink,.clearFilters{min-height:44px;display:inline-flex;align-items:center}
  .directoryHeading>small,.playerTile small{font-size:12px}
 }
+
+.restrictedPanel{display:flex;flex-direction:column;align-items:flex-start;gap:12px;border:1px solid #e0eaf5;border-radius:17px;background:#f8fbff;padding:28px;color:#55718f}
+.restrictedPanel svg{color:var(--player-blue)}
+.restrictedPanel h2{font-size:19px;font-weight:750;color:#1c3656;margin:0}
+.restrictedPanel p{font-size:13px;line-height:1.55;margin:0;max-width:430px}

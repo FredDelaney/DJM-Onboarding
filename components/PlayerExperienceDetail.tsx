@@ -82,7 +82,8 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  const deals=Array.isArray(detail?.deals)?detail.deals:[];
  const activity=Array.isArray(detail?.activity)?detail.activity:[];
  const representation=agreements.find((a:any)=>a?.status==='active'&&['representation','mandate','placement_authorisation'].includes(raw(a.agreement_type)));
- const canEdit=fullDetailReady&&canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted;
+ const restricted=Boolean(summary?.access?.restricted||detail?.access?.restricted);
+ const canEdit=fullDetailReady&&canManageRecords&&!restricted;
  const playerProfileUrl=basePath+'?view=players&player='+encodeURIComponent(playerId)+'&profile=1';
  const mainNext=identity.next_action||service?.next_service_move?.instruction||service?.next_control_fix?.instruction;
  const nationalities=Array.isArray(identity.nationalities)?identity.nationalities.filter(Boolean):[];
@@ -141,7 +142,11 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
     </dl>
    </aside>
    <div className={styles.playerContent}>
-    {editing?<form className={styles.playerEdit} onSubmit={event=>void save(event)}>
+    {restricted?<section className={styles.restrictedPanel} role="note">
+     <ShieldCheck size={22}/>
+     <h2>Assigned player</h2>
+     <p>This player is visible to you, but contract, deal, task and other private agency information requires administrator access.</p>
+    </section>:editing?<form className={styles.playerEdit} onSubmit={event=>void save(event)}>
      <div className={styles.editHead}><div><p>PLAYER DETAILS</p><h2>Edit player</h2><span>Changes are saved to this agency's player record.</span></div><button type="button" aria-label="Close editing" onClick={()=>setEditing(false)} disabled={saveBusy}><X size={18}/></button></div>
      <div className={styles.editColumns}>
       <section className={styles.editPanel}><h3>Player Information</h3><label>Player name<input type="text" value={displayName} maxLength={120} onChange={event=>setDisplayName(event.target.value)} disabled={saveBusy} aria-label="Player name" required/></label><p className={styles.editHelp}>Changes the player display name. Full legal-name details remain in Manage.</p>
