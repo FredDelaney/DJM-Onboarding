@@ -2537,7 +2537,7 @@ fieldset.editorBody { min-width: 0; margin: 0; border: 0; }
 .root .hero .photo{border-color:#d8e5f3;background:#eaf2fc}
 .root .heroFacts span{background:#eaf2fc;color:#4c6885}
 .root .statusRow{align-items:center;gap:7px}
-.root .statusRow span{color:#657a91}
+.root .statusRow span{color:#465e78}
 .root .statusRow .draftStatus{background:#eff3f8;color:#546a82}
 .root .statusRow .liveStatus{background:#e3f5eb;color:#247551}
 .root .readiness{padding:17px;border:1px solid #dbe7f4;border-radius:14px;background:#f5f9ff;color:#203a57}
