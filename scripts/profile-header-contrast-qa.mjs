@@ -30,6 +30,15 @@ try {
   await more.click();
   await hero.getByRole('button',{name:'Edit profile',exact:true}).waitFor();
   await hero.getByRole('button',{name:'Preview',exact:true}).waitFor();
+  await page.goto(root+'?view=players&player=qa-player-0');
+  const back=page.getByRole('button',{name:'Back to Players',exact:true});
+  await back.waitFor();
+  const alignment=await back.evaluate(node=>{
+   const icon=node.querySelector('svg')?.getBoundingClientRect();
+   const label=node.querySelector('span')?.getBoundingClientRect();
+   return {width:node.getBoundingClientRect().width,verticalOffset:icon&&label?Math.abs((icon.top+icon.height/2)-(label.top+label.height/2)):999};
+  });
+  assert.ok(alignment.width>=100&&alignment.verticalOffset<=3,'Player return control must keep icon and label together at '+width+': '+JSON.stringify(alignment));
  }
- console.log('Player profile header contrast, touch targets and discoverable editing tools passed at four viewport widths.');
+ console.log('Player profile contrast, touch targets, editing tools and work-view navigation passed at four viewport widths.');
 } finally {await browser.close();}

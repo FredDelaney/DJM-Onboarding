@@ -2541,9 +2541,9 @@ fieldset.editorBody { min-width: 0; margin: 0; border: 0; }
 .root .statusRow .draftStatus{background:#eff3f8;color:#546a82}
 .root .statusRow .liveStatus{background:#e3f5eb;color:#247551}
 .root .readiness{padding:17px;border:1px solid #dbe7f4;border-radius:14px;background:#f5f9ff;color:#203a57}
-.root .readinessTop span{color:#7089a5}
+.root .readinessTop span{color:#405c7a}
 .root .readinessTop strong{color:#233d5d}
-.root .readiness p{color:#6a8096;line-height:1.5}
+.root .readiness p{color:#405c7a;line-height:1.5}
 .root .heroActions{gap:9px}
 .root .heroActions .primaryAction{min-height:44px;padding-inline:15px;border-radius:11px;font-size:13px;font-weight:680}
 .root .hero .secondaryAction{min-height:44px;padding-inline:13px;border:1px solid #dce7f3;border-radius:11px;background:#fff;color:#365e88;font-size:12px;font-weight:630}
