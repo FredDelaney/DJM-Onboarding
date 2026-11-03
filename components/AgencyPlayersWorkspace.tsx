@@ -265,9 +265,10 @@ function PlayerDrawer({
     <div className={styles.playerPage}>
       <aside className={`${styles.drawer} ${styles.playerPagePanel}`} role="region" aria-label={`${playerName} player workspace`}>
         <div className={`${styles.drawerTop} ${styles.drawerTopManaged}`}>
-          <button type="button" data-ui-button="icon"
+          <button type="button" data-ui-button="secondary"
               className={styles.closeButton} onClick={onClose} aria-label="Back to Players">
             <ArrowLeft size={18} />
+            <span className={styles.playerBackText}>All players</span>
           </button>
           {!busy&&!error&&detail&&canManageRecords&&!summary?.access?.restricted&&!detail?.access?.restricted?<EntityActionsMenu
             scope={cacheScope}
@@ -946,6 +947,19 @@ export default function AgencyPlayersWorkspace({
 
   return (
     <div className={styles.workspace}>
+      <header className={styles.rosterOverview}>
+        <div className={styles.rosterOverviewCopy}>
+          <span className={styles.rosterEyebrow}>{section==='players'?'YOUR SQUAD':'TALENT PIPELINE'}</span>
+          <h2>{section==='players'?'Our players':'Recruitment'}</h2>
+          <p>{section==='players'
+            ? 'Player details, opportunities and the next move, together in one place.'
+            : 'Follow potential players from first contact to representation.'}</p>
+        </div>
+        {section==='players' && Array.isArray(data?.directory?.items) ? <div className={styles.rosterCount}>
+          <strong>{typeof data.directory.total==='number'?data.directory.total:players.length}</strong>
+          <span>{(typeof data.directory.total==='number'?data.directory.total:players.length)===1?'player':'players'}</span>
+        </div> : null}
+      </header>
       <section className={styles.toolbar}>
         <div className={styles.sectionTabs} data-people-internal-tabs>
           <button type="button" className={section==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('players')}>
@@ -1020,9 +1034,14 @@ export default function AgencyPlayersWorkspace({
               >
                 <div className={styles.playerCardTop}>
                   <Avatar name={name} path={identity.profile_photo_path}/>
-                  <div className={styles.playerIdentity}><h3>{name}</h3>
-                    <span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Add position, club or country'}</span>
-                    <small>{[age!==null?`${age}`:null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')||'Age and nationality not set'}</small></div>
+                  <div className={styles.playerIdentity}>
+                    <h3>{name}</h3>
+                    <span className={styles.playerPosition}>{identity.primary_position || 'Position not recorded'}</span>
+                    <small className={styles.playerClub}>{[identity.current_club,identity.current_country].filter(Boolean).join(' · ') || 'Club not recorded'}</small>
+                    {age!==null || (Array.isArray(identity.nationalities) && identity.nationalities.length) ? <small className={styles.playerDemographics}>
+                      {[age!==null ? String(age)+' years' : null,Array.isArray(identity.nationalities)?identity.nationalities[0]:null].filter(Boolean).join(' · ')}
+                    </small> : null}
+                  </div>
                   <div className={styles.playerCardEnd}>
                     {!item.access?.restricted ? <>                    {canManageRecords ? <EntityActionsMenu
                       scope={stateScope}
@@ -1069,13 +1088,20 @@ export default function AgencyPlayersWorkspace({
                     <strong>{nextInstruction||'No next action yet'}</strong>
                     <ChevronRight size={15} />
                   </span>
-                </button> : null}
+                </button> : <div className={styles.rosterQuietNext}>
+                  <span>Next step</span>
+                  <strong>No next action recorded</strong>
+                </div>}
                 <div className={styles.playerFacts}>
                   <div><span>Playing contract</span><strong>{identity.contract_expiry?relativeDate(identity.contract_expiry):'Not set'}</strong></div>
                   <div><span>Opportunities</span><strong>{Number(item.active_opportunities||0)}</strong></div>
                 </div>
                 </>}
                 {!item.access?.restricted ? <div className={styles.profileShortcutRow}>
+                  <button type="button" className={styles.profileOpenButton} onClick={event=>{event.stopPropagation();openPlayerProfile(String(item.player_id));}}
+                    aria-label={'View '+name+' profile'}>
+                    Profile <ArrowRight size={15} aria-hidden="true"/>
+                  </button>
                   <button
                     type="button"
                     data-ui-button="secondary"

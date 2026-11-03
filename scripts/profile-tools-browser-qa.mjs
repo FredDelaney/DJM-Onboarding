@@ -56,7 +56,14 @@ try{
   assert.equal(await content.evaluate(node=>node.scrollTop),0,'Each preview opens at the player identity');
   if(width===390||width===1440){await mkdir('/tmp/redream-platform-programme/club-stats',{recursive:true});await page.screenshot({path:'/tmp/redream-platform-programme/club-stats/preview-overlay-'+width+'.png'});}
   await close.click();await preview.waitFor({state:'hidden'});
-  await trigger.click();await tools.getByRole('button',{name:'Preview',exact:true}).click();
+  await trigger.click();await tools.waitFor({state:'visible'});
+  // A popover is top-layer/fixed but lives inside its disclosure in the DOM.
+  // Playwright's element-click scrolling can move the underlying page and dismiss
+  // the menu. Tap the visible menu option at its actual screen coordinates.
+  const menuPreview=tools.getByRole('button',{name:'Preview',exact:true});
+  const menuPreviewBox=await menuPreview.boundingBox();
+  assert.ok(menuPreviewBox&&menuPreviewBox.width>=44&&menuPreviewBox.height>=44,'More preview is visible and tappable at '+width);
+  await page.mouse.click(menuPreviewBox.x+menuPreviewBox.width/2,menuPreviewBox.y+menuPreviewBox.height/2);
   await preview.waitFor({state:'visible'});
   await page.keyboard.press('Escape');await preview.waitFor({state:'hidden'});
   assert.equal(await trigger.evaluate(node=>node===document.activeElement),true,'Menu previews return focus to More');
