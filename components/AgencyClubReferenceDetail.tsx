@@ -3,6 +3,7 @@
 import {ArrowLeft, ArrowUpDown, Building2, ChevronRight, Globe2, Lightbulb, LoaderCircle, Plus, Shield, UsersRound} from 'lucide-react';
 import {useCallback,useEffect,useMemo,useState, type ReactNode} from 'react';
 import {friendlyError} from '@/lib/platform-client';
+import {clubNeedFinancialFacts} from '@/lib/club-need-brief';
 import styles from './AgencyClubReferenceDetail.module.css';
 import ClubIdentityMark, {CountryFlag} from './ClubIdentityMark';
 
@@ -20,6 +21,13 @@ const amount=(value:unknown,currency:unknown)=>{
   if(!Number.isFinite(n))return 'Not specified';
   try{return new Intl.NumberFormat('en-GB',{style:'currency',currency:String(currency||'EUR'),maximumFractionDigits:0}).format(n);}
   catch{return String(value)+' '+String(currency||'');}
+};
+
+const wageBudgetLabel=(need:any)=>clubNeedFinancialFacts(need).find(([label])=>label==='Salary budget')?.[1]||'Not specified';
+const requestPriorityLabel=(value:unknown)=>({1:'Low',2:'Routine',3:'Normal',4:'High',5:'Urgent'} as Record<string,string>)[String(value??'')]||'Not set';
+const transferPreferenceLabel=(value:unknown)=>{
+  const raw=String(value||'').trim();
+  return raw?raw.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase()):'Not specified';
 };
 
 export default function AgencyClubReferenceDetail({
@@ -105,8 +113,8 @@ export default function AgencyClubReferenceDetail({
     </div>}
     {tab==='requests'&&<section className={styles.requests}>
       <div className={styles.sectionHeader}><h2>Requests</h2><div className={styles.actions}><label className={styles.srOnly} htmlFor="club-request-state">Request status</label><select id="club-request-state" value={requestsFilter} onChange={e=>setRequestsFilter(e.target.value as 'all'|'active')}><option value="active">Active</option><option value="all">All</option></select>{canCreateRecords&&<button type="button" className={styles.plus} onClick={onCreateNeed} aria-label="Add request"><Plus size={20}/></button>}</div></div>
-      <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Position <ArrowUpDown size={12}/></th><th>Window</th><th>Priority</th><th>Players</th><th>Budget</th><th>Wage Budget</th><th>Deal Types</th></tr></thead>
-      <tbody>{requests.map(need=><tr key={need.club_need_id} tabIndex={0} onClick={()=>onOpenMarket(need.club_need_id)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onOpenMarket(need.club_need_id);}}} className={styles.clickable}><td>{need.position||need.title||'Not specified'}</td><td>{need.expires_at?new Date(need.expires_at).toLocaleDateString('en-GB',{month:'short',year:'numeric'}):'Not specified'}</td><td>{need.priority??'Not set'}</td><td>View matches</td><td>{amount(need.transfer_budget,need.currency)}</td><td>{amount(need.salary_budget,need.currency)}</td><td>{need.transfer_type||'Not specified'}</td></tr>)}</tbody>
+      <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Position <ArrowUpDown size={12}/></th><th>Valid until</th><th>Priority</th><th>Players</th><th>Budget</th><th>Wage Budget</th><th>Deal preference</th></tr></thead>
+      <tbody>{requests.map(need=><tr key={need.club_need_id} tabIndex={0} onClick={()=>onOpenMarket(need.club_need_id)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onOpenMarket(need.club_need_id);}}} className={styles.clickable}><td data-label="Position">{need.position||need.title||'Not specified'}</td><td data-label="Valid until">{need.expires_at?new Date(need.expires_at).toLocaleDateString('en-GB',{month:'short',year:'numeric'}):'Not specified'}</td><td data-label="Priority">{requestPriorityLabel(need.priority)}</td><td data-label="Players">Review matches</td><td data-label="Transfer budget">{amount(need.transfer_budget,need.currency)}</td><td data-label="Wage budget">{wageBudgetLabel(need)}</td><td data-label="Deal preference">{transferPreferenceLabel(need.transfer_type)}</td></tr>)}</tbody>
       </table>{!requests.length&&<div className={styles.empty}><span className={styles.emptyIcon}><Shield size={25}/></span><p>No requests found</p></div>}</div>
     </section>}
     {tab==='deals'&&<section className={styles.requests}><div className={styles.sectionHeader}><h2>Deals</h2>{canCreateRecords&&<button type="button" className={styles.plus} aria-label="Add deal" onClick={onCreateDeal}><Plus size={20}/></button>}</div>

@@ -102,3 +102,17 @@
 .tabs::-webkit-scrollbar{display:none}
 }
 @media(max-width:400px){.clubHeader{padding:15px 13px}.headlines h1{font-size:19px}.insights,.addActionButton{padding-inline:12px}}
+
+/* Requests remain a table on desktop; show readable cards on narrow phones. */
+@media(max-width:720px){
+  .requests .tableWrap{border:0;box-shadow:none;overflow:visible}
+  .requests .table,.requests .table tbody{display:block;min-width:0;width:100%}
+  .requests .table thead{display:none}
+  .requests .table tbody{display:grid;gap:12px}
+  .requests .table tbody tr.clickable{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border:1px solid #dfe6f0;border-radius:13px;background:#fff;overflow:hidden}
+  .requests .table tbody tr.clickable:active{background:#f3f7ff}
+  .requests .table tbody tr.clickable td{display:flex;justify-content:space-between;align-items:baseline;gap:12px;height:auto;min-height:44px;padding:10px 14px;border-top:1px solid #eef1f6;text-align:right;overflow-wrap:anywhere}
+  .requests .table tbody tr.clickable td:first-child{border-top:0;background:#f7f9fc;color:#1b2638;font-weight:700;text-align:left}
+  .requests .table tbody tr.clickable td::before{content:attr(data-label);flex:0 0 auto;color:#718098;font-size:12px;font-weight:600;text-align:left}
+  .requests .table tbody tr.clickable td:first-child::before{display:none}
+}
