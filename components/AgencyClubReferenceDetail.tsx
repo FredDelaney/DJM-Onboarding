@@ -1,7 +1,7 @@
 'use client';
 
 import {ArrowLeft, ArrowUpDown, Building2, ChevronRight, Globe2, Lightbulb, LoaderCircle, Plus, Shield, UsersRound} from 'lucide-react';
-import {useCallback,useEffect,useMemo,useState, type ReactNode} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState, type ReactNode} from 'react';
 import {friendlyError} from '@/lib/platform-client';
 import {clubNeedFinancialFacts} from '@/lib/club-need-brief';
 import styles from './AgencyClubReferenceDetail.module.css';
@@ -9,8 +9,9 @@ import ClubIdentityMark, {CountryFlag} from './ClubIdentityMark';
 
 type Invoke=(action:string,body?:Record<string,unknown>)=>Promise<any>;
 type OpenRecord=(id:string,title:string,context?:string|null)=>void;
-type Person={id:string;name:string;position?:string;role?:string};
-type Detail={players:Person[];contacts:Person[];can_view_contacts:boolean;player_count_basis:string};
+type Person={id:string;name:string;position?:string;role?:string;verified_link?:boolean};
+type PlayerCandidate={id:string;name:string;current_club?:string|null;current_country?:string|null;linked_club_id?:string|null;can_link:boolean};
+type Detail={players:Person[];contacts:Person[];can_view_contacts:boolean;can_link_players?:boolean;player_count_basis:string};
 type Tab='overview'|'requests'|'deals';
 
 const items=(value:unknown):any[]=>Array.isArray(value)?value:[];
@@ -31,11 +32,12 @@ const transferPreferenceLabel=(value:unknown)=>{
 };
 
 export default function AgencyClubReferenceDetail({
-  account,invoke,onClose,onCreateContact,onCreateNeed,onCreateDeal,onCreatePlayer,onOpenMarket,onOpenDeal,onOpenPlayer,onOpenContact,editControl,refreshKey=0,canCreateRecords=true,
+  account,invoke,onClose,onCreateContact,onCreateNeed,onCreateDeal,onCreatePlayer,onOpenMarket,onOpenDeal,onOpenPlayer,onOpenContact,onLinkSaved,editControl,refreshKey=0,canCreateRecords=true,
 }: {
   account:any;invoke:Invoke;refreshKey?:number;editControl?:ReactNode;onClose:()=>void;onCreateContact:()=>void;
   onCreateNeed:()=>void;onCreateDeal:()=>void;onCreatePlayer:()=>void;canCreateRecords?:boolean;
   onOpenMarket:(needId?:string)=>void;onOpenDeal:OpenRecord;onOpenPlayer:(id:string)=>void;onOpenContact:(id:string)=>void;
+  onLinkSaved?:()=>Promise<void>;
 }) {
   const club=account?.club||{};
   const [tab,setTab]=useState<Tab>('overview');
@@ -45,6 +47,15 @@ export default function AgencyClubReferenceDetail({
   const [error,setError]=useState('');
   const [insights,setInsights]=useState(false);
   const [actionsOpen,setActionsOpen]=useState(false);
+  const linkConfirmRef=useRef<HTMLDivElement|null>(null);
+  const [linkOpen,setLinkOpen]=useState(false);
+  const [linkSearch,setLinkSearch]=useState('');
+  const [linkLoading,setLinkLoading]=useState(false);
+  const [linkError,setLinkError]=useState('');
+  const [linkCandidates,setLinkCandidates]=useState<PlayerCandidate[]>([]);
+  const [linkSelected,setLinkSelected]=useState<PlayerCandidate|null>(null);
+  const [linkSaving,setLinkSaving]=useState(false);
+  const [linkNotice,setLinkNotice]=useState('');
   const needRows=items(account?.demand?.items);
   const dealRows=items(account?.commercial?.deals);
   const organisationId=txt(club.organisation_id||club.id);
@@ -60,6 +71,41 @@ export default function AgencyClubReferenceDetail({
     finally{setLoading(false);}
   },[invoke,organisationId]);
   useEffect(()=>{void load();},[load,refreshKey]);
+  useEffect(()=>{if(linkSelected)linkConfirmRef.current?.scrollIntoView({block:'nearest',behavior:'smooth'});},[linkSelected]);
+  useEffect(()=>{
+    if(!linkOpen||!detail?.can_link_players)return;
+    let active=true;
+    setLinkLoading(true);setLinkError('');
+    const timer=setTimeout(()=>{
+      void invoke('club_link_candidates',{organisation_id:organisationId,search:linkSearch.trim()})
+        .then(result=>{
+          if(!active)return;
+          const records=result?.candidates?.items;
+          if(!Array.isArray(records)||records.some((item:any)=>typeof item?.id!=='string'||typeof item?.name!=='string'||typeof item?.can_link!=='boolean'))
+            throw new Error('The roster list could not be verified.');
+          setLinkCandidates(records);
+        })
+        .catch(cause=>{if(active)setLinkError(friendlyError(cause));})
+        .finally(()=>{if(active)setLinkLoading(false);});
+    },linkSearch?250:0);
+    return()=>{active=false;clearTimeout(timer);};
+  },[linkOpen,linkSearch,organisationId,invoke,detail?.can_link_players]);
+
+  const confirmLink=async()=>{
+    if(!linkSelected||linkSaving)return;
+    const selected=linkSelected;
+    setLinkSaving(true);setLinkError('');
+    try{
+      const response=await invoke('club_link_player',{organisation_id:organisationId,player_id:selected.id});
+      if(response?.linked?.linked!==true||response.linked.player_id!==selected.id||response.linked.organisation_id!==organisationId)
+        throw new Error('The club link was not confirmed. Check the roster before retrying.');
+      setLinkNotice(selected.name+' linked to '+(txt(club.name)||'club')+'.');
+      setLinkSelected(null);setLinkOpen(false);setLinkSearch('');
+      await load();
+      void onLinkSaved?.().catch(()=>undefined);
+    }catch(cause){setLinkError(friendlyError(cause));}
+    finally{setLinkSaving(false);}
+  };
   const requests=useMemo(()=>requestsFilter==='all'?needRows:needRows.filter(x=>['active','open','confirmed'].includes(String(x.status||'').toLowerCase())),[needRows,requestsFilter]);
   const name=txt(club.name)||'Club';
   const country=txt(club.country),league=txt(club.league_name);
@@ -96,11 +142,37 @@ export default function AgencyClubReferenceDetail({
     </nav>
     {tab==='overview'&&<div className={styles.panels}>
       <section className={styles.block}>
-        <div className={styles.sectionHeader}><h2>Players</h2>{canCreateRecords&&<button className={styles.plus} type="button" onClick={onCreatePlayer} aria-label="Add club player"><Plus size={19}/></button>}</div>
+        <div className={styles.sectionHeader}><h2>Players</h2><div className={styles.actions}>
+          {canCreateRecords&&detail?.can_link_players&&<button type="button" className={styles.linkExisting} onClick={()=>{setLinkOpen(value=>!value);setLinkLoading(true);setLinkSelected(null);setLinkError('');}} aria-expanded={linkOpen}>Link existing player</button>}
+          {canCreateRecords&&<button className={styles.plus} type="button" onClick={onCreatePlayer} aria-label="Add club player"><Plus size={19}/></button>}
+        </div></div>
+        {linkNotice&&<p role="status" className={styles.linkNotice}>{linkNotice}</p>}
+        {linkOpen&&detail?.can_link_players&&<div className={styles.linkPanel} role="region" aria-label="Link an existing roster player">
+          <strong>Choose a player already in your agency</strong>
+          <p>Links are confirmed manually. Similar club names are never merged automatically.</p>
+          <input type="search" aria-label="Search roster players" placeholder="Search players by name or current club" maxLength={100} value={linkSearch} onChange={event=>{setLinkLoading(true);setLinkSearch(event.target.value);setLinkSelected(null);}} />
+          {linkError&&<p role="alert" className={styles.linkError}>{linkError}</p>}
+          {linkLoading&&<p role="status">Searching roster…</p>}
+          {!linkLoading&&!linkSelected&&<div className={styles.linkCandidateList}>
+            {linkCandidates.map(candidate=><button type="button" className={styles.linkCandidate} key={candidate.id} disabled={!candidate.can_link} onClick={()=>setLinkSelected(candidate)}>
+              <span><strong>{candidate.name}</strong><small>Current club: {candidate.current_club||'Not recorded'}</small></span>
+              <span className={styles.linkCandidateAction}>{candidate.can_link?'Review link':'Linked elsewhere'}</span>
+            </button>)}
+            {!linkCandidates.length&&!linkError&&<p>No players found. Adjust the search or add the player to your roster.</p>}
+          </div>}
+          {linkSelected&&<div ref={linkConfirmRef} className={styles.linkConfirm}>
+            <strong>Confirm {linkSelected.name} at {name}?</strong>
+            <p>Current club: {linkSelected.current_club||'Not recorded'}. This will update the player's current-club name and create a verified internal club link. It does not verify an external contract or registration.</p>
+            <div className={styles.linkConfirmActions}>
+              <button type="button" disabled={linkSaving} onClick={()=>setLinkSelected(null)}>Back</button>
+              <button type="button" disabled={linkSaving} className={styles.linkPrimary} onClick={()=>void confirmLink()}>{linkSaving?'Saving…':'Confirm club link'}</button>
+            </div>
+          </div>}
+        </div>}
         {loading&&<div className={styles.empty}><LoaderCircle className={styles.spin} size={19}/> Loading players…</div>}
         {!loading&&error&&<div className={styles.empty} role="alert">{error}<button type="button" onClick={()=>void load()}>Retry</button></div>}
         {!loading&&!error&&!detail?.players?.length&&<div className={styles.empty}><span className={styles.emptyIcon}><UsersRound size={26}/></span><strong>No players found</strong><p>No players are associated with this club in your agency roster.</p></div>}
-        {!loading&&!error&&detail?.players?.length? <div className={styles.rows}>{detail.players.map(person=><button type="button" key={person.id} className={styles.personRow} onClick={()=>onOpenPlayer(person.id)}><span className={styles.avatar}>{person.name.slice(0,1)}</span><span><strong>{person.name}</strong><small>{person.position||'Player'}</small></span><ChevronRight size={16}/></button>)}</div>:null}
+        {!loading&&!error&&detail?.players?.length? <div className={styles.rows}>{detail.players.map(person=><button type="button" key={person.id} className={styles.personRow} onClick={()=>onOpenPlayer(person.id)}><span className={styles.avatar}>{person.name.slice(0,1)}</span><span><strong>{person.name}</strong><small>{person.position||'Player'}</small><small className={person.verified_link?styles.linkVerified:styles.linkUnverified}>{person.verified_link?'Club link confirmed':'Name match, not verified'}</small></span><ChevronRight size={16}/></button>)}</div>:null}
       </section>
       <section className={styles.block}>
         <div className={styles.sectionHeader}><h2>Contacts</h2>{canCreateRecords&&detail?.can_view_contacts&&<button className={styles.plus} type="button" onClick={onCreateContact} aria-label="Add club contact"><Plus size={19}/></button>}</div>
@@ -122,6 +194,6 @@ export default function AgencyClubReferenceDetail({
         {dealRows.map(deal=><tr key={deal.deal_room_id}><td>{deal.title||'Deal'}</td><td>{deal.stage||'Not specified'}</td><td>{amount(deal.expected_commission,deal.currency)}</td><td>{deal.next_action_at?new Date(deal.next_action_at).toLocaleDateString('en-GB'):'Not scheduled'}</td><td><button type="button" className={styles.openRecord} aria-label="Open deal" onClick={()=>onOpenDeal(deal.deal_room_id,deal.title||'Deal',name)}>Open deal <ChevronRight size={16}/></button></td></tr>)}
       </tbody></table>{!dealRows.length&&<div className={styles.empty}><span className={styles.emptyIcon}><Building2 size={25}/></span><p>No deals found</p></div>}</div>
     </section>}
-    {tab==='overview'&&<p className={styles.footnote}>Player associations are based on an exact current-club name match. This is not a verified contract or registration link.</p>}
+    {tab==='overview'&&<p className={styles.footnote}>Confirmed player links are distinguished from provisional name matches. A link does not establish contract or registration status.</p>}
   </section>;
 }

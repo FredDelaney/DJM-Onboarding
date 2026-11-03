@@ -116,3 +116,27 @@
   .requestTable tbody tr.clickable td::before{content:attr(data-label);flex:0 0 auto;color:#718098;font-size:12px;font-weight:600;text-align:left}
   .requestTable tbody tr.clickable td:first-child::before{display:none}
 }
+/* Verified club identity reconciliation stays inside the club profile. */
+.linkExisting{min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid #d8e2ed;background:#fff;border-radius:999px;color:var(--agency-primary,#367cff);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.linkExisting:hover,.linkExisting:focus-visible{background:#f2f7ff}
+.linkPanel{display:grid;gap:12px;padding:18px;border:1px solid #dce6f2;border-radius:14px;background:#f8faff}
+.linkPanel>strong{font-size:14px;color:#203047}
+.linkPanel>p{margin:0;color:#62758d;font-size:13px;line-height:1.5}
+.linkPanel>input{min-height:44px;width:100%;padding:10px 13px;border:1px solid #cfdaea;border-radius:10px;background:#fff;color:#1a273a;font:inherit;font-size:14px}
+.linkPanel>input:focus-visible{outline:2px solid var(--agency-primary,#367cff);outline-offset:2px}
+.linkCandidateList{display:grid;max-height:272px;overflow:auto;border:1px solid #e0e7f1;border-radius:10px;background:#fff}
+.linkCandidate{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:10px 14px;border:0;border-bottom:1px solid #eef1f6;background:white;text-align:left;color:#243750;font:inherit;cursor:pointer}
+.linkCandidate:last-child{border-bottom:0}.linkCandidate:hover:not(:disabled){background:#f4f8ff}.linkCandidate:disabled{opacity:.65;cursor:not-allowed}
+.linkCandidate>span:first-child{display:grid;gap:4px;min-width:0}.linkCandidate strong{font-size:13px}.linkCandidate small{font-size:12px;color:#73859b}
+.linkCandidateAction{font-size:12px;color:var(--agency-primary,#367cff);font-weight:650;white-space:nowrap}
+.linkConfirm{display:grid;gap:10px;border-top:1px solid #dfe7f1;padding-top:12px}
+.linkConfirm>strong{font-size:14px;color:#203047}.linkConfirm>p{color:#60748e;font-size:13px;line-height:1.5;margin:0}
+.linkConfirmActions{display:flex;gap:10px;flex-wrap:wrap}.linkConfirmActions button{min-height:44px;border-radius:9px;padding:0 15px;border:1px solid #d4e0ee;background:white;color:#314660;font:inherit;font-weight:600;cursor:pointer}
+.linkConfirmActions .linkPrimary{background:var(--agency-primary,#367cff);border-color:var(--agency-primary,#367cff);color:white}
+.linkConfirmActions button:disabled{opacity:.65;cursor:wait}
+.linkNotice{padding:10px 12px;border-radius:9px;background:#f5f9ff;color:#285681;font-size:13px}
+.linkError{color:#a52337!important;font-size:13px}
+.linkVerified{color:#287654!important}.linkUnverified{color:#95702b!important}
+@media(max-width:720px){.linkPanel{padding:14px}.linkCandidate{align-items:flex-start;flex-direction:column;gap:7px}.linkCandidateAction{white-space:normal}.linkExisting{padding-inline:11px;font-size:12px}}
+
+@media(max-width:720px){.linkConfirm{scroll-margin-bottom:120px}.linkPanel{scroll-margin-bottom:100px}}
