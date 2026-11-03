@@ -32,3 +32,13 @@ test('club profile replaces the directory inside the main workspace, not below t
  assert.ok(inWorkspace>0&&directory>inWorkspace&&mobileNav>directory);
  assert.equal(workspace.match(/<AgencyClubAccountDrawer/g)?.length,1);
 });
+
+test('leaving a club does not restore the old club URL after mobile navigation',()=>{
+ const start=workspace.indexOf('const navigateWorkspaceView = useCallback(');
+ const end=workspace.indexOf('const resolveWorkspace = useCallback(',start);
+ const navigation=workspace.slice(start,end);
+ assert.match(navigation,/window\.history\.pushState/);
+ assert.doesNotMatch(navigation,/setClubAccountRequest\(null\)/);
+ assert.match(workspace,/if\(view!==\x27network\x27\|\|!stateScope\)return/);
+ assert.match(workspace,/setClubAccountRequest\(current=>/);
+});

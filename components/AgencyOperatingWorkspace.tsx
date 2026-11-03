@@ -681,20 +681,22 @@ export default function AgencyOperatingWorkspace() {
     (targetView: View, href: string) => {
       if (typeof window === 'undefined' || href === window.location.pathname + window.location.search) return;
 
-      setActionRequest(null);
-      setIntelligenceRequest(null);
-      setPursuitRequest(null);
-      setClubAccountRequest(null);
-      setNegotiationRequest(null);
-      setPlayerServiceReviewRequest(null);
-      setDealCloseoutRequest(null);
-      setCreateKind(null);
-      if (targetView !== view) void warmView(targetView);
+      // Commit the destination before unmounting the selected club screen.
+      // Otherwise the old club route may be restored during the same render.
       window.history.pushState(
         { redreamView: targetView },
         '',
         href,
       );
+      setActionRequest(null);
+      setIntelligenceRequest(null);
+      setPursuitRequest(null);
+      // Route-change effect clears the club after the destination is established.
+      setNegotiationRequest(null);
+      setPlayerServiceReviewRequest(null);
+      setDealCloseoutRequest(null);
+      setCreateKind(null);
+      if (targetView !== view) void warmView(targetView);
     },
     [view, warmView],
   );
