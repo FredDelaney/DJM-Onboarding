@@ -90,8 +90,14 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  const age=ageFrom(identity.date_of_birth);
  const nextAction=()=>{
   const control=service?.next_control_fix,move=service?.next_service_move;
-  if(!control?.instruction&&!move?.instruction)return;
-  onOpenAction({key:'player:'+playerId,eyebrow:'PLAYER',title:name,instruction:control?.instruction||move?.instruction,label:control?.instruction?'Review next step':'Prepare next move',action:control?.instruction?'player_control_fix_prepare':'player_service_move_prepare',payload:{player_id:playerId},facts:[{label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'Not recorded'},{label:'Current club',value:identity.current_club||'Not recorded'}],successCondition:control?.success_condition||move?.success_condition||'Next step reviewed.'});
+  const selected=move?.instruction?move:control;
+  if(!selected?.instruction)return;
+  onOpenAction({key:'player:'+playerId,eyebrow:'PLAYER',title:name,instruction:selected.instruction,label:move?.instruction?'Prepare next move':'Review next step',action:move?.instruction?'player_service_move_prepare':'player_control_fix_prepare',payload:{player_id:playerId},facts:[{label:'Contract timing',value:identity.contract_expiry?relativeDate(identity.contract_expiry):'Not recorded'},{label:'Current club',value:identity.current_club||'Not recorded'}],successCondition:selected.success_condition||'Next step reviewed.'});
+ };
+ const reviewDueDate=()=>{
+  const control=service?.next_control_fix;
+  if(!identity.next_action||identity.next_action_due||!control?.instruction)return;
+  onOpenAction({key:'player:'+playerId+':due',eyebrow:'PLAYER',title:name,instruction:control.instruction,label:'Review due date',action:'player_control_fix_prepare',payload:{player_id:playerId},facts:[{label:'Recorded next action',value:identity.next_action},{label:'Due date',value:'Not recorded'}],successCondition:control.success_condition||'Due date reviewed.'});
  };
  const save=async(event:React.FormEvent)=>{
   event.preventDefault();if(!canEdit||mutation.current)return;
@@ -195,7 +201,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
       </div>
      </div>:null}
      {tab==='tasks'?<section className={styles.tabPanel}><div className={styles.sectionHeading}><div><h2>Tasks</h2><p>Actions and deadlines connected to {name}.</p></div><Link aria-label="Open calendar to add a task" href={basePath+'?view=calendar'} className={styles.roundAdd}><Plus size={19}/></Link></div>
-      {mainNext?<div className={styles.taskCard}><span className={styles.taskIcon}><ClipboardCheck size={18}/></span><div><strong>{mainNext}</strong><p>{identity.next_action_due?'Due '+relativeDate(identity.next_action_due):'No due date recorded'}</p></div>{!identity.next_action&&(service?.next_control_fix?.instruction||service?.next_service_move?.instruction)?<button type="button" onClick={nextAction}>Review <ArrowRight size={15}/></button>:null}</div>:<EmptyPanel icon={ClipboardCheck} title="No next action recorded" description="Open Calendar to manage tasks and deadlines for your players."/>}
+      {mainNext?<div className={styles.taskCard}><span className={styles.taskIcon}><ClipboardCheck size={18}/></span><div><strong>{mainNext}</strong><p>{identity.next_action_due?'Due '+relativeDate(identity.next_action_due):'No due date recorded'}</p></div>{identity.next_action&&!identity.next_action_due&&service?.next_control_fix?.instruction?<button type="button" aria-label={'Set due date for '+name} onClick={reviewDueDate}>Set due date <ArrowRight size={15}/></button>:!identity.next_action&&(service?.next_control_fix?.instruction||service?.next_service_move?.instruction)?<button type="button" onClick={nextAction}>Review <ArrowRight size={15}/></button>:null}</div>:<EmptyPanel icon={ClipboardCheck} title="No next action recorded" description="Open Calendar to manage tasks and deadlines for your players."/>}
      </section>:null}
      {tab==='updates'?<section className={styles.tabPanel}><div className={styles.sectionHeading}><div><h2>Updates</h2><p>Recorded activity and changes for {name}.</p></div><button type="button" title="Reload player activity" aria-label="Refresh activity" onClick={()=>void reload()}><RefreshCw size={17}/></button></div>
       {activity.length?<div className={styles.activityFeed}>{activity.map((item:any,index:number)=><article key={index}><span className={styles.activityDot}/><div><strong>{human(item.event_type||'Agency update')}</strong><p>{item.occurred_at?relativeDate(item.occurred_at):'Date unavailable'}</p></div></article>)}</div>:<EmptyPanel icon={Users} title="No updates yet" description="Activity from saved player actions will appear here automatically."/>}
