@@ -31,6 +31,24 @@ try{
   assert.equal(await page.evaluate(()=>window.qaOpenedOpportunity||null),null,'Reviewing a need cannot silently choose its first candidate');
   assert.equal(await page.evaluate(()=>(window.qaOpportunityCalls||[]).length),0,'Reviewing a need cannot start search preparation');
   await row.getByText('Showing 3 of 5 recorded candidates.',{exact:true}).waitFor();
+  if(width===390){
+    const shortlist=row.getByRole('button',{name:'Shortlist First Recorded Player',exact:true});
+    await shortlist.waitFor();
+    await page.evaluate(()=>window.qaShortlistShouldFail=true);
+    await shortlist.click();
+    await row.getByRole('alert').getByText('Shortlist temporarily unavailable',{exact:true}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>window.qaShortlistCalls||[]),[],'Failed shortlist must not appear saved');
+    await page.evaluate(()=>window.qaShortlistShouldFail=false);
+    await shortlist.click();
+    await row.getByText('Shortlisted · internal only',{exact:true}).waitFor();
+    await row.getByText('First Recorded Player added to your internal shortlist. No pitch was sent.',{exact:true}).waitFor();
+    await row.getByRole('button',{name:'Remove First Recorded Player from shortlist',exact:true}).click();
+    await shortlist.waitFor();
+    await row.getByText('First Recorded Player removed from the internal shortlist.',{exact:true}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>window.qaShortlistCalls),['shortlist','remove'],'Only explicit local shortlist changes were saved');
+    assert.deepEqual(await page.evaluate(()=>window.qaOpportunityCalls||[]),[],'Shortlisting must never send a pitch or begin a pursuit');
+  }
+
   await row.getByText('The recorded salary minimum exceeds the club base-salary budget.',{exact:true}).waitFor();
   await row.getByText('Minimum: EUR 5,500.01 per month · net',{exact:true}).waitFor();
   await row.getByText('Target: EUR 6,000 per month · net',{exact:true}).waitFor();

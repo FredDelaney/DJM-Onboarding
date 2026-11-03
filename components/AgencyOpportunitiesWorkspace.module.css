@@ -1172,3 +1172,16 @@ button.needCandidate:hover { background: var(--agency-primary-soft, var(--interf
   .requestFilterCount{margin-left:0;align-self:center;white-space:normal}
   .clearRequestFilters{justify-self:stretch}
 }
+
+/* Internal candidate shortlist stays secondary to full pursuit review. */
+.shortlistActions{display:flex;justify-content:flex-end;gap:9px;padding:0 8px 10px}
+.shortlistAdd,.shortlistRemove{min-height:44px;padding:0 14px;border:1px solid #cedff2;border-radius:10px;background:#f4f8ff;color:#176bd5;font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.shortlistAdd:hover{background:#e8f2ff}
+.shortlistRemove{background:#fff;color:#52667f;border-color:#dce5ed}
+.shortlistRemove:hover{background:#f5f7f9}
+.shortlistAdd:focus-visible,.shortlistRemove:focus-visible{outline:2px solid #176bd5;outline-offset:2px}
+.shortlistAdd:disabled,.shortlistRemove:disabled{opacity:.55;cursor:wait}
+.shortlistStatus{color:#256c53!important;font-weight:700}
+.shortlistError{margin:8px 0;padding:10px 12px;border:1px solid #f2cbd0;border-radius:9px;color:#a12536;background:#fff8f8;font-size:13px}
+.shortlistNotice{margin:8px 0;padding:10px 12px;border:1px solid #cfe6d5;border-radius:9px;color:#246c4e;background:#f6fbf7;font-size:13px}
+@media(max-width:680px){.shortlistActions{justify-content:stretch}.shortlistAdd,.shortlistRemove{width:100%;justify-content:center}}

@@ -509,6 +509,18 @@ export default {fetch:async(req:Request)=>{
         p_player_id:requestedPlayer
       });
     }
+    if(action==="club_need_shortlist"){
+      if(!ownerAdmin())return deny("Owner or admin access required");
+      const matchId=id(body?.player_match_id);
+      const operation=id(body?.operation).toLowerCase();
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(matchId)
+        || !["shortlist","remove"].includes(operation))
+        return json({error:"Choose a valid player match and shortlist action"},400);
+      return result("shortlist","platform_server_club_need_shortlist",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,
+        p_player_match_id:matchId,p_operation:operation
+      });
+    }
     if(action==="clubs_directory"){
       return result("directory","platform_server_clubs_directory",{
         p_tenant_id:tenantId,p_actor_user_id:userId,
