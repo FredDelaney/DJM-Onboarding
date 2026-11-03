@@ -1157,3 +1157,18 @@ button.needCandidate:hover { background: var(--agency-primary-soft, var(--interf
 .needReview > strong, .needBriefGroup strong { color: #20314b; }
 .needSearch { color: #176bd5; background: #eff5ff; border-radius: 999px; }
 @media (max-width: 680px) { .tabs { border-radius: 11px; } .needRow { border-radius: 13px; } }
+
+/* Commercial triage: show the two filters agents use most without a dense toolbar. */
+.requestFilterBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;background:#fff;border:1px solid #e3eaf4;border-radius:14px}
+.requestFilter{display:grid;gap:5px;min-width:0;color:#66778e;font-size:12px;font-weight:650}
+.requestFilter select{height:44px;min-width:152px;max-width:100%;border:1px solid #dce5f0;border-radius:10px;background:#fbfcfe;padding:0 32px 0 12px;color:#253b54;font:inherit;font-size:13px;cursor:pointer}
+.requestFilter select:focus-visible,.clearRequestFilters:focus-visible{outline:2px solid var(--agency-primary,#176bd5);outline-offset:2px}
+.requestFilterCount{margin-left:auto;color:#718098;font-size:12px;white-space:nowrap}
+.clearRequestFilters{min-height:44px;padding:0 13px;border:1px solid #dce5f0;border-radius:10px;background:white;color:var(--agency-primary,#176bd5);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+.clearRequestFilters:hover{background:#eff5ff}
+@media(max-width:680px){
+  .requestFilterBar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+  .requestFilter select{width:100%;min-width:0;max-width:100%}
+  .requestFilterCount{margin-left:0;align-self:center;white-space:normal}
+  .clearRequestFilters{justify-self:stretch}
+}

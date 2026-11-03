@@ -21,6 +21,7 @@ import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import {clubNeedBriefFields, clubNeedFinancialFacts,clubNeedFootballFacts,clubNeedFieldValue,formatCommercialAmount} from '@/lib/club-need-brief';
+import {filterClubRequests, type RequestPriorityFilter, type RequestDealFilter} from '@/lib/club-request-filters';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
@@ -185,6 +186,8 @@ export default function AgencyOpportunitiesWorkspace({
   const requestedView = opportunityViewFrom(searchParams.get('tab'));
   const [view, setView] = useState<OpportunityView>(requestedView);
   const [search, setSearch] = useState('');
+  const [needPriority, setNeedPriority] = useState<RequestPriorityFilter>('all');
+  const [needDeal, setNeedDeal] = useState<RequestDealFilter>('all');
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const requestedRecord=String(searchParams.get('record')||'');
   const [expandedNeed, setExpandedNeed] = useState({scope: basePath, id: requestedView === 'needs' ? requestedRecord : ''});
@@ -196,6 +199,8 @@ export default function AgencyOpportunitiesWorkspace({
   const dealInSummary=list(data?.deals?.portfolio?.deals).some(item=>String(item?.deal_room_id||'')===requestedRecord);
   useEffect(()=>{
     setSearch('');
+    // A deep link must never be hidden behind filters left over from another request.
+    if(requestedRecord){setNeedPriority('all');setNeedDeal('all');}
   },[requestedRecord,requestedView]);
   useEffect(() => {
     setExpandedNeed({scope: basePath, id: requestedView === 'needs' ? requestedRecord : ''});
@@ -309,23 +314,7 @@ export default function AgencyOpportunitiesWorkspace({
 
   const searchValue = search.trim().toLowerCase();
 
-  const filteredNeeds = useMemo(
-    () =>
-      needs.filter((item: any) =>
-        !searchValue ||
-        [
-          item?.club?.name,
-          item?.need?.title,
-          item?.need?.position,
-          item?.need?.need_type,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .includes(searchValue),
-      ),
-    [needs, searchValue],
-  );
+  const filteredNeeds = filterClubRequests(needs,searchValue,needPriority,needDeal);
 
   const filteredRoutes = useMemo(
     () =>
@@ -631,6 +620,29 @@ export default function AgencyOpportunitiesWorkspace({
 
         {view !== 'overview' ? <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='needs'?'Search club or need':view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/> : null}
       </section>
+
+      {view === 'needs' ? <div className={styles.requestFilterBar} role="region" aria-label="Request filters">
+        <label className={styles.requestFilter}><span>Priority</span>
+          <select aria-label="Request priority" value={needPriority} onChange={event=>setNeedPriority(event.target.value as RequestPriorityFilter)}>
+            <option value="all">All priorities</option>
+            <option value="high">High or urgent</option>
+            <option value="normal">Normal</option>
+            <option value="low">Low or routine</option>
+            <option value="unset">Not recorded</option>
+          </select>
+        </label>
+        <label className={styles.requestFilter}><span>Deal type</span>
+          <select aria-label="Request deal type" value={needDeal} onChange={event=>setNeedDeal(event.target.value as RequestDealFilter)}>
+            <option value="all">All deal types</option>
+            <option value="permanent">Permanent</option>
+            <option value="loan">Loan</option>
+            <option value="free_agent">Free agent</option>
+            <option value="unset">Not recorded</option>
+          </select>
+        </label>
+        <span className={styles.requestFilterCount} aria-live="polite">{filteredNeeds.length} of {needs.length} requests</span>
+        {(needPriority!=='all'||needDeal!=='all') ? <button type="button" className={styles.clearRequestFilters} onClick={()=>{setNeedPriority('all');setNeedDeal('all');}}>Clear filters</button>:null}
+      </div> : null}
 
       {exactBusy?<p role="status">Opening...</p>:null}
       {exactError?<div role="alert"><p>{exactError}</p><button type="button" className="btn" onClick={()=>setExactRetry(value=>value+1)}>Try again</button></div>:null}

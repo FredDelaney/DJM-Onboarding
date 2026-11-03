@@ -1152,7 +1152,8 @@ export default function AgencyOperatingWorkspace() {
     const targets: View[] = [
       'home',
       'players',
-      'opportunities',
+      // Do not speculatively fetch private market data. It is loaded on explicit owner/admin navigation.
+      // Owner-to-staff role changes must not inherit an in-flight market request.
       'network',
       'calendar',
     ].filter((targetView) => targetView !== view) as View[];
