@@ -144,6 +144,13 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       console.log('CLUB VERIFIED LINK BROWSER PASS');
       await page.getByRole('button',{name:'Back to Clubs',exact:true}).click();
       await page.getByRole('region',{name:'Clubs',exact:true}).waitFor();
+      await page.getByRole('region',{name:'Clubs',exact:true}).getByRole('button',{name:/Example FC/}).click();
+      await page.getByRole('navigation',{name:'Club sections'}).getByRole('button',{name:'Requests',exact:true}).click();
+      await page.getByRole('cell',{name:'Centre-back',exact:true}).click();
+      await page.waitForURL(href=>href.searchParams.get('view')==='opportunities'&&href.searchParams.get('record')==='70000000-0000-4000-8000-000000000001',{timeout:8000});
+      console.log('CLUB TO MARKET BROWSER PASS');
+      await page.goto(url);
+      await page.getByRole('region',{name:'Clubs',exact:true}).waitFor();
     }
     if(suite==='presentation')await page.getByRole('heading',{name:'Example Club Player',exact:true}).waitFor();
     if(suite==='detail'&&screen==='review')await page.getByText('MEETING POSITION',{exact:true}).waitFor();

@@ -1832,10 +1832,8 @@ export default function AgencyOperatingWorkspace() {
             });
           }}
           onOpenMarket={(needId) => {
-            setClubAccountRequest(null);
-            window.history.pushState(
-              null,
-              '',
+            navigateWorkspaceView(
+              'opportunities',
               `${basePath}?view=opportunities${needId ? '&tab=needs&record=' + encodeURIComponent(needId) : ''}`,
             );
           }}
