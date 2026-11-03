@@ -116,5 +116,30 @@ try{
   await page.screenshot({path:output+'/'+width+'.png',fullPage:false});
   console.log('PASS player roster, next actions, privacy and layout '+width);
  }
+ // Exactly three agency relationship tags, regardless of football status.
+ const table=directory().getByRole('table');
+ assert.equal(await table.getByText('Signed',{exact:true}).count(),1);
+ assert.equal(await table.getByText('Mandated',{exact:true}).count(),1);
+ assert.ok(await table.getByText('Prospect',{exact:true}).count()>=1);
+ const statusFilter=directory().locator('summary').filter({hasText:'Filter'});
+ await statusFilter.click();
+ const selectStatus=directory().getByRole('combobox',{name:'Agency status filter'});
+ await selectStatus.selectOption('mandated');
+ assert.equal(await table.locator('tbody tr').count(),1);
+ await table.getByRole('button',{name:'Open Contract Player',exact:true}).waitFor();
+ await selectStatus.selectOption('signed');
+ assert.equal(await table.locator('tbody tr').count(),1);
+ await table.getByRole('button',{name:'Open Plan Player',exact:true}).waitFor();
+ await directory().getByRole('button',{name:'Clear all'}).click();
+ await table.getByRole('button',{name:'Open Plan Player',exact:true}).click();
+ await page.waitForURL(url=>url.searchParams.get('player')==='setup');
+ const editorPlayer=page.getByRole('region',{name:'Plan Player player workspace'});
+ await editorPlayer.getByRole('button',{name:'Edit player'}).click();
+ await editorPlayer.getByRole('combobox',{name:'Agency status',exact:true}).selectOption('mandated');
+ await editorPlayer.getByRole('button',{name:'Done',exact:true}).click();
+ await editorPlayer.getByText('Mandated',{exact:true}).first().waitFor();
+ await back();
+ assert.equal(await table.getByText('Signed',{exact:true}).count(),0,'Saved player is no longer signed');
+ assert.equal(await table.getByText('Mandated',{exact:true}).count(),2,'Saved status is reflected in the roster');
  assert.deepEqual(errors,[],'No browser errors');
 }finally{await browser.close();}

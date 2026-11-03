@@ -58,7 +58,9 @@
 .clubMark{display:inline-grid;place-items:center;width:31px;height:31px;border-radius:10px;background:#f0f5fb;color:#557394;font-size:10px;font-weight:780;margin-right:8px;vertical-align:middle}
 .cellClamp{max-width:calc(100% - 48px);overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle}
 .statusChip{display:inline-flex;align-items:center;min-height:27px;background:#fff2d3;color:#96700d;border-radius:18px;padding:3px 10px;font-size:11px;font-weight:680}
-.statusChip[data-active=true]{background:#dff9eb;color:#15845b}
+.statusChip[data-status="signed"]{background:#dff9eb;color:#15845b}
+.statusChip[data-status="prospect"]{background:#e8f1ff;color:#3271bc}
+.statusChip[data-status="mandated"]{background:#fff1d7;color:#95631c}
 .agentName{display:inline-flex;align-items:center;gap:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .agentName>span{display:inline-grid;place-items:center;width:28px;height:28px;flex:none;border-radius:50%;background:#e9f2ff;color:var(--player-blue);font-size:10px;font-weight:800}
 .playerTiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:14px;padding:15px;background:#fbfdff}
@@ -215,3 +217,7 @@
 .restrictedPanel svg{color:var(--player-blue)}
 .restrictedPanel h2{font-size:19px;font-weight:750;color:#1c3656;margin:0}
 .restrictedPanel p{font-size:13px;line-height:1.55;margin:0;max-width:430px}
+
+.editPanel select{min-height:43px;border:1px solid #dce5ef;border-radius:10px;padding:8px 12px;color:#243851;background:white;font:inherit;font-size:14px;min-width:0}
+.editPanel select:focus-visible{outline:2px solid var(--player-blue)}
+.identityStats .statusChip{max-width:100%;overflow:hidden;text-overflow:ellipsis;min-height:24px;padding:3px 7px;font-size:11px}
