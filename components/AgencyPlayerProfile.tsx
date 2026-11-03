@@ -2312,10 +2312,6 @@ export default function AgencyPlayerProfile({
         </div>
 
         <div className={styles.heroActions}>
-          <button type="button" data-ui-button="secondary" className={styles.secondaryAction}
-            onClick={() => openProfilePreview(draftProfile)} disabled={!secondaryReady} aria-label="Preview Player Profile">
-            <Eye size={15} /> Preview
-          </button>
           {published?.published ? (
             <button
               type="button"
@@ -2363,6 +2359,10 @@ export default function AgencyPlayerProfile({
             </button>
           ) : null}
 
+          <button type="button" data-ui-button="secondary" className={styles.secondaryAction}
+            onClick={() => openProfilePreview(draftProfile)} disabled={!secondaryReady} aria-label="Preview Player Profile">
+            <Eye size={15} /> Preview
+          </button>
           {canEdit ? (
             <button
               type="button"

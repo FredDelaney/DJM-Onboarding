@@ -2528,3 +2528,42 @@ fieldset.editorBody { min-width: 0; margin: 0; border: 0; }
 .readRecovery{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:8px 0 16px;padding:12px 0;border-bottom:1px solid #e5e7eb;color:var(--interface-ink,#1f2937);font-size:13px;line-height:1.5}
 .readRecovery p{flex:1 1 180px;min-width:0;margin:0;overflow-wrap:anywhere}
 .readRecovery button{min-height:44px;padding:8px 12px;flex:0 1 auto}
+
+/* PLAYER-PROFILE-20261103: match the roster and work view without changing publishing controls. */
+.root .hero{min-height:0;gap:20px;padding:25px 28px;border:1px solid #dfe9f5;border-radius:20px;background:linear-gradient(115deg,#f3f8ff 0%,#fff 78%);color:#182f4b}
+.root .hero .eyebrow{color:#3976b7;font-size:11px;letter-spacing:.11em}
+.root .heroCopy h2{color:#182f4b;font-weight:730;letter-spacing:-.045em}
+.root .heroCopy p{color:#62768c;font-size:13px;line-height:1.5}
+.root .hero .photo{border-color:#d8e5f3;background:#eaf2fc}
+.root .heroFacts span{background:#eaf2fc;color:#4c6885}
+.root .statusRow{align-items:center;gap:7px}
+.root .statusRow span{color:#657a91}
+.root .statusRow .draftStatus{background:#eff3f8;color:#546a82}
+.root .statusRow .liveStatus{background:#e3f5eb;color:#247551}
+.root .readiness{padding:17px;border:1px solid #dbe7f4;border-radius:14px;background:#f5f9ff;color:#203a57}
+.root .readinessTop span{color:#7089a5}
+.root .readinessTop strong{color:#233d5d}
+.root .readiness p{color:#6a8096;line-height:1.5}
+.root .heroActions{gap:9px}
+.root .heroActions .primaryAction{min-height:44px;padding-inline:15px;border-radius:11px;font-size:13px;font-weight:680}
+.root .hero .secondaryAction{min-height:44px;padding-inline:13px;border:1px solid #dce7f3;border-radius:11px;background:#fff;color:#365e88;font-size:12px;font-weight:630}
+.root .hero .secondaryAction:hover{background:#f3f8ff}
+.root .topbar .back{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 10px;border:1px solid #e0e8f2;border-radius:11px;background:#fff;color:#416082;font-size:13px;font-weight:630}
+.root .topbar .quietButton{min-height:44px;padding:0 14px;border-radius:11px;color:#416082;font-size:12px;font-weight:630}
+.root .card.clubStats{padding:20px;border-color:#e0e8f2;border-radius:16px}
+@media(max-width:720px){
+ .root .hero{gap:14px;padding:18px;border-radius:17px}
+ .root .hero .photo{width:64px;height:80px;flex-basis:64px}
+ .root .heroCopy h2{font-size:clamp(22px,5.7vw,29px)}
+ .root .heroActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:8px;width:100%}
+ .root .heroActions > .primaryAction{grid-column:1/-1;min-height:46px}
+ .root .heroActions > .secondaryAction,.root .heroActions > .profileTools{flex:none;min-width:0;max-width:100%;width:100%;min-height:44px;margin:0}
+ .root .heroActions > .secondaryAction{padding:0 7px;white-space:normal;line-height:1.3;text-align:center;font-size:12px}
+ .root .heroActions > .profileTools summary{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;white-space:normal}
+ .root .topbar .quietButton{max-width:100%}
+ .root .card.clubStats{padding:16px}
+}
+@media(max-width:350px){
+ .root .heroActions{grid-template-columns:minmax(0,1fr)}
+ .root .heroActions > .primaryAction{grid-column:1}
+}

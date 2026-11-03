@@ -2027,3 +2027,117 @@
 .search input { min-height: 44px; border: 1px solid #dfe7f2; border-radius: 11px; background: #fff; }
 .search input:focus { outline-color: #3587fc; }
 .playerHeroCopy h2 { color: #192438; }
+
+/* PLAYER-ROSTER-20261103: a proper directory and a readable player workspace.
+   Deliberately keep roster, player and recruitment data in their existing models. */
+.rosterOverview{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 26px;border:1px solid #dee8f4;border-radius:20px;background:linear-gradient(108deg,#f5f9ff 0%,#fff 74%)}
+.rosterOverviewCopy{min-width:0}
+.rosterEyebrow{display:block;color:var(--agency-primary,#176bd5);font-size:11px;font-weight:760;letter-spacing:.12em}
+.rosterOverviewCopy h2{margin:7px 0 5px;color:#172d48;font-size:27px;font-weight:730;line-height:1.18;letter-spacing:-.035em}
+.rosterOverviewCopy p{margin:0;color:#687b90;font-size:13px;line-height:1.5}
+.rosterCount{flex:0 0 auto;display:grid;justify-items:center;min-width:80px;padding:2px 0 2px 24px;border-left:1px solid #d9e5f3}
+.rosterCount strong{color:#163c70;font-size:28px;font-weight:740;line-height:1;letter-spacing:-.04em}
+.rosterCount span{margin-top:5px;color:#75869a;font-size:12px}
+.workspace:has(.rosterOverview){gap:16px}
+.workspace:has(.rosterOverview) .toolbar{gap:14px}
+.workspace:has(.rosterOverview) .sectionTabs{background:#f0f4fa;border-color:#e0e8f2}
+.workspace:has(.rosterOverview) .sectionTabActive{box-shadow:0 2px 7px rgba(24,69,120,.09)}
+.workspace:has(.rosterOverview) .listControls .search{min-height:46px;max-width:400px;border:1px solid #e0e8f2;border-radius:12px;background:#fff;padding-inline:12px}
+.workspace:has(.rosterOverview) .listControls .search input{border:0;background:transparent;min-height:42px}
+.workspace:has(.rosterOverview) .listControls .primaryButton{min-height:46px;border-radius:12px;padding-inline:17px;font-size:13px;font-weight:700}
+.workspace:has(.rosterOverview) .playerGrid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;overflow:visible;border:0;background:transparent}
+.workspace:has(.rosterOverview) .playerCard{display:grid;grid-template-columns:minmax(260px,1.25fr) minmax(170px,.8fr) minmax(185px,1fr) 144px;align-items:center;gap:20px;min-height:122px;padding:20px 22px;border:1px solid #dfe8f3;border-radius:18px;background:#fff;box-shadow:0 5px 22px rgba(22,55,98,.035);transform:none}
+.workspace:has(.rosterOverview) .playerCard:hover{border-color:#c4d8f0;box-shadow:0 8px 26px rgba(22,55,98,.07);transform:none}
+.workspace:has(.rosterOverview) .playerCardTop{grid-column:1;grid-row:1;grid-template-columns:62px minmax(0,1fr) auto;gap:15px;align-items:center}
+.workspace:has(.rosterOverview) .avatar{width:62px;height:62px;border-radius:17px;border-color:#dbe8f5;background:linear-gradient(155deg,#e6f0fd,#f5f9ff);color:#245895;font-size:17px;font-weight:740}
+.workspace:has(.rosterOverview) .playerIdentity h3{font-size:17px;font-weight:730;line-height:1.25;white-space:normal;overflow-wrap:anywhere;color:#21324b}
+.workspace:has(.rosterOverview) .playerIdentity span,.workspace:has(.rosterOverview) .playerIdentity small{display:block;margin-top:4px;line-height:1.35;white-space:normal;overflow:visible}
+.workspace:has(.rosterOverview) .playerIdentity .playerPosition{color:#466480;font-size:13px;font-weight:640}
+.workspace:has(.rosterOverview) .playerIdentity .playerClub{color:#61758a;font-size:12px}
+.workspace:has(.rosterOverview) .playerIdentity .playerDemographics{color:#8a9aac;font-size:12px}
+.workspace:has(.rosterOverview) .playerCardEnd{display:grid;grid-template-columns:auto;justify-items:end;align-content:center;gap:8px;min-width:38px}
+.workspace:has(.rosterOverview) .playerCardEnd .attentionPill,.workspace:has(.rosterOverview) .playerCardEnd .calmPill{position:static;display:inline-flex;grid-column:auto;padding:5px 8px;font-size:11px;font-weight:650;white-space:normal;text-align:right}
+.workspace:has(.rosterOverview) .playerCardEnd .calmPill{background:#f0f4fa;color:#61758a}
+.workspace:has(.rosterOverview) .playerCardEnd .setupPill{display:none}
+.workspace:has(.rosterOverview) .mobilePlayerMeta{grid-column:2;grid-row:1;display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin:0;padding:0;border:0}
+.workspace:has(.rosterOverview) .mobilePlayerMeta>span{display:flex;align-items:center;gap:8px;min-height:20px;color:#6e849b}
+.workspace:has(.rosterOverview) .mobilePlayerMeta svg{width:16px;height:16px;flex:0 0 auto;color:#7c9bbb}
+.workspace:has(.rosterOverview) .mobilePlayerMeta b{color:#405974;font-size:12px;line-height:1.4;font-weight:570;white-space:normal}
+.workspace:has(.rosterOverview) .playerFacts{display:none}
+.workspace:has(.rosterOverview) .playerCard .mobileNextAction{grid-column:3;grid-row:1;display:grid;gap:8px;min-height:76px;margin:0;padding:12px 14px;border:1px solid #e3eefa;border-radius:12px;background:#f6faff}
+.workspace:has(.rosterOverview) .mobileNextActionHead{display:flex;gap:7px;color:#567494;font-size:12px;font-weight:650}
+.workspace:has(.rosterOverview) .mobileNextActionBody{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.workspace:has(.rosterOverview) .mobileNextActionBody strong{color:#253e58;font-size:12px;font-weight:620;line-height:1.45}
+.workspace:has(.rosterOverview) .rosterQuietNext{grid-column:3;grid-row:1;display:grid;gap:6px;min-width:0;padding:12px 14px;border:1px dashed #dce6f1;border-radius:12px;color:#92a2b3}
+.workspace:has(.rosterOverview) .rosterQuietNext span{font-size:11px;font-weight:650}
+.workspace:has(.rosterOverview) .rosterQuietNext strong{color:#718397;font-size:12px;font-weight:570;line-height:1.4}
+.workspace:has(.rosterOverview) .profileShortcutRow{grid-column:4;grid-row:1;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-self:center;justify-content:stretch;margin:0;padding:0;border:0}
+.workspace:has(.rosterOverview) .profileOpenButton{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;padding:0 13px;border:1px solid var(--agency-primary,#176bd5);border-radius:11px;background:var(--agency-primary,#176bd5);color:var(--agency-on-primary,#fff);font:inherit;font-size:13px;font-weight:720;cursor:pointer}
+.workspace:has(.rosterOverview) .profileOpenButton:hover{filter:brightness(.94)}
+.workspace:has(.rosterOverview) .profileOpenButton:focus-visible,.workspace:has(.rosterOverview) .profileShortcut:focus-visible{outline:2px solid var(--agency-primary,#176bd5);outline-offset:3px}
+.workspace:has(.rosterOverview) .profileShortcutRow .profileShortcut{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;margin:0;padding:0 12px;border:1px solid #d7e4f0;border-radius:11px;background:#fff;color:#365d89;font-size:12px;font-weight:660}
+.workspace:has(.rosterOverview) .profileShortcutRow .profileShortcut:hover{background:#f5f9ff;border-color:#bbd4ee}
+.playerPagePanel .drawerTopManaged{display:flex;align-items:center;min-height:52px;padding:0 0 14px}
+.playerPagePanel .drawerTopManaged .closeButton{display:flex;align-items:center;justify-content:center;gap:9px;min-width:44px;width:auto;min-height:44px;padding:0 13px;border-color:#dce7f2;border-radius:12px;color:#365d89;font-weight:680}
+.playerBackText{font-size:13px;white-space:nowrap}
+.playerPagePanel .playerHero{margin:0 0 15px;padding:25px 28px;border:1px solid #dfe9f5;border-radius:20px;background:linear-gradient(112deg,#f2f8ff 0%,#fff 82%)}
+.playerPagePanel .playerHeroCopy p{color:#5d84ae;font-size:11px;font-weight:740;letter-spacing:.11em}
+.playerPagePanel .playerHeroCopy h2{color:#182f4b;font-size:29px;font-weight:730;line-height:1.2}
+.playerPagePanel .playerHeroCopy>span{margin-top:7px;color:#61758c;font-size:13px;line-height:1.45}
+.playerPagePanel .heroActions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.playerPagePanel .profileStatus{font-size:12px;color:#70859a}
+.playerPagePanel .heroActions .secondaryButton{min-height:44px;padding:0 15px;border:1px solid #d8e4f2;border-radius:11px;color:#315781;background:#fff;font-weight:650}
+.playerPagePanel .heroActions .primaryButton{min-height:44px;padding:0 15px;border-radius:11px;font-weight:680}
+.playerPagePanel .playerTabs{margin:0 0 15px;padding:5px;border:1px solid #dfe8f2;border-radius:13px;background:#f5f8fc;gap:5px}
+.playerPagePanel .playerTab,.playerPagePanel .playerTabActive{flex:1;min-height:44px;min-width:max-content;padding:0 14px;border-radius:10px;font-size:13px;font-weight:650}
+.playerPagePanel .playerTabActive{background:#fff;color:var(--agency-primary,#176bd5);box-shadow:0 1px 5px rgba(30,64,110,.08)}
+.playerPagePanel .detailSection,.playerPagePanel .detailHero{border-color:#e0e8f1;border-radius:15px}
+.playerPagePanel .detailHero{background:#f7faff}
+@media(max-width:1199px) and (min-width:681px){
+ .workspace:has(.rosterOverview) .playerCard{grid-template-columns:minmax(0,1fr) minmax(190px,.85fr);gap:12px}
+ .workspace:has(.rosterOverview) .playerCardTop{grid-column:1;grid-row:1}
+ .workspace:has(.rosterOverview) .mobilePlayerMeta{grid-column:2;grid-row:1}
+ .workspace:has(.rosterOverview) .mobileNextAction,.workspace:has(.rosterOverview) .rosterQuietNext{grid-column:1;grid-row:2}
+ .workspace:has(.rosterOverview) .profileShortcutRow{grid-column:2;grid-row:2;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .workspace:has(.rosterOverview) .profileShortcutRow button{min-width:0;padding-inline:8px}
+}
+@media(max-width:680px){
+ .rosterOverview{gap:10px;padding:16px 16px 15px;border-radius:17px}
+ .rosterOverviewCopy h2{margin:4px 0;font-size:21px}
+ .rosterOverviewCopy p{max-width:235px;font-size:12px;line-height:1.45}
+ .rosterCount{min-width:50px;padding-left:12px}
+ .rosterCount strong{font-size:22px}
+ .workspace:has(.rosterOverview){gap:12px}
+ .workspace:has(.rosterOverview) .playerGrid{gap:12px;overflow:visible}
+ .workspace:has(.rosterOverview) .playerCard,.workspace:has(.rosterOverview) .playerCard:only-child{grid-template-columns:minmax(0,1fr);gap:12px;min-height:0;padding:17px;border:1px solid #dfe8f3;border-radius:17px;background:#fff;box-shadow:0 4px 18px rgba(22,55,98,.035)}
+ .workspace:has(.rosterOverview) .playerCardTop{grid-column:1;grid-row:auto;grid-template-columns:56px minmax(0,1fr) 40px;gap:11px;align-items:start}
+ .workspace:has(.rosterOverview) .avatar{width:56px;height:56px;border-radius:15px}
+ .workspace:has(.rosterOverview) .playerIdentity h3{font-size:18px;line-height:1.23}
+ .workspace:has(.rosterOverview) .playerIdentity .playerPosition{margin-top:4px;font-size:12px}
+ .workspace:has(.rosterOverview) .playerIdentity .playerClub{font-size:12px;line-height:1.4}
+ .workspace:has(.rosterOverview) .playerIdentity .playerDemographics{font-size:12px}
+ .workspace:has(.rosterOverview) .playerCardEnd{align-self:start;justify-items:end;gap:5px}
+ .workspace:has(.rosterOverview) .playerCardEnd .calmPill{display:none}
+ .workspace:has(.rosterOverview) .playerCardEnd .attentionPill{max-width:93px;overflow-wrap:anywhere;text-align:center}
+ .workspace:has(.rosterOverview) .mobilePlayerMeta{grid-column:1;grid-row:auto;flex-direction:row;flex-wrap:wrap;gap:8px 14px;padding:10px 0;border-top:1px solid #edf2f8;border-bottom:1px solid #edf2f8}
+ .workspace:has(.rosterOverview) .mobilePlayerMeta>span{gap:6px}
+ .workspace:has(.rosterOverview) .mobilePlayerMeta b{font-size:12px}
+ .workspace:has(.rosterOverview) .playerCard .mobileNextAction{grid-column:1;grid-row:auto;min-height:56px;margin:0;padding:11px 12px}
+ .workspace:has(.rosterOverview) .rosterQuietNext{grid-column:1;grid-row:auto;display:flex;align-items:center;gap:8px;padding:5px 0;border:0}
+ .workspace:has(.rosterOverview) .rosterQuietNext strong{font-size:12px}
+ .workspace:has(.rosterOverview) .profileShortcutRow{grid-column:1;grid-row:auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0;padding-top:3px}
+ .workspace:has(.rosterOverview) .profileShortcutRow .profileShortcut,.workspace:has(.rosterOverview) .profileOpenButton{min-height:46px;padding-inline:8px;font-size:13px}
+ .workspace:has(.rosterOverview) .profileShortcutRow .profileShortcut[data-ui-button]{background:#fff!important;color:#365d89!important;border:1px solid #d7e4f0;font-weight:650}
+ .playerPagePanel .playerHero{grid-template-columns:58px minmax(0,1fr);gap:14px;padding:18px;border-radius:17px}
+ .playerPagePanel .playerHeroCopy h2{font-size:23px}
+ .playerPagePanel .heroActions{grid-column:1/-1;justify-content:flex-start}
+ .playerPagePanel .heroActions .secondaryButton,.playerPagePanel .heroActions .primaryButton{min-height:44px}
+ .playerPagePanel .playerTabs{margin:0 0 12px;overflow-x:auto}
+ .playerPagePanel .playerTab,.playerPagePanel .playerTabActive{flex:0 0 auto;padding:0 14px}
+}
+
+@media(max-width:380px){
+ .workspace:has(.rosterOverview) .listControls{gap:6px}
+ .workspace:has(.rosterOverview) .listControls .primaryButton{padding-inline:8px;font-size:12px}
+ .workspace:has(.rosterOverview) .listControls .search{min-width:122px;padding-inline:8px}
+}

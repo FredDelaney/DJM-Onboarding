@@ -218,6 +218,16 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      assert.ok(Math.abs((a.y+a.height/2)-(b.y+b.height/2))<=3,'Player search and creation stay together at '+width);
      assert.ok(a.x<b.x,'Player search precedes Add, consistently with Network at '+width+': '+JSON.stringify({search:a,add:b,styles:await search.evaluate(node=>({input:getComputedStyle(node).order,field:getComputedStyle(node.parentElement).order,parent:getComputedStyle(node.parentElement.parentElement).display,direction:getComputedStyle(node.parentElement.parentElement).flexDirection}))}));
      assert.equal(await add.count(),1,'The roster has one Add player action');
+     const player=page.getByRole('button',{name:'Open Example Player',exact:true});
+     const profile=player.getByRole('button',{name:'View Example Player profile',exact:true});
+     const work=player.getByRole('button',{name:'Open Example Player work view',exact:true});
+     await profile.waitFor();await work.waitFor();
+     for(const [label,control] of [['Profile',profile],['Work view',work]]){
+       const bounds=await control.boundingBox();
+       assert.ok(bounds&&bounds.height>=44,'Player '+label+' is an explicit touch-size action at '+width);
+     }
+     await page.getByRole('heading',{name:'Our players',exact:true}).waitFor();
+     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Player roster has no horizontal overflow at '+width);
     }
     if(suite==='agency'&&screen==='home')assert.doesNotMatch(await page.getByRole('article').filter({has:page.getByRole('button',{name:/^Complete /})}).locator('[class*="_meta"]').allTextContents().then(values=>values.join('\n')),/Waiting\s*Waiting/i,'Home status labels never repeat');
     if(suite==='player'&&screen==='career'){
@@ -409,6 +419,11 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      await summary.press('Enter');
      await more.getByRole('button',{name:'Refresh',exact:true}).click();
      assert.equal(await more.evaluate(node=>node.open),false,'Workspace tool selection closes the menu');
+     const sections=page.locator('[data-people-internal-tabs]');
+     await sections.getByRole('button',{name:/^Recruitment/}).click();
+     await page.getByRole('heading',{name:'Recruitment',exact:true}).waitFor();
+     await sections.getByRole('button',{name:/^Our Players/}).click();
+     await page.getByRole('heading',{name:'Our players',exact:true}).waitFor();
     }
    }
    console.log('SCREEN',suite,screen);
