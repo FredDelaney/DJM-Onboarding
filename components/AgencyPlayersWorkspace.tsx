@@ -265,7 +265,7 @@ function PlayerDrawer({
     <div className={styles.playerPage}>
       <aside className={`${styles.drawer} ${styles.playerPagePanel}`} role="region" aria-label={`${playerName} player workspace`}>
         <div className={`${styles.drawerTop} ${styles.drawerTopManaged}`}>
-          <button type="button"
+          <button type="button" data-ui-button="secondary"
               className={styles.closeButton} onClick={onClose} aria-label="Back to Players">
             <ArrowLeft size={18} />
             <span className={styles.playerBackText}>All players</span>
