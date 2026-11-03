@@ -491,6 +491,24 @@ export default {fetch:async(req:Request)=>{
         p_tenant_id:tenantId,p_actor_user_id:userId,p_organisation_id:organisationId
       });
     }
+    if(action==="club_link_candidates"){
+      if(!ownerAdmin()) return deny("Agency administrator access required");
+      const organisationId=id(body?.organisation_id);
+      if(!organisationId)return json({error:"organisation_id is required"},400);
+      return result("candidates","platform_server_club_link_candidates",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,p_organisation_id:organisationId,
+        p_search:id(body?.search).slice(0,100)
+      });
+    }
+    if(action==="club_link_player"){
+      if(!ownerAdmin()) return deny("Agency administrator access required");
+      const organisationId=id(body?.organisation_id),requestedPlayer=id(body?.player_id);
+      if(!organisationId||!requestedPlayer)return json({error:"Player and club are required"},400);
+      return result("linked","platform_server_club_link_player",{
+        p_tenant_id:tenantId,p_actor_user_id:userId,p_organisation_id:organisationId,
+        p_player_id:requestedPlayer
+      });
+    }
     if(action==="clubs_directory"){
       return result("directory","platform_server_clubs_directory",{
         p_tenant_id:tenantId,p_actor_user_id:userId,

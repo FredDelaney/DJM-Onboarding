@@ -630,6 +630,7 @@ export default function AgencyClubAccountDrawer({
       onOpenDeal={onOpenDeal}
       onOpenPlayer={onOpenPlayer}
       onOpenContact={onOpenContact || (() => undefined)}
+      onLinkSaved={onRefresh}
     />;
   }
 

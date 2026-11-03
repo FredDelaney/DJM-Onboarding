@@ -681,20 +681,22 @@ export default function AgencyOperatingWorkspace() {
     (targetView: View, href: string) => {
       if (typeof window === 'undefined' || href === window.location.pathname + window.location.search) return;
 
-      setActionRequest(null);
-      setIntelligenceRequest(null);
-      setPursuitRequest(null);
-      setClubAccountRequest(null);
-      setNegotiationRequest(null);
-      setPlayerServiceReviewRequest(null);
-      setDealCloseoutRequest(null);
-      setCreateKind(null);
-      if (targetView !== view) void warmView(targetView);
+      // Commit the destination before unmounting the selected club screen.
+      // Otherwise the old club route may be restored during the same render.
       window.history.pushState(
         { redreamView: targetView },
         '',
         href,
       );
+      setActionRequest(null);
+      setIntelligenceRequest(null);
+      setPursuitRequest(null);
+      // Route-change effect clears the club after the destination is established.
+      setNegotiationRequest(null);
+      setPlayerServiceReviewRequest(null);
+      setDealCloseoutRequest(null);
+      setCreateKind(null);
+      if (targetView !== view) void warmView(targetView);
     },
     [view, warmView],
   );
@@ -1696,14 +1698,14 @@ export default function AgencyOperatingWorkspace() {
             className={styles.viewStage}
             key={`view:${stateScope}:${view}:${selectedPlayerId || playersSection}:${opportunitiesSection}`}
           >
-            {restrictedView ? (
+            {!clubAccountRequest && restrictedView ? (
               <section className={styles.sectionCard}>
                 <h2>Admin access needed</h2>
                 <p>Commercial records are for owners and admins.</p>
                 <Link className={styles.homeTextLink} href={basePath+'?view=players'}>Open assigned players <ChevronRight size={14}/></Link>
               </section>
             ) : null}
-            {view === 'home' ? (
+            {!clubAccountRequest && view === 'home' ? (
               <AgencyDashboardConnected
                 refreshKey={recordRefreshRevision}
                 invoke={invoke}
@@ -1735,7 +1737,7 @@ export default function AgencyOperatingWorkspace() {
               />
               </AgencyDashboardConnected>
             ) : null}
-            {view === 'players' ? (
+            {!clubAccountRequest && view === 'players' ? (
               showPlayerProfile ? (
                 <AgencyPlayerProfile
                   key={`player-profile:${stateScope}:${selectedPlayerId}`}
@@ -1781,7 +1783,7 @@ export default function AgencyOperatingWorkspace() {
                 />
               )
             ) : null}
-            {view === 'opportunities' && canSeeBusiness ? (
+            {!clubAccountRequest && view === 'opportunities' && canSeeBusiness ? (
               <AgencyOpportunitiesWorkspace
                 onRecordRefresh={refreshRecords}
                 key={stateScope}
@@ -1798,7 +1800,55 @@ export default function AgencyOperatingWorkspace() {
                 onOpenIntelligence={openIntelligenceRequest}
               />
             ) : null}
-            {view === 'network' && search.get('clubsv2') === '1' && canSeeBusiness ? (
+            {clubAccountRequest ? (
+        <AgencyClubAccountDrawer
+          key={`${stateScope}:${clubAccountRequest.key}`}
+          request={clubAccountRequest}
+          presentation="page"
+          canCreateRecords={canCreateRecords}
+          invoke={invoke}
+          rpc={rpc}
+          refreshKey={recordRefreshRevision}
+          onRefresh={refreshRecords}
+          onResolvedClub={({ organisationId, name, country }) => {
+            setClubAccountRequest((current) => {
+              if (current?.organisationId !== organisationId ||
+                  (current.title === name && current.country === country)) return current;
+              return { ...current, title: name, country };
+            });
+          }}
+          onClose={closeClubAccount}
+          onOpenAction={(request) => {
+            setActionRequest(request);
+          }}
+          onOpenDeal={(dealRoomId, title, context) => {
+            closeClubAccount();
+            openIntelligenceRequest({
+              key: `deal-war-room:${dealRoomId}`,
+              kind: 'deal',
+              entityId: dealRoomId,
+              title,
+              context,
+            });
+          }}
+          onOpenMarket={(needId) => {
+            navigateWorkspaceView(
+              'opportunities',
+              `${basePath}?view=opportunities${needId ? '&tab=needs&record=' + encodeURIComponent(needId) : ''}`,
+            );
+          }}
+          onOpenPursuit={(request) => {
+            closeClubAccount();
+            setPursuitRequest(request);
+          }}
+          onCreateContact={() => setCreateKind('contact')}
+          onCreateNeed={() => setCreateKind('club_need')}
+          onCreateDeal={() => setCreateKind('deal')}
+          onCreatePlayer={() => setCreateKind('player')}
+          onOpenPlayer={(playerId) => navigateWorkspaceView('players', `${basePath}?view=players&player=${encodeURIComponent(playerId)}`)}
+          onOpenContact={(personId) => navigateWorkspaceView('network', `${basePath}?view=network&network=people&person=${encodeURIComponent(personId)}`)}
+        />
+            ) : view === 'network' && search.get('clubsv2') === '1' && canSeeBusiness ? (
               <AgencyClubsReference
                 key={stateScope + ':clubs'}
                 invoke={invoke}
@@ -1827,7 +1877,7 @@ export default function AgencyOperatingWorkspace() {
                 onOpenClubAccount={openClubAccount}
               />
             ) : null}
-            {view === 'calendar' ? (
+            {!clubAccountRequest && view === 'calendar' ? (
               <AgencyCalendarWorkspace
                 key={`calendar:${workspace.tenant_id}:${sessionUserId}`}
                 preferenceKey={`${workspace.tenant_id}:${sessionUserId}`}
@@ -1841,7 +1891,7 @@ export default function AgencyOperatingWorkspace() {
                 }
               />
             ) : null}
-            {view === 'business' && canSeeBusiness ? (
+            {!clubAccountRequest && view === 'business' && canSeeBusiness ? (
               <Business
                 data={data}
                 onOpenOwner={() => setOwnerCommandOpen(true)}
@@ -2051,58 +2101,6 @@ export default function AgencyOperatingWorkspace() {
           onApplied={async () => {
             await loadView();
           }}
-        />
-      ) : null}
-
-      {clubAccountRequest ? (
-        <AgencyClubAccountDrawer
-          key={`${stateScope}:${clubAccountRequest.key}`}
-          request={clubAccountRequest}
-          presentation="page"
-          canCreateRecords={canCreateRecords}
-          invoke={invoke}
-          rpc={rpc}
-          refreshKey={recordRefreshRevision}
-          onRefresh={refreshRecords}
-          onResolvedClub={({ organisationId, name, country }) => {
-            setClubAccountRequest((current) => {
-              if (current?.organisationId !== organisationId ||
-                  (current.title === name && current.country === country)) return current;
-              return { ...current, title: name, country };
-            });
-          }}
-          onClose={closeClubAccount}
-          onOpenAction={(request) => {
-            setActionRequest(request);
-          }}
-          onOpenDeal={(dealRoomId, title, context) => {
-            closeClubAccount();
-            openIntelligenceRequest({
-              key: `deal-war-room:${dealRoomId}`,
-              kind: 'deal',
-              entityId: dealRoomId,
-              title,
-              context,
-            });
-          }}
-          onOpenMarket={(needId) => {
-            setClubAccountRequest(null);
-            window.history.pushState(
-              null,
-              '',
-              `${basePath}?view=opportunities${needId ? '&tab=needs&record=' + encodeURIComponent(needId) : ''}`,
-            );
-          }}
-          onOpenPursuit={(request) => {
-            closeClubAccount();
-            setPursuitRequest(request);
-          }}
-          onCreateContact={() => setCreateKind('contact')}
-          onCreateNeed={() => setCreateKind('club_need')}
-          onCreateDeal={() => setCreateKind('deal')}
-          onCreatePlayer={() => setCreateKind('player')}
-          onOpenPlayer={(playerId) => navigateWorkspaceView('players', `${basePath}?view=players&player=${encodeURIComponent(playerId)}`)}
-          onOpenContact={(personId) => navigateWorkspaceView('network', `${basePath}?view=network&network=people&person=${encodeURIComponent(personId)}`)}
         />
       ) : null}
 

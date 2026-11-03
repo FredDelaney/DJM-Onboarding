@@ -40,7 +40,7 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
  const publicProfile={display_name:'Example Club Player',primary_position:'CM',current_club:'Example FC',headline:'Central midfielder',nationalities:['NZ'],key_stats:[{label:'Appearances',value:'18'},{label:'Minutes',value:'1250'}],career_history:[{club:'Example FC',season:'2025/26',appearances:18,minutes:1250}],videos:[{title:'Example highlights',url:'https://example.test/highlights',video_type:'highlight',featured:true}],transfermarkt_url:'https://www.transfermarkt.com/example/profil/spieler/1',verified_at:'2026-10-07T00:00:00Z'};
  for(const [suite,names] of Object.entries(screens)){
   if(selectedSuites&&!selectedSuites.includes(suite))continue;
-  const state={screen:'',publicMode:'healthy',release:null,approved:false,taskDone:false,approvals:0,completions:0,failRelationships:false,recordWrites:0};
+  const state={screen:'',publicMode:'healthy',release:null,approved:false,taskDone:false,approvals:0,completions:0,failRelationships:false,recordWrites:0,clubLinked:false};
   const taskId='00000000-0000-4000-8000-000000000094',clubId='00000000-0000-4000-8000-000000000095';
   const dealA='00000000-0000-4000-8000-000000000096',dealB='00000000-0000-4000-8000-000000000097';
   const dueAt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00Z';
@@ -75,7 +75,9 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(body.action==='players_workspace')data={players:{items:[{player_id:'player',identity:{name:'Example Player',current_club:'Example FC',primary_position:'Centre back'},service:{}}],total:1,has_more:false}};
     else if(body.action==='home_focus')data={home:{attention:{confirm:state.approved&&!state.taskDone?[{command_id:'capture-follow-up',source_type:'task',source_id:taskId,title:'Follow up with Example FC',due_at:dueAt,owner_name:'Jesse',priority_score:99,actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[],judgement:[{command_id:'example-follow-up',source_type:'task',source_id:'60000000-0000-4000-8000-000000000001',title:'Confirm the trial dates',why_now:'The club is waiting for availability.',recommended_action:'Agree a week with the sporting director.',owner_name:'Jesse',priority_score:90},{command_id:'example-player',source_type:'task',source_id:'60000000-0000-4000-8000-000000000002',title:'Review the club shortlist',why_now:'Your player has new options to consider.',recommended_action:'Choose the two strongest routes.',owner_name:'Dapo',priority_score:80}]}}};
     else if(body.action==='club_account')data={club:{club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],demand:{items:[{club_need_id:'70000000-0000-4000-8000-000000000001',position:'Centre-back',status:'open'},{club_need_id:'70000000-0000-4000-8000-000000000002',position:'Striker',status:'confirmed'},{club_need_id:'70000000-0000-4000-8000-000000000003',position:'Winger',status:'closed'}]},commercial:{deals:[{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}}};
-    else if(body.action==='club_reference_people')data={people:{players:[],contacts:[],can_view_contacts:true,player_count_basis:'current_club_name'}};
+    else if(body.action==='club_reference_people')data={people:{players:state.clubLinked?[{id:'00000000-0000-4000-8000-000000000089',name:'Example Player',position:'Centre back',verified_link:true}]:[],contacts:[],can_view_contacts:true,can_link_players:true,player_count_basis:'verified_and_name_fallback'}};
+    else if(body.action==='club_link_candidates')data={candidates:{items:state.clubLinked?[]:[{id:'00000000-0000-4000-8000-000000000089',name:'Example Player',current_club:'Former FC',can_link:true,linked_club_id:null}]}};
+    else if(body.action==='club_link_player'){state.clubLinked=true;data={linked:{linked:true,player_id:'00000000-0000-4000-8000-000000000089',organisation_id:clubId}};}
     else if(body.action==='clubs_directory')data={directory:{items:[{organisation_id:clubId,name:'Example FC',country:'New Zealand',city:'Auckland',league_name:'National League',player_count:2,request_count:1,deal_count:1,contact_count:0,source_id:null},{organisation_id:dealA,name:'Wellington Phoenix II',country:'New Zealand',city:'Wellington',league_name:'National League - Central',player_count:1,request_count:0,deal_count:0,contact_count:0,source_id:null},{organisation_id:dealB,name:'Christchurch United',country:'New Zealand',city:'Christchurch',league_name:'National League - Southern',player_count:1,request_count:2,deal_count:0,contact_count:0,source_id:null}],total:3,has_more:false}};
     else if(body.action==='deal_war_room')data={war_room:{available:true,deal:{id:body.deal_room_id,title:body.deal_room_id===dealB?'Example transfer B':'Example transfer A',stage:'open'},control:{},next_control_fix:{}}};
     else if(body.action==='action_prepare'&&state.approved)data={proposal:{proposal_id:'capture-follow-up-proposal',title:'Complete: Follow up with Example FC',status:'proposed',executable:true}};
@@ -130,6 +132,26 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     for(let i=0;i<60;i++){try{await page.goto(url);break;}catch(error){if(i===59)throw error;await page.waitForTimeout(250);}}
     await page.locator('h1:visible,h2:visible').first().waitFor({timeout:30000});
     if(suite==='agency'&&screen==='clubs')await page.getByRole('region',{name:'Clubs',exact:true}).waitFor();
+    if(suite==='agency'&&screen==='clubs'&&width===390){
+      await page.getByRole('region',{name:'Clubs',exact:true}).getByRole('button',{name:/Example FC/}).click();
+      await page.getByRole('region',{name:'Club details for Example FC',exact:true}).waitFor();
+      await page.getByRole('region',{name:'Clubs',exact:true}).waitFor({state:'hidden'});
+      await page.getByRole('button',{name:'Link existing player',exact:true}).click();
+      await page.getByRole('region',{name:'Link an existing roster player',exact:true}).waitFor();
+      await page.getByRole('button',{name:/Example Player Current club: Former FC/}).click();
+      await page.getByRole('button',{name:'Confirm club link',exact:true}).click();
+      await page.getByText('Club link confirmed',{exact:true}).waitFor();
+      console.log('CLUB VERIFIED LINK BROWSER PASS');
+      await page.getByRole('button',{name:'Back to Clubs',exact:true}).click();
+      await page.getByRole('region',{name:'Clubs',exact:true}).waitFor();
+      await page.getByRole('region',{name:'Clubs',exact:true}).getByRole('button',{name:/Example FC/}).click();
+      await page.getByRole('navigation',{name:'Club sections'}).getByRole('button',{name:'Requests',exact:true}).click();
+      await page.getByRole('cell',{name:'Centre-back',exact:true}).click();
+      await page.waitForURL(href=>href.searchParams.get('view')==='opportunities'&&href.searchParams.get('record')==='70000000-0000-4000-8000-000000000001',{timeout:8000});
+      console.log('CLUB TO MARKET BROWSER PASS');
+      await page.goto(url);
+      await page.getByRole('region',{name:'Clubs',exact:true}).waitFor();
+    }
     if(suite==='presentation')await page.getByRole('heading',{name:'Example Club Player',exact:true}).waitFor();
     if(suite==='detail'&&screen==='review')await page.getByText('MEETING POSITION',{exact:true}).waitFor();
     if(suite==='capture'){
