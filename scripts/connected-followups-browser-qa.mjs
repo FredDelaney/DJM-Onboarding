@@ -32,6 +32,11 @@ try{
   assert.equal(await page.evaluate(()=>document.body.style.overflow),'','Close releases the scroll lock');
   assert.equal(await page.evaluate(()=>document.querySelector('main')?.inert),false,'Close releases background isolation');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.waitForFunction(()=>{
+   const node=document.activeElement;
+   const previous=window.taskOpeningBounds;
+   return node instanceof HTMLElement&&node.matches('[data-home-work-action="update"]')&&previous&&Math.abs(node.getBoundingClientRect().top-previous.top)<2;
+  },undefined,{timeout:2000});
   const returned=await update.evaluate(node=>{const bounds=node.getBoundingClientRect();return {y:scrollY,opened:window.taskOpeningScroll,openingBounds:window.taskOpeningBounds,returnedBounds:{top:bounds.top,bottom:bounds.bottom}};});
   // Layout above the row can change document coordinates without moving the
   // visible list (browser scroll anchoring). Assert the actual visual position.

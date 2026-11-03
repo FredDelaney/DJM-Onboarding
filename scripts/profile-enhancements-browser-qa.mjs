@@ -131,7 +131,7 @@ try {
   const title=page.getByRole('heading',{name:workName,exact:true});
   const heading=await title.boundingBox();
   assert.ok(await title.evaluate(node=>node.scrollWidth<=node.clientWidth+1),'The full name wraps without clipping at '+width);
-  const edit=await page.getByRole('button',{name:'Edit '+workName,exact:true}).boundingBox();
+  const edit=await page.getByRole('button',{name:'Edit player',exact:true}).boundingBox();
   assert.ok(heading&&edit&&(edit.x>=heading.x+heading.width||edit.x+edit.width<=heading.x||edit.y>=heading.y+heading.height||edit.y+edit.height<=heading.y),'Player identity and edit controls never overlap at '+width);
  }
  await page.setViewportSize({width:390,height:844});
@@ -150,7 +150,7 @@ try {
  assert.equal(uploads,2,'Confirmation retry reuses the uploaded object');assert.equal(calls.filter(c=>c.action==='player_profile_photo_attach').length,3);
  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Work view fits '+width);}
  await page.getByRole('button',{name:'Switch player',exact:true}).click();await requestedOther;
- await page.getByText('Opening player',{exact:true}).waitFor();
+ await page.getByText('Loading player...',{exact:true}).waitFor();
  assert.equal(await page.getByRole('heading',{name:workName,exact:true}).count(),0,'Previous player details disappear while the new selection loads');
  assert.equal(await page.getByRole('button',{name:'Change player photo',exact:true}).count(),0,'Previous player photo controls cannot target the new selection');
  releaseOther();await page.getByRole('heading',{name:'Other Player',exact:true}).waitFor();

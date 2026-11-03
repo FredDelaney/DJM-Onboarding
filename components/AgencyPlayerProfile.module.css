@@ -2567,3 +2567,6 @@ fieldset.editorBody { min-width: 0; margin: 0; border: 0; }
  .root .heroActions{grid-template-columns:minmax(0,1fr)}
  .root .heroActions > .primaryAction{grid-column:1}
 }
+
+/* Keep the cross-workspace link comfortable to tap even under global link resets. */
+.root .topbar .back{min-height:46px!important;height:auto;box-sizing:border-box}

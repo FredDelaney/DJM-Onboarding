@@ -211,23 +211,22 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     if(suite==='agency'&&screen==='opportunities'&&width===390){await verifyDealRecordCapture(page,url,dealA,dealB);await verifyDealHistoryAndCrossView(page,url,dealA,dealB);}
     await verifyMobileChrome(page,suite,screen,width);
     if(suite==='agency'&&screen==='players'){
-     const search=page.getByRole('searchbox',{name:'Search players',exact:true}),add=page.getByRole('button',{name:'Add player',exact:true});
+     const directory=page.getByRole('region',{name:'Players directory'});
+     const search=directory.getByRole('searchbox',{name:'Search players',exact:true});
+     const add=directory.getByRole('button',{name:'Add Player',exact:true});
      await search.waitFor();await add.waitFor();
      const a=await search.boundingBox(),b=await add.boundingBox();
-     assert.ok(a.width>=110&&b.width>=90&&b.height>=44,'Roster controls remain usable rather than being compressed at '+width+': '+JSON.stringify({search:a,add:b}));
-     assert.ok(Math.abs((a.y+a.height/2)-(b.y+b.height/2))<=3,'Player search and creation stay together at '+width);
-     assert.ok(a.x<b.x,'Player search precedes Add, consistently with Network at '+width+': '+JSON.stringify({search:a,add:b,styles:await search.evaluate(node=>({input:getComputedStyle(node).order,field:getComputedStyle(node.parentElement).order,parent:getComputedStyle(node.parentElement.parentElement).display,direction:getComputedStyle(node.parentElement.parentElement).flexDirection}))}));
-     assert.equal(await add.count(),1,'The roster has one Add player action');
-     const player=page.getByRole('button',{name:'Open Example Player',exact:true});
-     const profile=player.getByRole('button',{name:'View Example Player profile',exact:true});
-     const work=player.getByRole('button',{name:'Open Example Player work view',exact:true});
-     await profile.waitFor();await work.waitFor();
-     for(const [label,control] of [['Profile',profile],['Work view',work]]){
-       const bounds=await control.boundingBox();
-       assert.ok(bounds&&bounds.height>=44,'Player '+label+' is an explicit touch-size action at '+width);
-     }
-     await page.getByRole('heading',{name:'Our players',exact:true}).waitFor();
-     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Player roster has no horizontal overflow at '+width);
+     assert.ok(a&&b&&a.width>=110&&b.width>=90&&b.height>=44,'Player search and Add Player remain usable at '+width);
+     assert.ok(a.y<=b.y+b.height,'The search is before Add Player at '+width);
+     assert.equal(await add.count(),1,'One Add Player action in the directory');
+     const player=directory.getByRole('button',{name:'Open Example Player',exact:true});
+     await player.waitFor();
+     const bounds=await player.boundingBox();
+     assert.ok(bounds&&bounds.height>=44,'Player open target remains touch-size at '+width);
+     if(width<=680)assert.equal(await directory.getByRole('button',{name:'Card view'}).getAttribute('aria-pressed'),'true','Small screens start with cards');
+     else await directory.getByRole('table').waitFor();
+     await page.getByRole('region',{name:'Players directory'}).getByRole('heading',{name:'Players',exact:true}).waitFor();
+     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Player roster has no page overflow at '+width);
     }
     if(suite==='agency'&&screen==='home')assert.doesNotMatch(await page.getByRole('article').filter({has:page.getByRole('button',{name:/^Complete /})}).locator('[class*="_meta"]').allTextContents().then(values=>values.join('\n')),/Waiting\s*Waiting/i,'Home status labels never repeat');
     if(suite==='player'&&screen==='career'){
@@ -419,11 +418,11 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      await summary.press('Enter');
      await more.getByRole('button',{name:'Refresh',exact:true}).click();
      assert.equal(await more.evaluate(node=>node.open),false,'Workspace tool selection closes the menu');
-     const sections=page.locator('[data-people-internal-tabs]');
-     await sections.getByRole('button',{name:/^Recruitment/}).click();
+     await page.getByRole('region',{name:'Players directory'}).getByRole('button',{name:/^Recruitment/}).click();
      await page.getByRole('heading',{name:'Recruitment',exact:true}).waitFor();
+     const sections=page.locator('[data-people-internal-tabs]');
      await sections.getByRole('button',{name:/^Our Players/}).click();
-     await page.getByRole('heading',{name:'Our players',exact:true}).waitFor();
+     await page.getByRole('region',{name:'Players directory'}).getByRole('heading',{name:'Players',exact:true}).waitFor();
     }
    }
    console.log('SCREEN',suite,screen);

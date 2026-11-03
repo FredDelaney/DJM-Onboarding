@@ -32,6 +32,8 @@ import WorkspaceListSearch from './WorkspaceListSearch';
 import RecordActivitySummary from './RecordActivitySummary';
 import PlayerStaffControl from './PlayerStaffControl';
 import PlayerProfilePhoto from './PlayerProfilePhoto';
+import PlayerExperienceDirectory from './PlayerExperienceDirectory';
+import PlayerExperienceDetail from './PlayerExperienceDetail';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile, invalidatePlayerProfile } from '@/lib/player-profile-cache';
 import { readWithDeadline } from '@/lib/read-with-deadline';
@@ -927,7 +929,7 @@ export default function AgencyPlayersWorkspace({
 
   if (playerId) {
     return (
-      <PlayerDrawer
+      <PlayerExperienceDetail
         key={`${stateScope}:${playerId}`}
         canManageRecords={canManageRecords}
         cacheScope={stateScope}
@@ -945,24 +947,40 @@ export default function AgencyPlayersWorkspace({
     );
   }
 
+  if (section === 'players') {
+    return <PlayerExperienceDirectory
+      players={players}
+      total={typeof data?.directory?.total==='number'?data.directory.total:players.length}
+      hasMore={Boolean(data?.directory?.has_more)}
+      search={search}
+      onSearch={setSearch}
+      onOpen={openPlayer}
+      onCreate={onCreatePlayer}
+      canCreate={canCreateRecords}
+      onRecruitment={()=>changeSection('recruitment')}
+      onLoadMore={onLoadMore}
+      directoryRefreshing={directoryRefreshing}
+    />;
+  }
+
   return (
     <div className={styles.workspace}>
       <header className={styles.rosterOverview}>
         <div className={styles.rosterOverviewCopy}>
-          <span className={styles.rosterEyebrow}>{section==='players'?'YOUR SQUAD':'TALENT PIPELINE'}</span>
-          <h2>{section==='players'?'Our players':'Recruitment'}</h2>
-          <p>{section==='players'
+          <span className={styles.rosterEyebrow}>{String(section)==='players'?'YOUR SQUAD':'TALENT PIPELINE'}</span>
+          <h2>{String(section)==='players'?'Our players':'Recruitment'}</h2>
+          <p>{String(section)==='players'
             ? 'Player details, opportunities and the next move, together in one place.'
             : 'Follow potential players from first contact to representation.'}</p>
         </div>
-        {section==='players' && Array.isArray(data?.directory?.items) ? <div className={styles.rosterCount}>
+        {String(section)==='players' && Array.isArray(data?.directory?.items) ? <div className={styles.rosterCount}>
           <strong>{typeof data.directory.total==='number'?data.directory.total:players.length}</strong>
           <span>{(typeof data.directory.total==='number'?data.directory.total:players.length)===1?'player':'players'}</span>
         </div> : null}
       </header>
       <section className={styles.toolbar}>
         <div className={styles.sectionTabs} data-people-internal-tabs>
-          <button type="button" className={section==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('players')}>
+          <button type="button" className={String(section)==='players'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('players')}>
             Our Players {Array.isArray(data?.directory?.items)?<b>{data?.directory?.total ?? players.length}</b>:null}
           </button>
           <button type="button" className={section==='recruitment'?styles.sectionTabActive:styles.sectionTab} onClick={()=>changeSection('recruitment')}>
@@ -970,8 +988,8 @@ export default function AgencyPlayersWorkspace({
           </button>
         </div>
         <div className={styles.listControls}>
-        <WorkspaceListSearch className={styles.search} label={section==='players'?'Search players':'Search recruitment'} placeholder={section==='players'?'Search players':'Search recruitment'} value={search} onChange={setSearch}/>
-        {section==='players' && canCreateRecords && onCreatePlayer ? <button type="button" data-ui-button="secondary" className={styles.primaryButton} onClick={onCreatePlayer}><Plus size={14}/> Add player</button> : null}
+        <WorkspaceListSearch className={styles.search} label={String(section)==='players'?'Search players':'Search recruitment'} placeholder={String(section)==='players'?'Search players':'Search recruitment'} value={search} onChange={setSearch}/>
+        {String(section)==='players' && canCreateRecords && onCreatePlayer ? <button type="button" data-ui-button="secondary" className={styles.primaryButton} onClick={onCreatePlayer}><Plus size={14}/> Add player</button> : null}
         {section==='recruitment' && canCreateRecords?(
           <button type="button" data-ui-button="secondary"
               className={styles.primaryButton} onClick={openRecruitmentCreate}><Plus size={14}/> Add target</button>
@@ -979,7 +997,7 @@ export default function AgencyPlayersWorkspace({
         </div>
       </section>
 
-      {section==='players'?(
+      {String(section)==='players'?(
         <section className={styles.playerGrid}>
           {filteredPlayers.map((item:any)=>{
             const identity=item?.identity||{};
