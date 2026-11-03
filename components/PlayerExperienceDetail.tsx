@@ -116,7 +116,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  };
  const openEdit=()=>{setDraft(pickDraft(identity));setDisplayName(name);setSaveError('');setSavedMessage('');setEditing(true);};
  return <div className={styles.playerSurface} role="region" aria-label={name+' player workspace'}>
-  <div className={styles.playerPageHeader}><button type="button" className={styles.backLink} onClick={onClose} aria-label="Back to Players"><ArrowLeft size={17}/> Players</button><div className={styles.playerTopActions}><Link href={playerProfileUrl}><Sparkles size={16}/> Player Profile</Link>{canEdit?<EntityActionsMenu scope={cacheScope} kind="player" entityId={playerId} label={name} rpc={rpc} onChanged={async()=>{await onRefresh();await reload();}} fields={editFields.map(field=>({...field,value:identity[field.key]}))}/>:null}</div></div>
+  <div className={styles.playerPageHeader}><button type="button" className={styles.backLink} onClick={onClose} aria-label="Back to Players"><ArrowLeft size={17}/><span>Players</span></button><div className={styles.playerTopActions}><Link href={playerProfileUrl}><Sparkles size={16}/> Player Profile</Link>{canEdit?<EntityActionsMenu scope={cacheScope} kind="player" entityId={playerId} label={name} rpc={rpc} onChanged={async()=>{await onRefresh();await reload();}} fields={editFields.map(field=>({...field,value:identity[field.key]}))}/>:null}</div></div>
   {loading?<div className={styles.loadState}><LoaderCircle size={22}/> Loading player...</div>:null}
   {error?<div className={styles.loadState} role="alert"><CircleAlert size={19}/>{error}<button type="button" onClick={()=>void reload()}>Retry</button></div>:null}
   {detail?<div className={styles.playerDetailGrid}>
