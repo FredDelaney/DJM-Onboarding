@@ -8,9 +8,19 @@ try{
  for(const width of [1440,390]){
   const page=await browser.newPage({viewport:{width,height:900}});
   for(let attempt=0;attempt<60;attempt++){try{await page.goto(root+'?view=players');break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}}
+  // Wait for client hydration before clicking; CI Chromium can paint the
+  // server-rendered roster before React has attached the view-switch handler.
+  await page.locator('[data-qa-ready="true"]').waitFor();
   const directory=page.getByRole('region',{name:'Players directory'});
-  if(width<=680)await directory.getByRole('button',{name:'Table view'}).click();
+  if(width<=680){
+   const cardView=directory.getByRole('button',{name:'Card view'});
+   await cardView.waitFor();
+   await page.waitForFunction(()=>document.querySelector('button[aria-label="Card view"]')?.getAttribute('aria-pressed')==='true');
+   await directory.getByRole('button',{name:'Table view'}).click();
+   await page.waitForFunction(()=>document.querySelector('button[aria-label="Table view"]')?.getAttribute('aria-pressed')==='true');
+  }
   await directory.getByRole('table').waitFor();
+  console.log('Players hydrated, table visible at '+width+'px');
   await page.screenshot({path:'/tmp/redream-athlivo-qa/players-'+width+'.png',fullPage:false});
   assert.ok(await directory.getByRole('row').count()>5);
   await directory.locator('summary').filter({hasText:'Filter'}).click();
