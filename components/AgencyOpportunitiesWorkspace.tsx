@@ -189,6 +189,10 @@ export default function AgencyOpportunitiesWorkspace({
   const [needPriority, setNeedPriority] = useState<RequestPriorityFilter>('all');
   const [needDeal, setNeedDeal] = useState<RequestDealFilter>('all');
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
+  const [shortlistBusy,setShortlistBusy]=useState('');
+  const [shortlistStates,setShortlistStates]=useState<Record<string,string>>({});
+  const [shortlistNotice,setShortlistNotice]=useState('');
+  const [shortlistError,setShortlistError]=useState('');
   const requestedRecord=String(searchParams.get('record')||'');
   const [expandedNeed, setExpandedNeed] = useState({scope: basePath, id: requestedView === 'needs' ? requestedRecord : ''});
   const [exactNeed,setExactNeed]=useState<any>(null);
@@ -247,6 +251,33 @@ export default function AgencyOpportunitiesWorkspace({
     void reloadArchives().catch(() => undefined);
   }, [reloadArchives]);
 
+  const changeShortlist = async(matchId:string,name:string,operation:'shortlist'|'remove')=>{
+    if(shortlistBusy)return;
+    setShortlistBusy(matchId);setShortlistError('');setShortlistNotice('');
+    let savedStatus='';
+    try{
+      const response=await invoke<any>('club_need_shortlist',{player_match_id:matchId,operation});
+      const result=response?.shortlist;
+      if(result?.saved!==true||result.player_match_id!==matchId||
+        (result.status!=='shortlisted'&&result.status!=='reviewing'))
+        throw new Error('The change could not be confirmed. Review this request before retrying.');
+      savedStatus=result.status;
+      setShortlistStates(current=>({...current,[matchId]:savedStatus}));
+      setShortlistNotice(operation==='shortlist'
+        ? name+' added to your internal shortlist. No pitch was sent.'
+        : name+' removed from the internal shortlist.');
+    }catch(cause){
+      setShortlistError(cause instanceof Error?cause.message:'Shortlist update unavailable.');
+    }finally{setShortlistBusy('');}
+    if(savedStatus)try{
+      await (onRecordRefresh||onRefresh)();
+      // Fresh server data takes precedence over our temporary confirmation label.
+      setShortlistStates(current=>{const next={...current};delete next[matchId];return next;});
+      if(requestedRecord)setExactRetry(current=>current+1);
+    }catch{
+      setShortlistNotice('Shortlist saved. The refreshed request could not load; check it again before another change.');
+    }
+  };
   const archived = useMemo(
     () => new Set(archiveItems.map((item: any) => `${String(item?.entity_type || '')}:${String(item?.entity_id || '')}`)),
     [archiveItems],
@@ -746,11 +777,18 @@ export default function AgencyOpportunitiesWorkspace({
                     {item.need?.raw_request?<details className={styles.needSource}><summary>Original request</summary><p className={styles.needNotes}>{item.need.raw_request}</p></details>:null}
                     <div className={styles.needCandidates}>
                       <h3>Recorded player opportunities</h3>
+                      <p className={styles.needCoverage}>Shortlists are internal. Opening an opportunity starts a separate pitch review; nothing is sent from this screen.</p>
+                      {shortlistError?<p role="alert" className={styles.shortlistError}>{shortlistError}</p>:null}
+                      {shortlistNotice?<p role="status" className={styles.shortlistNotice}>{shortlistNotice}</p>:null}
                       {candidates.length ? <>
                         {typeof item.candidate_coverage?.recorded_candidates === 'number' && item.candidate_coverage.recorded_candidates > candidates.length ? <p className={styles.needCoverage}>Showing {candidates.length} of {item.candidate_coverage.recorded_candidates} recorded candidates.</p> : null}
                         <ul>{candidates.map((candidate: any, index: number) => {
                           const name = candidate.player_name || 'Player';
                           const canOpen = needOpen && typeof candidate.player_match_id === 'string' && Boolean(candidate.player_match_id.trim());
+                          const matchId=String(candidate.player_match_id||'');
+                          const currentStatus=shortlistStates[matchId]||String(candidate.match_status||'');
+                          const canShortlist=needOpen && String(item.need?.status)==='active' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(matchId) && ['suggested','reviewing','shortlisted'].includes(currentStatus);
+                          const isShortlisted=currentStatus==='shortlisted';
                           const summary = <>
                             <span>
                               <strong>{name}</strong>
@@ -762,7 +800,8 @@ export default function AgencyOpportunitiesWorkspace({
                                 <small>Club budget: {salaryFigure(candidate.salary_check.club_budget,candidate.salary_check.club_currency,candidate.salary_check.club_period,candidate.salary_check.club_tax_basis)}</small>
                                 {candidate.salary_check.needs_source_confirmation?<small>Source needs confirmation.</small>:null}{candidate.salary_check.checked_on?<small>Checked {candidate.salary_check.checked_on}</small>:null}
                               </span>:<small>Salary comparison not available. Review terms before presenting this player.</small>}
-                              <small>{candidate.salary_gate?'Career: ':''}{candidate.career_gate_state || candidate.match_status ? careerGateLabel(candidate.career_gate_state || candidate.match_status) : 'Recorded opportunity'}</small>
+                              {isShortlisted?<small className={styles.shortlistStatus}>Shortlisted · internal only</small>:null}
+                              <small>{candidate.salary_gate?'Career: ':''}{candidate.career_gate_state || currentStatus ? careerGateLabel(candidate.career_gate_state || currentStatus) : 'Recorded opportunity'}</small>
                               {candidate.career_gate_reason ? <span>{candidate.career_gate_reason}</span> : null}
                               {needOpen && !canOpen ? <small>Opportunity link unavailable</small> : null}
                             </span>
@@ -770,6 +809,13 @@ export default function AgencyOpportunitiesWorkspace({
                           </>;
                           return <li key={typeof candidate.player_match_id === 'string' ? candidate.player_match_id : index}>
                             {canOpen ? <button type="button" className={styles.needCandidate} aria-label={`Open opportunity for ${name}`} onClick={() => openNeedRoute(item, candidate)}>{summary}</button> : <div className={styles.needCandidate}>{summary}</div>}
+                            {canShortlist?<div className={styles.shortlistActions}>
+                              <button type="button" className={isShortlisted?styles.shortlistRemove:styles.shortlistAdd}
+                                aria-label={isShortlisted?'Remove '+name+' from shortlist':'Shortlist '+name}
+                                disabled={Boolean(shortlistBusy)} onClick={()=>void changeShortlist(matchId,name,isShortlisted?'remove':'shortlist')}>
+                                {shortlistBusy===matchId?'Saving…':isShortlisted?'Remove shortlist':'Shortlist player'}
+                              </button>
+                            </div>:null}
                           </li>;
                         })}</ul>
                       </> : <p className={styles.needCoverage}>{item.candidate_coverage?.recorded_candidates === 0 ? 'No candidates recorded yet.' : 'No player opportunities are shown for this need.'}</p>}
