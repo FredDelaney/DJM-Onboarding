@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import {chromium} from 'playwright';
+const root=process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow';
+await mkdir('/tmp/redream-athlivo-qa',{recursive:true});
+const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
+try{
+ for(const width of [1440,390]){
+  const page=await browser.newPage({viewport:{width,height:900}});
+  for(let attempt=0;attempt<60;attempt++){try{await page.goto(root+'?view=players');break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}}
+  const directory=page.getByRole('region',{name:'Players directory'});
+  if(width<=680)await directory.getByRole('button',{name:'Table view'}).click();
+  await directory.getByRole('table').waitFor();
+  await page.screenshot({path:'/tmp/redream-athlivo-qa/players-'+width+'.png',fullPage:false});
+  assert.ok(await directory.getByRole('row').count()>5);
+  await directory.locator('summary').filter({hasText:'Filter'}).click();
+  await directory.getByRole('combobox',{name:'Position'}).selectOption('Centre back');
+  assert.ok(await directory.getByRole('row').count()>5);
+  await directory.getByRole('button',{name:'Clear all'}).click();
+  await directory.getByRole('button',{name:'Open José Silva'}).click();
+  const player=page.getByRole('region',{name:'José Silva player workspace'});
+  await player.waitFor();
+  await player.getByRole('heading',{name:'Club Information',exact:true}).waitFor();
+  await page.screenshot({path:'/tmp/redream-athlivo-qa/player-profile-'+width+'.png',fullPage:false});
+  for(const tab of ['Tasks','Updates','Deals','Profile']){
+   await player.getByRole('navigation',{name:'Player sections'}).getByRole('button',{name:tab}).click();
+   if(tab==='Tasks')await player.getByRole('heading',{name:'Tasks',exact:true}).waitFor();
+   if(tab==='Updates')await player.getByRole('heading',{name:'Updates',exact:true}).waitFor();
+   if(tab==='Deals')await player.getByRole('heading',{name:'Shortlisted & Pitched'}).waitFor();
+   if(tab==='Profile')await player.getByRole('heading',{name:'Club Information',exact:true}).waitFor();
+   if(tab!=='Profile')await page.screenshot({path:'/tmp/redream-athlivo-qa/player-'+tab.toLowerCase()+'-'+width+'.png',fullPage:false});
+  }
+  await player.getByRole('button',{name:'Edit player',exact:true}).click();
+  await player.getByRole('heading',{name:'Edit player',exact:true}).waitFor();
+  await page.screenshot({path:'/tmp/redream-athlivo-qa/player-edit-'+width+'.png',fullPage:false});
+  await player.getByRole('button',{name:'Close editing'}).click();
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'No page overflow '+width);
+  await page.close();
+ }
+ console.log('Athlivo-inspired roster and player workspace: table, filters, tabs, edit UI and responsive screenshot checks passed.');
+} finally{await browser.close();}

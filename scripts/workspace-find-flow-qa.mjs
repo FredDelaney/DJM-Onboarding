@@ -68,11 +68,13 @@ try{
  await page.getByRole('searchbox',{name:'Search players',exact:true}).fill('Example');
  const card=page.getByRole('button',{name:'Open Example Player 5',exact:true});await card.scrollIntoViewIfNeeded();
  const before=await page.evaluate(()=>window.scrollY);assert.ok(before>100);
- await card.click();await page.getByRole('region',{name:'Player data',exact:true}).waitFor();
- assert.equal(new URL(page.url()).searchParams.get('profile'),'1','Card added an intermediate screen');
- assert.equal(await page.getByRole('link',{name:'Work view',exact:true}).count(),1);
- assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Profile overflow');
- await page.getByRole('link',{name:'Back to players',exact:true}).click();
+ await card.click();await page.getByRole('region',{name:'Example Player 5 player workspace',exact:true}).waitFor();
+ await page.waitForURL(/player=qa-player-5/);
+ assert.equal(new URL(page.url()).searchParams.get('player'),'qa-player-5','Player row opens its own workspace');
+ assert.equal(new URL(page.url()).searchParams.get('profile'),null,'Player directory goes straight to the player workspace');
+ assert.ok(await page.getByRole('link',{name:'Player Profile',exact:true}).count()>=1,'Full Player Profile remains accessible');
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Player workspace overflow');
+ await page.getByRole('button',{name:'Back to Players',exact:true}).click();
  await page.getByRole('searchbox',{name:'Search players',exact:true}).waitFor();
  await page.waitForFunction(()=>document.querySelector('input[aria-label="Search players"]')?.value==='Example');
  await page.waitForFunction(top=>Math.abs(window.scrollY-top)<5,before);
