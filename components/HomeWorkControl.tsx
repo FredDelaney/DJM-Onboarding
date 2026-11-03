@@ -64,6 +64,7 @@ export function useHomeWork(rpc:HomeRpc,tenantId:string,userId:string) {
  const captureReturnFocus=(ref:WorkRef,action:'update'|'complete',opener?:HTMLElement)=>{
   const heading=document.getElementById('workspace-view-heading'),label=heading?.textContent,path=location.pathname;
   const workKey=keyFor(ref),fromRow=opener?.closest('[data-home-work]')?.getAttribute('data-home-work')===workKey&&opener?.getAttribute('data-home-work-action')===action;
+  const openingTop=fromRow&&opener?opener.getBoundingClientRect().top:null;
   return ()=>requestAnimationFrame(()=>{
    if(!current()||location.pathname!==path||(heading&&(document.getElementById('workspace-view-heading')!==heading||heading.textContent!==label)))return;
    const focused=document.activeElement;
@@ -73,8 +74,19 @@ export function useHomeWork(rpc:HomeRpc,tenantId:string,userId:string) {
    const target=[row?.contains(opener||null)?opener:null,row?.querySelector<HTMLElement>(`[data-home-work-action="${action}"]`),heading].find(usable);
    if(!target)return;
    target.focus({preventScroll:true});
-   const bounds=target.getBoundingClientRect();
-   if(bounds.top<0||bounds.bottom>innerHeight)target.scrollIntoView({block:'nearest'});
+   const restoreVisiblePosition=()=>{
+    if(!current()||document.activeElement!==target||document.querySelector('[aria-modal="true"]')||!usable(target))return;
+    const bounds=target.getBoundingClientRect();
+    // A delayed Calendar read may insert content above the row after the
+    // modal closes. Keep the originating action in its original view position.
+    if(openingTop!==null&&Math.abs(bounds.top-openingTop)>2){
+     window.scrollBy({top:bounds.top-openingTop,behavior:'instant'});
+    }
+    const updated=target.getBoundingClientRect();
+    if(updated.top<0||updated.bottom>innerHeight)target.scrollIntoView({block:'nearest',behavior:'instant'});
+   };
+   restoreVisiblePosition();
+   window.setTimeout(restoreVisiblePosition,300);
   });
  };
  const patch=(value:Partial<ControlState>)=>{if(current())setState(old=>({...old,...value}));};
