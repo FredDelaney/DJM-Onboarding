@@ -18,7 +18,8 @@ test('priorities, deal preferences and mobile request cards are legible',()=>{
   assert.match(view,/requestPriorityLabel\(need.priority\)/);
   assert.match(view,/transferPreferenceLabel\(need.transfer_type\)/);
   assert.match(view,/<th>Deal preference<\/th>/);
-  assert.match(css,/\.requests \.table tbody tr\.clickable td::before/);
+  assert.match(css,/\.requestTable tbody tr\.clickable td::before/);
+  assert.match(view,/styles\.requestCardWrap/);
   for(const key of ['Position','Wage budget','Transfer budget','Deal preference','Valid until'])
     assert.ok(view.includes('data-label="'+key+'"'));
 });
