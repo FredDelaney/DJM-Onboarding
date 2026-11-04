@@ -45,7 +45,7 @@ test('agent assignment and notification tagging remain distinct',()=>{
 test('filter controls only use real roster fields and disclose partial-page filtering',()=>{
  for(const category of ['agent','position','status','agencyContract','clubContract','club','clubCountry','nationality','stage'])
   assert.match(roster,new RegExp('key:\\x27'+category+'\\x27'));
- assert.match(roster,/primary\?\.user_id/);
+ assert.match(roster,/assignedAgents\.some\(a=>a\.user_id===wanted\)/);
  assert.match(roster,/Filters apply to loaded players/);
  assert.match(roster,/aria-label="Player filters"/);
 });

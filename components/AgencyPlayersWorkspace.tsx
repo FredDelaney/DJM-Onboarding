@@ -960,6 +960,10 @@ export default function AgencyPlayersWorkspace({
       onRecruitment={()=>changeSection('recruitment')}
       onLoadMore={onLoadMore}
       directoryRefreshing={directoryRefreshing}
+      scope={stateScope}
+      rpc={rpc}
+      canManageAgents={canManageRecords}
+      onAgentsChanged={onRecordRefresh||onRefresh}
     />;
   }
 

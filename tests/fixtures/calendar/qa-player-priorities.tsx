@@ -12,8 +12,8 @@ const player = (id: string, name: string, extra: any = {}) => ({
   access: extra.access,
 });
 const players = [
-  player('setup', 'Plan Player', { identity: { agency_status: 'signed', primary_agent: {user_id:'agent-1', name:'Jesse Agent'} } }),
-  player('contract', 'Contract Player', { identity: { agency_status: 'mandated', primary_agent: {user_id:'agent-1', name:'Jesse Agent'} }, service: { next_service_move: { move_type: 'contract_strategy', instruction: 'Agree the extension strategy.' } } }),
+  player('setup', 'Plan Player', { identity: { agency_status: 'signed', primary_agent: {user_id:'agent-1', name:'Jesse Agent'},assigned_agents:[{user_id:'agent-1',name:'Jesse Agent',is_lead:true}] } }),
+  player('contract', 'Contract Player', { identity: { agency_status: 'mandated', primary_agent: {user_id:'agent-1', name:'Jesse Agent'},assigned_agents:[{user_id:'agent-1',name:'Jesse Agent',is_lead:true}] }, service: { next_service_move: { move_type: 'contract_strategy', instruction: 'Agree the extension strategy.' } } }),
   player('overdue', 'Overdue Player', { identity: { next_action: 'Call the club about the trial', next_action_due: '2020-10-20' } }),
   player('future', 'Future Player', { identity: { next_action: 'Confirm the summer schedule', next_action_due: '2099-06-01' } }),
   player('undated', 'Undated Player', { identity: { next_action: 'Discuss the recorded offer' } }),
@@ -29,6 +29,35 @@ export default function Page() {
     return { bundle: null } as T;
   }, []);
   const rpc = useCallback(async <T,>(name: string, args: any = {}): Promise<T> => {
+    if (name === 'redream_player_agents_v1') {
+      const record = players.find(p => p.player_id===args.p_player_id);
+      if(!record)throw new Error('Player not found');
+      const members=[
+       {user_id:'agent-1',name:'Jesse Agent'},
+       {user_id:'agent-2',name:'Moses Agent'},
+       {user_id:'agent-3',name:'Dapo Agent'},
+      ];
+      const lead=record.identity.primary_agent?.user_id||null;
+      const revision=Number((record.identity as any).agents_revision||0);
+      if(args.p_input){
+       if(args.p_expected_revision!==revision)throw new Error('Agent assignments changed');
+       const ids:string[]=args.p_input.user_ids;
+       if(!Array.isArray(ids)||ids.some(id=>!members.some(m=>m.user_id===id)))throw new Error('Invalid agency team');
+       const explicit=[...new Set(ids.filter(id=>id!==lead))];
+       (record.identity as any).agent_ids=explicit;
+       (record.identity as any).agents_revision=revision+1;
+       (record.identity as any).assigned_agents=[...(lead?[{...members.find(m=>m.user_id===lead),is_lead:true}]:[]),...explicit.map(id=>members.find(m=>m.user_id===id))];
+      }
+      return {
+       player_id:record.player_id,
+       assigned_agents:(record.identity as any).assigned_agents||[],
+       available_agents:members,
+       user_ids:(record.identity as any).agent_ids||[],
+       lead_agent_id:lead,
+       revision:Number((record.identity as any).agents_revision||0),
+       can_edit:true,saved:Boolean(args.p_input),
+      } as T;
+    }
     if (name === 'redream_player_lead_agent_v1') {
       const record = players.find(p => p.player_id === args.p_player_id);
       if (!record) throw new Error('Player not found');
@@ -39,6 +68,11 @@ export default function Page() {
         const member = members.find(item=>item.user_id===args.p_new_agent_id);
         if (args.p_new_agent_id && !member) throw new Error('Invalid agent');
         (record.identity as any).primary_agent = member?{user_id:member.user_id,name:member.display_name}:null;
+        const oldTeam=(record.identity as any).agent_ids||[];
+        (record.identity as any).assigned_agents=[
+         ...(member?[{user_id:member.user_id,name:member.display_name,is_lead:true}]:[]),
+         ...oldTeam.filter((id:string)=>id!==member?.user_id).map((id:string)=>({user_id:id,name:members.find(m=>m.user_id===id)?.display_name||'Teammate'})),
+        ];
       }
       return {player_id:record.player_id,primary_agent:(record.identity as any).primary_agent||null,members,can_edit:true,saved:Boolean(args.p_save)} as T;
     }

@@ -8,6 +8,7 @@ import EntityActionsMenu from './EntityActionsMenu';
 import PlayerProfilePhoto from './PlayerProfilePhoto';
 import PlayerStaffControl from './PlayerStaffControl';
 import PlayerLeadAgentControl from './PlayerLeadAgentControl';
+import PlayerTeamAgentsControl from './PlayerTeamAgentsControl';
 import PlayerSalaryTerms from './PlayerSalaryTerms';
 import RecordContactActions from './RecordContactActions';
 import {friendlyError,relativeDate} from '@/lib/platform-client';
@@ -277,6 +278,13 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
        <div className={styles.profileInfoColumn}>
         <ContractCard title="Agency Contract Expiry" expiry={representation?.end_date} empty={representation?'No expiry recorded':'No active agreement'}/>
         {canEdit?<PlayerLeadAgentControl playerId={playerId} scope={cacheScope} rpc={rpc} onChanged={async()=>{await Promise.allSettled([reload(),onRefresh()]);}}/>:null}
+        <div className={styles.staffCard}>
+         <h3>Assigned agents</h3>
+         <p className={styles.editHelp}>Add agents who work with this player. The lead remains accountable.</p>
+         <PlayerTeamAgentsControl playerId={playerId} playerName={name} scope={cacheScope} rpc={rpc}
+          initialAgents={Array.isArray(identity.assigned_agents)?identity.assigned_agents:[]}
+          variant="profile" canManage={canEdit} onChanged={async()=>{await Promise.allSettled([reload(),onRefresh()]);}}/>
+        </div>
         <div className={styles.staffCard}><PlayerStaffControl playerId={playerId} scope={cacheScope} rpc={rpc}/></div>
        </div>
        <div className={styles.quickLinks}>
