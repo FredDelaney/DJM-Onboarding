@@ -108,8 +108,6 @@ test('main workspaces keep recent screens visible while refreshing in the backgr
   assert.match(shell, /readViewCache\(cacheKey\)/);
   assert.match(shell, /writeViewCache\(cacheKey, nextData\)/);
   assert.match(shell, /loadSequenceRef/);
-  assert.match(shell, /const warmView = useCallback/);
-  assert.match(shell, /await warmView\(targetView, false\)/);
 });
 
 test('Home paints from a small focus read before secondary context', () => {

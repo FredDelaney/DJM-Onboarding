@@ -30,18 +30,10 @@ test('top-level agency navigation behaves like an in-app workspace switch', () =
   assert.match(source, /window\.history\.pushState/);
   assert.match(
     source,
-    /onPointerDown=\{\(\) => \{ if \(item\.view\) void warmView\(item\.view\); \}\}/,
+    /onPointerEnter=\{\(\) => \{ if \(item\.view\) preloadWorkspaceView\(item\.view\); \}\}/,
   );
   assert.match(source, /event\.preventDefault\(\)/);
   assert.match(source, /navigateWorkspaceView\(item\.view, item\.href\)/);
   assert.match(source, /navigateWorkspaceView\(item\.view, item\.href\)/);
   assert.match(source, /prefetch=\{false\}/);
-});
-
-test('workspace warming is bounded and deduplicated', () => {
-  assert.match(source, /viewWarmRequests/);
-  assert.match(source, /const existingRequest = viewWarmRequests\.get\(cacheKey\)/);
-  assert.match(source, /const warming = viewWarmRequests\.get\(cacheKey\)/);
-  assert.match(source, /const priorityTargets = targets\.slice\(0, 2\)/);
-  assert.match(source, /Promise\.allSettled/);
 });

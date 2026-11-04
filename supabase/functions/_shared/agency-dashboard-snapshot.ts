@@ -9,8 +9,7 @@ type Row = Record<string, any>;
 type Query = {data: Row[] | null; error: {message?: string} | null};
 type QueryClient = {
   from: (table:string)=>any;
-  schema: (schema:string)=>{from:(table:string)=>any};
-  rpc: (fn:string,args:Record<string,unknown>)=>Promise<Query>;
+  rpc: (fn:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:Query['error']}>;
 };
 export type DashboardRequestContext = {
   client: QueryClient;
@@ -39,7 +38,7 @@ function localToday(zone:string):string {
   const now = dayInZone(new Date().toISOString(),zone);
   return now && DAY.test(now) ? now : new Date().toISOString().slice(0,10);
 }
-function asRows(result:Query):Row[] {
+function asRows(result:{data:unknown;error:Query['error']}):Row[] {
   if(result.error) throw new Error(result.error.message || 'Data unavailable');
   if(!Array.isArray(result.data))throw new Error('Malformed data response');
   return result.data;
@@ -65,6 +64,14 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
     activeClients:null as number|null,fixturesToday:null as number|null,
     agencyContractsExpiring90Days:null as number|null,clubContractsExpiringThisCalendarYear:null as number|null,
     fixtures:[] as Row[],clubRequests:[] as Row[],upcomingEvents:[] as Row[],recentActivity:[] as Row[],errors};
+
+  // These reads are independent of the roster and its representation agreements.
+  const sourcesRead = Promise.resolve(client.rpc('platform_server_dashboard_sources', {
+    p_tenant_id:tenantId,p_actor_user_id:userId,p_scope:scope,p_fixture_date:date,p_today:today,
+  })).catch(() => null);
+  const activityRead = Promise.resolve(client.rpc('platform_server_dashboard_recent_activity', {
+    p_tenant_id:tenantId,p_actor_user_id:userId,p_scope:scope,p_limit:12,
+  })).catch(() => null);
 
   // Scope the only player data read to the caller's verified tenant and staff access.
   // The 'Me' subset is derived from primary owner plus explicit staff_player_access.
@@ -118,58 +125,43 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
     snapshot.clubContractsExpiringThisCalendarYear=players.filter(p=>str(p.contract_expiry)>=today&&str(p.contract_expiry)<=seasonEnd).length;
   }
 
-  // Fixture links MUST be confirmed by a provider ID on an actual player match record.
-  // Do not match teams using a fuzzy club name, or show an invented fixture count.
+  const sourcesResult=await sourcesRead;
+  const sources=sourcesResult&&!sourcesResult.error&&sourcesResult.data&&typeof sourcesResult.data==='object'
+    ? sourcesResult.data as Record<string,unknown> : {};
+  const sourceRows=(key:string)=>asRows({data:sources[key],error:null});
+
+  // Fixtures are shown only when the service returns a verified player link.
   if(playerIds.length && !errors.fixtures) {
     try {
-      const snaps=safeLimit(asRows(await client.schema('djm_os').from('player_match_stat_snapshots')
-        .select('player_id,fixture_id,match_date').in('player_id',playerIds)
-        .gte('match_date',datePlus(date,-1)).lte('match_date',datePlus(date,1)).limit(501)),500);
-      const fixtureIds=[...new Set(uuidIds(snaps.filter(s=>s.fixture_id),'fixture_id'))];
-      if(fixtureIds.length){
-        const matches=safeLimit(asRows(await client.schema('djm_os').from('football_fixtures')
-          .select('id,kickoff_at,home_team_name,away_team_name,status').in('id',fixtureIds).limit(501)),500);
-        const verified=matches.filter(row=>row.kickoff_at&&dayInZone(row.kickoff_at,timeZone)===date)
-          .sort((a,b)=>String(a.kickoff_at).localeCompare(String(b.kickoff_at)));
-        snapshot.fixtures=verified.slice(0,12).map(row=>({
-          fixtureId:row.id,kickoffAt:row.kickoff_at,homeName:row.home_team_name||'Home team',
-          awayName:row.away_team_name||'Away team',status:row.status||'',
-          relatedPlayerNames:[...new Set(snaps.filter(s=>s.fixture_id===row.id)
-            .map(s=>playerById.get(str(s.player_id))).filter(Boolean)
-            .map(p=>`${p!.first_name||''} ${p!.last_name||''}`.trim()))],
-        }));
-        snapshot.fixturesToday=verified.length;
+      const links=safeLimit(sourceRows('fixture_links'),500);
+      const fixtures=new Map<string,Row>();
+      for(const link of links){
+        const player=playerById.get(str(link.player_id));
+        if(!player||!link.kickoff_at||dayInZone(link.kickoff_at,timeZone)!==date)continue;
+        const fixtureId=str(link.fixture_id);
+        const fixture=fixtures.get(fixtureId)||{
+          fixtureId,kickoffAt:link.kickoff_at,homeName:link.home_team_name||'Home team',
+          awayName:link.away_team_name||'Away team',status:link.status||'',relatedPlayerNames:new Set<string>(),
+        };
+        fixture.relatedPlayerNames.add(`${player.first_name||''} ${player.last_name||''}`.trim());
+        fixtures.set(fixtureId,fixture);
       }
-      // No linked match snapshot is not proof that no fixtures are scheduled.
+      if(links.length){
+        snapshot.fixturesToday=fixtures.size;
+        snapshot.fixtures=[...fixtures.values()].slice(0,12)
+          .map(fixture=>({...fixture,relatedPlayerNames:[...fixture.relatedPlayerNames]}));
+      }
     }catch{errors.fixtures='Verified fixture links unavailable';}
   }
 
-  // Commercial records are not exposed to agent and scout roles by this dashboard.
   if(ADMIN.has(role)) {
     try {
-      let query=client.schema('djm_os').from('club_needs')
-        .select('id,organisation_id,owner_user_id,title,position,status,need_type,updated_at')
-        .eq('tenant_id',tenantId).is('archived_at',null)
-        .in('status',['active','open','confirmed']).order('updated_at',{ascending:false}).limit(7);
-      if(scope==='me') query=query.eq('owner_user_id',userId);
-      const needs=asRows(await query);
-      const needIds=uuidIds(needs);
-      const orgIds=[...new Set(uuidIds(needs.filter(n=>n.organisation_id),'organisation_id'))];
-      const [orgs,matchRows,dealRows]=await Promise.all([
-        orgIds.length?client.schema('djm_os').from('organisations').select('id,name').eq('tenant_id',tenantId).in('id',orgIds).limit(50):Promise.resolve({data:[],error:null}),
-        needIds.length?client.schema('djm_os').from('player_matches').select('club_need_id,player_id,status').eq('tenant_id',tenantId).in('club_need_id',needIds).limit(501):Promise.resolve({data:[],error:null}),
-        needIds.length?client.schema('djm_os').from('deal_rooms').select('club_need_id,player_id,pitch_status').eq('tenant_id',tenantId).in('club_need_id',needIds).limit(501):Promise.resolve({data:[],error:null}),
-      ]);
-      const byOrg=new Map(asRows(orgs).map(x=>[str(x.id),str(x.name)]));
-      const matches=safeLimit(asRows(matchRows),500),deals=safeLimit(asRows(dealRows),500);
-      snapshot.clubRequests=needs.map(n=>{
-        const ms=matches.filter(m=>m.club_need_id===n.id),ds=deals.filter(d=>d.club_need_id===n.id);
-        return {id:n.id,clubName:byOrg.get(str(n.organisation_id))||'Club',position:n.position||n.title||'Unspecified position',
-          candidateCount:ms.length,shortlistedCount:ms.filter(m=>['shortlisted','selected'].includes(str(m.status))).length,
-          pitchedCount:ds.filter(d=>['pitched','pending','accepted','declined'].includes(str(d.pitch_status).toLowerCase())).length,
-          href:`${basePath}?view=opportunities&tab=needs&record=${encodeURIComponent(n.id)}`,
-          isPredicted:n.need_type==='predicted'};
-      });
+      snapshot.clubRequests=sourceRows('requests').map(row=>({
+        id:row.id,clubName:row.club_name,position:row.position,
+        candidateCount:int(row.candidate_count),shortlistedCount:int(row.shortlisted_count),
+        pitchedCount:int(row.pitched_count),isPredicted:row.need_type==='predicted',
+        href:`${basePath}?view=opportunities&tab=needs&record=${encodeURIComponent(row.id)}`,
+      }));
     }catch{errors.requests='Club request data unavailable';}
   } else errors.requests='Available to agency administrators';
 
@@ -190,12 +182,10 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
             events.push({id:`birthday:${p.id}`,label:`${name} · Birthday`,description:'Player birthday',date:bday,type:'birthday',href});
         }
       }
-      const tasks=safeLimit(asRows(await client.schema('djm_os').from('tasks')
-        .select('id,title,due_at,owner_user_id,player_id,status').eq('tenant_id',tenantId)
-        .eq('owner_user_id',userId).gte('due_at',`${today}T00:00:00Z`)
-        .lte('due_at',`${datePlus(today,90)}T23:59:59Z`).limit(501)),500);
+      // A private-source failure must not hide the dates already verified from the roster.
+      let tasks:Row[]=[];
+      try {tasks=safeLimit(sourceRows('tasks'),500);}catch{errors.events='Upcoming work unavailable';}
       for(const task of tasks){
-        if(['done','completed','cancelled','archived'].includes(str(task.status).toLowerCase()))continue;
         const on=dayInZone(task.due_at,timeZone);
         if(on)events.push({id:`task:${task.id}`,label:task.title||'Follow-up',description:'Assigned task',date:on,type:'task',href:`${basePath}?view=calendar&task=${encodeURIComponent(task.id)}`});
       }
@@ -204,9 +194,8 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
   }
 
   try {
-    const activity=await client.rpc('platform_server_dashboard_recent_activity',{
-      p_tenant_id:tenantId,p_actor_user_id:userId,p_scope:scope,p_limit:12,
-    });
+    const activity=await activityRead;
+    if(!activity)throw new Error('Recent activity unavailable');
     snapshot.recentActivity=asRows(activity).filter(e=>e.action&&e.occurred_at)
       .slice(0,8).map(e=>{
         // Resolve names only from players already permitted in the active scope.

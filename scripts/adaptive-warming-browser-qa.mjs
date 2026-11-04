@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 const browser = await chromium.launch({executablePath: process.env.CALENDAR_CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage']});
 try {
-  for (const connection of [{saveData: true, effectiveType: '4g'}, {saveData: false, effectiveType: '3g'}]) {
+  for (const connection of [{saveData: true, effectiveType: '4g'}, {saveData: false, effectiveType: '3g'}, {saveData: false, effectiveType: '4g'}]) {
     const page = await browser.newPage({viewport: {width: 1440, height: 900}});
     await page.addInitScript(value => {Object.defineProperty(navigator, 'connection', {configurable: true, value: Object.assign(new EventTarget(), value)});}, connection);
     const warming = [];
@@ -23,12 +23,8 @@ try {
     await page.locator('details > summary').filter({hasText:'Your day'}).click();
     await page.getByText('A simple follow-up', {exact: true}).waitFor();
     await page.waitForTimeout(2000);
-    assert.deepEqual(warming, [], 'Limited connections must not fetch hidden sections in the background');
-    // This Pages harness holds its App Router URL context fixed. Check the
-    // real navigation intent's request here; the App Router matrix checks rendering.
-    const requested = page.waitForResponse(response => response.request().method() === 'POST' && response.request().postDataJSON()?.action === 'players_workspace');
-    await page.getByRole('link', {name: 'Players', exact: true}).first().click(); await requested;
-    assert.deepEqual(warming, ['players'], 'Explicit navigation still requests its destination immediately');
+    await page.getByRole('link', {name: 'Players', exact: true}).first().hover();
+    assert.deepEqual(warming, [], 'Inactive views do not fetch private data on idle or hover');
     await page.close(); console.log('Adaptive warming passed: ' + JSON.stringify(connection));
   }
 } finally {await browser.close();}

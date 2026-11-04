@@ -2,6 +2,7 @@
 
 import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
 import AgencyDashboardReference,{type DashboardSnapshot,type DashboardScope,type DashboardCreateKind} from './AgencyDashboardReference';
+import {readWithDeadline} from '@/lib/read-with-deadline';
 import styles from './AgencyDashboardConnected.module.css';
 
 const isoDay = (value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -26,7 +27,7 @@ function validSnapshot(value:unknown,scope:DashboardScope):value is DashboardSna
     Array.isArray(data.upcomingEvents)&&Array.isArray(data.recentActivity);
 }
 export default function AgencyDashboardConnected({
-  invoke,tenantId,userId,role,refreshKey=0,basePath,agencyName,agencyMark,onCreate,children,
+  invoke,tenantId,userId,role,refreshKey=0,basePath,agencyName,agencyMark,onCreate,onOpenYourDay,children,
 }: {
   invoke:<T=any>(action:string,body?:Record<string,unknown>)=>Promise<T>;
   tenantId:string;
@@ -37,6 +38,7 @@ export default function AgencyDashboardConnected({
   agencyName:string;
   agencyMark?:ReactNode;
   onCreate:(kind:DashboardCreateKind)=>void;
+  onOpenYourDay?:()=>void;
   children?:ReactNode;
 }) {
   const canViewAgency=role==='owner'||role==='admin';
@@ -57,13 +59,13 @@ export default function AgencyDashboardConnected({
     setSnapshot(null);
     setLoading(true);
     setError('');
-    void invoke<{snapshot?:unknown;viewer_first_name?:string}>('dashboard_snapshot',{scope:effectiveScope,local_date:date}).then(result=>{
+    void readWithDeadline(invoke<{snapshot?:unknown;viewer_first_name?:string}>('dashboard_snapshot',{scope:effectiveScope,local_date:date})).then(result=>{
       if(!active||ticket!==request.current)return;
       if(!validSnapshot(result?.snapshot,effectiveScope))throw new Error('Dashboard response could not be verified.');
       setViewerName(typeof result.viewer_first_name==='string'?result.viewer_first_name.slice(0,80):'');
       setSnapshot(result.snapshot);
     }).catch(()=>{
-      if(active&&ticket===request.current)setError('Unable to load this dashboard. Your other ReDream data is unchanged.');
+      if(active&&ticket===request.current)setError('Unable to load this dashboard.');
     }).finally(()=>{if(active&&ticket===request.current)setLoading(false);});
     return ()=>{active=false;};
   },[invoke,tenantId,userId,role,effectiveScope,date,revision,refreshKey]);
@@ -94,7 +96,7 @@ export default function AgencyDashboardConnected({
       <strong>{error||'Loading your agency dashboard…'}</strong>
       {error?<button type="button" onClick={()=>setRevision(value=>value+1)}>Retry dashboard</button>:null}
     </section>}
-    <details className={styles.today}>
+    <details className={styles.today} onToggle={event=>{if(event.currentTarget.open)onOpenYourDay?.();}}>
       <summary>Your day <span>ReDream tasks, approvals and follow-ups</span></summary>
       <div className={styles.todayContent}>{children}</div>
     </details>
