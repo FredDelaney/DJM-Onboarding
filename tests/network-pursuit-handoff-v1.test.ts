@@ -101,12 +101,12 @@ test('Pursuit Room refreshes its own current pitch state regardless of origin wo
   );
   assert.match(
     pursuit,
-    /'pitch_execution'/,
+    /invoke\('club_request_pitch_history',\s*\{ scope: 'match', scope_id: request\.playerMatchId \}\)/,
   );
 
-  assert.match(
+  assert.doesNotMatch(
     pursuit,
-    /'pitch_responses'/,
+    /invoke\('pitch_(execution|responses)'/,
   );
   assert.match(
     pursuit,
@@ -122,11 +122,7 @@ test('Pursuit Room refreshes its own current pitch state regardless of origin wo
   );
   assert.match(
     pursuit,
-    /setExecutionControl/,
-  );
-  assert.match(
-    pursuit,
-    /setResponseControl/,
+    /setCurrentPitch\(snapshot\.current\)/,
   );
 });
 

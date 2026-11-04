@@ -1,0 +1,21 @@
+.section { display: grid; gap: 12px; min-width: 0; }
+.section h3, .section p { margin: 0; }
+.heading { color: var(--interface-ink, #172033); font-size: 15px; font-weight: 650; }
+.muted { color: var(--interface-muted, #59677a); font-size: 13px; line-height: 1.5; }
+.requestLink { display: inline-flex; align-items: center; min-height: 44px; justify-self: start; color: var(--interface-ink); text-decoration: underline; text-underline-offset: 3px; font-size: 13px; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.item { display: grid; min-width: 0; gap: 8px; padding: 12px; border: 1px solid var(--interface-line, #d8dfea); border-radius: 10px; overflow-wrap: anywhere; }
+.title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.status { padding: 4px 8px; border-radius: 6px; background: var(--interface-soft, #eff3f8); font-size: 12px; }
+.reply { display: grid; gap: 4px; padding: 8px 10px; border-inline-start: 2px solid var(--agency-primary, #305fbd); background: var(--interface-soft, #eff3f8); font-size: 13px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions:empty { display: none; }
+.form { display: grid; gap: 10px; min-width: 0; flex: 1 0 100%; }
+.field { display: grid; gap: 4px; min-width: 0; font-size: 13px; }
+.form :is(select, textarea) { width: 100%; min-height: 44px; padding: 8px; border-radius: 6px; border: 1px solid var(--interface-line, #d8dfea); background: var(--interface-surface, #fff); color: inherit; font: inherit; }
+.action { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; border: 1px solid var(--interface-line, #d8dfea); border-radius: 8px; background: var(--interface-surface, #fff); color: var(--interface-ink, #172033); font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
+.action:disabled { cursor: default; opacity: .6; }
+.action:focus-visible, .requestLink:focus-visible { outline: 2px solid var(--agency-primary, #305fbd); outline-offset: 2px; }
+@media (max-width: 680px) {
+  .form :is(select, textarea) { font-size: 16px; }
+}

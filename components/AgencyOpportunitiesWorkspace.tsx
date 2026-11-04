@@ -18,6 +18,8 @@ import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
 import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import WorkspaceListSearch from './WorkspaceListSearch';
+import ClubPitchHistory from './ClubPitchHistory';
+import type {PitchHistoryInvoke} from '@/lib/club-pitch-history';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
@@ -170,9 +172,13 @@ export default function AgencyOpportunitiesWorkspace({
   onOpenPursuit,
   onOpenIntelligence,
   invoke,
+  marketInvoke,
+  recordRefreshKey,
 }: {
   data: any;
   invoke: <T,>(action: string, body?: Record<string, unknown>) => Promise<T>;
+  marketInvoke?: PitchHistoryInvoke;
+  recordRefreshKey?: number;
   basePath: string;
   onRetry?: () => void;
   onRefresh: () => Promise<void>;
@@ -773,15 +779,19 @@ export default function AgencyOpportunitiesWorkspace({
                     if (event.key !== 'Escape') return;
                     event.preventDefault(); event.stopPropagation(); setExpandedNeed({scope: basePath, id: ''}); document.getElementById(toggleId)?.focus();
                   }}>
+                    <div className={styles.needBrief}>
                     {clubHref?<Link className={styles.needSearch} href={clubHref} prefetch={false}>Open club profile<ChevronRight size={16}/></Link>:null}
                     {facts.length ? <section className={styles.needBriefGroup}><h3>Football requirements</h3><dl className={styles.needFacts}>{facts.map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section> : null}
                     {financialFacts.length?<section className={styles.needBriefGroup}><h3>Budget & contract</h3><dl className={styles.needFacts}>{financialFacts.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p className={styles.needCoverage}>Request budgets only, not agreed earnings or agency revenue. No currency or tax conversion is applied.</p></section>:null}
                     {sourceFacts.length?<section className={styles.needBriefGroup}><h3>Source & priority</h3><dl className={styles.needFacts}>{sourceFacts.map(([label,value])=><div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>{item.need?.source_context?<p className={styles.needNotes}>{item.need.source_context}</p>:null}{item.need?.source_person_name&&item.need?.source_person_id?<a href={`${basePath}?view=network&person=${encodeURIComponent(item.need.source_person_id)}`} className={styles.needSearch}>Open source contact<ChevronRight size={16}/></a>:null}</section>:null}
                     {item.need?.profile_notes ? <p className={styles.needNotes}>{item.need.profile_notes}</p> : null}
                     {item.need?.raw_request?<details className={styles.needSource}><summary>Original request</summary><p className={styles.needNotes}>{item.need.raw_request}</p></details>:null}
+                    {needConnected.has(needId) ? <details className={styles.needSource}><summary>Source conversation</summary><ConnectedOpportunityContext context={needConnected.get(needId)}/></details> : null}
+                    </div>
+                    <div className={styles.needWork}>
                     <div className={styles.needCandidates}>
                       <h3>Recorded player opportunities</h3>
-                      <p className={styles.needCoverage}>Shortlists are internal. Opening an opportunity starts a separate pitch review; nothing is sent from this screen.</p>
+                      <p className={styles.needCoverage}>Shortlist privately. Open a player opportunity to review the pitch.</p>
                       {shortlistError?<p role="alert" className={styles.shortlistError}>{shortlistError}</p>:null}
                       {shortlistNotice?<p role="status" className={styles.shortlistNotice}>{shortlistNotice}</p>:null}
                       {candidates.length ? <>
@@ -824,8 +834,13 @@ export default function AgencyOpportunitiesWorkspace({
                         })}</ul>
                       </> : <p className={styles.needCoverage}>{item.candidate_coverage?.recorded_candidates === 0 ? 'No candidates recorded yet.' : 'No player opportunities are shown for this need.'}</p>}
                     </div>
-                    {needConnected.has(needId) ? <details className={styles.needSource}><summary>Source conversation</summary><ConnectedOpportunityContext context={needConnected.get(needId)}/></details> : null}
                     {needOpen ? <button type="button" data-ui-button="secondary" className={styles.needSearch} onClick={() => prepareSearch(item)}>Start search<ChevronRight size={16}/></button> : <p className={styles.needCoverage}>{statusLabel}. Review this need before starting new work.</p>}
+                    {marketInvoke ? <ClubPitchHistory scope="request" scopeId={needId} basePath={basePath} invoke={marketInvoke} refreshKey={recordRefreshKey}
+                      onReview={needOpen ? pitch => {
+                        const candidate = candidates.find((item: any) => item.player_match_id === pitch.player_match_id && item.player_id === pitch.player_id);
+                        if (candidate) return () => openNeedRoute(item, candidate);
+                      } : undefined}/> : null}
+                    </div>
                   </section> : null}
                 </article>
               );

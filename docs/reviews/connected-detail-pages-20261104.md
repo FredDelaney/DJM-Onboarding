@@ -27,3 +27,18 @@ The recent club-link, request-shortlist, player-status, lead-agent and multi-age
 - Main's initial workspace entry is 149,906 gzip bytes with the CI build environment. An initial candidate exceeded the 150,000-byte limit. Loading the responsibility control where task rows need it brings the rebased entry to 123,269 gzip bytes. Home task editing, completion, Undo and conflict recovery pass. All TypeScript projects and the production build pass.
 
 The candidate migration remains unapplied. Production had zero saved verified club links at review time. Agencies can confirm existing links from the Club overview. A name match alone provides no link back from the player. Hosted acceptance of the new frontend and a physical-device check remain open. Player files and agency document drafts still have separate permissions and entry points. Exact document handoffs are a separate review item.
+
+## Club request workspace
+
+The request brief and its source sit next to the recorded candidates, shortlist and pitch history on desktop. On a phone the two sections stack. A private draft, a prepared link and a send confirmed by an agent each have their own status. Replies submitted through a link retain their unverified identity status. Owners and admins can record the most recent response they received outside ReDream by phone, email or another channel. The workspace displays the latest entry from each source and uses the same saved pitch history in Player → Deals.
+
+Pitch review now uses the exact match ID. Two requests at the same club can refer to the same player without sharing history. The existing one-active-link-per-player-and-club publication guard remains in effect. Standalone shares with no saved request context stay outside this history.
+
+All 2,354 automated tests pass. The new PostgreSQL fixture verifies the exact request and match, tenant and role boundaries, and retry-safe saves that preserve the separate link response. The 390px browser journey exercises the full sequence with synthetic data and shows the same reply on the player's Deals tab. Existing request, deal, salary, keyboard and recovery browser checks pass. TypeScript and the production build pass, with the workspace entry at 123,317 of 150,000 gzip bytes. A read-only staging check confirmed the existing dependencies and that the new migration is pending.
+
+### Staging release order
+
+1. Apply `20261104133424_connect_player_detail_to_club_and_work.sql` using the checks above.
+2. Apply `20261104142417_exact_club_request_pitch_history.sql`. SHA-256 `b2e8a960c5ee0a02d6caef191bd12623c79299251710cc0f353760d6f8d76d83`. Check RLS and the service-role-only grants for `platform_server_club_request_pitch_history` and `platform_server_record_club_pitch_staff_reply`.
+3. Deploy `supabase/functions/agency-market/index.ts` to ReDream staging. Deploy the matching frontend after both RPCs are available.
+4. With a labelled synthetic player and two requests at the same club, shortlist the player, create a draft, publish a link, confirm a test send, and record a reply. Reopen the request and Player → Deals. Check the same reply and the exact return link. Verify that the second request stays separate, that restricted staff cannot read the history, and that a retry retains a single reply. Repeat the controls on a physical phone before promotion.

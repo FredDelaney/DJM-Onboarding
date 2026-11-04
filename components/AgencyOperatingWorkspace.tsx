@@ -1776,6 +1776,7 @@ export default function AgencyOperatingWorkspace() {
                   data={data}
                   basePath={basePath}
                   invoke={invoke}
+                  marketInvoke={marketInvoke}
                   rpc={rpc}
                   onRefresh={loadView}
                   onLoadMore={loadMorePlayers}
@@ -1787,8 +1788,10 @@ export default function AgencyOperatingWorkspace() {
             {!clubAccountRequest && view === 'opportunities' && canSeeBusiness ? (
               <AgencyOpportunitiesWorkspace
                 onRecordRefresh={refreshRecords}
+                recordRefreshKey={recordRefreshRevision}
                 key={stateScope}
                 invoke={invoke}
+                marketInvoke={marketInvoke}
                 onRetry={() => void loadView()}
                 onRefresh={loadView}
                 rpc={rpc}
@@ -2066,6 +2069,7 @@ export default function AgencyOperatingWorkspace() {
             });
           }}
           onApplied={async () => {
+            setRecordRefreshRevision(value => value + 1);
             await loadView();
           }}
         />

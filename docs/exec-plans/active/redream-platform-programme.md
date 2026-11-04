@@ -30,6 +30,8 @@ Report a validated-checklist percentage as validated/released rows divided by al
 
 ## Current checkpoint
 
+- UI-06 / UI-08 / REL-01. PR 304 now puts the club brief next to the recorded candidates, shortlist controls and pitch history. It reads each pitch by its saved request and match, and shows the same record under Player → Deals. An owner or admin can record an external reply once a send has been confirmed. Reply notes and responses submitted through the pitch link have separate provenance. The existing career, salary, dossier, publication and send confirmation controls remain in the flow. Release requires both additive migrations, then the `agency-market` Edge Function, then the matching frontend. Exact release and acceptance steps are in the [review note](../../reviews/connected-detail-pages-20261104.md#club-request-workspace). Hosted and physical-device acceptance remain open.
+
 - PR 304 CI follow-up. Updated the club-deal checks to expect the title-specific accessible button and supplied the exact player IDs in the profile-photo and recruitment fixtures. The club contracts, profile and recruitment browser fixtures, and mobile club-to-deal history journey pass locally. Hosted checks and staging release acceptance remain open.
 
 - On 4 November Jesse shifted the design reference to the Athlivo-style work already merged for Dashboard, Clubs, Requests and Players. Continue from current main and preserve all 46 programme and 17 UI parent checks. The prior requirements prototype remains outside main and separate from this pass.

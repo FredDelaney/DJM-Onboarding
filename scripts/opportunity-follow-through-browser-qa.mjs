@@ -3,7 +3,76 @@ import {mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright';
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
 try{
- if(process.env.OPPORTUNITY_QA_ONLY!=='deals')for(const width of [320,390,768,1440]){
+ if(process.env.OPPORTUNITY_QA_ONLY!=='deals'){
+  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  const url=new URL(process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow');
+  url.search='?view=opportunities&tab=needs&record=qa-need&scenario=pitch-journey';
+  for(let attempt=0;attempt<50;attempt++){try{await page.goto(url.href);break;}catch(error){if(attempt===49)throw error;await page.waitForTimeout(250);}}
+  const request=page.locator('#opportunity-qa-need');
+  const history=request.getByRole('region',{name:'Pitch history',exact:true});
+  await history.getByText('No pitches recorded yet.',{exact:true}).waitFor();
+  await request.getByRole('button',{name:'Shortlist José Silva',exact:true}).click();
+  await request.getByText('Shortlisted · internal only',{exact:true}).waitFor();
+  const next=page.getByRole('region',{name:'Next pursuit action',exact:true});
+  const open=request.getByRole('button',{name:'Open opportunity for José Silva',exact:true});
+  const back=page.getByRole('button',{name:'Back to Opportunities',exact:true});
+  async function confirm(action,label){
+   await next.getByRole('button',{name:action,exact:true}).click();
+   await page.getByRole('button',{name:label,exact:true}).click();
+  }
+  await open.click();
+  await confirm('Create private pitch','Create pitch draft');
+  await next.getByRole('button',{name:'Publish pitch link',exact:true}).waitFor();
+  await back.click();
+  await history.getByText('Private draft',{exact:true}).waitFor();
+  assert.equal(await history.getByRole('button',{name:'Record club reply',exact:true}).count(),0);
+  await history.getByRole('button',{name:'Review pitch',exact:true}).click();
+  await confirm('Publish pitch link','Publish link');
+  await next.getByRole('button',{name:'I sent this pitch',exact:true}).waitFor();
+  await back.click();
+  await history.getByText('Link prepared',{exact:true}).waitFor();
+  assert.equal(await history.getByText('Send recorded',{exact:true}).count(),0);
+  assert.equal(await history.getByRole('button',{name:'Record club reply',exact:true}).count(),0);
+  await history.getByRole('button',{name:'Review pitch',exact:true}).click();
+  await confirm('I sent this pitch','Confirm sent');
+  await next.getByRole('button',{name:'Prepare response review',exact:true}).waitFor();
+  await back.click();
+  await history.getByText('Send recorded',{exact:true}).waitFor();
+  assert.match(await history.locator('time').textContent(),/^0?4 Nov 2026$/,'Delivery shows a recorded date rather than a due-date label');
+  await history.getByText('Please follow up after the window.',{exact:true}).waitFor();
+  await history.getByRole('button',{name:'Record club reply',exact:true}).click();
+  await history.getByLabel('Club reply',{exact:true}).selectOption('request_information');
+  await history.getByLabel('Received via',{exact:true}).selectOption('phone');
+  await history.getByLabel('What did the club say?',{exact:true}).fill('Director requested full-match footage.');
+  await history.getByRole('button',{name:'Save club reply',exact:true}).click();
+  await history.getByRole('alert').getByText(/The save could not be confirmed/).waitFor();
+  await history.getByRole('button',{name:'Retry same reply',exact:true}).click();
+  await history.getByRole('form',{name:'Record a reply received outside ReDream',exact:true}).waitFor({state:'detached'});
+  await history.getByText('Director requested full-match footage.',{exact:true}).waitFor();
+  await history.getByText('Recorded by agency · Phone',{exact:true}).waitFor();
+  await history.getByText('Via pitch link · identity unverified',{exact:true}).waitFor();
+  assert.deepEqual(await page.evaluate(()=>window.qaPitchWrites),['pitch_draft_create','pitch_publish','pitch_confirm_sent']);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  const output=process.env.OPPORTUNITY_QA_OUTPUT||'/tmp/redream-platform-programme/club-need-review';
+  await mkdir(output,{recursive:true});
+  await request.screenshot({path:output+'/request-pitch-390.png'});
+  await page.setViewportSize({width:1440,height:844});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  await request.screenshot({path:output+'/request-pitch-1440.png'});
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>window.history.pushState(null,'','?view=players&player=qa-player-0&scenario=pitch-journey'));
+  await page.getByRole('navigation',{name:'Player sections',exact:true}).getByRole('button',{name:'Deals',exact:true}).click();
+  const playerHistory=page.getByRole('region',{name:'Pitch history',exact:true});
+  await playerHistory.getByText('Director requested full-match footage.',{exact:true}).waitFor();
+  assert.equal(await playerHistory.getByRole('link',{name:'Centre back needed',exact:true}).getAttribute('href'),url.pathname+'?view=opportunities&tab=needs&record=qa-need');
+  assert.equal(await playerHistory.getByRole('button',{name:'Record club reply',exact:true}).count(),0);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  assert.deepEqual(errors,[]);
+  await page.close();
+  console.log('Club request at 390px: shortlist, exact private pitch, prepared link, explicit send, retry-safe reply and player deal history passed');
+ }
+ if(!['deals','pitch'].includes(process.env.OPPORTUNITY_QA_ONLY))for(const width of [320,390,768,1440]){
   const page=await browser.newPage({viewport:{width,height:844}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
   const url=new URL(process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow');
   url.search='?view=opportunities&tab=needs&scenario=need-review';
@@ -132,7 +201,7 @@ try{
   }
   assert.deepEqual(errors,[]);await page.close();console.log('PASS club need review, deliberate player/search choice, missing coverage, expiry and layout',width);
  }
- if(process.env.OPPORTUNITY_QA_ONLY!=='needs'){
+ if(!['needs','pitch'].includes(process.env.OPPORTUNITY_QA_ONLY)){
  for(const width of [320,390,768,1440]){
   const page=await browser.newPage({viewport:{width,height:844}}),errors=[];
   page.on('pageerror',error=>errors.push(error.message));

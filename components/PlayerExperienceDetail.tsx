@@ -11,6 +11,8 @@ import PlayerLeadAgentControl from './PlayerLeadAgentControl';
 import PlayerTeamAgentsControl from './PlayerTeamAgentsControl';
 import PlayerSalaryTerms from './PlayerSalaryTerms';
 import RecordContactActions from './RecordContactActions';
+import ClubPitchHistory from './ClubPitchHistory';
+import type {PitchHistoryInvoke} from '@/lib/club-pitch-history';
 import {friendlyError,relativeDate} from '@/lib/platform-client';
 import {PLAYER_AGENCY_STATUSES,playerAgencyStatus,playerAgencyStatusLabel,type PlayerAgencyStatus} from '@/lib/player-agency-status';
 import {invalidatePlayerProfile} from '@/lib/player-profile-cache';
@@ -24,7 +26,7 @@ import styles from './PlayerExperience.module.css';
 
 type Invoke=<T,>(action:string,body?:Record<string,unknown>)=>Promise<T>;
 type Rpc=<T,>(name:string,args?:Record<string,unknown>,signal?:AbortSignal)=>Promise<T>;
-type Props={playerId:string;summary?:any;cacheScope:string;canManageRecords:boolean;basePath:string;invoke:Invoke;rpc:Rpc;onRefresh:()=>Promise<void>;onClose:()=>void;onOpenAction:(request:AgencyActionRequest)=>void};
+type Props={playerId:string;summary?:any;cacheScope:string;canManageRecords:boolean;basePath:string;invoke:Invoke;marketInvoke?:PitchHistoryInvoke;rpc:Rpc;onRefresh:()=>Promise<void>;onClose:()=>void;onOpenAction:(request:AgencyActionRequest)=>void};
 type Tab='profile'|'tasks'|'updates'|'deals'|'documents'|'career';
 type LinkedTask = {id: string; title: string; due_at: string | null};
 type EditKey='primary_position'|'current_club'|'current_country'|'contract_expiry';
@@ -49,7 +51,7 @@ function ContractCard({title,expiry,empty='No expiry recorded'}:{title:string;ex
 }
 function EmptyPanel({icon:Icon,title,description}:{icon:typeof Users;title:string;description:string}){return <div className={styles.workEmpty}><span><Icon size={22}/></span><h3>{title}</h3><p>{description}</p></div>;}
 
-export default function PlayerExperienceDetail({playerId,summary,cacheScope,canManageRecords,basePath,invoke,rpc,onRefresh,onClose,onOpenAction}:Props){
+export default function PlayerExperienceDetail({playerId,summary,cacheScope,canManageRecords,basePath,invoke,marketInvoke,rpc,onRefresh,onClose,onOpenAction}:Props){
  const initial=summary?.identity ? {identity:summary.identity} : null;
  const restricted=!canManageRecords||Boolean(summary?.access?.restricted);
  const hasSummary=Boolean(initial);
@@ -352,6 +354,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
         {href?<Link className={styles.recordAction} href={href} prefetch={false} aria-label={'Open deal: '+title}>Open <ChevronRight size={16}/></Link>:null}
        </article>;
       })}</div>:<EmptyPanel icon={Target} title="No linked deals" description="Deals recorded for this player will appear here."/>}
+      {canManageRecords && marketInvoke ? <ClubPitchHistory scope="player" scopeId={playerId} basePath={basePath} invoke={marketInvoke}/> : null}
       <div className={styles.sectionHeading}><div><h2>Recorded opportunities</h2><p>Other club interest recorded for this player.</p></div></div>
       {opportunities.length?<div className={styles.dealList}>{opportunities.map((item:any,index:number)=><article key={item.id||index}><ClubIdentityMark name={raw(item.club_name)||'Club'} country={item.country}/><div><strong>{item.club_name||'Club opportunity'}</strong><span>{item.summary||item.next_action||'No description'}</span></div><small>{human(item.stage||'Recorded')}</small></article>)}</div>:<EmptyPanel icon={Target} title="No other opportunities recorded" description="Other recorded club interest will appear here."/>}
      </section>:null}
